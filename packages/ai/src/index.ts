@@ -22,6 +22,9 @@ export type AiReceipt = {
   outputHash: string;
   inputTokens: number;
   outputTokens: number;
+  cachedInputTokens?: number;
+  cacheWriteTokens?: number;
+  reasoningTokens?: number;
   latencyMs: number;
 };
 export type AiResult<T> = { output: T; receipt: AiReceipt };
@@ -174,6 +177,8 @@ export class OpenAiProvider implements AiProvider {
           'Az AI nem készített teljes, elfogadható választ.',
         );
       const output = schema.parse(response.output_parsed);
+      const inputDetails = response.usage?.input_tokens_details as
+        { cached_tokens?: number; cache_write_tokens?: number } | undefined;
       return {
         output,
         receipt: {
@@ -185,6 +190,10 @@ export class OpenAiProvider implements AiProvider {
           outputHash: hash(output),
           inputTokens: response.usage?.input_tokens ?? 0,
           outputTokens: response.usage?.output_tokens ?? 0,
+          cachedInputTokens: inputDetails?.cached_tokens ?? 0,
+          cacheWriteTokens: inputDetails?.cache_write_tokens ?? 0,
+          reasoningTokens:
+            response.usage?.output_tokens_details?.reasoning_tokens ?? 0,
           latencyMs: Date.now() - start,
         },
       };

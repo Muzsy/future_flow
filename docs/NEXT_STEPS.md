@@ -1,5 +1,7 @@
 # Következő lépések, sorrendben
 
+2026-10-02: a Supabase-migráció és a TLS-kapcsolat működik. Valódi OpenAI-hívásokkal három profilból három alaptörténet és három alternatív életág készült, összesen körülbelül 0,63 USD költséggel. A helyi AI-próba fogyasztást mér és megőrzi a korábbi hívásokra vonatkozó költségfoglalásokat. Részletek és minták: [AI-ellenőrzés](AI_VALIDATION.md). A valódi Supabase email-belépés és a fióktörlés adminisztratív kulcsa még az első lépés lezárásához tartozik.
+
 1. **Élő infrastruktúra:** Supabase-adatbázis elérhetősége, migráció, email-belépés, OpenAI-kulcs és projektben elérhető modell. Elfogadás: valódi profilból AI-események, fejezetek és új ág készülnek.
 2. **Generálási javítások:** célzott domain/schema repair, fidelity-visszajelzés alapján egy történetjavítás, biztonságos manuális job retry, AI-hibaköltség és checkpoint megőrzési policy. Elfogadás: a már kész események felhasználásával folytatható sikertelen narratíva.
 3. **Profilélmény:** automatikus mentés, gazdagabb kapcsolati skálák, célfontosság és több cél, rövid AI-profilösszegzés. A tájékoztató elfogadását már visszatölti a felület. Elfogadás: megszakítás és másik eszköz után nincs adatvesztés vagy csendes felülírás.

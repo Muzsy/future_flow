@@ -468,13 +468,15 @@ export class Repository {
   }
   async branch(userId: string, id: string) {
     const branch = requireRow(
-      await this.db.query(
+      await this.db.query<Row & { id: string; name: string }>(
         'SELECT b.id,b.future_id,b.parent_branch_id,b.fork_event_id,b.name,b.status,j.id AS job_id FROM ff_branches b LEFT JOIN ff_jobs j ON j.branch_id=b.id WHERE b.id=$1 AND b.user_id=$2',
         [id, userId],
       ),
     );
     const events = await this.timeline(userId, id);
-    const decisions = await this.db.query(
+    const decisions = await this.db.query<
+      Row & { id: string; event_id: string; prompt: string }
+    >(
       'SELECT id,event_id,prompt FROM ff_decisions WHERE branch_id=$1 AND user_id=$2',
       [id, userId],
     );

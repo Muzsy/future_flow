@@ -51,7 +51,12 @@ describe('OpenAI boundary', () => {
       status: 'completed',
       output_parsed: simulation(),
       model: 'test-model-events',
-      usage: { input_tokens: 50, output_tokens: 100 },
+      usage: {
+        input_tokens: 50,
+        output_tokens: 100,
+        input_tokens_details: { cached_tokens: 20, cache_write_tokens: 25 },
+        output_tokens_details: { reasoning_tokens: 45 },
+      },
       _request_id: 'test-request',
     });
     const result = await ai.events(input());
@@ -68,6 +73,10 @@ describe('OpenAI boundary', () => {
       }),
     );
     expect(result.receipt.inputTokens).toBe(50);
+    expect(result.receipt.outputTokens).toBe(100);
+    expect(result.receipt.cachedInputTokens).toBe(20);
+    expect(result.receipt.cacheWriteTokens).toBe(25);
+    expect(result.receipt.reasoningTokens).toBe(45);
     expect(result.receipt).not.toHaveProperty('prompt');
   });
   it('rejects incomplete/refused outputs instead of inventing replacement content', async () => {

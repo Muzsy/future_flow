@@ -47,7 +47,21 @@ A `.gitignore` minden `.env*` fájlt és az `env/` mappát kizárja, az érték 
 
 A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatibilis tesztek kulcs nélkül is futtathatók. A valódi Supabase Auth, DB-hálózat és OpenAI-generálás csak a szükséges beállítások után ellenőrizhető.
 
-2026-10-02: a megadott projektben az első migráció lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. A valódi generálási kérés `credit_balance_exhausted` hibával elutasítva; AI-tartalom még nem készült. A Supabase adminisztratív kulcs még hiányzik.
+2026-10-02: a megadott projektben az első migráció lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. Az API-kredit feltöltése után valódi AI-események, történetfejezetek és alternatív életág készültek. A Supabase adminisztratív kulcs még hiányzik; a tényleges email-belépés még külön ellenőrzendő.
+
+## Valódi AI-próba, korlátozott költséggel
+
+`pnpm smoke:ai` kitalált profilból valódi OpenAI-válaszokkal futtatja az esemény → történet → ellenőrzés folyamatot, majd egy döntésből új életágat készít. A PostgreSQL-adatbázis helyi PGlite példány; a próba nem készít Supabase Auth-fiókot és nem ír személyes adatot a Supabase-ba.
+
+További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. Egy időben egy próbát futtass.
+
+A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
+
+Az árbecslés a GPT-6.1 Sol 2026-10-02-án ellenőrzött standard díjait használja: 2 USD/M bemenet, 0,10 USD/M cache-olvasás, 2,50 USD/M cache-írás, 10 USD/M kimenet. A gondolkodási token a kimenet része, nem kerül kétszer elszámolásra. Más modell vagy hosszú kontextus esetén a próba megáll, amíg nincs hozzá megfelelő árbeállítás. Az összeg tokenszám alapján számolt becslés, nem számlázási egyenleglekérdezés. Források: [modell és árak](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [bemeneti tokenszámlálás](https://developers.openai.com/api/docs/guides/token-counting).
+
+A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A diagnosztikai válaszok kizárólag szintetikus tesztadatok; az API-kulcs és a kérés fejlécei nem kerülnek a naplóba. Hibaválaszból csak a kód és típus tárolódik. Ezek a helyi fájlok Gitből kizártak. A generálási hiba nem indít automatikus teljes újragenerálást.
+
+Ez a költségőr a helyi próbára vonatkozik. Az alkalmazás minden felhasználójára érvényes szolgáltatói költségkeret külön ops-feladat.
 
 ## Üzemeltetés
 
