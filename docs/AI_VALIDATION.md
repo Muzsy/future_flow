@@ -2,6 +2,8 @@
 
 Három kitalált magyar profilból három alaptörténet és három döntési életág készült valódi OpenAI Responses API-hívásokkal, a `gpt-6.1-sol` modellel. Mind a hat generálás átment a sémavizsgálaton, az esemény- és fejezethivatkozások ellenőrzésén és a külön AI történetellenőrzésen.
 
+Ez a lezárt próba a v1 tízéves generálását és új ágba elágazását ellenőrizte. Az [aktív termékterv](PRODUCT_PLAN_HU.md) rövid időszakokra és ugyanazon életág folytatására tér át. A fenti siker nem igazolja ezt a még fejlesztendő hurkot, a felhasználói folytatási szándékot vagy a későbbi visszatérést; ehhez külön ellenőrzés és emberi pilot szükséges.
+
 | Profil | Alapesemény | Új ágesemény | Örökölt esemény | Fejezet összesen | AI-hívás | Becsült költség |
 |---|---:|---:|---:|---:|---:|---:|
 | Családos műszaki alkalmazott, érdekesebb munkát keres | 9 | 8 | 3 | 6 | 6 | 0,2041 USD |

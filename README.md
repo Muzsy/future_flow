@@ -1,6 +1,8 @@
 # Alter Jövő / future_flow
 
-Személyes, OpenAI-val generált, elágaztatható életút-szcenáriók. Magyar, 18+ zárt tesztváltozat.
+OpenAI-val generált, tartósan mentett, folytatható és elágaztatható alternatív életek. Magyar, 18+ webes indulás; a rövid időszakokon át folytatható MVP az aktív fejlesztési cél.
+
+A jelenlegi technikai prototípus tízéves életút-szcenáriókat készít, és a döntésekből új ágat indít. Ugyanazon életág következő időszakának generálása még fejlesztendő. Az [új termékterv](docs/PRODUCT_PLAN_HU.md) rövid első fejezetre, döntésre és ugyanannak az életnek a folytatására rendezi át a munkát.
 
 Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez és a történet ellenőrzéséhez. A működő alkalmazásban nincs AI nélküli demo vagy mock mód. A tesztek elkülönített tesztadatokat és teszthelyettesítőket használnak.
 
@@ -50,10 +52,13 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 
 ## Dokumentáció
 
-A ZIP és a `docs/alter_jovo_docs` mappa az eredeti v0.1 tervezési anyagot őrzi. A jelen implementáció szerződései a `packages/contracts` alatt vannak. Az eltérő korábbi JSON-példákat az egységes sémák váltják fel.
+A pozicionálási dokumentum és az aktív termékterv határozza meg a következő változat irányát. A ZIP és a `docs/alter_jovo_docs` mappa az eredeti v0.1 tervezési anyagot őrzi változatlanul. A jelen implementáció szerződései a `packages/contracts` alatt vannak; a tervezett v2-szerződések még nem részei a működő kódnak.
 
-- [Implementáció és döntések](docs/IMPLEMENTATION.md)
+- [Pozicionálás és célmeghatározás — stratégiai alap](docs/PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md)
+- [Aktív termék- és megvalósítási terv](docs/PRODUCT_PLAN_HU.md)
+- [Következő fejlesztési lépések — végrehajtási sorrend](docs/NEXT_STEPS.md)
+- [Jelenlegi implementáció és elfogadott döntések](docs/IMPLEMENTATION.md)
 - [Beállítás és kulcskezelés](docs/SETUP.md)
-- [Következő fejlesztési lépések](docs/NEXT_STEPS.md)
+- [Korábbi valódi AI-próba és annak határai](docs/AI_VALIDATION.md)
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.

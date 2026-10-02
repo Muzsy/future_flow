@@ -1,6 +1,14 @@
-# Implementációs szerződés — 2026-10-02
+# Jelenlegi implementáció — 2026-10-02
 
-Ez a dokumentum és a kódból exportált `docs/contracts/*.schema.json` sémák pontosítják az eredeti v0.1 tervet. Az eredeti ZIP változatlan referencia.
+Ez a dokumentum a jelenlegi, v1 technikai prototípus működését írja le. A kódból exportált `docs/contracts/*.schema.json` sémák ezt a működést tükrözik. A következő verzió célja az [új pozicionálásból](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) levezetett [aktív termékterv](PRODUCT_PLAN_HU.md); megvalósítási sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan referencia.
+
+## Eltérés az új termékcéltól
+
+A jelenlegi generálás tízéves horizontra készít 5–10 eseményt és 2–3 fejezetet. A 29 kérdéses profilból indul, és minden döntési választás új gyermekágat hoz létre. Elmentett életág megtekinthető, de következő rövid időszak ugyanarra az ágra még nem generálható.
+
+A meglévő életállapot elsősorban számszerű mutatókat tárol. A `ff_world_versions` semleges környezeti kontextus, nem a stratégia teljes World State-je. Még fejlesztendő a tényszerű munka/hely/tulajdonlás változása, tartós szereplő- és célállapot, időszakos folytatás, géppel ellenőrizhető korlátok, rövid onboarding, emlékezet és folytatási mérés. A jelenlegi constraint mezők önmagukban nem jelentenek kész domain-validátort.
+
+A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célállapotot nem állítják késznek. Az új időszakos működés additív migrációval és verziózott API-val készül, a régi profilok és canon megőrzésével.
 
 ## Elfogadott döntések
 
