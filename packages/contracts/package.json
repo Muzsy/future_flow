@@ -1,0 +1,20 @@
+{
+  "name": "@future-flow/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "schemas": "tsx src/export-schemas.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}

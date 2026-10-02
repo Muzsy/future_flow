@@ -1,0 +1,118 @@
+{
+  "$id": "urn:future-flow:lifeState:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "effectiveAt": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+    },
+    "career": {
+      "type": "object",
+      "properties": {
+        "employmentStatus": {
+          "type": "string",
+          "enum": [
+            "employed",
+            "self_employed",
+            "student",
+            "seeking_work",
+            "retired",
+            "other"
+          ]
+        },
+        "satisfaction": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "stability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "growthOpportunity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "employmentStatus",
+        "satisfaction",
+        "stability",
+        "growthOpportunity"
+      ],
+      "additionalProperties": false
+    },
+    "finance": {
+      "type": "object",
+      "properties": {
+        "stability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "stress": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "stability",
+        "stress"
+      ],
+      "additionalProperties": false
+    },
+    "social": {
+      "type": "object",
+      "properties": {
+        "connectedness": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "connectedness"
+      ],
+      "additionalProperties": false
+    },
+    "internal": {
+      "type": "object",
+      "properties": {
+        "changeDesire": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "perceivedAgency": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "energy": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "changeDesire",
+        "perceivedAgency",
+        "energy"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "effectiveAt",
+    "career",
+    "finance",
+    "social",
+    "internal"
+  ],
+  "additionalProperties": false
+}

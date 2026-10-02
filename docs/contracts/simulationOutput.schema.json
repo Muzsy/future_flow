@@ -1,0 +1,284 @@
+{
+  "$id": "urn:future-flow:simulationOutput:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "events": {
+      "minItems": 5,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,39}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "career",
+              "relationships",
+              "personal",
+              "financial",
+              "environment"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 600
+          },
+          "offsetMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "actorIds": {
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "causes": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "profile",
+                    "state",
+                    "world",
+                    "decision"
+                  ]
+                },
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "explanation": {
+                  "type": "string",
+                  "minLength": 5,
+                  "maxLength": 300
+                }
+              },
+              "required": [
+                "source",
+                "key",
+                "explanation"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "uncertainty": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "effects": {
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "enum": [
+                    "career.satisfaction",
+                    "career.stability",
+                    "career.growthOpportunity",
+                    "finance.stability",
+                    "finance.stress",
+                    "social.connectedness",
+                    "internal.changeDesire",
+                    "internal.perceivedAgency",
+                    "internal.energy"
+                  ]
+                },
+                "delta": {
+                  "type": "integer",
+                  "minimum": -25,
+                  "maximum": 25
+                }
+              },
+              "required": [
+                "path",
+                "delta"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300
+                  },
+                  "options": {
+                    "minItems": 2,
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 160
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 400
+                        },
+                        "effects": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                                "enum": [
+                                  "career.satisfaction",
+                                  "career.stability",
+                                  "career.growthOpportunity",
+                                  "finance.stability",
+                                  "finance.stress",
+                                  "social.connectedness",
+                                  "internal.changeDesire",
+                                  "internal.perceivedAgency",
+                                  "internal.energy"
+                                ]
+                              },
+                              "delta": {
+                                "type": "integer",
+                                "minimum": -25,
+                                "maximum": 25
+                              }
+                            },
+                            "required": [
+                              "path",
+                              "delta"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "constraints": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relocation",
+                                  "finance",
+                                  "employment",
+                                  "relationship"
+                                ]
+                              },
+                              "operator": {
+                                "type": "string",
+                                "enum": [
+                                  "forbid",
+                                  "require",
+                                  "limit"
+                                ]
+                              },
+                              "strength": {
+                                "type": "string",
+                                "enum": [
+                                  "hard",
+                                  "soft"
+                                ]
+                              },
+                              "description": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "operator",
+                              "strength",
+                              "description"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label",
+                        "description",
+                        "effects",
+                        "constraints"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "options"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "title",
+          "summary",
+          "offsetMonths",
+          "actorIds",
+          "causes",
+          "uncertainty",
+          "effects",
+          "decision"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "title",
+    "events"
+  ],
+  "additionalProperties": false
+}

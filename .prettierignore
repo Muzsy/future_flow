@@ -1,0 +1,6 @@
+docs/alter_jovo_docs/
+docs/contracts/
+pnpm-lock.yaml
+apps/web/next-env.d.ts
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

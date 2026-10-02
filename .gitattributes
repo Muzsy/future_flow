@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.zip binary
+# The original Markdown uses two spaces for explicit line breaks.
+docs/alter_jovo_docs/*.md whitespace=-blank-at-eol

@@ -1,0 +1,70 @@
+{
+  "$id": "urn:future-flow:chapterOutput:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "chapters": {
+      "minItems": 2,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "chapterNo": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 140
+          },
+          "lead": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          },
+          "body": {
+            "type": "string",
+            "minLength": 200,
+            "maxLength": 12000
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 800
+          },
+          "eventKeys": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decisionEventKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "chapterNo",
+          "title",
+          "lead",
+          "body",
+          "summary",
+          "eventKeys",
+          "decisionEventKey"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "chapters"
+  ],
+  "additionalProperties": false
+}
