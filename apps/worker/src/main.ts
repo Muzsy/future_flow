@@ -11,6 +11,7 @@ async function main() {
     apiKey: process.env.OPENAI_API_KEY ?? '',
     eventModel: process.env.AI_EVENT_MODEL ?? '',
     storyModel: process.env.AI_STORY_MODEL ?? '',
+    checkModel: process.env.AI_CHECK_MODEL || undefined,
     timeoutMs: Number(process.env.AI_TIMEOUT_MS ?? 90000),
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 12000),
   });

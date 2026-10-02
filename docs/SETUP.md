@@ -18,7 +18,7 @@ Az adatbázis-URL szerveroldali, privilegizált kapcsolat. A böngésző nem has
 
 1. Saját OpenAI API-projekt és API-kulcs, aktív API-hozzáféréssel.
 2. `OPENAI_API_KEY` a gyökér `.env` fájlba.
-3. `AI_EVENT_MODEL` és `AI_STORY_MODEL`: Structured Outputs-képes, a saját projektben elérhető modell. Kezdő beállítás: `gpt-6.1-sol`; szabadon cserélhető.
+3. `AI_EVENT_MODEL`, `AI_STORY_MODEL` és `AI_CHECK_MODEL`: Structured Outputs-képes, a saját projektben elérhető modellek az eseményekhez, történethez és ellenőrzéshez. Kezdő beállítás mindháromhoz: `gpt-6.1-sol`. Ha `AI_CHECK_MODEL` nincs megadva, az eseménymodell marad az ellenőrző, megőrizve a korábbi működést. Az eseménymodell cseréjénél ezért az ellenőrzőt is állítsd be külön. A Luna-jelölt vizsgálata és a feltételes modellkombináció: [költségoptimalizálás](AI_MODEL_ROUTING_HU.md).
 4. A `GENERATION_DAILY_LIMIT`, `GENERATION_CONCURRENT_LIMIT`, `AI_MAX_OUTPUT_TOKENS` változók korlátozzák a terhelést. A szolgáltatói költségkeretet az OpenAI projektbeállításában is állítsd be.
 
 Az API-kulcs hiányában a worker egyértelmű konfigurációs hibával leáll. A felület nem helyettesíti a generálást statikus személyes történettel.
@@ -57,7 +57,7 @@ További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. E
 
 A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
 
-Az árbecslés a GPT-6.1 Sol 2026-10-02-án ellenőrzött standard díjait használja: 2 USD/M bemenet, 0,10 USD/M cache-olvasás, 2,50 USD/M cache-írás, 10 USD/M kimenet. A gondolkodási token a kimenet része, nem kerül kétszer elszámolásra. Más modell vagy hosszú kontextus esetén a próba megáll, amíg nincs hozzá megfelelő árbeállítás. Az összeg tokenszám alapján számolt becslés, nem számlázási egyenleglekérdezés. Források: [modell és árak](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [bemeneti tokenszámlálás](https://developers.openai.com/api/docs/guides/token-counting).
+Az árbecslés 2026-10-02-án ellenőrzött standard díjakat használ: Sol esetén 2 USD/M bemenet, 0,10 USD/M cache-olvasás, 2,50 USD/M cache-írás, 10 USD/M kimenet; Luna esetén rendre 0,10 / 0,01 / 0,125 / 0,50 USD/M. Minden hívás saját modelljének árával számol; a gondolkodási token a kimenet része, nem kerül kétszer elszámolásra. Más modell vagy hosszú kontextus esetén a próba megáll, amíg nincs hozzá megfelelő árbeállítás. Az összeg tokenszám alapján számolt becslés, nem számlázási egyenleglekérdezés. Források: [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [bemeneti tokenszámlálás](https://developers.openai.com/api/docs/guides/token-counting).
 
 A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A diagnosztikai válaszok kizárólag szintetikus tesztadatok; az API-kulcs és a kérés fejlécei nem kerülnek a naplóba. Hibaválaszból csak a kód és típus tárolódik. Ezek a helyi fájlok Gitből kizártak. A generálási hiba nem indít automatikus teljes újragenerálást.
 

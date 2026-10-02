@@ -60,5 +60,6 @@ A pozicionálási dokumentum és az aktív termékterv határozza meg a követke
 - [Jelenlegi implementáció és elfogadott döntések](docs/IMPLEMENTATION.md)
 - [Beállítás és kulcskezelés](docs/SETUP.md)
 - [Korábbi valódi AI-próba és annak határai](docs/AI_VALIDATION.md)
+- [Feladatonkénti modellválasztás és mért költségvizsgálat](docs/AI_MODEL_ROUTING_HU.md)
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.

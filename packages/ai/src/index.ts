@@ -103,15 +103,21 @@ export class OpenAiProvider implements AiProvider {
       apiKey: string;
       eventModel: string;
       storyModel: string;
+      checkModel?: string;
       timeoutMs: number;
       maxOutputTokens: number;
     },
     client?: OpenAI,
   ) {
-    if (!config.apiKey || !config.eventModel || !config.storyModel)
+    if (
+      !config.apiKey ||
+      !config.eventModel ||
+      !config.storyModel ||
+      config.checkModel === ''
+    )
       throw new DomainError(
         'AI_NOT_CONFIGURED',
-        'Az AI-kulcs és a két modell beállítása szükséges.',
+        'Az AI-kulcs és a modellek beállítása szükséges.',
         503,
       );
     this.client =
@@ -253,7 +259,7 @@ export class OpenAiProvider implements AiProvider {
     return this.generate(
       fidelitySchema,
       'story_fidelity',
-      this.config.eventModel,
+      this.config.checkModel ?? this.config.eventModel,
       prompts.fidelity,
       { ...input, chapters },
     );

@@ -3,19 +3,20 @@ import type OpenAIClient from 'openai';
 import { createRequire } from 'node:module';
 import { OpenAiProvider } from '@future-flow/ai';
 import { initialState, worldState } from '@future-flow/core';
-import { profile, simulation } from './fixtures';
+import { profile, simulation, canon, chapters } from './fixtures';
 
 // The AI workspace builds as CommonJS; use the same SDK error constructors.
 const OpenAI = createRequire(import.meta.url)('openai')
   .default as typeof import('openai').default;
 
-function provider(response: unknown) {
+function provider(response: unknown, checkModel?: string) {
   const parse = vi.fn().mockResolvedValue(response);
   const ai = new OpenAiProvider(
     {
       apiKey: 'test-only-key',
       eventModel: 'test-model-events',
       storyModel: 'test-model-story',
+      checkModel,
       timeoutMs: 1000,
       maxOutputTokens: 12000,
     },
@@ -35,6 +36,37 @@ const input = () => {
   };
 };
 describe('OpenAI boundary', () => {
+  it('routes fidelity to an independent model while preserving event routing', async () => {
+    const { ai, parse } = provider(
+      {
+        status: 'completed',
+        output_parsed: { valid: true, issues: [] },
+        model: 'test-model-check',
+      },
+      'test-model-check',
+    );
+    await ai.checkStory(
+      { profile: profile(), events: canon(), decision: null },
+      chapters(),
+    );
+    expect(parse).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'test-model-check' }),
+    );
+  });
+  it('keeps the previous checker model when no override is configured', async () => {
+    const { ai, parse } = provider({
+      status: 'completed',
+      output_parsed: { valid: true, issues: [] },
+      model: 'test-model-events',
+    });
+    await ai.checkStory(
+      { profile: profile(), events: canon(), decision: null },
+      chapters(),
+    );
+    expect(parse).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'test-model-events' }),
+    );
+  });
   it('requires actual provider configuration', () =>
     expect(
       () =>

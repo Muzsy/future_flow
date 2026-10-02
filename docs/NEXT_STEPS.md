@@ -8,6 +8,8 @@ A Supabase-migráció és a TLS-kapcsolat működik. Valódi OpenAI-hívásokkal
 
 A jelenlegi választás mindig új ágat nyit; ugyanannak az életágnak a következő időszaka még nem készíthető el. A rövid profil, bővebb világállapot és folytatási mérés szintén fejlesztendő. A valódi Supabase-belépés és Auth-fióktörlés ellenőrzése nyitott; a szerveroldali törlési kulcs korábban jelzett függőség.
 
+Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívás, körülbelül 0,054 USD, összesített fogyasztás körülbelül 0,684 USD. Az ellenőrző külön modellbeállítása elkészült, a helyi keretőr már Sol/Luna díjakkal számol; 63 automatizált teszt és teljes build sikeres. Az első teljes láncban mérendő jelölt Luna-eseménygenerátor, Sol-narrátor és Sol-ellenőr; ez nem írja felül a P01 elsőbbségét.
+
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
 **Feladat:** verziózott v2-sémák rövid időszakhoz, saját/alternatív identitáshoz, a cél mezőihez, tartós szereplőkhöz, tényszerű állapotváltozásokhoz és időben érvényes korlátokhoz. Válasszuk külön a környezeti kontextust a szimulált élet állapotától. Készüljön additív `002+` migráció az időszakhoz, ág aktuális állapotához/revisionjéhez, választáshoz és folytatási jobhoz.
@@ -23,6 +25,8 @@ A jelenlegi választás mindig új ágat nyit; ugyanannak az életágnak a köve
 **Elfogadás:** szintetikus profilból valódi AI-fejezet és választási lehetőség készül. Az események időrendje, hivatkozásai, szereplői és kemény korlátai helyesek. A feladat megáll a döntésnél; a régi tízéves generálás nem fut az új élet alatt.
 
 **Függőség:** P01; minden fizetett próba a megmaradt kereten belüli előzetes foglalással indul.
+
+**Modellmérés:** Luna és Sol összevetése a rövid időszakos szerződésen, azonos profil/állapot/cél mellett. Narrátor és végső ellenőr kezdetben Sol; a modellválasztási próba miatt a checker már külön beállítható.
 
 ## P03 — Döntés, folytatás és külön történeti fork
 

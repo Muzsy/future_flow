@@ -99,9 +99,11 @@ A következő időszak bemenete a rögzített állapot, a döntéstörténet, a 
 
 A javítás célzott: a hibás strukturált válasz vagy fejezet legfeljebb egy automatikus javítási kört kap, előre lefoglalt költségen belül. Érvényes esemény/checkpoint megmarad; narratívahiba nem indítja újra az egész világot. Ismételt hiba látható állapotot és biztonságos kézi újrapróbálást eredményez. A hibás és ismeretlen fogyasztású kérés költsége sem tűnik el a nyilvántartásból.
 
-A felhasználói kísérleti keret 5 USD. A lezárt v1-próba becsült fogyasztása 0,6299505 USD, a keretből számított maradvány körülbelül 4,37 USD; ez nem lekérdezett szolgáltatói egyenleg. A tervfrissítéshez nem futtatunk fizetett AI-próbát. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan.
+A felhasználói kísérleti keret 5 USD. A lezárt v1-próba becsült fogyasztása 0,6299505 USD; a későbbi, 14 hívásos [modellválasztási próba](AI_MODEL_ROUTING_HU.md) további 0,0542136 USD. Az összesített becslés 0,6841641 USD, a keretből számított maradvány körülbelül 4,32 USD; ez nem lekérdezett szolgáltatói egyenleg. A korábbi tervfrissítés önmagában nem használt API-kreditet. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan.
 
 Zárt felhasználói teszt előtt alkalmazásszintű keretőr kell: kérés előtti foglalás, felhasználói/projektlimit, hibaköltség, párhuzamos foglalások és a tényleges használat elszámolása. A meglévő helyi smoke-keretőr ennek csak tesztelőzménye. Olcsóbb modellre irányítás külön mérés után következik; a működő OpenAI-integrációt megtartjuk.
+
+A modellválasztási vizsgálat első jelöltje Luna eseményekhez, Sol narratívához és ellenőrzéshez. Változatlan régi tokenszámmal körülbelül 40% megtakarítást adhat; a teljes lánc és a v2-folytatás minőségét még igazolni kell. A checker külön konfigurálása elkészült, a modellek automatikus cseréje/fallbackje még fejlesztendő. P02-ben mérjük a rövid eseményfeladatot, P05-ben valósul meg a korlátozott routing és keretkezelés.
 
 ## 8. Fejlesztési fázisok és MVP-határ
 

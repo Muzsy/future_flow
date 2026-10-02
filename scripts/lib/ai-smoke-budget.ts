@@ -1,6 +1,6 @@
 import { DomainError } from '@future-flow/core';
 
-// Standard GPT-6.1 Sol prices, checked on 2026-10-02. Reserve the more
+// Standard short-context prices, checked on 2026-10-02. Reserve the more
 // expensive cache-write input rate and all allowed output tokens before a call.
 export const smokePrices = {
   input: 2,
@@ -8,6 +8,20 @@ export const smokePrices = {
   inputCeiling: 2.5,
   output: 10,
 };
+export const smokeModelPrices: Record<string, typeof smokePrices> = {
+  'gpt-6.1-sol': smokePrices,
+  'gpt-6-luna': {
+    input: 0.1,
+    cachedInput: 0.01,
+    inputCeiling: 0.125,
+    output: 0.5,
+  },
+};
+function pricesFor(model: string) {
+  if (!Object.hasOwn(smokeModelPrices, model))
+    throw new DomainError('SMOKE_BUDGET_CONFIG', 'Unpriced smoke model.');
+  return smokeModelPrices[model]!;
+}
 export type SmokeUsage = {
   input_tokens: number;
   output_tokens: number;
@@ -36,8 +50,8 @@ export function reserveSmokeCall(
   inputTokens: number,
   maxOutputTokens: number,
 ): SmokeCall {
+  const prices = pricesFor(model);
   if (
-    model !== 'gpt-6.1-sol' ||
     calls.some(
       (call) => !Number.isFinite(call.accountedUsd) || call.accountedUsd < 0,
     ) ||
@@ -55,8 +69,7 @@ export function reserveSmokeCall(
       'Invalid smoke budget or unpriced model.',
     );
   const reservedUsd =
-    (inputTokens * smokePrices.inputCeiling +
-      maxOutputTokens * smokePrices.output) /
+    (inputTokens * prices.inputCeiling + maxOutputTokens * prices.output) /
     1_000_000;
   if (
     calls.reduce((sum, call) => sum + call.accountedUsd, 0) + reservedUsd >
@@ -78,6 +91,7 @@ export function reserveSmokeCall(
   return call;
 }
 export function recordSmokeUsage(call: SmokeCall, usage: SmokeUsage) {
+  const prices = pricesFor(call.model);
   const cached = usage.input_tokens_details?.cached_tokens ?? 0;
   const writes = usage.input_tokens_details?.cache_write_tokens ?? 0;
   if (
@@ -97,13 +111,13 @@ export function recordSmokeUsage(call: SmokeCall, usage: SmokeUsage) {
     );
   call.usage = usage;
   call.estimatedUsd =
-    ((usage.input_tokens - cached - writes) * smokePrices.input +
-      cached * smokePrices.cachedInput +
-      writes * smokePrices.inputCeiling +
-      usage.output_tokens * smokePrices.output) /
+    ((usage.input_tokens - cached - writes) * prices.input +
+      cached * prices.cachedInput +
+      writes * prices.inputCeiling +
+      usage.output_tokens * prices.output) /
     1_000_000;
   call.accountedUsd =
-    (usage.input_tokens * smokePrices.inputCeiling +
-      usage.output_tokens * smokePrices.output) /
+    (usage.input_tokens * prices.inputCeiling +
+      usage.output_tokens * prices.output) /
     1_000_000;
 }
