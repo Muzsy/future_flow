@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI, { type APIError } from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import {
@@ -79,6 +79,20 @@ A hangulat és semleges környezetleírás megengedett. valid=true esetén issue
 A döntési hard feltételek megsértése érvénytelen eredmény.`,
 } as const;
 
+const billingCodes = new Set([
+  'credit_balance_exhausted',
+  'insufficient_quota',
+  'organization_spend_limit_exceeded',
+  'project_spend_limit_exceeded',
+  'organization_usage_limit_exceeded',
+  'usage_limit_exceeded',
+]);
+function billingFailure(error: APIError) {
+  return (
+    billingCodes.has(error.code ?? '') || error.type === 'insufficient_quota'
+  );
+}
+
 export class OpenAiProvider implements AiProvider {
   private readonly client: OpenAI;
   constructor(
@@ -102,8 +116,38 @@ export class OpenAiProvider implements AiProvider {
       new OpenAI({
         apiKey: config.apiKey,
         timeout: config.timeoutMs,
-        maxRetries: 2,
+        // Application retries can distinguish billing failures from temporary limits.
+        maxRetries: 0,
       });
+  }
+  private async parseWithRetries(
+    parameters: Parameters<OpenAI['responses']['parse']>[0],
+  ) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.client.responses.parse(parameters);
+      } catch (error) {
+        if (!(error instanceof OpenAI.APIError) || billingFailure(error))
+          throw error;
+        const transient =
+          error instanceof OpenAI.APIConnectionError ||
+          [408, 409, 429].includes(error.status ?? 0) ||
+          (error.status ?? 0) >= 500;
+        if (!transient || attempt >= 2) throw error;
+        const retryAfter = error.headers?.get('retry-after');
+        const requestedDelay = retryAfter
+          ? /^\d+(\.\d+)?$/.test(retryAfter)
+            ? Number(retryAfter) * 1000
+            : Date.parse(retryAfter) - Date.now()
+          : NaN;
+        const delay = Number.isFinite(requestedDelay)
+          ? Math.max(0, requestedDelay)
+          : 500 * 2 ** attempt;
+        // Return a safe failure instead of retrying before a long provider delay.
+        if (delay > 10000) throw error;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
   }
   private async generate<T>(
     schema: z.ZodType<T>,
@@ -114,7 +158,7 @@ export class OpenAiProvider implements AiProvider {
   ): Promise<AiResult<T>> {
     const start = Date.now();
     try {
-      const response = await this.client.responses.parse({
+      const response = await this.parseWithRetries({
         model,
         store: false,
         max_output_tokens: this.config.maxOutputTokens,
@@ -152,6 +196,13 @@ export class OpenAiProvider implements AiProvider {
           'Az AI válasza nem felel meg az adatsémának.',
         );
       if (error instanceof OpenAI.APIError) {
+        if (billingFailure(error)) {
+          throw new DomainError(
+            'AI_QUOTA_EXHAUSTED',
+            'Az AI-generálás jelenleg nem elérhető: elfogyott a szolgáltatási keret.',
+            503,
+          );
+        }
         const code =
           error.status === 401
             ? 'AI_AUTH_FAILED'

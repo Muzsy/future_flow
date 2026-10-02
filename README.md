@@ -35,6 +35,8 @@ Az adatbázistesztek PGlite-ba töltik ugyanazt a PostgreSQL-migrációt. Ellen�
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
+A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, a történetellenőrzés és egy új életág generálását. Kitalált profilt és elkülönített PGlite-adatbázist használ, Supabase Auth-fiókot nem hoz létre. A próba API-kreditet használ; eredménye a Gitből kizárt `.local/ai-smoke` mappába kerül.
+
 ## Szerkezet
 
 - `apps/web`: Next.js magyar felület; profil, életágak, történet, idővonal, összehasonlítás, adatkezelés.

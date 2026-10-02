@@ -23,6 +23,8 @@ Az adatbázis-URL szerveroldali, privilegizált kapcsolat. A böngésző nem has
 
 Az API-kulcs hiányában a worker egyértelmű konfigurációs hibával leáll. A felület nem helyettesíti a generálást statikus személyes történettel.
 
+Az érvényes kulcs és a modell elérhetősége önmagában nem igazolja az aktív API-kreditegyenleget. `credit_balance_exhausted`, `insufficient_quota` és számlázási kerethibák esetén az alkalmazás `AI_QUOTA_EXHAUSTED` hibát ad, és nem ismétli automatikusan a kérést. Az átmeneti hálózati, 429-es rate limit és 5xx hibák legfeljebb két újrapróbálást kapnak; hosszú `Retry-After` esetén korai ismétlés helyett a hiba visszatér. Forrás: [OpenAI hibakódok](https://developers.openai.com/api/docs/guides/error-codes).
+
 ## Web környezet
 
 A gyökér `.env` szerver- és workerbeállítás. Az `apps/web/.env.local` fájl kizárólag az alábbi sorokat tartalmazza:
@@ -37,7 +39,7 @@ A Next.js ezeket beépíti a kliensbe. Szerverkulcsot vagy adatbázis-jelszót s
 
 ## A felhasználó által megadott kulcsfájl
 
-A korábbi `env/supabase_keys.txt` fájlt a fejlesztés során a projektkönyvtáron kívülre, `%LOCALAPPDATA%\FutureFlow\secrets\supabase_keys.txt` helyre mozgattuk. A fájl és a titkos gyökér `.env` öröklött Windows ACL-je tiltott, hozzáférése az aktuális felhasználóra korlátozott. A kulcsfájl tartalma nem kerül a repóba vagy az alkalmazásnaplóba.
+A korábbi `env/supabase_keys.txt` és `env/openai_key.txt` fájlokat a fejlesztés során a projektkönyvtáron kívülre, `%LOCALAPPDATA%\FutureFlow\secrets` mappába mozgattuk. A fájlok és a titkos gyökér `.env` öröklött Windows ACL-je tiltott, hozzáférésük az aktuális felhasználóra korlátozott. A kulcsfájlok tartalma nem kerül a repóba vagy az alkalmazásnaplóba.
 
 A `.gitignore` minden `.env*` fájlt és az `env/` mappát kizárja, az érték nélküli `.env.example` kivételével. A kulcsfájl nem volt Git-commitban. Új titkot a védett titokmappában vagy a helyi `.env` fájlban adj meg; chatbe ne másold.
 
@@ -45,7 +47,7 @@ A `.gitignore` minden `.env*` fájlt és az `env/` mappát kizárja, az érték 
 
 A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatibilis tesztek kulcs nélkül is futtathatók. A valódi Supabase Auth, DB-hálózat és OpenAI-generálás csak a szükséges beállítások után ellenőrizhető.
 
-2026-10-02: a megadott projektben az első migráció lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs és a Supabase adminisztratív kulcs még hiányzik.
+2026-10-02: a megadott projektben az első migráció lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. A valódi generálási kérés `credit_balance_exhausted` hibával elutasítva; AI-tartalom még nem készült. A Supabase adminisztratív kulcs még hiányzik.
 
 ## Üzemeltetés
 
