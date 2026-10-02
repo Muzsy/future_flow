@@ -15,15 +15,11 @@ import {
   type WorldState,
 } from '@future-flow/contracts';
 
-export class DomainError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly status = 422,
-  ) {
-    super(message);
-  }
-}
+import { DomainError } from './errors';
+import { addMonths } from './dates';
+export { DomainError } from './errors';
+export { addMonths } from './dates';
+export * from './life-v2';
 export function hash(value: unknown): string {
   const normalize = (item: unknown): unknown => {
     if (Array.isArray(item)) return item.map(normalize);
@@ -120,17 +116,6 @@ export function initialState(profile: Profile, effectiveAt: string): LifeState {
       energy: 50,
     },
   });
-}
-export function addMonths(date: string, count: number): string {
-  const original = new Date(`${date}T00:00:00.000Z`);
-  const day = original.getUTCDate();
-  original.setUTCDate(1);
-  original.setUTCMonth(original.getUTCMonth() + count);
-  const lastDay = new Date(
-    Date.UTC(original.getUTCFullYear(), original.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  original.setUTCDate(Math.min(day, lastDay));
-  return original.toISOString().slice(0, 10);
 }
 export function applyEffects(
   state: LifeState,

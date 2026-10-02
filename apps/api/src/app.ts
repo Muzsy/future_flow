@@ -249,7 +249,7 @@ class ApiController {
     requireRecentAuthentication(req.token);
     response.setHeader(
       'Content-Disposition',
-      'attachment; filename="alter-jovo-export.json"',
+      'attachment; filename="alterward-export.json"',
     );
     response.json(await this.repo.exportAccount(req.userId));
   }
@@ -326,7 +326,7 @@ export async function createApp(
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle('Alter Jövő API')
+      .setTitle('alterward API')
       .setVersion('1.0.0')
       .addBearerAuth()
       .build(),

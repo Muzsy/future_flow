@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Alter Jövő · Egy élet. Több lehetőség.',
+  title: 'alterward · Egy élet. Több lehetőség.',
   description:
     'Fedezz fel személyes, AI által alkotott alternatív életutakat. A következő döntés a tiéd.',
 };

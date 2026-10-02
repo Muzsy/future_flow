@@ -1,6 +1,6 @@
-# Aktív termék- és megvalósítási terv
+# alterward — aktív termék- és megvalósítási terv
 
-2026-10-02 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
+2026-10-03 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
 
 ## 1. Irány és dokumentumok szerepe
 
@@ -8,11 +8,13 @@ AI által generált, tartósan mentett, folytatható és elágaztatható alterna
 
 Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedezése. Az önreflexió ebből származó érték. A cél irányt ad a szimulációnak; teljesülését a rendszer nem ígéri meg. A kommunikáció lehetséges szcenáriókról beszél, és nem ad a kitalált eseményekhez megtörténési százalékot.
 
-Tervezési elsőbbség: felhasználói döntések → új pozicionálási dokumentum → ez az aktív terv → részletes feladatlista. Az implementációs dokumentum és a kódból exportált sémák a meglévő működésről adnak számot. A `docs/alter_jovo_docs` és az eredeti ZIP változatlan történeti referencia; a tízéves első generálás és a hosszú kötelező kérdőív korábbi javaslatait ez a terv felváltja.
+Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes feladatlista. A közösségi specifikáció felváltja a korábbi közösségi funkciók későbbre halasztását; a személyes szimuláció elsőbbségét a 42. fejezet kifejezetten megtartja. Az implementációs dokumentum és a kódból exportált sémák a meglévő működésről adnak számot. A `docs/alter_jovo_docs` és az eredeti ZIP változatlan történeti referencia; a tízéves első generálás és a hosszú kötelező kérdőív korábbi javaslatait ez a terv felváltja.
 
 Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, magyar webes indulás, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
-A Branchward névjavaslat. A termék átnevezése, domain- és védjegyvizsgálata külön későbbi döntés; a fejlesztést most a `future_flow` néven folytatjuk.
+A termék neve **alterward**, a felhasználó 2026-10-03-i döntése alapján. A repó és a projektkönyvtár `future_flow` marad. A belső csomagnevek, régi sémaazonosítók és védett titokkönyvtárak megtartása technikai kompatibilitás, nem márkanév-döntés. A forrásdokumentumok korábbi munkanevei történeti szövegek. Domainválasztás és fizetős csomag továbbra sincs eldöntve.
+
+A termék három összekapcsolt rétege: **Private Personal Simulation**, **Official Lives / Scenarios** és önként publikált **Community Lives**. Discoveryben már az induláskor lesznek kurált, valódi AI-val generált életutak. Az olvasás meglévő snapshotból történik; a „Fork this life” vagy személyre szabás új, saját privát szimulációhoz vezet.
 
 ## 2. A jelenlegi alap és a szükséges változás
 
@@ -25,6 +27,7 @@ A Branchward névjavaslat. A termék átnevezése, domain- és védjegyvizsgála
 | Visszatérés | Elmentett történet és ágak megtekintése | Mentett döntés és állapot alapján következő időszak ugyanazon az ágon |
 | Minőségbizonyíték | Három szintetikus profil, három alap és három ág | Több egymást követő időszak konzisztenciája és emberi folytatási igény |
 | Költség | A helyi AI-próbához mérés és keretőr | Alkalmazásszintű keret, hibaköltség és költség/folytatás mérés |
+| Nyilvános tartalom | Nincs publikálás vagy Discovery | Külön anonimizált snapshot, Official/Community jelölés, böngészés és saját privát fork |
 
 A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A folytatható MVP még nincs kész. A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
 
@@ -85,7 +88,7 @@ Tervezett változások, még nem létező funkciók:
 - A jobok időszakot és induló állapotrevisiont kapnak. A jelenlegi `future | branch` feladattípus mellé folytatás kerül. Kezdeti állapot csak élet/ág létrehozásakor készül; a sorszámok az ágon belül folyamatosak.
 - Áganként egyszerre egy generálás: idempotenciakulcs, revisionellenőrzés és tranzakció. Dupla kattintás ugyanazt a feladatot adja vissza, elavult állapot 409-et kap. Elveszett worker-lease mellett nincs új esemény vagy fejezet commit.
 
-Az adatbázis változása új, additív `002+` migrációval történik; az alkalmazott `001_foundation.sql` ellenőrzőösszege megmarad. Az új mezők és API-k a megvalósításkor részletes szerződést kapnak, most nem állítjuk, hogy már rendelkezésre állnak.
+Az adatbázis változása új, additív `002+` migrációval történik; az alkalmazott `001_foundation.sql` ellenőrzőösszege megmarad. A v2 időszak-/tényállapot-szerződés és tiszta domain-validátor első szelete elkészült; [pontos határai](V2_SIMULATION_CONTRACT_HU.md) külön dokumentáltak. Az új adatbázis, API és worker bekötése még nem áll rendelkezésre.
 
 A korábbi tízéves életek verzióval jelölve visszaolvashatók maradnak. Az új hurokhoz induláskor explicit új v2-élet/másolat készül, ellenőrzött kiinduló állapotból. Az előre generált, még ki nem választott tízéves jövőre nem fűzünk rá folytatást. Az átállás nem írja újra a régi profilokat, canon-hasheket vagy történeteket; külön migrációs és visszaolvasási ellenőrzést igényel.
 
@@ -110,21 +113,25 @@ A modellválasztási vizsgálat első jelöltje Luna eseményekhez, Sol narratí
 | Fázis az új stratégiában | Konkrét cél | Kilépési feltétel |
 |---|---|---|
 | 0 – Termékprototípus | Rövid profil → valódi AI-fejezet → választás → folytatás | Végigvihető új hurok a meglévő technikai alapokon |
-| 1 – Tartós MVP | Fiók, mentett állapot és események, visszatérés, idővonal, külön fork, mérés | Böngészős folyamat és adatkezelés működik; zárt emberi próba elindítható |
-| 2 – Szimulációminőség | Mélyebb kapcsolat/pénzügy, jobb következmények, kontextus-visszakeresés, mért modellválasztás | Több időszakon át hihető, következetes és mérhető költségű élmény |
-| 3 – Újrajátszhatóság | Gazdagabb élet- és célsablonok, új célok, vizuális összehasonlítás | A core loop használata indokolja a bővítést |
-| 4 – Közösség | Timeline/ág megosztása, felfedezés, reakciók; később más életének forkja | Érdekes szimulációs tartalom és külön adatvédelmi/megosztási terv |
-| 5 – Platform | Alkotói szcenáriók, történelmi/fiktív világok, API/plugin, mobil | Validált használat és fenntartható üzemeltetés |
+| 1 – Tartós személyes alap | Fiók, mentett tényállapot, visszatérés, idővonal, saját történeti fork, emlékezet, minőség és költségőr | Három időszak, privát jogosultság és adatkezelés működik; zárt személyes próba |
+| 2 – Publikálható tartalom és Official seed | Külön snapshot, privacy/minőségi ellenőrzés, verziózott Scenario és belőle készülő Official Life | Kurált, valódi AI-tartalom, forkra alkalmas nyilvános checkpointok; kereten belüli pilot |
+| 3 – Read-only Discovery | Kategóriák/kollekciók, nyilvános életoldal, mentés, megosztás, jelentés, szabályozott indexelés | Bejelentkezés nélkül olvasható Official tartalom, olvasás nem indít AI-hívást |
+| 4 – Community Publishing | Private/unlisted/public, két preview, explicit megerősítés, visszavonás és moderáció | Másik fiók sem privát adatot, sem visszavont snapshotot nem kap; kezdetben zárt béta |
+| 5 – Nyilvános életből saját élet | Fork this life, Start from this decision, Personalize scenario | Anonimizált snapshotból saját privát élet, eredeti ág és privát előzmény érintetlen |
+| 6 – Social Layer | Reakció, követés, később komment és szerzői profil | A publikus alap és moderáció működik; mérés indokolja a bővítést |
+| 7 – Creator Platform | Alkotói szcenáriók, sablonok, analitika, később monetizáció/marketplace | Validált használat és fenntartható üzemeltetés |
 
-Az állapotátmenetek és a minimális emlékezet már a prototípus/MVP előfeltételei; a 2. fázis ezek mélyítését jelenti. A fázisszámok nem halasztják el a helyes canon, a jogosultság vagy a költségkeret követelményét.
+Az állapotátmenetek, minimális emlékezet, több időszakos minőség és költségvédelem már a prototípus/személyes alap előfeltételei; mélyítésük fokozatos. A nyilvános fázisok nem halasztják el a helyes canon, jogosultság vagy költségkeret követelményét.
 
-Az MVP-ből kimarad a közösségi háló, DM/követés, fizetés, marketplace, natív mobil, hang/kép/avatar/VR, multiplayer, habit tracker, coaching- és egészségplatform, összetett achievementek és több száz mutató. A szabad szöveges döntés, összetett compare és sokcélú optimalizálás a működő folytatás után kerül sorra. Az MVP-ben a történeti fork már kötelező.
+A nyilvános induló MVP az 1–5. fázis együtt: a személyes core loop mellé Official/Community tartalom, három láthatóság, publikálás, Privacy Preview és Content Preview, snapshot, életoldal, Discovery, Save/Share/Fork, Report, Unpublish és alap taxonómia tartozik. A közösségi specifikáció saját Phase 0–3 jelölése ennek 2–5. fázisát bontja ki; a privát technikai pilot hamarabb is futhat.
 
-A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktörlés az indulás része, fizetéstől függetlenül. A hosszú távú monetizáció több életre, ágra, világra és mélységre épülhet. A stratégia prémiumötletei, köztük a privát élet mint prémiumfunkció, nem írják felül ezt a meglévő adatkezelési döntést; árazásról külön későbbi terv készül.
+Az MVP-ből kimarad a kommentrendszer, DM/chat, követési gráf, reakciók, alkotói monetizáció, marketplace, fizetés, natív mobil, hang/kép/avatar/VR, multiplayer, habit tracker, coaching- és egészségplatform, összetett achievementek és több száz mutató. A szabad szöveges döntés, összetett compare és sokcélú optimalizálás a működő folytatás után kerül sorra. A részletes [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) rögzíti az adatmodell, jogosultság, visszavonás és moderáció elfogadását.
+
+A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktörlés az indulás része, fizetéstől függetlenül. Discovery, olvasás, mentés, megosztás és publikálás az új specifikáció szerint ingyenes; saját generálás/fork/személyre szabás limitálható. Prémiumérték lehet több aktív élet, több generálás és mélyebb szimuláció. Pontos limitek és árak később, mért költség alapján készülnek. Privát működés nem kerül fizetési feltétel mögé.
 
 ## 9. Elfogadás és mérés
 
-Technikai MVP-elfogadás: rövid profilból valódi AI-időszak készül; a döntés állapotot módosít; a második időszak ugyanarra az ágra kerül; kijelentkezés/belépés után folytatható a harmadikkal; a korábbi döntésből másik ág indítható a szülő módosítása nélkül. Dupla kérés, megszakítás, hibás AI-válasz és elveszett lease sem okoz dupla vagy részleges canon-commitot. Jogosultság, export és Auth/DB-törlés minden esetben kötelezően hibamentes.
+A személyes technikai alap elfogadása: rövid profilból valódi AI-időszak készül; a döntés állapotot módosít; a második időszak ugyanarra az ágra kerül; kijelentkezés/belépés után folytatható a harmadikkal; a korábbi döntésből másik ág indítható a szülő módosítása nélkül. Dupla kérés, megszakítás, hibás AI-válasz és elveszett lease sem okoz dupla vagy részleges canon-commitot. Jogosultság, export és Auth/DB-törlés minden esetben kötelezően hibamentes.
 
 Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön 20–50 résztvevős magyar zárt használati teszt méri az élményt és a visszatérést; a létszám induló cél, nem statisztikai bizonyító erejű mintaméret.
 
@@ -147,11 +154,11 @@ Retenciós küszöbértéket még nem igazoltunk. A pilot tapasztalatai alapján
 
 ## 10. Nyitott hipotézisek és függőségek
 
-A stratégia A–G hipotézisei tesztelendők: saját vagy fiktív identitás; onboarding értéke; folytatás vagy új élet; fork és visszatérés kapcsolata; megosztási szándék; más életének fogyasztása; történet vagy analitikus riport. Először az első négyet és a történet élményét vizsgáljuk. A közösségi hipotézisek későbbi fázisban kapnak termékpróbát.
+A stratégia A–G hipotézisei tesztelendők: saját vagy fiktív identitás; onboarding értéke; folytatás vagy új élet; fork és visszatérés kapcsolata; megosztási szándék; más életének fogyasztása; történet vagy analitikus riport. Először a személyes core loopot vizsgáljuk; a nyilvános indulási kapu előtt a Discovery → fork → első saját időszak konverzió és a publikálási bizalom is külön próbát kap.
 
 A valódi Supabase email-belépés és teljes Auth/DB/OpenAI folyamat még ellenőrzendő. A fióktörlés éles ellenőrzéséhez hiányzó szerveroldali Supabase-kulcs korábban jelzett függőség; ez a tervezést és a helyi fejlesztést nem állítja meg. Titok csak a védett helyi környezetbe kerülhet.
 
-Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév, fizetős csomag, nyilvános megosztás és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
+Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév és önkéntes nyilvános megosztás elfogadott irány. Domain, fizetős csomag, végleges keretek és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
 
 ## 11. Visszakövethetőség az új stratégiához
 
@@ -162,6 +169,19 @@ Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció 
 | 16–19, 21–22, 32.2–3 | Strukturált tények, AI-narratíva, validált következmények, emlékezet |
 | 17, 24, 26 | Folytatás és történeti fork külön művelet |
 | 23, 27, 31, 34 | Folytatási szándék, későbbi életfolytatás, tesztelendő hipotézisek |
-| 20, 25, 28–30, 35 | Fázisok, közösség később, márka és monetizáció külön döntés |
+| 20, 25, 28–30, 35 | Új közösségi specifikációval felülírt fázisok; márka alterward, árazás külön döntés |
 
 A forrás piaci/versenytársi hivatkozásai háttéranyagok; ez a terv nem teszi őket külön ellenőrzött piaci tényekké.
+
+## 12. Visszakövethetőség a közösségi specifikációhoz
+
+| Közösségi forrásfejezet | Tervben érvényesülő döntés |
+|---|---|
+| 1–6, 31–33, 42 | Private + Official + Community, olcsó olvasásból saját AI-élet, központi fork |
+| 7–10, 22–24, 29–30 | Három láthatóság, explicit preview/consent, külön snapshot, visszavonás és törlés |
+| 11–17, 34–35, 38 | Discovery/életoldal, Scenario és Life külön, valódi AI-seed és hitelességi jelölések |
+| 18–21, 36 | Fork/decision start/personalize a saját privát állapotba, jogosultság és generálási limit |
+| 25–28, 37, 40–41 | Fix taxonómia, egyszerű rangsorolás, Save/Share/Fork első körben, moderáció, modulhatárok |
+| 39 | Views/read depth/save/share/fork/publish/unpublish és moderációs mérés a folytatási metrikák mellett |
+
+A seed célja a forrás szerint **50–100 Official Life és 20–30 Scenario a publikus indulás előtt**. Először néhány szintetikus, több időszakos mintán ellenőrizzük a minőséget és a költséget. A célmennyiség nem jogosít az 5 USD keret túllépésére; a méretezéshez mért költség és szükség esetén külön jóváhagyott keret kell. Ez a tervfrissítés nem indít új fizetett AI-hívást.

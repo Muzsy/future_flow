@@ -508,7 +508,7 @@ export function Experience() {
           <span className="brand-icon">
             <GitBranch size={23} />
           </span>
-          alter jövő
+          alterward
           <span
             style={{
               fontSize: 10,
@@ -1447,7 +1447,7 @@ export function Experience() {
                           );
                           const anchor = document.createElement('a');
                           anchor.href = url;
-                          anchor.download = 'alter-jovo-export.json';
+                          anchor.download = 'alterward-export.json';
                           anchor.click();
                           setTimeout(() => URL.revokeObjectURL(url), 1000);
                         });
@@ -1487,7 +1487,7 @@ export function Experience() {
         )}
       </main>
       <footer>
-        <span>© {new Date().getFullYear()} Alter Jövő</span>
+        <span>© {new Date().getFullYear()} alterward</span>
         <span>Egy lehetséges történet. A valódi döntés a tiéd.</span>
       </footer>
     </>

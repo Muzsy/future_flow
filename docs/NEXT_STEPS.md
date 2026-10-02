@@ -1,6 +1,6 @@
-# Következő lépések, sorrendben
+# alterward — következő lépések, sorrendben
 
-2026-10-02 · Az [új pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. Az alábbi pontok tervezett munka, nem elkészült funkciók.
+2026-10-03 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01 első szerződés/domain-szelete elkészült; a többi pont tervezett munka.
 
 ## Kiinduló állapot
 
@@ -12,11 +12,15 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
+**Elkészült első szelet:** külön v2 életbemenet/tényállapot/időszak/korlátsémák, saját/alternatív identitás, privát indulás, determinisztikus tényváltozás és scope/idő/döntés szerint érvényes korlátok. A döntésnél megálló időszak validátora még nem alkalmaz opciót; revisionellenőrzése 409. 20 új domain-teszt. [Szerződés és pontos határok](V2_SIMULATION_CONTRACT_HU.md).
+
+**Következő szelet:** additív tárolás és perzisztencia-integráció. Az API/worker jelenleg v1; P01 teljes elfogadása még nyitott.
+
 **Feladat:** verziózott v2-sémák rövid időszakhoz, saját/alternatív identitáshoz, a cél mezőihez, tartós szereplőkhöz, tényszerű állapotváltozásokhoz és időben érvényes korlátokhoz. Válasszuk külön a környezeti kontextust a szimulált élet állapotától. Készüljön additív `002+` migráció az időszakhoz, ág aktuális állapotához/revisionjéhez, választáshoz és folytatási jobhoz.
 
 **Elfogadás:** a mai migráció változatlan ellenőrzőösszeggel alkalmazható. A régi életek/hash-ek változatlanul visszaolvashatók. Állásváltás és tulajdonlás megszűnése ténylegesen módosítja a megfelelő mezőt; lejárt/ágon kívüli korlát nem válik örök tiltássá. A v1-ről v2-re indulás explicit új élet/másolat, ellenőrzött kezdőállapottal.
 
-**Függőség:** nincs; ez az első kódolási szelet. A kérdőív és a további API-k erre épülnek.
+**Függőség:** nincs; a szerződés/domain-alap elkészült, a tárolás következik. A kérdőív és a további API-k erre épülnek. A későbbi nyilvános snapshot/fork külön sanitized állapotot igényel; nem nyitjuk meg a privát v2 canont.
 
 ## P02 — Első rövid AI-időszak
 
@@ -76,8 +80,48 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 **Függőség:** P04–P07. A műszerezést már P04 során beépítjük. A pilot külön felhasználói költségkeretet igényelhet: a résztvevői generálásokat nem indítjuk el a fejlesztői keretet meghaladó összeggel.
 
-## Az MVP után
+## P09 — Publikálható snapshot, Official Scenario és kurált seed
 
-Először a szimuláció minősége és hosszabb távú emlékezete mélyül, majd a célok/élettípusok, szabad szöveges döntés és vizuális összehasonlítás. Közösség akkor következik, amikor már érdekes életutak vannak: megosztható objektum az idővonal/ág. Fizetés, mobil és platformbővítés külön tervet kap. A meglévő compare felület megőrizhető; bővítése nem előzi meg a folytatás működését.
+**Feladat:** külön Publication/PublicSnapshot/ScenarioVersion modul és additív tárolás. Allowlist alapján anonimizált idővonal/fejezet/állapot, fork-checkpoint, Official/Community/AI-generated/user-edited jelölés. PII/tartalmi elővizsgálat és curator-jóváhagyás. Először néhány valódi AI-szintetikus Official minta az új több időszakos láncon.
 
-**A következő konkrét munka P01:** időszakos v2-szerződés, tényszerű világállapot és additív adatbázismigráció. A már elfogadott szolgáltatókról és a valódi AI szükségességéről nem nyitunk új döntést.
+**Elfogadás:** nincs raw prompt, privát memória/állapot, harmadik személy adata vagy eredeti belső referencia a public DTO-ban/checkpointban. Privát folytatás nem módosítja a kiadást. Scenario sablon és konkrét Official Life külön objektum; teszthelyettesítő nem lesz publikus AI-tartalom. Forráscél 50–100 élet/20–30 szcenárió, mért v2-költség és engedélyezett keret szerint.
+
+**Függőség:** P01–P07; közös költségőr/modellmérés P05. A teljes seed/pilot nem lépheti túl az 5 USD fejlesztői keretet.
+
+## P10 — Read-only Discovery, public életoldal, Save/Share/Report
+
+**Feladat:** kurált kollekciók, fix taxonómia, egyszerű ranking, bejelentkezés nélkül olvasható Official snapshot, Save/Share/OG és Report. Alap moderation queue/soft hide/hard remove/figyelmeztetés/rate-limit. Snapshot-cache mellett aktív publication/permission ellenőrzés; indexelés külön engedély szerint.
+
+**Elfogadás:** olvasás/újratöltés nem indít AI-hívást. Anon/másik fiók csak engedett snapshotot kap; private/unlisted nincs Discoveryben. Save hitelesített és idempotens. Rejtett/visszavont élet nem olvasható, Report nem jelent ellenőrizetlen ranking-tiltást. Olvasás/mentés/megosztás mérhető.
+
+**Függőség:** P09; moderáció/visszavonás az Official public próba előfeltétele is. Kis kurált seed-pilot elég a fejlesztés indításához, tömeges generálás nem szükséges.
+
+## P11 — Community Publishing és visszavonás
+
+**Feladat:** private/unlisted/public, Privacy Preview, Content Preview, szerző/indexelés beállítás, hash/revisionhöz kötött Confirm. Unlisted titkos token, Unpublish és új snapshotverziós refresh; export/fiók-élettörlés kiterjesztése. Kezdetben zárt publish-béta.
+
+**Elfogadás:** Confirm előtt privát; lejárt/módosított preview új ellenőrzést kér. Unlisted csak érvényes linkkel olvasható, noindex és listákból kizárt; tokencsere megszünteti a régi linket. Unpublish tiltja új olvasást/forkot, eltávolítja index/OG-t és érvényteleníti cache-t. Törlés/aktív job nem hagy tartalmat. Report/admin moderáció kliensflaggel nem kerülhető meg.
+
+**Függőség:** P09–P10 és P06 teljes adatkezelése; hiányzó Supabase admin-kulcs a valódi fióktörlési próba függősége, nem a tervezésé.
+
+## P12 — Fork this life, Start from this decision, Personalize scenario
+
+**Feladat:** sanitized checkpointból új tulajdonos **privát élete**, új belső szereplő/cél/asset ID-k, választás egyszeri alkalmazása, idempotencia/generálási limit. Scenario + saját jóváhagyott profil/cél/korlát új kezdőállapota, forrásattribution törlési szabálya.
+
+**Elfogadás:** másik felhasználó forkja nem örököl privát előzményt vagy jogot; az eredeti élet változatlan. Döntésből indulás nem másol el nem döntött jövőt. Új élet privát és három időszakon át folytatható. Visszavont/rejtett forrásból nincs új fork; forrástörlés leválasztja a public attributiont a meglévő példányról. Kattintás, létrehozás és első sikeres időszak külön mérhető.
+
+**Függőség:** P03–P05, P09–P11. A mai saját branch API más tulajdonosi jelentésű; nem nyitjuk meg idegen privát ágakhoz.
+
+## P13 — Nyilvános indulási kapu és közösségi mérés
+
+**Feladat:** a [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) permission/privacy/cache/moderáció/törlés/fork próbái, Official minőség és olvasás→saját élet emberi tesztje. P08 mellé views/read depth/completion/save/share/publish/unpublish/report/removal és referral.
+
+**Elfogadás:** a specifikáció 36. fejezetének 14 MVP-eleme és minden privacy/jogosultsági/törlési kapu teljesül. Anon API/fork-checkpoint nem szivárogtat privát adatot. Official kurált, induló Discovery nem üres. Költségkeret és üzemeltetési felelős/folyamat rögzített; tömeges seed és külső generálás csak elegendő engedélyezett kerettel indul.
+
+**Függőség:** P08–P12. Ez a nyilvános indulás kapuja; a privát technikai/emberi pilot korábban végrehajtható.
+
+## A nyilvános MVP után
+
+Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
+
+**A következő konkrét munka P01 tárolási szelete:** a már elkészült v2-szerződéshez additív migráció/perzisztencia, v1 megőrzéssel. Ezután valódi rövid AI-időszak, folytatás, publikálható snapshot. Márkanév alterward; a szolgáltatók, valódi AI és nyilvános rendszer elfogadott irány.

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export * from './questionnaire';
+export * from './life-v2';
 
 export const CONTRACT_VERSION = '1.0.0';
 export const SIMULATION_VERSION = '1.0.0';

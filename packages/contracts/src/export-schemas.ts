@@ -8,6 +8,11 @@ import {
   chapterOutputSchema,
   fidelitySchema,
   CONTRACT_VERSION,
+  LIFE_CONTRACT_VERSION,
+  lifeInputV2Schema,
+  lifeStateV2Schema,
+  periodCandidateV2Schema,
+  constraintV2Schema,
 } from './index';
 
 const directory = resolve(__dirname, '../../../docs/contracts');
@@ -24,6 +29,26 @@ for (const [name, schema] of Object.entries({
     JSON.stringify(
       {
         $id: `urn:future-flow:${name}:${CONTRACT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+const v2Directory = resolve(directory, 'v2');
+mkdirSync(v2Directory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  lifeInput: lifeInputV2Schema,
+  lifeState: lifeStateV2Schema,
+  periodCandidate: periodCandidateV2Schema,
+  constraint: constraintV2Schema,
+})) {
+  writeFileSync(
+    resolve(v2Directory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:${name}:${LIFE_CONTRACT_VERSION}`,
         ...z.toJSONSchema(schema),
       },
       null,

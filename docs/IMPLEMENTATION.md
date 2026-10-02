@@ -1,12 +1,20 @@
-# Jelenlegi implementáció — 2026-10-02
+# alterward — jelenlegi implementáció, 2026-10-03
 
-Ez a dokumentum a jelenlegi, v1 technikai prototípus működését írja le. A kódból exportált `docs/contracts/*.schema.json` sémák ezt a működést tükrözik. A következő verzió célja az [új pozicionálásból](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) levezetett [aktív termékterv](PRODUCT_PLAN_HU.md); megvalósítási sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan referencia.
+Ez a dokumentum a működő v1 prototípust és a külön elkészült v2 könyvtári alapot írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.
+
+## Új, elkészült könyvtári alap és márkanév
+
+A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevében és OpenAPI címében **alterward** szerepel. A repó/belső `@future-flow/*` nevek és korábbi tárolt azonosítók kompatibilitásból megmaradnak.
+
+V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
+
+Új tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; ez a szelet nem használt OpenAI-kreditet.
 
 ## Eltérés az új termékcéltól
 
 A jelenlegi generálás tízéves horizontra készít 5–10 eseményt és 2–3 fejezetet. A 29 kérdéses profilból indul, és minden döntési választás új gyermekágat hoz létre. Elmentett életág megtekinthető, de következő rövid időszak ugyanarra az ágra még nem generálható.
 
-A meglévő életállapot elsősorban számszerű mutatókat tárol. A `ff_world_versions` semleges környezeti kontextus, nem a stratégia teljes World State-je. Még fejlesztendő a tényszerű munka/hely/tulajdonlás változása, tartós szereplő- és célállapot, időszakos folytatás, géppel ellenőrizhető korlátok, rövid onboarding, emlékezet és folytatási mérés. A jelenlegi constraint mezők önmagukban nem jelentenek kész domain-validátort.
+A működő v1 életállapot elsősorban számszerű mutatókat tárol. A `ff_world_versions` semleges környezet, nem teljes World State. A v2 tény/szereplő/cél/korlát könyvtári alap már elkészült, de tárolás és AI bekötése, időszakos folytatás, rövid onboarding, emlékezet/folytatási mérés még fejlesztendő. A v1 constraint mezők önmagukban nem jelentenek kész domain-validátort.
 
 A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célállapotot nem állítják késznek. Az új időszakos működés additív migrációval és verziózott API-val készül, a régi profilok és canon megőrzésével.
 

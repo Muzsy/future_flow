@@ -1,6 +1,8 @@
-# Alter Jövő / future_flow
+# alterward
 
-OpenAI-val generált, tartósan mentett, folytatható és elágaztatható alternatív életek. Magyar, 18+ webes indulás; a rövid időszakokon át folytatható MVP az aktív fejlesztési cél.
+OpenAI-val generált, tartósan mentett, folytatható és elágaztatható alternatív életek, kurált Official Lives és önként publikált közösségi életutak. Magyar, 18+ webes indulás; a rövid időszakokon át folytatható személyes szimuláció és az arra épülő Discovery az aktív fejlesztési cél.
+
+A termék neve **alterward**. A GitHub-repó és a projektkönyvtár továbbra is `Muzsy/future_flow`, a meglévő belső `@future-flow/*` csomagnevek és v1 sémaazonosítók kompatibilitási okból megmaradnak.
 
 A jelenlegi technikai prototípus tízéves életút-szcenáriókat készít, és a döntésekből új ágat indít. Ugyanazon életág következő időszakának generálása még fejlesztendő. Az [új termékterv](docs/PRODUCT_PLAN_HU.md) rövid első fejezetre, döntésre és ugyanannak az életnek a folytatására rendezi át a munkát.
 
@@ -52,9 +54,12 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 
 ## Dokumentáció
 
-A pozicionálási dokumentum és az aktív termékterv határozza meg a következő változat irányát. A ZIP és a `docs/alter_jovo_docs` mappa az eredeti v0.1 tervezési anyagot őrzi változatlanul. A jelen implementáció szerződései a `packages/contracts` alatt vannak; a tervezett v2-szerződések még nem részei a működő kódnak.
+A pozicionálási és a nyilvános életutakról szóló dokumentum együtt határozza meg a következő változat irányát. A ZIP és a `docs/alter_jovo_docs` mappa az eredeti v0.1 tervezési anyagot őrzi változatlanul. A v1 szerződések mellett már rendelkezésre áll a v2 időszak-/tényállapot-szerződés és determinisztikus validátor; az új tárolás, API és AI-pipeline bekötése még fejlesztendő. Discovery és publikálás még nincs a működő alkalmazásban.
 
 - [Pozicionálás és célmeghatározás — stratégiai alap](docs/PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md)
+- [Nyilvános életutak, Discovery és közösségi specifikáció](docs/PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md)
+- [Publikálás és Discovery — megvalósítási terv](docs/PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md)
+- [V2 időszak- és tényállapot-szerződés](docs/V2_SIMULATION_CONTRACT_HU.md)
 - [Aktív termék- és megvalósítási terv](docs/PRODUCT_PLAN_HU.md)
 - [Következő fejlesztési lépések — végrehajtási sorrend](docs/NEXT_STEPS.md)
 - [Jelenlegi implementáció és elfogadott döntések](docs/IMPLEMENTATION.md)
