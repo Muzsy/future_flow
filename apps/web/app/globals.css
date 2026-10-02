@@ -813,14 +813,22 @@ footer {
 }
 @media (max-width: 550px) {
   header {
-    height: 70px;
-    padding: 0 5%;
+    min-height: 70px;
+    height: auto;
+    padding: 16px 5%;
+    flex-wrap: wrap;
+    gap: 14px;
   }
   .brand {
     font-size: 19px;
   }
   .nav button:not(.login) {
-    display: none;
+    display: inline-flex;
+  }
+  .nav {
+    width: 100%;
+    gap: 8px;
+    justify-content: space-between;
   }
   .hero h1 {
     font-size: 45px;
@@ -835,13 +843,24 @@ footer {
     gap: 22px;
   }
   .orbit {
-    min-height: 400px;
+    min-height: 540px;
   }
   .path-card.one {
     left: 15px;
+    top: 65px;
   }
   .path-card.two {
     right: 10px;
+    top: 210px;
+  }
+  .path-card.three {
+    left: 25px;
+    top: 360px;
+    bottom: auto;
+  }
+  .root-node {
+    right: 15px;
+    bottom: 12px;
   }
   .form-grid,
   .card-grid,
