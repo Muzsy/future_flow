@@ -1,7 +1,7 @@
 # alterward — AI és promptarchitektúra
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
@@ -10,10 +10,10 @@
 | Feladat | Konfiguráció | Jelenlegi használat |
 |---|---|---|
 | Események és döntési opciók | `AI_EVENT_MODEL` | Strukturált v1 és v2 időszakgenerálás |
-| Történetfejezetek | `AI_STORY_MODEL` | Canonból olvasható angol/magyar próza |
+| Történetfejezetek | `AI_STORY_MODEL` | Canonból olvasható angol próza; magyar kutatási kompatibilitás |
 | Fidelity/safety | `AI_CHECK_MODEL` | Canon és történet összevetése |
 
-Mindhárom kezdőmodell `gpt-6.1-sol`. Checker hiányzó beállításnál az eseménymodellt örökli; modellcserénél külön kell beállítani. Luna eseménygenerátor mérendő jelölt, nem automatikus alkalmazásbeállítás. A [v2 négy EN/HU lánc](../AI_V2_ROUTING_REPORT_HU.md) technikai mérése kész, emberi kapu és további profilok szükségesek. [Claude külső audit és tokenmérés](../CLAUDE_MODEL_EVALUATION_HU.md) külön kutatási integráció, nem automatikus worker-routing.
+Mindhárom kezdőmodell `gpt-6.1-sol`. Checker hiányzó beállításnál az eseménymodellt örökli; modellcserénél külön kell beállítani. Luna eseménygenerátor mérendő jelölt, nem automatikus alkalmazásbeállítás. A [v2 négy EN/HU lánc](../AI_V2_ROUTING_REPORT_HU.md) technikai mérése kész, angol AI/szerkesztői minősítés és további profilok szükségesek. [Claude külső audit és tokenmérés](../CLAUDE_MODEL_EVALUATION_HU.md) külön kutatási integráció, nem automatikus worker-routing.
 
 OpenAI Responses, Structured Outputs/JSON Schema, `store:false`, szerveroldali kulcs. Az API/worker és domain-könyvtár elválasztása megmarad; böngészőből nincs közvetlen AI-hívás. AI nélküli személyes tartalompótlás nincs. Teszthelyettesítő csak automatizált, elkülönített tesztben.
 
@@ -25,7 +25,7 @@ A nyelv zárt regiszterből, magas prioritású rendszerutasításból jön. A f
 
 ## Validálás, retry és checkpoint
 
-AI-kimenet → séma → idő/szereplő/állapot/korlát → narratív referencia → AI-fidelity → commit. Egy `valid=true` nem szemantikai garancia, emberi értékelés kell. A már elfogadott eseményeket narratívahiba miatt nem generáljuk újra; a jobcheckpoint tartós.
+AI-kimenet → séma → idő/szereplő/állapot/korlát → narratív referencia → AI-fidelity → commit. Egy `valid=true` nem szemantikai garancia; AI szerkesztői ellenőrzés, majd éles használói visszajelzés kell. A már elfogadott eseményeket narratívahiba miatt nem generáljuk újra; a jobcheckpoint tartós.
 
 Számlázási/kvótahiány nem kap automatikus retryt vagy drágább modellre kerülőutat. Átmeneti hálózati/rate-limit/5xx hiba legfeljebb két provider retryt kap; hosszú Retry-After esetén korai új kérés nem indul. A domain/narratív célzott javítás kész P05 folyamat: közös, legfeljebb egyszeri automatikus javítás, külön költségfoglalással. A Claude értékelő nem használ automatikus retryt. Ez nem már kész automatikus fallback.
 

@@ -23,13 +23,14 @@ async function main() {
     auth,
     process.env.WEB_ORIGIN ?? 'http://localhost:3000',
   );
-  await app.listen(Number(process.env.API_PORT ?? 4000), '127.0.0.1');
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
+  await app.listen(port, process.env.API_HOST ?? '127.0.0.1');
   const close = () => {
     void db.close();
   };
   process.on('SIGTERM', close);
   process.on('SIGINT', close);
-  console.log(`API listening on port ${process.env.API_PORT ?? 4000}`);
+  console.log(`API listening on port ${port}`);
 }
 main().catch(() => {
   console.error(

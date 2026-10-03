@@ -238,7 +238,7 @@ export function LifeExperience({
             } catch {
               /* Server draft remains available when browser storage is unavailable. */
             }
-            setSetup(payload);
+            setSetup({ ...payload, locale });
             hydrated.current = true;
           }
         }

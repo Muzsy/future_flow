@@ -1,62 +1,42 @@
-# alterward — többnyelvű felület és AI-történetek
+# alterward — angol kiadás és nyelvi kompatibilitás
 
-[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+2026-10-03 · [Indulási döntés](ENGLISH_RELEASE_PLAN_HU.md) · [Közös státusz](STATUS_HU.md) · [Dokumentációs központ](README.md).
 
-2026-10-03 · Angol az alapnyelv, magyar választható. A teljes meglévő v1 felület és történetgenerálás támogatja mindkettőt. A v2 onboarding/élet/folytatás is teljes EN/HU katalógust és valódi három időszakos AI-próbát kapott. Discovery még tervezett. [V2 riport](V2_IMPLEMENTATION_REPORT_HU.md).
+## Aktív nyelvi policy
 
-## Felület és tartalom
+A legújabb felhasználói döntés szerint az induló termék kizárólag angol felületet és angol AI-történeteket ad. A magyar minták fogalmazására érkezett kritika; a magyar felület és generálás most halasztott. Az AI végzi az angol szerkesztői ellenőrzést, majd a korlátozott éles béta visszajelzései alapján javítunk. Előzetes kézi EN/HU minősítésre nem várunk. A fejlesztési dokumentáció magyar marad.
 
-| Terület | Megvalósítás |
+| Terület | Jelenlegi működés |
 |---|---|
-| Nyelvek | Közös `supportedLocales`, `Locale`, `languages` regiszter; jelenleg `en`, `hu` |
-| Első megnyitás | Angol, a böngésző automatikus nyelvfelismerésétől függetlenül |
-| Választás | English / Magyar a fejlécben; egyéves `alterward_locale` cookie, HTTPS-en Secure, SameSite=Lax |
-| Felület | Típusos angol/magyar katalógus: főoldal, belépés, profil, kérdőív, kapcsolatmezők, összegzés, generálás, életek, történet/idővonal/compare, export/törlés és adatkezelés |
-| HTML és metadata | A szerver cookie alapján adja a nyelvet, címet/leírást; kliensváltás azonnal frissít |
-| Dátumok | Locale szerinti Intl-formázás; szcenáriónap UTC, dátumeltolás nélkül |
-| API | `Accept-Language`, alapérték angol; kérdőív és kódalapú biztonságos hibaszöveg lokalizált |
-| Új élet | Explicit `locale` a létrehozás kérésében, mentett `ff_futures.content_locale`, jobpayloadban `locale` |
-| Elágazás/újraindítás | A gyermekág és minden AI-lépés a mentett életnyelvet követi |
-| Korábbi életek | A `002_content_locale.sql` magyarra jelöli; történet, esemény, profil és hash nem változik |
-| Új v2 életbemenet | Kötelező `locale`; az adatbázis/API/worker is ezt örökli |
+| Regiszter | `supportedLocales` = `en`, `hu` tárolt/kutatási kompatibilitás; `enabledLocales` = csak `en` a termékben |
+| Felület | Angol katalógus minden képernyőn; a nyelvválasztó egy engedett nyelvnél nem jelenik meg |
+| Régi cookie | `alterward_locale=hu` is angol HTML/metadata/kliensnyelvet eredményez; az engedélyezett nyelv szerver- és kliensoldalon is szűrt |
+| API-feliratok | `Accept-Language: hu` mellett is angol kérdőív és biztonságos hiba |
+| Új élet/draft | V1 future és v2 create/draft request csak `locale: en`; explicit `hu` 422, generálási job nélkül |
+| Visszatöltött draft | Az új onboarding az angol felület nyelvét rögzíti, a többi válasz/revision megmarad |
+| Régi magyar történetek | Nem jelennek meg a v1/v2 listában; közvetlen olvasás/timeline/job/choice/continue/fork/retry/preview az API-n elrejtve |
+| Saját adatok | Az ingyenes export a régi HU adatokat is megőrzi; fióktörlés ugyanazt a teljes adatgráfot kezeli |
+| Kánon/adatbázis | A mentett `content_locale` immutable; alkalmazott migráció és korábbi történet nem módosul |
+| Későbbi nyelvek | Katalógusok és kódok megmaradnak; visszakapcsolás külön termékdöntés és nyelvi minősítés |
 
-A felületnyelv és a történet nyelve külön fogalom. Új élet a választott felületnyelven készül. Egy angol élet későbbi döntése magyar felület mellett is angol folytatást/ágat ad, így a közös történet nem kever nyelveket. A mentett tartalomnyelv nem írható át. A történet eredeti nyelve látszik; eltérő felületnyelvnél külön üzenet tájékoztat. Az AI-szövegek megfelelő `lang` jelölést kapnak.
+## AI-tartalom
 
-Nyelvváltás a profilválaszokat, opcióazonosítókat, pontozást és felhasználó által írt címkéket nem fordítja át. Az angol kérdőív a v1 kérdőív megjelenítési változata, ugyanazokkal a kulcsokkal/értékekkel/verziókkal; a tárolt magyar definíció hash-e változatlan. A `localizationVersion` külön megjelenítési verzió. Az aktuális kérdőív földrajzi kiindulása továbbra is Magyarország; a nemzetközi környezetsablon külön szcenáriófejlesztés.
+Új életek és folytatásaik angol nyelvű eseményt, döntést, opciót, címet, narrációt és ellenőrzési megjegyzést kapnak. Más nyelvű szabad szöveges bemenet nem írhatja felül a kimeneti nyelvet. Az AI provider magyar képessége a külön kutatási eszközben megmarad; ez nem engedélyez új magyar termékéletet. Régi, már tárolt jobok nyelvi jelentését nem változtatjuk meg.
 
-Korábbi magyar történetekhez jelenleg nem készül automatikus angol fordítás. Ez külön, költséggel járó szövegprojekció lehetne; nem írna át canont vagy korábbi fejezetet. A már mentett magyar élet és az új angol élet egyszerre elérhető. Nyelvválasztás, történetolvasás és újratöltés nem indít AI-hívást.
+A felület és tartalomnyelv megkülönböztetése megmarad a szerződésekben. `Locale` és a tárolt v2 input/setup/draft sémák olvassák a korábbi `hu` adatot is; az új `lifeCreateRequestV2Schema` és `lifeDraftRequestV2Schema` az engedett terméknyelvre szűkít. A [kódból exportált request-sémák](contracts/v2/lifeCreateRequest.schema.json) ezt külön mutatják. Olvasás, újratöltés és a nyelvi elrejtés nem indít API-generálást vagy fizetett fordítást.
 
-## AI és minőség
+A jelenlegi környezetsablon magyar földrajzi kontextusa külön kérdés a történet angol nyelvétől. Profilérték, opcióazonosító, kérdőívhash, pénznem és szabad felhasználói címke nem fordul át automatikusan. A kérdőív angol megjelenítése ugyanazokat az adatkulcsokat/pontozást használja.
 
-Az eseménygenerátor, narrátor és történethűség-ellenőr zárt regiszterből kapja az English/Hungarian kimeneti nyelvet. Minden olvasónak szánt cím/összefoglaló/indok/döntés/opció/fejezet/ellenőrzési megjegyzés ezen a nyelven készül. JSON-kulcs, enum, UUID, profilérték és tulajdonnév változatlan. Más nyelven írt cél vagy bemeneti prompt nem változtathatja meg a választott nyelvet.
+## Nyelvek későbbi engedélyezése
 
-Promptverzió: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`; auditban külön `locale`. A régi, nyelv nélküli jobok magyarul folytatódnak, checkpointjuk megmarad. A szolgáltató közvetlen új hívásának alapértéke angol. Modellbeállítás és fizetési/retry védelem változatlan, Responses `store:false`. A nyelvi ellenőr is AI, ezért a technikai ellenőrzés mellett emberi angol/magyar értékelés kell. A [Responses nyelvi utasításai](https://developers.openai.com/api/docs/guides/text) rendszerüzenetbe kerülnek, a felhasználói adatok külön üzenetbe.
+1. Teljes katalógus, kérdőív és biztonságos hibaszöveg, egyező kulcsokkal/interpolációval.
+2. A nyelv regisztrálása és additív DB-nyelvkód-bővítés, ha még nincs támogatva; alkalmazott migráció nem írható át.
+3. Többidőszakos valódi AI-próba és dokumentált nyelvi ellenőrzés, különösen a magyar természetes fogalmazás javítása.
+4. Az `enabledLocales` bővítése, csak az elfogadott kiadási döntés után. Ekkor válik láthatóvá a választó és használhatóvá az adott nyelv.
+5. Public tartalom/keresés/SEO és RTL szükség szerint; olvasáskor továbbra sincs fizetett fordítás.
 
-`pnpm smoke:ai family en` valódi angol eseményeket/fejezeteket/ellenőrzést és döntési ágat készít. `pnpm smoke:ai family hu` magyar változat. Egy közös, korábbi fogyasztást is tartalmazó költségnapló és kérés előtti tokenfoglalás védi az 5 USD kísérleti keretet. A nyelvi munka nem jelent olcsóbb modell automatikus bekapcsolását.
+## Korábbi mérési bizonyíték
 
-## Új nyelv hozzáadása
+A kétnyelvű alap korábban működött: angol/magyar v1 alap és ág, 12 valódi OpenAI-hívással és 0,3352520 USD becsléssel. V2-ben négy EN/HU Sol/Luna lánc ×3 időszak és Claude külső audit készült. Ezek történeti mérések, nem aktív kétnyelvű kiadási követelmények. A minta szövege és nyers mérési eredménye változatlan. [Angol háromidőszakos fő minta](examples/AI_V2_ENGLISH_STORY.md), [angol Claude-próbák](examples/CLAUDE_GENERATED_STORIES_EN.md), [audit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
 
-1. Regisztrálni kell a kódot, natív nevet, Intl taget és AI-nyelvnevet a `packages/contracts/src/locales.ts` fájlban.
-2. Teljes, angol kulcsokkal és azonos interpolációs paraméterekkel rendelkező katalógus szükséges az `apps/web/lib/i18n/messages.ts` és `apps/web/lib/life-messages.ts` mellett, bekötve a `messages` mapbe. Nincs fordítatlan nyelv a választóban.
-3. Az összes kérdőívfelirat/help/section/opció fordítása és az API/auth/domain hibák megfelelő változata szükséges. Kulcsok, opcióértékek és pontozás változatlanok maradnak.
-4. A nyelvi egyezést biztosító tesztek, valódi AI-esemény/narratíva/fidelity próba és emberi értékelés után engedhető a választóban. A SQL nyelvkódellenőrzések (v2 aw_lives is) új additív migrációval bővítendők, nem kell nyelvenként új oszlop.
-5. RTL nyelvnél `dir` kezelés és felületi próba; más földrajzi világ/pénznem nem következik automatikusan a nyelvből. Publikus SEO-nyelvútvonal/hreflang a Discovery bevezetésekor külön feladat.
-
-A jelenlegi angol/magyar regiszter a támogatott nyelvek egyetlen forrása. A kód típusellenőrzése hiányzó katalogizált kulcsot jelez; a tesztek a paraméteregyezést és a kérdőív adatkompatibilitását is ellenőrzik. Az új nyelv fordítási katalógusokkal bővítendő, nem karakterláncok cseréjével a komponensekben.
-
-## Nyilvános tartalom terve
-
-ScenarioVersion/PublicSnapshot tartalomnyelve, Discovery nyelvi szűrés és fordított kategóriák kötelezők. Official seed teljes angol élményt és magyar mintákat ad; a 50–100 élet/20–30 szcenárió összesített cél, nem nyelvenkénti új generálás. Olvasáskor nincs fizetett fordítás. Publikus fordítás külön moderált/verziózott projekció lehet; sanitized checkpoint eredeti állapota és az új privát élet nyelve explicit. [A nyilvános terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) ezt tartalmazza.
-
-## Ellenőrzés
-
-A korábbi 92-es ellenőrzés: teljes katalogizált szöveg/paraméteregyezés, minden kérdőívmező/érték kompatibilitása, angol alapérték, fejlécprioritás, lokalizált API-hiba, nyelvhez kötött idempotencia, immutable életnyelv, gyermekág öröklése, workercheckpoint és régi job magyar nyelve, változatlan migrált történet. A v1 domain- és jogosultsági tesztek megmaradtak. A valódi AI- és böngészős próba alább dokumentált.
-
-
-### Valódi AI- és böngészős próba
-
-Angol család/karriercél és magyar kreatív/tanulási cél, mindkettőnél alaptörténet + alternatív ág: 9 alap-esemény, 3 alapfejezet és 11 gyermekági esemény (örökölt előzménnyel), 3 új fejezet. Mindkét nyelven sikeres séma/domain/narratívahivatkozás/fidelity-ellenőrzés; szülőág változatlan, tartalomnyelv és audit helyes. Az angol bemenet magyar profilcélokat/címkéket tartalmazott, az eredmény angol. [Teljes angol AI-minta](examples/AI_ENGLISH_STORY.md).
-
-A nyelvi próba 12 valódi OpenAI-hívás (6 angol, 6 magyar), 0,3352520 USD többletbecsléssel. A korábbi sorozatokkal együtt számolt 44 hívás és az 5 USD teljes keret aktuális maradványa a [közös státuszban](STATUS_HU.md) van. Ismeretlen fogyasztású hívás nincs; nem szolgáltatói egyenleglekérdezés.
-
-Böngészőben ellenőrizve: angol alap, English/Magyar váltás, megmaradó nyelv újratöltéskor, HTML/metadata, kezdőlap, belépés/regisztráció feliratai, adatkezelés, valamint 390 px mobilnézet vízszintes túlcsordulás nélkül. A privát bejelentkezéses végigpróba továbbra P06 függőség; ez a próba nem hozott létre valódi Supabase Auth-fiókot. A 002_content_locale.sql a Supabase-on lefutott, TLS-kapcsolat ellenőrizve.
+A korábbi böngészős próba két nyelvet és 390 px nézetet ellenőrzött. Az angol átállás új regressziói: HU-cookie, HU-fejléc, tiltott új HU élet/draft, elrejtett régi v1/v2 történet, változatlan export/kánon és angol fióktörlési megerősítés. A teljes valódi Supabase-fiókos végigpróba továbbra külön P06 feladat.

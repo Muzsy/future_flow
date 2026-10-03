@@ -12,6 +12,7 @@ import {
   type ChapterOutput,
   localeSchema,
   languages,
+  supportedLocales,
   type Locale,
 } from '@future-flow/contracts';
 import {
@@ -454,15 +455,18 @@ export class Repository {
       },
     );
   }
-  async listFutures(userId: string) {
+  async listFutures(
+    userId: string,
+    locales: readonly Locale[] = supportedLocales,
+  ) {
     return this.db.query(
-      'SELECT f.id,f.title,f.status,f.root_branch_id,f.created_at,f.content_locale,j.id AS job_id FROM ff_futures f LEFT JOIN ff_jobs j ON j.branch_id=f.root_branch_id WHERE f.user_id=$1 ORDER BY f.created_at DESC LIMIT 100',
-      [userId],
+      'SELECT f.id,f.title,f.status,f.root_branch_id,f.created_at,f.content_locale,j.id AS job_id FROM ff_futures f LEFT JOIN ff_jobs j ON j.branch_id=f.root_branch_id WHERE f.user_id=$1 AND f.content_locale=ANY($2::text[]) ORDER BY f.created_at DESC LIMIT 100',
+      [userId, [...locales]],
     );
   }
   async future(userId: string, id: string) {
     const future = requireRow(
-      await this.db.query(
+      await this.db.query<Row & { content_locale: Locale }>(
         'SELECT * FROM ff_futures WHERE id=$1 AND user_id=$2',
         [id, userId],
       ),
@@ -485,7 +489,9 @@ export class Repository {
   }
   async branch(userId: string, id: string) {
     const branch = requireRow(
-      await this.db.query<Row & { id: string; name: string }>(
+      await this.db.query<
+        Row & { id: string; name: string; content_locale: Locale }
+      >(
         'SELECT b.id,b.future_id,b.parent_branch_id,b.fork_event_id,b.name,b.status,f.content_locale,j.id AS job_id FROM ff_branches b JOIN ff_futures f ON f.id=b.future_id LEFT JOIN ff_jobs j ON j.branch_id=b.id WHERE b.id=$1 AND b.user_id=$2',
         [id, userId],
       ),

@@ -74,3 +74,5 @@ A [dokumentációs központ](docs/README.md) a két átadott stratégiai tervet,
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.
 
 Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztszám: 147, fizetett API nélkül.
+
+Az induló kiadás kizárólag angol felületet és angol történeteket ad; magyar elrejtve. A felhasználó AI szerkesztői ellenőrzést és korlátozott éles bétát választott, majd használói visszajelzés alapján javítunk. [Indulási terv](docs/ENGLISH_RELEASE_PLAN_HU.md) és [Render-telepítés előkészítése](docs/DEPLOYMENT_HU.md); még nincs éles deployment.

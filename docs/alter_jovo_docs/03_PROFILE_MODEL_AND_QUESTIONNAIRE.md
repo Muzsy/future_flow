@@ -1,19 +1,19 @@
 # alterward — profil, identitás, kérdőív és cél
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · [P01/P04](../NEXT_STEPS.md) és [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
 ## Meglévő v1
 
-29 kérdés, angol/magyar megjelenítéssel. A v1 magyar kanonikus kérdéskulcsok/opcióértékek, scoring- és kérdőívverzió/hash változatlanok; az angol fordítás külön megjelenítési réteg. A draft válaszokat és kapcsolati címkéket ment revisionnel; commit immutable pillanatképet ad. A célok és kapcsolatok a pillanatkép másolatai. Trait értékek önbevallott 0–100 adatok, nem validált pszichometriai eredmények. A v1 semleges 50-es induló értékei szerkesztési feltevések.
+29 kérdés, kizárólag angol induló megjelenítéssel; magyar katalógus elrejtve. A v1 magyar kanonikus kérdéskulcsok/opcióértékek, scoring- és kérdőívverzió/hash változatlanok; az angol fordítás külön megjelenítési réteg. A draft válaszokat és kapcsolati címkéket ment revisionnel; commit immutable pillanatképet ad. A célok és kapcsolatok a pillanatkép másolatai. Trait értékek önbevallott 0–100 adatok, nem validált pszichometriai eredmények. A v1 semleges 50-es induló értékei szerkesztési feltevések.
 
 ## Rövid v2 indulás — megvalósított mag
 
 10–15 fontos kérdés együtt a profilt és célt fedi. Induló 12 lépés: identitás/korcsoport; hely/költözés; lakhatás; munka; pénzügyi mozgástér; képzettség/készségek; kapcsolatok; idő/energia; kockázat; fő cél/időtáv; motiváció/vállalások; kizárt áldozatok/korlátok. Opcionális szabad kontextus, később releváns helyzetben fokozatos mélyítés. A 3–4 perces cél mérendő.
 
-Saját profil és szimulált identitás külön. Alternatív helyzet nem írja át a valódi profilt; a lifeInput pillanatkép rögzíti az identitást, környezetet, célokat és korlátokat. Saját korcsoportból nem találunk ki születési napot. Pontos fiktív életkor 18+ lehet. Nulla közeli kapcsolat és ismeretlen opcionális adat megengedett. Az induló földrajzi sablon magyar, a nyelv külön `en` vagy `hu`.
+Saját profil és szimulált identitás külön. Alternatív helyzet nem írja át a valódi profilt; a lifeInput pillanatkép rögzíti az identitást, környezetet, célokat és korlátokat. Saját korcsoportból nem találunk ki születési napot. Pontos fiktív életkor 18+ lehet. Nulla közeli kapcsolat és ismeretlen opcionális adat megengedett. Az induló földrajzi sablon magyar, az induló nyelv kizárólag `en`, régi tárolt `hu` megmarad.
 
 ## Célmodell
 

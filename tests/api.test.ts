@@ -58,12 +58,12 @@ describe('API ownership boundary', () => {
       message: 'Please sign in to continue.',
     });
   });
-  it('localizes safe errors for Hungarian requests', async () => {
+  it('keeps errors English for a former Hungarian preference', async () => {
     const response = await fetch(`${base}/api/v1/profile`, {
       headers: { 'Accept-Language': 'hu-HU' },
     });
     expect((await response.json()).error.message).toBe(
-      'Jelentkezz be a folytatáshoz.',
+      'Please sign in to continue.',
     );
   });
   it('does not trust an unverified token', async () => {
@@ -82,7 +82,7 @@ describe('API ownership boundary', () => {
     const hungarian = await fetch(`${base}/api/v1/questionnaires/current`, {
       headers: { Authorization: `Bearer ${token}`, 'Accept-Language': 'hu' },
     });
-    expect((await hungarian.json()).locale).toBe('hu-HU');
+    expect((await hungarian.json()).locale).toBe('en-GB');
   });
   it('rejects invalid IDs with a safe error envelope', async () => {
     const response = await fetch(`${base}/api/v1/jobs/not-an-id`, {

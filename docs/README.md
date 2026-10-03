@@ -1,6 +1,6 @@
 # alterward — dokumentáció
 
-2026-10-03 · A teljes témadokumentáció frissítve a két átadott terv és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék alapnyelve angol, teljes magyar választási lehetőséggel.
+2026-10-03 · A teljes témadokumentáció frissítve a két átadott terv és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
 
 ## Olvasási sorrend
 
@@ -14,9 +14,10 @@
 | [V2 megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md), [törlési runbook](ACCOUNT_DELETION_RUNBOOK_HU.md) | Új privát élet, mérések és helyreállítás |
 | [Implementáció](IMPLEMENTATION.md) | A meglévő kód tényleges működése és korlátai |
 | [Beállítás](SETUP.md) | Helyi indítás, Supabase/OpenAI és titokkezelés |
-| [Lokalizáció](LOCALIZATION_HU.md) | Angol alap, magyar, tartalomnyelv és további nyelvek |
+| [Lokalizáció](LOCALIZATION_HU.md) | Angol kiadás, elrejtett magyar és bővíthető nyelvregiszter |
+| [Angol indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md) | AI szerkesztői ellenőrzés, éles béta és használói visszajelzés; Render-előkészítés |
 | [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült időszakos tárolás/API/worker és pontos szerződés |
-| [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és következő emberi kapuk |
+| [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és kiadás utáni használói értékelés |
 | [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |
 | [Claude modellek és külső audit](CLAUDE_MODEL_EVALUATION_HU.md) | EN/HU audit, hibakontrollok, token/cache/effort/limit és külön Claude 5 USD |
 | [AI-ellenőrzés](AI_VALIDATION.md), [modellvizsgálat](AI_MODEL_ROUTING_HU.md), [minták](examples/README.md) | Dátumozott mérések; a sikerek gyakorlati határai |
@@ -26,11 +27,11 @@
 Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
 
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
-- **Ellenőrizendő:** valódi fiókos böngészős folyamat, Auth-törlés, backup/restore és emberi minőség/pilot.
+- **Ellenőrizendő:** valódi fiókos böngészős folyamat, Auth-törlés, backup/restore, angol AI/szerkesztői minőség és éles indulás. Emberi minőség a béta után mérendő.
 - **Tervezett:** publishing, Discovery, Official seed és nyilvános fork.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
-Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, angol alap és magyar, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
+Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
 
 ## Források és archívum
 

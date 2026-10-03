@@ -11,7 +11,8 @@ import { useRouter } from 'next/navigation';
 import {
   LOCALE_COOKIE,
   languages,
-  supportedLocales,
+  enabledLocales,
+  resolveEnabledLocale,
   type Locale,
 } from '@future-flow/contracts';
 import { translate, type MessageKey } from '../lib/i18n';
@@ -29,7 +30,7 @@ export function LanguageProvider({
   initialLocale: Locale;
   children: ReactNode;
 }) {
-  const [locale, updateLocale] = useState(initialLocale);
+  const [locale, updateLocale] = useState(resolveEnabledLocale(initialLocale));
   const router = useRouter();
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -39,8 +40,9 @@ export function LanguageProvider({
       locale,
       t: (key, parameters) => translate(locale, key, parameters),
       setLocale: (next) => {
-        document.cookie = `${LOCALE_COOKIE}=${next}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
-        updateLocale(next);
+        const selected = resolveEnabledLocale(next);
+        document.cookie = `${LOCALE_COOKIE}=${selected}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+        updateLocale(selected);
         router.refresh();
       },
     }),
@@ -59,6 +61,7 @@ export function useLanguage() {
 }
 export function LanguageSelect() {
   const { locale, setLocale, t } = useLanguage();
+  if (enabledLocales.length < 2) return null;
   return (
     <label className="language-select">
       <span>{t('language.label')}</span>
@@ -66,13 +69,13 @@ export function LanguageSelect() {
         aria-label={t('language.label')}
         value={locale}
         onChange={(event) => {
-          const selected = supportedLocales.find(
+          const selected = enabledLocales.find(
             (code) => code === event.target.value,
           );
           if (selected) setLocale(selected);
         }}
       >
-        {supportedLocales.map((code) => (
+        {enabledLocales.map((code) => (
           <option key={code} value={code} lang={code}>
             {languages[code].nativeName}
           </option>

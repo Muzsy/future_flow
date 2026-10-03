@@ -1,20 +1,20 @@
 # alterward — backlog és feladatok utódlása
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
 
 | Pont | Állapot és konkrét eredmény |
 |---|---|
-| L01 | Kész v1 EN/HU alap; minden új P-pont nyelvi előfeltétele |
+| L01 | Kész angol kiadás és HU elrejtés; minden új P-pont angol |
 | P01 | Kész: 003 tárolás, immutable canon/choice/history, ownership/RLS, revision/idempotencia/lease. |
 | P02 | Kész: hat hónapos valódi AI, 2–5 esemény, 250–600 szó; négy EN/HU lánc ×3 időszak. |
 | P03 | Kész: aktuális választás, same-branch folytatás és saját történeti fork külön művelet. |
 | P04 | Kész kód: 12 lépés, revisionös draft, visszatérés/idővonal. Valódi fiókos UI-próba P06. |
 | P05 | Kész: állapot/közeli canon/választás memória, egy célzott javítás, project/user és helyi közös keret. |
 | P06 | Részben: export/delete/recovery kód és teszt kész; valódi email/admin kulcs és backup/restore nyitott. |
-| P07 | Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; emberi EN/HU minőség nyitott. |
+| P07 | Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; angol AI/szerkesztői ellenőrzés és kiadás utáni használói értékelés szükséges. |
 | P08 | Részben: minimális click/success mérés és összesítés kész; 20–50 emberi pilot/sikerhatár nyitott. |
 | P09 | Privát előnézeti alap kész; teljes Scenario/checkpoint/Publication/Official seed nyitott |
 | P10 | Discovery/életoldal/Save/Share/Report, moderator és permission/cache |

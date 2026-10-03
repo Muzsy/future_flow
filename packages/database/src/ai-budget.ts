@@ -40,6 +40,13 @@ export class DatabaseAiBudget {
         );
   }
   async reserve(raw: unknown): Promise<string> {
+    // Zero disables spending even when the database retains a previously approved limit.
+    if (this.config.projectUsd === 0 || this.config.userUsd === 0)
+      throw new DomainError(
+        'AI_BUDGET_EXCEEDED',
+        'AI generation is disabled.',
+        503,
+      );
     const p = raw as {
       model: string;
       max_output_tokens: number;

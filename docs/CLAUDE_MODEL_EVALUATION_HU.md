@@ -1,5 +1,7 @@
 # alterward — Claude modellek, tokenmérés és külső audit
 
+Aktív kiadási döntés: [kizárólag angol béta és kiadás utáni visszajelzés](ENGLISH_RELEASE_PLAN_HU.md). A jelen riport korábbi EN/HU mérései változatlan történeti bizonyítékok; a magyar új kiadás és kézi EN/HU előminősítés halasztva/felülírva.
+
 2026-10-03 · [Státusz és két külön keret](STATUS_HU.md) · [Külső történetaudit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md) · [OpenAI v2 mérés](AI_V2_ROUTING_REPORT_HU.md).
 
 ## Eredmény és modellválasztás

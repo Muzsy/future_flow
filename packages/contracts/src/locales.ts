@@ -3,6 +3,18 @@ import { z } from 'zod';
 export const supportedLocales = ['en', 'hu'] as const;
 export const localeSchema = z.enum(supportedLocales);
 export type Locale = z.infer<typeof localeSchema>;
+// Stored/research locales remain valid; only these languages are exposed by the product.
+export const enabledLocales = ['en'] as const;
+export const enabledLocaleSchema = z.enum(enabledLocales);
+export function isEnabledLocale(
+  value: unknown,
+): value is (typeof enabledLocales)[number] {
+  return enabledLocaleSchema.safeParse(value).success;
+}
+export function resolveEnabledLocale(value: string | null | undefined): Locale {
+  const locale = resolveLocale(value);
+  return isEnabledLocale(locale) ? locale : DEFAULT_LOCALE;
+}
 export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_COOKIE = 'alterward_locale';
 export const languages: Record<
@@ -55,6 +67,7 @@ export function localeFromAcceptLanguage(header: string | undefined): Locale {
     .filter(
       (entry) =>
         entry.locale.success &&
+        isEnabledLocale(entry.locale.data) &&
         Number.isFinite(entry.q) &&
         entry.q > 0 &&
         entry.q <= 1,

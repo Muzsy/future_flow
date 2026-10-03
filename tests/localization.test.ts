@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import {
   DEFAULT_LOCALE,
   supportedLocales,
+  enabledLocales,
+  resolveEnabledLocale,
   languages,
   resolveLocale,
   localeFromAcceptLanguage,
@@ -12,17 +14,24 @@ import {
   futureRequestSchema,
   errorMessage,
 } from '@future-flow/contracts';
-import { messages, translate, formatDate } from '../apps/web/lib/i18n';
+import {
+  messages,
+  translate,
+  formatDate,
+  browserLocale,
+} from '../apps/web/lib/i18n';
 
 describe('language contracts', () => {
-  it('defaults to English, enables only complete languages and respects explicit preferences', () => {
+  it('retains stored languages but exposes only English', () => {
     expect(DEFAULT_LOCALE).toBe('en');
     expect(supportedLocales).toEqual(['en', 'hu']);
+    expect(enabledLocales).toEqual(['en']);
     expect(Object.keys(languages)).toEqual([...supportedLocales]);
     expect(resolveLocale('hu-HU')).toBe('hu');
+    expect(resolveEnabledLocale('hu-HU')).toBe('en');
     expect(resolveLocale('de')).toBe('en');
     expect(resolveLocale(undefined)).toBe('en');
-    expect(localeFromAcceptLanguage('de;q=1,hu-HU;q=0.8,en;q=0.3')).toBe('hu');
+    expect(localeFromAcceptLanguage('de;q=1,hu-HU;q=0.8,en;q=0.3')).toBe('en');
     expect(localeFromAcceptLanguage('hu;q=0,en;q=0.3')).toBe('en');
     expect(localeFromAcceptLanguage('hu;q=invalid')).toBe('en');
     expect(
@@ -32,6 +41,22 @@ describe('language contracts', () => {
         mode: 'baseline',
       }).locale,
     ).toBe('en');
+  });
+  it('ignores a previous Hungarian browser cookie and rejects new Hungarian futures', () => {
+    vi.stubGlobal('document', { cookie: 'alterward_locale=hu' });
+    try {
+      expect(browserLocale()).toBe('en');
+      expect(
+        futureRequestSchema.safeParse({
+          profileVersionId: 'b3a09ae6-7325-440b-864f-f15db1cfbe0f',
+          horizonYears: 10,
+          mode: 'baseline',
+          locale: 'hu',
+        }).success,
+      ).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it('provides complete catalogs with equivalent interpolation parameters', () => {
     const keys = Object.keys(messages.en) as (keyof typeof messages.en)[];

@@ -5,11 +5,13 @@ import {
   lifeDraftV2Schema,
   lifeInteractionV2Schema,
   lifeStateV2Schema,
+  supportedLocales,
   type LifeInputV2,
   type LifeSetupV2,
   type LifeStateV2,
   type PeriodCandidateV2,
   type LifePeriodInput,
+  type Locale,
 } from '@future-flow/contracts';
 import {
   DomainError,
@@ -204,10 +206,10 @@ export class LifeRepository {
       ),
     );
   }
-  async list(userId: string) {
+  async list(userId: string, locales: readonly Locale[] = supportedLocales) {
     return this.db.query(
-      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 ORDER BY l.created_at DESC LIMIT 100`,
-      [userId],
+      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 AND l.content_locale=ANY($2::text[]) ORDER BY l.created_at DESC LIMIT 100`,
+      [userId, [...locales]],
     );
   }
   async detail(userId: string, branchId: string) {

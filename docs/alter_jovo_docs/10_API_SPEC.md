@@ -1,7 +1,7 @@
 # alterward — API specifikáció és tervezett bővítés
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · A tényleges controller: [apps/api/src/app.ts](../../apps/api/src/app.ts). OpenAPI helyben: `http://localhost:4000/api/openapi.json`. A tervezett végpontcsaládok még nem hívhatók.
 
@@ -13,7 +13,7 @@ Base `/api/v1`, Bearer Supabase token; a controller összes alábbi végpontja h
 |---|---|
 | GET /me | Hitelesített belső fiókazonosító |
 | POST /me/consent | `adult:true`, `acknowledged:true`, alpha-privacy-v1 elfogadás |
-| GET /questionnaires/current | Teljes angol/magyar kérdőív ugyanazon adatkulcsokkal |
+| GET /questionnaires/current | Angol kérdőív ugyanazon adatkulcsokkal, HU-fejléc mellett is |
 | GET /profile | Saját draft/aktuális profil visszaolvasása |
 | PATCH /profile/draft | Revisionnel válasz/kapcsolat mentése |
 | POST /profile/draft/commit | Immutable profilverzió, kérésben revision |
@@ -46,7 +46,7 @@ Content-Type: application/json
 }
 ```
 
-Az UUID csak formai példa; létező saját committed profil kell. Locale `en`/`hu`, nem `hu-HU`. Hiányzó locale új kérésnél angol. Tartalomnyelv az életre rögzül, gyermekág nem vehet át eltérő UI-nyelvet. Azonos idempotenciakulcs eltérő bemenettel 409; draftnál elavult revision szintén 409. A v1 resolve nem fogad szabad szöveges döntést.
+Az UUID csak formai példa; létező saját committed profil kell. Új termék API-kérésben locale kizárólag `en`; régi tárolt `hu` a kompatibilitási szerződésben megmarad. Hiányzó locale új kérésnél angol. Tartalomnyelv az életre rögzül, gyermekág nem vehet át eltérő UI-nyelvet. Azonos idempotenciakulcs eltérő bemenettel 409; draftnál elavult revision szintén 409. A v1 resolve nem fogad szabad szöveges döntést.
 
 ## V2/public tervezett műveletek
 

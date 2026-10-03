@@ -13,7 +13,7 @@ Valódi OpenAI Responses, szintetikus bemenet, izolált PGlite, ugyanazon ágon 
 
 Mind a 12 időszak sémája/domainje/hivatkozásai és gépi fidelity/nyelvi ellenőrzése sikeres, választások ugyanazon ág revisionjét növelték. Az angol Luna-lánc egy narratív fidelity-hiba után célzott javítással sikeres. A kezdeti futás részletes hibaindoka nem maradt meg; utána a javítás kategóriájának tárolását hozzáadtuk. Emberi minősítés még nincs.
 
-Ebben a kis mintában a teljes angol lánc számított költsége 46,4%-kal, a magyaré 62,8%-kal alacsonyabb Luna eseménymodell mellett. Ez két modell ×két nyelv ×egy lánc; nem általános megtakarítási ígéret. Stochasztikus eltérő canon, cache és javítás befolyásolja. Az alapbeállítás minden szerepnél Sol marad; Luna bevezetéséhez emberi EN/HU értékelés és további hibakategóriás teljeslánc-próba szükséges.
+Ebben a kis mintában a teljes angol lánc számított költsége 46,4%-kal, a magyaré 62,8%-kal alacsonyabb Luna eseménymodell mellett. Ez két modell ×két nyelv ×egy lánc; nem általános megtakarítási ígéret. Stochasztikus eltérő canon, cache és javítás befolyásolja. Az alapbeállítás minden szerepnél Sol marad; Luna bevezetéséhez további angol hibakategóriás teljeslánc-próba és dokumentált AI/szerkesztői minősítés szükséges. A későbbi felhasználói döntés kizárólag angol bétát és kiadás utáni használói visszajelzést választott; előzetes kézi EN/HU pontozás nem kiadási előfeltétel. [Aktív indulási terv](ENGLISH_RELEASE_PLAN_HU.md).
 
 Összes többlet: 38 kérés, 0,577744805 USD becslés. A korábbi 44 kérés is megmaradt a közös naplóban. Aktuális teljes keret a [státuszban](STATUS_HU.md); ez nem szolgáltatói egyenleglekérdezés.
 

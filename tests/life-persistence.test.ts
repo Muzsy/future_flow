@@ -514,4 +514,34 @@ describe.sequential('concurrent application budget reservations', () => {
       guard.reserve({ ...parameters, model: 'unpriced' }),
     ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
   });
+  it('disables spending with a zero configured allowance despite retained positive database limits', async () => {
+    const before = await db.query(
+      'SELECT * FROM aw_budget_accounts ORDER BY id',
+    );
+    expect(before.some((account) => Number(account.limit_micro) > 0)).toBe(
+      true,
+    );
+    const reservations = await db.query(
+      'SELECT id FROM aw_budget_reservations ORDER BY id',
+    );
+    for (const config of [
+      { projectUsd: 0, userUsd: 1 },
+      { projectUsd: 1, userUsd: 0 },
+    ]) {
+      const guard = new DatabaseAiBudget(db, userId, randomUUID(), config);
+      await expect(
+        guard.reserve({
+          model: 'gpt-6.1-sol',
+          max_output_tokens: 1000,
+          input: [],
+        }),
+      ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+    }
+    expect(
+      await db.query('SELECT * FROM aw_budget_accounts ORDER BY id'),
+    ).toEqual(before);
+    expect(
+      await db.query('SELECT id FROM aw_budget_reservations ORDER BY id'),
+    ).toEqual(reservations);
+  });
 });

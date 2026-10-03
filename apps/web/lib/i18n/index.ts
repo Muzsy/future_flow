@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
   languages,
-  resolveLocale,
+  resolveEnabledLocale,
   type Locale,
 } from '@future-flow/contracts';
 import { en, hu, type MessageKey } from './messages';
@@ -31,7 +31,7 @@ export function browserLocale(): Locale {
     ?.trim()
     .slice(LOCALE_COOKIE.length + 1);
   try {
-    return resolveLocale(value ? decodeURIComponent(value) : undefined);
+    return resolveEnabledLocale(value ? decodeURIComponent(value) : undefined);
   } catch {
     return DEFAULT_LOCALE;
   }

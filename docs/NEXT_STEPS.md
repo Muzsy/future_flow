@@ -8,13 +8,13 @@
 
 V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–006 alkalmazva; 147 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
 
-Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot nyitott. Ezek teljes elfogadási kapuk; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
+Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
-**Elkészült:** angol alapnyelv, választható magyar; teljes felület/kérdőív/API-hibák; nyelvregiszter és típusos katalógus; cookie-ban megjegyzett választás; mentett tartalomnyelv és jobnyelv; nyelvre utasított esemény/narrátor/ellenőrző. A v2 életbemenet is kötelező `locale` mezőt kapott. Régi életek magyar jelölést kapnak, canonjuk változatlan. [Megvalósítás és további nyelvek](LOCALIZATION_HU.md).
+**Elkészült:** kizárólag angol kiadás, magyar elrejtve; teljes felület/kérdőív/API-hibák; nyelvregiszter és típusos katalógus; régi magyar cookie angolra szűkítése; mentett tartalomnyelv és jobnyelv; nyelvre utasított esemény/narrátor/ellenőrző. A v2 életbemenet is kötelező `locale` mezőt kapott. Régi életek magyar jelölést kapnak, canonjuk változatlan. [Megvalósítás és további nyelvek](LOCALIZATION_HU.md).
 
-**Minden további P-pont feltétele:** teljes angol és magyar élmény; a P02 generálási és P07 minőségi próbák mindkét nyelvet fedjék le. A nyelvváltás ne módosítson választ/korábbi canont és ne indítson fizetett AI-hívást. Discovery/Scenario/snapshot/fork tartalomnyelve is külön mező legyen.
+**Minden további P-pont feltétele:** teljes angol élmény; magyar halasztva. P02/P07 az angol generálást és AI/szerkesztői minőséget ellenőrzi. A nyelvváltás ne módosítson választ/korábbi canont és ne indítson fizetett AI-hívást. Discovery/Scenario/snapshot/fork tartalomnyelve is külön mező legyen.
 
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
@@ -30,7 +30,7 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 **Aktuális állapot:** Kész: hat hónapos valódi AI, 2–5 esemény, 250–600 szó; négy EN/HU lánc ×3 időszak.
 
-**Feladat:** kezdetben hat hónap, 2–5 esemény, egy 250–600 szavas angol vagy magyar fejezet a mentett tartalomnyelven és a végén egy érdemi döntés. A domainmotor validálja a strukturált AI-javaslatokat, majd a narrátor a canonból ír. A még meg nem hozott választás utáni események nem kerülhetnek a mentett jövőbe.
+**Feladat:** kezdetben hat hónap, 2–5 esemény, egy 250–600 szavas angol fejezet a mentett tartalomnyelven és a végén egy érdemi döntés. A domainmotor validálja a strukturált AI-javaslatokat, majd a narrátor a canonból ír. A még meg nem hozott választás utáni események nem kerülhetnek a mentett jövőbe.
 
 **Elfogadás:** szintetikus profilból valódi AI-fejezet és választási lehetőség készül. Az események időrendje, hivatkozásai, szereplői és kemény korlátai helyesek. A feladat megáll a döntésnél; a régi tízéves generálás nem fut az új élet alatt.
 
@@ -78,21 +78,21 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 **Függőség:** P03–P05; Auth-törléshez a hiányzó szerveroldali Supabase-kulcs. A kulcs értéke kizárólag védett helyi környezetbe kerül. A függőség az előző fejlesztési pontokat nem blokkolja.
 
-## P07 — Technikai és angol/magyar minőségi kapu
+## P07 — Technikai és angol AI/szerkesztői ellenőrzés
 
-**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak, négy valódi AI-lánc és külső Claude-audit kész; emberi EN/HU minőség nyitott. A felhasználó először a magyar fő mintát értékeli. [Claude és tokenoptimalizálás](CLAUDE_MODEL_EVALUATION_HU.md).
+**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak, négy valódi AI-lánc és külső Claude-audit kész; A magyar próza felhasználói kritikát kapott, ezért halasztott; angol AI/szerkesztői döntés és kiadás utáni használói visszajelzés az elfogadott út. [Claude és tokenoptimalizálás](CLAUDE_MODEL_EVALUATION_HU.md).
 
-**Feladat:** legalább 20 változatos szintetikus eset, esetenként legalább három időszak és eltérő döntések. Emberi angol és magyar értékelés: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
+**Feladat:** 20 változatos determinisztikus szintetikus eset, meglévő valódi angol többidőszakos minták és kereten belüli célzott AI-próbák. További húsz generatív eset bővítési cél, nem a béta kézi kapuja. Az AI angol szerkesztői értékelése: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
 
 **Elfogadás:** a kötelező állapot-, jogosultsági és adatkezelési ellenőrzések minden esetben sikeresek. A narratív hibák kategóriái és javítási eredményei dokumentáltak; nincs nyitott, múltat átíró hiba. Fizetett esetek fokozatosan, a tényleges új tokenfogyasztás alapján indulnak; a 20-as cél nem írja felül a külön OpenAI/Claude 5–5 USD kereteket; egyik napló sem nullázható.
 
 **Függőség:** P02–P06. A technikai tesztek fokozatosan az adott változással készülnek; ez a pont az összesített release-kapu.
 
-## P08 — Folytatási mérés és zárt emberi pilot
+## P08 — Korlátozott angol béta, visszajelzés és folytatási mérés
 
-**Aktuális állapot:** Részben: minimális click/success mérés és technikai proxy összesítés kész; session/olvasási kohorsz még hiányzik; 20–50 emberi pilot/sikerhatár nyitott.
+**Aktuális állapot:** Részben: minimális click/success mérés és technikai proxy összesítés kész; session/olvasási kohorsz még hiányzik; korlátozott angol béta/visszajelzési csatorna és mérési definíció nyitott; létszám későbbi cél.
 
-**Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Induló cél 20–50 résztvevő, angol és magyar felületen is, részletes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
+**Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Korlátozott angol béta, majd 20–50 használó célkohorsz, önkéntes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
 
 **Elfogadás:** kattintás és sikeres folytatás külön mérhető; technikai hiba látszik a kohorszban. A pilotból megállapítható, miért folytatnak vagy hagyják abba, és visszatérnek-e ugyanahhoz az élethez. Számszerű sikerhatárt a következő értékelt kohorsz előtt rögzítünk. Nincs előre bizonyítottnak tekintett megtartási állítás.
 
@@ -134,7 +134,7 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 ## P13 — Nyilvános indulási kapu és közösségi mérés
 
-**Feladat:** a [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) permission/privacy/cache/moderáció/törlés/fork próbái, Official minőség és olvasás→saját élet emberi tesztje. P08 mellé views/read depth/completion/save/share/publish/unpublish/report/removal és referral.
+**Feladat:** a [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) permission/privacy/cache/moderáció/törlés/fork próbái, Official minőség és olvasás→saját élet automatikus folyamatpróbája és kiadás utáni használói visszajelzése. P08 mellé views/read depth/completion/save/share/publish/unpublish/report/removal és referral.
 
 **Elfogadás:** a specifikáció 36. fejezetének 14 MVP-eleme és minden privacy/jogosultsági/törlési kapu teljesül. Anon API/fork-checkpoint nem szivárogtat privát adatot. Official kurált, induló Discovery nem üres. Költségkeret és üzemeltetési felelős/folyamat rögzített; tömeges seed és külső generálás csak elegendő engedélyezett kerettel indul.
 
@@ -144,10 +144,10 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő:** P06 valódi fiókos próba és P07 emberi EN/HU minősítés, majd P08 pilot. Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
+**Következő:** P06 valódi fiókos/ops próba és P07 angol automatikus/szerkesztői ellenőrzés, majd tárhely és költséglimites angol béta, P08 visszajelzés/mérés. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
 
 ## Claude-mérés utáni AI-feladatok
 
-Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos EN/HU teljeslánc és emberi kapu szükséges. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem helyettesítik a P07 húsz generatív esetét.
+Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos angol teljeslánc és dokumentált automatikus/szerkesztői értékelés szükséges; a béta minőségének használói mérése kiadás után történik. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem helyettesítik a P07 húsz generatív esetét.
 
-Emberi visszajelzés után: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
+Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapján: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).

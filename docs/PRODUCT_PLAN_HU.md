@@ -12,13 +12,13 @@ Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedez
 
 Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a v2 cél rövid profil/időszak.
 
-Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, angol alapnyelv és választható magyar, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
+Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, kizárólag angol induló felület és történetek; magyar halasztva, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
 A termék neve **alterward**, a felhasználó 2026-10-03-i döntése alapján. A repó és a projektkönyvtár `future_flow` marad. A belső csomagnevek, régi sémaazonosítók és védett titokkönyvtárak megtartása technikai kompatibilitás, nem márkanév-döntés. A forrásdokumentumok korábbi munkanevei történeti szövegek. Domainválasztás és fizetős csomag továbbra sincs eldöntve.
 
-A termék három összekapcsolt rétege: **Private Personal Simulation**, **Official Lives / Scenarios** és önként publikált **Community Lives**. Discoveryben már az induláskor lesznek kurált, valódi AI-val generált életutak. Az olvasás meglévő snapshotból történik; a „Fork this life” vagy személyre szabás új, saját privát szimulációhoz vezet.
+A termék három összekapcsolt rétege: **Private Personal Simulation**, **Official Lives / Scenarios** és önként publikált **Community Lives**. A teljes közösségi MVP-ben kurált, valódi AI-val generált életutak lesznek Discoveryben; a technikailag kész privát életmotor korlátozott angol bétája korábban is indulhat. Az olvasás meglévő snapshotból történik; a „Fork this life” vagy személyre szabás új, saját privát szimulációhoz vezet.
 
-A felhasználó új döntése szerint a teljes felület, kérdőív, események, döntések és AI-fejezetek angolul és magyarul szükségesek, további nyelvekkel bővíthető szerkezettel. A [nyelvi alap](LOCALIZATION_HU.md) a meglévő v1 prototípusba is bekötve. Felületnyelv és egy élet mentett tartalomnyelve külön adat; nyelvváltás nem fordítja át automatikusan a korábbi canont és nem indít fizetett generálást. A magyar környezet földrajzi kiindulás, nem kizárólagos felület- vagy történetnyelv.
+A legújabb felhasználói döntés szerint kizárólag angol felület és angol AI-történetek indulnak. A magyar rész elrejtve, további nyelvek később kapcsolhatók be. A felhasználó az angol szerkesztői döntést az AI-ra bízza; indulás előtti emberi EN/HU pilot helyett korlátozott éles béta és valódi visszajelzések következnek. A [részletes indulási terv](ENGLISH_RELEASE_PLAN_HU.md) felülírja a korábbi kétnyelvű kiadási és kézi nyelvi jóváhagyási követelményt. [Technikai nyelvi policy](LOCALIZATION_HU.md).
 
 ## 2. A jelenlegi alap és a szükséges változás
 
@@ -33,7 +33,7 @@ A felhasználó új döntése szerint a teljes felület, kérdőív, események,
 | Költség | A helyi AI-próbához mérés és keretőr | Alkalmazásszintű keret, hibaköltség és költség/folytatás mérés |
 | Nyilvános tartalom | Nincs publikálás vagy Discovery | Külön anonimizált snapshot, Official/Community jelölés, böngészés és saját privát fork |
 
-A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A privát v2 rövid időszak/folytatás technikai mag már integrált; a valódi fiókos, emberi és public MVP-kapuk nyitottak. [Megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md). A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
+A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A privát v2 rövid időszak/folytatás technikai mag már integrált; a valódi fiókos/ops és public MVP-kapuk nyitottak; emberi élmény a korlátozott angol béta után mérendő. [Megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md). A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
 
 ## 3. Az első végigvihető élmény
 
@@ -98,7 +98,7 @@ A korábbi tízéves életek verzióval jelölve visszaolvashatók maradnak. Az 
 
 ## 7. AI, narratíva, emlékezet és költség
 
-Az AI készíti a kontextushoz illő eseményeket és az élet létrehozásakor választott angol vagy magyar történetet. A fejezet felidézi a korábbi fontos döntéseket, jelenetet és következményt mutat, majd valódi választási feszültségnél megáll. A hihető konfliktus és változatosság fontosabb a folyamatos rendkívüli drámánál. Az eredmény történetként is olvasható legyen.
+Az AI készíti a kontextushoz illő eseményeket és kizárólag angol történetet. A fejezet felidézi a korábbi fontos döntéseket, jelenetet és következményt mutat, majd valódi választási feszültségnél megáll. A hihető konfliktus és változatosság fontosabb a folyamatos rendkívüli drámánál. Az eredmény történetként is olvasható legyen.
 
 Tervezett folyamat: profil/állapot → AI-eseményjavaslat → sémák és domainfeltételek → determinisztikus átmenetek → menthető canon → AI-fejezet → hivatkozás- és történethűség-ellenőrzés → atomikus időszak-commit. A szükséges tájékoztatás röviden, jól látható helyen szerepel; minden bekezdésben ismételt figyelmeztetés nem része a narratívának.
 
@@ -139,7 +139,7 @@ A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktör
 
 A személyes technikai alap elfogadása: rövid profilból valódi AI-időszak készül; a döntés állapotot módosít; a második időszak ugyanarra az ágra kerül; kijelentkezés/belépés után folytatható a harmadikkal; a korábbi döntésből másik ág indítható a szülő módosítása nélkül. Dupla kérés, megszakítás, hibás AI-válasz és elveszett lease sem okoz dupla vagy részleges canon-commitot. Jogosultság, export és Auth/DB-törlés minden esetben kötelezően hibamentes.
 
-Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön 20–50 résztvevős, angol és magyar élményt is vizsgáló zárt használati teszt méri az élményt és a visszatérést; a létszám induló cél, nem statisztikai bizonyító erejű mintaméret.
+Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön a korlátozott éles angol béta méri az élményt és a visszatérést, valódi visszajelzésekkel. A 20–50 használó célkohorsz, nem indulás előtti kötelező zárt pilot és nem statisztikai bizonyító erejű mintaméret.
 
 | Metrika | Első mérési definíció |
 |---|---|

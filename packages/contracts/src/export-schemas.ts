@@ -15,6 +15,8 @@ import {
   constraintV2Schema,
   lifeSetupV2Schema,
   lifeDraftV2Schema,
+  lifeCreateRequestV2Schema,
+  lifeDraftRequestV2Schema,
   periodChapterV2Schema,
   PUBLIC_DRAFT_VERSION,
   publicSnapshotDraftSchema,
@@ -69,6 +71,8 @@ for (const [name, schema] of Object.entries({
   constraint: constraintV2Schema,
   lifeSetup: lifeSetupV2Schema,
   lifeDraft: lifeDraftV2Schema,
+  lifeCreateRequest: lifeCreateRequestV2Schema,
+  lifeDraftRequest: lifeDraftRequestV2Schema,
   periodChapter: periodChapterV2Schema,
 })) {
   writeFileSync(

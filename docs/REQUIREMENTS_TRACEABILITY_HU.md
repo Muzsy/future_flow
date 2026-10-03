@@ -2,7 +2,7 @@
 
 2026-10-03 · A 38 pozicionálási és 42 közösségi fő fejezet teljes lefedése. A két forrás szövege változatlan; ez a mátrix az aktív értelmezést, témagazdát és megvalósítási státuszt rendeli hozzájuk. [Dokumentáció](README.md) · [Státusz/keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
 
-A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtári alap” nem API/worker/tárolás. A hipotézis még nem validált. A gazdadokumentum részletes követelmény; a feladat elfogadását a backlog írja le. P01–P13 mindegyike teljes angol/magyar élményt követel.
+A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtári alap” nem API/worker/tárolás. A hipotézis még nem validált. A gazdadokumentum részletes követelmény; a feladat elfogadását a backlog írja le. A legújabb felhasználói döntés felülírja a kétnyelvű indulást: P01–P13 angol élményt követel; magyar halasztva. Az előzetes kézi EN/HU pilot helyett AI angol szerkesztői döntés és éles béta visszajelzés a terv; [aktív indulási út](ENGLISH_RELEASE_PLAN_HU.md).
 
 ## Pozicionálási és célmeghatározási terv
 
@@ -79,7 +79,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C22 · Adatmodell és entitások | Publication/PublicSnapshot/Scenario külön entitás | [09](alter_jovo_docs/09_DATA_MODEL.md) | Tervezett | P09 |
 | C23 · Publikált snapshot és élő privát állapot szétválasztása | Public snapshot immutable, private continuation nem frissíti | [09](alter_jovo_docs/09_DATA_MODEL.md) | Tervezett | P09, P11 |
 | C24 · Jogosultsági modell | Tulajdonosi API marad privát, explicit public permission | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Tervezett public határ | P09–P13 |
-| C25 · Keresés, kategóriák és címkézés | 13 fix kategória, jóváhagyott címke, EN/HU keresés | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
+| C25 · Keresés, kategóriák és címkézés | 13 fix kategória, jóváhagyott címke, angol keresés; magyar halasztva | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
 | C26 · Rangsorolás és ajánlórendszer | Egyszerű aggregált ranking, fork erősebb mint view | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
 | C27 · Reakciók, mentések, követés és kommentek | Save/Share/Fork első, reaction/follow majd comment később | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett, social halasztott | P10–P12, MVP után |
 | C28 · Moderáció | Scan/Report/review/soft hide/hard remove/warning/abuse limit | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10–P13 |
@@ -117,7 +117,7 @@ Mind a 14 elem még fejlesztendő. A személyes core elsőbbsége nem törli ők
 | 11 | Fork this life | P12 | Sanitized checkpointból új saját privát élet, új ID és három period |
 | 12 | Report | P10 | Rate-limit/dedup, protected reporter, review/hide/remove/audit |
 | 13 | Unpublish | P11 | Új olvasás/fork tiltva, index/token/cache/OG visszavonva |
-| 14 | basic category/tag system | P09/P10 | Fix taxonómia, jóváhagyott címke, EN/HU felirat |
+| 14 | basic category/tag system | P09/P10 | Fix taxonómia, jóváhagyott címke, angol felirat |
 
 ## Forrásokat pontosító elfogadott döntések
 

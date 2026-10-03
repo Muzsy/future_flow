@@ -23,7 +23,7 @@ A monorepóban modulok készülnek, külön szolgáltatás/új fizetős infrastr
 
 **Publication:** tulajdonos, belső forrásélet, aktív snapshot-verzió, public/unlisted, státusz, szerzőmutatás, forkengedély, keresőindexelés, kiadás/visszavonás és láthatósági revision. A szimulációhoz nem elég egy `is_public` mező.
 
-**ScenarioVersion és PublicSnapshot tartalomnyelve** explicit mező. Angol az alapnyelv, magyar is támogatott; a kategória/címke/Discovery feliratok katalógusból fordulnak. A történet/snapshot eredeti nyelve megmarad, nyelvválasztás és szűrés nem indít AI-hívást. Többnyelvű keresés és nyelvi szűrő kell. Fordítás később külön ellenőrzött, verziózott szövegprojekció lehet ugyanazon canonhoz, külön költséggel és eredetjelöléssel. A sanitized fork-checkpoint tartalomnyelve átkerül az új életbe; a személyre szabott új szcenárió explicit új nyelvet választhat.
+**ScenarioVersion és PublicSnapshot tartalomnyelve** explicit mező. Induláskor kizárólag angol tartalom engedett, magyar halasztva; a kategória/címke/Discovery feliratok katalógusból fordulnak. A történet/snapshot eredeti nyelve megmarad, nyelvválasztás és szűrés nem indít AI-hívást. Angol keresés szükséges; többnyelvű keresés és nyelvi szűrő későbbi nyelvbővítéskor kell. Fordítás később külön ellenőrzött, verziózott szövegprojekció lehet ugyanazon canonhoz, külön költséggel és eredetjelöléssel. A sanitized fork-checkpoint tartalomnyelve átkerül az új életbe; a személyre szabott új szcenárió explicit új nyelvet választhat.
 
 **PublicSnapshot:** megváltoztathatatlan, külön sémával validált cím/összefoglaló, nyilvános profil/kezdőhelyzet, kiválasztott időszakok idővonala és fejezetei, mérföldkövek, döntések/opciók, publikált ágak, taxonómia, opcionális cover és Official/Community/AI-generated/user-edited jelölés. Cover kezdetben kódalapú vizuál lehet, nem igényel képgenerálási költséget.
 
@@ -61,13 +61,13 @@ Kurált kollekciók: Featured, Official, Community Picks, Trending, Most Forked,
 
 Egyszerű aggregált ranking; sikeres fork erősebb jel, mint egy view. Moderációs státusz, spam/duplikátum korlátozás kötelező; report számából nem lesz ellenőrizetlen tömeges elrejtés. Komplex ML-ajánló később.
 
-Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás előtt, teljes angol kínálattal és elérhető magyar mintákkal, mindkét nyelven minőségellenőrizve. A darabszám összesített cél, nem nyelvenként 50–100 új generálás; a végső nyelvi arány a seed pilot része. Először kis valódi AI-seed pilot az új több időszakos láncon. Teszt-fixture vagy kézzel kitalált kész történet nem kerül be AI-generated Official Life-ként. Meglévő v1 AI-minták referenciák, nem automatikusan publikálható v2 seed.
+Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás előtt, kizárólag angol kínálattal, AI szerkesztői és kánonellenőrzéssel. A magyar minták nem indulási cél. A darabszám összesített cél, nem nyelvenként 50–100 új generálás; az induló tartalom angol; a további nyelvek külön későbbi döntés. Először kis valódi AI-seed pilot az új több időszakos láncon. Teszt-fixture vagy kézzel kitalált kész történet nem kerül be AI-generated Official Life-ként. Meglévő v1 AI-minták referenciák, nem automatikusan publikálható v2 seed.
 
 Olvasás/újratöltés/Save/Share nem indít generálást. Snapshot verzió szerint cache-elhető, de a publication aktív státuszát minden hozzáférésnél ellenőrizni kell. CDN esetén visszavonási purge és előre rögzített rövid érvénytelenítési ablak kell. Publish/refresh és új saját fork külön mért AI-költség.
 
 A közös 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A v2 fejlesztés négy valódi többidőszakos EN/HU láncot is mért; a dokumentum olvasása/frissítése nem indít AI API-hívást.
 
-A [nyelvi ellenőrzés](LOCALIZATION_HU.md) v1 EN/HU alapot és ágat bizonyít. V2 Official seedhez mindkét nyelven új több időszakos minősítés kell; a korábbi minta nem automatikusan public seed.
+A [nyelvi ellenőrzés](LOCALIZATION_HU.md) v1 EN/HU alapot és ágat bizonyít. V2 Official seedhez angol több időszakos minősítés kell; a korábbi minta nem automatikusan public seed.
 
 ## Nyilvános fork és személyre szabás
 

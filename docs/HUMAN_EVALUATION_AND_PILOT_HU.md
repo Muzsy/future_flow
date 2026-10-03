@@ -1,34 +1,34 @@
-# alterward — emberi értékelés és pilot előkészítése
+# alterward — angol béta és használói visszajelzés
 
-2026-10-03 · [Bizonyíték és keret](STATUS_HU.md) · [V2 modellek](AI_V2_ROUTING_REPORT_HU.md) · [Backlog](NEXT_STEPS.md).
+2026-10-03 · [Elfogadott indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Bizonyíték és keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
 
-P07 emberi minőségi kapuja és P08 használati pilotja még nyitott. A felhasználó először a magyar mintát értékeli; ez nem minőségi jóváhagyás. A [magyar](examples/AI_V2_HUNGARIAN_STORY.md) és [angol](examples/AI_V2_ENGLISH_STORY.md) három időszakos valódi AI-történet már rendelkezésre áll, elolvasásuk nem indít új API-hívást.
+A felhasználó átnézte a mintákat, magyar fogalmazási hibákat jelzett, és a magyar részt elhalasztotta. Angolul nem kíván mély nyelvi minősítést végezni: az angol szerkesztői döntést az AI-ra bízta, majd éles visszajelzésekből javítunk. A korábbi indulás előtti kézi EN/HU pontozási/pilot kapu ezért felülírva. Ez nem azt jelenti, hogy a korábbi emberi minőségteszt sikeres volt.
 
-## Értékelőlap
+## Indulás előtti ellenőrzés
 
-Minden láncnál rögzítendő nyelv, dátum és eseménymodell, személyazonosító nélkül. 1–5 pont és rövid konkrét példa:
+Automatikus domain/kánon/nyelv/hozzáférés/költség és AI angol szerkesztői ellenőrzés szükséges. A [háromidőszakos angol fő mintát](examples/AI_V2_ENGLISH_STORY.md) Sonnet, Opus és Fable gépileg auditálta; kánon és nyelv rendben, ismétlés és visszafogott kíváncsiság szerkesztési észrevétel. A [Claude narrátorpróbák](examples/CLAUDE_GENERATED_STORIES_EN.md) hibás és javított változata külön jelölt. Ezek nem emberi pontszámok vagy retenciós bizonyítékok. [Részletes audit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
 
-| Szempont | Mire figyeljünk? |
+P06 valódi Auth/UI/export/törlés, backup/restore, tárhely és éles költségkeret még szükséges. Az első béta csak a technikailag kész, privát angol életmotorra korlátozható; a public/community képességek saját privacy/moderációs ellenőrzés után nyílnak.
+
+## Visszajelzés a kiadás után
+
+A kiadásban elérhető visszajelzési csatornát még be kell kötni. Rövid önkéntes értékelés vagy konkrét hibahely elegendő; teljes privát profil/történet beküldése nem követelmény. Az alábbi szempontok az éles visszajelzés elemzésére szolgálnak, nem a tulajdonosnak küldött új angol vizsgalap.
+
+| Szempont | Mit vizsgálunk? |
 |---|---|
-| Személyesség | Az induló helyzet/cél/korlát ténylegesen alakítja a történetet? |
-| Következetesség | Megmarad a választás következménye? Van új vagy eltűnő fontos tény? |
-| Hihetőség | Hétköznapi, arányos a fejlődés; nem tűnik biztos jóslatnak? |
-| Döntési tét | Érthető a két opció eltérő haszna, kockázata és áldozata? |
-| Érdeklődés | Kíváncsi az olvasó a következő időszakra? |
-| Nyelv/ismétlés | Természetes, világos és változatos az angol/magyar szöveg? |
+| Személyesség | A kiinduló helyzet, cél és korlát alakítja a történetet? |
+| Következetesség | Megmarad a választás következménye; van új vagy eltűnő fontos tény? |
+| Hihetőség | Hétköznapi, arányos fejlődés és kitalált szcenárióérzet? |
+| Döntési tét | Érthető a haszon, kockázat és áldozat? |
+| Érdeklődés | Folytatná, másik ágat próbálna vagy abbahagyná; miért? |
+| Angol fogalmazás | Természetes, világos, változatos; ismétlés és nyelvi hiba? |
 
-Minden fejezet után külön: folytatná / másik ágat próbálna / abbahagyná, és miért. Külön jelezni a súlyos canon-, PII-, megtévesztő vagy nyelvi hibát. Az AI-checker sikere nem írja felül az emberi észrevételt. Luna/Sol összehasonlításhoz később vak értékelés és több azonos kiindulású eset szükséges; a kis négyláncos mérés alapján nincs automatikus modellcsere.
+A magyar újraindítása külön későbbi döntés. Modell/prompt csere azonos kánon mellett mérendő, a javítás teljes költségével; a meglévő kis mintából nincs automatikus provider/model váltás. Kritikus hozzáférési/adatkezelési/kánonhiba gyors hibajavítás, nyelvi és élménybeli észrevétel következő verzióba kerül.
 
-## Pilot előtt
+## Mérési és pénzügyi korlátok
 
-P06 valódi fiókos UI/Auth/export/törlés és backup/restore; P07 EN/HU minőség szükséges. 20–50 résztvevő a cél, az első meghívások/résztvevői futtatások még nem történtek meg. Rögzítendő az értékelt kohorsz, olvasási és munkamenetdefiníció, inaktivitási küszöb, konkrét sikerhatár, hozzáférési limitek és felelős. Ezek jelenleg nyitott mérési döntések, nem bizonyított eredmények.
+A minimális click/success műszerezés kész. `pnpm metrics:private` a continuationClickRate és continued_lives technikai proxykat adja; a tényleges olvasási kohorsz és későbbi munkamenetes Continued Life Sessions definíció/implementáció még hiányzik. Fejezetvég láthatósága nem bizonyított elolvasás. Retenciós és keresleti állítás nincs igazolva.
 
-A minimális technikai műszerezés kész: onboarding/life opened/chapter-end/continue/fork kattintás és külön mentett first/continuation/fork-period siker, valamint generálási hiba. `pnpm metrics:private` a generált első időszakhoz viszonyított continuationClickRate és continued_lives proxykat adja. Ezek nem a végleges olvasási kohorsz és nem későbbi munkamenetes Continued Life Sessions; az utóbbi jelenleg `null`. A fejezetvég láthatósága olvasási jel, nem bizonyított elolvasás.
+Az indulás kis angol béta, a 20–50 használó későbbi célkohorsz. A két Sol-lánc konzervatív átlagos háromidőszakos költsége ebben a kis mintában körülbelül 0,21 USD; húsz hasonló lánc körülbelül 4,21 USD, ötven 10,52 USD. A valós változat/javítás/foglalási plafon eltérhet. A maradt 3,38 USD OpenAI fejlesztői keretből nem indul automatikusan teljes nyilvános pilot; a külön Claude kutatási keret sem éles generálási keret. [Teljes napló és maradvány](STATUS_HU.md).
 
-A két Sol-lánc konzervatív átlagos háromidőszakos költsége ebben a kis mintában körülbelül 0,21 USD. Húsz ilyen új lánc körülbelül 4,21 USD, ötven 10,52 USD; a valós mintaváltozat/javítás/foglalási plafon eltérhet. A megmaradt 3,38 USD fejlesztői keretből nem indítunk automatikusan teljes 20–50 fős pilotot. Előbb minőség/fiókpróba, kis fokozatos pilot és szükség esetén külön jóváhagyott keret. A teljes Official seed szintén külön mért döntés.
-
-## Külső audit a pontozás előtt
-
-Sonnet/Opus/Fable ellenőrizte a fő EN/HU minták mindhárom időszakát. Kánon és nyelv rendben, de ismétlés/visszafogott személyesség/kíváncsiság felmerült. A modellek pontszámai nem emberi értékelés: [részletes észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A felhasználó magyar értékelése és később az angol tovább nyitott. Eredeti történetek változatlanok.
-
-Külön 5 USD Claude audit-/kutatási keret létezik, maradéka a státuszban; nem automatikus pilot-finanszírozás. A fenti 3,38 USD az OpenAI keretének maradéka.
+Előbb külön éles AI-/tárhelykeret és szűk hozzáférési limitek, utána a mérés alapján bővítés. Heti visszajelzés-áttekintés terv, automatizálás még nincs beállítva.

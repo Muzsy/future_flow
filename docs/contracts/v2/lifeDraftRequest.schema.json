@@ -1,0 +1,363 @@
+{
+  "$id": "urn:alterward:lifeDraftRequest:2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "locale": {
+      "type": "string",
+      "enum": [
+        "en"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "self",
+            "alternate"
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ageBand": {
+          "type": "string",
+          "enum": [
+            "18_24",
+            "25_34",
+            "35_44",
+            "45_54",
+            "55_64",
+            "65_plus"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "label",
+        "ageBand"
+      ],
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Z]{0,2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "housing": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "country",
+        "region",
+        "housing"
+      ],
+      "additionalProperties": false
+    },
+    "employment": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "employed",
+                "self_employed",
+                "student",
+                "seeking_work",
+                "retired",
+                "other"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "employerLabel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workDomain": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "employerLabel",
+        "workDomain"
+      ],
+      "additionalProperties": false
+    },
+    "finance": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "HUF",
+                "EUR",
+                "USD"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "monthlyIncome": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "liquidFunds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "currency",
+        "monthlyIncome",
+        "liquidFunds"
+      ],
+      "additionalProperties": false
+    },
+    "skills": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      }
+    },
+    "relationships": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "partner",
+              "family",
+              "friend",
+              "colleague",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "relationship"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "energy": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "availableHoursPerWeek": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 168
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "energy",
+        "availableHoursPerWeek"
+      ],
+      "additionalProperties": false
+    },
+    "goal": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "career",
+            "business",
+            "finance",
+            "relationships",
+            "family",
+            "education",
+            "lifestyle",
+            "personal_growth",
+            "other"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "horizonMonths": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 600
+        },
+        "motivation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "acceptableTradeoffs": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "unacceptableTradeoffs": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      },
+      "required": [
+        "category",
+        "description",
+        "horizonMonths",
+        "motivation",
+        "acceptableTradeoffs",
+        "unacceptableTradeoffs"
+      ],
+      "additionalProperties": false
+    },
+    "stayInCountry": {
+      "type": "boolean"
+    },
+    "context": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "locale",
+    "identity",
+    "location",
+    "employment",
+    "finance",
+    "skills",
+    "relationships",
+    "resources",
+    "goal",
+    "stayInCountry",
+    "context"
+  ],
+  "additionalProperties": false
+}

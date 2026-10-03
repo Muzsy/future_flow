@@ -7,7 +7,7 @@
 | Terület | Bizonyíték és határ |
 |---|---|
 | V1 kompatibilitás | Tízéves AI-generálás/archívum és gyermekág megmarad, 001/002 változatlan |
-| V2 privát élet | 12 lépéses EN/HU onboarding, immutable saját/alternatív bemenet, revisionös draft |
+| V2 privát élet | 12 lépéses angol onboarding; HU elrejtve, immutable saját/alternatív bemenet, revisionös draft |
 | Hat hónapos AI | 2–5 validált canon-esemény, egy 250–600 szavas fejezet, nyitott döntés a végén |
 | Választás/folytatás | Egyszeri atomikus choice, ugyanazon ág következő időszaka, külön saját történeti fork |
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
@@ -19,9 +19,9 @@
 
 ## Bizonyíték és hiányzó kapuk
 
-147 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
+153 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
-Böngészős főoldal/login/nyelv/metadata és keskeny nézet ellenőrzött. Valódi Supabase-fiók és szerveroldali admin kulcs hiányában a teljes hitelesített böngészős onboarding/folytatás/export/Auth-törlés még nem futott. Backup/restore nincs igazolva. P06–P08 emberi/üzemeltetési kapu, P09–P13 nyilvános réteg további munka. A P09 [privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) kész, 006 migrációval; nincs kész Discovery/publishing/Official seed/public fork. Main commit/CI nem nyilvános deploy.
+Böngészős főoldal/login/nyelv/metadata és keskeny nézet ellenőrzött. Valódi Supabase-fiók és szerveroldali admin kulcs hiányában a teljes hitelesített böngészős onboarding/folytatás/export/Auth-törlés még nem futott. Backup/restore nincs igazolva. P06 valós Auth/üzemeltetési kapu; P07 AI angol szerkesztői ellenőrzés; P08 kiadás utáni visszajelzés/mérés, P09–P13 nyilvános réteg további munka. A P09 [privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) kész, 006 migrációval; nincs kész Discovery/publishing/Official seed/public fork. Main commit/CI nem nyilvános deploy.
 
 ## Az OpenAI 5 USD fejlesztői keret
 
@@ -37,7 +37,7 @@ Böngészős főoldal/login/nyelv/metadata és keskeny nézet ellenőrzött. Val
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
-Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbelül 46–63% kisebb teljeslánc-költséget mutatott, egy angol fejezetjavítással; emberi EN/HU minősítés előtt nem állítottuk át az alkalmazást. [Hivatalos árlista](https://developers.openai.com/api/docs/pricing?tab=suite), ellenőrizve 2026-10-03.
+Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbelül 46–63% kisebb teljeslánc-költséget mutatott, egy angol fejezetjavítással; nem állítottuk át az alkalmazást; új routinghoz továbbra angol teljeslánc-mérés és dokumentált minősítés szükséges. A kézi indulási kaput a felhasználó kiadás utáni visszajelzésre cserélte. [Hivatalos árlista](https://developers.openai.com/api/docs/pricing?tab=suite), ellenőrizve 2026-10-03.
 
 50–100 Official Life és 20–30 Scenario az indulás célja, nem automatikus paid megbízás. Előbb kurált kis v2 seed, megfelelő költségkeret és privacy/minőségi kapu kell. Olvasás/újratöltés/nyelvváltás/Save/Share nem indíthat AI-generálást.
 
@@ -45,4 +45,12 @@ Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbel�
 
 Új felhasználói döntés: további **5 USD kizárólag Claude-mérésekre**, saját .local/claude-audit/usage.json és paid-run.lock naplóval. 48 HTTP-generálási kísérlet, 46 ismert usage; ismert tokenköltség 1,7316409 USD, konzervatív összeg 2,292215 USD, guard szerint maradt **2,707785 USD**. Két kezdeti usage nélküli HTTP 400 teljes foglalása megmaradt. A fenti OpenAI 82 hívás és maradék változatlan; ez nem összevont vagy futtatásonként új 5 USD.
 
-Négy Claude-modell, EN/HU külső audit, ismert hibák, szereppróbák, token/cache/effort/outputlimit mérés. A fő Sol-minták kánonhűnek bizonyultak a Sonnet/Opus/Fable auditban; személyesség/kíváncsiság tovább emberi kapu. Sonnet a rutin auditor jelöltje, Opus vitás mintavételhez; Haiku narrátor/esemény alapnak nem minősített. [Teljes Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md), [történeti észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A worker routingja továbbra Sol; Claude csak külön szerveroldali értékelő. A 147 teszt az eredeti 139 mellé 8 új, fizetés nélküli Claude transport/budget/audit tesztet tartalmaz.
+Négy Claude-modell, EN/HU külső audit, ismert hibák, szereppróbák, token/cache/effort/outputlimit mérés. A fő Sol-minták kánonhűnek bizonyultak a Sonnet/Opus/Fable auditban; személyesség/kíváncsiság a korlátozott angol béta visszajelzésével mérendő. Sonnet a rutin auditor jelöltje, Opus vitás mintavételhez; Haiku narrátor/esemény alapnak nem minősített. [Teljes Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md), [történeti észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A worker routingja továbbra Sol; Claude csak külön szerveroldali értékelő. A korábbi 147 teszt az eredeti 139 mellé 8 fizetés nélküli Claude transport/budget/audit tesztet tartalmazott; az angol átállás további 6 regresszióval 153-re emelte a számot.
+
+## Angol kiadásra váltás
+
+Felhasználói döntés: a magyar minták fogalmazási hibái miatt kizárólag angol indulás; EN/HU kézi előminősítés helyett AI szerkesztői döntés és éles visszajelzés. A nyelvválasztó, HU-cookie, új HU élet/draft és régi HU történetek API-elérése lezárva; a saját adatok exportja változatlanul teljes. Angol `DELETE ACCOUNT` megerősítés az API és a felület között egyezik. [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md). Render-konfiguráció előkészítve; fiók/tárhely, éles keret, valós Auth/ops és visszajelzési csatorna még szükséges, éles deploy nem történt. Új fizetős AI-hívás nem indult.
+
+Az angol átállás ellenőrzése: `pnpm check` sikeres (formázás, típusellenőrzés, 153 teszt, teljes production build); kódból exportált két új angol v2 request-séma. Dokumentumhivatkozások, 21 témás manifest és immutable stratégiai források ellenőrizve. Helyi angol főoldal és adatkezelési felület böngészőben ellenőrizve, nyelvválasztó nélkül. Ez nem valódi belépéses vagy éles deploy-próba.
+
+A Render-előkészítéshez a nulla projekt- vagy userkeret most a korábbi pozitív DB-limit mellett is letiltja az új fizetős hívást. Ezt külön fizetés nélküli regresszió ellenőrzi; meglévő fogyasztási napló és számlalimit nem íródott át.

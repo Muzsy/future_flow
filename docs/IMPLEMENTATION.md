@@ -10,11 +10,11 @@ A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevébe
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses EN/HU onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–006 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
+V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses angol onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–006 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
 
 ## Többnyelvű alap
 
-Angol alapnyelv és választható magyar a teljes meglévő felületen, kérdőívben és biztonságos API-hibákban. A nyelvválasztás cookie-ban marad meg; HTML/metadata/dátumok a választott felületnyelvet követik. Új élet `content_locale` mezője és job `locale` értéke mentett, az ág ezt örökli. A `002_content_locale.sql` korábbi életeket magyarra jelöl, az új beszúrás alapértéke angol, a mező utólag nem módosítható. A v1 profilok/canon változatlanok. Nyelvi promptok és nyelvi történethűség-ellenőrzés, további nyelvekre bővíthető regiszter/katalógus. [Részletek és ellenőrzés](LOCALIZATION_HU.md).
+Kizárólag angol felület, kérdőív és biztonságos API-hiba; a nyelvválasztó elrejtve. HTML/metadata/kliens régi magyar cookie mellett is angol. Új v1/v2 élet és v2 draft csak `en` kéréssel hozható létre; magyar listatartalom és közvetlen olvasás/folytatás/fork/retry az API-n elrejtve. Régi HU adatok saját exportban megmaradnak. Új élet `content_locale` mezője és job `locale` értéke mentett, az ág ezt örökli. A `002_content_locale.sql` korábbi életeket magyarra jelöl, az új beszúrás alapértéke angol, a mező utólag nem módosítható. A v1 profilok/canon változatlanok. Nyelvi promptok és nyelvi történethűség-ellenőrzés, további nyelvekre bővíthető regiszter/katalógus. [Részletek és ellenőrzés](LOCALIZATION_HU.md).
 
 ## Eltérés az új termékcéltól
 
@@ -30,7 +30,7 @@ A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célálla
 - **Felhasználói döntés:** OpenAI az első szolgáltató.
 - **Felhasználói döntés:** Supabase-integráció és beállítási útmutató.
 - **Felhasználói döntés:** `Muzsy/future_flow`, közvetlen munka a `main` ágon.
-- **Felhasználói döntés:** angol alapnyelv, választható magyar és további nyelvekre előkészített szerkezet. A jelenlegi szcenáriók földrajzi környezete Magyarország; a felület és az új történet angol is lehet. Életkor helyett 18+ korcsoport.
+- **Felhasználói döntés:** kizárólag angol indulás, elrejtett magyar és további nyelvekre előkészített szerkezet. A jelenlegi szcenáriók földrajzi környezete Magyarország; a felület és az új történet angol is lehet. Életkor helyett 18+ korcsoport.
 - Next.js web + NestJS API + külön worker ugyanazon moduláris kódbázissal. Nincs külön mikroservice-domain.
 
 ## Egységes adatmezők
@@ -71,7 +71,7 @@ Az eseménygenerátor (`AI_EVENT_MODEL`), narrátor (`AI_STORY_MODEL`) és ellen
 
 Pipeline: AI-események → sémavizsgálat → szereplő/időrend/döntés ellenőrzése → determinisztikus state transition → AI-fejezetek → referenciasémák ellenőrzése → külön AI fidelity/safety ellenőrzés → tranzakciós commit.
 
-A történetellenőrző AI sem garantál hibátlan szemantikát. Emberi angol és magyar minőségértékelés és safety-eval szükséges az alfához. A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás minden hívására projekt/user foglalás és elszámolás működik; lásd a v2 riportot. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; a helyi worker opcionálisan ugyanezt a közös kísérleti keretet is használja.
+A történetellenőrző AI sem garantál hibátlan szemantikát. Automatikus kánon/safety és AI angol szerkesztői ellenőrzés szükséges a bétához. Az előzetes kézi EN/HU minősítést a felhasználó az éles angol béta visszajelzésére cserélte; [indulási terv](ENGLISH_RELEASE_PLAN_HU.md). A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás minden hívására projekt/user foglalás és elszámolás működik; lásd a v2 riportot. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; a helyi worker opcionálisan ugyanezt a közös kísérleti keretet is használja.
 
 Reprodukálhatóság: a mentett canon és determinisztikus átmenetek visszajátszhatók. Azonos seed nem jelent azonos új LLM-választ. Újragenerálás új run; nem módosítja a régit.
 

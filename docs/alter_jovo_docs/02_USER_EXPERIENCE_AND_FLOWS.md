@@ -1,9 +1,9 @@
 # alterward — UX és felhasználói folyamatok
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
-2026-10-03 · A v2 privát folyamat integrált; az alábbi public folyamatok tervezettek. A meglévő v1 UI és AI-történetek teljes angol/magyar támogatása elkészült. [Lokalizáció](../LOCALIZATION_HU.md).
+2026-10-03 · A v2 privát folyamat integrált; az alábbi public folyamatok tervezettek. A korábbi kétnyelvű alap elkészült; az aktív termék UI és AI-története kizárólag angol. [Lokalizáció](../LOCALIZATION_HU.md).
 
 ## Első saját élet
 
@@ -21,7 +21,7 @@ A v1 `resolve` jelenleg minden választásból gyermekágat készít, tízéves 
 
 Valódi jobstage/status látszik, frissítés után visszaolvasható. Hiba biztonságos, a választott felületnyelven jelenik meg; kvóta- vagy konfigurációs hiba nem ad helyettesítő személyes történetet. Nincs hamis százalékos készültség, automatikus korlátlan retry vagy mesterséges várakoztatás. Story, timeline, állapot és döntés együtt segíti a következmények megértését.
 
-Az UI angol alap, English/Magyar váltóval. Új élet a választott nyelven készül, későbbi saját ágai a rögzített tartalomnyelvet öröklik. Nyelvváltás nem töröl választ, nem fordítja át a régi canont, nem indít AI-hívást. Több nyelv csak teljes katalógussal és minőségi próbával kerülhet a választóba.
+Az UI angol alap, elrejtett nyelvválasztóval. Új élet kizárólag angolul készül, későbbi saját ágai a rögzített tartalomnyelvet öröklik. Nyelvváltás nem töröl választ, nem fordítja át a régi canont, nem indít AI-hívást. Több nyelv csak teljes katalógussal és minőségi próbával kerülhet a választóba.
 
 ## Discoveryből saját élet
 

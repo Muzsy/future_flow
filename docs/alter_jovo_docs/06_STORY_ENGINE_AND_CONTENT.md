@@ -1,7 +1,7 @@
 # alterward — történet és tartalom
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · [AI-minták](../examples/README.md) · [Lokalizáció](../LOCALIZATION_HU.md) · [Nyilvános tartalom](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md).
 
@@ -15,15 +15,15 @@ Alapstílus természetes, második személyű, személyes és hihető. Hétközn
 
 V1 ténylegesen 2–3 fejezetet készít a tízéves baseline-hoz és új ághoz. V2 megvalósított alap: hat hónap, 2–5 esemény, egy 250–600 szavas fejezet, végén egy nyitott döntés. A választás előtti történet nem kezelheti már megtörténtként a döntés következményét. Nincs mesterséges heti feloldási várakozás; sorozatosságot a valódi új időszak ad.
 
-Esemény/decision-hivatkozás, dátum, szereplő, állapot és opció egyezik. Az AI-fidelity kiegészíti a determinisztikus vizsgálatot, emberi angol/magyar olvashatóság és folytatási kíváncsiság mérendő. Eladott cég, lezárt munka vagy régi választás nem tűnhet el és nem térhet vissza indoklás nélkül.
+Esemény/decision-hivatkozás, dátum, szereplő, állapot és opció egyezik. Az AI-fidelity kiegészíti a determinisztikus vizsgálatot, angol AI szerkesztői ellenőrzés és kiadás utáni használói folytatási kíváncsiság mérendő. Eladott cég, lezárt munka vagy régi választás nem tűnhet el és nem térhet vissza indoklás nélkül.
 
 ## Nyelv
 
-Teljes angol történet alap, magyar választható. A mentett életnyelv minden eseménycímre, opcióra, fejezetre és ellenőrzési megjegyzésre érvényes. A felület lehet más nyelvű, ezt külön jelöljük. Régi magyar élet nem fordul automatikusan át. Új fordítás később külön ellenőrzött/versioned projekció lehet, eredeti canon megtartásával és külön költséggel. Új nyelv emberi és AI-próbát kap.
+Kizárólag angol induló történet, magyar elrejtve. A mentett életnyelv minden eseménycímre, opcióra, fejezetre és ellenőrzési megjegyzésre érvényes. A felület lehet más nyelvű, ezt külön jelöljük. Régi magyar élet nem fordul automatikusan át. Új fordítás később külön ellenőrzött/versioned projekció lehet, eredeti canon megtartásával és külön költséggel. Új nyelv emberi és AI-próbát kap.
 
 ## Official és Community tartalom — terv
 
-Scenario verziózott induló sablon, Official Life egy ténylegesen AI-val generált konkrét élet. Emberi curator minőséget, PII-t, nyelvet és fork-checkpointot ellenőriz. 20–30 sablon és 50–100 Official Life összesített indulási cél; előbb kis több időszakos pilot, mindkét nyelvvel, a meglévő kereten belül. A teljes angol kínálat és magyar minták aránya pilotdöntés.
+Scenario verziózott induló sablon, Official Life egy ténylegesen AI-val generált konkrét élet. Emberi curator minőséget, PII-t, nyelvet és fork-checkpointot ellenőriz. 20–30 sablon és 50–100 Official Life összesített indulási cél; előbb kis több időszakos pilot, kizárólag angolul, a meglévő kereten belül. Magyar seed nincs az indulási célban.
 
 Community Life külön sanitized PublicSnapshotból olvasható. AI-generated/user-edited és Official/Community jelölés pontos eredetet mutat, nem minőségi vagy valóságígéret. Privát folytatás nem írja át a már jóváhagyott kiadást. Cover kezdetben kódalapú vizuál lehet; képgenerálás nem szükséges a tartalomhoz.
 

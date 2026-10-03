@@ -1,5 +1,7 @@
 # alterward — időszakos élet megvalósítása
 
+Aktív kiadási döntés: [kizárólag angol béta és kiadás utáni visszajelzés](ENGLISH_RELEASE_PLAN_HU.md). A jelen riport korábbi EN/HU mérései változatlan történeti bizonyítékok; a magyar új kiadás és kézi EN/HU előminősítés halasztva/felülírva.
+
 2026-10-03 · [Dokumentációs központ](README.md) · [Státusz és keret](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
 P01–P05 fő technikai szelete elkészült. Új élet a 12 lépéses angol/magyar onboardingból indul, hat hónapos valódi AI-fejezettel. A választás az aktuális ágat módosítja, külön gomb indítja annak következő időszakát; korábbi döntés másik opciója külön saját ágat nyit. A v1 archívum és tízéves generálás visszaolvasható, az alkalmazott 001/002 migráció változatlan.

@@ -101,7 +101,7 @@ describe.sequential('versioned private life API', () => {
     ).toBe(409);
   });
   it('creates privately once, rejects unknown fields and protects ownership', async () => {
-    const s = setupFixture('hu');
+    const s = setupFixture('en');
     const first = await request('/api/v2/lives', 'POST', s);
     expect(first.status).toBe(201);
     created = await first.json();
@@ -146,7 +146,7 @@ describe.sequential('versioned private life API', () => {
       'hu',
     );
     expect(pending.status).toBe(409);
-    expect((await pending.json()).error.message).toContain('Válassz');
+    expect((await pending.json()).error.message).toContain('Choose');
     const choice = await request(
       `/api/v2/branches/${created.branchId}/choice`,
       'POST',

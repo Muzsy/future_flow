@@ -44,12 +44,13 @@ import {
   futureRequestSchema,
   resolveDecisionSchema,
   idSchema,
-  lifeSetupV2Schema,
-  lifeDraftV2Schema,
+  lifeCreateRequestV2Schema,
+  lifeDraftRequestV2Schema,
   lifeChoiceRequestV2Schema,
   lifeRevisionRequestV2Schema,
   lifeInteractionV2Schema,
   publicPreviewRequestSchema,
+  enabledLocales,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import {
@@ -59,6 +60,10 @@ import {
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
 import { type AuthProvider, requireRecentAuthentication } from './auth';
+import {
+  requireEnabledContent,
+  requireEnabledLocale,
+} from './content-language';
 
 const REPOSITORY = Symbol('REPOSITORY'),
   AUTH = Symbol('AUTH');
@@ -196,7 +201,7 @@ class ApiController {
   }
   @Get('futures')
   futures(@Req() req: AuthRequest) {
-    return this.repo.listFutures(req.userId);
+    return this.repo.listFutures(req.userId, enabledLocales);
   }
   @Post('futures')
   @ApiBody({ schema: z.toJSONSchema(futureRequestSchema) as never })
@@ -219,12 +224,20 @@ class ApiController {
     );
   }
   @Get('futures/:id')
-  future(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.repo.future(req.userId, idSchema.parse(id));
+  async future(@Req() req: AuthRequest, @Param('id') id: string) {
+    const future = await this.repo.future(req.userId, idSchema.parse(id));
+    requireEnabledLocale(future.content_locale);
+    return future;
   }
   @Get('jobs/:id')
   async job(@Req() req: AuthRequest, @Param('id') id: string) {
     const job = await this.repo.job(req.userId, idSchema.parse(id));
+    await requireEnabledContent(
+      this.repo.db,
+      req.userId,
+      'legacyBranch',
+      String(job.branch_id),
+    );
     if (job.error_message_safe)
       job.error_message_safe = errorMessage(
         req.locale,
@@ -233,12 +246,21 @@ class ApiController {
     return job;
   }
   @Get('branches/:id')
-  branch(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.repo.branch(req.userId, idSchema.parse(id));
+  async branch(@Req() req: AuthRequest, @Param('id') id: string) {
+    const branch = await this.repo.branch(req.userId, idSchema.parse(id));
+    requireEnabledLocale(branch.content_locale);
+    return branch;
   }
   @Get('branches/:id/timeline')
-  timeline(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.repo.timeline(req.userId, idSchema.parse(id));
+  async timeline(@Req() req: AuthRequest, @Param('id') id: string) {
+    const branchId = idSchema.parse(id);
+    await requireEnabledContent(
+      this.repo.db,
+      req.userId,
+      'legacyBranch',
+      branchId,
+    );
+    return this.repo.timeline(req.userId, branchId);
   }
   @Post('decisions/:id/resolve')
   @ApiBody({ schema: z.toJSONSchema(resolveDecisionSchema) as never })
@@ -247,16 +269,23 @@ class ApiController {
     required: true,
     schema: { type: 'string', minLength: 8, maxLength: 100 },
   })
-  resolve(
+  async resolve(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
   ) {
     const input = resolveDecisionSchema.parse(body);
+    const decisionId = idSchema.parse(id);
+    await requireEnabledContent(
+      this.repo.db,
+      req.userId,
+      'legacyDecision',
+      decisionId,
+    );
     return this.repo.resolveDecision(
       req.userId,
-      idSchema.parse(id),
+      decisionId,
       input.optionId,
       key ?? '',
     );
@@ -272,7 +301,7 @@ class ApiController {
   }
   @Delete('me')
   async delete(@Req() req: AuthRequest, @Body() body: unknown) {
-    z.object({ confirmation: z.literal('FIÓK TÖRLÉSE') })
+    z.object({ confirmation: z.literal('DELETE ACCOUNT') })
       .strict()
       .parse(body);
     requireRecentAuthentication(req.token);
@@ -282,26 +311,30 @@ class ApiController {
 @Controller('api/v2')
 @UseGuards(AuthGuard)
 class LifeController {
-  @Post('interactions') interaction(
+  @Post('interactions') async interaction(
     @Req() req: AuthRequest,
     @Body() body: unknown,
   ) {
-    return this.lives.interaction(
-      req.userId,
-      lifeInteractionV2Schema.parse(body),
-    );
+    const input = lifeInteractionV2Schema.parse(body);
+    if (input.branchId) await this.availableBranch(req.userId, input.branchId);
+    return this.lives.interaction(req.userId, input);
   }
   private readonly lives: LifeRepository;
   private readonly publicDrafts: PublicDraftRepository;
-  constructor(@Inject(REPOSITORY) repo: Repository) {
+  constructor(@Inject(REPOSITORY) private readonly repo: Repository) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.lives = new LifeRepository(repo.db, {
       daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
       concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
     });
   }
+  private async availableBranch(userId: string, id: string) {
+    const branch = await this.lives.branch(userId, idSchema.parse(id));
+    requireEnabledLocale(branch.content_locale);
+    return branch;
+  }
   @Get('lives') list(@Req() req: AuthRequest) {
-    return this.lives.list(req.userId);
+    return this.lives.list(req.userId, enabledLocales);
   }
   @Get('draft') draft(@Req() req: AuthRequest) {
     return this.lives.draft(req.userId);
@@ -310,7 +343,7 @@ class LifeController {
     const input = z
       .object({
         revision: z.number().int().nonnegative(),
-        payload: lifeDraftV2Schema,
+        payload: lifeDraftRequestV2Schema,
       })
       .strict()
       .parse(body);
@@ -323,69 +356,75 @@ class LifeController {
   ) {
     return this.lives.create(
       req.userId,
-      lifeSetupV2Schema.parse(body),
+      lifeCreateRequestV2Schema.parse(body),
       key ?? '',
     );
   }
-  @Get('branches/:id') detail(
+  @Get('branches/:id') async detail(
     @Req() req: AuthRequest,
     @Param('id') id: string,
   ) {
-    return this.lives.detail(req.userId, idSchema.parse(id));
+    const branch = await this.availableBranch(req.userId, id);
+    return this.lives.detail(req.userId, branch.id);
   }
   @Post('branches/:id/public-preview')
   @ApiOperation({
     summary: 'Prepare an owner-only draft. This does not publish content.',
   })
   @ApiBody({ schema: z.toJSONSchema(publicPreviewRequestSchema) as never })
-  preparePublicPreview(
+  async preparePublicPreview(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
     const input = publicPreviewRequestSchema.parse(body);
+    const branch = await this.availableBranch(req.userId, id);
     return this.publicDrafts.prepare(
       req.userId,
-      idSchema.parse(id),
+      branch.id,
       input.revision,
       input.copy,
     );
   }
   @Get('public-previews/:id')
-  publicPreview(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.publicDrafts.get(req.userId, idSchema.parse(id));
+  async publicPreview(@Req() req: AuthRequest, @Param('id') id: string) {
+    const preview = await this.publicDrafts.get(req.userId, idSchema.parse(id));
+    requireEnabledLocale(preview.snapshot.locale);
+    return preview;
   }
-  @Post('branches/:id/choice') choose(
+  @Post('branches/:id/choice') async choose(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
   ) {
     const input = lifeChoiceRequestV2Schema.parse(body);
+    const branch = await this.availableBranch(req.userId, id);
     return this.lives.choose(
       req.userId,
-      idSchema.parse(id),
+      branch.id,
       input.revision,
       input.decisionId,
       input.optionId,
       key ?? '',
     );
   }
-  @Post('branches/:id/continue') continue(
+  @Post('branches/:id/continue') async continue(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
   ) {
     const input = lifeRevisionRequestV2Schema.parse(body);
+    const branch = await this.availableBranch(req.userId, id);
     return this.lives.continue(
       req.userId,
-      idSchema.parse(id),
+      branch.id,
       input.revision,
       key ?? '',
     );
   }
-  @Post('branches/:id/periods/:periodId/fork') fork(
+  @Post('branches/:id/periods/:periodId/fork') async fork(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Param('periodId') periodId: string,
@@ -396,28 +435,26 @@ class LifeController {
       .object({ revision: z.number().int().nonnegative(), optionId: idSchema })
       .strict()
       .parse(body);
+    const branch = await this.availableBranch(req.userId, id);
     return this.lives.fork(
       req.userId,
-      idSchema.parse(id),
+      branch.id,
       idSchema.parse(periodId),
       input.revision,
       input.optionId,
       key ?? '',
     );
   }
-  @Post('jobs/:id/retry') retry(
+  @Post('jobs/:id/retry') async retry(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
   ) {
     const input = lifeRevisionRequestV2Schema.parse(body);
-    return this.lives.retry(
-      req.userId,
-      idSchema.parse(id),
-      input.revision,
-      key ?? '',
-    );
+    const jobId = idSchema.parse(id);
+    await requireEnabledContent(this.repo.db, req.userId, 'lifeJob', jobId);
+    return this.lives.retry(req.userId, jobId, input.revision, key ?? '');
   }
 }
 @Controller()

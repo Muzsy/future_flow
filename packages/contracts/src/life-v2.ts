@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema } from './locales';
+import { localeSchema, enabledLocaleSchema } from './locales';
 
 // Kept separate from the v1 schemas: existing stored canon must remain readable.
 export const LIFE_CONTRACT_VERSION = '2.0.0';
@@ -304,6 +304,13 @@ export const lifeDraftV2Schema = lifeSetupV2Schema.extend({
   goal: lifeSetupV2Schema.shape.goal.extend({
     description: z.string().trim().max(500),
   }),
+});
+// Request contracts follow the release policy; persisted contracts above remain readable.
+export const lifeCreateRequestV2Schema = lifeSetupV2Schema.extend({
+  locale: enabledLocaleSchema,
+});
+export const lifeDraftRequestV2Schema = lifeDraftV2Schema.extend({
+  locale: enabledLocaleSchema,
 });
 export const periodChapterV2Schema = z
   .object({

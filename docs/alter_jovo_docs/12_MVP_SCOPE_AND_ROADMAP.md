@@ -1,7 +1,7 @@
 # alterward — MVP és roadmap
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · [Aktív termékterv](../PRODUCT_PLAN_HU.md) · [Backlog](../NEXT_STEPS.md) · [14 public MVP-elem](../REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -13,7 +13,7 @@ Rövid identitás/profil és cél → valódi AI-időszak → nyitott döntés �
 
 | Szakasz | Feladatok és kilépés |
 |---|---|
-| Nyelvi alap | L01 kész a v1-en; minden új funkció teljes EN/HU |
+| Nyelvi alap | L01 kész a v1-en; minden új funkció angol; magyar halasztva |
 | Tartós személyes alap | P01–P05: v2 tárolás, rövid AI-period, választás/folytatás/fork, 10–15 kérdés, memória és alkalmazáskeret |
 | Privát pilot kapu | P06–P08: valós fiókos három időszak/újrabelépés/export/törlés, technikai és emberi nyelvi minőség, mérés |
 | Official/public alap | P09: külön snapshot/checkpoint/Scenario és kis valódi AI-seed pilot |
@@ -29,10 +29,10 @@ A két forrás eltérő fázisszámozását ez a sorrend egységesíti. A szemé
 
 Hat hónap alap, tizenkettő a szerződésben; 2–5 esemény/egy 250–600 szavas fejezet/egy nyitott utolsó döntés. 10–15 kérdés, egy fő cél, nulla kapcsolat és unknown adatok kezelése. Áganként egy job, revision/idempotencia/lease, múlt változatlan, saját profil nem íródik át. Export/törlés és privát működés ingyenes. Ezek visszafordítható UX-paraméterek, a biztonsági/integritási feltételek kötelezők.
 
-Legalább 20 változatos szintetikus eset, három egymást követő időszakkal, külön angol/magyar minőség. 20–50 résztvevős induló emberi pilot, előre rögzített mérési definícióval. 50–100 Official Life és 20–30 Scenario összesített nyilvános tartalomcél, előbb kis mért pilot. A darabszámok nem engedélyeznek 5 USD-n túli automatikus generálást.
+Legalább 20 változatos szintetikus eset, három egymást követő időszakkal, angol AI/szerkesztői minőség. Korlátozott angol béta és későbbi 20–50 használó célkohorsz, előre rögzített mérési definícióval. 50–100 Official Life és 20–30 Scenario összesített nyilvános tartalomcél, előbb kis mért pilot. A darabszámok nem engedélyeznek 5 USD-n túli automatikus generálást.
 
 ## Kimarad az első MVP-ből
 
-Komment, DM/chat, követési gráf és reakció; creator payment/marketplace; fizetés; natív mobil; avatar/kép/hang/VR/real-time multiplayer; habit tracker/coaching/egészségplatform; több száz statisztika és komplex ML-ajánló. Szabad szöveges döntés/összetett compare és mély világmodellek a működő folytatás után. Az angol/magyar élmény nem halasztott funkció.
+Komment, DM/chat, követési gráf és reakció; creator payment/marketplace; fizetés; natív mobil; avatar/kép/hang/VR/real-time multiplayer; habit tracker/coaching/egészségplatform; több száz statisztika és komplex ML-ajánló. Szabad szöveges döntés/összetett compare és mély világmodellek a működő folytatás után. Az angol élmény kötelező; a magyar és további nyelvek halasztottak.
 
 Ha a profilfrikció, általános történet, következményhiány vagy költség megállítja a folytatást, a személyes hurok javítása következik. Nincs még igazolt retenciós küszöb, fizetési arány, naptári release-dátum vagy üzleti eredmény.
