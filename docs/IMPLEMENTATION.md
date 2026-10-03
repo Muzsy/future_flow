@@ -10,7 +10,7 @@ A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevébe
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses EN/HU onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–005 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
+V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses EN/HU onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–006 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
 
 ## Többnyelvű alap
 
@@ -92,3 +92,7 @@ Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő job
 - [Supabase JWT-mezők](https://supabase.com/docs/guides/auth/jwt-fields)
 - [Supabase getUser](https://supabase.com/docs/reference/javascript/auth-getuser)
 - [PostgreSQL SELECT / SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html)
+
+## Claude értékelő, elkülönített integráció
+
+Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 147 aktuális automatikus teszt; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.

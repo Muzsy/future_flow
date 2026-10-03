@@ -1,0 +1,1933 @@
+{
+  "branch": {
+    "input": {
+      "goals": [
+        {
+          "id": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+          "category": "career",
+          "priority": "primary",
+          "motivation": "More creative work while preserving stability",
+          "description": "Move into independent digital design work near my current home",
+          "horizonMonths": 36,
+          "acceptableTradeoffs": ["evening study"],
+          "unacceptableTradeoffs": ["moving abroad"]
+        }
+      ],
+      "lifeId": "630a9645-062c-45db-849b-eed1fe5330f6",
+      "locale": "en",
+      "branchId": "6d8561d8-735a-4db6-a45c-42d1986997ac",
+      "identity": {
+        "mode": "alternate",
+        "label": null,
+        "ageBand": "35_44",
+        "baseProfileVersionId": null
+      },
+      "visibility": "private",
+      "constraints": [
+        {
+          "id": "a69c1d7b-5194-437e-947a-04651fface71",
+          "lifeId": "630a9645-062c-45db-849b-eed1fe5330f6",
+          "branchId": null,
+          "strength": "hard",
+          "predicate": {
+            "type": "country_is",
+            "value": "HU"
+          },
+          "validFrom": "2026-10-03",
+          "validUntil": null,
+          "description": "Stay in the starting country.",
+          "endsOnDecisionId": null
+        }
+      ],
+      "environment": {
+        "version": "hu-neutral-v2",
+        "description": "Fictional neutral context; no economic forecast. Location is the supplied state. Optional user context:"
+      },
+      "initialState": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["planning", "writing"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "schemaVersion": "2.0.0"
+    }
+  },
+  "periods": [
+    {
+      "period_no": 1,
+      "base_revision": 0,
+      "id": "061176ff-8993-4c7b-b157-0b2756f82f35",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["planning", "writing"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "open",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [],
+      "events": [
+        {
+          "id": "d9458c5e-d1ac-459b-857c-bf9ec8618518",
+          "title": "Making room for design after work",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "digital design fundamentals"
+            }
+          ],
+          "summary": "You set aside some evenings for digital design exercises while keeping your current administration job. The pace feels manageable, though it takes deliberate planning.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing", "digital design fundamentals"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-11-14",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2026-11-14",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "7d5292d9-6bf4-40e6-93dc-3a1ce242ad77",
+          "title": "A small local brief appears",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "visual layout"
+            },
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            }
+          ],
+          "summary": "A local business posts a limited website-refresh brief. It could provide a first practical design project, but taking it on would compete with your evenings and leave less room for study.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-01-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-01-22",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing", "digital design fundamentals"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-11-14",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "ec18d8d3-eed4-451a-b704-e3ff46b728d9",
+          "title": "Checking the fit before committing",
+          "changes": [],
+          "summary": "You review how the brief might fit around your current job and design practice. You have not committed to it, and the choice remains open for now.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-03-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-03-12",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-01-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "6959961a-4cb1-4953-ae7b-8cdafc9b5a30",
+          "title": "Choosing what to build next",
+          "changes": [],
+          "summary": "The local brief is at its deadline. Each path offers a different balance between a first client experience, protected study time, and keeping the possibility open a little longer.",
+          "actorIds": [],
+          "decision": {
+            "id": "b30a0f70-1bd2-4d40-8de0-ae29c86e2bb9",
+            "prompt": "How would you like to handle the local website-refresh brief while continuing to build toward independent design work?",
+            "options": [
+              {
+                "id": "53cb4231-b9e1-4daa-b5c5-f86d4c0b25d9",
+                "label": "Take on the limited project",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                      "title": "Limited local website-refresh brief",
+                      "status": "accepted",
+                      "expiresAt": "2027-04-03"
+                    }
+                  },
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 55,
+                      "availableHoursPerWeek": 4
+                    }
+                  }
+                ],
+                "description": "Accept the brief while keeping your current job. You would gain practical client experience, with less free time for study and recovery.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "liquid_funds_at_least",
+                    "amount": 0,
+                    "currency": "HUF"
+                  }
+                ]
+              },
+              {
+                "id": "04618e3c-71d0-4ea7-9611-4131527c2cd4",
+                "label": "Decline and protect study time",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                      "title": "Limited local website-refresh brief",
+                      "status": "declined",
+                      "expiresAt": "2027-04-03"
+                    }
+                  }
+                ],
+                "description": "Turn down this particular brief and keep more room for steady practice. You avoid an immediate client commitment, but miss this chance to test your skills on real work.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              },
+              {
+                "id": "54a4c48c-8ec4-459c-8d18-84668e790eb7",
+                "label": "Let this brief pass without closing the broader path",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                      "title": "Limited local website-refresh brief",
+                      "status": "expired",
+                      "expiresAt": "2027-04-03"
+                    }
+                  }
+                ],
+                "description": "Do not take on this project as its deadline arrives. Keep your current routine and look for a better-fitting local opportunity later, accepting that this particular opening will be gone.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-03-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "open",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "In November, you begin making room for design after the administration workday ends. Some evenings become practice evenings—not a departure from your current life, but a deliberate adjustment within it. Digital design exercises ask for the hours that work has left untouched. You have eight hours a week available, and making use of them takes planning rather than a sudden burst of freedom.\n\nThe pace is manageable. You build digital design fundamentals while keeping your job, letting the two sit alongside each other. There is reassurance in that arrangement: your monthly income remains 400,000 HUF, and your liquid funds remain 1,200,000 HUF. You want more creative work, but you want the stability to stay. Independent design near your current home in Veszprém is the direction—not a move abroad, not a leap that requires everything familiar to disappear.\n\nBy January, visual layout has joined your growing set of skills. Then a local business posts a limited website-refresh brief. The word “limited” makes it tempting. Here is something more concrete than an exercise: a possible first practical project, close enough to fit the life you are trying to build.\n\nYou pause over the brief. Taking it on could give your practice a different purpose, but the evenings are already doing a job. They are where you study, and they also leave some space to recover. A project would not create more time simply because it mattered to you.\n\nIn March, you review the fit again. Your administration job is still there; your design practice is still there. You measure the possible commitment against the same eight available hours. Nothing has been accepted. Looking carefully is not the same as saying yes, and for now the distinction lets you examine the opportunity without making it an obligation.\n\nThen April 3 arrives: the deadline. The brief remains open, but you can no longer leave the question comfortably in the distance.\n\nAccepting would mean keeping your current job while making room for a first client experience, with only four hours a week left available. Declining would protect your study time while closing this particular opening. Letting the deadline pass would preserve your routine and leave the broader local-design goal intact, though this project would be gone.\n\nYou return to the brief with those three possibilities in view. Which matters most for what you build next: trying your skills on a limited project, protecting the time to develop them, or letting this opening pass while keeping the larger path open?",
+        "title": "Room for Something of Your Own",
+        "eventIds": [
+          "d9458c5e-d1ac-459b-857c-bf9ec8618518",
+          "7d5292d9-6bf4-40e6-93dc-3a1ce242ad77",
+          "ec18d8d3-eed4-451a-b704-e3ff46b728d9",
+          "6959961a-4cb1-4953-ae7b-8cdafc9b5a30"
+        ],
+        "decisionId": "b30a0f70-1bd2-4d40-8de0-ae29c86e2bb9"
+      },
+      "candidate": {
+        "startDate": "2026-10-03",
+        "endDate": "2027-04-03"
+      }
+    },
+    {
+      "period_no": 2,
+      "base_revision": 2,
+      "id": "6bfe10f8-ce1f-4998-bdbc-3a17d6fa8c29",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout",
+          "client brief scoping"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": ["b30a0f70-1bd2-4d40-8de0-ae29c86e2bb9"],
+      "events": [
+        {
+          "id": "568207ad-5d19-49c2-a2b0-24c95e03a751",
+          "title": "Starting with a manageable first pass",
+          "changes": [],
+          "summary": "You begin working through the accepted local website-refresh brief in small steps alongside your administration job. Keeping the scope limited helps, though fitting the work around your evenings still takes attention.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-05-02",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-05-02",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "2a4aac86-22b3-4f2e-af05-f537be67283c",
+          "title": "Learning to shape a client brief",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "client brief scoping"
+            }
+          ],
+          "summary": "As you work through the design tasks, you practice turning a client's requests into a clearer sequence of manageable steps. That practical planning becomes a useful addition to your design toolkit.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-06-18",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-06-18",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-05-02",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "9af58244-b732-4438-987a-6b258008d503",
+          "title": "Checking what pace feels sustainable",
+          "changes": [],
+          "summary": "You take stock of how the project, your current job, and design practice fit together. You are still interested in moving toward independent digital design work near home, but the amount of time and energy to commit next is an open question.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-08-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-08-12",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-06-18",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "d72c60ee-c1bc-4ed4-a2f1-d8ceef8cd622",
+          "title": "Choosing your next design-work rhythm",
+          "changes": [],
+          "summary": "The limited brief has given you a practical starting point, but it has not settled what pace is right for your longer-term career goal. Each path keeps you in Hungary and employed while balancing design practice against energy and free time differently.",
+          "actorIds": [],
+          "decision": {
+            "id": "8b927c2a-4e96-44b8-80d8-936d7301c4be",
+            "prompt": "How much time and energy do you want to set aside for developing independent digital design work over the next stretch?",
+            "options": [
+              {
+                "id": "2ca25656-3f8f-4bd3-8fd7-a81361c7441e",
+                "label": "Keep a steady four-hour weekly allocation",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 55,
+                      "availableHoursPerWeek": 4
+                    }
+                  }
+                ],
+                "description": "Preserve the current balance between design practice, your job, and recovery. Progress may be gradual, but this leaves more room for consistency.",
+                "preconditions": []
+              },
+              {
+                "id": "ec9fd9f8-b431-4641-a10d-8123de49bb7a",
+                "label": "Make a stronger six-hour weekly push",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 48,
+                      "availableHoursPerWeek": 6
+                    }
+                  }
+                ],
+                "description": "Give design work more space and potentially build momentum sooner, accepting a tighter schedule and less energy for other things.",
+                "preconditions": []
+              },
+              {
+                "id": "e5dd3f2c-f1c2-4915-9391-f0e9b2ab1920",
+                "label": "Protect more time for recovery with two hours a week",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 60,
+                      "availableHoursPerWeek": 2
+                    }
+                  }
+                ],
+                "description": "Keep a smaller, easier-to-maintain design commitment while protecting energy. The transition toward independent work may feel slower, but the pace could be more comfortable.",
+                "preconditions": []
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-10-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-08-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "In May, you approach the accepted website-refresh brief one manageable step at a time. The work must fit around your administration job, not replace it. Four hours a week gives you room to begin, but not much room to lose your way.\n\nYou study the requests, then return to the part you can address next. The glow of the design work offers a different kind of attention from the office day: spacing, emphasis, the relationship between words and layout. You want more of this creative work, close to your current home in Veszprém. For now, wanting it means keeping the scope small enough to hold alongside the stability you also value.\n\nBy June, the brief is teaching you something beyond visual layout. A client's request can contain several tasks folded into one sentence. You practice separating them, putting them in order, deciding what belongs within this limited piece of work. Your existing planning and writing skills help, but shaping a client brief becomes a skill of its own.\n\nThere is satisfaction in making the work clearer before trying to make it better. You do not have to solve everything at once. You need a sequence you can follow when an evening contains only a little time and attention.\n\nIn August, you take stock. Your administration job remains in place; your monthly income is still 400,000 HUF, and your liquid funds remain 1,200,000 HUF. The brief has not turned into a new career by itself. What it has given you is practical experience to consider alongside the design fundamentals you already had.\n\nYou still want independent digital design work near home. Evening practice remains an acceptable tradeoff, but the hours cannot be considered separately from the energy they ask of you. You weigh the project, the office work, and the space left between them. Is the current rhythm something to preserve, something to stretch, or something to ease?\n\nBy October, that question is ready for a decision. Each path leaves you employed and in Hungary. Keeping four hours a week would preserve your present balance; progress may be gradual, with room for consistency. Setting aside six hours could create more momentum, but would tighten your schedule and leave less energy for other things. Reducing the commitment to two hours would protect more recovery time; the transition may feel slower, though the pace could be more comfortable.\n\nYou have a practical starting point, not a settled answer. How much time and energy do you want to give independent design work over the next stretch?",
+        "title": "Room for the Work",
+        "eventIds": [
+          "568207ad-5d19-49c2-a2b0-24c95e03a751",
+          "2a4aac86-22b3-4f2e-af05-f537be67283c",
+          "9af58244-b732-4438-987a-6b258008d503",
+          "d72c60ee-c1bc-4ed4-a2f1-d8ceef8cd622"
+        ],
+        "decisionId": "8b927c2a-4e96-44b8-80d8-936d7301c4be"
+      },
+      "candidate": {
+        "startDate": "2027-04-03",
+        "endDate": "2027-10-03"
+      }
+    },
+    {
+      "period_no": 3,
+      "base_revision": 4,
+      "id": "7c89421b-5aec-4fda-b2e8-bbbeb8130b73",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout",
+          "client brief scoping"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 48,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout",
+          "client brief scoping"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 48,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2028-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [
+        "b30a0f70-1bd2-4d40-8de0-ae29c86e2bb9",
+        "8b927c2a-4e96-44b8-80d8-936d7301c4be"
+      ],
+      "events": [
+        {
+          "id": "4e88da45-e9a3-4ce4-9d4e-9b1ee9f680b6",
+          "title": "Turning project experience into a clearer direction",
+          "changes": [],
+          "summary": "You look back on what you learned from the local website-refresh brief and the design skills you have been building. It gives you a more concrete sense of the kind of independent work you might pursue, without making the next step obvious.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-11-19",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-11-19",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "3039d3b5-b860-4950-8a34-df3c73bb0063",
+          "title": "Making space to assess the workload",
+          "changes": [],
+          "summary": "You take stock of design practice alongside your administration job. The current pace has kept the goal in view, but you are weighing whether to protect more time and energy or make a stronger push toward building independent work.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-02-08",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-02-08",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-11-19",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "b6bbcd9f-7cd8-4c32-82ab-2eb902922447",
+          "title": "Choosing your next six-month rhythm",
+          "changes": [],
+          "summary": "Your experience so far offers a starting point, not a guarantee of where independent design work will lead. You can keep the present pace, ease back to protect energy, or make a more demanding commitment while staying employed and near home.",
+          "actorIds": [],
+          "decision": {
+            "id": "51d49f56-7cb9-490f-9cda-01c547e2bf04",
+            "prompt": "How would you like to balance design-work progress with time and energy over the next six months?",
+            "options": [
+              {
+                "id": "294f19c9-6be0-40e5-9044-f52619341f11",
+                "label": "Protect more room to recover",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 55,
+                      "availableHoursPerWeek": 4
+                    }
+                  }
+                ],
+                "description": "Reduce the weekly hours you set aside for design and give yourself more energy margin. This may make progress slower, but could leave more capacity for your job and everyday life.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              },
+              {
+                "id": "554c1fef-fc3a-4beb-8389-4e6c40405782",
+                "label": "Keep the current steady pace",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 48,
+                      "availableHoursPerWeek": 6
+                    }
+                  }
+                ],
+                "description": "Continue setting aside the same amount of time and energy. This preserves momentum without adding a new workload, though progress may remain gradual.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              },
+              {
+                "id": "0e058a9e-3d41-40b7-89ec-86272db20803",
+                "label": "Make a more demanding push",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": 42,
+                      "availableHoursPerWeek": 8
+                    }
+                  }
+                ],
+                "description": "Set aside more weekly time for design practice and building toward independent work. This could create room for faster progress, but leaves less energy for other parts of your routine.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "digital design fundamentals",
+              "visual layout",
+              "client brief scoping"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-02-08",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+                "title": "Limited local website-refresh brief",
+                "status": "accepted",
+                "expiresAt": "2027-04-03"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "On November 19, you return in thought to the local website-refresh brief. What stays with you is not a grand turning point, but a clearer outline: the space between what someone asks for and what a design needs to do. Your planning and writing skills belong in that space, alongside visual layout, digital design fundamentals, and the work of scoping a brief.\n\nIndependent design no longer feels quite so abstract. You can picture the kind of work you might pursue near your current home in Veszprém, without imagining an entirely different life around it. That distinction matters. You want more creative work, but you also want the stability your administration job provides. One wish does not cancel the other.\n\nThere is still no obvious next step. Looking back gives you something to work from, not a guarantee.\n\nBy February 8, the question has shifted from what interests you to how much room you can give it. Six hours a week sounds modest until you set it beside your job and the energy needed for ordinary life. Evening study is a tradeoff you are willing to make; willingness, though, does not make an evening longer.\n\nYou pause over that tension. Protecting time for design keeps the goal visible. Protecting energy keeps the pursuit from taking up every available corner. Neither feels like a trivial concern.\n\nYour circumstances remain steady: you are still employed in administration, with a monthly income of HUF 400,000 and HUF 1,200,000 in liquid funds. Those figures are part of the stability you want to preserve, not evidence that independent work is ready to replace it. You have experience to reflect on and skills to practise, but no certainty to borrow from the future.\n\nOn April 3, the horizon narrows to a more manageable question: the next six months. You do not have to decide your entire working life today. You do have to consider the rhythm that could carry this goal alongside the life you already have.\n\nFour hours a week would leave more room to recover, accepting that progress might be slower. Six would preserve the present pace, with its familiar balance and gradual momentum. Eight would make a stronger commitment to design practice and building toward independence, while leaving less energy elsewhere. In each version, you would remain employed and near home.\n\nThe choice is not between caring about the goal and abandoning it. It is between different ways of making room for something you care about. How much time—and how much of yourself—do you want to give it over the next six months?",
+        "title": "Room for the Next Six Months",
+        "eventIds": [
+          "4e88da45-e9a3-4ce4-9d4e-9b1ee9f680b6",
+          "3039d3b5-b860-4950-8a34-df3c73bb0063",
+          "b6bbcd9f-7cd8-4c32-82ab-2eb902922447"
+        ],
+        "decisionId": "51d49f56-7cb9-490f-9cda-01c547e2bf04"
+      },
+      "candidate": {
+        "startDate": "2027-10-03",
+        "endDate": "2028-04-03"
+      }
+    }
+  ],
+  "choices": [
+    {
+      "decision_id": "b30a0f70-1bd2-4d40-8de0-ae29c86e2bb9",
+      "option_id": "53cb4231-b9e1-4daa-b5c5-f86d4c0b25d9",
+      "payload": {
+        "id": "53cb4231-b9e1-4daa-b5c5-f86d4c0b25d9",
+        "label": "Take on the limited project",
+        "changes": [
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+              "title": "Limited local website-refresh brief",
+              "status": "accepted",
+              "expiresAt": "2027-04-03"
+            }
+          },
+          {
+            "type": "resources_set",
+            "value": {
+              "energy": 55,
+              "availableHoursPerWeek": 4
+            }
+          }
+        ],
+        "description": "Accept the brief while keeping your current job. You would gain practical client experience, with less free time for study and recovery.",
+        "preconditions": [
+          {
+            "type": "employment_status_is",
+            "value": "employed"
+          },
+          {
+            "type": "country_is",
+            "value": "HU"
+          },
+          {
+            "type": "liquid_funds_at_least",
+            "amount": 0,
+            "currency": "HUF"
+          }
+        ]
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    },
+    {
+      "decision_id": "8b927c2a-4e96-44b8-80d8-936d7301c4be",
+      "option_id": "ec9fd9f8-b431-4641-a10d-8123de49bb7a",
+      "payload": {
+        "id": "ec9fd9f8-b431-4641-a10d-8123de49bb7a",
+        "label": "Make a stronger six-hour weekly push",
+        "changes": [
+          {
+            "type": "resources_set",
+            "value": {
+              "energy": 48,
+              "availableHoursPerWeek": 6
+            }
+          }
+        ],
+        "description": "Give design work more space and potentially build momentum sooner, accepting a tighter schedule and less energy for other things.",
+        "preconditions": []
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "88ca7ba1-ea90-433c-b41a-07d6692c1f01",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "digital design fundamentals",
+          "visual layout",
+          "client brief scoping"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 48,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "4a2b68e8-08b0-4a5c-bd2f-02de98c22673",
+            "title": "Limited local website-refresh brief",
+            "status": "accepted",
+            "expiresAt": "2027-04-03"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    }
+  ]
+}

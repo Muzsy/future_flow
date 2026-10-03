@@ -1,5 +1,6 @@
 import OpenAI, { type APIError } from 'openai';
 export * from './experiment-budget';
+export * from './claude';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import {
@@ -54,7 +55,10 @@ export interface AiRequestGuard {
     usage: {
       input_tokens: number;
       output_tokens: number;
-      input_tokens_details?: { cached_tokens?: number };
+      input_tokens_details?: {
+        cached_tokens?: number;
+        cache_write_tokens?: number;
+      };
     } | null,
   ): Promise<void>;
 }

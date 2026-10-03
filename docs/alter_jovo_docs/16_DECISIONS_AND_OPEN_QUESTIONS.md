@@ -25,7 +25,8 @@
 | ADR-014 | Private + Official/Scenario + Community, public MVP | Közösségi terv; személyes core után P09–P13 |
 | ADR-015 | Snapshot és külön sanitized fork-checkpoint | Privacy követelmény, tervezett |
 | ADR-016 | Feladatonkénti modellkonfiguráció, külön checker | Megvalósítva; Luna minősítendő jelölt |
-| ADR-017 | 5 USD összes fejlesztői AI-kísérletre együtt | Felhasználói keret; nincs automatikus bővítés |
+| ADR-017 | OpenAI fejlesztői összkeret 5 USD | Korábbi felhasználói keret; nincs automatikus bővítés |
+| ADR-018 | Claude modellek és külső történetaudit külön 5 USD kerettel | 2026-10-03 felhasználói döntés; külön titok/napi helyett összesített napló; worker-provider nem vált automatikusan |
 
 ## Felülírt javaslatok
 
@@ -50,4 +51,4 @@ Hat hónap alap, szerződés tizenkettőt is enged; egy 250–600 szavas fejezet
 
 Domain/védjegy; csomagár és ingyenes generálási limitek; későbbi payment/hosting; v2 period/fejezethossz értékelése; nemzetközi környezetsablonok; Official seed nyelvi aránya; további nyelvek; számszerű pilot-küszöb és sessionablak; végleges privacy/retention/backup és public másolatok takarítása. Ezeket konkrét mérés/előnézet alapján tisztázzuk, nem blokkolják P01-et.
 
-Korábban jelzett Supabase admin-kulcs a valódi Auth-törlési próbához hiányzik; értéke csak védett helyi környezetbe kerülhet. A–G termékhipotézisek és a public növekedési hurok még nem bizonyított. Modellcseréhez új EN/HU teljeslánc-próba kell, külön keretfoglalással. A tömeges seed/pilot szükség esetén új pénzügyi döntést kér, az 5 USD nem léphető túl.
+Korábban jelzett Supabase admin-kulcs a valódi Auth-törlési próbához hiányzik; értéke csak védett helyi környezetbe kerülhet. A–G termékhipotézisek és a public növekedési hurok még nem bizonyított. Modellcseréhez új EN/HU teljeslánc-próba kell, külön keretfoglalással. A tömeges seed/pilot szükség esetén új pénzügyi döntést kér, a szolgáltatónként külön engedélyezett 5 USD nem léphető túl.

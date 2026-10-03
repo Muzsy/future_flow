@@ -1,0 +1,2658 @@
+{
+  "branch": {
+    "input": {
+      "goals": [
+        {
+          "id": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+          "category": "career",
+          "priority": "primary",
+          "motivation": "More creative work while preserving stability",
+          "description": "Move into independent digital design work near my current home",
+          "horizonMonths": 36,
+          "acceptableTradeoffs": ["evening study"],
+          "unacceptableTradeoffs": ["moving abroad"]
+        }
+      ],
+      "lifeId": "ddd7cbcd-f9d8-4447-a001-5ccfc12475cd",
+      "locale": "en",
+      "branchId": "71892d42-4e83-4a7c-9388-319925bfe434",
+      "identity": {
+        "mode": "alternate",
+        "label": null,
+        "ageBand": "35_44",
+        "baseProfileVersionId": null
+      },
+      "visibility": "private",
+      "constraints": [
+        {
+          "id": "ad73d3bc-e2e0-4115-9e54-065ab97f3e86",
+          "lifeId": "ddd7cbcd-f9d8-4447-a001-5ccfc12475cd",
+          "branchId": null,
+          "strength": "hard",
+          "predicate": {
+            "type": "country_is",
+            "value": "HU"
+          },
+          "validFrom": "2026-10-03",
+          "validUntil": null,
+          "description": "Stay in the starting country.",
+          "endsOnDecisionId": null
+        }
+      ],
+      "environment": {
+        "version": "hu-neutral-v2",
+        "description": "Fictional neutral context; no economic forecast. Location is the supplied state. Optional user context:"
+      },
+      "initialState": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["planning", "writing"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "schemaVersion": "2.0.0"
+    }
+  },
+  "periods": [
+    {
+      "period_no": 1,
+      "base_revision": 0,
+      "id": "5d9671a5-a38b-492d-9d8b-1706f10b8381",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["planning", "writing"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Prepared an introductory case study for a practice project; considering a local market test versus further evening study.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "open",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "open",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [],
+      "events": [
+        {
+          "id": "4fa4ee53-9ac8-4439-bec9-37b3b9cf968a",
+          "title": "A Small Evening Practice",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Basic digital layout"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Started evening digital design practice while retaining current employment.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You begin practicing digital layout during a few evening sessions. Your planning and writing skills help you organize sample content, but making it visually clear takes patience. This remains an experiment alongside your office work.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Started evening digital design practice while retaining current employment.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing", "Basic digital layout"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-11-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2026-11-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "f64f9f11-46bb-427f-8b2e-eacb1ce6d7dc",
+          "title": "A Brief You Can Finish",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Basic website wireframing"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Completed a self-directed fictional website brief; paid independent work remains untested.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You work through a fictional website brief, turning a long page of text into a simple wireframe. Working within a small scope feels more manageable than imagining an entire new career at once. The exercise offers practice, not evidence of paying demand.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed a self-directed fictional website brief; paid independent work remains untested.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-01-09",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-01-09",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Started evening digital design practice while retaining current employment.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["planning", "writing", "Basic digital layout"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2026-11-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "c801975f-4472-4beb-9385-0325b4bd9048",
+          "title": "Showing Your Reasoning",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Writing introductory design case studies"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Prepared an introductory case study for a practice project; considering a local market test versus further evening study.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You write a short case study explaining the layout choices in your practice project. You find that describing your reasoning is easier than deciding when the design is finished. The next step could be more deliberate practice or a modest test of independent work near home.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Prepared an introductory case study for a practice project; considering a local market test versus further evening study.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-03-06",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-03-06",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Completed a self-directed fictional website brief; paid independent work remains untested.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-01-09",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "27a0c78d-102c-46d7-8b6e-afa66451ee9c",
+          "title": "Practice or a First Market Test?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "open",
+                "expiresAt": null
+              }
+            },
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "open",
+                "expiresAt": null
+              }
+            }
+          ],
+          "summary": "Six months of small exercises have given you a starting point, not a replacement income. You outline two possible next steps that keep your office job and your home base in Veszprém. Neither requires spending your savings now, and neither guarantees independent work.",
+          "actorIds": [],
+          "decision": {
+            "id": "bb2946e0-2c0e-4f43-9d8a-2656db275ca4",
+            "prompt": "Which next step feels worth your limited evening time while you preserve the stability of your current job?",
+            "options": [
+              {
+                "id": "6d23d046-e8d3-4c12-99bb-a80d469b02c4",
+                "label": "Test a small independent offer locally",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                      "title": "Self-directed local design market test",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                      "title": "Further evening portfolio practice",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose a local independent design market test alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Choose to prepare one narrowly scoped design offer and seek interest near home, using up to four of your eight available weekly hours. Keep your office job. This tests demand sooner, but brings uncertainty and less time for polishing your skills; no client or income is secured by this choice.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              },
+              {
+                "id": "c1556067-3630-4ff3-8a4c-c23bb6353271",
+                "label": "Build a stronger portfolio first",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                      "title": "Self-directed local design market test",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                      "title": "Further evening portfolio practice",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose further evening portfolio practice alongside current employment, with a planned limit of four hours per week. Local outreach is deferred.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Choose further self-directed evening practice, aiming for two additional fictional case studies within four weekly hours. Keep your office job and postpone outreach. This protects a quieter learning pace, but delays finding out whether anyone will pay for your work.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Prepared an introductory case study for a practice project; considering a local market test versus further evening study.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "open",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "open",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Prepared an introductory case study for a practice project; considering a local market test versus further evening study.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-03-06",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            },
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "In November, you begin with a few evenings and the space between blocks of text. Your office work continues; digital design is still an experiment, something you can approach without asking it to support you.\n\nPlanning helps you put the sample content in order. Writing helps you decide what needs to be said. Neither quite tells you how much space a heading should have, or why a page can feel crowded even after you have shortened its sentences. You adjust the layout, pause, and look again. The changes are small enough to feel almost invisible, yet making them teaches you to notice. Basic digital layout becomes something you can practice rather than merely imagine.\n\nBy January, you give the experiment a boundary: one fictional website brief. The long page of text offers a problem smaller than changing your whole career. You turn it into a simple wireframe, arranging what comes first and what can wait farther down the page. There is relief in a task with edges. You can finish this exercise without knowing how an independent working life would fit together.\n\nWhen it is done, the distinction matters: you have completed a practice brief. You have not discovered whether anyone will pay you to do the same.\n\nIn March, you write a short case study about your choices. Here, your reasoning comes more readily than your sense of completion. You can explain why you grouped content or gave one section more emphasis; deciding that the design needs no further adjustment is harder. Still, the explanation gives the work another kind of clarity. You now have an introductory case study alongside the layout and wireframing practice—not a replacement income, but a starting point you can examine.\n\nBy early April, the next question is no longer simply whether you can begin. You have begun. The question is what your limited evenings should be for.\n\nYour office job still brings in 400,000 HUF a month, and your liquid funds remain 1,200,000 HUF. Neither next step requires spending those savings now. Both keep your job and your base in Veszprém, close to the life you want your creative work to fit around.\n\nYou outline a small local test: prepare one narrowly scoped design offer and seek interest near home, using up to four of your eight available weekly hours. That would bring the question of demand closer, but leave less time for polishing—and secure neither a client nor income.\n\nThe other path gives those four hours to further practice, aiming for two additional fictional case studies. It offers a quieter learning pace, while postponing the question your exercises cannot answer.\n\nBoth possibilities remain open. Which deserves your evening time now: testing a small independent offer locally, or building a stronger portfolio first?",
+        "title": "Enough to Take the Next Step",
+        "eventIds": [
+          "4fa4ee53-9ac8-4439-bec9-37b3b9cf968a",
+          "f64f9f11-46bb-427f-8b2e-eacb1ce6d7dc",
+          "c801975f-4472-4beb-9385-0325b4bd9048",
+          "27a0c78d-102c-46d7-8b6e-afa66451ee9c"
+        ],
+        "decisionId": "bb2946e0-2c0e-4f43-9d8a-2656db275ca4"
+      },
+      "candidate": {
+        "startDate": "2026-10-03",
+        "endDate": "2027-04-03"
+      }
+    },
+    {
+      "period_no": 2,
+      "base_revision": 2,
+      "id": "5d684e91-fbb1-4bd6-9f07-f188694437ba",
+      "start_state": {
+        "goals": [
+          {
+            "note": "Chose a local independent design market test alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Completed a small round of local outreach for the accepted design market test; no paid commission was secured. The result is inconclusive. Current employment continues, and design activity remains within the planned four evening hours per week.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies",
+          "Scoping a small digital design service",
+          "Writing a design client intake questionnaire"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+            "title": "Second local outreach test with a clearer service offer",
+            "status": "open",
+            "expiresAt": null
+          },
+          {
+            "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+            "title": "Targeted accessibility study and demonstration project",
+            "status": "open",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": ["bb2946e0-2c0e-4f43-9d8a-2656db275ca4"],
+      "events": [
+        {
+          "id": "07606356-4820-436b-8a42-720129e8a9af",
+          "title": "A Service You Can Explain",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Scoping a small digital design service"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Prepared a narrowly scoped one-page website layout offer for the accepted local market test. Current employment continues; the planned evening limit remains four hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You turn your chosen local market test into a simple offer: a one-page website layout using text supplied by the client, with one revision. Defining what is not included takes more thought than naming the service. You prepare the offer within your planned four evening hours per week, alongside your office job.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Prepared a narrowly scoped one-page website layout offer for the accepted local market test. Current employment continues; the planned evening limit remains four hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-05-08",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-05-08",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Chose a local independent design market test alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "c3c27a9c-fb5d-49c0-bf60-e8f98a434bb4",
+          "title": "Questions Before Design",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Writing a design client intake questionnaire"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "The local market-test offer now includes an intake questionnaire and explicit scope boundaries. Practice remains alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You write an intake questionnaire covering the page's audience, purpose and available content. Trying it against your existing practice brief exposes questions your offer had left unanswered. You revise the wording so that an initial conversation would not quietly become an unlimited design task.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "The local market-test offer now includes an intake questionnaire and explicit scope boundaries. Practice remains alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-06-19",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-06-19",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Prepared a narrowly scoped one-page website layout offer for the accepted local market test. Current employment continues; the planned evening limit remains four hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-05-08",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "e2fc4f86-6f66-439b-8188-cb62e7a1e996",
+          "title": "An Inconclusive Test",
+          "changes": [
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Completed a small round of local outreach for the accepted design market test; no paid commission was secured. The result is inconclusive. Current employment continues, and design activity remains within the planned four evening hours per week.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You make a small round of local outreach using the offer. By your review date, it has not produced a paid commission. That leaves a practical uncertainty: whether the offer needs clearer presentation, more exposure, or stronger examples. You record the result without treating it as a verdict on your ability.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed a small round of local outreach for the accepted design market test; no paid commission was secured. The result is inconclusive. Current employment continues, and design activity remains within the planned four evening hours per week.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-08-28",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-08-28",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "The local market-test offer now includes an intake questionnaire and explicit scope boundaries. Practice remains alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-06-19",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "fe57be45-3ac3-4375-b86d-aa44748cf093",
+          "title": "More Exposure or a Stronger Example?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "open",
+                "expiresAt": null
+              }
+            },
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "open",
+                "expiresAt": null
+              }
+            }
+          ],
+          "summary": "At the six-month review, your offer is clearer, but independent income remains unestablished. You outline two next steps that preserve your office employment and home base in Veszprém. One keeps testing demand; the other temporarily steps back from outreach to address a specific gap in your examples. Neither requires spending your savings now.",
+          "actorIds": [],
+          "decision": {
+            "id": "cdf45c89-cbba-4422-91c4-48622f43bc7e",
+            "prompt": "Which next step feels worth your limited evening time while you preserve stability?",
+            "options": [
+              {
+                "id": "6e63bd27-f55e-42ab-8321-523c61a1a816",
+                "label": "Run a clearer local outreach test",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                      "title": "Second local outreach test with a clearer service offer",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                      "title": "Targeted accessibility study and demonstration project",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose a second local outreach test using the revised service offer, alongside current employment and within four evening hours per week. No paid work secured; no spending committed.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Keep your office job and use up to four evening hours per week to present the revised offer locally and track responses. This gives demand another test sooner, but leaves less time for deeper study. Choosing it does not secure a client or change your income.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              },
+              {
+                "id": "d40849b7-7270-4fb8-bfef-7b98fa986f90",
+                "label": "Build one accessibility-focused example",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                      "title": "Second local outreach test with a clearer service offer",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                      "title": "Targeted accessibility study and demonstration project",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Pause new outreach and use up to four evening hours per week for self-directed accessibility study and one demonstration page. Keep your office job. This prioritizes capability and a clearer example, but postpones learning whether anyone nearby will pay for your work.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed a small round of local outreach for the accepted design market test; no paid commission was secured. The result is inconclusive. Current employment continues, and design activity remains within the planned four evening hours per week.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "open",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "open",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-10-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Completed a small round of local outreach for the accepted design market test; no paid commission was secured. The result is inconclusive. Current employment continues, and design activity remains within the planned four evening hours per week.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-08-28",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "In May, you bring your ambition down to the size of a single page: a website layout, using text supplied by the client, with one revision. Written plainly, the offer looks almost too small to hold your wish for more creative work. Yet it is something you can explain—and something you can fit alongside your office job.\n\nThe harder work lies around its edges. You spend more thought on what is not included than on what to call the service. Each boundary gives the offer shape. Within your planned four evening hours a week, you learn to define a small design task without letting it expand into an open-ended obligation. Independence, for now, means preparing something manageable, not surrendering the stability you want to keep.\n\nBy June, you turn to the questions that would come before the design. Who is the page for? What should it accomplish? What content is already available? You write an intake questionnaire and try it against your existing practice brief. The exercise catches gaps that the tidy offer had concealed.\n\nYou revise the wording. An initial conversation should help define the work, not quietly become unlimited work itself. The offer grows clearer without growing larger.\n\nThen you put it beyond the practice brief. You make a small round of local outreach, giving the service its first test near your home base in Veszprém. By the August review date, no paid commission has emerged.\n\nYou record that result. The difficult part is leaving it at its actual size: no paid work from this round, not a verdict on your ability. Perhaps the presentation needs sharpening. Perhaps the offer needs more exposure. Perhaps your examples need to show more. The test has not told you which.\n\nAt the six-month review in October, your office employment remains in place, and independent income remains unestablished. You outline two possible uses for the same limited evening time. Neither requires spending your savings now or leaving your home base.\n\nYou could present the clearer offer locally again and track responses, testing demand sooner while leaving less room for deeper study. Or you could pause new outreach for targeted accessibility study and one demonstration page, strengthening an example while postponing the question of whether anyone nearby will pay.\n\nThe next four evening hours cannot fully serve both purposes. Which next step feels worth that time while you preserve stability?",
+        "title": "The Edges of an Offer",
+        "eventIds": [
+          "07606356-4820-436b-8a42-720129e8a9af",
+          "c3c27a9c-fb5d-49c0-bf60-e8f98a434bb4",
+          "e2fc4f86-6f66-439b-8188-cb62e7a1e996",
+          "fe57be45-3ac3-4375-b86d-aa44748cf093"
+        ],
+        "decisionId": "cdf45c89-cbba-4422-91c4-48622f43bc7e"
+      },
+      "candidate": {
+        "startDate": "2027-04-03",
+        "endDate": "2027-10-03"
+      }
+    },
+    {
+      "period_no": 3,
+      "base_revision": 4,
+      "id": "f637e865-6d07-4249-92ee-c38a7c2c3ecc",
+      "start_state": {
+        "goals": [
+          {
+            "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies",
+          "Scoping a small digital design service",
+          "Writing a design client intake questionnaire"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+            "title": "Second local outreach test with a clearer service offer",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+            "title": "Targeted accessibility study and demonstration project",
+            "status": "accepted",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies",
+          "Scoping a small digital design service",
+          "Writing a design client intake questionnaire",
+          "Applying basic accessibility considerations to page layouts",
+          "Documenting accessibility considerations in a design case study"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2028-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+            "title": "Second local outreach test with a clearer service offer",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+            "title": "Targeted accessibility study and demonstration project",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "e3786054-fb80-40a1-94f3-20f63ece0652",
+            "title": "Local outreach test using the accessibility-focused example",
+            "status": "open",
+            "expiresAt": null
+          },
+          {
+            "id": "806194e1-81b4-478b-b312-3b55e9e8df4e",
+            "title": "Self-directed implementation practice for the demonstration page",
+            "status": "open",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [
+        "bb2946e0-2c0e-4f43-9d8a-2656db275ca4",
+        "cdf45c89-cbba-4422-91c4-48622f43bc7e"
+      ],
+      "events": [
+        {
+          "id": "6b019ec4-d68b-44ac-91d4-68a975b7e8f5",
+          "title": "Learning What to Check",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Applying basic accessibility considerations to page layouts"
+            }
+          ],
+          "summary": "Following your chosen study path, you use short evening sessions to explore readable contrast, clear headings and descriptive form labels. You learn to explain these basic design considerations without presenting yourself as an accessibility specialist. The four-hour weekly limit keeps the exercise bounded alongside your office work.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-11-20",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-11-20",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "c8f612bb-25bc-4afd-a26c-8797e935b170",
+          "title": "One Page, With Reasons",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Documenting accessibility considerations in a design case study"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "You finish a demonstration layout for a fictional local service, with a short explanation of your choices. The example makes your reasoning more visible, but it is not a working website or proof of accessibility compliance. Keeping that distinction clear helps you describe what you can currently offer without overstating it.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts",
+              "Documenting accessibility considerations in a design case study"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-01-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-01-22",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2027-11-20",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "25d2764f-4fa5-42b2-8c8f-8aabac270b23",
+          "title": "The Limits of Another Revision",
+          "changes": [],
+          "summary": "Reviewing the demonstration, you notice how easily a small improvement can become another evening of polishing. The example answers more questions about your design reasoning than your earlier work did, but it cannot tell you whether someone nearby would pay for the service. You weigh the discomfort of outreach against the comfort of another practice brief.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts",
+              "Documenting accessibility considerations in a design case study"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-03-05",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-03-05",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts",
+              "Documenting accessibility considerations in a design case study"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-01-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "31dfe0ac-c546-4b38-93cf-2a46cf0f4cc9",
+          "title": "Show the Work or Deepen It?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "e3786054-fb80-40a1-94f3-20f63ece0652",
+                "title": "Local outreach test using the accessibility-focused example",
+                "status": "open",
+                "expiresAt": null
+              }
+            },
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "806194e1-81b4-478b-b312-3b55e9e8df4e",
+                "title": "Self-directed implementation practice for the demonstration page",
+                "status": "open",
+                "expiresAt": null
+              }
+            }
+          ],
+          "summary": "At the six-month review, you have a more deliberate example, while independent income remains unestablished. Two self-directed next steps would keep your office job and your base in Veszprém: return to a small local demand test, or investigate how a layout behaves when implemented. Neither commits savings or establishes a client.",
+          "actorIds": [],
+          "decision": {
+            "id": "2d8b1fa1-664e-43eb-968c-23471cb8c014",
+            "prompt": "Which uncertainty do you want to tackle next: whether your offer interests people nearby, or whether you can carry a layout into a working page?",
+            "options": [
+              {
+                "id": "e5d1b408-19b0-4b7b-b8b9-e9b31e27b16e",
+                "label": "Return to a bounded local demand test",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "e3786054-fb80-40a1-94f3-20f63ece0652",
+                      "title": "Local outreach test using the accessibility-focused example",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "806194e1-81b4-478b-b312-3b55e9e8df4e",
+                      "title": "Self-directed implementation practice for the demonstration page",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose to resume a bounded local outreach test using the completed demonstration, offering layout work rather than implementation or compliance assessment. Planned limit: four evening hours per week, retaining office employment and the current home base. No client, additional income or spending committed.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Use your demonstration to explain a narrowly scoped layout service and seek interest near home, within four evening hours per week. Keep your office job and make no spending commitment. This brings you closer to testing independent work, but invites uncertain responses before you have implementation skills. No client or income is secured by choosing it.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              },
+              {
+                "id": "3e5686ac-567c-444c-8e76-e23167392b9c",
+                "label": "Learn to implement the demonstration",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "e3786054-fb80-40a1-94f3-20f63ece0652",
+                      "title": "Local outreach test using the accessibility-focused example",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "806194e1-81b4-478b-b312-3b55e9e8df4e",
+                      "title": "Self-directed implementation practice for the demonstration page",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Chose self-directed implementation practice using the completed demonstration layout, keeping new outreach paused. Planned limit: four evening hours per week, retaining office employment and the current home base. No implementation skill, finished website, paid work or spending established by this choice.",
+                      "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Keep outreach paused and use up to four evening hours per week for self-directed practice turning the demonstration into a simple working page. Retain your office job and make no spending commitment. This explores a practical capability gap, but delays feedback about local demand; choosing it does not establish a new skill or guarantee a finished site.",
+                "preconditions": [
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  },
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts",
+              "Documenting accessibility considerations in a design case study"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "e3786054-fb80-40a1-94f3-20f63ece0652",
+                "title": "Local outreach test using the accessibility-focused example",
+                "status": "open",
+                "expiresAt": null
+              },
+              {
+                "id": "806194e1-81b4-478b-b312-3b55e9e8df4e",
+                "title": "Self-directed implementation practice for the demonstration page",
+                "status": "open",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Completed an accessibility-focused demonstration layout and explanatory case study for a fictional local service. The example is not an implemented website or a compliance assessment. Current employment retained; new outreach remains paused. No paid work or spending established.",
+                "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "planning",
+              "writing",
+              "Basic digital layout",
+              "Basic website wireframing",
+              "Writing introductory design case studies",
+              "Scoping a small digital design service",
+              "Writing a design client intake questionnaire",
+              "Applying basic accessibility considerations to page layouts",
+              "Documenting accessibility considerations in a design case study"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "administration",
+              "employerLabel": "Current office"
+            },
+            "effectiveAt": "2028-03-05",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+                "title": "Self-directed local design market test",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+                "title": "Further evening portfolio practice",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+                "title": "Second local outreach test with a clearer service offer",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+                "title": "Targeted accessibility study and demonstration project",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "In November, you give your evenings a boundary: four hours a week, not an open-ended second working day. Your office work continues, and the design study fits around it. On the page, the questions become smaller and more useful. Is the contrast readable? Do the headings make the structure clear? Does a form label explain what belongs beneath it?\n\nYou begin to explain these choices without reaching for a title you have not earned. You can apply basic accessibility considerations to a layout; that does not make you an accessibility specialist. The distinction gives your work a firmer edge. You are learning what to check, and how to say precisely what you have checked.\n\nBy January, the demonstration for a fictional local service is finished. You look between the layout and the short case study beside it. The explanation makes visible what the page alone cannot: why a heading sits where it does, why a label needs to be descriptive, why readable contrast belongs in the design from the beginning.\n\nIt is one completed example, not a working website. It is not evidence of accessibility compliance. Those limits stay in the description, even though a broader claim might sound more impressive. You want creative work near your current home in Veszprém, but you also want the stability you have kept. A careful account of your abilities serves both aims better than an inflated one.\n\nIn March, you review the demonstration again. A small adjustment offers the familiar comfort of something you can control. You can imagine another evening disappearing into polish: a little more clarity here, a better balance there. The example now says more about your reasoning than your earlier work did. Yet no revision can answer whether someone nearby would pay for the service.\n\nOutreach remains paused. Independent income remains unestablished. The page is useful, but it cannot speak for a potential customer, and it cannot show how the layout would behave once implemented.\n\nAt the April six-month review, those two uncertainties sit side by side. You could return to a bounded local demand test, using the example to describe a narrow layout service—not implementation or a compliance assessment. That would expose your offer to uncertain responses before you have implementation skills. Or you could keep outreach paused and explore turning this demonstration into a simple working page, delaying the question of demand while investigating a practical gap.\n\nEither next step would retain your office job and your base in Veszprém, with up to four evening hours a week and no spending commitment. Neither secures a client, income, or a finished site. You have a clearer example now. Which uncertainty do you want to tackle next: whether people nearby want what you can offer, or whether you can carry the layout into a working page?",
+        "title": "What One Page Can Tell You",
+        "eventIds": [
+          "6b019ec4-d68b-44ac-91d4-68a975b7e8f5",
+          "c8f612bb-25bc-4afd-a26c-8797e935b170",
+          "25d2764f-4fa5-42b2-8c8f-8aabac270b23",
+          "31dfe0ac-c546-4b38-93cf-2a46cf0f4cc9"
+        ],
+        "decisionId": "2d8b1fa1-664e-43eb-968c-23471cb8c014"
+      },
+      "candidate": {
+        "startDate": "2027-10-03",
+        "endDate": "2028-04-03"
+      }
+    }
+  ],
+  "choices": [
+    {
+      "decision_id": "bb2946e0-2c0e-4f43-9d8a-2656db275ca4",
+      "option_id": "6d23d046-e8d3-4c12-99bb-a80d469b02c4",
+      "payload": {
+        "id": "6d23d046-e8d3-4c12-99bb-a80d469b02c4",
+        "label": "Test a small independent offer locally",
+        "changes": [
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+              "title": "Self-directed local design market test",
+              "status": "accepted",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+              "title": "Further evening portfolio practice",
+              "status": "declined",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "goal_progress_set",
+            "value": {
+              "note": "Chose a local independent design market test alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+              "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+              "status": "active"
+            }
+          }
+        ],
+        "description": "Choose to prepare one narrowly scoped design offer and seek interest near home, using up to four of your eight available weekly hours. Keep your office job. This tests demand sooner, but brings uncertainty and less time for polishing your skills; no client or income is secured by this choice.",
+        "preconditions": [
+          {
+            "type": "country_is",
+            "value": "HU"
+          },
+          {
+            "type": "employment_status_is",
+            "value": "employed"
+          }
+        ]
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": "Chose a local independent design market test alongside current employment, with a planned limit of four evening hours per week. No paid work secured.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    },
+    {
+      "decision_id": "cdf45c89-cbba-4422-91c4-48622f43bc7e",
+      "option_id": "d40849b7-7270-4fb8-bfef-7b98fa986f90",
+      "payload": {
+        "id": "d40849b7-7270-4fb8-bfef-7b98fa986f90",
+        "label": "Build one accessibility-focused example",
+        "changes": [
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+              "title": "Second local outreach test with a clearer service offer",
+              "status": "declined",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+              "title": "Targeted accessibility study and demonstration project",
+              "status": "accepted",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "goal_progress_set",
+            "value": {
+              "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+              "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+              "status": "active"
+            }
+          }
+        ],
+        "description": "Pause new outreach and use up to four evening hours per week for self-directed accessibility study and one demonstration page. Keep your office job. This prioritizes capability and a clearer example, but postpones learning whether anyone nearby will pay for your work.",
+        "preconditions": [
+          {
+            "type": "employment_status_is",
+            "value": "employed"
+          },
+          {
+            "type": "country_is",
+            "value": "HU"
+          }
+        ]
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": "Chose targeted accessibility study and one demonstration project, pausing new outreach while retaining current employment. Planned limit: four evening hours per week. No new skill or paid work established by this choice; no spending committed.",
+            "goalId": "e848e8f3-fd0b-4a00-9358-299ee8cc2bf3",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "planning",
+          "writing",
+          "Basic digital layout",
+          "Basic website wireframing",
+          "Writing introductory design case studies",
+          "Scoping a small digital design service",
+          "Writing a design client intake questionnaire"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "administration",
+          "employerLabel": "Current office"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "e19ec52a-fd0b-4407-a84d-2f26bdc071dc",
+            "title": "Self-directed local design market test",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "92ba4af9-7c98-4df4-b9e6-730a5f1f73c6",
+            "title": "Further evening portfolio practice",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "ab3a4849-1c77-4ac3-9b81-86a68e0a3f7c",
+            "title": "Second local outreach test with a clearer service offer",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "5ad0b348-3818-4b15-bc03-47c4521e677b",
+            "title": "Targeted accessibility study and demonstration project",
+            "status": "accepted",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    }
+  ]
+}

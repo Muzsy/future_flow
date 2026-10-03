@@ -41,8 +41,12 @@ Mérési események zárt allowlisten, szabad szöveg/prompt nélkül. Kattintá
 
 ## Ellenőrzés és nyitott kapuk
 
-139 automatizált teszt: 20 változatos determinisztikus teszteset ×3 időszak, eltérő választások; eredeti múlt/tulajdon változatlan, eladás nem kerül vissza; idempotencia/revision/ownership, történeti fork, elveszett lease, narrátorhiba/checkpoint, célzott javítás, párhuzamos keretfoglalás, export/törlés és helyreállítás. A teszthelyettesítő kizárólag tesztben fut.
+147 aktuális automatizált teszt (139 privát mag +8 Claude értékelő/budget/idézet/verdikt teszt): 20 változatos determinisztikus teszteset ×3 időszak, eltérő választások; eredeti múlt/tulajdon változatlan, eladás nem kerül vissza; idempotencia/revision/ownership, történeti fork, elveszett lease, narrátorhiba/checkpoint, célzott javítás, párhuzamos keretfoglalás, export/törlés és helyreállítás. A teszthelyettesítő kizárólag tesztben fut.
 
 Négy valódi EN/HU OpenAI-lánc ×3 időszak, két eseménymodell összevetésével: [routing-riport](AI_V2_ROUTING_REPORT_HU.md). Ez négy, nem húsz generatív eset. Emberi EN/HU minőségi értékelés nyitott, a Sol alapmodell marad.
 
 P06: valódi email-fiók és admin secret kulcs hiányában a teljes böngészős Auth/export/törlés még nyitott. Kód és [helyreállítási runbook](ACCOUNT_DELETION_RUNBOOK_HU.md) kész, backup/restore és valós adminpróba nincs igazolva. P08: 20–50 résztvevős pilot és előre rögzített sikerhatár szükséges. P09: külön [privát snapshot/szcenárió előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md) kész. Publikálás/Discovery/moderáció/public fork további munka; privát állapot nem válik nyilvánossá.
+
+## További külső AI-bizonyíték
+
+Külön Claude-értékelő és 5 USD kutatási keret, négy modell, EN/HU történetaudit, hibakontrollok és token/cache/effort/limit próba. [Teljes riport](CLAUDE_MODEL_EVALUATION_HU.md). Ez nem éles Claude-worker, új Supabase-fiók vagy emberi minőség/retenció igazolása.

@@ -19,11 +19,11 @@
 
 ## Bizonyíték és hiányzó kapuk
 
-139 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
+147 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
 Böngészős főoldal/login/nyelv/metadata és keskeny nézet ellenőrzött. Valódi Supabase-fiók és szerveroldali admin kulcs hiányában a teljes hitelesített böngészős onboarding/folytatás/export/Auth-törlés még nem futott. Backup/restore nincs igazolva. P06–P08 emberi/üzemeltetési kapu, P09–P13 nyilvános réteg további munka. A P09 [privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) kész, 006 migrációval; nincs kész Discovery/publishing/Official seed/public fork. Main commit/CI nem nyilvános deploy.
 
-## Az 5 USD fejlesztői AI-keret
+## Az OpenAI 5 USD fejlesztői keret
 
 | Lezárt sorozat | Kérés | Tokenalapú becsült költség USD |
 |---|---:|---:|
@@ -40,3 +40,9 @@ Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem le
 Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbelül 46–63% kisebb teljeslánc-költséget mutatott, egy angol fejezetjavítással; emberi EN/HU minősítés előtt nem állítottuk át az alkalmazást. [Hivatalos árlista](https://developers.openai.com/api/docs/pricing?tab=suite), ellenőrizve 2026-10-03.
 
 50–100 Official Life és 20–30 Scenario az indulás célja, nem automatikus paid megbízás. Előbb kurált kis v2 seed, megfelelő költségkeret és privacy/minőségi kapu kell. Olvasás/újratöltés/nyelvváltás/Save/Share nem indíthat AI-generálást.
+
+## Külön Claude-kutatási keret és auditor
+
+Új felhasználói döntés: további **5 USD kizárólag Claude-mérésekre**, saját .local/claude-audit/usage.json és paid-run.lock naplóval. 48 HTTP-generálási kísérlet, 46 ismert usage; ismert tokenköltség 1,7316409 USD, konzervatív összeg 2,292215 USD, guard szerint maradt **2,707785 USD**. Két kezdeti usage nélküli HTTP 400 teljes foglalása megmaradt. A fenti OpenAI 82 hívás és maradék változatlan; ez nem összevont vagy futtatásonként új 5 USD.
+
+Négy Claude-modell, EN/HU külső audit, ismert hibák, szereppróbák, token/cache/effort/outputlimit mérés. A fő Sol-minták kánonhűnek bizonyultak a Sonnet/Opus/Fable auditban; személyesség/kíváncsiság tovább emberi kapu. Sonnet a rutin auditor jelöltje, Opus vitás mintavételhez; Haiku narrátor/esemény alapnak nem minősített. [Teljes Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md), [történeti észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A worker routingja továbbra Sol; Claude csak külön szerveroldali értékelő. A 147 teszt az eredeti 139 mellé 8 új, fizetés nélküli Claude transport/budget/audit tesztet tartalmaz.

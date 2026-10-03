@@ -22,3 +22,7 @@ Ebben a kis mintában a teljes angol lánc számított költsége 46,4%-kal, a m
 Újramérés: pnpm smoke:life en 3 gpt-6.1-sol, illetve hu és gpt-6-luna. Csak a védett környezetben, előzetes közös keretfoglalással, egyszerre egy paid folyamat. Minden futás valóban költ, nem a dokumentáció megnyitása.
 
 [Teljes angol három időszak](examples/AI_V2_ENGLISH_STORY.md) · [Teljes magyar három időszak](examples/AI_V2_HUNGARIAN_STORY.md). A fejezetek változatlan AI-szövegek. Emberi értékelés: személyesség, koherencia, választási tét, kíváncsiság, hihetőség, ismétlés; minden időszak után külön jelezendő, folytatná-e az olvasó. Az AI-checker nem helyettesíti ezt.
+
+## Független Claude-audit
+
+A fenti tizenkét időszakhoz külső Claude-ellenőrzés is készült. Fő Sol-láncok kánonhűek; Luna-láncoknál szerkesztési ismétlés és HU személyváltás felmerült. A gépi auditorok téves riasztásait külön jelöltük, promptkalibrációval újramértük. [Audit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md), [Claude ár/érték és tokenmérés](CLAUDE_MODEL_EVALUATION_HU.md). A 38 OpenAI-hívás és a történetek nem változtak.

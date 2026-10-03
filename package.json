@@ -18,6 +18,7 @@
     "metrics:private": "tsx --env-file-if-exists=.env scripts/private-metrics.ts",
     "smoke:ai": "tsx --env-file-if-exists=.env scripts/smoke-ai.ts",
     "smoke:life": "tsx --env-file-if-exists=.env scripts/smoke-life.ts",
+    "evaluate:claude": "tsx --env-file-if-exists=.env scripts/evaluate-claude.ts",
     "schemas": "pnpm --filter @future-flow/contracts schemas",
     "format": "prettier --write apps packages scripts tests \"*.json\" \"*.ts\" \"*.yaml\" .github",
     "format:check": "prettier --check apps packages scripts tests \"*.json\" \"*.ts\" \"*.yaml\" .github",
@@ -35,6 +36,7 @@
     "prettier": "3.9.9",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "4.6.5"
   }
 }

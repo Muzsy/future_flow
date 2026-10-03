@@ -132,3 +132,7 @@ pnpm exec tsx --env-file-if-exists=.env scripts/evaluate-ai-models.ts 2026-10-02
 ```
 
 A parancsok API-kreditet használnak. A forrásprofilok hiánya esetén a próba nem helyettesíti őket személyes adatokkal. Minőségi eltérésnél a jelentés hibát rögzít és a folyamat sikertelen kóddal zárul; ez a jelölt értékelési eredménye, nem infrastruktúrahiba.
+
+## Új kiegészítés: Claude
+
+A fenti korábbi OpenAI-mérések dátumozott eredményei megmaradnak. Új [Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md): négy modell, külső EN/HU történetaudit, szereppróbák, tényleges token/cache/effort/outputlimit mérés, külön felhasználói 5 USD. A fő OpenAI-minták külső auditja sikeres, emberi kapu nyitott. Alkalmazás-default tovább Sol, nincs automatikus szolgáltatócsere.

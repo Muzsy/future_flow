@@ -31,10 +31,11 @@ type Call = {
   status: string;
   usage?: Usage;
 };
-const prices: Record<
+export type ExperimentTokenPrices = Record<
   string,
   { input: number; cachedInput: number; inputCeiling: number; output: number }
-> = {
+>;
+const prices: ExperimentTokenPrices = {
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
   'gpt-6-luna': {
     input: 0.1,
@@ -55,6 +56,7 @@ export class ExperimentAiBudget implements AiRequestGuard {
     path: string,
     private readonly budgetUsd: number,
     private readonly caseName: string,
+    private readonly modelPrices: ExperimentTokenPrices = prices,
   ) {
     if (!Number.isFinite(budgetUsd) || budgetUsd <= 0 || budgetUsd > 5)
       throw new DomainError(
@@ -102,8 +104,8 @@ export class ExperimentAiBudget implements AiRequestGuard {
       JSON.stringify(
         {
           budgetUsd: this.budgetUsd,
-          pricesPerMillionTokens: prices['gpt-6.1-sol'],
-          pricesByModel: prices,
+          pricesPerMillionTokens: this.modelPrices['gpt-6.1-sol'],
+          pricesByModel: this.modelPrices,
           calls: this.calls,
           estimatedUsd: this.calls.reduce(
             (n, c) => n + (c.estimatedUsd ?? 0),
@@ -123,10 +125,12 @@ export class ExperimentAiBudget implements AiRequestGuard {
         max_output_tokens: number;
         text?: { format?: { name?: string } };
       },
-      rate = prices[p.model];
+      rate = this.modelPrices[p.model];
     const bytes = Buffer.byteLength(JSON.stringify(raw), 'utf8') + 4096;
     if (
       !rate ||
+      !Object.values(rate).every((n) => Number.isFinite(n) && n >= 0) ||
+      rate.inputCeiling < rate.input ||
       bytes > 100000 ||
       !Number.isInteger(p.max_output_tokens) ||
       p.max_output_tokens < 1 ||
@@ -177,7 +181,9 @@ export class ExperimentAiBudget implements AiRequestGuard {
       cached + writes > usage.input_tokens
     )
       throw new DomainError('SMOKE_USAGE_INVALID', 'Invalid usage.');
-    const rate = prices[call.model]!;
+    const rate = this.modelPrices[call.model];
+    if (!rate)
+      throw new DomainError('SMOKE_USAGE_INVALID', 'Unknown model price.');
     call.usage = usage;
     call.status = 'completed';
     call.estimatedUsd =

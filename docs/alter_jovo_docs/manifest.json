@@ -42,8 +42,8 @@
     },
     {
       "name": "05_AI_AND_PROMPT_ARCHITECTURE.md",
-      "bytes": 4267,
-      "sha256": "76e8103dbed0f6105289134f9fcfa0f39689c0f5129eaecdfc74740b2fcb4862"
+      "bytes": 4564,
+      "sha256": "9d80d2d6b1c95b2a3dd4228e96a8fb52b91bd9381ab53f300b9aa43d34ace5e6"
     },
     {
       "name": "06_STORY_ENGINE_AND_CONTENT.md",
@@ -87,8 +87,8 @@
     },
     {
       "name": "14_TESTING_AND_QUALITY.md",
-      "bytes": 3496,
-      "sha256": "0f55ce215b46b7e73aac9ddf713be7af784d4b29b222baa73ec8593e7494ca24"
+      "bytes": 3873,
+      "sha256": "aca2c4de80a3da0dda03e96ddf7d09d208cec573c9c75e323f4786fe80a4183c"
     },
     {
       "name": "15_ANALYTICS_MONETIZATION_OPERATIONS.md",
@@ -97,8 +97,8 @@
     },
     {
       "name": "16_DECISIONS_AND_OPEN_QUESTIONS.md",
-      "bytes": 5003,
-      "sha256": "1137cebfcf2f2216d3d33eb8b26caca75d5c62604e29b622bae7614c5f8e9e71"
+      "bytes": 5248,
+      "sha256": "1ad9791219f7a0f685b90ce186921151216fa103f68d3178713a14cb3313da4d"
     },
     {
       "name": "17_INITIAL_BACKLOG.md",
@@ -107,8 +107,8 @@
     },
     {
       "name": "18_AGENT_HANDOFF.md",
-      "bytes": 3222,
-      "sha256": "f16a3e8d6cdc75f73674d04b2a17e631a70c8155e5267d48f6d1335a180aac87"
+      "bytes": 3689,
+      "sha256": "f15253214ef533554d4cb794da6fbf02ec9a0427d056b611562a809d59458142"
     },
     {
       "name": "19_SAMPLE_CONTRACTS.md",
@@ -117,8 +117,8 @@
     },
     {
       "name": "20_REFERENCES.md",
-      "bytes": 3164,
-      "sha256": "cd21f51225b93eafd4480dea498b8c091d8a116319d3e82600196ad760d0adb2"
+      "bytes": 3859,
+      "sha256": "e9773acbf6f4677a34983886b1487d1a902c2c31427ef5c6472545427f1d0253"
     }
   ]
 }

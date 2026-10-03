@@ -18,6 +18,7 @@
 | [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült időszakos tárolás/API/worker és pontos szerződés |
 | [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és következő emberi kapuk |
 | [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |
+| [Claude modellek és külső audit](CLAUDE_MODEL_EVALUATION_HU.md) | EN/HU audit, hibakontrollok, token/cache/effort/limit és külön Claude 5 USD |
 | [AI-ellenőrzés](AI_VALIDATION.md), [modellvizsgálat](AI_MODEL_ROUTING_HU.md), [minták](examples/README.md) | Dátumozott mérések; a sikerek gyakorlati határai |
 
 ## Elsőbbség és státusz
@@ -29,7 +30,7 @@ Termékdöntések sorrendje: felhasználói döntések → a két stratégiai fo
 - **Tervezett:** publishing, Discovery, Official seed és nyilvános fork.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
-Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, Supabase, 18+ web, angol alap és magyar, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
+Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, angol alap és magyar, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
 
 ## Források és archívum
 

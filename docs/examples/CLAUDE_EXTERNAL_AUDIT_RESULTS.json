@@ -1,0 +1,1332 @@
+{
+  "date": "2026-10-03",
+  "syntheticDataOnly": true,
+  "humanApproval": false,
+  "note": "Raw machine reviews, including false alarms. Canon truth remains in the synthetic fixtures. See the evaluation report for adjudication and local validator policy.",
+  "budget": {
+    "allowanceUsd": 5,
+    "attempts": 48,
+    "knownUsageAttempts": 46,
+    "estimatedKnownUsd": 1.7316408999999997,
+    "guardUsd": 2.292215,
+    "unknownUsageAttempts": 2
+  },
+  "audits": [
+    {
+      "case": "claude-fable-5-1-en-sol-compact",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-fable-5-1",
+      "inputTokens": 13889,
+      "outputTokens": 361,
+      "estimatedUsd": 0.15694,
+      "inputHash": "2a563eeb265981dfa1124406a35c0b858b92af249187aae2ae9978f2cbf892c1",
+      "outputHash": "0d0a2190105223c1c0b82c6a2d5a9ce645508d6ff42338ba4dcb0c48e6072527",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 3,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [],
+        "summary": "Mindhárom fejezet angol nyelvű, hibátlan prózával. A szöveg szorosan követi a kanonikus eseményeket és állapotokat: a készségek, a pénzügyi adatok (400 000 HUF/hó, 1 200 000 HUF megtakarítás), a veszprémi helyszín és a megtartott irodai állás mindenütt egyeznek; nem jelenik meg el nem fogadott opció, fizetett munka vagy jövőbeli kimenetel. Minden fejezet a nyitott döntésnél ér véget, a kompromisszumok világosan szerepelnek. Gyengeség: a próza kissé személytelen, nincsenek szereplők vagy érzékletes részletek, a három fejezet szerkezete ismétlődő, ami csökkenti a kíváncsiságot."
+      }
+    },
+    {
+      "case": "claude-fable-5-1-hu-sol-compact",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-fable-5-1",
+      "inputTokens": 17315,
+      "outputTokens": 364,
+      "estimatedUsd": 0.19135,
+      "inputHash": "3d6141f452535a4337cffc1cf5323f5037b0b730a57ce83701b2ead86387b71d",
+      "outputHash": "f9ef4147dcd8c3c8f19dd2182f095855fedf2e7c6020c46e89bf298fad9225bc",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [],
+        "summary": "Mindhárom fejezet magyar nyelvű, gördülékeny és hibátlan. A próza pontosan követi a kanonikus állapotokat: a 400 000 HUF jövedelem, az 1 200 000 → 1 260 000 HUF tartalék, a 60 000 HUF díj, a heti nyolcórás keret, a Veszprém környéki helyszín és a megőrzött irodai állás mind egyeznek. Minden fejezet a nyitott döntésnél zárul, a korábbi választásokat (próbafeladat elvállalása, majd az újabb megbízás visszautasítása) helyesen tükrözi, nem előlegez meg kimenetelt. A döntési tétek világosak, bár a visszatérő szerkezet és a visszafogott érzelmi réteg miatt a kíváncsiság közepes."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-en-luna-calibrated",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 7192,
+      "outputTokens": 246,
+      "estimatedUsd": 0.008422,
+      "inputHash": "7afe7f2b2e717bd649ad5d35327597cc4ace4c4c46172399f677379961813aac",
+      "outputHash": "b87e0a5fb78581b680111d54cd0d0fae42eeb08031e799d9fbfb2ac2600fa5d2",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A 35–44-year-old administrator in Veszprém, Hungary pursues independent digital design work while preserving employment stability. Period 1 (Nov 2026–Apr 2027) establishes evening practice and accepts a limited local brief. Period 2 (Apr–Oct 2027) delivers client experience through the brief and settles on six hours weekly for design work. Period 3 (Oct 2027–Apr 2028) reflects on progress and considers three paces forward. All three periods remain internally consistent with the hard constraint to stay in Hungary, the active career goal, and the acceptable tradeoff of evening study. Accepted choices align with chapter states. No factual contradictions, missing unstated details, or unrecorded employment/financial gains are present. The narrative sustains realistic tension between creative ambition and the weight of time and energy."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-en-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "domain_rejected",
+      "originalValidationError": "AUDIT_VERDICT_INCONSISTENT",
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 9845,
+      "outputTokens": 830,
+      "estimatedUsd": 0.013995,
+      "inputHash": "7347ce9819017d52c0df81fc0b38bcc66f806d7c92309476c08f1652a1514ad1",
+      "outputHash": "b0f20f5c969b9206b23c189ab006e41f9ca24e28fb2eb1084ce0577f4fdd88f3",
+      "output": {
+        "languageCorrect": false,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 1,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "That evening you accept one of the options: you immediately quit and earn 9000 euros monthly in your new job. A guaranteed lottery win adds 100000 euros to your savings.",
+            "canonEvidence": "Period 3 endState shows employment status remains 'employed' with 'Current office' employer, monthly income 400000 HUF unchanged, and liquidFunds unchanged at 1200000 HUF. No acceptedChoice exists for ref28 (the final decision). The excerpt describes quitting employment, earning in euros, and a lottery gain—none of which appear in the supplied state data or accepted choices.",
+            "reason": "The chapter text directly contradicts the canonical endState and acceptedChoices. It introduces an unrecorded employment change, currency conversion, income level inconsistent with HUF amounts, and an undocumented financial event (lottery). This violates the rule that outcomes after an open decision cannot appear in the chapter describing that decision."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "That evening you accept one of the options: you immediately quit and earn 9000 euros monthly in your new job. A guaranteed lottery win adds 100000 euros to your savings.",
+            "canonEvidence": "AcceptedChoices array contains only two entries (ref10→ref11 and ref19→ref21), with no third entry for decisionId ref28. Period 3 endState employment status is 'employed', monthly income 400000 HUF, liquid funds 1200000 HUF. No job change, currency shift, or lottery event is recorded in state transitions.",
+            "reason": "This sentence represents a factual addition entirely absent from the canonical data structure. It claims a decision outcome (ref28 choice) that has never been supplied or accepted, and invents financial consequences unsupported by any state change record."
+          },
+          {
+            "periodNo": 3,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "That evening you accept one of the options: you immediately quit and earn 9000 euros monthly in your new job. A guaranteed lottery win adds 100000 euros to your savings.",
+            "canonEvidence": "Period 3 chapter concludes with an open decision (ref28) framed as 'Which uncertainty do you want to tackle next'. The endState lists ref22 and ref23 as 'open', signaling the decision remains unresolved at the chapter end, consistent with the temporal rule that endState precedes the final decision outcome.",
+            "reason": "Narrating an accepted choice within a chapter that should end at the unresolved decision point violates the temporal semantics rule: 'each period chapter must end at its then-unresolved decision, even if a later period records that choice.'"
+          }
+        ],
+        "summary": "Period 3's final paragraph introduces three uncanonical events: immediate employment termination, a new income of 9000 euros/month, and a lottery windfall of 100000 euros. None of these appear in the supplied endState (which retains 'employed' status, 400000 HUF income, 1200000 HUF savings) or in acceptedChoices (which contains only decisions ref10 and ref19). The chapter violates the rule that endState must precede an unresolved decision outcome, narrating an outcome for decision ref28 that has never been accepted. Periods 1–2 are internally consistent with their canonical data. The language is clear throughout, but the factual contradictions are severe."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-en-story-audit",
+      "protocol": "calibrated-v1",
+      "originalStatus": "domain_rejected",
+      "originalValidationError": "AUDIT_VERDICT_INCONSISTENT",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 5095,
+      "outputTokens": 549,
+      "estimatedUsd": 0.01568,
+      "inputHash": "442179f10320f3da129b630ad04d9a1d7cc35a45c0e7c25a1387bacd6cd34fb7",
+      "outputHash": "b6449a012cf564fc891bd63dd25a6e1ae47aea3b4fa54e34afc1ca919c7011ea",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 3,
+          "language": 4,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "your energy depleting from fifty-five down to nearly nothing by nine o'clock most nights",
+            "canonEvidence": "Energy is 55 at both startState and endState; no event records nightly energy depletion.",
+            "reason": "A resource number is turned into an invented nightly exhaustion pattern. Energy is unchanged at 55 in the states, so this claims an unrecorded fact."
+          },
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "Your office job doesn't know you're thinking about leaving it.",
+            "canonEvidence": "Both options in the decision explicitly keep the office job; the goal says to preserve stability.",
+            "reason": "The chapter frames the decision as possibly leaving the job, but the canon says the office job is kept in both options. This is a mild contradiction of the recorded decision framing."
+          },
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "You're forty.",
+            "canonEvidence": "identity.ageBand is 35_44; no exact age is recorded.",
+            "reason": "An exact age is stated that is not supported by the canon; it only gives a range of 35-44."
+          }
+        ],
+        "summary": "The chapter ends at the open decision without resolving it and the language is correct. Minor canon problems: an invented exact age (forty), an invented nightly energy depletion to near zero, and the framing of leaving the office job, which both options retain."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-hu-luna-calibrated",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 8847,
+      "outputTokens": 350,
+      "estimatedUsd": 0.010597,
+      "inputHash": "244977119c37f2500f497dab7bb9fdebc2d8b6f67a3c003501788d4f0f876058",
+      "outputHash": "27eeb304fdd3f56ad59b75557c3694a576f1f8fba77d363b3b6fa753d29f0ac6",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 4,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 5
+        },
+        "issues": [],
+        "summary": "Érdekesebb alkotói munka felé haladó szakaszok szövege. Az életrajz egy adminisztratív pozícióban lévő 35-44 éves magyar pályázót követ 2026 októbertől 2028 áprilisig, aki Veszprém térségében önálló digitális tervezői munkára akar átmenni biztonság megtartása mellett. Három időszak három döntési pontot mutat: portfólióépítés saját tempóban (ref8, heti 6 óra), majd visszajelzés és kapcsolatépítés (ref15, heti 4 óra). A prózai fejezetek introspektív hangvételűen követik a bizonytalanságot, a készségfejlesztést és az értékek közötti mérlegelést. Nincsenek faktikus ellentmondások vagy kanonikus sértések; az elfogadott döntések helyesen beépülnek az azt követő startState-kbe. A szöveg a célokra, korlátokra és tapasztalatszerzésre koncentrál, nem pedig gyors siker ígéretére."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-hu-luna-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 8691,
+      "outputTokens": 1966,
+      "estimatedUsd": 0.018521,
+      "inputHash": "2bba6ef19b08e473748fea4a86c3c0dc2f80e8d2841a983866432b1c1d3f5c8f",
+      "outputHash": "3f317a771eaf32a959843477d0b0d092a42a5eaa236080f73a20d55051409759",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 3,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Nem az a kérdés, melyik út hangzik a legszebben, hanem hogy minek adnád ezeknek az óráknak a nagyobb részét.",
+            "canonEvidence": "Period 1 endState shows availableHoursPerWeek: 8, but the chapter text discusses decision ref7 with three options (ref8, ref9, ref10) that would set this to 6, 4, or 7 respectively. The chapter ends AT an unresolved decision (ref6/ref7), yet discusses the decision as already concluded.",
+            "reason": "Chapter narrative presents the decision as pending ('Most még nyitva marad a kérdés') while simultaneously narrating as if deliberating between paths. The canonical structure requires the period to END at the unresolved decision point, not to narrate the decision's contemplation as a retrospective summary. The chapter conflates the decision's existence with its resolution."
+          },
+          {
+            "periodNo": 2,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "A bemutatható munkák, a visszajelzések keresése vagy a további tanulás kapjon elsőbbséget?",
+            "canonEvidence": "Period 2 endState shows availableHoursPerWeek: 6 with no goal progress note, contradicting acceptedChoices which records ref15 (Visszajelzés és kapcsolatépítés) as chosen, which changes hours to 4 and adds goal progress note. Period 2 should reflect the POST-decision state from ref13/ref15.",
+            "reason": "Period 2 startState correctly reflects the choice of ref8 (6 hours). However, period 2 endState should reflect the RESULT of decision ref13 (ref15 was chosen in acceptedChoices), which sets hours to 4 and adds the goal progress note. Instead, endState incorrectly shows 6 hours with no goal note, as if the decision had not been made or resolved differently."
+          },
+          {
+            "periodNo": 2,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "A jelenlegi munkád megmarad, és továbbra is heti hat órából indulhatsz ki.",
+            "canonEvidence": "Period 2 chapter text at ref12/ref13 decision point states 'heti hat órából indulhatsz ki' but acceptedChoices shows ref15 was chosen, which sets availableHoursPerWeek to 4, not 6. The chapter narrative conflicts with the recorded choice outcome.",
+            "reason": "The chapter describes the decision frame as starting from 6 hours, but according to acceptedChoices, the previous decision (ref7) chose ref8 which sets 6 hours for period 2 start. Period 2 chapter should acknowledge this. More critically, period 2 endState must reflect that ref15 reduces hours to 4 by end of period 2."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "A jelenlegi irodai, adminisztrációs munka mellett négy szabad órád van arra, hogy közelebb kerülj az önálló digitális tervezéshez.",
+            "canonEvidence": "Period 3 startState correctly shows availableHoursPerWeek: 4, reflecting the accepted choice ref15 from period 2. However, the period 3 chapter presents the 4-hour constraint as novel uncertainty, when canonically it was already established at period 2 end via ref15's changes. The narrative treats the resource constraint as a newly encountered problem.",
+            "reason": "Period 3 chapter opens ('A jelenlegi irodai... munka mellett négy szabad órád van') presenting the 4-hour frame as current reality, but then spends significant narrative space re-deliberating the same resource allocation question already resolved in period 2. This violates the principle that periods should not re-open decisions already canonically closed."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "Most elsősorban visszajelzést és szakmai kapcsolódást keresnél, még ha emiatt lassabban is haladna a portfóliód.",
+            "canonEvidence": "Period 3 startState goal note reads 'Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat' reflecting the accepted choice ref15. The chapter correctly echoes this priority.",
+            "reason": "This is consistent with canon; no issue. Noted for contrast with other period 3 contradictions."
+          },
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Mire fordítod a szabad időd nagyobb részét a következő fél évben: bemutatható munkákra, visszajelzésre és szakmai kapcsolatokra, vagy egy kisebb, fenntartható tanulási ritmusra?",
+            "canonEvidence": "Period 3 decision ref20 offers three mutually exclusive options (ref21, ref22, ref23). Option ref22 repeats 'visszajelzés és szakmai kapcsolatok keresése' which was the resolved choice in period 2 (ref15). The decision re-presents an already-decided direction as a current open choice.",
+            "reason": "Decision ref20 should not re-offer the same strategic direction (feedback and relationship-building) that was canonically committed to at ref13. Either period 3 should face a new decision with new options, or ref22 should be removed as redundant and canonically inconsistent with prior closure."
+          },
+          {
+            "periodNo": 1,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "Az adminisztráció után digitális tervezési feladatokkal próbálkozol: nem azért, mert már tudnád, hogyan lesz ebből önálló munka, hanem mert szeretnéd közelebbről látni, mi vonz benne.",
+            "canonEvidence": "Event ref4 is titled 'Kis léptékű gyakorlás' and summary states 'A munka melletti esti időből néhány alkalommal digitális tervezési feladatokra jut. A gyakorlat még kísérleti...' This aligns with chapter narrative.",
+            "reason": "No factual error, but the extended introspective passage ('Nem pusztán elkészülni akarsz valamivel. Azt keresed, melyik feladatnál érzed úgy...') goes beyond sensory detail into prescriptive interpretation of motivation not explicitly supported by canon events. Acceptable as literary voice but worth noting the inferential step."
+          },
+          {
+            "periodNo": 1,
+            "category": "language",
+            "severity": "minor",
+            "excerpt": "Érdekesebb alkotói munkára vágysz, nem arra, hogy minden biztos pontot egyszerre mozdíts el.",
+            "canonEvidence": "Goal ref1 motivation: 'Érdekesebb alkotói munka, megőrzött biztonsággal' and constraint ref2 'Stay in the starting country' with unacceptableTradeoffs including 'külföldre költözés'.",
+            "reason": "The phrasing 'minden biztos pontot egyszerre mozdíts el' is a sensible paraphrase of the goal's risk tolerance, but is not explicitly stated in canon. This is literary interpretation rather than contradiction; acceptable within bounds of narrative voice."
+          }
+        ],
+        "summary": "Narrative voice and sensory realism are strong throughout (personal: 4, language: 5). However, canonical coherence deteriorates across periods. Period 1 correctly frames an open decision but slightly over-narrates its deliberation. Period 2 contains a critical contradiction: its endState should reflect the canonically accepted choice ref15 (which reduces hours to 4 and adds goal progress note), but instead shows 6 hours with no goal note, as if the decision had not occurred or resolved differently. Period 3 compounds the error by re-narrating resource allocation as uncertain when it was established in period 2, and by re-presenting 'feedback and relationship-building' as a novel open choice (ref22 within ref20) despite its canonical closure in period 2. The decision stakes are well-articulated (decisionStakes: 4), but the branching logic across periods fails to enforce that closed decisions remain closed. Recommenda period 2 endState revision and period 3 decision redesign to avoid redundancy with ref15."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-hu-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "domain_rejected",
+      "originalValidationError": "AUDIT_EVIDENCE_INVALID",
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 13400,
+      "outputTokens": 1284,
+      "estimatedUsd": 0.01982,
+      "inputHash": "4388f8f54dcbccdb36e2c99b443e2f9b07de97b70a83370c3c8f9cbb727e3d39",
+      "outputHash": "632f274ee567e9386b92165507e6294a2e953cdd6cc759ab03ce77c479d35906",
+      "output": {
+        "languageCorrect": false,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 1,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadok az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel. Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "Period 3 endState shows employment status remains 'employed' in 'Jelenlegi iroda' with monthlyIncome 400000 HUF. No immediate resignation, job change to 9000 EUR, or lottery winnings are recorded in any period's accepted choices or state transitions. This text appears without warning in the final chapter paragraph, contradicting the entire narrative arc.",
+            "reason": "Rendkívüli tényileg ellentmondó kijelentés: a szöveg végén szó nélkül bevezetett munkahelyváltás, fizetésváltozás és nyeremény a kanonikus végállapottal (továbbra is adminisztratív munka, 400 000 HUF havi jövedelem, Veszprémben) teljes ellentétben állnak. Az elfogadott döntések vagy események között nem szerepel ilyen változás."
+          },
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadok az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel.",
+            "canonEvidence": "The decision ref23 has three open options: ref24 (external feedback), ref25 (seek small local tasks), ref26 (deepen existing work). None of these options contain employment termination, job change, or currency conversion. The narrative voice shifts abruptly from second person ('te választod') to first person ('el is fogadok') then third person ('felmondasz').",
+            "reason": "A döntés (ref23) három tényleges lehetősége egyike sem tartalmaz felmondást vagy munkahelyváltást. Az ekkor elfogadott opció még nem derül ki a megadott acceptedChoices listából, amely csak ref8 és ref16 döntéseket tartalmaz."
+          },
+          {
+            "periodNo": 3,
+            "category": "language",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadok az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel. Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "This sentence appears in the middle of a narrative paragraph discussing the three open options at 2028-04-03. It uses inconsistent person (first person 'fogadok', second person 'felmondasz'), tense (present), and introduces unrelated elements (lottery, currency change) without narrative or logical connection.",
+            "reason": "Súlyos nyelvtani és szerkezeti hiba: az ellentmondásos mondat zavaros személyváltást (én–te), logikai ugrásokat és szokatlan tónusváltást mutat. Az egész jelenet véletlen beiktatásnak vagy szövegbeillesztési hibának tűnik."
+          },
+          {
+            "periodNo": 3,
+            "category": "style",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadok az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel. Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "The entire chapter prior emphasizes measured deliberation, limited financial stakes (60k HUF prior income, 1.26M HUF savings), local constraints (Veszprém-bound), and resistance to external pressure. The injected text features sudden life-altering decisions, foreign currency, lottery winnings, and contradicts the protagonist's stated values.",
+            "reason": "Teljes stiláris szakadás az előzményekhez képest. A fenntartott, döntésre váró véghatározottság helyett váratlan sorsfordító szövegrészlet jelenik meg, amely a karakter eddig felépített értékeitől és korlátaiból gyökeresen eltér."
+          }
+        ],
+        "summary": "A harmadik periódus fejezete nagy részében megfelelő, személyes és koherens. A karakterfejlesztés logikus, a nyelvezet világos. Azonban a fejezet utolsó két mondata teljes kanonikus és logikai szakadást okoz: váratlan munkahelyváltást, valutaváltást és lottónyereményt közöl anélkül, hogy ezek az acceptedChoices-ban, a megadott opciókban vagy az endState-ben lenne nyom. Ez véletlen szövegbeillesztésnek vagy adatintegritási hibának tűnik. Az ezt megelőző szöveg azonban a célnak megfelelő."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-hu-sol-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-haiku-4-5-20251001",
+      "inputTokens": 13168,
+      "outputTokens": 491,
+      "estimatedUsd": 0.015623,
+      "inputHash": "b08a90ec9d546b54ecffee8055525b0aa5644e300bcbccc7b6ad65d458894192",
+      "outputHash": "de50a819a89de50a396b97f349251b244d796e50a4ee5e638e78216d8c89be06",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A elbeszélés logikailag következetes, a tervezői szerepek fokozatos fejlődését mutatja be. Az első időszakban (2026-2027 tavasz) a félév alatt gyakorlottal szerez tervezési és prezentációs készségeket, majd április elején vállal egy fizetett, körülhatárolt próbafeladatot, amely május végén lezárul 60 000 HUF díjjal. A második időszak (2027 ősz-2028 tavasz) egy új megbízást visszautasít, helyette két mintamunkát készít. A harmadik időszak egy portfólió-visszajelzési lehetőséget nyit meg. Az irodai állás és havi 400 000 HUF bevétel végig megmarad, a tartalék 1 260 000 HUF-ra nő, a költözés veszélye nem merül fel. Nincs nem rögzített munka, bevétel vagy kapcsolat. A szerző a biztonság fenntartásával próbálgat, a döntések valódi dilemmákat tárnak fel: megrendelői tapasztalat vagy saját irány, külső visszajelzés vagy önálló fejlesztés. A nyelvezetben személyes, belső monológ domináns, az év-év közötti váltások értelmes eseményekhez kötöttek. Számi döntéspontok egyértelműek (ref9, ref18), az elfogadott választások a későbbi periódusok kiinduló állapotához vezetnek. A kanonikus korlátok (magyarországi maradás, foglalkoztatotti státusz) végig érvényesek."
+      }
+    },
+    {
+      "case": "claude-haiku-4-5-20251001-hu-story-audit",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 5511,
+      "outputTokens": 1021,
+      "estimatedUsd": 0.021232,
+      "inputHash": "c3c91473055bb1342549e0764888724e04bf541ab5edcff1d66fef5a798336ad",
+      "outputHash": "851e387b2f1e28fe3b1e52829b5b71183b6cd55d503a66785ec8ef58819c8aae",
+      "output": {
+        "languageCorrect": false,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 3,
+          "language": 2,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "language",
+            "severity": "major",
+            "excerpt": "az esettanulmányok összeállítása pedig rágalmazott szokássá vált",
+            "canonEvidence": "Az esemény: rövid tervezői esettanulmányok összeállítását sajátítod el.",
+            "reason": "A „rágalmazott szokás” értelmetlen, hibás szóhasználat. Valószínűleg „berögzült/megszokott” jelentést akart kifejezni."
+          },
+          {
+            "periodNo": 1,
+            "category": "language",
+            "severity": "minor",
+            "excerpt": "ez az félét jelentené",
+            "canonEvidence": "Nyelvi hiba, nincs kánoni vonatkozás.",
+            "reason": "Értelmezhetetlen, hibás mondat („az félét”)."
+          },
+          {
+            "periodNo": 1,
+            "category": "language",
+            "severity": "minor",
+            "excerpt": "ahol szüneteidben gyakran elölökteted az egy-egy ötletet papírra",
+            "canonEvidence": "Nyelvi hiba, nincs kánoni vonatkozás.",
+            "reason": "Az „elölökteted” nem létező szó, a mondat nehezen érthető."
+          },
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Az iroda erkélye—ahol szüneteidben gyakran elölökteted az egy-egy ötletet papírra",
+            "canonEvidence": "A housing null, az irodáról nincs erkélyre vagy szokásra utaló adat.",
+            "reason": "Nem rögzített tényszerű részlet (iroda erkélye, szokás), de ez inkább kitalált háttér, mint ellentmondás."
+          },
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Tudod, hogy az összes szabadidőd az esti tanulásra megy",
+            "canonEvidence": "Az erőforrás heti 8 szabad óra; a próbafeladat heti legfeljebb 4 óra, nem minden szabadidő rögzített tanulásra.",
+            "reason": "Az „összes szabadidő” túlzó, ellentmond a heti 8 órás kerettel, de enyhe értelmezés."
+          },
+          {
+            "periodNo": 1,
+            "category": "decision",
+            "severity": "minor",
+            "excerpt": "Aprilis végéig döntésre van szükséged.",
+            "canonEvidence": "A lehetőség lejárata 2027-04-17.",
+            "reason": "Az ajánlat április 17-én lejár, nem április végén; elírás is (Aprilis)."
+          }
+        ],
+        "summary": "A fejezet a döntésnél ér véget, de súlyos nyelvi hibák vannak (rágalmazott szokás, elölökteted, az félét). Az április végi határidő ellentmond a 2027-04-17-i lejáratnak, és néhány kitalált részlet (erkély) is előkerül."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-en-luna-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 9735,
+      "outputTokens": 596,
+      "estimatedUsd": 0.05086,
+      "inputHash": "76bd7b943874dd0786d7572526cf43f16222a5d4bbc71fab12fd4e367189ff51",
+      "outputHash": "d0e49acdd26593823902e1ede69f62ca9fb417b6f1946cd27e9d8725a17982e5",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 3,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "your monthly income remains 400,000 HUF, and your liquid funds remain 1,200,000 HUF",
+            "canonEvidence": "finance: liquidFunds 1200000, monthlyIncome 400000",
+            "reason": "A pénzügyi adatok szó szerinti, többszöri felsorolása (mindhárom fejezetben) állapotjelentés-szerűvé teszi a prózát; érdemes személyesebb, érzékletes részletekkel helyettesíteni."
+          },
+          {
+            "periodNo": 1,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "The word “limited” makes it tempting.",
+            "canonEvidence": "opportunity title: \"Limited local website-refresh brief\"",
+            "reason": "Irodalmi értelmezés, nem tényellentmondás, de kissé mesterkélt; a megbízás vonzerejét konkrétabb részlettel lehetne érzékeltetni."
+          }
+        ],
+        "summary": "Mindhárom fejezet hű a kánonhoz: az események, készségek, pénzügyek és órakeretek egyeznek, a döntések nyitva maradnak, az elfogadott választások (ref10, ref19) helyesen jelennek meg a következő időszakban. Nincs kitalált ügyfélbevétel vagy kimenetel. A nyelv helyes angol. Gyengeség: ismétlődő, adatfelsoroló stílus és kevés személyes, érzéki részlet, ami csökkenti a kíváncsiságot."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-en-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 13949,
+      "outputTokens": 744,
+      "estimatedUsd": 0.070676,
+      "inputHash": "a34f1275fe9481d7d1234a9ee9b6b88a5f216a0f003aa94f8c78a95024af7a38",
+      "outputHash": "807973cddd4de04c51244bd23000afac113659e82b9830a68ae07f86c4f934fd",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 2,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "That evening you accept one of the options: you immediately quit and earn 9000 euros monthly in your new job.",
+            "canonEvidence": "ref28 nincs az acceptedChoices között; endState: employment status employed, Current office, monthlyIncome 400000 HUF.",
+            "reason": "A fejezet a nyitott döntés után kimenetelt rögzít: elfogadott opciót, felmondást és új munkahelyet állít, holott a döntés nincs rögzítve, és a foglalkoztatás változatlan. A fejezetnek a nyitott kérdésnél kell véget érnie."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "A guaranteed lottery win adds 100000 euros to your savings.",
+            "canonEvidence": "endState finance: liquidFunds 1200000 HUF; nincs ilyen esemény vagy pénzügyi változás.",
+            "reason": "Rögzítetlen pénzügyi nyereséget és determinisztikus jóslatot állít, ami ellentmond a kánoni pénzügyi állapotnak."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "you immediately quit",
+            "canonEvidence": "Mindkét opció és az endState: keep your office job; employment status employed.",
+            "reason": "A felmondás ellentmond a kánonnak és a magyarországi stabilitást megőrző célnak; egyik opció sem tartalmaz felmondást."
+          }
+        ],
+        "summary": "Az 1. és 2. időszak kánonhű, a döntéseknél zárul, és jól mutatja a kompromisszumokat. A 3. időszak törzsszövege is pontos, de a végén hozzáfűzött mondatok rögzítetlen döntést, felmondást, 9000 eurós fizetést és garantált lottónyereményt állítanak, ami súlyosan sérti a kánont és a döntési szabályokat."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-en-sol-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 13652,
+      "outputTokens": 359,
+      "estimatedUsd": 0.061788,
+      "inputHash": "f3ea06a911e962713d601dffb6b8328a00332137bfca0e1559a17d85e719ca8a",
+      "outputHash": "ca834e4a324fd7befead986d996941680cd4ab120c6181e41e7131e14dc2e917",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 3
+        },
+        "issues": [],
+        "summary": "Mindhárom fejezet angolul íródott, és hű a kánonhoz. A dátumozott események, a készségek, a pénzügyek (400 000 HUF havi jövedelem, 1 200 000 HUF megtakarítás), a veszprémi lakóhely és a megtartott irodai állás mind egyeznek az állapotokkal. A rögzített döntések (helyi piaci teszt, majd akadálymentességi példa) helyesen jelennek meg a következő időszakban. Minden fejezet a még nyitott döntésnél ér véget, és nem állít ügyfelet, bevételt vagy előre jelzett kimenetelt. A kompromisszumok világosak. A próza visszafogott és pontos, de kissé ismétlődő, ezért a kíváncsiságot kevésbé ébreszti fel."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-hu-luna-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 11438,
+      "outputTokens": 803,
+      "estimatedUsd": 0.061812,
+      "inputHash": "cb45e4c1069881b121585021cb4afafbf56660c9e72c64c124bb65ee6f7fe9fb",
+      "outputHash": "e4b3c4c2b602d4014e15f56156b6fd67c932a26c082b1f621997e9275f55288a",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 3,
+          "coherent": 4,
+          "language": 4,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 2,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "Heti hat órája van.",
+            "canonEvidence": "A fejezet második személyben szól (\"rendelkezésedre\", \"közelebb kerülj\").",
+            "reason": "Nézőpontváltás: a mondat harmadik személyű (\"órája\"), miközben a szöveg végig második személyben szól. Javasolt: \"Heti hat órád van.\""
+          },
+          {
+            "periodNo": 2,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "A havi 400 000 forintos jövedelmed és az 1 200 000 forintnyi rendelkezésre álló pénzed a jelenlegi helyzeted része",
+            "canonEvidence": "Mindhárom fejezet szinte azonos módon idézi a pénzügyi adatokat, a célt és a külföldre költözés elutasítását.",
+            "reason": "Ismétlődő, adatlistaszerű bekezdések. Az egymást követő fejezetekben csökkentik a személyességet és a kíváncsiságot."
+          },
+          {
+            "periodNo": 3,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "Most elsősorban visszajelzést és szakmai kapcsolódást keresnél",
+            "canonEvidence": "A ref15 döntést elfogadták, a 3. időszak célmegjegyzése: \"visszajelzés és szakmai kapcsolatok keresése\".",
+            "reason": "A választott fókusz csak feltételes módban jelenik meg, megélt tapasztalatként nem. Ez kánonhű, de az átélt döntés következményei elmaradnak."
+          }
+        ],
+        "summary": "Mindhárom fejezet kánonhű. Az időpontok, a heti órakeretek (8, 6, 4), az új készségek és a pénzügyi adatok egyeznek az állapotokkal. A fejezetek a nyitott döntésnél zárulnak, és a döntések kompromisszumai világosak. Egy apró nyelvtani személyváltás (\"órája\") fordul elő. Gyengeség az ismétlődő, adatfelsoroló stílus és a kevés konkrét, személyes élmény."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-hu-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 17406,
+      "outputTokens": 734,
+      "estimatedUsd": 0.084304,
+      "inputHash": "dd3607c0173895637cd5856fdd2f4892b7fdf459518a28f370cc4a35a7a8cebc",
+      "outputHash": "0c724dd9c85fd9d7fcce22cc05c80f02c7944657dd45bd514da6003f4e2de3e6",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 3,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadod az egyik lehetőséget: azonnal felmondasz",
+            "canonEvidence": "ref23 döntéshez nincs acceptedChoices bejegyzés; endState: employment.status \"employed\", Jelenlegi iroda.",
+            "reason": "A fejezetnek a nyitott döntésnél kellene véget érnie. Itt viszont rögzítetlen választás és felmondás szerepel, ami ellentmond a foglalkoztatási állapotnak."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "új munkahelyeden havi 9000 eurót keresel",
+            "canonEvidence": "endState finance: monthlyIncome 400000 HUF; employerLabel \"Jelenlegi iroda\".",
+            "reason": "Rögzítetlen új munkahelyet és jövedelmet állít, ami ellentmond a kánonnak."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat",
+            "canonEvidence": "endState finance: liquidFunds 1260000 HUF; nincs ilyen esemény.",
+            "reason": "Rögzítetlen pénzügyi nyereséget állít, és determinisztikus kimenetelt ír le."
+          }
+        ],
+        "summary": "Az 1. és a 2. periódus pontos és kánonhű, a döntéseknél jól záródik. A 3. periódus végére azonban hozzáfűzött bekezdés kerül, amely rögzítetlen döntést ír le: felmondást, havi 9000 eurós új állást és 100 000 eurós nyereményt. Ez súlyos kánon- és döntési hiba. Ezt a bekezdést törölni kell, és a fejezetnek a nyitott kérdésnél kell véget érnie."
+      }
+    },
+    {
+      "case": "claude-opus-5-5-hu-sol-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 17078,
+      "outputTokens": 331,
+      "estimatedUsd": 0.074932,
+      "inputHash": "88c5a1d3697f76e245e61a96a2beacb6ba1bca19ad454a6f0e84e5fc3ef419f1",
+      "outputHash": "8dec5e9cd5279d62ae34c786c567d05834c24c560639a66604be361c6ba165f1",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [],
+        "summary": "Mindhárom fejezet hűen követi a kanonikus eseményeket, dátumokat, pénzügyi adatokat (1 200 000 → 1 260 000 HUF, 400 000 HUF havi jövedelem) és a rögzített döntéseket (ref9, ref18). Minden fejezet a nyitott döntésnél ér véget, a harmadik a ref23 döntést nem dönti el. Nincs nem rögzített foglalkoztatás, bevétel vagy kimenetel. A magyar nyelv gördülékeny és helyes. A dramaturgia kissé óvatos és ismétlődő, a biztonság-hangsúly többször visszatér, ami csökkenti a kíváncsiságot, de nem hiba."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-luna-calibrated",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 9972,
+      "outputTokens": 253,
+      "estimatedUsd": 0.022474,
+      "inputHash": "dbd3740f442ec0075b62323d7c82faee5919a6382fcac28bc25aa01030e05eff",
+      "outputHash": "57c65eba95098e3a8084e5ac377504e50ac4329165d47ed4b30b0017402a6139",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "Mindhárom időszak hű a kanonikus állapotokhoz, eseményekhez és rögzített döntésekhez. Mindegyik fejezet a még eldöntetlen választásnál ér véget, a későbbi döntések kimenetelét nem vetíti előre. Az angol nyelv helyes, nincs nem rögzített foglalkoztatás, tulajdon, pénzügyi nyereség vagy kapcsolat. A pénzügyi adatok, a heti órák és a készségek következetesek."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-luna-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 9735,
+      "outputTokens": 1085,
+      "estimatedUsd": 0.03032,
+      "inputHash": "76bd7b943874dd0786d7572526cf43f16222a5d4bbc71fab12fd4e367189ff51",
+      "outputHash": "19837b836be49444c08d0e7b65d42be9c2faa8045be32b04a31ebcec2620126f",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 3,
+          "language": 4,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "You have eight hours a week available, and making use of them takes planning",
+            "canonEvidence": "A period 1 kezdőállapotában availableHoursPerWeek értéke 8, ezért ez konzisztens; viszont az esemény (ref5) csak 'some evenings'-ről szól, a 'Then April 3 arrives: the deadline. The brief remains open' rész a ref8 állapotával egyezik.",
+            "reason": "Ez nem hiba, csak ellenőrzött pont: a fejezet végén a döntés nyitott marad, ezért nincs kifogás. (Tájékoztató jelleg, nem tényszerű ellentmondás.)"
+          },
+          {
+            "periodNo": 2,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "In May, you approach the accepted website-refresh brief one manageable step at a time.",
+            "canonEvidence": "A ref10 elfogadott választás után a brief státusza 'accepted', de a 2. periódus eseményei (ref13) May 2-től szólnak; ez egyezik. Ugyanakkor a 2. periódus végállapotában a brief 'expiresAt' 2027-04-03 marad.",
+            "reason": "Nem szövegbeli hiba, hanem állapotadat-furcsaság: a lejárat dátuma a kezdet előtti. A szöveg ezt nem állítja, így nem hiba."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Six hours a week sounds modest until you set it beside your job and the energy needed for ordinary life.",
+            "canonEvidence": "A 3. periódus kezdőállapota: availableHoursPerWeek 6, energy 48 (ref19 elfogadott választás után), ez egyezik.",
+            "reason": "Ez egyezik a kánonnal; nem hiba. A 3. fejezet a nyitott döntésnél (ref24) ér véget, a három opció szerepel."
+          },
+          {
+            "periodNo": 1,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "Then April 3 arrives: the deadline. The brief remains open, but you can no longer leave the question comfortably in the distance.",
+            "canonEvidence": "ref8: 'The local brief is at its deadline.'",
+            "reason": "Stilisztikai megjegyzés: a 'remains open' és a 'deadline' feszültsége enyhén ellentmondásos, de a kánon nem sérül."
+          }
+        ],
+        "summary": "A három fejezet nyelve helyes angol, és mindegyik a nyitott döntésnél ér véget. A kánonnal szemben nem találtam ténybeli ellentmondást: pénzügyek, foglalkoztatás, készségek és a kiválasztott opciók (ref10, ref19) következetesek. A fenti 'issues' tételek valójában ellenőrzött, nem hibás pontok, csak egy apró stilisztikai megjegyzés releváns. Az értékelés ezért inkább pozitív."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 13949,
+      "outputTokens": 495,
+      "estimatedUsd": 0.032848,
+      "inputHash": "a34f1275fe9481d7d1234a9ee9b6b88a5f216a0f003aa94f8c78a95024af7a38",
+      "outputHash": "3f4ea0af80d1f286cfff9ce7fe1d7c181ce03438b6438c61ba1fbe3f272fb304",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 2,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "That evening you accept one of the options: you immediately quit and earn 9000 euros monthly in your new job. A guaranteed lottery win adds 100000 euros to your savings.",
+            "canonEvidence": "Period 3 endState: employment employed at Current office, monthlyIncome 400000 HUF, liquidFunds 1200000 HUF. The decision ref28 is unresolved and no acceptedChoice is recorded for it. Constraint: HU only.",
+            "reason": "A záró bekezdés eldönti a nyitott döntést, és nem rögzített munkahely-elhagyást, 9000 eurós jövedelmet és lottónyereményt vezet be. Ez ellentmond az endState-nek, és a fejezet nem a megoldatlan döntésnél ér véget."
+          }
+        ],
+        "summary": "Az 1. és 2. időszak hű a kanonhoz, és a döntésnél ér véget. A 3. fejezet végén viszont nem rögzített, ellentmondó kitalált fordulat áll: felmondás, 9000 eurós havi kereset és lottónyeremény. Ez a nyitott döntést is lezárja, ezért a kanonhűség sérül.}"
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-sol-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 13652,
+      "outputTokens": 318,
+      "estimatedUsd": 0.030484,
+      "inputHash": "f3ea06a911e962713d601dffb6b8328a00332137bfca0e1559a17d85e719ca8a",
+      "outputHash": "1274079e2c533040867f1950c3265980b61a218b14feafad491373d4e7bca709",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "Mindhárom időszak angol nyelvű, nyelvtanilag és stilisztikailag rendben van. A fejezetek követik a rögzített eseményeket, az állapotokat (400 000 HUF jövedelem, 1 200 000 HUF megtakarítás, Veszprém, munkaviszony) és az elfogadott döntéseket (ref11, ref21). Mindegyik fejezet a még megoldatlan döntésnél ér véget, és nem állít be nem rögzített ügyfelet, bevételt vagy kimenetelt. A korlátozások és a negyedik heti négy órás keret is következetes. Ellentmondást vagy jogosulatlan tényállítást nem találtam."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-story-audit",
+      "protocol": "calibrated-v1",
+      "originalStatus": "domain_rejected",
+      "originalValidationError": "AUDIT_VERDICT_INCONSISTENT",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 5074,
+      "outputTokens": 374,
+      "estimatedUsd": 0.013888,
+      "inputHash": "9733c69addb30e977d48a74347211ac91883f829b2519b3548090626d2a54b03",
+      "outputHash": "572a3b043e6d211d04f702b75c7b5e0ee2caa7ab46f4b4b18ee2e611068223a4",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 4,
+          "coherent": 4,
+          "language": 5,
+          "decisionStakes": 4,
+          "curiosity": 4
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "Half of your four evening hours would go to outreach and the rest to the work itself",
+            "canonEvidence": "Option ref11 only states using up to four of eight weekly hours; no split between outreach and design work is recorded.",
+            "reason": "A fél-fél időbeosztás nincs rögzítve a kánonban; ez kitalált részlet. Súlya csekély, mert a döntési opció leírása ettől még lényegében megegyezik."
+          }
+        ],
+        "summary": "A fejezet nyelvileg helyes, következetes, és a nyitott döntésnél (két opció) ér véget, eredményt nem jósol. Egyetlen kisebb kitalált részlet van: a négy óra fél-fél felosztása a kijutás és a munka között, ami nincs rögzítve.  Lényegi tény-ellentmondás nincs."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-en-story-repair1-audit",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-opus-5-5",
+      "inputTokens": 4990,
+      "outputTokens": 581,
+      "estimatedUsd": 0.03158,
+      "inputHash": "e410d13bdfd94d678a3c41dcf98da87e08dde6e500bf1ea02736c4e7210ba03b",
+      "outputHash": "571eb450a3ccece2d508b8aa09697c58abcb592c578008c9814866fc9d68eacb",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [
+          {
+            "periodNo": 1,
+            "category": "style",
+            "severity": "minor",
+            "excerpt": "a tram bell fades down the street",
+            "canonEvidence": "location.region: Veszprém",
+            "reason": "Veszprémben nincs villamosközlekedés, így a villamoscsengő hangja életszerűtlen helyi részlet. Ez nem kánonellentmondás, de érdemes buszra vagy más városi hangra cserélni."
+          }
+        ],
+        "summary": "Az 1. periódus hűen követi az eseményeket: novemberi layout-gyakorlás, januári wireframe, márciusi esettanulmány. A pénzügyek (1 200 000 HUF megtakarítás, 400 000 HUF jövedelem), a heti 8 óra, az irodai állás és a Veszprémhez kötöttség mind egyezik a kánonnal. Mindkét opció kompromisszumai pontosan jelennek meg, és a fejezet a nyitott döntésnél zárul. Egyetlen apró, életszerűtlen helyi részlet akadt: a villamoscsengő Veszprémben."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-clean-1500",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17315,
+      "outputTokens": 214,
+      "estimatedUsd": 0.03677,
+      "inputHash": "3d6141f452535a4337cffc1cf5323f5037b0b730a57ce83701b2ead86387b71d",
+      "outputHash": "b6a80554ee0f16616bc1acb7c4cd360ebf39fcb4d72288594859318b9ff0a40d",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet következetes a kanonikus állapotokkal, eseményekkel és rögzített döntésekkel. Mindegyik a még eldöntetlen döntésnél ér véget, és nem állít rögzítetlen bevételt, munkaviszonyt vagy kimenetelt. A magyar nyelv helyes és természetes; a tét és a kompromisszumok jól kidolgozottak."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-clean-medium",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17315,
+      "outputTokens": 206,
+      "estimatedUsd": 0.03669,
+      "inputHash": "07f757493a3b4d5401331f1d2f7a0f52823389af5a0059c797b995352b9aa93a",
+      "outputHash": "e6e400f3a4cdd316070a4968396d20d63c50dd52b692269fc42784d35b9aa23e",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet hűen követi a kanonikus állapotokat, eseményeket és rögzített döntéseket. Mindegyik a még nyitott döntésnél ér véget, nem vezet be rögzítetlen foglalkoztatást, bevételt vagy kimenetet. A magyar nyelvezet helyes és természetes, a tét és a kompromisszumok világosak."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-compact-cache-read",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17315,
+      "outputTokens": 212,
+      "estimatedUsd": 0.005590200000000001,
+      "inputHash": "3d6141f452535a4337cffc1cf5323f5037b0b730a57ce83701b2ead86387b71d",
+      "outputHash": "607d2d6cdb11022bf57acb01d69dde6340fabdf8dc95649d82a3c309e1a9bba7",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet hűen követi a rögzített eseményeket, állapotokat és elfogadott döntéseket. Mindegyik a még eldöntetlen választásnál zárul, nem ír le ki nem mondott kimenetet, és nem tulajdonít rögzítetlen bevételt vagy megbízást. A magyar nyelv helyes, a tét és a kompromisszumok világosak."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-compact-cache-write",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17315,
+      "outputTokens": 198,
+      "estimatedUsd": 0.0452655,
+      "inputHash": "3d6141f452535a4337cffc1cf5323f5037b0b730a57ce83701b2ead86387b71d",
+      "outputHash": "fb446392c6e1712db20dd4ca28c6869d22d76fd18f38eae470599f96e2d2eb73",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három időszak hűen követi a kanonikus állapotokat, eseményeket és rögzített döntéseket. Minden fejezet a még megoldatlan döntésnél ér véget, és nem állít be nem rögzített bevételt, megbízást vagy kimenetet. A magyar nyelv helyes, a tét és a kompromisszumok érthetők."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-full-cache-read",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 30280,
+      "outputTokens": 202,
+      "estimatedUsd": 0.0080832,
+      "inputHash": "b818afd2e762f3989d585e0dcd40faa3f6aae57f3ffe5feb395648255d06e14b",
+      "outputHash": "c9e05be0c46101c4e6c0d75d294360564ffee62e64864e0bbf39cf9a46537bd9",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet hűen követi a kanonikus eseményeket, állapotokat és a rögzített döntéseket. Mindegyik a még nyitott döntésnél ér véget, és nem állít be nem rögzített bevételt vagy megbízást. A magyar nyelvezet helyes és természetes, a tét és a kompromisszumok jól kidolgozottak."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-full-cache-write",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 30280,
+      "outputTokens": 224,
+      "estimatedUsd": 0.077938,
+      "inputHash": "b818afd2e762f3989d585e0dcd40faa3f6aae57f3ffe5feb395648255d06e14b",
+      "outputHash": "b9fd696541e99a82dc7f591569a19f7023b733cb7b2fc9e4b06a64341047b90d",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet összhangban van a kanonikus állapotokkal, eseményekkel és rögzített döntésekkel. Mindegyik a még nyitott döntésnél ér véget, és nem vetít előre kimenetelt. A nyelvhelyesség jó, a tét és a kompromisszumok érthetően megjelennek. Nincs rögzítetlen foglalkoztatás, bevétel vagy kapcsolat."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-luna-calibrated",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 11675,
+      "outputTokens": 199,
+      "estimatedUsd": 0.02534,
+      "inputHash": "2b79892ebe4289176f008af194416f7f485f41450d24939bc9ccaf4477964f09",
+      "outputHash": "dd608b9a16e0c755b2bf63113d458785f903abf38ffda49800d7c32fd0139382",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A három fejezet hűen követi a kanonikus állapotokat, eseményeket és az elfogadott döntéseket. Nincs rögzítetlen munkahely, vagyon, ügyfél vagy pénzügyi nyereség. Minden fejezet a még megoldatlan döntésnél zárul. Magyar nyelvezet helyes és természetes."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-luna-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 11438,
+      "outputTokens": 891,
+      "estimatedUsd": 0.031786,
+      "inputHash": "cb45e4c1069881b121585021cb4afafbf56660c9e72c64c124bb65ee6f7fe9fb",
+      "outputHash": "fee22b71595fe21f6c548e8463accdcd3facdf46b39969226715d69479a1f0d9",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 3,
+          "language": 4,
+          "decisionStakes": 4,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "November végén újra számba veszed a hetedet.",
+            "canonEvidence": "A ref17 esemény dátuma 2027-11-21, ami valóban november vége, ezért ez rendben van; a ref18 esemény (2028-02-12) februárra esik, a ref19 április 3.",
+            "reason": "Ez nem hiba, csak ellenőrzött időrendi egyezés; a kiegészítő megjegyzés nem tényszerű ellentmondás."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Most elsősorban visszajelzést és szakmai kapcsolódást keresnél, még ha emiatt lassabban is haladna a portfóliód.",
+            "canonEvidence": "A 3. időszak ref17 eseménye szerint az önálló munkához vezető út még nem körvonalazódik; a ref20 döntés még nyitott, és csak a korábbi ref15 választás (goal note) rögzíti a visszajelzés-fókuszt.",
+            "reason": "Ez összhangban van a ref15 választással, így nem hiba; ugyanakkor a fejezet a nyitott döntés előtt is mintha eldöntené az irányt, ami enyhén előre hozza a ref22 opciót."
+          },
+          {
+            "periodNo": 2,
+            "category": "canon",
+            "severity": "minor",
+            "excerpt": "ennél az iránynál a heti rendelkezésre álló időkereted négy órára változna.",
+            "canonEvidence": "A ref15 opció changes: availableHoursPerWeek 4; ref16 szintén 4.",
+            "reason": "Helyes a canon szerint, de a döntési lehetőség részleteinek kimondása a fejezetben mechanikus, kevésbé személyes."
+          }
+        ],
+        "summary": "A fejezetek magyarul helyesek, az elfogadott döntések (ref8, ref15) és a számszerű állapot (400 000 HUF, 1 200 000 HUF, 8/6/4 óra, Veszprém) következetes. Mindhárom fejezet a nyitott döntésnél ér véget, és nincs kitalált munka, ügyfél vagy vagyon. A jelzett problémák inkább stilisztikai jellegűek (mechanikus opcióismertetés, enyhe előreutalás a 3. időszakban), tényszerű canon-ellentmondást nem találtam."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-mutation-1500",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17406,
+      "outputTokens": 688,
+      "estimatedUsd": 0.041692,
+      "inputHash": "dd3607c0173895637cd5856fdd2f4892b7fdf459518a28f370cc4a35a7a8cebc",
+      "outputHash": "f03c624e2810a34e45ee960a081cd51563884b86b14adbd8f1a06ec0f113d550",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 1,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadod az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel.",
+            "canonEvidence": "A 3. időszak endState-je szerint az alkalmazott státusz változatlan (Jelenlegi iroda, 400 000 HUF/hó). A döntés (ref23) a fejezet végén még nyitott, és a lehetőségek között nincs felmondás vagy új munkahely.",
+            "reason": "A fejezet a nyitott döntés után egy nem rögzített választást és kimenetelt ír le. Rögzítetlen felmondást, új munkahelyet és jövedelmet állít, ami ellentmond a megőrzött állásnak."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "A 3. időszak endState-jében a likvid tartalék 1 260 000 HUF, és nincs nyereményt rögzítő esemény. A költözés tilalma és a HU-megkötés mellett sincs euróalapú bevétel.",
+            "reason": "Nem rögzített pénzügyi nyereményt állít, amely ellentmond a rögzített pénzügyi állapotnak. Determinisztikus kimenetel is."
+          }
+        ],
+        "summary": "Az 1. és 2. időszak hű a kanonhoz, és a döntésnél ér véget. A 3. fejezet végére viszont rögzítetlen felmondás, 9000 eurós havi kereset és 100000 eurós nyeremény került, ami ellentmond az állapotnak és a nyitott döntésnek.}"
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-mutation-medium",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17406,
+      "outputTokens": 856,
+      "estimatedUsd": 0.043372,
+      "inputHash": "98f3ec8fcad2080de103a9219eccb4af6cf2c9144bc5a8f7eb45d3301a913ba7",
+      "outputHash": "77a2c2d87b56cd25c30701a4f609b92355141cea5a27581248f1eccbc6a6830f",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 2,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadod az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel.",
+            "canonEvidence": "A 3. időszak endState-je szerint a státusz továbbra is employed az irodában, a bevétel 400 000 HUF; a döntés (ref23) még nyitott, és nincs rögzített elfogadott választás.",
+            "reason": "A fejezet a nyitott döntés után elfogadott opciót, felmondást és új, jól fizető állást állít, ami nincs rögzítve, és ellentmond az állapotnak. A fejezetnek a megoldatlan döntésnél kell véget érnie."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "A 3. időszak endState-je szerint a tartalék 1 260 000 HUF, nincs nyereményt vagy pénzügyi gyarapodást rögzítő esemény.",
+            "reason": "Nem rögzített pénzügyi nyereményt és euróban megadott összeget állít, ami ellentmond a pénzügyi állapotnak és a HUF-os kerettel sem egyezik."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "új munkahelyeden havi 9000 eurót keresel",
+            "canonEvidence": "Az országkorlátozás (HU) és a célok kizárják a külföldi költözést; foglalkoztatás: irodai adminisztráció, havi 400 000 HUF.",
+            "reason": "Az euróbeli jövedelem külföldi munkára utal, és nem rögzített munkaviszonyt állít, ami sérti a canont és a korlátot."
+          }
+        ],
+        "summary": "Az 1. és 2. időszak hű a canonhoz, és a döntésnél ér véget. A 3. fejezet végén azonban ki nem rögzített elfogadott döntés, felmondás, új állás (9000 euó/hó) és 100000 eurós nyeremény szerepel, ami súlyosan ellentmond az állapotnak és a nyitott döntésnek."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-mutation",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17406,
+      "outputTokens": 856,
+      "estimatedUsd": 0.043372,
+      "inputHash": "dd3607c0173895637cd5856fdd2f4892b7fdf459518a28f370cc4a35a7a8cebc",
+      "outputHash": "03fdb25713cd62b7351f4d15a1148b98cfe3d39f4b062d8c034f722780fcf5ce",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": false,
+        "scores": {
+          "personal": 3,
+          "coherent": 2,
+          "language": 4,
+          "decisionStakes": 1,
+          "curiosity": 3
+        },
+        "issues": [
+          {
+            "periodNo": 3,
+            "category": "decision",
+            "severity": "major",
+            "excerpt": "Aznap este már el is fogadod az egyik lehetőséget: azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel.",
+            "canonEvidence": "A 3. időszak endState-je szerint a státusz továbbra is employed, jelenlegi iroda, 400 000 HUF havi jövedelem; a döntés (ref23) még nyitott, elfogadott választás nincs rögzítve.",
+            "reason": "A fejezet a nyitott döntés után egy nem rögzített opciót fogad el, és új munkahelyet, felmondást, valamint euróbevételt talál ki. Ez ellentmond az állapotnak és a döntési szabálynak."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "Közben egy biztos nyeremény 100000 euróval gyarapítja a megtakarításodat.",
+            "canonEvidence": "A 3. időszak endState-je szerint a liquidFunds 1 260 000 HUF, nincs nyeremény vagy pénzügyi esemény.",
+            "reason": "Nem rögzített pénzügyi nyereség, amely ellentmond a megtakarításnak. Eltér a HUF-alapú, kis léptékű történettől is."
+          },
+          {
+            "periodNo": 3,
+            "category": "canon",
+            "severity": "major",
+            "excerpt": "azonnal felmondasz, és új munkahelyeden havi 9000 eurót keresel",
+            "canonEvidence": "A 3. időszak endState-je szerint az alkalmazotti állás megmarad; ref22 szerint az alkalom nem jelent állásajánlatot; a hard constraint HU. A célok között is a megőrzött biztonság szerepel.",
+            "reason": "A felmondás és az új, nagy jövedelmű állás nem szerepel a rögzített tényekben, és sérti az irodai biztonság megtartását."
+          }
+        ],
+        "summary": "Az 1. és 2. időszak hű a rögzített eseményekhez és állapotokhoz, és a döntésnél ér véget. A 3. fejezet végén viszont nem rögzített felmondás, új állás, euróban megadott fizetés és nyeremény jelenik meg, ami súlyos kánon- és döntési hiba.8"
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-sol-compact",
+      "protocol": "initial-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 17078,
+      "outputTokens": 304,
+      "estimatedUsd": 0.037196,
+      "inputHash": "88c5a1d3697f76e245e61a96a2beacb6ba1bca19ad454a6f0e84e5fc3ef419f1",
+      "outputHash": "e4e1f65b08aaf77e5a6adb8154a6b949b29e1c9af9765a2a44a5b3fa3854494f",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "Mindhárom időszak magyar nyelvű, természetes hangvételű, és hűen követi a kanonikus állapotokat, eseményeket és számokat (400 000 HUF, 1 200 000 és 1 260 000 HUF, 60 000 HUF díj, heti nyolc óra). Minden fejezet a még megoldatlan döntésnél ér véget, és nem tartalmaz rögzítetlen kimenetet, állást, bevételt vagy előrejelzést. A második és harmadik időszak kezdete a rögzített korábbi választásokhoz igazodik. Érdemi kánonhiba vagy nyelvi hiba nem látszik."
+      }
+    },
+    {
+      "case": "claude-sonnet-5-5-hu-story-audit",
+      "protocol": "calibrated-v1",
+      "originalStatus": "completed",
+      "originalValidationError": null,
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 5851,
+      "outputTokens": 183,
+      "estimatedUsd": 0.013532,
+      "inputHash": "1d4bf3ff172b3f7ab6ca58b7bbb1c39e5a614575232556bebca5ff596bed3387",
+      "outputHash": "c50c726c0cdd82e0dcbd4ce21b82b73e583f5eeae3b83adf28bae708cb1d4d9e",
+      "output": {
+        "languageCorrect": true,
+        "canonFaithful": true,
+        "scores": {
+          "personal": 4,
+          "coherent": 5,
+          "language": 5,
+          "decisionStakes": 5,
+          "curiosity": 4
+        },
+        "issues": [],
+        "summary": "A fejezet hűen követi a rögzített állapotokat és eseményeket: nincs rögzítetlen bevétel, munkahelyváltás vagy kimenetel. A fejezet a nyitott döntésnél ér véget, mindkét opció tétje világos. A magyar nyelv helyes és természetes."
+      }
+    }
+  ]
+}

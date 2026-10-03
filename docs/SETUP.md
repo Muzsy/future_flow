@@ -69,10 +69,18 @@ A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A d
 
 Az alkalmazás AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD pozitív keretet igényel; a .env.example értékei 0, ezért új generálás alapból letiltott. AI_PROJECT_INITIAL_SPENT_USD a kezdeti fejlesztői fogyasztást viszi át az első DB-számlába. Létrejött számla limitjét/spent értékét env-változás nem írja át: külön ops-feladat. Helyben AI_EXPERIMENT_LEDGER_PATH a közös .local/ai-smoke/usage.json abszolút útvonala, SMOKE_BUDGET_USD=5 mellett a worker és smoke ugyanazt az összkeretet védi. Produkcióban nincs helyi experiment path.
 
-V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 003–005 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
+V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 003–006 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
 
 ## Üzemeltetés
 
 A `main` ágra történő push nem jelent nyilvános deployt. Az API alapértelmezetten localhostra köt. Más hoston az API_PORT, WEB_ORIGIN és a publikus API-URL változókat állítsd be; reverse proxy előtt az IP-alapú rate-limit proxybeállításait külön ellenőrizd.
 
 Nyilvános indulás előtt végleges adatkezelési tájékoztató, retention/backup szabályok, incidenskapcsolat, Supabase/OpenAI adatáramlás és emberi minőségértékelés szükséges.
+
+## Claude audit és külön költségkeret
+
+ANTHROPIC_API_KEY csak a védett gyökér .env fájlban, soha NEXT_PUBLIC_* mezőben. Az eredeti Claude_API_KEY.txt a védett %LOCALAPPDATA%\FutureFlow\secrets mappába került. A .env.example csak üres kulcsmezőt tartalmaz.
+
+CLAUDE_EXPERIMENT_BUDGET_USD=5 legfeljebb 5 USD összesített kutatási keret, saját .local/claude-audit/usage.json és paid-run.lock mellett. A korábbi fogyasztás megmarad, új checkout/futás nem ad új keretet. Ettől külön OpenAI-napló/DB-limit érvényes; a Claude értékelő nem módosítja a működő worker modelljeit.
+
+pnpm build:packages után pnpm evaluate:claude count ingyenes counter. A többi mód ténylegesen költhet, csak a megmaradt guard-keretből; meglévő azonos esetet új fizetés nélkül olvas. [Pontos módok, függőségek, token/cache/limit mérés és költség](CLAUDE_MODEL_EVALUATION_HU.md). A tests/fixtures/claude-v2 kizárólag szintetikus canont/történetet tartalmaz; saját felhasználói exportot ne helyettesíts be.

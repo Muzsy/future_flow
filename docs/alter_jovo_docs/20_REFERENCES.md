@@ -27,3 +27,14 @@
 - [European Commission — AI regulatory framework](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai).
 
 Ezek a címek az indulási felülvizsgálat kiindulópontjai, nem már elvégzett megfelelőségi ellenőrzések. A források piaci példái az ötlet hátterét adják; versenytársi bevétel, vásárlási hajlandóság, domain vagy védjegy nincs ezzel igazolva.
+
+## Claude-méréshez ellenőrzött elsődleges források (2026-10-03)
+
+- [Árlista](https://platform.claude.com/docs/en/about-claude/pricing)
+- [Modellek](https://platform.claude.com/docs/en/models/overview)
+- [Ingyenes tokenszámlálás](https://platform.claude.com/docs/en/build-with-claude/token-counting)
+- [Structured Outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+- [Prompt cache](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+- [Thinking/effort és költség](https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost)
+
+Projektbizonyíték: [Claude ár/érték riport](../CLAUDE_MODEL_EVALUATION_HU.md).

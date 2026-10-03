@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–006 alkalmazva; 139 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–006 alkalmazva; 147 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
 
 Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot nyitott. Ezek teljes elfogadási kapuk; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -80,11 +80,11 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 ## P07 — Technikai és angol/magyar minőségi kapu
 
-**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; emberi EN/HU minőség nyitott.
+**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak, négy valódi AI-lánc és külső Claude-audit kész; emberi EN/HU minőség nyitott. A felhasználó először a magyar fő mintát értékeli. [Claude és tokenoptimalizálás](CLAUDE_MODEL_EVALUATION_HU.md).
 
 **Feladat:** legalább 20 változatos szintetikus eset, esetenként legalább három időszak és eltérő döntések. Emberi angol és magyar értékelés: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
 
-**Elfogadás:** a kötelező állapot-, jogosultsági és adatkezelési ellenőrzések minden esetben sikeresek. A narratív hibák kategóriái és javítási eredményei dokumentáltak; nincs nyitott, múltat átíró hiba. Fizetett esetek fokozatosan, a tényleges új tokenfogyasztás alapján indulnak; a 20-as cél nem írja felül az 5 USD felhasználói keretet.
+**Elfogadás:** a kötelező állapot-, jogosultsági és adatkezelési ellenőrzések minden esetben sikeresek. A narratív hibák kategóriái és javítási eredményei dokumentáltak; nincs nyitott, múltat átíró hiba. Fizetett esetek fokozatosan, a tényleges új tokenfogyasztás alapján indulnak; a 20-as cél nem írja felül a külön OpenAI/Claude 5–5 USD kereteket; egyik napló sem nullázható.
 
 **Függőség:** P02–P06. A technikai tesztek fokozatosan az adott változással készülnek; ez a pont az összesített release-kapu.
 
@@ -106,7 +106,7 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 
 **Elfogadás:** nincs raw prompt, privát memória/állapot, harmadik személy adata vagy eredeti belső referencia a public DTO-ban/checkpointban. Privát folytatás nem módosítja a kiadást. Scenario sablon és konkrét Official Life külön objektum; teszthelyettesítő nem lesz publikus AI-tartalom. Forráscél 50–100 élet/20–30 szcenárió, mért v2-költség és engedélyezett keret szerint.
 
-**Függőség:** P01–P07; közös költségőr/modellmérés P05. A teljes seed/pilot nem lépheti túl az 5 USD fejlesztői keretet.
+**Függőség:** P01–P07; közös költségőr/modellmérés P05. A teljes seed/pilot nem lépheti túl az OpenAI 5 USD keretét. A külön Claude 5 USD kutatási/auditkeret, nem automatikus seed/pilot-felhatalmazás.
 
 ## P10 — Read-only Discovery, public életoldal, Save/Share/Report
 
@@ -145,3 +145,9 @@ Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot n
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
 **Következő:** P06 valódi fiókos próba és P07 emberi EN/HU minősítés, majd P08 pilot. Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
+
+## Claude-mérés utáni AI-feladatok
+
+Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos EN/HU teljeslánc és emberi kapu szükséges. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem helyettesítik a P07 húsz generatív esetét.
+
+Emberi visszajelzés után: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).

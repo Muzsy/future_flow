@@ -48,7 +48,7 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 - `apps/worker`: tartós háttérfeladatok feldolgozása, valódi AI-generálás és ellenőrzés.
 - `packages/contracts`: az egységes Zod-sémák, TypeScript-típusok és angol/magyar kérdőív, nyelvregiszter, lokalizált API-hibák.
 - `packages/core`: determinisztikus állapotváltozások, időrend és domain-validátorok.
-- `packages/ai`: OpenAI Responses API és verziózott promptok.
+- `packages/ai`: OpenAI Responses API és verziózott promptok; külön szerveroldali Claude-értékelő.
 - `packages/database`: PostgreSQL-elérés, tranzakciók, profilverziók, idempotencia és feladatok.
 - `database/migrations`: ellenőrzőösszeggel követett SQL-migrációk.
 
@@ -72,3 +72,5 @@ A [dokumentációs központ](docs/README.md) a két átadott stratégiai tervet,
 - [Feladatonkénti modellválasztás és mért költségvizsgálat](docs/AI_MODEL_ROUTING_HU.md)
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.
+
+Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztszám: 147, fizetett API nélkül.
