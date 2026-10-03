@@ -1,12 +1,15 @@
 # alterward — AI és promptarchitektúra
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
 ## Meglévő három szerep
 
 | Feladat | Konfiguráció | Jelenlegi használat |
 |---|---|---|
-| Események és döntési opciók | `AI_EVENT_MODEL` | Strukturált v1 eseménygenerálás |
+| Események és döntési opciók | `AI_EVENT_MODEL` | Strukturált v1 és v2 időszakgenerálás |
 | Történetfejezetek | `AI_STORY_MODEL` | Canonból olvasható angol/magyar próza |
 | Fidelity/safety | `AI_CHECK_MODEL` | Canon és történet összevetése |
 
@@ -16,7 +19,7 @@ OpenAI Responses, Structured Outputs/JSON Schema, `store:false`, szerveroldali k
 
 ## Nyelv és prompt
 
-Aktív promptok: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`. Ez promptverzió, nem a kész v2 periodmotor állítása. Mentett életnyelv a jobban és auditban is szerepel; régi nyelv nélküli job magyarul folytatódik. Új élet alapnyelve angol. Kimeneti JSON-kulcs/enum/UUID nem fordul, minden olvasói szöveg a rögzített nyelven készül.
+Aktív promptok: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`. V2 aktív szerepek: life_period / life_chapter / life_fidelity, külön nyelvi utasítással; privát periodmotor integrált. Mentett életnyelv a jobban és auditban is szerepel; régi nyelv nélküli job magyarul folytatódik. Új élet alapnyelve angol. Kimeneti JSON-kulcs/enum/UUID nem fordul, minden olvasói szöveg a rögzített nyelven készül.
 
 A nyelv zárt regiszterből, magas prioritású rendszerutasításból jön. A felhasználói profil/cél és narratív előzmény külön nem megbízható adatblokk, nem új rendszerutasítás. A canon magasabb rendű a prózánál. Raw prompt és személyes bemenet nem kerül működési naplóba.
 

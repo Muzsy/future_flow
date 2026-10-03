@@ -1,6 +1,9 @@
 # alterward — UX és felhasználói folyamatok
 
-2026-10-03 · Az alábbi v2/public folyamatok tervezettek. A meglévő v1 UI és AI-történetek teljes angol/magyar támogatása elkészült. [Lokalizáció](../LOCALIZATION_HU.md).
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
+2026-10-03 · A v2 privát folyamat integrált; az alábbi public folyamatok tervezettek. A meglévő v1 UI és AI-történetek teljes angol/magyar támogatása elkészült. [Lokalizáció](../LOCALIZATION_HU.md).
 
 ## Első saját élet
 
@@ -12,7 +15,7 @@ A profil célzott ideje 3–4 perc, az első olvasás/döntés körülbelül tí
 
 A kezdőnézet mentett életeket, utolsó állapotot és függő döntést mutat. **Folytatom ezt az életet:** az aktuális ág headjéből induló új időszak. Függő döntésnél előbb választani kell. **Másik ág innen:** történeti döntés előtti checkpoint és másik választás új ágat ad; a szülő megmarad. Újratöltés és későbbi bejelentkezés visszaállítja a mentett helyzetet.
 
-A v1 `resolve` jelenleg minden választásból gyermekágat készít, tízéves baseline mellett. A két új művelet új szerződést kap, nem nevezzük át a meglévő viselkedést folytatásnak.
+A v1 `resolve` jelenleg minden választásból gyermekágat készít, tízéves baseline mellett. A két új művelet /api/v2 szerződést kapott, nem nevezzük át a meglévő viselkedést folytatásnak.
 
 ## Generálás és olvasás
 

@@ -67,7 +67,9 @@ Az árbecslés 2026-10-02-án ellenőrzött standard díjakat használ: Sol eset
 
 A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A diagnosztikai válaszok kizárólag szintetikus tesztadatok; az API-kulcs és a kérés fejlécei nem kerülnek a naplóba. Hibaválaszból csak a kód és típus tárolódik. Ezek a helyi fájlok Gitből kizártak. A generálási hiba nem indít automatikus teljes újragenerálást.
 
-Ez a költségőr a helyi próbára vonatkozik. Az alkalmazás minden felhasználójára érvényes szolgáltatói költségkeret külön ops-feladat.
+Az alkalmazás AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD pozitív keretet igényel; a .env.example értékei 0, ezért új generálás alapból letiltott. AI_PROJECT_INITIAL_SPENT_USD a kezdeti fejlesztői fogyasztást viszi át az első DB-számlába. Létrejött számla limitjét/spent értékét env-változás nem írja át: külön ops-feladat. Helyben AI_EXPERIMENT_LEDGER_PATH a közös .local/ai-smoke/usage.json abszolút útvonala, SMOKE_BUDGET_USD=5 mellett a worker és smoke ugyanazt az összkeretet védi. Produkcióban nincs helyi experiment path.
+
+V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 003–005 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
 
 ## Üzemeltetés
 

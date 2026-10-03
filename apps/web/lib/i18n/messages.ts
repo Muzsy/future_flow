@@ -21,7 +21,7 @@ export const en = {
     'Each choice opens a new life branch. You can return later to try another option.',
   'nav.main': 'Main navigation',
   'nav.lives': 'My lives',
-  'nav.profile': 'My profile',
+  'nav.profile': 'Start a life',
   'nav.privacy': 'Privacy',
   'auth.signOut': 'Sign out',
   'auth.signInShort': 'Sign in',
@@ -57,7 +57,7 @@ export const en = {
     'Your life situation, values and goals give the story its foundation.',
   'home.choiceTitle': 'You choose the direction',
   'home.choiceDescription':
-    'A decision opens a new branch. You can also return to earlier possibilities.',
+    'Make a choice, then continue the next six months of the same life. Explore another branch from an earlier decision.',
   'home.privateTitle': 'Your story belongs to you',
   'home.privateDescription':
     'Private by default. Life branches are possible scenarios.',
@@ -220,7 +220,7 @@ export const hu: Record<MessageKey, string> = {
     'Minden választás új életágat nyit. Később másik lehetőséget is kipróbálhatsz.',
   'nav.main': 'Fő navigáció',
   'nav.lives': 'Életágaim',
-  'nav.profile': 'Profilom',
+  'nav.profile': 'Új élet',
   'nav.privacy': 'Adatvédelem',
   'auth.signOut': 'Kijelentkezés',
   'auth.signInShort': 'Belépés',
@@ -255,7 +255,7 @@ export const hu: Record<MessageKey, string> = {
     'Élethelyzeted, értékeid és céljaid adják a történet alapját.',
   'home.choiceTitle': 'Te választod az irányt',
   'home.choiceDescription':
-    'Egy döntés új ágat nyit. A korábbi lehetőségekhez is visszatérhetsz.',
+    'Válassz, majd folytasd ugyanazt az életet a következő hat hónappal. Egy korábbi döntésből másik ágat is indíthatsz.',
   'home.privateTitle': 'A történeted a tiéd',
   'home.privateDescription':
     'Privát alapállapot. Az életágak lehetséges forgatókönyvek.',

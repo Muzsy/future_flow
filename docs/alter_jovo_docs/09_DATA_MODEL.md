@@ -1,5 +1,8 @@
 # alterward — adatmodell és migráció
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · [001 migráció](../../database/migrations/001_foundation.sql), [002 nyelvmigráció](../../database/migrations/002_content_locale.sql), [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
 ## Tényleges v1 táblák
@@ -18,9 +21,9 @@ Immutable profil/world/event/life-state és saját branch előzménye; gyermeká
 
 `ff_futures.content_locale` a 002 migrációból: régi életek `hu`, újak alapból `en`; tartalomnyelv immutable. Jobpayload/audit explicit locale, régi nyelv nélküli job magyar. Nyelvi fordítás nem módosít régi profil/hash/canont.
 
-## V2 perzisztencia — tervezett P01
+## V2 perzisztencia — integrált
 
-Additív **003+** migráció: élet-/kontraktusverzió, induló lifeInput/tényállapot, period, branch head/revision, elfogadott aktuális/történeti választás és continuation job. A pontos táblanév/migráció a fejlesztési szeletben készül; jelenleg a könyvtári szerződés nem bizonyít DB-integrációt.
+003 aw_lives/branches/periods/history/choices/jobs/ai_runs/drafts/metrics; 004 aw_budget_accounts/reservations; 005 aw_interactions/account_deletions. Mind alkalmazva, ownership/RLS és anon/authenticated tiltás. [Pontos működés](../V2_IMPLEMENTATION_REPORT_HU.md).
 
 Tulajdonosi FK/RLS, egy ág egy aktív periodjob, idempotencia és tranzakció. Canon eseményenként before/after, választás előtti checkpoint és cél/szereplő/asset stabil referencia. Unknown `null` megőrzendő. V1 történet változatlanul olvasható, v2 indulás explicit új élet/ellenőrzött másolat, nem automatikus append a tízéves baseline-ra.
 

@@ -2,6 +2,11 @@ import { Pool, type PoolClient } from 'pg';
 import { readFileSync } from 'node:fs';
 export * from './repository';
 export * from './jobs';
+export * from './lives';
+export * from './life-jobs';
+export * from './ai-budget';
+export * from './metrics';
+export * from './public-drafts';
 
 export interface Database {
   query<T extends Record<string, unknown> = Record<string, unknown>>(

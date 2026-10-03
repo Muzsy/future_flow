@@ -16,6 +16,12 @@ async function main() {
       "SELECT count(*)::int AS count FROM pg_tables WHERE schemaname='public' AND left(tablename,3)='ff_'",
     );
     console.log(`Application tables: ${tables[0]?.count ?? 0}`);
+    const v2 = await db.query<{ count: number; protected: number }>(
+      "SELECT count(*)::int AS count,count(*) FILTER (WHERE rowsecurity)::int AS protected FROM pg_tables WHERE schemaname='public' AND left(tablename,3)='aw_'",
+    );
+    console.log(
+      `V2 tables: ${v2[0]?.count ?? 0}; RLS enabled: ${v2[0]?.protected ?? 0}`,
+    );
   } catch (error) {
     // Never log provider errors, URLs, passwords, or raw credential files.
     const code = (error as { code?: unknown }).code;

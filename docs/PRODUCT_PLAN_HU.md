@@ -33,7 +33,7 @@ A felhasználó új döntése szerint a teljes felület, kérdőív, események,
 | Költség | A helyi AI-próbához mérés és keretőr | Alkalmazásszintű keret, hibaköltség és költség/folytatás mérés |
 | Nyilvános tartalom | Nincs publikálás vagy Discovery | Külön anonimizált snapshot, Official/Community jelölés, böngészés és saját privát fork |
 
-A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A folytatható MVP még nincs kész. A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
+A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A privát v2 rövid időszak/folytatás technikai mag már integrált; a valódi fiókos, emberi és public MVP-kapuk nyitottak. [Megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md). A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
 
 ## 3. Az első végigvihető élmény
 

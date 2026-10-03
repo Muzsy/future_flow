@@ -1,48 +1,42 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
-2026-10-03 · Ez a közös állapotpillanatkép. A részleteket az [implementáció](IMPLEMENTATION.md), a [lokalizáció](LOCALIZATION_HU.md) és a [következő lépések](NEXT_STEPS.md) tartalmazzák.
+2026-10-03 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
 ## Ténylegesen elkészült
 
 | Terület | Bizonyíték és határ |
 |---|---|
-| Technikai alap | Next.js web, NestJS API/worker, PostgreSQL/Supabase Auth, verziózott szerződések, main CI |
-| V1 személyes élet | 29 kérdés, mentett/revisionös draft, immutable profilpillanatkép; tízéves, 5–10 eseményes, 2–3 fejezetes valódi AI-generálás |
-| V1 elágazás | Opció kiválasztása új gyermekágat indít; közös előzmény és szülőcanon változatlan |
-| Tartós job | Tranzakciós enqueue, SKIP LOCKED, lease/heartbeat, esemény/történet checkpoint és idempotencia |
-| Nyelvek | Angol alap és választható magyar a teljes meglévő felületen, kérdőívben, API-hibákban és AI-tartalomban; élethez rögzített nyelv |
-| Supabase | `001_foundation.sql` és `002_content_locale.sql` alkalmazva, CA/host ellenőrzésű TLS; Auth-konfiguráció elérhető |
-| V2 alap | Külön 2.0.0 lifeInput/lifeState/periodCandidate/constraint szerződések és tiszta domain-validátor; 20 domain-teszt. Tárolás/API/worker még v1 |
-| Adatkezelési kód | Tulajdonosi ellenőrzések, közvetlen anon/authenticated táblahozzáférés tiltása, friss hitelesítést kérő export/törlés, aktív jobok leállítása |
+| V1 kompatibilitás | Tízéves AI-generálás/archívum és gyermekág megmarad, 001/002 változatlan |
+| V2 privát élet | 12 lépéses EN/HU onboarding, immutable saját/alternatív bemenet, revisionös draft |
+| Hat hónapos AI | 2–5 validált canon-esemény, egy 250–600 szavas fejezet, nyitott döntés a végén |
+| Választás/folytatás | Egyszeri atomikus choice, ugyanazon ág következő időszaka, külön saját történeti fork |
+| Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
+| Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
+| Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
+| Supabase | 001–006 alkalmazva, ellenőrzött TLS, minden aw_ tábla RLS, anon/authenticated közvetlen hozzáférés tiltva |
+| Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi adminpróba még nyitott |
+| Mérési alap | Minimális interakciók és külön click/success; continuationClickRate/continued_lives technikai proxy; későbbi session-mérés nyitott |
 
-## Még elkészítendő vagy ellenőrizendő
+## Bizonyíték és hiányzó kapuk
 
-P01 tárolási szelet → P02 rövid valódi AI-időszak → P03 döntés/folytatás/saját történeti fork → P04 rövid onboarding → P05 emlékezet és alkalmazásszintű keretőr → P06 valódi fiókos végigpróba → P07–P08 minőség/mérés/pilot → P09–P13 public snapshot, Official seed, Discovery, publishing, nyilvános fork és release-kapu.
+139 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
-Nincs kész ugyanazon ágon következő időszak, Discovery, nyilvános publikálás, Save/Share/Report vagy Official seed. A Supabase adminisztratív `service_role`/secret kulcs hiánya a valós Auth-törlés próbájának korábban jelzett függősége. Valódi email-belépéses teljes böngészős folyamat, Auth-siker utáni DB-hiba helyreállítása, backup/restore és végleges adatkezelési/üzemeltetési szabályok még ellenőrizendők. A GitHub main nem jelent nyilvános deployt.
-
-## Ellenőrzött alap
-
-Az utolsó kódellenőrzés: **92 automatizált teszt**, formázás, típusellenőrzés, teljes build és sémaexport sikeres. GitHub CI: [37097898246](https://github.com/Muzsy/future_flow/actions/runs/37097898246), kódcommit [c310d5b](https://github.com/Muzsy/future_flow/commit/c310d5b54f8e3089feeda933022c83435ad0ec4f). Ez a dokumentációfrissítés ehhez a kódállapothoz igazodik.
-
-Valódi OpenAI-próbák szintetikus adatokkal: három magyar v1 alapélet és három gyermekág; külön modellkísérlet; majd angol alapélet/ág és magyar alapélet/ág. A nyelvi próbák sémája, domainje, fejezethivatkozásai és AI-fidelity ellenőrzése sikeres, a szülő változatlan. A teljes [angol AI-minta](examples/AI_ENGLISH_STORY.md) olvasható. Ezek nem v2 folytatási, emberi minőségi vagy retenciós bizonyítékok.
-
-Böngészős ellenőrzés: angol alap, nyelvváltás/újratöltés, HTML/metadata, főoldal, login/signup és privacy feliratok; 390 px mobilon nincs vízszintes túlcsordulás. Privát fiókos végigpróba még nem történt. Az AI-próbák izolált PGlite adatbázist használtak, valódi Supabase-fiókot nem hoztak létre.
+Böngészős főoldal/login/nyelv/metadata és keskeny nézet ellenőrzött. Valódi Supabase-fiók és szerveroldali admin kulcs hiányában a teljes hitelesített böngészős onboarding/folytatás/export/Auth-törlés még nem futott. Backup/restore nincs igazolva. P06–P08 emberi/üzemeltetési kapu, P09–P13 nyilvános réteg további munka. A P09 [privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) kész, 006 migrációval; nincs kész Discovery/publishing/Official seed/public fork. Main commit/CI nem nyilvános deploy.
 
 ## Az 5 USD fejlesztői AI-keret
 
-| Lezárt sorozat | Hívás | Tokenalapú becsült költség, USD |
+| Lezárt sorozat | Kérés | Tokenalapú becsült költség USD |
 |---|---:|---:|
-| V1 magyar alapok és ágak, Sol | 18 | 0,6299505 |
-| Modellvizsgálat, Luna és Sol kontroll | 14 | 0,0542136 |
-| Angol/magyar alapok és ágak | 12 | 0,3352520 |
-| **Összesen** | **44** | **1,0194161** |
-| **5 USD-ből számított maradvány** | | **3,9805839 ≈ 3,98** |
+| V1 magyar alapok és ágak | 18 | 0,6299505 |
+| Korábbi modellvizsgálat | 14 | 0,0542136 |
+| V1 angol/magyar nyelvi próbák | 12 | 0,3352520 |
+| V2 EN/HU Sol/Luna, három időszak | 38 | 0,577744805 |
+| **Összesen** | **82** | **1,597160905 ≈ 1,60** |
+| **Konzervatívan elszámolt összeg** | | **1,619913375** |
+| **Guard szerint megmaradt keret** | | **3,380086625 ≈ 3,38** |
 
-Ez dátumozott tokenbecslés, nem lekérdezett szolgáltatói kreditegyenleg. Ismeretlen fogyasztású hívás nincs. A guard konzervatív kerekítéssel körülbelül 1,019465 USD-t tart nyilván; foglalásnál ezt és az esetleges nyitott foglalásokat használjuk. A dokumentációfrissítés nem indított fizetett OpenAI-hívást.
+Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
-Az összes fejlesztői próba a közös `.local/ai-smoke/usage.json` naplóval számol, egy folyamatban. Kérés előtt számolt bemenet + maximális kimenet foglalása kell; megszakadt, ismeretlen fogyasztás esetén a teljes foglalás megmarad. Alaplimit 1 USD, explicit `SMOKE_BUDGET_USD` legfeljebb 5 USD. A korábbi 44 hívás is beleszámít: az 1 USD alaplimit most már új kísérletet megállít. Az 5 USD nem futtatásonkénti új keret.
+Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbelül 46–63% kisebb teljeslánc-költséget mutatott, egy angol fejezetjavítással; emberi EN/HU minősítés előtt nem állítottuk át az alkalmazást. [Hivatalos árlista](https://developers.openai.com/api/docs/pricing?tab=suite), ellenőrizve 2026-10-03.
 
-A jelenlegi modellek minden alkalmazásszerepnél Sol; Luna eseménygenerálás csak mérendő jelölt. A régi tokenmixből számolt körülbelül 40% megtakarítás nem v2/angol-magyar minősített eredmény. [Modellvizsgálat](AI_MODEL_ROUTING_HU.md).
-
-50–100 Official Life és 20–30 Scenario a nyilvános indulás összesített tartalomcélja. Nem indítunk ennyi generálást automatikusan: előbb kis v2 pilot és tényleges költségmérés kell. A további keret, ha szükséges, külön felhasználói döntés. Olvasás, nyelvváltás, Save és Share nem indíthat fizetett AI-hívást.
+50–100 Official Life és 20–30 Scenario az indulás célja, nem automatikus paid megbízás. Előbb kurált kis v2 seed, megfelelő költségkeret és privacy/minőségi kapu kell. Olvasás/újratöltés/nyelvváltás/Save/Share nem indíthat AI-generálást.

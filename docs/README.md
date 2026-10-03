@@ -11,10 +11,12 @@
 | [Következő lépések](NEXT_STEPS.md) | L01 és P01–P13 végrehajtási sorrend, függőségek, elfogadás |
 | [21 részes témadokumentáció](alter_jovo_docs/00_README.md) | Termék, UX, profil, motor, AI, közösség, architektúra, adat/API, biztonság, minőség és üzemeltetés |
 | [Követelmények visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md) | Hol érvényesül a két terv mind a 80 fő fejezete és a közösségi MVP 14 eleme? |
+| [V2 megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md), [törlési runbook](ACCOUNT_DELETION_RUNBOOK_HU.md) | Új privát élet, mérések és helyreállítás |
 | [Implementáció](IMPLEMENTATION.md) | A meglévő kód tényleges működése és korlátai |
 | [Beállítás](SETUP.md) | Helyi indítás, Supabase/OpenAI és titokkezelés |
 | [Lokalizáció](LOCALIZATION_HU.md) | Angol alap, magyar, tartalomnyelv és további nyelvek |
-| [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült könyvtári alap, még hiányzó tárolás/API/worker |
+| [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült időszakos tárolás/API/worker és pontos szerződés |
+| [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és következő emberi kapuk |
 | [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |
 | [AI-ellenőrzés](AI_VALIDATION.md), [modellvizsgálat](AI_MODEL_ROUTING_HU.md), [minták](examples/README.md) | Dátumozott mérések; a sikerek gyakorlati határai |
 
@@ -22,9 +24,9 @@
 
 Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
 
-- **Működik:** a v1 tízéves generálás, saját döntési elágazás és teljes angol/magyar megjelenítés/AI-generálás.
-- **Könyvtári alap:** a v2 rövid időszak-, tényállapot- és korlátszerződés, determinisztikus validátorral.
-- **Tervezett:** rövid onboarding, ugyanazon ágon folytatás, alkalmazásszintű költségfoglalás, publishing, Discovery, Official seed és nyilvános fork.
+- **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
+- **Ellenőrizendő:** valódi fiókos böngészős folyamat, Auth-törlés, backup/restore és emberi minőség/pilot.
+- **Tervezett:** publishing, Discovery, Official seed és nyilvános fork.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
 Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, Supabase, 18+ web, angol alap és magyar, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.

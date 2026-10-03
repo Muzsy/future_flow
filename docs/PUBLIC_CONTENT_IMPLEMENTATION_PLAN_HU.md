@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
+2026-10-03 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. A [P09 privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) elkészült. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
 
 ## Sorrend és modulhatár
 
@@ -65,7 +65,7 @@ Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás
 
 Olvasás/újratöltés/Save/Share nem indít generálást. Snapshot verzió szerint cache-elhető, de a publication aktív státuszát minden hozzáférésnél ellenőrizni kell. CDN esetén visszavonási purge és előre rögzített rövid érvénytelenítési ablak kell. Publish/refresh és új saját fork külön mért AI-költség.
 
-A közös 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A dokumentációfrissítés nem indított AI API-hívást.
+A közös 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A v2 fejlesztés négy valódi többidőszakos EN/HU láncot is mért; a dokumentum olvasása/frissítése nem indít AI API-hívást.
 
 A [nyelvi ellenőrzés](LOCALIZATION_HU.md) v1 EN/HU alapot és ágat bizonyít. V2 Official seedhez mindkét nyelven új több időszakos minősítés kell; a korábbi minta nem automatikusan public seed.
 

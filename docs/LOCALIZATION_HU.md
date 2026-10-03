@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · Angol az alapnyelv, magyar választható. A teljes meglévő v1 felület és történetgenerálás támogatja mindkettőt. A rövid időszakos v2 működés és Discovery fejlesztése ugyanilyen nyelvi feltétellel folytatódik; ezek még tervezett termékfunkciók.
+2026-10-03 · Angol az alapnyelv, magyar választható. A teljes meglévő v1 felület és történetgenerálás támogatja mindkettőt. A v2 onboarding/élet/folytatás is teljes EN/HU katalógust és valódi három időszakos AI-próbát kapott. Discovery még tervezett. [V2 riport](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Felület és tartalom
 
@@ -18,7 +18,7 @@
 | Új élet | Explicit `locale` a létrehozás kérésében, mentett `ff_futures.content_locale`, jobpayloadban `locale` |
 | Elágazás/újraindítás | A gyermekág és minden AI-lépés a mentett életnyelvet követi |
 | Korábbi életek | A `002_content_locale.sql` magyarra jelöli; történet, esemény, profil és hash nem változik |
-| Új v2 életbemenet | Kötelező `locale`; az adatbázis/API/worker bekötése következő feladat |
+| Új v2 életbemenet | Kötelező `locale`; az adatbázis/API/worker is ezt örökli |
 
 A felületnyelv és a történet nyelve külön fogalom. Új élet a választott felületnyelven készül. Egy angol élet későbbi döntése magyar felület mellett is angol folytatást/ágat ad, így a közös történet nem kever nyelveket. A mentett tartalomnyelv nem írható át. A történet eredeti nyelve látszik; eltérő felületnyelvnél külön üzenet tájékoztat. Az AI-szövegek megfelelő `lang` jelölést kapnak.
 
@@ -37,9 +37,9 @@ Promptverzió: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_f
 ## Új nyelv hozzáadása
 
 1. Regisztrálni kell a kódot, natív nevet, Intl taget és AI-nyelvnevet a `packages/contracts/src/locales.ts` fájlban.
-2. Teljes, angol kulcsokkal és azonos interpolációs paraméterekkel rendelkező katalógus szükséges az `apps/web/lib/i18n/messages.ts` mellett, bekötve a `messages` mapbe. Nincs fordítatlan nyelv a választóban.
+2. Teljes, angol kulcsokkal és azonos interpolációs paraméterekkel rendelkező katalógus szükséges az `apps/web/lib/i18n/messages.ts` és `apps/web/lib/life-messages.ts` mellett, bekötve a `messages` mapbe. Nincs fordítatlan nyelv a választóban.
 3. Az összes kérdőívfelirat/help/section/opció fordítása és az API/auth/domain hibák megfelelő változata szükséges. Kulcsok, opcióértékek és pontozás változatlanok maradnak.
-4. A nyelvi egyezést biztosító tesztek, valódi AI-esemény/narratíva/fidelity próba és emberi értékelés után engedhető a választóban. A SQL nyelvkódellenőrzése további nyelvekre alkalmas, nem kell nyelvenként új oszlop.
+4. A nyelvi egyezést biztosító tesztek, valódi AI-esemény/narratíva/fidelity próba és emberi értékelés után engedhető a választóban. A SQL nyelvkódellenőrzések (v2 aw_lives is) új additív migrációval bővítendők, nem kell nyelvenként új oszlop.
 5. RTL nyelvnél `dir` kezelés és felületi próba; más földrajzi világ/pénznem nem következik automatikusan a nyelvből. Publikus SEO-nyelvútvonal/hreflang a Discovery bevezetésekor külön feladat.
 
 A jelenlegi angol/magyar regiszter a támogatott nyelvek egyetlen forrása. A kód típusellenőrzése hiányzó katalogizált kulcsot jelez; a tesztek a paraméteregyezést és a kérdőív adatkompatibilitását is ellenőrzik. Az új nyelv fordítási katalógusokkal bővítendő, nem karakterláncok cseréjével a komponensekben.
@@ -50,7 +50,7 @@ ScenarioVersion/PublicSnapshot tartalomnyelve, Discovery nyelvi szűrés és for
 
 ## Ellenőrzés
 
-92 automatizált teszt: teljes katalogizált szöveg/paraméteregyezés, minden kérdőívmező/érték kompatibilitása, angol alapérték, fejlécprioritás, lokalizált API-hiba, nyelvhez kötött idempotencia, immutable életnyelv, gyermekág öröklése, workercheckpoint és régi job magyar nyelve, változatlan migrált történet. A v1 domain- és jogosultsági tesztek megmaradtak. A valódi AI- és böngészős próba alább dokumentált.
+A korábbi 92-es ellenőrzés: teljes katalogizált szöveg/paraméteregyezés, minden kérdőívmező/érték kompatibilitása, angol alapérték, fejlécprioritás, lokalizált API-hiba, nyelvhez kötött idempotencia, immutable életnyelv, gyermekág öröklése, workercheckpoint és régi job magyar nyelve, változatlan migrált történet. A v1 domain- és jogosultsági tesztek megmaradtak. A valódi AI- és böngészős próba alább dokumentált.
 
 
 ### Valódi AI- és böngészős próba

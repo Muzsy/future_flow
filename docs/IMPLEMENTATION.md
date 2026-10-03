@@ -2,15 +2,15 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-Ez a dokumentum a működő v1 prototípust és a külön elkészült v2 könyvtári alapot írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.
+Ez a dokumentum a működő v1 prototípust és az integrált v2 időszakos életet írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.
 
-## Új, elkészült könyvtári alap és márkanév
+## Új, elkészült időszakos élet és márkanév
 
 A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevében és OpenAPI címében **alterward** szerepel. A repó/belső `@future-flow/*` nevek és korábbi tárolt azonosítók kompatibilitásból megmaradnak.
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-V2 tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; a v2 könyvtári szelet nem használt OpenAI-kreditet. A külön nyelvi/prior AI-próbák költsége a közös státuszban szerepel.
+V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses EN/HU onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–005 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
 
 ## Többnyelvű alap
 
@@ -18,9 +18,9 @@ Angol alapnyelv és választható magyar a teljes meglévő felületen, kérdő�
 
 ## Eltérés az új termékcéltól
 
-A jelenlegi generálás tízéves horizontra készít 5–10 eseményt és 2–3 fejezetet. A 29 kérdéses profilból indul, és minden döntési választás új gyermekágat hoz létre. Elmentett életág megtekinthető, de következő rövid időszak ugyanarra az ágra még nem generálható.
+A megőrzött v1 generálás tízéves horizontra készít 5–10 eseményt és 2–3 fejezetet. A 29 kérdéses profilból indul, és minden döntési választás új gyermekágat hoz létre. Az új v2 /life/:branchId felület külön hat hónapos folytatást kínál.
 
-A működő v1 életállapot elsősorban számszerű mutatókat tárol. A `ff_world_versions` semleges környezet, nem teljes World State. A v2 tény/szereplő/cél/korlát könyvtári alap már elkészült, de tárolás és AI bekötése, időszakos folytatás, rövid onboarding, emlékezet/folytatási mérés még fejlesztendő. A v1 constraint mezők önmagukban nem jelentenek kész domain-validátort.
+A v1 életállapot számszerű mutatókat tárol; a v2 tényszerű állapotot, szereplőt, célt és időben érvényes korlátot használ. Mindkét rendszer semleges/fiktív környezet, nem valós gazdasági előrejelzés. A folytatási metrikák technikai alapja kész, emberi retenció nincs bizonyítva.
 
 A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célállapotot nem állítják késznek. Az új időszakos működés additív migrációval és verziózott API-val készül, a régi profilok és canon megőrzésével.
 
@@ -71,7 +71,7 @@ Az eseménygenerátor (`AI_EVENT_MODEL`), narrátor (`AI_STORY_MODEL`) és ellen
 
 Pipeline: AI-események → sémavizsgálat → szereplő/időrend/döntés ellenőrzése → determinisztikus state transition → AI-fejezetek → referenciasémák ellenőrzése → külön AI fidelity/safety ellenőrzés → tranzakciós commit.
 
-A történetellenőrző AI sem garantál hibátlan szemantikát. Emberi angol és magyar minőségértékelés és safety-eval szükséges az alfához. A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás pénzbeli költségösszesítése még későbbi feladat. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; ez nem helyettesíti a teljes alkalmazás költségőrét.
+A történetellenőrző AI sem garantál hibátlan szemantikát. Emberi angol és magyar minőségértékelés és safety-eval szükséges az alfához. A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás minden hívására projekt/user foglalás és elszámolás működik; lásd a v2 riportot. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; a helyi worker opcionálisan ugyanezt a közös kísérleti keretet is használja.
 
 Reprodukálhatóság: a mentett canon és determinisztikus átmenetek visszajátszhatók. Azonos seed nem jelent azonos új LLM-választ. Újragenerálás új run; nem módosítja a régit.
 

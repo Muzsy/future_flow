@@ -1,19 +1,22 @@
 # alterward — backlog és feladatok utódlása
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
 
 | Pont | Állapot és konkrét eredmény |
 |---|---|
 | L01 | Kész v1 EN/HU alap; minden új P-pont nyelvi előfeltétele |
-| P01 | Könyvtári v2 schema/validator kész; **következő: 003+ tárolás/head/revision/period** |
-| P02 | Tervezett rövid valódi AI-generálás, döntésnél megálló canon |
-| P03 | Tervezett egyszeri aktuális választás, same-branch continuation, külön history fork |
-| P04 | Tervezett 10–15 kérdés és mentett élet visszatérési felület |
-| P05 | Tervezett canonmemória, célzott javítás, app projekt/user költségfoglalás |
-| P06 | Valódi Auth/DB/OpenAI böngészős flow, export/törlés és helyreállítás; admin kulcs függőség |
-| P07 | Legalább 20 eset/3 period, EN/HU emberi minőség, minden integritási gate |
-| P08 | Folytatási mérés és 20–50 résztvevős EN/HU pilot |
-| P09 | Scenario/snapshot/checkpoint/Official kis seed és minőség |
+| P01 | Kész: 003 tárolás, immutable canon/choice/history, ownership/RLS, revision/idempotencia/lease. |
+| P02 | Kész: hat hónapos valódi AI, 2–5 esemény, 250–600 szó; négy EN/HU lánc ×3 időszak. |
+| P03 | Kész: aktuális választás, same-branch folytatás és saját történeti fork külön művelet. |
+| P04 | Kész kód: 12 lépés, revisionös draft, visszatérés/idővonal. Valódi fiókos UI-próba P06. |
+| P05 | Kész: állapot/közeli canon/választás memória, egy célzott javítás, project/user és helyi közös keret. |
+| P06 | Részben: export/delete/recovery kód és teszt kész; valódi email/admin kulcs és backup/restore nyitott. |
+| P07 | Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; emberi EN/HU minőség nyitott. |
+| P08 | Részben: minimális click/success mérés és összesítés kész; 20–50 emberi pilot/sikerhatár nyitott. |
+| P09 | Privát előnézeti alap kész; teljes Scenario/checkpoint/Publication/Official seed nyitott |
 | P10 | Discovery/életoldal/Save/Share/Report, moderator és permission/cache |
 | P11 | Community Publishing, preview/Confirm, unlisted/public, unpublish és adatkezelés |
 | P12 | Public fork/decision start/personalize új saját privát életbe |

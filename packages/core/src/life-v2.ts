@@ -11,6 +11,8 @@ import {
   type LifeInputV2,
   type LifeStateV2,
   type PeriodCandidateV2,
+  periodChapterV2Schema,
+  type PeriodChapterV2,
 } from '@future-flow/contracts';
 import { addMonths } from './dates';
 import { DomainError } from './errors';
@@ -370,5 +372,41 @@ export function simulatePeriodV2(
     });
     current = result.state;
   }
+  // Every displayed option must be possible from the decision checkpoint.
+  for (const option of last.decision.options) {
+    applyFactChangesV2(
+      current,
+      option.changes,
+      current.effectiveAt,
+      option.preconditions,
+      constraints,
+      {
+        ...scope,
+        acceptedDecisionIds: [...scope.acceptedDecisionIds, last.decision.id],
+      },
+    );
+  }
   return { period, events, endState: current };
+}
+
+export function validatePeriodChapterV2(
+  raw: unknown,
+  events: readonly CanonEventV2[],
+): PeriodChapterV2 {
+  const chapter = periodChapterV2Schema.parse(raw);
+  const words = chapter.body.split(/\s+/u).filter(Boolean).length;
+  const ids = events.map((event) => event.id);
+  if (
+    words < 250 ||
+    words > 600 ||
+    new Set(chapter.eventIds).size !== ids.length ||
+    chapter.eventIds.length !== ids.length ||
+    chapter.eventIds.some((id) => !ids.includes(id)) ||
+    chapter.decisionId !== events.at(-1)?.decision?.id
+  )
+    throw new DomainError(
+      'LIFE_CHAPTER_INVALID',
+      'A fejezet hossza vagy canon-hivatkozása hibás.',
+    );
+  return chapter;
 }

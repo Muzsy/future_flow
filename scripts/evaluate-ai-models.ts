@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { acquirePaidSmokeLock } from './lib/paid-smoke-lock';
 import {
   OpenAiProvider,
   type AiResult,
@@ -54,6 +55,7 @@ type StageResult = {
 // Development-only, sequential comparison on saved synthetic v1 cases.
 // Shares the previous smoke ledger; never accesses Supabase or changes .env.
 async function main() {
+  acquirePaidSmokeLock();
   const reuseDirectory = process.argv[2];
   if (
     reuseDirectory &&

@@ -1,5 +1,8 @@
 # alterward — vízió és termék
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · Aktív irány. [Termékterv](../PRODUCT_PLAN_HU.md) · [Megvalósítási státusz](../STATUS_HU.md).
 
 ## Termékígéret és pozicionálás
@@ -37,4 +40,4 @@ Hihető és érdekes események; hétköznapi folytonosság; strukturált állap
 
 A stratégia A–G hipotézisei nyitottak: saját/fiktív identitás; onboarding értéke; folytatás/új élet; fork-retenció; megosztási igény; mások életének fogyasztása; történet/analitikus riport. Elsődleges mérés a Continuation Rate és Continued Life Sessions, mellettük D1/D7/D30 és költség/sikeres folytatás. Egy technikai AI-minta nem validált termék vagy bizonyított piaci kereslet.
 
-Jelenleg a v1 prototípus működik; a tartós rövid időszakos élmény még [P01–P08](../NEXT_STEPS.md) munka. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.
+Jelenleg a v1 prototípus működik; P01–P05 tartós rövid időszakos technikai mag kész, P06–P08 ellenőrzés/pilot nyitott. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.

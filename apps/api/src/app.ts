@@ -44,9 +44,20 @@ import {
   futureRequestSchema,
   resolveDecisionSchema,
   idSchema,
+  lifeSetupV2Schema,
+  lifeDraftV2Schema,
+  lifeChoiceRequestV2Schema,
+  lifeRevisionRequestV2Schema,
+  lifeInteractionV2Schema,
+  publicPreviewRequestSchema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
-import { Repository } from '@future-flow/database';
+import {
+  Repository,
+  LifeRepository,
+  PublicDraftRepository,
+} from '@future-flow/database';
+import { deleteAccount } from './account-deletion';
 import { type AuthProvider, requireRecentAuthentication } from './auth';
 
 const REPOSITORY = Symbol('REPOSITORY'),
@@ -265,15 +276,148 @@ class ApiController {
       .strict()
       .parse(body);
     requireRecentAuthentication(req.token);
-    await this.repo.markDeleting(req.userId);
-    try {
-      await this.auth.deleteUser(req.userId);
-    } catch (error) {
-      await this.repo.restoreActive(req.userId);
-      throw error;
-    }
-    await this.repo.deleteAccountData(req.userId);
-    return { deleted: true };
+    return deleteAccount(this.repo, this.auth, req.userId);
+  }
+}
+@Controller('api/v2')
+@UseGuards(AuthGuard)
+class LifeController {
+  @Post('interactions') interaction(
+    @Req() req: AuthRequest,
+    @Body() body: unknown,
+  ) {
+    return this.lives.interaction(
+      req.userId,
+      lifeInteractionV2Schema.parse(body),
+    );
+  }
+  private readonly lives: LifeRepository;
+  private readonly publicDrafts: PublicDraftRepository;
+  constructor(@Inject(REPOSITORY) repo: Repository) {
+    this.publicDrafts = new PublicDraftRepository(repo.db);
+    this.lives = new LifeRepository(repo.db, {
+      daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
+      concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
+    });
+  }
+  @Get('lives') list(@Req() req: AuthRequest) {
+    return this.lives.list(req.userId);
+  }
+  @Get('draft') draft(@Req() req: AuthRequest) {
+    return this.lives.draft(req.userId);
+  }
+  @Patch('draft') saveDraft(@Req() req: AuthRequest, @Body() body: unknown) {
+    const input = z
+      .object({
+        revision: z.number().int().nonnegative(),
+        payload: lifeDraftV2Schema,
+      })
+      .strict()
+      .parse(body);
+    return this.lives.saveDraft(req.userId, input.revision, input.payload);
+  }
+  @Post('lives') create(
+    @Req() req: AuthRequest,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.lives.create(
+      req.userId,
+      lifeSetupV2Schema.parse(body),
+      key ?? '',
+    );
+  }
+  @Get('branches/:id') detail(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ) {
+    return this.lives.detail(req.userId, idSchema.parse(id));
+  }
+  @Post('branches/:id/public-preview')
+  @ApiOperation({
+    summary: 'Prepare an owner-only draft. This does not publish content.',
+  })
+  @ApiBody({ schema: z.toJSONSchema(publicPreviewRequestSchema) as never })
+  preparePublicPreview(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const input = publicPreviewRequestSchema.parse(body);
+    return this.publicDrafts.prepare(
+      req.userId,
+      idSchema.parse(id),
+      input.revision,
+      input.copy,
+    );
+  }
+  @Get('public-previews/:id')
+  publicPreview(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.publicDrafts.get(req.userId, idSchema.parse(id));
+  }
+  @Post('branches/:id/choice') choose(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    const input = lifeChoiceRequestV2Schema.parse(body);
+    return this.lives.choose(
+      req.userId,
+      idSchema.parse(id),
+      input.revision,
+      input.decisionId,
+      input.optionId,
+      key ?? '',
+    );
+  }
+  @Post('branches/:id/continue') continue(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    const input = lifeRevisionRequestV2Schema.parse(body);
+    return this.lives.continue(
+      req.userId,
+      idSchema.parse(id),
+      input.revision,
+      key ?? '',
+    );
+  }
+  @Post('branches/:id/periods/:periodId/fork') fork(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('periodId') periodId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    const input = z
+      .object({ revision: z.number().int().nonnegative(), optionId: idSchema })
+      .strict()
+      .parse(body);
+    return this.lives.fork(
+      req.userId,
+      idSchema.parse(id),
+      idSchema.parse(periodId),
+      input.revision,
+      input.optionId,
+      key ?? '',
+    );
+  }
+  @Post('jobs/:id/retry') retry(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    const input = lifeRevisionRequestV2Schema.parse(body);
+    return this.lives.retry(
+      req.userId,
+      idSchema.parse(id),
+      input.revision,
+      key ?? '',
+    );
   }
 }
 @Controller()
@@ -288,7 +432,7 @@ export async function createApp(
   origin = 'http://localhost:3000',
 ) {
   @Module({
-    controllers: [ApiController, HealthController],
+    controllers: [ApiController, LifeController, HealthController],
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },

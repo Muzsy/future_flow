@@ -1,10 +1,13 @@
 # alterward — tesztelés és minőség
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
 
 ## Meglévő bizonyíték és határ
 
-92 automatizált teszt és teljes kódellenőrzés sikeres a c310d5b alapban. V1 adatbázis/queue/ownership/immutable branch/idempotencia/törlés/export, v2 tiszta tény/period/constraint validátor, nyelvi adatkompatibilitás és öröklés. Valódi AI-v1 minták schema/domain/fidelity sikerrel; anon böngészős EN/HU és mobil ellenőrzés. Ez nem kész v2 több időszakos vagy valós Auth-fiókos e2e.
+139 automatizált teszt sikeres, köztük 20 determinisztikus eset ×3 időszak; négy valódi EN/HU Sol/Luna lánc ×3 időszak. [Aktuális bizonyíték és korlát](../V2_IMPLEMENTATION_REPORT_HU.md). Valódi Auth-fiókos és emberi minőségi kapu nyitott.
 
 ## Kötelező technikai invariánsok
 

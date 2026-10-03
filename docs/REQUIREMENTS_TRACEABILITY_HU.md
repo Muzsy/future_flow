@@ -11,36 +11,36 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | Forrásfejezet | Elfogadott értelmezés | Gazdadokumentum | Megvalósítási státusz | Feladat |
 |---|---|---|---|---|
 | S1 · A dokumentum célja | Az aktív dokumentáció célja és elsőbbségi rendje | [00](alter_jovo_docs/00_README.md) | Irány rögzítve | L01, P01–P13 |
-| S2 · Vezetői összefoglaló | Tartós AI-élet, döntés és következmény | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V1 alap; v2 tervezett | P01–P08 |
-| S3 · Az alapötlet pontos megfogalmazása | Saját/alternatív identitás és folytatható élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Könyvtári alap; integráció tervezett | P01–P04 |
+| S2 · Vezetői összefoglaló | Tartós AI-élet, döntés és következmény | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V2 privát mag kész; emberi kapu nyitott | P01–P08 |
+| S3 · Az alapötlet pontos megfogalmazása | Saját/alternatív identitás és folytatható élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Privát v2 integrált | P01–P04 |
 | S4 · Mi a termék – és mi nem az | Szcenárióélmény, autoritás és jóslási százalék nélkül | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Termékelv; minőség mérendő | P07–P08 |
 | S5 · A termékkategória meghatározása | AI Alternate Life Simulator, persistent platform | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Pozicionálás rögzítve | P08 |
 | S6 · Alapvető felhasználói probléma | Mi lenne ha és következmény/folytatás iránti kíváncsiság | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Hipotézis | P03, P08 |
-| S7 · A termék fő ígérete | Döntések által alakított alternatív élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Ígéret; teljes v2 még tervezett | P01–P08 |
+| S7 · A termék fő ígérete | Döntések által alakított alternatív élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Privát v2 kész; emberi/pilot kapu nyitott | P01–P08 |
 | S8 · Pozicionálási döntés | Élmény/történet először, önreflexió másodlagosan | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Irány; validálás szükséges | P07–P08 |
 | S9 · Versenytér és megkülönböztetés | Versenytársi háttér megőrizve, nem új piackutatási tény | [20](alter_jovo_docs/20_REFERENCES.md) | Háttéranyag | P08 |
 | S10 · Célcsoportok | Felnőtt kíváncsi felfedező elsődleges célközönség | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Hipotézis | P08 |
 | S11 · Jobs To Be Done | Alternatív jövő/identitás, következmény, történet, megosztás | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Hipotézisek | P03, P08–P12 |
-| S12 · A termék fő pillérei | Identity/Goal/World State/Events/Choice/Consequence | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V1 részleges, v2 könyvtári alap | P01–P05 |
-| S13 · A szimuláció koncepcionális modellje | Állapot → esemény → átmenet → narratíva | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V1 működik; v2 integráció tervezett | P01–P03 |
-| S14 · A „cél” szerepe a rendszerben | Cél prioritás/horizon/motiváció/tradeoff/progress/constraint | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | V2 könyvtári megfeleltetés kész | P01, P04 |
-| S15 · Profilalkotás és bemeneti modell | Structured Core + Guided Questions + Free Context; rövid indulás | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | V1 hosszú; rövid UX tervezett | P04 |
-| S16 · Világállapot és idővonal | Idő, tényállapot, szereplő/cél/lehetőség és unknown érték | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V2 könyvtári alap kész | P01–P03 |
-| S17 · Döntések és elágazások | Aktuális választás/folytatás és történeti fork külön | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | V1 childbranch; v2 tervezett | P03 |
-| S18 · Történetfolyam | Olvasható folytonos történet, NPC/canon memória | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | V1 narratíva; v2 memória tervezett | P02, P05, P07 |
+| S12 · A termék fő pillérei | Identity/Goal/World State/Events/Choice/Consequence | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V2 privát mag integrált | P01–P05 |
+| S13 · A szimuláció koncepcionális modellje | Állapot → esemény → átmenet → narratíva | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V1/v2 integrált | P01–P03 |
+| S14 · A „cél” szerepe a rendszerben | Cél prioritás/horizon/motiváció/tradeoff/progress/constraint | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | V2 szerződés/onboarding integrált | P01, P04 |
+| S15 · Profilalkotás és bemeneti modell | Structured Core + Guided Questions + Free Context; rövid indulás | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | 12 lépéses EN/HU UX integrált | P04 |
+| S16 · Világállapot és idővonal | Idő, tényállapot, szereplő/cél/lehetőség és unknown érték | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V2 tárolás/domain/worker integrált | P01–P03 |
+| S17 · Döntések és elágazások | Aktuális választás/folytatás és történeti fork külön | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | V2 choice/folytatás/history fork integrált | P03 |
+| S18 · Történetfolyam | Olvasható folytonos történet, NPC/canon memória | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | V2 narratíva/canonmemória integrált | P02, P05, P07 |
 | S19 · Realizmus kontra szórakoztatás | Hihetőség, hétköznapiság és változatosság | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | Minőség mérendő | P07 |
 | S20 · Közösségi réteg | Élet/döntés/ág alapú közösség; public terv előrébb hozza | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Public tervezett | P09–P13 |
 | S21 · AI szerepe | AI event/narrator/check; további extraction/NPC/summary később | [05](alter_jovo_docs/05_AI_AND_PROMPT_ARCHITECTURE.md) | Három szerep működik; bővítés terv | P02, P05, P09 |
-| S22 · Mit nem szabad az AI-ra bízni | Idő/pénz/tulajdon/jog/állapot determinisztikus ellenőrzése | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V1 + v2 könyvtári ellenőrzés | P01–P03, P07 |
+| S22 · Mit nem szabad az AI-ra bízni | Idő/pénz/tulajdon/jog/állapot determinisztikus ellenőrzése | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V1/v2 domain és tárolási ellenőrzés | P01–P03, P07 |
 | S23 · MVP pozicionálás | Első eredmény után ugyanazon élet folytatási igénye | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Még nem validált | P08 |
-| S24 · MVP funkciók | Rövid profil/period/decision/consequence/timeline/save/history fork | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | V2 integráció tervezett | P01–P08 |
+| S24 · MVP funkciók | Rövid profil/period/decision/consequence/timeline/save/history fork | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Privát v2 integrált; elfogadási kapuk nyitottak | P01–P08 |
 | S25 · MVP-ből tudatosan kihagyandó funkciók | Mobile/DM/marketplace/avatar/voice/VR/coach/health nem MVP | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Scope-határ | MVP után |
 | S26 · Felhasználói élmény – ideális első munkamenet | 10–15 kérdés/3–4 perc; első élmény körülbelül 10 perc | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | Mérendő UX-cél, nem SLA | P04, P08 |
 | S27 · Visszatérési ciklus és megtartás | Event → choice → consequence → curiosity → return | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Mérendő hurok, nincs manipuláló streak | P03, P08 |
 | S28 · Monetizációs irány | Korlátozott ingyenes AI; privacy/adatjog univerzálisan ingyenes | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Prémium privacy/export felülírva; ár nyitott | P05, MVP után |
 | S29 · Bizalom, felelősség és kommunikáció | AI-jelölés, szcenáriókeret, bizalom és user agency | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Alpha alap; véglegesítés nyitott | P06–P07, P13 |
 | S30 · Márka- és névadási következmények | Márkanév alterward; régi Branchward munkanév felülírva | [16](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) | Felhasználói döntés; domain nyitott | Rögzítve |
-| S31 · Sikerességi mérőszámok | Continuation Rate/Continued Life Sessions és költség | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Mérés tervezett | P08, P13 |
+| S31 · Sikerességi mérőszámok | Continuation Rate/Continued Life Sessions és költség | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Technikai proxy kész; emberi/session mérés nyitott | P08, P13 |
 | S32 · Kockázatok | Egyszeri használat/generikus szöveg/inkonzisztencia/frikció/költség | [14](alter_jovo_docs/14_TESTING_AND_QUALITY.md) | Minőség és pilot kapuk | P05–P08 |
 | S33 · Stratégiai döntések | Tartós AI, web first, strukturált állapot, core első | [16](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) | Rögzített döntések | L01, P01–P13 |
 | S34 · Nyitott kérdések és validálandó hipotézisek | A–G hipotézisek külön emberi méréssel | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Nyitott hipotézisek | P08, P13 |
@@ -93,7 +93,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C36 · MVP funkciók | 14 MVP-elem tételesen az alábbi táblában | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Tervezett, nincs teljesítve | P09–P13 |
 | C37 · MVP-ből kihagyandó elemek | Comments/DM/marketplace/followgraph/advanced rec nem MVP | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Scope-határ | MVP után |
 | C38 · Bevezetési fázisok | Seed → Discovery → publishing → fork → social → creator | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Core után egységes fázisok | P09–P13 |
-| C39 · KPI-k és mérőszámok | Views/read/save/signup/fork/publish/report/referral | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Mérés tervezett | P13 |
+| C39 · KPI-k és mérőszámok | Views/read/save/signup/fork/publish/report/referral | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Technikai proxy kész; emberi/session mérés nyitott | P13 |
 | C40 · Kockázatok | Privacy/üres seed/spam/sameness/social fókusz kockázat | [14](alter_jovo_docs/14_TESTING_AND_QUALITY.md) | Kapuk és pilot tervezett | P09–P13 |
 | C41 · Technikai és architekturális következmények | Simulation/Public Content/Community/Moderation modulok | [08](alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md) | Public bővítés tervezett | P09–P13 |
 | C42 · Végleges stratégiai állásfoglalás | Core első, snapshot/Discovery/fork majd social | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Elfogadott sorrend | P01–P13 |

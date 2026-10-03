@@ -1,5 +1,8 @@
 # alterward — történet és tartalom
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · [AI-minták](../examples/README.md) · [Lokalizáció](../LOCALIZATION_HU.md) · [Nyilvános tartalom](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md).
 
 ## Narratíva a canonból
@@ -10,7 +13,7 @@ Alapstílus természetes, második személyű, személyes és hihető. Hétközn
 
 ## V1 és v2
 
-V1 ténylegesen 2–3 fejezetet készít a tízéves baseline-hoz és új ághoz. V2 tervezett alap: hat hónap, 2–5 esemény, egy 250–600 szavas fejezet, végén egy nyitott döntés. A választás előtti történet nem kezelheti már megtörténtként a döntés következményét. Nincs mesterséges heti feloldási várakozás; sorozatosságot a valódi új időszak ad.
+V1 ténylegesen 2–3 fejezetet készít a tízéves baseline-hoz és új ághoz. V2 megvalósított alap: hat hónap, 2–5 esemény, egy 250–600 szavas fejezet, végén egy nyitott döntés. A választás előtti történet nem kezelheti már megtörténtként a döntés következményét. Nincs mesterséges heti feloldási várakozás; sorozatosságot a valódi új időszak ad.
 
 Esemény/decision-hivatkozás, dátum, szereplő, állapot és opció egyezik. Az AI-fidelity kiegészíti a determinisztikus vizsgálatot, emberi angol/magyar olvashatóság és folytatási kíváncsiság mérendő. Eladott cég, lezárt munka vagy régi választás nem tűnhet el és nem térhet vissza indoklás nélkül.
 

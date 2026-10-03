@@ -921,3 +921,28 @@ footer {
   color: inherit;
   font: inherit;
 }
+.life-card {
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.life-timeline {
+  padding-left: 24px;
+}
+.life-timeline li {
+  margin: 24px 0;
+}
+progress {
+  width: 100%;
+  accent-color: var(--green);
+  height: 6px;
+  margin: 20px 0;
+}
+.narrow textarea {
+  width: 100%;
+  min-height: 110px;
+  font: inherit;
+  padding: 12px;
+  border: 1px solid #ddd8cf;
+  border-radius: 8px;
+}

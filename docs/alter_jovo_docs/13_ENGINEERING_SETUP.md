@@ -1,5 +1,8 @@
 # alterward — engineering és helyi indítás
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
 
 ## Környezet
@@ -29,10 +32,10 @@ CI frozen install, formázás, typecheck, teszt, build, sémaexport és `docs/co
 
 ## Migráció és szerződés
 
-001 foundation és 002 content locale már alkalmazott. Checksum-védelem/tranzakció, új v2 tárolás 003+. Tiszta domain-kontraktus és API/AI boundary validálás, tulajdonosi FK/SQL invariant. JSON-sémát kódból exportálunk, nem kézzel külön truth source-ként szerkesztünk. Az archív manifest nem regenerálható, a friss témacsomagé igen.
+001–006 már alkalmazott. Checksum-védelem/tranzakció; 003 v2 élet, 004 költségőr, 005 mérés/törlési recovery. Tiszta domain-kontraktus és API/AI boundary validálás, tulajdonosi FK/SQL invariant. JSON-sémát kódból exportálunk, nem kézzel külön truth source-ként szerkesztünk. Az archív manifest nem regenerálható, a friss témacsomagé igen.
 
 ## Munka és release
 
 A felhasználó `Muzsy/future_flow` **main** ágát kérte; nem készítünk helyette kötelező feature branch/PR-folyamatot. Main commit és CI nem nyilvános deploy. Staging/prod külön credential/backup/restore/proxy/HTTPS és release-felelős még feladat. Docker/Kubernetes/Redis/realtime/mobile nem a helyi indítás előfeltétele.
 
-Változás átadása: konkrét viselkedés, séma/migráció/jogosultság/AI-költség hatás, megfelelő ellenőrzés és friss státusz. `apps/web` kódváltozás előtt az ottani AGENTS és a telepített Next útmutató követendő. A következő fejlesztés P01 tárolás, nem v1 újraépítése vagy statikus történetdemo.
+Változás átadása: konkrét viselkedés, séma/migráció/jogosultság/AI-költség hatás, megfelelő ellenőrzés és friss státusz. `apps/web` kódváltozás előtt az ottani AGENTS és a telepített Next útmutató követendő. A következő kapu P06 valós Auth/ops és P07 emberi minőség; P09 public alap előkészíthető.

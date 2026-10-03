@@ -2,17 +2,13 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01 első szerződés/domain-szelete elkészült; a többi pont tervezett munka.
+2026-10-03 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06–P08 részben előkészített, külső/emberi ellenőrzésre vár. [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Kiinduló állapot
 
-A Supabase 001/002 migrációja és ellenőrzött TLS-kapcsolata működik. V1 valódi OpenAI-esemény/történet/új ág, teljes angol/magyar felület és életnyelv-öröklés, valamint v2 könyvtári tény/időszak/korlát validátor áll rendelkezésre. Az utolsó kódellenőrzés 92 teszt, formázás/typecheck/build/sémaexport és sikeres CI. [Bizonyíték, határok és 5 USD keret](STATUS_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–006 alkalmazva; 139 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
 
-A jelenlegi választás mindig új ágat nyit; ugyanannak az életágnak a következő időszaka még nem készíthető el. A rövid profil, bővebb világállapot és folytatási mérés szintén fejlesztendő. A valódi Supabase-belépés és Auth-fióktörlés ellenőrzése nyitott; a szerveroldali törlési kulcs korábban jelzett függőség.
-
-A [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md) történeti eredménye: külön checker-konfiguráció és modellspecifikus helyi árbecslés kész; Luna esemény + Sol narrátor/checker mérendő jelölt, nem bekapcsolt alkalmazásalap. P01 tárolási elsőbbségét nem módosítja.
-
-A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat is fed. A teljes 44 hívás és az aktuális számított maradvány egy helyen, a [státuszban](STATUS_HU.md) követhető.
+Valódi fiók/admin kulcs, emberi EN/HU értékelés, backup/restore és pilot nyitott. Ezek teljes elfogadási kapuk; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
@@ -22,17 +18,17 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
-**Elkészült első szelet:** külön v2 életbemenet/tényállapot/időszak/korlátsémák, saját/alternatív identitás, privát indulás, determinisztikus tényváltozás és scope/idő/döntés szerint érvényes korlátok. A döntésnél megálló időszak validátora még nem alkalmaz opciót; revisionellenőrzése 409. 20 új domain-teszt. [Szerződés és pontos határok](V2_SIMULATION_CONTRACT_HU.md).
-
-**Következő szelet:** additív tárolás és perzisztencia-integráció. Az API/worker jelenleg v1; P01 teljes elfogadása még nyitott.
+**Aktuális állapot:** Kész: 003 tárolás, immutable canon/choice/history, ownership/RLS, revision/idempotencia/lease.
 
 **Feladat:** verziózott v2-sémák rövid időszakhoz, saját/alternatív identitáshoz, a cél mezőihez, tartós szereplőkhöz, tényszerű állapotváltozásokhoz és időben érvényes korlátokhoz. Válasszuk külön a környezeti kontextust a szimulált élet állapotától. Készüljön additív `003+` migráció az időszakhoz, ág aktuális állapotához/revisionjéhez, választáshoz és folytatási jobhoz.
 
 **Elfogadás:** a mai migráció változatlan ellenőrzőösszeggel alkalmazható. A régi életek/hash-ek változatlanul visszaolvashatók. Állásváltás és tulajdonlás megszűnése ténylegesen módosítja a megfelelő mezőt; lejárt/ágon kívüli korlát nem válik örök tiltássá. A v1-ről v2-re indulás explicit új élet/másolat, ellenőrzött kezdőállapottal.
 
-**Függőség:** nincs; a szerződés/domain-alap elkészült, a tárolás következik. A kérdőív és a további API-k erre épülnek. A későbbi nyilvános snapshot/fork külön sanitized állapotot igényel; nem nyitjuk meg a privát v2 canont.
+**Függőség:** nincs; szerződés/domain/tárolás elkészült. A kérdőív és a további API-k erre épülnek. A későbbi nyilvános snapshot/fork külön sanitized állapotot igényel; nem nyitjuk meg a privát v2 canont.
 
 ## P02 — Első rövid AI-időszak
+
+**Aktuális állapot:** Kész: hat hónapos valódi AI, 2–5 esemény, 250–600 szó; négy EN/HU lánc ×3 időszak.
 
 **Feladat:** kezdetben hat hónap, 2–5 esemény, egy 250–600 szavas angol vagy magyar fejezet a mentett tartalomnyelven és a végén egy érdemi döntés. A domainmotor validálja a strukturált AI-javaslatokat, majd a narrátor a canonból ír. A még meg nem hozott választás utáni események nem kerülhetnek a mentett jövőbe.
 
@@ -44,6 +40,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 ## P03 — Döntés, folytatás és külön történeti fork
 
+**Aktuális állapot:** Kész: aktuális választás, same-branch folytatás és saját történeti fork külön művelet.
+
 **Feladat:** külön művelet az aktuális döntéshez, ugyanazon ág folytatásához és egy korábbi döntésből másik ág indításához. Döntés és azonnali következmény egyszer, atomikusan mentendő; a következő időszak innen indul. Áganként egy aktív generálás, állapotrevision, idempotenciakulcs és folyamatos esemény/fejezetsorszám kell.
 
 **Elfogadás:** három egymást követő időszak ugyanazon ágon marad. Függő döntés mellett nem keletkezik választás utáni canon. Dupla kérés ugyanazt a jobot adja; elavult revision 409. Újraindítás után a mentett állapot és checkpoint használható, elveszett lease nem commitol. Régi döntés másik opciója új ágat nyit, a szülő visszaolvasott hash-e változatlan.
@@ -51,6 +49,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 **Függőség:** P01–P02. A régi v1 resolve jelentését verziózott API őrzi.
 
 ## P04 — Rövid onboarding és visszatérési felület
+
+**Aktuális állapot:** Kész kód: 12 lépés, revisionös draft, visszatérés/idővonal. Valódi fiókos UI-próba P06.
 
 **Feladat:** 10–15 kérdés profilhoz és egy fő célhoz; strukturált mag, vezetett kérdések, opcionális szabad kontextus. Saját/alternatív identitás, nulla kapcsolat és ismeretlen opcionális adat kezelése. Piszkozat automatikus mentése revisionnel. Kezdőfelület a mentett élettel, utolsó helyzettel, függő döntéssel és „Folytatom ezt az életet” művelettel; idővonal és külön „Másik ág innen”.
 
@@ -60,6 +60,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 ## P05 — Emlékezet, célzott javítás és alkalmazásszintű költségőr
 
+**Aktuális állapot:** Kész: állapot/közeli canon/választás memória, egy célzott javítás, project/user és helyi közös keret.
+
 **Feladat:** a következő időszak bemenete az aktuális állapot, mentett választások, közeli események és releváns korábbi tények legyen. Canonra hivatkozó összefoglaló, legfeljebb egy automatikus célzott javítás, biztonságos manuális retry. Projektszintű/felhasználói keret, párhuzamos költségfoglalás és sikeres/hibás/ismeretlen hívások elszámolása.
 
 **Elfogadás:** korábbi választás következménye a harmadik időszakban is megmarad; eladott vállalkozás nem kerül vissza tulajdonba. Narratívahiba megtartja a már érvényes eseményeket. Keretkimerülés vagy ismételt hiba látható és nem indít újabb fizetett próbát. A mérés nem igényli a teljes történet újraküldését vagy személyes promptok naplózását.
@@ -67,6 +69,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 **Függőség:** P01–P03. A költség és retry alapvédelme már P02–P03 közben kötelező; a teljes alkalmazáskeretőr a zárt felhasználói próba előtt készül el. A helyi smoke-guard addig is minden fejlesztői AI-próbára érvényes.
 
 ## P06 — Valódi fiók és teljes böngészős folyamat
+
+**Aktuális állapot:** Részben: export/delete/recovery kód és teszt kész; valódi email/admin kulcs és backup/restore nyitott.
 
 **Feladat:** Supabase email-belépés, profil, OpenAI-időszak, döntés, folytatás, visszatérés, fork, export és Auth/DB-fióktörlés ellenőrzése a valódi integrációkkal. Auth-törlés utáni adatbázishiba helyreállítása, szükséges audit és mentés/visszaállítás ellenőrzése.
 
@@ -76,6 +80,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 ## P07 — Technikai és angol/magyar minőségi kapu
 
+**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; emberi EN/HU minőség nyitott.
+
 **Feladat:** legalább 20 változatos szintetikus eset, esetenként legalább három időszak és eltérő döntések. Emberi angol és magyar értékelés: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
 
 **Elfogadás:** a kötelező állapot-, jogosultsági és adatkezelési ellenőrzések minden esetben sikeresek. A narratív hibák kategóriái és javítási eredményei dokumentáltak; nincs nyitott, múltat átíró hiba. Fizetett esetek fokozatosan, a tényleges új tokenfogyasztás alapján indulnak; a 20-as cél nem írja felül az 5 USD felhasználói keretet.
@@ -84,6 +90,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 ## P08 — Folytatási mérés és zárt emberi pilot
 
+**Aktuális állapot:** Részben: minimális click/success mérés és technikai proxy összesítés kész; session/olvasási kohorsz még hiányzik; 20–50 emberi pilot/sikerhatár nyitott.
+
 **Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Induló cél 20–50 résztvevő, angol és magyar felületen is, részletes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
 
 **Elfogadás:** kattintás és sikeres folytatás külön mérhető; technikai hiba látszik a kohorszban. A pilotból megállapítható, miért folytatnak vagy hagyják abba, és visszatérnek-e ugyanahhoz az élethez. Számszerű sikerhatárt a következő értékelt kohorsz előtt rögzítünk. Nincs előre bizonyítottnak tekintett megtartási állítás.
@@ -91,6 +99,8 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 **Függőség:** P04–P07. A műszerezést már P04 során beépítjük. A pilot külön felhasználói költségkeretet igényelhet: a résztvevői generálásokat nem indítjuk el a fejlesztői keretet meghaladó összeggel.
 
 ## P09 — Publikálható snapshot, Official Scenario és kurált seed
+
+**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). Teljes PII/curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
 
 **Feladat:** külön Publication/PublicSnapshot/ScenarioVersion modul és additív tárolás. Allowlist alapján anonimizált idővonal/fejezet/állapot, fork-checkpoint, Official/Community/AI-generated/user-edited jelölés. PII/tartalmi elővizsgálat és curator-jóváhagyás. Először néhány valódi AI-szintetikus Official minta az új több időszakos láncon.
 
@@ -134,4 +144,4 @@ A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**A következő konkrét munka P01 tárolási szelete:** a már elkészült v2-szerződéshez additív migráció/perzisztencia, v1 megőrzéssel. Ezután valódi rövid AI-időszak, folytatás, publikálható snapshot. Márkanév alterward; a szolgáltatók, valódi AI és nyilvános rendszer elfogadott irány.
+**Következő:** P06 valódi fiókos próba és P07 emberi EN/HU minősítés, majd P08 pilot. Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.

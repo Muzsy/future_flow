@@ -4,10 +4,15 @@ import { DomainError } from '@future-flow/core';
 export interface AuthProvider {
   verify(token: string): Promise<{ id: string }>;
   deleteUser(id: string): Promise<void>;
+  assertDeletionConfigured?(): void;
+  userExists?(id: string): Promise<boolean>;
 }
 export class SupabaseAuthProvider implements AuthProvider {
   private readonly client;
-  constructor(url: string, key: string) {
+  constructor(
+    url: string,
+    private readonly key: string,
+  ) {
     if (!url || !key)
       throw new Error('Supabase server configuration is required');
     this.client = createClient(url, key, {
@@ -21,6 +26,7 @@ export class SupabaseAuthProvider implements AuthProvider {
     return { id: data.user.id };
   }
   async deleteUser(id: string) {
+    this.assertDeletionConfigured();
     const { error } = await this.client.auth.admin.deleteUser(id);
     if (error)
       throw new DomainError(
@@ -28,6 +34,35 @@ export class SupabaseAuthProvider implements AuthProvider {
         'A fiók törlése nem sikerült. Próbáld újra később.',
         503,
       );
+  }
+  assertDeletionConfigured() {
+    let configured = this.key.startsWith('sb_secret_');
+    try {
+      configured ||=
+        JSON.parse(
+          Buffer.from(this.key.split('.')[1] ?? '', 'base64url').toString(),
+        ).role === 'service_role';
+    } catch {
+      /* Publishable keys cannot delete accounts. */
+    }
+    if (!configured)
+      throw new DomainError(
+        'AUTH_ADMIN_NOT_CONFIGURED',
+        'Server-side account deletion is not configured.',
+        503,
+      );
+  }
+  async userExists(id: string) {
+    this.assertDeletionConfigured();
+    const { data, error } = await this.client.auth.admin.getUserById(id);
+    if (error?.code === 'user_not_found') return false;
+    if (error || !data.user)
+      throw new DomainError(
+        'PRIVACY_AUTH_CHECK_FAILED',
+        'Account state could not be confirmed.',
+        503,
+      );
+    return true;
   }
 }
 // Call only after verify(): the payload must come from a validated Supabase token.

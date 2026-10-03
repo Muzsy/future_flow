@@ -260,3 +260,80 @@ export const lifeInputV2Schema = z
   })
   .strict();
 export type LifeInputV2 = z.infer<typeof lifeInputV2Schema>;
+
+// Short onboarding contains no client supplied internal IDs or publication flags.
+export const lifeSetupV2Schema = z
+  .object({
+    locale: localeSchema,
+    identity: lifeInputV2Schema.shape.identity.omit({
+      baseProfileVersionId: true,
+    }),
+    location: locationV2Schema,
+    employment: employmentV2Schema,
+    finance: financeV2Schema,
+    skills: z.array(label).max(10),
+    relationships: z.array(actorSchema.omit({ id: true })).max(10),
+    resources: resourcesSchema,
+    goal: goalV2Schema.omit({ id: true, priority: true }),
+    stayInCountry: z.boolean(),
+    context: z.string().trim().max(1000).nullable(),
+  })
+  .strict();
+export type LifeSetupV2 = z.infer<typeof lifeSetupV2Schema>;
+export const lifeInteractionV2Schema = z
+  .object({
+    eventId: id,
+    sessionId: id,
+    branchId: id.nullable(),
+    kind: z.enum([
+      'onboarding_started',
+      'life_opened',
+      'chapter_end_reached',
+      'continuation_clicked',
+      'fork_clicked',
+    ]),
+  })
+  .strict();
+export const lifeDraftV2Schema = lifeSetupV2Schema.extend({
+  location: locationV2Schema.extend({
+    country: z
+      .string()
+      .regex(/^[A-Z]{0,2}$/)
+      .nullable(),
+  }),
+  goal: lifeSetupV2Schema.shape.goal.extend({
+    description: z.string().trim().max(500),
+  }),
+});
+export const periodChapterV2Schema = z
+  .object({
+    title: label,
+    body: z.string().trim().min(500).max(10000),
+    eventIds: z.array(id).min(2).max(5),
+    decisionId: id,
+  })
+  .strict();
+export type PeriodChapterV2 = z.infer<typeof periodChapterV2Schema>;
+export type LifePeriodInput = {
+  input: LifeInputV2;
+  state: LifeStateV2;
+  revision: number;
+  periodId: string;
+  startDate: string;
+  endDate: string;
+  durationMonths: 6;
+  acceptedDecisionIds: string[];
+  memory: { recentEvents: unknown[]; choices: unknown[] };
+};
+export const lifeChoiceRequestV2Schema = z
+  .object({
+    revision: z.number().int().nonnegative(),
+    decisionId: id,
+    optionId: id,
+  })
+  .strict();
+export const lifeRevisionRequestV2Schema = z
+  .object({
+    revision: z.number().int().nonnegative(),
+  })
+  .strict();

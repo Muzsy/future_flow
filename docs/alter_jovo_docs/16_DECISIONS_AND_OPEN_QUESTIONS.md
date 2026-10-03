@@ -1,5 +1,8 @@
 # alterward — döntések és nyitott kérdések
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
 
 ## Elfogadott döntések
@@ -18,7 +21,7 @@
 | ADR-010 | Terméknév **alterward** | Felhasználói döntés; repó/csomagazonosítók maradnak |
 | ADR-011 | Angol alap, teljes választható magyar, további nyelvre regiszter | Felhasználói döntés, meglévő v1-en kész |
 | ADR-012 | `Muzsy/future_flow` → közvetlen main munka | Felhasználói döntés, CI ellenőrzéssel |
-| ADR-013 | Tartós rövid időszakos élet és same-branch folytatás | Pozicionálási terv; könyvtári alap kész, integráció tervezett |
+| ADR-013 | Tartós rövid időszakos élet és same-branch folytatás | Pozicionálási terv; privát integráció kész, emberi/valós Auth-kapu nyitott |
 | ADR-014 | Private + Official/Scenario + Community, public MVP | Közösségi terv; személyes core után P09–P13 |
 | ADR-015 | Snapshot és külön sanitized fork-checkpoint | Privacy követelmény, tervezett |
 | ADR-016 | Feladatonkénti modellkonfiguráció, külön checker | Megvalósítva; Luna minősítendő jelölt |

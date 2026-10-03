@@ -1,12 +1,15 @@
 # alterward — szimulációs motor
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · [V2 szerződés és validátor](../V2_SIMULATION_CONTRACT_HU.md) · [P01–P05](../NEXT_STEPS.md).
 
 ## Határ és pipeline
 
 Verziózott identitás/cél + környezet + aktuális tényállapot + korlát + releváns canon → AI-eseményjavaslat → séma → domain-előfeltételek/idő/szereplők → determinisztikus átmenet → elfogadott esemény/állapot → külön narrátor → fidelity → tranzakciós commit. A próza nem truth source és nem módosíthat tényt.
 
-A működő v1 tízéves horizonte 5–10 eseményt és 2–3 fejezetet ad; az opció gyermekágon érvényesül. A v2 könyvtár hat/tizenkét hónapos, döntésnél megálló periodot validál. Ennek új tárolása, AI-generálása és folytatási API-ja még fejlesztendő.
+A működő v1 tízéves horizonte 5–10 eseményt és 2–3 fejezetet ad; az opció gyermekágon érvényesül. A v2 könyvtár hat/tizenkét hónapos, döntésnél megálló periodot validál. Új tárolás, valódi AI és folytatási API integrált.
 
 ## Tényállapot
 
@@ -18,7 +21,7 @@ Zárt típusos változások, tetszőleges JSON-path írás nélkül. Munkaviszon
 
 Hard/soft korlát élethez, opcionális ághoz és kezdő/kizáró végnaphoz kötött; elfogadott döntés oldhatja fel. Első gépi predikátumok: employment, country, asset ownership, minimum likvid pénz adott pénznemben. Unknown/más pénznem nem bizonyítja a minimumot. Kemény sértés hiba, puha eltérés hivatkozott figyelmeztetés. Deviza/adósság/összetett kapcsolatmodell későbbi bővítés.
 
-Induló v2 alapérték hat hónap, 2–5 esemény; egy nyitott döntés az utolsó eseményen, az időszak végén. A validátor az opciót nem alkalmazza: a végállapot választás előtti. Választás utáni canon nem rögzíthető előre. Ág/revision/kezdőállapot egyezés és rendezett dátum kötelező. Elavult revision 409. Az opciók teljes végrehajthatósági vizsgálata és perzisztált alkalmazása P02–P03 feladat.
+Induló v2 alapérték hat hónap, 2–5 esemény; egy nyitott döntés az utolsó eseményen, az időszak végén. A validátor az opciót nem alkalmazza: a végállapot választás előtti. Választás utáni canon nem rögzíthető előre. Ág/revision/kezdőállapot egyezés és rendezett dátum kötelező. Elavult revision 409. Minden opció végrehajthatósága ellenőrzött; a kiválasztott opció atomikusan mentődik.
 
 ## Folytatás és történeti fork — terv
 

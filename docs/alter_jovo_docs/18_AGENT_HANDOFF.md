@@ -1,12 +1,15 @@
 # alterward — fejlesztői átadás
 
-2026-10-03 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). A következő fejlesztési feladat **P01 tárolási szelet**.
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
+2026-10-03 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). Következő: **P06/P07 valódi és emberi kapu**, majd public alap.
 
 ## Kiindulás és feladat
 
-V1 prototípus valódi OpenAI-generálással, 29 kérdéssel, tízéves baseline-nal és saját gyermekágakkal; teljes angol/magyar támogatás. V2 2.0.0 lifeInput/lifeState/period/constraint és tiszta validator már kész, adatbázis/API/worker még v1. Ne indulj újra foundation/mock-demo építésével.
+V2 12 lépéses EN/HU onboarding, valódi AI hat hónap, choice/folytatás/történeti fork, memória/javítás és költségőr integrált. V1 archívum megmarad. [Riport](../V2_IMPLEMENTATION_REPORT_HU.md).
 
-P01: additív 003+ migráció és perzisztencia a v2 élethez/időszakhoz/head/revisionhöz/accepted choice-hoz/continuation jobhoz; saját ownership/FK/RLS, v1 visszaolvasás/hash megőrzés, explicit új v2-élet. Ezután P02 rövid valódi AI, P03 ugyanazon ág folytatása. A pontos szerződés és határ a [v2 dokumentumban](../V2_SIMULATION_CONTRACT_HU.md).
+P01–P05 technikai mag kész, Supabase 001–006 alkalmazva. P06 email/admin secret, valódi UI/Auth/delete/backup; P07 emberi EN/HU minőség; P08 pilot szükséges. Nyilvános aktiválás még nem engedhető kész kapuk nélkül.
 
 ## Kötelező keretek
 

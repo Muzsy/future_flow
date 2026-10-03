@@ -1,5 +1,69 @@
 import type { Locale } from './locales';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_PREVIEW_INVALID: [
+    'The preview does not match this life.',
+    'Az előnézet nem egyezik ezzel az élettel.',
+  ],
+  PUBLIC_PRIVACY_REVIEW_REQUIRED: [
+    'Remove personal details before preparing the preview.',
+    'Az előnézet előtt távolítsd el a személyes részleteket.',
+  ],
+  PUBLIC_PREVIEW_UNAVAILABLE: [
+    'Finish this period before preparing a preview.',
+    'Az előnézet előtt fejezd be az időszakot.',
+  ],
+  PUBLIC_PREVIEW_EXPIRED: [
+    'This preview expired. Prepare a new one.',
+    'Az előnézet lejárt. Készíts újat.',
+  ],
+  SMOKE_BUDGET_EXCEEDED: [
+    'The development AI allowance is exhausted. Your story is saved.',
+    'A fejlesztői AI-keret elfogyott. A történeted mentve van.',
+  ],
+  SMOKE_RUN_ACTIVE: [
+    'Another paid development test is running. Please retry later.',
+    'Másik fizetett fejlesztői próba fut. Próbáld újra később.',
+  ],
+  AUTH_ADMIN_NOT_CONFIGURED: [
+    'Account deletion needs the server administrator key. Your account is unchanged.',
+    'A fióktörléshez szükséges a szerver adminisztrátori kulcsa. A fiókod változatlan.',
+  ],
+  PRIVACY_AUTH_CHECK_FAILED: [
+    'Account deletion is waiting for a server check.',
+    'A fióktörlés szerveroldali ellenőrzésre vár.',
+  ],
+  LIFE_REVISION_CONFLICT: [
+    'This life or draft changed. Reload before continuing.',
+    'Az élet vagy piszkozat megváltozott. Folytatás előtt töltsd újra.',
+  ],
+  LIFE_PENDING_DECISION: [
+    'Choose an option before continuing this life.',
+    'Válassz a döntési lehetőségek közül a folytatás előtt.',
+  ],
+  LIFE_GENERATION_ACTIVE: [
+    'This life already has an active generation task.',
+    'Ehhez az élethez már fut generálás.',
+  ],
+  LIFE_RETRY_UNAVAILABLE: [
+    'This task cannot be retried. Reload its latest status.',
+    'Ez a feladat nem próbálható újra. Töltsd újra a státuszát.',
+  ],
+  LIFE_REPAIR_EXHAUSTED: [
+    'Automatic repair stopped. Your existing story is saved.',
+    'Az automatikus javítás megállt. A meglévő történeted mentve van.',
+  ],
+  LIFE_CHAPTER_INVALID: [
+    'The chapter failed its length or canon checks.',
+    'A fejezet nem felelt meg a hossz vagy canon ellenőrzésnek.',
+  ],
+  AI_BUDGET_CONFIG: [
+    'The AI budget needs server configuration.',
+    'Az AI-keret szerveroldali beállítása szükséges.',
+  ],
+  AI_BUDGET_EXCEEDED: [
+    'The AI budget is exhausted. Your saved story remains available.',
+    'Az AI-keret elfogyott. A mentett történeted továbbra is elérhető.',
+  ],
   AUTH_REQUIRED: [
     'Please sign in to continue.',
     'Jelentkezz be a folytatáshoz.',

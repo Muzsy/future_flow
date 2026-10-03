@@ -19,6 +19,7 @@ import {
 } from '@future-flow/database';
 import { processJob } from '../apps/worker/src/processor';
 import { applyMigrations } from './lib/migrations';
+import { acquirePaidSmokeLock } from './lib/paid-smoke-lock';
 import {
   reserveSmokeCall,
   recordSmokeUsage,
@@ -51,6 +52,7 @@ function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
   };
 }
 async function main() {
+  acquirePaidSmokeLock();
   if (!['family', 'creative', 'career-change'].includes(caseName))
     throw new DomainError('SMOKE_CASE_UNKNOWN', 'Unknown synthetic profile.');
   await mkdir(resolve(outputDirectory, 'responses'), { recursive: true });

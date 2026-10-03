@@ -13,6 +13,12 @@ import {
   lifeStateV2Schema,
   periodCandidateV2Schema,
   constraintV2Schema,
+  lifeSetupV2Schema,
+  lifeDraftV2Schema,
+  periodChapterV2Schema,
+  PUBLIC_DRAFT_VERSION,
+  publicSnapshotDraftSchema,
+  publicPreviewCopySchema,
 } from './index';
 
 const directory = resolve(__dirname, '../../../docs/contracts');
@@ -36,6 +42,24 @@ for (const [name, schema] of Object.entries({
     ) + '\n',
   );
 }
+const publicDirectory = resolve(directory, 'public');
+mkdirSync(publicDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  snapshotDraft: publicSnapshotDraftSchema,
+  previewCopy: publicPreviewCopySchema,
+})) {
+  writeFileSync(
+    resolve(publicDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public:${name}:${PUBLIC_DRAFT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const v2Directory = resolve(directory, 'v2');
 mkdirSync(v2Directory, { recursive: true });
 for (const [name, schema] of Object.entries({
@@ -43,6 +67,9 @@ for (const [name, schema] of Object.entries({
   lifeState: lifeStateV2Schema,
   periodCandidate: periodCandidateV2Schema,
   constraint: constraintV2Schema,
+  lifeSetup: lifeSetupV2Schema,
+  lifeDraft: lifeDraftV2Schema,
+  periodChapter: periodChapterV2Schema,
 })) {
   writeFileSync(
     resolve(v2Directory, `${name}.schema.json`),

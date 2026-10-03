@@ -1,5 +1,8 @@
 # alterward — API specifikáció és tervezett bővítés
 
+
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06–P08 valós/emberi kapu nyitott. [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+
 2026-10-03 · A tényleges controller: [apps/api/src/app.ts](../../apps/api/src/app.ts). OpenAPI helyben: `http://localhost:4000/api/openapi.json`. A tervezett végpontcsaládok még nem hívhatók.
 
 ## Meglévő v1
@@ -47,6 +50,6 @@ Az UUID csak formai példa; létező saját committed profil kell. Locale `en`/`
 
 ## V2/public tervezett műveletek
 
-P01–P03: új v2 élet/period szerződés, aktuális döntés egyszeri mentése, same-branch continuation és történeti fork külön művelettel. P09–P12: public Discovery/life/scenario olvasás, nyelvi szűrés, preview/Confirm/publish/refresh/unpublish, Save/Report, moderator státusz és sanitized fork/personalize. A végső URL/DTO az implementációban verziózott és OpenAPI-val ellenőrzött lesz; itt nem állítjuk létező `/api/v2` szolgáltatásnak.
+P01–P03 /api/v2 végpontok és DTO-k elkészültek: [aktuális v2 API](../V2_IMPLEMENTATION_REPORT_HU.md). P09–P12 public olvasás/preview/Confirm/Save/Report/moderation/fork még tervezett.
 
 Public olvasás csak snapshot, szükséges permission/moderation ellenőrzéssel; privát végpont nem nyitható meg. Unlisted külön tokenes hozzáférés. Save/új saját élet auth, curator/admin külön role. Mutációk revision/hash/idempotencia és limit; olvasás nem indít AI-jobot. Szabad szöveges döntés, profil-AI enrichment, kapcsolati CRUD, notification/follow/comment, külön chapter-generate és élet-DELETE végpont nincs a mai controllerben.

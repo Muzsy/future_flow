@@ -1,0 +1,149 @@
+{
+  "$id": "urn:alterward:public:previewCopy:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 800
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "career",
+        "business",
+        "money",
+        "relationships",
+        "family",
+        "education",
+        "lifestyle",
+        "moving_abroad",
+        "starting_over",
+        "personal_growth",
+        "adventure",
+        "historical",
+        "fictional"
+      ]
+    },
+    "goalDescription": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 500
+    },
+    "periods": {
+      "minItems": 1,
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "chapter": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 160
+              },
+              "body": {
+                "type": "string",
+                "minLength": 500,
+                "maxLength": 10000
+              }
+            },
+            "required": [
+              "title",
+              "body"
+            ],
+            "additionalProperties": false
+          },
+          "events": {
+            "minItems": 2,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 160
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 10,
+                  "maxLength": 800
+                }
+              },
+              "required": [
+                "title",
+                "summary"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "decision": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 400
+              },
+              "options": {
+                "minItems": 2,
+                "maxItems": 4,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 160
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "description"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "prompt",
+              "options"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "chapter",
+          "events",
+          "decision"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "title",
+    "summary",
+    "category",
+    "goalDescription",
+    "periods"
+  ],
+  "additionalProperties": false
+}

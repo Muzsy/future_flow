@@ -33,6 +33,7 @@ import {
   clientErrorMessage,
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
+import { LifeExperience } from './life-experience';
 import { formatDate } from '../lib/i18n';
 
 type Answers = Record<string, string | number | boolean | string[]>;
@@ -273,7 +274,7 @@ export function Experience() {
         if (error) throw error;
       }
       setPassword('');
-      navigate('/onboarding');
+      navigate('/lives');
     });
   }
   async function save() {
@@ -518,6 +519,9 @@ export function Experience() {
     (q) => answers[q.key] !== undefined && answers[q.key] !== '',
   ).length;
   const protectedPage = [
+    'lives',
+    'start',
+    'life',
     'onboarding',
     'profile',
     'futures',
@@ -550,13 +554,13 @@ export function Experience() {
           <nav className="nav" aria-label={t('nav.main')}>
             <button
               className={page === 'futures' ? 'active' : ''}
-              onClick={() => navigate(user ? '/futures' : '/login')}
+              onClick={() => navigate(user ? '/lives' : '/login')}
             >
               {t('nav.lives')}
             </button>
             <button
               className={page === 'onboarding' ? 'active' : ''}
-              onClick={() => navigate(user ? '/onboarding' : '/login')}
+              onClick={() => navigate(user ? '/start' : '/login')}
             >
               {t('nav.profile')}
             </button>
@@ -603,6 +607,14 @@ export function Experience() {
           </div>
         ) : (
           <>
+            {['lives', 'start', 'life'].includes(page) && (
+              <LifeExperience
+                key={`${page}:${id ?? ''}:${user ?? ''}`}
+                page={page}
+                id={id}
+                user={user}
+              />
+            )}
             {page === 'home' && (
               <>
                 <section className="hero">
@@ -617,9 +629,7 @@ export function Experience() {
                     <div className="hero-actions">
                       <button
                         className="primary"
-                        onClick={() =>
-                          navigate(user ? '/onboarding' : '/login')
-                        }
+                        onClick={() => navigate(user ? '/start' : '/login')}
                       >
                         {t('home.start')}
                         <ArrowUpRight size={17} />
@@ -1484,6 +1494,9 @@ export function Experience() {
                             method: 'DELETE',
                             body: JSON.stringify({ confirmation }),
                           });
+                          sessionStorage.removeItem(
+                            `alterward.lifeDraft:${user}`,
+                          );
                           await supabase().auth.signOut();
                           navigate('/');
                         });

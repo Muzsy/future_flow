@@ -3,6 +3,8 @@ import {
   profileSchema,
   questionnaire,
   CONTRACT_VERSION,
+  LIFE_CONTRACT_VERSION,
+  PUBLIC_DRAFT_VERSION,
   SIMULATION_VERSION,
   type Profile,
   type LifeState,
@@ -266,7 +268,7 @@ export class Repository {
       const counts = requireRow(
         await tx.query(
           `SELECT count(*) FILTER(WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS daily,
-        count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM ff_jobs WHERE user_id=$1`,
+        count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM (SELECT status,created_at FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status,created_at FROM aw_jobs WHERE user_id=$1) q`,
           [userId],
         ),
       );
@@ -543,30 +545,57 @@ export class Repository {
     return [...prefix, ...local];
   }
   async exportAccount(userId: string) {
-    const result: Record<string, unknown> = {
-      exportVersion: CONTRACT_VERSION,
-      exportedAt: new Date().toISOString(),
-    };
-    const tables = [
-      'ff_profile_drafts',
-      'ff_profile_versions',
-      'ff_world_versions',
-      'ff_futures',
-      'ff_branches',
-      'ff_life_states',
-      'ff_events',
-      'ff_decisions',
-      'ff_decision_options',
-      'ff_decision_resolutions',
-      'ff_chapters',
-      'ff_consents',
-    ];
-    for (const table of tables)
-      result[table] = await this.db.query(
-        `SELECT * FROM ${table} WHERE user_id=$1`,
+    return this.db.transaction(async (tx) => {
+      await this.lockUser(tx, userId);
+      const result: Record<string, unknown> = {
+        exportVersion: CONTRACT_VERSION,
+        lifeContractVersion: LIFE_CONTRACT_VERSION,
+        publicDraftVersion: PUBLIC_DRAFT_VERSION,
+        exportedAt: new Date().toISOString(),
+      };
+      const tables = [
+        'ff_profile_drafts',
+        'ff_profile_versions',
+        'ff_world_versions',
+        'ff_futures',
+        'ff_branches',
+        'ff_life_states',
+        'ff_events',
+        'ff_decisions',
+        'ff_decision_options',
+        'ff_decision_resolutions',
+        'ff_chapters',
+        'ff_consents',
+        'ff_ai_runs',
+        'aw_drafts',
+        'aw_lives',
+        'aw_branches',
+        'aw_periods',
+        'aw_history',
+        'aw_choices',
+        'aw_ai_runs',
+        'aw_metrics',
+        'aw_budget_accounts',
+        'aw_budget_reservations',
+        'aw_interactions',
+        'aw_publication_drafts',
+        'aw_scenario_drafts',
+      ];
+      for (const table of tables)
+        result[table] = await tx.query(
+          `SELECT * FROM ${table} WHERE user_id=$1`,
+          [userId],
+        );
+      result.account = await tx.query(
+        'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],
       );
-    return result;
+      result.ff_chapter_events = await tx.query(
+        'SELECT ce.* FROM ff_chapter_events ce JOIN ff_chapters c ON c.id=ce.chapter_id WHERE c.user_id=$1',
+        [userId],
+      );
+      return result;
+    });
   }
   async markDeleting(userId: string) {
     await this.db.transaction(async (tx) => {
@@ -575,15 +604,43 @@ export class Repository {
         userId,
       ]);
       await tx.query(
+        "INSERT INTO aw_account_deletions(user_id,status) VALUES($1,'awaiting_auth') ON CONFLICT(user_id) DO NOTHING",
+        [userId],
+      );
+      await tx.query(
         "UPDATE ff_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL WHERE user_id=$1 AND status IN ('queued','running','validating')",
+        [userId],
+      );
+      await tx.query(
+        "UPDATE aw_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL WHERE user_id=$1 AND status IN ('queued','running')",
         [userId],
       );
     });
   }
   async restoreActive(userId: string) {
-    await this.db.query("UPDATE ff_users SET status='active' WHERE id=$1", [
-      userId,
-    ]);
+    await this.db.transaction(async (tx) => {
+      await tx.query("UPDATE ff_users SET status='active' WHERE id=$1", [
+        userId,
+      ]);
+      await tx.query(
+        "DELETE FROM aw_account_deletions WHERE user_id=$1 AND status='awaiting_auth'",
+        [userId],
+      );
+      await tx.query(
+        "UPDATE aw_jobs SET status='failed',error_code='ACCOUNT_DELETION_CANCELLED' WHERE user_id=$1 AND status='cancelled'",
+        [userId],
+      );
+      await tx.query(
+        "UPDATE aw_branches SET status='failed' WHERE user_id=$1 AND status='generating'",
+        [userId],
+      );
+    });
+  }
+  async confirmAuthDeleted(userId: string) {
+    await this.db.query(
+      "UPDATE aw_account_deletions SET status='auth_deleted',auth_deleted_at=now() WHERE user_id=$1",
+      [userId],
+    );
   }
   async deleteAccountData(userId: string) {
     await this.db.query('DELETE FROM ff_users WHERE id=$1', [userId]);
