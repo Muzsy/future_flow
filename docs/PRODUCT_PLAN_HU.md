@@ -1,5 +1,7 @@
 # alterward — aktív termék- és megvalósítási terv
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 2026-10-03 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
 
 ## 1. Irány és dokumentumok szerepe
@@ -8,7 +10,7 @@ AI által generált, tartósan mentett, folytatható és elágaztatható alterna
 
 Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedezése. Az önreflexió ebből származó érték. A cél irányt ad a szimulációnak; teljesülését a rendszer nem ígéri meg. A kommunikáció lehetséges szcenáriókról beszél, és nem ad a kitalált eseményekhez megtörténési százalékot.
 
-Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes feladatlista. A közösségi specifikáció felváltja a korábbi közösségi funkciók későbbre halasztását; a személyes szimuláció elsőbbségét a 42. fejezet kifejezetten megtartja. Az implementációs dokumentum és a kódból exportált sémák a meglévő működésről adnak számot. A `docs/alter_jovo_docs` és az eredeti ZIP változatlan történeti referencia; a tízéves első generálás és a hosszú kötelező kérdőív korábbi javaslatait ez a terv felváltja.
+Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a v2 cél rövid profil/időszak.
 
 Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, angol alapnyelv és választható magyar, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
@@ -27,7 +29,7 @@ A felhasználó új döntése szerint a teljes felület, kérdőív, események,
 | Döntés | A választott opció mindig új gyermekágat nyit | Aktuális döntés az életet viszi tovább; külön művelet a múltból elágazás |
 | Állapot | Profilpillanatkép, semleges környezet, főként számszerű életállapot | Időhöz kötött tények, szereplők, célok, lehetőségek és következmények |
 | Visszatérés | Elmentett történet és ágak megtekintése | Mentett döntés és állapot alapján következő időszak ugyanazon az ágon |
-| Minőségbizonyíték | Három szintetikus profil, három alap és három ág | Több egymást követő időszak konzisztenciája és emberi folytatási igény |
+| Minőségbizonyíték | V1 szintetikus HU alapok/ágak, EN/HU új próbák és 92 automatizált teszt | Több egymást követő időszak konzisztenciája és emberi folytatási igény |
 | Költség | A helyi AI-próbához mérés és keretőr | Alkalmazásszintű keret, hibaköltség és költség/folytatás mérés |
 | Nyilvános tartalom | Nincs publikálás vagy Discovery | Külön anonimizált snapshot, Official/Community jelölés, böngészés és saját privát fork |
 
@@ -104,9 +106,9 @@ A következő időszak bemenete a rögzített állapot, a döntéstörténet, a 
 
 A javítás célzott: a hibás strukturált válasz vagy fejezet legfeljebb egy automatikus javítási kört kap, előre lefoglalt költségen belül. Érvényes esemény/checkpoint megmarad; narratívahiba nem indítja újra az egész világot. Ismételt hiba látható állapotot és biztonságos kézi újrapróbálást eredményez. A hibás és ismeretlen fogyasztású kérés költsége sem tűnik el a nyilvántartásból.
 
-A felhasználói kísérleti keret 5 USD. A lezárt v1-próba becsült fogyasztása 0,6299505 USD; a későbbi, 14 hívásos [modellválasztási próba](AI_MODEL_ROUTING_HU.md) további 0,0542136 USD. A nyelvi próba előtti összesített becslés 0,6841641 USD, akkori maradvány körülbelül 4,32 USD; ez nem lekérdezett szolgáltatói egyenleg. A korábbi tervfrissítés önmagában nem használt API-kreditet. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan.
+A felhasználói kísérleti keret összesen 5 USD. Az összes lezárt sorozat 44 hívás, 1,0194161 USD tokenbecslés, körülbelül 3,98 USD számított maradvány; ez nem szolgáltatói egyenleg. A dátumozott bontás és a közös guard szabályai a [státuszban](STATUS_HU.md) vannak. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan. Ez a dokumentációfrissítés nem indított paid AI-hívást.
 
-A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
+Az angol és magyar generálás külön valódi AI-próbán átment; a [nyelvi jelentés](LOCALIZATION_HU.md) az eredményeket és a még hiányzó fiókos/minőségi próbát is leírja.
 
 Zárt felhasználói teszt előtt alkalmazásszintű keretőr kell: kérés előtti foglalás, felhasználói/projektlimit, hibaköltség, párhuzamos foglalások és a tényleges használat elszámolása. A meglévő helyi smoke-keretőr ennek csak tesztelőzménye. Olcsóbb modellre irányítás külön mérés után következik; a működő OpenAI-integrációt megtartjuk.
 
@@ -137,7 +139,7 @@ A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktör
 
 A személyes technikai alap elfogadása: rövid profilból valódi AI-időszak készül; a döntés állapotot módosít; a második időszak ugyanarra az ágra kerül; kijelentkezés/belépés után folytatható a harmadikkal; a korábbi döntésből másik ág indítható a szülő módosítása nélkül. Dupla kérés, megszakítás, hibás AI-válasz és elveszett lease sem okoz dupla vagy részleges canon-commitot. Jogosultság, export és Auth/DB-törlés minden esetben kötelezően hibamentes.
 
-Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön 20–50 résztvevős magyar zárt használati teszt méri az élményt és a visszatérést; a létszám induló cél, nem statisztikai bizonyító erejű mintaméret.
+Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön 20–50 résztvevős, angol és magyar élményt is vizsgáló zárt használati teszt méri az élményt és a visszatérést; a létszám induló cél, nem statisztikai bizonyító erejű mintaméret.
 
 | Metrika | Első mérési definíció |
 |---|---|

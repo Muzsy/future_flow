@@ -1,5 +1,7 @@
 # Beállítás és helyi titokkezelés
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 ## Supabase
 
 1. Hozz létre projektet egy választott EU-régióban.
@@ -51,7 +53,7 @@ A `.gitignore` minden `.env*` fájlt és az `env/` mappát kizárja, az érték 
 
 A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatibilis tesztek kulcs nélkül is futtathatók. A valódi Supabase Auth, DB-hálózat és OpenAI-generálás csak a szükséges beállítások után ellenőrizhető.
 
-2026-10-02: a megadott projektben az első migráció lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. Az API-kredit feltöltése után valódi AI-események, történetfejezetek és alternatív életág készültek. A Supabase adminisztratív kulcs még hiányzik; a tényleges email-belépés még külön ellenőrzendő.
+2026-10-03-i állapot: a megadott projektben a 001 foundation és 002 content_locale migráció is lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. Az API-kredit feltöltése után valódi AI-események, történetfejezetek és alternatív életág készültek. A Supabase adminisztratív kulcs még hiányzik; a tényleges email-belépés még külön ellenőrzendő.
 
 ## Valódi AI-próba, korlátozott költséggel
 
@@ -59,7 +61,7 @@ A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatib
 
 További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. A nyelv második argumentum: `pnpm smoke:ai family en` angol, `pnpm smoke:ai family hu` magyar. Argumentum nélkül a történeti teszt magyar marad. Az angol riport külön `cases/family-en` mappába kerül. Egy időben egy próbát futtass.
 
-A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
+A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza; az [aktuális összes fogyasztás](STATUS_HU.md) már meghaladja az 1 USD alaplimitet. Új engedett próbához az 5 USD összkereten belüli explicit limit kell, nem futtatásonként új keret. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
 
 Az árbecslés 2026-10-02-án ellenőrzött standard díjakat használ: Sol esetén 2 USD/M bemenet, 0,10 USD/M cache-olvasás, 2,50 USD/M cache-írás, 10 USD/M kimenet; Luna esetén rendre 0,10 / 0,01 / 0,125 / 0,50 USD/M. Minden hívás saját modelljének árával számol; a gondolkodási token a kimenet része, nem kerül kétszer elszámolásra. Más modell vagy hosszú kontextus esetén a próba megáll, amíg nincs hozzá megfelelő árbeállítás. Az összeg tokenszám alapján számolt becslés, nem számlázási egyenleglekérdezés. Források: [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [bemeneti tokenszámlálás](https://developers.openai.com/api/docs/guides/token-counting).
 

@@ -1,10 +1,12 @@
 # alterward — nyilvános tartalom megvalósítási terve
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 2026-10-03 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
 
 ## Sorrend és modulhatár
 
-Személyes AI-szimuláció/tartós állapot → publikálható snapshot és Official seed → olvasható Discovery → Community Publishing → nyilvános fork → később reakció/követés/komment. A nyilvános rendszer az induló termék része. A közösség tárgya élet, döntés, ág és szcenárió. A „read-only Discovery” az élet tartalmának olvasását jelenti: Save és Share már használható.
+Személyes AI-szimuláció/tartós állapot → publikálható snapshot és Official seed → olvasható Discovery → Community Publishing → nyilvános fork → később reakció/követés/komment. A nyilvános rendszer az induló termék része. A közösség tárgya élet, döntés, ág és szcenárió. A „read-only Discovery” fázis célja a kész élet tartalmának olvasása; a fázisban Save és Share is működni fog. Ezek jelenleg még fejlesztendők.
 
 | Modul | Felelősség | Határ |
 |---|---|---|
@@ -63,9 +65,9 @@ Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás
 
 Olvasás/újratöltés/Save/Share nem indít generálást. Snapshot verzió szerint cache-elhető, de a publication aktív státuszát minden hozzáférésnél ellenőrizni kell. CDN esetén visszavonási purge és előre rögzített rövid érvénytelenítési ablak kell. Publish/refresh és új saját fork külön mért AI-költség.
 
-A nyelvi próba előtti fogyasztás 0,6841641 USD volt; a friss összesítést alább vezetjük. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. Ez a terv/szerződésfejlesztés nem használt AI API-kreditet.
+A közös 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A dokumentációfrissítés nem indított AI API-hívást.
 
-A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
+A [nyelvi ellenőrzés](LOCALIZATION_HU.md) v1 EN/HU alapot és ágat bizonyít. V2 Official seedhez mindkét nyelven új több időszakos minősítés kell; a korábbi minta nem automatikusan public seed.
 
 ## Nyilvános fork és személyre szabás
 

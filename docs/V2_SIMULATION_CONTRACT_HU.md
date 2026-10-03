@@ -1,5 +1,7 @@
 # alterward — v2 időszak és tényállapot
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 2026-10-03 · P01 első elkészült szelete. A `packages/contracts/src/life-v2.ts` és `packages/core/src/life-v2.ts` tartalmazza a szerződést és a determinisztikus validátort. Ez könyvtári alap: az API, worker és adatbázis továbbra is v1. Nem kész folytatási funkció.
 
 ## Verzió és kompatibilitás

@@ -1,52 +1,26 @@
-# Alter Jövő — hivatalos technikai és jogi referenciák
+# alterward — források és referenciák
 
-A dokumentáció 2026-10-02-i állapot szerint készült. Implementáció előtt ellenőrizendő, hogy a szolgáltatások és ajánlások változtak-e.
+2026-10-03 · Ez belső forrásjegyzék és tájékozódási linkkatalógus. Nem friss ár-, piaci vagy jogi kutatási jelentés; változó külső állítást új döntés előtt ellenőrizni kell.
 
-## Next.js
+## Elsődleges projektforrások
 
-- Documentation: https://nextjs.org/docs
-- App Router: https://nextjs.org/docs/app
+- [Pozicionálás/célmeghatározás](../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), [Public Lives/Discovery/Community](../PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md): a két felhasználói forrás, teljes és változatlan.
+- [Aktív termékterv](../PRODUCT_PLAN_HU.md), [P01–P13 backlog](../NEXT_STEPS.md), [döntési napló](16_DECISIONS_AND_OPEN_QUESTIONS.md), [követelménymátrix](../REQUIREMENTS_TRACEABILITY_HU.md): elfogadott integráció és felülírások.
+- [Implementáció](../IMPLEMENTATION.md), [státusz/keret](../STATUS_HU.md), [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md), [lokalizáció](../LOCALIZATION_HU.md), [setup](../SETUP.md): kóddal összevetett tények és határok.
+- [AI-ellenőrzés](../AI_VALIDATION.md), [modellvizsgálat](../AI_MODEL_ROUTING_HU.md), [minták](../examples/README.md): dátumozott mérések; a 2026-10-02-i árakat nem nevezzük újraellenőrzött aktuális ajánlatnak.
+- [V0.1 archívum](../archive/README.md): az eredeti témacsomag és ZIP, történeti javaslatokkal.
 
-## NestJS
+## Hivatalos technikai referencia
 
-- Documentation: https://docs.nestjs.com/
-- OpenAPI: https://docs.nestjs.com/openapi/introduction
-- Queues: https://docs.nestjs.com/techniques/queues
+- [Next.js App Router](https://nextjs.org/docs/app), [NestJS](https://docs.nestjs.com/), [Nest OpenAPI](https://docs.nestjs.com/openapi/introduction).
+- [Supabase Auth](https://supabase.com/docs/guides/auth), [getUser](https://supabase.com/docs/reference/javascript/auth-getuser), [JWT fields](https://supabase.com/docs/guides/auth/jwt-fields).
+- [PostgreSQL RLS](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [SELECT/SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html).
+- [OpenAI Responses](https://developers.openai.com/api/docs/guides/text), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [token counting](https://developers.openai.com/api/docs/guides/token-counting), [pricing](https://developers.openai.com/api/docs/pricing).
+- [OpenAPI specification](https://spec.openapis.org/oas/).
 
-## Flutter
+## Indulási adatkezelési felülvizsgálat kiinduló forrásai
 
-- App architecture: https://docs.flutter.dev/app-architecture/guide
-- Architectural overview: https://docs.flutter.dev/resources/architectural-overview
-- Web support: https://docs.flutter.dev/platform-integration/web
+- [European Commission — adatvédelmi elvek](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en).
+- [European Commission — AI regulatory framework](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai).
 
-## Supabase
-
-- Auth: https://supabase.com/docs/guides/auth
-- Flutter quickstart: https://supabase.com/docs/guides/getting-started/quickstarts/flutter
-- Realtime: https://supabase.com/docs/guides/realtime/getting_started
-- Queues: https://supabase.com/docs/guides/queues
-- PGMQ: https://supabase.com/docs/guides/queues/pgmq
-
-## PostgreSQL
-
-- Current docs: https://www.postgresql.org/docs/current/
-- Row Security: https://www.postgresql.org/docs/current/ddl-rowsecurity.html
-
-## OpenAPI
-
-- Specification: https://spec.openapis.org/oas/
-- Latest: https://spec.openapis.org/oas/latest.html
-
-## GDPR — European Commission
-
-- Principles: https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en
-- Obligations / privacy by design: https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations_en
-- Information for individuals: https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en
-
-## EU AI Act — European Commission
-
-- Regulatory framework: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
-- Enforcement: https://digital-strategy.ec.europa.eu/en/policies/enforcement-ai-act
-- Transparency FAQ: https://digital-strategy.ec.europa.eu/en/faqs/transparency-obligations-under-article-50-ai-act
-
-A konkrét jogi besorolást és kötelezettségeket nyilvános indulás előtt szakértővel kell ellenőrizni.
+Ezek a címek az indulási felülvizsgálat kiindulópontjai, nem már elvégzett megfelelőségi ellenőrzések. A források piaci példái az ötlet hátterét adják; versenytársi bevétel, vásárlási hajlandóság, domain vagy védjegy nincs ezzel igazolva.

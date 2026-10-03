@@ -1,154 +1,40 @@
-# Alter Jövő — vízió és termékspecifikáció
+# alterward — vízió és termék
 
-## 1. Termékvízió
+2026-10-03 · Aktív irány. [Termékterv](../PRODUCT_PLAN_HU.md) · [Megvalósítási státusz](../STATUS_HU.md).
 
-Az Alter Jövő egy olyan digitális szolgáltatás, amelyben az ember nem egy statikus AI-választ, hanem egy személyre szabott alternatív életpályát kap.
+## Termékígéret és pozicionálás
 
-A központi kérdés:
+Az alterward AI által generált, tartósan mentett, folytatható és elágaztatható alternatív élet. A felhasználó egy saját vagy alternatív identitással és céllal indul, eseményeket él meg, döntéseket hoz, majd később ugyanabban az életben tapasztalja meg a következményeket. Korábbi döntésből másik ágat is kipróbálhat.
 
-> „Mi történhetne velem, ha a jelenlegi életemből, személyiségemből és környezetemből indulnánk ki?”
+Elsődleges érték: kíváncsiság, élvezhető történet és életutak felfedezése; másodlagos érték az ebből adódó önreflexió és döntési lehetőségek megvizsgálása. A történet lehetséges szcenárió, a cél irányt ad, teljesülését nem ígérjük. Nincs megtörténési százalék vagy emberi érték/életminőség rangsor.
 
-Nem pszichológiai diagnózis, nem jóslás és nem életvezetési autoritás. A rendszer hihető szcenáriókat készít, amelyekben a felhasználó felismerheti saját helyzetét, kipróbálhat döntéseket és megnézheti, hogyan változna egy elképzelt életút.
+Angol rövid bemutatás: **Explore an alternate life shaped by your choices.** Magyar: **Fedezz fel egy alternatív életet, amelyet a döntéseid alakítanak.** A termék neve alterward; domain és védjegyellenőrzés külön nyitott feladat. A korábbi munkanevek nem jelenlegi márkajavaslatok.
 
-## 2. Termékígéret
+## Hat pillér
 
-### Elsődleges
-„Adj meg annyit magadról, amennyit szeretnél, és kapsz egy személyre szabott, folyamatosan alakuló alternatív jövőt.”
+| Pillér | Szerepe |
+|---|---|
+| Identity | Saját/alternatív identitás és induló helyzet, verziózott pillanatkép |
+| Goal | Egy fő irány, prioritás, időtáv és vállalható/kizárt áldozatok |
+| World State | Idő, környezet, munka, pénzügy, szereplők, tulajdon, készségek és lehetőségek |
+| Events | AI-javaslatból validált, strukturált történések |
+| Choice | A felhasználó választ, nincs előre rögzített utóélet a függő döntés után |
+| Consequence | Tartós tényváltozások és későbbi következmények, ugyanazon ágon |
 
-### Másodlagos
-„Változtass meg egy döntést vagy tulajdonságot, és nézd meg, hogyan ágazhat tovább az életed.”
+## Három termékréteg
 
-### Hosszú távú
-„Az Alter Jövő együtt változik veled: amikor a valós életed változik, az alternatív jövőid új alapokról folytathatók.”
+**Private Personal Simulation:** minden saját élet privát alapállapotban. **Official Lives / Scenarios:** szintetikus adatokból valódi AI-val generált, ember által kurált példák és külön verziózott szcenáriósablonok. **Community Lives:** a felhasználó explicit preview/megerősítés után publikált snapshotjai. Discovery olvasásból érdeklődés, majd új saját privát AI-élet lehet; olvasáskor nincs új generálás.
 
-## 3. Fő felhasználási esetek
+A közösség élet, ág, döntés és szcenárió köré épül. A személyes folytatási hurok az első mérnöki cél, a Discovery/publishing/fork a teljes induló MVP része. Teljes social network, DM és komment nem az első kiadás része.
 
-### Kíváncsiság
-A felhasználó látni szeretné, milyen hihető életutat épít belőle a rendszer.
+## Célközönség és JTBD
 
-### „Mi lenne, ha?”
-Módosítható:
-- munkahely;
-- költözés;
-- kapcsolat;
-- vállalkozás;
-- hobbi;
-- továbbtanulás;
-- életmód.
+Első célcsoport a kíváncsi felnőtt felfedező. Másodlagos irány a változtatási lehetőséget kereső, történetkedvelő és közösségi életutakat olvasó felhasználó. Tesztelendő igények: másik jövő/identitás kipróbálása; választások következménye; ugyanazon történet folytatása; mások dilemmáinak olvasása; saját ág létrehozása és önkéntes megosztás. A 18+ cél nem helyettesít kész életkor-ellenőrzést.
 
-### Személyiség-kísérlet
-Példák:
-- „Mi történne, ha kockázatvállalóbb lennék?”
-- „Mi történne, ha kevésbé ragaszkodnék a biztonsághoz?”
-- „Mi történne, ha több energiát tennék a kapcsolataimba?”
+## Alapelvek és hipotézisek
 
-### Történetélmény
-A rendszer személyre szabott sorozatként is fogyasztható.
+Hihető és érdekes események; hétköznapi folytonosság; strukturált állapot a próza előtt; tartós user agency; privát alap; rövid AI-jelölés és érthető szcenáriókommunikáció; manipuláló streak/félelem alapú upsell nélkül. Az alterward nem klinikai teszt, jósló, coaching-, habit- vagy egészségplatform; jelentős valós jogosultsági döntést nem hoz.
 
-### Közösségi kapcsolódás
-Hasonló helyzetekből induló, anonimizált életutak és döntések összevethetők.
+A stratégia A–G hipotézisei nyitottak: saját/fiktív identitás; onboarding értéke; folytatás/új élet; fork-retenció; megosztási igény; mások életének fogyasztása; történet/analitikus riport. Elsődleges mérés a Continuation Rate és Continued Life Sessions, mellettük D1/D7/D30 és költség/sikeres folytatás. Egy technikai AI-minta nem validált termék vagy bizonyított piaci kereslet.
 
-## 4. Célcsoport
-
-Első validációs célcsoport:
-- 25–55 év közötti felnőttek;
-- rendszeres internethasználók;
-- érdeklődnek AI, önismeret, döntési helyzetek vagy interaktív történetek iránt;
-- hajlandók 10–20 percet adni egy részletes profilnak;
-- visszatérhetnek epizodikus történetért.
-
-A tényleges célcsoportot használati adatok alapján kell szűkíteni.
-
-## 5. Nem célok
-
-Az Alter Jövő:
-- nem jósolja meg a valós jövőt;
-- nem diagnosztizál;
-- nem helyettesít pszichológust, orvost, pénzügyi vagy jogi szakértőt;
-- nem számol „életminőség pontszámot”;
-- nem rangsorolja, kinek jobb az élete;
-- nem használható hitelképességre, foglalkoztatásra vagy emberi érték pontozására;
-- nem teszi közzé automatikusan a személyes történetet;
-- nem alkalmaz manipuláló félelemalapú retentiont.
-
-## 6. Termékelvek
-
-### Plausibility over drama
-A hihetőség fontosabb, mint a hatásvadász fordulat.
-
-### Structured state over generated prose
-Előbb state és event, utána próza.
-
-### Scenario, not prophecy
-Mindig lehetséges forgatókönyvként kommunikál.
-
-### User agency
-A felhasználó dönt, visszalép, új branch-et nyit, profilt módosít.
-
-### Privacy by default
-Privát profil és történet az alapállapot.
-
-### Explainability
-A rendszer lehetőség szerint megmutatja, mely tényezők vezettek egy szimulált fordulóponthoz.
-
-### No fake certainty
-Nem használ hamis százalékos pontosságot.
-
-## 7. Kulcsfogalmak
-
-- **Profile:** aktuális strukturált leírás.
-- **Trait:** 0–100 jellegű személyiség- vagy habitusdimenzió.
-- **Life state:** egy időpont strukturált életállapota.
-- **World state:** külső környezeti állapot.
-- **Event:** strukturált történés.
-- **Decision:** választási pont.
-- **Consequence:** state-változás.
-- **Future:** egy teljes alternatív jövő gyökéreleme.
-- **Branch:** egy elágazó jövőág.
-- **Chapter:** eventekből készített narratív fejezet.
-- **Canon:** az adott branch strukturált, érvényes esemény- és állapotlánca.
-
-## 8. „Wow moment”
-
-A kívánt reakció:
-
-> „Ez tényleg rólam szól, és értem, hogyan jutott el ide.”
-
-Az első jövőben ezért legyen:
-- 2–3 személyes kontextusra épülő elem;
-- 1 belső konfliktus;
-- 1 váratlan, de indokolható esemény;
-- 1 döntési pont;
-- 1 hosszabb távú következmény.
-
-## 9. Fő metrikák
-
-### Aktiváció
-- signup → profile started;
-- profile started → minimum profile;
-- profile complete → first future.
-
-### Élmény
-- first future completion;
-- személyesség-visszajelzés;
-- branch indítás;
-- D7/D30 visszatérés.
-
-### Retention
-- következő chapter megnyitás;
-- valós profile update;
-- heti aktív user.
-
-### Community később
-- önként megosztott történet;
-- értelmes hozzászólás;
-- moderációs incidens arány.
-
-## 10. Fő hipotézisek
-
-1. A strukturált profil jobb alap, mint a teljesen nyitott chat.
-2. A szabad szöveges finomítás növeli a személyességérzetet.
-3. A branch-ek növelik a visszatérést.
-4. A heti történetfolyam növelheti a retentiont.
-5. A community akkor működik, ha élethelyzetekből és történetekből indul.
-6. Több branch, hosszabb horizon és sűrűbb story lehet monetizálható.
+Jelenleg a v1 prototípus működik; a tartós rövid időszakos élmény még [P01–P08](../NEXT_STEPS.md) munka. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.

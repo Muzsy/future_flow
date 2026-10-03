@@ -1,254 +1,38 @@
-# Alter Jövő — engineering setup
+# alterward — engineering és helyi indítás
 
-## 1. Repo
+2026-10-03 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
 
-```text
-alter-jovo/
-├─ apps/
-│  ├─ web/
-│  ├─ api/
-│  └─ worker/
-├─ packages/
-│  ├─ contracts/
-│  ├─ api-client-ts/
-│  ├─ config/
-│  └─ test-fixtures/
-├─ database/
-│  ├─ migrations/
-│  ├─ seed/
-│  └─ policies/
-├─ docs/
-├─ infra/
-├─ scripts/
-└─ .github/
+## Környezet
+
+Node 24, pnpm 11.19.0, strict TypeScript, workspace és lockfile. A termék alterward, csomagnevek `@future-flow/*`. A gyökér `.env` szerver/worker, `apps/web/.env.local` csak publikus kliensváltozó. Az [érték nélküli minta](../../.env.example) használható; kulcs/jelszó nem kerül Gitbe, chatbe vagy logba. A már védett titokmappa neve technikai okból FutureFlow marad.
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm build:packages
+pnpm db:migrate
+pnpm dev
 ```
 
-## 2. Package manager
+Web `http://localhost:3000`, API `http://localhost:4000`, OpenAPI `/api/openapi.json`. Supabase DB/Auth és OpenAI konfiguráció kell a tényleges generáláshoz. Hiányzó AI-kulcs nem ad mock személyes életet. UI/build/automatizált teszt kulcs nélkül ellenőrizhető. A valós smoke API-kreditet használ; dokumentációfrissítéshez nem szükséges.
 
-Javaslat: `pnpm` workspace.
+## Ellenőrzések
 
-Egy package manager legyen és lockfile kötelező.
-
-## 3. Runtime
-
-Node verzió repo-ban rögzítve:
-- `.nvmrc` vagy `.tool-versions`;
-- `engines`;
-- CI ugyanaz.
-
-Ne dokumentumban hardcode-oljunk gyorsan avuló patch verziót.
-
-## 4. TypeScript
-
-`strict: true`
-
-Kerülendő:
-- indokolatlan `any`;
-- unchecked type assertion;
-- DTO/domain type keverés.
-
-## 5. Validation
-
-Három réteg:
-- API boundary → DTO validation;
-- AI boundary → JSON schema;
-- DB boundary → constraint.
-
-## 6. DB migráció
-
-`database/migrations`
-
-Minden schema change:
-- migration;
-- compatibility review;
-- seed update, ha kell.
-
-Productionben nincs auto-sync.
-
-## 7. Seed
-
-Minimum:
-- trait definitions;
-- questionnaire v0;
-- prompt metadata;
-- 5 synthetic profile.
-
-Valós user adat tilos.
-
-## 8. Local dev
-
-- Docker Compose opcionális;
-- Supabase local/dev;
-- mock AI provider;
-- UI AI key nélkül is induljon.
-
-## 9. Mock AI
-
-Kötelező.
-
-Fixtures:
-- event generation;
-- decision;
-- chapter;
-- profile extraction később.
-
-Előny:
-- determinisztikus;
-- gyors;
-- olcsó;
-- CI-kompatibilis.
-
-## 10. Env
-
-Példa:
-
-```text
-APP_ENV
-WEB_BASE_URL
-API_BASE_URL
-
-SUPABASE_URL
-SUPABASE_PUBLISHABLE_KEY
-SUPABASE_SERVICE_ROLE_KEY
-
-AI_PROVIDER
-AI_API_KEY
-
-LOG_LEVEL
+```powershell
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm schemas
 ```
 
-Service role csak server.
+CI frozen install, formázás, typecheck, teszt, build, sémaexport és `docs/contracts` driftellenőrzés. Külön lint/SAST/dependency/production-deploy lépés jelenleg nem állítható késznek. Dokumentáció-only változásnál link/manifest/forráshash/diff ellenőrzés megfelelő; nem kell új paid AI-próba.
 
-## 11. Secrets
+## Migráció és szerződés
 
-- `.env` gitignore;
-- `.env.example` csak kulcsnév;
-- prod secret manager;
-- CI secret scan;
-- rotation playbook.
+001 foundation és 002 content locale már alkalmazott. Checksum-védelem/tranzakció, új v2 tárolás 003+. Tiszta domain-kontraktus és API/AI boundary validálás, tulajdonosi FK/SQL invariant. JSON-sémát kódból exportálunk, nem kézzel külön truth source-ként szerkesztünk. Az archív manifest nem regenerálható, a friss témacsomagé igen.
 
-## 12. CI
+## Munka és release
 
-Minden PR:
-1. frozen install;
-2. lint;
-3. typecheck;
-4. unit;
-5. integration;
-6. contract diff;
-7. migration validation;
-8. web build;
-9. api build;
-10. dependency/security scan.
+A felhasználó `Muzsy/future_flow` **main** ágát kérte; nem készítünk helyette kötelező feature branch/PR-folyamatot. Main commit és CI nem nyilvános deploy. Staging/prod külön credential/backup/restore/proxy/HTTPS és release-felelős még feladat. Docker/Kubernetes/Redis/realtime/mobile nem a helyi indítás előfeltétele.
 
-Live AI eval inkább nightly/explicit.
-
-## 13. Git
-
-- `main` deployable;
-- short-lived feature branch;
-- PR;
-- protected main.
-
-## 14. PR template
-
-- mit változtat;
-- domain impact;
-- migration?;
-- API breaking?;
-- privacy impact?;
-- AI cost impact?;
-- tests.
-
-## 15. Coding style
-
-Backend:
-- vékony controller;
-- use-case service;
-- domain invariant;
-- explicit transaction.
-
-Frontend:
-- feature-based;
-- central API client;
-- isolated form state;
-- server/client component tudatos.
-
-## 16. Feature flags
-
-Experimental funkció:
-- flag;
-- default off;
-- cohort.
-
-## 17. Observability
-
-MVP:
-- requestId;
-- jobId;
-- opaque userId;
-- structured log;
-- latency;
-- AI usage;
-- error rate.
-
-Később tracing/dashboard/alert.
-
-## 18. Error taxonomy
-
-- `AUTH_*`
-- `PROFILE_*`
-- `SIMULATION_*`
-- `AI_*`
-- `JOB_*`
-- `STORY_*`
-- `PRIVACY_*`
-
-## 19. Admin
-
-Minimum:
-- user id keresés;
-- job státusz;
-- AI run meta;
-- future státusz;
-- engedélyezett retry;
-- delete/export support.
-
-Admin ne kapjon automatikus hozzáférést teljes privát történethez.
-
-## 20. Release
-
-Staging:
-- migration;
-- smoke;
-- synthetic future;
-- web e2e.
-
-Production:
-- backup check;
-- migration;
-- API;
-- worker;
-- web;
-- smoke;
-- monitor.
-
-## 21. Development order
-
-### Slice A
-Auth + user + health.
-
-### Slice B
-Profile draft → commit.
-
-### Slice C
-Future API → mock simulation → timeline.
-
-### Slice D
-Real AI event generation.
-
-### Slice E
-Story.
-
-### Slice F
-Decision/fork.
+Változás átadása: konkrét viselkedés, séma/migráció/jogosultság/AI-költség hatás, megfelelő ellenőrzés és friss státusz. `apps/web` kódváltozás előtt az ottani AGENTS és a telepített Next útmutató követendő. A következő fejlesztés P01 tárolás, nem v1 újraépítése vagy statikus történetdemo.

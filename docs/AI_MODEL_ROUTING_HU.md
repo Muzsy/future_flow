@@ -1,6 +1,6 @@
 # AI-modellválasztás és költségoptimalizálás
 
-2026-10-02 UTC · Hivatalos OpenAI-árak, kódvizsgálat, a korábbi 18 hívás fogyasztása és 14 új, valódi API-hívás alapján. Kapcsolódó terv: [folytatható alternatív élet](PRODUCT_PLAN_HU.md).
+2026-10-02 UTC · Lezárt mérés az akkor ellenőrzött hivatalos OpenAI-árak, kódvizsgálat, 18 korábbi és 14 új valódi hívás alapján. 2026-10-03-i dokumentációfrissítés: a történeti mérési számok/árak megmaradnak, a jelenlegi nyelvi/scope állapot pontosítva. [Aktuális összes keret/státusz](STATUS_HU.md) · [Dokumentáció](README.md). Kapcsolódó terv: [folytatható alternatív élet](PRODUCT_PLAN_HU.md).
 
 ## Következtetés
 
@@ -15,7 +15,7 @@ A kódban három AI-feladat van:
 | Feladat | Tartalom | Modellválasztás |
 |---|---|---|
 | `simulation_events` | Profilból/állapotból strukturált események és opciók | `AI_EVENT_MODEL` |
-| `story_chapters` | Canonból magyar narratíva | `AI_STORY_MODEL` |
+| `story_chapters` | Canonból angol/magyar narratíva | `AI_STORY_MODEL` |
 | `story_fidelity` | Narratíva összevetése a cannonnal | **Új:** `AI_CHECK_MODEL` |
 
 Korábban az eseménygenerátor és az ellenőrző ugyanazt a modellt használta. Emiatt egyetlen környezeti változó átállítása mindkettőt olcsóbb modellre vitte volna. A vizsgálat részeként az ellenőrző külön konfigurálható lett. Ha az `AI_CHECK_MODEL` nincs megadva, az eseménymodellt használja, megőrizve a korábbi működést. A mintakonfiguráció mindhárom szerepre Solt állít be; a védett helyi `.env` modelljeit ez a vizsgálat nem módosította.
@@ -80,7 +80,7 @@ A kreatív történet a szakmai fókusz kialakulását a második év végi port
 
 Ez nem általános pontossági arány vagy bizonyított minőségi rangsor. Két profil és néhány feltűnő hibamondat kevés a checker lecseréléséhez. A próba megmutatja, miért kell finom időrendi és jelentésbeli eseteket is tesztelni. A Sol ellenőr sem tekinthető hibátlan igazságforrásnak; emberi értékelés továbbra is szükséges.
 
-**Költség:** 12 Luna-hívás és 2 Sol-kontroll, összesen **0,0542136 USD**. Minden válasz rendelkezik ismert tokenfogyasztással. Az előzetes 0,25 USD többletkeret és a régi próbákkal közös 1 USD fejlesztői limit alatt maradtunk. A korábbi 5 USD-ből összesen becsült **0,6841641 USD** fogyott, ebből számítva körülbelül **4,32 USD** maradt; szolgáltatói egyenleget nem kérdeztünk le.
+**Költség:** 12 Luna-hívás és 2 Sol-kontroll, összesen **0,0542136 USD**. Minden válasz rendelkezik ismert tokenfogyasztással. Az előzetes 0,25 USD többletkeret és a régi próbákkal közös 1 USD fejlesztői limit alatt maradtunk. A korábbi 5 USD-ből összesen becsült **0,6841641 USD** fogyott, közvetlenül e mérés után körülbelül **4,32 USD** számított maradvány volt; szolgáltatói egyenleget nem kérdeztünk le. A későbbi nyelvi próbákkal frissített összesítés a közös státuszban van.
 
 A nyers válaszok, a két Luna-történet és az egyes lépések auditja a Gitből kizárt `.local/ai-model-eval` alatt található. A korábbi szintetikus jelentéseket és történeteket a próba nem módosította. Supabase-fiókot nem hozott létre, személyes adatot nem küldött, éles életágat nem írt.
 
@@ -91,7 +91,7 @@ Az alábbi hozzárendelés saját, feladatspecifikus javaslat. Az OpenAI a Luná
 | Feladat | Induló választás | Bevezetési feltétel |
 |---|---|---|
 | Strukturált, rövid események/opciók | Luna low/medium jelölt; Sol kontroll és célzott fallback | V2-domainfeltételek és a teljes lánc több időszakos ellenőrzése |
-| Magyar történet, jelenetek, érzelmi folytonosság | Sol; low/medium később összehasonlítható | Olvashatóság, hossz, időrend és folytatási vágy emberi értékelése |
+| Angol/magyar történet, jelenetek, érzelmi folytonosság | Sol; low/medium később összehasonlítható | Olvashatóság, hossz, időrend és folytatási vágy emberi értékelése |
 | Végső történethűség-ellenőrzés | Sol | Luna csak párhuzamos próba, amíg a finom hibák felismerését nem igazoltuk |
 | Későbbi szabad szöveg strukturált mezőkké alakítása | Luna none/low jelölt | Séma, előnézet/jóváhagyás; a már strukturált űrlap nem kap felesleges extra hívást |
 | Későbbi emlékezeti összefoglaló | Luna low jelölt | Eseményazonosítókhoz kötött, canonból újraképezhető tények |
@@ -120,9 +120,9 @@ Ez most nem automatikusan aktivált alapbeállítás. A következő rövid idős
 
 Az [aktuális backlog](NEXT_STEPS.md) P01–P03 szeletei maradnak elöl. P02-ben a rövid eseménygenerálást feladatonként mérjük, P05-ben a routing, javítás és alkalmazásszintű keret készül el. A következő összehasonlítás a teljes **Luna-esemény → Sol-történet → Sol-ellenőrzés** láncot méri a Sol-kontrollhoz képest, legalább három egymást követő időszakon, majd a P07 különböző esetein.
 
-Mérendő: költség/elfogadott időszak, schema/domain siker, tény- és időrendi hiba, checker téves elfogadás/téves riasztás, javítás/fallback arány, generálási idő, magyar szövegminőség és folytatási szándék. A 20 eset nem írja felül az engedélyezett pénzügyi keretet; a fizetett próbákat fokozatosan futtatjuk.
+Mérendő: költség/elfogadott időszak, schema/domain siker, tény- és időrendi hiba, checker téves elfogadás/téves riasztás, javítás/fallback arány, generálási idő, angol és magyar szövegminőség és folytatási szándék. A korábbi modellpróba magyar v1/prompton futott; az új locale-promptok és v2 period együtt még nem minősítettek Luna-routingen. A 20 eset nem írja felül az engedélyezett pénzügyi keretet; a fizetett próbákat fokozatosan futtatjuk.
 
-Az `evaluate-ai-models.ts` a két meglévő helyi szintetikus jelentést használja, közös fogyasztási naplóval. Egyszerre egy fizetett fejlesztői próba futhat; ez a fájlalapú guard nem a többfolyamatos alkalmazás keretkezelése. A keretőr már modellspecifikusan számol Sol és Luna díjakkal; az ismeretlen fogyasztás foglalása megmarad. A vizsgálat változásaira 63 automatizált teszt, formázás, típusellenőrzés és teljes build sikeres.
+Az `evaluate-ai-models.ts` a két meglévő helyi szintetikus jelentést használja, közös fogyasztási naplóval. Egyszerre egy fizetett fejlesztői próba futhat; ez a fájlalapú guard nem a többfolyamatos alkalmazás keretkezelése. A keretőr már modellspecifikusan számol Sol és Luna díjakkal; az ismeretlen fogyasztás foglalása megmarad. A vizsgálat akkori változásaira 63 automatizált teszt, formázás, típusellenőrzés és teljes build sikeres.
 
 ```powershell
 pnpm build:packages

@@ -1,16 +1,18 @@
 # alterward — következő lépések, sorrendben
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 2026-10-03 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01 első szerződés/domain-szelete elkészült; a többi pont tervezett munka.
 
 ## Kiinduló állapot
 
-A Supabase-migráció és a TLS-kapcsolat működik. Valódi OpenAI-hívásokkal három profilból három tízéves alaptörténet és három alternatív ág készült, összesen körülbelül 0,63 USD költséggel. A 18 hívás és 59 automatizált teszt a jelenlegi technikai alapot ellenőrizte. [Eredmények és minták](AI_VALIDATION.md).
+A Supabase 001/002 migrációja és ellenőrzött TLS-kapcsolata működik. V1 valódi OpenAI-esemény/történet/új ág, teljes angol/magyar felület és életnyelv-öröklés, valamint v2 könyvtári tény/időszak/korlát validátor áll rendelkezésre. Az utolsó kódellenőrzés 92 teszt, formázás/typecheck/build/sémaexport és sikeres CI. [Bizonyíték, határok és 5 USD keret](STATUS_HU.md).
 
 A jelenlegi választás mindig új ágat nyit; ugyanannak az életágnak a következő időszaka még nem készíthető el. A rövid profil, bővebb világállapot és folytatási mérés szintén fejlesztendő. A valódi Supabase-belépés és Auth-fióktörlés ellenőrzése nyitott; a szerveroldali törlési kulcs korábban jelzett függőség.
 
-Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívás, körülbelül 0,054 USD, összesített fogyasztás körülbelül 0,684 USD. Az ellenőrző külön modellbeállítása elkészült, a helyi keretőr már Sol/Luna díjakkal számol; 63 automatizált teszt és teljes build sikeres. Az első teljes láncban mérendő jelölt Luna-eseménygenerátor, Sol-narrátor és Sol-ellenőr; ez nem írja felül a P01 elsőbbségét.
+A [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md) történeti eredménye: külön checker-konfiguráció és modellspecifikus helyi árbecslés kész; Luna esemény + Sol narrátor/checker mérendő jelölt, nem bekapcsolt alkalmazásalap. P01 tárolási elsőbbségét nem módosítja.
 
-A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
+A [nyelvi ellenőrzés](LOCALIZATION_HU.md) valódi EN/HU alapéletet és ágat is fed. A teljes 44 hívás és az aktuális számított maradvány egy helyen, a [státuszban](STATUS_HU.md) követhető.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 

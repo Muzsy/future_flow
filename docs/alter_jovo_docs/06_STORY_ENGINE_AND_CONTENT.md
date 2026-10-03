@@ -1,205 +1,27 @@
-# Alter Jövő — történetmotor és tartalomrendszer
+# alterward — történet és tartalom
 
-## 1. Cél
+2026-10-03 · [AI-minták](../examples/README.md) · [Lokalizáció](../LOCALIZATION_HU.md) · [Nyilvános tartalom](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md).
 
-A strukturált szimulációból élvezhető, folyamatos történetet kell készíteni úgy, hogy a narratíva ne írja felül a canon-t.
+## Narratíva a canonból
 
-## 2. Hierarchia
+A történet időszakok és választások következményeit teszi olvashatóvá. Bemenet: elfogadott események, állapot előtte/utána, releváns szereplők/cél/korlát, korábbi canonhivatkozásos emlékezet és rögzített tartalomnyelv. A body nem igazságforrás. Fontos munka-, kapcsolat-, gyermek-, tulajdon- vagy pénzügyi tényt nem találhat ki a canon helyett.
 
-```text
-Future
- └─ Branch
-    └─ Arc
-       └─ Chapter
-          └─ Scene
-```
+Alapstílus természetes, második személyű, személyes és hihető. Hétköznapi rutin, apró konfliktus, lassú fejlődés, kompromisszum és visszatérő szereplő adjon ritmust. Nem minden időszak új teljes élet, nem automatikus siker vagy túlzott dráma. Megengedett hangulat, semleges jelenet és stilizált párbeszéd, amíg nem állít új tartós tényt.
 
-- **Arc:** hosszabb témaszál.
-- **Chapter:** olvasható epizód.
-- **Scene:** kisebb narratív egység.
+## V1 és v2
 
-## 3. Chapter input
+V1 ténylegesen 2–3 fejezetet készít a tízéves baseline-hoz és új ághoz. V2 tervezett alap: hat hónap, 2–5 esemény, egy 250–600 szavas fejezet, végén egy nyitott döntés. A választás előtti történet nem kezelheti már megtörténtként a döntés következményét. Nincs mesterséges heti feloldási várakozás; sorozatosságot a valódi új időszak ad.
 
-- canonical events;
-- life state before;
-- life state after;
-- relevant relationships;
-- profile summary;
-- previous chapter summary;
-- style settings;
-- forbidden additions.
+Esemény/decision-hivatkozás, dátum, szereplő, állapot és opció egyezik. Az AI-fidelity kiegészíti a determinisztikus vizsgálatot, emberi angol/magyar olvashatóság és folytatási kíváncsiság mérendő. Eladott cég, lezárt munka vagy régi választás nem tűnhet el és nem térhet vissza indoklás nélkül.
 
-## 4. Chapter output
+## Nyelv
 
-```json
-{
-  "title": "...",
-  "lead": "...",
-  "body": "...",
-  "eventRefs": ["evt_1", "evt_2"],
-  "decisionRef": "dec_1",
-  "summary": "...",
-  "toneTags": ["reflective", "grounded"]
-}
-```
+Teljes angol történet alap, magyar választható. A mentett életnyelv minden eseménycímre, opcióra, fejezetre és ellenőrzési megjegyzésre érvényes. A felület lehet más nyelvű, ezt külön jelöljük. Régi magyar élet nem fordul automatikusan át. Új fordítás később külön ellenőrzött/versioned projekció lehet, eredeti canon megtartásával és külön költséggel. Új nyelv emberi és AI-próbát kap.
 
-A body nem truth source.
+## Official és Community tartalom — terv
 
-## 5. Történeti ritmus
+Scenario verziózott induló sablon, Official Life egy ténylegesen AI-val generált konkrét élet. Emberi curator minőséget, PII-t, nyelvet és fork-checkpointot ellenőriz. 20–30 sablon és 50–100 Official Life összesített indulási cél; előbb kis több időszakos pilot, mindkét nyelvvel, a meglévő kereten belül. A teljes angol kínálat és magyar minták aránya pilotdöntés.
 
-Ne minden epizód legyen nagy fordulat.
+Community Life külön sanitized PublicSnapshotból olvasható. AI-generated/user-edited és Official/Community jelölés pontos eredetet mutat, nem minőségi vagy valóságígéret. Privát folytatás nem írja át a már jóváhagyott kiadást. Cover kezdetben kódalapú vizuál lehet; képgenerálás nem szükséges a tartalomhoz.
 
-Kiinduló arány:
-- 50–60% hétköznapi előrehaladás;
-- 20–30% kisebb változás;
-- 10–15% fontos fordulópont;
-- ritkán major event.
-
-Ez konfiguráció, nem merev szabály.
-
-## 6. Hétköznapiság
-
-A hitelességhez kell:
-- rutin;
-- visszatérő szereplő;
-- apró konfliktus;
-- félbehagyott terv;
-- lassú fejlődés;
-- kompromisszum.
-
-Kerülendő az „évente teljesen új élet” hatás.
-
-## 7. Visszatérő motívumok
-
-Narrative memory indexelheti:
-- régi hobbi;
-- halogatott cél;
-- barát visszatérő szerepe;
-- munkahelyi elégedetlenség;
-- helyhez kötődés.
-
-Ez csak canon-referenciákat tartson.
-
-## 8. Epizódos publikálás
-
-Két mód lehet:
-
-### Immediate
-Az első időszak azonnal olvasható.
-
-### Serialized
-A fejezetek később nyílnak meg.
-
-MVP-ben:
-- első 2–3 chapter azonnal;
-- serialized mode feature flag mögött.
-
-Az első validáció során ne kényszerítsünk mesterséges várakozásra.
-
-## 9. Következő fejezet
-
-```text
-current canon
- ↓
-next event window
- ↓
-candidate events
- ↓
-state transition
- ↓
-chapter
- ↓
-publish
-```
-
-## 10. Cliffhanger
-
-Jó:
-> „A beszélgetés után először merül fel komolyan, hogy talán mégsem kell ugyanott maradnod.”
-
-Rossz:
-> „Nem fogod elhinni, mi történik ezután.”
-
-## 11. Narratív stílus
-
-Default:
-- második személy;
-- realista;
-- természetes;
-- visszafogott;
-- nem moralizáló;
-- nem túl irodalmi.
-
-Később user style:
-- tömör;
-- részletes;
-- regényszerű;
-- dokumentarista;
-- könnyed.
-
-## 12. Decision jelenet
-
-A chapter vége lehet:
-- nyitott döntés;
-- következmény;
-- időugrás.
-
-A döntési opció a Simulation Engine-ből érkezik.
-
-## 13. Branch compare story
-
-Később:
-> „Ugyanaz a 2028-as pont, két külön élet.”
-
-Kiemelendő:
-- első divergencia;
-- fő következmények;
-- kapcsolati eltérés;
-- karrier;
-- célok.
-
-## 14. Valós élet vs Alter Jövő
-
-Mindig külön:
-- **Valós profil**
-- **Alter branch**
-- **Scenario override**
-
-A történet ne mondja:
-> „Ez fog történni.”
-
-Hanem:
-> „Ebben az életágban…”
-
-## 15. Safety
-
-Erősen korlátozott:
-- halál;
-- súlyos diagnózis;
-- erőszak;
-- önkárosítás;
-- gyermekkel kapcsolatos tragédia.
-
-Ne legyenek engagement-eszközök.
-
-## 16. Story consistency checker
-
-Publikálás előtt:
-- fontos állítás event/state alapú;
-- szereplő létezik;
-- relationship label helyes;
-- dátum helyes;
-- branch helyes;
-- nincs canon-ellentmondás;
-- nincs tiltott új tény.
-
-## 17. Story feed cardok
-
-- új chapter;
-- decision;
-- régi döntés következménye;
-- profile update;
-- branch compare;
-- opcionális community story.
-
-A személyes és közösségi tartalom vizuálisan különüljön el.
+Az elmentett [v1 minták](../examples/README.md) valódi AI-fejezetek, szintetikus adatokkal; történeti bizonyítékok, nem automatikusan kiadható v2 seed. Halál/diagnózis/erőszak/gyermektragédia nem lehet véletlen retention-eszköz. Tervezett public életoldal és SEO csak aktív, engedett snapshotot adhat.

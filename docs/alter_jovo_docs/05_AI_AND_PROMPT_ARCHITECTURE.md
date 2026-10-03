@@ -1,284 +1,37 @@
-# Alter Jövő — AI és prompt architektúra
+# alterward — AI és promptarchitektúra
 
-## 1. Cél
+2026-10-03 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
-Az AI ne legyen közvetlenül összekötve a UI-val, és ne legyen egyetlen óriási prompt. A rendszer több specializált AI-feladatot kezel:
+## Meglévő három szerep
 
-1. profil szabad szöveges kinyerése;
-2. candidate event generálás;
-3. decision option generálás;
-4. freeform decision strukturálás;
-5. chapter narratíva;
-6. rövid összegzés;
-7. később anonimizálás/moderációs segéd.
+| Feladat | Konfiguráció | Jelenlegi használat |
+|---|---|---|
+| Események és döntési opciók | `AI_EVENT_MODEL` | Strukturált v1 eseménygenerálás |
+| Történetfejezetek | `AI_STORY_MODEL` | Canonból olvasható angol/magyar próza |
+| Fidelity/safety | `AI_CHECK_MODEL` | Canon és történet összevetése |
 
-## 2. Provider abstraction
+Mindhárom kezdőmodell `gpt-6.1-sol`. Checker hiányzó beállításnál az eseménymodellt örökli; modellcserénél külön kell beállítani. Luna eseménygenerátor mérendő jelölt, nem automatikus alkalmazásbeállítás. A korábbi becsült 40% megtakarítás régi tokenmixből számolt lehetőség. V2 több időszakon és mindkét nyelven új teljeslánc-eval kell.
 
-Javasolt interface:
+OpenAI Responses, Structured Outputs/JSON Schema, `store:false`, szerveroldali kulcs. Az API/worker és domain-könyvtár elválasztása megmarad; böngészőből nincs közvetlen AI-hívás. AI nélküli személyes tartalompótlás nincs. Teszthelyettesítő csak automatizált, elkülönített tesztben.
 
-```ts
-export interface AiProvider {
-  generateStructured<T>(
-    request: StructuredGenerationRequest<T>
-  ): Promise<StructuredGenerationResult<T>>;
+## Nyelv és prompt
 
-  generateText(
-    request: TextGenerationRequest
-  ): Promise<TextGenerationResult>;
+Aktív promptok: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`. Ez promptverzió, nem a kész v2 periodmotor állítása. Mentett életnyelv a jobban és auditban is szerepel; régi nyelv nélküli job magyarul folytatódik. Új élet alapnyelve angol. Kimeneti JSON-kulcs/enum/UUID nem fordul, minden olvasói szöveg a rögzített nyelven készül.
 
-  moderate?(
-    request: ModerationRequest
-  ): Promise<ModerationResult>;
-}
-```
+A nyelv zárt regiszterből, magas prioritású rendszerutasításból jön. A felhasználói profil/cél és narratív előzmény külön nem megbízható adatblokk, nem új rendszerutasítás. A canon magasabb rendű a prózánál. Raw prompt és személyes bemenet nem kerül működési naplóba.
 
-A domain-kód ne ismerjen provider-specifikus SDK típusokat.
+## Validálás, retry és checkpoint
 
-## 3. AI Orchestrator
+AI-kimenet → séma → idő/szereplő/állapot/korlát → narratív referencia → AI-fidelity → commit. Egy `valid=true` nem szemantikai garancia, emberi értékelés kell. A már elfogadott eseményeket narratívahiba miatt nem generáljuk újra; a jobcheckpoint tartós.
 
-```text
-Domain service
- ↓
-AI Orchestrator
- ├─ Prompt Registry
- ├─ Model Policy
- ├─ Context Builder
- ├─ Schema Validator
- ├─ Retry Policy
- ├─ Cost Tracker
- ├─ Audit Metadata
- └─ Provider Adapter
-```
+Számlázási/kvótahiány nem kap automatikus retryt vagy drágább modellre kerülőutat. Átmeneti hálózati/rate-limit/5xx hiba legfeljebb két provider retryt kap; hosszú Retry-After esetén korai új kérés nem indul. A jövőbeli domain/narratív célzott javítás külön, legfeljebb egyszeri, költségfoglalással engedett P05 folyamat. Ez nem már kész automatikus fallback.
 
-## 4. Prompt Registry
+## Következő AI-szerepek — tervek
 
-Minden prompt verziózott.
+Rövid v2 period és opció; canonhivatkozásos emlékezeti összefoglaló; opcionális profil/szabad döntés strukturálása jóváhagyással; NPC/jelenet folytonosság; public redaction és tartalomvizsgálat; kategória/címkejavaslat. Determinisztikus munka nem kap szükségtelen AI-hívást. PII-segédmodell csak saját hibateszt és emberi preview mellett használható; nem anonimitási garancia.
 
-Példa:
-- `profile.extract.v1`
-- `simulation.events.v1`
-- `simulation.decision_options.v1`
-- `simulation.decision_parse.v1`
-- `story.chapter.v1`
-- `story.summary.v1`
-- `community.redact.v1`
+## Költség és modellkapu
 
-Tárolandó:
-- prompt id;
-- semantic version;
-- input schema;
-- output schema;
-- createdAt;
-- status;
-- eval score.
+Minden task auditja: modell/prompt/locale, request/input/output hash, tokenszám, idő, validálás. A helyi próba modellspecifikus dátumozott árakkal és közös naplóval foglal; az alkalmazás pénzbeli és párhuzamos projekt/user kerete P05 feladat. Költség/elfogadott időszak magában foglalja a hibás válasz/javítás/fallback árát is.
 
-## 5. Structured output first
-
-Ahol az AI kimenete state-et módosít, ott kizárólag validált strukturált output fogadható el.
-
-```json
-{
-  "candidateEvents": [
-    {
-      "type": "career_opportunity",
-      "title": "Új szakmai lehetőség",
-      "rationale": [
-        "low_work_satisfaction",
-        "high_change_desire"
-      ],
-      "salience": 0.63,
-      "uncertainty": "medium",
-      "preconditions": []
-    }
-  ]
-}
-```
-
-Validation failure:
-1. egy célzott repair retry;
-2. ha újra hibás, fail;
-3. canonical state-be semmi ne kerüljön.
-
-## 6. Context Builder
-
-Ne küldjük minden hívásnál a teljes profilt és történetet.
-
-Feladata:
-- csak releváns mezők;
-- tokenbudget;
-- érzékeny adat minimalizálás;
-- régi történetek helyett state summary;
-- branch-specifikus canon.
-
-## 7. Kontextuskategóriák
-
-A promptban külön blokk:
-- **CANONICAL_STATE**
-- **USER_SUPPLIED**
-- **DERIVED_TRAITS**
-- **SCENARIO_OVERRIDES**
-- **NARRATIVE_HISTORY**
-
-A narratív history soha nem írhatja felül a canonical state-et.
-
-## 8. Hallucináció kontroll
-
-Narratív szabály:
-
-> Ne hozz létre új tartós tényt, kapcsolatot, gyermeket, munkahelyet, diagnózist vagy fontos pénzügyi eseményt, ha az nincs a canonical event/state inputban.
-
-Megengedett narratív részlet:
-- hangulat;
-- semleges környezetleírás;
-- stilizált párbeszéd;
-- átvezetés.
-
-## 9. Model Policy
-
-Feladatonként eltérő modellkategória használható.
-
-| Task | Igény |
-|---|---|
-| profile extraction | olcsó structured output |
-| freeform decision parse | gyors, olcsó |
-| candidate events | közepes reasoning |
-| chapter narrative | jó szövegminőség |
-| consistency check | erős reasoning |
-| moderation | dedikált/olcsó |
-
-A konkrét modell konfigurációban legyen, ne domain-kódban.
-
-## 10. Retry
-
-Retry:
-- hálózati hiba;
-- rate limit;
-- schema invalid;
-- átmeneti provider hiba.
-
-Nem végtelen retry:
-- safety refusal;
-- tartós quota hiba;
-- domain-invalid output ugyanazzal az inputtal.
-
-## 11. Idempotencia
-
-AI job:
-- jobId;
-- inputHash;
-- promptVersion;
-- modelPolicyVersion.
-
-A job újrafuttatása ne duplikáljon eventet vagy chaptert.
-
-## 12. Költségkövetés
-
-Minden AI run:
-
-```json
-{
-  "provider": "provider_x",
-  "model": "model_y",
-  "inputTokens": 0,
-  "outputTokens": 0,
-  "estimatedCost": 0,
-  "taskType": "story.chapter",
-  "userId": "usr_...",
-  "futureId": "f_..."
-}
-```
-
-Kell:
-- user/hó;
-- feature;
-- first future átlag;
-- P95;
-- failed generation cost.
-
-## 13. Cache
-
-Cache-olható:
-- stabil profile summary;
-- context summary;
-- world context;
-- feature extraction.
-
-Óvatosan:
-- branch generation;
-- friss profile version utáni output.
-
-## 14. Prompt injection
-
-A felhasználói szöveg adat.
-
-```text
-SYSTEM INSTRUCTIONS
-...
-
-<USER_DATA>
-felhasználó szövege
-</USER_DATA>
-```
-
-User text ne kerülhessen system/developer pozícióba.
-
-## 15. Sensitive content
-
-Külön safety-policy:
-- önkárosítás;
-- erőszak;
-- súlyos egészség;
-- függőség;
-- fiatalkorú;
-- más személy érzékeny adata.
-
-A story generator ne használjon ilyen témát random dramaturgiai eszközként.
-
-## 16. AI audit
-
-Tárolandó:
-- taskType;
-- promptVersion;
-- model;
-- requestId;
-- inputHash;
-- outputHash;
-- validationStatus;
-- latency;
-- token usage.
-
-A teljes raw prompt tárolását minimalizálni kell.
-
-## 17. Eval
-
-Prompt/model változtatás előtt:
-- profile extraction pontosság;
-- event validitás;
-- state consistency;
-- narrative fidelity;
-- safety;
-- tone;
-- cost.
-
-## 18. MVP AI taskok
-
-1. `simulation.events.v1`
-2. `simulation.decision_options.v1`
-3. `simulation.decision_parse.v1`
-4. `story.chapter.v1`
-5. `story.summary.v1`
-6. opcionálisan `profile.extract.v1`
-
-## 19. Kötelező pipeline
-
-```text
-AI output
- ↓
-schema validation
- ↓
-domain validation
- ↓
-safety validation
- ↓
-transactional commit
-```
+Rövid releváns kontextus és tömör canon, szerepenkénti outputlimit, stabil prefix cache-mérése, offline seed/eval ütemezés vizsgálható. Cache nem életmemória; rövidebb próza nem automatikusan azonos minőség. Nyelvváltás/olvasás/Save/Share nulla új AI-hívás. Az 5 USD engedélyezett teljes keret minden fejlesztői sorozatra együtt érvényes.

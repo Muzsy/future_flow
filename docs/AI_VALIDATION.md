@@ -1,5 +1,7 @@
 # Valódi AI-generálási ellenőrzés — 2026-10-02
 
+Történeti, lezárt v1 mérés. A 2026-10-03-i dokumentációfrissítés a próba adatait és történettörzseit megőrzi. [Friss megvalósítási státusz/összes keret](STATUS_HU.md) · [Angol/magyar újabb próba](LOCALIZATION_HU.md) · [Dokumentáció](README.md).
+
 Három kitalált magyar profilból három alaptörténet és három döntési életág készült valódi OpenAI Responses API-hívásokkal, a `gpt-6.1-sol` modellel. Mind a hat generálás átment a sémavizsgálaton, az esemény- és fejezethivatkozások ellenőrzésén és a külön AI történetellenőrzésen.
 
 Ez a lezárt próba a v1 tízéves generálását és új ágba elágazását ellenőrizte. Az [aktív termékterv](PRODUCT_PLAN_HU.md) rövid időszakokra és ugyanazon életág folytatására tér át. A fenti siker nem igazolja ezt a még fejlesztendő hurkot, a felhasználói folytatási szándékot vagy a későbbi visszatérést; ehhez külön ellenőrzés és emberi pilot szükséges.
@@ -11,7 +13,7 @@ Ez a lezárt próba a v1 tízéves generálását és új ágba elágazását el
 | 55–64 éves adminisztratív alkalmazott, helyben maradással és nagy biztonságigénnyel | 9 | 9 | 3 | 6 | 6 | 0,2199 USD |
 | **Összesen** | **27** | **25** | **9** | **18** | **18** | **0,6300 USD** |
 
-A költség a szolgáltatói válaszok tényleges tokenhasználatából és az ellenőrzés napján érvényes standard árakból számolt becslés. A cache-olvasás és cache-írás külön szerepel, a gondolkodási token a kimenet része. Nincs ismeretlen fogyasztású kérés, hibás válasz vagy automatikus generálási újrapróbálás ebben a sorozatban. A belső próbalimit 1 USD volt a felhasználó által biztosított 5 USD-ből; a sorozat után abból számítva körülbelül 4,37 USD marad.
+A költség a szolgáltatói válaszok tényleges tokenhasználatából és az ellenőrzés napján érvényes standard árakból számolt becslés. A cache-olvasás és cache-írás külön szerepel, a gondolkodási token a kimenet része. Nincs ismeretlen fogyasztású kérés, hibás válasz vagy automatikus generálási újrapróbálás ebben a sorozatban. A belső próbalimit 1 USD volt a felhasználó által biztosított 5 USD-ből; közvetlenül a sorozat után körülbelül 4,37 USD számított maradvány volt. A későbbi próbákkal frissített keret a közös státuszban van.
 
 ## Ellenőrzött viselkedés
 
@@ -37,4 +39,4 @@ A tartós feladatfolyamat és a PostgreSQL-tranzakciók helyi, izolált PGlite a
 
 Három profil és az AI történetellenőrzője nem teljesíti a dokumentáció 20 profilos, emberi értékelést igénylő alfakapuját. A helyi próba költségőre sem a teljes alkalmazás szolgáltatói keretkezelése.
 
-A kód ellenőrzése: 59 automatizált teszt sikeres; formázás, típusellenőrzés és a teljes build sikeres. A szerveres segédszkriptek típusellenőrzése is bekerült a kötelező ellenőrzések közé. Az eredeti 21 dokumentum tartalma a manifest hash-eivel egyezik.
+A mérés akkori kódellenőrzése: 59 automatizált teszt sikeres; formázás, típusellenőrzés és a teljes build sikeres. A szerveres segédszkriptek típusellenőrzése is bekerült a kötelező ellenőrzések közé. Az eredeti 21 dokumentum a változatlan archív manifest hash-eivel egyező [archívumban](archive/README.md) marad; az aktív témacsomag frissült.

@@ -1,308 +1,37 @@
-# Alter Jövő — profilmodell és kérdőív
+# alterward — profil, identitás, kérdőív és cél
 
-## 1. Cél
+2026-10-03 · [P01/P04](../NEXT_STEPS.md) és [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
-A profil legyen egyszerre strukturált és gazdag. A megoldás:
-- fix mezők;
-- kategóriák;
-- 0–100 skálák;
-- opcionális szabad szöveg;
-- AI-derived trait-ek confidence-dal;
-- felhasználói jóváhagyás.
+## Meglévő v1
 
-## 2. Adattípusok
+29 kérdés, angol/magyar megjelenítéssel. A v1 magyar kanonikus kérdéskulcsok/opcióértékek, scoring- és kérdőívverzió/hash változatlanok; az angol fordítás külön megjelenítési réteg. A draft válaszokat és kapcsolati címkéket ment revisionnel; commit immutable pillanatképet ad. A célok és kapcsolatok a pillanatkép másolatai. Trait értékek önbevallott 0–100 adatok, nem validált pszichometriai eredmények. A v1 semleges 50-es induló értékei szerkesztési feltevések.
 
-### Fact
-Tényjellegű adat: korcsoport, gyermekek száma, munkahelyzet.
+## Rövid v2 indulás — terv
 
-### Preference
-Felhasználói preferencia: költözési hajlandóság, szabadidő fontossága.
+10–15 fontos kérdés együtt a profilt és célt fedi. Induló 12 lépés: identitás/korcsoport; hely/költözés; lakhatás; munka; pénzügyi mozgástér; képzettség/készségek; kapcsolatok; idő/energia; kockázat; fő cél/időtáv; motiváció/vállalások; kizárt áldozatok/korlátok. Opcionális szabad kontextus, később releváns helyzetben fokozatos mélyítés. A 3–4 perces cél mérendő.
 
-### Trait
-Folytonos dimenzió, általában `0..100`.
+Saját profil és szimulált identitás külön. Alternatív helyzet nem írja át a valódi profilt; a lifeInput pillanatkép rögzíti az identitást, környezetet, célokat és korlátokat. Saját korcsoportból nem találunk ki születési napot. Pontos fiktív életkor 18+ lehet. Nulla közeli kapcsolat és ismeretlen opcionális adat megengedett. Az induló földrajzi sablon magyar, a nyelv külön `en` vagy `hu`.
 
-### Derived trait
-AI/szabályrendszer becslése:
-- value;
-- confidence;
-- source;
-- evidence;
-- userConfirmed.
+## Célmodell
 
-### Narrative note
-Szabad szöveg. Közvetlenül ne módosítsa a canonical profile-t.
+| Stratégiai fogalom | Könyvtári v2 megfeleltetés |
+|---|---|
+| category / description | Célkategória és leírás |
+| priority | Elsődleges vagy másodlagos; egy fő cél |
+| horizon | Hónapban megadott időtáv |
+| motivation | Opcionális motiváció |
+| acceptable / unacceptable tradeoffs | Opcionális vállalható/kizárt áldozatok |
+| current progress | Goal-ID-val kötött active/achieved/abandoned állapot, megjegyzéssel |
+| constraints | Külön élet/ág/idő hatókörű listában |
 
-## 3. Profilkategóriák
+A stratégiai snake_case megnevezések fogalmi mezők, nem közvetlen mai API-DTO-k. A pontos kódnevek/séma a [lifeInput](../contracts/v2/lifeInput.schema.json) és [lifeState](../contracts/v2/lifeState.schema.json) exportjában vannak. Nincs kitalált siker- vagy előrehaladási százalék.
 
-### Demográfia
-- kor/korcsoport;
-- ország;
-- régió;
-- településtípus;
-- nyelv;
-- időzóna.
+## Tény, preferencia és szabad szöveg
 
-### Lakhatás
-- saját/bérelt/családi/egyéb;
-- lakás/ház/egyéb;
-- lakhatási stabilitás;
-- költözési terv;
-- helyhez kötődés.
+Tény: ismert munka, lakhatás, szereplő, készség, tulajdon. Preferencia: változtatási hajlandóság, vállalások. Hard constraint: ellenőrizhető tiltás/feltétel, érvényességi határral. Soft: generálást irányító kívánság. Ismeretlen adat `null`; nulla ismert érték, nem hiányjel.
 
-### Család és háztartás
-- párkapcsolati státusz;
-- együttélés;
-- gyermekek száma és korcsoportja;
-- gondozási kötelezettség;
-- közeli családi háló.
+Szabad szöveg külön, nem megbízható utasításként jut az AI-hoz. Későbbi strukturáló AI csak javaslatot adhat: forráshivatkozás/előnézet → elfogadás vagy javítás → új strukturált verzió. Ellentmondás nem eredményez néma felülírást. AI-becslés confidence-ja nem klinikai vagy statisztikai pontosság.
 
-### Munka és karrier
-- foglalkozási terület;
-- alkalmazott/vállalkozó/tanuló/munkakereső/nyugdíjas;
-- heti munkaidő;
-- elégedettség;
-- biztonság;
-- autonómia;
-- fejlődési lehetőség;
-- szakmaváltási hajlandóság.
+## Adatminimalizálás és nyelvek
 
-### Anyagi helyzet
-- jövedelmi stabilitás;
-- tartalék kategória;
-- hitelterheltség kategória;
-- pénzügyi stressz;
-- kockázattűrés;
-- célok.
-
-Pontos összeget csak akkor kérjünk, ha később valóban szükséges.
-
-### Kapcsolati háló
-- kapcsolat típusa;
-- erősség;
-- találkozási gyakoriság;
-- konfliktus;
-- támogatás;
-- földrajzi közelség.
-
-Valódi név nem kötelező. Alapcímkék:
-- Párom
-- Barát A
-- Testvér
-- Kolléga A
-
-### Hobbi és aktivitás
-- kategória;
-- heti idő;
-- társas/egyéni;
-- fejlődési szándék;
-- versenyszerűség.
-
-### Életmód
-- rutin stabilitása;
-- alvási rutin szubjektív minősége;
-- fizikai aktivitás kategória;
-- társasági aktivitás;
-- utazási gyakoriság.
-
-### Értékek
-- család;
-- pénzügyi biztonság;
-- szabadság;
-- státusz;
-- tudás;
-- kreativitás;
-- közösség;
-- kaland;
-- kiszámíthatóság;
-- egészség;
-- teljesítmény;
-- nyugalom.
-
-Top 5 rendezhető.
-
-### Célok
-- kategória;
-- leírás;
-- fontosság;
-- időhorizont;
-- előrehaladás;
-- kontrollálhatóság.
-
-### Félelmek/kerülendő állapotok
-Opcionális:
-- anyagi bizonytalanság;
-- magány;
-- kudarc;
-- konfliktus;
-- költözés;
-- monotonitás;
-- túlterheltség;
-- státuszvesztés.
-
-## 4. Javasolt trait-ek
-
-| Trait | 0 | 100 |
-|---|---|---|
-| riskTolerance | kockázatkerülő | kockázatvállaló |
-| changeSeeking | stabilitáskereső | változáskereső |
-| persistence | könnyen feladja | kitartó |
-| impulsivity | megfontolt | impulzív |
-| sociability | visszahúzódó | társaságkereső |
-| noveltySeeking | ismert dolgok | új élmények |
-| planningOrientation | spontán | erősen tervező |
-| conscientiousness | laza | rendszerezett |
-| conflictAvoidance | konfrontatív | konfliktuskerülő |
-| autonomyNeed | alacsony autonómiaigény | magas |
-| achievementDrive | alacsony | magas |
-| statusDrive | alacsony | magas |
-| securityNeed | bizonytalanságot tolerál | nagy biztonságigény |
-| familyOrientation | kevésbé központi | nagyon központi |
-| careerAmbition | alacsony | magas |
-| financialAmbition | alacsony | magas |
-| learningOrientation | alacsony | magas |
-| adaptability | lassú | gyors |
-| optimism | pesszimistább | optimistább |
-| selfEfficacy | alacsony kontrollérzet | magas |
-| patience | azonnali eredmény | hosszú távú türelem |
-| empathyOrientation | alacsony | magas |
-| socialInfluenceSensitivity | alacsony | magas |
-| routinePreference | változatosság | rutin |
-| stressReactivity | alacsony | magas |
-
-Ezek nem klinikai skálák.
-
-## 5. Kérdésstratégia
-
-Egy trait-et lehetőleg több kérdés becsüljön.
-
-`riskTolerance` például:
-1. biztos kisebb eredmény vs bizonytalan nagyobb;
-2. új munka bizonytalansága;
-3. visszafordítható döntések kipróbálása;
-4. pénzügyi kockázat külön aldimenzió.
-
-## 6. Példa kérdések
-
-**Ha egy stabil munka elfogadható, de nem érdekes, meddig maradsz?**
-- ameddig csak lehet;
-- amíg nincs biztos másik;
-- aktívan keresek;
-- gyorsan váltanék.
-
-**Mennyire költöznél másik városba jobb lehetőségért?**
-`0..100`
-
-**Egy szabad hétvégén melyik jellemzőbb?**
-- inkább egyedül töltődöm;
-- vegyes;
-- keresem a társaságot.
-
-**Mennyire zavar, ha mások pontosan megmondják, hogyan végezd a munkád?**
-`0..100`
-
-**Rendezd fontosság szerint**
-- család;
-- pénzügyi biztonság;
-- szabadság;
-- szakmai siker;
-- szabadidő.
-
-## 7. Szabad szöveg feldolgozása
-
-```text
-raw note
- ↓
-AI extraction
- ↓
-candidate observations
- ↓
-confidence + evidence
- ↓
-user confirmation
- ↓
-structured update
-```
-
-Példa:
-> „Elegem van a munkából, de nem merek váltani.”
-
-AI-javaslat:
-- workSatisfaction: alacsony;
-- changeDesire: magas;
-- riskTolerance: alacsony;
-- securityNeed: magas.
-
-A UI kérdezze vissza, helyes-e.
-
-## 8. Confidence
-
-```json
-{
-  "trait": "riskTolerance",
-  "value": 36,
-  "confidence": 0.71,
-  "source": "questionnaire+text",
-  "userConfirmed": false
-}
-```
-
-Belső szintek:
-- 0.00–0.39 gyenge;
-- 0.40–0.69 közepes;
-- 0.70–0.89 erős;
-- 0.90–1.00 nagyon erős.
-
-## 9. Ellentmondás
-
-Ha slider és szöveg ellentmond:
-- ne írjuk felül automatikusan;
-- jelöljük conflictként;
-- célzott kérdéssel oldjuk fel.
-
-## 10. Profilverzió
-
-Minden jelentős commit új snapshot:
-- profileId;
-- versionNo;
-- source;
-- supersedes;
-- createdAt.
-
-A future mindig konkrét versionből készül.
-
-## 11. Adatminimalizálás
-
-Minden mezőnél kérdés:
-> „Javítja ez ténylegesen a szimulációt vagy az élményt?”
-
-MVP-ben lehetőleg ne kérjünk:
-- vallást;
-- politikai nézetet;
-- szexuális életet;
-- diagnózist;
-- biometrikus/genetikai adatot;
-- pontos pénzügyi adatot.
-
-## 12. Profilkészültség
-
-Dimenziónként:
-```json
-{
-  "overall": 0.68,
-  "lifeContext": 0.90,
-  "relationships": 0.45,
-  "traits": 0.72,
-  "goals": 0.60
-}
-```
-
-## 13. MVP kérdőívméret
-
-Javaslat:
-- 25–35 gyors/kötelező kérdés;
-- 15–25 opcionális;
-- 5–10 szabad szöveges kiegészítés.
-
-Cél:
-- minimum: 7–10 perc;
-- jó minőségű profil: 12–18 perc.
+Álnevek alapértelmezettek, harmadik személy valós neve/pontos címe nem kell. Vallás, politika, diagnózis, biometria és pontos pénzügyi azonosító nem onboarding-követelmény. Új nyelv nem változtat kérdéskulcsot/scoringot; teljes fordítás és nyelvi AI-próba szükséges. Publishing külön sanitized profilprojekciót kap, a saját teljes profil nem adható ki. A rövid onboarding még nincs bekötve az alkalmazásba.

@@ -1,224 +1,33 @@
-# Alter Jövő — UX és fő felhasználói folyamatok
+# alterward — UX és felhasználói folyamatok
 
-## 1. UX-cél
+2026-10-03 · Az alábbi v2/public folyamatok tervezettek. A meglévő v1 UI és AI-történetek teljes angol/magyar támogatása elkészült. [Lokalizáció](../LOCALIZATION_HU.md).
 
-Sok adatot szeretnénk megtudni a felhasználóról, de az onboarding nem lehet egy 100 mezős űrlap. Legyen szakaszos, érthető, megszakítható és folytatható.
+## Első saját élet
 
-## 2. Onboarding flow
+Új élet → saját/alternatív identitás → 10–15 rövid kérdés és egy fő cél → induló helyzet/korlátok előnézete és jóváhagyása → valódi AI-job → első rövid fejezet/idővonal → nyitott döntés → választás → ugyanazon élet következő időszaka.
 
-```text
-Landing
- ↓
-Regisztráció
- ↓
-Rövid adatvédelmi + „nem jóslás” tájékoztató
- ↓
-Alapprofil
- ↓
-Élethelyzet
- ↓
-Személyiség / habitus
- ↓
-Kapcsolatok
- ↓
-Célok és prioritások
- ↓
-Profilösszegzés
- ↓
-Jóváhagyás / javítás
- ↓
-Első jövő generálása
- ↓
-Első fejezet + timeline
- ↓
-Első döntési pont
-```
+A profil célzott ideje 3–4 perc, az első olvasás/döntés körülbelül tíz percen belül célzott élmény. Ez használati teszttel mérendő, nem vállalt SLA. Menthető draft és revision akadályozza meg a két eszköz közötti csendes felülírást. A részletesség nem „jövőpontosság”. Nincs kötelező két kapcsolat vagy teljes személyiségskála.
 
-## 3. Profilkitöltési módok
+## Visszatérés és elágazás
 
-### A — strukturált
-Alapértelmezett:
-- radio;
-- checkbox;
-- 0–100 slider;
-- kategória;
-- intervallum;
-- prioritásrendezés.
+A kezdőnézet mentett életeket, utolsó állapotot és függő döntést mutat. **Folytatom ezt az életet:** az aktuális ág headjéből induló új időszak. Függő döntésnél előbb választani kell. **Másik ág innen:** történeti döntés előtti checkpoint és másik választás új ágat ad; a szülő megmarad. Újratöltés és későbbi bejelentkezés visszaállítja a mentett helyzetet.
 
-### B — strukturált + opcionális szabad szöveg
-Minden nagy blokk végén:
-> „Ha szeretnéd, pár mondatban pontosíthatod.”
+A v1 `resolve` jelenleg minden választásból gyermekágat készít, tízéves baseline mellett. A két új művelet új szerződést kap, nem nevezzük át a meglévő viselkedést folytatásnak.
 
-Az AI csak javasolt profilfinomítást készít.
+## Generálás és olvasás
 
-### C — beszélgetős finomítás
-Későbbi funkció:
-> „Finomítsuk a profilod 5 rövid kérdéssel.”
+Valódi jobstage/status látszik, frissítés után visszaolvasható. Hiba biztonságos, a választott felületnyelven jelenik meg; kvóta- vagy konfigurációs hiba nem ad helyettesítő személyes történetet. Nincs hamis százalékos készültség, automatikus korlátlan retry vagy mesterséges várakoztatás. Story, timeline, állapot és döntés együtt segíti a következmények megértését.
 
-## 4. Minimum profil
+Az UI angol alap, English/Magyar váltóval. Új élet a választott nyelven készül, későbbi saját ágai a rögzített tartalomnyelvet öröklik. Nyelvváltás nem töröl választ, nem fordítja át a régi canont, nem indít AI-hívást. Több nyelv csak teljes katalógussal és minőségi próbával kerülhet a választóba.
 
-A generálás ne követeljen 100%-os profilt.
+## Discoveryből saját élet
 
-Minimum:
-- korcsoport;
-- ország + régió/településtípus;
-- családi/párkapcsolati helyzet;
-- munkahelyzet;
-- anyagi stabilitás kategória;
-- 8–12 habitusskála;
-- 3–5 prioritás;
-- 1–3 cél;
-- változtatási hajlandóság;
-- legalább 2 fontos kapcsolat vagy „nincs ilyen”.
+Discovery/kategória/nyelvi szűrő → Official vagy Community életoldal → történet/idővonal/mérföldkövek/döntések → Save, Share, Report vagy **Fork this life**. Save/fork hitelesítést igényel; public olvasás nem. **Start from this decision:** választás előtti sanitized checkpoint. **Personalize scenario:** sablon + saját jóváhagyott profil/cél/korlát, új privát kezdőállapot. A másik szerző privát memóriája és előzménye nem kerül át.
 
-A UI inkább „részletességet” jelezzen, ne „jövőpontosságot”.
+## Publikálás és visszavonás
 
-## 5. Profilösszegző képernyő
+Élet/ág/időszak kiválasztása → public/unlisted, szerző és indexelés beállítása → PII/tartalmi vizsgálat → **Privacy Preview** → **Content Preview** → a látott hash/revision/scanverzió explicit Confirmja. Módosult vagy lejárt preview új ellenőrzést igényel. Privát folytatás nem frissíti automatikusan a kiadást.
 
-Példa:
+Unlisted titkos link csak snapshotot ad, Discovery/SEO nélkül. Unpublish megszünteti az új olvasást/forkot és a saját cache/index/OG hozzáférést; a privát élet megmarad. A részletes [nyilvános terv](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) az elfogadás alapja.
 
-**Jelenlegi helyzet**
-- stabil, de kevéssé inspiráló munka;
-- erős helyhez kötődés;
-- szűk, stabil baráti kör.
-
-**Fő motivációk**
-- biztonság;
-- család;
-- önállóság.
-
-**Feszültségek**
-- magas változásvágy + magas biztonságigény.
-
-**AI által becsült**
-- konfliktuskerülés: 64/100, közepes bizonyosság.
-
-A felhasználó elfogadhatja, módosíthatja vagy törölheti az AI-becslést.
-
-## 6. First future UX
-
-A generálás async job.
-
-Valódi állapotok:
-1. kiinduló state;
-2. lehetséges fordulópontok;
-3. idővonal;
-4. chapter.
-
-Ne legyen többperces blokkoló request.
-
-## 7. Jövő fő nézete
-
-### Header
-- future neve;
-- branch neve;
-- profile version;
-- „szcenárió, nem előrejelzés” jelölés.
-
-### Timeline
-Event card:
-- időablak;
-- cím;
-- leírás;
-- érintett területek;
-- decision flag;
-- uncertainty;
-- „miért?” magyarázat.
-
-### Story
-Olvasható chapter.
-
-### State
-Strukturált pillanatkép.
-
-## 8. Döntési pont
-
-```text
-Event
- ↓
-Decision
- ↓
-2–4 opció VAGY saját szöveg
- ↓
-Decision parsing
- ↓
-új branch
- ↓
-state transition
- ↓
-új eventek
-```
-
-A rendszer ne jelölje egyik opciót sem „helyesnek”.
-
-## 9. „Mi lenne, ha?” flow
-
-A felhasználó módosíthat:
-- trait-et;
-- életkörülményt;
-- döntést;
-- célt;
-- lakhelyet;
-- munkát;
-- kapcsolatot.
-
-Példa:
-`riskTolerance: 35 → 70`
-
-A rendszer klónozza a branch-et, scenario override-ot hoz létre, és onnan újraszimulál.
-
-## 10. Valós élet frissítése
-
-Későbbi retention-funkció:
-- munkahelyváltás;
-- költözés;
-- új kapcsolat;
-- gyermek;
-- képzés;
-- új vállalkozás.
-
-Mindig új profile snapshot készül, a régi nem íródik át.
-
-## 11. Fő nézetek
-
-- Timeline
-- Chapters
-- Branch map
-- State
-- Compare
-
-## 12. Közösségi megosztás
-
-Privacy szintek:
-1. private;
-2. unlisted;
-3. anonymous community;
-4. public — később.
-
-Megosztás előtt preview kötelező.
-
-## 13. Mobil UX később
-
-**Mobil prioritás**
-- új chapter;
-- decision;
-- gyors profile update;
-- értesítés;
-- community.
-
-**Web prioritás**
-- részletes profil;
-- branch map;
-- compare;
-- hosszú történet;
-- beállítás/adatkezelés.
-
-## 14. Kerülendő UX
-
-- kamu valószínűségek;
-- automatikus boldog vég;
-- „AI szerint ezt kell tenned”;
-- moralizáló trait-értékelés;
-- nyilvános profil default;
-- manipuláló streak;
-- félelemalapú retention.
+Reszponzív web indul; natív mobil, értesítések, chat/DM, reakció/követés/komment későbbi, méréssel indokolt bővítés. A választási opciók nem „helyes” életvezetési válaszok.

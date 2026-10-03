@@ -1,5 +1,7 @@
 # alterward — többnyelvű felület és AI-történetek
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 2026-10-03 · Angol az alapnyelv, magyar választható. A teljes meglévő v1 felület és történetgenerálás támogatja mindkettőt. A rövid időszakos v2 működés és Discovery fejlesztése ugyanilyen nyelvi feltétellel folytatódik; ezek még tervezett termékfunkciók.
 
 ## Felület és tartalom
@@ -55,6 +57,6 @@ ScenarioVersion/PublicSnapshot tartalomnyelve, Discovery nyelvi szűrés és for
 
 Angol család/karriercél és magyar kreatív/tanulási cél, mindkettőnél alaptörténet + alternatív ág: 9 alap-esemény, 3 alapfejezet és 11 gyermekági esemény (örökölt előzménnyel), 3 új fejezet. Mindkét nyelven sikeres séma/domain/narratívahivatkozás/fidelity-ellenőrzés; szülőág változatlan, tartalomnyelv és audit helyes. Az angol bemenet magyar profilcélokat/címkéket tartalmazott, az eredmény angol. [Teljes angol AI-minta](examples/AI_ENGLISH_STORY.md).
 
-A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs.
+A nyelvi próba 12 valódi OpenAI-hívás (6 angol, 6 magyar), 0,3352520 USD többletbecsléssel. A korábbi sorozatokkal együtt számolt 44 hívás és az 5 USD teljes keret aktuális maradványa a [közös státuszban](STATUS_HU.md) van. Ismeretlen fogyasztású hívás nincs; nem szolgáltatói egyenleglekérdezés.
 
 Böngészőben ellenőrizve: angol alap, English/Magyar váltás, megmaradó nyelv újratöltéskor, HTML/metadata, kezdőlap, belépés/regisztráció feliratai, adatkezelés, valamint 390 px mobilnézet vízszintes túlcsordulás nélkül. A privát bejelentkezéses végigpróba továbbra P06 függőség; ez a próba nem hozott létre valódi Supabase Auth-fiókot. A 002_content_locale.sql a Supabase-on lefutott, TLS-kapcsolat ellenőrizve.

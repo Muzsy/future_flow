@@ -1,150 +1,29 @@
-# Alter Jövő — analytics, monetizáció és üzemeltetés
+# alterward — mérés, monetizáció és üzemeltetés
 
-## 1. Analytics cél
+2026-10-03 · A mérési és fizetési rendszer még tervezett. [Termékterv](../PRODUCT_PLAN_HU.md) · [Költség és státusz](../STATUS_HU.md).
 
-Nem a kattintásszám az elsődleges.
+## Elsődleges mérés
 
-Fő kérdések:
-- elkészül-e a profile;
-- jó-e az első future;
-- nyit-e branch-et;
-- visszajön-e.
+**Continuation Rate:** első fejezetet befejezők közül Folytatom szándékot jelzők aránya; a következő period sikeres commitja külön mutató. **Continued Life Sessions:** későbbi munkamenetben folytatott egyedi életek száma és külön sikeres folytatási session. Az élet/session azonosító és inaktivitási ablak előre definiálandó.
 
-## 2. Funnel
+Onboarding indítás→első szimuláció; első fejezet megnyitás/befejezés; döntés megjelenés/sikeres mentés; történeti fork; D1/D7/D30 ugyanazon aktivált kohorszban. Kattintás/siker/késleltetés/hiba külön; technikai hiba nem tűnik el a nevezőből. Az [aktív terv](../PRODUCT_PLAN_HU.md) tartalmazza a kezdeti definíciókat. Nincs még validált számszerű retention-küszöb.
 
-```text
-landing_view
-signup_started
-signup_completed
-profile_started
-profile_minimum_reached
-profile_committed
-future_requested
-future_completed
-first_chapter_viewed
-decision_viewed
-decision_resolved
-branch_completed
-return_session
-```
+## Public funnel
 
-## 3. Analytics privacy
+Discovery aktív olvasó → életview → olvasási mélység/befejezés → Save/Share → sign-up → forkindítás → saját élet létrehozása → első AI-időszak → későbbi folytatás. Publish/unlisted/unpublish/report/removal/referral külön. Paid conversion csak későbbi működő payment után. Hosszabb olvasás és egyszeri megnyitás nem ugyanaz.
 
-Ne küldjünk:
-- free text;
-- relationship name;
-- employer;
-- érzékeny exact trait érték, ha nem kell.
+Analitika minimális opaque ID/locale/feature/idő/error/eredmény. Nincs történet/cél/profil/prompt/kapcsolatnév/auth vagy unlisted token. Optional analytics/consent/retention véglegesítendő; dashboard nem privát profilböngésző. A történeti AI-run audit nem kész termékanalitika.
 
-Mehet:
-- completion bucket;
-- section;
-- feature;
-- duration;
-- error code.
+## Monetizációs irány
 
-## 4. North star jelölt
+Ingyenes: privát működés, adathozzáférés/export és törlés; Discovery/Official/Community olvasás, Save, Share, Publish. Saját AI-generálás/fork/personalize korlátozható. Későbbi prémium: több aktív élet/generálás, mélyebb szimuláció, stílus és külön formázott narratív dokumentum. Adatjogok és privacy nem kerülnek paywall mögé. Pontos ár, ingyenes darabszám, billing provider és subscription nincs eldöntve vagy megvalósítva.
 
-**Completed meaningful future sessions / active user**
+Nincs „fizess jobb jövőért”, félelem/sérülékenység alapú upsell, személyiségadat eladás vagy hitelképességi API. A hipotézist használat és egységköltség támaszthatja alá.
 
-Meaningful:
-chapter olvasás + timeline vagy decision interakció.
+## Költség és ops
 
-## 5. Retention
+Mérendő event/story/check/summary/redaction task, token/price version, sikeres period/folytatás/public fork ára, P50/P95 és hibák/javítás/fallback költsége. Projekt/user keretfoglalás és concurrent reservation P05. A helyi single-process smoke-guard nem szolgáltatói hard spend limit, és nem teljes app budget.
 
-- D1;
-- D7;
-- D30;
-- chapter return;
-- branch return.
+Queue mélység, lease/heartbeat, provider/DB/auth hibák, invalid arány, latency és spend anomaly, deletion/revocation/cache hiba monitorozandó. Request/job/life ID supporthoz, tartalom nélkül. Staging/prod credential, mentés/visszaállítás, Auth-siker/DB-hiba helyreállítása, admin jogosultság/audit és incidensfelelős indulási feladat. Main commit nem deploy.
 
-Serialized story csak akkor, ha valóban javítja.
-
-## 6. AI unit economics
-
-Mérjük:
-- first future cost;
-- branch cost;
-- chapter cost;
-- extraction cost;
-- user/hó;
-- P95.
-
-## 7. Lehetséges csomag
-
-### Free
-- 1 baseline future;
-- korlátozott branch;
-- alap story.
-
-### Plus
-- több future;
-- több branch;
-- sűrűbb chapter;
-- hosszabb compare;
-- extra style;
-- export.
-
-Nem javasolt:
-„fizess, hogy jobb jövőt kapj”.
-
-## 8. Monetizációs etika
-
-Soha:
-- rossz jövő → fizess jobbért;
-- félelemre épülő upsell;
-- „AI szerint premium kell”.
-
-## 9. Cost guardrail
-
-- napi generation limit;
-- concurrent job limit;
-- free branch limit;
-- freeform max length;
-- abuse detection.
-
-## 10. Ops dashboard
-
-- API error;
-- queue depth;
-- job failure;
-- AI latency;
-- AI spend/day;
-- invalid output rate;
-- signup;
-- future completion;
-- active users.
-
-## 11. Alert
-
-- job fail > küszöb;
-- provider error;
-- AI cost anomaly;
-- DB saturation;
-- auth anomaly;
-- deletion failure.
-
-## 12. Support
-
-Technikai support kulcs:
-- requestId;
-- futureId;
-- jobId.
-
-Ne kelljen teljes profilt olvasni.
-
-## 13. Admin analytics
-
-Aggregált legyen. Ne készüljön személyiségalapú „emberek listája” kíváncsiságból.
-
-## 14. Későbbi üzleti irány
-
-- subscription;
-- pair/family scenario;
-- premium story mode;
-- extra compare/export.
-
-Nem javasolt:
-- személyiségprofil értékesítés;
-- user data sale;
-- credit-score jellegű API.
+Official tartalom költsége előzetes kis v2 seedméréssel becsülendő. 50–100 élet/20–30 sablon nem jelent korlátlan paid futtatást. Már elköltött és megmaradt kísérleti keret egy helyen, a [státuszban](../STATUS_HU.md); régi riportok az akkori állapotot őrzik.

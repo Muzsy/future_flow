@@ -1,422 +1,46 @@
-# Alter Jövő — adatmodell
+# alterward — adatmodell és migráció
 
-## 1. Elvek
+2026-10-03 · [001 migráció](../../database/migrations/001_foundation.sql), [002 nyelvmigráció](../../database/migrations/002_content_locale.sql), [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
-- PostgreSQL az igazságforrás.
-- Opaque UUID/ULID-szerű ID-k.
-- timestamps.
-- audit érzékeny műveletekre.
-- profile/future/branch verziózás.
-- JSONB csak rugalmas state/meta célra.
+## Tényleges v1 táblák
 
-## 2. Entitásgráf
+| Csoport | Táblák |
+|---|---|
+| Fiók/profil | ff_users, ff_questionnaires, ff_profile_drafts, ff_profile_versions, ff_consents |
+| Élet/állapot | ff_world_versions, ff_futures, ff_branches, ff_life_states |
+| Canon/döntés | ff_events, ff_decisions, ff_decision_options, ff_decision_resolutions |
+| Történet | ff_chapters, ff_chapter_events |
+| Job/audit | ff_jobs, ff_idempotency, ff_ai_runs |
 
-```text
-User
- ├─ Profile
- │  ├─ ProfileVersion
- │  ├─ TraitValue
- │  ├─ Goal
- │  └─ Relationship
- │
- └─ Future
-    └─ Branch
-       ├─ LifeState
-       ├─ Event
-       ├─ Decision
-       ├─ Chapter
-       └─ ScenarioOverride
-```
+19 foundation tábla. A migrációs nyilvántartás infrastruktúra; ez nem további domainfunkció. Profilválaszok, kapcsolatok és célok snapshot JSON-ban vannak; külön relationship/trait/goal CRUD-tábla nincs. UUID-k és ownership-FK-k, JSON-séma + SQL/tranzakció együtt védi az integritást.
 
-## 3. users
+Immutable profil/world/event/life-state és saját branch előzménye; gyermekág örökölt prefixet visszaolvas, nem írja át a szülőt. Minden resolve külön sor, új ág. A draft monoton revision, azonos revision csak egyszer commitolható.
 
-```text
-id
-auth_user_id
-status
-locale
-timezone
-created_at
-updated_at
-deleted_at
-```
+`ff_futures.content_locale` a 002 migrációból: régi életek `hu`, újak alapból `en`; tartalomnyelv immutable. Jobpayload/audit explicit locale, régi nyelv nélküli job magyar. Nyelvi fordítás nem módosít régi profil/hash/canont.
 
-Jelszó nem kerül ide.
+## V2 perzisztencia — tervezett P01
 
-## 4. profiles
+Additív **003+** migráció: élet-/kontraktusverzió, induló lifeInput/tényállapot, period, branch head/revision, elfogadott aktuális/történeti választás és continuation job. A pontos táblanév/migráció a fejlesztési szeletben készül; jelenleg a könyvtári szerződés nem bizonyít DB-integrációt.
 
-```text
-id
-user_id
-current_version_id
-completion_score
-created_at
-updated_at
-```
+Tulajdonosi FK/RLS, egy ág egy aktív periodjob, idempotencia és tranzakció. Canon eseményenként before/after, választás előtti checkpoint és cél/szereplő/asset stabil referencia. Unknown `null` megőrzendő. V1 történet változatlanul olvasható, v2 indulás explicit új élet/ellenőrzött másolat, nem automatikus append a tízéves baseline-ra.
 
-## 5. profile_versions
+## Public adatmodell — tervezett P09–P12
 
-```text
-id
-profile_id
-version_no
-source
-supersedes_id
-facts_json
-preferences_json
-created_at
-created_by
-```
+| Objektum | Tartalom és szabály |
+|---|---|
+| Scenario / ScenarioVersion | Kezdőidentitás/cél/környezet/állapot sablon, locale és verzió; nem kész történet |
+| Publication | Belső tulajdonos/forrás, active snapshot, visibility, moderáció, revision, szerző/index/forkengedély |
+| PublicSnapshot | Immutable, engedett mezős, PII-vizsgált cím/summary/timeline/chapters/decision/branch/taxonómia, locale és eredetjelölés |
+| Public fork checkpoint | Külön sanitized gépi induló állapot; remappolt public szereplő/cél/asset ID-k, nincs eredeti privát FK |
+| Save | Egyedi user/publication kapcsolat, idempotens |
+| Report / ModerationCase | Minimális védett jelentőadat, státusz, indok és döntési audit |
+| Category / Tag / Collection | Fix taxonómia, curator/szerző által jóváhagyott címkék, Discovery |
+| Fork attribution | Public forráshivatkozás, törléskor leválasztható; nem privát jogosultság |
 
-## 6. trait_definitions
+Nem elég `is_public` a privát életen. A snapshot nem ad raw profile/prompt/memory/note/state/audit vagy belső azonosítót. Unlisted token legalább 256 bites véletlen, csak hash tárolva. Privát folytatás nem módosít active snapshotot; új kiadás új preview/hash/Confirm.
 
-```text
-id
-key
-name
-description
-min_value
-max_value
-active
-version
-```
+## Export, törlés, migráció
 
-## 7. profile_trait_values
+V1 export a saját adatgráf/nyelvek; Auth/DB-törlés és worker lease visszavonás már kódban, valódi admin kulcsos próba/ops helyreállítás még függőség. Public release előtt export/törlés kiterjed publication/snapshot/token/save/index/OG/cache/attribution elemekre is. Privát fork megmaradás és érzékeny másolat takarítása külön szabály. Retention/backup határ rögzítendő.
 
-```text
-id
-profile_version_id
-trait_definition_id
-value
-confidence
-source_type
-user_confirmed
-evidence_json
-created_at
-```
-
-Unique:
-`profile_version_id + trait_definition_id`
-
-## 8. profile_goals
-
-```text
-id
-profile_version_id
-category
-title
-importance
-time_horizon
-progress
-control_level
-active
-```
-
-## 9. relationships
-
-```text
-id
-user_id
-label
-relation_type
-privacy_class
-created_at
-```
-
-### relationship_states
-
-```text
-id
-relationship_id
-profile_version_id
-closeness
-contact_frequency
-support_level
-conflict_level
-distance_category
-metadata_json
-```
-
-Valódi név opcionális, lehetőleg külön PII mezőben.
-
-## 10. futures
-
-```text
-id
-user_id
-profile_version_id
-title
-horizon_start
-horizon_end
-root_branch_id
-simulation_version
-status
-created_at
-```
-
-## 11. branches
-
-```text
-id
-future_id
-parent_branch_id
-fork_event_id
-fork_decision_id
-name
-seed
-status
-created_at
-```
-
-## 12. life_states
-
-```text
-id
-branch_id
-effective_at
-sequence_no
-state_json
-state_hash
-created_at
-```
-
-MVP-ben JSONB, de erős schema validation.
-
-## 13. events
-
-```text
-id
-branch_id
-sequence_no
-event_type
-title
-window_start
-window_end
-salience
-uncertainty
-decision_required
-causes_json
-effects_json
-metadata_json
-created_at
-```
-
-Unique:
-`branch_id + sequence_no`
-
-## 14. event_relationships
-
-```text
-event_id
-relationship_id
-role
-```
-
-## 15. decisions
-
-```text
-id
-branch_id
-event_id
-prompt
-status
-selected_option_id
-freeform_input
-parsed_decision_json
-created_at
-resolved_at
-```
-
-## 16. decision_options
-
-```text
-id
-decision_id
-option_key
-label
-description
-constraints_json
-effects_hint_json
-sort_order
-```
-
-## 17. scenario_overrides
-
-```text
-id
-branch_id
-override_type
-path
-old_value
-new_value
-created_at
-```
-
-## 18. chapters
-
-```text
-id
-branch_id
-chapter_no
-title
-body
-summary
-prompt_version
-model_metadata_json
-published_at
-created_at
-```
-
-## 19. chapter_events
-
-```text
-chapter_id
-event_id
-sort_order
-```
-
-Így a narratíva visszaköthető a canonhoz.
-
-## 20. ai_runs
-
-```text
-id
-user_id
-task_type
-resource_type
-resource_id
-provider
-model
-prompt_id
-prompt_version
-input_hash
-output_hash
-input_tokens
-output_tokens
-estimated_cost
-latency_ms
-validation_status
-created_at
-```
-
-## 21. jobs
-
-```text
-id
-user_id
-job_type
-resource_type
-resource_id
-status
-progress_json
-attempt
-error_code
-error_message_safe
-created_at
-started_at
-completed_at
-```
-
-## 22. community_posts később
-
-```text
-id
-user_id
-branch_id
-chapter_id
-visibility
-anonymized_payload
-body
-status
-created_at
-```
-
-A publikus payload legyen külön a privát forrástól.
-
-## 23. audit_logs
-
-```text
-id
-actor_type
-actor_id
-action
-resource_type
-resource_id
-metadata_safe_json
-created_at
-```
-
-Logolandó:
-- export;
-- delete;
-- admin access;
-- privacy change;
-- consent;
-- moderation.
-
-## 24. consents
-
-```text
-id
-user_id
-consent_type
-policy_version
-status
-created_at
-withdrawn_at
-```
-
-## 25. notifications
-
-```text
-id
-user_id
-type
-channel
-payload_json
-status
-scheduled_at
-sent_at
-read_at
-```
-
-## 26. RLS
-
-Ha Supabase Data API közvetlenül érintett:
-- saját row only;
-- community public view külön;
-- service role csak backend;
-- admin audit.
-
-Backend object-level authorization ettől függetlenül kötelező.
-
-## 27. Account delete
-
-1. request;
-2. re-auth;
-3. törlés/anonymization;
-4. community policy;
-5. storage;
-6. auth user;
-7. minimális jogszerű audit.
-
-## 28. Export
-
-Exportálandó:
-- profile;
-- versions;
-- relationships;
-- futures;
-- branches;
-- events;
-- chapters;
-- community;
-- consents.
-
-## 29. Migration
-
-Minden schema change migráció.
-
-Productionben tilos:
-- kézi dashboard schema edit;
-- ORM auto-sync.
+Alkalmazott 001/002 migrációt nem írunk át; checksum, tranzakciós alkalmazás és új additív migráció kötelező. Sémák a kódból exportálódnak; ORM auto-sync vagy kézi dashboard-DDL nem a fejlesztési út.

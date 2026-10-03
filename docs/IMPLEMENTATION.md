@@ -1,5 +1,7 @@
 # alterward — jelenlegi implementáció, 2026-10-03
 
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+
 Ez a dokumentum a működő v1 prototípust és a külön elkészült v2 könyvtári alapot írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.
 
 ## Új, elkészült könyvtári alap és márkanév
@@ -8,7 +10,7 @@ A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevébe
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-V2 tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; ez a szelet nem használt OpenAI-kreditet.
+V2 tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; a v2 könyvtári szelet nem használt OpenAI-kreditet. A külön nyelvi/prior AI-próbák költsége a közös státuszban szerepel.
 
 ## Többnyelvű alap
 
@@ -69,7 +71,7 @@ Az eseménygenerátor (`AI_EVENT_MODEL`), narrátor (`AI_STORY_MODEL`) és ellen
 
 Pipeline: AI-események → sémavizsgálat → szereplő/időrend/döntés ellenőrzése → determinisztikus state transition → AI-fejezetek → referenciasémák ellenőrzése → külön AI fidelity/safety ellenőrzés → tranzakciós commit.
 
-A történetellenőrző AI sem garantál hibátlan szemantikát. Emberi magyar minőségértékelés és safety-eval szükséges az alfához. A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás pénzbeli költségösszesítése még későbbi feladat. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; ez nem helyettesíti a teljes alkalmazás költségőrét.
+A történetellenőrző AI sem garantál hibátlan szemantikát. Emberi angol és magyar minőségértékelés és safety-eval szükséges az alfához. A raw prompt nem kerül logba; auditként model/prompt verzió, tokenhasználat, időtartam és hash tárolódik. Az alkalmazás pénzbeli költségösszesítése még későbbi feladat. A helyi `smoke:ai` próba külön, dátumozott árbeállítással és megőrzött fogyasztási naplóval korlátozza a kísérletek költségét; ez nem helyettesíti a teljes alkalmazás költségőrét.
 
 Reprodukálhatóság: a mentett canon és determinisztikus átmenetek visszajátszhatók. Azonos seed nem jelent azonos új LLM-választ. Újragenerálás új run; nem módosítja a régit.
 

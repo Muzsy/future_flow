@@ -1,279 +1,52 @@
-# Alter Jövő — API specifikáció váz
+# alterward — API specifikáció és tervezett bővítés
 
-## 1. Alap
+2026-10-03 · A tényleges controller: [apps/api/src/app.ts](../../apps/api/src/app.ts). OpenAPI helyben: `http://localhost:4000/api/openapi.json`. A tervezett végpontcsaládok még nem hívhatók.
 
-Base:
-`/api/v1`
+## Meglévő v1
 
-Formátum:
-`application/json`
+Base `/api/v1`, Bearer Supabase token; a controller összes alábbi végpontja hitelesített. `Accept-Language` választott felületnyelv, alap angol. Biztonságos hibakód/üzenet, requestId; nincs stack/prompt. A visszaadott DB-nézetekben jelenleg snake_case mezők is vannak, nem ígérünk általános camelCase DTO-t vagy kész generált klienst.
 
-Auth:
-`Authorization: Bearer <token>`
+| Metódus/útvonal | Tényleges művelet |
+|---|---|
+| GET /me | Hitelesített belső fiókazonosító |
+| POST /me/consent | `adult:true`, `acknowledged:true`, alpha-privacy-v1 elfogadás |
+| GET /questionnaires/current | Teljes angol/magyar kérdőív ugyanazon adatkulcsokkal |
+| GET /profile | Saját draft/aktuális profil visszaolvasása |
+| PATCH /profile/draft | Revisionnel válasz/kapcsolat mentése |
+| POST /profile/draft/commit | Immutable profilverzió, kérésben revision |
+| GET /futures | Saját életek |
+| POST /futures | V1 tízéves élet + job, `Idempotency-Key` kötelező |
+| GET /futures/:id | Saját élet és ágak |
+| GET /jobs/:id | Saját job/status, lokalizált biztonságos hiba |
+| GET /branches/:id | Saját branch, állapot, fejezetek/döntések nézete |
+| GET /branches/:id/timeline | Saját canon és örökölt prefix |
+| POST /decisions/:id/resolve | `type:"option"`, `optionId` → új gyermekág + job; `Idempotency-Key` kötelező |
+| GET /me/export | Saját JSON-adatletöltés, friss tényleges hitelesítés |
+| DELETE /me | Megerősített fióktörlés, friss hitelesítés, Auth-admin kulcs szükséges |
 
-Szerződés:
-OpenAPI.
+Külön `GET /health` technikai health. UI `/job/:id` és API `/api/v1/jobs/:id` eltérő útvonal.
 
-## 2. Konvenció
+## Érvényes create példa
 
-- JSON: `camelCase`
-- timestamp: ISO 8601 UTC
-- ID: opaque string
-- pagination: cursor
-- create: POST
-- partial update: PATCH
-- delete: lehetőleg idempotens
+```http
+POST /api/v1/futures
+Authorization: Bearer <session-token>
+Idempotency-Key: example-life-create-001
+Accept-Language: en
+Content-Type: application/json
 
-## 3. Error envelope
-
-```json
 {
-  "error": {
-    "code": "PROFILE_INCOMPLETE",
-    "message": "A profil még nem elegendő ehhez a művelethez.",
-    "details": {},
-    "requestId": "req_..."
-  }
-}
-```
-
-Stack trace nem kerül klienshez.
-
-## 4. User
-
-```http
-GET    /me
-PATCH  /me
-DELETE /me
-GET    /me/export
-```
-
-Login a Supabase Auth SDK-n keresztül történhet.
-
-## 5. Profile
-
-```http
-GET   /profile
-GET   /profile/versions
-GET   /profile/versions/{id}
-PATCH /profile/draft
-POST  /profile/draft/commit
-```
-
-A commit immutable profile version.
-
-## 6. Questionnaire
-
-```http
-GET  /questionnaires/current
-GET  /questionnaires/current/sections
-POST /questionnaires/current/answers
-POST /questionnaires/current/complete
-```
-
-Válaszok szakaszosan menthetők.
-
-## 7. AI profile enrichment
-
-```http
-POST /profile/enrichment/analyse
-POST /profile/enrichment/{proposalId}/accept
-POST /profile/enrichment/{proposalId}/reject
-```
-
-AI-javaslat nem commitol automatikusan.
-
-## 8. Relationships
-
-```http
-GET    /relationships
-POST   /relationships
-PATCH  /relationships/{id}
-DELETE /relationships/{id}
-```
-
-## 9. Futures
-
-```http
-GET    /futures
-POST   /futures
-GET    /futures/{futureId}
-DELETE /futures/{futureId}
-```
-
-Request:
-```json
-{
-  "profileVersionId": "pv_123",
+  "profileVersionId": "11111111-1111-4111-8111-111111111111",
   "horizonYears": 10,
-  "mode": "baseline"
+  "mode": "baseline",
+  "locale": "en"
 }
 ```
 
-Response:
-```json
-{
-  "futureId": "f_123",
-  "jobId": "job_123",
-  "status": "queued"
-}
-```
+Az UUID csak formai példa; létező saját committed profil kell. Locale `en`/`hu`, nem `hu-HU`. Hiányzó locale új kérésnél angol. Tartalomnyelv az életre rögzül, gyermekág nem vehet át eltérő UI-nyelvet. Azonos idempotenciakulcs eltérő bemenettel 409; draftnál elavult revision szintén 409. A v1 resolve nem fogad szabad szöveges döntést.
 
-## 10. Jobs
+## V2/public tervezett műveletek
 
-```http
-GET /jobs/{jobId}
-```
+P01–P03: új v2 élet/period szerződés, aktuális döntés egyszeri mentése, same-branch continuation és történeti fork külön művelettel. P09–P12: public Discovery/life/scenario olvasás, nyelvi szűrés, preview/Confirm/publish/refresh/unpublish, Save/Report, moderator státusz és sanitized fork/personalize. A végső URL/DTO az implementációban verziózott és OpenAPI-val ellenőrzött lesz; itt nem állítjuk létező `/api/v2` szolgáltatásnak.
 
-```json
-{
-  "id": "job_123",
-  "status": "running",
-  "progress": {
-    "stage": "SIMULATING_EVENTS"
-  }
-}
-```
-
-Percent csak akkor, ha valósan becsülhető.
-
-## 11. Branch
-
-```http
-GET  /futures/{futureId}/branches
-GET  /branches/{branchId}
-POST /branches/{branchId}/fork
-```
-
-## 12. Timeline
-
-```http
-GET /branches/{branchId}/timeline
-GET /branches/{branchId}/events/{eventId}
-```
-
-Window:
-`?from=2027-01-01&to=2030-01-01`
-
-## 13. Decision
-
-```http
-GET  /decisions/{decisionId}
-POST /decisions/{decisionId}/resolve
-```
-
-Option:
-```json
-{
-  "type": "option",
-  "optionId": "opt_2"
-}
-```
-
-Freeform:
-```json
-{
-  "type": "freeform",
-  "text": "Elfogadom, ha nem kell költöznöm."
-}
-```
-
-Response:
-- newBranchId;
-- jobId.
-
-## 14. Scenario override
-
-```http
-POST /branches/{branchId}/scenarios
-```
-
-```json
-{
-  "overrides": [
-    {
-      "type": "trait",
-      "key": "riskTolerance",
-      "value": 75
-    }
-  ]
-}
-```
-
-## 15. Chapter
-
-```http
-GET  /branches/{branchId}/chapters
-GET  /chapters/{chapterId}
-POST /branches/{branchId}/chapters/generate-next
-```
-
-## 16. Explain
-
-```http
-GET /events/{eventId}/explanation
-```
-
-```json
-{
-  "factors": [
-    {
-      "type": "profile",
-      "key": "changeDesire",
-      "impact": "high"
-    }
-  ],
-  "summary": "..."
-}
-```
-
-Ez a szimuláció belső okgráfja, nem valós oksági bizonyíték.
-
-## 17. Community később
-
-```http
-GET  /community/feed
-POST /community/posts
-GET  /community/posts/{id}
-POST /community/posts/{id}/comments
-POST /community/posts/{id}/report
-```
-
-## 18. Idempotency
-
-AI-t indító create műveleteknél:
-`Idempotency-Key`
-
-Kötelező:
-- future;
-- branch fork;
-- chapter generation.
-
-## 19. Rate limit
-
-Külön:
-- auth;
-- profile;
-- AI generation;
-- community;
-- report.
-
-## 20. Concurrency
-
-Profile draftnál revision/ETag.
-
-Két eszköz ne írja felül csendben egymást.
-
-## 21. OpenAPI
-
-NestJS-ből generálható, de:
-- CI diff;
-- breaking change explicit;
-- web/mobile kliens generálható.
-
-## 22. Versioning
-
-MVP:
-`/v1`
-
-DB schema version és API version külön fogalom.
+Public olvasás csak snapshot, szükséges permission/moderation ellenőrzéssel; privát végpont nem nyitható meg. Unlisted külön tokenes hozzáférés. Save/új saját élet auth, curator/admin külön role. Mutációk revision/hash/idempotencia és limit; olvasás nem indít AI-jobot. Szabad szöveges döntés, profil-AI enrichment, kapcsolati CRUD, notification/follow/comment, külön chapter-generate és élet-DELETE végpont nincs a mai controllerben.

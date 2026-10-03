@@ -1,170 +1,33 @@
-# Alter Jövő — közösségi és social rendszer
+# alterward — nyilvános életek, Discovery és közösség
 
-## 1. Alapelv
+2026-10-03 · Az összes itt leírt public funkció **tervezett**, még nincs bekötve. [Részletes terv](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Forrás](../PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md).
 
-Ne klasszikus közösségi hálót építsünk. A kapcsolódás alapja:
-- élethelyzet;
-- dilemma;
-- jövőág;
-- hasonló kiindulópont;
-- cél;
-- történet.
+## Rétegek és láthatóság
 
-## 2. Privacy szintek
+Private Personal Simulation, kurált Official Lives/Scenarios és önként megosztott Community Lives kapcsolódik össze. Minden saját élet alapból privát. A láthatóság pontosan **private / unlisted / public**; az anonymous author megjelenítési beállítás, nem negyedik jogosultsági szint.
 
-1. `private`
-2. `unlisted`
-3. `anonymous_community`
-4. `public` — csak később
+Unlisted csak erős titkos linkkel érhető el, nincs Discovery/sitemap/SEO. Public csak aktív, moderáció által engedett külön snapshot. Szerző megjelenítése és külső indexelés külön döntés; Community SEO opt-in. Official badge csak curator-jogosultság alapján. Teljes profil, memória, prompt, privát jegyzet/állapot és belső ID nem nyilvános.
 
-Default: `private`.
+## Public életoldal és Discovery
 
-## 3. Anonim közösségi profil
+Életoldal: cím/summary, opcionális szerző, eredetjelölés, idővonal, mérföldkő, kiadott döntés/opció/ág, Save/Share/Fork/Report. Kategória és nyelv szerinti böngészés; Featured, Trending, Most Forked, Turning Points, Official, Community Picks kurált kollekciók.
 
-Megjelenhet:
-- korcsoport;
-- általános régió;
-- élethelyzet kategória;
-- érdeklődés.
+Taxonómia: career, business, money, relationships, family, education, lifestyle, moving abroad, starting over, personal growth, adventure, historical, fictional. A történelmi/fiktív címke nem kész külön világmotort jelent. AI címkejavaslat csak jóváhagyva. Egyszerű aggregált ranking: sikeres fork erősebb jel mint view, spam/duplikátum és moderációs státusz figyelembevételével. Report számából nem következik felülvizsgálat nélküli tömeges eltüntetés; ML-ajánló később.
 
-Ne jelenjen meg automatikusan:
-- valódi név;
-- pontos lakhely;
-- munkáltató;
-- családtag neve;
-- pontos pénzügy;
-- egyedi azonosító leírás.
+## Publikálás
 
-## 4. Life cluster
+Kiválasztás → láthatóság/szerző/index/forkengedély → PII/tartalmi scan → Privacy Preview → teljes Content Preview és checkpoint → explicit hash/revision/scanverzióhoz kötött Confirm. Módosult preview új jóváhagyást kér. Scan nem garantál anonimitást és más személy adata nem válik kiadhatóvá a szerző kattintásától. Privát továbbírás csak új snapshotverzió + preview után kerülhet ki.
 
-Lehetséges cluster:
-- pályaváltás;
-- vállalkozás;
-- költözés;
-- újrakezdés;
-- család–munka;
-- kreatív hobbi;
-- tanulás;
-- társasági élet;
-- vidéki élet;
-- külföld.
+## Saját élet nyilvános forrásból
 
-## 5. „Hasonló kiindulópont”
+Fork this life, Start from this decision és Personalize scenario új tulajdonos új privát életét hozza létre sanitized állapotból, új belső ID-kkel. Nincs jogosultság vagy privát forráselőzmény öröklés. A döntés előtti checkpointból a választás egyszer alkalmazódik; a sablon és eredeti élet változatlan. Visszavont forrásból új fork nem készülhet.
 
-Csak opt-in esetén.
+## Moderáció és visszavonás
 
-Matching input:
-- korcsoport;
-- településtípus;
-- munkahelyzet;
-- top értékek;
-- cél kategória;
-- selected trait bucket.
+Minimum scan, Report, review queue, soft hide, hard remove, figyelmeztetés és ismételt visszaélés korlátozása, rate-limit/dedup/audit. PII, doxxing, zaklatás, gyűlölet, explicit/erőszakos/illegális tartalom, csalás, spam és megszemélyesítés kezelendő. Unpublish az új olvasást/forkot, linket, listázást, saját index/cache/OG-t vonja vissza. Törlés a public adatgráfra is kiterjed; korábbi privát fork forrásattributionje leválasztandó, érzékeny másolatok külön takarítási szabállyal.
 
-Ne használjunk „98% hasonlóság” típusú hamis pontosságot.
+## Sorrend és gazdaság
 
-## 6. Megosztható story card
+Személyes core → snapshot/Official kis seed → olvasható Discovery + Save/Share/Report → Community Publishing → public fork → később reakció/követés → végül komment. A közösségi 14 MVP-elemet a [visszakövetés](../REQUIREMENTS_TRACEABILITY_HU.md) tételesen felsorolja. DM/chat, followergraph, creator payment, marketplace és komplex ajánló nem MVP.
 
-User kiválasztja:
-- címet;
-- 1–3 eventet;
-- branch nevet;
-- esetleg illusztrációt.
-
-Megosztás előtt automatikus redaction + preview.
-
-## 7. Community post típusok
-
-- „Az én Alter ágamban…”
-- kérdés;
-- decision dilemma;
-- branch compare;
-- tapasztalat;
-- történetrész.
-
-Tartalomcímkék:
-- `REAL_LIFE`
-- `ALTER_STORY`
-- `MIXED_CONTEXT`
-
-## 8. Reakció
-
-MVP community:
-- komment;
-- hasznos;
-- érdekes.
-
-Kerülendő:
-- „jobb élet” szavazás;
-- ranglista;
-- domináns follower count;
-- életpontszám.
-
-## 9. Aggregált insight
-
-Példa:
-> „Ebben a dilemmatípusban a megosztott Alter branchek 41%-a tartalmazott költözést.”
-
-Kötelező:
-- megfelelő mintanagyság;
-- privacy threshold;
-- anonimizálás;
-- világos jelzés: ez szimulációs minta, nem valós kimeneti statisztika.
-
-## 10. Moderáció
-
-Kell:
-- report;
-- block;
-- mute;
-- safety prefilter;
-- admin queue;
-- audit trail.
-
-Korlátozandó:
-- doxxing;
-- zaklatás;
-- fenyegetés;
-- explicit káros tartalom;
-- más személy adatainak megosztása;
-- megtévesztő „biztos jövő” állítás.
-
-## 11. DM
-
-Első community release-ben **ne legyen**.
-
-A DM jelentősen növeli:
-- zaklatási kockázatot;
-- moderációs költséget;
-- adatvédelmi komplexitást.
-
-## 12. Páros/közös jövő
-
-Későbbi premium funkció.
-
-Két user explicit consenttel:
-- kiválaszt megosztható adatokat;
-- közös scenario készül;
-- egyik sem látja automatikusan a másik teljes profilját.
-
-## 13. Community rollout
-
-### C0
-Nincs community.
-
-### C1
-Unlisted story link.
-
-### C2
-Anonim story feed.
-
-### C3
-Tematikus cluster + komment.
-
-### C4
-Matching + aggregált insight.
-
-### C5
-Közös jövő/private circles.
-
-A core MVP-hez community nem szükséges.
+Discovery/olvasás/Save/Share/Publish ingyenes termékfunkció; privát működés és adatletöltés/törlés szintén ingyenes alap. Új saját AI-generálás/fork/személyre szabás limitálható, mért költség alapján. Olvasás nem generál új AI-tartalmat. A növekedési hurok hipotézis: olvasás → érdeklődés → fork → saját következmény → önkéntes megosztás.

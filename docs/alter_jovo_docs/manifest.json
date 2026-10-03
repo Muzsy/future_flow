@@ -1,112 +1,124 @@
 {
-  "project": "Alter Jövő",
-  "version": "0.1",
-  "date": "2026-10-02",
+  "project": "alterward",
+  "version": "0.2",
+  "date": "2026-10-03",
+  "status": "active-documentation",
+  "previousVersionArchive": "../archive/alter_jovo_v0_1",
+  "sources": [
+    {
+      "name": "../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md",
+      "sha256": "c4bada1f67c5bf525ab17c7d98de307b81d72eb3db64600fc629db2fcf595585"
+    },
+    {
+      "name": "../PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md",
+      "sha256": "59124415f740dd18a5cbfc00960ce852d2a8ef304156a15ee82feb8849babc04"
+    }
+  ],
   "files": [
     {
       "name": "00_README.md",
-      "bytes": 3874,
-      "sha256": "58eacaf814b1633f5bdb18038e549b6d351767643b0bb1f5281a19d30b254fb7"
+      "bytes": 2854,
+      "sha256": "ce1d8a8c1cd46d2376032673de7bd2c5ab61db862934c167cc34eab41e04838c"
     },
     {
       "name": "01_VISION_AND_PRODUCT.md",
-      "bytes": 5089,
-      "sha256": "9ec036e9b0e14d4db67c7ae46bf2f70e9e6c992f26e8d01f02bf062b57903485"
+      "bytes": 4019,
+      "sha256": "6f1ca12ec3dcbd08e7d179ca50572e3dfbebbfce8cdd7573c8c43c0fd49df045"
     },
     {
       "name": "02_USER_EXPERIENCE_AND_FLOWS.md",
-      "bytes": 3962,
-      "sha256": "fe337071082a424a211273841d149e824958c04f7bcd5f76b57116b69dee6ff0"
+      "bytes": 3697,
+      "sha256": "940c63069a5dfb962fe3074d67c55a028b9eefcbc6c7bdff973c6dc5c4816b2b"
     },
     {
       "name": "03_PROFILE_MODEL_AND_QUESTIONNAIRE.md",
-      "bytes": 6454,
-      "sha256": "c2267fc747bce7dfbf35d0c5cb22e22eb40d4e6d579434abc01cf207e40a9e35"
+      "bytes": 3530,
+      "sha256": "f42302d845b7a3eba1027a10309498b405604baa086cf134da22606027b75bc4"
     },
     {
       "name": "04_SIMULATION_ENGINE.md",
-      "bytes": 5144,
-      "sha256": "f3980bf516ac272ed5e5a3b94b6861fa409986bd466b44e469cd909e7872f467"
+      "bytes": 3591,
+      "sha256": "73cf5e6ebff75dad9895ffc330e5293bec19542a456ed8ea1f46e9c90f305174"
     },
     {
       "name": "05_AI_AND_PROMPT_ARCHITECTURE.md",
-      "bytes": 5355,
-      "sha256": "c481cd225550d2e08222d7750fb7b5a6bd87891531b9e75c569513b988ad5f35"
+      "bytes": 3868,
+      "sha256": "bb389e18ea27b94c0e6b3468e54c12816c1bd4f9f56001ef2f9204975b73b0a7"
     },
     {
       "name": "06_STORY_ENGINE_AND_CONTENT.md",
-      "bytes": 3633,
-      "sha256": "fdc6727a9cbe622496a1f38a256739f624daf26b0239e804f3ad13c408166793"
+      "bytes": 3246,
+      "sha256": "173e62990aba5e99f313cb790e685bb1d349dad972de6eb641ea04760b8d978a"
     },
     {
       "name": "07_COMMUNITY_AND_SOCIAL.md",
-      "bytes": 2868,
-      "sha256": "198d7fe511ed0e2b7d8c73730c650b1bde6d314101ebe68b1182654ef0c7749c"
+      "bytes": 4033,
+      "sha256": "0f2a68d57dca9a8c711386f41717c2e16ec6a39bce392aa30d23bf84b2f82229"
     },
     {
       "name": "08_SYSTEM_ARCHITECTURE.md",
-      "bytes": 5743,
-      "sha256": "242bdb1e1159a82b8ad090355204915bc20513aedc8279a94ee0753ad82f8d82"
+      "bytes": 3151,
+      "sha256": "bb5c1129b811573a03181a47f5a57cb870e5310dd63018a8ea02faada9b5eb51"
     },
     {
       "name": "09_DATA_MODEL.md",
-      "bytes": 4594,
-      "sha256": "3a69182058da05f1c39b85d23a1c7accf1f6b6cbeefbb542e591f302b25b1168"
+      "bytes": 4145,
+      "sha256": "ef2a900b5342f69b0198daf9e126b6cbb0488215bcbcace958abecdc55872aff"
     },
     {
       "name": "10_API_SPEC.md",
-      "bytes": 3840,
-      "sha256": "3092e6b97d6f19db6a88f6682c845615be420d26d169ad599e613d937746a231"
+      "bytes": 3544,
+      "sha256": "862fb7673fd565795e0575262de015295d0c2b76602ef1095b128e937048265a"
     },
     {
       "name": "11_SECURITY_PRIVACY_COMPLIANCE.md",
-      "bytes": 6023,
-      "sha256": "3fd2837b783fa1cce36359e47598d87b562299091406b4141b52a835e3b32559"
+      "bytes": 3971,
+      "sha256": "0d2c43dd1394ee4891c9909370b49c8a1373d39ef2783a7ea62f93062c4665cf"
     },
     {
       "name": "12_MVP_SCOPE_AND_ROADMAP.md",
-      "bytes": 3643,
-      "sha256": "f90bb416c83dad72073dc6dd506760f5b93b571b6e89e48e0197e5b1843b2405"
+      "bytes": 3514,
+      "sha256": "536029dc677b6ed6cb09718c2f51c393d41c621aaf34b6af3c70c50095a8f1b3"
     },
     {
       "name": "13_ENGINEERING_SETUP.md",
-      "bytes": 3505,
-      "sha256": "0d774b18630b0f87bb3e1356a839a738216e0cc73c254c0b38069f1e19bfe0ca"
+      "bytes": 2569,
+      "sha256": "ebe6341b823064b07c0bf05ab0a01618fa9f95dad10d2eccf7f59f0a4e0dcfa5"
     },
     {
       "name": "14_TESTING_AND_QUALITY.md",
-      "bytes": 3319,
-      "sha256": "a2d55101f2ba81535feda55bf7c2158e8d5d74ec0c75bb9378d15776cd048cd3"
+      "bytes": 3322,
+      "sha256": "a2f2cc09e50cbfd0bb7f3c0147a80b3746c49842ffa40e1337ced3f6eeb7c02e"
     },
     {
       "name": "15_ANALYTICS_MONETIZATION_OPERATIONS.md",
-      "bytes": 2362,
-      "sha256": "7f535ccb4882f6f1386e99f4f7cff7d7fbee05d75ad1f908fb16b98dad26dc84"
+      "bytes": 3375,
+      "sha256": "8cc69b05ea38ee1483484424bbfe91840aa08a23042ab459eae3ccc92224a5c9"
     },
     {
       "name": "16_DECISIONS_AND_OPEN_QUESTIONS.md",
-      "bytes": 3819,
-      "sha256": "c7856f6a5324f189a6c5f63a84eea54afa11766afda81ab167d7140d3e9304c9"
+      "bytes": 4666,
+      "sha256": "aa8b653f54c75d8ee55138b3e504d751e90172ce9ca1fecbe7ff4b2c579b898f"
     },
     {
       "name": "17_INITIAL_BACKLOG.md",
-      "bytes": 4047,
-      "sha256": "ec2e6e2ccdf4fc52b4009700403e9083be66a0e0130c001eff933be4dd59874e"
+      "bytes": 2692,
+      "sha256": "d35e82a2138af2dbf16a3bb1d2d93b2d45092d10bf80ef05071ead86261e1696"
     },
     {
       "name": "18_AGENT_HANDOFF.md",
-      "bytes": 4015,
-      "sha256": "8eb5b2888ab58d4eb06afe501d89a2befad7a7dae1799079da82ab03ad359fa4"
+      "bytes": 3125,
+      "sha256": "3fdce69e2d96118941b356430da0ed152065cad71844de6c8830a0e6157dc7d2"
     },
     {
       "name": "19_SAMPLE_CONTRACTS.md",
-      "bytes": 5011,
-      "sha256": "e6df1a0f05858696c26dfa782a0031a3f59f30407235662d22a7b84a03e94efc"
+      "bytes": 2935,
+      "sha256": "3948531b49a2da91f28f344f509b2df00061c54508b37c77ae0a949c96afcdb7"
     },
     {
       "name": "20_REFERENCES.md",
-      "bytes": 2168,
-      "sha256": "09e908dc034c47f0a5055a0e9499059e54635f92156ce611912d599a74b26fb5"
+      "bytes": 2840,
+      "sha256": "0c96fa0221c3d426eb34b06b601dd1ffe7353a8786312a975084bf1e12e4cedd"
     }
   ]
 }

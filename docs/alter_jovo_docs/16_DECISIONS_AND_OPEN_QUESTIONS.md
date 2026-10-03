@@ -1,151 +1,50 @@
-# Alter Jövő — döntési napló és nyitott kérdések
+# alterward — döntések és nyitott kérdések
 
-## 1. Rögzített kezdeti döntések
+2026-10-03 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
 
-### ADR-001 — Web first
-**Döntés:** első kliens Next.js web.  
-**Indok:** landing, SEO, megosztás, komplex profilbevitel.  
-**Mobil:** Flutter később, ugyanaz az API.
+## Elfogadott döntések
 
-### ADR-002 — Külön backend
-**Döntés:** NestJS backend.  
-**Indok:** mobil, AI job, domain logic, worker.
+| Azonosító | Döntés | Eredet/státusz |
+|---|---|---|
+| ADR-001 | Web first, reszponzív Next.js | Meglévő alap, natív mobil később |
+| ADR-002 | Külön NestJS API és worker, moduláris monolit | Meglévő alap |
+| ADR-003 | PostgreSQL/Supabase Auth, migration first | Felhasználói szolgáltatóválasztás, megvalósítva |
+| ADR-004 | Valódi OpenAI esemény/történet/ellenőrzés | Felhasználó elvetette az AI nélküli verziót |
+| ADR-005 | Canon és determinisztikus átmenet a narratíva előtt | Mindkét terv, meglévő v1 + v2 könyvtár |
+| ADR-006 | Immutable profil/canon, saját történeti fork nem ír szülőt | Meglévő v1, v2 tervben is kötelező |
+| ADR-007 | Tranzakciós PostgreSQL job, lease/checkpoint | Megvalósítás; felváltja a korábbi PGMQ-ajánlást |
+| ADR-008 | Privát alap és ingyenes adatletöltés/törlés | Rögzített termék-/biztonsági alap |
+| ADR-009 | 18+ induló webes cél | Megtartott irány; teljes age verification nem kész |
+| ADR-010 | Terméknév **alterward** | Felhasználói döntés; repó/csomagazonosítók maradnak |
+| ADR-011 | Angol alap, teljes választható magyar, további nyelvre regiszter | Felhasználói döntés, meglévő v1-en kész |
+| ADR-012 | `Muzsy/future_flow` → közvetlen main munka | Felhasználói döntés, CI ellenőrzéssel |
+| ADR-013 | Tartós rövid időszakos élet és same-branch folytatás | Pozicionálási terv; könyvtári alap kész, integráció tervezett |
+| ADR-014 | Private + Official/Scenario + Community, public MVP | Közösségi terv; személyes core után P09–P13 |
+| ADR-015 | Snapshot és külön sanitized fork-checkpoint | Privacy követelmény, tervezett |
+| ADR-016 | Feladatonkénti modellkonfiguráció, külön checker | Megvalósítva; Luna minősítendő jelölt |
+| ADR-017 | 5 USD összes fejlesztői AI-kísérletre együtt | Felhasználói keret; nincs automatikus bővítés |
 
-### ADR-003 — Modular monolith
-**Döntés:** nincs microservice MVP-ben.
+## Felülírt javaslatok
 
-### ADR-004 — PostgreSQL / Supabase
-**Döntés:** relációs truth source.
+| Korábbi szöveg | Aktív értelmezés |
+|---|---|
+| Alter Jövő / Future Flow / Branchward munkanév | alterward |
+| Magyar-only MVP, soknyelvűség kizárva | EN alap + teljes HU már induláskor; további nyelv teljesítés után |
+| AI nélküli első demo/mock termékmód | Valódi AI kötelező; helyettesítő csak tesztben |
+| Tízéves első generálás, 25–35 kötelező kérdés | V1 történeti működés; új v2 10–15 kérdés, rövid időszak |
+| Minden választás új branch | V1 marad; v2 aktuális választás folytat, múltból fork külön |
+| Public/social csak későbbi opcionális réteg, komment először | Public MVP személyes core után; Save/Share/Fork első, social/komment később |
+| anonymous_community mint külön privacy szint | private/unlisted/public; szerző anonimitása külön megjelenítési beállítás |
+| Privacy vagy adatletöltés prémium | Privát alap/export/törlés ingyenes; csak extra narratív formázás lehet prémium |
+| Kötelező PGMQ/ORM/Docker/Flutter/protected-main/PR | Meglévő pg SQL/job és pnpm stack; infrastruktúra/mobil később, felhasználó main döntése érvényes |
+| 18/20 siker elég export/törléshez | Auth/canon/privacy/export/törlés minden esetben hibamentes gate |
 
-### ADR-005 — Structured profile first
-**Döntés:** a profil alapja fix/kategorizált adat, a chat csak finomít.
+## Induló munkadöntések
 
-### ADR-006 — Simulation != Story
-**Döntés:** külön motor.
+Hat hónap alap, szerződés tizenkettőt is enged; egy 250–600 szavas fejezet/2–5 esemény/egy végső nyitott döntés. Első 12 lépéses rövid kérdőív, egy fő cél, mai magyar földrajzi környezet két nyelven. Egyszerű public ranking és fix taxonómia. Ezek mért tapasztalat alapján visszafordíthatók, nem lezárt felhasználói termékpreferenciák.
 
-### ADR-007 — Canonical state
-**Döntés:** prózaszöveg nem domain truth.
+## Nyitott döntések és függőségek
 
-### ADR-008 — Async AI jobs
-**Döntés:** first future és branch queue-n keresztül.
+Domain/védjegy; csomagár és ingyenes generálási limitek; későbbi payment/hosting; v2 period/fejezethossz értékelése; nemzetközi környezetsablonok; Official seed nyelvi aránya; további nyelvek; számszerű pilot-küszöb és sessionablak; végleges privacy/retention/backup és public másolatok takarítása. Ezeket konkrét mérés/előnézet alapján tisztázzuk, nem blokkolják P01-et.
 
-### ADR-009 — AI provider abstraction
-**Döntés:** nincs provider dependency a domainben.
-
-### ADR-010 — Privacy by default
-**Döntés:** minden story privát alapállapotban.
-
-### ADR-011 — 18+ MVP
-**Döntés:** első kiadás felnőtteknek.
-
-## 2. Fejlesztés előtt eldöntendő
-
-### Q1. Magyar-only MVP?
-**Javaslat:** igen.  
-Egy nyelven könnyebb a prompt, story quality és moderáció validálása.
-
-### Q2. Életkor vagy korcsoport?
-A timeline miatt pontosabb életkor hasznos, privacy szempontból viszont korcsoport egyszerűbb. Az első wireframe előtt döntsük el.
-
-### Q3. Lakhely granularitás?
-**Javaslat:** ország + régió/megye + településtípus. Pontos cím nem kell.
-
-### Q4. Jövedelem?
-**Javaslat:** stabilitás és relatív kategória, ne pontos összeg.
-
-### Q5. Első future időtáv?
-**Javaslat:** 10 év, első 2 év részletes.
-
-### Q6. Hány branch ingyenes?
-Alpha használat és AI-költség után döntendő.
-
-### Q7. Generálás?
-**Döntés:** queue + job state, nem hosszú blokkoló HTTP.
-
-### Q8. Prompt tárolás?
-**Javaslat:** template verzió repo-ban, metadata DB-ben.
-
-### Q9. ORM?
-Választható:
-- Prisma;
-- Drizzle;
-- TypeORM.
-
-Egyet a Sprint 0 elején rögzíteni kell. Fontosabb a migration-first működés, mint maga az ORM márka.
-
-### Q10. Supabase direct client?
-**Javaslat:**
-- Auth: igen;
-- Storage: igen;
-- canonical profile/future mutation: NestJS API;
-- community public read később mérlegelhető.
-
-## 3. Validálandó termékkérdések
-
-- Kitöltenek-e 25–35 kérdést?
-- Mely kérdések érződnek túl személyesnek?
-- Milyen hosszú chapter az ideális?
-- 10 év érdekes vagy túl hosszú?
-- Timeline vagy story fontosabb?
-- Használják-e a „miért történt?” funkciót?
-- Branch valóban érdekes?
-- Heti story jobb-e, mint azonnali teljes timeline?
-- Van-e tényleges igény communityre?
-
-## 4. Fő kockázatok
-
-### R1 — Horoszkóp-hatás
-Mitigáció:
-- konkrét state;
-- causality;
-- személyes input;
-- nem automatikusan pozitív történet;
-- következetes event graph.
-
-### R2 — Túl hosszú onboarding
-Mitigáció:
-- minimum profile;
-- progress;
-- resume;
-- későbbi enrichment.
-
-### R3 — AI költség
-Mitigáció:
-- task-specifikus modell;
-- cache;
-- limit;
-- structured output;
-- cost telemetry.
-
-### R4 — Adatvédelmi bizalmatlanság
-Mitigáció:
-- adatminimalizálás;
-- privacy default;
-- export/delete;
-- közérthető privacy UX.
-
-### R5 — Inkonzisztens story
-Mitigáció:
-- simulation/story separation;
-- validator;
-- event refs;
-- golden eval.
-
-### R6 — „AI megmondja mit tegyek”
-Mitigáció:
-- scenario framing;
-- nincs winner;
-- user agency;
-- decision opciók neutralitása.
-
-## 5. Következő döntési workshop
-
-1. MVP profilmezők véglegesítése.
-2. Questionnaire v0.
-3. Wireframe.
-4. ORM.
-5. Supabase setup.
-6. Primary AI provider.
-7. First future JSON schema.
-8. Story style.
-9. Alpha tesztelői kör.
+Korábban jelzett Supabase admin-kulcs a valódi Auth-törlési próbához hiányzik; értéke csak védett helyi környezetbe kerülhet. A–G termékhipotézisek és a public növekedési hurok még nem bizonyított. Modellcseréhez új EN/HU teljeslánc-próba kell, külön keretfoglalással. A tömeges seed/pilot szükség esetén új pénzügyi döntést kér, az 5 USD nem léphető túl.

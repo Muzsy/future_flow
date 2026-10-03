@@ -1,0 +1,45 @@
+# alterward — dokumentáció
+
+2026-10-03 · A teljes témadokumentáció frissítve a két átadott terv és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék alapnyelve angol, teljes magyar választási lehetőséggel.
+
+## Olvasási sorrend
+
+| Dokumentum | Mire ad választ? |
+|---|---|
+| [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
+| [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Következő lépések](NEXT_STEPS.md) | L01 és P01–P13 végrehajtási sorrend, függőségek, elfogadás |
+| [21 részes témadokumentáció](alter_jovo_docs/00_README.md) | Termék, UX, profil, motor, AI, közösség, architektúra, adat/API, biztonság, minőség és üzemeltetés |
+| [Követelmények visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md) | Hol érvényesül a két terv mind a 80 fő fejezete és a közösségi MVP 14 eleme? |
+| [Implementáció](IMPLEMENTATION.md) | A meglévő kód tényleges működése és korlátai |
+| [Beállítás](SETUP.md) | Helyi indítás, Supabase/OpenAI és titokkezelés |
+| [Lokalizáció](LOCALIZATION_HU.md) | Angol alap, magyar, tartalomnyelv és további nyelvek |
+| [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült könyvtári alap, még hiányzó tárolás/API/worker |
+| [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |
+| [AI-ellenőrzés](AI_VALIDATION.md), [modellvizsgálat](AI_MODEL_ROUTING_HU.md), [minták](examples/README.md) | Dátumozott mérések; a sikerek gyakorlati határai |
+
+## Elsőbbség és státusz
+
+Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
+
+- **Működik:** a v1 tízéves generálás, saját döntési elágazás és teljes angol/magyar megjelenítés/AI-generálás.
+- **Könyvtári alap:** a v2 rövid időszak-, tényállapot- és korlátszerződés, determinisztikus validátorral.
+- **Tervezett:** rövid onboarding, ugyanazon ágon folytatás, alkalmazásszintű költségfoglalás, publishing, Discovery, Official seed és nyilvános fork.
+- **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
+
+Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, Supabase, 18+ web, angol alap és magyar, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
+
+## Források és archívum
+
+A felhasználó két dokumentuma teljes terjedelemben, változatlanul megmarad:
+
+1. [Pozicionálás és célmeghatározás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) — 38 fő fejezet.
+2. [Nyilvános életutak, Discovery és közösség](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) — 42 fő fejezet; kiegészíti és a közösségi MVP sorrendjében pontosítja az első tervet.
+
+A források régebbi munkanévre, nyelvre és prémium privacyra vonatkozó részeit a [döntési napló](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) felülírja. Piaci/versenytársi háttérállításaik nem friss, külön ellenőrzött piackutatási eredmények.
+
+A korábbi 21 dokumentum és eredeti manifest byte szerinti másolata az [archívumban](archive/README.md) található; az [eredeti ZIP](alter_jovo_project_documentation_v0.1.zip) is változatlan. A `docs/alter_jovo_docs` útvonal a frissített, aktív **0.2 dokumentációt** tartalmazza. A mappanév kompatibilitás miatt marad. Ez dokumentációverzió, nem API-, adatbázis-, termékcsomag- vagy kontraktusverzió.
+
+## Karbantartás
+
+Funkció elkészültekor először a bizonyítékot és státuszt kell frissíteni, majd a backlogot és a megfelelő témadokumentumot. Modellárak/mérések dátummal szerepelnek; új árat újra ellenőrizni kell, régi mérés nem írható át. Az AI-minták tényleges generált törzse és a forrásdokumentumok nem szerkesztett termékígéretek. A JSON-sémák a kódból készülnek `pnpm schemas` paranccsal. Az aktív témacsomag manifestje tartalomváltozás után újragenerálandó.

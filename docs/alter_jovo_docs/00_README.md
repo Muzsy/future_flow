@@ -1,85 +1,34 @@
-# Alter Jövő — projekt-dokumentáció
+# alterward — témadokumentáció 0.2
 
-**Státusz:** kezdeti fejlesztési specifikáció  
-**Verzió:** 0.1  
-**Dátum:** 2026-10-02
+2026-10-03 · A [pozicionálási terv](../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [nyilvános életutak terve](../PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az elfogadott felhasználói döntések egységes feldolgozása. [Dokumentációs központ](../README.md) · [Állapot](../STATUS_HU.md) · [Backlog](../NEXT_STEPS.md) · [Visszakövethetőség](../REQUIREMENTS_TRACEABILITY_HU.md).
 
-## Röviden
+## A csomag
 
-Az **Alter Jövő** egy személyre szabott, AI-val támogatott alternatívélet-szimulátor. A felhasználó strukturáltan megadja élethelyzetét, kapcsolatait, munkáját, érdeklődését, értékeit, céljait és személyiségjellemzőit. A rendszer ezekből verziózott személy- és életállapot-modellt készít, majd több lehetséges, hihető jövőágat szimulál.
-
-A termék **nem jóslás**. Lehetséges forgatókönyveket mutat, amelyekbe a felhasználó beavatkozhat, döntéseket hozhat, tulajdonságokat változtathat, és új jövőágakat nyithat.
-
-## Alapvető termékdöntések
-
-1. Web-first, de mobilra előkészített rendszer.
-2. A web és a későbbi mobilapp ugyanazt az API-t és backendet használja.
-3. A profil elsődleges forrása strukturált adat.
-4. A szabad szöveges AI-interjú opcionális finomítás.
-5. A szimuláció és a történetírás két külön rendszer.
-6. A generált próza nem truth source; a strukturált state/event graph az.
-7. Minden jövő profilverzióhoz kötött.
-8. A jövőágak reprodukálhatók és összehasonlíthatók.
-9. Minden személyes adat privát alapértelmezéssel indul.
-10. A közösségi funkciók tudatos megosztásra és anonimizálásra épülnek.
-11. MVP-ben modular monolith, nem microservice.
-12. Az AI-provider cserélhető absztrakció mögött működik.
-
-## Javasolt technológiai alap
-
-| Réteg | Javaslat |
+| Fájl | Téma |
 |---|---|
-| Web | Next.js + TypeScript |
-| Mobil | Flutter + Dart, később |
-| Backend | NestJS + TypeScript |
-| Adatbázis | PostgreSQL / Supabase |
-| Auth | Supabase Auth |
-| Storage | Supabase Storage |
-| Realtime | Supabase Realtime, ahol indokolt |
-| Háttérfeladat | Supabase Queues / PGMQ vagy később BullMQ |
-| API | REST + OpenAPI |
-| AI | provider-agnosztikus orchestration layer |
-| Deploy | Docker |
-| Repo | monorepo |
-| Architektúra | modular monolith |
+| [01](01_VISION_AND_PRODUCT.md) | Vízió, pozicionálás, hat pillér és célközönség |
+| [02](02_USER_EXPERIENCE_AND_FLOWS.md) | Első élmény, folytatás, saját és nyilvános fork, publishing |
+| [03](03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | Rövid profil, identitás, cél és korlát |
+| [04](04_SIMULATION_ENGINE.md) | Strukturált canon, tényállapot és rövid időszak |
+| [05](05_AI_AND_PROMPT_ARCHITECTURE.md) | OpenAI-szerepek, nyelv, költség és minőség |
+| [06](06_STORY_ENGINE_AND_CONTENT.md) | AI-történet, emlékezet, Official tartalom |
+| [07](07_COMMUNITY_AND_SOCIAL.md) | Public/Official/Community és Discovery |
+| [08](08_SYSTEM_ARCHITECTURE.md) | Meglévő rendszer és új modulhatárok |
+| [09](09_DATA_MODEL.md) | V1 tárolás, v2 és nyilvános adatmodell terve |
+| [10](10_API_SPEC.md) | Tényleges v1 végpontok és tervezett műveletek |
+| [11](11_SECURITY_PRIVACY_COMPLIANCE.md) | Jogosultság, PII, export/törlés, release-függőségek |
+| [12](12_MVP_SCOPE_AND_ROADMAP.md) | Privát pilot és teljes nyilvános MVP |
+| [13](13_ENGINEERING_SETUP.md) | Indítás, CI, migráció és titokkezelés |
+| [14](14_TESTING_AND_QUALITY.md) | Technikai, nyelvi, AI és public minőségi kapuk |
+| [15](15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Folytatási mérés, public konverzió, monetizáció/ops |
+| [16](16_DECISIONS_AND_OPEN_QUESTIONS.md) | Elfogadott döntések, felülírások, nyitott döntések |
+| [17](17_INITIAL_BACKLOG.md) | Aktuális backlog-index és régi feladatok utódlása |
+| [18](18_AGENT_HANDOFF.md) | Következő konkrét fejlesztési szelet átadása |
+| [19](19_SAMPLE_CONTRACTS.md) | Érvényes kontraktusok és API-minták |
+| [20](20_REFERENCES.md) | Belső források és hivatalos referenciák |
 
-## Dokumentumok
+## Verzió és státusz
 
-- `01_VISION_AND_PRODUCT.md` — vízió, célok, célcsoport, termékelvek
-- `02_USER_EXPERIENCE_AND_FLOWS.md` — onboarding és fő user flow-k
-- `03_PROFILE_MODEL_AND_QUESTIONNAIRE.md` — profilmodell, változók, kérdőív
-- `04_SIMULATION_ENGINE.md` — szimuláció és jövőágak
-- `05_AI_AND_PROMPT_ARCHITECTURE.md` — AI-réteg és promptkezelés
-- `06_STORY_ENGINE_AND_CONTENT.md` — történetfolyam
-- `07_COMMUNITY_AND_SOCIAL.md` — közösségi rendszer
-- `08_SYSTEM_ARCHITECTURE.md` — technikai architektúra
-- `09_DATA_MODEL.md` — adatmodell
-- `10_API_SPEC.md` — API-váz
-- `11_SECURITY_PRIVACY_COMPLIANCE.md` — adatvédelem és biztonság
-- `12_MVP_SCOPE_AND_ROADMAP.md` — MVP és roadmap
-- `13_ENGINEERING_SETUP.md` — repo, környezetek, CI/CD
-- `14_TESTING_AND_QUALITY.md` — tesztelés és minőség
-- `15_ANALYTICS_MONETIZATION_OPERATIONS.md` — metrikák, monetizáció, üzemeltetés
-- `16_DECISIONS_AND_OPEN_QUESTIONS.md` — döntési napló
-- `17_INITIAL_BACKLOG.md` — kezdeti backlog
-- `18_AGENT_HANDOFF.md` — átadás fejlesztői ügynöknek
-- `19_SAMPLE_CONTRACTS.md` — minta JSON-kontraktusok
-- `20_REFERENCES.md` — hivatalos források
+A 0.2 a dokumentáció verziója. A működő API v1, a v2 életszerződés 2.0.0 könyvtári alap, a rövid időszakos és nyilvános funkciók még fejlesztendők. A témák ezekre külön jelöléssel hivatkoznak. Az [eredeti v0.1](../archive/README.md) és ZIP változatlanul megmarad; ez a könyvtár már az aktív csomag.
 
-## MVP egy mondatban
-
-> A felhasználó regisztrál, kitölt egy strukturált élet- és személyiségprofilt, a rendszer létrehoz egy 10 éves alternatív jövő első változatát és első történetfejezeteit, majd egy döntési pontnál új jövőágat nyithat.
-
-## A legfontosabb technikai szabály
-
-**Soha ne a generált prózaszöveg legyen az igazság forrása.**
-
-A truth source:
-1. profile version;
-2. life state;
-3. world state;
-4. strukturált események;
-5. döntések;
-6. branch graph.
-
-Ez teszi lehetővé a mobilklienst, újragenerálást, összehasonlítást, több nyelvet, promptcserét és regressziós tesztelést.
+A [manifest](manifest.json) a jelenlegi 21 témadokumentum UTF-8 byte-méretét és SHA-256 hash-ét tartalmazza, valamint a két változatlan forrás hash-ét. A teljes forrástartalom nem rövidített archív példánnyal lett kiváltva.

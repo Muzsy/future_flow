@@ -54,7 +54,7 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 
 ## Dokumentáció
 
-A pozicionálási és a nyilvános életutakról szóló dokumentum együtt határozza meg a következő változat irányát. A ZIP és a `docs/alter_jovo_docs` mappa az eredeti v0.1 tervezési anyagot őrzi változatlanul. A v1 szerződések mellett már rendelkezésre áll a v2 időszak-/tényállapot-szerződés és determinisztikus validátor; az új tárolás, API és AI-pipeline bekötése még fejlesztendő. Discovery és publikálás még nincs a működő alkalmazásban.
+A [dokumentációs központ](docs/README.md) a két átadott stratégiai tervet, a frissített 21 témadokumentumot, a [követelménymátrixot](docs/REQUIREMENTS_TRACEABILITY_HU.md) és a [közös megvalósítási státuszt/AI-keretet](docs/STATUS_HU.md) fogja össze. A `docs/alter_jovo_docs` az aktív 0.2 témacsomag; az eredeti v0.1 és manifest változatlan másolata a `docs/archive/alter_jovo_v0_1` mappában, a ZIP az eredeti helyén marad. A v2 szerződés/domain könyvtári alap kész, az új tárolás/API/worker és a Discovery/publishing még fejlesztendő.
 
 - [Pozicionálás és célmeghatározás — stratégiai alap](docs/PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md)
 - [Nyilvános életutak, Discovery és közösségi specifikáció](docs/PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md)
