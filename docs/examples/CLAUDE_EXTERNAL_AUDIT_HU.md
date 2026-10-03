@@ -27,6 +27,8 @@ A kezdeti Haiku/Sonnet auditok téves canon-riasztásokat is adtak: a később e
 
 ## Az új Claude-narrátor próbáin talált hibák
 
+A Claude által írt tényleges fejezetek a [magyar minták](CLAUDE_GENERATED_STORIES_HU.md) és az [angol minták](CLAUDE_GENERATED_STORIES_EN.md) dokumentumában olvashatók, az eredeti és javított változatok megkülönböztetésével.
+
 - Haiku HU: tényleges hibás szóhasználat, például **„rágalmazott szokássá vált”** és **„elölökteted”**. A séma/hossz/hivatkozás sikere nem tette elfogadhatóvá a prózát.
 - Haiku EN: a megadott 35–44 éves korcsoportból pontos negyvenéves kort állított, illetve a változatlan energiaértékből rendszeres kimerülést talált ki.
 - Sonnet EN: a négyórás opcióhoz nem rögzített fele-fele időbeosztást adott. Egy célzott narratívajavítás eltávolította; az eseményeket megtartottuk. Opus ezután kánonhűnek találta, és külön helyi realizmust érintő hangrészletet jelzett. Ez utóbbi önállóan ellenőrzendő szerkesztési megjegyzés.
