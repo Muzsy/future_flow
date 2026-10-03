@@ -41,7 +41,7 @@ A Next.js ezeket beépíti a kliensbe. Szerverkulcsot vagy adatbázis-jelszót s
 
 ## Nyelvválasztás
 
-A web alapértelmezése angol; a fejlécben English/Magyar választható, `alterward_locale` cookie-val. A felületnyelv megy az API `Accept-Language` fejlécébe. Új élet létrehozásakor `locale: en | hu` kerül a kérésbe és a jobba; az elágazás a mentett életnyelvet örökli. `pnpm db:migrate` a `002_content_locale.sql` migrációt is alkalmazza. Régi történetek nyelve magyar, tartalmuk nem fordul át automatikusan. [Bővítés és minőségi kapuk](LOCALIZATION_HU.md).
+A termék kizárólag angol felületet és angol történeteket ad; a nyelvválasztó és a régi magyar életek elrejtve. HU-cookie/Accept-Language mellett is angol a felület és az API-üzenet. Új v1/v2 élet és v2 draft kérésben kizárólag `locale: en` engedett. A meglévő magyar adatok exportálhatók, tartalmuk és immutable nyelvük változatlan. A nyelvi regiszter/katalógus megmarad későbbi bővítéshez. [Aktív nyelvi policy](LOCALIZATION_HU.md), [angol béta és visszajelzés](ENGLISH_RELEASE_PLAN_HU.md), [éles telepítés előkészítése](DEPLOYMENT_HU.md).
 
 ## A felhasználó által megadott kulcsfájl
 
@@ -67,7 +67,7 @@ Az árbecslés 2026-10-02-án ellenőrzött standard díjakat használ: Sol eset
 
 A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A diagnosztikai válaszok kizárólag szintetikus tesztadatok; az API-kulcs és a kérés fejlécei nem kerülnek a naplóba. Hibaválaszból csak a kód és típus tárolódik. Ezek a helyi fájlok Gitből kizártak. A generálási hiba nem indít automatikus teljes újragenerálást.
 
-Az alkalmazás AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD pozitív keretet igényel; a .env.example értékei 0, ezért új generálás alapból letiltott. AI_PROJECT_INITIAL_SPENT_USD a kezdeti fejlesztői fogyasztást viszi át az első DB-számlába. Létrejött számla limitjét/spent értékét env-változás nem írja át: külön ops-feladat. Helyben AI_EXPERIMENT_LEDGER_PATH a közös .local/ai-smoke/usage.json abszolút útvonala, SMOKE_BUDGET_USD=5 mellett a worker és smoke ugyanazt az összkeretet védi. Produkcióban nincs helyi experiment path.
+Az alkalmazás AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD pozitív keretet igényel; a .env.example értékei 0, ezért új generálás alapból letiltott, meglévő pozitív DB-limit mellett is. AI_PROJECT_INITIAL_SPENT_USD a kezdeti fejlesztői fogyasztást viszi át az első DB-számlába. Létrejött számla limitjét/spent értékét env-változás nem írja át: külön ops-feladat. Helyben AI_EXPERIMENT_LEDGER_PATH a közös .local/ai-smoke/usage.json abszolút útvonala, SMOKE_BUDGET_USD=5 mellett a worker és smoke ugyanazt az összkeretet védi. Produkcióban nincs helyi experiment path.
 
 V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 003–006 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
 
