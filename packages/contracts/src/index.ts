@@ -1,6 +1,11 @@
 import { z } from 'zod';
 export * from './questionnaire';
 export * from './life-v2';
+export * from './locales';
+export * from './questionnaire-localization';
+export * from './error-messages';
+
+import { localeSchema } from './locales';
 
 export const CONTRACT_VERSION = '1.0.0';
 export const SIMULATION_VERSION = '1.0.0';
@@ -302,6 +307,7 @@ export const futureRequestSchema = z
     profileVersionId: idSchema,
     horizonYears: z.literal(10),
     mode: z.literal('baseline'),
+    locale: localeSchema.default('en'),
   })
   .strict();
 export const resolveDecisionSchema = z

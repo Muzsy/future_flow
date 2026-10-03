@@ -8,6 +8,9 @@ import {
   type LifeState,
   type WorldState,
   type ChapterOutput,
+  localeSchema,
+  languages,
+  type Locale,
 } from '@future-flow/contracts';
 import {
   DomainError,
@@ -29,6 +32,7 @@ type ProfileRow = Row & {
   draft_revision: number;
 };
 export type JobInput = {
+  locale?: Locale;
   profile: Profile;
   state: LifeState;
   world: WorldState;
@@ -283,12 +287,18 @@ export class Repository {
       return response;
     });
   }
-  async createFuture(userId: string, profileVersionId: string, key: string) {
+  async createFuture(
+    userId: string,
+    profileVersionId: string,
+    key: string,
+    locale: Locale = 'en',
+  ) {
+    localeSchema.parse(locale);
     return this.createOnce(
       userId,
       'future',
       key,
-      { profileVersionId },
+      { profileVersionId, locale },
       async (tx) => {
         const version = requireRow(
           await tx.query<ProfileRow>(
@@ -309,7 +319,7 @@ export class Repository {
           [worldId, userId, world.version, json(world), hash(world)],
         );
         await tx.query(
-          'INSERT INTO ff_futures(id,user_id,profile_version_id,world_version_id,horizon_start,horizon_end,simulation_version,root_branch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+          'INSERT INTO ff_futures(id,user_id,profile_version_id,world_version_id,horizon_start,horizon_end,simulation_version,root_branch_id,content_locale,title) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
           [
             futureId,
             userId,
@@ -319,13 +329,16 @@ export class Repository {
             addMonths(start, 120),
             SIMULATION_VERSION,
             branchId,
+            locale,
+            languages[locale].newLifeTitle,
           ],
         );
         await tx.query(
           'INSERT INTO ff_branches(id,user_id,future_id,name,seed) VALUES($1,$2,$3,$4,$5)',
-          [branchId, userId, futureId, 'Alapforgatókönyv', seed],
+          [branchId, userId, futureId, languages[locale].baselineTitle, seed],
         );
         const payload: JobInput = {
+          locale,
           profile,
           world,
           state: initialState(profile, start),
@@ -368,9 +381,10 @@ export class Repository {
               snapshot: Profile;
               world: WorldState;
               horizon_end: string;
+              content_locale: Locale;
             }
           >(
-            `SELECT d.branch_id AS parent_branch_id,d.event_id,o.payload,e.canon,b.future_id,p.snapshot,w.snapshot AS world,f.horizon_end::text
+            `SELECT d.branch_id AS parent_branch_id,d.event_id,o.payload,e.canon,b.future_id,p.snapshot,w.snapshot AS world,f.horizon_end::text,f.content_locale
         FROM ff_decision_options o JOIN ff_decisions d ON d.id=o.decision_id JOIN ff_events e ON e.id=d.event_id
         JOIN ff_branches b ON b.id=d.branch_id JOIN ff_futures f ON f.id=b.future_id
         JOIN ff_profile_versions p ON p.id=f.profile_version_id JOIN ff_world_versions w ON w.id=f.world_version_id
@@ -414,6 +428,7 @@ export class Repository {
           [randomUUID(), userId, decisionId, optionId, branchId],
         );
         const payload: JobInput = {
+          locale: option.content_locale,
           profile: option.snapshot,
           world: option.world,
           state,
@@ -439,7 +454,7 @@ export class Repository {
   }
   async listFutures(userId: string) {
     return this.db.query(
-      'SELECT f.id,f.title,f.status,f.root_branch_id,f.created_at,j.id AS job_id FROM ff_futures f LEFT JOIN ff_jobs j ON j.branch_id=f.root_branch_id WHERE f.user_id=$1 ORDER BY f.created_at DESC LIMIT 100',
+      'SELECT f.id,f.title,f.status,f.root_branch_id,f.created_at,f.content_locale,j.id AS job_id FROM ff_futures f LEFT JOIN ff_jobs j ON j.branch_id=f.root_branch_id WHERE f.user_id=$1 ORDER BY f.created_at DESC LIMIT 100',
       [userId],
     );
   }
@@ -469,7 +484,7 @@ export class Repository {
   async branch(userId: string, id: string) {
     const branch = requireRow(
       await this.db.query<Row & { id: string; name: string }>(
-        'SELECT b.id,b.future_id,b.parent_branch_id,b.fork_event_id,b.name,b.status,j.id AS job_id FROM ff_branches b LEFT JOIN ff_jobs j ON j.branch_id=b.id WHERE b.id=$1 AND b.user_id=$2',
+        'SELECT b.id,b.future_id,b.parent_branch_id,b.fork_event_id,b.name,b.status,f.content_locale,j.id AS job_id FROM ff_branches b JOIN ff_futures f ON f.id=b.future_id LEFT JOIN ff_jobs j ON j.branch_id=b.id WHERE b.id=$1 AND b.user_id=$2',
         [id, userId],
       ),
     );

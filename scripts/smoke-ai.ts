@@ -8,6 +8,7 @@ import { OpenAiProvider } from '@future-flow/ai';
 import {
   questionnaire,
   traitKeys,
+  localeSchema,
   type ChapterOutput,
 } from '@future-flow/contracts';
 import { DomainError, hash } from '@future-flow/core';
@@ -17,6 +18,7 @@ import {
   type Database,
 } from '@future-flow/database';
 import { processJob } from '../apps/worker/src/processor';
+import { applyMigrations } from './lib/migrations';
 import {
   reserveSmokeCall,
   recordSmokeUsage,
@@ -32,9 +34,12 @@ const OpenAI = createRequire(import.meta.url)('openai')
 // Real OpenAI requests, synthetic profile, isolated PostgreSQL engine.
 // Never creates Supabase Auth accounts or writes personal data to Supabase.
 const caseName = process.argv[2] ?? 'family';
+const locale = localeSchema.parse(process.argv[3] ?? 'hu');
 const outputRoot = resolve('.local/ai-smoke');
 const outputDirectory =
-  caseName === 'family' ? outputRoot : resolve(outputRoot, 'cases', caseName);
+  locale === 'hu' && caseName === 'family'
+    ? outputRoot
+    : resolve(outputRoot, 'cases', `${caseName}-${locale}`);
 function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
   return {
     query: async <T extends Record<string, unknown>>(
@@ -93,7 +98,7 @@ async function main() {
         counted.input_tokens,
         parameters.max_output_tokens,
       );
-      call.caseName = caseName;
+      call.caseName = `${caseName}-${locale}`;
       await saveLedger();
       console.log(
         `Live AI request ${calls.length}: ${call.task}; preflight ceiling $${call.reservedUsd.toFixed(4)}.`,
@@ -150,9 +155,7 @@ async function main() {
   let lastJobId: string | null = null;
   await mkdir(outputDirectory, { recursive: true });
   try {
-    await engine.exec(
-      readFileSync('database/migrations/001_foundation.sql', 'utf8'),
-    );
+    await applyMigrations(engine);
     await db.query(
       'INSERT INTO ff_questionnaires(version,definition,definition_hash) VALUES($1,$2,$3)',
       [
@@ -253,6 +256,7 @@ async function main() {
       userId,
       profile.profileVersionId,
       randomUUID(),
+      locale,
     );
     async function runJob(expectedId: string) {
       lastJobId = expectedId;
@@ -327,6 +331,7 @@ async function main() {
       testedAt: new Date().toISOString(),
       syntheticProfile: true,
       caseName,
+      locale,
       syntheticAnswers: answers,
       syntheticRelationships: relationships,
       usesRealOpenAI: true,

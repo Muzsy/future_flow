@@ -1,6 +1,6 @@
 # alterward
 
-OpenAI-val generált, tartósan mentett, folytatható és elágaztatható alternatív életek, kurált Official Lives és önként publikált közösségi életutak. Magyar, 18+ webes indulás; a rövid időszakokon át folytatható személyes szimuláció és az arra épülő Discovery az aktív fejlesztési cél.
+OpenAI-val generált, tartósan mentett, folytatható és elágaztatható alternatív életek, kurált Official Lives és önként publikált közösségi életutak. Angol alapnyelv, választható magyar, 18+ webes indulás; a rövid időszakokon át folytatható személyes szimuláció és az arra épülő Discovery az aktív fejlesztési cél.
 
 A termék neve **alterward**. A GitHub-repó és a projektkönyvtár továbbra is `Muzsy/future_flow`, a meglévő belső `@future-flow/*` csomagnevek és v1 sémaazonosítók kompatibilitási okból megmaradnak.
 
@@ -43,10 +43,10 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 
 ## Szerkezet
 
-- `apps/web`: Next.js magyar felület; profil, életágak, történet, idővonal, összehasonlítás, adatkezelés.
+- `apps/web`: Next.js angol/magyar felület és megjegyzett nyelvválasztás; profil, életágak, történet, idővonal, összehasonlítás, adatkezelés.
 - `apps/api`: NestJS REST API; Supabase-hitelesítés és minden erőforrásnál tulajdonosi ellenőrzés.
 - `apps/worker`: tartós háttérfeladatok feldolgozása, valódi AI-generálás és ellenőrzés.
-- `packages/contracts`: az egységes Zod-sémák, TypeScript-típusok és magyar kérdőív.
+- `packages/contracts`: az egységes Zod-sémák, TypeScript-típusok és angol/magyar kérdőív, nyelvregiszter, lokalizált API-hibák.
 - `packages/core`: determinisztikus állapotváltozások, időrend és domain-validátorok.
 - `packages/ai`: OpenAI Responses API és verziózott promptok.
 - `packages/database`: PostgreSQL-elérés, tranzakciók, profilverziók, idempotencia és feladatok.
@@ -64,6 +64,7 @@ A pozicionálási és a nyilvános életutakról szóló dokumentum együtt hat�
 - [Következő fejlesztési lépések — végrehajtási sorrend](docs/NEXT_STEPS.md)
 - [Jelenlegi implementáció és elfogadott döntések](docs/IMPLEMENTATION.md)
 - [Beállítás és kulcskezelés](docs/SETUP.md)
+- [Többnyelvű felület és AI-történetek](docs/LOCALIZATION_HU.md)
 - [Korábbi valódi AI-próba és annak határai](docs/AI_VALIDATION.md)
 - [Feladatonkénti modellválasztás és mért költségvizsgálat](docs/AI_MODEL_ROUTING_HU.md)
 

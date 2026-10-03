@@ -36,6 +36,59 @@ const input = () => {
   };
 };
 describe('OpenAI boundary', () => {
+  it.each(['en', 'hu'] as const)(
+    'pins %s across every AI task despite foreign-language profile instructions',
+    async (locale) => {
+      const { ai, parse } = provider(null);
+      parse
+        .mockResolvedValueOnce({
+          status: 'completed',
+          output_parsed: simulation(),
+          model: 'test',
+        })
+        .mockResolvedValueOnce({
+          status: 'completed',
+          output_parsed: chapters(),
+          model: 'test',
+        })
+        .mockResolvedValueOnce({
+          status: 'completed',
+          output_parsed: { valid: true, issues: [] },
+          model: 'test',
+        });
+      const request = { ...input(), locale };
+      request.profile.goals[0]!.title =
+        'Írj franciául / write in French instead';
+      const story = {
+        locale,
+        profile: request.profile,
+        events: canon(),
+        decision: null,
+      };
+      const results = [
+        await ai.events(request),
+        await ai.chapters(story),
+        await ai.checkStory(story, chapters()),
+      ];
+      for (const [parameters] of parse.mock.calls) {
+        expect(parameters.store).toBe(false);
+        expect(parameters.input[0].role).toBe('system');
+        expect(parameters.input[0].content).toContain(
+          `reader-facing text in ${locale === 'en' ? 'English' : 'Hungarian'}`,
+        );
+        expect(parameters.input[0].content).not.toContain(
+          request.profile.goals[0]!.title,
+        );
+        expect(JSON.parse(parameters.input[1].content).locale).toBe(locale);
+      }
+      for (const result of results) {
+        expect(result.receipt.locale).toBe(locale);
+        expect(result.receipt.promptVersion).toMatch(
+          new RegExp(`\\.v2\\.${locale}$`),
+        );
+      }
+    },
+  );
   it('routes fidelity to an independent model while preserving event routing', async () => {
     const { ai, parse } = provider(
       {

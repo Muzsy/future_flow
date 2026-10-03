@@ -9,6 +9,7 @@ import { type Job, JobRepository } from '@future-flow/database';
 import {
   simulationOutputSchema,
   chapterOutputSchema,
+  localeSchema,
 } from '@future-flow/contracts';
 
 export async function processJob(
@@ -16,6 +17,8 @@ export async function processJob(
   jobs: JobRepository,
   ai: AiProvider,
 ) {
+  // Old persisted jobs have no locale and must resume in their original language.
+  const locale = localeSchema.parse(job.payload.locale ?? 'hu');
   const receipts: AiReceipt[] =
     (job.checkpoints.receipts as AiReceipt[] | undefined) ?? [];
   let simulation = job.checkpoints.simulation
@@ -23,7 +26,7 @@ export async function processJob(
     : null;
   if (!simulation) {
     await jobs.checkpoint(job, 'SIMULATING_EVENTS', {});
-    const result = await ai.events(job.payload);
+    const result = await ai.events({ ...job.payload, locale });
     simulation = validateSimulation(
       result.output,
       job.payload.profile,
@@ -41,6 +44,7 @@ export async function processJob(
     job.payload.state,
   );
   const storyInput = {
+    locale,
     profile: job.payload.profile,
     events: canon,
     decision: job.payload.decision,

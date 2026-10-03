@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { localeSchema } from './locales';
 
 // Kept separate from the v1 schemas: existing stored canon must remain readable.
 export const LIFE_CONTRACT_VERSION = '2.0.0';
@@ -226,6 +227,7 @@ const goalV2Schema = z
 export const lifeInputV2Schema = z
   .object({
     schemaVersion: z.literal(LIFE_CONTRACT_VERSION),
+    locale: localeSchema,
     lifeId: id,
     branchId: id,
     identity: z

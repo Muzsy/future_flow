@@ -279,7 +279,12 @@ async function main() {
       chapters: source.baseline.chapters.map((chapter) => chapter.payload),
     });
     validateChapters(originalChapters, canon);
-    const storyInput: StoryInput = { profile, events: canon, decision: null };
+    const storyInput: StoryInput = {
+      locale: 'hu',
+      profile,
+      events: canon,
+      decision: null,
+    };
     const assertClean = (output: { valid: boolean; issues: unknown[] }) => {
       if (!output.valid || output.issues.length)
         throw new DomainError(
@@ -366,6 +371,7 @@ async function main() {
       'events',
       () =>
         luna.events({
+          locale: 'hu',
           profile,
           state,
           world: worldState(profile),

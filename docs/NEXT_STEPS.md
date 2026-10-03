@@ -10,13 +10,21 @@ A jelenlegi választás mindig új ágat nyit; ugyanannak az életágnak a köve
 
 Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívás, körülbelül 0,054 USD, összesített fogyasztás körülbelül 0,684 USD. Az ellenőrző külön modellbeállítása elkészült, a helyi keretőr már Sol/Luna díjakkal számol; 63 automatizált teszt és teljes build sikeres. Az első teljes láncban mérendő jelölt Luna-eseménygenerátor, Sol-narrátor és Sol-ellenőr; ez nem írja felül a P01 elsőbbségét.
 
+A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
+
+## L01 — Többnyelvű alap, felhasználói elsőbbséggel
+
+**Elkészült:** angol alapnyelv, választható magyar; teljes felület/kérdőív/API-hibák; nyelvregiszter és típusos katalógus; cookie-ban megjegyzett választás; mentett tartalomnyelv és jobnyelv; nyelvre utasított esemény/narrátor/ellenőrző. A v2 életbemenet is kötelező `locale` mezőt kapott. Régi életek magyar jelölést kapnak, canonjuk változatlan. [Megvalósítás és további nyelvek](LOCALIZATION_HU.md).
+
+**Minden további P-pont feltétele:** teljes angol és magyar élmény; a P02 generálási és P07 minőségi próbák mindkét nyelvet fedjék le. A nyelvváltás ne módosítson választ/korábbi canont és ne indítson fizetett AI-hívást. Discovery/Scenario/snapshot/fork tartalomnyelve is külön mező legyen.
+
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
 **Elkészült első szelet:** külön v2 életbemenet/tényállapot/időszak/korlátsémák, saját/alternatív identitás, privát indulás, determinisztikus tényváltozás és scope/idő/döntés szerint érvényes korlátok. A döntésnél megálló időszak validátora még nem alkalmaz opciót; revisionellenőrzése 409. 20 új domain-teszt. [Szerződés és pontos határok](V2_SIMULATION_CONTRACT_HU.md).
 
 **Következő szelet:** additív tárolás és perzisztencia-integráció. Az API/worker jelenleg v1; P01 teljes elfogadása még nyitott.
 
-**Feladat:** verziózott v2-sémák rövid időszakhoz, saját/alternatív identitáshoz, a cél mezőihez, tartós szereplőkhöz, tényszerű állapotváltozásokhoz és időben érvényes korlátokhoz. Válasszuk külön a környezeti kontextust a szimulált élet állapotától. Készüljön additív `002+` migráció az időszakhoz, ág aktuális állapotához/revisionjéhez, választáshoz és folytatási jobhoz.
+**Feladat:** verziózott v2-sémák rövid időszakhoz, saját/alternatív identitáshoz, a cél mezőihez, tartós szereplőkhöz, tényszerű állapotváltozásokhoz és időben érvényes korlátokhoz. Válasszuk külön a környezeti kontextust a szimulált élet állapotától. Készüljön additív `003+` migráció az időszakhoz, ág aktuális állapotához/revisionjéhez, választáshoz és folytatási jobhoz.
 
 **Elfogadás:** a mai migráció változatlan ellenőrzőösszeggel alkalmazható. A régi életek/hash-ek változatlanul visszaolvashatók. Állásváltás és tulajdonlás megszűnése ténylegesen módosítja a megfelelő mezőt; lejárt/ágon kívüli korlát nem válik örök tiltássá. A v1-ről v2-re indulás explicit új élet/másolat, ellenőrzött kezdőállapottal.
 
@@ -24,7 +32,7 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 ## P02 — Első rövid AI-időszak
 
-**Feladat:** kezdetben hat hónap, 2–5 esemény, egy 250–600 szavas magyar fejezet és a végén egy érdemi döntés. A domainmotor validálja a strukturált AI-javaslatokat, majd a narrátor a canonból ír. A még meg nem hozott választás utáni események nem kerülhetnek a mentett jövőbe.
+**Feladat:** kezdetben hat hónap, 2–5 esemény, egy 250–600 szavas angol vagy magyar fejezet a mentett tartalomnyelven és a végén egy érdemi döntés. A domainmotor validálja a strukturált AI-javaslatokat, majd a narrátor a canonból ír. A még meg nem hozott választás utáni események nem kerülhetnek a mentett jövőbe.
 
 **Elfogadás:** szintetikus profilból valódi AI-fejezet és választási lehetőség készül. Az események időrendje, hivatkozásai, szereplői és kemény korlátai helyesek. A feladat megáll a döntésnél; a régi tízéves generálás nem fut az új élet alatt.
 
@@ -64,9 +72,9 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 **Függőség:** P03–P05; Auth-törléshez a hiányzó szerveroldali Supabase-kulcs. A kulcs értéke kizárólag védett helyi környezetbe kerül. A függőség az előző fejlesztési pontokat nem blokkolja.
 
-## P07 — Technikai és magyar minőségi kapu
+## P07 — Technikai és angol/magyar minőségi kapu
 
-**Feladat:** legalább 20 változatos szintetikus eset, esetenként legalább három időszak és eltérő döntések. Emberi magyar értékelés: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
+**Feladat:** legalább 20 változatos szintetikus eset, esetenként legalább három időszak és eltérő döntések. Emberi angol és magyar értékelés: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
 
 **Elfogadás:** a kötelező állapot-, jogosultsági és adatkezelési ellenőrzések minden esetben sikeresek. A narratív hibák kategóriái és javítási eredményei dokumentáltak; nincs nyitott, múltat átíró hiba. Fizetett esetek fokozatosan, a tényleges új tokenfogyasztás alapján indulnak; a 20-as cél nem írja felül az 5 USD felhasználói keretet.
 
@@ -74,7 +82,7 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 ## P08 — Folytatási mérés és zárt emberi pilot
 
-**Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Induló cél 20–50 magyar résztvevő, részletes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
+**Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Induló cél 20–50 résztvevő, angol és magyar felületen is, részletes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
 
 **Elfogadás:** kattintás és sikeres folytatás külön mérhető; technikai hiba látszik a kohorszban. A pilotból megállapítható, miért folytatnak vagy hagyják abba, és visszatérnek-e ugyanahhoz az élethez. Számszerű sikerhatárt a következő értékelt kohorsz előtt rögzítünk. Nincs előre bizonyítottnak tekintett megtartási állítás.
 
@@ -90,7 +98,7 @@ Utólagos [modellválasztási vizsgálat](AI_MODEL_ROUTING_HU.md): 14 új hívá
 
 ## P10 — Read-only Discovery, public életoldal, Save/Share/Report
 
-**Feladat:** kurált kollekciók, fix taxonómia, egyszerű ranking, bejelentkezés nélkül olvasható Official snapshot, Save/Share/OG és Report. Alap moderation queue/soft hide/hard remove/figyelmeztetés/rate-limit. Snapshot-cache mellett aktív publication/permission ellenőrzés; indexelés külön engedély szerint.
+**Feladat:** kurált kollekciók, fix taxonómia és tartalomnyelv-szűrő, egyszerű ranking, bejelentkezés nélkül olvasható Official snapshot, Save/Share/OG és Report. Alap moderation queue/soft hide/hard remove/figyelmeztetés/rate-limit. Snapshot-cache mellett aktív publication/permission ellenőrzés; indexelés külön engedély szerint.
 
 **Elfogadás:** olvasás/újratöltés nem indít AI-hívást. Anon/másik fiók csak engedett snapshotot kap; private/unlisted nincs Discoveryben. Save hitelesített és idempotens. Rejtett/visszavont élet nem olvasható, Report nem jelent ellenőrizetlen ranking-tiltást. Olvasás/mentés/megosztás mérhető.
 

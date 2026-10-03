@@ -10,6 +10,8 @@ JSON-séma a strukturális feltételeket, domainmotor az időrendet, referencia-
 
 ## Induló élet és állapot
 
+A még nem élesben tárolt v2 életbemenet kötelező `locale: en | hu` mezőt tartalmaz: egy élet minden időszaka ezen a nyelven készül; felületnyelv-váltás nem módosítja. További nyelv csak teljes katalógus és nyelvi AI-próba után engedélyezhető.
+
 Külön saját/alternatív identitás-pillanatkép, opcionális eredeti profilverzió-hivatkozás, környezet, egy fő cél és opcionális további célok, tényállapot és korlátok. Saját profil nem módosul. A `visibility` csak `private`; publikáció külön, explicit megerősítésű folyamat lesz.
 
 Cél: kategória, leírás, elsődleges/másodlagos prioritás, hónapos horizon, opcionális motiváció és vállalható/kizárt áldozatok. A current_progress megfelelője az állapot goal-ID-val kötött, megjegyzéses active/achieved/abandoned sora; nincs kitalált százalék. Korlátok élet/ág/idő szerint külön listában kapcsolódnak.
@@ -40,4 +42,4 @@ A döntés 2–4 opciója javaslat marad, egyiket sem alkalmazza a period-valid�
 
 20 új domain-teszt: privát/alternatív és ismeretlen adat, célhivatkozás, munkatényt változtató átmenet, eladás tartóssága, nem választott opció, döntés utáni történet tiltása, idő/revision/ág, kitalált szereplő, duplikált opció/módosítás, lehetetlen előfeltétel, hard/soft és idő/ág/élet/döntés szerinti korlát, pénznem. Korábbi v1 domain-tesztek megmaradnak.
 
-Következő P01-szelet: additív migráció időszakokkal, ág-head/revisionnel, választásokkal, folytatási jobbal; tulajdonosi FK/RLS, v1 visszaolvasás és explicit új v2-élet. Ezután P02 valódi rövid OpenAI-generálás, P03 ugyanazon ágon folytatás. Public fork-checkpoint külön nyilvános szerződés lesz, nem a privát lifeStateV2Schema kiszolgálása.
+Következő P01-szelet: additív `003+` migráció időszakokkal, ág-head/revisionnel, választásokkal, folytatási jobbal; tulajdonosi FK/RLS, v1 visszaolvasás és explicit új v2-élet. Ezután P02 valódi rövid OpenAI-generálás, P03 ugyanazon ágon folytatás. Public fork-checkpoint külön nyilvános szerződés lesz, nem a privát lifeStateV2Schema kiszolgálása.

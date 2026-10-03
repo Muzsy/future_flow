@@ -10,11 +10,13 @@ Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedez
 
 Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes feladatlista. A közösségi specifikáció felváltja a korábbi közösségi funkciók későbbre halasztását; a személyes szimuláció elsőbbségét a 42. fejezet kifejezetten megtartja. Az implementációs dokumentum és a kódból exportált sémák a meglévő működésről adnak számot. A `docs/alter_jovo_docs` és az eredeti ZIP változatlan történeti referencia; a tízéves első generálás és a hosszú kötelező kérdőív korábbi javaslatait ez a terv felváltja.
 
-Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, magyar webes indulás, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
+Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, angol alapnyelv és választható magyar, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
 A termék neve **alterward**, a felhasználó 2026-10-03-i döntése alapján. A repó és a projektkönyvtár `future_flow` marad. A belső csomagnevek, régi sémaazonosítók és védett titokkönyvtárak megtartása technikai kompatibilitás, nem márkanév-döntés. A forrásdokumentumok korábbi munkanevei történeti szövegek. Domainválasztás és fizetős csomag továbbra sincs eldöntve.
 
 A termék három összekapcsolt rétege: **Private Personal Simulation**, **Official Lives / Scenarios** és önként publikált **Community Lives**. Discoveryben már az induláskor lesznek kurált, valódi AI-val generált életutak. Az olvasás meglévő snapshotból történik; a „Fork this life” vagy személyre szabás új, saját privát szimulációhoz vezet.
+
+A felhasználó új döntése szerint a teljes felület, kérdőív, események, döntések és AI-fejezetek angolul és magyarul szükségesek, további nyelvekkel bővíthető szerkezettel. A [nyelvi alap](LOCALIZATION_HU.md) a meglévő v1 prototípusba is bekötve. Felületnyelv és egy élet mentett tartalomnyelve külön adat; nyelvváltás nem fordítja át automatikusan a korábbi canont és nem indít fizetett generálást. A magyar környezet földrajzi kiindulás, nem kizárólagos felület- vagy történetnyelv.
 
 ## 2. A jelenlegi alap és a szükséges változás
 
@@ -88,13 +90,13 @@ Tervezett változások, még nem létező funkciók:
 - A jobok időszakot és induló állapotrevisiont kapnak. A jelenlegi `future | branch` feladattípus mellé folytatás kerül. Kezdeti állapot csak élet/ág létrehozásakor készül; a sorszámok az ágon belül folyamatosak.
 - Áganként egyszerre egy generálás: idempotenciakulcs, revisionellenőrzés és tranzakció. Dupla kattintás ugyanazt a feladatot adja vissza, elavult állapot 409-et kap. Elveszett worker-lease mellett nincs új esemény vagy fejezet commit.
 
-Az adatbázis változása új, additív `002+` migrációval történik; az alkalmazott `001_foundation.sql` ellenőrzőösszege megmarad. A v2 időszak-/tényállapot-szerződés és tiszta domain-validátor első szelete elkészült; [pontos határai](V2_SIMULATION_CONTRACT_HU.md) külön dokumentáltak. Az új adatbázis, API és worker bekötése még nem áll rendelkezésre.
+Az adatbázis változása új, additív `003+` migrációval (a `002_content_locale.sql` már az életek nyelvét vezette be) történik; az alkalmazott `001_foundation.sql` ellenőrzőösszege megmarad. A v2 időszak-/tényállapot-szerződés és tiszta domain-validátor első szelete elkészült; [pontos határai](V2_SIMULATION_CONTRACT_HU.md) külön dokumentáltak. Az új adatbázis, API és worker bekötése még nem áll rendelkezésre.
 
 A korábbi tízéves életek verzióval jelölve visszaolvashatók maradnak. Az új hurokhoz induláskor explicit új v2-élet/másolat készül, ellenőrzött kiinduló állapotból. Az előre generált, még ki nem választott tízéves jövőre nem fűzünk rá folytatást. Az átállás nem írja újra a régi profilokat, canon-hasheket vagy történeteket; külön migrációs és visszaolvasási ellenőrzést igényel.
 
 ## 7. AI, narratíva, emlékezet és költség
 
-Az AI készíti a kontextushoz illő eseményeket és az élő magyar történetet. A fejezet felidézi a korábbi fontos döntéseket, jelenetet és következményt mutat, majd valódi választási feszültségnél megáll. A hihető konfliktus és változatosság fontosabb a folyamatos rendkívüli drámánál. Az eredmény történetként is olvasható legyen.
+Az AI készíti a kontextushoz illő eseményeket és az élet létrehozásakor választott angol vagy magyar történetet. A fejezet felidézi a korábbi fontos döntéseket, jelenetet és következményt mutat, majd valódi választási feszültségnél megáll. A hihető konfliktus és változatosság fontosabb a folyamatos rendkívüli drámánál. Az eredmény történetként is olvasható legyen.
 
 Tervezett folyamat: profil/állapot → AI-eseményjavaslat → sémák és domainfeltételek → determinisztikus átmenetek → menthető canon → AI-fejezet → hivatkozás- és történethűség-ellenőrzés → atomikus időszak-commit. A szükséges tájékoztatás röviden, jól látható helyen szerepel; minden bekezdésben ismételt figyelmeztetés nem része a narratívának.
 
@@ -102,7 +104,9 @@ A következő időszak bemenete a rögzített állapot, a döntéstörténet, a 
 
 A javítás célzott: a hibás strukturált válasz vagy fejezet legfeljebb egy automatikus javítási kört kap, előre lefoglalt költségen belül. Érvényes esemény/checkpoint megmarad; narratívahiba nem indítja újra az egész világot. Ismételt hiba látható állapotot és biztonságos kézi újrapróbálást eredményez. A hibás és ismeretlen fogyasztású kérés költsége sem tűnik el a nyilvántartásból.
 
-A felhasználói kísérleti keret 5 USD. A lezárt v1-próba becsült fogyasztása 0,6299505 USD; a későbbi, 14 hívásos [modellválasztási próba](AI_MODEL_ROUTING_HU.md) további 0,0542136 USD. Az összesített becslés 0,6841641 USD, a keretből számított maradvány körülbelül 4,32 USD; ez nem lekérdezett szolgáltatói egyenleg. A korábbi tervfrissítés önmagában nem használt API-kreditet. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan.
+A felhasználói kísérleti keret 5 USD. A lezárt v1-próba becsült fogyasztása 0,6299505 USD; a későbbi, 14 hívásos [modellválasztási próba](AI_MODEL_ROUTING_HU.md) további 0,0542136 USD. A nyelvi próba előtti összesített becslés 0,6841641 USD, akkori maradvány körülbelül 4,32 USD; ez nem lekérdezett szolgáltatói egyenleg. A korábbi tervfrissítés önmagában nem használt API-kreditet. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan.
+
+A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
 
 Zárt felhasználói teszt előtt alkalmazásszintű keretőr kell: kérés előtti foglalás, felhasználói/projektlimit, hibaköltség, párhuzamos foglalások és a tényleges használat elszámolása. A meglévő helyi smoke-keretőr ennek csak tesztelőzménye. Olcsóbb modellre irányítás külön mérés után következik; a működő OpenAI-integrációt megtartjuk.
 

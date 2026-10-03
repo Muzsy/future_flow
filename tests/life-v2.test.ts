@@ -58,6 +58,7 @@ function state(): LifeStateV2 {
 function input(): LifeInputV2 {
   return {
     schemaVersion: LIFE_CONTRACT_VERSION,
+    locale: 'hu',
     lifeId,
     branchId,
     identity: {

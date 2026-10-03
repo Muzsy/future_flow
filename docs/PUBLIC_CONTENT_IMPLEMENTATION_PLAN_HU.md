@@ -21,6 +21,8 @@ A monorepóban modulok készülnek, külön szolgáltatás/új fizetős infrastr
 
 **Publication:** tulajdonos, belső forrásélet, aktív snapshot-verzió, public/unlisted, státusz, szerzőmutatás, forkengedély, keresőindexelés, kiadás/visszavonás és láthatósági revision. A szimulációhoz nem elég egy `is_public` mező.
 
+**ScenarioVersion és PublicSnapshot tartalomnyelve** explicit mező. Angol az alapnyelv, magyar is támogatott; a kategória/címke/Discovery feliratok katalógusból fordulnak. A történet/snapshot eredeti nyelve megmarad, nyelvválasztás és szűrés nem indít AI-hívást. Többnyelvű keresés és nyelvi szűrő kell. Fordítás később külön ellenőrzött, verziózott szövegprojekció lehet ugyanazon canonhoz, külön költséggel és eredetjelöléssel. A sanitized fork-checkpoint tartalomnyelve átkerül az új életbe; a személyre szabott új szcenárió explicit új nyelvet választhat.
+
 **PublicSnapshot:** megváltoztathatatlan, külön sémával validált cím/összefoglaló, nyilvános profil/kezdőhelyzet, kiválasztott időszakok idővonala és fejezetei, mérföldkövek, döntések/opciók, publikált ágak, taxonómia, opcionális cover és Official/Community/AI-generated/user-edited jelölés. Cover kezdetben kódalapú vizuál lehet, nem igényel képgenerálási költséget.
 
 A **nyilvános fork-checkpoint** is külön anonimizált, géppel validált állapot/cél/környezet-projekció. A szereplők helyettesítő nyilvános azonosítót kapnak. Teljes privát World State, eredeti profil/állapot-ID, raw prompt, memória, rendszerüzenet, jegyzet és audit nem része a publikus DTO-nak. A szöveg PII-mentesítése önmagában nem teszi biztonságossá a strukturált állapotot.
@@ -57,11 +59,13 @@ Kurált kollekciók: Featured, Official, Community Picks, Trending, Most Forked,
 
 Egyszerű aggregált ranking; sikeres fork erősebb jel, mint egy view. Moderációs státusz, spam/duplikátum korlátozás kötelező; report számából nem lesz ellenőrizetlen tömeges elrejtés. Komplex ML-ajánló később.
 
-Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás előtt, magyar minőségellenőrzéssel. Először kis valódi AI-seed pilot az új több időszakos láncon. Teszt-fixture vagy kézzel kitalált kész történet nem kerül be AI-generated Official Life-ként. Meglévő v1 AI-minták referenciák, nem automatikusan publikálható v2 seed.
+Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás előtt, teljes angol kínálattal és elérhető magyar mintákkal, mindkét nyelven minőségellenőrizve. A darabszám összesített cél, nem nyelvenként 50–100 új generálás; a végső nyelvi arány a seed pilot része. Először kis valódi AI-seed pilot az új több időszakos láncon. Teszt-fixture vagy kézzel kitalált kész történet nem kerül be AI-generated Official Life-ként. Meglévő v1 AI-minták referenciák, nem automatikusan publikálható v2 seed.
 
 Olvasás/újratöltés/Save/Share nem indít generálást. Snapshot verzió szerint cache-elhető, de a publication aktív státuszát minden hozzáférésnél ellenőrizni kell. CDN esetén visszavonási purge és előre rögzített rövid érvénytelenítési ablak kell. Publish/refresh és új saját fork külön mért AI-költség.
 
-Az 5 USD keretből becsülten 0,6841641 USD fogyott, körülbelül **4,32 USD** maradt. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. Ez a terv/szerződésfejlesztés nem használt AI API-kreditet.
+A nyelvi próba előtti fogyasztás 0,6841641 USD volt; a friss összesítést alább vezetjük. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. Ez a terv/szerződésfejlesztés nem használt AI API-kreditet.
+
+A nyelvi próba 12 új valódi OpenAI-hívást használt (6 angol, 6 magyar), további 0.3352520 USD becsült költséggel. A teljes 44 hívás összesített tokenbecslése 1.0194161 USD; az 5 USD keretből számított maradvány körülbelül 3.98 USD. Ez nem lekérdezett szolgáltatói egyenleg. Ismeretlen fogyasztású hívás nincs. [Nyelvi ellenőrzés](LOCALIZATION_HU.md).
 
 ## Nyilvános fork és személyre szabás
 

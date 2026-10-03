@@ -1,6 +1,6 @@
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
-import { readFileSync } from 'node:fs';
+import { applyMigrations } from '../scripts/lib/migrations';
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Repository, type Database } from '@future-flow/database';
@@ -14,9 +14,7 @@ const userId = randomUUID();
 const token = `test.${Buffer.from(JSON.stringify({ amr: [{ method: 'password', timestamp: Math.floor(Date.now() / 1000) }] })).toString('base64url')}.testsignature`;
 beforeAll(async () => {
   engine = new PGlite();
-  await engine.exec(
-    readFileSync('database/migrations/001_foundation.sql', 'utf8'),
-  );
+  await applyMigrations(engine);
   function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
     return {
       query: async <T extends Record<string, unknown>>(
@@ -55,7 +53,18 @@ describe('API ownership boundary', () => {
   it('requires authentication for profile', async () => {
     const response = await fetch(`${base}/api/v1/profile`);
     expect(response.status).toBe(401);
-    expect((await response.json()).error.code).toBe('AUTH_REQUIRED');
+    expect((await response.json()).error).toMatchObject({
+      code: 'AUTH_REQUIRED',
+      message: 'Please sign in to continue.',
+    });
+  });
+  it('localizes safe errors for Hungarian requests', async () => {
+    const response = await fetch(`${base}/api/v1/profile`, {
+      headers: { 'Accept-Language': 'hu-HU' },
+    });
+    expect((await response.json()).error.message).toBe(
+      'Jelentkezz be a folytatáshoz.',
+    );
   });
   it('does not trust an unverified token', async () => {
     const response = await fetch(`${base}/api/v1/profile`, {
@@ -67,7 +76,13 @@ describe('API ownership boundary', () => {
     const response = await fetch(`${base}/api/v1/questionnaires/current`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    expect((await response.json()).version).toBe(questionnaire.version);
+    const body = await response.json();
+    expect(body.version).toBe(questionnaire.version);
+    expect(body.locale).toBe('en-GB');
+    const hungarian = await fetch(`${base}/api/v1/questionnaires/current`, {
+      headers: { Authorization: `Bearer ${token}`, 'Accept-Language': 'hu' },
+    });
+    expect((await hungarian.json()).locale).toBe('hu-HU');
   });
   it('rejects invalid IDs with a safe error envelope', async () => {
     const response = await fetch(`${base}/api/v1/jobs/not-an-id`, {

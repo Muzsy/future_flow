@@ -1,18 +1,30 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { LOCALE_COOKIE, resolveLocale } from '@future-flow/contracts';
+import { LanguageProvider } from '../components/language-provider';
+import { translate } from '../lib/i18n';
 import './globals.css';
-export const metadata: Metadata = {
-  title: 'alterward · Egy élet. Több lehetőség.',
-  description:
-    'Fedezz fel személyes, AI által alkotott alternatív életutakat. A következő döntés a tiéd.',
-};
-export default function RootLayout({
+async function selectedLocale() {
+  return resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
+}
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await selectedLocale();
+  return {
+    title: translate(locale, 'metadata.title'),
+    description: translate(locale, 'metadata.description'),
+  };
+}
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await selectedLocale();
   return (
-    <html lang="hu">
-      <body>{children}</body>
+    <html lang={locale}>
+      <body>
+        <LanguageProvider initialLocale={locale}>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

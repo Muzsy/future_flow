@@ -36,7 +36,10 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import {
-  questionnaire,
+  getQuestionnaire,
+  localeFromAcceptLanguage,
+  errorMessage,
+  type Locale,
   draftRequestSchema,
   futureRequestSchema,
   resolveDecisionSchema,
@@ -49,6 +52,7 @@ import { type AuthProvider, requireRecentAuthentication } from './auth';
 const REPOSITORY = Symbol('REPOSITORY'),
   AUTH = Symbol('AUTH');
 type AuthRequest = Request & {
+  locale: Locale;
   userId: string;
   token: string;
   requestId: string;
@@ -97,18 +101,13 @@ class SafeErrorFilter implements ExceptionFilter {
           : status === 500
             ? 'INTERNAL_ERROR'
             : 'REQUEST_FAILED';
-    const message =
-      error instanceof DomainError
-        ? error.message
-        : error instanceof z.ZodError
-          ? 'Ellenőrizd a megadott adatokat.'
-          : 'A kérés nem sikerült.';
+    const message = errorMessage(request.locale, code);
     const details =
       error instanceof z.ZodError
         ? {
             fields: error.issues.map((issue) => ({
               path: issue.path.join('.'),
-              message: issue.message,
+              message: errorMessage(request.locale, 'VALIDATION_FAILED'),
             })),
           }
         : {};
@@ -150,8 +149,8 @@ class ApiController {
     return { accepted: true, policyVersion: 'alpha-privacy-v1' };
   }
   @Get('questionnaires/current')
-  questions() {
-    return questionnaire;
+  questions(@Req() req: AuthRequest) {
+    return getQuestionnaire(req.locale);
   }
   @Get('profile')
   profile(@Req() req: AuthRequest) {
@@ -205,6 +204,7 @@ class ApiController {
       req.userId,
       input.profileVersionId,
       key ?? '',
+      input.locale,
     );
   }
   @Get('futures/:id')
@@ -212,8 +212,14 @@ class ApiController {
     return this.repo.future(req.userId, idSchema.parse(id));
   }
   @Get('jobs/:id')
-  job(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.repo.job(req.userId, idSchema.parse(id));
+  async job(@Req() req: AuthRequest, @Param('id') id: string) {
+    const job = await this.repo.job(req.userId, idSchema.parse(id));
+    if (job.error_message_safe)
+      job.error_message_safe = errorMessage(
+        req.locale,
+        String(job.error_code ?? 'REQUEST_FAILED'),
+      );
+    return job;
   }
   @Get('branches/:id')
   branch(@Req() req: AuthRequest, @Param('id') id: string) {
@@ -297,6 +303,9 @@ export async function createApp(
   app.use(helmet());
   app.use((request: AuthRequest, response: Response, next: () => void) => {
     request.requestId = randomUUID();
+    request.locale = localeFromAcceptLanguage(
+      request.headers['accept-language'],
+    );
     response.setHeader('X-Request-Id', request.requestId);
     response.setHeader('Cache-Control', 'no-store');
     next();
@@ -309,18 +318,27 @@ export async function createApp(
       limit: 120,
       standardHeaders: 'draft-8',
       legacyHeaders: false,
-      message: {
-        error: {
-          code: 'RATE_LIMIT',
-          message: 'Túl sok kérés. Próbáld meg egy perc múlva.',
-        },
-      },
+      handler: (request, response) =>
+        response.status(429).json({
+          error: {
+            code: 'RATE_LIMIT',
+            message: errorMessage(
+              (request as AuthRequest).locale,
+              'RATE_LIMIT',
+            ),
+          },
+        }),
     }),
   );
   app.enableCors({
     origin,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Idempotency-Key',
+      'Accept-Language',
+    ],
   });
   app.useGlobalFilters(new SafeErrorFilter());
   const document = SwaggerModule.createDocument(

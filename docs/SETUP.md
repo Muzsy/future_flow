@@ -37,6 +37,10 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 
 A Next.js ezeket beépíti a kliensbe. Szerverkulcsot vagy adatbázis-jelszót soha ne írj ide.
 
+## Nyelvválasztás
+
+A web alapértelmezése angol; a fejlécben English/Magyar választható, `alterward_locale` cookie-val. A felületnyelv megy az API `Accept-Language` fejlécébe. Új élet létrehozásakor `locale: en | hu` kerül a kérésbe és a jobba; az elágazás a mentett életnyelvet örökli. `pnpm db:migrate` a `002_content_locale.sql` migrációt is alkalmazza. Régi történetek nyelve magyar, tartalmuk nem fordul át automatikusan. [Bővítés és minőségi kapuk](LOCALIZATION_HU.md).
+
 ## A felhasználó által megadott kulcsfájl
 
 A korábbi `env/supabase_keys.txt` és `env/openai_key.txt` fájlokat a fejlesztés során a projektkönyvtáron kívülre, `%LOCALAPPDATA%\FutureFlow\secrets` mappába mozgattuk. A fájlok és a titkos gyökér `.env` öröklött Windows ACL-je tiltott, hozzáférésük az aktuális felhasználóra korlátozott. A kulcsfájlok tartalma nem kerül a repóba vagy az alkalmazásnaplóba.
@@ -53,7 +57,7 @@ A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatib
 
 `pnpm smoke:ai` kitalált profilból valódi OpenAI-válaszokkal futtatja az esemény → történet → ellenőrzés folyamatot, majd egy döntésből új életágat készít. A PostgreSQL-adatbázis helyi PGlite példány; a próba nem készít Supabase Auth-fiókot és nem ír személyes adatot a Supabase-ba.
 
-További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. Egy időben egy próbát futtass.
+További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. A nyelv második argumentum: `pnpm smoke:ai family en` angol, `pnpm smoke:ai family hu` magyar. Argumentum nélkül a történeti teszt magyar marad. Az angol riport külön `cases/family-en` mappába kerül. Egy időben egy próbát futtass.
 
 A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
 

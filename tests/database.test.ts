@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { applyMigrations } from '../scripts/lib/migrations';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
@@ -30,9 +30,7 @@ function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
 beforeAll(async () => {
   engine = new PGlite();
   await engine.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
-  await engine.exec(
-    readFileSync('database/migrations/001_foundation.sql', 'utf8'),
-  );
+  await applyMigrations(engine);
   db = adapter(engine);
   repo = new Repository(db);
   jobs = new JobRepository(db);
@@ -105,6 +103,26 @@ describe.sequential('PostgreSQL persistence and worker', () => {
     await expect(
       repo.createFuture(userId, randomUUID(), 'future-request-001'),
     ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    await expect(
+      repo.createFuture(userId, versionId, 'future-request-001', 'hu'),
+    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+  });
+  it('pins English on new lives, jobs and branch responses', async () => {
+    expect((await repo.listFutures(userId))[0]!.content_locale).toBe('en');
+    expect((await repo.branch(userId, branchId)).content_locale).toBe('en');
+    expect(
+      (
+        await db.query<{ payload: { locale: string } }>(
+          'SELECT payload FROM ff_jobs WHERE id=$1',
+          [jobId],
+        )
+      )[0]!.payload.locale,
+    ).toBe('en');
+    await expect(
+      db.query("UPDATE ff_futures SET content_locale='hu' WHERE id=$1", [
+        futureId,
+      ]),
+    ).rejects.toThrow('immutable');
   });
   it('does not expose jobs to another user', async () => {
     await expect(repo.job(otherId, jobId)).rejects.toMatchObject({
@@ -136,8 +154,12 @@ describe.sequential('PostgreSQL persistence and worker', () => {
     });
     const ai = testAi();
     const events = vi.spyOn(ai, 'events');
+    const write = vi.spyOn(ai, 'chapters');
     await processJob(job, jobs, ai);
     expect(events).not.toHaveBeenCalled();
+    expect(write).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'en' }),
+    );
     expect((await repo.job(userId, jobId)).status).toBe('completed');
     await expect(
       jobs.complete(
@@ -177,6 +199,14 @@ describe.sequential('PostgreSQL persistence and worker', () => {
       'choice-request-002',
     );
     expect(first.newBranchId).not.toBe(second.newBranchId);
+    expect(
+      (
+        await db.query<{ payload: { locale: string } }>(
+          'SELECT payload FROM ff_jobs WHERE id=$1',
+          [first.jobId],
+        )
+      )[0]!.payload.locale,
+    ).toBe('en');
     expect((await repo.future(userId, futureId)).branches).toHaveLength(3);
     const prefix = await repo.timeline(userId, first.newBranchId);
     expect(prefix).toHaveLength(1);
@@ -202,6 +232,40 @@ describe.sequential('PostgreSQL persistence and worker', () => {
     const data = await repo.exportAccount(userId);
     expect(data.ff_profile_versions).toHaveLength(1);
     expect(data).not.toHaveProperty('ff_jobs');
+    expect(data.ff_futures[0]!.content_locale).toBe('en');
+  });
+  it('supports Hungarian lives and resumes legacy jobs in Hungarian', async () => {
+    await db.query(
+      "UPDATE ff_jobs SET status='cancelled' WHERE status='queued'",
+    );
+    const created = await repo.createFuture(
+      userId,
+      versionId,
+      'hungarian-life-001',
+      'hu',
+    );
+    expect((await repo.branch(userId, created.branchId)).content_locale).toBe(
+      'hu',
+    );
+    await db.query("UPDATE ff_jobs SET payload=payload-'locale' WHERE id=$1", [
+      created.jobId,
+    ]);
+    await db.query(
+      "UPDATE ff_jobs SET status='cancelled' WHERE id<>$1 AND status='queued'",
+      [created.jobId],
+    );
+    const legacy = (await jobs.claim())!;
+    expect(legacy.id).toBe(created.jobId);
+    const ai = testAi();
+    const events = vi.spyOn(ai, 'events');
+    const write = vi.spyOn(ai, 'chapters');
+    const check = vi.spyOn(ai, 'checkStory');
+    await processJob(legacy, jobs, ai);
+    for (const call of [events, write, check])
+      expect(call).toHaveBeenCalledWith(
+        expect.objectContaining({ locale: 'hu' }),
+        ...(call === check ? [expect.anything()] : []),
+      );
   });
   it('cancels outstanding work and deletes the complete account graph', async () => {
     await repo.markDeleting(userId);

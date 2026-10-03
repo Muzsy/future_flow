@@ -8,7 +8,11 @@ A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevébe
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-Új tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; ez a szelet nem használt OpenAI-kreditet.
+V2 tárolási migráció, v2 API/worker, rövid AI-időszak és folytatás még nincs bekötve. Publikálás/Discovery/Official seed/Community fork tervezett a [nyilvános megvalósítási tervben](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md). Régi szerződés és `001_foundation.sql` változatlan; ez a szelet nem használt OpenAI-kreditet.
+
+## Többnyelvű alap
+
+Angol alapnyelv és választható magyar a teljes meglévő felületen, kérdőívben és biztonságos API-hibákban. A nyelvválasztás cookie-ban marad meg; HTML/metadata/dátumok a választott felületnyelvet követik. Új élet `content_locale` mezője és job `locale` értéke mentett, az ág ezt örökli. A `002_content_locale.sql` korábbi életeket magyarra jelöl, az új beszúrás alapértéke angol, a mező utólag nem módosítható. A v1 profilok/canon változatlanok. Nyelvi promptok és nyelvi történethűség-ellenőrzés, további nyelvekre bővíthető regiszter/katalógus. [Részletek és ellenőrzés](LOCALIZATION_HU.md).
 
 ## Eltérés az új termékcéltól
 
@@ -24,7 +28,7 @@ A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célálla
 - **Felhasználói döntés:** OpenAI az első szolgáltató.
 - **Felhasználói döntés:** Supabase-integráció és beállítási útmutató.
 - **Felhasználói döntés:** `Muzsy/future_flow`, közvetlen munka a `main` ágon.
-- Magyarország és magyar nyelv az első verzióban; életkor helyett 18+ korcsoport. Ez a v0.1 minimumprofil és magyar MVP-javaslat visszafordítható megvalósítása.
+- **Felhasználói döntés:** angol alapnyelv, választható magyar és további nyelvekre előkészített szerkezet. A jelenlegi szcenáriók földrajzi környezete Magyarország; a felület és az új történet angol is lehet. Életkor helyett 18+ korcsoport.
 - Next.js web + NestJS API + külön worker ugyanazon moduláris kódbázissal. Nincs külön mikroservice-domain.
 
 ## Egységes adatmezők

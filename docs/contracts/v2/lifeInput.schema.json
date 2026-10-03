@@ -7,6 +7,13 @@
       "type": "string",
       "const": "2.0.0"
     },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "en",
+        "hu"
+      ]
+    },
     "lifeId": {
       "type": "string",
       "format": "uuid",
@@ -754,6 +761,7 @@
   },
   "required": [
     "schemaVersion",
+    "locale",
     "lifeId",
     "branchId",
     "identity",

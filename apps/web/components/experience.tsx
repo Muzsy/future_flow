@@ -16,14 +16,24 @@ import {
   Plus,
 } from 'lucide-react';
 import {
-  questionnaire,
+  getQuestionnaire,
+  languages,
+  errorMessage,
+  type Locale,
   type Question,
   type Profile,
   type CandidateEvent,
   type ChapterOutput,
   type LifeState,
 } from '@future-flow/contracts';
-import { api, authConfigured, supabase } from '../lib/client';
+import {
+  api,
+  authConfigured,
+  supabase,
+  clientErrorMessage,
+} from '../lib/client';
+import { LanguageSelect, useLanguage } from './language-provider';
+import { formatDate } from '../lib/i18n';
 
 type Answers = Record<string, string | number | boolean | string[]>;
 type Version = { id: string; version_no: number; snapshot: Profile };
@@ -37,6 +47,7 @@ type ProfileResponse = {
   };
 };
 type FutureCard = {
+  content_locale: Locale;
   id: string;
   title: string;
   status: string;
@@ -57,6 +68,7 @@ type Decision = {
   options: { id: string; payload: { label: string; description: string } }[];
 };
 type Branch = {
+  content_locale: Locale;
   id: string;
   future_id: string;
   name: string;
@@ -72,6 +84,7 @@ type Future = {
   profile_version_id: string;
   branches: {
     id: string;
+    parent_branch_id: string | null;
     name: string;
     status: string;
     job_id: string | null;
@@ -83,18 +96,24 @@ type Job = {
   status: string;
   stage: string;
   error_message_safe: string | null;
+  error_code: string | null;
 };
-const sections = [
-  'Élethelyzet',
-  'Munka és biztonság',
-  'Habitus',
-  'Irányok és kapcsolatok',
-  'Összegzés',
-];
-const message = (error: unknown) =>
-  error instanceof Error ? error.message : 'A művelet nem sikerült.';
+const message = clientErrorMessage;
 
 export function Experience() {
+  const { locale, t } = useLanguage();
+  const questionnaire = getQuestionnaire(locale);
+  const branchName = (item: {
+    name: string;
+    parent_branch_id: string | null;
+  }) => (item.parent_branch_id === null ? t('story.baseline') : item.name);
+  const sections = [
+    t('profile.lifeSituation'),
+    t('profile.workSecurity'),
+    t('profile.temperament'),
+    t('profile.directionRelationships'),
+    t('profile.summary'),
+  ];
   const router = useRouter(),
     pathname = usePathname();
   const [route, id] = pathname.split('/').filter(Boolean);
@@ -120,6 +139,10 @@ export function Experience() {
   const [tab, setTab] = useState<'story' | 'timeline' | 'compare'>('story'),
     [compareBranch, setCompareBranch] = useState<Branch | null>(null),
     [confirmation, setConfirmation] = useState('');
+  useEffect(() => {
+    setNotice('');
+    setConfirmation('');
+  }, [locale]);
   const futureRequest = useRef<{
     snapshot: string;
     profileVersionId: string;
@@ -239,9 +262,7 @@ export function Experience() {
         });
         if (error) throw error;
         if (!data.session) {
-          setNotice(
-            'Elküldtük a megerősítő e-mailt. A megerősítés után jelentkezz be.',
-          );
+          setNotice(t('auth.confirmationSent'));
           return;
         }
       } else {
@@ -281,6 +302,7 @@ export function Experience() {
   async function createFuture() {
     await action(async () => {
       const snapshot = JSON.stringify({
+        locale,
         answers,
         relationships:
           answers.noCloseRelationships === true ? [] : relationships,
@@ -314,6 +336,7 @@ export function Experience() {
           profileVersionId: request.profileVersionId,
           horizonYears: 10,
           mode: 'baseline',
+          locale,
         }),
       });
       futureRequest.current = null;
@@ -359,7 +382,7 @@ export function Experience() {
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => update(e.target.value)}
           >
-            <option value="">Válassz…</option>
+            <option value="">{t('common.choose')}</option>
             {question.options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -377,7 +400,7 @@ export function Experience() {
             }
             onChange={(e) => update(e.target.value)}
             placeholder={
-              question.key === 'goalTitle' ? 'Például: új szakmát tanulni' : ''
+              question.key === 'goalTitle' ? t('profile.goalExample') : ''
             }
           />
         )}
@@ -403,13 +426,13 @@ export function Experience() {
               onChange={(e) => update(Number(e.target.value))}
             />
             <div className="range-labels">
-              <span>Alacsony</span>
+              <span>{t('common.low')}</span>
               <span>
                 {typeof value === 'number'
                   ? `${value} / 100`
-                  : 'Még nincs válasz'}
+                  : t('profile.unanswered')}
               </span>
-              <span>Magas</span>
+              <span>{t('common.high')}</span>
             </div>
             {value === undefined && (
               <button
@@ -417,7 +440,7 @@ export function Experience() {
                 className="text-button"
                 onClick={() => update(50)}
               >
-                Közepes értéket választok
+                {t('profile.chooseMiddle')}
               </button>
             )}
           </>
@@ -429,13 +452,13 @@ export function Experience() {
               checked={value === true}
               onChange={(e) => update(e.target.checked)}
             />
-            <span>Igen</span>
+            <span>{t('common.yes')}</span>
             <button
               type="button"
               className="text-button"
               onClick={() => update(false)}
             >
-              Van legalább két fontos kapcsolatom
+              {t('profile.hasRelationships')}
             </button>
           </div>
         )}
@@ -469,8 +492,8 @@ export function Experience() {
   }
   const decisionPanel = (decision: Decision) => (
     <div className="decision" key={decision.id}>
-      <div className="eyebrow">A következő döntés a tiéd</div>
-      <h3>{decision.prompt}</h3>
+      <div className="eyebrow">{t('story.nextDecision')}</div>
+      <h3 lang={branch?.content_locale}>{decision.prompt}</h3>
       {decision.options.map((option) => (
         <button
           className="option"
@@ -480,13 +503,14 @@ export function Experience() {
             void resolve(decision.id, option.id);
           }}
         >
-          {option.payload.label}
-          <small>{option.payload.description}</small>
+          <span lang={branch?.content_locale}>{option.payload.label}</span>
+          <small lang={branch?.content_locale}>
+            {option.payload.description}
+          </small>
         </button>
       ))}
       <p className="subtle" style={{ marginTop: 15 }}>
-        Minden választás új életágat nyit. Később másik lehetőséget is
-        kipróbálhatsz.
+        {t('story.decisionHelp')}
       </p>
     </div>
   );
@@ -521,39 +545,45 @@ export function Experience() {
             ALPHA
           </span>
         </button>
-        <nav className="nav" aria-label="Fő navigáció">
-          <button
-            className={page === 'futures' ? 'active' : ''}
-            onClick={() => navigate(user ? '/futures' : '/login')}
-          >
-            Életágaim
-          </button>
-          <button
-            className={page === 'onboarding' ? 'active' : ''}
-            onClick={() => navigate(user ? '/onboarding' : '/login')}
-          >
-            Profilom
-          </button>
-          <button onClick={() => navigate('/privacy')}>Adatvédelem</button>
-          {user ? (
+        <div className="header-actions">
+          <LanguageSelect />
+          <nav className="nav" aria-label={t('nav.main')}>
             <button
-              className="login"
-              onClick={() => {
-                void action(async () => {
-                  await supabase().auth.signOut();
-                  navigate('/');
-                });
-              }}
-              aria-label="Kijelentkezés"
+              className={page === 'futures' ? 'active' : ''}
+              onClick={() => navigate(user ? '/futures' : '/login')}
             >
-              <LogOut size={15} />
+              {t('nav.lives')}
             </button>
-          ) : (
-            <button className="login" onClick={() => navigate('/login')}>
-              Belépés <ArrowUpRight size={12} />
+            <button
+              className={page === 'onboarding' ? 'active' : ''}
+              onClick={() => navigate(user ? '/onboarding' : '/login')}
+            >
+              {t('nav.profile')}
             </button>
-          )}
-        </nav>
+            <button onClick={() => navigate('/privacy')}>
+              {t('nav.privacy')}
+            </button>
+            {user ? (
+              <button
+                className="login"
+                onClick={() => {
+                  void action(async () => {
+                    await supabase().auth.signOut();
+                    navigate('/');
+                  });
+                }}
+                aria-label={t('auth.signOut')}
+              >
+                <LogOut size={15} />
+              </button>
+            ) : (
+              <button className="login" onClick={() => navigate('/login')}>
+                {t('auth.signInShort')}
+                <ArrowUpRight size={12} />
+              </button>
+            )}
+          </nav>
+        </div>
       </header>
       <main className="shell">
         {notice && (
@@ -564,13 +594,11 @@ export function Experience() {
         {protectedPage && authReady && !user ? (
           <div className="panel narrow">
             <Lock color="#2d6347" />
-            <h1>A történeted privát.</h1>
-            <p>
-              Jelentkezz be, hogy folytathasd a profilodat és megnyithasd az
-              életágaidat.
-            </p>
+            <h1>{t('auth.privateStory')}</h1>
+            <p>{t('auth.signInToContinue')}</p>
             <button className="primary" onClick={() => navigate('/login')}>
-              Bejelentkezés <ArrowRight size={16} />
+              {t('auth.signIn')}
+              <ArrowRight size={16} />
             </button>
           </div>
         ) : (
@@ -579,17 +607,13 @@ export function Experience() {
               <>
                 <section className="hero">
                   <div>
-                    <div className="eyebrow">A jövő nincs kőbe vésve</div>
+                    <div className="eyebrow">{t('home.eyebrow')}</div>
                     <h1>
-                      Egy élet.
+                      {t('home.oneLife')}
                       <br />
-                      Több <em>lehetőség.</em>
+                      {t('home.many')} <em>{t('home.possibilities')}</em>
                     </h1>
-                    <p className="intro">
-                      Mi történhetne, ha más irányt választanál? Fedezz fel
-                      személyes, AI által alkotott életutakat — és írd tovább a
-                      saját döntéseiddel.
-                    </p>
+                    <p className="intro">{t('home.introduction')}</p>
                     <div className="hero-actions">
                       <button
                         className="primary"
@@ -597,7 +621,8 @@ export function Experience() {
                           navigate(user ? '/onboarding' : '/login')
                         }
                       >
-                        Felfedezem a jövőmet <ArrowUpRight size={17} />
+                        {t('home.start')}
+                        <ArrowUpRight size={17} />
                       </button>
                       <button
                         className="text-button"
@@ -607,20 +632,21 @@ export function Experience() {
                             ?.scrollIntoView({ behavior: 'smooth' })
                         }
                       >
-                        Hogyan működik? <ArrowRight size={13} />
+                        {t('home.howItWorks')}
+                        <ArrowRight size={13} />
                       </button>
                     </div>
                     <div className="fineprint">
-                      <Lock size={12} /> Privát történet · Saját döntések · 18
-                      év felett
+                      <Lock size={12} />
+                      {t('home.notes')}
                     </div>
                   </div>
                   <div
                     className="orbit"
-                    aria-label="Elágazó életutak szemléltetése"
+                    aria-label={t('home.illustrationLabel')}
                   >
                     <span className="illustration-label">
-                      EGY KIINDULÓPONT · TÖBB IRÁNY
+                      {t('home.illustrationHeading')}
                     </span>
                     <svg
                       className="tree"
@@ -650,25 +676,23 @@ export function Experience() {
                       <circle cx="136" cy="355" r="4" fill="#2d6347" />
                     </svg>
                     <div className="path-card one">
-                      <small>ÚJ IRÁNY</small>
-                      <h3>Egy másik város.</h3>
-                      <p>
-                        Egy lehetőség új környezetben, a megszokott élet
-                        határán.
-                      </p>
+                      <small>{t('home.cityBadge')}</small>
+                      <h3>{t('home.cityTitle')}</h3>
+                      <p>{t('home.cityDescription')}</p>
                     </div>
                     <div className="path-card two">
-                      <small>EGY RÉGI ÖTLET</small>
-                      <h3>Valami saját.</h3>
-                      <p>A félretett terved lassan valódi formát kap.</p>
+                      <small>{t('home.ideaBadge')}</small>
+                      <h3>{t('home.ideaTitle')}</h3>
+                      <p>{t('home.ideaDescription')}</p>
                     </div>
                     <div className="path-card three">
-                      <small>A JELENBŐL ÉPÍTVE</small>
-                      <h3>Apró változások.</h3>
-                      <p>Ugyanaz a kiindulópont. Egy egészen más ritmus.</p>
+                      <small>{t('home.changeBadge')}</small>
+                      <h3>{t('home.changeTitle')}</h3>
+                      <p>{t('home.changeDescription')}</p>
                     </div>
                     <div className="root-node">
-                      <Compass size={14} /> A te jelened
+                      <Compass size={14} />
+                      {t('home.present')}
                     </div>
                   </div>
                 </section>
@@ -676,54 +700,43 @@ export function Experience() {
                   <div className="principle">
                     <Compass size={22} />
                     <div>
-                      <h3>Belőled indul ki</h3>
-                      <p>
-                        Élethelyzeted, értékeid és céljaid adják a történet
-                        alapját.
-                      </p>
+                      <h3>{t('home.personalTitle')}</h3>
+                      <p>{t('home.personalDescription')}</p>
                     </div>
                   </div>
                   <div className="principle">
                     <GitBranch size={22} />
                     <div>
-                      <h3>Te választod az irányt</h3>
-                      <p>
-                        Egy döntés új ágat nyit. A korábbi lehetőségekhez is
-                        visszatérhetsz.
-                      </p>
+                      <h3>{t('home.choiceTitle')}</h3>
+                      <p>{t('home.choiceDescription')}</p>
                     </div>
                   </div>
                   <div className="principle">
                     <ShieldCheck size={22} />
                     <div>
-                      <h3>A történeted a tiéd</h3>
-                      <p>
-                        Privát alapállapot. Az életágak lehetséges
-                        forgatókönyvek.
-                      </p>
+                      <h3>{t('home.privateTitle')}</h3>
+                      <p>{t('home.privateDescription')}</p>
                     </div>
                   </div>
                 </section>
                 <p className="subtle" style={{ marginTop: 30 }}>
-                  Az illusztráció példalehetőségeket szemléltet. A személyes
-                  életágadat az AI a profilod alapján készíti el.
+                  {t('home.illustrationNote')}
                 </p>
               </>
             )}
             {page === 'login' && (
               <section className="panel narrow">
-                <div className="eyebrow">A történeted itt kezdődik</div>
-                <h1>{signup ? 'Kezdj egy új életágat.' : 'Üdv újra.'}</h1>
+                <div className="eyebrow">{t('auth.eyebrow')}</div>
+                <h1>
+                  {signup ? t('auth.signUpTitle') : t('auth.welcomeBack')}
+                </h1>
                 <p>
                   {signup
-                    ? 'Hozd létre a fiókodat, és fedezd fel, merre indulhatnál.'
-                    : 'Lépj be a személyes történetedhez.'}
+                    ? t('auth.signUpDescription')
+                    : t('auth.signInDescription')}
                 </p>
                 {!authConfigured ? (
-                  <div className="notice">
-                    A belépés előkészítés alatt áll. A szolgáltatás a
-                    Supabase-projekt beállítása után indul.
-                  </div>
+                  <div className="notice">{t('auth.notConfigured')}</div>
                 ) : (
                   <form
                     onSubmit={(event) => {
@@ -731,7 +744,7 @@ export function Experience() {
                     }}
                   >
                     <label className="field">
-                      <span>E-mail</span>
+                      <span>{t('auth.email')}</span>
                       <input
                         type="email"
                         autoComplete="email"
@@ -741,7 +754,7 @@ export function Experience() {
                       />
                     </label>
                     <label className="field">
-                      <span>Jelszó</span>
+                      <span>{t('auth.password')}</span>
                       <input
                         type="password"
                         minLength={10}
@@ -755,10 +768,10 @@ export function Experience() {
                     </label>
                     <button className="primary" disabled={busy}>
                       {busy
-                        ? 'Egy pillanat…'
+                        ? t('common.pleaseWait')
                         : signup
-                          ? 'Fiók létrehozása'
-                          : 'Bejelentkezés'}{' '}
+                          ? t('auth.createAccount')
+                          : t('auth.signIn')}{' '}
                       <ArrowRight size={16} />
                     </button>
                   </form>
@@ -768,7 +781,7 @@ export function Experience() {
                   style={{ marginTop: 20 }}
                   onClick={() => setSignup((value) => !value)}
                 >
-                  {signup ? 'Már van fiókom' : 'Még nincs fiókom'}
+                  {signup ? t('auth.haveAccount') : t('auth.needAccount')}
                 </button>
               </section>
             )}
@@ -776,18 +789,13 @@ export function Experience() {
               <>
                 <div className="page-head">
                   <div>
-                    <div className="eyebrow">
-                      Először ismerjük meg a jelened
-                    </div>
-                    <h1>A történeted alapjai.</h1>
-                    <p>
-                      A kitöltés szakaszonként menthető. Csak annyit kérünk,
-                      amiből személyes történet készülhet.
-                    </p>
+                    <div className="eyebrow">{t('profile.eyebrow')}</div>
+                    <h1>{t('profile.title')}</h1>
+                    <p>{t('profile.description')}</p>
                   </div>
                   <span className="badge">
                     {completedQuestions} / {questionnaire.questions.length}{' '}
-                    válasz
+                    {t('profile.answers')}
                   </span>
                 </div>
                 <div className="progress">
@@ -798,7 +806,7 @@ export function Experience() {
                   />
                 </div>
                 <div className="step-layout">
-                  <aside className="steps" aria-label="Profil szakaszai">
+                  <aside className="steps" aria-label={t('profile.sections')}>
                     {sections.map((section, index) => (
                       <button
                         key={section}
@@ -814,10 +822,7 @@ export function Experience() {
                     {step === 0 && (
                       <>
                         <div className="notice">
-                          A szolgáltatás 18 év feletti felhasználóknak készül. A
-                          történetek AI által készített lehetséges
-                          forgatókönyvek. A generáláshoz a szükséges
-                          profiladatokat az OpenAI dolgozza fel.
+                          {t('profile.consentNotice')}
                         </div>
                         <label className="checkbox">
                           <input
@@ -825,7 +830,7 @@ export function Experience() {
                             checked={adult}
                             onChange={(e) => setAdult(e.target.checked)}
                           />
-                          <span>Elmúltam 18 éves.</span>
+                          <span>{t('profile.adult')}</span>
                         </label>
                         <label className="checkbox">
                           <input
@@ -834,7 +839,7 @@ export function Experience() {
                             onChange={(e) => setAcknowledged(e.target.checked)}
                           />
                           <span>
-                            Elolvastam az{' '}
+                            {t('profile.readPrivacy')}{' '}
                             <button
                               className="text-button"
                               onClick={() =>
@@ -845,9 +850,9 @@ export function Experience() {
                                 )
                               }
                             >
-                              adatkezelési tájékoztatót
+                              {t('profile.privacyLink')}
                             </button>
-                            , és értem az AI-generálás működését.
+                            {t('profile.understandAI')}
                           </span>
                         </label>
                       </>
@@ -863,16 +868,17 @@ export function Experience() {
                     {step === 3 && answers.noCloseRelationships !== true && (
                       <>
                         <h3 style={{ marginTop: 20, fontSize: 17 }}>
-                          Fontos kapcsolataid
+                          {t('profile.relationshipsTitle')}
                         </h3>
                         <p className="subtle">
-                          Használj címkéket: Párom, Barát A, Kolléga A. Valódi
-                          nevet nem kérünk.
+                          {t('profile.relationshipsHelp')}
                         </p>
                         {relationships.map((relationship, index) => (
                           <div className="relation-row" key={relationship.id}>
                             <input
-                              aria-label={`${index + 1}. kapcsolat címkéje`}
+                              aria-label={t('relationship.label', {
+                                number: index + 1,
+                              })}
                               maxLength={50}
                               value={relationship.label}
                               onChange={(e) =>
@@ -886,7 +892,9 @@ export function Experience() {
                               }
                             />
                             <select
-                              aria-label={`${index + 1}. kapcsolat típusa`}
+                              aria-label={t('relationship.type', {
+                                number: index + 1,
+                              })}
                               value={relationship.type}
                               onChange={(e) =>
                                 setRelationships((current) =>
@@ -902,11 +910,21 @@ export function Experience() {
                                 )
                               }
                             >
-                              <option value="friend">Barát</option>
-                              <option value="partner">Partner</option>
-                              <option value="family">Családtag</option>
-                              <option value="colleague">Kolléga</option>
-                              <option value="other">Egyéb</option>
+                              <option value="friend">
+                                {t('relationship.friend')}
+                              </option>
+                              <option value="partner">
+                                {t('relationship.partner')}
+                              </option>
+                              <option value="family">
+                                {t('relationship.family')}
+                              </option>
+                              <option value="colleague">
+                                {t('relationship.colleague')}
+                              </option>
+                              <option value="other">
+                                {t('relationship.other')}
+                              </option>
                             </select>
                             <button
                               className="text-button"
@@ -916,7 +934,7 @@ export function Experience() {
                                 )
                               }
                             >
-                              Törlés
+                              {t('common.remove')}
                             </button>
                           </div>
                         ))}
@@ -928,7 +946,9 @@ export function Experience() {
                               ...current,
                               {
                                 id: crypto.randomUUID(),
-                                label: `Barát ${current.length + 1}`,
+                                label: t('relationship.defaultName', {
+                                  number: current.length + 1,
+                                }),
                                 type: 'friend',
                                 closeness: 50,
                                 support: 50,
@@ -937,15 +957,18 @@ export function Experience() {
                             ])
                           }
                         >
-                          <Plus size={14} /> Kapcsolat hozzáadása
+                          <Plus size={14} />
+                          {t('profile.addRelationship')}
                         </button>
                       </>
                     )}
                     {step === 4 && (
                       <>
-                        <div className="eyebrow">Mielőtt elindulnánk</div>
+                        <div className="eyebrow">
+                          {t('profile.reviewEyebrow')}
+                        </div>
                         <h2 style={{ margin: '15px 0 25px' }}>
-                          Ez adja az életágad kiindulópontját.
+                          {t('profile.reviewTitle')}
                         </h2>
                         <div className="form-grid">
                           {(questionnaire.questions as Question[])
@@ -971,31 +994,33 @@ export function Experience() {
                                           option.value === answers[q.key],
                                       )?.label ??
                                       String(
-                                        answers[q.key] ?? 'Még nincs válasz',
+                                        answers[q.key] ??
+                                          t('profile.unanswered'),
                                       ))}
                                 </p>
                               </div>
                             ))}
                         </div>
                         <p className="subtle">
-                          Habitus:{' '}
+                          {t('profile.temperamentSummary')}{' '}
                           {
                             questionnaire.questions.filter(
                               (q) =>
-                                q.section === 'Habitus' &&
+                                q.section === t('profile.temperament') &&
                                 answers[q.key] !== undefined,
                             ).length
                           }{' '}
-                          / 12 válasz · {relationships.length} megadott
-                          kapcsolat
+                          {t('profile.traitAnswers')}
+                          {relationships.length}
+                          {t('profile.relationshipCount')}
                           {version
-                            ? ` · korábbi profilverzió: ${version.version_no}`
+                            ? t('profile.previousVersion', {
+                                version: version.version_no,
+                              })
                             : ''}
                         </p>
                         <div className="notice" style={{ marginTop: 25 }}>
-                          Az első generálás néhány percet igénybe vehet. Az
-                          elkészült szcenárió 10 évet fog át, a közelebbi
-                          időszakot részletesebben.
+                          {t('profile.generationNotice')}
                         </div>
                       </>
                     )}
@@ -1005,7 +1030,7 @@ export function Experience() {
                           className="secondary"
                           onClick={() => setStep((value) => value - 1)}
                         >
-                          Vissza
+                          {t('common.back')}
                         </button>
                       )}
                       <button
@@ -1014,11 +1039,11 @@ export function Experience() {
                         onClick={() => {
                           void action(async () => {
                             await save();
-                            setNotice('A profilpiszkozatot elmentettük.');
+                            setNotice(t('profile.saved'));
                           });
                         }}
                       >
-                        Mentés
+                        {t('common.save')}
                       </button>
                       {step < 4 ? (
                         <button
@@ -1028,7 +1053,8 @@ export function Experience() {
                             void nextStep();
                           }}
                         >
-                          Mentés és tovább <ArrowRight size={15} />
+                          {t('profile.saveContinue')}
+                          <ArrowRight size={15} />
                         </button>
                       ) : (
                         <button
@@ -1038,7 +1064,8 @@ export function Experience() {
                             void createFuture();
                           }}
                         >
-                          Elindítom az életágamat <Sparkles size={15} />
+                          {t('profile.generate')}
+                          <Sparkles size={15} />
                         </button>
                       )}
                     </div>
@@ -1050,15 +1077,16 @@ export function Experience() {
               <>
                 <div className="page-head">
                   <div>
-                    <div className="eyebrow">A te lehetséges történeteid</div>
-                    <h1>Életágaim.</h1>
-                    <p>Minden életág egy új nézőpont a jelenedre.</p>
+                    <div className="eyebrow">{t('lives.eyebrow')}</div>
+                    <h1>{t('lives.title')}</h1>
+                    <p>{t('lives.description')}</p>
                   </div>
                   <button
                     className="primary"
                     onClick={() => navigate('/onboarding')}
                   >
-                    <Plus size={16} /> Új életág
+                    <Plus size={16} />
+                    {t('lives.new')}
                   </button>
                 </div>
                 {futures.length ? (
@@ -1078,17 +1106,15 @@ export function Experience() {
                         <GitBranch color="#2d6347" size={22} />
                         <span className="badge">
                           {item.status === 'completed'
-                            ? 'ELKÉSZÜLT'
+                            ? t('status.completed')
                             : item.status === 'failed'
-                              ? 'MEGSZAKADT'
-                              : 'KÉSZÜL'}
+                              ? t('status.failed')
+                              : t('status.generating')}
                         </span>
                         <h2>{item.title}</h2>
                         <p>
-                          {new Date(item.created_at).toLocaleDateString(
-                            'hu-HU',
-                          )}{' '}
-                          · 10 éves szcenárió
+                          {formatDate(item.created_at, locale)}{' '}
+                          {t('lives.horizon')}
                         </p>
                         <ArrowUpRight size={16} />
                       </button>
@@ -1097,16 +1123,15 @@ export function Experience() {
                 ) : (
                   <div className="empty">
                     <BookOpen size={30} />
-                    <h2 style={{ marginTop: 20 }}>
-                      Itt kapnak helyet a történeteid.
-                    </h2>
-                    <p>Az első életágadhoz töltsd ki a profilodat.</p>
+                    <h2 style={{ marginTop: 20 }}>{t('lives.emptyTitle')}</h2>
+                    <p>{t('lives.emptyDescription')}</p>
                     <button
                       className="primary"
                       style={{ marginTop: 25 }}
                       onClick={() => navigate('/onboarding')}
                     >
-                      Elkezdem <ArrowRight size={15} />
+                      {t('lives.begin')}
+                      <ArrowRight size={15} />
                     </button>
                   </div>
                 )}
@@ -1115,38 +1140,34 @@ export function Experience() {
             {page === 'job' && user && (
               <div className="generation">
                 <div className="eyebrow" style={{ justifyContent: 'center' }}>
-                  A profilodból életág születik
+                  {t('job.eyebrow')}
                 </div>
                 {job?.status === 'failed' ? (
                   <>
-                    <h1>A generálás megszakadt.</h1>
-                    <p>{job.error_message_safe}</p>
+                    <h1>{t('job.failed')}</h1>
+                    <p>
+                      {errorMessage(locale, job.error_code ?? 'REQUEST_FAILED')}
+                    </p>
                     <button
                       className="primary"
                       style={{ marginTop: 25 }}
                       onClick={() => navigate('/onboarding')}
                     >
-                      Vissza a profilhoz
+                      {t('job.backToProfile')}
                     </button>
                   </>
                 ) : (
                   <>
                     <div className="spinner" />
-                    <h1>Formát kap egy lehetőség.</h1>
-                    <p>
-                      Az AI először felépíti az eseményeket, majd történetté
-                      alakítja és ellenőrzi őket. Ez néhány percig is eltarthat.
-                    </p>
+                    <h1>{t('job.title')}</h1>
+                    <p>{t('job.description')}</p>
                     <div className="stage-list">
                       {[
-                        ['QUEUED', 'Várakozás a generálásra'],
-                        [
-                          'SIMULATING_EVENTS',
-                          'Személyes események kialakítása',
-                        ],
-                        ['WRITING_CHAPTERS', 'Történetfejezetek megírása'],
-                        ['CHECKING_STORY', 'A történet ellenőrzése'],
-                        ['PERSISTING', 'Az életág mentése'],
+                        ['QUEUED', t('job.queued')],
+                        ['SIMULATING_EVENTS', t('job.events')],
+                        ['WRITING_CHAPTERS', t('job.chapters')],
+                        ['CHECKING_STORY', t('job.check')],
+                        ['PERSISTING', t('job.save')],
                       ].map(([key, label]) => (
                         <div
                           key={key}
@@ -1156,10 +1177,7 @@ export function Experience() {
                         </div>
                       ))}
                     </div>
-                    <p className="subtle">
-                      Ezt az oldalt frissítheted vagy később újra megnyithatod.
-                      A generálás a háttérben folytatódik.
-                    </p>
+                    <p className="subtle">{t('job.resumeHelp')}</p>
                   </>
                 )}
               </div>
@@ -1170,24 +1188,31 @@ export function Experience() {
                 <>
                   <div className="page-head">
                     <div>
-                      <div className="eyebrow">
-                        Lehetséges forgatókönyv · AI-tartalom
-                      </div>
-                      <h1>{branch.name}</h1>
-                      <p>
-                        Ez az életág a profilod egy rögzített változatából
-                        indul.
+                      <div className="eyebrow">{t('story.eyebrow')}</div>
+                      <h1>{branchName(branch)}</h1>
+                      <p>{t('story.profileVersion')}</p>
+                      <p className="subtle">
+                        {t('story.language')}:{' '}
+                        {languages[branch.content_locale].nativeName}
                       </p>
                     </div>
                     <button
                       className="secondary"
                       onClick={() => navigate('/futures')}
                     >
-                      Életágaim <GitBranch size={14} />
+                      {t('nav.lives')}
+                      <GitBranch size={14} />
                     </button>
                   </div>
+                  {branch.content_locale !== locale && (
+                    <div className="notice">
+                      {t('story.originalLanguage', {
+                        language: languages[branch.content_locale].nativeName,
+                      })}
+                    </div>
+                  )}
                   {future && (
-                    <div className="tabs" aria-label="Életág választása">
+                    <div className="tabs" aria-label={t('story.chooseBranch')}>
                       {future.branches.map((item) => (
                         <button
                           key={item.id}
@@ -1200,42 +1225,43 @@ export function Experience() {
                             )
                           }
                         >
-                          {item.name}
+                          {branchName(item)}
                         </button>
                       ))}
                     </div>
                   )}
-                  <div className="tabs" aria-label="Életág nézete">
+                  <div className="tabs" aria-label={t('story.views')}>
                     <button
                       className={tab === 'story' ? 'active' : ''}
                       onClick={() => setTab('story')}
                     >
-                      Történet
+                      {t('story.story')}
                     </button>
                     <button
                       className={tab === 'timeline' ? 'active' : ''}
                       onClick={() => setTab('timeline')}
                     >
-                      Idővonal
+                      {t('story.timeline')}
                     </button>
                     <button
                       className={tab === 'compare' ? 'active' : ''}
                       onClick={() => setTab('compare')}
                     >
-                      Összehasonlítás
+                      {t('story.compare')}
                     </button>
                   </div>
                   {branch.status !== 'completed' ? (
                     <div className="notice">
                       {branch.status === 'failed'
-                        ? 'Az életág generálása megszakadt.'
-                        : 'Ez az életág még készül. A státuszoldalon követheted a generálást.'}
+                        ? t('story.failed')
+                        : t('story.generatingHelp')}
                       {branch.job_id && (
                         <button
                           className="text-button"
                           onClick={() => navigate(`/job/${branch.job_id}`)}
                         >
-                          Generálás állapota <ArrowRight size={14} />
+                          {t('story.generationStatus')}
+                          <ArrowRight size={14} />
                         </button>
                       )}
                     </div>
@@ -1250,11 +1276,25 @@ export function Experience() {
                                 key={chapterId}
                               >
                                 <div className="eyebrow">
-                                  {chapter.chapterNo}. fejezet
+                                  {t('story.chapter', {
+                                    number: chapter.chapterNo,
+                                  })}
                                 </div>
-                                <h2>{chapter.title}</h2>
-                                <p className="lead">{chapter.lead}</p>
-                                <div className="prose">{chapter.body}</div>
+                                <h2 lang={branch.content_locale}>
+                                  {chapter.title}
+                                </h2>
+                                <p
+                                  className="lead"
+                                  lang={branch.content_locale}
+                                >
+                                  {chapter.lead}
+                                </p>
+                                <div
+                                  className="prose"
+                                  lang={branch.content_locale}
+                                >
+                                  {chapter.body}
+                                </div>
                                 {chapter.decisionEventKey &&
                                   branch.decisions
                                     .filter(
@@ -1288,27 +1328,25 @@ export function Experience() {
                           {branch.events.map((event) => (
                             <article className="event panel" key={event.id}>
                               <span className="badge">
-                                {new Date(
-                                  event.effective_at,
-                                ).toLocaleDateString('hu-HU', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                })}
-                                {event.inherited ? ' · KÖZÖS ELŐZMÉNY' : ''}
+                                {formatDate(event.effective_at, locale)}
+                                {event.inherited
+                                  ? t('story.sharedHistory')
+                                  : ''}
                               </span>
-                              <h3>{event.canon.title}</h3>
-                              <p>{event.canon.summary}</p>
+                              <h3 lang={branch.content_locale}>
+                                {event.canon.title}
+                              </h3>
+                              <p lang={branch.content_locale}>
+                                {event.canon.summary}
+                              </p>
                               <details>
-                                <summary>
-                                  Miért került ebbe az életágba?
-                                </summary>
+                                <summary>{t('story.why')}</summary>
                                 {event.canon.causes.map((cause, index) => (
-                                  <p key={index}>{cause.explanation}</p>
+                                  <p key={index} lang={branch.content_locale}>
+                                    {cause.explanation}
+                                  </p>
                                 ))}
-                                <p>
-                                  A szcenárió belső indoklása. Nem valós oksági
-                                  bizonyíték.
-                                </p>
+                                <p>{t('story.causeNote')}</p>
                               </details>
                               {branch.decisions
                                 .filter(
@@ -1322,7 +1360,7 @@ export function Experience() {
                       {tab === 'compare' && (
                         <>
                           <label className="field">
-                            <span>Melyik életággal veted össze?</span>
+                            <span>{t('story.compareLabel')}</span>
                             <select
                               value={compareBranch?.id ?? ''}
                               onChange={(e) => {
@@ -1339,7 +1377,7 @@ export function Experience() {
                               }}
                             >
                               <option value="">
-                                Válassz egy másik elkészült ágat…
+                                {t('story.comparePlaceholder')}
                               </option>
                               {future?.branches
                                 .filter(
@@ -1349,7 +1387,7 @@ export function Experience() {
                                 )
                                 .map((item) => (
                                   <option key={item.id} value={item.id}>
-                                    {item.name}
+                                    {branchName(item)}
                                   </option>
                                 ))}
                             </select>
@@ -1358,12 +1396,14 @@ export function Experience() {
                             <div className="compare">
                               {[branch, compareBranch].map((item) => (
                                 <section className="panel" key={item.id}>
-                                  <h3>{item.name}</h3>
+                                  <h3>{branchName(item)}</h3>
                                   {item.events
                                     .filter((event) => !event.inherited)
                                     .map((event) => (
                                       <div className="metric" key={event.id}>
-                                        <span>{event.canon.title}</span>
+                                        <span lang={item.content_locale}>
+                                          {event.canon.title}
+                                        </span>
                                         <span>
                                           {event.effective_at.slice(0, 4)}
                                         </span>
@@ -1373,65 +1413,34 @@ export function Experience() {
                               ))}
                             </div>
                           ) : (
-                            <p className="subtle">
-                              Egy döntésből több ágat is nyithatsz, és itt
-                              összevetheted az eltérő eseményeiket.
-                            </p>
+                            <p className="subtle">{t('story.compareHelp')}</p>
                           )}
                         </>
                       )}
                     </>
                   )}
                   <p className="subtle" style={{ marginTop: 30 }}>
-                    Ez egy AI által készített lehetséges forgatókönyv, nem
-                    előrejelzés és nem szakmai tanács.
+                    {t('story.disclaimer')}
                   </p>
                 </>
               ) : (
-                <div className="empty">Az életág betöltése…</div>
+                <div className="empty">{t('story.loading')}</div>
               ))}
             {(page === 'privacy' || page === 'settings') && (
               <section
                 className="panel privacy-copy"
                 style={{ maxWidth: 800, margin: 'auto' }}
               >
-                <div className="eyebrow">A történeted a tiéd</div>
-                <h1 style={{ margin: '15px 0 25px' }}>
-                  Adatvédelem és saját adataid
-                </h1>
-                <p>
-                  A profil és az életágak privátak. A rendszer élethelyzetet,
-                  önbevallott habitust, célokat és álneves kapcsolati címkéket
-                  használ. Pontos címet, munkáltatót, diagnózist vagy mások
-                  valódi nevét nem kérjük.
-                </p>
-                <h2>Hogyan készül az AI-történet?</h2>
-                <p>
-                  A generálás az OpenAI API-n keresztül történik. Az események
-                  és a narratíva elkészítéséhez a szükséges profiladatokat,
-                  kapcsolati címkéket és szcenárióállapotot továbbítjuk. A saját
-                  rendszerben a teljes prompt nem kerül az alkalmazás naplójába.
-                  A szolgáltatói adatkezelés részleteit az indulás előtti
-                  végleges tájékoztatóban rögzítjük.
-                </p>
-                <h2>Mit jelentenek az életágak?</h2>
-                <p>
-                  Fiktív, lehetséges forgatókönyvek. A pontszámok a szcenárió
-                  szerkesztését segítik; nem pszichológiai diagnózisok és nem
-                  valós jövőbeli valószínűségek.
-                </p>
-                <h2>Adatletöltés és törlés</h2>
-                <p>
-                  Az adataid JSON formátumban letölthetők. A törlés eltávolítja
-                  a fiókot, a profilt és a hozzá tartozó szcenáriókat a működő
-                  adatbázisból. Mindkét művelethez friss bejelentkezés
-                  szükséges.
-                </p>
-                <div className="notice">
-                  Zárt teszteléshez készülő változat. A végleges adatkezelői
-                  adatok, megőrzési idők, szolgáltatói feltételek és
-                  kapcsolatfelvételi cím még rögzítésre várnak.
-                </div>
+                <div className="eyebrow">{t('home.privateTitle')}</div>
+                <h1 style={{ margin: '15px 0 25px' }}>{t('privacy.title')}</h1>
+                <p>{t('privacy.introduction')}</p>
+                <h2>{t('privacy.aiTitle')}</h2>
+                <p>{t('privacy.aiDescription')}</p>
+                <h2>{t('privacy.scenarioTitle')}</h2>
+                <p>{t('privacy.scenarioDescription')}</p>
+                <h2>{t('privacy.dataTitle')}</h2>
+                <p>{t('privacy.dataDescription')}</p>
+                <div className="notice">{t('privacy.alphaNotice')}</div>
                 {user && (
                   <>
                     <button
@@ -1453,11 +1462,12 @@ export function Experience() {
                         });
                       }}
                     >
-                      <Download size={15} /> Adataim letöltése
+                      <Download size={15} />
+                      {t('privacy.download')}
                     </button>
-                    <h2>Fiók végleges törlése</h2>
+                    <h2>{t('privacy.deleteTitle')}</h2>
                     <label className="field">
-                      <span>A törléshez írd be: FIÓK TÖRLÉSE</span>
+                      <span>{t('privacy.deletePrompt')}</span>
                       <input
                         value={confirmation}
                         onChange={(e) => setConfirmation(e.target.value)}
@@ -1465,7 +1475,9 @@ export function Experience() {
                     </label>
                     <button
                       className="primary danger"
-                      disabled={busy || confirmation !== 'FIÓK TÖRLÉSE'}
+                      disabled={
+                        busy || confirmation !== t('privacy.deleteConfirmation')
+                      }
                       onClick={() => {
                         void action(async () => {
                           await api('/me', {
@@ -1477,7 +1489,7 @@ export function Experience() {
                         });
                       }}
                     >
-                      Fiókom és történeteim törlése
+                      {t('privacy.delete')}
                     </button>
                   </>
                 )}
@@ -1488,7 +1500,7 @@ export function Experience() {
       </main>
       <footer>
         <span>© {new Date().getFullYear()} alterward</span>
-        <span>Egy lehetséges történet. A valódi döntés a tiéd.</span>
+        <span>{t('footer.note')}</span>
       </footer>
     </>
   );
