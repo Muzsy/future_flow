@@ -47,3 +47,5 @@ Külön [shared-engine szerződés](../packages/contracts/src/shared-engine.ts):
 A kibővített izolált Linux/PostgreSQL/TLS smoke tíz valóban párhuzamos intentet, azonos revisionből egyetlen nyertest/újrapróbát, egyetlen resolutiont és tíz pending hatást ellenőriz. További öt contextben függő döntéssel fut az átfedő account-deletion próba; személyes ág/state/revision előtte/utána egyezik. A sikeres új CI logjában `sharedEnginePostgres=passed`, `tenParallelIntents=true`, `decisionResolutionOnce=true`, `pendingDecisionDeletion=true` és `zeroPersonalBranchWrites=true` szerepel. Ez valós PostgreSQL-bizonyíték; a PGlite sorosított tranzakciója önmagában nem ilyen. Helyi web/API 200, anonymous Shared 401/no-store, mindhárom queue üres és a tényleges Supabase kliens TLS encrypted/authorized.
 
 OpenAI- és Claude-hívás nulla, a két eredeti 5 USD napló megmarad. Contabo-változás, éles deployment és felhasználói Shared aktiválás nincs.
+
+A fenti jelentés az S1 szelet bizonyítékát őrzi. Azóta [S2 valódi Shared AI](SHARED_CONTEXT_S2_REPORT_HU.md) elkészült, következő S3 personal/UI/privacy; a feature továbbra kikapcsolt.

@@ -61,8 +61,8 @@
     },
     {
       "name": "08_SYSTEM_ARCHITECTURE.md",
-      "bytes": 5800,
-      "sha256": "beded05ee138d2f33fbe637ea501724d48754cfc92893dc4993bb3ccbd2fcaae"
+      "bytes": 5836,
+      "sha256": "a08e77f7327fa15ae4385057af21fe5b30716b8437b423dceda873503dab9ec4"
     },
     {
       "name": "09_DATA_MODEL.md",
@@ -111,8 +111,8 @@
     },
     {
       "name": "18_AGENT_HANDOFF.md",
-      "bytes": 6929,
-      "sha256": "9107eeae5070c21189cbc1471d5319ab08cc3b3c51d6d0394c4b926562526a8b"
+      "bytes": 6930,
+      "sha256": "fd6ea017789a9380be1ac2766e05c3bf491717e2b2595b697243aed59e96a48d"
     },
     {
       "name": "19_SAMPLE_CONTRACTS.md",

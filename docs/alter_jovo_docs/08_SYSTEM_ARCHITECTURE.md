@@ -41,7 +41,7 @@ A Contabón a meglévő Caddy marad a belépési pont. A külön web/API/worker 
 
 ## Tervezett SharedContext modul
 
-Külön contracts/core/database/API/AI/worker/web modul a monorepóban, nem új fizetős szolgáltatás. Life/branch egytulajdonosú marad; context saját canon/revision/lease. Worker fair ciklus personal-v2→shared→legacy; a jelenlegi kódban csak két queue. Rendezett user→context→member/invite/event→branch lock, lazy egyágas impact, deleting-account védelem. Feature flag-ek kezdetben false, még nem léteznek a konfigurációban.
+Külön contracts/core/database/API/AI/worker/web modul a monorepóban, nem új fizetős szolgáltatás. Life/branch egytulajdonosú marad; context saját canon/revision/lease. Worker fair ciklus personal-v2→shared→legacy; S2 óta három queue, a Shared csak enabled+friend flag mellett claimelhető. Rendezett user→context→member/invite/event→branch lock, lazy egyágas impact, deleting-account védelem. A négy feature flag létezik és false; lazy személyes impact S3.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).
 
