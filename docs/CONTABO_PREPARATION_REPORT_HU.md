@@ -24,6 +24,8 @@ Hat meglévő konfigurációfájl első állapotú másolata, hash-ekkel és man
 
 A teljes jelenlegi Caddy data/config fájltár is másolva: 19 fájl, 13 945 byte a védett `contabo_proxy_state_20261004` helyi könyvtárban, tartalmi hash-ekkel. A privát certificate/ACME-kulcsok kizárólag itt maradnak; a Windows ACL-nél csak a jelenlegi felhasználónak van engedélyezett hozzáférése. Az élő fájlmásolás nem atomi snapshot, nem hozza vissza a már hiányzó certificate-kulcsokat, restore nincs igazolva.
 
+A két mentési készlet mind a 25 fájljának méretét és SHA-256 hash-ét helyben újraellenőriztük: mind egyezik. Ez a másolat sértetlenségét ellenőrzi, az élő visszaállítást nem.
+
 Az [elkülönített Contabo Compose](../deploy/compose.contabo.yaml) a meglévő alapból csak a web/API/worker szolgáltatásokat veszi át. Saját proxy és nyilvános alkalmazásport nincs. A web/API az `alterward_proxy` külső hálózaton, stabil DNS-aliasokkal érhető el; a worker külön bridge hálózaton kap kifelé elérést. Az opcionális ALTERWARD_PROXY_NETWORK a CI-ben külön teszthálózatot választ, éles alapértéke alterward_proxy.
 
 | Szolgáltatás | Memória maximum | CPU maximum | Node heap maximum |
@@ -42,7 +44,9 @@ A Contabo Docker 29.1.3 / Compose v5.1.4 pluginjával a [deployment preflight](.
 
 A jelenlegi proxy forrás-Compose fájljával összeolvasztott hálózatkiegészítés parszolható. Mindkét korábbi hálózat megmarad, a többi normalizált beállítás pontosan egyezik. A jelenlegi Caddyfile és a példaroute együtt sikeresen adaptálható, de nem lett betöltve. Az adaptálás szerkezeti ellenőrzés; nem certificate-kiadás vagy élő upstream-próba. [Caddy adapt/reload](https://caddyserver.com/docs/command-line).
 
-A [CI container job](../.github/workflows/ci.yml) új [futáspróbája](../scripts/smoke-deployment.mjs) az alkalmazás-image-et, web/API/worker/Caddy együttműködést, 001–007 migrációkat és megismételt checksum-ellenőrzést vizsgálja. Külön, üres PostgreSQL 16 fixture és rövid életű teszt-CA van; DB- és HTTPS-lánc/hostname ellenőrzés végig bekapcsolva. A teszthálózatokból kimenő internetelérés tiltott, nincs valódi Supabase/Auth/AI-kulcs vagy felhasználói adat, nincs generálási job. Ellenőrzi az API 401 választ a proxyn keresztül, a worker mindkét üres queue-pollját és kényszerleállítás nélküli megállását; végül takarít. Az új CI-futás eredményét külön rögzítjük. Ez nem éles Contabo-smoke vagy valódi Auth/AI-próba.
+A [CI container job](../.github/workflows/ci.yml) új [futáspróbája](../scripts/smoke-deployment.mjs) az alkalmazás-image-et, web/API/worker/Caddy együttműködést, 001–007 migrációkat és megismételt checksum-ellenőrzést vizsgálja. Külön, üres PostgreSQL 16 fixture és rövid életű teszt-CA van; DB- és HTTPS-lánc/hostname ellenőrzés végig bekapcsolva. A teszthálózatokból kimenő internetelérés tiltott, nincs valódi Supabase/Auth/AI-kulcs vagy felhasználói adat, nincs generálási job. Ellenőrzi az API 401 választ a proxyn keresztül, a worker mindkét üres queue-pollját és kényszerleállítás nélküli megállását; végül takarít. Belső hálózatnál a tesztkliens a Docker bridge-címet éri el, curl --resolve mellett a localhost TLS-nevet ellenőrzi, portpublikálás nélkül.
+
+**Sikeres CI:** [37194453326 futás](https://github.com/Muzsy/future_flow/actions/runs/37194453326), `a69e3b3e03343082a7f728bbae0e6a0930d82737` commit. A verify és container job is sikeres: formázás, típusok, 159 teszt, teljes build/séma-drift; három runtime az éles erőforráskorlátokkal, hét migráció és megismételt futás, web/API verified HTTPS, API 401, mindkét queue poll, két aktív DB-TLS kapcsolat, worker megállás SIGKILL nélkül, takarítás. Fizetett AI-hívás nulla. Ez nem éles Contabo-smoke, valódi Supabase/Auth/AI-próba, aktív generálási job drain vagy terhelésmérés.
 
 ## Nyitott operatív döntések
 
