@@ -33,17 +33,17 @@ export class SharedEventRepository extends SharedContextRepository {
   constructor(
     db: Database,
     inviteSecret?: string,
-    private readonly clock: () => Date = () => new Date(),
+    protected readonly clock: () => Date = () => new Date(),
   ) {
     super(db, inviteSecret);
   }
-  private async members(tx: Database, contextId: string) {
+  protected async members(tx: Database, contextId: string) {
     return tx.query<SharedMemberRow>(
       'SELECT * FROM aw_shared_members WHERE context_id=$1 ORDER BY id',
       [contextId],
     );
   }
-  private async engineMutation<T>(
+  protected async engineMutation<T>(
     userId: string,
     contextId: string,
     scope: string,
@@ -78,7 +78,7 @@ export class SharedEventRepository extends SharedContextRepository {
       return run(tx, c, m, all);
     });
   }
-  private async eligible(
+  protected async eligible(
     tx: Database,
     c: SharedContextRow,
     all: SharedMemberRow[],
@@ -137,89 +137,99 @@ export class SharedEventRepository extends SharedContextRepository {
       key,
       { candidate, rules },
       async (tx, c, _m, all) => {
-        this.revision(c, candidate.baseRevision);
-        this.writable(c);
-        if (c.status !== 'active') fail('SHARED_MEMBER_INACTIVE', 403);
-        if (
-          (
-            await tx.query(
-              "SELECT id FROM aw_shared_jobs WHERE context_id=$1 AND status IN ('queued','running')",
-              [c.id],
-            )
-          ).length
-        )
-          fail('SHARED_GENERATION_ACTIVE');
-        const valid = validateSharedEventCandidate(
-          candidate,
-          {
-            id: c.id,
-            revision: c.revision,
-            simulationAt: c.simulation_at,
-            state: c.state,
-            governance: sharedPolicySchema.parse(c.governance),
-          },
-          all,
-          rules,
-        );
-        await this.eligible(tx, c, all, valid.participantMemberIds);
-        if (
-          (
-            await tx.query('SELECT id FROM aw_shared_events WHERE id=$1', [
-              valid.eventId,
-            ])
-          ).length
-        )
-          fail('SHARED_CANDIDATE_INVALID', 422);
-        const [sequence] = await tx.query(
-          'SELECT coalesce(max(sequence),0)+1 AS next FROM aw_shared_events WHERE context_id=$1',
-          [c.id],
-        );
-        const state = applySharedChanges(c.state, valid.sharedChanges),
-          decision = valid.decision
-            ? openSharedDecision(valid, rules!, this.clock())
-            : null;
-        const canonHash = hash({
-          candidate: valid,
-          stateBefore: c.state,
-          stateAfter: state,
-          decision,
-        });
-        await tx.query(
-          'INSERT INTO aw_shared_events(id,context_id,sequence,base_revision,effective_at,candidate,state_before,state_after_event,decision,canon_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-          [
-            valid.eventId,
-            c.id,
-            Number(sequence!.next),
-            c.revision,
-            valid.effectiveAt,
-            JSON.stringify(valid),
-            JSON.stringify(c.state),
-            JSON.stringify(state),
-            decision ? JSON.stringify(decision) : null,
-            canonHash,
-          ],
-        );
-        for (const id of valid.participantMemberIds) {
-          const member = all.find((m) => m.id === id)!;
-          await tx.query(
-            'INSERT INTO aw_shared_event_participants(event_id,member_id,context_id,participation_role) VALUES($1,$2,$3,$4)',
-            [valid.eventId, id, c.id, member.world_role],
-          );
-          if (!decision) await this.memory(tx, valid, member, null, null);
-        }
-        await tx.query(
-          'UPDATE aw_shared_contexts SET state=$2,pending_event_id=$3,revision=revision+1,updated_at=now() WHERE id=$1',
-          [c.id, JSON.stringify(state), decision ? valid.eventId : null],
-        );
-        return {
-          contextId: c.id,
-          eventId: valid.eventId,
-          revision: c.revision + 1,
-          canonHash,
-          pendingDecision: !!decision,
-        };
+        return this.commitCandidateTx(tx, c, all, candidate, rules);
       },
     );
+  }
+  protected async commitCandidateTx(
+    tx: Database,
+    c: SharedContextRow,
+    all: SharedMemberRow[],
+    candidate: SharedCanonRow['candidate'],
+    rules?: SharedDecisionRules,
+    jobId: string | null = null,
+  ) {
+    this.revision(c, candidate.baseRevision);
+    this.writable(c);
+    if (c.status !== 'active') fail('SHARED_MEMBER_INACTIVE', 403);
+    if (
+      (
+        await tx.query(
+          "SELECT id FROM aw_shared_jobs WHERE context_id=$1 AND status IN ('queued','running') AND ($2::uuid IS NULL OR id<>$2)",
+          [c.id, jobId],
+        )
+      ).length
+    )
+      fail('SHARED_GENERATION_ACTIVE');
+    const valid = validateSharedEventCandidate(
+      candidate,
+      {
+        id: c.id,
+        revision: c.revision,
+        simulationAt: c.simulation_at,
+        state: c.state,
+        governance: sharedPolicySchema.parse(c.governance),
+      },
+      all,
+      rules,
+    );
+    await this.eligible(tx, c, all, valid.participantMemberIds);
+    if (
+      (
+        await tx.query('SELECT id FROM aw_shared_events WHERE id=$1', [
+          valid.eventId,
+        ])
+      ).length
+    )
+      fail('SHARED_CANDIDATE_INVALID', 422);
+    const [sequence] = await tx.query(
+      'SELECT coalesce(max(sequence),0)+1 AS next FROM aw_shared_events WHERE context_id=$1',
+      [c.id],
+    );
+    const state = applySharedChanges(c.state, valid.sharedChanges),
+      decision = valid.decision
+        ? openSharedDecision(valid, rules!, this.clock())
+        : null;
+    const canonHash = hash({
+      candidate: valid,
+      stateBefore: c.state,
+      stateAfter: state,
+      decision,
+    });
+    await tx.query(
+      'INSERT INTO aw_shared_events(id,context_id,sequence,base_revision,effective_at,candidate,state_before,state_after_event,decision,canon_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+      [
+        valid.eventId,
+        c.id,
+        Number(sequence!.next),
+        c.revision,
+        valid.effectiveAt,
+        JSON.stringify(valid),
+        JSON.stringify(c.state),
+        JSON.stringify(state),
+        decision ? JSON.stringify(decision) : null,
+        canonHash,
+      ],
+    );
+    for (const id of valid.participantMemberIds) {
+      const member = all.find((m) => m.id === id)!;
+      await tx.query(
+        'INSERT INTO aw_shared_event_participants(event_id,member_id,context_id,participation_role) VALUES($1,$2,$3,$4)',
+        [valid.eventId, id, c.id, member.world_role],
+      );
+      if (!decision) await this.memory(tx, valid, member, null, null);
+    }
+    await tx.query(
+      'UPDATE aw_shared_contexts SET state=$2,pending_event_id=$3,revision=revision+1,updated_at=now() WHERE id=$1',
+      [c.id, JSON.stringify(state), decision ? valid.eventId : null],
+    );
+    return {
+      contextId: c.id,
+      eventId: valid.eventId,
+      revision: c.revision + 1,
+      canonHash,
+      pendingDecision: !!decision,
+    };
   }
   private async memory(
     tx: Database,

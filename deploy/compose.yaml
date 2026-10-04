@@ -11,6 +11,11 @@ x-database: &database
   DATABASE_URL: ${DATABASE_URL:?Set the server database URL}
   DATABASE_SSL: 'true'
   DATABASE_SSL_CA_FILE: /run/secrets/supabase-ca.crt
+x-shared: &shared
+  SHARED_CONTEXTS_ENABLED: ${SHARED_CONTEXTS_ENABLED:-false}
+  SHARED_FRIEND_ENABLED: ${SHARED_FRIEND_ENABLED:-false}
+  SHARED_CONNECTED_ENABLED: ${SHARED_CONNECTED_ENABLED:-false}
+  SHARED_WORLD_ENABLED: ${SHARED_WORLD_ENABLED:-false}
 services:
   web:
     <<: *runtime
@@ -47,7 +52,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
-      <<: *database
+      <<: [*database, *shared]
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
@@ -56,6 +61,10 @@ services:
       API_TRUST_PROXY: '1'
       GENERATION_DAILY_LIMIT: ${GENERATION_DAILY_LIMIT:-3}
       GENERATION_CONCURRENT_LIMIT: '1'
+      SHARED_INVITE_SIGNING_KEY: ${SHARED_INVITE_SIGNING_KEY:-}
+      SHARED_DECISION_DEADLINE_SECONDS: ${SHARED_DECISION_DEADLINE_SECONDS:-}
+      SHARED_GENERATION_DAILY_LIMIT: ${SHARED_GENERATION_DAILY_LIMIT:-3}
+      SHARED_GENERATION_CONCURRENT_LIMIT: ${SHARED_GENERATION_CONCURRENT_LIMIT:-1}
     volumes:
       - ${DATABASE_SSL_CA_HOST_FILE:?Set the verified CA file path}:/run/secrets/supabase-ca.crt:ro
     healthcheck:
@@ -73,7 +82,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/worker', start]
     environment:
-      <<: *database
+      <<: [*database, *shared]
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
       AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
       AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}

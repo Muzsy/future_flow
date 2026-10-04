@@ -33,3 +33,7 @@ A struktúra nullázása nem távolítja el a nevet a korábban generált próz�
 ## S1 függő döntés megszakítása
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). A normál deleting marker és leave/end ugyanazon tranzakcióban cancelled immutable resolutiont készít, pending eventet elengedi, új impactot nem képez. Érintett context-lockok rendezettek; ismétlés nem dupláz. Az account-export saját részvételi canont, saját választást és saját pending/detached impactot is adhat, másik ág/intent/proposal nélkül. Ez nem szabad próza PII-redakció vagy teljes Shared Auth/AI/backup igazolás; S3 kapuk megmaradnak.
+
+## S2 AI-job snapshotok
+
+Completed Shared job inputja commitkor törlődik; deleting marker a failed/cancelled input és raw-output checkpointot is tisztítja, korábbi left tagot is beleértve. Nincs receiptben teljes prompt/profil; hash/token/model meta megmarad. A már elküldött provider-hívás költsége a guardban elszámolandó, a késői canon commit lease/member/user ellenőrzéssel tiltott. A retained canon próza teljes redakciója és valódi Shared Auth/AI recovery S3 gate. [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md).

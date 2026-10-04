@@ -360,8 +360,81 @@ describe.sequential('Shared S1 disabled HTTP decision boundaries', () => {
     expect(
       openapi.paths['/api/v2/shared-contexts/{id}/events'].post,
     ).toBeUndefined();
+    const generate = openapi.paths['/api/v2/shared-contexts/{id}/continue']!
+      .post!.requestBody as {
+      content: {
+        'application/json': {
+          schema: { properties: object; additionalProperties: boolean };
+        };
+      };
+    };
     expect(
-      openapi.paths['/api/v2/shared-contexts/{id}/continue'],
-    ).toBeUndefined();
+      Object.keys(generate.content['application/json'].schema.properties),
+    ).toEqual(['contextRevision']);
+    expect(
+      generate.content['application/json'].schema.additionalProperties,
+    ).toBe(false);
+  });
+  it('queues only a strict revision request and limits job progress to group members', async () => {
+    const path = `shared-contexts/${contextId}/continue`;
+    expect(
+      (
+        await request(
+          0,
+          path,
+          'POST',
+          { contextRevision: 0 },
+          randomUUID(),
+          true,
+        )
+      ).status,
+    ).toBe(404);
+    const d = await shared.detail(people[0]!.id, contextId);
+    expect(
+      (
+        await request(
+          0,
+          path,
+          'POST',
+          { contextRevision: d.revision, memberIds: [people[0]!.id] },
+          randomUUID(),
+        )
+      ).status,
+    ).toBe(422);
+    expect(
+      (await request(0, path, 'POST', { contextRevision: d.revision })).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(
+          3,
+          path,
+          'POST',
+          { contextRevision: d.revision },
+          randomUUID(),
+        )
+      ).status,
+    ).toBe(404);
+    const k = randomUUID(),
+      queued = await request(
+        0,
+        path,
+        'POST',
+        { contextRevision: d.revision },
+        k,
+      );
+    expect(queued.status).toBe(201);
+    expect(queued.cache).toBe('no-store');
+    expect(
+      (await request(0, path, 'POST', { contextRevision: d.revision }, k)).body,
+    ).toEqual(queued.body);
+    const progress = await request(1, `shared-jobs/${queued.body.jobId}`);
+    expect(progress.status).toBe(200);
+    expect(progress.body.status).toBe('queued');
+    expect(progress.body).not.toHaveProperty('payload');
+    expect(progress.body).not.toHaveProperty('lease_token');
+    expect((await request(3, `shared-jobs/${queued.body.jobId}`)).status).toBe(
+      404,
+    );
   });
 });

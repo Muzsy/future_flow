@@ -241,6 +241,14 @@ export const sharedMemoryEventSchema = z
 export type SharedMemoryEvent = z.infer<typeof sharedMemoryEventSchema>;
 
 export const sharedErrorMessages: Record<string, readonly [string, string]> = {
+  SHARED_REQUEST_INTERRUPTED: [
+    'This AI request was interrupted. Start a new generation when ready.',
+    'Az AI-kérés megszakadt. Szükség esetén indíts új generálást.',
+  ],
+  SHARED_REPAIR_EXHAUSTED: [
+    'The shared proposal could not be validated.',
+    'A közös eseményjavaslat nem volt validálható.',
+  ],
   SHARED_CANDIDATE_INVALID: [
     'This shared event is invalid.',
     'A közös esemény érvénytelen.',

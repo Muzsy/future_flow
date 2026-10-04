@@ -22,7 +22,7 @@
 
 ## Bizonyíték és hiányzó kapuk
 
-231 teszt a jelenlegi készletben, köztük 36 S0 és 36 S1 Shared regresszió; az S0 ellenőrzések részletei a [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md) dokumentumban. A korábbi 159 teszt bizonyítéka: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
+260 teszt a jelenlegi készletben, köztük 36 S0, 36 S1 és 29 S2 Shared regresszió; az S0 ellenőrzések részletei a [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md) dokumentumban. A korábbi 159 teszt bizonyítéka: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -35,9 +35,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | V1 angol/magyar nyelvi próbák | 12 | 0,3352520 |
 | V2 EN/HU Sol/Luna, három időszak | 38 | 0,577744805 |
 | Új valódi Auth/AI HTTP- és böngészős próba (megszakadt hívással együtt) | 16 | 0.278277000 |
-| **Összesen** | **98** | **1.875437905 ≈ 1.88** |
-| **Konzervatívan elszámolt összeg** | | **1.925238375** |
-| **Guard szerint megmaradt keret** | | **3.074761625 ≈ 3.07** |
+| Két valódi izolált Shared friend Sol-minta | 2 | 0.023752000 |
+| **Összesen** | **100** | **1.899189905 ≈ 1.90** |
+| **Konzervatívan elszámolt összeg** | | **1.948993375** |
+| **Guard szerint megmaradt keret** | | **3.051006625 ≈ 3.05** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -92,3 +93,7 @@ Fejlesztői Supabase 001–009 alkalmazva, megismételt runner és checksum egye
 ## 2026-10-04: Shared S1 friend motor
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). Egy immutable canon, tényleges saját intent, server deadline/participation, egyszeri opt-in resolution/pending memory, mások válaszának elrejtése és saját részvételi export elkészült. Leave/end/deleting megszakítja a függő döntést. 36 új célzott regresszió sikeres, jelenlegi készlet 231; teljes check és a [valós PostgreSQL/container CI](https://github.com/Muzsy/future_flow/actions/runs/37233779884) sikeres (`4e37715`). Új migráció/paid hívás/Contabo-változás nincs; normál Shared továbbra false. Következő S2 valódi Shared OpenAI, majd S3 személyes integráció/UI/biztonság.
+
+## 2026-10-04: Shared S2 valódi AI
+
+[S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md): strict angol provider, safe input, server IDs/policy/deadline, egy repair, tartós interrupted marker, lease/checkpoint/restart és fair háromqueue-kör implementált. 29 új regresszióval 260 teszt és teljes check sikeres; 37 schema, a korábbi 35 és kilenc SQL változatlan. Két valódi izolált Sol shared pipeline sikeres, 2554 input +1737 outputtoken, repair nélkül; 0.023755 USD guard-fogyasztás, OpenAI maradvány 3.051006625 USD. Claude változatlan. Main/container CI még folyamatban. Következő S3 lazy personal memória/AI-folytatás, Connections és privacy/Auth/deletion/moderáció; feature false, Contabo nem változott.

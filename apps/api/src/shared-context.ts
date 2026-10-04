@@ -32,7 +32,7 @@ import {
   socialProfileSchema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
-import { Repository, SharedEventRepository } from '@future-flow/database';
+import { Repository, SharedJobRepository } from '@future-flow/database';
 
 export type SharedFeatures = {
   enabled: boolean;
@@ -40,6 +40,8 @@ export type SharedFeatures = {
   connected: boolean;
   world: boolean;
   inviteSecret?: string;
+  decisionDeadlineSeconds?: number | null;
+  generationLimits?: { daily: number; concurrent: number };
 };
 export function sharedFeaturesFromEnv(
   env: Record<string, string | undefined> = process.env,
@@ -50,12 +52,39 @@ export function sharedFeaturesFromEnv(
       throw new Error(`${name} must be true or false`);
     return value === 'true';
   };
+  const rawDeadline = env.SHARED_DECISION_DEADLINE_SECONDS;
+  const generationLimits = {
+    daily: Number(env.SHARED_GENERATION_DAILY_LIMIT ?? 3),
+    concurrent: Number(env.SHARED_GENERATION_CONCURRENT_LIMIT ?? 1),
+  };
+  if (
+    !Number.isInteger(generationLimits.daily) ||
+    generationLimits.daily < 1 ||
+    !Number.isInteger(generationLimits.concurrent) ||
+    generationLimits.concurrent < 1
+  )
+    throw new Error('Invalid Shared generation limits');
+  const decisionDeadlineSeconds =
+    rawDeadline === undefined || rawDeadline === ''
+      ? null
+      : Number(rawDeadline);
+  if (
+    decisionDeadlineSeconds !== null &&
+    (!Number.isInteger(decisionDeadlineSeconds) ||
+      decisionDeadlineSeconds < 60 ||
+      decisionDeadlineSeconds > 604800)
+  )
+    throw new Error(
+      'SHARED_DECISION_DEADLINE_SECONDS must be 60–604800 or empty',
+    );
   return {
     enabled: flag('SHARED_CONTEXTS_ENABLED'),
     friend: flag('SHARED_FRIEND_ENABLED'),
     connected: flag('SHARED_CONNECTED_ENABLED'),
     world: flag('SHARED_WORLD_ENABLED'),
     inviteSecret: env.SHARED_INVITE_SIGNING_KEY,
+    decisionDeadlineSeconds,
+    generationLimits,
   };
 }
 type SharedRequest = Request & { userId: string };
@@ -69,9 +98,15 @@ export function createSharedContextController(
   @UseGuards(authGuard)
   @ApiBearerAuth()
   class SharedContextController {
-    private readonly shared: SharedEventRepository;
+    private readonly shared: SharedJobRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.shared = new SharedEventRepository(repo.db, flags.inviteSecret);
+      this.shared = new SharedJobRepository(
+        repo.db,
+        flags.inviteSecret,
+        180,
+        flags.decisionDeadlineSeconds ?? null,
+        flags.generationLimits,
+      );
     }
     private enabled() {
       if (!flags.enabled || !flags.friend)
@@ -116,6 +151,34 @@ export function createSharedContextController(
     ) {
       this.enabled();
       return this.shared.detail(req.userId, idSchema.parse(id));
+    }
+    @Post('shared-contexts/:id/continue')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedRevisionRequestSchema) as never })
+    @ApiOperation({
+      summary: 'Queue one English AI opportunity for a private friend group.',
+    })
+    continueGroup(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      const input = sharedRevisionRequestSchema.parse(body);
+      return this.shared.enqueue(
+        req.userId,
+        idSchema.parse(id),
+        input.contextRevision,
+        key ?? '',
+      );
+    }
+    @Get('shared-jobs/:id') sharedJob(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+    ) {
+      this.enabled();
+      return this.shared.job(req.userId, idSchema.parse(id));
     }
     @Post('shared-contexts/:id/invites')
     @ApiHeader(idempotency)

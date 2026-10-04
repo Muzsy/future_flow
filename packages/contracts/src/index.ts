@@ -341,3 +341,4 @@ export * from './public-draft';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';
+export * from './shared-ai';

@@ -752,17 +752,24 @@ export async function cancelSharedAccountJobs(tx: Database, userId: string) {
   // 008/009 are applied atomically; absent storage cannot contain shared jobs.
   if (!(await sharedStoragePresent(tx))) return;
   const contexts = await tx.query(
-    'SELECT c.id FROM aw_shared_contexts c WHERE EXISTS(SELECT 1 FROM aw_shared_members m WHERE m.context_id=c.id AND m.user_id=$1 AND m.status=ANY($2::text[])) ORDER BY c.id FOR UPDATE',
-    [userId, liveStatuses],
+    'SELECT c.id FROM aw_shared_contexts c WHERE EXISTS(SELECT 1 FROM aw_shared_members m WHERE m.context_id=c.id AND m.user_id=$1) ORDER BY c.id FOR UPDATE',
+    [userId],
   );
   for (const c of contexts) {
-    await tx.query(
-      "UPDATE aw_shared_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL WHERE context_id=$1 AND status IN ('queued','running')",
-      [c.id],
-    );
+    // Failed/completed job snapshots are transient AI inputs, never retained shared canon.
+    // Scrub former members too, before Auth deletion/recovery can be interrupted.
     const members = await tx.query(
-      'SELECT id FROM aw_shared_members WHERE context_id=$1 AND user_id=$2',
+      'SELECT id,status FROM aw_shared_members WHERE context_id=$1 AND user_id=$2',
       [c.id, userId],
+    );
+    await tx.query(
+      "UPDATE aw_shared_jobs SET payload='{}',checkpoints='{}',status=CASE WHEN status IN ('queued','running') THEN 'cancelled' ELSE status END,lease_token=NULL,lease_until=NULL WHERE context_id=$1 AND ($2::boolean OR requested_by_user_id=$3 OR EXISTS(SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(payload->'members')='array' THEN payload->'members' ELSE '[]'::jsonb END) p WHERE p->>'memberId'=ANY($4::text[])))",
+      [
+        c.id,
+        members.some((m) => liveStatuses.includes(String(m.status))),
+        userId,
+        members.map((m) => String(m.id)),
+      ],
     );
     for (const member of members)
       await cancelPendingSharedDecision(

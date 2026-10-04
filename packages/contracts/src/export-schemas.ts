@@ -41,6 +41,8 @@ import {
   sharedIntentSchema,
   sharedResolutionResultSchema,
   sharedMemoryImpactSchema,
+  sharedAiInputSchema,
+  sharedAiCandidateSchema,
 } from './index';
 
 const directory = resolve(__dirname, '../../../docs/contracts');
@@ -129,6 +131,8 @@ for (const [name, schema] of Object.entries({
   intent: sharedIntentSchema,
   resolutionResult: sharedResolutionResultSchema,
   memoryImpact: sharedMemoryImpactSchema,
+  aiInput: sharedAiInputSchema,
+  aiCandidate: sharedAiCandidateSchema,
 })) {
   writeFileSync(
     resolve(sharedDirectory, `${name}.schema.json`),

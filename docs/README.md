@@ -9,7 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
-| [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; S0/S1 implementált, következő helyi szelet S2 |
+| [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; S0–S2 implementált, következő helyi szelet S3 |
 | [Shared Context integráció](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) | Több valódi felhasználó privát életágának közös AI-eseményei, consent, entitlement, személyes hatások és kiadási kapuk |
 | [Új forráscsomag](plans/README.md) | Változatlan ZIP, 15 témadokumentum, master és ellenőrzőösszegek |
 | [21 részes témadokumentáció](alter_jovo_docs/00_README.md) | Termék, UX, profil, motor, AI, közösség, architektúra, adat/API, biztonság, minőség és üzemeltetés |
@@ -35,7 +35,7 @@ Termékdöntések sorrendje: felhasználói döntések → a két stratégiai fo
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
 - **Ellenőrizendő:** backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, kontrollált megszakításból valódi recovery és a teljes izolált konténeres CI sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
 - **Shared alap:** S0 szerződés/tárolás/social/entitlement/meghívási API elkészült kikapcsolt feature mögött; fejlesztői DB-alkalmazás/ismétlés és valódi S0 Auth-próba sikeres; S1 friend motor is implementált. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
-- **Tervezett:** Shared S2–S7 AI/személyes integráció/UI; publishing, Discovery, Official seed és nyilvános fork. A foundation nem felhasználói friend release.
+- **Tervezett:** Shared S3–S7 személyes integráció/UI; publishing, Discovery, Official seed és nyilvános fork. A foundation nem felhasználói friend release.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
 Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. A Shared Context tervezett Free/Explorer/Connected/World jogosultsági modellje bekerült; pontos ár, billing és domain még nincs eldöntve.
@@ -62,8 +62,10 @@ Az új terv S0–S3 alap/AI/személyes integráció után adhat 2–10 fős ango
 
 ## Shared S0 megvalósítás — 2026-10-04
 
-[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0, 008/009 additív migráció, 13 privát RLS-tábla, minimális profil, szerver-entitlement és revisionös/idempotens meghívási API. A 36 új regresszióval a készlet 195 teszt. A megadott Session pooler kapcsolaton 001–009 alkalmazva és ismétléssel ellenőrizve; valódi háromfiókos S0 próba/takarítás sikeres. S1 implementált, következő S2; S2 valódi AI és S3 személyes integráció/consent/export/törlés/moderáció előtt nincs friend béta.
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0, 008/009 additív migráció, 13 privát RLS-tábla, minimális profil, szerver-entitlement és revisionös/idempotens meghívási API. A 36 új regresszióval a készlet 195 teszt. A megadott Session pooler kapcsolaton 001–009 alkalmazva és ismétléssel ellenőrizve; valódi háromfiókos S0 próba/takarítás sikeres. S1/S2 implementált, két valódi izolált angol AI-mintával; következő S3. A teljes S3 személyes integráció/consent/export/törlés/moderáció előtt nincs friend béta.
 
 ## Shared S1 — 2026-10-04
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). 36 új domain/persistence/HTTP teszt, saját intent és opt-in részvétel, hash-elt immutable canon/lezárás, pending memória, own export és atomikus cancellation. A személyes ág és Life AI-input még változatlan; Shared csak S2+S3 után aktiválható.
+
+[S2 megvalósítás és korlátok](SHARED_CONTEXT_S2_REPORT_HU.md): 260 teszt, 37 schema, valódi Sol/Shared job és fair worker; [finomított angol minta](examples/AI_SHARED_FRIEND_ENGLISH_REFINED_SAMPLE.md). Feature kikapcsolva, friend release S3 után.

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 
 // This fixture only runs inside the ephemeral, egress-disabled CI PostgreSQL
-// network. It never creates AI jobs, uses live credentials, or exposes a UI.
+// network. Shared jobs use explicit synthetic output; no provider call, live credentials or UI.
 assert.equal(process.platform, 'linux');
 assert.equal(process.env.CI, 'true');
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
@@ -19,6 +19,7 @@ const {
   Repository,
   SharedContextRepository,
   SharedEventRepository,
+  SharedJobRepository,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
 const db = {
@@ -298,6 +299,92 @@ try {
     branchesBefore,
   );
 
+  const sharedJobs = new SharedJobRepository(db, undefined, 180, 172800);
+  const enqueues = await Promise.allSettled(
+    [0, 1].map(() =>
+      sharedJobs.enqueue(
+        owner.id,
+        c.contextId,
+        finished.revision,
+        randomUUID(),
+      ),
+    ),
+  );
+  winner(enqueues, 'SHARED_REVISION_CONFLICT');
+  const claims = await Promise.all([sharedJobs.claim(), sharedJobs.claim()]);
+  assert.equal(claims.filter(Boolean).length, 1);
+  const claimed = claims.find(Boolean),
+    input = claimed.payload;
+  const proposal = {
+    schemaVersion: '1.0.0',
+    eventId: input.eventId,
+    contextId: input.context.id,
+    baseRevision: input.context.revision,
+    effectiveAt: input.context.simulationAt,
+    title: 'Isolated S2 opportunity',
+    summary: 'Members consider another optional shared activity.',
+    participantMemberIds: input.members.map((m) => m.memberId),
+    sharedChanges: [],
+    decision: {
+      id: input.decision.id,
+      prompt: 'Would you like to join?',
+      policy: { type: 'individual_opt_in' },
+      eligibleMemberIds: input.members.map((m) => m.memberId),
+      deadlineSeconds: input.decision.rules.deadlineSeconds,
+      options: [
+        {
+          id: input.decision.participationOptionId,
+          label: 'Join',
+          description: 'Participate voluntarily.',
+          sharedChanges: [],
+          impactProposals: [],
+        },
+        {
+          id: input.decision.optOutOptionId,
+          label: 'Decline',
+          description: 'Keep your own plans.',
+          sharedChanges: [],
+          impactProposals: [],
+        },
+      ],
+    },
+  };
+  await sharedJobs.checkpoint(claimed, 'OUTPUT_RETURNED', {
+    candidate: proposal,
+    initialCallStarted: true,
+  });
+  await db.query(
+    "UPDATE aw_shared_jobs SET lease_until=now()-interval '1 second' WHERE id=$1",
+    [claimed.id],
+  );
+  await assert.rejects(
+    () => sharedJobs.complete(claimed, proposal),
+    (e) => e.code === 'JOB_LEASE_LOST',
+  );
+  const reclaimed = await sharedJobs.claim();
+  assert.notEqual(reclaimed.lease_token, claimed.lease_token);
+  assert.equal(reclaimed.attempt, 2);
+  await sharedJobs.complete(reclaimed, reclaimed.checkpoints.candidate);
+  await assert.rejects(
+    () => sharedJobs.complete(reclaimed, proposal),
+    (e) => e.code === 'JOB_LEASE_LOST',
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_events WHERE id=$1', [
+        input.eventId,
+      ])
+    ).length,
+    1,
+  );
+  assert.deepEqual(
+    await db.query(
+      'SELECT id,state,revision FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',
+      [participantRows.map((p) => p.branch_id)],
+    ),
+    branchesBefore,
+  );
+
   // Five shared contexts overlap at the same World member. Accept races and
   // account cleanup must acquire user/context locks in a consistent order.
   const world = await person('world'),
@@ -360,7 +447,7 @@ try {
     );
   }
   const [queues] = await db.query(
-    'SELECT (SELECT count(*) FROM ff_jobs)::int AS v1,(SELECT count(*) FROM aw_jobs)::int AS v2,(SELECT count(*) FROM aw_shared_jobs)::int AS shared',
+    "SELECT (SELECT count(*) FROM ff_jobs)::int AS v1,(SELECT count(*) FROM aw_jobs)::int AS v2,(SELECT count(*) FROM aw_shared_jobs WHERE status IN ('queued','running'))::int AS shared",
   );
   assert.deepEqual(queues, { v1: 0, v2: 0, shared: 0 });
   console.log(
@@ -371,6 +458,9 @@ try {
       lastMemberRace: true,
       overlappingFiveContextDeletion: true,
       sharedEnginePostgres: 'passed',
+      sharedJobsPostgres: 'passed',
+      parallelSharedEnqueueAndClaim: true,
+      reclaimedSharedLease: true,
       tenParallelIntents: true,
       decisionResolutionOnce: true,
       pendingDecisionDeletion: true,

@@ -114,3 +114,7 @@ Fejlesztői DB-n 008/009 Session pooler kapcsolaton alkalmazva, megismételt run
 ## Shared S1 — implementált friend canon és saját választás
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). Új SharedEventRepository és shared-engine contract/core a meglévő S0 alapján: belső event commit, strict own intent, opt-in subset/határidő, immutable resolution/pending memory; safe eseménylista/own impact API és saját history/export. Nincs HTTP-generátor vagy közvetlen személyes ágírás. Hat új JSON-séma, régi 29 és alkalmazott 001–009 változatlan. S2 provider/queue és S3 személyes materializálás/AI-memória/Connections későbbi; a négy flag false.
+
+## Shared Context S2 — AI és tartós generálás
+
+[S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md): OpenAI sharedEvent és külön friend Structured Outputs, SharedJobRepository/processSharedJob, strict continue/job-progress API és fair personal-v2/Shared/legacy worker implementált. 260 teszt, teljes check; két valódi izolált Sol-minta. Completed AI-input törlődik, deleting marker failed inputot is scrubol; meglévő SQL változatlan. S3 personal/Connections/privacy hiányzik, feature false.

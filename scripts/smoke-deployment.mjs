@@ -188,6 +188,9 @@ try {
   assert.equal(sharedFoundation.tenParallelIntents, true);
   assert.equal(sharedFoundation.decisionResolutionOnce, true);
   assert.equal(sharedFoundation.pendingDecisionDeletion, true);
+  assert.equal(sharedFoundation.sharedJobsPostgres, 'passed');
+  assert.equal(sharedFoundation.parallelSharedEnqueueAndClaim, true);
+  assert.equal(sharedFoundation.reclaimedSharedLease, true);
   compose(
     'up',
     '-d',

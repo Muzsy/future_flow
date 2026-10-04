@@ -104,3 +104,7 @@ A Contabo üzemeltetői kulcsa és hostpinje checkouton kívüli védett titokma
 ## Shared S1 technikai ellenőrzés
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). Nem szükséges új migráció vagy kulcs; a feature false marad. `pnpm test` az új domain/persistence/API teszteket is futtatja. Canon-candidate csak trusted server/test boundary, nincs HTTP-s fixture vagy történetgenerátor. Új read/intent/resolve endpointok kizárólag bekapcsolt izolált tesztkonfigurációban; határidő és participation-option ID szerverparaméter. Valódi provider/job/lease beépítés S2.
+
+## S2 Shared beállítás — továbbra kikapcsolva
+
+A négy Shared flag false marad; nincs Connections/UI release. API és worker ugyanazt a context/friend kapcsolót kapja a Compose-ban, az invite signing secret kizárólag API. `SHARED_GENERATION_DAILY_LIMIT=3`, `SHARED_GENERATION_CONCURRENT_LIMIT=1` initiating-user Shared quota; pozitív entitlement nem ad AI-allowance-t. `SHARED_DECISION_DEADLINE_SECONDS` üres/null → minden eligible válasz szükséges; explicit 60–604800, 48h még javaslat. A sample CLI az eredeti 5 USD naplóhoz kapcsolódik, futásonként max0.20 USD foglalással és létező minta felülírásának tiltásával. A minták már elkészültek, beállításhoz nem kell új paid smoke. [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md).

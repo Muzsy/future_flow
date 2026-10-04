@@ -2,6 +2,7 @@ import {
   connectDatabase,
   JobRepository,
   LifeJobRepository,
+  SharedJobRepository,
   DatabaseAiBudget,
 } from '@future-flow/database';
 import {
@@ -11,6 +12,8 @@ import {
 } from '@future-flow/ai';
 import { processJob } from './processor';
 import { processLifeJob } from './life-processor';
+import { processSharedJob } from './shared-processor';
+import { claimFairQueue } from './fair-queue';
 
 async function main() {
   const db = connectDatabase(
@@ -33,7 +36,14 @@ async function main() {
     throw new Error('JOB_LEASE_SECONDS must be at least 60');
   const jobs = new JobRepository(db, leaseSeconds);
   const lifeJobs = new LifeJobRepository(db, leaseSeconds);
-  let preferV2 = true;
+  const sharedJobs = new SharedJobRepository(db, undefined, leaseSeconds);
+  for (const name of ['SHARED_CONTEXTS_ENABLED', 'SHARED_FRIEND_ENABLED'])
+    if (!['true', 'false'].includes(process.env[name] ?? 'false'))
+      throw new Error('Invalid Shared feature flag');
+  const sharedEnabled =
+    process.env.SHARED_CONTEXTS_ENABLED === 'true' &&
+    process.env.SHARED_FRIEND_ENABLED === 'true';
+  let queueStart = 0;
   let stopping = false;
   process.on('SIGINT', () => {
     stopping = true;
@@ -44,13 +54,22 @@ async function main() {
   console.log('AI worker started');
   try {
     while (!stopping) {
-      let v2 = preferV2;
-      let job = v2 ? await lifeJobs.claim() : await jobs.claim();
-      if (!job) {
-        v2 = !v2;
-        job = v2 ? await lifeJobs.claim() : await jobs.claim();
-      }
-      preferV2 = !preferV2;
+      type Claimed =
+        | import('@future-flow/database').LifeJob
+        | import('@future-flow/database').SharedJob
+        | import('@future-flow/database').Job;
+      const selection = await claimFairQueue<Claimed>(
+        [
+          () => lifeJobs.claim(),
+          () => (sharedEnabled ? sharedJobs.claim() : Promise.resolve(null)),
+          () => jobs.claim(),
+        ],
+        queueStart,
+      );
+      queueStart = selection.next;
+      const job = selection.job;
+      const v2 = selection.index === 0,
+        shared = selection.index === 1;
       if (!job) {
         await new Promise((resolve) =>
           setTimeout(resolve, Number(process.env.WORKER_POLL_MS ?? 2000)),
@@ -60,18 +79,34 @@ async function main() {
       let leaseLost = false;
       const claimed = job;
       const heartbeatJob = () =>
-        v2
-          ? lifeJobs.heartbeat(
-              claimed as import('@future-flow/database').LifeJob,
+        shared
+          ? sharedJobs.heartbeat(
+              claimed as import('@future-flow/database').SharedJob,
             )
-          : jobs.heartbeat(claimed as import('@future-flow/database').Job);
-      const budget = new DatabaseAiBudget(db, job.user_id, job.id, {
-        projectUsd: Number(process.env.AI_PROJECT_BUDGET_USD ?? 0),
-        userUsd: Number(process.env.AI_USER_BUDGET_USD ?? 0),
-        initialProjectSpentUsd: Number(
-          process.env.AI_PROJECT_INITIAL_SPENT_USD ?? 0,
-        ),
-      });
+          : v2
+            ? lifeJobs.heartbeat(
+                claimed as import('@future-flow/database').LifeJob,
+              )
+            : jobs.heartbeat(claimed as import('@future-flow/database').Job);
+      const budget = new DatabaseAiBudget(
+        db,
+        shared
+          ? (job as import('@future-flow/database').SharedJob)
+              .requested_by_user_id
+          : (
+              job as
+                | import('@future-flow/database').LifeJob
+                | import('@future-flow/database').Job
+            ).user_id,
+        job.id,
+        {
+          projectUsd: Number(process.env.AI_PROJECT_BUDGET_USD ?? 0),
+          userUsd: Number(process.env.AI_USER_BUDGET_USD ?? 0),
+          initialProjectSpentUsd: Number(
+            process.env.AI_PROJECT_INITIAL_SPENT_USD ?? 0,
+          ),
+        },
+      );
       let experiment: ExperimentAiBudget | undefined;
       const heartbeat = setInterval(
         () => {
@@ -94,7 +129,13 @@ async function main() {
             )
           : budget;
         const ai = new OpenAiProvider({ ...aiConfig, guard });
-        if (v2)
+        if (shared)
+          await processSharedJob(
+            job as import('@future-flow/database').SharedJob,
+            sharedJobs,
+            ai,
+          );
+        else if (v2)
           await processLifeJob(
             job as import('@future-flow/database').LifeJob,
             lifeJobs,
@@ -109,7 +150,12 @@ async function main() {
         console.log(JSON.stringify({ jobId: job.id, status: 'completed' }));
       } catch (error) {
         if (!leaseLost) {
-          if (v2)
+          if (shared)
+            await sharedJobs.fail(
+              job as import('@future-flow/database').SharedJob,
+              error,
+            );
+          else if (v2)
             await lifeJobs.fail(
               job as import('@future-flow/database').LifeJob,
               error,

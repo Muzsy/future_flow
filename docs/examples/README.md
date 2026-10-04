@@ -4,6 +4,8 @@ A fejezetek szintetikus profilokból, valódi OpenAI vagy Claude API-hívásokka
 
 | Minta | Dátum és nyelv | Mit mutat? |
 |---|---|---|
+| [Shared finomított angol minta](AI_SHARED_FRIEND_ENGLISH_REFINED_SAMPLE.md) | 2026-10-04, en | Valódi Sol shared_event.v2, offline opportunity, saját opt-in/opt-out és pending memória; izolált, nem personal/Auth release |
+| [Shared kezdeti angol minta](AI_SHARED_FRIEND_ENGLISH_SAMPLE.md) | 2026-10-04, en | Eredeti Sol v1 kimenet változatlan; shared chat utalás miatt a prompt később pontosítva |
 | [Új angol béta-minta](AI_BETA_ENGLISH_STORY.md) | 2026-10-04, en | Sol v3 narrátor, két fejezet, valódi Auth/UI-hurok és külső Sonnet audit |
 | [V2 angol három időszak](AI_V2_ENGLISH_STORY.md) | 2026-10-03, en | Ugyanazon ág folytatása és két mentett választás |
 | [V2 magyar három időszak](AI_V2_HUNGARIAN_STORY.md) | 2026-10-03, hu | Történeti kutatási minta; a magyar kiadás halasztva |

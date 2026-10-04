@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0/S1 implementált: foundation és friend canon/own intent/resolution/pending memória, kikapcsolva; S2–S7 tervezett. 001–009 alkalmazva, következő S2 valódi Shared OpenAI. [S1 megvalósítás és korlátok](../SHARED_CONTEXT_S1_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
 
@@ -35,6 +35,6 @@ A felhasználó kérése szerint sorban haladunk. A visszafordítható technikai
 
 ## Shared backlog utódlása
 
-L01/P01–P13 változatlan azonosítók; új S0–S7 roadmap a NEXT_STEPS-ben és a Shared tervben. S0 implementáció kész, DB-alkalmazás és ismétlés sikeres; S1 motor implementált, következő helyi munka S2, user-facing friend release S2+S3 kapu után, nem AI nélküli S1 demo. S4–S6 típusbővítés, S7 advanced később; P06 ops és P09–P13 public továbbra teljesítendő. A source PR-feladatokat main commit-szeletekként követjük.
+L01/P01–P13 változatlan azonosítók; új S0–S7 roadmap a NEXT_STEPS-ben és a Shared tervben. S0 implementáció kész, DB-alkalmazás és ismétlés sikeres; S1 motor implementált, következő helyi munka S3, user-facing friend release S2+S3 kapu után, nem AI nélküli S1 demo. S4–S6 típusbővítés, S7 advanced később; P06 ops és P09–P13 public továbbra teljesítendő. A source PR-feladatokat main commit-szeletekként követjük.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).
