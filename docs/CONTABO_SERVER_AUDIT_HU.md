@@ -6,6 +6,8 @@
 
 **A teljes alkalmassági audit még nem zárható le:** a megadott hozzáférési fájlból kiolvasott felhasználó/jelszó párost az SSH-szerver elutasította. A hálózati elérhetőséget és a telepítési tervet ellenőriztük, de CPU/RAM/tárhely, belső szolgáltatások, frissítések, tűzfal és mentések még nem vizsgálhatók. Ezekre nem adunk becsült szerveradatot vagy „gond nélkül üzemeltethető” minősítést.
 
+2026-10-04-i folytatás: a felhasználó kifejezett kérésére a hozzáférési fájl jelenlegi jelszavát `root` felhasználónévvel is egyszer kipróbáltuk. Az SSH-hostkulcs egyezett a rögzített kulccsal, de a hitelesítés ismét elutasított (`AuthenticationException`). Ez önmagában nem dönti el, hogy a jelszó hibás vagy a root/jelszavas belépést szerveroldali szabály tiltja. Belső parancs nem futott; a kapacitásvizsgálat továbbra nyitott.
+
 Az alkalmazás architektúrája alkalmas saját Linux szerveres működésre: Next web, Nest API és folyamatos worker; Supabase adatbázis/Auth és OpenAI külső szolgáltatás. Helyi AI-modell vagy GPU nem szükséges. A konkrét Contabo gép kapacitása és biztonságos együttélése a meglévő szolgáltatásokkal továbbra igazolandó.
 
 ## Ellenőrzött tények
@@ -18,6 +20,7 @@ Mérés: 2026-10-04, körülbelül 08:04–08:09 UTC / 10:04–10:09 Europe/Buda
 | SSH banner | `OpenSSH_9.6p1 Ubuntu-3ubuntu13.19` | Ubuntu csomagra utaló szolgáltatásazonosító; nem helyettesíti az OS belső ellenőrzését |
 | SSH hitelesítési módok | `publickey`, `password` | A szerver felkínálja ezeket; sikeres belépés nem történt |
 | Megadott belépési páros | Egy jelszavas kísérlet elutasítva | Belső audit hozzáférés nélkül nem végezhető el |
+| Felhasználó által kért root-próba | A fájl jelenlegi jelszavával egy kísérlet, szintén elutasítva | A root név önmagában nem oldotta meg a hozzáférést |
 | HTTP / TCP 80 | Elérhető, `308 Permanent Redirect`, `Server: Caddy` | Az adott címen már webes proxy válaszol |
 | HTTPS / TCP 443 | TCP elérhető; IP-címes TLS-kézfogás `SSLError` | A port elérhető, de ebből nem igazolható érvényes HTTPS |
 | TCP-kapcsolódás | Körülbelül 31–47 ms a helyi gépről | Pillanatnyi kapcsolódási idő; nem terhelési vagy rendelkezésreállási mérés |
@@ -62,7 +65,7 @@ Dockerrel a publikált konténerportok UFW-szabályokat megkerülhetnek; ezért 
 
 A felhasználó által megadott `env/contabo_auth.txt` helyén maradt, de az örökölt olvasási jogok megszűntek; csak a jelenlegi Windows-felhasználó, SYSTEM és helyi rendszergazdák kaptak hozzáférést. Az `env/` könyvtár Git- és Docker-kizárás alatt áll. Jelszó, belépési név és szervercím nem került ebbe a riportba vagy a verziózott fájlokba.
 
-Nem történt szervertelepítés, csomagfrissítés, szolgáltatásleállítás, restart, tűzfalmódosítás vagy fizetős AI-hívás. Az SSH-elutasítás után nem próbáltunk más felhasználóneveket/jelszavakat. A helyi hostkulcs-rögzítés és a hozzáférési fájl ACL-védelme helyi változtatás.
+Nem történt szervertelepítés, csomagfrissítés, szolgáltatásleállítás, restart, tűzfalmódosítás vagy fizetős AI-hívás. Az eredeti SSH-elutasítás után kizárólag a felhasználó által külön kért `root` névvel történt egy további kísérlet, ugyanazzal a fájlból beolvasott jelszóval. Más felhasználóneveket/jelszavakat nem próbáltunk. A helyi hostkulcs-rögzítés és a hozzáférési fájl ACL-védelme helyi változtatás.
 
 A teljes audit folytatásához az SSH-adatokat kell tisztázni. A Contabo ügyfélpanel és a VPS operációs rendszerének belépése külön hozzáférés; a szolgáltató a szerver IP/felhasználó adatait a „Your login data!” levélben jelöli meg. Nem indítottunk jelszó-visszaállítást vagy szerver-újratelepítést. [Contabo csatlakozási útmutató](https://help.contabo.com/en/support/solutions/articles/103000286843-how-do-i-connect-to-my-server-).
 

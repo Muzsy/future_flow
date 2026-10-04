@@ -63,3 +63,5 @@ A későbbi Contabo-telepítéshez a nulla projekt- vagy userkeret most a koráb
 2026-10-04: a 298bdca kódcommit GitHub ellenőrzése sikeres: frozen install, formázás, típusok, 159 teszt, teljes build, séma-drift; a Linux konténer buildje és production web indítása/healthcheck is sikeres. [CI-bizonyíték](https://github.com/Muzsy/future_flow/actions/runs/37164982359). Ez nem éles Contabo-telepítés.
 
 2026-10-04: a felhasználó Contabo szerverauditot kért. [Részleges eredmény](CONTABO_SERVER_AUDIT_HU.md): SSH/80/443 elérhető; HTTP Caddy/308; IP-címes TLS nem igazolt. A megadott SSH-belépés elutasított, így CPU/RAM/tárhely/belső biztonság nem minősíthető. A saját Compose-proxy előtt a meglévő 80/443 használatot fel kell mérni. Helyi credential ACL szűkítve; szerverbeállítás nem változott, paid AI-hívás nem történt. Működő SSH-adatok után az audit folytatandó.
+
+2026-10-04: külön felhasználói kérésre a jelenlegi fájlbeli jelszóval `root` belépést is egyszer próbáltunk; a hostkulcs egyezett, a hitelesítés elutasított. Belső auditparancs nem futott, szerverváltoztatás nem történt. A hibából nem állapítható meg külön a hibás jelszó és a szerveroldali root/jelszavas tiltás.
