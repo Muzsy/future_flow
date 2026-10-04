@@ -584,6 +584,8 @@ export class Repository {
         'aw_budget_accounts',
         'aw_budget_reservations',
         'aw_interactions',
+        'aw_activity_sessions',
+        'aw_feedback',
         'aw_publication_drafts',
         'aw_scenario_drafts',
       ];

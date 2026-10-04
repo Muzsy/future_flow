@@ -2,13 +2,13 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06–P08 részben előkészített, külső/emberi ellenőrzésre vár. [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
+2026-10-04 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06 valódi Auth/AI HTTP-próba kész, ops még nyitott; P07 új angol minta auditálva, P08 visszajelzés és session-mérés elkészült. [2026-10-04-i béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–006 alkalmazva; 147 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–007 alkalmazva; 159 teszt, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
 
-Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
+Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
@@ -70,17 +70,17 @@ Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felha
 
 ## P06 — Valódi fiók és teljes böngészős folyamat
 
-**Aktuális állapot:** Részben: export/delete/recovery kód és teszt kész; valódi email/admin kulcs és backup/restore nyitott.
+**Aktuális állapot:** Részben: valódi Auth/DB/OpenAI HTTP-hurok, kétfiókos ownership, friss-auth export és tényleges fióktörlés sikeres. Böngészős bizonyíték a béta-riportban; email-kézbesítés, backup/restore és valós hibából recovery még nyitott.
 
 **Feladat:** Supabase email-belépés, profil, OpenAI-időszak, döntés, folytatás, visszatérés, fork, export és Auth/DB-fióktörlés ellenőrzése a valódi integrációkkal. Auth-törlés utáni adatbázishiba helyreállítása, szükséges audit és mentés/visszaállítás ellenőrzése.
 
 **Elfogadás:** böngészőből végigvihető a teljes MVP-hurok; másik fiók adatai nem érhetők el. Export és törlés friss hitelesítést kér, törlés a teljes kapcsolódó adatgráfot érinti, aktív worker nem írhat vissza törölt fiókhoz. Az üzemeltetési helyreállítás végrehajtható.
 
-**Függőség:** P03–P05; Auth-törléshez a hiányzó szerveroldali Supabase-kulcs. A kulcs értéke kizárólag védett helyi környezetbe kerül. A függőség az előző fejlesztési pontokat nem blokkolja.
+**Függőség:** P03–P05; a szerveroldali admin kulcs biztonságosan beállítva és ellenőrizve, a valódi törlés lefutott. Értéke nem kerül dokumentumba vagy Gitbe.
 
 ## P07 — Technikai és angol AI/szerkesztői ellenőrzés
 
-**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak, négy valódi AI-lánc és külső Claude-audit kész; A magyar próza felhasználói kritikát kapott, ezért halasztott; angol AI/szerkesztői döntés és kiadás utáni használói visszajelzés az elfogadott út. [Claude és tokenoptimalizálás](CLAUDE_MODEL_EVALUATION_HU.md).
+**Aktuális állapot:** Részben: 20 determinisztikus eset ×3 időszak, négy korábbi valódi AI-lánc, új kétfejezetes angol minta és Sonnet low audit kész; a magyar próza felhasználói kritikát kapott, ezért halasztott; angol AI/szerkesztői döntés és kiadás utáni használói visszajelzés az elfogadott út. [Claude és tokenoptimalizálás](CLAUDE_MODEL_EVALUATION_HU.md).
 
 **Feladat:** 20 változatos determinisztikus szintetikus eset, meglévő valódi angol többidőszakos minták és kereten belüli célzott AI-próbák. További húsz generatív eset bővítési cél, nem a béta kézi kapuja. Az AI angol szerkesztői értékelése: személyesség, történet, kíváncsiság, hihetőség, ismétlés. Constraint/fact consistency, promptutasítások elkülönítése, tulajdonosi hozzáférés, export/törlés, párhuzamos kérések, megszakítás és költséghatár.
 
@@ -90,7 +90,7 @@ Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felha
 
 ## P08 — Korlátozott angol béta, visszajelzés és folytatási mérés
 
-**Aktuális állapot:** Részben: minimális click/success mérés és technikai proxy összesítés kész; session/olvasási kohorsz még hiányzik; korlátozott angol béta/visszajelzési csatorna és mérési definíció nyitott; létszám későbbi cél.
+**Aktuális állapot:** Technikai rész kész: privát visszajelzés, szerveroldali 30 perces session, elsőfejezet-vég kohorsz, sikeres és későbbi folytatási session külön mérhető. Kiadás és valódi használói kohorsz még nincs. [Szerződés és korlátok](BETA_FEEDBACK_AND_METRICS_HU.md).
 
 **Feladat:** onboarding/első fejezet/döntés/folytatási szándék/sikeres folytatás/visszatérés/fork események adatminimalizált mérése. Külön a **Continuation Rate** és a **Continued Life Sessions**. Korlátozott angol béta, majd 20–50 használó célkohorsz, önkéntes élmény-visszajelzéssel és a valós generálási költséghez igazított hozzáférési limitekkel.
 
@@ -122,7 +122,7 @@ Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felha
 
 **Elfogadás:** Confirm előtt privát; lejárt/módosított preview új ellenőrzést kér. Unlisted csak érvényes linkkel olvasható, noindex és listákból kizárt; tokencsere megszünteti a régi linket. Unpublish tiltja új olvasást/forkot, eltávolítja index/OG-t és érvényteleníti cache-t. Törlés/aktív job nem hagy tartalmat. Report/admin moderáció kliensflaggel nem kerülhető meg.
 
-**Függőség:** P09–P10 és P06 teljes adatkezelése; hiányzó Supabase admin-kulcs a valódi fióktörlési próba függősége, nem a tervezésé.
+**Függőség:** P09–P10 és P06 teljes adatkezelése; a valódi admin Auth/DB-törlés sikeres, a public revocation/törlés még saját próbát igényel.
 
 ## P12 — Fork this life, Start from this decision, Personalize scenario
 
@@ -144,7 +144,7 @@ Valódi fiók/admin kulcs, backup/restore és éles telepítés nyitott. A felha
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő:** P06 valódi fiókos/ops próba és P07 angol automatikus/szerkesztői ellenőrzés, majd tárhely és költséglimites angol béta, P08 visszajelzés/mérés. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
+**Következő:** P06 backup/restore és valódi recovery; a P09 public-adatszűrés/curator/Publication alap bővítése. P07 új angol audit és P08 műszerezés kész. Contabo-telepítés később, külön éles kerettel, majd valódi használói béta. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
 
 ## Claude-mérés utáni AI-feladatok
 

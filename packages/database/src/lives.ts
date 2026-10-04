@@ -21,6 +21,7 @@ import {
   validateLifeInputV2,
 } from '@future-flow/core';
 import type { Database } from './index';
+import { activitySession } from './beta';
 
 type Row = Record<string, unknown>;
 export type LifeBranch = Row & {
@@ -103,9 +104,53 @@ export class LifeRepository {
       if (input.branchId) await this.branch(userId, input.branchId, tx);
       else if (input.kind !== 'onboarding_started')
         throw new DomainError('RESOURCE_NOT_FOUND', 'Branch required.', 404);
+      if (
+        input.periodId &&
+        !(
+          await tx.query(
+            'SELECT period_id FROM aw_history WHERE branch_id=$1 AND user_id=$2 AND period_id=$3',
+            [input.branchId, userId, input.periodId],
+          )
+        ).length
+      )
+        throw new DomainError(
+          'RESOURCE_NOT_FOUND',
+          'Chapter unavailable.',
+          404,
+        );
+      const existing = (
+        await tx.query(
+          'SELECT user_id,branch_id,session_id,kind,period_id FROM aw_interactions WHERE id=$1',
+          [input.eventId],
+        )
+      )[0];
+      if (existing) {
+        if (
+          existing.user_id !== userId ||
+          existing.branch_id !== input.branchId ||
+          existing.session_id !== input.sessionId ||
+          existing.kind !== input.kind ||
+          existing.period_id !== (input.periodId ?? null)
+        )
+          throw new DomainError(
+            'IDEMPOTENCY_CONFLICT',
+            'Interaction identifier reused.',
+            409,
+          );
+        return { recorded: true };
+      }
+      const session = await activitySession(tx, userId, input.sessionId);
       await tx.query(
-        'INSERT INTO aw_interactions(id,user_id,branch_id,session_id,kind) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING',
-        [input.eventId, userId, input.branchId, input.sessionId, input.kind],
+        'INSERT INTO aw_interactions(id,user_id,branch_id,session_id,kind,period_id,activity_session_id) VALUES($1,$2,$3,$4,$5,$6,$7)',
+        [
+          input.eventId,
+          userId,
+          input.branchId,
+          input.sessionId,
+          input.kind,
+          input.periodId ?? null,
+          session,
+        ],
       );
       return { recorded: true };
     });
@@ -397,12 +442,13 @@ export class LifeRepository {
     branchId: string,
     revision: number,
     key: string,
+    sessionId?: string,
   ) {
     return this.once(
       userId,
       `v2:continue:${branchId}`,
       key,
-      { revision },
+      { revision, ...(sessionId ? { sessionId } : {}) },
       async (tx) => {
         const branch = await this.branch(userId, branchId, tx, true);
         this.revision(branch, revision);
@@ -414,7 +460,15 @@ export class LifeRepository {
             'Life is not ready.',
             409,
           );
-        return this.queue(tx, userId, branch);
+        const queued = await this.queue(tx, userId, branch);
+        if (sessionId) {
+          const session = await activitySession(tx, userId, sessionId);
+          await tx.query(
+            'UPDATE aw_jobs SET activity_session_id=$2 WHERE id=$1 AND user_id=$3',
+            [queued.jobId, session, userId],
+          );
+        }
+        return queued;
       },
     );
   }

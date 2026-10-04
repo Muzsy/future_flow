@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-*/
 dist/
 coverage/
 .env
@@ -13,3 +14,4 @@ test-results/
 playwright-report/
 apps/web/next-env.d.ts
 .local/
+deploy/*.env

@@ -51,12 +51,15 @@ import {
   lifeInteractionV2Schema,
   publicPreviewRequestSchema,
   enabledLocales,
+  betaFeedbackSchema,
+  lifeContinueRequestV2Schema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import {
   Repository,
   LifeRepository,
   PublicDraftRepository,
+  BetaFeedbackRepository,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
 import { type AuthProvider, requireRecentAuthentication } from './auth';
@@ -311,6 +314,11 @@ class ApiController {
 @Controller('api/v2')
 @UseGuards(AuthGuard)
 class LifeController {
+  @Post('feedback')
+  @ApiBody({ schema: z.toJSONSchema(betaFeedbackSchema) as never })
+  feedback(@Req() req: AuthRequest, @Body() body: unknown) {
+    return new BetaFeedbackRepository(this.repo.db).submit(req.userId, body);
+  }
   @Post('interactions') async interaction(
     @Req() req: AuthRequest,
     @Body() body: unknown,
@@ -415,13 +423,14 @@ class LifeController {
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
   ) {
-    const input = lifeRevisionRequestV2Schema.parse(body);
+    const input = lifeContinueRequestV2Schema.parse(body);
     const branch = await this.availableBranch(req.userId, id);
     return this.lives.continue(
       req.userId,
       branch.id,
       input.revision,
       key ?? '',
+      input.sessionId,
     );
   }
   @Post('branches/:id/periods/:periodId/fork') async fork(
@@ -467,6 +476,7 @@ export async function createApp(
   repo: Repository,
   auth: AuthProvider,
   origin = 'http://localhost:3000',
+  proxyHops: 0 | 1 = 0,
 ) {
   @Module({
     controllers: [ApiController, LifeController, HealthController],
@@ -481,6 +491,7 @@ export async function createApp(
     logger: ['error', 'warn'],
     bodyParser: false,
   });
+  app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
   app.use(helmet());
   app.use((request: AuthRequest, response: Response, next: () => void) => {
     request.requestId = randomUUID();

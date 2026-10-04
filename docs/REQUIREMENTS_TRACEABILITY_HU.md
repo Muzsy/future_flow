@@ -40,7 +40,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | S28 · Monetizációs irány | Korlátozott ingyenes AI; privacy/adatjog univerzálisan ingyenes | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Prémium privacy/export felülírva; ár nyitott | P05, MVP után |
 | S29 · Bizalom, felelősség és kommunikáció | AI-jelölés, szcenáriókeret, bizalom és user agency | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Alpha alap; véglegesítés nyitott | P06–P07, P13 |
 | S30 · Márka- és névadási következmények | Márkanév alterward; régi Branchward munkanév felülírva | [16](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) | Felhasználói döntés; domain nyitott | Rögzítve |
-| S31 · Sikerességi mérőszámok | Continuation Rate/Continued Life Sessions és költség | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Technikai proxy kész; emberi/session mérés nyitott | P08, P13 |
+| S31 · Sikerességi mérőszámok | Continuation Rate/Continued Life Sessions és költség | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Privát session/olvasásvég-kohorsz kész; public/emberi mérés nyitott | P08, P13 |
 | S32 · Kockázatok | Egyszeri használat/generikus szöveg/inkonzisztencia/frikció/költség | [14](alter_jovo_docs/14_TESTING_AND_QUALITY.md) | Minőség és pilot kapuk | P05–P08 |
 | S33 · Stratégiai döntések | Tartós AI, web first, strukturált állapot, core első | [16](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) | Rögzített döntések | L01, P01–P13 |
 | S34 · Nyitott kérdések és validálandó hipotézisek | A–G hipotézisek külön emberi méréssel | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Nyitott hipotézisek | P08, P13 |
@@ -93,7 +93,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C36 · MVP funkciók | 14 MVP-elem tételesen az alábbi táblában | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Tervezett, nincs teljesítve | P09–P13 |
 | C37 · MVP-ből kihagyandó elemek | Comments/DM/marketplace/followgraph/advanced rec nem MVP | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Scope-határ | MVP után |
 | C38 · Bevezetési fázisok | Seed → Discovery → publishing → fork → social → creator | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Core után egységes fázisok | P09–P13 |
-| C39 · KPI-k és mérőszámok | Views/read/save/signup/fork/publish/report/referral | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Technikai proxy kész; emberi/session mérés nyitott | P13 |
+| C39 · KPI-k és mérőszámok | Views/read/save/signup/fork/publish/report/referral | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Privát session/olvasásvég-kohorsz kész; public/emberi mérés nyitott | P13 |
 | C40 · Kockázatok | Privacy/üres seed/spam/sameness/social fókusz kockázat | [14](alter_jovo_docs/14_TESTING_AND_QUALITY.md) | Kapuk és pilot tervezett | P09–P13 |
 | C41 · Technikai és architekturális következmények | Simulation/Public Content/Community/Moderation modulok | [08](alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md) | Public bővítés tervezett | P09–P13 |
 | C42 · Végleges stratégiai állásfoglalás | Core első, snapshot/Discovery/fork majd social | [12](alter_jovo_docs/12_MVP_SCOPE_AND_ROADMAP.md) | Elfogadott sorrend | P01–P13 |

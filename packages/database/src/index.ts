@@ -7,6 +7,7 @@ export * from './life-jobs';
 export * from './ai-budget';
 export * from './metrics';
 export * from './public-drafts';
+export * from './beta';
 
 export interface Database {
   query<T extends Record<string, unknown> = Record<string, unknown>>(

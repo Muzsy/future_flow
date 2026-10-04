@@ -14,7 +14,8 @@ import {
 import { api, lifeApi, ClientError, clientErrorMessage } from '../lib/client';
 import { lifeMessages } from '../lib/life-messages';
 import { useLanguage } from './language-provider';
-import { trackLife } from '../lib/life-analytics';
+import { trackLife, lifeSessionId } from '../lib/life-analytics';
+import { FeedbackForm } from './feedback-form';
 
 type Summary = {
   id: string;
@@ -118,7 +119,7 @@ export function LifeExperience({
     saveChain = useRef<Promise<void>>(Promise.resolve());
   const request = useRef<{ signature: string; key: string } | null>(null);
   const [tab, setTab] = useState<'story' | 'timeline'>('story');
-  const readEnd = useRef<HTMLDivElement | null>(null),
+  const readMarkers = useRef(new Map<string, HTMLDivElement>()),
     trackedStart = useRef(false);
   useEffect(() => {
     if (page === 'start' && consent && !loading && !trackedStart.current) {
@@ -127,19 +128,30 @@ export function LifeExperience({
     }
   }, [page, consent, loading]);
   useEffect(() => {
-    if (detail?.branch.id)
-      void trackLife('life_opened', detail.branch.id).catch(() => {});
+    if (!detail?.branch.id) return;
+    const opened = () => {
+      if (document.visibilityState === 'visible')
+        void trackLife('life_opened', detail.branch.id).catch(() => {});
+    };
+    opened();
+    document.addEventListener('visibilitychange', opened);
+    return () => document.removeEventListener('visibilitychange', opened);
   }, [detail?.branch.id]);
   useEffect(() => {
-    if (!readEnd.current || !detail?.branch.id || tab !== 'story') return;
+    if (!detail?.branch.id || tab !== 'story') return;
     const branchId = detail.branch.id;
     const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        observer.disconnect();
-        void trackLife('chapter_end_reached', branchId).catch(() => {});
-      }
+      for (const entry of entries)
+        if (entry.isIntersecting && document.visibilityState === 'visible') {
+          observer.unobserve(entry.target);
+          const periodId = (entry.target as HTMLElement).dataset.periodId;
+          if (periodId)
+            void trackLife('chapter_end_reached', branchId, periodId).catch(
+              () => {},
+            );
+        }
     });
-    observer.observe(readEnd.current);
+    for (const marker of readMarkers.current.values()) observer.observe(marker);
     return () => observer.disconnect();
   }, [detail?.periods.length, detail?.branch.id, tab]);
   const field = (title: string, element: ReactNode, help?: string) => (
@@ -338,6 +350,8 @@ export function LifeExperience({
     path: string,
     body: unknown,
   ): Promise<{ branchId: string; jobId?: string }> {
+    if (path.endsWith('/continue'))
+      body = { ...(body as object), sessionId: await lifeSessionId() };
     const signature = JSON.stringify({ path, body });
     if (path.endsWith('/continue'))
       await trackLife('continuation_clicked', id ?? null).catch(() => {});
@@ -1016,8 +1030,16 @@ export function LifeExperience({
                 ))}
               </ol>
             )}
-            {period.position === 1 && tab === 'story' && (
-              <div ref={readEnd} aria-hidden="true" style={{ height: 1 }} />
+            {tab === 'story' && (
+              <div
+                ref={(node) => {
+                  if (node) readMarkers.current.set(period.id, node);
+                  else readMarkers.current.delete(period.id);
+                }}
+                data-period-id={period.id}
+                aria-hidden="true"
+                style={{ height: 1 }}
+              />
             )}
             {chosen && (
               <p>
@@ -1064,6 +1086,12 @@ export function LifeExperience({
                 ))}
               </details>
             )}
+            <FeedbackForm
+              key={`feedback:${period.id}`}
+              branchId={b.id}
+              periodId={period.id}
+              compact
+            />
           </article>
         );
       })}

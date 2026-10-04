@@ -285,6 +285,7 @@ export const lifeInteractionV2Schema = z
     eventId: id,
     sessionId: id,
     branchId: id.nullable(),
+    periodId: id.nullable().optional(),
     kind: z.enum([
       'onboarding_started',
       'life_opened',

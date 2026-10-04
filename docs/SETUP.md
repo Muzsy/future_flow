@@ -53,7 +53,7 @@ A `.gitignore` minden `.env*` fájlt és az `env/` mappát kizárja, az érték 
 
 A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatibilis tesztek kulcs nélkül is futtathatók. A valódi Supabase Auth, DB-hálózat és OpenAI-generálás csak a szükséges beállítások után ellenőrizhető.
 
-2026-10-03-i állapot: a megadott projektben a 001 foundation és 002 content_locale migráció is lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. Az API-kredit feltöltése után valódi AI-események, történetfejezetek és alternatív életág készültek. A Supabase adminisztratív kulcs még hiányzik; a tényleges email-belépés még külön ellenőrzendő.
+2026-10-03-i állapot: a megadott projektben a 001 foundation és 002 content_locale migráció is lefutott. A közvetlen PostgreSQL-kapcsolat az official Supabase CA-val, teljes TLS-ellenőrzéssel működik; a publikus Auth-konfiguráció elérhető. Személyes profilt vagy valódi Auth-fiókot az ellenőrzés nem hozott létre. Az OpenAI-kulcs biztonságosan beállítva, a hitelesítés és a konfigurált modell elérhetősége ellenőrizve. Az API-kredit feltöltése után valódi AI-események, történetfejezetek és alternatív életág készültek. Ez a korábbi ellenőrzés állapota. 2026-10-04-re a szerveroldali admin kulcs védett helyen beállítva; 001–007 alkalmazva, valódi szintetikus jelszavas Supabase-belépés és Auth/DB-törlés sikeres. Email-kézbesítés nem volt része a próbának.
 
 ## Valódi AI-próba, korlátozott költséggel
 
@@ -84,3 +84,9 @@ ANTHROPIC_API_KEY csak a védett gyökér .env fájlban, soha NEXT_PUBLIC_* mez�
 CLAUDE_EXPERIMENT_BUDGET_USD=5 legfeljebb 5 USD összesített kutatási keret, saját .local/claude-audit/usage.json és paid-run.lock mellett. A korábbi fogyasztás megmarad, új checkout/futás nem ad új keretet. Ettől külön OpenAI-napló/DB-limit érvényes; a Claude értékelő nem módosítja a működő worker modelljeit.
 
 pnpm build:packages után pnpm evaluate:claude count ingyenes counter. A többi mód ténylegesen költhet, csak a megmaradt guard-keretből; meglévő azonos esetet új fizetés nélkül olvas. [Pontos módok, függőségek, token/cache/limit mérés és költség](CLAUDE_MODEL_EVALUATION_HU.md). A tests/fixtures/claude-v2 kizárólag szintetikus canont/történetet tartalmaz; saját felhasználói exportot ne helyettesíts be.
+
+## Privát béta ellenőrzése
+
+`pnpm smoke:auth --run` valódi szintetikus, előre megerősített tesztfiókokat hoz létre, OpenAI-időszakot/folytatást/forkot generál, exportál, majd törli őket. Emailt nem küld. Fizetett próba: az eredeti `.local/ai-smoke/usage.json` 5 USD keretét és DB-projekt/user őrét használja; ne nullázd a naplót. A `--run` elhagyása nem indít próbát. Privát bizonyíték `.local/auth-smoke`, Gitből kizárva.
+
+`pnpm feedback:report` privát kategória/szándék darabszámokat, `pnpm metrics:private` a [session-metrikákat](BETA_FEEDBACK_AND_METRICS_HU.md) mutatja; egyik sem generál AI-tartalmat. [Későbbi Contabo-beállítás](DEPLOYMENT_HU.md).

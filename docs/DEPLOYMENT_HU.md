@@ -1,24 +1,32 @@
-# alterward — az angol béta telepítése
+# alterward — helyi fejlesztés és későbbi Contabo-telepítés
 
-2026-10-03 · Előkészített konfiguráció, még nincs éles telepítés. [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Beállítás](SETUP.md) · [Render Blueprint](../render.yaml).
+2026-10-04 · [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Beállítás](SETUP.md) · [Compose](../deploy/compose.yaml).
 
-## Javasolt tárhely
+## Elfogadott környezet
 
-Render: külön Node webes felület, API és folyamatos háttérworker; a meglévő Supabase marad adatbázis/Auth. Egy szolgáltatónál kezelhető a három folyamat és a GitHub-main telepítése. A saját domain az első béta feltétele helyett később is hozzáadható, a szolgáltató HTTPS-es `onrender.com` címe használható. [Next.js telepítés](https://render.com/docs/deploy-nextjs-app), [szolgáltatástípusok](https://render.com/docs/service-types), [Blueprint-referencia](https://render.com/docs/blueprint-spec).
+A felhasználó meglévő Contabo szerverén lesz az éles alkalmazás; domaint később vesz. Most helyi fejlesztés és tesztelés folyik, a GitHub main tárolja az ellenőrzött változtatásokat. Render-előfizetés nincs és nem szükséges; a korábbi render.yaml javaslat eltávolítva. Contabo-hozzáférést vagy élesítést még nem kértünk és nem végeztünk.
 
-A három `0.5c-512mb` alap példány mai listaára körülbelül **3 × 7 = 21 USD/hó**, további AI, Supabase, adatforgalmi/build és domain költség nélkül. Kis béta induló kapacitása, nem terheléssel igazolt végleges méret. Az ingyenes web példány alvó működése és a folyamatos worker miatt ezt a fizetős induló konfigurációt készítettük elő. A létrehozás előtt az aktuális ár és végösszeg ellenőrizendő. [Render árak](https://render.com/pricing), [ingyenes példányok korlátai](https://render.com/docs/free).
+A web, API és folyamatos worker egy szerveren, külön Docker Compose szolgáltatásban futhat. Az adatbázis és Auth továbbra Supabase; az AI külső OpenAI API, ezért GPU nem szükséges. A végleges kapacitás a szerver OS/CPU/RAM, szabad hely és más futó szolgáltatások ellenőrzése után dönthető el. A tényleges futásmérés még hiányzik. [Next.js saját szerver](https://nextjs.org/docs/app/guides/self-hosting), [Compose éles környezet](https://docs.docker.com/compose/how-tos/production/).
 
-Tárhelyfiók nincs még megadva; fizetős szolgáltatás nem jött létre. A konfiguráció reviewolható a repóban, automatikus deploy kikapcsolva. A korábban engedélyezett 5 USD OpenAI és 5 USD Claude kutatási keret ettől különálló.
+## Előkészített fájlok és ellenőrzési határ
 
-## Telepítés menete
+Gyökér Dockerfile: Node 24, rögzített pnpm a packageManager mezőből, frozen lockfile, teljes production build; runtime nem root felhasználó. Egy közös kezdeti image őrzi a monorepo modulkapcsolatait; méretoptimalizálás később mérhető. A .dockerignore kizárja a helyi env/.env/.local, Git, build és kulcsfájlokat. Csak a három publikus NEXT_PUBLIC érték build argument, admin/OpenAI kulcs soha.
 
-1. Render-fiók és GitHub-hozzáférés a privát `Muzsy/future_flow` repóhoz, majd Blueprint a `main` ági `render.yaml` alapján. A három szolgáltatás létrehozása havi költséget indít; ehhez külön tárhelykeret kell.
-2. Az API/worker csak szerveroldalon kapja a Supabase `DATABASE_URL`-t; TLS ellenőrzés kötelező. Ha a kapcsolat külön CA-fájlt igényel, Render Secret File és szerveroldali `DATABASE_SSL_CA_FILE` kell. Ne töltsük fel a helyi `.env`-t vagy az `env`/`.local` mappát.
-3. API: `SUPABASE_URL`, admin `SUPABASE_SERVICE_ROLE_KEY` és a web pontos HTTPS URL-je `WEB_ORIGIN` néven. Worker: `OPENAI_API_KEY`; Claude-kulcs a termékhez most nem szükséges. A blueprint titkos értékek helyett `sync: false` bevitelt használ.
-4. Web: `NEXT_PUBLIC_SUPABASE_URL`, publikus Supabase-kulcs és az API HTTPS URL-je `/api/v1` végződéssel. Ezek build-time értékek, módosításuk után a webet újra kell buildelni. A backend titkai nem kerülhetnek a webbe. A Supabase Auth Site URL és engedett átirányítások a tényleges web URL-t kapják.
-5. Egyszeri migráció/infraellenőrzés a kijelölt éles DB ellen, biztonságos szerverkörnyezetből: `pnpm db:migrate`, `pnpm verify:infra`. A meglévő 001–006 migráció nem írható át; éles üres adatbázisra a már létező migrációk futnak. Az API a platform `PORT` értékét és `API_HOST=0.0.0.0` beállítást használja.
-6. Előbb API/web health és Auth, majd külön jóváhagyott éles AI-keret. A blueprint `AI_PROJECT_BUDGET_USD=0` és `AI_USER_BUDGET_USD=0` mellett indul: a nyilvános generálás így nem költ automatikusan, meglévő pozitív DB-számlalimit mellett sem. A nulla konfiguráció külön letiltja az új foglalást; pozitív érték nem emeli meg a már tárolt limitet. DB-keret meglévő számlasorát nem emeli meg egy egyszerű környezeti átállítás; az alkalmazás költségőr-szabályát követve kell konfigurálni. A helyi kísérleti ledger és Claude-kutatási keret nem kerül az éles környezetbe.
-7. Teljes saját kétfiókos folyamat: belépés, angol onboarding, első fejezet, választás, folytatás, visszatérés, fork, ingyenes export/törlés; idegen adat nem olvasható. Angol HTML/metadata/API régi HU-cookie/fejléc mellett; mobilnézet; hibák és költségstop. Proxy mögötti rate-limit kliensazonosítást a tényleges Render-környezetben ellenőrizni kell.
-8. Mentés/visszaállítás és visszajelzési csatorna, majd korlátozott angol béta. Discovery/public csak a külön privacy/moderáció/snapshot/fork kapuk után. Az éles URL és a tényleges smoke eredménye kerüljön a státuszba. A `main` commit önmagában nem deploy.
+deploy/compose.yaml: web/API/worker + Caddy proxy, automatikus restart, web/API healthcheck, forgó méretkorlátos konténernapló, CA-fájl csak read-only mount. Kizárólag a proxy 80/443 portja nyilvános. API/worker titkos környezete külön, a web nem kap admin-, DB- vagy OpenAI-kulcsot. AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD alapértéke nulla; új fizetős generálás addig tiltott.
 
-Node 24 a projekt követelménye; pnpm verzió a gyökér `packageManager` mezőjéből. A konfigurációban szolgáltatásonként explicit runtime/verzió, zárt költséglimit és kézi deploy van. A YAML helyi szintaktikai ellenőrzése nem helyettesít Render-fiókos létrehozást, provider-validációt vagy működő éles próbát. [Node verzióbeállítás](https://render.com/docs/node-version).
+A helyi Windows-környezetben nincs Docker parancs, ezért itt a tényleges Linux image-build és konténeres indulás még nincs igazolva. A YAML formátum ellenőrizhető, de ez nem Docker/Contabo smoke. Az image-build, Caddy HTTPS, külső kliensazonosítás és kapacitás a későbbi szerveres kapu. A működő Node production build ettől külön bizonyíték.
+
+## Későbbi telepítés menete
+
+1. Ellenőrzött Linux szerver, Docker Engine + Compose v2, kijelölt /opt/alterward checkout a GitHub main konkrét commitján. Meglévő szolgáltatások és 80/443 használata előbb ellenőrizendő; nincs automatikus felülírás. SSH-hozzáférést a tényleges telepítéskor kérünk.
+2. A deploy/server.env.example alapján külön /opt/alterward/secrets/runtime.env. Csak jogosult üzemeltető olvashatja; nem commitoljuk és nem másoljuk fel a fejlesztői .env-t. A Supabase CA ellenőrzött példánya legyen a DATABASE_SSL_CA_HOST_FILE helyen és olvasható a konténer 1000-es UID-jének; nincs rejectUnauthorized=false.
+3. Publikus hostname, DNS a szerverhez, elérhető 80/443 és Caddy HTTPS. Meglévő saját domain/aldomain vagy választott ideiglenes hostname is használható. A vásárlás későbbi döntés. A Caddyfile automatikusan kezeli a HTTPS-t megfelelő hostname és hálózati feltételek mellett. [Caddy HTTPS](https://caddyserver.com/docs/automatic-https).
+4. A protected env fájlt a parancsok --env-file kapcsolója választja ki. Secretet tartalmazó docker compose config kimenetet ne másoljunk naplóba/chatbe; ellenőrzéshez config --quiet. A web publikus Supabase értékei build-time értékek; módosításkor új image kell. Az API címe /api/v1, a proxy egy origin alatt szolgálja ki a webet és API-t.
+5. Sorrend: docker compose --env-file /opt/alterward/secrets/runtime.env -f deploy/compose.yaml config --quiet; majd build web; majd run --rm api pnpm db:migrate. A meglévő migrációkat nem írjuk át. A 007 már a fejlesztői Supabase-on alkalmazva; üres környezetben 001–007 fut le. Migráció és mentési terv ellenőrzése után up -d, health és valódi kétfiókos Auth/UI smoke.
+6. API_TRUST_PROXY=1 csak a zárt API-port és az egyetlen Caddy-hop mellett. A Caddy által továbbított klienscímet és rate-limitet ténylegesen ellenőrizzük. Közvetlen Node/API portot nem publikálunk, proxyhops nincs korlátlan true-ra állítva. Supabase Auth Site URL és redirect allowlist a tényleges HTTPS címet kapja.
+7. Külön éles AI-keret, hozzáférési/generálási limitek, mentés/visszaállítás és visszajelzés-áttekintési felelős. Pozitív env keret nem emeli meg automatikusan a már tárolt DB-limiteket. A fejlesztői 5 USD OpenAI/5 USD Claude naplók megmaradnak helyben; nem az éles keret és nem a tárhely kerete.
+8. Éles URL, commit, image-tag, smoke és visszaállítási próba rögzítése. Először korlátozott privát angol béta. Discovery/public a saját snapshot/privacy/moderáció/törlés/fork kapuja után.
+
+## Frissítés és helyreállítás
+
+Helyben fejlesztés → tesztek/production build → GitHub main → kijelölt időben új image/tag → szerveres smoke. Megőrizzük az előző image-et. Additív DB-migráció után régi image visszaállítása csak kompatibilitási ellenőrzéssel; migrációt nem törlünk vagy fordítunk vissza automatikusan. A Supabase-backup tényleges hozzáférése/retenciója és visszaállítása külön igazolandó. Export nem teljes adatbázis-backup, törölt felhasználók adatait nem hozzuk vissza egy kontrollálatlan restore-ral.

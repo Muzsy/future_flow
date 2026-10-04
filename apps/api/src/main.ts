@@ -17,11 +17,15 @@ async function main() {
     daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
     concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
   });
+  const proxySetting = process.env.API_TRUST_PROXY ?? '0';
+  if (!['0', '1'].includes(proxySetting))
+    throw new Error('API_TRUST_PROXY must be 0 or 1');
   await db.query('SELECT version FROM ff_questionnaires LIMIT 1');
   const app = await createApp(
     repo,
     auth,
     process.env.WEB_ORIGIN ?? 'http://localhost:3000',
+    proxySetting === '1' ? 1 : 0,
   );
   const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
   await app.listen(port, process.env.API_HOST ?? '127.0.0.1');

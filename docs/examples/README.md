@@ -18,3 +18,5 @@ A fejezetek szintetikus profilokból, valódi OpenAI vagy Claude API-hívásokka
 A v1 minták a régi baseline/ág, a v2 minták a három időszakos folytatás bizonyítékai. Nem emberi minőség/retenció mérés, és nem automatikusan kiadható Official seed. A dokumentációfrissítés a történettörzseket változatlanul hagyta. Public kiadáshoz külön snapshot/PII/curator és megfelelő v2 checkpoint kell.
 
 A Claude-minták önálló narrátorpróbák: nem az OpenAI által írt három időszakos fő minták folytatásai, és nem emberileg jóváhagyott történetek. A [külső Claude-audit](CLAUDE_EXTERNAL_AUDIT_HU.md) az ellenőrzés megállapításait tartalmazza, a fenti két új dokumentum pedig a Claude által írt tényleges fejezeteket.
+
+- [2026-10-04-i angol béta-minta](AI_BETA_ENGLISH_STORY.md): valódi Sol, két fejezet, új narrátori irány és külső Sonnet audit.

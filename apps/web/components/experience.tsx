@@ -34,6 +34,7 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { LifeExperience } from './life-experience';
+import { FeedbackForm } from './feedback-form';
 import { formatDate } from '../lib/i18n';
 
 type Answers = Record<string, string | number | boolean | string[]>;
@@ -528,6 +529,7 @@ export function Experience() {
     'branch',
     'job',
     'settings',
+    'feedback',
   ].includes(page);
   return (
     <>
@@ -615,6 +617,7 @@ export function Experience() {
                 user={user}
               />
             )}
+            {page === 'feedback' && user && <FeedbackForm key={user} />}
             {page === 'home' && (
               <>
                 <section className="hero">
@@ -1450,6 +1453,15 @@ export function Experience() {
                 <p>{t('privacy.scenarioDescription')}</p>
                 <h2>{t('privacy.dataTitle')}</h2>
                 <p>{t('privacy.dataDescription')}</p>
+                <p>
+                  We record minimal activity signals to understand whether
+                  people continue and return to their lives. These records
+                  contain account, life, chapter and session identifiers, event
+                  types and server timestamps; they do not contain your story or
+                  profile. Voluntary feedback is private, is included in your
+                  data export and is removed from the application database when
+                  you delete your account.
+                </p>
                 <div className="notice">{t('privacy.alphaNotice')}</div>
                 {user && (
                   <>
@@ -1513,6 +1525,11 @@ export function Experience() {
       </main>
       <footer>
         <span>© {new Date().getFullYear()} alterward</span>
+        {user && (
+          <button className="text-button" onClick={() => navigate('/feedback')}>
+            Give feedback
+          </button>
+        )}
         <span>{t('footer.note')}</span>
       </footer>
     </>

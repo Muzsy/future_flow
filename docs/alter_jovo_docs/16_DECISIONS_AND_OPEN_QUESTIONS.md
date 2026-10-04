@@ -1,7 +1,7 @@
 # alterward — döntések és nyitott kérdések
 
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valós Auth/ops nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
+**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
 
 2026-10-03 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
 
@@ -53,4 +53,16 @@ Hat hónap alap, szerződés tizenkettőt is enged; egy 250–600 szavas fejezet
 
 Domain/védjegy; csomagár és ingyenes generálási limitek; későbbi payment/hosting; v2 period/fejezethossz értékelése; nemzetközi környezetsablonok; Official seed nyelvi aránya; további nyelvek; számszerű pilot-küszöb és sessionablak; végleges privacy/retention/backup és public másolatok takarítása. Ezeket konkrét mérés/előnézet alapján tisztázzuk, nem blokkolják P01-et.
 
-Korábban jelzett Supabase admin-kulcs a valódi Auth-törlési próbához hiányzik; értéke csak védett helyi környezetbe kerülhet. A–G termékhipotézisek és a public növekedési hurok még nem bizonyított. Modellcseréhez új angol teljeslánc-próba kell, külön keretfoglalással. A tömeges seed/pilot szükség esetén új pénzügyi döntést kér, a szolgáltatónként külön engedélyezett 5 USD nem léphető túl.
+2026-10-04-re a Supabase admin-kulcs védett környezetben beállítva; a valódi szintetikus Auth/DB-törlés sikeres. A–G termékhipotézisek és a public növekedési hurok még nem bizonyított. Modellcseréhez új angol teljeslánc-próba kell, külön keretfoglalással. A tömeges seed/pilot szükség esetén új pénzügyi döntést kér, a szolgáltatónként külön engedélyezett 5 USD nem léphető túl.
+
+## ADR-020 · Helyi fejlesztés, későbbi Contabo
+
+2026-10-04 · Felhasználói döntés: meglévő Contabo szerver, domain később. Most helyi fejlesztés/teszt és GitHub main; élesítés kijelölt későbbi időben. Render-javaslat elvetve. [Telepítési terv](../DEPLOYMENT_HU.md).
+
+## ADR-021 · Angol béta visszajelzés és mérési definíció
+
+2026-10-04 · P08 megvalósítás: privát, önkéntes feedback; szerveridős 30 perces aktivitási munkamenet, fejezetszintű olvasási jel, kérés/job közötti attribution. Kattintás, siker és későbbi visszatérés külön. A 30 perc induló technikai definíció; nincs ebből bizonyított retenció. [Részletek](../BETA_FEEDBACK_AND_METRICS_HU.md).
+
+### 2026-10-04-i megvalósítási frissítés
+
+[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux/Docker-runtime és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.

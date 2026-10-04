@@ -1,5 +1,9 @@
 import type { Locale } from './locales';
 const errors: Record<string, readonly [string, string]> = {
+  FEEDBACK_LIMIT: [
+    'You have reached the feedback limit. Please try again tomorrow.',
+    'Elérted a visszajelzési korlátot. Próbáld újra holnap.',
+  ],
   PUBLIC_PREVIEW_INVALID: [
     'The preview does not match this life.',
     'Az előnézet nem egyezik ezzel az élettel.',

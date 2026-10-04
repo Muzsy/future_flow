@@ -52,3 +52,7 @@ P06: valódi email-fiók és admin secret kulcs hiányában a teljes böngésző
 ## További külső AI-bizonyíték
 
 Külön Claude-értékelő és 5 USD kutatási keret, négy modell, EN/HU történetaudit, hibakontrollok és token/cache/effort/limit próba. [Teljes riport](CLAUDE_MODEL_EVALUATION_HU.md). Ez nem éles Claude-worker, új Supabase-fiók vagy emberi minőség/retenció igazolása.
+
+## Későbbi állapot: 2026-10-04
+
+A fenti mérési sorozat változatlan történeti bizonyíték. Az admin kulcs időközben rendelkezésre áll: valódi szintetikus Auth/DB/OpenAI HTTP-hurok és fióktörlés sikeres; 007 feedback/session migráció alkalmazva. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz és megmaradt keret](STATUS_HU.md). Backup/restore és valós admin recovery továbbra nyitott.

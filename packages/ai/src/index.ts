@@ -258,7 +258,7 @@ export class OpenAiProvider implements AiProvider {
         output,
         receipt: {
           task,
-          promptVersion: `${task}.v2.${locale}`,
+          promptVersion: `${task}.${task === 'life_chapter' ? 'v3' : 'v2'}.${locale}`,
           locale,
           model: response.model,
           requestId: response._request_id ?? null,
@@ -356,7 +356,7 @@ export class OpenAiProvider implements AiProvider {
       periodChapterV2Schema,
       'life_chapter',
       this.config.storyModel,
-      `${periodRules(input.locale)} Write ONE coherent 250-600 word chapter in second person using only these canonical events and their state transitions. Include every event ID once in eventIds and copy the final decision ID. Use scenes, tension, personal goals and tradeoffs, not a report or list. End at the unresolved decision: do not select an option or describe events beyond it. You may add sensory detail without new factual commitments. Do not include raw UUIDs in prose. No invented employment, ownership, relationships, skills, money or outcome absent from canon.`,
+      `${periodRules(input.locale)} Write ONE coherent 250-600 word chapter in second person using only these canonical events and their state transitions. Include every event ID once in eventIds and copy the final decision ID. Build around one or two concrete moments with varied openings and pacing. Let accepted earlier choices affect the experience; use the supplied memory only as past context, not as new current facts. Make the final tradeoff felt through the main goal and its specific stakes. Avoid repeatedly reciting income, hours, energy, constraints or a generic cautious plan; mention a figure only when it matters to the scene or choice. Use natural English when locale=en. End at the unresolved decision: do not select an option or describe events beyond it. Neutral sensory texture is allowed but do not name a new place, business, transport system or cultural setting absent from canon. Do not turn age bands or unknown values into exact facts. Do not include raw UUIDs in prose. No invented employment, ownership, relationships, skills, money or outcome absent from canon.`,
       { ...input, repair: repair ?? null },
       input.locale,
     );

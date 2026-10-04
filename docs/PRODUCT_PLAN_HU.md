@@ -146,13 +146,13 @@ Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követ�
 | Onboarding Completion | Első szimulációt sikeresen elindítók / onboardingot elkezdő egyedi felhasználók |
 | First Simulation Completion | Első fejezet végén olvasás-befejezést jelzők / első fejezetet megnyitó egyedi felhasználók; a kijelzés külön szerepel a tényleges olvasásról |
 | First Decision Rate | Első döntést sikeresen mentők / első döntést megjelenítve látó egyedi felhasználók |
-| **Continuation Rate** | Első fejezetet befejezők közül „Folytatom” műveletet indítók aránya; külön szám a következő időszak sikeres commitja |
+| **Continuation Rate** | Első fejezetvég-jellel rendelkező gyökéréletek közül később sikeresen folytatottak aránya; a kattintási szándék külön proxy |
 | **Continued Life Sessions** | Későbbi munkamenetben legalább egyszer folytatott egyedi életek száma; mellette külön a sikeres folytatási munkamenetek száma |
 | Return D1/D7/D30 | Első AI-fejezetet megnyitó kohorsz visszatérése az adott napon; időzóna és megfigyelési ablak előre rögzítve |
 | Branch Rate | Történeti döntésből sikeres új ágat készítők / legalább egy elmentett döntéssel rendelkező egyedi felhasználók |
 | Költség | AI-költség/aktív felhasználó, sikeres időszak és folytatás; hibák és javítások költségével együtt |
 
-A „Folytatom” kattintás szándék, a sikeres commit működési eredmény: együtt mutatjuk őket. Technikai hibát nem zárunk ki csendben a megfelelő kohorszból; generálási sikerarány és várakozási idő külön is látszik. Az élet/munkamenet azonosító és az inaktivitási küszöb a mérési szerződés része lesz, tartalom vagy személyes cél analitikai naplózása nélkül.
+A „Folytatom” kattintás szándék, a sikeres commit működési eredmény: együtt mutatjuk őket. Technikai hibát nem zárunk ki csendben a megfelelő kohorszból; generálási sikerarány és várakozási idő külön is látszik. Az élet/munkamenet azonosító és a szerveroldali 30 perces inaktivitási küszöb már a [mérési szerződés](BETA_FEEDBACK_AND_METRICS_HU.md) része. A continuationRate aktuális operatív értéke a fejezetvég-jellel rendelkező gyökéréletek sikeres folytatási aránya; a kattintási szándék külön proxy. Tartalom vagy személyes cél nem kerül analitikai naplóba.
 
 Az elsődleges kérdés: **az első eredmény után akarja-e folytatni ugyanazt az alternatív életet?** A visszatérés kíváncsiságból és nyitott eseményekből épüljön; mesterséges napi streak nem szükséges. Emberi visszajelzésben mérjük, mi személyes, hihető, érdekes, és miért szeretné tudni, „mi történik ezután”.
 
@@ -162,7 +162,7 @@ Retenciós küszöbértéket még nem igazoltunk. A pilot tapasztalatai alapján
 
 A stratégia A–G hipotézisei tesztelendők: saját vagy fiktív identitás; onboarding értéke; folytatás vagy új élet; fork és visszatérés kapcsolata; megosztási szándék; más életének fogyasztása; történet vagy analitikus riport. Először a személyes core loopot vizsgáljuk; a nyilvános indulási kapu előtt a Discovery → fork → első saját időszak konverzió és a publikálási bizalom is külön próbát kap.
 
-A valódi Supabase email-belépés és teljes Auth/DB/OpenAI folyamat még ellenőrzendő. A fióktörlés éles ellenőrzéséhez hiányzó szerveroldali Supabase-kulcs korábban jelzett függőség; ez a tervezést és a helyi fejlesztést nem állítja meg. Titok csak a védett helyi környezetbe kerülhet.
+2026-10-04: valódi szintetikus Supabase-jelszavas Auth/DB/OpenAI HTTP-hurok és tényleges Auth/DB-törlés sikeres; admin kulcs védett környezetben. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Email-kézbesítés, backup/restore és valós DB-kiesésből admin recovery még külön üzemeltetési kapu. Élesítés a meglévő Contabo szerveren később, domain később.
 
 Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév és önkéntes nyilvános megosztás elfogadott irány. Domain, fizetős csomag, végleges keretek és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
 

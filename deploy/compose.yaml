@@ -1,0 +1,105 @@
+name: alterward
+x-runtime: &runtime
+  image: alterward:${ALTERWARD_TAG:-beta}
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+x-database: &database
+  DATABASE_URL: ${DATABASE_URL:?Set the server database URL}
+  DATABASE_SSL: 'true'
+  DATABASE_SSL_CA_FILE: /run/secrets/supabase-ca.crt
+services:
+  web:
+    <<: *runtime
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set the public Supabase URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Use only a publishable key}
+        NEXT_PUBLIC_API_URL: /api/v1
+    command:
+      [
+        pnpm,
+        --filter,
+        '@future-flow/web',
+        start,
+        --hostname,
+        0.0.0.0,
+        --port,
+        '3000',
+      ]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          'fetch("http://127.0.0.1:3000/").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+  api:
+    <<: *runtime
+    command: [pnpm, --filter, '@future-flow/api', start]
+    environment:
+      <<: *database
+      SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
+      WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
+      API_HOST: 0.0.0.0
+      API_PORT: '4000'
+      API_TRUST_PROXY: '1'
+      GENERATION_DAILY_LIMIT: ${GENERATION_DAILY_LIMIT:-3}
+      GENERATION_CONCURRENT_LIMIT: '1'
+    volumes:
+      - ${DATABASE_SSL_CA_HOST_FILE:?Set the verified CA file path}:/run/secrets/supabase-ca.crt:ro
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          'fetch("http://127.0.0.1:4000/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+  worker:
+    <<: *runtime
+    command: [pnpm, --filter, '@future-flow/worker', start]
+    environment:
+      <<: *database
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
+      AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
+      AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}
+      AI_CHECK_MODEL: ${AI_CHECK_MODEL:-gpt-6.1-sol}
+      AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
+      AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
+      AI_EXPERIMENT_LEDGER_PATH: ''
+      JOB_LEASE_SECONDS: '180'
+    volumes:
+      - ${DATABASE_SSL_CA_HOST_FILE}:/run/secrets/supabase-ca.crt:ro
+    stop_grace_period: 120s
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+volumes:
+  caddy_data:
+  caddy_config:

@@ -21,6 +21,8 @@ import {
   PUBLIC_DRAFT_VERSION,
   publicSnapshotDraftSchema,
   publicPreviewCopySchema,
+  betaFeedbackSchema,
+  lifeContinueRequestV2Schema,
 } from './index';
 
 const directory = resolve(__dirname, '../../../docs/contracts');
@@ -74,6 +76,8 @@ for (const [name, schema] of Object.entries({
   lifeCreateRequest: lifeCreateRequestV2Schema,
   lifeDraftRequest: lifeDraftRequestV2Schema,
   periodChapter: periodChapterV2Schema,
+  betaFeedback: betaFeedbackSchema,
+  lifeContinueRequest: lifeContinueRequestV2Schema,
 })) {
   writeFileSync(
     resolve(v2Directory, `${name}.schema.json`),

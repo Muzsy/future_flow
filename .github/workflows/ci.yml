@@ -25,3 +25,28 @@ jobs:
       - run: pnpm build
       - run: pnpm schemas
       - run: git diff --exit-code -- docs/contracts
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Contabo image without credentials
+        run: >-
+          docker build -t alterward:ci
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_unused
+          .
+      - name: Start and verify the production web process
+        run: |
+          docker run -d --name alterward-ci -p 3000:3000 alterward:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs alterward-ci
+          exit 1
+      - name: Clean up the test container
+        if: always()
+        run: docker rm -f alterward-ci || true
