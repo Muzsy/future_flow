@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import {
@@ -79,6 +80,30 @@ async function accept(
   );
 }
 describe.sequential('Shared Context private foundation persistence', () => {
+  it('keeps private account export and deletion usable before the additive Shared migrations are applied', async () => {
+    const old = new PGlite();
+    try {
+      for (const name of readdirSync('database/migrations')
+        .filter((n) => /^00[1-7]_.*\.sql$/.test(n))
+        .sort())
+        await old.exec(readFileSync('database/migrations/' + name, 'utf8'));
+      const legacy = new Repository(sharedAdapter(old)),
+        id = randomUUID();
+      await legacy.ensureUser(id);
+      await legacy.acceptPrivacy(id);
+      const exported = await legacy.exportAccount(id);
+      expect(exported.shared).toBeNull();
+      expect(exported.ff_consents).toHaveLength(1);
+      await legacy.markDeleting(id);
+      await legacy.confirmAuthDeleted(id);
+      await legacy.deleteAccountData(id);
+      expect(
+        (await old.query('SELECT id FROM ff_users WHERE id=$1', [id])).rows,
+      ).toEqual([]);
+    } finally {
+      await old.close();
+    }
+  });
   it('requires privacy before storing a social profile and rejects handle/private field injection', async () => {
     const u = randomUUID();
     await repo.ensureUser(u);

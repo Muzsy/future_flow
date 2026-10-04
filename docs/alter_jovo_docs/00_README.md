@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0 implementáció elkészült és izoláltan ellenőrzött; fejlesztői DB-alkalmazás függő, feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0 kész: izolált CI és valódi háromfiókos Supabase-próba sikeres, 001–009 alkalmazva; feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · A [pozicionálási terv](../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [nyilvános életutak terve](../PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az elfogadott felhasználói döntések egységes feldolgozása. [Dokumentációs központ](../README.md) · [Állapot](../STATUS_HU.md) · [Backlog](../NEXT_STEPS.md) · [Visszakövethetőség](../REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -39,6 +39,6 @@ A [manifest](manifest.json) a jelenlegi 21 témadokumentum UTF-8 byte-méretét 
 
 ## Shared Context mint harmadik forrás
 
-Az új [forráscsomag](../plans/README.md) változatlan; az [aktív Shared terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) S0–S7 külön szál. A 21 téma most a privát közös AI-események követelményeit is tartalmazza; az eredeti 80 stratégiai fejezet és public 14 elem megmarad. S0 implementált, DB-alkalmazás függő; következő helyi munka S1, friend release csak S2+S3 és biztonsági kapu után.
+Az új [forráscsomag](../plans/README.md) változatlan; az [aktív Shared terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) S0–S7 külön szál. A 21 téma most a privát közös AI-események követelményeit is tartalmazza; az eredeti 80 stratégiai fejezet és public 14 elem megmarad. S0 implementált, DB-alkalmazás és ismétlés sikeres; következő helyi munka S1, friend release csak S2+S3 és biztonsági kapu után.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

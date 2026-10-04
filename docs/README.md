@@ -62,4 +62,4 @@ Az új terv S0–S3 alap/AI/személyes integráció után adhat 2–10 fős ango
 
 ## Shared S0 megvalósítás — 2026-10-04
 
-[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0, 008/009 additív migráció, 13 privát RLS-tábla, minimális profil, szerver-entitlement és revisionös/idempotens meghívási API. A 35 új regresszióval a készlet 194 teszt. A mostani IPv4 hálózaton a Supabase direct IPv6 címe nem elérhető, ezért a tényleges DB-alkalmazás Session pooler címre vár. Következő S1; S2 valódi AI és S3 személyes integráció/consent/export/törlés/moderáció előtt nincs friend béta.
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0, 008/009 additív migráció, 13 privát RLS-tábla, minimális profil, szerver-entitlement és revisionös/idempotens meghívási API. A 36 új regresszióval a készlet 195 teszt. A mostani IPv4 hálózaton a Supabase direct IPv6 címe nem elérhető, ezért a tényleges DB-alkalmazás Session pooler címre vár. Következő S1; S2 valódi AI és S3 személyes integráció/consent/export/törlés/moderáció előtt nincs friend béta.

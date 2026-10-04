@@ -95,7 +95,7 @@ Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő job
 
 ## Claude értékelő, elkülönített integráció
 
-Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 194 teszt a jelenlegi készletben; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
+Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 195 teszt a jelenlegi készletben; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
 
 ## 2026-10-04: privát béta és Contabo-előkészítés
 
@@ -109,4 +109,4 @@ Narrátor v3: konkrét jelenet, elfogadott döntés megélt következménye, kev
 
 A feature összes flagje false; nincs Connections, Shared AI, harmadik worker queue vagy saját period memória/impact bekötés. Ezek S1–S3 feladatok, első friend kiadás csak S2 valódi AI + S3 biztonság után. S0 pontos napegyezést kér, nem teljes compatible-month/latest-anchor implementáció. Más típusok formation/governance S4–S6. Billing és retained prose/privacy kapuk megmaradnak.
 
-Fejlesztői DB-alkalmazás 008/009 a helyi direct IPv6 elérhetetlenség miatt Session pooler címre vár; 001–007 és a régi 18 séma változatlan. 35 új regresszióval 194 teszt a készlet; az aktuális local/CI bizonyíték a riportban. A worker továbbra v1/v2 queue-t kezel, paid hívás és Contabo-változás nincs.
+Fejlesztői DB-n 008/009 Session pooler kapcsolaton alkalmazva, megismételt runner/checksum és valódi háromfiókos HTTP/export/törlés sikeres; 001–007 és a régi 18 séma változatlan. 36 új regresszióval 195 teszt a készlet; az aktuális local/CI bizonyíték a riportban. A worker továbbra v1/v2 queue-t kezel, paid hívás és Contabo-változás nincs.

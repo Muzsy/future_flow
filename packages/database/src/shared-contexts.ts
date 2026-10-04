@@ -740,6 +740,9 @@ export class SharedContextRepository {
 }
 
 export async function cancelSharedAccountJobs(tx: Database, userId: string) {
+  // The private account paths remain usable before the additive Shared rollout.
+  // 008/009 are applied atomically; absent storage cannot contain shared jobs.
+  if (!(await sharedStoragePresent(tx))) return;
   const contexts = await tx.query(
     'SELECT c.id FROM aw_shared_contexts c WHERE EXISTS(SELECT 1 FROM aw_shared_members m WHERE m.context_id=c.id AND m.user_id=$1 AND m.status=ANY($2::text[])) ORDER BY c.id FOR UPDATE',
     [userId, liveStatuses],
@@ -751,6 +754,7 @@ export async function cancelSharedAccountJobs(tx: Database, userId: string) {
     );
 }
 export async function exportSharedAccount(tx: Database, userId: string) {
+  if (!(await sharedStoragePresent(tx))) return null;
   const repo = new SharedContextRepository(tx);
   const own = await tx.query(
     'SELECT id,context_id,context_type,life_id,branch_id,status,admin_role,interaction_profile,sharing_policy_version,world_role,joined_at,left_at FROM aw_shared_members WHERE user_id=$1',
@@ -770,4 +774,11 @@ export async function exportSharedAccount(tx: Database, userId: string) {
     contexts,
     invitations: invites,
   };
+}
+
+async function sharedStoragePresent(tx: Database) {
+  const [row] = await tx.query(
+    "SELECT to_regclass('public.aw_shared_contexts') IS NOT NULL AS present",
+  );
+  return row?.present === true;
 }
