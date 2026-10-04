@@ -27,7 +27,6 @@ services:
     networks: [proxy, worker]
   smoke-proxy:
     image: caddy:2
-    ports: ['127.0.0.1:8443:443']
     volumes:
       - ../tests/deployment/Caddyfile.smoke:/etc/caddy/Caddyfile:ro
       - ${CI_TLS_DIRECTORY}/server.crt:/fixture/server.crt:ro

@@ -22,6 +22,8 @@ A privát kulcs jelszó nélküli, helyi Windows ACL védi. A gép elvesztése e
 
 Hat meglévő konfigurációfájl első állapotú másolata, hash-ekkel és manifesttel, a helyi védett `contabo_ops_baseline_20261004` könyvtárba került. Tartalmazza a meglévő Caddy/Compose és SSH-konfigurációt; az eredeti authorized_keys külön mentése is megvan. Ez konfigurációmentés, nem teljes VPS-, adatbázis- vagy offsite-mentés, és nem bizonyított restore.
 
+A teljes jelenlegi Caddy data/config fájltár is másolva: 19 fájl, 13 945 byte a védett `contabo_proxy_state_20261004` helyi könyvtárban, tartalmi hash-ekkel. A privát certificate/ACME-kulcsok kizárólag itt maradnak; a Windows ACL-nél csak a jelenlegi felhasználónak van engedélyezett hozzáférése. Az élő fájlmásolás nem atomi snapshot, nem hozza vissza a már hiányzó certificate-kulcsokat, restore nincs igazolva.
+
 Az [elkülönített Contabo Compose](../deploy/compose.contabo.yaml) a meglévő alapból csak a web/API/worker szolgáltatásokat veszi át. Saját proxy és nyilvános alkalmazásport nincs. A web/API az `alterward_proxy` külső hálózaton, stabil DNS-aliasokkal érhető el; a worker külön bridge hálózaton kap kifelé elérést. Az opcionális ALTERWARD_PROXY_NETWORK a CI-ben külön teszthálózatot választ, éles alapértéke alterward_proxy.
 
 | Szolgáltatás | Memória maximum | CPU maximum | Node heap maximum |
@@ -45,6 +47,8 @@ A [CI container job](../.github/workflows/ci.yml) új [futáspróbája](../scrip
 ## Nyitott operatív döntések
 
 A friss Caddy-naplók hiányzó certificate privátkulcs- és metaadatfájlokat, ALPN challenge 403 és egy ACME connection-refused hibát mutatnak. Nincs manuális certificate-loader a lemezes konfigurációban. Az aktív domainnevek, a certificate storage teljessége és a DNS/proxy/ACME útvonal tisztázandó. A szolgáltatói/proxys DNS más IP-je önmagában nem bizonyít hibás DNS-t. A domainnevek és részletes leltár csak helyben találhatók `.local/server-audit/PRIVATE_TLS_FINDINGS_HU.md` alatt; más oldalak route-ját nem töröltük.
+
+Pontosítás: két név publikus HTTPS-e normál lánc/hostname ellenőrzéssel sikeres, Cloudflare-fejlécekkel; a többi négy a szerverről connection-refused. A lemezes certificate storage-ban csak a két működő név teljes crt/key/json hármasa található. Emiatt proxy-restart előtt a megmaradt élő certificate-cache és a storage helyreállítása is szükséges. Az eltérő DNS-IP a két működő esetben igazolt proxyzás.
 
 Függő kernel-reboot és csomagkarbantartás, két korábbi failed unit és több meglévő alkalmazás miatt üzemeltetési időablak kell. A Docker és Tailscale miatt a helyi tűzfalszabályokat a jelenlegi szolgáltatások és provider firewall leltárával kell megtervezni; egyszerű UFW-enable nem igazolt védelem. [Docker és tűzfal](https://docs.docker.com/engine/network/packet-filtering-firewalls/).
 

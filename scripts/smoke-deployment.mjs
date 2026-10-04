@@ -67,16 +67,19 @@ function run(command, args, timeout = 120000) {
   });
 }
 const compose = (...args) => run('docker', [...composeArgs, ...args]);
-async function waitFor(check) {
-  for (let attempt = 0; attempt < 30; attempt++) {
+async function waitFor(label, check) {
+  const deadline = Date.now() + 60000;
+  let lastError = '';
+  while (Date.now() < deadline) {
     try {
       if (check()) return;
-    } catch {
+    } catch (error) {
+      lastError = error.stderr?.toString().trim() || error.message;
       // Services may still be starting. Retry for at most one minute.
     }
     await setTimeout(2000);
   }
-  throw new Error('Container smoke readiness timed out');
+  throw new Error(`${label} readiness timed out: ${lastError}`);
 }
 let networkCreated = false;
 try {
@@ -174,39 +177,47 @@ try {
     'worker',
     'smoke-proxy',
   );
-  await waitFor(() =>
-    run('curl', [
-      '--fail',
-      '--silent',
-      '--cacert',
-      join(fixture, 'ca.crt'),
-      'https://localhost:8443/',
-    ]).includes('alterward'),
+  // Internal networks have no published-port NAT. The host can reach their
+  // bridge address directly; --resolve still verifies the localhost TLS name.
+  const proxyId = compose('ps', '-q', 'smoke-proxy').trim();
+  const proxy = JSON.parse(run('docker', ['inspect', proxyId]))[0];
+  const proxyAddress = proxy.NetworkSettings.Networks[network].IPAddress;
+  assert(/^\d{1,3}(\.\d{1,3}){3}$/.test(proxyAddress));
+  const curlArgs = [
+    '--silent',
+    '--show-error',
+    '--noproxy',
+    '*',
+    '--connect-timeout',
+    '2',
+    '--max-time',
+    '5',
+    '--cacert',
+    join(fixture, 'ca.crt'),
+    '--resolve',
+    `localhost:443:${proxyAddress}`,
+  ];
+  await waitFor('HTTPS web', () =>
+    run('curl', [...curlArgs, '--fail', 'https://localhost/']).includes(
+      'alterward',
+    ),
   );
   const response = JSON.parse(
-    run('curl', [
-      '--silent',
-      '--show-error',
-      '--cacert',
-      join(fixture, 'ca.crt'),
-      'https://localhost:8443/api/v1/me',
-    ]),
+    run('curl', [...curlArgs, 'https://localhost/api/v1/me']),
   );
   assert.equal(response.error.code, 'AUTH_REQUIRED');
   assert.equal(
     run('curl', [
-      '--silent',
-      '--cacert',
-      join(fixture, 'ca.crt'),
+      ...curlArgs,
       '-o',
       '/dev/null',
       '-w',
       '%{http_code}',
-      'https://localhost:8443/api/v1/me',
+      'https://localhost/api/v1/me',
     ]),
     '401',
   );
-  await waitFor(() => {
+  await waitFor('Worker queue polling', () => {
     const log = compose('logs', '--no-color', 'postgres');
     return (
       log.includes('SELECT j.* FROM aw_jobs') && log.includes('FROM ff_jobs')
