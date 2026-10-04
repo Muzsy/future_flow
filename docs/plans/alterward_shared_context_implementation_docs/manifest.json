@@ -1,0 +1,26 @@
+{
+  "project": "alterward",
+  "repository": "Muzsy/future_flow",
+  "branch": "main",
+  "audited_commit": "b75e61ddc0a6dbdc31653a8c58d5c251e2f95aa8",
+  "audit_date": "2026-10-04",
+  "scope": "Shared Context / multi-user life intersection implementation specification",
+  "files": [
+    "00_README.md",
+    "01_CURRENT_CODEBASE_AUDIT.md",
+    "02_PRODUCT_AND_DOMAIN_RULES.md",
+    "03_CONTRACTS_AND_TYPES.md",
+    "04_DATABASE_AND_MIGRATIONS.md",
+    "05_SHARED_ENGINE_AND_CANON.md",
+    "06_API_REPOSITORY_AND_ENTITLEMENTS.md",
+    "07_WORKER_AI_AND_COST_MODEL.md",
+    "08_WEB_UX_AND_USER_FLOWS.md",
+    "09_PRIVACY_CONSENT_MODERATION_DELETION.md",
+    "10_TEST_AND_ACCEPTANCE_PLAN.md",
+    "11_IMPLEMENTATION_ROADMAP.md",
+    "12_AGENT_EXECUTION_CHECKLIST.md",
+    "13_REFERENCE_SCENARIOS.md",
+    "14_REFERENCE_IMPLEMENTATION_BLUEPRINT.md",
+    "MASTER_SHARED_CONTEXT_SPEC_HU.md"
+  ]
+}

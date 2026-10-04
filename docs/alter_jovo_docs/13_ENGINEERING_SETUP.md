@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
 
 ## Környezet
@@ -44,3 +46,9 @@ Változás átadása: konkrét viselkedés, séma/migráció/jogosultság/AI-kö
 A [2026-10-04-i olvasási audit](../CONTABO_SERVER_AUDIT_HU.md) sikeres SSH-belépéssel lezárta a kapacitás és meglévő környezet inventárját: Ubuntu 24.04.4, 4 vCPU/8 GB RAM, 4,91 GiB elérhető memória és 71 GiB szabad tárhely. Docker 29.1.3/Compose v5.1.4 mellett a YAML-parszolás sikeres. Hoston Node 22 van, az alkalmazás Node 24 Docker image-et használ. A meglévő Caddy miatt közös route és külön proxy-hálózat kell; a saját 80/443 portkötés itt ütközne. Teljes runtime/terhelés/restore és élesítés nem történt; a tűzfal/TLS és karbantartási pontok még rendezendők. Az audit akkori SSH-megállapításait az alábbi végrehajtás felülírja.
 
 [Audit utáni végrehajtás](../CONTABO_PREPARATION_REPORT_HU.md): külön kulcsos SSH és jelszavas tiltás friss kapcsolatokkal ellenőrzött; konfiguráció és proxy-storage védetten mentve, 25 hash egyezik. A Contabo web/API/worker fájl, meglévő proxy hálózatmerge és Caddy adapt sikeres a szerveren; 2816 MiB runtime-korlát, nulla alkalmazásport. [CI 37194453326](https://github.com/Muzsy/future_flow/actions/runs/37194453326): 159 teszt/build/séma-drift és teljes container job sikeres. Külön PostgreSQL/TLS fixture-ben migráció és ismétlés, web/API/worker/proxy, verified HTTPS/DB TLS, API 401, két üres queue és worker megállás SIGKILL nélkül. Ez nem éles telepítés, aktív AI-job drain vagy terhelés/restore bizonyíték. Fizetett AI-hívás nincs az infrastruktúrapróbában.
+
+## Shared foundation következő helyi szelet
+
+Új shared-context.ts contract/core, shared-contexts/shared-jobs repository, SharedContextController, SharedAiProvider és shared-processor csak tervezett fájltérkép. Új migráció sorszámát implementáláskor ellenőrizzük, meglévő 001–007 nem módosul. S0 után disabled flags mögötti foundation, targeted schema/domain/DB/API tesztek; pnpm check és schema drift az érintett kód szerint. Nincs paid próba, Contabo-módosítás vagy production entitlement-bypass a docs integráció részeként.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

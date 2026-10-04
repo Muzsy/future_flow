@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
 
 ## Meglévő bizonyíték és határ
@@ -35,3 +37,9 @@ P06 valós integrációs HTTP/böngészős próba és kontrollált recovery kés
 Claude külső audit: [bizonyíték és hibás gépi riasztások](../examples/CLAUDE_EXTERNAL_AUDIT_HU.md). Ismert kontrollhibák mellett az auditor idézet/verdikt megbízhatósága is mérendő. A fő történetek külső kánonellenőrzése sikeres, emberi minőség még nyitott. Nyolc új fizetés nélküli transport/budget/audit-validátor teszt.
 
 A teljes izolált Linux CI web/API/worker/Caddy futáspróbája, 001–007 és ismételt migráció, verified DB TLS/HTTPS, API 401 és üres queue-leállítás sikeres. Aktív generálási job drain, Contabo-élesítés és terhelésmérés nincs ezzel igazolva. [CI és ellenőrzési határok](../CONTABO_PREPARATION_REPORT_HU.md).
+
+## Shared tesztmátrix — még nincs futtatva
+
+Új esetek: tier/type/slot/taglimit, last-slot/romantic két párhuzamos accept, invite expiry/reuse/recipient/block, outsider privacy, own intent/authority, policy tie/quorum, time mismatch/backdated, duplicate event/intent/impact, lease/restart/repair, fair queue, fork tagság nélkül, háromtagú deletion/recovery, húsz párhuzamos sport-intent. Friend DoD valódi AI és saját következő period, nem csak fixture. A korábbi 159 teszt változatlan; nem shared bizonyíték.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

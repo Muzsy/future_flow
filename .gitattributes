@@ -3,3 +3,5 @@
 # Archived source Markdown uses two spaces for explicit line breaks.
 docs/archive/alter_jovo_v0_1/*.md whitespace=-blank-at-eol
 docs/PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md whitespace=-blank-at-eol
+# The supplied Shared Context Markdown preserves intentional hard line breaks.
+docs/plans/alterward_shared_context_implementation_docs/*.md whitespace=-blank-at-eol

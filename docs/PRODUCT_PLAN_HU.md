@@ -1,8 +1,8 @@
 # alterward — aktív termék- és megvalósítási terv
 
-[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-04 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
+2026-10-04 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az új [Shared Context csomag](plans/README.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
 
 ## 1. Irány és dokumentumok szerepe
 
@@ -10,11 +10,11 @@ AI által generált, tartósan mentett, folytatható és elágaztatható alterna
 
 Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedezése. Az önreflexió ebből származó érték. A cél irányt ad a szimulációnak; teljesülését a rendszer nem ígéri meg. A kommunikáció lehetséges szcenáriókról beszél, és nem ad a kitalált eseményekhez megtörténési százalékot.
 
-Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a megvalósított v2 rövid profilt/időszakot használ.
+Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum és az új Shared Context specifikáció → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a megvalósított v2 rövid profilt/időszakot használ.
 
 Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, kizárólag angol induló felület és történetek; magyar halasztva, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
-A termék neve **alterward**, a felhasználó 2026-10-03-i döntése alapján. A repó és a projektkönyvtár `future_flow` marad. A belső csomagnevek, régi sémaazonosítók és védett titokkönyvtárak megtartása technikai kompatibilitás, nem márkanév-döntés. A forrásdokumentumok korábbi munkanevei történeti szövegek. Domainválasztás és fizetős csomag továbbra sincs eldöntve.
+A termék neve **alterward**, a felhasználó 2026-10-03-i döntése alapján. A repó és a projektkönyvtár `future_flow` marad. A belső csomagnevek, régi sémaazonosítók és védett titokkönyvtárak megtartása technikai kompatibilitás, nem márkanév-döntés. A forrásdokumentumok korábbi munkanevei történeti szövegek. Domain, pontos csomagár és billing nincs eldöntve; az új Shared Context tervezett tier- és jogosultsági modelljét a 13. szakasz rögzíti.
 
 A termék három összekapcsolt rétege: **Private Personal Simulation**, **Official Lives / Scenarios** és önként publikált **Community Lives**. A teljes közösségi MVP-ben kurált, valódi AI-val generált életutak lesznek Discoveryben; a technikailag kész privát életmotor korlátozott angol bétája korábban is indulhat. Az olvasás meglévő snapshotból történik; a „Fork this life” vagy személyre szabás új, saját privát szimulációhoz vezet.
 
@@ -30,6 +30,7 @@ A legújabb felhasználói döntés szerint kizárólag angol felület és angol
 | Állapot/visszatérés | Számszerű mutatók, mentett archívum | Tényállapot, cél/szereplő/korlát, revision, mentett választás és következő időszak |
 | Minőségbizonyíték | Korábbi szintetikus baseline/ág minták | 159 automatizált teszt, 20 determinisztikus eset ×3 időszak; négy valódi generatív lánc és új angol minta külső auditja; használói élmény kiadás után mérendő |
 | Költség/mérés | Közös fejlesztői napló | Projekt/user foglalás, hibaköltség, feedback, session/fejezetvég/folytatás összesítés; éles allowance még nulla |
+| Shared Context | Nincs | Új S0–S7 terv; szerződés/tárolás/API/AI/Connections még nem implementált |
 | Nyilvános tartalom | Nincs publikálás/Discovery | Privát snapshot/szcenárió-előnézet kész; teljes PII, Publication/Official seed, Discovery és public fork még tervezett |
 
 A valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok, böngészős onboarding/visszatérés/export, Auth/DB-törlés és kontrollált recovery sikeres. Backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és Contabo-élesítés még kapu. [Aktuális bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz](STATUS_HU.md). Emberi élmény és megtartás a korlátozott angol béta után mérendő.
@@ -130,9 +131,9 @@ Az állapotátmenetek, minimális emlékezet, több időszakos minőség és kö
 
 A nyilvános induló MVP az 1–5. fázis együtt: a személyes core loop mellé Official/Community tartalom, három láthatóság, publikálás, Privacy Preview és Content Preview, snapshot, életoldal, Discovery, Save/Share/Fork, Report, Unpublish és alap taxonómia tartozik. A közösségi specifikáció saját Phase 0–3 jelölése ennek 2–5. fázisát bontja ki; a privát technikai pilot hamarabb is futhat.
 
-Az MVP-ből kimarad a kommentrendszer, DM/chat, követési gráf, reakciók, alkotói monetizáció, marketplace, fizetés, natív mobil, hang/kép/avatar/VR, multiplayer, habit tracker, coaching- és egészségplatform, összetett achievementek és több száz mutató. A szabad szöveges döntés, összetett compare és sokcélú optimalizálás a működő folytatás után kerül sorra. A részletes [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) rögzíti az adatmodell, jogosultság, visszavonás és moderáció elfogadását.
+Az MVP-ből kimarad a kommentrendszer, DM/chat, követési gráf, reakciók, alkotói monetizáció, marketplace, billing, natív mobil, hang/kép/avatar/VR, realtime multiplayer, habit tracker, coaching- és egészségplatform, összetett achievementek és több száz mutató. A szabad szöveges döntés, összetett compare és sokcélú optimalizálás a működő folytatás után kerül sorra. A részletes [nyilvános megvalósítási terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) rögzíti az adatmodell, jogosultság, visszavonás és moderáció elfogadását.
 
-A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktörlés az indulás része, fizetéstől függetlenül. Discovery, olvasás, mentés, megosztás és publikálás az új specifikáció szerint ingyenes; saját generálás/fork/személyre szabás limitálható. Prémiumérték lehet több aktív élet, több generálás és mélyebb szimuláció. Pontos limitek és árak később, mért költség alapján készülnek. Privát működés nem kerül fizetési feltétel mögé.
+A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktörlés az indulás része, fizetéstől függetlenül. Discovery, olvasás, mentés, megosztás és publikálás az új specifikáció szerint ingyenes; saját generálás/fork/személyre szabás limitálható. Prémiumérték lehet több aktív élet, több generálás és mélyebb szimuláció. Személyes generálási limitek és pontos árak később, mért költség alapján készülnek; a Shared Context saját tervezett slot/típus entitlementet kap. Az egyszemélyes privát alap és a privacy nem kerül fizetési feltétel mögé.
 
 ## 9. Elfogadás és mérés
 
@@ -163,7 +164,7 @@ A stratégia A–G hipotézisei tesztelendők: saját vagy fiktív identitás; o
 
 2026-10-04: valódi szintetikus Supabase-jelszavas Auth/DB/OpenAI HTTP-hurok és tényleges Auth/DB-törlés sikeres; admin kulcs védett környezetben. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Email-kézbesítés, backup/restore és valós DB-kiesésből admin recovery még külön üzemeltetési kapu. Élesítés a meglévő Contabo szerveren később, domain később.
 
-Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév és önkéntes nyilvános megosztás elfogadott irány. Domain, fizetős csomag, végleges keretek és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
+Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév és önkéntes nyilvános megosztás elfogadott irány. Domain, pontos csomagár/billing, végleges generálási keretek és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
 
 ## 11. Visszakövethetőség az új stratégiához
 
@@ -190,3 +191,15 @@ A forrás piaci/versenytársi hivatkozásai háttéranyagok; ez a terv nem teszi
 | 39 | Views/read depth/save/share/fork/publish/unpublish és moderációs mérés a folytatási metrikák mellett |
 
 A seed célja a forrás szerint **50–100 Official Life és 20–30 Scenario a publikus indulás előtt**. Először néhány szintetikus, több időszakos mintán ellenőrizzük a minőséget és a költséget. A célmennyiség nem jogosít az 5 USD keret túllépésére; a méretezéshez mért költség és szükség esetén külön jóváhagyott keret kell. Ez a tervfrissítés nem indít új fizetett AI-hívást.
+
+## 13. Shared Context — privát többfelhasználós életkapcsolatok
+
+A [2026-10-04-i új specifikáció](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md) hozzáadja az aszinkron közös szimulációt: valós felhasználók egy-egy saját ágával egy privát contextet alkotnak. A közös eseménynek egy canonja van; a személyes történet csak a jogosult, saját döntéssel engedett hatást kapja. A privát élet egytulajdonosú marad. Ez külön képesség a Private/Official/Community tartalomrétegek mellett; nem változtatja a csoportot publikussá.
+
+Típusok: friend 2–10, romantic pontosan 2 és max 1 aktív/user, work/hobby max 10, sport max 20. Tervezett aktív slotszám: Free 0, Explorer 1 friend, Connected 3 friend/romantic/work/hobby, World 5 minden típus; minden tag saját entitlementje szükséges. Inviting/active/paused slotot fogyaszt, ended/archived nem. A tiermodell megvalósítandó; árak/billing és downgrade grace még konkretizálandók, a privacy/export/törlés ingyenes.
+
+Következő helyi szelet S0 foundation, majd S1 determinisztikus tesztalap → S2 valódi Shared AI → S3 személyes memória/hatás, Connections és friend kiadási kapu. S4–S6 fokozatos típusbővítés, S7 split/group fork/sponsored/public többfél-consent később. A P09–P13 public MVP nem törlődik; annak PII/preview/fork kapuja a shared történetek más felhasználóit is védi.
+
+Biztonságos meghívó, explicit részvétel/consent, minimális InteractionProfile, saját intent, deterministic resolution, rendezett user/context/branch lock, revision/lease/idempotencia és lazy személyes impact kötelező. Személyes fork nem örököl live tagságot. A törölt tag adata leválasztandó, más tagok története nem cascade-törlendő; próza-redakció/retention ellenőrzése nélkül nincs kiadás.
+
+A [részletes integrációs terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) tartalmazza a szerződést, táblákat/API-kat, AI-inputot és költségviselést, UX-t, S0–S7 elfogadásokat és a forrás ellentmondásainak feloldását. Shared Context még nincs a kódban; nincs AI nélküli friend release, és a helyi fejlesztés nem jelent Contabo-telepítést.

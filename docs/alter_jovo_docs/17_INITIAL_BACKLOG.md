@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
 
 | Pont | Állapot és konkrét eredmény |
@@ -30,3 +32,9 @@ AJ foundation/auth/questionnaire/profile/job/AI/timeline/branch epicek v1 alapja
 Minden szelet célja konkrét viselkedés és elfogadási példa; schema/API/migration/ownership/locale/AI-költség hatás ismert. Done: működő kód, releváns ellenőrzés, kompatibilis migráció/séma, friss implementáció/státusz/backlog és megfelelő CI. Könyvtári séma nem teljes tárolási vagy UI-feature. Public gate nem csak a 14 checkbox, hanem privacy/permission/deletion/moderation is.
 
 A felhasználó kérése szerint sorban haladunk. A visszafordítható technikai részleteket dokumentáljuk; valódi hiányzó döntést vagy kereten túli paid futtatást konkrét tervvel tisztázunk. Dokumentáció-only változás nem jogosít új feature vagy fizetett tesztsorozat indítására.
+
+## Shared backlog utódlása
+
+L01/P01–P13 változatlan azonosítók; új S0–S7 roadmap a NEXT_STEPS-ben és a Shared tervben. Első helyi munka S0, user-facing friend release S2+S3 kapu után, nem AI nélküli S1 demo. S4–S6 típusbővítés, S7 advanced később; P06 ops és P09–P13 public továbbra teljesítendő. A source PR-feladatokat main commit-szeletekként követjük.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

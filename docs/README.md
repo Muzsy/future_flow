@@ -1,6 +1,6 @@
 # alterward — dokumentáció
 
-2026-10-04 · A teljes témadokumentáció frissítve a két átadott terv és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
+2026-10-04 · A teljes témadokumentáció frissítve a két stratégiai terv, az új Shared Context specifikáció és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
 
 ## Olvasási sorrend
 
@@ -9,9 +9,11 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
-| [Következő lépések](NEXT_STEPS.md) | L01 és P01–P13 végrehajtási sorrend, függőségek, elfogadás |
+| [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; következő helyi szelet S0 |
+| [Shared Context integráció](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) | Több valódi felhasználó privát életágának közös AI-eseményei, consent, entitlement, személyes hatások és kiadási kapuk |
+| [Új forráscsomag](plans/README.md) | Változatlan ZIP, 15 témadokumentum, master és ellenőrzőösszegek |
 | [21 részes témadokumentáció](alter_jovo_docs/00_README.md) | Termék, UX, profil, motor, AI, közösség, architektúra, adat/API, biztonság, minőség és üzemeltetés |
-| [Követelmények visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md) | Hol érvényesül a két terv mind a 80 fő fejezete és a közösségi MVP 14 eleme? |
+| [Követelmények visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md) | Hol érvényesül a 80 stratégiai fejezet, a 14 public MVP-elem és az új csomag mind a 15 témadokumentuma? |
 | [V2 megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md), [törlési runbook](ACCOUNT_DELETION_RUNBOOK_HU.md) | Új privát élet, mérések és helyreállítás |
 | [Privát béta megvalósítás](BETA_IMPLEMENTATION_REPORT_HU.md), [feedback és metrikák](BETA_FEEDBACK_AND_METRICS_HU.md) | Valódi Auth/AI/törlés, angol minta auditja, privát űrlap és session-mérés |
 | [Implementáció](IMPLEMENTATION.md) | A meglévő kód tényleges működése és korlátai |
@@ -28,21 +30,22 @@
 
 ## Elsőbbség és státusz
 
-Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
+Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás és az új Shared Context specifikáció → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
 
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
 - **Ellenőrizendő:** backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, kontrollált megszakításból valódi recovery és a teljes izolált konténeres CI sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
-- **Tervezett:** publishing, Discovery, Official seed és nyilvános fork.
+- **Tervezett:** Shared Context S0–S7; publishing, Discovery, Official seed és nyilvános fork. A forrás integrálása nem kész feature.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
-Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. Pontos fizetős árak és domain még nincsenek eldöntve.
+Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. A Shared Context tervezett Free/Explorer/Connected/World jogosultsági modellje bekerült; pontos ár, billing és domain még nincs eldöntve.
 
 ## Források és archívum
 
-A felhasználó két dokumentuma teljes terjedelemben, változatlanul megmarad:
+A felhasználó három forrása teljes terjedelemben, változatlanul megmarad:
 
 1. [Pozicionálás és célmeghatározás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) — 38 fő fejezet.
 2. [Nyilvános életutak, Discovery és közösség](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) — 42 fő fejezet; kiegészíti és a közösségi MVP sorrendjében pontosítja az első tervet.
+3. [Shared Context implementációs csomag](plans/README.md) — 15 témadokumentum, teljes master, manifest/checksum és eredeti ZIP; a személyes életmotor privát többfelhasználós bővítése.
 
 A források régebbi munkanévre, nyelvre és prémium privacyra vonatkozó részeit a [döntési napló](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) felülírja. Piaci/versenytársi háttérállításaik nem friss, külön ellenőrzött piackutatási eredmények.
 
@@ -51,3 +54,7 @@ A korábbi 21 dokumentum és eredeti manifest byte szerinti másolata az [archí
 ## Karbantartás
 
 Funkció elkészültekor először a bizonyítékot és státuszt kell frissíteni, majd a backlogot és a megfelelő témadokumentumot. Modellárak/mérések dátummal szerepelnek; új árat újra ellenőrizni kell, régi mérés nem írható át. Az AI-minták tényleges generált törzse és a forrásdokumentumok nem szerkesztett termékígéretek. A JSON-sémák a kódból készülnek `pnpm schemas` paranccsal. Az aktív témacsomag manifestje tartalomváltozás után újragenerálandó.
+
+## Shared Context beépítése — 2026-10-04
+
+Az új terv S0–S3 alap/AI/személyes integráció után adhat 2–10 fős angol friend bétát; S4 romantikus, S5 projekt/hobbi, S6 húszfős sport, S7 későbbi bővítés. Az AI nélküli forráslépések csak kikapcsolt foundation és izolált teszt; nincs AI nélküli termékkiadás. A személyes mag és a public MVP megmarad, a csoport maga privát. Az aktív terv rendezi a mintakód lock-sorrendjét, törlési és időkezelési kapuit, és az angol/main/helyi fejlesztési döntéseket. Új alkalmazáskód, migráció, paid hívás vagy Contabo-módosítás ebben az integrációban nem készült.

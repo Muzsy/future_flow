@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · A v2 privát folyamat integrált; az alábbi public folyamatok tervezettek. A korábbi kétnyelvű alap elkészült; az aktív termék UI és AI-története kizárólag angol. [Lokalizáció](../LOCALIZATION_HU.md).
 
 ## Első saját élet
@@ -33,3 +35,9 @@ Discovery/kategória/nyelvi szűrő → Official vagy Community életoldal → t
 Unlisted titkos link csak snapshotot ad, Discovery/SEO nélkül. Unpublish megszünteti az új olvasást/forkot és a saját cache/index/OG hozzáférést; a privát élet megmarad. A részletes [nyilvános terv](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) az elfogadás alapja.
 
 Reszponzív web indul; natív mobil, értesítések, chat/DM, reakció/követés/komment későbbi, méréssel indokolt bővítés. A választási opciók nem „helyes” életvezetési válaszok.
+
+## Connections és Shared döntés — tervezett UX
+
+S3-ban angol Connections dashboard és context-idővonal készül. Saját ág → secure invite → másik fiók saját ág/tier/idő/privacy ellenőrzése → explicit accept → valódi Shared AI → saját intent → lezárás → saját AI-folytatásban hatás. Mások válasza lezárásig rejtett; pending impact jelzés, leave/archive/report/block. Romantic invite önmagában nem kapcsolat. Nincs AI nélküli friend demo és nincs chat.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

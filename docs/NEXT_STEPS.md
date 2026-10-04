@@ -1,8 +1,8 @@
 # alterward — következő lépések, sorrendben
 
-[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-04 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján átrendezett backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06 valódi Auth/AI HTTP-próba kész, ops még nyitott; P07 új angol minta auditálva, P08 visszajelzés és session-mérés elkészült. [2026-10-04-i béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
+2026-10-04 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az új [Shared Context specifikáció](plans/README.md) alapján bővített backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06 valódi Auth/AI HTTP-próba kész, ops még nyitott; P07 új angol minta auditálva, P08 visszajelzés és session-mérés elkészült. [2026-10-04-i béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Kiinduló állapot
 
@@ -12,13 +12,32 @@ Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges f
 
 2026-10-04-i [Contabo-audit](CONTABO_SERVER_AUDIT_HU.md): a második belépési párossal sikeres belső olvasási vizsgálat; 4 vCPU/8 GB RAM, körülbelül 4,91 GiB elérhető memória és 71 GiB szabad tárhely, külső API/Auth és saját CA-val DB TLS rendben. Az auditban rögzített SSH- és csomagolási feladatok az alábbi előkészítésben már elkészültek. Hátravan a tűzfal/TLS, teljes mentés/restore, karbantartás és későbbi éles futás ellenőrzése. A saját proxy 80/443 kötése ütközne; élesítés még nem történt.
 
-Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH-kulcs telepítve és többször próbálva, jelszavas belépés kikapcsolva a felhasználó tisztázása után. Védett konfiguráció- és proxy-storage mentés készült, 25 fájl hash-e egyezik. A külön háromszolgáltatásos Contabo-csomag szerveroldali preflightja, meglévő proxy-Compose merge és Caddy adapt sikeres; összesen 2816 MiB korlát, nincs nyilvános alkalmazásport. A teljes konténeres CI-próba is sikeres: web/API/worker/proxy, izolált DB TLS/migrációk és üres worker-leállítás. Éles alterward még nem fut. Következő: aktív meglévő domain/TLS helyreállítása, tűzfal és teljes backup/restore, egyeztetett karbantartás, majd saját domain és külön éles AI-keret mellett telepítés.
+Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH-kulcs telepítve és többször próbálva, jelszavas belépés kikapcsolva a felhasználó tisztázása után. Védett konfiguráció- és proxy-storage mentés készült, 25 fájl hash-e egyezik. A külön háromszolgáltatásos Contabo-csomag szerveroldali preflightja, meglévő proxy-Compose merge és Caddy adapt sikeres; összesen 2816 MiB korlát, nincs nyilvános alkalmazásport. A teljes konténeres CI-próba is sikeres: web/API/worker/proxy, izolált DB TLS/migrációk és üres worker-leállítás. Éles alterward még nem fut. Az élesítési ág következő feladata: aktív meglévő domain/TLS helyreállítása, tűzfal és teljes backup/restore, egyeztetett karbantartás, majd saját domain és külön éles AI-keret mellett telepítés.
+
+## Új helyi fejlesztési szál — Shared Context S0–S7
+
+**Állapot:** a forrás és követelmények integrálva; minden S-pont megvalósítása tervezett. Következő helyi szelet **S0 foundation**. A [részletes Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) az elfogadások és invariantok gazdája; a [forráscsomag](plans/README.md) változatlan. L01/P01–P13 számozása megmarad.
+
+| Pont | Következő eredmény                                                                              | Függőség / kapu                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| S0   | Shared contract/core, additív DB, social profile, entitlement, create/list/detail/invite/accept | Meglévő v2; RLS/ownership/token/cap/lock/deletion alap, flag kikapcsolva                 |
+| S1   | 2–10 fős friend determinisztikus engine, idő/ág, saját intent, resolution, memory impact        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                            |
+| S2   | Valódi Shared OpenAI, job/worker fair queue, validálás/repair, projekt/user költség             | S1; lease/idempotencia és kumulatív keret, max 1 repair                                  |
+| S3   | Lazy impact + személyes AI-memória/folytatás, Connections, meghívás/döntés, fork/solo           | S2; teljes privacy/export/törlés/recovery/block/report; első AI-s friend béta csak utána |
+| S4   | Connected romantikus típus                                                                      | S3; 2 tag, max 1/user, mutual consent és unilateral end                                  |
+| S5   | Connected work/project és hobby                                                                 | S3 és típusos governance; saját intent, validált authority/adapter                       |
+| S6   | World sport, max 20, roster/subset/quorum                                                       | S5 szerep/governance; 20 párhuzamos intent és lock-verseny                               |
+| S7   | Split/group fork, sponsored seats, directory, public többfél-snapshot                           | Validált shared alap; public résznél P09–P13 és külön consent, későbbi scope             |
+
+A shared szál S0→S1→S2→S3 sorrendben indul helyben; a további típusok fokozatosan követik a friend ellenőrzését. P09–P13 továbbra a teljes nyilvános MVP része, nem kell S7-ig várnia; a shared adatot tartalmazó publikációhoz előbb a P09/P11 általánosítás/PII/fork kapuit bővítjük. P06 backup/restore/email/valós kiesés és a későbbi Contabo-ops továbbra kiadási feladat, nem akadálya a helyi foundation fejlesztésének.
+
+S0 előtt nincs ár- vagy domainszükséglet. Grace/downgrade-választás, pontos deadline/quorum, eltérő dátumú ágak időszabálya és retained prose redakciója a függő szelet előtt tisztázandó; entitlementet csak megbízható szerverforrás adhat, éles fizetős aktiválás billing nélkül nem tekinthető késznek. Tervezett 008–010 neveket implementáláskor a szabad migrációszámhoz igazítjuk, 001–007 nem módosul.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
 **Elkészült:** kizárólag angol kiadás, magyar elrejtve; teljes felület/kérdőív/API-hibák; nyelvregiszter és típusos katalógus; régi magyar cookie angolra szűkítése; mentett tartalomnyelv és jobnyelv; nyelvre utasított esemény/narrátor/ellenőrző. A v2 életbemenet is kötelező `locale` mezőt kapott. Régi életek magyar jelölést kapnak, canonjuk változatlan. [Megvalósítás és további nyelvek](LOCALIZATION_HU.md).
 
-**Minden további P-pont feltétele:** teljes angol élmény; magyar halasztva. P02/P07 az angol generálást és AI/szerkesztői minőséget ellenőrzi. A nyelvváltás ne módosítson választ/korábbi canont és ne indítson fizetett AI-hívást. Discovery/Scenario/snapshot/fork tartalomnyelve is külön mező legyen.
+**Minden további P- és S-pont feltétele:** teljes angol élmény; magyar halasztva. P02/P07 az angol generálást és AI/szerkesztői minőséget ellenőrzi. A nyelvváltás ne módosítson választ/korábbi canont és ne indítson fizetett AI-hívást. Discovery/Scenario/snapshot/fork tartalomnyelve is külön mező legyen.
 
 ## P01 — Időszak, identitás, cél és állapot szerződése
 
@@ -146,9 +165,9 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 ## A nyilvános MVP után
 
-Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
+Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő:** P06 backup/restore és valós DB-kiesésből recovery (a kontrollált megszakításból admin recovery már sikeres); a P09 public-adatszűrés/curator/Publication alap bővítése. P07 új angol audit és P08 műszerezés kész. Contabo-telepítés később, külön éles kerettel, majd valódi használói béta. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
+**Következő helyben:** S0 Shared Context foundation, a fenti S0–S3 sorrenddel. A P09 sanitized snapshot/Scenario alap ezután a shared harmadik-fél privacy követelményekkel bővül; a teljes public cél P09–P13 marad. P06 backup/restore, email és valós DB-kiesésből recovery továbbra kiadási kapu. P07 angol audit és P08 műszerezés kész; emberi mérés a használói béta után. Contabo-élesítés később, domain és külön éles keret mellett; [indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md).
 
 ## Claude-mérés utáni AI-feladatok
 

@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · Aktív irány. [Termékterv](../PRODUCT_PLAN_HU.md) · [Megvalósítási státusz](../STATUS_HU.md).
 
 ## Termékígéret és pozicionálás
@@ -40,3 +42,9 @@ Hihető és érdekes események; hétköznapi folytonosság; strukturált állap
 A stratégia A–G hipotézisei nyitottak: saját/fiktív identitás; onboarding értéke; folytatás/új élet; fork-retenció; megosztási igény; mások életének fogyasztása; történet/analitikus riport. Elsődleges mérés a Continuation Rate és Continued Life Sessions, mellettük D1/D7/D30 és költség/sikeres folytatás. Egy technikai AI-minta nem validált termék vagy bizonyított piaci kereslet.
 
 A v1 archívum mellett a privát v2 mag működik. P06 valódi Auth/UI/törlés és kontrollált recovery sikeres, az ops-kapuk részben nyitottak. P07 angol AI-audit és P08 műszerezés kész; éles béta és valódi használói értékelés még nincs. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.
+
+## Privát, összekapcsolt alternatív életek
+
+A Shared Context valós felhasználók saját életágait közös AI-eseményekkel kapcsolja össze. A saját élet tulajdonosa nem változik, a csoport privát és külön canonja van. Friend/romantic/work/hobby/sport fokozatosan készül, első szelet friend 2–10. Ez új tervezett termékképesség; a Private/Official/Community és public MVP cél megmarad, DM/realtime továbbra későbbi.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

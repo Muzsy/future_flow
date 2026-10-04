@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · [AI-minták](../examples/README.md) · [Lokalizáció](../LOCALIZATION_HU.md) · [Nyilvános tartalom](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md).
 
 ## Narratíva a canonból
@@ -27,3 +29,9 @@ Scenario verziózott induló sablon, Official Life egy ténylegesen AI-val gener
 Community Life külön sanitized PublicSnapshotból olvasható. AI-generated/user-edited és Official/Community jelölés pontos eredetet mutat, nem minőségi vagy valóságígéret. Privát folytatás nem írja át a már jóváhagyott kiadást. Cover kezdetben kódalapú vizuál lehet; képgenerálás nem szükséges a tartalomhoz.
 
 Az elmentett [v1 minták](../examples/README.md) valódi AI-fejezetek, szintetikus adatokkal; történeti bizonyítékok, nem automatikusan kiadható v2 seed. Halál/diagnózis/erőszak/gyermektragédia nem lehet véletlen retention-eszköz. Tervezett public életoldal és SEO csak aktív, engedett snapshotot adhat.
+
+## Shared canon a személyes történetben
+
+A közös esemény egy hiteles canon; az egyes tagok következő saját fejezete jogosult applied sharedEvents memória alapján ír. A narrátor nem találhat ki másik valódi tag érzéseit/beleegyezését, privát pénzét vagy még meg nem tett döntését. Context narrative nem írja felül a személyes múltat és fordítva. Personal fork csak a forkpontig megengedett közös historyt viheti tovább.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

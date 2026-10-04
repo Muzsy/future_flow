@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · Meglévő architektúra és tervezett bővítés. [Implementáció](../IMPLEMENTATION.md).
 
 ## Meglévő adatfolyam
@@ -36,3 +38,9 @@ Public endpoint csak külön DTO-ból ad olvasást, nem új anon policy a privá
 Most helyi web/API/worker és Supabase működik; a main CI ellenőriz, nem deployol. Staging/production izoláció, HTTPS/reverse proxy/rate-limit, backup/restore, monitor/alert és release-felelősség külön indulási feladat. Storage/avatar, realtime push, natív mobil, fizetés és admin UI nem kész szolgáltatás; csak használati igény alapján később épül. A több klienshez API-határ marad, mobiltechnológia nem aktuális implementációs kötelezettség.
 
 A Contabón a meglévő Caddy marad a belépési pont. A külön web/API/worker csomag nyilvános alkalmazásport nélkül, elkülönített titkokkal és verified CA-mounttal előkészített. A teljes izolált runtime CI sikeres; az élő route/hálózat és alkalmazás még nincs aktiválva. [Telepítés és kapuk](../DEPLOYMENT_HU.md).
+
+## Tervezett SharedContext modul
+
+Külön contracts/core/database/API/AI/worker/web modul a monorepóban, nem új fizetős szolgáltatás. Life/branch egytulajdonosú marad; context saját canon/revision/lease. Worker fair ciklus personal-v2→shared→legacy; a jelenlegi kódban csak két queue. Rendezett user→context→member/invite/event→branch lock, lazy egyágas impact, deleting-account védelem. Feature flag-ek kezdetben false, még nem léteznek a konfigurációban.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

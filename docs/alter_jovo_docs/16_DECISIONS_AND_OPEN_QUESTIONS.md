@@ -26,6 +26,7 @@
 | ADR-016 | Feladatonkénti modellkonfiguráció, külön checker | Megvalósítva; Luna minősítendő jelölt |
 | ADR-017 | OpenAI fejlesztői összkeret 5 USD | Korábbi felhasználói keret; nincs automatikus bővítés |
 | ADR-018 | Claude modellek és külső történetaudit külön 5 USD kerettel | 2026-10-03 felhasználói döntés; külön titok/napi helyett összesített napló; worker-provider nem vált automatikusan |
+| ADR-023 | Privát Shared Context és S0–S7; első user release valódi AI-val | 2026-10-04 új forrás és felhasználói integrációs kérés; tervezett |
 | ADR-019 | Kizárólag angol béta, magyar elrejtve; AI szerkesztői döntés, kiadás utáni visszajelzés | 2026-10-03 legújabb felhasználói döntés; felülírja az ADR-011 kétnyelvű indulását és az előzetes kézi EN/HU pilotot |
 
 ## Felülírt javaslatok
@@ -64,3 +65,13 @@ Domain/védjegy; csomagár és ingyenes generálási limitek; későbbi payment;
 ## ADR-022 · Kipróbált kulcsos SSH és jelszavas tiltás
 
 2026-10-04 · A felhasználó megerősítette, hogy más nem használ jelszavas SSH-t. Új, checkouton kívül védett Ed25519 kulcs telepítve, korábbi kulcs megmaradt. Időzített visszaállítás és konfigurációellenőrzés mellett az SSH-jelszavas belépés kikapcsolva; friss kulcsos kapcsolat sikeres, jelszavas kapcsolat elutasított. Root kulcsos belépés megmarad; csak SSH reload történt. [Végrehajtási bizonyíték és nyitott ops](../CONTABO_PREPARATION_REPORT_HU.md). Karbantartási időpont és a használt meglévő domainek listája még tisztázandó; reboot, tűzfal- vagy proxyaktiválás ezek nélkül nem következik automatikusan.
+
+## ADR-023 · Shared Context a privát életmotorhoz
+
+2026-10-04 · Felhasználói kérés: az új [Shared Context implementációs ZIP](../plans/README.md) teljes tartalma épüljön a tervbe és dokumentációba. [Aktív értelmezés](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md). Új privát aggregátum kapcsolja a valós felhasználók saját életágait, egy közös canonnal és jogosult személyes impactokkal; aw_lives/branches egytulajdonosú marad. Öt típus és tiermodell: Free 0, Explorer 1 friend, Connected 3 friend/romantic/work/hobby, World 5 minden típus. Árak/billing és grace nyitott; alapprivacy/export/törlés ingyenes.
+
+S0–S7 külön szál, első helyi szelet S0. A forrás S0/S1 AI nélküli javaslata csak foundation/izolált teszt; friend béta csak S2 valódi Shared AI + S3 személyes integráció és biztonsági kapu után. PR-javaslat main commit-szelet, EN/HU minta angol kiadás. DM/chat/realtime/public shared továbbra későbbi; a korábbi általános multiplayer/social-halasztás nem zárja ki ezt az aszinkron privát funkciót.
+
+Globális user UUID-sort → context → member/invite/event → branch lock-sorrend irányít, a blueprint invite-first példája ennek megfelelően átírandó. Személyes fork nem örököl live tagságot. Account-törlés tagreferenciákat/profilt leválaszt, mások minimális shared canonját nem cascade-törli; retained prose PII-redakciója/retentionje külön kiadási kapu. Shared személyes public snapshot más tagot általánosít, multiparty azonosítható snapshot S7 consenttel.
+
+Grace és downgrade-context választás, deadline/quorum, eltérő időpontú ágak materializálása, billing és redakció/retention a függő implementációs szelet előtt konkretizálandó. Nincs még shared kód, alkalmazott új migráció vagy fizetett shared próba. Helyi fejlesztés folytatódik; dokumentációintegráció nem változtat szervert, keretet vagy alapmodellt.

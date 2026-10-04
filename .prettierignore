@@ -1,5 +1,7 @@
 docs/alter_jovo_docs/
 docs/contracts/
+# Preserve the user's byte-exact Shared Context source package and checksums.
+docs/plans/alterward_shared_context_implementation_docs/
 pnpm-lock.yaml
 apps/web/next-env.d.ts
 apps/web/AGENTS.md

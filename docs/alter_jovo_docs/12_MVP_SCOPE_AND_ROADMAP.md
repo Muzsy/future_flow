@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · [Aktív termékterv](../PRODUCT_PLAN_HU.md) · [Backlog](../NEXT_STEPS.md) · [14 public MVP-elem](../REQUIREMENTS_TRACEABILITY_HU.md).
 
 ## Első igazolandó hurok
@@ -22,7 +24,7 @@ Rövid identitás/profil és cél → valódi AI-időszak → nyitott döntés �
 | Nyilvános MVP kapu | P13: mind a 14 public elem, privacy/jogosultság és működő kurált kínálat, olvasás→saját élet teszt |
 | Későbbi social/platform | Reakció/követés, később komment/szerző, creator sablon/analitika; fizetés/mobil külön |
 
-A két forrás eltérő fázisszámozását ez a sorrend egységesíti. A személyes core elsőbbsége megmarad, a közösségi forrás előrébb hozza a nyilvános induló réteget. A privát technikai/emberi pilot korábban is futhat; a nyilvános indulás teljes MVP-t kér.
+A két stratégiai forrás eltérő fázisszámozását ez a sorrend egységesíti. A személyes core elsőbbsége megmarad, a közösségi forrás előrébb hozza a nyilvános induló réteget. A privát technikai/emberi pilot korábban is futhat; a nyilvános indulás teljes MVP-t kér.
 
 ## Induló paraméterek és kötelezők
 
@@ -32,6 +34,12 @@ A 20 determinisztikus eset ×3 időszak elkészült; négy korábbi valódi gene
 
 ## Kimarad az első MVP-ből
 
-Komment, DM/chat, követési gráf és reakció; creator payment/marketplace; fizetés; natív mobil; avatar/kép/hang/VR/real-time multiplayer; habit tracker/coaching/egészségplatform; több száz statisztika és komplex ML-ajánló. Szabad szöveges döntés/összetett compare és mély világmodellek a működő folytatás után. Az angol élmény kötelező; a magyar és további nyelvek halasztottak.
+Komment, DM/chat, követési gráf és reakció; creator payment/marketplace; billing; natív mobil; avatar/kép/hang/VR/real-time multiplayer; habit tracker/coaching/egészségplatform; több száz statisztika és komplex ML-ajánló. Szabad szöveges döntés/összetett compare és mély világmodellek a működő folytatás után. Az angol élmény kötelező; a magyar és további nyelvek halasztottak.
 
 Ha a profilfrikció, általános történet, következményhiány vagy költség megállítja a folytatást, a személyes hurok javítása következik. Nincs még igazolt retenciós küszöb, fizetési arány, naptári release-dátum vagy üzleti eredmény.
+
+## Új S0–S7 fejlesztési szál
+
+S0 foundation → S1 friend determinisztikus izolált teszt → S2 valódi Shared AI → S3 személyes impact/AI-folytatás/Connections + privacy/deletion/moderation kapu → első friend béta. S4 romantic, S5 work/hobby, S6 sport fokozatos; S7 advanced később. A minimális social profile és entitlement alap most terv, billing/ár még nyitott. P09–P13 és a 14 public MVP-elem megmarad. Minden S-pont tervezett, következő helyi szelet S0.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

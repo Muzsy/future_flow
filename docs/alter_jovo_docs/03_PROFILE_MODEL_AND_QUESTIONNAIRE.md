@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · [P01/P04](../NEXT_STEPS.md) és [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
 ## Meglévő v1
@@ -37,3 +39,9 @@ Szabad szöveg külön, nem megbízható utasításként jut az AI-hoz. Később
 ## Adatminimalizálás és nyelvek
 
 Álnevek alapértelmezettek, harmadik személy valós neve/pontos címe nem kell. Vallás, politika, diagnózis, biometria és pontos pénzügyi azonosító nem onboarding-követelmény. Új nyelv nem változtat kérdéskulcsot/scoringot; teljes fordítás és nyelvi AI-próba szükséges. Publishing külön sanitized profilprojekciót kap, a saját teljes profil nem adható ki. A 12 lépéses angol onboarding, draft-visszaállítás és első élet valódi szintetikus Supabase-fiókkal böngészőben ellenőrzött. A kitöltési idő és érthetőség valódi használói mérése még nyitott.
+
+## SocialProfile és InteractionProfile — tervezett külön modell
+
+A kapcsolatfelvételi handle/display name/discoverability nem a teljes személyes profil. Contextenként InteractionProfile allowlist: displayName, nullable ageBand/country/occupationLabel/sharedRole. Nincs email, személyes cél/pénzügy, más context vagy teljes kapcsolatgráf. A megosztás a meghívás elfogadásakor látható; másik tag személyes onboardingja soha nem lesz közös AI-input.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

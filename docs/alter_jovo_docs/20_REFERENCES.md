@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · Ez belső forrásjegyzék és tájékozódási linkkatalógus. Nem friss ár-, piaci vagy jogi kutatási jelentés; változó külső állítást új döntés előtt ellenőrizni kell.
 
 ## Elsődleges projektforrások
@@ -41,3 +43,9 @@ Projektbizonyíték: [Claude ár/érték riport](../CLAUDE_MODEL_EVALUATION_HU.m
 ## Telepítési és üzemeltetési bizonyíték
 
 [Contabo audit](../CONTABO_SERVER_AUDIT_HU.md), [végrehajtott előkészítés](../CONTABO_PREPARATION_REPORT_HU.md), [telepítési útmutató](../DEPLOYMENT_HU.md) és [teljes runtime CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326). Külső útmutatók: [Docker Compose production](https://docs.docker.com/compose/how-tos/production/), [Docker hálózat/tűzfal](https://docs.docker.com/engine/network/packet-filtering-firewalls/), [Caddy HTTPS](https://caddyserver.com/docs/automatic-https).
+
+## Harmadik felhasználói forrás — Shared Context
+
+A változatlan docs/plans csomag tartalmazza az eredeti ZIP-et, 15 témadokumentumot, mastert, manifestet és SHA256SUMS-t. Mind a 17 checksum egyezik, a master a fejezetek teljes összefűzése. Alapcommit b75e61d, dátum 2026-10-04; aktív értelmezés a Shared terv és ADR-023. Az AI nélkül/PR/EN-HU/lock/retention eltérések nyíltan pontosítva, a forrást nem szerkesztjük át.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

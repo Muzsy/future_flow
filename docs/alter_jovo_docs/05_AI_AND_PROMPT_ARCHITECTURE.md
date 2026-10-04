@@ -2,6 +2,8 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
+**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 2026-10-04 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
 ## Meglévő három szerep
@@ -37,3 +39,9 @@ AI-val készített, canonhivatkozásos emlékezeti összefoglaló (a jelenlegi m
 Minden task auditja: modell/prompt/locale, request/input/output hash, tokenszám, idő, validálás. A helyi próba modellspecifikus dátumozott árakkal és közös naplóval foglal; az alkalmazás pénzbeli és párhuzamos projekt/user kerete P05-ben elkészült. Költség/elfogadott időszak magában foglalja a hibás válasz/javítás/fallback árát is.
 
 Rövid releváns kontextus és tömör canon, szerepenkénti outputlimit, stabil prefix cache-mérése, offline seed/eval ütemezés vizsgálható. Cache nem életmemória; rövidebb próza nem automatikusan azonos minőség. Nyelvváltás/olvasás/Save/Share nulla új AI-hívás. OpenAI összkeret 5 USD; új felhasználói döntés szerint Claude értékelésre külön 5 USD. Külön napló és lock, egyik sem nullázható; éles Claude-DB-számla még nincs.
+
+## Tervezett SharedAiProvider és költség
+
+Új sharedEvent provider csak typed shared state, biztonságos InteractionProfile, megengedett tag/policy/id és közös history alapján dolgozik. Nincs raw személyes WorldState/memória. AI nem intent/consent forrás; max 1 repair, validator és budget. Egy közös generálás több tag strukturált impactját adja, nem N személyes fejezetet. Kezdeményező fizeti, olvasás/intent nem generál. Alap Sol és külön Claude auditor; új modellajánlás/mérés még nincs.
+
+[Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

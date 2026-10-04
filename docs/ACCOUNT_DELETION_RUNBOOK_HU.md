@@ -23,3 +23,9 @@ Backup/restore próba, konkrét megőrzési idők, Supabase-backup hozzáférés
 ## 2026-10-04: kontrollált megszakításból valódi recovery
 
 Új szintetikus Auth-fiók törlése után, még a DB-confirm/cleanup előtt megállított folyamat `awaiting_auth` markert és `deleting` fiókot hagyott. A tényleges recovery CLI felismerte a már hiányzó Auth-fiókot, majd eltávolította a fiókot és a tesztfeedbacket. [Bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md). Ez valós integrációkkal kontrollált megszakítás, nem valódi adatbázis-kiesés vagy backup-restore.
+
+## Tervezett Shared Context törlési bővítés
+
+Shared táblák még nem léteznek, ezért a jelenlegi kipróbált cleanup/recovery ezt a gráfot nem kezeli. S0/S3-ban az új [törlési modellt](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) idempotensen be kell építeni a deleting marker, job-cancel, Auth-törlés és DB/recovery útvonalba. Törlődő account új shared műveletet/commitot nem indíthat. Meghívói visszavonandók, social profile törlendő, membership user/life/branch személyes referenciái leválasztandók és olvasáskor „Former member” projekciót kapnak; pending személyes impactok detached állapotúak. Más tagok közös canonja nem az account-cascade része.
+
+A struktúra nullázása nem távolítja el a nevet a korábban generált prózából: PII-szűrés/redakció, minimális history-retention és backupból helyreállítás utáni törlésvédelem külön kapu. Saját export csak jogosult saját/shared részvételprojekciót vihet ki, más tag teljes profilját/intentjét nem. Kötelező új próba: A/B/C contextből B törlése, A/C minimális anonim története megmarad, B azonosító/prompt/privát adat eltűnik az elérhető DTO-kból, megszakításból recovery és párhuzamos job sem hozza vissza. Ez tervezett ellenőrzés, nem korábbi valódi account-próba eredménye.

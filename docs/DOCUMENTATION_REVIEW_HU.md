@@ -34,3 +34,7 @@ A változás csak dokumentáció és az aktív dokumentációs manifest; alkalma
 Teljes VPS/Supabase backup és restore, valós DB-kiesésből recovery, email-kézbesítés, szolgáltatói adatkezelés/retenció és incidensfolyamat. Contabón még szükséges az aktív meglévő domainek tisztázása, TLS/storage/ACME és Docker/Tailscale-kompatibilis tűzfal rendezése, valamint egyeztetett karbantartási időablak. Az új domain későbbi felhasználói döntés; éles AI-allowance jelenleg nincs kijelölve, alapértéke nulla.
 
 Ezek után külön éles telepítés és korlátozott privát angol béta, majd valódi használói mérés következik. P09 teljes PII/Scenario/Publication/Official seed, P10–P13 Discovery/publishing/moderáció/public fork és a 14 közösségi MVP-elem továbbra fejlesztendő. A pontos sorrend egyetlen forrása a [backlog](NEXT_STEPS.md).
+
+## Későbbi kiegészítés ugyanazon a napon: Shared Context
+
+A fenti audit létszámai és CI-bizonyítéka az akkori állapot történeti adatai. Ezután a felhasználó új [Shared Context ZIP-et](plans/README.md) adott át: teljes változatlan forrás, külön [aktív integrációs terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md), S0–S7 backlog és 15 fejezetes visszakövetés került a dokumentációba. A releváns központi és mind a 21 témadokumentum frissült; manifest és helyi hivatkozások újra ellenőrizve. Új alkalmazáskód, alkalmazott migráció, runtime- vagy paid AI-próba nem következik ebből a dokumentációs integrációból.

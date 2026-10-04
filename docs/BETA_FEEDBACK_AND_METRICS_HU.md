@@ -26,3 +26,7 @@ Az `aw_activity_sessions` szerveridővel dolgozik. Felhasználó + böngészőla
 ## Tárolás és ellenőrzés
 
 Additív `007_beta_feedback_and_sessions.sql`; az alkalmazott 001–006 és a korábbi canon nem változik. Új v2 feedback és continuation request JSON-sémák a contracts könyvtárban. Hat fizetés nélküli regresszió fedi a hitelesítést, ownership/fejezethatárt, idempotenciát/limitet, export/törlést, szerveroldali session-határt és click/failure/success/return különbséget. A valódi szintetikus HTTP- és helyi böngészős feedback/session/export/törlés próba sikeres; [bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md). Ez technikai próba, éles felhasználói kohorsz még nincs.
+
+## Tervezett Shared Context mérés
+
+A jelenlegi privát session/feedback mérés nem tartalmaz Shared-adatot. Az [S3 friend béta](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) később context create/invite accept, sikeres közös AI-event/resolution, alkalmazott impact, saját folytatás, leave/block/report és költség összesítésével bővülhet. Meghívótoken, név, profil, cél, történet, nyers intent és AI-prompt nem analitika. Olvasás/intent és paid generálás külön; initiator költségét egyszer számoljuk. Nincs még shared retenciós vagy konverziós eredmény, a terv nem kész műszerezés.
