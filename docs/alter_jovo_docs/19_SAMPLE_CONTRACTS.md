@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0 kész: izolált CI és valódi háromfiókos Supabase-próba sikeres, 001–009 alkalmazva; feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0/S1 implementált: foundation és friend canon/own intent/resolution/pending memória, kikapcsolva; S2–S7 tervezett. 001–009 alkalmazva, következő S2 valódi Shared OpenAI. [S1 megvalósítás és korlátok](../SHARED_CONTEXT_S1_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · A pontos JSON-sémák kódból exportáltak. Régi v0.1 példák nem mai DTO-k; az [archívumban](../archive/alter_jovo_v0_1/19_SAMPLE_CONTRACTS.md) maradnak.
 
@@ -53,3 +53,7 @@ Tervezett public checkpoint nem a `lifeStateV2Schema` közvetlen kiadása. Mező
 A változatlan forrás blueprintje javaslat; a packages/contracts/shared-context.ts S0 kódja és 11 JSON-sémája már exportált a docs/contracts/shared könyvtárba. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0 contract, typed policy/state/candidate/intent/impact, Life v2 2.0.0 megőrzése. Opcionális memory.sharedEvents csak jogosult alkalmazott canonprojekció; régi job mező nélkül valid. A személyes memory.sharedEvents és intent/resolution végrehajtás S1/S3; az új shared sémák pnpm schemas-szal készülnek, a 18 meglévő JSON-séma nem változott.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).
+
+## S1 implementációs kiegészítés
+
+S1 hat új exported JSON-séma: decisionRules, decisionEnvelope, intentRequest, intent, resolutionResult, memoryImpact. A korábbi 29 és Life v2 2.0.0 byte szerint változatlan; own pending memory még nem Life period-input. [S1 riport](../SHARED_CONTEXT_S1_REPORT_HU.md).

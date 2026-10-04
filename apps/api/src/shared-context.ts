@@ -28,10 +28,11 @@ import {
   sharedInvitePreviewRequestSchema,
   sharedDeclineRequestSchema,
   sharedRevisionRequestSchema,
+  sharedIntentRequestSchema,
   socialProfileSchema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
-import { Repository, SharedContextRepository } from '@future-flow/database';
+import { Repository, SharedEventRepository } from '@future-flow/database';
 
 export type SharedFeatures = {
   enabled: boolean;
@@ -68,9 +69,9 @@ export function createSharedContextController(
   @UseGuards(authGuard)
   @ApiBearerAuth()
   class SharedContextController {
-    private readonly shared: SharedContextRepository;
+    private readonly shared: SharedEventRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.shared = new SharedContextRepository(repo.db, flags.inviteSecret);
+      this.shared = new SharedEventRepository(repo.db, flags.inviteSecret);
     }
     private enabled() {
       if (!flags.enabled || !flags.friend)
@@ -258,6 +259,58 @@ export function createSharedContextController(
         sharedRevisionRequestSchema.parse(body).contextRevision,
         key ?? '',
       );
+    }
+    @Get('shared-contexts/:id/events') events(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+    ) {
+      this.enabled();
+      return this.shared.events(req.userId, idSchema.parse(id));
+    }
+    @Post('shared-contexts/:id/events/:eventId/intents')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedIntentRequestSchema) as never })
+    intent(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Param('eventId') eventId: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.submitIntent(
+        req.userId,
+        idSchema.parse(id),
+        idSchema.parse(eventId),
+        sharedIntentRequestSchema.parse(body),
+        key ?? '',
+      );
+    }
+    @Post('shared-contexts/:id/events/:eventId/resolve')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedRevisionRequestSchema) as never })
+    resolve(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Param('eventId') eventId: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.resolvePending(
+        req.userId,
+        idSchema.parse(id),
+        idSchema.parse(eventId),
+        sharedRevisionRequestSchema.parse(body).contextRevision,
+        key ?? '',
+      );
+    }
+    @Get('branches/:id/shared-impacts') impacts(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+    ) {
+      this.enabled();
+      return this.shared.pendingImpacts(req.userId, idSchema.parse(id));
     }
   }
   return SharedContextController;

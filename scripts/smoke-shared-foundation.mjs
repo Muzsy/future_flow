@@ -18,6 +18,7 @@ const {
   connectDatabase,
   Repository,
   SharedContextRepository,
+  SharedEventRepository,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
 const db = {
@@ -30,7 +31,8 @@ const db = {
     }),
 };
 const repo = new Repository(db),
-  shared = new SharedContextRepository(db, '1'.repeat(64));
+  shared = new SharedContextRepository(db, '1'.repeat(64)),
+  events = new SharedEventRepository(db, '1'.repeat(64));
 async function person(tier = 'explorer') {
   const id = randomUUID(),
     lifeId = randomUUID(),
@@ -97,6 +99,57 @@ function winner(results, code) {
   assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
   assert.equal(results.find((r) => r.status === 'rejected').reason.code, code);
 }
+async function testEvent(userId, contextId) {
+  const context = await shared.detail(userId, contextId);
+  const yes = randomUUID(),
+    no = randomUUID();
+  const candidate = {
+    schemaVersion: '1.0.0',
+    eventId: randomUUID(),
+    contextId,
+    baseRevision: context.revision,
+    effectiveAt: context.simulationAt,
+    title: 'Isolated CI invitation',
+    summary: 'Members consider an optional shared activity.',
+    participantMemberIds: context.members
+      .filter((m) => m.status === 'active')
+      .map((m) => m.id),
+    sharedChanges: [],
+    decision: {
+      id: randomUUID(),
+      prompt: 'Would you like to join?',
+      policy: { type: 'individual_opt_in' },
+      eligibleMemberIds: context.members
+        .filter((m) => m.status === 'active')
+        .map((m) => m.id),
+      deadlineSeconds: 172800,
+      options: [
+        {
+          id: yes,
+          label: 'Join',
+          description: 'Participate voluntarily.',
+          sharedChanges: [],
+          impactProposals: [],
+        },
+        {
+          id: no,
+          label: 'Decline',
+          description: 'Keep your own plans.',
+          sharedChanges: [],
+          impactProposals: [],
+        },
+      ],
+    },
+  };
+  const committed = await events.commitCandidate(
+    userId,
+    contextId,
+    candidate,
+    randomUUID(),
+    { deadlineSeconds: 172800, participatingOptionIds: [yes], quorum: null },
+  );
+  return { ...committed, yes };
+}
 try {
   assert.equal(
     (
@@ -141,6 +194,109 @@ try {
   await assert.rejects(() => accept(loser[0], loser[1], latest.revision), {
     code: 'SHARED_CONTEXT_FULL',
   });
+  // Real PostgreSQL connections: ten simultaneous member intents retry only a
+  // stale revision. The immutable resolution and ten pending effects occur once.
+  const participantRows = await db.query(
+    "SELECT user_id,branch_id FROM aw_shared_members WHERE context_id=$1 AND status='active' ORDER BY id",
+    [c.contextId],
+  );
+  const branchesBefore = await db.query(
+    'SELECT id,state,revision FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',
+    [participantRows.map((p) => p.branch_id)],
+  );
+  const event = await testEvent(owner.id, c.contextId);
+  const sameRevision = await Promise.allSettled(
+    participantRows
+      .slice(0, 2)
+      .map((p) =>
+        events.submitIntent(
+          p.user_id,
+          c.contextId,
+          event.eventId,
+          { contextRevision: event.revision, optionId: event.yes },
+          randomUUID(),
+        ),
+      ),
+  );
+  winner(sameRevision, 'SHARED_REVISION_CONFLICT');
+  await Promise.all(
+    participantRows.map(async (p) => {
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const current = await shared.detail(p.user_id, c.contextId);
+        const own = await db.query(
+          'SELECT i.id FROM aw_shared_intents i JOIN aw_shared_members m ON m.id=i.member_id WHERE i.event_id=$1 AND m.user_id=$2',
+          [event.eventId, p.user_id],
+        );
+        if (own.length) return;
+        try {
+          await events.submitIntent(
+            p.user_id,
+            c.contextId,
+            event.eventId,
+            { contextRevision: current.revision, optionId: event.yes },
+            randomUUID(),
+          );
+          return;
+        } catch (error) {
+          if (error.code !== 'SHARED_REVISION_CONFLICT') throw error;
+        }
+      }
+      throw Error('Concurrent intent did not make progress');
+    }),
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_intents WHERE event_id=$1', [
+        event.eventId,
+      ])
+    ).length,
+    10,
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_resolutions WHERE event_id=$1', [
+        event.eventId,
+      ])
+    ).length,
+    1,
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_impacts WHERE event_id=$1', [
+        event.eventId,
+      ])
+    ).length,
+    10,
+  );
+  const finished = await shared.detail(owner.id, c.contextId);
+  await Promise.all(
+    participantRows
+      .slice(0, 2)
+      .map((p) =>
+        events.resolvePending(
+          p.user_id,
+          c.contextId,
+          event.eventId,
+          finished.revision,
+          randomUUID(),
+        ),
+      ),
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_resolutions WHERE event_id=$1', [
+        event.eventId,
+      ])
+    ).length,
+    1,
+  );
+  assert.deepEqual(
+    await db.query(
+      'SELECT id,state,revision FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',
+      [participantRows.map((p) => p.branch_id)],
+    ),
+    branchesBefore,
+  );
 
   // Five shared contexts overlap at the same World member. Accept races and
   // account cleanup must acquire user/context locks in a consistent order.
@@ -166,6 +322,8 @@ try {
   );
   assert.equal((await shared.list(world.id)).length, 5);
   const joined = (await shared.list(world.id)).map((c) => c.id);
+  const pendingEvents = [];
+  for (const id of joined) pendingEvents.push(await testEvent(world.id, id));
   // Simultaneous deletions touch overlapping aggregates, one touching five.
   await Promise.all(
     [world.id, owners[0].id].map(async (id) => {
@@ -185,6 +343,22 @@ try {
       1,
     );
   }
+  for (const event of pendingEvents) {
+    const resolved = await db.query(
+      'SELECT result FROM aw_shared_resolutions WHERE event_id=$1',
+      [event.eventId],
+    );
+    assert.equal(resolved.length, 1);
+    assert.equal(resolved[0].result.status, 'cancelled');
+    assert.equal(
+      (
+        await db.query('SELECT id FROM aw_shared_impacts WHERE event_id=$1', [
+          event.eventId,
+        ])
+      ).length,
+      0,
+    );
+  }
   const [queues] = await db.query(
     'SELECT (SELECT count(*) FROM ff_jobs)::int AS v1,(SELECT count(*) FROM aw_jobs)::int AS v2,(SELECT count(*) FROM aw_shared_jobs)::int AS shared',
   );
@@ -196,6 +370,11 @@ try {
       lastWorldSlotRace: true,
       lastMemberRace: true,
       overlappingFiveContextDeletion: true,
+      sharedEnginePostgres: 'passed',
+      tenParallelIntents: true,
+      decisionResolutionOnce: true,
+      pendingDecisionDeletion: true,
+      zeroPersonalBranchWrites: true,
       verifiedDatabaseTls: true,
       paidAiCalls: 0,
     }),

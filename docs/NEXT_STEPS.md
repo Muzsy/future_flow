@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–007 alkalmazva; 008/009 Session pooler kapcsolaton alkalmazva és ismétléssel ellenőrizve; 195 teszt a jelenlegi készletben, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–007 alkalmazva; 008/009 Session pooler kapcsolaton alkalmazva és ismétléssel ellenőrizve; 231 teszt a jelenlegi készletben, 20 determinisztikus eset ×3 időszak és négy valódi EN/HU háromidőszakos lánc. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -16,12 +16,12 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 ## Új helyi fejlesztési szál — Shared Context S0–S7
 
-**Állapot:** S0 implementáció kikapcsolt feature mögött elkészült, célzott regressziók és teljes korábbi check sikeres; fejlesztői DB-alkalmazás, ismétlés és valódi Auth/HTTP-próba sikeres. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). S1–S7 tervezett; következő helyi szelet **S1 friend engine**. A [részletes Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) az elfogadások és invariantok gazdája; a [forráscsomag](plans/README.md) változatlan. L01/P01–P13 számozása megmarad.
+**Állapot:** S0 implementáció kikapcsolt feature mögött elkészült, célzott regressziók és teljes korábbi check sikeres; fejlesztői DB-alkalmazás, ismétlés és valódi Auth/HTTP-próba sikeres. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). S1 friend engine implementált, célzott tesztjei sikeresek; [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). S2–S7 tervezett, következő **S2 valódi Shared OpenAI**. A [részletes Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) az elfogadások és invariantok gazdája; a [forráscsomag](plans/README.md) változatlan. L01/P01–P13 számozása megmarad.
 
 | Pont | Következő eredmény                                                                              | Függőség / kapu                                                                          |
 | ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | S0   | Implementáció kész: Shared contract/core, 008/009, social/entitlement, create/list/detail/invite/accept és lifecycle | 36 új regresszió, flag kikapcsolva; 001–009 a fejlesztői DB-n alkalmazva; még nincs release |
-| S1   | 2–10 fős friend determinisztikus engine, idő/ág, saját intent, resolution, memory impact        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                            |
+| S1   | Implementált: 2–10 fős friend canon, saját intent, opt-in resolution, pending memory impact        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                            |
 | S2   | Valódi Shared OpenAI, job/worker fair queue, validálás/repair, projekt/user költség             | S1; lease/idempotencia és kumulatív keret, max 1 repair                                  |
 | S3   | Lazy impact + személyes AI-memória/folytatás, Connections, meghívás/döntés, fork/solo           | S2; teljes privacy/export/törlés/recovery/block/report; első AI-s friend béta csak utána |
 | S4   | Connected romantikus típus                                                                      | S3; 2 tag, max 1/user, mutual consent és unilateral end                                  |
@@ -167,7 +167,7 @@ S0 előtt nincs ár- vagy domainszükséglet. Grace/downgrade-választás, ponto
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** S1 Shared friend engine, az elkészült S0 alapra; 008/009 Supabase-alkalmazás és valódi háromfiókos HTTP/export/törlés-próba is kész. S2 valódi AI és S3 személyes integráció/biztonság adhat friend kiadást. A P09 sanitized snapshot/Scenario alap ezután a shared harmadik-fél privacy követelményekkel bővül; a teljes public cél P09–P13 marad. P06 backup/restore, email és valós DB-kiesésből recovery továbbra kiadási kapu. P07 angol audit és P08 műszerezés kész; emberi mérés a használói béta után. Contabo-élesítés később, domain és külön éles keret mellett; [indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md).
+**Következő helyben:** S2 valódi Shared OpenAI/job/worker, az elkészült S0/S1 alapra; 008/009 Supabase-alkalmazás és valódi háromfiókos HTTP/export/törlés-próba is kész. S2 valódi AI és S3 személyes integráció/biztonság adhat friend kiadást. A P09 sanitized snapshot/Scenario alap ezután a shared harmadik-fél privacy követelményekkel bővül; a teljes public cél P09–P13 marad. P06 backup/restore, email és valós DB-kiesésből recovery továbbra kiadási kapu. P07 angol audit és P08 műszerezés kész; emberi mérés a használói béta után. Contabo-élesítés később, domain és külön éles keret mellett; [indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md).
 
 ## Claude-mérés utáni AI-feladatok
 

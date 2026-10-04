@@ -2,9 +2,9 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0 kész: izolált CI és valódi háromfiókos Supabase-próba sikeres, 001–009 alkalmazva; feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0/S1 implementált: foundation és friend canon/own intent/resolution/pending memória, kikapcsolva; S2–S7 tervezett. 001–009 alkalmazva, következő S2 valódi Shared OpenAI. [S1 megvalósítás és korlátok](../SHARED_CONTEXT_S1_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). Következő helyben: **S1 Shared friend engine**, az elkészült S0 alapra, majd S2–S3 valódi AI-s friend integráció. P06 backup/restore/valós DB-kiesés és Contabo-ops későbbi kiadási kapu; P09–P13 public szál megmarad.
+2026-10-04 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). Következő helyben: **S2 valódi Shared OpenAI**, az elkészült S0/S1 alapra, majd S3 valódi AI-s friend integráció. P06 backup/restore/valós DB-kiesés és Contabo-ops későbbi kiadási kapu; P09–P13 public szál megmarad.
 
 ## Kiindulás és feladat
 
@@ -37,6 +37,6 @@ Contabo: [előkészítési riport](../CONTABO_PREPARATION_REPORT_HU.md), külön
 
 ## Shared átadási követelmények
 
-S0 külön shared szerződés/core/DB/repository, minimum social profile és szerver-entitlement, context/invite/lifecycle API elkészült kikapcsolt flag mögött. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). A következő feladat S1 friend engine. A felhasználó megadta a Session pooler kapcsolatot; 008/009 alkalmazva és ismétléssel ellenőrizve, valódi háromfiókos alap-HTTP/export/törlés-próba és teljes szintetikus takarítás sikeres. Forrás 00–14 teljesen átolvasva; audit b75e61d. S0–S1 fixture csak teszt, S2 valódi AI kötelező S3 friend release-hez. Globális lock-sorrend előrébb való az invite-first blueprintnél; mások historyja nem account cascade. Angol/main/helyi fejlesztés és meglévő budgetek megmaradnak. P06 ops későbbi release gate, nem automatikus Contabo-folytatás.
+S0 külön shared szerződés/core/DB/repository, minimum social profile és szerver-entitlement, context/invite/lifecycle API elkészült kikapcsolt flag mögött. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). S1 implementált; következő S2 Shared provider/job/fair worker és költség/lease. A felhasználó megadta a Session pooler kapcsolatot; 008/009 alkalmazva és ismétléssel ellenőrizve, valódi háromfiókos alap-HTTP/export/törlés-próba és teljes szintetikus takarítás sikeres. Forrás 00–14 teljesen átolvasva; audit b75e61d. S0–S1 fixture csak teszt, S2 valódi AI kötelező S3 friend release-hez. Globális lock-sorrend előrébb való az invite-first blueprintnél; mások historyja nem account cascade. Angol/main/helyi fejlesztés és meglévő budgetek megmaradnak. P06 ops későbbi release gate, nem automatikus Contabo-folytatás.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

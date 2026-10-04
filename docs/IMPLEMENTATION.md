@@ -95,7 +95,7 @@ Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő job
 
 ## Claude értékelő, elkülönített integráció
 
-Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 195 teszt a jelenlegi készletben; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
+Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 231 teszt a jelenlegi készletben; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
 
 ## 2026-10-04: privát béta és Contabo-előkészítés
 
@@ -110,3 +110,7 @@ Narrátor v3: konkrét jelenet, elfogadott döntés megélt következménye, kev
 A feature összes flagje false; nincs Connections, Shared AI, harmadik worker queue vagy saját period memória/impact bekötés. Ezek S1–S3 feladatok, első friend kiadás csak S2 valódi AI + S3 biztonság után. S0 pontos napegyezést kér, nem teljes compatible-month/latest-anchor implementáció. Más típusok formation/governance S4–S6. Billing és retained prose/privacy kapuk megmaradnak.
 
 Fejlesztői DB-n 008/009 Session pooler kapcsolaton alkalmazva, megismételt runner/checksum és valódi háromfiókos HTTP/export/törlés sikeres; 001–007 és a régi 18 séma változatlan. 36 új regresszióval 195 teszt a készlet; az aktuális local/CI bizonyíték a riportban. A worker továbbra v1/v2 queue-t kezel, paid hívás és Contabo-változás nincs.
+
+## Shared S1 — implementált friend canon és saját választás
+
+[S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). Új SharedEventRepository és shared-engine contract/core a meglévő S0 alapján: belső event commit, strict own intent, opt-in subset/határidő, immutable resolution/pending memory; safe eseménylista/own impact API és saját history/export. Nincs HTTP-generátor vagy közvetlen személyes ágírás. Hat új JSON-séma, régi 29 és alkalmazott 001–009 változatlan. S2 provider/queue és S3 személyes materializálás/AI-memória/Connections későbbi; a négy flag false.

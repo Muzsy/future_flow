@@ -1,6 +1,6 @@
 # alterward — Shared Context integrációs és fejlesztési terv
 
-2026-10-04 · **S0 megvalósítva és a fejlesztői Supabase-on ellenőrizve; S1–S7 tervezett, a funkció kikapcsolva.** A felhasználó által átadott [teljes specifikáció](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md) aktív értelmezése a meglévő alterward-rendszerhez. [Forráscsomag és integritás](plans/README.md) · [Végrehajtási sorrend](NEXT_STEPS.md) · [Követelménymátrix](REQUIREMENTS_TRACEABILITY_HU.md) · [Állapot](STATUS_HU.md).
+2026-10-04 · **S0 ellenőrizve, S1 friend motor implementált; S2–S7 tervezett, a funkció kikapcsolva.** A felhasználó által átadott [teljes specifikáció](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md) aktív értelmezése a meglévő alterward-rendszerhez. [Forráscsomag és integritás](plans/README.md) · [Végrehajtási sorrend](NEXT_STEPS.md) · [Követelménymátrix](REQUIREMENTS_TRACEABILITY_HU.md) · [Állapot](STATUS_HU.md).
 
 ## 1. Cél és meglévő alap
 
@@ -8,7 +8,7 @@ A Shared Context több valódi felhasználó kiválasztott, saját alternatív �
 
 A forrás auditjának alapja `b75e61ddc0a6dbdc31653a8c58d5c251e2f95aa8` (`main`); ez egyezik az integráció előtti helyi állapottal. Az integráció előtti b75e61d kód alapja: privát v2 életmotor, `LIFE_CONTRACT_VERSION = 2.0.0`, legfeljebb 30 tartós szereplő, revision/idempotencia/lease, OpenAI-provider, projekt/user költségfoglalás, fióktörlési recovery és 001–007 migráció. A személyes AI-memória jelenleg `recentEvents` és `choices`; a worker két queue-t kezel. Shared szerződés, tábla, controller, provider, queue, Connections-felület, social profile és előfizetési entitlement még nincs. Az akkori 159 teszt nem bizonyította az új funkciót.
 
-**S0 aktuális állapot:** contract/core, additív 008/009, social/entitlement és meghívási/lifecycle API implementálva, 36 új regresszió; a fejlesztői DB-alkalmazás, ismétlés és valódi Auth/HTTP-próba sikeres. Feature kikapcsolva, következő S1. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
+**S0 aktuális állapot:** contract/core, additív 008/009, social/entitlement és meghívási/lifecycle API implementálva, 36 új regresszió; a fejlesztői DB-alkalmazás, ismétlés és valódi Auth/HTTP-próba sikeres. Feature kikapcsolva; S1 motor elkészült, következő S2. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
 
 Külön SharedContext-modul készül a meglévő monorepóban. Nem kerül több tulajdonos az `aw_lives`/`aw_branches` rekordokra, és a jelenlegi szereplőlimit nem változik. A közös projekt/csapat állapotát nem másoljuk minden tag teljes személyes világába. A korábbi Private / Official / Community tartalomrétegek megmaradnak; a Shared Context a privát szimuláció új együttműködési képessége.
 
@@ -124,7 +124,7 @@ A context első kiadásban privát, public/unlisted csoportoldal nincs. Shared e
 
 ## 9. Fejlesztési szakaszok és függőségek
 
-S0 **implementáció kész, feature kikapcsolva, 001–009 a fejlesztői DB-n alkalmazva**; S1–S7 **tervezett**. Az S-azonosítók a ZIP roadmapjét követik; nem váltják fel és nem számozzák át L01/P01–P13-at. A következő helyi szelet S1. A személyes béta üzemeltetési kapui és a public MVP követelményei megmaradnak; a részletes közös sorrend a [NEXT_STEPS](NEXT_STEPS.md) dokumentumban szerepel.
+S0 **implementáció kész, feature kikapcsolva, 001–009 a fejlesztői DB-n alkalmazva**; S1 **implementált**; S2–S7 **tervezett**. Az S-azonosítók a ZIP roadmapjét követik; nem váltják fel és nem számozzák át L01/P01–P13-at. A következő helyi szelet S2. [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). A személyes béta üzemeltetési kapui és a public MVP követelményei megmaradnak; a részletes közös sorrend a [NEXT_STEPS](NEXT_STEPS.md) dokumentumban szerepel.
 
 | Pont                                              | Eredmény és függőség                                                                                                                    | Elfogadás / kiadási határ                                                                                                                                                         |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -137,7 +137,7 @@ S0 **implementáció kész, feature kikapcsolva, 001–009 a fejlesztői DB-n al
 | **S6 — Sport**                                    | S5 szerep/governance alap → World, max 20, roster/coach/captain, subset, quorum                                                         | 20 párhuzamos intent/impact, 21. tag elutasítva; több contextet érintő user-lock verseny deadlock nélkül                                                                          |
 | **S7 — Advanced**                                 | Validált S3–S6 használat; public elemhez P09–P13 kapuk is                                                                               | Split/group fork, sponsored seat, directory, többfél-public snapshot, richer entity; külön specifikáció/consent, nem első friend MVP                                              |
 
-Tervezett szerverflag-ek kezdetben `false`: `SHARED_CONTEXTS_ENABLED`, `SHARED_FRIEND_ENABLED`, `SHARED_CONNECTED_ENABLED`, `SHARED_WORLD_ENABLED`. Jelenleg ezek a konfigurációban sem léteznek. Foundation kikapcsolva telepíthető; a flag csak kész jogosultsági/költség/consent ellenőrzés után aktiválhat funkciót. A kliensflag önmagában semmit nem engedélyez.
+Tervezett szerverflag-ek kezdetben `false`: `SHARED_CONTEXTS_ENABLED`, `SHARED_FRIEND_ENABLED`, `SHARED_CONNECTED_ENABLED`, `SHARED_WORLD_ENABLED`. S0 óta a konfigurációban léteznek és szigorúan true/false értéket fogadnak el; mind a négy kikapcsolva. Foundation kikapcsolva telepíthető; a flag csak kész jogosultsági/költség/consent ellenőrzés után aktiválhat funkciót. A kliensflag önmagában semmit nem engedélyez.
 
 ## 10. Ellenőrzés és még konkretizálandó pontok
 
@@ -150,3 +150,7 @@ Megvalósítás előtt részletezendő: grace hossza és downgrade-context vála
 ## 12. S0 implementációs pontosítások
 
 [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). S0 kizárólag friend create/accept, owner meghívás 20/context/24h és 7 napos hash-only HMAC-token, POST preview, strict request/OpenAPI. Minimális profile explicit megosztásból, szerver-only tier és RLS. End→archive és admin-handover kezeli a kilépő/törölt ownert. Pontos napegyezés fail-closed; a compatible-month/latest-anchor és lazy impact szabály S1/S3-ban válik teljessé. Törölt címzett függő meghívója akkor is visszavonódik, ha nem volt tag. Strukturális export/törlés/recovery megvan, retained prose, canon/impact export és moderáció S3 gate. Négy flag false, valódi Shared AI S2 előtt nincs aktiválás; Life v2 2.0.0 és 18 régi séma marad.
+
+## S1 implementációs pontosítások
+
+[S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). Canon/intent/resolution/pending memory és safe history/export implementált; az intent revisiont, a resolution külön revisiont növel. Friend opt-in résztvevő opció-ID-it és határidejét a szerver rögzíti; option sharedChanges nem keverhető. Csak memory-only, proposal prózából nem lesz automatikus személyes cselekvés/érzés. Leave/end/deleting atomikus cancellation, nincs új hatás. Majority/unanimous pure előkészítés; aktivált governance/role/weighted későbbi. Határidő/null támogatott; 48h teszt/javaslat, a kiadási alapérték tisztázandó. Exact-date változatlan, időadapter és personal integration S3; valódi Shared AI S2, nincs fixture HTTP-generátor.

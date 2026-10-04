@@ -184,6 +184,10 @@ try {
     ).trim(),
   );
   assert.equal(sharedFoundation.sharedFoundationPostgres, 'passed');
+  assert.equal(sharedFoundation.sharedEnginePostgres, 'passed');
+  assert.equal(sharedFoundation.tenParallelIntents, true);
+  assert.equal(sharedFoundation.decisionResolutionOnce, true);
+  assert.equal(sharedFoundation.pendingDecisionDeletion, true);
   compose(
     'up',
     '-d',

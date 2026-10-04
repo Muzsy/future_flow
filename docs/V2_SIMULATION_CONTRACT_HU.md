@@ -49,3 +49,7 @@ A döntés 2–4 opciója javaslat marad, egyiket sem alkalmazza a period-valid�
 ## Tervezett additív Shared Context kapcsolat
 
 A Life v2 2.0.0 megmarad; a külön Shared Context 1.0.0 szerződés S0-ban elkészült, tizenegy új sémával. A tizennyolc régi JSON-séma és a 001–007 migráció változatlan; a fejlesztői Supabase-on az additív 008/009 is alkalmazva és ellenőrizve. A személyes memory opcionális sharedEvents mezővel bővül majd S3-ban, jogosult és alkalmazott közös canonprojekcióval; a saját Shared memory séma már előkészített, de a Life AI-bemenetbe még nincs bekötve. Régi tárolt jobok mező nélkül is olvashatók. Nem kerül teljes másik WorldState vagy húsz teljes felhasználó az actors listába. A shared aggregátum saját revision/idő/canon; a személyes hatás tervezett lazy és exactly-once adaptere S1/S3. Saját történeti fork nem örököl majd élő shared tagságot; csak a forkpontig engedett történeti memóriát. [Szerződés és idő/concurrency elfogadás](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Megvalósított S0 és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
+
+## S1 határ
+
+[S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). A külön Shared szerződés hat új server/intent/resolution/memoryImpact sémával bővült, a Life v2 input/state és régi 29 séma változatlan. S1 nem ír személyes branchet és nem materializál: a pending canon memória saját period-inputba emelése S3.

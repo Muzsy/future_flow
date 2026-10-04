@@ -9,6 +9,7 @@ export * from './metrics';
 export * from './public-drafts';
 export * from './beta';
 export * from './shared-contexts';
+export * from './shared-events';
 
 export interface Database {
   query<T extends Record<string, unknown> = Record<string, unknown>>(

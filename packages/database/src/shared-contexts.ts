@@ -29,6 +29,7 @@ import {
   minimalInteractionProfile,
 } from '@future-flow/core';
 import type { Database } from './index';
+import { cancelPendingSharedDecision, exportSharedCanon } from './shared-canon';
 
 type Row = Record<string, unknown>;
 type Context = Row & {
@@ -81,7 +82,7 @@ export class SharedContextRepository {
       .update('alterward:shared-invite:v1:' + inviteId)
       .digest('base64url');
   }
-  private async active(tx: Database, userIds: string[]) {
+  protected async active(tx: Database, userIds: string[]) {
     const ids = [...new Set(userIds)].sort();
     const users = await tx.query(
       'SELECT id,status FROM ff_users WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE',
@@ -90,7 +91,7 @@ export class SharedContextRepository {
     if (users.length !== ids.length) fail('SHARED_INVITE_INVALID', 404);
     if (users.some((u) => u.status !== 'active')) fail('ACCOUNT_DELETING', 403);
   }
-  private async privacy(tx: Database, userId: string) {
+  protected async privacy(tx: Database, userId: string) {
     if (
       !(
         await tx.query(
@@ -101,7 +102,7 @@ export class SharedContextRepository {
     )
       fail('PRIVACY_ACKNOWLEDGEMENT_REQUIRED', 403);
   }
-  private async users(contextId: string): Promise<string[]> {
+  protected async users(contextId: string): Promise<string[]> {
     return (
       await this.db.query(
         'SELECT user_id FROM aw_shared_members WHERE context_id=$1 AND user_id IS NOT NULL AND status=ANY($2::text[])',
@@ -109,7 +110,7 @@ export class SharedContextRepository {
       )
     ).map((m) => String(m.user_id));
   }
-  private async once<T>(
+  protected async once<T>(
     userId: string,
     userIds: string[],
     scope: string,
@@ -140,7 +141,7 @@ export class SharedContextRepository {
       return result;
     });
   }
-  private async context(
+  protected async context(
     tx: Database,
     contextId: string,
     lock = false,
@@ -154,7 +155,7 @@ export class SharedContextRepository {
     if (!row) fail('SHARED_CONTEXT_NOT_FOUND', 404);
     return row!;
   }
-  private async member(
+  protected async member(
     tx: Database,
     userId: string,
     contextId: string,
@@ -171,10 +172,10 @@ export class SharedContextRepository {
       fail('SHARED_MEMBER_INACTIVE', 403);
     return row!;
   }
-  private revision(context: Context, expected: number) {
+  protected revision(context: Context, expected: number) {
     if (context.revision !== expected) fail('SHARED_REVISION_CONFLICT');
   }
-  private writable(context: Context) {
+  protected writable(context: Context) {
     if (!['inviting', 'active', 'paused'].includes(context.status))
       fail('SHARED_MEMBER_INACTIVE', 403);
     if (context.pending_event_id) fail('SHARED_PENDING_DECISION');
@@ -188,7 +189,7 @@ export class SharedContextRepository {
     )[0];
     return sharedTierSchema.parse(row?.tier ?? 'free');
   }
-  private async entitlement(
+  protected async entitlement(
     tx: Database,
     userId: string,
     type: SharedContextType,
@@ -251,7 +252,7 @@ export class SharedContextRepository {
     // No automatic disclosure of the personal age, location, occupation, goals or finance.
     return supplied ?? minimalInteractionProfile(String(social.display_name));
   }
-  private async blocked(tx: Database, a: string, b: string) {
+  protected async blocked(tx: Database, a: string, b: string) {
     if (
       (
         await tx.query(
@@ -665,6 +666,13 @@ export class SharedContextRepository {
             : action === 'end'
               ? 'ended'
               : c.status;
+        if (action === 'leave' || action === 'end')
+          await cancelPendingSharedDecision(
+            tx,
+            c.id,
+            action === 'end' ? 'context_ended' : 'participant_unavailable',
+            action === 'leave' ? m.id : null,
+          );
         if (action === 'leave') {
           await tx.query(
             "UPDATE aw_shared_members SET status='left',left_at=now() WHERE id=$1",
@@ -747,11 +755,24 @@ export async function cancelSharedAccountJobs(tx: Database, userId: string) {
     'SELECT c.id FROM aw_shared_contexts c WHERE EXISTS(SELECT 1 FROM aw_shared_members m WHERE m.context_id=c.id AND m.user_id=$1 AND m.status=ANY($2::text[])) ORDER BY c.id FOR UPDATE',
     [userId, liveStatuses],
   );
-  for (const c of contexts)
+  for (const c of contexts) {
     await tx.query(
       "UPDATE aw_shared_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL WHERE context_id=$1 AND status IN ('queued','running')",
       [c.id],
     );
+    const members = await tx.query(
+      'SELECT id FROM aw_shared_members WHERE context_id=$1 AND user_id=$2',
+      [c.id, userId],
+    );
+    for (const member of members)
+      await cancelPendingSharedDecision(
+        tx,
+        String(c.id),
+        'participant_unavailable',
+        String(member.id),
+        true,
+      );
+  }
 }
 export async function exportSharedAccount(tx: Database, userId: string) {
   if (!(await sharedStoragePresent(tx))) return null;
@@ -773,8 +794,11 @@ export async function exportSharedAccount(tx: Database, userId: string) {
     memberships: own,
     contexts,
     invitations: invites,
+    canon: await exportSharedCanon(tx, userId),
   };
 }
+
+export type { Context as SharedContextRow, Member as SharedMemberRow };
 
 async function sharedStoragePresent(tx: Database) {
   const [row] = await tx.query(

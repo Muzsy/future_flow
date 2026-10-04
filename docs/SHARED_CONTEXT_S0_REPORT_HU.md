@@ -57,3 +57,7 @@ Három valódi, jelszóval bejelentkezett szintetikus Supabase Auth-fiók, kül�
 A normál helyi fejlesztői web/API/worker újra elindult: http://localhost:3000/ és API /health 200, anonim Shared-kérés 401/no-store, a feature továbbra false. Mindhárom jobtábla aktív queue-ja üres; a tényleges DB-kliens TLS-e encrypted/authorized. Ez helyi indulási ellenőrzés, nem új böngészős UI-elfogadás vagy Shared release.
 
 Contabo nem változott, deployment nem történt. OpenAI/Claude-hívás nulla; a két megőrzött 5 USD kísérleti napló és a nulla éles allowance változatlan.
+
+## Későbbi S1 folytatás
+
+A fenti 195 teszt és S0 CI az akkori slice bizonyítéka. Az elkészült [S1 motor](SHARED_CONTEXT_S1_REPORT_HU.md) további 36 regressziót, canon/own intent/resolution/pending memoryt és own canon-exportot ad; a teljes készlet 231. A határidő, atomikus cancellation és új API részletei az S1 riportban vannak. Valódi Shared AI és személyes materializálás még S2/S3.

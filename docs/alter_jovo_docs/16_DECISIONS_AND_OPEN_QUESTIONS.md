@@ -1,5 +1,7 @@
 # alterward — döntések és nyitott kérdések
 
+**Shared állapot:** S0/S1 implementált: foundation és friend canon/own intent/resolution/pending memória, kikapcsolva; S2–S7 tervezett. 001–009 alkalmazva, következő S2 valódi Shared OpenAI. [S1 megvalósítás és korlátok](../SHARED_CONTEXT_S1_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
 2026-10-04 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
@@ -79,3 +81,7 @@ Grace és downgrade-context választás, deadline/quorum, eltérő időpontú á
 ## ADR-024 · Shared S0 minimális megosztás és fail-closed foundation
 
 2026-10-04 · Visszafordítható technikai munkadöntések: owner invite 7 nap/20 per context/24h, hash-only HMAC token dedikált szerverkulccsal és POST preview, targeted-only decline, pontos napegyezés a későbbi időadapterig; nincs automatikus személyes adatprofil-kivonat. Az owner távozása/törlése admin-handovert ad a legrégebbi megmaradt aktív (ennek hiányában paused) tagnak, történetbeli szerep nélkül. Ended/archived romantikus slotot context_live trigger felszabadítja, paused megtartja. S0 008/009 és az API implementált, 008/009 a fejlesztői Supabase-on alkalmazva és ismétléssel ellenőrizve, mind a négy flag false. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). Billing, időadapter, downgrade/grace, retained prose és teljes canon-export/moderáció nem tekinthető ezzel késznek.
+
+### ADR-025 · Shared S1 saját választás és memory-only lezárás
+
+2026-10-04 · Friend csak individual_opt_in; participating-option ID és határidő trusted server-adat, nem AI/címke-inferencia. Option sharedChanges tiltott, nincs egymást felülíró egyéni csoportváltozás. Proposal prózából nem képzünk elfogadott személyes cselekvést/érzést; kizárólag canon + own recorded response memory-only pending rekord. Null és véges deadline támogatott, 48h teszt/javaslat; kiadási alapérték tisztázandó. Intent és resolution külön revision, leave/end/deleting atomikus cancellation. Tíz párhuzamos PostgreSQL-intent/öt context pending-deletion CI-kapu. Personal branch/AI-memory materializálás S3, valódi Shared provider S2; kapcsolati/pénzügyi/governance adapter későbbi. [S1 riport](../SHARED_CONTEXT_S1_REPORT_HU.md).

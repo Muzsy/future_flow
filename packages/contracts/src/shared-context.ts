@@ -241,6 +241,18 @@ export const sharedMemoryEventSchema = z
 export type SharedMemoryEvent = z.infer<typeof sharedMemoryEventSchema>;
 
 export const sharedErrorMessages: Record<string, readonly [string, string]> = {
+  SHARED_CANDIDATE_INVALID: [
+    'This shared event is invalid.',
+    'A közös esemény érvénytelen.',
+  ],
+  SHARED_IMPACT_INVALID: [
+    'This personal effect is not permitted.',
+    'Ez a személyes hatás nem engedett.',
+  ],
+  SHARED_DECISION_CLOSED: [
+    'This shared decision is closed.',
+    'Ez a közös döntés lezárult.',
+  ],
   SHARED_CONTEXT_NOT_FOUND: [
     'This shared context is unavailable.',
     'A közös kontextus nem érhető el.',
