@@ -198,7 +198,7 @@ A [2026-10-04-i új specifikáció](plans/alterward_shared_context_implementatio
 
 Típusok: friend 2–10, romantic pontosan 2 és max 1 aktív/user, work/hobby max 10, sport max 20. Tervezett aktív slotszám: Free 0, Explorer 1 friend, Connected 3 friend/romantic/work/hobby, World 5 minden típus; minden tag saját entitlementje szükséges. Inviting/active/paused slotot fogyaszt, ended/archived nem. A tiermodell megvalósítandó; árak/billing és downgrade grace még konkretizálandók, a privacy/export/törlés ingyenes.
 
-Következő helyi szelet S0 foundation, majd S1 determinisztikus tesztalap → S2 valódi Shared AI → S3 személyes memória/hatás, Connections és friend kiadási kapu. S4–S6 fokozatos típusbővítés, S7 split/group fork/sponsored/public többfél-consent később. A P09–P13 public MVP nem törlődik; annak PII/preview/fork kapuja a shared történetek más felhasználóit is védi.
+Az S0 foundation elkészült; következő helyi szelet S1 determinisztikus tesztalap → S2 valódi Shared AI → S3 személyes memória/hatás, Connections és friend kiadási kapu. S4–S6 fokozatos típusbővítés, S7 split/group fork/sponsored/public többfél-consent később. A P09–P13 public MVP nem törlődik; annak PII/preview/fork kapuja a shared történetek más felhasználóit is védi.
 
 Biztonságos meghívó, explicit részvétel/consent, minimális InteractionProfile, saját intent, deterministic resolution, rendezett user/context/branch lock, revision/lease/idempotencia és lazy személyes impact kötelező. Személyes fork nem örököl live tagságot. A törölt tag adata leválasztandó, más tagok története nem cascade-törlendő; próza-redakció/retention ellenőrzése nélkül nincs kiadás.
 

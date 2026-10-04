@@ -9,7 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
-| [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; következő helyi szelet S0 |
+| [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; S0 kész, következő helyi szelet S1 |
 | [Shared Context integráció](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) | Több valódi felhasználó privát életágának közös AI-eseményei, consent, entitlement, személyes hatások és kiadási kapuk |
 | [Új forráscsomag](plans/README.md) | Változatlan ZIP, 15 témadokumentum, master és ellenőrzőösszegek |
 | [21 részes témadokumentáció](alter_jovo_docs/00_README.md) | Termék, UX, profil, motor, AI, közösség, architektúra, adat/API, biztonság, minőség és üzemeltetés |

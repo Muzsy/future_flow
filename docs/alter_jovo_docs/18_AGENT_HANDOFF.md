@@ -4,7 +4,7 @@
 
 **Shared állapot:** S0 kész: izolált CI és valódi háromfiókos Supabase-próba sikeres, 001–009 alkalmazva; feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). Következő helyben: **S0 Shared Context foundation**, majd S1–S3 valódi AI-s friend integráció. P06 backup/restore/valós DB-kiesés és Contabo-ops későbbi kiadási kapu; P09–P13 public szál megmarad.
+2026-10-04 · [Dokumentációs központ](../README.md), [állapot](../STATUS_HU.md), [backlog](../NEXT_STEPS.md). Következő helyben: **S1 Shared friend engine**, az elkészült S0 alapra, majd S2–S3 valódi AI-s friend integráció. P06 backup/restore/valós DB-kiesés és Contabo-ops későbbi kiadási kapu; P09–P13 public szál megmarad.
 
 ## Kiindulás és feladat
 
@@ -33,7 +33,7 @@ P06 valódi Auth/DB-törlés sikeres; email-kézbesítés/backup/restore/valós 
 
 Claude kliens/CLI és szintetikus fixture-ök kész; [mért modellajánlás](../CLAUDE_MODEL_EVALUATION_HU.md). Kulcs védett .env és külső vault; .local/claude-audit/usage.json megőrzendő, külön lock. Haiku nem minősített narrátor/esemény alapnak. Sonnet rutin külső auditor-jelölt, Opus vitás mintavétel; használói minőség kiadás után mérendő; kézi HU/EN előkapu felülírva. A raw audit JSON téves riasztásokat is tartalmaz, nem canon-forrás.
 
-Contabo: [előkészítési riport](../CONTABO_PREPARATION_REPORT_HU.md), külön védett kulcs/hostpin, jelszavas SSH tiltva. Ne próbálj újra régi SSH-jelszót; kulcsot és korábbi hostpint használj. Konfiguráció/proxy-storage másolat sértetlen, teljes restore nincs. Teljes runtime CI az `a69e3b3` commiton sikeres, éles alkalmazás nem fut. A karbantartási időablak és a még használt meglévő domainek tisztázása folyamatban; ezekre ne következzen automatikus reboot/proxycsere. Éles AI-allowance alapértéke nulla, domain később. Dokumentációfrissítés nem indít fizetett AI-t vagy új szervermódosítást.
+Contabo: [előkészítési riport](../CONTABO_PREPARATION_REPORT_HU.md), külön védett kulcs/hostpin, jelszavas SSH tiltva. Ne próbálj újra régi SSH-jelszót; kulcsot és korábbi hostpint használj. Konfiguráció/proxy-storage másolat sértetlen, teljes restore nincs. Aktuális teljes izolált runtime CI az `a20302f` commiton sikeres, 195 teszttel és kilenc migrációval; [CI](https://github.com/Muzsy/future_flow/actions/runs/37229799920). Éles Contabo-alkalmazás nem fut. A karbantartási időablak és a még használt meglévő domainek tisztázása folyamatban; ezekre ne következzen automatikus reboot/proxycsere. Éles AI-allowance alapértéke nulla, domain később. Dokumentációfrissítés nem indít fizetett AI-t vagy új szervermódosítást.
 
 ## Shared átadási követelmények
 

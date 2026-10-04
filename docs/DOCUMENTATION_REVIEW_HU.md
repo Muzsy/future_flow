@@ -38,3 +38,7 @@ Ezek után külön éles telepítés és korlátozott privát angol béta, majd 
 ## Későbbi kiegészítés ugyanazon a napon: Shared Context
 
 A fenti audit létszámai és CI-bizonyítéka az akkori állapot történeti adatai. Ezután a felhasználó új [Shared Context ZIP-et](plans/README.md) adott át: teljes változatlan forrás, külön [aktív integrációs terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md), S0–S7 backlog és 15 fejezetes visszakövetés került a dokumentációba. A releváns központi és mind a 21 témadokumentum frissült; manifest és helyi hivatkozások újra ellenőrizve. Új alkalmazáskód, alkalmazott migráció, runtime- vagy paid AI-próba nem következik ebből a dokumentációs integrációból.
+
+## S0 megvalósítás utáni frissítés
+
+A következő implementációs szelet elkészült: [S0 riport](SHARED_CONTEXT_S0_REPORT_HU.md), 008/009 alkalmazva és ismétléssel ellenőrizve, valódi három szintetikus Supabase Auth-fiók foundation/export/törlés-próbája és takarítása sikeres. Az [a20302f CI](https://github.com/Muzsy/future_flow/actions/runs/37229799920) 195 teszttel, teljes build/séma-drift és izolált valós PostgreSQL/TLS runtime-versenypróbával sikeres. Az aktív terv, státusz és átadás már S1-et jelöli következőnek; S2/S3 előtt Shared kikapcsolva. Az új specifikáció, eredeti források, történetek, alkalmazott SQL és exportált sémák sértetlenek; a jelenlegi integritási audit 94 megőrzendő fájlt, 29 sémát és 21 aktív témadokumentum manifestjét ellenőrzi. Az AI-naplók és Contabo változatlanok.
