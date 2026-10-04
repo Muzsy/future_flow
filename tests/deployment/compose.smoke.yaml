@@ -1,0 +1,38 @@
+# CI fixture only. The production file retains external Supabase and Caddy.
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_PASSWORD: ci_unused_outside_fixture
+    command:
+      [
+        postgres,
+        -c,
+        ssl=on,
+        -c,
+        ssl_cert_file=/fixture/server.crt,
+        -c,
+        ssl_key_file=/fixture/server.key,
+        -c,
+        log_statement=all,
+      ]
+    volumes:
+      - ${CI_TLS_DIRECTORY}/server.crt:/fixture/server.crt:ro
+      - ${CI_TLS_DIRECTORY}/server.key:/fixture/server.key:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    networks: [proxy, worker]
+  smoke-proxy:
+    image: caddy:2
+    ports: ['127.0.0.1:8443:443']
+    volumes:
+      - ../tests/deployment/Caddyfile.smoke:/etc/caddy/Caddyfile:ro
+      - ${CI_TLS_DIRECTORY}/server.crt:/fixture/server.crt:ro
+      - ${CI_TLS_DIRECTORY}/server.key:/fixture/server.key:ro
+    networks: [proxy]
+networks:
+  worker:
+    internal: true

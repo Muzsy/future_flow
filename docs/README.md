@@ -18,6 +18,7 @@
 | [Lokalizáció](LOCALIZATION_HU.md) | Angol kiadás, elrejtett magyar és bővíthető nyelvregiszter |
 | [Angol indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md) | AI szerkesztői ellenőrzés, éles béta és használói visszajelzés; későbbi Contabo-telepítés |
 | [Contabo szerveraudit](CONTABO_SERVER_AUDIT_HU.md) | Sikeres belső audit: 4 vCPU/8 GB RAM, közös Caddy, TLS/hálózat, indulás előtti SSH/tűzfal/mentés/karbantartás |
+| [Contabo előkészítés](CONTABO_PREPARATION_REPORT_HU.md) | Működő külön SSH-kulcs, jelszavas SSH tiltása, konfigurációmentés és ellenőrzött elkülönített telepítési fájlok |
 | [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült időszakos tárolás/API/worker és pontos szerződés |
 | [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és kiadás utáni használói értékelés |
 | [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |

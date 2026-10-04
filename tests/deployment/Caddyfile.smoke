@@ -1,0 +1,9 @@
+https://localhost {
+	tls /fixture/server.crt /fixture/server.key
+	handle /api/* {
+		reverse_proxy alterward-api:4000
+	}
+	handle {
+		reverse_proxy alterward-web:3000
+	}
+}

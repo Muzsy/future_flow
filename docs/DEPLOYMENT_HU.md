@@ -1,6 +1,6 @@
 # alterward — helyi fejlesztés és későbbi Contabo-telepítés
 
-2026-10-04 · [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Beállítás](SETUP.md) · [Compose](../deploy/compose.yaml).
+2026-10-04 · [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Beállítás](SETUP.md) · [Contabo Compose](../deploy/compose.contabo.yaml) · [Előkészítési riport](CONTABO_PREPARATION_REPORT_HU.md).
 
 ## Elfogadott környezet
 
@@ -14,20 +14,40 @@ Gyökér Dockerfile: Node 24, rögzített pnpm a packageManager mezőből, froze
 
 deploy/compose.yaml: web/API/worker + Caddy proxy, automatikus restart, web/API healthcheck, forgó méretkorlátos konténernapló, CA-fájl csak read-only mount. Kizárólag a proxy 80/443 portja nyilvános. API/worker titkos környezete külön, a web nem kap admin-, DB- vagy OpenAI-kulcsot. AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD alapértéke nulla; új fizetős generálás addig tiltott.
 
-A helyi Windows-környezetben nincs Docker parancs; Linux CI-ben az image-build és production web indulás/healthcheck már sikeres. A teljes Compose/API/worker együttműködés, Caddy HTTPS, külső kliensazonosítás és kapacitás továbbra a későbbi szerveres kapu. A működő Node production build és Linux web healthcheck nem teljes Contabo smoke.
+A helyi Windows-környezetben nincs Docker parancs; Linux CI-ben az image-build és production web indulás/healthcheck már sikeres. A bővített CI külön PostgreSQL/TLS fixture-rel vizsgálja a web/API/worker/proxy futását és a migrációkat, valós adat/kulcs vagy AI-költség nélkül; eredménye külön rögzítendő. A tényleges Supabase, Caddy domain/HTTPS, külső kliensazonosítás és kapacitás továbbra a későbbi szerveres kapu.
 
-A Contabo gépen a meglévő Caddy 2.11.3 konténer foglalja a 80/443 portokat, hat hostname szerepel a lemezes konfigurációjában; három lejárt tanúsítvány és egy kézfogási hiba rendezendő. Az alterward saját proxyját ezen a gépen közös Caddy-route és külön proxy-hálózat váltja ki, nyilvános 3000/4000 port nélkül. A meglévő proxy forrás-Compose fájlja is rögzítse az új hálózatot. Más szolgáltatásokat nem állítunk le automatikusan. A jelenlegi YAML a szerver Compose v5.1.4 pluginjával helyettesítő env mellett parszolható, de változatlan portpublikálással nem indítható. [Audit és konkrét indulási pontok](CONTABO_SERVER_AUDIT_HU.md).
+A Contabo gépen a meglévő Caddy 2.11.3 konténer foglalja a 80/443 portokat, hat hostname szerepel a lemezes konfigurációjában; három lejárt tanúsítvány és egy kézfogási hiba rendezendő. A Contabohoz a `deploy/compose.contabo.yaml` használatos: csak web/API/worker, saját proxy nélkül, 2816 MiB összmemória-, 2,75 CPU- és forgó naplókorlátokkal. A web/API az `alterward_proxy` külső hálózaton kap stabil aliasokat, a worker külön bridge hálózaton működik. Nyilvános 3000/4000 port nincs. API/worker secret-határok és verified CA-mount megmaradnak.
+
+A [Caddy route-minta](../deploy/Caddyfile.contabo.example) és [proxy Compose-kiegészítés](../deploy/compose.proxy-attachment.example.yaml) a meglévő proxyhoz tartozik. A szerveren helyettesítő env-es preflight sikeres, a proxy-kiegészítés megtartja mindkét régi hálózatot és az összes többi beállítást, a kombinált Caddyfile adaptálható. Route/hálózat nincs aktiválva, konténer nem indult. A standalone `compose.yaml` saját 80/443 portjai ezen a gépen ütköznének. [Konkrét eredmények](CONTABO_PREPARATION_REPORT_HU.md).
 
 ## Későbbi telepítés menete
 
-1. A működő SSH-hozzáférés és olvasási audit már megvan; a rendezendő SSH/tűzfal/TLS, backup és karbantartási pontok lezárása kell. A meglévő Docker Engine/Compose plugin használható; nincs indok automatikus csomagcserére. Kijelölt /opt/alterward checkout a GitHub main konkrét commitján, elkülönített web/API/worker és közös proxyhoz illesztett konfiguráció. Az audit engedélyezett, a szervermódosítás/telepítés külön későbbi lépés.
+1. A működő kulcsos SSH-hozzáférés, olvasási audit és jelszavas SSH tiltása megvan. Tűzfal/TLS, teljes backup/restore és egyeztetett karbantartás még szükséges. A meglévő Docker Engine/Compose plugin használható; nincs indok automatikus csomagcserére. Kijelölt /opt/alterward checkout a GitHub main konkrét commitján, elkülönített web/API/worker; saját domain és éles AI-keret után aktiválható. A jelenlegi fejlesztői DB-hez próbaként indított worker az ottani jobokat is felvehetné, ezért futáspróba csak izolált fixture-rel végezhető.
 2. A deploy/server.env.example alapján külön, checkouton kívüli /etc/alterward/runtime.env. Csak jogosult üzemeltető olvashatja; nem commitoljuk és nem másoljuk fel a fejlesztői .env-t. A Supabase CA ellenőrzött példánya legyen a DATABASE_SSL_CA_HOST_FILE helyen (például /etc/alterward/supabase-ca.crt) és olvasható a konténer 1000-es UID-jének; nincs rejectUnauthorized=false. A mintában szereplő CA-útvonal a tényleges elhelyezéshez igazítandó.
 3. Publikus hostname, DNS a szerverhez, elérhető 80/443 és Caddy HTTPS. Meglévő saját domain/aldomain vagy választott ideiglenes hostname is használható. A vásárlás későbbi döntés. A Caddyfile automatikusan kezeli a HTTPS-t megfelelő hostname és hálózati feltételek mellett. [Caddy HTTPS](https://caddyserver.com/docs/automatic-https).
 4. A protected env fájlt a parancsok --env-file kapcsolója választja ki. Secretet tartalmazó docker compose config kimenetet ne másoljunk naplóba/chatbe; ellenőrzéshez config --quiet. A web publikus Supabase értékei build-time értékek; módosításkor új image kell. Az API címe /api/v1, a proxy egy origin alatt szolgálja ki a webet és API-t.
-5. A szerverhez illesztett proxy/Compose konfiguráció elkészülte után a sorrend: docker compose --env-file /etc/alterward/runtime.env -f deploy/compose.yaml config --quiet; majd build web; majd run --rm api pnpm db:migrate. Meglévő közös proxy esetén a végleges fájlok/parancsok eltérhetnek; az eredeti csomagot nem indítjuk portütközésre. A meglévő migrációkat nem írjuk át. A 007 már a fejlesztői Supabase-on alkalmazva; üres környezetben 001–007 fut le. Migráció és mentési terv ellenőrzése után up -d, health és valódi kétfiókos Auth/UI smoke.
+5. A Contabo-csomag ellenőrzése és buildje az alábbi parancsokkal történik. A Compose relatív extends-útvonalait a fájl könyvtárához hagyjuk igazodni; nincs eltérő --project-directory. Az image-build a három runtime memória/CPU-korlátjától függetlenül terheli a gépet, ezért a meglévő alkalmazások mellett egyeztetett időben, mérve fut. A már sikeres CI-build nem éles Supabase publikus értékkel készült; önmagában nem éles image.
 6. API_TRUST_PROXY=1 csak a zárt API-port és az egyetlen Caddy-hop mellett. A Caddy által továbbított klienscímet és rate-limitet ténylegesen ellenőrizzük. Közvetlen Node/API portot nem publikálunk, proxyhops nincs korlátlan true-ra állítva. Supabase Auth Site URL és redirect allowlist a tényleges HTTPS címet kapja.
 7. Külön éles AI-keret, hozzáférési/generálási limitek, mentés/visszaállítás és visszajelzés-áttekintési felelős. Pozitív env keret nem emeli meg automatikusan a már tárolt DB-limiteket. A fejlesztői 5 USD OpenAI/5 USD Claude naplók megmaradnak helyben; nem az éles keret és nem a tárhely kerete.
 8. Éles URL, commit, image-tag, smoke és visszaállítási próba rögzítése. Először korlátozott privát angol béta. Discovery/public a saját snapshot/privacy/moderáció/törlés/fork kapuja után.
+
+A következő parancsok későbbi éles lépések, most nem futottak le. Az első preflight valódi env nélkül működik. Az `alterward_proxy` hálózatnak a migráció/API futtatás előtt léteznie kell. A migráció előtt cél-Supabase és backup/restore igazolás kell; alkalmazott migrációt nem írunk át.
+
+```sh
+cd /opt/alterward
+node scripts/verify-deployment.mjs
+docker network create alterward_proxy
+docker compose --env-file /etc/alterward/runtime.env -f deploy/compose.contabo.yaml config --quiet
+docker compose --env-file /etc/alterward/runtime.env -f deploy/compose.contabo.yaml build web
+docker compose --env-file /etc/alterward/runtime.env -f deploy/compose.contabo.yaml run --rm --no-deps api pnpm db:migrate
+docker compose --env-file /etc/alterward/runtime.env -f deploy/compose.contabo.yaml up -d --no-build web api
+```
+
+Meglévő hálózat esetén azt inspecttel ellenőrizzük, nem hozunk létre másodikat. A hálózat legyen külön alterward bridge; más alkalmazások nem kapnak hozzáférést az API-hoz. A worker csak a célkörnyezet, külön éles AI-keret és migráció után indul ugyanazzal a Compose paranccsal, `up -d --no-build worker` végződéssel. A web/API csak a közös Caddy megfelelő bekötése után érhető el kívülről.
+
+A jelenlegi proxy forrásfájlját megőrzött példányhoz képest ellenőrizzük. A `deploy/compose.proxy-attachment.example.yaml` mutatja a hozzáadandó külső hálózatot; tartósan a tényleges proxy Compose-forrásában is legyen benne. Az élő hálózatbekötés és az esetleges Compose-konténercsere hatását külön mérjük. A meglévő Caddyfile-ba a valódi domainnel kitöltött site-blokk kerül, minden régi route megőrzésével. Adapt/validate után Caddy reload használatos; a reload nem szükségeltet proxy-leállítást, a hálózati konténer-újralétrehozás ettől külön művelet. [Caddy parancsok](https://caddyserver.com/docs/command-line).
+
+Indulási smoke: web és API health, egyazon HTTPS origin, certificate-lánc/hostname, kétfiókos Auth és ownership, proxy kliens-IP/rate-limit, új élet/döntés/folytatás/visszatérés, export/törlés és tényleges worker-leállítás/drain. Pozitív keret nélkül fizetett generálást nem indítunk. P50/P95 késleltetés, memória/CPU és más VPS-szolgáltatások állapota közben mérendő. A 007 már a fejlesztői Supabase-on alkalmazva; üres célon 001–007 fut le.
 
 ## Frissítés és helyreállítás
 
