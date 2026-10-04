@@ -1,6 +1,6 @@
 # alterward — jelenlegi implementáció, 2026-10-04
 
-[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
+[Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
 Ez a dokumentum a működő v1 prototípust és az integrált v2 időszakos életet írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.
 
@@ -95,7 +95,7 @@ Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő job
 
 ## Claude értékelő, elkülönített integráció
 
-Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 159 aktuális automatikus teszt; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
+Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 USD napló és lock; CLI: pnpm evaluate:claude. Nem a termék workerének provider-routingja. 194 teszt a jelenlegi készletben; [Claude mérés és külső audit](CLAUDE_MODEL_EVALUATION_HU.md). A fizetett sorozat kizárólag verziózott szintetikus fixture-öket használt, a személyes Supabase-gráfot nem küldte Claude-nak.
 
 ## 2026-10-04: privát béta és Contabo-előkészítés
 
@@ -103,8 +103,10 @@ Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 U
 
 Narrátor v3: konkrét jelenet, elfogadott döntés megélt következménye, kevesebb ismételt állapot-/pénzfelsorolás; kánonkapuk változatlanok, produkciós modellek továbbra Sol. Docker/Compose/Caddy a későbbi Contabo-telepítéshez; az API csak 0 vagy 1 proxyhopot fogad konfigurációként. Windows alatt helyi Docker-runtime nincs; a [teljes Linux CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326) izolált web/API/worker/Caddy futáspróbája sikeres. Contabo Compose/proxy preflight, kulcsos SSH/jelszavas tiltás és védett konfigurációmentés kész; éles alkalmazás még nem fut. [Előkészítés](CONTABO_PREPARATION_REPORT_HU.md).
 
-## Tervezett Shared Context — még nincs kód
+## Shared S0 — implementált, kikapcsolt alap
 
-A [Shared Context specifikáció](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md) az aktuális b75e61d alapot auditálja; a [beépített terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) most S0–S7 backlog. Új shared contract/core/repository/controller/provider/processor/Connections készül majd. Jelenleg a személyes v2 memória csak recentEvents/choices, a worker v1/v2 queue-t váltogat, és a DB 001–007-et tartalmaz; Shared tábla, API, entitlement és flag még nincs. A jelenlegi személyes ownership és törlési folyamat nem kezeli automatikusan a többfelhasználós historyt.
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0 contract/core és 11 új JSON-séma; 008/009 tizenhárom RLS-tábla; SharedContextRepository és auth-védett social/context/invite/lifecycle API. A saját személyes élet/ág egytulajdonosú marad. Szerver-tier/cap, minimális profil, hash-only meghívó, globális user/context lock, revision/idempotencia és deletion-recovery/handover integrált.
 
-Additív módon épül rá a privát magra, annak egytulajdonosú élet/ág modelljét megtartva. Következő helyi szelet S0; valódi friend release csak S2 Shared AI + S3 személyes impact/consent/privacy/export/törlés/recovery kapu után. A meglévő 159 teszt és runtime CI a korábbi mag bizonyítéka marad, nem Shared-elfogadás.
+A feature összes flagje false; nincs Connections, Shared AI, harmadik worker queue vagy saját period memória/impact bekötés. Ezek S1–S3 feladatok, első friend kiadás csak S2 valódi AI + S3 biztonság után. S0 pontos napegyezést kér, nem teljes compatible-month/latest-anchor implementáció. Más típusok formation/governance S4–S6. Billing és retained prose/privacy kapuk megmaradnak.
+
+Fejlesztői DB-alkalmazás 008/009 a helyi direct IPv6 elérhetetlenség miatt Session pooler címre vár; 001–007 és a régi 18 séma változatlan. 35 új regresszióval 194 teszt a készlet; az aktuális local/CI bizonyíték a riportban. A worker továbbra v1/v2 queue-t kezel, paid hívás és Contabo-változás nincs.

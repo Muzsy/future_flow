@@ -94,3 +94,9 @@ pnpm build:packages után pnpm evaluate:claude count ingyenes counter. A többi 
 `pnpm feedback:report` privát kategória/szándék darabszámokat, `pnpm metrics:private` a [session-metrikákat](BETA_FEEDBACK_AND_METRICS_HU.md) mutatja; egyik sem generál AI-tartalmat. [Későbbi Contabo-beállítás](DEPLOYMENT_HU.md).
 
 A Contabo üzemeltetői kulcsa és hostpinje checkouton kívüli védett titokmappában van; jelszavas SSH már tiltva. [Belépési parancs és előkészítési állapot](CONTABO_PREPARATION_REPORT_HU.md). A fejlesztői `.env` nem másolható fel éles konfigurációként; a későbbi `/etc/alterward/runtime.env` külön cél-Supabase és éles keret mellett készül.
+
+## Shared S0 — alapból kikapcsolva
+
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). SHARED_CONTEXTS_ENABLED/SHARED_FRIEND_ENABLED/SHARED_CONNECTED_ENABLED/SHARED_WORLD_ENABLED mind false, a szerver csak true/false értéket fogad el. A normál helyi felület nem mutat AI nélküli Shared demót. S3 release gate előtt nem aktiváljuk. Az elkülönített API-tesztek saját, nem produkciós kulcsot és megbízható szerveroldali tier-fixture-t használnak; kliens fizetős override nincs.
+
+Új környezetben pnpm db:migrate 001–009-et alkalmaz, checksumos tranzakcióval. A mostani fejlesztői DB-n 008/009 még függő: direct IPv6 címre helyben nincs útvonal. IPv4 helyi hálózatnál Supabase Connect → Session pooler kapcsolatot másolj; hostname/index és postgres.PROJECT-REF username a dashboardból, password percent-encode, DATABASE_SSL=true és verified CA ellenőrzés megmarad. Credential csak védett .env, sem chat/Git/log. [Supabase kapcsolódási útmutató](https://supabase.com/docs/guides/database/connecting-to-postgres). A későbbi Contabo-konfiguráció ettől külön.

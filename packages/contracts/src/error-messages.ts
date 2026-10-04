@@ -1,4 +1,5 @@
 import type { Locale } from './locales';
+import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
   FEEDBACK_LIMIT: [
     'You have reached the feedback limit. Please try again tomorrow.',
@@ -227,6 +228,7 @@ function catalog(index: 0 | 1) {
     );
   return { errors: localize(errors), domain: localize(domainFailures) };
 }
+Object.assign(errors, sharedErrorMessages);
 const catalogs: Record<
   Locale,
   { errors: Record<string, string>; domain: Record<string, string> }

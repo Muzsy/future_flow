@@ -256,3 +256,4 @@ export function worldState(profile: Profile): WorldState {
   };
 }
 export * from './public-draft';
+export * from './shared-context';

@@ -62,6 +62,11 @@ import {
   BetaFeedbackRepository,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
+import {
+  createSharedContextController,
+  sharedFeaturesFromEnv,
+  type SharedFeatures,
+} from './shared-context';
 import { type AuthProvider, requireRecentAuthentication } from './auth';
 import {
   requireEnabledContent,
@@ -477,9 +482,20 @@ export async function createApp(
   auth: AuthProvider,
   origin = 'http://localhost:3000',
   proxyHops: 0 | 1 = 0,
+  sharedFeatures: SharedFeatures = sharedFeaturesFromEnv(),
 ) {
+  const SharedContextController = createSharedContextController(
+    AuthGuard,
+    REPOSITORY,
+    sharedFeatures,
+  );
   @Module({
-    controllers: [ApiController, LifeController, HealthController],
+    controllers: [
+      ApiController,
+      LifeController,
+      SharedContextController,
+      HealthController,
+    ],
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
@@ -524,7 +540,7 @@ export async function createApp(
   );
   app.enableCors({
     origin,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: [
       'Authorization',
       'Content-Type',

@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0 implementáció elkészült és izoláltan ellenőrzött; fejlesztői DB-alkalmazás függő, feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · A tényleges controller: [apps/api/src/app.ts](../../apps/api/src/app.ts). OpenAPI helyben: `http://localhost:4000/api/openapi.json`. A tervezett végpontcsaládok még nem hívhatók.
 
@@ -75,8 +75,8 @@ P09–P12 anonim snapshot-olvasás, publish/Confirm, Save/Share/Report/moderatio
 
 Public olvasás csak snapshot, szükséges permission/moderation ellenőrzéssel; privát végpont nem nyitható meg. Unlisted külön tokenes hozzáférés. Save/új saját élet auth, curator/admin külön role. Mutációk revision/hash/idempotencia és limit; olvasás nem indít AI-jobot. Szabad szöveges döntés, profil-AI enrichment, kapcsolati CRUD, notification/follow/comment, külön chapter-generate és élet-DELETE végpont nincs a mai controllerben.
 
-## Tervezett Shared API — még nem endpoint
+## Shared S0 API — alapból kikapcsolva
 
-A /api/v2/social-profile, shared-contexts, shared-invites, shared-jobs és saját branch shared-impacts API-k a Shared tervben szerepelnek; jelenleg nem érhetők el. Create/list/detail/invite/accept/decline/continue/intent/leave/archive, később remove. Auth + tagsági scope + saját branch + server entitlement + revision/idempotencia; ismert ID nem permission. Gépi SHARED_* / SUBSCRIPTION_REQUIRED hibák, angol felirat. DTO és OpenAPI a megvalósított kóddal együtt készül.
+Social-profile GET/PUT, shared-contexts create/list/detail, meghívás/lista/POST-preview/accept/targeted-decline/revoke és leave/end/archive controller elkészült; a két alapflag false mellett 404. Szabályok és konkrét útvonalak: [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). Shared-jobs/continue/intent/shared-impacts és remove még tervezett. Auth + tagsági scope + saját branch + server entitlement + revision/idempotencia; ismert ID nem permission. Gépi SHARED_* / SUBSCRIPTION_REQUIRED hibák, angol felirat. S0 strict DTO és OpenAPI a kódból kész, token preview POST bodyban, cache no-store.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

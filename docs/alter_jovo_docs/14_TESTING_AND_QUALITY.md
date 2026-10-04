@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0 implementáció elkészült és izoláltan ellenőrzött; fejlesztői DB-alkalmazás függő, feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
 
@@ -38,8 +38,8 @@ Claude külső audit: [bizonyíték és hibás gépi riasztások](../examples/CL
 
 A teljes izolált Linux CI web/API/worker/Caddy futáspróbája, 001–007 és ismételt migráció, verified DB TLS/HTTPS, API 401 és üres queue-leállítás sikeres. Aktív generálási job drain, Contabo-élesítés és terhelésmérés nincs ezzel igazolva. [CI és ellenőrzési határok](../CONTABO_PREPARATION_REPORT_HU.md).
 
-## Shared tesztmátrix — még nincs futtatva
+## Shared tesztmátrix — S0 regressziók és további kapuk
 
-Új esetek: tier/type/slot/taglimit, last-slot/romantic két párhuzamos accept, invite expiry/reuse/recipient/block, outsider privacy, own intent/authority, policy tie/quorum, time mismatch/backdated, duplicate event/intent/impact, lease/restart/repair, fair queue, fork tagság nélkül, háromtagú deletion/recovery, húsz párhuzamos sport-intent. Friend DoD valódi AI és saját következő period, nem csak fixture. A korábbi 159 teszt változatlan; nem shared bizonyíték.
+Új esetek: tier/type/slot/taglimit, last-slot/romantic két párhuzamos accept, invite expiry/reuse/recipient/block, outsider privacy, own intent/authority, policy tie/quorum, time mismatch/backdated, duplicate event/intent/impact, lease/restart/repair, fair queue, fork tagság nélkül, háromtagú deletion/recovery, húsz párhuzamos sport-intent. Friend DoD valódi AI és saját következő period, nem csak fixture. A korábbi 159 mellé 35 S0 regresszió: profile/privacy/entitlement, tokenhash/idempotencia, cap/time/revision, RLS/canon és export/deletion/recovery/admin-handover, valamint HTTP/OpenAPI/flag határok. PGlite célzott tesztek sikeresek; a valódi PostgreSQL utolsó slot/tag és ötcontextes deletion race CI-ben külön fut. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). S1–S6 további engine/AI/impact/queue és romantikus API-concurrency elfogadásai még nyitottak.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

@@ -13,15 +13,16 @@
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–007 alkalmazva, ellenőrzött TLS, minden aw_ tábla RLS, anon/authenticated közvetlen hozzáférés tiltva |
+| Supabase | 001–007 alkalmazva, 008/009 implementálva/izoláltan tesztelt, Session pooler cím hiányában alkalmazás függő; ellenőrzött TLS, minden aw_ tábla RLS, anon/authenticated közvetlen hozzáférés tiltva |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `a69e3b3` commit: 159 teszt/build/séma-drift és teljes izolált web/API/worker/Caddy, 001–007 + ismételt migráció, verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326) |
+| Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 35 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
-159 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
+194 teszt a jelenlegi készletben, köztük 35 új Shared regresszió; az S0 ellenőrzések részletei a [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md) dokumentumban. A korábbi 159 teszt bizonyítéka: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -81,3 +82,9 @@ A későbbi Contabo-telepítéshez a nulla projekt- vagy userkeret most a koráb
 A felhasználó új ZIP-je megőrizve és teljesen kibontva; 15 témadokumentum + master + manifest/checksum átolvasva, a 17 felsorolt fájl és az eredeti ZIP hash-e ellenőrzött. Az [aktív Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md), termékterv, backlog, 21 témadokumentum és követelménymátrix az S0–S7 fejlesztési szálat követi. Első helyi szelet S0, első kiadható friend funkció S2 valódi AI + S3 integráció/biztonság után.
 
 **Tervezett, még nincs implementálva:** shared szerződés/DB/API/provider/queue/UI, social profile és entitlement. Jelenleg csak 001–007 migráció van, 159 korábbi teszt és két worker queue. Az új specifikáció nem emeli a tesztszámot, nem állít Shared-működést vagy deploymentet. Alkalmazáskód/séma/migráció/Contabo nem változott, fizetett AI-hívás és keretváltozás nem történt. A két kísérleti napló és a nulla éles allowance változatlan.
+
+## 2026-10-04: Shared S0 implementáció
+
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). A foundation szerződése, két additív migrációja és social/context/invite API-ja elkészült. Saját branch és minimális megosztás, szerver-entitlement, egyszeri token, cap/revision/idempotencia, lifecycle/admin-handover és account export/törlési recovery strukturális bővítése ellenőrzött. 35 új regresszió, jelenlegi készlet 194; Life v2 és 18 régi séma változatlan. A Linux PostgreSQL concurrency próba CI-ben készül ellenőrzésre.
+
+Fejlesztői Supabase-ra 008/009 még nem alkalmazott: Auth health 200, direct DB IPv6 címre helyben nincs útvonal (`ENETUNREACH`/`ENOTFOUND`), Session pooler host bekérve. A failed migration kapcsolat előtt megállt. S1 fejlesztés függetlenül folytatható; S2/S3 és privacy/moderáció kapu előtt Shared feature kikapcsolva. Contabo és az AI-keretek változatlanok.

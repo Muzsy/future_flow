@@ -26,6 +26,10 @@ import {
   type CanonEvent,
 } from '@future-flow/core';
 import type { Database } from './index';
+import {
+  cancelSharedAccountJobs,
+  exportSharedAccount,
+} from './shared-contexts';
 
 type Row = Record<string, unknown>;
 type ProfileRow = Row & {
@@ -602,6 +606,8 @@ export class Repository {
         'SELECT ce.* FROM ff_chapter_events ce JOIN ff_chapters c ON c.id=ce.chapter_id WHERE c.user_id=$1',
         [userId],
       );
+      result.sharedContextContractVersion = '1.0.0';
+      result.shared = await exportSharedAccount(tx, userId);
       return result;
     });
   }
@@ -623,6 +629,7 @@ export class Repository {
         "UPDATE aw_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL WHERE user_id=$1 AND status IN ('queued','running')",
         [userId],
       );
+      await cancelSharedAccountJobs(tx, userId);
     });
   }
   async restoreActive(userId: string) {

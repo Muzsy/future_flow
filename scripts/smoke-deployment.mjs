@@ -165,6 +165,25 @@ try {
   // Both runs use verified DB TLS and the production migration/checksum runner.
   compose('run', '--rm', '--no-deps', 'api', 'pnpm', 'db:migrate');
   compose('run', '--rm', '--no-deps', 'api', 'pnpm', 'db:migrate');
+  const sharedFoundation = JSON.parse(
+    compose(
+      'run',
+      '--rm',
+      '--no-deps',
+      '-e',
+      'CI=true',
+      '-e',
+      'GITHUB_ACTIONS=true',
+      '-e',
+      'AI_PROJECT_BUDGET_USD=0',
+      '-e',
+      'AI_USER_BUDGET_USD=0',
+      'api',
+      'node',
+      'scripts/smoke-shared-foundation.mjs',
+    ).trim(),
+  );
+  assert.equal(sharedFoundation.sharedFoundationPostgres, 'passed');
   compose(
     'up',
     '-d',
@@ -259,7 +278,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs)',
   );
-  assert.equal(counts.trim(), '7|0|0');
+  assert.equal(counts.trim(), '9|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -271,7 +290,8 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 7,
+      migrations: 9,
+      sharedFoundation,
       repeatMigration: 'passed',
       webAndApiViaVerifiedTls: true,
       apiUnauthorized: 401,

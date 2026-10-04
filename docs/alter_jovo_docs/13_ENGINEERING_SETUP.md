@@ -2,7 +2,7 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Új követelmény:** Shared Context S0–S7 tervezett, még nincs implementálva. [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0 implementáció elkészült és izoláltan ellenőrzött; fejlesztői DB-alkalmazás függő, feature kikapcsolva. S1–S7 tervezett. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 2026-10-04 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
 
@@ -47,8 +47,8 @@ A [2026-10-04-i olvasási audit](../CONTABO_SERVER_AUDIT_HU.md) sikeres SSH-bel�
 
 [Audit utáni végrehajtás](../CONTABO_PREPARATION_REPORT_HU.md): külön kulcsos SSH és jelszavas tiltás friss kapcsolatokkal ellenőrzött; konfiguráció és proxy-storage védetten mentve, 25 hash egyezik. A Contabo web/API/worker fájl, meglévő proxy hálózatmerge és Caddy adapt sikeres a szerveren; 2816 MiB runtime-korlát, nulla alkalmazásport. [CI 37194453326](https://github.com/Muzsy/future_flow/actions/runs/37194453326): 159 teszt/build/séma-drift és teljes container job sikeres. Külön PostgreSQL/TLS fixture-ben migráció és ismétlés, web/API/worker/proxy, verified HTTPS/DB TLS, API 401, két üres queue és worker megállás SIGKILL nélkül. Ez nem éles telepítés, aktív AI-job drain vagy terhelés/restore bizonyíték. Fizetett AI-hívás nincs az infrastruktúrapróbában.
 
-## Shared foundation következő helyi szelet
+## Shared S0 implementáció és S1 következő szelet
 
-Új shared-context.ts contract/core, shared-contexts/shared-jobs repository, SharedContextController, SharedAiProvider és shared-processor csak tervezett fájltérkép. Új migráció sorszámát implementáláskor ellenőrizzük, meglévő 001–007 nem módosul. S0 után disabled flags mögötti foundation, targeted schema/domain/DB/API tesztek; pnpm check és schema drift az érintett kód szerint. Nincs paid próba, Contabo-módosítás vagy production entitlement-bypass a docs integráció részeként.
+Shared contract/core, SharedContextRepository/controller és 008/009 implementált, 35 új célzott regresszió és 11 új séma. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). Disabled flags; developer DB application a helyi IPv6-hiány miatt Session pooler címre vár. Shared job repository/processor és AI-provider S1/S2; Life v2, 18 régi séma és 001–007 változatlan. pnpm check/séma-drift és izolált PostgreSQL 16 CI-race; paid próba és Contabo-módosítás nincs.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).

@@ -23,6 +23,18 @@ import {
   publicPreviewCopySchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
+  SHARED_CONTEXT_CONTRACT_VERSION,
+  socialProfileSchema,
+  interactionProfileSchema,
+  sharedPolicySchema,
+  sharedStateSchema,
+  sharedEventCandidateSchema,
+  sharedCreateRequestSchema,
+  sharedInviteRequestSchema,
+  sharedAcceptRequestSchema,
+  sharedInvitePreviewRequestSchema,
+  sharedRevisionRequestSchema,
+  sharedMemoryEventSchema,
 } from './index';
 
 const directory = resolve(__dirname, '../../../docs/contracts');
@@ -84,6 +96,33 @@ for (const [name, schema] of Object.entries({
     JSON.stringify(
       {
         $id: `urn:alterward:${name}:${LIFE_CONTRACT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+const sharedDirectory = resolve(directory, 'shared');
+mkdirSync(sharedDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  socialProfile: socialProfileSchema,
+  interactionProfile: interactionProfileSchema,
+  policy: sharedPolicySchema,
+  state: sharedStateSchema,
+  eventCandidate: sharedEventCandidateSchema,
+  createRequest: sharedCreateRequestSchema,
+  inviteRequest: sharedInviteRequestSchema,
+  acceptRequest: sharedAcceptRequestSchema,
+  invitePreviewRequest: sharedInvitePreviewRequestSchema,
+  revisionRequest: sharedRevisionRequestSchema,
+  memoryEvent: sharedMemoryEventSchema,
+})) {
+  writeFileSync(
+    resolve(sharedDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:shared:${name}:${SHARED_CONTEXT_CONTRACT_VERSION}`,
         ...z.toJSONSchema(schema),
       },
       null,

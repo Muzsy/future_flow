@@ -34,7 +34,8 @@ Termékdöntések sorrendje: felhasználói döntések → a két stratégiai fo
 
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
 - **Ellenőrizendő:** backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, kontrollált megszakításból valódi recovery és a teljes izolált konténeres CI sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
-- **Tervezett:** Shared Context S0–S7; publishing, Discovery, Official seed és nyilvános fork. A forrás integrálása nem kész feature.
+- **Shared alap:** S0 szerződés/tárolás/social/entitlement/meghívási API elkészült kikapcsolt feature mögött; fejlesztői DB-alkalmazás még függő. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
+- **Tervezett:** Shared S1–S7 engine/AI/személyes integráció/UI; publishing, Discovery, Official seed és nyilvános fork. A foundation nem felhasználói friend release.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
 Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. A Shared Context tervezett Free/Explorer/Connected/World jogosultsági modellje bekerült; pontos ár, billing és domain még nincs eldöntve.
@@ -58,3 +59,7 @@ Funkció elkészültekor először a bizonyítékot és státuszt kell frissíte
 ## Shared Context beépítése — 2026-10-04
 
 Az új terv S0–S3 alap/AI/személyes integráció után adhat 2–10 fős angol friend bétát; S4 romantikus, S5 projekt/hobbi, S6 húszfős sport, S7 későbbi bővítés. Az AI nélküli forráslépések csak kikapcsolt foundation és izolált teszt; nincs AI nélküli termékkiadás. A személyes mag és a public MVP megmarad, a csoport maga privát. Az aktív terv rendezi a mintakód lock-sorrendjét, törlési és időkezelési kapuit, és az angol/main/helyi fejlesztési döntéseket. Új alkalmazáskód, migráció, paid hívás vagy Contabo-módosítás ebben az integrációban nem készült.
+
+## Shared S0 megvalósítás — 2026-10-04
+
+[S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). Külön Shared 1.0.0, 008/009 additív migráció, 13 privát RLS-tábla, minimális profil, szerver-entitlement és revisionös/idempotens meghívási API. A 35 új regresszióval a készlet 194 teszt. A mostani IPv4 hálózaton a Supabase direct IPv6 címe nem elérhető, ezért a tényleges DB-alkalmazás Session pooler címre vár. Következő S1; S2 valódi AI és S3 személyes integráció/consent/export/törlés/moderáció előtt nincs friend béta.

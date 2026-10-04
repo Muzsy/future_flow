@@ -1,0 +1,73 @@
+{
+  "$id": "urn:alterward:shared:interactionProfile:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "ageBand": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "18_24",
+            "25_34",
+            "35_44",
+            "45_54",
+            "55_64",
+            "65_plus"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "country": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "occupationLabel": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sharedRole": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "displayName",
+    "ageBand",
+    "country",
+    "occupationLabel",
+    "sharedRole"
+  ],
+  "additionalProperties": false
+}
