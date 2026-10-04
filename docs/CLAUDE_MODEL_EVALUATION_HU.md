@@ -8,11 +8,11 @@ Aktív kiadási döntés: [kizárólag angol béta és kiadás utáni visszajelz
 
 A jelenlegi kis EN/HU mintán **Sonnet 5.5 a rendszeres külső audit legjobb jelöltje**, pontosított prompttal és az auditor válaszának helyi ellenőrzésével. Opus 5.5 a vitás esetekhez és mintavételes második véleményhez indokolt. Haiku 4.5 olcsóbb, de narrátorként nyelvi/kánonhibákat, eseménygenerátorként érvénytelen UUID-kat adott; ebben a mérésben nem alkalmas ezek alapmodelljének. Fable 5.1 a két fő történeten nem adott olyan többletet, amely a rendszeres, többszörös díjat indokolná.
 
-Ez kutatási eredmény, nem automatikus éles routingcsere. A worker továbbra is OpenAI-t használ, Sol az alap minden szerepben. Az olcsó Luna eseménygenerátor korábbi háromidőszakos próbája továbbra ígéretes; emberi EN/HU kapu előtt nincs átállítás. Claude szerveroldali értékelő és CLI készült, külön helyi keretőrrel; nem a meglévő OpenAI DB-költségszámlán költ.
+Ez kutatási eredmény, nem automatikus éles routingcsere. A worker továbbra is OpenAI-t használ, Sol az alap minden szerepben. Az olcsó Luna eseménygenerátor korábbi háromidőszakos próbája továbbra ígéretes; további angol teljeslánc- és AI/szerkesztői minősítés előtt nincs átállítás. A kézi EN/HU indulási kaput a felhasználó kiadás utáni visszajelzésre cserélte. Claude szerveroldali értékelő és CLI készült, külön helyi keretőrrel; nem a meglévő OpenAI DB-költségszámlán költ.
 
 | Feladat | Következő jelölt | Indok és fennmaradó kapu |
 |---|---|---|
-| Eseménytervezés | Luna, szükség esetén Sol; Claude-oldalon Sonnet | Luna korábban 6 v2 időszakon átment; Sonnet most 2/2 önálló jelöltet validált, Haiku 0/2. Teljeslánc és emberi próba szükséges |
+| Eseménytervezés | Luna, szükség esetén Sol; Claude-oldalon Sonnet | Luna korábban 6 v2 időszakon átment; Sonnet most 2/2 önálló jelöltet validált, Haiku 0/2. Angol teljeslánc/AI-minősítés szükséges; használói mérés kiadás után |
 | EN/HU narrátor | Sol; összehasonlítandó Sonnet | Sonnet magyar fejezete átment; angolhoz egy célzott javítás kellett. Haiku mindkét története problémás |
 | Rendszeres külső audit | Sonnet 5.5, low effort | EN/HU fő minták és ismert hibák felismerése; promptkalibráció és idézet/verdikt-validálás kötelező |
 | Vitás vagy mintavételes második audit | Opus 5.5 | Részletesebb szerkesztési észrevételek, körülbelül kétszeres egységár |
@@ -93,7 +93,7 @@ Batch offline értékeléshez 50% kedvezményt kínál; ezt csak dokumentált le
 
 Sonnet két végleges narratívájának generálása a javítással együtt 0,071206 USD; első auditok és Opus javításellenőrzés együtt további 0,059000 USD. Összesen 0,130206, átlag 0,065103 USD/technikai narratívakaput teljesítő fejezet. Eseménygenerálás nincs ebben az összegben. Emberi elfogadás nincs; az Opus a javított angolban helyi realizmust érintő stiláris részletet is jelzett, külön ellenőrzendő. A legolcsóbb nyers fejezet önmagában nem a legolcsóbb használható eredmény.
 
-## Külön Claude-keret
+## A lezárt 2026-10-03-i sorozat Claude-kerete
 
 | Mutató | USD / darab |
 |---|---:|
@@ -105,6 +105,8 @@ Sonnet két végleges narratívájának generálása a javítással együtt 0,07
 | Guard szerint megmaradt keret | 2,707785 USD |
 
 Két kezdeti Haiku HTTP 400 kérés usage nélkül maradt (`inference_geo` inkompatibilitás); összes 0,14173875 USD plafonfoglalásuk megmaradt. A guard ezen felül minden ismert inputot a cache-írási plafonnal számol, a cache-olvasás kedvezményét nem költi el újra. Ismert usage melletti schema-/domain-/audit-elutasítás is fizetett kísérlet. Ez tokenalapú becslés, nem szolgáltatói egyenleg vagy számla. A korábbi OpenAI 5 USD ettől külön marad; ebben a sorozatban nem volt új OpenAI-hívás.
+
+A későbbi új angol béta-minta Sonnet auditja további egy kérés volt; [riport](BETA_IMPLEMENTATION_REPORT_HU.md). Az aktuális összesített Claude-fogyasztás és maradvány a [közös státuszban](STATUS_HU.md) szerepel. A fenti 48/46-os sorozat és árai nem változtak; nincs új 5 USD keret.
 
 ## Kód, titokkezelés és reprodukció
 
@@ -128,4 +130,4 @@ pnpm evaluate:claude effort
 pnpm evaluate:claude limits
 ```
 
-Új paid eset ténylegesen költ; a fenti parancsok nem egyetlen automatikusan futtatandó telepítési lépés. `repair` a `roles` mentett eredményét igényli. A helyi napló megőrzendő; új checkout nem nullázza az engedélyezett összeget. Az értékelő transport/budget/validátor automatizált tesztjei fizetett hívás nélkül futnak. Éles Claude-routinghoz külön DB-szolgáltatói számla, hibapolitika, többprofilos teljeslánc és emberi minőség szükséges.
+Új paid eset ténylegesen költ; a fenti parancsok nem egyetlen automatikusan futtatandó telepítési lépés. `repair` a `roles` mentett eredményét igényli. A helyi napló megőrzendő; új checkout nem nullázza az engedélyezett összeget. Az értékelő transport/budget/validátor automatizált tesztjei fizetett hívás nélkül futnak. Éles Claude-routinghoz külön DB-szolgáltatói számla, hibapolitika, többprofilos teljeslánc és dokumentált angol AI/szerkesztői minősítés szükséges; a használói minőség/retenció a béta után mérendő.

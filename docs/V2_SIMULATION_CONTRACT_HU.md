@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A v2 szerződés/domain mellett a 003–005 tárolás, /api/v2, AI-worker és rövid onboarding/folytatás is integrált. [Megvalósítás és ellenőrzés](V2_IMPLEMENTATION_REPORT_HU.md).
+2026-10-04 · A v2 szerződés/domain mellett a 003–005 tárolás, /api/v2, AI-worker és rövid onboarding/folytatás is integrált. [Megvalósítás és ellenőrzés](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Verzió és kompatibilitás
 
@@ -12,7 +12,7 @@ JSON-séma a strukturális feltételeket, domainmotor az időrendet, referencia-
 
 ## Induló élet és állapot
 
-A szerveren tárolt immutable v2 életbemenet kötelező `locale: en | hu` mezőt tartalmaz: egy élet minden időszaka ezen a nyelven készül; felületnyelv-váltás nem módosítja. További nyelv csak teljes katalógus és nyelvi AI-próba után engedélyezhető.
+A tárolási/kutatási immutable v2 életbemenet `locale: en | hu` értéket olvas. Az új termékélet és draft request-sémája kizárólag `en` értéket fogad; explicit `hu` 422. Régi HU élet elrejtve, saját exportja megmarad. Egy élet minden időszaka a mentett nyelven készül; felületnyelv-váltás nem módosítja. További nyelv csak teljes katalógus és nyelvi AI-próba után engedélyezhető.
 
 Külön saját/alternatív identitás-pillanatkép, opcionális eredeti profilverzió-hivatkozás, környezet, egy fő cél és opcionális további célok, tényállapot és korlátok. Saját profil nem módosul. A `visibility` csak `private`; publikáció külön, explicit megerősítésű folyamat lesz.
 
@@ -44,4 +44,4 @@ A döntés 2–4 opciója javaslat marad, egyiket sem alkalmazza a period-valid�
 
 20 új domain-teszt: privát/alternatív és ismeretlen adat, célhivatkozás, munkatényt változtató átmenet, eladás tartóssága, nem választott opció, döntés utáni történet tiltása, idő/revision/ág, kitalált szereplő, duplikált opció/módosítás, lehetetlen előfeltétel, hard/soft és idő/ág/élet/döntés szerinti korlát, pénznem. Korábbi v1 domain-tesztek megmaradnak.
 
-003–005 migráció, tulajdonosi FK/RLS, /api/v2, 6 hónapos valódi OpenAI-worker, választás/folytatás/történeti fork és 12 lépéses EN/HU onboarding kész. [Részletek](V2_IMPLEMENTATION_REPORT_HU.md). Public fork-checkpoint továbbra külön nyilvános szerződés, a privát lifeStateV2Schema nem szolgálható ki.
+003–005 migráció, tulajdonosi FK/RLS, /api/v2, 6 hónapos valódi OpenAI-worker, választás/folytatás/történeti fork és 12 lépéses angol onboarding kész, magyar a termékben elrejtve. A 006 privát előnézeti és 007 feedback/session migráció is alkalmazva, a valódi angol Auth/AI/UI/export/törlés próba sikeres. [Részletek](V2_IMPLEMENTATION_REPORT_HU.md). Public fork-checkpoint továbbra külön nyilvános szerződés, a privát lifeStateV2Schema nem szolgálható ki.

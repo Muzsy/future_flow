@@ -1,6 +1,6 @@
 # alterward — angol béta és használói visszajelzés
 
-2026-10-03 · [Elfogadott indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Bizonyíték és keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
+2026-10-04 · [Elfogadott indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Bizonyíték és keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
 
 A felhasználó átnézte a mintákat, magyar fogalmazási hibákat jelzett, és a magyar részt elhalasztotta. Angolul nem kíván mély nyelvi minősítést végezni: az angol szerkesztői döntést az AI-ra bízta, majd éles visszajelzésekből javítunk. A korábbi indulás előtti kézi EN/HU pontozási/pilot kapu ezért felülírva. Ez nem azt jelenti, hogy a korábbi emberi minőségteszt sikeres volt.
 
@@ -8,7 +8,7 @@ A felhasználó átnézte a mintákat, magyar fogalmazási hibákat jelzett, és
 
 Automatikus domain/kánon/nyelv/hozzáférés/költség és AI angol szerkesztői ellenőrzés szükséges. A [háromidőszakos angol fő mintát](examples/AI_V2_ENGLISH_STORY.md) Sonnet, Opus és Fable gépileg auditálta; kánon és nyelv rendben, ismétlés és visszafogott kíváncsiság szerkesztési észrevétel. A [Claude narrátorpróbák](examples/CLAUDE_GENERATED_STORIES_EN.md) hibás és javított változata külön jelölt. Ezek nem emberi pontszámok vagy retenciós bizonyítékok. [Részletes audit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
 
-P06 tényleges Auth/AI HTTP-hurok és Auth/DB-törlés sikeres; a böngészős bizonyíték a [2026-10-04-i béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md)ban. Backup/restore és valós DB-kiesésből recovery, későbbi Contabo-telepítés és külön éles költségkeret még szükséges. Az első béta csak a technikailag kész, privát angol életmotorra korlátozható; a public/community képességek saját privacy/moderációs ellenőrzés után nyílnak.
+P06 tényleges Auth/AI HTTP-hurok és Auth/DB-törlés sikeres; a böngészős bizonyíték a [2026-10-04-i béta-riportban](BETA_IMPLEMENTATION_REPORT_HU.md) található. Az új, v3 narrátorral készített angol kétszakaszos mintát Sonnet kánonhűnek és nyelvileg helyesnek minősítette. Backup/restore és valós DB-kiesésből recovery, későbbi Contabo-telepítés és külön éles költségkeret még szükséges. Az első béta csak a technikailag kész, privát angol életmotorra korlátozható; a public/community képességek saját privacy/moderációs ellenőrzés után nyílnak.
 
 ## Visszajelzés a kiadás után
 
@@ -31,4 +31,4 @@ A click/success proxy mellett `pnpm metrics:private` már olvasásvég-kohorszra
 
 Az indulás kis angol béta, a 20–50 használó későbbi célkohorsz. A két Sol-lánc konzervatív átlagos háromidőszakos költsége ebben a kis mintában körülbelül 0,21 USD; húsz hasonló lánc körülbelül 4,21 USD, ötven 10,52 USD. A valós változat/javítás/foglalási plafon eltérhet. A folyamatosan csökkenő, a státuszban nyilvántartott OpenAI fejlesztői keretből nem indul automatikusan teljes nyilvános pilot; a külön Claude kutatási keret sem éles generálási keret. [Teljes napló és maradvány](STATUS_HU.md).
 
-Előbb külön éles AI-/tárhelykeret és szűk hozzáférési limitek, utána a mérés alapján bővítés. Heti visszajelzés-áttekintés terv, automatizálás még nincs beállítva.
+Előbb külön éles AI-keret, a meglévő Contabo telepítési/ops-kapui és szűk hozzáférési limitek, utána a mérés alapján bővítés. Heti visszajelzés-áttekintés terv, automatizálás még nincs beállítva.

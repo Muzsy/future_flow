@@ -2,6 +2,8 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
+2026-10-04 · A meglévő fejlesztési projekt már beállítva: 001–007 alkalmazva, valódi Auth/AI/export/törlés és kontrollált recovery sikeres. Az alábbi lépések új környezet beállításához is használhatók; nem kérik újra a már megadott kulcsokat.
+
 ## Supabase
 
 1. Hozz létre projektet egy választott EU-régióban.
@@ -59,7 +61,7 @@ A tiszta telepítés, típusellenőrzés, build és lokális PostgreSQL-kompatib
 
 `pnpm smoke:ai` kitalált profilból valódi OpenAI-válaszokkal futtatja az esemény → történet → ellenőrzés folyamatot, majd egy döntésből új életágat készít. A PostgreSQL-adatbázis helyi PGlite példány; a próba nem készít Supabase Auth-fiókot és nem ír személyes adatot a Supabase-ba.
 
-További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. A nyelv második argumentum: `pnpm smoke:ai family en` angol, `pnpm smoke:ai family hu` magyar. Argumentum nélkül a történeti teszt magyar marad. Az angol riport külön `cases/family-en` mappába kerül. Egy időben egy próbát futtass.
+További profilok: `pnpm smoke:ai creative` és `pnpm smoke:ai career-change`. Ezek a közeli kapcsolatok nélküli tanulási cél, illetve a költözést kerülő, nagy biztonságigényű pályaváltás esetei. A nyelv második argumentum: `pnpm smoke:ai family en` angol, `pnpm smoke:ai family hu` magyar. Argumentum nélkül a történeti teszt magyar marad; az aktuális termék angol kiadásához explicit `en` szükséges. A HU CLI csak külön kutatási kompatibilitás, nem visszakapcsolt magyar termék. Az angol riport külön `cases/family-en` mappába kerül. Egy időben egy próbát futtass.
 
 A közös `.local/ai-smoke/usage.json` napló minden futtatás fogyasztását megőrzi. A próba alapértelmezett teljes kerete 1 USD; a `SMOKE_BUDGET_USD` változóval legfeljebb 5 USD engedhető. A határ a napló korábbi hívásait is tartalmazza; az [aktuális összes fogyasztás](STATUS_HU.md) már meghaladja az 1 USD alaplimitet. Új engedett próbához az 5 USD összkereten belüli explicit limit kell, nem futtatásonként új keret. A következő generálás előtt az API bemeneti tokenszámlálója és a maximális kimenet alapján foglal keretet. Ismeretlen fogyasztású, megszakadt kérésnél a teljes foglalás megmarad.
 
@@ -69,13 +71,13 @@ A történetek és részletes riportok a `.local/ai-smoke` mappában vannak. A d
 
 Az alkalmazás AI_PROJECT_BUDGET_USD és AI_USER_BUDGET_USD pozitív keretet igényel; a .env.example értékei 0, ezért új generálás alapból letiltott, meglévő pozitív DB-limit mellett is. AI_PROJECT_INITIAL_SPENT_USD a kezdeti fejlesztői fogyasztást viszi át az első DB-számlába. Létrejött számla limitjét/spent értékét env-változás nem írja át: külön ops-feladat. Helyben AI_EXPERIMENT_LEDGER_PATH a közös .local/ai-smoke/usage.json abszolút útvonala, SMOKE_BUDGET_USD=5 mellett a worker és smoke ugyanazt az összkeretet védi. Produkcióban nincs helyi experiment path.
 
-V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 003–006 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
+V2 fizetett próba: pnpm smoke:life en 3 gpt-6.1-sol vagy hu / gpt-6-luna, mindig a meglévő naplót folytatva. Összesített metrika: pnpm metrics:private. Fióktörlési helyreállítás: pnpm privacy:recover, majd csak kért törlés UUID-jával; [runbook](ACCOUNT_DELETION_RUNBOOK_HU.md). 001–007 migráció már alkalmazva; új környezetben pnpm db:migrate az összes additív migrációt végrehajtja.
 
 ## Üzemeltetés
 
 A `main` ágra történő push nem jelent nyilvános deployt. Az API alapértelmezetten localhostra köt. Más hoston az API_PORT, WEB_ORIGIN és a publikus API-URL változókat állítsd be; reverse proxy előtt az IP-alapú rate-limit proxybeállításait külön ellenőrizd.
 
-Nyilvános indulás előtt végleges adatkezelési tájékoztató, retention/backup szabályok, incidenskapcsolat, Supabase/OpenAI adatáramlás és emberi minőségértékelés szükséges.
+Nyilvános indulás előtt végleges adatkezelési tájékoztató, retention/backup szabályok, incidenskapcsolat, Supabase/OpenAI adatáramlás és AI angol szerkesztői ellenőrzés szükséges. A használói minőségmérés a korlátozott béta után történik; az előzetes kézi EN/HU kapu felülírva.
 
 ## Claude audit és külön költségkeret
 
@@ -90,3 +92,5 @@ pnpm build:packages után pnpm evaluate:claude count ingyenes counter. A többi 
 `pnpm smoke:auth --run` valódi szintetikus, előre megerősített tesztfiókokat hoz létre, OpenAI-időszakot/folytatást/forkot generál, exportál, majd törli őket. Emailt nem küld. Fizetett próba: az eredeti `.local/ai-smoke/usage.json` 5 USD keretét és DB-projekt/user őrét használja; ne nullázd a naplót. A `--run` elhagyása nem indít próbát. Privát bizonyíték `.local/auth-smoke`, Gitből kizárva.
 
 `pnpm feedback:report` privát kategória/szándék darabszámokat, `pnpm metrics:private` a [session-metrikákat](BETA_FEEDBACK_AND_METRICS_HU.md) mutatja; egyik sem generál AI-tartalmat. [Későbbi Contabo-beállítás](DEPLOYMENT_HU.md).
+
+A Contabo üzemeltetői kulcsa és hostpinje checkouton kívüli védett titokmappában van; jelszavas SSH már tiltva. [Belépési parancs és előkészítési állapot](CONTABO_PREPARATION_REPORT_HU.md). A fejlesztői `.env` nem másolható fel éles konfigurációként; a későbbi `/etc/alterward/runtime.env` külön cél-Supabase és éles keret mellett készül.

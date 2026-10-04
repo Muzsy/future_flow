@@ -1,9 +1,8 @@
 # alterward — backlog és feladatok utódlása
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
+2026-10-04 · A végrehajtás egyetlen aktív sorrendje a [NEXT_STEPS](../NEXT_STEPS.md); az eredeti AJ-ticketlista az [archívumban](../archive/alter_jovo_v0_1/17_INITIAL_BACKLOG.md) marad. Itt nem tartunk második, eltérő sprinttervet.
 
 | Pont | Állapot és konkrét eredmény |
 |---|---|
@@ -11,11 +10,11 @@
 | P01 | Kész: 003 tárolás, immutable canon/choice/history, ownership/RLS, revision/idempotencia/lease. |
 | P02 | Kész: hat hónapos valódi AI, 2–5 esemény, 250–600 szó; négy EN/HU lánc ×3 időszak. |
 | P03 | Kész: aktuális választás, same-branch folytatás és saját történeti fork külön művelet. |
-| P04 | Kész kód: 12 lépés, revisionös draft, visszatérés/idővonal. Valódi fiókos UI-próba P06. |
+| P04 | Kész kód: 12 lépés, revisionös draft, visszatérés/idővonal. Valódi szintetikus fiókos UI-próba sikeres. |
 | P05 | Kész: állapot/közeli canon/választás memória, egy célzott javítás, project/user és helyi közös keret. |
-| P06 | Részben: export/delete/recovery kód és teszt kész; valódi email/admin kulcs és backup/restore nyitott. |
-| P07 | Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; angol AI/szerkesztői ellenőrzés és kiadás utáni használói értékelés szükséges. |
-| P08 | Részben: minimális click/success mérés és összesítés kész; 20–50 emberi pilot/sikerhatár nyitott. |
+| P06 | Részben: valódi Auth/HTTP/UI/export/törlés és kontrollált recovery kész; email-kézbesítés, valós DB-kiesés és backup/restore/éles ops nyitott. |
+| P07 | Részben: 20 determinisztikus eset ×3 időszak és négy valódi AI-lánc kész; új angol béta-minta Sonnet auditja sikeres; további generatív lefedettség és kiadás utáni használói értékelés. |
+| P08 | Technikai rész kész: privát feedback, szerveroldali session/fejezetvég/folytatás kohorsz és összesítés; éles béta, 20–50 használó célkohorsz és sikerhatár nyitott. |
 | P09 | Privát előnézeti alap kész; teljes Scenario/checkpoint/Publication/Official seed nyitott |
 | P10 | Discovery/életoldal/Save/Share/Report, moderator és permission/cache |
 | P11 | Community Publishing, preview/Confirm, unlisted/public, unpublish és adatkezelés |
@@ -31,7 +30,3 @@ AJ foundation/auth/questionnaire/profile/job/AI/timeline/branch epicek v1 alapja
 Minden szelet célja konkrét viselkedés és elfogadási példa; schema/API/migration/ownership/locale/AI-költség hatás ismert. Done: működő kód, releváns ellenőrzés, kompatibilis migráció/séma, friss implementáció/státusz/backlog és megfelelő CI. Könyvtári séma nem teljes tárolási vagy UI-feature. Public gate nem csak a 14 checkbox, hanem privacy/permission/deletion/moderation is.
 
 A felhasználó kérése szerint sorban haladunk. A visszafordítható technikai részleteket dokumentáljuk; valódi hiányzó döntést vagy kereten túli paid futtatást konkrét tervvel tisztázunk. Dokumentáció-only változás nem jogosít új feature vagy fizetett tesztsorozat indítására.
-
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.

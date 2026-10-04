@@ -25,4 +25,4 @@ Az `aw_activity_sessions` szerveridővel dolgozik. Felhasználó + böngészőla
 
 ## Tárolás és ellenőrzés
 
-Additív `007_beta_feedback_and_sessions.sql`; az alkalmazott 001–006 és a korábbi canon nem változik. Új v2 feedback és continuation request JSON-sémák a contracts könyvtárban. Hat fizetés nélküli regresszió fedi a hitelesítést, ownership/fejezethatárt, idempotenciát/limitet, export/törlést, szerveroldali session-határt és click/failure/success/return különbséget. A tényleges böngészős/éles próba eredménye a státuszba kerül.
+Additív `007_beta_feedback_and_sessions.sql`; az alkalmazott 001–006 és a korábbi canon nem változik. Új v2 feedback és continuation request JSON-sémák a contracts könyvtárban. Hat fizetés nélküli regresszió fedi a hitelesítést, ownership/fejezethatárt, idempotenciát/limitet, export/törlést, szerveroldali session-határt és click/failure/success/return különbséget. A valódi szintetikus HTTP- és helyi böngészős feedback/session/export/törlés próba sikeres; [bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md). Ez technikai próba, éles felhasználói kohorsz még nincs.

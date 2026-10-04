@@ -2,11 +2,11 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. A [P09 privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) elkészült. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
+2026-10-04 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. A [P09 privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) elkészült. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
 
 ## Sorrend és modulhatár
 
-Személyes AI-szimuláció/tartós állapot → publikálható snapshot és Official seed → olvasható Discovery → Community Publishing → nyilvános fork → később reakció/követés/komment. A nyilvános rendszer az induló termék része. A közösség tárgya élet, döntés, ág és szcenárió. A „read-only Discovery” fázis célja a kész élet tartalmának olvasása; a fázisban Save és Share is működni fog. Ezek jelenleg még fejlesztendők.
+Személyes AI-szimuláció/tartós állapot → publikálható snapshot és Official seed → olvasható Discovery → Community Publishing → nyilvános fork → később reakció/követés/komment. A nyilvános rendszer a teljes MVP része; a technikailag kész privát angol motor bétája korábban is indulhat. A közösség tárgya élet, döntés, ág és szcenárió. A „read-only Discovery” fázis célja a kész élet tartalmának olvasása; a fázisban Save és Share is működni fog. Ezek jelenleg még fejlesztendők.
 
 | Modul | Felelősség | Határ |
 |---|---|---|
@@ -65,7 +65,7 @@ Forráscél: **50–100 Official Life és 20–30 Scenario** a publikus indulás
 
 Olvasás/újratöltés/Save/Share nem indít generálást. Snapshot verzió szerint cache-elhető, de a publication aktív státuszát minden hozzáférésnél ellenőrizni kell. CDN esetén visszavonási purge és előre rögzített rövid érvénytelenítési ablak kell. Publish/refresh és új saját fork külön mért AI-költség.
 
-A közös 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A v2 fejlesztés négy valódi többidőszakos EN/HU láncot is mért; a dokumentum olvasása/frissítése nem indít AI API-hívást.
+Az OpenAI összesített 5 USD kísérleti keret dátumozott fogyasztása és maradványa a [státuszban](STATUS_HU.md) szerepel. A külön Claude 5 USD kutatás/audit, nem seed- vagy éles keret. Teljes seed/pilot mért v2-költséghez és szükség esetén külön jóváhagyott kerethez kötött. Kérés előtti foglalás szükséges; nincs olvasásonkénti újragenerálás vagy korlátlan javítás. A v2 fejlesztés négy valódi többidőszakos EN/HU láncot is mért; a dokumentum olvasása/frissítése nem indít AI API-hívást.
 
 A [nyelvi ellenőrzés](LOCALIZATION_HU.md) v1 EN/HU alapot és ágat bizonyít. V2 Official seedhez angol több időszakos minősítés kell; a korábbi minta nem automatikusan public seed.
 
@@ -94,3 +94,5 @@ Kötelező: preview azonos hash jóváhagyása; anon/másik fiók nem ér el pri
 Próbák: hitelességi badge, dupla publish/save/fork, lejárt preview, cache-purge, harmadik személy anonimizálása, utólag érzékeny forrás eltávolítása, report-visszaélés és választás egyszeri alkalmazása. Nyilvános fork első három privát időszaka is a core minőségi kapu része.
 
 A Continuation Rate/Continued Life Sessions mellett views/read depth/completion, Save/Share, public life → sign-up → sikeres fork → első sikeres időszak, publish/unlisted/unpublish/report/removal és referral mérendő. Minimális azonosítók/összesítések, történet/cél/prompt/token analitikába nem kerül. Kattintás és siker külön szám; paid conversion csak későbbi fizetési funkció után mérhető.
+
+Az AI-ra bízott angol szerkesztői döntés a nyelvi minősítésre vonatkozik; a tervezett publikálási Privacy Preview, tulajdonosi Confirm és kurátori eredetellenőrzés külön marad. Ezekhez még nincs kész UI vagy aktív Publication. A jelenlegi tulajdonosi előnézet és részleges determinisztikus preflight önmagában nem teljes anonimizálás.

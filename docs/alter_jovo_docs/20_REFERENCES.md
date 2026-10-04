@@ -1,9 +1,8 @@
 # alterward — források és referenciák
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · Ez belső forrásjegyzék és tájékozódási linkkatalógus. Nem friss ár-, piaci vagy jogi kutatási jelentés; változó külső állítást új döntés előtt ellenőrizni kell.
+2026-10-04 · Ez belső forrásjegyzék és tájékozódási linkkatalógus. Nem friss ár-, piaci vagy jogi kutatási jelentés; változó külső állítást új döntés előtt ellenőrizni kell.
 
 ## Elsődleges projektforrások
 
@@ -39,6 +38,6 @@ Ezek a címek az indulási felülvizsgálat kiindulópontjai, nem már elvégzet
 
 Projektbizonyíték: [Claude ár/érték riport](../CLAUDE_MODEL_EVALUATION_HU.md).
 
-### 2026-10-04-i megvalósítási frissítés
+## Telepítési és üzemeltetési bizonyíték
 
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+[Contabo audit](../CONTABO_SERVER_AUDIT_HU.md), [végrehajtott előkészítés](../CONTABO_PREPARATION_REPORT_HU.md), [telepítési útmutató](../DEPLOYMENT_HU.md) és [teljes runtime CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326). Külső útmutatók: [Docker Compose production](https://docs.docker.com/compose/how-tos/production/), [Docker hálózat/tűzfal](https://docs.docker.com/engine/network/packet-filtering-firewalls/), [Caddy HTTPS](https://caddyserver.com/docs/automatic-https).

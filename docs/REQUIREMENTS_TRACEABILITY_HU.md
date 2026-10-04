@@ -1,6 +1,6 @@
 # alterward — a két terv követelményeinek visszakövetése
 
-2026-10-03 · A 38 pozicionálási és 42 közösségi fő fejezet teljes lefedése. A két forrás szövege változatlan; ez a mátrix az aktív értelmezést, témagazdát és megvalósítási státuszt rendeli hozzájuk. [Dokumentáció](README.md) · [Státusz/keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
+2026-10-04 · A 38 pozicionálási és 42 közösségi fő fejezet teljes lefedése. A két forrás szövege változatlan; ez a mátrix az aktív értelmezést, témagazdát és megvalósítási státuszt rendeli hozzájuk. [Dokumentáció](README.md) · [Státusz/keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
 
 A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtári alap” nem API/worker/tárolás. A hipotézis még nem validált. A gazdadokumentum részletes követelmény; a feladat elfogadását a backlog írja le. A legújabb felhasználói döntés felülírja a kétnyelvű indulást: P01–P13 angol élményt követel; magyar halasztva. Az előzetes kézi EN/HU pilot helyett AI angol szerkesztői döntés és éles béta visszajelzés a terv; [aktív indulási út](ENGLISH_RELEASE_PLAN_HU.md).
 
@@ -11,12 +11,12 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | Forrásfejezet | Elfogadott értelmezés | Gazdadokumentum | Megvalósítási státusz | Feladat |
 |---|---|---|---|---|
 | S1 · A dokumentum célja | Az aktív dokumentáció célja és elsőbbségi rendje | [00](alter_jovo_docs/00_README.md) | Irány rögzítve | L01, P01–P13 |
-| S2 · Vezetői összefoglaló | Tartós AI-élet, döntés és következmény | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V2 privát mag kész; emberi kapu nyitott | P01–P08 |
+| S2 · Vezetői összefoglaló | Tartós AI-élet, döntés és következmény | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V2 privát mag/AI-audit kész; használói minőség kiadás után | P01–P08 |
 | S3 · Az alapötlet pontos megfogalmazása | Saját/alternatív identitás és folytatható élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Privát v2 integrált | P01–P04 |
 | S4 · Mi a termék – és mi nem az | Szcenárióélmény, autoritás és jóslási százalék nélkül | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Termékelv; minőség mérendő | P07–P08 |
 | S5 · A termékkategória meghatározása | AI Alternate Life Simulator, persistent platform | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Pozicionálás rögzítve | P08 |
 | S6 · Alapvető felhasználói probléma | Mi lenne ha és következmény/folytatás iránti kíváncsiság | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Hipotézis | P03, P08 |
-| S7 · A termék fő ígérete | Döntések által alakított alternatív élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Privát v2 kész; emberi/pilot kapu nyitott | P01–P08 |
+| S7 · A termék fő ígérete | Döntések által alakított alternatív élet | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Privát v2 és valódi Auth-próba kész; éles béta/használói mérés még nincs | P01–P08 |
 | S8 · Pozicionálási döntés | Élmény/történet először, önreflexió másodlagosan | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Irány; validálás szükséges | P07–P08 |
 | S9 · Versenytér és megkülönböztetés | Versenytársi háttér megőrizve, nem új piackutatási tény | [20](alter_jovo_docs/20_REFERENCES.md) | Háttéranyag | P08 |
 | S10 · Célcsoportok | Felnőtt kíváncsi felfedező elsődleges célközönség | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | Hipotézis | P08 |
@@ -24,7 +24,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | S12 · A termék fő pillérei | Identity/Goal/World State/Events/Choice/Consequence | [01](alter_jovo_docs/01_VISION_AND_PRODUCT.md) | V2 privát mag integrált | P01–P05 |
 | S13 · A szimuláció koncepcionális modellje | Állapot → esemény → átmenet → narratíva | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V1/v2 integrált | P01–P03 |
 | S14 · A „cél” szerepe a rendszerben | Cél prioritás/horizon/motiváció/tradeoff/progress/constraint | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | V2 szerződés/onboarding integrált | P01, P04 |
-| S15 · Profilalkotás és bemeneti modell | Structured Core + Guided Questions + Free Context; rövid indulás | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | 12 lépéses EN/HU UX integrált | P04 |
+| S15 · Profilalkotás és bemeneti modell | Structured Core + Guided Questions + Free Context; rövid indulás | [03](alter_jovo_docs/03_PROFILE_MODEL_AND_QUESTIONNAIRE.md) | 12 lépéses angol UX és valódi fiókos UI-próba kész; HU elrejtve | P04 |
 | S16 · Világállapot és idővonal | Idő, tényállapot, szereplő/cél/lehetőség és unknown érték | [04](alter_jovo_docs/04_SIMULATION_ENGINE.md) | V2 tárolás/domain/worker integrált | P01–P03 |
 | S17 · Döntések és elágazások | Aktuális választás/folytatás és történeti fork külön | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | V2 choice/folytatás/history fork integrált | P03 |
 | S18 · Történetfolyam | Olvasható folytonos történet, NPC/canon memória | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | V2 narratíva/canonmemória integrált | P02, P05, P07 |
@@ -61,14 +61,14 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C4 · Miért kell nyilvános életút-rendszer | Üres Discovery/frikció/social proof/retention/growth kezelése | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Hipotézisek | P09, P13 |
 | C5 · A három tartalmi réteg | Három tartalmi réteg, Official vs Community külön | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P09–P11 |
 | C6 · Láthatósági szintek | Private/unlisted/public; anonymous author külön beállítás | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P11 |
-| C7 · Publikálási folyamat | Publish → scan → Privacy Preview → Content Preview → Confirm | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | Tervezett | P11 |
-| C8 · Privacy Preview és anonimizálás | PII/harmadik személy vizsgálat és szerkeszthető preview | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Tervezett, nem anonimitási garancia | P09, P11, P13 |
-| C9 · Mi számít publikus életútnak | Nyilvános élet csak jóváhagyott külön snapshot | [09](alter_jovo_docs/09_DATA_MODEL.md) | Tervezett | P09 |
+| C7 · Publikálási folyamat | Publish → scan → Privacy Preview → Content Preview → Confirm | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | Privát előnézeti API kész; publish/Confirm tervezett | P11 |
+| C8 · Privacy Preview és anonimizálás | PII/harmadik személy vizsgálat és szerkeszthető preview | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Részleges privát preflight kész; teljes scan/preview UI tervezett | P09, P11, P13 |
+| C9 · Mi számít publikus életútnak | Nyilvános élet csak jóváhagyott külön snapshot | [09](alter_jovo_docs/09_DATA_MODEL.md) | Immutable privát piszkozat kész; publication tervezett | P09 |
 | C10 · Publikus életút-oldal felépítése | Cím/summary/badge/timeline/milestone/decision/branch/Save/Share/Fork/Report | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10, P12 |
 | C11 · Discovery oldal | Kurált kollekciók/kategóriák és nyelvi szűrő | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
 | C12 · Official Lives | Ember által kurált, valódi AI-szintetikus Official Lives | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | Tervezett | P09 |
 | C13 · Community Lives | Önkéntes Community snapshot, szerzőjelölés | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P11 |
-| C14 · Private Lives | Teljes privát személyes termék, korlátlan nyilvános kiadás nélkül | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | V1 működik; v2 terv | P01–P08 |
+| C14 · Private Lives | Teljes privát személyes termék, korlátlan nyilvános kiadás nélkül | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | V1/v2 privát motor és valódi Auth-próba kész; éles ops részben nyitott | P01–P08 |
 | C15 · Előre generált életutak szerepe | 50–100 Official Life, összesítve, kis pilot/keret előzi meg | [06](alter_jovo_docs/06_STORY_ENGINE_AND_CONTENT.md) | Tartalomcél, még nincs seed | P09 |
 | C16 · Official Scenario rendszer | 20–30 Scenario; verziózott sablon külön konkrét Life-tól | [09](alter_jovo_docs/09_DATA_MODEL.md) | Tervezett | P09 |
 | C17 · Fork this life – központi mechanika | Public fork új saját privát élet, új ID/joghatár | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P12 |
@@ -100,7 +100,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 
 ## A közösségi MVP 14 kötelező eleme — C36
 
-Mind a 14 elem még fejlesztendő. A személyes core elsőbbsége nem törli őket a nyilvános MVP-ből. A közös P13 release-kapu a privacy/permission/export/delete/moderációs ellenőrzést is kéri.
+A 14 elem közül egy sem teljesen kész nyilvános funkció. A privacy preview és snapshot privát technikai alapja már létezik; teljes public elfogadásuk még hátravan. A személyes core elsőbbsége nem törli őket a nyilvános MVP-ből. A közös P13 release-kapu a privacy/permission/export/delete/moderációs ellenőrzést is kéri.
 
 | # | Forrás szerinti elem | Feladat | Elfogadási feltétel |
 |---|---|---|---|
@@ -121,4 +121,4 @@ Mind a 14 elem még fejlesztendő. A személyes core elsőbbsége nem törli ők
 
 ## Forrásokat pontosító elfogadott döntések
 
-A [döntési napló](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) tételesen rögzíti: alterward márka, EN alap + teljes HU, valódi OpenAI, Supabase/main, ingyenes privacy/adatjog, v1 megőrzés és új v2 hurok, public MVP a személyes core után, összesen 5 USD kísérleti keret. A forrás régebbi márka/prémium privacy/social sorrend javaslata ezen felülírással érvényes. Piaci és fizetési kereslet nem tekinthető bizonyítottnak.
+A [döntési napló](alter_jovo_docs/16_DECISIONS_AND_OPEN_QUESTIONS.md) tételesen rögzíti: alterward márka, kizárólag angol kiadás és elrejtett magyar, valódi OpenAI, Supabase/main, ingyenes privacy/adatjog, v1 megőrzés és új v2 hurok, public MVP a személyes core után, külön összesített 5 USD OpenAI és 5 USD Claude kutatás/audit, Contabo mint későbbi éles cél, kipróbált kulcsos SSH és jelszavas tiltás. A forrás régebbi márka/prémium privacy/social sorrend javaslata ezen felülírással érvényes. Piaci és fizetési kereslet nem tekinthető bizonyítottnak.

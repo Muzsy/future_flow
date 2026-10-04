@@ -1,9 +1,8 @@
 # alterward — szimulációs motor
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · [V2 szerződés és validátor](../V2_SIMULATION_CONTRACT_HU.md) · [P01–P05](../NEXT_STEPS.md).
+2026-10-04 · [V2 szerződés és validátor](../V2_SIMULATION_CONTRACT_HU.md) · [P01–P05](../NEXT_STEPS.md).
 
 ## Határ és pipeline
 
@@ -23,7 +22,7 @@ Hard/soft korlát élethez, opcionális ághoz és kezdő/kizáró végnaphoz k�
 
 Induló v2 alapérték hat hónap, 2–5 esemény; egy nyitott döntés az utolsó eseményen, az időszak végén. A validátor az opciót nem alkalmazza: a végállapot választás előtti. Választás utáni canon nem rögzíthető előre. Ág/revision/kezdőállapot egyezés és rendezett dátum kötelező. Elavult revision 409. Minden opció végrehajthatósága ellenőrzött; a kiválasztott opció atomikusan mentődik.
 
-## Folytatás és történeti fork — terv
+## Folytatás és saját történeti fork — megvalósítva
 
 Aktuális döntés egyszer mentve → azonnali átmenet → ugyanazon ág head/revision → következő period. Áganként egy generálás; idempotencia + tranzakció + lease. Történeti fork döntés előtti checkpointból másik választással új ágat indít; a közös előzmény és a szülő utóélete változatlan. V1 előre megírt tízéves baseline-ra nem fűzünk utólag v2 folytatást; explicit új élet/ellenőrzött másolat szükséges.
 
@@ -32,7 +31,3 @@ Aktuális döntés egyszer mentve → azonnali átmenet → ugyanazon ág head/r
 Karrier, kapcsolat, tanulás, pénzügyi kompromisszum, hétköznapi rutin, lehetőség és környezeti változás adjon változatos, indokolható eseményt. Relevancia, ismétlés és túlzott dráma külön minőségi mérés; scoring nem valódi eseményvalószínűség. Trauma/diagnózis nem véletlen engagement-eszköz.
 
 Profil/kontraktus/állapotverzió, seed, modell, prompt, locale, input/output hash és használat auditálható. Az új LLM-válasz nem garantáltan determinisztikus; az elfogadott canon és átmenet visszajátszható. Nyilvános forkhoz külön sanitized checkpoint kell, nem privát állapot-DTO.
-
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.

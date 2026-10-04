@@ -4,8 +4,9 @@ A fejezetek szintetikus profilokból, valódi OpenAI vagy Claude API-hívásokka
 
 | Minta | Dátum és nyelv | Mit mutat? |
 |---|---|---|
+| [Új angol béta-minta](AI_BETA_ENGLISH_STORY.md) | 2026-10-04, en | Sol v3 narrátor, két fejezet, valódi Auth/UI-hurok és külső Sonnet audit |
 | [V2 angol három időszak](AI_V2_ENGLISH_STORY.md) | 2026-10-03, en | Ugyanazon ág folytatása és két mentett választás |
-| [V2 magyar három időszak](AI_V2_HUNGARIAN_STORY.md) | 2026-10-03, hu | Ugyanazon ág folytatása és két mentett választás |
+| [V2 magyar három időszak](AI_V2_HUNGARIAN_STORY.md) | 2026-10-03, hu | Történeti kutatási minta; a magyar kiadás halasztva |
 | [Teljes angol történet](AI_ENGLISH_STORY.md) | 2026-10-03, en | Alapélet és gyermekág, hat angol fejezet, vegyes nyelvű bemenet mellett |
 | [Család/karrier](ai-family.md) | 2026-10-02, hu | Tízéves v1 baseline és gyermekág |
 | [Kreatív tanulás](ai-creative.md) | 2026-10-02, hu | Nulla megadott közeli kapcsolat, portfóliócél |
@@ -19,4 +20,4 @@ A v1 minták a régi baseline/ág, a v2 minták a három időszakos folytatás b
 
 A Claude-minták önálló narrátorpróbák: nem az OpenAI által írt három időszakos fő minták folytatásai, és nem emberileg jóváhagyott történetek. A [külső Claude-audit](CLAUDE_EXTERNAL_AUDIT_HU.md) az ellenőrzés megállapításait tartalmazza, a fenti két új dokumentum pedig a Claude által írt tényleges fejezeteket.
 
-- [2026-10-04-i angol béta-minta](AI_BETA_ENGLISH_STORY.md): valódi Sol, két fejezet, új narrátori irány és külső Sonnet audit.
+Az induló termék kizárólag angol. A HU példák történeti mérési bizonyítékok; a felhasználó jelzett fogalmazási hibái az auditorok kedvező gépi pontszámai mellett is érvényesek. Az angol kiadás használói visszajelzéssel fejlődik; [aktív terv](../ENGLISH_RELEASE_PLAN_HU.md).

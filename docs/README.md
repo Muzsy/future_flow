@@ -6,6 +6,7 @@
 
 | Dokumentum | Mire ad választ? |
 |---|---|
+| [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
 | [Következő lépések](NEXT_STEPS.md) | L01 és P01–P13 végrehajtási sorrend, függőségek, elfogadás |
@@ -30,7 +31,7 @@
 Termékdöntések sorrendje: felhasználói döntések → a két stratégiai forrás → aktív termékterv → részletes témák és backlog. A meglévő működésről a kód, a migrációk, a kódból exportált sémák és az implementációs állapot adnak bizonyítékot. Egy terv leírása nem jelent elkészült funkciót.
 
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
-- **Ellenőrizendő:** backup/restore, valós hibás törlés helyreállítása, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
+- **Ellenőrizendő:** backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, kontrollált megszakításból valódi recovery és a teljes izolált konténeres CI sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
 - **Tervezett:** publishing, Discovery, Official seed és nyilvános fork.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 

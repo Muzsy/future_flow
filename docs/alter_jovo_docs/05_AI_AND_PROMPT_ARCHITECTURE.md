@@ -1,9 +1,8 @@
 # alterward — AI és promptarchitektúra
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
+2026-10-04 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
 ## Meglévő három szerep
 
@@ -19,7 +18,7 @@ OpenAI Responses, Structured Outputs/JSON Schema, `store:false`, szerveroldali k
 
 ## Nyelv és prompt
 
-Aktív promptok: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`. V2 aktív szerepek: life_period / life_chapter / life_fidelity, külön nyelvi utasítással; privát periodmotor integrált. Mentett életnyelv a jobban és auditban is szerepel; régi nyelv nélküli job magyarul folytatódik. Új élet alapnyelve angol. Kimeneti JSON-kulcs/enum/UUID nem fordul, minden olvasói szöveg a rögzített nyelven készül.
+Aktív promptok: `simulation_events.v2.en|hu`, `story_chapters.v2.en|hu`, `story_fidelity.v2.en|hu`. V2 promptverziók: `life_period.v2.en|hu`, `life_chapter.v3.en|hu`, `life_fidelity.v2.en|hu`, külön nyelvi utasítással; privát periodmotor integrált. Mentett életnyelv a jobban és auditban is szerepel; régi nyelv nélküli job magyarul folytatódik. Új élet alapnyelve angol. Kimeneti JSON-kulcs/enum/UUID nem fordul, minden olvasói szöveg a rögzített nyelven készül.
 
 A nyelv zárt regiszterből, magas prioritású rendszerutasításból jön. A felhasználói profil/cél és narratív előzmény külön nem megbízható adatblokk, nem új rendszerutasítás. A canon magasabb rendű a prózánál. Raw prompt és személyes bemenet nem kerül működési naplóba.
 
@@ -31,14 +30,10 @@ Számlázási/kvótahiány nem kap automatikus retryt vagy drágább modellre ke
 
 ## Következő AI-szerepek — tervek
 
-Rövid v2 period és opció; canonhivatkozásos emlékezeti összefoglaló; opcionális profil/szabad döntés strukturálása jóváhagyással; NPC/jelenet folytonosság; public redaction és tartalomvizsgálat; kategória/címkejavaslat. Determinisztikus munka nem kap szükségtelen AI-hívást. PII-segédmodell csak saját hibateszt és emberi preview mellett használható; nem anonimitási garancia.
+AI-val készített, canonhivatkozásos emlékezeti összefoglaló (a jelenlegi memória determinisztikus kivonat); opcionális profil/szabad döntés strukturálása jóváhagyással; NPC/jelenet folytonosság; public redaction és tartalomvizsgálat; kategória/címkejavaslat. Determinisztikus munka nem kap szükségtelen AI-hívást. PII-segédmodell csak saját hibateszt és emberi preview mellett használható; nem anonimitási garancia.
 
 ## Költség és modellkapu
 
 Minden task auditja: modell/prompt/locale, request/input/output hash, tokenszám, idő, validálás. A helyi próba modellspecifikus dátumozott árakkal és közös naplóval foglal; az alkalmazás pénzbeli és párhuzamos projekt/user kerete P05-ben elkészült. Költség/elfogadott időszak magában foglalja a hibás válasz/javítás/fallback árát is.
 
 Rövid releváns kontextus és tömör canon, szerepenkénti outputlimit, stabil prefix cache-mérése, offline seed/eval ütemezés vizsgálható. Cache nem életmemória; rövidebb próza nem automatikusan azonos minőség. Nyelvváltás/olvasás/Save/Share nulla új AI-hívás. OpenAI összkeret 5 USD; új felhasználói döntés szerint Claude értékelésre külön 5 USD. Külön napló és lock, egyik sem nullázható; éles Claude-DB-számla még nincs.
-
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.

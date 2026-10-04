@@ -13,7 +13,7 @@ Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez �
 Node.js 24 és pnpm 11.19.0 szükséges.
 
 ```powershell
-pnpm install
+pnpm install --frozen-lockfile
 # A .env.example alapján töltsd ki a helyi .env fájlt.
 # A NEXT_PUBLIC_* beállítások az apps/web/.env.local fájlba is kerüljenek.
 pnpm build:packages
@@ -28,6 +28,7 @@ A Supabase-projekt, az OpenAI-kulcs és a kiválasztott modellek beállítása a
 ## Ellenőrzés
 
 ```powershell
+pnpm format:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -35,7 +36,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik ugyanazt a PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a hét alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -73,8 +74,10 @@ A [dokumentációs központ](docs/README.md) a két átadott stratégiai tervet,
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.
 
-Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztszám: 147, fizetett API nélkül.
+Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztszám: 159, fizetett API nélkül.
 
-Az induló kiadás kizárólag angol felületet és angol történeteket ad; magyar elrejtve. A felhasználó AI szerkesztői ellenőrzést és korlátozott éles bétát választott, majd használói visszajelzés alapján javítunk. [Indulási terv](docs/ENGLISH_RELEASE_PLAN_HU.md) és [későbbi Contabo-telepítés előkészítése](docs/DEPLOYMENT_HU.md); még nincs éles deployment. A Docker-image Linux CI-ben felépült és a production web healthcheck sikeres.
+Az induló kiadás kizárólag angol felületet és angol történeteket ad; magyar elrejtve. A felhasználó AI szerkesztői ellenőrzést és korlátozott éles bétát választott, majd használói visszajelzés alapján javítunk. [Indulási terv](docs/ENGLISH_RELEASE_PLAN_HU.md) és [későbbi Contabo-telepítés előkészítése](docs/DEPLOYMENT_HU.md); még nincs éles deployment. A [teljes Linux CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326) image-buildje és izolált web/API/worker/Caddy futáspróbája verified DB TLS/HTTPS, 001–007 migráció és üres worker-leállítás mellett sikeres. A Contabón kulcsos SSH és jelszavas tiltás, védett konfigurációmentés és telepítési preflight kész; [elvégzett előkészítés és nyitott kapuk](docs/CONTABO_PREPARATION_REPORT_HU.md).
 
 `pnpm smoke:auth --run`: valódi szintetikus Supabase-fiókok, OpenAI, export és törlés; fizetett, a meglévő 5 USD naplóból. `pnpm feedback:report` és `pnpm metrics:private`: AI-hívás nélküli privát összesítések. [Új angol történet és audit](docs/examples/AI_BETA_ENGLISH_STORY.md).
+
+[Teljes dokumentáció-felülvizsgálat](docs/DOCUMENTATION_REVIEW_HU.md): friss státuszok, terv és API-leírás, változatlan források/archívum/minták, ellenőrzött hivatkozások és manifest.

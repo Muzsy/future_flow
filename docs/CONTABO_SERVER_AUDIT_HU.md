@@ -2,7 +2,9 @@
 
 2026-10-04 · [Telepítési terv](DEPLOYMENT_HU.md) · [Aktuális állapot](STATUS_HU.md).
 
-## Következtetés
+**Történeti auditpillanatkép:** ez a 2026-10-04 08:30–08:36 UTC közötti, kizárólag olvasási vizsgálat eredménye. Az alábbi jelszavas SSH- és csomagolási hiányok azóta részben megoldódtak: kulcsos SSH/jelszavas tiltás, védett config/storage mentés, Contabo Compose/proxy preflight és teljes izolált runtime CI kész. [Végrehajtott előkészítés és jelenlegi nyitott feladatok](CONTABO_PREPARATION_REPORT_HU.md). Az audit mért értékeit nem írjuk át későbbi állapotra; éles alterward még nem fut.
+
+## Az auditkori következtetés
 
 **A szerver kapacitása megfelelőnek tűnik az alterward korlátozott angol bétájához; az éles indulás üzemeltetési feltételekhez kötött.** A felhasználó által megadott második belépési párossal sikeres SSH-kapcsolat és belső, kizárólag olvasási audit történt. A pillanatnyi erőforrásadatok alapján most nem látunk indokot nagyobb VPS vásárlására. Ez mérési adatokból levont mérnöki következtetés, nem terhelésteszt vagy rendelkezésreállási garancia.
 

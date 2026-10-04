@@ -4,6 +4,10 @@ Aktív kiadási döntés: [kizárólag angol béta és kiadás utáni visszajelz
 
 2026-10-03 · [Dokumentációs központ](README.md) · [Státusz és keret](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
+## Lezárt 2026-10-03-i megvalósítási és mérési állapot
+
+Az alábbi részek az akkori kétnyelvű prototípus és 147 teszt eredményét őrzik. Az Auth-kulcs/UX/session kapukra vonatkozó akkori hiányok helyett a dokumentum végén hivatkozott 2026-10-04-i állapot érvényes.
+
 P01–P05 fő technikai szelete elkészült. Új élet a 12 lépéses angol/magyar onboardingból indul, hat hónapos valódi AI-fejezettel. A választás az aktuális ágat módosítja, külön gomb indítja annak következő időszakát; korábbi döntés másik opciója külön saját ágat nyit. A v1 archívum és tízéves generálás visszaolvasható, az alkalmazott 001/002 migráció változatlan.
 
 ## Tárolás és API
@@ -55,4 +59,4 @@ Külön Claude-értékelő és 5 USD kutatási keret, négy modell, EN/HU tört�
 
 ## Későbbi állapot: 2026-10-04
 
-A fenti mérési sorozat változatlan történeti bizonyíték. Az admin kulcs időközben rendelkezésre áll: valódi szintetikus Auth/DB/OpenAI HTTP-hurok és fióktörlés sikeres; 007 feedback/session migráció alkalmazva. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz és megmaradt keret](STATUS_HU.md). Backup/restore és valós admin recovery továbbra nyitott.
+A fenti mérési sorozat változatlan történeti bizonyíték. Az admin kulcs időközben rendelkezésre áll: valódi szintetikus Auth/DB/OpenAI HTTP-hurok és fióktörlés sikeres; 007 feedback/session migráció alkalmazva. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz és megmaradt keret](STATUS_HU.md). A böngészős angol onboarding, visszatérés/export, feedback/session és kontrollált megszakításból valódi admin recovery is sikeres. Aktuális tesztszám 159; teljes izolált web/API/worker/Caddy CI verified DB TLS/HTTPS és üres queue-leállítás mellett sikeres. [Contabo-előkészítés](CONTABO_PREPARATION_REPORT_HU.md). Backup/restore, tényleges DB-kiesésből recovery, email-kézbesítés és éles deploy továbbra nyitott. Kézi EN/HU előminősítés helyett AI angol audit és kiadás utáni használói értékelés a terv.

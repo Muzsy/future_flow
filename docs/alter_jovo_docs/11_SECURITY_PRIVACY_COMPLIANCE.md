@@ -1,9 +1,8 @@
 # alterward — biztonság és adatkezelés
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · Termék- és mérnöki követelmények, nem igazolt jogi megfelelőségi nyilatkozat. [Setup](../SETUP.md) · [Public részletek](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [P06/P13](../NEXT_STEPS.md).
+2026-10-04 · Termék- és mérnöki követelmények, nem igazolt jogi megfelelőségi nyilatkozat. [Setup](../SETUP.md) · [Public részletek](../PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [P06/P13](../NEXT_STEPS.md).
 
 ## Meglévő védelem
 
@@ -32,8 +31,6 @@ Adattípusonként retention, backup törlési életciklus, restore-próba, suppo
 
 ## Release-kapu
 
-Auth/ownership/immutable canon/export/törlés és public privacy kapuk **minden esetben** sikeresek legyenek; narratív 18/20 vagy átlagos élménypont nem enged adatvédelmi hibát. Valós Auth-admin kulcsos végigpróba, worker-törlési verseny, backup/restore, permission/cache/token/prompt-injection és harmadik személy teszt külön kell. A jelenlegi automatizált tesztek és anon UI-próba nem bizonyítják a teljes éles fiókos/public folyamatot.
+Auth/ownership/immutable canon/export/törlés és public privacy kapuk **minden esetben** sikeresek legyenek; narratív 18/20 vagy átlagos élménypont nem enged adatvédelmi hibát. Valódi szintetikus Auth-admin/HTTP- és böngészős végigpróba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. Worker-törlési/lease verseny tesztelt. Valós DB-kiesésből recovery, backup/restore és a későbbi public permission/cache/token/PII próbák még külön kapuk; a privát siker nem igazolja a nyilvános folyamatot.
 
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+Contabo: új kulcsos SSH kipróbálva, jelszavas/root-password hozzáférés tiltva; root kulcsos belépés megmarad. Konfiguráció/proxy-storage védetten mentve, a másolatok hash-e egyezik. Teljes restore, Docker/Tailscale-kompatibilis tűzfal, TLS/storage és egyeztetett karbantartás még szükséges. [Pontos operatív határ](../CONTABO_PREPARATION_REPORT_HU.md).

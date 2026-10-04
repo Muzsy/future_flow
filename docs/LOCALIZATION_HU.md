@@ -1,6 +1,6 @@
 # alterward — angol kiadás és nyelvi kompatibilitás
 
-2026-10-03 · [Indulási döntés](ENGLISH_RELEASE_PLAN_HU.md) · [Közös státusz](STATUS_HU.md) · [Dokumentációs központ](README.md).
+2026-10-04 · [Indulási döntés](ENGLISH_RELEASE_PLAN_HU.md) · [Közös státusz](STATUS_HU.md) · [Dokumentációs központ](README.md).
 
 ## Aktív nyelvi policy
 
@@ -39,4 +39,4 @@ A jelenlegi környezetsablon magyar földrajzi kontextusa külön kérdés a tö
 
 A kétnyelvű alap korábban működött: angol/magyar v1 alap és ág, 12 valódi OpenAI-hívással és 0,3352520 USD becsléssel. V2-ben négy EN/HU Sol/Luna lánc ×3 időszak és Claude külső audit készült. Ezek történeti mérések, nem aktív kétnyelvű kiadási követelmények. A minta szövege és nyers mérési eredménye változatlan. [Angol háromidőszakos fő minta](examples/AI_V2_ENGLISH_STORY.md), [angol Claude-próbák](examples/CLAUDE_GENERATED_STORIES_EN.md), [audit](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
 
-A korábbi böngészős próba két nyelvet és 390 px nézetet ellenőrzött. Az angol átállás új regressziói: HU-cookie, HU-fejléc, tiltott új HU élet/draft, elrejtett régi v1/v2 történet, változatlan export/kánon és angol fióktörlési megerősítés. A teljes valódi Supabase-fiókos végigpróba továbbra külön P06 feladat.
+A korábbi böngészős próba két nyelvet és 390 px nézetet ellenőrzött. Az angol átállás új regressziói: HU-cookie, HU-fejléc, tiltott új HU élet/draft, elrejtett régi v1/v2 történet, változatlan export/kánon és angol fióktörlési megerősítés. 2026-10-04-én a valódi szintetikus Supabase-fiókos angol HTTP- és böngészős végigpróba sikeres: onboarding/draft, fejezet/döntés/folytatás, visszatérés/export, Auth/DB-törlés és kontrollált recovery. [Bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md). Email-kézbesítés, teljes backup/restore és éles deploy továbbra külön P06 ops-kapu.

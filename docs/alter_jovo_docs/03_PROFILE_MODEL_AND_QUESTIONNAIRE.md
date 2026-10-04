@@ -1,9 +1,8 @@
 # alterward — profil, identitás, kérdőív és cél
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · [P01/P04](../NEXT_STEPS.md) és [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
+2026-10-04 · [P01/P04](../NEXT_STEPS.md) és [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
 ## Meglévő v1
 
@@ -37,8 +36,4 @@ Szabad szöveg külön, nem megbízható utasításként jut az AI-hoz. Később
 
 ## Adatminimalizálás és nyelvek
 
-Álnevek alapértelmezettek, harmadik személy valós neve/pontos címe nem kell. Vallás, politika, diagnózis, biometria és pontos pénzügyi azonosító nem onboarding-követelmény. Új nyelv nem változtat kérdéskulcsot/scoringot; teljes fordítás és nyelvi AI-próba szükséges. Publishing külön sanitized profilprojekciót kap, a saját teljes profil nem adható ki. A 12 lépéses onboarding integrált; valódi fiókos használati próba nyitott.
-
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+Álnevek alapértelmezettek, harmadik személy valós neve/pontos címe nem kell. Vallás, politika, diagnózis, biometria és pontos pénzügyi azonosító nem onboarding-követelmény. Új nyelv nem változtat kérdéskulcsot/scoringot; teljes fordítás és nyelvi AI-próba szükséges. Publishing külön sanitized profilprojekciót kap, a saját teljes profil nem adható ki. A 12 lépéses angol onboarding, draft-visszaállítás és első élet valódi szintetikus Supabase-fiókkal böngészőben ellenőrzött. A kitöltési idő és érthetőség valódi használói mérése még nyitott.

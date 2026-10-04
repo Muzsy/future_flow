@@ -1,4 +1,4 @@
-# alterward — jelenlegi implementáció, 2026-10-03
+# alterward — jelenlegi implementáció, 2026-10-04
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -10,7 +10,7 @@ A felület fejlécében/láblécében, böngészőcímében, exportfájl-nevébe
 
 V2 életbemenet/tényállapot/időszak/korlátséma és determinisztikus validátor, 20 új domain-teszttel: tényleges munka/tulajdon átmenet, ismeretlen opcionális adat, cél/szereplőhivatkozás, scope/idő/döntés szerint érvényes hard/soft korlát és a döntésnél megálló időszak. [Szerződés és határok](V2_SIMULATION_CONTRACT_HU.md).
 
-V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses angol onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 003–006 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; public rendszer és emberi/valós Auth-kapu még nyitott.
+V2 tárolás/API/worker, hat hónapos valódi AI, aktuális választás, ugyanazon ág folytatása, saját történeti fork, 12 lépéses angol onboarding, memória/célzott javítás és alkalmazás-költségfoglalás elkészült. 001–007 migráció alkalmazva. [Pontos v2 viselkedés és határok](V2_IMPLEMENTATION_REPORT_HU.md). A további szakaszokban leírt v1 tízéves működés kompatibilis archívumként megmarad; valódi Auth/UI/export/törlés és kontrollált recovery sikeres. Public rendszer és éles ops még nyitott; használói minőség a béta után mérendő.
 
 ## Többnyelvű alap
 
@@ -22,7 +22,7 @@ A megőrzött v1 generálás tízéves horizontra készít 5–10 eseményt és 
 
 A v1 életállapot számszerű mutatókat tárol; a v2 tényszerű állapotot, szereplőt, célt és időben érvényes korlátot használ. Mindkét rendszer semleges/fiktív környezet, nem valós gazdasági előrejelzés. A folytatási metrikák technikai alapja kész, emberi retenció nincs bizonyítva.
 
-A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célállapotot nem állítják késznek. Az új időszakos működés additív migrációval és verziózott API-val készül, a régi profilok és canon megőrzésével.
+Az alábbi adatmező-/tárolás-/elágazás-leírás a megőrzött v1 működésre vonatkozik. A v2 már integrált, saját verziózott API-val és tényállapot-szerződéssel; a korábbi profilok és canon megmaradnak.
 
 ## Elfogadott döntések
 
@@ -33,7 +33,7 @@ A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célálla
 - **Felhasználói döntés:** kizárólag angol indulás, elrejtett magyar és további nyelvekre előkészített szerkezet. A jelenlegi szcenáriók földrajzi környezete Magyarország; a felület és az új történet angol is lehet. Életkor helyett 18+ korcsoport.
 - Next.js web + NestJS API + külön worker ugyanazon moduláris kódbázissal. Nincs külön mikroservice-domain.
 
-## Egységes adatmezők
+## V1 adatmezők
 
 - Időpont: `effectiveAt`, `YYYY-MM-DD` formátumú szcenáriónap.
 - Életállapot: `career`, `finance`, `social`, `internal`.
@@ -45,7 +45,7 @@ A lent leírt szerződések jelenlegi állapotként érvényesek; a v2 célálla
 - A profilverzió tartalmazza a szerződés-, kérdőív- és scoring-verziót, valamint a bemenetet és hash-t.
 - Az induló ismeretlen energia, kontrollérzet és karrierstabilitás semleges 50-es szerkesztési érték; nem becslés a személyről.
 
-## Tárolás és elágazás
+## V1 tárolás és elágazás
 
 A profilpiszkozat válaszokat, kapcsolati adatokat és monoton revisiont tárol. Az elavult revisionnel érkező mentés 409-es hibát kap. Egy piszkozatverzió csak egyszer commitolható.
 
@@ -65,7 +65,7 @@ Kérésoldali idempotencia kötelező future és decision resolve esetén. Azono
 
 ## AI és minőség
 
-OpenAI Responses API, JSON Schema / Structured Outputs, `store:false`, szerveroldali kulcs. Az alapmodell konfigurálható; a helyi kezdő beállítás `gpt-6.1-sol`. A kód nem függ a konkrét modell nevétől.
+OpenAI Responses API, JSON Schema / Structured Outputs, `store:false`, szerveroldali kulcs. Az alapmodell konfigurálható; a helyi kezdő beállítás `gpt-6.1-sol`. A három szerep külön konfigurálható, de a költségőr csak a dátumozott árlistájában szereplő modelleket/kontextust engedi.
 
 Az eseménygenerátor (`AI_EVENT_MODEL`), narrátor (`AI_STORY_MODEL`) és ellenőrző (`AI_CHECK_MODEL`) külön konfigurálható. Ellenőrző beállításának hiányában az eseménymodell marad a v1-kompatibilis alapérték. A mintabeállítás minden szerepre Sol; a Luna-eseménygenerátor feltételes jelölt, még nem aktivált alapbeállítás. A [modellspecifikus költségvizsgálat](AI_MODEL_ROUTING_HU.md) a két feladat szétválasztását és a kísérlet határait is leírja.
 
@@ -83,7 +83,7 @@ Az alkalmazás a Supabase Auth szerveroldali `getUser` ellenőrzését használj
 
 Az anon/authenticated adatbázis-szerepkör nem kap közvetlen táblahozzáférést. A canonical táblákon RLS engedélyezett, böngészőoldali policy nélkül; minden adat a NestJS API-n át érhető el.
 
-Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő jobjai elvesztik a lease-t, majd törlődik az Auth-fiók és a teljes belső adatgráf. Auth-hiba esetén a belső fiók aktívra áll vissza. Auth-siker és későbbi DB-hiba esetén admin helyreállítás szükséges; ezt az indulás előtti ops-feladatok között kezeljük.
+Fióktörlés: a belső fiók deleting állapotba kerül, folyamatban lévő jobjai elvesztik a lease-t, majd törlődik az Auth-fiók és a teljes belső adatgráf. Auth-hiba után csak admin ellenőrzéssel bizonyítottan meglévő Auth-fiók áll vissza aktívra; bizonytalan állapotban deleting marad. Auth-siker/DB-hiba esetén durable markerből admin recovery folytatja a kért törlést. Valódi kontrollált megszakításból recovery sikeres; tényleges DB-kiesés és backup/restore külön nyitott ops-kapu. [Runbook](ACCOUNT_DELETION_RUNBOOK_HU.md).
 
 ## Hivatalos implementációs források
 
@@ -101,4 +101,4 @@ Szerveroldali Claude REST/Structured Outputs/count_tokens, saját legfeljebb 5 U
 
 007 migráció: privát immutable feedback, szerveroldali aktivitási session és period/job-attribúció. Auth-védett `POST /api/v2/feedback`, maximum 5 új kérés/24h, idempotencia és ownership; teljes export/törlés. Angol általános és fejezethez kötött űrlap, tartalom nélküli CLI-összesítés. [Pontos működés és metrikák](BETA_FEEDBACK_AND_METRICS_HU.md), [valódi próbák](BETA_IMPLEMENTATION_REPORT_HU.md).
 
-Narrátor v3: konkrét jelenet, elfogadott döntés megélt következménye, kevesebb ismételt állapot-/pénzfelsorolás; kánonkapuk változatlanok, produkciós modellek továbbra Sol. Docker/Compose/Caddy a későbbi Contabo-telepítéshez; az API csak 0 vagy 1 proxyhopot fogad konfigurációként. Helyi Docker-runtime próba még nincs.
+Narrátor v3: konkrét jelenet, elfogadott döntés megélt következménye, kevesebb ismételt állapot-/pénzfelsorolás; kánonkapuk változatlanok, produkciós modellek továbbra Sol. Docker/Compose/Caddy a későbbi Contabo-telepítéshez; az API csak 0 vagy 1 proxyhopot fogad konfigurációként. Windows alatt helyi Docker-runtime nincs; a [teljes Linux CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326) izolált web/API/worker/Caddy futáspróbája sikeres. Contabo Compose/proxy preflight, kulcsos SSH/jelszavas tiltás és védett konfigurációmentés kész; éles alkalmazás még nem fut. [Előkészítés](CONTABO_PREPARATION_REPORT_HU.md).

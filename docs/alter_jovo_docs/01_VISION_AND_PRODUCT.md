@@ -1,9 +1,8 @@
 # alterward — vízió és termék
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · Aktív irány. [Termékterv](../PRODUCT_PLAN_HU.md) · [Megvalósítási státusz](../STATUS_HU.md).
+2026-10-04 · Aktív irány. [Termékterv](../PRODUCT_PLAN_HU.md) · [Megvalósítási státusz](../STATUS_HU.md).
 
 ## Termékígéret és pozicionálás
 
@@ -40,8 +39,4 @@ Hihető és érdekes események; hétköznapi folytonosság; strukturált állap
 
 A stratégia A–G hipotézisei nyitottak: saját/fiktív identitás; onboarding értéke; folytatás/új élet; fork-retenció; megosztási igény; mások életének fogyasztása; történet/analitikus riport. Elsődleges mérés a Continuation Rate és Continued Life Sessions, mellettük D1/D7/D30 és költség/sikeres folytatás. Egy technikai AI-minta nem validált termék vagy bizonyított piaci kereslet.
 
-Jelenleg a v1 prototípus működik; P01–P05 tartós rövid időszakos technikai mag kész, P06–P08 ellenőrzés/pilot nyitott. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.
-
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+A v1 archívum mellett a privát v2 mag működik. P06 valódi Auth/UI/törlés és kontrollált recovery sikeres, az ops-kapuk részben nyitottak. P07 angol AI-audit és P08 műszerezés kész; éles béta és valódi használói értékelés még nincs. A piaci háttér a forrásdokumentum szerzői állítása, nem új versenytárselemzés.

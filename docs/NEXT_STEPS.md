@@ -10,7 +10,7 @@ V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történe
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
-2026-10-04-i [Contabo-audit](CONTABO_SERVER_AUDIT_HU.md): a második belépési párossal sikeres belső olvasási vizsgálat; 4 vCPU/8 GB RAM, körülbelül 4,91 GiB elérhető memória és 71 GiB szabad tárhely, külső API/Auth és saját CA-val DB TLS rendben. Következő ops lépés SSH/tűzfal/TLS és mentés/karbantartás rendezése, közös Caddyhez illesztett elkülönített telepítési csomag, majd valódi futás/restore ellenőrzés. A saját proxy 80/443 kötése ütközne; élesítés még nem történt.
+2026-10-04-i [Contabo-audit](CONTABO_SERVER_AUDIT_HU.md): a második belépési párossal sikeres belső olvasási vizsgálat; 4 vCPU/8 GB RAM, körülbelül 4,91 GiB elérhető memória és 71 GiB szabad tárhely, külső API/Auth és saját CA-val DB TLS rendben. Az auditban rögzített SSH- és csomagolási feladatok az alábbi előkészítésben már elkészültek. Hátravan a tűzfal/TLS, teljes mentés/restore, karbantartás és későbbi éles futás ellenőrzése. A saját proxy 80/443 kötése ütközne; élesítés még nem történt.
 
 Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH-kulcs telepítve és többször próbálva, jelszavas belépés kikapcsolva a felhasználó tisztázása után. Védett konfiguráció- és proxy-storage mentés készült, 25 fájl hash-e egyezik. A külön háromszolgáltatásos Contabo-csomag szerveroldali preflightja, meglévő proxy-Compose merge és Caddy adapt sikeres; összesen 2816 MiB korlát, nincs nyilvános alkalmazásport. A teljes konténeres CI-próba is sikeres: web/API/worker/proxy, izolált DB TLS/migrációk és üres worker-leállítás. Éles alterward még nem fut. Következő: aktív meglévő domain/TLS helyreállítása, tűzfal és teljes backup/restore, egyeztetett karbantartás, majd saját domain és külön éles AI-keret mellett telepítés.
 
@@ -74,11 +74,11 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 ## P06 — Valódi fiók és teljes böngészős folyamat
 
-**Aktuális állapot:** Részben: valódi Auth/DB/OpenAI HTTP-hurok, kétfiókos ownership, friss-auth export és tényleges fióktörlés sikeres. Böngészős bizonyíték a béta-riportban; email-kézbesítés, backup/restore és valós hibából recovery még nyitott.
+**Aktuális állapot:** Részben: valódi Auth/DB/OpenAI HTTP-hurok, kétfiókos ownership, friss-auth export és tényleges fióktörlés sikeres. Böngészős onboarding/visszatérés/export és kontrollált megszakításból admin recovery is sikeres; email-kézbesítés, backup/restore és valós DB-kiesésből recovery még nyitott.
 
 **Feladat:** Supabase email-belépés, profil, OpenAI-időszak, döntés, folytatás, visszatérés, fork, export és Auth/DB-fióktörlés ellenőrzése a valódi integrációkkal. Auth-törlés utáni adatbázishiba helyreállítása, szükséges audit és mentés/visszaállítás ellenőrzése.
 
-**Elfogadás:** böngészőből végigvihető a teljes MVP-hurok; másik fiók adatai nem érhetők el. Export és törlés friss hitelesítést kér, törlés a teljes kapcsolódó adatgráfot érinti, aktív worker nem írhat vissza törölt fiókhoz. Az üzemeltetési helyreállítás végrehajtható.
+**Elfogadás:** böngészőből végigvihető a privát személyes hurok; másik fiók adatai nem érhetők el. Export és törlés friss hitelesítést kér, törlés a teljes kapcsolódó adatgráfot érinti, aktív worker nem írhat vissza törölt fiókhoz. Az üzemeltetési helyreállítás végrehajtható.
 
 **Függőség:** P03–P05; a szerveroldali admin kulcs biztonságosan beállítva és ellenőrizve, a valódi törlés lefutott. Értéke nem kerül dokumentumba vagy Gitbe.
 
@@ -148,10 +148,10 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, fizetés, marketplace és mobil külön terv. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő:** P06 backup/restore és valódi recovery; a P09 public-adatszűrés/curator/Publication alap bővítése. P07 új angol audit és P08 műszerezés kész. Contabo-telepítés később, külön éles kerettel, majd valódi használói béta. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
+**Következő:** P06 backup/restore és valós DB-kiesésből recovery (a kontrollált megszakításból admin recovery már sikeres); a P09 public-adatszűrés/curator/Publication alap bővítése. P07 új angol audit és P08 műszerezés kész. Contabo-telepítés később, külön éles kerettel, majd valódi használói béta. [Elfogadott indulási út](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md). Addig a P09 sanitized snapshot/Scenario alap előkészíthető; nyilvános aktiválás a privacy/minőség/ops kapuk után.
 
 ## Claude-mérés utáni AI-feladatok
 
-Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos angol teljeslánc és dokumentált automatikus/szerkesztői értékelés szükséges; a béta minőségének használói mérése kiadás után történik. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem helyettesítik a P07 húsz generatív esetét.
+Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos angol teljeslánc és dokumentált automatikus/szerkesztői értékelés szükséges; a béta minőségének használói mérése kiadás után történik. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem adnak húsz generatív esetre bizonyítékot. A generatív lefedettség fokozatos bővítési cél; a 20 determinisztikus háromidőszakos eset már kész.
 
 Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapján: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).

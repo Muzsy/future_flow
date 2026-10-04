@@ -1,13 +1,12 @@
 # alterward — tesztelés és minőség
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
+2026-10-04 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
 
 ## Meglévő bizonyíték és határ
 
-153 automatizált teszt sikeres, benne hat új angol kiadási/költségstop regresszió és 20 determinisztikus eset ×3 időszak; négy valódi EN/HU Sol/Luna lánc ×3 időszak. [Aktuális bizonyíték és korlát](../V2_IMPLEMENTATION_REPORT_HU.md). Valódi Auth-fiókos/ops kapu nyitott; angol szerkesztői döntés AI-ra bízva, használói minőség kiadás után mérendő.
+159 automatizált teszt sikeres, benne hat angol kiadási/költségstop és további hat feedback/session regresszió és 20 determinisztikus eset ×3 időszak; négy valódi EN/HU Sol/Luna lánc ×3 időszak. [Aktuális bizonyíték és korlát](../V2_IMPLEMENTATION_REPORT_HU.md). Valódi Auth/UI/export/törlés és kontrollált recovery sikeres, a backup/restore és éles ops még nyitott; angol szerkesztői döntés AI-ra bízva, használói minőség kiadás után mérendő.
 
 ## Kötelező technikai invariánsok
 
@@ -21,7 +20,7 @@
 
 ## P07 generatív és angol szerkesztői ellenőrzés
 
-Legalább 20 különböző szintetikus eset, három egymást követő period és eltérő választások. Domain/jogosultság/adatkezelés minden esetben sikeres. Indulás előtt AI angol szerkesztői ellenőrzés; kiadás után használói értékelés: személyesség, hihetőség, következetesség, érdeklődés, érthetőség és folytatási vágy; külön ismétlés/általánosság/jóslásérzet/új tartós tény. Fix szövegegyezés helyett canon és hibakategória.
+20 determinisztikus eset három egymást követő perioddal és eltérő választásokkal kész. Négy valódi EN/HU lánc és az új angol béta-minta auditált; a húsz generatív eset további lefedettségi cél, a megmaradt keret szerint. Domain/jogosultság/adatkezelés minden esetben sikeres. Indulás előtt AI angol szerkesztői ellenőrzés; kiadás után használói értékelés: személyesség, hihetőség, következetesség, érdeklődés, érthetőség és folytatási vágy; külön ismétlés/általánosság/jóslásérzet/új tartós tény. Fix szövegegyezés helyett canon és hibakategória.
 
 Modell/prompt/routing csere azonos state/cél mellett teljes láncot mér: cost/accepted period, idő, invalid/repair/fallback, checker téves elfogadás/riasztás, nyelvi minőség. Az AI-ellenőr nem arany igazságforrás. Paid esetek fokozatosan, foglalással; 20 eset nem engedi túllépni a külön OpenAI/Claude 5–5 USD kereteket. Valós felhasználói export nem tesztfixture.
 
@@ -31,10 +30,8 @@ Private/unlisted/public anon/owner/other/moderator mátrix, tokenváltás, lejá
 
 ## Release és pilot
 
-P06 valós integrációs böngészős próba és ops helyreállítás; P07 technikai/nyelvi minőség; P08 korlátozott éles angol béta és későbbi 20–50 használó célkohorsz; P13 teljes public gate. Auth/privacy/adatvesztés/canon corruption release blocker, átlagos 18/20 élmény nem mentesít. Retenciós cél a következő értékelt kohorsz előtt rögzítendő. Teljesítmény/terhelés/backup-restore/riasztás külön mért indulási feladat, nem már teljesített SLA.
+P06 valós integrációs HTTP/böngészős próba és kontrollált recovery kész; teljes restore/valós DB-kiesés/éles ops még nyitott; P07 technikai/nyelvi minőség; P08 korlátozott éles angol béta és későbbi 20–50 használó célkohorsz; P13 teljes public gate. Auth/privacy/adatvesztés/canon corruption release blocker, átlagos 18/20 élmény nem mentesít. Retenciós cél a következő értékelt kohorsz előtt rögzítendő. Teljesítmény/terhelés/backup-restore/riasztás külön mért indulási feladat, nem már teljesített SLA.
 
 Claude külső audit: [bizonyíték és hibás gépi riasztások](../examples/CLAUDE_EXTERNAL_AUDIT_HU.md). Ismert kontrollhibák mellett az auditor idézet/verdikt megbízhatósága is mérendő. A fő történetek külső kánonellenőrzése sikeres, emberi minőség még nyitott. Nyolc új fizetés nélküli transport/budget/audit-validátor teszt.
 
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+A teljes izolált Linux CI web/API/worker/Caddy futáspróbája, 001–007 és ismételt migráció, verified DB TLS/HTTPS, API 401 és üres queue-leállítás sikeres. Aktív generálási job drain, Contabo-élesítés és terhelésmérés nincs ezzel igazolva. [CI és ellenőrzési határok](../CONTABO_PREPARATION_REPORT_HU.md).

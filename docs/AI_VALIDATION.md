@@ -33,10 +33,14 @@ A költség a szolgáltatói válaszok tényleges tokenhasználatából és az e
 
 A minták a tényleges AI-válaszokból exportált fejezetek; a törzsük nem kézzel írt helyettesítő tartalom. Minden profil, cél és kapcsolat mesterséges tesztadat.
 
-## Az ellenőrzés határai
+## Az ellenőrzés akkori határai (2026-10-02)
 
 A tartós feladatfolyamat és a PostgreSQL-tranzakciók helyi, izolált PGlite adatbázisban futottak. A valódi Supabase-kapcsolat és migráció külön ellenőrizve, de ezek a próbák nem érintettek valódi Auth-fiókot vagy Supabase-ban tárolt személyes profilt. Az email-belépés és a teljes Auth/DB/OpenAI böngészős folyamat még külön tesztelendő; a fióktörlés szerveroldali Supabase-kulcsa még hiányzik.
 
 Három profil és az AI történetellenőrzője nem teljesíti a dokumentáció 20 profilos, emberi értékelést igénylő alfakapuját. A helyi próba költségőre sem a teljes alkalmazás szolgáltatói keretkezelése.
 
 A mérés akkori kódellenőrzése: 59 automatizált teszt sikeres; formázás, típusellenőrzés és a teljes build sikeres. A szerveres segédszkriptek típusellenőrzése is bekerült a kötelező ellenőrzések közé. Az eredeti 21 dokumentum a változatlan archív manifest hash-eivel egyező [archívumban](archive/README.md) marad; az aktív témacsomag frissült.
+
+## Későbbi állapot — 2026-10-04
+
+A v2 rövid időszak/folytatás, alkalmazáskeret, valódi Auth/AI HTTP- és böngészős próba, export/törlés és kontrollált recovery azóta elkészült; az admin kulcs rendelkezésre áll. Az indulás kizárólag angol, előzetes kézi EN/HU gate helyett kiadás utáni használói mérés. [Aktuális béta-bizonyíték és határok](BETA_IMPLEMENTATION_REPORT_HU.md), [közös státusz/keret](STATUS_HU.md). A fenti 18 hívás, költség és történetek változatlan történeti eredmények.

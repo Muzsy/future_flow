@@ -2,7 +2,9 @@
 
 2026-10-02 UTC · Lezárt mérés az akkor ellenőrzött hivatalos OpenAI-árak, kódvizsgálat, 18 korábbi és 14 új valódi hívás alapján. 2026-10-03-i dokumentációfrissítés: a történeti mérési számok/árak megmaradnak, a jelenlegi nyelvi/scope állapot pontosítva. [Aktuális összes keret/státusz](STATUS_HU.md) · [Dokumentáció](README.md). Kapcsolódó terv: [folytatható alternatív élet](PRODUCT_PLAN_HU.md).
 
-## Következtetés
+**Későbbi állapot (2026-10-04):** a teljes v2 Luna→Sol→Sol láncot azóta megmértük: a kis mintában 46–63% kisebb költség, az angolban egy fejezetjavítás; [dátumozott eredmény](AI_V2_ROUTING_REPORT_HU.md). P01–P05 integrált, alkalmazáskeret működik, Sol marad az alap. Indulás csak angol, AI szerkesztői ellenőrzéssel és kiadás utáni használói visszajelzéssel; az alábbi 40%-os újraárazás és következő lépései a 2026-10-02-i mérés történeti állapota.
+
+## A mérés akkori következtetése
 
 A feladatonkénti modellválasztás megoldható, és jelentős költségcsökkentést adhat. Az első mérendő kombináció: **Luna eseménygenerálás, Sol történetírás, Sol történetellenőrzés**. A korábbi tokenfogyasztást változatlannak feltételezve ez körülbelül **40% megtakarítás**. Ez ármodellből számolt lehetőség, nem már elért alkalmazásszintű eredmény.
 
@@ -135,4 +137,4 @@ A parancsok API-kreditet használnak. A forrásprofilok hiánya esetén a próba
 
 ## Új kiegészítés: Claude
 
-A fenti korábbi OpenAI-mérések dátumozott eredményei megmaradnak. Új [Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md): négy modell, külső EN/HU történetaudit, szereppróbák, tényleges token/cache/effort/outputlimit mérés, külön felhasználói 5 USD. A fő OpenAI-minták külső auditja sikeres, emberi kapu nyitott. Alkalmazás-default tovább Sol, nincs automatikus szolgáltatócsere.
+A fenti korábbi OpenAI-mérések dátumozott eredményei megmaradnak. Új [Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md): négy modell, külső EN/HU történetaudit, szereppróbák, tényleges token/cache/effort/outputlimit mérés, külön felhasználói 5 USD. A fő OpenAI-minták külső auditja sikeres. Az előzetes kézi EN/HU kaput a későbbi [angol béta-döntés](ENGLISH_RELEASE_PLAN_HU.md) kiadás utáni használói visszajelzésre cserélte. Alkalmazás-default tovább Sol, nincs automatikus szolgáltatócsere.

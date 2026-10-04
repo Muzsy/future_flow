@@ -15,13 +15,15 @@
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
 | Supabase | 001–007 alkalmazva, ellenőrzött TLS, minden aw_ tábla RLS, anon/authenticated közvetlen hozzáférés tiltva |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
+| Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
+| Runtime CI | `a69e3b3` commit: 159 teszt/build/séma-drift és teljes izolált web/API/worker/Caddy, 001–007 + ismételt migráció, verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37194453326) |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
 159 automatizált teszt sikeres: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
 
-Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy.
+Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
 ## Az OpenAI 5 USD fejlesztői keret
 
@@ -48,7 +50,11 @@ Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbel�
 
 Négy Claude-modell, EN/HU külső audit, ismert hibák, szereppróbák, token/cache/effort/outputlimit mérés. A fő Sol-minták kánonhűnek bizonyultak a Sonnet/Opus/Fable auditban; személyesség/kíváncsiság a korlátozott angol béta visszajelzésével mérendő. Sonnet a rutin auditor jelöltje, Opus vitás mintavételhez; Haiku narrátor/esemény alapnak nem minősített. [Teljes Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md), [történeti észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A worker routingja továbbra Sol; Claude csak külön szerveroldali értékelő. A korábbi 147 teszt az eredeti 139 mellé 8 fizetés nélküli Claude transport/budget/audit tesztet tartalmazott; az angol átállás további 6 regresszióval 153-re emelte a számot.
 
-## Angol kiadásra váltás
+## Dátumozott előzmények — a későbbi bejegyzés felülírja a korábbi státuszt
+
+Az alábbiak a sorrendet és az akkori ellenőrzés határát őrzik. A jelenlegi állapot a fenti táblázat; az első SSH-elutasítás, a 147/153-as tesztszám vagy a csak webes CI nem aktuális akadály.
+
+### Angol kiadásra váltás
 
 Felhasználói döntés: a magyar minták fogalmazási hibái miatt kizárólag angol indulás; EN/HU kézi előminősítés helyett AI szerkesztői döntés és éles visszajelzés. A nyelvválasztó, HU-cookie, új HU élet/draft és régi HU történetek API-elérése lezárva; a saját adatok exportja változatlanul teljes. Angol `DELETE ACCOUNT` megerősítés az API és a felület között egyezik. [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md). Contabo a kijelölt éles szerver, domain később; Docker/Compose/Caddy konfiguráció előkészítve. Helyi fejlesztés folyik, éles deploy nem történt. Az új szintetikus Auth/AI próbák az eredeti megőrzött keretből futnak.
 
@@ -56,7 +62,7 @@ Az angol átállás ellenőrzése: `pnpm check` sikeres (formázás, típusellen
 
 A későbbi Contabo-telepítéshez a nulla projekt- vagy userkeret most a korábbi pozitív DB-limit mellett is letiltja az új fizetős hívást. Ezt külön fizetés nélküli regresszió ellenőrzi; meglévő fogyasztási napló és számlalimit nem íródott át.
 
-## 2026-10-04: új béta-szelet
+### 2026-10-04: új béta-szelet
 
 159 teszt, formázás, típusellenőrzés és API/worker/Next production build sikeres. Valódi Auth/AI HTTP- és böngészős próba, privát feedback és session-mérés, új angol minta és validált Sonnet audit. [Részletes eredmény és korlátok](BETA_IMPLEMENTATION_REPORT_HU.md). Kijelentkezés/új belépés után mindkét fejezet és a választás visszaolvasható. A tényleges böngészős JSON-export ellenőrzött (1 élet, 2 fejezet, 2 feedback, 2 session). Minden szintetikus tesztfiók és ideiglenes credential fájl eltávolítva; takarítás után a feedback/mérési összesítés nullás. A szándékosan megszakított valós Auth-törlés után a tényleges recovery CLI sikeresen törölte a maradt DB-gráfot. Valós DB-kiesés és backup/restore továbbra külön próba. Contabo-csomag és Linux CI előkészítve, éles telepítés később.
 

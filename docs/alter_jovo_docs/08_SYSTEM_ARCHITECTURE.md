@@ -1,13 +1,12 @@
 # alterward — rendszerarchitektúra
 
+**Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Aktuális megvalósítás:** P01–P05 privát v2 mag integrált; P06 valódi Auth/AI HTTP-próba és fióktörlés sikeres; backup/restore és valós DB-kiesésből recovery még nyitott. Indulás kizárólag angol, magyar elrejtve; P07 AI szerkesztői ellenőrzés, P08 éles béta és használói visszajelzés. [Legújabb felhasználói döntés](../ENGLISH_RELEASE_PLAN_HU.md). [V2 riport](../V2_IMPLEMENTATION_REPORT_HU.md), [státusz](../STATUS_HU.md). A [P09 privát előnézeti alapja](../PUBLIC_DRAFT_FOUNDATION_HU.md) is kész; a teljes közösségi/nyilvános rész továbbra tervezett.
-
-2026-10-03 · Meglévő architektúra és tervezett bővítés. [Implementáció](../IMPLEMENTATION.md).
+2026-10-04 · Meglévő architektúra és tervezett bővítés. [Implementáció](../IMPLEMENTATION.md).
 
 ## Meglévő adatfolyam
 
-Next.js web → `/api/v1` NestJS API → PostgreSQL tulajdonosi/tranzakciós réteg → külön worker → szerveroldali OpenAI → validált canon/fejezet/jobcheckpoint → API-visszaolvasás. Supabase Auth adja az identitást; a szerver `getUser` ellenőrzést használ. A kliens nem hív OpenAI-t és nem módosít közvetlen canonical táblát.
+Next.js web → `/api/v1` és `/api/v2` NestJS API → PostgreSQL tulajdonosi/tranzakciós réteg → külön worker → szerveroldali OpenAI → validált canon/fejezet/jobcheckpoint → API-visszaolvasás. Supabase Auth adja az identitást; a szerver `getUser` ellenőrzést használ. A kliens nem hív OpenAI-t és nem módosít közvetlen canonical táblát.
 
 Monorepo: `apps/web`, `apps/api`, `apps/worker`; `packages/contracts`, `core`, `database`, `ai`; `database/migrations`; `scripts`; `tests`; `docs`. A repó `future_flow`, a termék alterward, a meglévő `@future-flow/*` csomagnevek kompatibilitásból maradnak. Next/Nest patchverzió forrása a package és lockfile, nem egy elavuló architektúraleírás.
 
@@ -17,9 +16,9 @@ PostgreSQL jobs + `FOR UPDATE SKIP LOCKED`, lease token, heartbeat és tranzakci
 
 Contracts a típusok/sémák; core a tiszta domain; database a tárolás; ai a provider/prompt/nyelvi utasítás/audit; API alkalmazásszintű auth/idempotencia; worker orchestráció; web megjelenítés/űrlap. Moduláris monolit, külön workerfolyamattal; új microservice/vektoradatbázis nem előfeltétel.
 
-## V2 — következő integráció
+## V2 — integrált privát élet
 
-A v2 könyvtári lifeInput/lifeState/period/constraint készen áll. P01 új tárolás head/revision/period/accepted choice számára; P02 új AI-időszak; P03 same-branch continuation. V1 DTO és immutable canon megmarad. Az API-verzió és életszerződés külön fogalom. Nyelvregiszter közös, az UI locale és tárolt life locale külön.
+A v2 szerződés/domain, 003–005 tárolás, API és worker együtt működik: élet/head/revision/period/choice, hat hónapos AI, same-branch continuation, saját történeti fork, memória és költségfoglalás. A 006 privát snapshot/szcenáriópiszkozatot, a 007 feedbacket és aktivitási sessiont ad. V1 DTO és immutable canon megmarad; az API-verzió és az életszerződés külön fogalom. A tárolt nyelvek regisztere bővíthető, a termékben csak angol engedett.
 
 ## Public bővítés — terv
 
@@ -36,6 +35,4 @@ Public endpoint csak külön DTO-ból ad olvasást, nem új anon policy a privá
 
 Most helyi web/API/worker és Supabase működik; a main CI ellenőriz, nem deployol. Staging/production izoláció, HTTPS/reverse proxy/rate-limit, backup/restore, monitor/alert és release-felelősség külön indulási feladat. Storage/avatar, realtime push, natív mobil, fizetés és admin UI nem kész szolgáltatás; csak használati igény alapján később épül. A több klienshez API-határ marad, mobiltechnológia nem aktuális implementációs kötelezettség.
 
-### 2026-10-04-i megvalósítási frissítés
-
-[Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+A Contabón a meglévő Caddy marad a belépési pont. A külön web/API/worker csomag nyilvános alkalmazásport nélkül, elkülönített titkokkal és verified CA-mounttal előkészített. A teljes izolált runtime CI sikeres; az élő route/hálózat és alkalmazás még nincs aktiválva. [Telepítés és kapuk](../DEPLOYMENT_HU.md).

@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-03 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
+2026-10-04 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
 
 ## 1. Irány és dokumentumok szerepe
 
@@ -10,7 +10,7 @@ AI által generált, tartósan mentett, folytatható és elágaztatható alterna
 
 Az elsődleges élmény a kíváncsiság, a történet és az életutak felfedezése. Az önreflexió ebből származó érték. A cél irányt ad a szimulációnak; teljesülését a rendszer nem ígéri meg. A kommunikáció lehetséges szcenáriókról beszél, és nem ad a kitalált eseményekhez megtörténési százalékot.
 
-Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a v2 cél rövid profil/időszak.
+Tervezési elsőbbség: felhasználói döntések → két stratégiai alapdokumentum → ez az aktív terv → részletes témák és feladatlista. A közösségi specifikáció előrébb hozza a nyilvános MVP-t, miközben a személyes szimuláció elsőbbségét megtartja. A kódból exportált sémák és az implementáció a meglévő működést írják le. A [21 témadokumentum](alter_jovo_docs/00_README.md) már az aktív 0.2 terv; az eredeti anyag/manifest és ZIP az [archívum](archive/README.md) történeti referenciája. A tízéves első generálás/hosszú kötelező profil a v1 működése, a megvalósított v2 rövid profilt/időszakot használ.
 
 Megmaradó döntések: valódi OpenAI-generálás az első használható verzióban, Supabase, kizárólag angol induló felület és történetek; magyar halasztva, 18+, munka a `Muzsy/future_flow` repó `main` ágán. AI nélküli termékváltozat nem készül. Automatizált tesztben továbbra is használható elkülönített helyettesítő.
 
@@ -20,20 +20,19 @@ A termék három összekapcsolt rétege: **Private Personal Simulation**, **Offi
 
 A legújabb felhasználói döntés szerint kizárólag angol felület és angol AI-történetek indulnak. A magyar rész elrejtve, további nyelvek később kapcsolhatók be. A felhasználó az angol szerkesztői döntést az AI-ra bízza; indulás előtti emberi EN/HU pilot helyett korlátozott éles béta és valódi visszajelzések következnek. A [részletes indulási terv](ENGLISH_RELEASE_PLAN_HU.md) felülírja a korábbi kétnyelvű kiadási és kézi nyelvi jóváhagyási követelményt. [Technikai nyelvi policy](LOCALIZATION_HU.md).
 
-## 2. A jelenlegi alap és a szükséges változás
+## 2. A jelenlegi alap és a hátralévő munka
 
-| Terület | Jelenlegi működés | Új cél |
+| Terület | Megőrzött v1 | Megvalósított v2 / következő kapu |
 |---|---|---|
-| Első élmény | 29 kérdéses profil, tízéves alapforgatókönyv | 10–15 fontos kérdés, rövid első időszak, döntés |
-| Generálás | 5–10 esemény, 2–3 fejezet egy teljes horizontra | 2–5 esemény időszakonként, döntésnél megálló történet |
-| Döntés | A választott opció mindig új gyermekágat nyit | Aktuális döntés az életet viszi tovább; külön művelet a múltból elágazás |
-| Állapot | Profilpillanatkép, semleges környezet, főként számszerű életállapot | Időhöz kötött tények, szereplők, célok, lehetőségek és következmények |
-| Visszatérés | Elmentett történet és ágak megtekintése | Mentett döntés és állapot alapján következő időszak ugyanazon az ágon |
-| Minőségbizonyíték | V1 szintetikus HU alapok/ágak, EN/HU új próbák és 92 automatizált teszt | Több egymást követő időszak konzisztenciája és emberi folytatási igény |
-| Költség | A helyi AI-próbához mérés és keretőr | Alkalmazásszintű keret, hibaköltség és költség/folytatás mérés |
-| Nyilvános tartalom | Nincs publikálás vagy Discovery | Külön anonimizált snapshot, Official/Community jelölés, böngészés és saját privát fork |
+| Első élmény | 29 kérdés, tízéves baseline | 12 angol lépés, hat hónap, nyitott döntés; valódi fiókos UI-próba sikeres |
+| Generálás | 5–10 esemény, 2–3 fejezet | 2–5 esemény és egy 250–600 szavas fejezet időszakonként |
+| Döntés | Mindig új gyermekág | Aktuális choice ugyanazt az ágat módosítja; folytatás és saját történeti fork külön művelet |
+| Állapot/visszatérés | Számszerű mutatók, mentett archívum | Tényállapot, cél/szereplő/korlát, revision, mentett választás és következő időszak |
+| Minőségbizonyíték | Korábbi szintetikus baseline/ág minták | 159 automatizált teszt, 20 determinisztikus eset ×3 időszak; négy valódi generatív lánc és új angol minta külső auditja; használói élmény kiadás után mérendő |
+| Költség/mérés | Közös fejlesztői napló | Projekt/user foglalás, hibaköltség, feedback, session/fejezetvég/folytatás összesítés; éles allowance még nulla |
+| Nyilvános tartalom | Nincs publikálás/Discovery | Privát snapshot/szcenárió-előnézet kész; teljes PII, Publication/Official seed, Discovery és public fork még tervezett |
 
-A hitelesítési, adatbázis-, verziózási, jogosultsági, háttérfeladat- és elágazási alapokat újrahasználjuk. A privát v2 rövid időszak/folytatás technikai mag már integrált; a valódi fiókos/ops és public MVP-kapuk nyitottak; emberi élmény a korlátozott angol béta után mérendő. [Megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md). A [korábbi AI-próba](AI_VALIDATION.md) a meglévő generálás működését bizonyítja, a megtartási hipotézist nem.
+A valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok, böngészős onboarding/visszatérés/export, Auth/DB-törlés és kontrollált recovery sikeres. Backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és Contabo-élesítés még kapu. [Aktuális bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz](STATUS_HU.md). Emberi élmény és megtartás a korlátozott angol béta után mérendő.
 
 ## 3. Az első végigvihető élmény
 
@@ -52,7 +51,7 @@ A kezdőfelület a mentett életeket, az utolsó helyzetet és a következő dö
 
 ## 4. Profil, identitás és cél
 
-A kezdő kérdőív 10–15 kérdése közösen tartalmazza a profilt és a célt. Az első tervezett bontás 12 lépés: identitásmód/korcsoport; hely és költözési lehetőség; lakhatás; munka; pénzügyi mozgástér; képzettség/készségek; fontos kapcsolatok; idő/energia; vállalható kockázat; fő cél és időtáv; motiváció és vállalható áldozatok; kizárt áldozatok/korlátok. Opcionális szabad kontextus egészítheti ki; a lépések érthetőségét és idejét a prototípusban ellenőrizzük.
+A kezdő kérdőív 10–15 kérdése közösen tartalmazza a profilt és a célt. Az integrált bontás 12 lépés: identitásmód/korcsoport; hely és költözési lehetőség; lakhatás; munka; pénzügyi mozgástér; képzettség/készségek; fontos kapcsolatok; idő/energia; vállalható kockázat; fő cél és időtáv; motiváció és vállalható áldozatok; kizárt áldozatok/korlátok. Opcionális szabad kontextus egészítheti ki; a lépések végigvihetősége böngészőben ellenőrzött, érthetőségük és kitöltési idejük valódi használókkal mérendő.
 
 Az indulás nem követel meg minden személyiségskálát vagy két kapcsolatot. A felhasználó megadhat nulla közeli kapcsolatot, álneveket és ismeretlen opcionális adatokat. Az ismeretlen érték külön jelölést kap; a semleges szám nem válik a személyről állított ténnyé. A további részleteket később, releváns helyzetben kérjük be, menthető és folytatható módon.
 
@@ -64,7 +63,7 @@ Valós profilhoz 18+ korcsoport és a szimulációban eltelt idő tartozik. Ebb�
 
 ## 5. Tartós világ és állapotátmenetek
 
-A termékbeli `WorldState` a teljes szimulált helyzet. A jelenlegi `ff_world_versions` csak semleges környezeti kontextus, a `ff_life_states` részleges életállapot. Az új szerződésben külön kezeljük a környezetet és a személy/élet állapotát; együttes nézetük adja a termék világállapotát.
+A termékbeli `WorldState` a teljes szimulált helyzet. A megőrzött v1 `ff_world_versions` semleges környezeti kontextus, a `ff_life_states` részleges életállapot. Az integrált v2 életbemenet és állapotszerződés külön kezeli a környezetet és a személy/élet állapotát; együttes nézetük adja a termék világállapotát.
 
 | MVP-állapot | Minimális tartalom |
 |---|---|
@@ -85,14 +84,14 @@ A kemény korlát géppel ellenőrizhető feltételhez, élet/ág hatókörhöz 
 
 **Folytatás:** az aktuális ág végén a választás egyszer kerül rögzítésre, az állapotrevision növekszik, a következő időszak ugyanarra az ágra kerül. A múlt eseményei változatlanok. **Elágazás:** egy történeti döntés előtti állapotból és a választott másik opcióból új gyermekág indul, a közös előzmények öröklésével. A régi választás és a szülőág későbbi eseményei megmaradnak.
 
-Tervezett változások, még nem létező funkciók:
+Megvalósított v2 működés:
 
 - Verziózott időszak-/állapotszerződés, időszakot tároló rekordok, ág aktuális állapota/revisionje és az aktuális/történeti választások elkülönítése.
 - Külön API-művelet a jelenlegi döntéshez, az ág folytatásához és a történeti forkhoz. A mai `/api/v1/decisions/:id/resolve` mindig gyermekágat nyit; új szerződés/API-verzióval kerüljük el a régi jelentés csendes átírását.
-- A jobok időszakot és induló állapotrevisiont kapnak. A jelenlegi `future | branch` feladattípus mellé folytatás kerül. Kezdeti állapot csak élet/ág létrehozásakor készül; a sorszámok az ágon belül folyamatosak.
+- A külön `aw_jobs` jobok időszakot és induló állapotrevisiont kapnak; első generálás, folytatás és történeti fork ugyanazt az időszakos feldolgozót használja. A v1 `future | branch` queue megmarad. Kezdeti állapot csak élet/ág létrehozásakor készül; a sorszámok az ágon belül folyamatosak.
 - Áganként egyszerre egy generálás: idempotenciakulcs, revisionellenőrzés és tranzakció. Dupla kattintás ugyanazt a feladatot adja vissza, elavult állapot 409-et kap. Elveszett worker-lease mellett nincs új esemény vagy fejezet commit.
 
-Az adatbázis változása új, additív `003+` migrációval (a `002_content_locale.sql` már az életek nyelvét vezette be) történik; az alkalmazott `001_foundation.sql` ellenőrzőösszege megmarad. A v2 időszak-/tényállapot-szerződés és tiszta domain-validátor első szelete elkészült; [pontos határai](V2_SIMULATION_CONTRACT_HU.md) külön dokumentáltak. Az új adatbázis, API és worker bekötése még nem áll rendelkezésre.
+A 001–007 migráció alkalmazva; az alkalmazott fájlok ellenőrzőösszege változatlan. A 003 a v2 életet, 004 a költségőrt, 005 az interakció/recovery alapot, 006 a privát előnézetet, 007 a feedback/session tárolást adja. A domain, adatbázis, API és worker együtt integrált. [Pontos v2 szerződés](V2_SIMULATION_CONTRACT_HU.md), [megvalósítás](V2_IMPLEMENTATION_REPORT_HU.md).
 
 A korábbi tízéves életek verzióval jelölve visszaolvashatók maradnak. Az új hurokhoz induláskor explicit új v2-élet/másolat készül, ellenőrzött kiinduló állapotból. Az előre generált, még ki nem választott tízéves jövőre nem fűzünk rá folytatást. Az átállás nem írja újra a régi profilokat, canon-hasheket vagy történeteket; külön migrációs és visszaolvasási ellenőrzést igényel.
 
@@ -100,19 +99,19 @@ A korábbi tízéves életek verzióval jelölve visszaolvashatók maradnak. Az 
 
 Az AI készíti a kontextushoz illő eseményeket és kizárólag angol történetet. A fejezet felidézi a korábbi fontos döntéseket, jelenetet és következményt mutat, majd valódi választási feszültségnél megáll. A hihető konfliktus és változatosság fontosabb a folyamatos rendkívüli drámánál. Az eredmény történetként is olvasható legyen.
 
-Tervezett folyamat: profil/állapot → AI-eseményjavaslat → sémák és domainfeltételek → determinisztikus átmenetek → menthető canon → AI-fejezet → hivatkozás- és történethűség-ellenőrzés → atomikus időszak-commit. A szükséges tájékoztatás röviden, jól látható helyen szerepel; minden bekezdésben ismételt figyelmeztetés nem része a narratívának.
+Megvalósított folyamat: profil/állapot → AI-eseményjavaslat → sémák és domainfeltételek → determinisztikus átmenetek → menthető canon → AI-fejezet → hivatkozás- és történethűség-ellenőrzés → atomikus időszak-commit. A szükséges tájékoztatás röviden, jól látható helyen szerepel; minden bekezdésben ismételt figyelmeztetés nem része a narratívának.
 
-A következő időszak bemenete a rögzített állapot, a döntéstörténet, a közelmúlt eseményei és a releváns korábbi tények. Az összefoglaló eredeti eseményazonosítókra hivatkozik és a canonból újraképezhető. Eltéréskor a strukturált tény az irányadó. A teljes, folyamatosan növekvő történetet nem küldjük minden kérésben újra.
+A következő időszak bemenete a rögzített állapot, a döntéstörténet, a közelmúlt eseményei és a releváns korábbi tények. A jelenlegi memória determinisztikus, canonból képezett kivonat: aktuális állapot, két közeli időszak és legfeljebb tíz választás. Önálló AI-memóriaösszefoglaló későbbi bővítés lehet. Eltéréskor a strukturált tény az irányadó. A teljes, folyamatosan növekvő történetet nem küldjük minden kérésben újra.
 
 A javítás célzott: a hibás strukturált válasz vagy fejezet legfeljebb egy automatikus javítási kört kap, előre lefoglalt költségen belül. Érvényes esemény/checkpoint megmarad; narratívahiba nem indítja újra az egész világot. Ismételt hiba látható állapotot és biztonságos kézi újrapróbálást eredményez. A hibás és ismeretlen fogyasztású kérés költsége sem tűnik el a nyilvántartásból.
 
-A felhasználói kísérleti keret összesen 5 USD. Az összes lezárt sorozat 44 hívás, 1,0194161 USD tokenbecslés, körülbelül 3,98 USD számított maradvány; ez nem szolgáltatói egyenleg. A dátumozott bontás és a közös guard szabályai a [státuszban](STATUS_HU.md) vannak. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan. Ez a dokumentációfrissítés nem indított paid AI-hívást.
+A két felhasználói kísérleti keret külön összesített 5 USD OpenAI és 5 USD Claude kutatás/audit. A naplók korábbi fogyasztása megmarad; az aktuális összegeket egy helyen, a státuszban vezetjük. Ezek tokenalapú becslések, nem lekérdezett szolgáltatói egyenlegek. A dátumozott bontás és a közös guard szabályai a [státuszban](STATUS_HU.md) vannak. Az új időszakok árát új tokenmérésből számítjuk; a régi tízéves generálás költségét nem vetítjük rájuk automatikusan. Ez a dokumentációfrissítés nem indított paid AI-hívást.
 
-Az angol és magyar generálás külön valódi AI-próbán átment; a [nyelvi jelentés](LOCALIZATION_HU.md) az eredményeket és a még hiányzó fiókos/minőségi próbát is leírja.
+Az angol és magyar generálás külön valódi AI-próbán átment; a [nyelvi jelentés](LOCALIZATION_HU.md) az eredményeket és a történeti mérés és a mostani angol kiadás határait is leírja.
 
-Zárt felhasználói teszt előtt alkalmazásszintű keretőr kell: kérés előtti foglalás, felhasználói/projektlimit, hibaköltség, párhuzamos foglalások és a tényleges használat elszámolása. A meglévő helyi smoke-keretőr ennek csak tesztelőzménye. Olcsóbb modellre irányítás külön mérés után következik; a működő OpenAI-integrációt megtartjuk.
+Az alkalmazásszintű keretőr elkészült: kérés előtti foglalás, felhasználói/projektlimit, hibaköltség, párhuzamos foglalások és a tényleges használat elszámolása. A helyi smoke-keretőr ettől külön megőrzött kísérleti napló; a worker opcionálisan ezt is használja. A nulla env-keret meglévő pozitív DB-limit mellett is tilt új költést. Olcsóbb modellre irányítás külön mérés után következik; a működő OpenAI-integrációt megtartjuk.
 
-A modellválasztási vizsgálat első jelöltje Luna eseményekhez, Sol narratívához és ellenőrzéshez. Változatlan régi tokenszámmal körülbelül 40% megtakarítást adhat; a teljes lánc és a v2-folytatás minőségét még igazolni kell. A checker külön konfigurálása elkészült, a modellek automatikus cseréje/fallbackje még fejlesztendő. P02-ben mérjük a rövid eseményfeladatot, P05-ben valósul meg a korlátozott routing és keretkezelés.
+A modellválasztási vizsgálat első jelöltje Luna eseményekhez, Sol narratívához és ellenőrzéshez. A kis v2 teljeslánc-próbában 46–63% kisebb költséget mértünk, az angol lánc egy célzott fejezetjavításával. Ez nem általános megtakarítási garancia; további angol hibakategóriás próba és minősítés kell az átállításhoz. A három szerep és a checker külön konfigurálható, alkalmazáskeret és célzott javítás kész; automatikus modell/provider fallback nincs. A jelenlegi alap minden szerepnél Sol, Claude külön auditor. [Dátumozott routing-riport](AI_V2_ROUTING_REPORT_HU.md).
 
 ## 8. Fejlesztési fázisok és MVP-határ
 
@@ -139,7 +138,7 @@ A mentett életek alapértelmezésben privátak. Adathozzáférés és fióktör
 
 A személyes technikai alap elfogadása: rövid profilból valódi AI-időszak készül; a döntés állapotot módosít; a második időszak ugyanarra az ágra kerül; kijelentkezés/belépés után folytatható a harmadikkal; a korábbi döntésből másik ág indítható a szülő módosítása nélkül. Dupla kérés, megszakítás, hibás AI-válasz és elveszett lease sem okoz dupla vagy részleges canon-commitot. Jogosultság, export és Auth/DB-törlés minden esetben kötelezően hibamentes.
 
-Legalább 20 különböző szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. Ez technikai/minőségi próba. Ettől külön a korlátozott éles angol béta méri az élményt és a visszatérést, valódi visszajelzésekkel. A 20–50 használó célkohorsz, nem indulás előtti kötelező zárt pilot és nem statisztikai bizonyító erejű mintaméret.
+A meglévő 20 determinisztikus szintetikus eset ellenőrzi a három egymást követő időszakot, az alternatív választásokat, korlátokat, kapcsolati és tulajdonlási tényeket, promptba rejtett utasításokat és költséghatárokat. A valódi generatív minták és auditok ettől külön bizonyítékok; a generatív esetkészlet további bővítése a megmaradt kereten belül történik. Ettől külön a korlátozott éles angol béta méri az élményt és a visszatérést, valódi visszajelzésekkel. A 20–50 használó célkohorsz, nem indulás előtti kötelező zárt pilot és nem statisztikai bizonyító erejű mintaméret.
 
 | Metrika | Első mérési definíció |
 |---|---|

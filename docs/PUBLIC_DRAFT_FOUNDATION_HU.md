@@ -1,8 +1,8 @@
 # alterward — a nyilvános rendszer privát előnézeti alapja
 
-2026-10-03 · [Státusz](STATUS_HU.md) · [Nyilvános terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Backlog](NEXT_STEPS.md).
+2026-10-04 · [Státusz](STATUS_HU.md) · [Nyilvános terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Backlog](NEXT_STEPS.md).
 
-P09 előkészítő szelet. Az integrált privát életből külön, engedett mezős snapshot- és szcenáriópiszkozat készíthető. Ez tulajdonosi előnézet: `awaiting_review`, nincs aktív Publication, nyilvános olvasás, Official badge vagy publikáló Confirm. A forrásélmény és a privacy/minőség emberi kapuja továbbra nyitott.
+P09 előkészítő szelet. Az integrált privát életből külön, engedett mezős snapshot- és szcenáriópiszkozat készíthető. Ez tulajdonosi előnézet: `awaiting_review`, nincs aktív Publication, nyilvános olvasás, Official badge vagy publikáló Confirm. Teljes PII/content scan és explicit tulajdonosi Privacy/Content Preview még hiányzik. Az angol nyelvi előminősítés AI-feladat, a használói élmény kiadás után mérendő; ez nem váltja ki a későbbi publikálási adatvédelmi kaput.
 
 ## Elkészült
 
@@ -22,4 +22,4 @@ A `startingPoint` csak általánosított koncepció, `readyForFork:false`; nem f
 
 Következő: AI PII/content scan és emberi Privacy/Content Preview; kurátor-jóváhagyás, teljes Scenario/ScenarioVersion/Publication, preview hash-Confirm/idempotencia, public/unlisted token/permission, moderáció/visszavonás/cache/OG; ezután Discovery/Save/Share/Report, Community Publishing, public fork/personalize. Official seed a meglévő valódi mintákból csak új privacy/minőségi vizsgálat után lehet. Teszthelyettesítő nem kerül nyilvános AI-tartalomba.
 
-Ellenőrzés: EN/HU projekció, privát mezők/UUID-k tiltása, eredetjelölés, kliensbadge elutasítása, ownership/FK/RLS, forrásváltozás, lejárat, immutable tárolás, export/törlés; külön HTTP-próba igazolja, hogy nincs anon olvasás vagy publish művelet. A teljes projekt 139 automatizált tesztje sikeres.
+Ellenőrzés: EN/HU projekció, privát mezők/UUID-k tiltása, eredetjelölés, kliensbadge elutasítása, ownership/FK/RLS, forrásváltozás, lejárat, immutable tárolás, export/törlés; külön HTTP-próba igazolja, hogy nincs anon olvasás vagy publish művelet. A jelenlegi teljes projekt 159 automatizált tesztje sikeres; az előnézeti szelet elkészültekor 139 volt. Valódi Auth/DB-törlés a draft-gráfot is takarította; public publikáció továbbra nincs. [Aktuális bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md).
