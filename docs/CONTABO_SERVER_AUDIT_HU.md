@@ -4,78 +4,119 @@
 
 ## Következtetés
 
-**A teljes alkalmassági audit még nem zárható le:** a megadott hozzáférési fájlból kiolvasott felhasználó/jelszó párost az SSH-szerver elutasította. A hálózati elérhetőséget és a telepítési tervet ellenőriztük, de CPU/RAM/tárhely, belső szolgáltatások, frissítések, tűzfal és mentések még nem vizsgálhatók. Ezekre nem adunk becsült szerveradatot vagy „gond nélkül üzemeltethető” minősítést.
+**A szerver kapacitása megfelelőnek tűnik az alterward korlátozott angol bétájához; az éles indulás üzemeltetési feltételekhez kötött.** A felhasználó által megadott második belépési párossal sikeres SSH-kapcsolat és belső, kizárólag olvasási audit történt. A pillanatnyi erőforrásadatok alapján most nem látunk indokot nagyobb VPS vásárlására. Ez mérési adatokból levont mérnöki következtetés, nem terhelésteszt vagy rendelkezésreállási garancia.
 
-2026-10-04-i folytatás: a felhasználó kifejezett kérésére a hozzáférési fájl jelenlegi jelszavát `root` felhasználónévvel is egyszer kipróbáltuk. Az SSH-hostkulcs egyezett a rögzített kulccsal, de a hitelesítés ismét elutasított (`AuthenticationException`). Ez önmagában nem dönti el, hogy a jelszó hibás vagy a root/jelszavas belépést szerveroldali szabály tiltja. Belső parancs nem futott; a kapacitásvizsgálat továbbra nyitott.
+Indulás előtt a meglévő Caddyhez illesztett telepítést, SSH/tűzfal-védelmet, tanúsítványkezelést és mentés/visszaállítást rendezni kell. A szerveren több más alkalmazás és ügynök is működik; az alterward elkülönített konténerekben, a meglévő szolgáltatások megőrzésével kerülhet ide. **Az eredeti saját proxy 80/443 portkötése itt ütközne.**
 
-Az alkalmazás architektúrája alkalmas saját Linux szerveres működésre: Next web, Nest API és folyamatos worker; Supabase adatbázis/Auth és OpenAI külső szolgáltatás. Helyi AI-modell vagy GPU nem szükséges. A konkrét Contabo gép kapacitása és biztonságos együttélése a meglévő szolgáltatásokkal továbbra igazolandó.
+Nem történt telepítés, frissítés, restart, tűzfalmódosítás vagy fizetős AI-hívás. A jelentés nem élesítési engedély és nem jelenti a teljes web/API/worker működés kipróbálását.
 
-## Ellenőrzött tények
+## Ellenőrzött erőforrások
 
-Mérés: 2026-10-04, körülbelül 08:04–08:09 UTC / 10:04–10:09 Europe/Budapest. Kizárólag a felhasználó által megadott gépet vizsgáltuk, három célzott TCP-porttal; széles port- vagy hálózatszkennelés nem történt.
+Belső mérés: 2026-10-04, körülbelül 08:30–08:36 UTC / 10:30–10:36 Europe/Budapest. Rövid, terhelést nem generáló mintavétel; a megadott szerveren kívül más gépet nem szkenneltünk.
 
-| Vizsgálat | Eredmény | Mit igazol? |
+| Terület | Tényleges eredmény | Értékelés |
 |---|---|---|
-| SSH / TCP 22 | Elérhető; a megismételt kapcsolatban ugyanaz a rögzített hostkulcs | A távoli SSH-szolgáltatás elérhető |
-| SSH banner | `OpenSSH_9.6p1 Ubuntu-3ubuntu13.19` | Ubuntu csomagra utaló szolgáltatásazonosító; nem helyettesíti az OS belső ellenőrzését |
-| SSH hitelesítési módok | `publickey`, `password` | A szerver felkínálja ezeket; sikeres belépés nem történt |
-| Megadott belépési páros | Egy jelszavas kísérlet elutasítva | Belső audit hozzáférés nélkül nem végezhető el |
-| Felhasználó által kért root-próba | A fájl jelenlegi jelszavával egy kísérlet, szintén elutasítva | A root név önmagában nem oldotta meg a hozzáférést |
-| HTTP / TCP 80 | Elérhető, `308 Permanent Redirect`, `Server: Caddy` | Az adott címen már webes proxy válaszol |
-| HTTPS / TCP 443 | TCP elérhető; IP-címes TLS-kézfogás `SSLError` | A port elérhető, de ebből nem igazolható érvényes HTTPS |
-| TCP-kapcsolódás | Körülbelül 31–47 ms a helyi gépről | Pillanatnyi kapcsolódási idő; nem terhelési vagy rendelkezésreállási mérés |
+| OS | Ubuntu 24.04.4 LTS, x86_64, KVM | Támogatott Linux/Docker platform |
+| CPU | 4 vCPU, AMD EPYC | A kezdeti három alkalmazásfolyamathoz megfelelőnek tűnik |
+| Memória | 8 326 955 008 byte, körülbelül 7,76 GiB; elérhető 5 268 434 944 byte, körülbelül 4,91 GiB | Jelenleg érdemi tartalék a meglévő munkaterhelések mellett |
+| Swap | Nincs | Nem közvetlen telepítési akadály; nagy helyi build és memóriaugrás külön kockázat |
+| Tárhely | Root ext4: 145 GiB összesen, 74 GiB használt, 71 GiB szabad | Image-ekhez, előző release-hez és korlátozott naplókhoz jelenleg elég tartalék |
+| Inode | Körülbelül 5% használt | Nem látszik inode-hiány |
+| Load | 0,41 / 1,01 / 1,35 | A 4 vCPU-hoz viszonyítva a méréskor nem túlterhelt |
+| Rövid CPU-minta | 88–93% idle, 0% steal a két egy másodperces mintában | Pillanatnyi adat; nem bizonyít tartósan szabad kapacitást |
+| Memórianyomás | 10/60/300 másodperces PSI átlag: 0 | A méréskor nem látszott memórianyomás |
+| Uptime / idő | 159 nap; NTP szinkronizált; Europe/Berlin | Függő karbantartást külön figyelembe kell venni |
 
-Az IP-címes TLS-hiba nem bizonyítja, hogy egy meglévő domain tanúsítványa hibás. A megfelelő hostname/SNI, DNS és tanúsítvány vizsgálata külön szükséges. A Caddy automatikus HTTPS-éhez a konfigurált név, megfelelő DNS, elérhető portok és tartós tanúsítványtár szükséges. [Caddy dokumentáció](https://caddyserver.com/docs/automatic-https).
+Ubuntu 24.04 LTS standard biztonsági támogatása 2029 májusáig tart; a Docker hivatalosan támogatja ezt a 64 bites Ubuntu-verziót. [Ubuntu támogatási ciklus](https://ubuntu.com/about/release-cycle), [Docker platformok](https://docs.docker.com/engine/install/ubuntu/).
 
-Az SSH-hostkulcs az első kapcsolatban rögzítve lett a helyi, repón kívüli védett titokmappában; a következő kapcsolat ezt ellenőrizte. Ez első használatkor rögzített bizalom: a kulcsot még nem hasonlítottuk össze külön Contabo/VNC csatornából származó ujjlenyomattal. Hostkulcsváltozásnál nincs automatikus elfogadás.
+Az alkalmazás Next web, Nest API és folyamatos worker szerepe külön konténerben futhat. Az adatbázis/Auth Supabase, az AI OpenAI API; nincs helyi modellfuttatás vagy GPU-igény. A későbbi felhasználószámot és párhuzamosságot tényleges futásmérésből kell meghatározni. Kezdetben egy worker, korlátozott generálás, memóriafigyelés és lehetőleg CI-ben épített image javasolt.
 
-## Telepítési tervben feltárt eltérés
+## Futó környezet és csomagolás
 
-A jelenlegi [Compose](../deploy/compose.yaml) saját Caddy konténerből publikálná a 80/tcp, 443/tcp és 443/udp portokat. A megadott szervercímen már webes szolgáltatás válaszol. **A változatlan Compose-csomag indítása előtt a tényleges portfoglalást és a meglévő proxy szerepét meg kell vizsgálni.** Egy második proxy ugyanazon IP/port párra nem tud kötni.
+- Docker Engine 29.1.3; Docker Compose plugin v5.1.4; a jelenlegi YAML-t a tényleges szerver `docker compose config --quiet` parancsa hibamentesen elfogadta, kizárólag helyettesítő env-értékekkel.
+- Hoston Node 22.22.2 van. Ez közvetlen hostos alterward-indításhoz eltér a projekt Node 24 követelményétől; a tervezett Node 24 Docker image ezt önállóan biztosítja. Más alkalmazások Node-verzióját nem cseréltük le.
+- Hat futó Docker-konténer, köztük web/backend, két PostgreSQL és két Caddy; ezen kívül hostos ügynök- és háttérszolgáltatások működnek.
+- Docker image-ek összesen körülbelül 6,78 GB, két aktív volume körülbelül 542 MB. Nem történt image/cache/volume takarítás.
+- A futó konténerek automatikus restart policyval rendelkeznek. Docker daemon engedélyezett; SSH socket aktív és engedélyezett. A külön `ssh.service` disabled állapota itt nem jelenti a socketes indulás hiányát.
+- Konténerenkénti memória/CPU-korlát nem volt beállítva a meglévő konténereken. A hostos ügynökök jelentős memóriát használnak, így az alterward számára megmaradó tartalékot később is figyelni kell.
 
-Ha a meglévő Caddy más oldalakat szolgál ki, célszerű az alterward új hostname-jét azon keresztül kiszolgálni. A végleges megoldás az inventártól függ:
+A YAML-ellenőrzés csak konfigurációparszolás: nem épített vagy indított konténert, nem alkalmazott migrációt, és nem ellenőrizte a még nem telepített alterward runtime-ot. A `298bdca` runtime commit Linux image-buildje és production web healthcheckje külön, már sikeres [GitHub CI-bizonyíték](https://github.com/Muzsy/future_flow/actions/runs/37164982359).
 
-- Hoston futó Caddy esetén csak loopbackre kötött web/API upstream, külön alterward Compose-proxy nélkül; a Node-portok nem kerülhetnek nyilvános interfészre.
-- Konténeres közös Caddy esetén elkülönített belső Docker-hálózat, új hostname-route, nyilvános web/API-portok nélkül.
-- Külön proxy csak valóban szabad cím/port vagy később jóváhagyott átszervezés mellett.
+## Proxy és HTTPS
 
-Ezek tervezési lehetőségek, nem telepített változtatások. A meglevő proxy beállítását nem olvastuk be és nem módosítottuk. Az `API_TRUST_PROXY=1` csak ténylegesen egyetlen megbízható proxy-hop és zárt API mellett maradhat; több proxy esetén klienscím/rate-limit ellenőrzés és a bizalmi beállítás újraértékelése kell. [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+A 80/tcp és 443/tcp portokat a meglévő publikus Caddy konténer publikálja IPv4-en és IPv6-on. Verzió: Caddy 2.11.3. A proxy a `ghost_default` és `web_proxy` Docker-hálózatokhoz csatlakozik; konfigurációja és tanúsítványtára hoston tartós bind mount. A hostos Caddy bináris hiánya ezért nem telepítési hiányosság.
 
-## A belépés után még szükséges vizsgálatok
+A lemezen lévő Caddyfile strukturális ellenőrzése hat konfigurált hostname-et talált. Ezeknél a helyi 443-as porton, a megfelelő SNI-névvel, normál tanúsítvány-ellenőrzéssel végzett próba eredménye:
 
-| Terület | Mérendő adat és elfogadási feltétel |
+| Anonim azonosító | TLS-eredmény |
 |---|---|
-| OS és architektúra | Tényleges disztribúció/verzió, kernel, 64 bit, támogatott Docker Engine; a bannerből nem dönthető el |
-| CPU | vCPU, aktuális load/CPU steal, meglévő szolgáltatások; nem csak a csomag névleges mérete számít |
-| RAM | Teljes és elérhető memória, swap, más munkaterhelések, később tényleges háromfolyamatos memóriahasználat |
-| Tárhely | Szabad hely és inode, Docker image/cache/logok és előző release helye; nincs automatikus takarítás |
-| Futó szolgáltatások | Caddy helye/verziója, listener tulajdonosok, konténerek, más oldalak és függőségeik |
-| Docker/Compose | Telepített verzió és daemon állapot; a meglévő csomagokat nem cseréljük le audit közben |
-| Hálózat | Szerverről DNS/TLS OpenAI, Supabase Auth, DB és image-registry felé; érvényes tanúsítvány-ellenőrzéssel, fizetős AI-hívás nélkül |
-| SSH és tűzfal | Effektív root/jelszó/kulcs beállítás, engedett portok, IPv4/IPv6, brute-force védelem; meglévő hozzáférés megőrzendő |
-| Frissítések | Csomaglisták kora, elérhető frissítések és reboot igény; audit közben nincs update/reboot |
-| Mentés és helyreállítás | VPS/config/secrets és külön Supabase mentés; dokumentált és ténylegesen kipróbált restore |
-| Megfigyelés | Healthcheck, folyamat-újraindulás, logméret, külső elérhetőség és értesítési felelős |
+| existing-host-1 | Lejárt tanúsítvány |
+| existing-host-2 | Hostname és lánc érvényes; tanúsítvány lejárata 2026-10-31 |
+| existing-host-3 | Lejárt tanúsítvány |
+| existing-host-4 | TLS-kézfogási belső hiba |
+| existing-host-5 | Hostname és lánc érvényes; tanúsítvány lejárata 2026-10-31 |
+| existing-host-6 | Lejárt tanúsítvány |
 
-Kapacitásról csak a fenti adatok és későbbi futásmérés alapján lehet dönteni. Kis béta esetén először egy worker és korlátozott generálás javasolt; a jelenlegi három szerep külső AI-t használ, így az API-szolgáltató válaszideje és költségkerete is korlát. Ez nem felhasználószámra adott kapacitásígéret. Image-et lehet később CI-ben építeni, hogy a production gépet ne terhelje a teljes Next build.
+A konkrét domainnevek külön helyi, Gitből kizárt operatív jegyzetben maradtak; a verziózott riport anonimizált. A konfigurált nevek nem feltétlenül mind aktívan használt oldalak. Az eredmény nem az adott alkalmazások teljes funkcionalitásának vizsgálata.
 
-Dockerrel a publikált konténerportok UFW-szabályokat megkerülhetnek; ezért a későbbi tűzfalaudit a Docker-szabályokat és tényleges külső elérhetőséget is ellenőrzi. [Docker tűzfal-dokumentáció](https://docs.docker.com/engine/network/packet-filtering-firewalls/).
+Az elmúlt 48 órából kiválasztott utolsó 600 strukturált Caddy naplósorban 144 TLS warning/error szerepelt, köztük certificate/renewal, challenge és unauthorized jelzések. Ez korlátozott naplóminta, nem az összes hibák száma vagy bizonyított gyökérok. A használt domainnevek DNS/ACME feltételeit és a megújulási hibák okát rendezni kell; az elhagyott nevekről külön döntés szükséges. Tanúsítvány-ellenőrzést nem kapcsoltunk ki. [Caddy automatikus HTTPS](https://caddyserver.com/docs/automatic-https).
 
-## Titokkezelés és végrehajtási határ
+**Javasolt alterward-topológia:** a meglévő publikus Caddy kapjon új hostname-route-ot; alterward web/API egy külön proxy-hálózaton kapcsolódjon hozzá, hostos 3000/4000 publikálás nélkül. A workernek nem kell a proxy-hálózatra csatlakoznia. Az új hálózatot a meglévő proxy forrás-Compose konfigurációjában is tartósan rögzíteni kell; egy kézi network connect önmagában nem elég egy későbbi konténer-újralétrehozáshoz.
 
-A felhasználó által megadott `env/contabo_auth.txt` helyén maradt, de az örökölt olvasási jogok megszűntek; csak a jelenlegi Windows-felhasználó, SYSTEM és helyi rendszergazdák kaptak hozzáférést. Az `env/` könyvtár Git- és Docker-kizárás alatt áll. Jelszó, belépési név és szervercím nem került ebbe a riportba vagy a verziózott fájlokba.
+A jelenlegi [Compose](../deploy/compose.yaml) saját Caddy szolgáltatását ezen a gépen ki kell váltani a közös proxyval. A megfelelő fájlok elkészítése és ellenőrzése későbbi telepítési lépés; audit közben a meglévő hálózat/route nem változott. Az `API_TRUST_PROXY=1` egyetlen Caddy-hop és kizárólag zárt upstream mellett maradhat; a tényleges klienscím/rate-limit éles próba szükséges. [Caddy proxybeállítások](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
 
-Nem történt szervertelepítés, csomagfrissítés, szolgáltatásleállítás, restart, tűzfalmódosítás vagy fizetős AI-hívás. Az eredeti SSH-elutasítás után kizárólag a felhasználó által külön kért `root` névvel történt egy további kísérlet, ugyanazzal a fájlból beolvasott jelszóval. Más felhasználóneveket/jelszavakat nem próbáltunk. A helyi hostkulcs-rögzítés és a hozzáférési fájl ACL-védelme helyi változtatás.
+## Hálózat és külső függőségek
 
-A teljes audit folytatásához az SSH-adatokat kell tisztázni. A Contabo ügyfélpanel és a VPS operációs rendszerének belépése külön hozzáférés; a szolgáltató a szerver IP/felhasználó adatait a „Your login data!” levélben jelöli meg. Nem indítottunk jelszó-visszaállítást vagy szerver-újratelepítést. [Contabo csatlakozási útmutató](https://help.contabo.com/en/support/solutions/articles/103000286843-how-do-i-connect-to-my-server-).
+| Ellenőrzés | Eredmény | Határ |
+|---|---|---|
+| Kívülről 22/80/443 | TCP elérhető; HTTP 308/Caddy | Nem rendelkezésreállási mérés |
+| Kívülről 3001 | TCP elérhető | Egy meglévő második Caddy HTTP-portja közvetlenül nyilvános |
+| Kívülről 8000/8085 | Kapcsolat elutasított | Ezek a helyi listener-inventárban loopbackre kötöttek; nem találtunk nyilvános elérést |
+| Szerver → OpenAI API | Normál TLS-ellenőrzéssel HTTP 401 | Kulcs nélküli elérhetőségi próba, nem fizetős generálás |
+| Szerver → Docker registry | Normál TLS-ellenőrzéssel HTTP 401; CDN root 403 | DNS/TLS/HTTP elérhető; tényleges image-pull nem történt |
+| Szerver → Supabase Auth | DNS/TCP és TLSv1.3, lánc/hostname ellenőrzés sikeres; kulcs nélküli HTTP 401 | Nem valódi bejelentkezés |
+| Szerver → Supabase DB | 5432/tcp és PostgreSQL SSLRequest; a projekt ellenőrzött Supabase CA-jával TLSv1.3 és hostname/lánc sikeres | Nem SQL-hitelesítés vagy DB-írás |
 
-## Éles indulás előtti sorrend
+A Supabase DB a host alap CA-tárával nem volt ellenőrizhető; a projekt saját, korábban ellenőrzött CA-jával működött. A későbbi `DATABASE_SSL_CA_HOST_FILE` read-only mount ezért szükséges. Kizárólag a publikus CA-tanúsítvány került a vizsgálati folyamat memóriájába; DB-jelszó, admin- vagy AI-kulcs nem lett átadva a szervernek. Nincs `rejectUnauthorized=false` vagy TLS-megkerülés.
 
-1. Működő SSH-hozzáférés és a fenti belső audit lezárása.
-2. Meglévő Caddy/oldalakhoz illeszkedő konkrét telepítési konfiguráció; portütközés feloldása a meglévő működés megőrzésével.
-3. Kijelölt hostname, DNS, HTTPS és Supabase Auth redirect/site URL. Domainvásárlás továbbra későbbi felhasználói döntés.
-4. Éles titkok checkouton kívül, például `/etc/alterward/runtime.env`; megfelelő CA-jogok és külön production keret. A fejlesztői 5–5 USD napló nem production allowance.
-5. Teljes Compose/API/worker próba, tényleges klienscím/rate-limit, korlátozott Auth/AI UI smoke és folyamat-helyreállítás.
-6. Mentés/visszaállítás és előző image-re történő rollback ellenőrzése; ezután korlátozott angol béta.
+## Indulás előtt rendezendő üzemeltetési pontok
 
-A `298bdca` runtime commit Linux image-buildje és production web healthcheckje már sikeres [GitHub CI-ben](https://github.com/Muzsy/future_flow/actions/runs/37164982359). Ez az alkalmazás csomagolásának bizonyítéka, nem a Contabo gép kapacitásának vagy teljes éles működésének tesztje.
+| Prioritás | Megállapítás | Következő lépés |
+|---|---|---|
+| P1 | `PermitRootLogin yes`, `PasswordAuthentication yes`; publikus SSH elérhető | Külön üzemeltetői account és kipróbált SSH-kulcs, majd a szükséges root/jelszavas hozzáférés szűkítése hozzáférésvesztés nélkül |
+| P1 | UFW inaktív; IPv4/IPv6 INPUT alap policy ACCEPT; DOCKER-USER lánc üres; fail2ban nem található | Docker- és Tailscale-kompatibilis, ténylegesen ellenőrzött bejövő szabályozás; a Contabo oldali firewall állapota nem ismert |
+| P1 | Három lejárt TLS-tanúsítvány és egy kézfogási hiba a konfigurált nevek között | Használt/elhagyott domainleltár, DNS/ACME hibaok, megújulás és tanúsítvány-monitorozás |
+| P1 | Meglévő publikus proxy foglalja a portokat | Közös Caddy route, külön alterward hálózat és konténerek; a saját proxy portkötését nem indítjuk el |
+| P1 | VPS teljes külső mentése és Supabase restore nem igazolt | Külön mentési terv, checkouton kívüli secret/config backup és tényleges visszaállítási próba |
+| P2 | REBOOT_REQUIRED; futó kernel 6.8.0-110, újabb 6.8.0-142 már telepítve; 66 cached upgradable csomag | Egyeztetett karbantartás az összes jelenlegi alkalmazás figyelembevételével; nincs automatikus reboot/update |
+| P2 | Két meglévő unit failed: ügynök healthcheck és network wait-online | Hibaok vizsgálata és a tervezett újraindítás utáni helyreállás igazolása; önmagában nem alterward-kódhiba |
+| P2 | Meglévő Docker json-file logoknál konténerenként nem látható rotációs opció; journal körülbelül 1,8 GiB | Daemon-szintű korlát tisztázása, saját alkalmazásnál a meglévő 10 MiB ×3 policy megtartása, diszkmonitorozás |
+
+A Docker portpublikálás UFW-szabályokat megkerülhet; ezért önmagában az UFW bekapcsolása nem zárja le a konténerportokat. A 3001-es port korlátozása csak a jelenlegi proxyútvonal ismeretében történhet, hogy ne törjön el egy másik oldal. [Docker tűzfal-dokumentáció](https://docs.docker.com/engine/network/packet-filtering-firewalls/).
+
+Automatikus frissítési szolgáltatás és apt-timerek működnek, de ez nem bizonyítja minden csomag és a futó kernel frissességét. A 66 csomag a pillanatnyi helyi apt-cache eredménye; audit közben apt update/upgrade nem futott. Docker live-restore nincs bekapcsolva, ezért egy daemon-frissítés más konténerek működését is érintheti.
+
+## Mentés, megfigyelés és korlátok
+
+Két alkalmazásspecifikus backup timer utolsó futása 2026-10-04-én sikeres exit statusú volt; helyi mentési könyvtár is található. Ez **nem** igazol teljes VPS/offsite backupot, a tartalom teljességét vagy sikeres restore-t. A `/var/backups` csomagadatbázis-mentései sem helyettesítik az alkalmazásadatok mentését. Contabo snapshot/backups előfizetést/panelt nem vizsgáltunk.
+
+Alterwardhoz még kell külső uptime/TLS-ellenőrzés, web/API health, worker job/lease/queue és AI-spend figyelés, riasztási felelős, külön Supabase mentés/retenció és kipróbált restore. A felhasználói JSON-export nem teljes DB-backup. Restore során a már törölt fiókok adatai nem kerülhetnek vissza kontrollálatlanul.
+
+Nem futott alterward image-build/pull ezen a szerveren, teljes Compose vagy új alkalmazásfolyamat, migráció, valódi Auth/AI smoke, hosszabb kapacitás/terhelésmérés, backup restore vagy reboot-próba. Egy szerver önmagában nem magas rendelkezésreállás; ezek a későbbi telepítés ellenőrzési kapui.
+
+## Titokkezelés és hozzáférési előzmény
+
+A megadott `env/contabo_auth.txt` Git- és Docker-kizárás alatt áll. Ellenőrzött helyi ACL: öröklés kikapcsolva, csak az aktuális Windows-felhasználó, SYSTEM és helyi rendszergazdák jogosultak. A korábbi védelem a fájl bővítése után is megmaradt. A jelszavak memóriából kerültek az SSH-hitelesítésbe; nem kerültek parancssori argumentumba, jelentésbe, Gitbe vagy remote env-be.
+
+Az SSH-hostkulcs minden új kapcsolatkor egyezett a repón kívüli védett titokmappában rögzített kulccsal. Az első rögzítés első használatkor létrejött bizalom volt; külön Contabo/VNC csatornából származó ujjlenyomattal még nem hasonlítottuk össze. Hostkulcsváltozás nem kerül automatikusan elfogadásra.
+
+Előzmény: az eredeti fájlbeli belépési páros, majd külön felhasználói kérésre az akkori jelszó és `root` neve egyszer-egyszer elutasított hitelesítést kapott. A felhasználó által később megadott „felhasználói név2” és „jelszó2” párossal a kapcsolat sikeres, UID 0 jogosultság igazolt. Az audit tehát már nem hozzáférés miatt áll; a korábbi részleges riportot ez a belső vizsgálat váltja fel.
+
+## Következő telepítési sorrend
+
+1. A fenti SSH/tűzfal/TLS és karbantartási pontok rendezése kijelölt üzemeltetési időben, a meglévő szolgáltatások megtartásával.
+2. Közös Caddyhez illesztett alterward Compose és elkülönített hálózat, erőforrás/logkorlát, rögzített image/commit és rollback-terv.
+3. Választott hostname, DNS, ellenőrzött HTTPS és Supabase Auth Site URL/redirect allowlist. Domainvásárlás továbbra későbbi felhasználói döntés.
+4. Éles titkok checkouton kívül, például `/etc/alterward/runtime.env`; ellenőrzött CA és külön production AI-keret. A fejlesztői OpenAI/Claude 5–5 USD naplók nem production allowance.
+5. Mentés/visszaállítás, teljes web/API/worker indulás és restart/recovery, klienscím/rate-limit, korlátozott valódi Auth/AI UI-próba.
+6. Korlátozott angol béta, majd tényleges használói és kapacitásmérés alapján további lépések.

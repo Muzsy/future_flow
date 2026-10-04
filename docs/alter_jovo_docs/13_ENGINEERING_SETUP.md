@@ -43,3 +43,7 @@ Változás átadása: konkrét viselkedés, séma/migráció/jogosultság/AI-kö
 ### 2026-10-04-i megvalósítási frissítés
 
 [Privát béta-riport](../BETA_IMPLEMENTATION_REPORT_HU.md): valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és teljes fióktörlés sikeres; 159 automatizált teszt. [007 feedback/session szerződés](../BETA_FEEDBACK_AND_METRICS_HU.md): privát űrlap, export/törlés, szerveroldali 30 perces session és sikeres folytatási kohorsz kész. Új angol minta Sonnet auditja rendben. [Contabo-előkészítés](../DEPLOYMENT_HU.md) kész, Linux CI-ben az image-build és production web healthcheck sikeres; teljes Compose/API/worker/Caddy és éles deploy még nincs; backup/restore és valós DB-kiesésből recovery nyitott. A public/community rész továbbra tervezett, a két stratégiai forrás változatlan.
+
+### Contabo belső audit
+
+A [2026-10-04-i olvasási audit](../CONTABO_SERVER_AUDIT_HU.md) sikeres SSH-belépéssel lezárta a kapacitás és meglévő környezet inventárját: Ubuntu 24.04.4, 4 vCPU/8 GB RAM, 4,91 GiB elérhető memória és 71 GiB szabad tárhely. Docker 29.1.3/Compose v5.1.4 mellett a YAML-parszolás sikeres. Hoston Node 22 van, az alkalmazás Node 24 Docker image-et használ. A meglévő Caddy miatt közös route és külön proxy-hálózat kell; a saját 80/443 portkötés itt ütközne. Teljes runtime/terhelés/restore és élesítés nem történt; a szerver SSH/tűzfal/TLS és karbantartási pontjai még rendezendők.

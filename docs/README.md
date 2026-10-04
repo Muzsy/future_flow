@@ -17,7 +17,7 @@
 | [Beállítás](SETUP.md) | Helyi indítás, Supabase/OpenAI és titokkezelés |
 | [Lokalizáció](LOCALIZATION_HU.md) | Angol kiadás, elrejtett magyar és bővíthető nyelvregiszter |
 | [Angol indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md) | AI szerkesztői ellenőrzés, éles béta és használói visszajelzés; későbbi Contabo-telepítés |
-| [Contabo szerveraudit](CONTABO_SERVER_AUDIT_HU.md) | Ellenőrzött hálózati elérhetőség, meglévő Caddy, SSH-hozzáférési akadály és még szükséges belső vizsgálatok |
+| [Contabo szerveraudit](CONTABO_SERVER_AUDIT_HU.md) | Sikeres belső audit: 4 vCPU/8 GB RAM, közös Caddy, TLS/hálózat, indulás előtti SSH/tűzfal/mentés/karbantartás |
 | [V2 szerződés](V2_SIMULATION_CONTRACT_HU.md) | Az elkészült időszakos tárolás/API/worker és pontos szerződés |
 | [Privát public-előnézeti alap](PUBLIC_DRAFT_FOUNDATION_HU.md), [emberi értékelés/pilot](HUMAN_EVALUATION_AND_PILOT_HU.md) | P09 előkészítő kód és kiadás utáni használói értékelés |
 | [Nyilvános rendszer terve](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) | Snapshot, Discovery, publishing, moderáció és saját privát fork |

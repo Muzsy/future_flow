@@ -10,7 +10,7 @@ V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történe
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
-2026-10-04-i [Contabo-audit](CONTABO_SERVER_AUDIT_HU.md): kívülről SSH/80/443 elérhető és Caddy válaszol; a megadott SSH-belépés elutasított. Következő ops lépés a működő SSH-hozzáférés, belső kapacitás/biztonság/mentés vizsgálata, majd a meglévő proxyhoz illesztett telepítési csomag. A változatlan saját proxy indítása előtt a portfoglalást ellenőrizni kell; élesítés még nem történt.
+2026-10-04-i [Contabo-audit](CONTABO_SERVER_AUDIT_HU.md): a második belépési párossal sikeres belső olvasási vizsgálat; 4 vCPU/8 GB RAM, körülbelül 4,91 GiB elérhető memória és 71 GiB szabad tárhely, külső API/Auth és saját CA-val DB TLS rendben. Következő ops lépés SSH/tűzfal/TLS és mentés/karbantartás rendezése, közös Caddyhez illesztett elkülönített telepítési csomag, majd valódi futás/restore ellenőrzés. A saját proxy 80/443 kötése ütközne; élesítés még nem történt.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
