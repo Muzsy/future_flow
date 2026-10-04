@@ -42,3 +42,9 @@ A fenti audit létszámai és CI-bizonyítéka az akkori állapot történeti ad
 ## S0 megvalósítás utáni frissítés
 
 A következő implementációs szelet elkészült: [S0 riport](SHARED_CONTEXT_S0_REPORT_HU.md), 008/009 alkalmazva és ismétléssel ellenőrizve, valódi három szintetikus Supabase Auth-fiók foundation/export/törlés-próbája és takarítása sikeres. Az [a20302f CI](https://github.com/Muzsy/future_flow/actions/runs/37229799920) 195 teszttel, teljes build/séma-drift és izolált valós PostgreSQL/TLS runtime-versenypróbával sikeres. Az aktív terv, státusz és átadás már S1-et jelöli következőnek; S2/S3 előtt Shared kikapcsolva. Az új specifikáció, eredeti források, történetek, alkalmazott SQL és exportált sémák sértetlenek; a jelenlegi integritási audit 94 megőrzendő fájlt, 29 sémát és 21 aktív témadokumentum manifestjét ellenőrzi. Az AI-naplók és Contabo változatlanok.
+
+## S1 megvalósítás utáni frissítés
+
+[S1 riport](SHARED_CONTEXT_S1_REPORT_HU.md): 36 új regresszióval 231 teszt, teljes check/build és 35 séma-drift sikeres; [main CI](https://github.com/Muzsy/future_flow/actions/runs/37233779884) (`4e37715`) verify/container is sikeres. A valós PostgreSQL/TLS próba tíz párhuzamos intentet, egyszeri resolutiont, öt context függő döntését érintő törlést és nulla személyes ágírást igazol. Safe canon/own intent/export és pending memória elkészült; valódi Shared AI S2, personal/Connections/privacy S3 előtt nincs aktiválás.
+
+A mostani integritási audit 104 Markdown-fájlt (101 docs), 21 aktív és 21 archív témadokumentumot, 35 sémát és 100 megőrzendő forrás/séma/migráció/mintafájlt ellenőriz; minden helyi hivatkozás/horgony ép. A Shared forrás 17 checksumja és a két eredeti stratégia 80 fő fejezete megmarad. A korábbi 29 séma és kilenc alkalmazott SQL byte szerint változatlan; a hat új S1 séma a kódból exportált. A két AI-napló, keret és Contabo változatlan.
