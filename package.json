@@ -20,6 +20,8 @@
     "smoke:ai": "tsx --env-file-if-exists=.env scripts/smoke-ai.ts",
     "smoke:life": "tsx --env-file-if-exists=.env scripts/smoke-life.ts",
     "smoke:shared": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-shared-ai.ts",
+    "smoke:shared:personal": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-shared-personal-ai.ts",
+    "audit:shared:claude": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/audit-shared-personal-claude.ts",
     "smoke:auth": "pnpm build:packages && pnpm --filter @future-flow/api build && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-authenticated-life.ts",
     "evaluate:claude": "tsx --env-file-if-exists=.env scripts/evaluate-claude.ts",
     "schemas": "pnpm --filter @future-flow/contracts schemas",

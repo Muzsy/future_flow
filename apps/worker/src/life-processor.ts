@@ -2,6 +2,7 @@ import {
   DomainError,
   simulatePeriodV2,
   validatePeriodChapterV2,
+  validatePersonalSharedMemories,
 } from '@future-flow/core';
 import type {
   PeriodCandidateV2,
@@ -20,6 +21,10 @@ export async function processLifeJob(
   ai: LifeAiProvider,
 ) {
   const input = job.payload;
+  const sharedEvents = validatePersonalSharedMemories(
+    input.memory.sharedEvents,
+    input.startDate,
+  );
   const receipts = (job.checkpoints.receipts ?? []) as AiReceipt[];
   const scope = {
     lifeId: job.life_id,
@@ -65,6 +70,9 @@ export async function processLifeJob(
       } catch (error) {
         if (attempt || !(error instanceof DomainError)) throw error;
         repair = `Correct the previous event proposal. Validation code: ${error.code}. Rebuild from the same starting state and request; do not change IDs supplied by the server.`;
+        if (error.code === 'LIFE_INVALID_TIMELINE')
+          repair +=
+            ' Every new event date must be strictly after startDate, at or before endDate, in nondecreasing order. Historical shared effectiveAt/knownAt dates are background references, never new event dates.';
         await jobs.checkpoint(job, 'EVENT_REJECTED', {
           repairReasonCode: error.code,
         });
@@ -84,6 +92,7 @@ export async function processLifeJob(
     identity: input.input.identity,
     goals: input.input.goals,
     events: canon.events,
+    ...(sharedEvents.length ? { sharedEvents } : {}),
   };
   let chapter = job.checkpoints.chapter as PeriodChapterV2 | undefined;
   if (!job.checkpoints.fidelityPassed) {

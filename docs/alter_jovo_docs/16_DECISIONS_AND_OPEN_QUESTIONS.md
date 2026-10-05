@@ -1,10 +1,10 @@
 # alterward — döntések és nyitott kérdések
 
-**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S3 megvalósítás és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-2026-10-04 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
+2026-10-05 · Elfogadott irány és visszafordítható mérnöki választások. [Források elsőbbsége](../README.md).
 
 ## Elfogadott döntések
 
@@ -89,3 +89,7 @@ Grace és downgrade-context választás, deadline/quorum, eltérő időpontú á
 ## ADR-026 — Shared AI, lease és megszakadt fizetett kérés
 
 Sol marad, külön strict friend input/output, max4500 outputtoken és egy célzott repair. A kezdeményező keretéből egy közös canon keletkezik. Tartós call/repair marker nélkül nincs provider-hívás; mentett output restartolható, ismeretlen kimenet csendesen nem ismételhető. Egy aktív job/context és fair háromqueue-kör. Két valódi izolált mintát őrzünk, a második prompt nem ígér chatfunkciót. S3 előtt minden Shared flag false; eredeti public terv megmarad.
+
+## ADR-027 — Személyes folytatás a közös válaszok megérkezése előtt
+
+2026-10-04 · **Felhasználói döntés:** a személyes élet folytatható, amíg egy közös döntés válaszokra vár. A későbbi lezárás a következő személyes folytatásban újonnan megismert előzmény; elkészült fejezetet nem írunk át. Az immutable közös `effectiveAt` és az adott személyes ág `knownAt` dátuma külön marad. Futó személyes job bemenetét nem módosítjuk, és a retry ugyanazzal a pillanatfelvétellel dolgozik. Saját user/branch lock alatt egyszeri lazy memóriaátvétel történik, kliensrevision-ellenőrzés után. A történeti fork csak a forkfejezetig ismert memóriát örökli; élő tagságot és későbbi pending hatást nem. A válaszadási határidő külön, továbbra nyitott kiadási beállítás. [S3 személyes integráció](../SHARED_CONTEXT_S3_REPORT_HU.md).

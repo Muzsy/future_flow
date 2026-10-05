@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-04 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az új [Shared Context csomag](plans/README.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
+2026-10-05 · A [pozicionálási és célmeghatározási dokumentum](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [nyilvános életutak, Discovery és közösség specifikációja](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az új [Shared Context csomag](plans/README.md) alapján. Ez a célállapot és az odavezető terv; a jelenleg működő kódot az [implementációs állapot](IMPLEMENTATION.md), a végrehajtás sorrendjét a [következő lépések](NEXT_STEPS.md) írják le.
 
 ## 1. Irány és dokumentumok szerepe
 
@@ -30,7 +30,7 @@ A legújabb felhasználói döntés szerint kizárólag angol felület és angol
 | Állapot/visszatérés | Számszerű mutatók, mentett archívum | Tényállapot, cél/szereplő/korlát, revision, mentett választás és következő időszak |
 | Minőségbizonyíték | Korábbi szintetikus baseline/ág minták | 159 automatizált teszt, 20 determinisztikus eset ×3 időszak; négy valódi generatív lánc és új angol minta külső auditja; használói élmény kiadás után mérendő |
 | Költség/mérés | Közös fejlesztői napló | Projekt/user foglalás, hibaköltség, feedback, session/fejezetvég/folytatás összesítés; éles allowance még nulla |
-| Shared Context | S0–S2 privát alap, friend motor és AI | Szerződés/tárolás/meghívás/intent/canon/pending memória implementált, kikapcsolva; valódi Shared AI implementált, személyes integráció/Connections S3 |
+| Shared Context | S0–S2 privát alap, friend motor és AI | Szerződés/tárolás/meghívás/intent/canon/pending memória implementált, kikapcsolva; valódi Shared AI implementált, személyes/time S3 implementált, Connections/privacy/Auth még kapu |
 | Nyilvános tartalom | Nincs publikálás/Discovery | Privát snapshot/szcenárió-előnézet kész; teljes PII, Publication/Official seed, Discovery és public fork még tervezett |
 
 A valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok, böngészős onboarding/visszatérés/export, Auth/DB-törlés és kontrollált recovery sikeres. Backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és Contabo-élesítés még kapu. [Aktuális bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md), [státusz](STATUS_HU.md). Emberi élmény és megtartás a korlátozott angol béta után mérendő.
@@ -198,8 +198,13 @@ A [2026-10-04-i új specifikáció](plans/alterward_shared_context_implementatio
 
 Típusok: friend 2–10, romantic pontosan 2 és max 1 aktív/user, work/hobby max 10, sport max 20. Tervezett aktív slotszám: Free 0, Explorer 1 friend, Connected 3 friend/romantic/work/hobby, World 5 minden típus; minden tag saját entitlementje szükséges. Inviting/active/paused slotot fogyaszt, ended/archived nem. A tiermodell megvalósítandó; árak/billing és downgrade grace még konkretizálandók, a privacy/export/törlés ingyenes.
 
-Az S0 foundation, S1 friend motor és S2 valódi Shared AI elkészült; következő helyi szelet S3 személyes memória/hatás, Connections és friend kiadási kapu. S4–S6 fokozatos típusbővítés, S7 split/group fork/sponsored/public többfél-consent később. A P09–P13 public MVP nem törlődik; annak PII/preview/fork kapuja a shared történetek más felhasználóit is védi.
+Az S0 foundation, S1 friend motor és S2 valódi Shared AI elkészült; S3 személyes memória/AI/időkezelés implementált; következő Connections és privacy/Auth friend kiadási kapu. S4–S6 fokozatos típusbővítés, S7 split/group fork/sponsored/public többfél-consent később. A P09–P13 public MVP nem törlődik; annak PII/preview/fork kapuja a shared történetek más felhasználóit is védi.
 
 Biztonságos meghívó, explicit részvétel/consent, minimális InteractionProfile, saját intent, deterministic resolution, rendezett user/context/branch lock, revision/lease/idempotencia és lazy személyes impact kötelező. Személyes fork nem örököl live tagságot. A törölt tag adata leválasztandó, más tagok története nem cascade-törlendő; próza-redakció/retention ellenőrzése nélkül nincs kiadás.
 
-A [részletes integrációs terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) tartalmazza a szerződést, táblákat/API-kat, AI-inputot és költségviselést, UX-t, S0–S7 elfogadásokat és a forrás ellentmondásainak feloldását. S0 contract/tárolás/profil/entitlement/meghívási alap implementálva kikapcsolt feature mögött, a fejlesztői DB-n 001–009 alkalmazva; [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). S1 canon/intent/pending memória implementált; [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). S2 Shared AI implementált; [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md). S3–S7 integráció és UI még tervezett; nincs AI nélküli friend release, és a helyi fejlesztés nem jelent Contabo-telepítést.
+A [részletes integrációs terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) tartalmazza a szerződést, táblákat/API-kat, AI-inputot és költségviselést, UX-t, S0–S7 elfogadásokat és a forrás ellentmondásainak feloldását. S0 contract/tárolás/profil/entitlement/meghívási alap implementálva kikapcsolt feature mögött, a fejlesztői DB-n 001–009 alkalmazva; [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). S1 canon/intent/pending memória implementált; [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). S2 Shared AI implementált; [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md). S3 személyes/time implementált; S3 UI/privacy/Auth és S4–S7 még tervezett; nincs AI nélküli friend release, és a helyi fejlesztés nem jelent Contabo-telepítést.
+
+
+### 2026-10-05-i személyes Shared pontosítás
+
+A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. [S3 megvalósítás és kiadási korlátok](SHARED_CONTEXT_S3_REPORT_HU.md).

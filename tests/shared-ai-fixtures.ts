@@ -63,9 +63,13 @@ export function candidateFor(input: SharedAiInput): SharedEventCandidate {
   f.candidate.decision!.options[1]!.id = input.decision.optOutOptionId;
   return f.candidate;
 }
-export async function sharedAiGroup(db: Database, jobs: SharedJobRepository) {
+export async function sharedAiGroup(
+  db: Database,
+  jobs: SharedJobRepository,
+  ownGoal?: string,
+) {
   const people = [
-    await sharedParticipant(db, 'world', 'Test Rowan'),
+    await sharedParticipant(db, 'world', 'Test Rowan', ownGoal),
     await sharedParticipant(db, 'world', 'Test Casey'),
   ];
   const a = people[0]!,

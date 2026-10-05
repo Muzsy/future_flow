@@ -1,6 +1,6 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
-2026-10-04 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
+2026-10-05 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
 ## Ténylegesen elkészült
 
@@ -13,16 +13,17 @@
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–007 alkalmazva, 008/009 alkalmazva/ismétléssel ellenőrizve, 13 új RLS-tábla és valódi háromfiókos Shared foundation próba sikeres; ellenőrzött TLS, minden aw_ tábla RLS, anon/authenticated közvetlen hozzáférés tiltva |
+| Supabase | 001–010 alkalmazva/ismétléssel ellenőrizve; 14 új Shared RLS-tábla, valódi háromfiókos S0 foundation próba sikeres; verified TLS és anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `8b3a409` commit: 260 teszt, formázás/típusok/build és 37 séma-drift; izolált web/API/worker/Caddy, 001–009 + ismétlés, párhuzamos Shared enqueue/claim és lease-reclaim, tíz intent/egyszeri resolution, slot/tag race és ötcontextes pending-decision deletion, nulla személyes branch-írás, verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37236552164) |
+| Shared S3 rész | Saját következő AI-inputba ismert canon, változatlan múlt/in-flight/retry, safe fork és own export/törlés; compatible-month/monoton anchor; UI/privacy/full Auth még kapu, flag false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
-260 teszt a jelenlegi készletben, köztük 36 S0, 36 S1 és 29 S2 Shared regresszió; az S0 ellenőrzések részletei a [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md) dokumentumban. A korábbi 159 teszt bizonyítéka: 20 determinisztikus teszteset ×3 időszak és állapot/jogosultság/lease/retry/költség/export/törlés. Négy valódi AI-lánc ×3 időszak (EN/HU, Sol/Luna eseménymodell), schema/domain/fidelity sikerrel. [Modellmérés](AI_V2_ROUTING_REPORT_HU.md) és [angol](examples/AI_V2_ENGLISH_STORY.md)/[magyar](examples/AI_V2_HUNGARIAN_STORY.md) minták. Ez négy generatív eset, nem húsz; emberi minőség/retenció nincs bizonyítva.
+279 teszt/24 fájl a jelenlegi készletben, köztük S0–S2 és új S3 regressziók; [S3 személyes/time szelet](SHARED_CONTEXT_S3_REPORT_HU.md). A korábbi 159 teszt része 20 determinisztikus eset ×3 időszak. Négy valódi EN/HU Sol/Luna lánc megmarad; új S3 angol saját AI-folytatás és validált Claude-audit sikeres, egy korábbi dátumpróba elutasítva. Ez izolált szintetikus bizonyíték, nem húsz generatív eset vagy használói megtartási mérés.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -36,9 +37,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | V2 EN/HU Sol/Luna, három időszak | 38 | 0,577744805 |
 | Új valódi Auth/AI HTTP- és böngészős próba (megszakadt hívással együtt) | 16 | 0.278277000 |
 | Két valódi izolált Shared friend Sol-minta | 2 | 0.023752000 |
-| **Összesen** | **100** | **1.899189905 ≈ 1.90** |
-| **Konzervatívan elszámolt összeg** | | **1.948993375** |
-| **Guard szerint megmaradt keret** | | **3.051006625 ≈ 3.05** |
+| S3 kezdeti elutasított és pontosított Shared/personal próbák | 7 | 0.119301200 |
+| **Összesen** | **107** | **2.018491105 ≈ 2.02** |
+| **Konzervatívan elszámolt összeg** | | **2.074165875** |
+| **Guard szerint megmaradt keret** | | **2.925834125 ≈ 2.93** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -48,7 +50,7 @@ Sol az alap minden szerepben. Luna eseménymodell a kis v2 mintában körülbel�
 
 ## Külön Claude-kutatási keret és auditor
 
-Új felhasználói döntés: további **5 USD kizárólag Claude-mérésekre**, saját .local/claude-audit/usage.json és paid-run.lock naplóval. 49 HTTP-generálási kísérlet, 47 ismert usage; ismert tokenköltség 1.7526709 USD, konzervatív összeg 2.318045 USD, guard szerint maradt **2.681955 USD**. Két kezdeti usage nélküli HTTP 400 teljes foglalása megmaradt. A fenti OpenAI és ez a Claude keret külön napló, nem összevont vagy futtatásonként új 5 USD.
+Új felhasználói döntés: további **5 USD kizárólag Claude-mérésekre**, saját .local/claude-audit/usage.json és paid-run.lock naplóval. 50 HTTP-generálási kísérlet, 48 ismert usage; ismert tokenköltség 1.7691169 USD, konzervatív összeg 2.338015 USD, guard szerint maradt **2.661985 USD**. Két kezdeti usage nélküli HTTP 400 teljes foglalása megmaradt. A fenti OpenAI és ez a Claude keret külön napló, nem összevont vagy futtatásonként új 5 USD.
 
 Négy Claude-modell, EN/HU külső audit, ismert hibák, szereppróbák, token/cache/effort/outputlimit mérés. A fő Sol-minták kánonhűnek bizonyultak a Sonnet/Opus/Fable auditban; személyesség/kíváncsiság a korlátozott angol béta visszajelzésével mérendő. Sonnet a rutin auditor jelöltje, Opus vitás mintavételhez; Haiku narrátor/esemény alapnak nem minősített. [Teljes Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md), [történeti észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md). A worker routingja továbbra Sol; Claude csak külön szerveroldali értékelő. A korábbi 147 teszt az eredeti 139 mellé 8 fizetés nélküli Claude transport/budget/audit tesztet tartalmazott; az angol átállás további 6 regresszióval 153-re emelte a számot.
 
@@ -97,3 +99,8 @@ Fejlesztői Supabase 001–009 alkalmazva, megismételt runner és checksum egye
 ## 2026-10-04: Shared S2 valódi AI
 
 [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md): strict angol provider, safe input, server IDs/policy/deadline, egy repair, tartós interrupted marker, lease/checkpoint/restart és fair háromqueue-kör implementált. 29 új regresszióval 260 teszt és teljes check sikeres; 37 schema, a korábbi 35 és kilenc SQL változatlan. Két valódi izolált Sol shared pipeline sikeres, 2554 input +1737 outputtoken, repair nélkül; 0.023755 USD guard-fogyasztás, OpenAI maradvány 3.051006625 USD. Claude változatlan. [Main/container CI](https://github.com/Muzsy/future_flow/actions/runs/37236552164) sikeres (`8b3a409`). Következő S3 lazy personal memória/AI-folytatás, Connections és privacy/Auth/deletion/moderáció; feature false, Contabo nem változott.
+
+
+### 2026-10-05: Shared S3 személyes/time szelet
+
+A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. [S3 riport](SHARED_CONTEXT_S3_REPORT_HU.md), [angol minta](examples/AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md), [Claude-audit](examples/AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md). 279 teszt/24 fájl és teljes check/build sikeres; 39 schema és 010 alkalmazva/ismételve. Új guard 0.1451425 USD, naplók folytatódnak. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később.

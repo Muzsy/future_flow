@@ -1,6 +1,6 @@
 # alterward — teljes dokumentáció-felülvizsgálat
 
-2026-10-04 · [Dokumentációs központ](README.md) · [Aktuális státusz](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
+2026-10-05 · [Dokumentációs központ](README.md) · [Aktuális státusz](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
 ## Átvizsgált anyag és bizonyíték
 
@@ -54,3 +54,8 @@ A mostani integritási audit 104 Markdown-fájlt (101 docs), 21 aktív és 21 ar
 [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md): 29 új regresszióval 260 teszt/23 fájl, teljes check/build és 37 séma-drift sikeres; [main CI](https://github.com/Muzsy/future_flow/actions/runs/37236552164) (`8b3a409`) verify/container sikeres, valós PostgreSQL párhuzamos enqueue/claim, lease-reclaim, egyszeri commit és a teljes S0/S1 proof megmarad. Két valódi izolált Sol Shared AI-minta külön, változatlan kimenetként tárolva; első chatutalás után célzott v2 prompt és új offline minta. Az új cost 0.023755 USD, OpenAI guard összesen 1.948993375 USD / maradvány 3.051006625 USD; Claude-napló és Contabo változatlan.
 
 Audit: 107 Markdown-fájl (104 docs), 21 aktív/21 archív téma, 37 schema, 104 megőrzött source/schema/migration/mintafájl, ép helyi linkek/horgonyok; eredeti 80 fejezet, public14 és Shared15/17 checksum megmarad. A korábbi 35 schema/kilenc SQL byte szerint változatlan; S3 personal/Auth/Connections/PII/moderáció még kiadási kapu, minden Shared flag false. Helyi web/API 200, anonymous Shared401/no-store, három queue üres, actual DB TLS encrypted/authorized.
+
+
+## S3 személyes/time dokumentáció — 2026-10-05
+
+Az aktív termékterv, backlog, Shared idő/tárolás/API/kiadási kapuk, követelménymátrix, setup, példajegyzék és mind a 21 témadokumentum frissítve. S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. 279 teszt/24 fájl, teljes helyi check/build; 39 séma. Eredeti stratégiák/Shared ZIP/kibontott anyag/archívum/régi példák/37 séma/kilenc SQL megőrzendő. Két új változatlan AI-minta, új guard 0.1451425 USD. Pontos [eredmények és korlátok](SHARED_CONTEXT_S3_REPORT_HU.md); manifest/link/integritás és új main CI bizonyíték a publikáláskor kerül ide.

@@ -1,6 +1,6 @@
 # alterward — angol indulás és visszajelzések
 
-2026-10-04 · Aktív felhasználói döntés és friss ellenőrzési státusz. [Aktív termékterv](PRODUCT_PLAN_HU.md) · [Sorrend](NEXT_STEPS.md) · [Éles telepítés](DEPLOYMENT_HU.md).
+2026-10-05 · Aktív felhasználói döntés és friss ellenőrzési státusz. [Aktív termékterv](PRODUCT_PLAN_HU.md) · [Sorrend](NEXT_STEPS.md) · [Éles telepítés](DEPLOYMENT_HU.md).
 
 ## Elfogadott irány
 
@@ -43,3 +43,8 @@ Az OpenAI v2 angol fő mintája érthető, természetes angol prózát, világos
 ## Shared Context fokozatos angol kiadása
 
 Az új [S0–S7 terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) minden UI-, hiba- és AI-szöveget angolul ad; a magyar továbbra elrejtve. Foundation és determinisztikus engine csak kikapcsolt funkció/izolált teszt. Első friend béta S2 valódi Shared AI és S3 saját AI-folytatásba épülő impact után, teljes entitlement/consent/block/report/privacy/export/törlés kapuval. A személyes privát béta üzemeltetési útja ettől külön is haladhat; minden későbbi típus nem előfeltétele a személyes béta indulásának. Nincs új kézi EN/HU jóváhagyás; kiadás után shared élményre is valódi angol használói visszajelzést gyűjtünk. Contabo/domain/éles keret továbbra későbbi, külön kapu.
+
+
+## Shared S3 rész és kiadási határ — 2026-10-05
+
+S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később. [Részletes ellenőrzés](SHARED_CONTEXT_S3_REPORT_HU.md), [angol minta](examples/AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md), [külső Claude-audit](examples/AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md).

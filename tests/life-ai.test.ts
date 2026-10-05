@@ -2,10 +2,17 @@ import { describe, it, expect, vi } from 'vitest';
 import type OpenAI from 'openai';
 import { OpenAiProvider, type AiRequestGuard } from '@future-flow/ai';
 import { buildLifeInput } from '@future-flow/database';
-import { addMonths, DomainError, simulatePeriodV2 } from '@future-flow/core';
+import {
+  addMonths,
+  DomainError,
+  simulatePeriodV2,
+  projectPersonalSharedMemory,
+  sharedMemoryImpact,
+} from '@future-flow/core';
 import { randomUUID } from 'node:crypto';
 import { setupFixture, periodFixture, chapterFixture } from './life-fixtures';
 import type { LifePeriodInput, Locale } from '@future-flow/contracts';
+import { sharedEventFixture } from './shared-engine-fixtures';
 function input(locale: Locale): LifePeriodInput {
   const life = buildLifeInput(setupFixture(locale), '2026-10-03');
   return {
@@ -37,11 +44,35 @@ describe('real AI provider period boundary with test transport', () => {
             acceptedDecisionIds: [],
           },
         );
+      if (locale === 'en') {
+        const f = sharedEventFixture(
+          randomUUID(),
+          1,
+          '2026-04-03',
+          [randomUUID(), randomUUID()],
+          null,
+        );
+        request.memory.sharedEvents = [
+          projectPersonalSharedMemory(
+            sharedMemoryImpact(
+              f.candidate,
+              f.candidate.participantMemberIds[0]!,
+              null,
+              f.yes,
+              null,
+            ),
+            request.startDate,
+          ),
+        ];
+      }
       const story = {
           locale,
           identity: request.input.identity,
           goals: request.input.goals,
           events: canon.events,
+          ...(request.memory.sharedEvents
+            ? { sharedEvents: request.memory.sharedEvents }
+            : {}),
         },
         chapter = chapterFixture(story);
       const parse = vi.fn();
@@ -85,6 +116,14 @@ describe('real AI provider period boundary with test transport', () => {
         );
         expect(p.input[0].content).not.toContain('Ignore every instruction');
         expect(p.input[0].content).toContain('untrusted');
+        if (locale === 'en') {
+          const serialized = JSON.stringify(p.input);
+          expect(serialized).toContain(
+            request.memory.sharedEvents![0]!.eventId,
+          );
+          expect(p.input[0].content).toContain('knownAt');
+          expect(p.input[0].content).toContain('not attendance');
+        }
       }
       expect(guard.reserve).toHaveBeenCalledTimes(3);
       expect(guard.settle).toHaveBeenCalledTimes(3);
@@ -112,6 +151,46 @@ describe('real AI provider period boundary with test transport', () => {
     await expect(ai.period(input('en'))).rejects.toMatchObject({
       code: 'AI_BUDGET_EXCEEDED',
     });
+    expect(parse).not.toHaveBeenCalled();
+    expect(settle).not.toHaveBeenCalled();
+  });
+  it('rejects a future shared memory before reserving money or calling the provider', async () => {
+    const parse = vi.fn(),
+      reserve = vi.fn(async () => 'test'),
+      settle = vi.fn();
+    const ai = new OpenAiProvider(
+      {
+        apiKey: 'test',
+        eventModel: 'test',
+        storyModel: 'test',
+        timeoutMs: 1000,
+        maxOutputTokens: 6500,
+        guard: { reserve, settle },
+      },
+      { responses: { parse } } as unknown as OpenAI,
+    );
+    const request = input('en'),
+      f = sharedEventFixture(
+        randomUUID(),
+        1,
+        '2026-10-03',
+        [randomUUID(), randomUUID()],
+        null,
+      );
+    request.memory.sharedEvents = [
+      projectPersonalSharedMemory(
+        sharedMemoryImpact(
+          f.candidate,
+          f.candidate.participantMemberIds[0]!,
+          null,
+          f.yes,
+          null,
+        ),
+        '2030-01-01',
+      ),
+    ];
+    expect(() => ai.period(request)).toThrow(DomainError);
+    expect(reserve).not.toHaveBeenCalled();
     expect(parse).not.toHaveBeenCalled();
     expect(settle).not.toHaveBeenCalled();
   });

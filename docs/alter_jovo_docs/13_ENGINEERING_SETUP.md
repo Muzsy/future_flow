@@ -2,9 +2,9 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S3 megvalósítás és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
+2026-10-05 · Részletes beállítás: [SETUP](../SETUP.md). Parancsforrás: [package.json](../../package.json) és [CI](../../.github/workflows/ci.yml).
 
 ## Környezet
 
@@ -52,3 +52,8 @@ A [2026-10-04-i olvasási audit](../CONTABO_SERVER_AUDIT_HU.md) sikeres SSH-bel�
 Shared contract/core, SharedContextRepository/controller és 008/009 implementált, 36 új célzott regresszió és 11 új séma. [S0 megvalósítás és korlátok](../SHARED_CONTEXT_S0_REPORT_HU.md). Disabled flags; 008/009 a fejlesztői Supabase-on Session poolerrel alkalmazva, valódi HTTP/export/törlés-próba sikeres. Shared job repository/processor és AI-provider S1/S2; Life v2, 18 régi séma és 001–007 változatlan. pnpm check/séma-drift és izolált PostgreSQL 16 CI-race; paid próba és Contabo-módosítás nincs.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).
+
+
+## S3 személyes integráció — 2026-10-05
+
+001–010 a fejlesztői Session pooler kapcsolaton alkalmazva/ismétléssel ellenőrizve. pnpm check 279 teszt/24 fájl és teljes build sikeres; 39 séma. S3 fizetett smoke/audit egyszeri őrzött eset, eredeti naplókat nem nullázza. Négy feature flag false, helyi fejlesztés. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).

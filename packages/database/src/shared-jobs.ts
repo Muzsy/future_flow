@@ -99,11 +99,13 @@ export class SharedJobRepository extends SharedEventRepository {
             409,
           );
         const members = all.filter((m) => m.status === 'active');
-        await this.eligible(
+        c.simulation_at = await this.eligible(
           tx,
           c,
           all,
           members.map((m) => m.id),
+          undefined,
+          true,
         );
         for (const m of members) await this.privacy(tx, m.user_id!);
         const history = await tx.query(
@@ -162,8 +164,8 @@ export class SharedJobRepository extends SharedEventRepository {
           [jobId, c.id, userId, input.context.revision, JSON.stringify(input)],
         );
         await tx.query(
-          'UPDATE aw_shared_contexts SET revision=revision+1,updated_at=now() WHERE id=$1',
-          [c.id],
+          'UPDATE aw_shared_contexts SET revision=revision+1,simulation_at=$2,updated_at=now() WHERE id=$1',
+          [c.id, c.simulation_at],
         );
         return { jobId, contextId: c.id, revision: input.context.revision };
       },

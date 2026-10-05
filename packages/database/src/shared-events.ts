@@ -16,7 +16,7 @@ import {
   openSharedDecision,
   resolveSharedDecision,
   sharedMemoryImpact,
-  requireSharedTime,
+  sharedTimeAnchor,
 } from '@future-flow/core';
 import type { Database } from './index';
 import {
@@ -83,7 +83,10 @@ export class SharedEventRepository extends SharedContextRepository {
     c: SharedContextRow,
     all: SharedMemberRow[],
     ids: string[],
+    resolvedEventAt?: string,
+    advanceAnchor = false,
   ) {
+    const dates: string[] = [];
     for (const member of all.filter((m) => ids.includes(m.id))) {
       if (member.status !== 'active' || !member.user_id || !member.branch_id)
         fail('SHARED_MEMBER_INACTIVE', 403);
@@ -95,10 +98,22 @@ export class SharedEventRepository extends SharedContextRepository {
       if (
         !b ||
         b.content_locale !== 'en' ||
-        !['ready', 'decision'].includes(String(b.status))
+        !(
+          resolvedEventAt
+            ? ['ready', 'decision', 'generating', 'failed']
+            : ['ready', 'decision']
+        ).includes(String(b.status))
       )
         fail('SHARED_MEMBER_INACTIVE', 403);
-      requireSharedTime(c.simulation_at, String(b.effective_at));
+      if (resolvedEventAt) {
+        // A wall-clock response can arrive after a personal six-month chapter.
+        // The immutable event remains at its original date; learning is deferred.
+        if (
+          String(b.effective_at) < resolvedEventAt &&
+          String(b.effective_at).slice(0, 7) !== resolvedEventAt.slice(0, 7)
+        )
+          fail('SHARED_TIME_MISMATCH');
+      } else dates.push(String(b.effective_at));
     }
     for (let i = 0; i < ids.length; i++)
       for (let j = i + 1; j < ids.length; j++) {
@@ -107,6 +122,11 @@ export class SharedEventRepository extends SharedContextRepository {
         if (a?.user_id && b?.user_id)
           await this.blocked(tx, a.user_id, b.user_id);
       }
+    if (resolvedEventAt) return c.simulation_at;
+    const anchor = sharedTimeAnchor(c.simulation_at, dates);
+    if (!advanceAnchor && anchor !== c.simulation_at)
+      fail('SHARED_TIME_MISMATCH');
+    return anchor;
   }
   private async event(
     tx: Database,
@@ -300,7 +320,13 @@ export class SharedEventRepository extends SharedContextRepository {
       };
     // Recheck all affected accounts/tier/date/block before deriving personal impacts.
     if (result.status === 'resolved')
-      await this.eligible(tx, c, all, result.participatingMemberIds);
+      await this.eligible(
+        tx,
+        c,
+        all,
+        result.participatingMemberIds,
+        event.effective_at,
+      );
     const next: SharedState = c.state; // Opt-in does not merge competing option sharedChanges.
     const resolutionId = randomUUID();
     await tx.query(
@@ -378,7 +404,7 @@ export class SharedEventRepository extends SharedContextRepository {
           ).length
         )
           fail('SHARED_INTENT_ALREADY_SUBMITTED');
-        await this.eligible(tx, c, all, [m.id]);
+        await this.eligible(tx, c, all, [m.id], event.effective_at);
         const intent = {
           memberId: m.id,
           optionId: input.optionId,

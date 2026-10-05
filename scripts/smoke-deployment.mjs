@@ -191,6 +191,10 @@ try {
   assert.equal(sharedFoundation.sharedJobsPostgres, 'passed');
   assert.equal(sharedFoundation.parallelSharedEnqueueAndClaim, true);
   assert.equal(sharedFoundation.reclaimedSharedLease, true);
+  assert.equal(sharedFoundation.sharedPersonalPostgres, 'passed');
+  assert.equal(sharedFoundation.delayedSharedResolution, true);
+  assert.equal(sharedFoundation.concurrentPersonalMemoryOnce, true);
+  assert.equal(sharedFoundation.personalMemoryDeletionRace, true);
   compose(
     'up',
     '-d',
@@ -285,7 +289,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs)',
   );
-  assert.equal(counts.trim(), '9|0|0');
+  assert.equal(counts.trim(), '10|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -297,7 +301,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 9,
+      migrations: 10,
       sharedFoundation,
       repeatMigration: 'passed',
       webAndApiViaVerifiedTls: true,

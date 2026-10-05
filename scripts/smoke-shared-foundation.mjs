@@ -20,6 +20,9 @@ const {
   SharedContextRepository,
   SharedEventRepository,
   SharedJobRepository,
+  LifeRepository,
+  LifeJobRepository,
+  buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
 const db = {
@@ -49,15 +52,40 @@ async function person(tier = 'explorer') {
     displayName: 'Synthetic CI alias',
     discoverability: 'private',
   });
-  // Minimal database-only branch fixture, not a generated or published story.
+  // Valid synthetic private input, never a generated or published story.
+  const input = buildLifeInput(
+    {
+      locale: 'en',
+      identity: { mode: 'alternate', label: null, ageBand: '35_44' },
+      location: { country: 'GB', region: null, housing: null },
+      employment: { status: null, employerLabel: null, workDomain: null },
+      finance: { currency: null, monthlyIncome: null, liquidFunds: null },
+      skills: [],
+      relationships: [],
+      resources: { energy: null, availableHoursPerWeek: null },
+      goal: {
+        category: 'personal_growth',
+        description: 'A synthetic private CI goal',
+        horizonMonths: 24,
+        motivation: null,
+        acceptableTradeoffs: [],
+        unacceptableTradeoffs: [],
+      },
+      stayInCountry: false,
+      context: null,
+    },
+    '2026-10-04',
+  );
+  input.lifeId = lifeId;
+  input.branchId = branchId;
   await db.transaction(async (tx) => {
     await tx.query(
-      "INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,'CI fixture','en','{}',$3)",
-      [lifeId, id, branchId],
+      "INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,'CI fixture','en',$4,$3)",
+      [lifeId, id, branchId, JSON.stringify(input)],
     );
     await tx.query(
-      'INSERT INTO aw_branches(id,user_id,life_id,name,state) VALUES($1,$2,$3,\'CI fixture\',\'{"effectiveAt":"2026-10-04"}\')',
-      [branchId, id, lifeId],
+      "INSERT INTO aw_branches(id,user_id,life_id,name,state) VALUES($1,$2,$3,'CI fixture',$4)",
+      [branchId, id, lifeId, JSON.stringify(input.initialState)],
     );
   });
   return { id, lifeId, branchId, revision: 0 };
@@ -385,6 +413,188 @@ try {
     branchesBefore,
   );
 
+  // S3 deliberately changes only the requesting personal branch. Earlier S0/S1/S2
+  // no-personal-write assertions above remain scoped to their separate fixtures.
+  const personal = new LifeRepository(db),
+    personalJobs = new LifeJobRepository(db);
+  async function personalPeriod(p) {
+    const branch = await personal.branch(p.id, p.branchId);
+    const q = await personal.continue(
+      p.id,
+      p.branchId,
+      branch.revision,
+      randomUUID(),
+    );
+    const j = await personalJobs.claim();
+    assert.equal(j.id, q.jobId);
+    const event = {
+      id: randomUUID(),
+      title: 'Synthetic private reflection',
+      summary: 'A test-only canonical personal reflection.',
+      effectiveAt: j.payload.endDate,
+      actorIds: [],
+      preconditions: [],
+      changes: [],
+      decision: {
+        id: randomUUID(),
+        prompt: 'Which synthetic path?',
+        options: [
+          {
+            id: randomUUID(),
+            label: 'First path',
+            description: 'Synthetic alternative one.',
+            preconditions: [],
+            changes: [],
+          },
+          {
+            id: randomUUID(),
+            label: 'Second path',
+            description: 'Synthetic alternative two.',
+            preconditions: [],
+            changes: [],
+          },
+        ],
+      },
+    };
+    const candidate = {
+      schemaVersion: '2.0.0',
+      periodId: j.payload.periodId,
+      branchId: p.branchId,
+      baseRevision: j.base_revision,
+      startDate: j.payload.startDate,
+      endDate: j.payload.endDate,
+      durationMonths: 6,
+      title: 'Synthetic CI period',
+      events: [{ ...event, id: randomUUID(), decision: null }, event],
+    };
+    await personalJobs.complete(
+      j,
+      candidate,
+      {
+        title: 'Synthetic CI chapter',
+        body: Array.from({ length: 300 }, (_, i) => 'fixture' + i).join(' '),
+        eventIds: candidate.events.map((e) => e.id),
+        decisionId: event.decision.id,
+      },
+      [],
+    );
+    return j;
+  }
+  async function ownChoice(p, branch, key = randomUUID()) {
+    return personal.choose(
+      p.id,
+      p.branchId,
+      branch.revision,
+      branch.pending_decision.id,
+      branch.pending_decision.options[0].id,
+      key,
+    );
+  }
+  const pa = await person('world'),
+    pb = await person('world');
+  await personalPeriod(pa);
+  await personalPeriod(pb);
+  const pab = await personal.branch(pa.id, pa.branchId),
+    pbb = await personal.branch(pb.id, pb.branchId);
+  const pc = await shared.create(
+    pa.id,
+    {
+      type: 'friend_group',
+      title: 'Synthetic S3 group',
+      branchId: pa.branchId,
+      revision: pab.revision,
+      sharingAcknowledged: true,
+    },
+    randomUUID(),
+  );
+  const pi = await invite(pa, pc.contextId);
+  await shared.acceptInvite(
+    pb.id,
+    pi.inviteId,
+    {
+      token: pi.token,
+      branchId: pb.branchId,
+      revision: pbb.revision,
+      contextRevision: pi.revision,
+      sharingAcknowledged: true,
+    },
+    randomUUID(),
+  );
+  const pe = await testEvent(pa.id, pc.contextId);
+  const respondPersonal = async (p) =>
+    events.submitIntent(
+      p.id,
+      pc.contextId,
+      pe.eventId,
+      {
+        contextRevision: (await shared.detail(p.id, pc.contextId)).revision,
+        optionId: pe.yes,
+      },
+      randomUUID(),
+    );
+  assert.equal((await respondPersonal(pa)).status, 'waiting');
+  await ownChoice(pa, pab);
+  const earlier = await personalPeriod(pa);
+  assert.equal(earlier.payload.memory.sharedEvents, undefined);
+  const advanced = await personal.branch(pa.id, pa.branchId);
+  assert.equal((await respondPersonal(pb)).status, 'resolved');
+  assert.equal(
+    (await personal.branch(pa.id, pa.branchId)).revision,
+    advanced.revision,
+  );
+  winner(
+    await Promise.allSettled([
+      ownChoice(pa, advanced),
+      ownChoice(pa, advanced),
+    ]),
+    'LIFE_REVISION_CONFLICT',
+  );
+  const [pm] = await db.query(
+    'SELECT payload,first_history_position FROM aw_shared_personal_memories WHERE branch_id=$1',
+    [pa.branchId],
+  );
+  assert.equal(pm.payload.knownAt, advanced.state.effectiveAt);
+  assert.equal(pm.payload.effectiveAt, pab.state.effectiveAt);
+  assert.equal(pm.first_history_position, 3);
+  const later = await personalPeriod(pa);
+  assert.equal(later.payload.memory.sharedEvents.length, 1);
+  const race = await Promise.allSettled([
+    ownChoice(pb, pbb),
+    repo.markDeleting(pb.id),
+  ]);
+  for (const result of race)
+    if (result.status === 'rejected')
+      assert.equal(result.reason.code, 'ACCOUNT_DELETING');
+  await repo.deleteAccountData(pb.id);
+  assert.equal(
+    (
+      await db.query(
+        'SELECT id FROM aw_shared_personal_memories WHERE user_id=$1',
+        [pb.id],
+      )
+    ).length,
+    0,
+  );
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_shared_events WHERE id=$1', [
+        pe.eventId,
+      ])
+    ).length,
+    1,
+  );
+  assert.equal(
+    (
+      await db.query(
+        'SELECT id FROM aw_shared_personal_memories WHERE branch_id=$1',
+        [pa.branchId],
+      )
+    ).length,
+    1,
+  );
+  await repo.markDeleting(pa.id);
+  await repo.deleteAccountData(pa.id);
+
   // Five shared contexts overlap at the same World member. Accept races and
   // account cleanup must acquire user/context locks in a consistent order.
   const world = await person('world'),
@@ -459,6 +669,10 @@ try {
       overlappingFiveContextDeletion: true,
       sharedEnginePostgres: 'passed',
       sharedJobsPostgres: 'passed',
+      sharedPersonalPostgres: 'passed',
+      delayedSharedResolution: true,
+      concurrentPersonalMemoryOnce: true,
+      personalMemoryDeletionRace: true,
       parallelSharedEnqueueAndClaim: true,
       reclaimedSharedLease: true,
       tenParallelIntents: true,

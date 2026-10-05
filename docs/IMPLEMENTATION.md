@@ -118,3 +118,8 @@ Fejlesztői DB-n 008/009 Session pooler kapcsolaton alkalmazva, megismételt run
 ## Shared Context S2 — AI és tartós generálás
 
 [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md): OpenAI sharedEvent és külön friend Structured Outputs, SharedJobRepository/processSharedJob, strict continue/job-progress API és fair personal-v2/Shared/legacy worker implementált. 260 teszt, teljes check; két valódi izolált Sol-minta. Completed AI-input törlődik, deleting marker failed inputot is scrubol; meglévő SQL változatlan. S3 personal/Connections/privacy hiányzik, feature false.
+
+
+## S3 személyes memória és időkezelés — 2026-10-05
+
+S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később. [Részletes ellenőrzés](SHARED_CONTEXT_S3_REPORT_HU.md), [angol minta](examples/AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md), [külső Claude-audit](examples/AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md).

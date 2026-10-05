@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-04 · A meglévő fejlesztési projekt már beállítva: 001–007 alkalmazva, valódi Auth/AI/export/törlés és kontrollált recovery sikeres. Az alábbi lépések új környezet beállításához is használhatók; nem kérik újra a már megadott kulcsokat.
+2026-10-05 · A meglévő fejlesztési projekt már beállítva: 001–007 alkalmazva, valódi Auth/AI/export/törlés és kontrollált recovery sikeres. Az alábbi lépések új környezet beállításához is használhatók; nem kérik újra a már megadott kulcsokat.
 
 ## Supabase
 
@@ -99,7 +99,7 @@ A Contabo üzemeltetői kulcsa és hostpinje checkouton kívüli védett titokma
 
 [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). SHARED_CONTEXTS_ENABLED/SHARED_FRIEND_ENABLED/SHARED_CONNECTED_ENABLED/SHARED_WORLD_ENABLED mind false, a szerver csak true/false értéket fogad el. A normál helyi felület nem mutat AI nélküli Shared demót. S3 release gate előtt nem aktiváljuk. Az elkülönített API-tesztek saját, nem produkciós kulcsot és megbízható szerveroldali tier-fixture-t használnak; kliens fizetős override nincs.
 
-Új környezetben pnpm db:migrate 001–009-et alkalmaz, checksumos tranzakcióval. A fejlesztői DB-n 001–009 alkalmazva/ismétléssel ellenőrizve; az IPv6 direct kapcsolatot a felhasználó megadott Session poolerével váltottuk ki. IPv4 helyi hálózatnál Supabase Connect → Session pooler kapcsolatot másolj; hostname/index és postgres.PROJECT-REF username a dashboardból, password percent-encode, DATABASE_SSL=true és verified CA ellenőrzés megmarad. Credential csak védett .env, sem chat/Git/log. [Supabase kapcsolódási útmutató](https://supabase.com/docs/guides/database/connecting-to-postgres). A későbbi Contabo-konfiguráció ettől külön.
+Új környezetben pnpm db:migrate 001–010-et alkalmaz, checksumos tranzakcióval. A fejlesztői DB-n 001–010 alkalmazva/ismétléssel ellenőrizve; az IPv6 direct kapcsolatot a felhasználó megadott Session poolerével váltottuk ki. IPv4 helyi hálózatnál Supabase Connect → Session pooler kapcsolatot másolj; hostname/index és postgres.PROJECT-REF username a dashboardból, password percent-encode, DATABASE_SSL=true és verified CA ellenőrzés megmarad. Credential csak védett .env, sem chat/Git/log. [Supabase kapcsolódási útmutató](https://supabase.com/docs/guides/database/connecting-to-postgres). A későbbi Contabo-konfiguráció ettől külön.
 
 ## Shared S1 technikai ellenőrzés
 
@@ -108,3 +108,8 @@ A Contabo üzemeltetői kulcsa és hostpinje checkouton kívüli védett titokma
 ## S2 Shared beállítás — továbbra kikapcsolva
 
 A négy Shared flag false marad; nincs Connections/UI release. API és worker ugyanazt a context/friend kapcsolót kapja a Compose-ban, az invite signing secret kizárólag API. `SHARED_GENERATION_DAILY_LIMIT=3`, `SHARED_GENERATION_CONCURRENT_LIMIT=1` initiating-user Shared quota; pozitív entitlement nem ad AI-allowance-t. `SHARED_DECISION_DEADLINE_SECONDS` üres/null → minden eligible válasz szükséges; explicit 60–604800, 48h még javaslat. A sample CLI az eredeti 5 USD naplóhoz kapcsolódik, futásonként max0.20 USD foglalással és létező minta felülírásának tiltásával. A minták már elkészültek, beállításhoz nem kell új paid smoke. [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md).
+
+
+## S3 személyes/time szelet és őrzött AI-próba
+
+010 alkalmazva/ismételve, 39 schema és 279 helyi teszt. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később. A pnpm smoke:shared:personal timeline és pnpm audit:shared:claude külön fizetett, egyszeri szintetikus eset; meglévő minta/attempt blokkolja az új hívást. Nem nullázunk ledger/lock fájlt. Külön OpenAI és Claude 5 USD keret, éles allowance nulla; [eredmények és parancskorlátok](SHARED_CONTEXT_S3_REPORT_HU.md).

@@ -414,7 +414,7 @@ describe.sequential(
         [g.people[1]!.id],
       );
     });
-    it('fails closed if a branch advanced or a blocked pair would receive a common effect', async () => {
+    it('fails closed if a branch is behind the event or a blocked pair would receive a common effect', async () => {
       const g = await group(people.slice(0, 2));
       await commit(g);
       await submit(g, 0, g.yes);
@@ -422,7 +422,7 @@ describe.sequential(
         g.people[1]!.branchId,
       ]);
       await db.query(
-        "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}','\"2040-01-01\"') WHERE id=$1",
+        "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}','\"2020-01-01\"') WHERE id=$1",
         [g.people[1]!.branchId],
       );
       await expect(submit(g, 1, g.yes)).rejects.toMatchObject({

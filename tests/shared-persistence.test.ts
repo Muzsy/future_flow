@@ -323,13 +323,36 @@ describe.sequential('Shared Context private foundation persistence', () => {
     });
     expect(await shared.list(b.id)).toEqual([]);
   });
-  it('fails closed on same-month different days and already-advanced participants', async () => {
+  it('accepts owned branches on different days in the same month without advancing either personal branch', async () => {
+    const a = await sharedParticipant(db),
+      b = await sharedParticipant(db),
+      c = await group(a),
+      i = await invitation(a, c.contextId),
+      later = b.date.slice(0, 8) + '28';
+    await db.query(
+      "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}',to_jsonb($2::text)) WHERE id=$1",
+      [b.branchId, later],
+    );
+    const before = await db.query(
+      'SELECT id,state,revision FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',
+      [[a.branchId, b.branchId]],
+    );
+    await accept(b, i);
+    expect((await shared.detail(a.id, c.contextId)).simulationAt).toBe(later);
+    expect(
+      await db.query(
+        'SELECT id,state,revision FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',
+        [[a.branchId, b.branchId]],
+      ),
+    ).toEqual(before);
+  });
+  it('fails closed on different simulation months and already-advanced participants', async () => {
     const a = await sharedParticipant(db),
       b = await sharedParticipant(db),
       c = await group(a),
       i = await invitation(a, c.contextId);
     await db.query(
-      "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}',to_jsonb((($2::date+1)::text))) WHERE id=$1",
+      "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}',to_jsonb((($2::date+interval '1 month')::date)::text)) WHERE id=$1",
       [b.branchId, b.date],
     );
     await expect(accept(b, i)).rejects.toMatchObject({
@@ -340,7 +363,7 @@ describe.sequential('Shared Context private foundation persistence', () => {
       [b.branchId, b.date],
     );
     await db.query(
-      "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}',to_jsonb((($2::date+1)::text))) WHERE id=$1",
+      "UPDATE aw_branches SET state=jsonb_set(state,'{effectiveAt}',to_jsonb((($2::date+interval '1 month')::date)::text)) WHERE id=$1",
       [a.branchId, a.date],
     );
     await expect(accept(b, i)).rejects.toMatchObject({
@@ -492,7 +515,7 @@ describe.sequential('Shared Context private foundation persistence', () => {
     const tables = await db.query(
       "SELECT tablename,rowsecurity FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'aw_shared_%' OR tablename IN ('aw_social_profiles','aw_user_entitlements','aw_user_blocks'))",
     );
-    expect(tables).toHaveLength(13);
+    expect(tables).toHaveLength(14);
     for (const t of tables) {
       expect(t.rowsecurity).toBe(true);
       const [p] = await db.query(

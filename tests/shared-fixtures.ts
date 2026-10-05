@@ -28,6 +28,7 @@ export async function sharedParticipant(
   db: Database,
   tier: 'free' | 'explorer' | 'connected' | 'world' = 'explorer',
   name = 'Shared alias',
+  goalDescription?: string,
 ) {
   const id = randomUUID(),
     repo = new Repository(db),
@@ -46,7 +47,8 @@ export async function sharedParticipant(
     discoverability: 'private',
   });
   const input = setupFixture();
-  input.goal.description = 'Private goal never shared';
+  input.goal.description = goalDescription ?? 'Private goal never shared';
+  if (goalDescription) input.goal.category = 'personal_growth';
   input.employment.employerLabel = 'Private employer never shared';
   input.finance = { currency: 'EUR', monthlyIncome: 2123, liquidFunds: 4765 };
   const created = await lives.create(id, input, randomUUID());

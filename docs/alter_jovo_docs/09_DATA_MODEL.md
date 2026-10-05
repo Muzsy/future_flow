@@ -2,9 +2,9 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S3 megvalósítás és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · [001 migráció](../../database/migrations/001_foundation.sql), [002 nyelvmigráció](../../database/migrations/002_content_locale.sql), [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
+2026-10-05 · [001 migráció](../../database/migrations/001_foundation.sql), [002 nyelvmigráció](../../database/migrations/002_content_locale.sql), [v2 szerződés](../V2_SIMULATION_CONTRACT_HU.md).
 
 ## Tényleges v1 táblák
 
@@ -51,10 +51,15 @@ Alkalmazott 001–007 migrációt nem írunk át; checksum, tranzakciós alkalma
 
 ## Shared S0 tárolás és későbbi bővítések
 
-Új social_profiles/user_entitlements és shared contexts/members/invites/events/participants/intents/resolutions/impacts/jobs/ai_runs, blocks/reports. RLS és direkt anon/auth tiltás, aktív tagsági/romantikus uniqueness, server cap lock, hashed expiring invite. Shared history nem creator-account cascade; személyes tagreferenciák nullable, immutable payload mellett mutable lifecycle. 008/009 implementált tizenhárom RLS-táblával, a fejlesztői Supabase-on alkalmazva és ismétléssel ellenőrizve; 010 report/metrics későbbi, 001–007 változatlan. Romantic unique context_live mezője triggerezve szinkron, paused foglal/ended felszabadít; owner leave/delete handover és incoming invite revocation elkészült.
+Új social_profiles/user_entitlements és shared contexts/members/invites/events/participants/intents/resolutions/impacts/jobs/ai_runs, blocks/reports. RLS és direkt anon/auth tiltás, aktív tagsági/romantikus uniqueness, server cap lock, hashed expiring invite. Shared history nem creator-account cascade; személyes tagreferenciák nullable, immutable payload mellett mutable lifecycle. 008/009 implementált tizenhárom RLS-táblával, a fejlesztői Supabase-on alkalmazva és ismétléssel ellenőrizve; 010 személyes memória alkalmazva; 011 report/metrics későbbi, 001–007 változatlan. Romantic unique context_live mezője triggerezve szinkron, paused foglal/ended felszabadít; owner leave/delete handover és incoming invite revocation elkészült.
 
 [Shared integráció és elfogadások](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) · [Változatlan forrás](../plans/README.md).
 
 ## S1 implementációs kiegészítés
 
 S1 immutable event/intent/resolution és hash-elt pending memory payload a már alkalmazott 008/009 táblákon működik; nincs új migráció. End/leave/deleting cancelled canon, új impact nélkül. Saját export saját történeti részvételt és own impactot ad; más személyes referenciája nincs benne.
+
+
+## S3 személyes integráció — 2026-10-05
+
+010_shared_personal_memories alkalmazva: immutable owner-only snapshots, unique(branch_id,event_id), source impact FK, known_at, first_history_position és forrássorrend. Export/cascade saját adat, közös canon megtartva. Moderáció következő migrációja 011; alkalmazott SQL nem módosítható. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).

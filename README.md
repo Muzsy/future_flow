@@ -36,7 +36,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik mind a hét alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a tíz alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -76,7 +76,7 @@ A [dokumentációs központ](docs/README.md) a két stratégiai tervet, az új S
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.
 
-Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztkészlet: 231, fizetett API nélkül.
+Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztkészlet: 279, fizetett API nélkül.
 
 Az induló kiadás kizárólag angol felületet és angol történeteket ad; magyar elrejtve. A felhasználó AI szerkesztői ellenőrzést és korlátozott éles bétát választott, majd használói visszajelzés alapján javítunk. [Indulási terv](docs/ENGLISH_RELEASE_PLAN_HU.md) és [későbbi Contabo-telepítés előkészítése](docs/DEPLOYMENT_HU.md); még nincs éles deployment. A [teljes Linux CI](https://github.com/Muzsy/future_flow/actions/runs/37236552164) 260 teszttel, image-builddel és izolált web/API/worker/Caddy futáspróbával sikeres: verified DB TLS/HTTPS, 001–009 és ismételt migráció, valós Shared slot/tag verseny és átfedő törlés, üres worker-leállítás. A Contabón kulcsos SSH és jelszavas tiltás, védett konfigurációmentés és telepítési preflight kész; [elvégzett előkészítés és nyitott kapuk](docs/CONTABO_PREPARATION_REPORT_HU.md).
 
@@ -87,3 +87,6 @@ Az induló kiadás kizárólag angol felületet és angol történeteket ad; mag
 2026-10-04: Shared Context S0 contract/core, 008/009 tárolás és social/entitlement/invite API elkészült, 36 új fizetés nélküli regresszióval; feature kikapcsolva. Fejlesztői Supabase 001–009 alkalmazva, három valódi szintetikus Auth-fiókos foundation HTTP/export/törlés és takarítás sikeres. [S0 megvalósítás és korlátok](docs/SHARED_CONTEXT_S0_REPORT_HU.md). S1 canon/intent/pending memória és S2 Shared OpenAI/job/fair worker implementált; [S2 riport](docs/SHARED_CONTEXT_S2_REPORT_HU.md) és [angol Shared minta](docs/examples/AI_SHARED_FRIEND_ENGLISH_REFINED_SAMPLE.md). Következő helyi szelet S3; valódi Shared AI S2, személyes integráció/Connections és biztonság S3, első friend release ezután. Public P09–P13 megmarad; Contabo és a két megőrzött AI-keret változatlan.
 
 2026-10-04: [Shared S1 friend motor](docs/SHARED_CONTEXT_S1_REPORT_HU.md) implementált kikapcsolt feature mögött: valódi saját választás, egyszeri lezárás/pending memória, safe history/own export és lifecycle cancellation. 36 új regresszió, összesen 231 teszt; a teljes check/main CI bizonyítéka a riportban. AI nélküli termékmód továbbra nincs.
+
+
+2026-10-05: [S3 személyes integráció és időkezelés](docs/SHARED_CONTEXT_S3_REPORT_HU.md) implementált: későn lezárt közös esemény a következő saját AI-fejezet előzménye, korábbi fejezet/job változatlan; own memória, fork/export/törlés és kompatibilis havi anchor. 010 alkalmazva, 279 teszt/39 séma. [Új angol minta](docs/examples/AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md) és [Claude-audit](docs/examples/AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md). S3 UI/privacy/Auth kapu még nyitott, Shared kikapcsolva.

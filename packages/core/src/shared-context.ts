@@ -92,6 +92,27 @@ export function requireSharedTime(contextDate: string, branchDate: string) {
       409,
     );
 }
+// S3 friend adapter: participants must be in one calendar month. The common
+// anchor can advance when they all advance, but never moves back in time.
+export function sharedTimeAnchor(contextDate: string, branchDates: string[]) {
+  if (
+    !branchDates.length ||
+    ![contextDate, ...branchDates].every((d) => isSharedTimeCompatible(d, d))
+  )
+    throw new DomainError(
+      'SHARED_TIME_MISMATCH',
+      'Invalid shared simulation date.',
+      409,
+    );
+  const anchor = [contextDate, ...branchDates].sort().at(-1)!;
+  if (branchDates.some((d) => d.slice(0, 7) !== anchor.slice(0, 7)))
+    throw new DomainError(
+      'SHARED_TIME_MISMATCH',
+      'Life branches have different simulation months.',
+      409,
+    );
+  return anchor;
+}
 export function minimalInteractionProfile(
   displayName: string,
 ): InteractionProfile {

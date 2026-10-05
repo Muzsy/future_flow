@@ -22,6 +22,11 @@ import {
 } from '@future-flow/core';
 import type { Database } from './index';
 import { activitySession } from './beta';
+import {
+  inheritSharedMemories,
+  materializeSharedMemories,
+  personalSharedMemories,
+} from './shared-personal';
 
 type Row = Record<string, unknown>;
 export type LifeBranch = Row & {
@@ -379,6 +384,12 @@ export class LifeRepository {
       [branch.id, userId],
     );
     const state = lifeStateV2Schema.parse(branch.state);
+    const sharedEvents = await personalSharedMemories(
+      tx,
+      userId,
+      branch.id,
+      state.effectiveAt,
+    );
     const payload: LifePeriodInput = {
       input: { ...branch.input, branchId: branch.id },
       state,
@@ -407,6 +418,7 @@ export class LifeRepository {
             };
           }),
         choices: choices.reverse(),
+        ...(sharedEvents.length ? { sharedEvents } : {}),
       },
     };
     const jobId = randomUUID();
@@ -460,6 +472,7 @@ export class LifeRepository {
             'Life is not ready.',
             409,
           );
+        await materializeSharedMemories(tx, branch);
         const queued = await this.queue(tx, userId, branch);
         if (sessionId) {
           const session = await activitySession(tx, userId, sessionId);
@@ -551,6 +564,7 @@ export class LifeRepository {
             [branchId, userId],
           ),
         );
+        await materializeSharedMemories(tx, branch);
         await this.accept(
           tx,
           branch,
@@ -558,7 +572,7 @@ export class LifeRepository {
           branch.pending_decision,
           optionId,
         );
-        return { branchId, revision: revision + 1, status: 'ready' };
+        return { branchId, revision: branch.revision + 1, status: 'ready' };
       },
     );
   }
@@ -613,6 +627,14 @@ export class LifeRepository {
         await tx.query(
           'INSERT INTO aw_history(user_id,life_id,branch_id,period_id,position) SELECT user_id,life_id,$3,period_id,position FROM aw_history WHERE branch_id=$1 AND user_id=$2 AND position <= $4',
           [branchId, userId, newId, p.position],
+        );
+        await inheritSharedMemories(
+          tx,
+          userId,
+          branchId,
+          newId,
+          p.position,
+          p.end_state.effectiveAt,
         );
         await tx.query(
           'INSERT INTO aw_choices(id,user_id,life_id,branch_id,period_id,decision_id,option_id,payload,state_after) SELECT gen_random_uuid(),user_id,life_id,$3,period_id,decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 AND decision_id IN (SELECT jsonb_array_elements_text($4::jsonb)::uuid)',

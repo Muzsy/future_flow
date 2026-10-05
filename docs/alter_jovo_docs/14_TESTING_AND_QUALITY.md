@@ -2,9 +2,9 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S3 megvalósítás és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
+2026-10-05 · [Ellenőrzött állapot](../STATUS_HU.md) · [AI-próba](../AI_VALIDATION.md) · [Nyelvek](../LOCALIZATION_HU.md).
 
 ## Meglévő bizonyíték és határ
 
@@ -51,3 +51,8 @@ S1 19 domain +12 persistence +5 HTTP új regresszió. Teljes készlet 231; konkr
 ## S2 implementációs kiegészítés
 
 S2: 29 új regresszióval 260 teszt/23 fájl; teljes check és két valós Sol/PGlite Shared pipeline sikeres. CI-ben valós PG párhuzamos enqueue/claim és lease-reclaim próba bővítve; pontos main CI a S2 riportban. 35 korábbi schema és kilenc alkalmazott SQL változatlan, két új schema. [Részletes riport](../SHARED_CONTEXT_S2_REPORT_HU.md).
+
+
+## S3 személyes integráció — 2026-10-05
+
+S3 késői resolution, once/batch/stale/rollback, in-flight/retry snapshot, history-position/fork, leave/export/törlés/RLS, bounded input és compatible-month regressziók. 279 teszt/24 fájl; új valós PostgreSQL choice/delete verseny a CI-ben ellenőrzendő. Egy valódi angol Sol-eset, validált külső Claude-audit; nem húsz generatív eset vagy friend Auth-release. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).

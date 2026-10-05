@@ -25,11 +25,12 @@ import {
   SHARED_MEMBER_LIMITS,
   SHARED_TIER_LIMITS,
   requireSharedEntitlement,
-  requireSharedTime,
+  sharedTimeAnchor,
   minimalInteractionProfile,
 } from '@future-flow/core';
 import type { Database } from './index';
 import { cancelPendingSharedDecision, exportSharedCanon } from './shared-canon';
+import { exportPersonalSharedMemories } from './shared-personal';
 
 type Row = Record<string, unknown>;
 type Context = Row & {
@@ -554,17 +555,19 @@ export class SharedContextRepository {
           input.interactionProfile,
         );
         const b = await this.branch(tx, userId, input.branchId, input.revision);
-        requireSharedTime(c.simulation_at, b.effective_at);
         // Existing participants cannot have silently advanced into a different personal future.
         const dates = await tx.query(
           "SELECT b.state->>'effectiveAt' AS effective_at,b.status FROM aw_branches b JOIN aw_shared_members m ON m.branch_id=b.id WHERE m.context_id=$1 AND m.status='active'",
           [c.id],
         );
         for (const d of dates) {
-          requireSharedTime(c.simulation_at, String(d.effective_at));
           if (!['ready', 'decision'].includes(String(d.status)))
             fail('LIFE_GENERATION_ACTIVE');
         }
+        const anchor = sharedTimeAnchor(c.simulation_at, [
+          b.effective_at,
+          ...dates.map((d) => String(d.effective_at)),
+        ]);
         const memberId = randomUUID();
         await tx.query(
           "INSERT INTO aw_shared_members(id,context_id,context_type,user_id,life_id,branch_id,status,admin_role,interaction_profile,sharing_policy_version) VALUES($1,$2,$3,$4,$5,$6,'active','member',$7,'shared-profile-v1')",
@@ -583,8 +586,8 @@ export class SharedContextRepository {
           [inviteId],
         );
         await tx.query(
-          "UPDATE aw_shared_contexts SET status='active',revision=revision+1,updated_at=now() WHERE id=$1",
-          [c.id],
+          "UPDATE aw_shared_contexts SET status='active',simulation_at=$2,revision=revision+1,updated_at=now() WHERE id=$1",
+          [c.id, anchor],
         );
         return { contextId: c.id, memberId, revision: c.revision + 1 };
       },
@@ -802,6 +805,7 @@ export async function exportSharedAccount(tx: Database, userId: string) {
     contexts,
     invitations: invites,
     canon: await exportSharedCanon(tx, userId),
+    personalMemories: await exportPersonalSharedMemories(tx, userId),
   };
 }
 

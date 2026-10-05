@@ -2,9 +2,9 @@
 
 **Aktuális állapot (2026-10-04):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap kész, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
-**Shared állapot:** S0–S2 implementált: foundation, friend canon/own intent/pending memória és valódi Shared OpenAI/lease/fair queue, kikapcsolva; S3–S7 tervezett. 001–009 alkalmazva, következő S3 személyes integráció/Connections/privacy. [S2 megvalósítás és korlátok](../SHARED_CONTEXT_S2_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
+**Shared állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S3 megvalósítás és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md) · [Integrációs terv](../SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md).
 
-2026-10-04 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
+2026-10-05 · Valódi OpenAI a termék része. [Implementáció](../IMPLEMENTATION.md) · [Modellvizsgálat](../AI_MODEL_ROUTING_HU.md) · [Keret](../STATUS_HU.md).
 
 ## Meglévő három szerep
 
@@ -49,3 +49,8 @@ Rövid releváns kontextus és tömör canon, szerepenkénti outputlimit, stabil
 ## S2 implementációs kiegészítés
 
 Shared AI: strict safe input, max nyolc közös history, külön zárt friend output, Sol/max4500/store:false, server IDs/policy/deadline, egy repair és tartós interrupted marker. Két valódi izolált minta; nem teljes personal/PII/release bizonyíték. [Részletes riport](../SHARED_CONTEXT_S2_REPORT_HU.md).
+
+
+## S3 személyes integráció — 2026-10-05
+
+S3 period/chapter/fidelity ugyanazt a legfeljebb nyolc saját Shared-emléket kapja. effectiveAt történeti idő, knownAt saját megismerés; minden új esemény a period kezdeténél későbbi. life_period.v4/life_chapter.v4/life_fidelity.v3. Valódi Sol-siker és külön Sonnet-audit, egy sikertelen dátumpróba is elszámolva; összes új guard 0.1451425 USD. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).

@@ -331,7 +331,11 @@ export type LifePeriodInput = {
   endDate: string;
   durationMonths: 6;
   acceptedDecisionIds: string[];
-  memory: { recentEvents: unknown[]; choices: unknown[] };
+  memory: {
+    recentEvents: unknown[];
+    choices: unknown[];
+    sharedEvents?: import('./shared-personal').PersonalSharedMemory[];
+  };
 };
 export const lifeChoiceRequestV2Schema = z
   .object({

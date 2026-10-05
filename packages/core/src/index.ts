@@ -259,3 +259,4 @@ export * from './public-draft';
 export * from './shared-context';
 export * from './shared-engine';
 export * from './shared-ai';
+export * from './shared-personal';

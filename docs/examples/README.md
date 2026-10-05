@@ -4,6 +4,8 @@ A fejezetek szintetikus profilokból, valódi OpenAI vagy Claude API-hívásokka
 
 | Minta | Dátum és nyelv | Mit mutat? |
 |---|---|---|
+| [Shared→saját angol folytatás](AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md) | 2026-10-05, en | Valódi Sol period/chapter/fidelity később megismert közös canon alapján; izolált PGlite, nem teljes friend Auth-release |
+| [Shared→saját Claude-audit](AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md) | 2026-10-05 | Sonnet low, validált verdict/idézet, kánonhű és nyelvileg helyes, nulla jelzett hiba |
 | [Shared finomított angol minta](AI_SHARED_FRIEND_ENGLISH_REFINED_SAMPLE.md) | 2026-10-04, en | Valódi Sol shared_event.v2, offline opportunity, saját opt-in/opt-out és pending memória; izolált, nem personal/Auth release |
 | [Shared kezdeti angol minta](AI_SHARED_FRIEND_ENGLISH_SAMPLE.md) | 2026-10-04, en | Eredeti Sol v1 kimenet változatlan; shared chat utalás miatt a prompt később pontosítva |
 | [Új angol béta-minta](AI_BETA_ENGLISH_STORY.md) | 2026-10-04, en | Sol v3 narrátor, két fejezet, valódi Auth/UI-hurok és külső Sonnet audit |
