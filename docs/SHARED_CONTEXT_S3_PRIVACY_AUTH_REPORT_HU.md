@@ -46,6 +46,15 @@ A nyilvános előnézeti alap most külön ellenőrzést kér minden olyan sajá
 
 ## Ellenőrzés és nyitott határ
 
-303 teszt/27 fájl és teljes check/build sikeres a privacy-szeletnél. A következő P09-kapu további regressziója és a meglévő public-draft tesztek együtt 14/14 sikeresek; az összesített készlet így 304. A schema-export nem módosította a 42 sémát. A végső runtime CI bizonyíték külön kiegészítésben szerepel a publikálás után.
+Teljes helyi check/build: 304 teszt/27 fájl sikeres. A P09-kapu és meglévő public-draft tesztek külön is 14/14 sikeresek; a deleting markerre azonnal elrejtett tagprofil és foundation regressziók külön 26/26 sikeresek. A schema-export nem módosította a 42 sémát. A végső runtime CI bizonyíték külön kiegészítésben szerepel a publikálás után.
+
+Elkülönített, nulla provider-hívásos böngészőpróba két valódi szintetikus Auth-fiókkal és PGlite API-val ellenőrizte a törlés kezdetétől rejtett tagnevet („Former member”), semleges csoportcímet/közös leírást, eredeti dátumot és megtartott 2 fős opt-in eredményt. Külön fixture-próba, nem a fenti valódi AI-minta. A tesztfiókok takarítva, tesztjelszó-fájl eltávolítva, 3001/4100 tesztport leállítva; védett `.local/s3-ui/privacy-preview.png` screenshot megmarad, Gitből kizárva.
 
 Nyitott: nyers retained canon és backup-megőrzési/törlési szabály; az esetleg korábbi személyes prózába vagy tényállapotba átkerült más-tag adat kezelése; restore utáni törlésvédelem; email-kézbesítés; éles entitlement/billing/grace és deadline; P09–P13 public MVP, majd S4–S7. A projekció nem fizikai prózatörlés, és nem bizonyít teljes PII-mentességet minden személyes állapotban vagy szolgáltatói másolatban. Négy normál Shared flag false, éles AI-allowance nulla, Contabo-deploy nincs.
+
+
+## Végső main CI-bizonyíték
+
+2026-10-05 · Runtime `fcdd1416fe014567a366a7112ea941140a91dbdd`: [CI](https://github.com/Muzsy/future_flow/actions/runs/37318643044) verify és container sikeres. 304 teszt/27 fájl, formázás, típusellenőrzés, API/worker/Next production build és 42 változatlan séma. Izolált PostgreSQL/TLS mellett 001–013 és ismétlés, Shared privacy projection, régi személyes input cancellation, friss retry fizikai törlésen át megőrzése, korábbi S0–S3 slot/intent/lease/block/moderáció/cleanup versenyek sikeresek. Web/API/Caddy verified HTTPS/DB TLS, üres queue és közvetlen Node worker tiszta 0-s leállás, nulla paid AI és valódi CI-kulcs. Nincs Contabo-deploy; aktív AI-job drain, backup/restore és terhelésmérés még nincs igazolva.
+
+Az előző `9993472` runtime-on a verify sikeres volt, de a konténeres shutdown a pnpm köztes folyamat időzítésfüggő kilépési kódján elbukott. Közvetlen Node worker-indítás és szigorú 0-s exitcode ellenőrzés javította; a fenti CI a javított állapotot bizonyítja. Az eredeti szöveg fizikai megőrzési/törlési döntése külön, még függő kérdés.

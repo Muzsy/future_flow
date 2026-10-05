@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–013 alkalmazva és ismétléssel ellenőrizve; privacy-szelet teljes check/build: 303 teszt/27 fájl; a következő P09-kapuval 304-es készlet, 42 változatlan schema. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–013 alkalmazva és ismétléssel ellenőrizve; teljes helyi/main CI check/build: 304 teszt/27 fájl, 42 változatlan schema. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
