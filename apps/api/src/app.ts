@@ -59,6 +59,7 @@ import {
   Repository,
   LifeRepository,
   PublicDraftRepository,
+  PublicReviewRepository,
   BetaFeedbackRepository,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
@@ -404,6 +405,17 @@ class LifeController {
     const preview = await this.publicDrafts.get(req.userId, idSchema.parse(id));
     requireEnabledLocale(preview.snapshot.locale);
     return preview;
+  }
+  @Get('public-previews/:id/review')
+  @ApiOperation({
+    summary:
+      'Read the own private AI pre-screen. This never approves publication.',
+  })
+  async publicReview(@Req() req: AuthRequest, @Param('id') id: string) {
+    return new PublicReviewRepository(this.repo.db).get(
+      req.userId,
+      idSchema.parse(id),
+    );
   }
   @Post('branches/:id/choice') async choose(
     @Req() req: AuthRequest,

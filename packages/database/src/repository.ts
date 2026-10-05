@@ -599,6 +599,16 @@ export class Repository {
           `SELECT * FROM ${table} WHERE user_id=$1`,
           [userId],
         );
+      const [publicReviewStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_draft_reviews') IS NOT NULL AS present",
+      );
+      result.aw_public_draft_reviews =
+        publicReviewStorage?.present === true
+          ? await tx.query(
+              'SELECT * FROM aw_public_draft_reviews WHERE user_id=$1',
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

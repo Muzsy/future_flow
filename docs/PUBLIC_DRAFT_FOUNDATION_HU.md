@@ -34,3 +34,8 @@ A jelenlegi draft-projekció nem Shared-aware. A [Shared terv](SHARED_CONTEXT_IM
 ## 2026-10-05: Shared-előzmény külön kapuja
 
 A már megismert Shared-emléket tartalmazó saját ág — tagság nélküli fork is — új és korábbi public preview előtt PUBLIC_SHARED_REVIEW_REQUIRED választ kap. Ez fail-closed addig, amíg a más-tag általánosítás/PII/consent/curator elkészül. Privát saját folytatás elérhető; snapshot/hash nem változik és új AI-hívás nem indul. Nem kész Publication/Confirm vagy public fork. [Pontos határ](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+
+
+## 2026-10-05: angol AI-pre-screen elkészült
+
+Az eddig hiányzó AI-elővizsgálat operatori szelete elkészült: a külön angol copy mezőnként ellenőrizhető, a 014 RLS-táblában hash/revision/policy/receipt kötésű privát eredmény tárolódik, saját olvasási API és export/törlés integrált. Egy valódi Sol-próba öt privacy-problémát talált az eredeti angol mintában. Ez nem teljes PII-garancia, nem curator/Official/Publication/Confirm és nem fizetős felhasználói job. Az explicit Privacy/Content Preview és a további public kapuk változatlanul hátravannak. [Megvalósítás és elfogadás](PUBLIC_AI_REVIEW_REPORT_HU.md).

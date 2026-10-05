@@ -100,3 +100,8 @@ Az AI-ra bízott angol szerkesztői döntés a nyelvi minősítésre vonatkozik;
 ## Shared történetek publikálása — új privacy-kapu
 
 A [Shared Context](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) első kiadásban privát, nem új public life page. Személyes történetben megjelenő közös eseményből P09/P11 csak általánosított másik szereplőnevet/címet enged snapshotba; InteractionProfile, más felhasználó/member/context személyes azonosítói, live tagság és másik privát ág nem adható át. A próza PII-ellenőrzése is szükséges, UUID-szűrés önmagában nem elegendő. Public fork új saját élet, nem context-csatlakozás. Azonosítható többtagú publikáció későbbi S7, külön snapshot-consent minden érintettől és visszavonási szabállyal; nem a jelenlegi egytulajdonosú Confirm kiterjesztés nélküli használata. A P09–P13 public MVP minden korábbi eleme megmarad; e követelmény shared adat publikálása előtt teljesítendő.
+
+
+## 2026-10-05: angol AI-pre-screen elkészült
+
+Az eddig hiányzó AI-elővizsgálat operatori szelete elkészült: a külön angol copy mezőnként ellenőrizhető, a 014 RLS-táblában hash/revision/policy/receipt kötésű privát eredmény tárolódik, saját olvasási API és export/törlés integrált. Egy valódi Sol-próba öt privacy-problémát talált az eredeti angol mintában. Ez nem teljes PII-garancia, nem curator/Official/Publication/Confirm és nem fizetős felhasználói job. Az explicit Privacy/Content Preview és a további public kapuk változatlanul hátravannak. [Megvalósítás és elfogadás](PUBLIC_AI_REVIEW_REPORT_HU.md).

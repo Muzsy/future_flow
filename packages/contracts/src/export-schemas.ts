@@ -21,6 +21,8 @@ import {
   PUBLIC_DRAFT_VERSION,
   publicSnapshotDraftSchema,
   publicPreviewCopySchema,
+  publicReviewInputSchema,
+  publicReviewReportSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -76,6 +78,8 @@ mkdirSync(publicDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   snapshotDraft: publicSnapshotDraftSchema,
   previewCopy: publicPreviewCopySchema,
+  reviewInput: publicReviewInputSchema,
+  reviewReport: publicReviewReportSchema,
 })) {
   writeFileSync(
     resolve(publicDirectory, `${name}.schema.json`),

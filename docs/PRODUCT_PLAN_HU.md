@@ -162,7 +162,7 @@ Retenciós küszöbértéket még nem igazoltunk. A pilot tapasztalatai alapján
 
 A stratégia A–G hipotézisei tesztelendők: saját vagy fiktív identitás; onboarding értéke; folytatás vagy új élet; fork és visszatérés kapcsolata; megosztási szándék; más életének fogyasztása; történet vagy analitikus riport. Először a személyes core loopot vizsgáljuk; a nyilvános indulási kapu előtt a Discovery → fork → első saját időszak konverzió és a publikálási bizalom is külön próbát kap.
 
-2026-10-04: valódi szintetikus Supabase-jelszavas Auth/DB/OpenAI HTTP-hurok és tényleges Auth/DB-törlés sikeres; admin kulcs védett környezetben. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Email-kézbesítés, backup/restore és valós DB-kiesésből admin recovery még külön üzemeltetési kapu. Élesítés a meglévő Contabo szerveren később, domain később.
+2026-10-04: valódi szintetikus Supabase-jelszavas Auth/DB/OpenAI HTTP-hurok és tényleges Auth/DB-törlés sikeres; admin kulcs védett környezetben. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Email-kézbesítés, backup/restore és valós DB-kiesésből admin recovery még külön üzemeltetési kapu. Élesítés a meglévő Contabo szerveren később, domain: alterward.com (Cloudflare), bekötés később.
 
 Az induló hat hónap, fejezethossz, kérdőívbontás és mérési definíció visszafordítható munkadöntés. Márkanév és önkéntes nyilvános megosztás elfogadott irány. Domain, pontos csomagár/billing, végleges generálási keretek és új szolgáltatói költségkeret külön döntés lesz. A feladatokhoz most nem rendelünk megalapozatlan naptári határidőt.
 
@@ -213,3 +213,8 @@ A saját történet függő közös döntés mellett is folytatható. A később
 ## Shared S3: Connections és biztonság — 2026-10-05
 
 Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátumozott korábbi bizonyítéka megmarad. A későbbi privacy/Auth szelet felülírja az akkori „megjelenítési döntés/full Auth még hiányzik” státuszt: S0–S2 és S3 személyes/time/Connections/safety/privacy implementált; teljes kétfiókos Auth/Shared AI/saját AI/export/törlés/recovery sikeres. 001–013 alkalmazva, normál Shared flag-ek false. Nyers/backup-retention, régi személyes próza, billing/grace/deadline és friend release még kapu; P09–P13 és S4–S7 megmarad. A felhasználó az érintett közös szöveg elrejtését, a dátum és eredmény megtartását választotta. Új 013 stale-input cancellation és explicit friss retry; a P09 előnézet külön Shared privacy review-t kér. [Részletes megvalósítás, költség és korlát](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+
+
+## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
+
+[Privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.

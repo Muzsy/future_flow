@@ -5,12 +5,20 @@ import {
   publicSnapshotDraftSchema,
   type PublicPreviewCopy,
 } from '@future-flow/contracts';
-import { publicDraftIssues } from '@future-flow/core';
+import {
+  publicDraftIssues,
+  hash,
+  preparePublicReviewInput,
+  validatePublicReview,
+} from '@future-flow/core';
+import type { PublicReviewAiProvider } from '@future-flow/ai';
+import { runPublicDraftReview } from '../scripts/lib/public-review';
 import {
   Repository,
   LifeRepository,
   LifeJobRepository,
   PublicDraftRepository,
+  PublicReviewRepository,
   type Database,
 } from '@future-flow/database';
 import { applyMigrations } from '../scripts/lib/migrations';
@@ -40,7 +48,7 @@ beforeAll(async () => {
   await applyMigrations(engine);
   db = adapter(engine);
   repo = new Repository(db);
-  lives = new LifeRepository(db);
+  lives = new LifeRepository(db, { daily: 100, concurrent: 2 });
   jobs = new LifeJobRepository(db);
   drafts = new PublicDraftRepository(db);
   for (const id of [user, other]) {
@@ -243,6 +251,300 @@ describe.sequential('owner-only public preparation', () => {
       code: 'PUBLIC_PREVIEW_EXPIRED',
     });
   });
+  it('reviews every copy field without private source data; blocks inconsistent findings', async () => {
+    const { created, detail, copy } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const input = preparePublicReviewInput(p.snapshot);
+    expect(input.fields).toHaveLength(14);
+    for (const forbidden of [
+      user,
+      created.lifeId,
+      created.branchId,
+      p.snapshot.snapshotKey,
+      'Private Person',
+      'Private Region',
+      'Secret Employer',
+    ])
+      expect(JSON.stringify(input)).not.toContain(forbidden);
+    expect(input.fields.map((f) => f.text)).toContain(
+      copy.periods[0]!.chapter.body,
+    );
+    expect(input.fields.map((f) => f.path)).toContain(
+      'period-1.option-2.description',
+    );
+    expect(() =>
+      validatePublicReview(input, {
+        verdict: 'no_findings',
+        findings: [
+          {
+            fieldKey: 'field-1',
+            category: 'person_name',
+            action: 'generalize',
+          },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      validatePublicReview(input, { verdict: 'review_required', findings: [] }),
+    ).toThrow();
+    expect(() =>
+      validatePublicReview(input, {
+        verdict: 'review_required',
+        findings: [
+          {
+            fieldKey: 'field-999',
+            category: 'person_name',
+            action: 'generalize',
+          },
+        ],
+      }),
+    ).toThrow();
+    const finding = {
+      fieldKey: 'field-1',
+      category: 'person_name',
+      action: 'generalize',
+    };
+    expect(() =>
+      validatePublicReview(input, {
+        verdict: 'review_required',
+        findings: [finding, finding],
+      }),
+    ).toThrow();
+    expect(() =>
+      validatePublicReview(input, {
+        verdict: 'unable_to_assess',
+        findings: [],
+        approved: true,
+      }),
+    ).toThrow();
+  });
+  it('stores a bound private pre-screen once, reuses it without AI, and never approves publication', async () => {
+    const { created, detail, copy } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const reviews = new PublicReviewRepository(db);
+    expect(await reviews.get(user, p.draftId)).toEqual({
+      status: 'not_started',
+      publicationApproved: false,
+    });
+    let calls = 0;
+    const ai: PublicReviewAiProvider = {
+      reviewPublicCopy: async (input) => {
+        calls++;
+        const output = { verdict: 'no_findings' as const, findings: [] };
+        return {
+          output,
+          receipt: {
+            task: 'public_review',
+            promptVersion: 'public_review.v2.en',
+            locale: 'en',
+            model: 'isolated-test-double',
+            requestId: null,
+            inputHash: hash(input),
+            outputHash: hash(output),
+            inputTokens: 0,
+            outputTokens: 0,
+            latencyMs: 0,
+          },
+        };
+      },
+    };
+    const result = await runPublicDraftReview(db, ai, user, p.draftId);
+    expect(result).toMatchObject({
+      reused: false,
+      review: {
+        status: 'completed',
+        publicationApproved: false,
+        report: { verdict: 'no_findings' },
+      },
+    });
+    expect(await runPublicDraftReview(db, ai, user, p.draftId)).toMatchObject({
+      reused: true,
+    });
+    expect(calls).toBe(1);
+    expect(await drafts.get(user, p.draftId)).toMatchObject({
+      status: 'awaiting_review',
+      snapshotHash: p.snapshotHash,
+    });
+    await expect(reviews.get(other, p.draftId)).rejects.toMatchObject({
+      code: 'RESOURCE_NOT_FOUND',
+    });
+    await expect(reviews.start(other, p.draftId)).rejects.toMatchObject({
+      code: 'RESOURCE_NOT_FOUND',
+    });
+    await expect(
+      db.query(
+        "UPDATE aw_public_draft_reviews SET report='{}' WHERE draft_id=$1",
+        [p.draftId],
+      ),
+    ).rejects.toThrow();
+    const [grants] = await db.query(
+      "SELECT has_table_privilege('anon','aw_public_draft_reviews','SELECT') AS anon,has_table_privilege('authenticated','aw_public_draft_reviews','INSERT') AS client",
+    );
+    expect(grants).toEqual({ anon: false, client: false });
+    const row = (
+      await db.query(
+        'SELECT receipt FROM aw_public_draft_reviews WHERE draft_id=$1',
+        [p.draftId],
+      )
+    )[0]!;
+    expect(JSON.stringify(row.receipt)).not.toContain(
+      copy.periods[0]!.chapter.body,
+    );
+  });
+  it('rejects forged receipt bindings and makes interrupted/failed attempts explicit without automatic paid retry', async () => {
+    const { created, detail, copy } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const reviews = new PublicReviewRepository(db),
+      started = await reviews.start(user, p.draftId);
+    const output = { verdict: 'no_findings', findings: [] };
+    const receipt = {
+      task: 'public_review',
+      promptVersion: 'public_review.v2.en',
+      locale: 'en',
+      model: 'isolated-test-double',
+      requestId: null,
+      inputHash: hash({ wrong: true }),
+      outputHash: hash(output),
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: 0,
+    };
+    await expect(
+      reviews.complete(user, p.draftId, started.reviewId, output, receipt),
+    ).rejects.toMatchObject({ code: 'PUBLIC_REVIEW_INVALID' });
+    await expect(reviews.start(user, p.draftId)).rejects.toMatchObject({
+      code: 'PUBLIC_REVIEW_ALREADY_STARTED',
+    });
+    await reviews.fail(user, p.draftId, started.reviewId);
+    expect(await reviews.get(user, p.draftId)).toMatchObject({
+      status: 'failed',
+      report: null,
+      publicationApproved: false,
+    });
+    await expect(reviews.start(user, p.draftId)).rejects.toMatchObject({
+      code: 'PUBLIC_REVIEW_ALREADY_STARTED',
+    });
+    const next = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    await expect(
+      runPublicDraftReview(
+        db,
+        {
+          reviewPublicCopy: async () => {
+            throw Error('private provider error text');
+          },
+        },
+        user,
+        next.draftId,
+      ),
+    ).rejects.toThrow();
+    const [failed] = await db.query(
+      'SELECT report,receipt,failure_code FROM aw_public_draft_reviews WHERE draft_id=$1',
+      [next.draftId],
+    );
+    expect(failed).toEqual({
+      report: null,
+      receipt: null,
+      failure_code: 'PUBLIC_REVIEW_FAILED',
+    });
+  });
+  it('cannot commit a review after the source choice changes during the provider call', async () => {
+    const { created, detail, copy, period } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const d = period.candidate.events.at(-1).decision;
+    await expect(
+      runPublicDraftReview(
+        db,
+        {
+          reviewPublicCopy: async (input) => {
+            await lives.choose(
+              user,
+              created.branchId,
+              detail.branch.revision,
+              d.id,
+              d.options[0].id,
+              randomUUID(),
+            );
+            const output = { verdict: 'no_findings' as const, findings: [] };
+            return {
+              output,
+              receipt: {
+                task: 'public_review',
+                promptVersion: 'public_review.v2.en',
+                locale: 'en',
+                model: 'isolated-test-double',
+                requestId: null,
+                inputHash: hash(input),
+                outputHash: hash(output),
+                inputTokens: 0,
+                outputTokens: 0,
+                latencyMs: 0,
+              },
+            };
+          },
+        },
+        user,
+        p.draftId,
+      ),
+    ).rejects.toMatchObject({ code: 'LIFE_REVISION_CONFLICT' });
+    const [row] = await db.query(
+      'SELECT status,report FROM aw_public_draft_reviews WHERE draft_id=$1',
+      [p.draftId],
+    );
+    expect(row).toEqual({ status: 'failed', report: null });
+  });
+  it('keeps Hungarian archived copies but rejects new AI reviews before any provider call', async () => {
+    const { created, detail, copy } = await source('hu');
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    await expect(
+      new PublicReviewRepository(db).start(user, p.draftId),
+    ).rejects.toMatchObject({ code: 'CONTENT_LANGUAGE_UNAVAILABLE' });
+  });
+  it('blocks completing a pending review immediately at the deleting marker', async () => {
+    const { created, detail, copy } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const reviews = new PublicReviewRepository(db),
+      started = await reviews.start(user, p.draftId);
+    await repo.markDeleting(user);
+    await expect(
+      reviews.complete(user, p.draftId, started.reviewId, {}, {}),
+    ).rejects.toMatchObject({ code: 'ACCOUNT_DELETING' });
+    await db.query("UPDATE ff_users SET status='active' WHERE id=$1", [user]);
+  });
   it('exports and deletes all owner preview/scenario records with the account graph', async () => {
     const exported = await repo.exportAccount(user);
     expect(
@@ -251,10 +553,13 @@ describe.sequential('owner-only public preparation', () => {
     expect((exported.aw_scenario_drafts as unknown[]).length).toBeGreaterThan(
       0,
     );
+    expect(
+      (exported.aw_public_draft_reviews as unknown[]).length,
+    ).toBeGreaterThan(0);
     await repo.markDeleting(user);
     await repo.deleteAccountData(user);
     const [count] = await db.query<{ count: number }>(
-      'SELECT (SELECT count(*) FROM aw_publication_drafts WHERE user_id=$1)+(SELECT count(*) FROM aw_scenario_drafts WHERE user_id=$1) AS count',
+      'SELECT (SELECT count(*) FROM aw_publication_drafts WHERE user_id=$1)+(SELECT count(*) FROM aw_scenario_drafts WHERE user_id=$1)+(SELECT count(*) FROM aw_public_draft_reviews WHERE user_id=$1) AS count',
       [user],
     );
     expect(Number(count!.count)).toBe(0);

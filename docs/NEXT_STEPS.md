@@ -123,7 +123,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 ## P09 — Publikálható snapshot, Official Scenario és kurált seed
 
-**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). Teljes PII/curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
+**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). A [külön AI-pre-screen operatori szelete](PUBLIC_AI_REVIEW_REPORT_HU.md) is elkészült. Teljes Privacy/Content Preview, curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
 
 **Feladat:** külön Publication/PublicSnapshot/ScenarioVersion modul és additív tárolás. Allowlist alapján anonimizált idővonal/fejezet/állapot, fork-checkpoint, Official/Community/AI-generated/user-edited jelölés. PII/tartalmi elővizsgálat és curator-jóváhagyás. Először néhány valódi AI-szintetikus Official minta az új több időszakos láncon.
 
@@ -174,3 +174,8 @@ Reakció/követés, majd komment/szerzői profil a működő public/fork és mod
 Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validált idézettel/verdikttel; Opus külön vitás/mintavételes ellenőrzéshez. Éles provider-routing előtt szolgáltatónkénti DB-számla és árszabály, többprofilos angol teljeslánc és dokumentált automatikus/szerkesztői értékelés szükséges; a béta minőségének használói mérése kiadás után történik. Haiku nem kerül a narrátor/esemény alapjába. Cache csak mért, változatlan prefixre; nem automatikus életemlékezet. A Claude szereppróbák nem adnak húsz generatív esetre bizonyítékot. A generatív lefedettség fokozatos bővítési cél; a 20 determinisztikus háromidőszakos eset már kész.
 
 Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapján: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
+
+
+## 2026-10-05: következő helyi szelet
+
+P09 angol AI-pre-screen és privát eredménytárolás kész, 014 fejlesztői Supabase-on alkalmazva/ismételve. Következő az explicit Privacy/Content Preview felület és a curator/Publication/hash-Confirm alap; a fizetős felhasználói scan-queue külön projekt/user keretőrt kap. Shared-előzmény továbbra külön privacy-kaput kér. Az alterward.com megvásárolt, aktív Cloudflare-domain, bekötés a későbbi Contabo-ops része. [Pontos bizonyíték és korlátok](PUBLIC_AI_REVIEW_REPORT_HU.md).

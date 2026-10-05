@@ -6,6 +6,7 @@ import {
   LifeJobRepository,
   SharedJobRepository,
   PublicDraftRepository,
+  PublicReviewRepository,
   Repository,
   type Database,
 } from '@future-flow/database';
@@ -172,6 +173,13 @@ describe('Shared retained text projections and stale input invalidation', () => 
       drafts.prepare(g.a.id, branch.id, branch.revision, copy),
     ).rejects.toMatchObject({ code: 'PUBLIC_SHARED_REVIEW_REQUIRED' });
     await expect(drafts.get(g.a.id, preview.draftId)).rejects.toMatchObject({
+      code: 'PUBLIC_SHARED_REVIEW_REQUIRED',
+    });
+    const reviews = new PublicReviewRepository(db);
+    await expect(reviews.start(g.a.id, preview.draftId)).rejects.toMatchObject({
+      code: 'PUBLIC_SHARED_REVIEW_REQUIRED',
+    });
+    await expect(reviews.get(g.a.id, preview.draftId)).rejects.toMatchObject({
       code: 'PUBLIC_SHARED_REVIEW_REQUIRED',
     });
     await new Repository(db).deleteAccountData(g.b.id);

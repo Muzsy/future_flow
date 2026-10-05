@@ -105,3 +105,8 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 ## S3 privacy/Auth és P09 adatvédelmi kapu — 2026-10-05
 
 2026-10-05 · Runtime `fcdd1416fe014567a366a7112ea941140a91dbdd`: [CI](https://github.com/Muzsy/future_flow/actions/runs/37318643044) verify és container sikeres. 304 teszt/27 fájl, formázás, típusellenőrzés, API/worker/Next production build és 42 változatlan séma. Izolált PostgreSQL/TLS mellett 001–013 és ismétlés, Shared privacy projection, régi személyes input cancellation, friss retry fizikai törlésen át megőrzése, korábbi S0–S3 slot/intent/lease/block/moderáció/cleanup versenyek sikeresek. Web/API/Caddy verified HTTPS/DB TLS, üres queue és közvetlen Node worker tiszta 0-s leállás, nulla paid AI és valódi CI-kulcs. Nincs Contabo-deploy; aktív AI-job drain, backup/restore és terhelésmérés még nincs igazolva. [Részletes megvalósítás és kiadási korlátok](docs/SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md), [új valódi angol AI-minta](docs/examples/AI_SHARED_AUTHENTICATED_ENGLISH_SAMPLE.md). Normál Shared flag-ek false; helyi fejlesztés, Contabo később.
+
+
+## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
+
+[Privát AI-pre-screen](docs/PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.

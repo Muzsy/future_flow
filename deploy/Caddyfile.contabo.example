@@ -1,7 +1,7 @@
-# Append one reviewed site block to the existing public Caddy configuration.
-# Replace beta.example.com with the selected hostname; preserve existing sites.
+# Prepared for alterward.com; append only during the reviewed deployment.
+# Preserve all existing sites in the shared public Caddy configuration.
 # The existing proxy must join the external alterward_proxy Docker network.
-beta.example.com {
+alterward.com {
     encode zstd gzip
     handle /api/* {
         reverse_proxy alterward-api:4000
@@ -9,4 +9,8 @@ beta.example.com {
     handle {
         reverse_proxy alterward-web:3000
     }
+}
+
+www.alterward.com {
+    redir https://alterward.com{uri} 308
 }

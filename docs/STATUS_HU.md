@@ -13,7 +13,7 @@
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–013 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 33 aw_/33 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
+| Supabase | 001–014 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 34 aw_/34 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `fcdd141`: 304 teszt/27 fájl, teljes check/build/42 séma-drift; izolált web/API/worker/Caddy, 001–013 + ismétlés, valós PostgreSQL privacy/retry/delete és S0–S3 proof; verified DB TLS/HTTPS, üres queue/tiszta 0-s leállás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37318643044) |
@@ -23,7 +23,7 @@
 
 ## Bizonyíték és hiányzó kapuk
 
-Teljes helyi és main CI check: 304 teszt/27 fájl; 42 séma változatlan. [Új privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
+Korábbi helyi és main CI: 304 teszt/27 fájl, 42 séma változatlan. A P09 új helyi teljes check 311 teszt/27 fájl és 44 schema; a régi 42 változatlan. [Új privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -40,9 +40,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | S3 kezdeti elutasított és pontosított Shared/personal próbák | 7 | 0.119301200 |
 | Megszakadt kétfiókos Auth előkészítés | 6 | 0.0824209 |
 | Sikeres teljes Auth/Shared/saját AI lánc | 13 | 0.1698351 |
-| **Összesen** | **126** | **2.270747105 ≈ 2.27** |
-| **Konzervatívan elszámolt összeg** | | **2.356438375** |
-| **Guard szerint megmaradt keret** | | **2.643561625 ≈ 2.64** |
+| P09 valódi angol privacy AI-audit | 1 | 0.009006 |
+| **Összesen** | **127** | **2.279753105 ≈ 2.28** |
+| **Konzervatívan elszámolt összeg** | | **2.365445875** |
+| **Guard szerint megmaradt keret** | | **2.634554125 ≈ 2.63** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -62,7 +63,7 @@ Az alábbiak a sorrendet és az akkori ellenőrzés határát őrzik. A jelenleg
 
 ### Angol kiadásra váltás
 
-Felhasználói döntés: a magyar minták fogalmazási hibái miatt kizárólag angol indulás; EN/HU kézi előminősítés helyett AI szerkesztői döntés és éles visszajelzés. A nyelvválasztó, HU-cookie, új HU élet/draft és régi HU történetek API-elérése lezárva; a saját adatok exportja változatlanul teljes. Angol `DELETE ACCOUNT` megerősítés az API és a felület között egyezik. [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md). Contabo a kijelölt éles szerver, domain később; Docker/Compose/Caddy konfiguráció előkészítve. Helyi fejlesztés folyik, éles deploy nem történt. Az új szintetikus Auth/AI próbák az eredeti megőrzött keretből futnak.
+Felhasználói döntés: a magyar minták fogalmazási hibái miatt kizárólag angol indulás; EN/HU kézi előminősítés helyett AI szerkesztői döntés és éles visszajelzés. A nyelvválasztó, HU-cookie, új HU élet/draft és régi HU történetek API-elérése lezárva; a saját adatok exportja változatlanul teljes. Angol `DELETE ACCOUNT` megerősítés az API és a felület között egyezik. [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md). Contabo a kijelölt éles szerver, domain: alterward.com (Cloudflare), bekötés később; Docker/Compose/Caddy konfiguráció előkészítve. Helyi fejlesztés folyik, éles deploy nem történt. Az új szintetikus Auth/AI próbák az eredeti megőrzött keretből futnak.
 
 Az angol átállás ellenőrzése: `pnpm check` sikeres (formázás, típusellenőrzés, 153 teszt az akkori állapotban, teljes production build); kódból exportált két új angol v2 request-séma. Dokumentumhivatkozások, 21 témás manifest és immutable stratégiai források ellenőrizve. Helyi angol főoldal és adatkezelési felület böngészőben ellenőrizve, nyelvválasztó nélkül. Ez nem valódi belépéses vagy éles deploy-próba.
 
@@ -111,3 +112,8 @@ A saját történet függő közös döntés mellett is folytatható. A később
 ## Shared S3: Connections és biztonság — 2026-10-05
 
 Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátumozott korábbi bizonyítéka megmarad. A későbbi privacy/Auth szelet felülírja az akkori „megjelenítési döntés/full Auth még hiányzik” státuszt: S0–S2 és S3 személyes/time/Connections/safety/privacy implementált; teljes kétfiókos Auth/Shared AI/saját AI/export/törlés/recovery sikeres. 001–013 alkalmazva, normál Shared flag-ek false. Nyers/backup-retention, régi személyes próza, billing/grace/deadline és friend release még kapu; P09–P13 és S4–S7 megmarad. A felhasználó az érintett közös szöveg elrejtését, a dátum és eredmény megtartását választotta. Új 013 stale-input cancellation és explicit friss retry; a P09 előnézet külön Shared privacy review-t kér. [Részletes megvalósítás, költség és korlát](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+
+
+## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
+
+[Privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.

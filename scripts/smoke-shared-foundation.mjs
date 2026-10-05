@@ -23,6 +23,7 @@ const {
   SharedSafetyRepository,
   LifeRepository,
   LifeJobRepository,
+  PublicReviewRepository,
   buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
@@ -893,9 +894,157 @@ try {
     "SELECT (SELECT count(*) FROM ff_jobs)::int AS v1,(SELECT count(*) FROM aw_jobs)::int AS v2,(SELECT count(*) FROM aw_shared_jobs WHERE status IN ('queued','running'))::int AS shared",
   );
   assert.deepEqual(queues, { v1: 0, v2: 0, shared: 0 });
+  {
+    // Closed synthetic public copy in the isolated fixture only. No generated/published content.
+    const { publicSnapshotDraftSchema } = require('@future-flow/contracts');
+    const { hash } = require('@future-flow/core');
+    const owner = await person(),
+      draftId = randomUUID();
+    const snapshot = publicSnapshotDraftSchema.parse({
+      schemaVersion: '1.0.0',
+      snapshotKey: randomUUID(),
+      locale: 'en',
+      title: 'A synthetic CI life',
+      summary: 'An isolated technical privacy fixture with no real person.',
+      category: 'personal_growth',
+      origin: {
+        aiGenerated: true,
+        userEdited: false,
+        classification: 'unreviewed',
+      },
+      profile: { ageBand: '35_44', country: 'GB', employmentStatus: null },
+      goal: {
+        category: 'personal_growth',
+        description: 'Explore a fictional habit',
+      },
+      periods: [
+        {
+          key: 'period-1',
+          startDate: '2026-10-04',
+          endDate: '2027-04-04',
+          chapter: {
+            title: 'A possible habit',
+            body: 'A fictional adult considers a new habit while keeping the outcome uncertain. '.repeat(
+              9,
+            ),
+          },
+          events: [
+            {
+              key: 'event-1',
+              effectiveAt: '2026-11-04',
+              title: 'An idea appears',
+              summary:
+                'A possible hobby is considered without spending or commitments.',
+            },
+            {
+              key: 'event-2',
+              effectiveAt: '2027-04-04',
+              title: 'A possible next step',
+              summary:
+                'A choice remains open and nobody has agreed to an outcome.',
+            },
+          ],
+          decision: {
+            key: 'decision-1',
+            prompt: 'Which possible next step should be considered?',
+            options: [
+              {
+                key: 'option-1',
+                label: 'Try a small step',
+                description: 'Explore without committing to an outcome.',
+              },
+              {
+                key: 'option-2',
+                label: 'Keep reflecting',
+                description: 'Postpone the experiment while thinking further.',
+              },
+            ],
+            selectedOptionKey: null,
+          },
+        },
+      ],
+      startingPoint: {
+        effectiveAt: '2026-10-04',
+        country: 'GB',
+        employmentStatus: null,
+        goalCategory: 'personal_growth',
+        readyForFork: false,
+      },
+    });
+    const reviews = new PublicReviewRepository(db);
+    const insert = async (id) =>
+      db.query(
+        "INSERT INTO aw_publication_drafts(id,user_id,life_id,branch_id,source_revision,snapshot,snapshot_hash,scan_version,expires_at) VALUES($1,$2,$3,$4,0,$5,$6,'isolated-ci',now()+interval '30 minutes')",
+        [id, owner.id, owner.lifeId, owner.branchId, snapshot, hash(snapshot)],
+      );
+    await insert(draftId);
+    const starts = await Promise.allSettled([
+      reviews.start(owner.id, draftId),
+      reviews.start(owner.id, draftId),
+    ]);
+    winner(starts, 'PUBLIC_REVIEW_ALREADY_STARTED');
+    const started = starts.find((r) => r.status === 'fulfilled').value;
+    const output = { verdict: 'no_findings', findings: [] };
+    const receipt = {
+      task: 'public_review',
+      promptVersion: 'isolated-ci',
+      locale: 'en',
+      model: 'isolated-fixture-no-provider',
+      requestId: null,
+      inputHash: hash(started.input),
+      outputHash: hash(output),
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: 0,
+    };
+    await reviews.complete(
+      owner.id,
+      draftId,
+      started.reviewId,
+      output,
+      receipt,
+    );
+    assert.equal((await reviews.start(owner.id, draftId)).reused, true);
+    assert.equal(
+      (await reviews.get(owner.id, draftId)).publicationApproved,
+      false,
+    );
+    const staleDraft = randomUUID();
+    await insert(staleDraft);
+    const stale = await reviews.start(owner.id, staleDraft);
+    await db.query('UPDATE aw_branches SET revision=revision+1 WHERE id=$1', [
+      owner.branchId,
+    ]);
+    await assert.rejects(
+      reviews.complete(owner.id, staleDraft, stale.reviewId, output, receipt),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      reviews.complete(owner.id, staleDraft, stale.reviewId, output, receipt),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await repo.deleteAccountData(owner.id);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_draft_reviews WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
+    const [guard] = await db.query(
+      "SELECT c.relrowsecurity AS rls,has_table_privilege('anon','aw_public_draft_reviews','SELECT') AS anon,has_table_privilege('authenticated','aw_public_draft_reviews','INSERT') AS client FROM pg_class c WHERE c.oid='aw_public_draft_reviews'::regclass",
+    );
+    assert.deepEqual(guard, { rls: true, anon: false, client: false });
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
+      publicReviewPostgres: 'passed',
+      publicReviewConcurrentStartOnce: true,
+      publicReviewSourceDeletionGuard: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

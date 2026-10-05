@@ -197,6 +197,20 @@ describe.sequential('versioned private life API', () => {
     const preview = await response.json();
     expect(preview.status).toBe('awaiting_review');
     expect(preview.snapshot.startingPoint.readyForFork).toBe(false);
+    const reviewPath = `/api/v2/public-previews/${preview.draftId}/review`;
+    const review = await request(reviewPath);
+    expect(review.status).toBe(200);
+    expect(review.headers.get('cache-control')).toBe('no-store');
+    expect(await review.json()).toEqual({
+      status: 'not_started',
+      publicationApproved: false,
+    });
+    expect((await fetch(base + reviewPath)).status).toBe(401);
+    expect(
+      (await request(reviewPath, 'GET', undefined, 'unused', otherToken))
+        .status,
+    ).toBe(404);
+    expect((await request(reviewPath, 'POST', {})).status).toBe(404);
     expect(
       (await request(`/api/v2/public-previews/${preview.draftId}`)).status,
     ).toBe(200);

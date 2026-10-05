@@ -95,6 +95,29 @@ try {
     'node',
     'apps/worker/dist/main.js',
   ]);
+  // Parse the prepared real-domain route without activating it or requesting certificates.
+  const caddy = JSON.parse(
+    execFileSync(
+      'docker',
+      [
+        'run',
+        '--rm',
+        '--network',
+        'none',
+        '-v',
+        `${resolve(root, 'deploy/Caddyfile.contabo.example')}:/etc/caddy/Caddyfile:ro`,
+        'caddy:2.11.3',
+        'caddy',
+        'adapt',
+        '--config',
+        '/etc/caddy/Caddyfile',
+        '--adapter',
+        'caddyfile',
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    ),
+  );
+  assert(caddy.apps.http.servers);
   console.log(
     JSON.stringify({
       deploymentPreflight: 'passed',
@@ -102,7 +125,8 @@ try {
       publishedApplicationPorts: 0,
       totalMemoryLimitMiB: totalMemory / 1024 ** 2,
       actualCredentialsUsed: false,
-      containersStarted: false,
+      applicationContainersStarted: false,
+      preparedDomainRouteParsed: true,
     }),
   );
 } catch (error) {
