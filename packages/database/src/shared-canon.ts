@@ -9,6 +9,12 @@ import {
 } from '@future-flow/contracts';
 import { hash } from '@future-flow/core';
 import type { Database } from './index';
+import {
+  sharedPrivacyForEvents,
+  hiddenSharedTitle,
+  hiddenSharedSummary,
+  projectMemoryImpact,
+} from './shared-privacy';
 
 export type SharedCanonRow = Record<string, unknown> & {
   id: string;
@@ -44,27 +50,41 @@ export async function projectSharedEvent(
   const result = resolution
     ? sharedResolutionResultSchema.parse(resolution.result)
     : null;
+  const privacy = (await sharedPrivacyForEvents(tx, [row.id])).get(row.id);
+  const ids = (values: string[]) =>
+    privacy
+      ? values.filter((id) => !privacy.unavailableMemberIds.includes(id))
+      : values;
   return {
     id: row.id,
     contextId: row.context_id,
     sequence: row.sequence,
     effectiveAt: row.effective_at,
-    title: candidate.title,
-    summary: candidate.summary,
-    participantMemberIds: candidate.participantMemberIds,
+    title: privacy ? hiddenSharedTitle : candidate.title,
+    summary: privacy ? hiddenSharedSummary : candidate.summary,
+    privacyRedacted: Boolean(privacy),
+    participantMemberIds: ids(candidate.participantMemberIds),
     canonHash: row.canon_hash,
     decision: envelope
       ? {
           id: envelope.decision.id,
-          prompt: envelope.decision.prompt,
+          prompt: privacy
+            ? 'Recorded shared decision'
+            : envelope.decision.prompt,
           policy: envelope.decision.policy,
-          eligibleMemberIds: envelope.decision.eligibleMemberIds,
+          eligibleMemberIds: ids(envelope.decision.eligibleMemberIds),
           openedAt: envelope.openedAt,
           closesAt: envelope.closesAt,
           options: envelope.decision.options.map((o) => ({
             id: o.id,
-            label: o.label,
-            description: o.description,
+            label: privacy
+              ? privacy.participatingOptionIds.includes(o.id)
+                ? 'Express interest'
+                : 'Decline or postpone'
+              : o.label,
+            description: privacy
+              ? 'Original details are withheld. The recorded response is unchanged.'
+              : o.description,
           })),
         }
       : null,
@@ -78,7 +98,8 @@ export async function projectSharedEvent(
           status: result.status,
           reason: result.reason,
           selectedOptionId: result.selectedOptionId,
-          participatingMemberIds: result.participatingMemberIds,
+          participatingMemberIds: ids(result.participatingMemberIds),
+          participatingCount: result.participatingMemberIds.length,
           canonHash: resolution!.canon_hash,
           resolvedAt: resolution!.resolved_at,
         }
@@ -163,5 +184,26 @@ export async function exportSharedCanon(tx: Database, userId: string) {
     'SELECT i.id,i.context_id,i.event_id,i.resolution_id,i.member_id,i.target_branch_id,i.effective_at::text,i.kind,i.payload,i.payload_hash,i.status,i.applied_revision,i.applied_at FROM aw_shared_impacts i JOIN aw_shared_members m ON m.id=i.member_id WHERE m.user_id=$1 ORDER BY i.effective_at,i.created_at,i.id',
     [userId],
   );
-  return { events, impacts };
+  const privacy = await sharedPrivacyForEvents(
+    tx,
+    impacts.map((i) => String(i.event_id)),
+  );
+  return {
+    events,
+    impacts: impacts.map((i) =>
+      privacy.has(String(i.event_id))
+        ? {
+            ...i,
+            payload: projectMemoryImpact(
+              i.payload,
+              privacy.get(String(i.event_id)),
+            ),
+            privacyRedacted: true,
+            projectionHash: hash(
+              projectMemoryImpact(i.payload, privacy.get(String(i.event_id))),
+            ),
+          }
+        : i,
+    ),
+  };
 }

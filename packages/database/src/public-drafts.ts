@@ -13,6 +13,25 @@ import { LifeRepository, lifeRow } from './lives';
 // Owner-only preparation. There is intentionally no confirm/publish/public reader here.
 export class PublicDraftRepository {
   constructor(private readonly db: Database) {}
+  private async sharedReview(tx: Database, userId: string, branchId: string) {
+    const [storage] = await tx.query(
+      "SELECT to_regclass('public.aw_shared_personal_memories') IS NOT NULL AS present",
+    );
+    if (storage?.present !== true) return;
+    if (
+      (
+        await tx.query(
+          'SELECT id FROM aw_shared_personal_memories WHERE user_id=$1 AND branch_id=$2 LIMIT 1',
+          [userId, branchId],
+        )
+      ).length
+    )
+      throw new DomainError(
+        'PUBLIC_SHARED_REVIEW_REQUIRED',
+        'Shared history requires a separate privacy review before preparing a public copy.',
+        409,
+      );
+  }
   async prepare(
     userId: string,
     branchId: string,
@@ -48,6 +67,7 @@ export class PublicDraftRepository {
           'Source is not ready.',
           409,
         );
+      await this.sharedReview(tx, userId, branchId);
       const detail = await lives.detail(userId, branchId);
       const periods = detail.periods as unknown as SnapshotSourcePeriod[];
       const snapshot = preparePublicSnapshotDraft(
@@ -104,11 +124,13 @@ export class PublicDraftRepository {
         expires_at: string;
         expired: boolean;
         current_revision: number;
+        branch_id: string;
       }>(
-        "SELECT d.snapshot,d.snapshot_hash,d.source_revision,d.expires_at,d.expires_at<=now() AS expired,b.revision AS current_revision FROM aw_publication_drafts d JOIN ff_users u ON u.id=d.user_id JOIN aw_branches b ON b.id=d.branch_id AND b.user_id=d.user_id WHERE d.id=$1 AND d.user_id=$2 AND u.status='active'",
+        "SELECT d.branch_id,d.snapshot,d.snapshot_hash,d.source_revision,d.expires_at,d.expires_at<=now() AS expired,b.revision AS current_revision FROM aw_publication_drafts d JOIN ff_users u ON u.id=d.user_id JOIN aw_branches b ON b.id=d.branch_id AND b.user_id=d.user_id WHERE d.id=$1 AND d.user_id=$2 AND u.status='active'",
         [id, userId],
       ),
     );
+    await this.sharedReview(this.db, userId, row.branch_id);
     if (row.expired)
       throw new DomainError(
         'PUBLIC_PREVIEW_EXPIRED',

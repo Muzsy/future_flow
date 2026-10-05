@@ -11,6 +11,10 @@ import {
 } from '@future-flow/core';
 import type { Database } from './index';
 import type { LifeBranch } from './lives';
+import {
+  sharedPrivacyForEvents,
+  projectPersonalMemory,
+} from './shared-privacy';
 
 async function present(tx: Database) {
   const [row] = await tx.query(
@@ -103,8 +107,16 @@ export async function personalSharedMemories(
     "SELECT payload FROM aw_shared_personal_memories WHERE user_id=$1 AND branch_id=$2 AND known_at<=$3::date ORDER BY first_history_position DESC,known_at DESC,payload->>'effectiveAt' DESC,source_created_at DESC,source_impact_id DESC LIMIT 8",
     [userId, branchId, startDate],
   );
+  const privacy = await sharedPrivacyForEvents(
+    tx,
+    rows.map((r) => r.payload.eventId),
+  );
   return validatePersonalSharedMemories(
-    rows.reverse().map((r) => r.payload),
+    rows
+      .reverse()
+      .map((r) =>
+        projectPersonalMemory(r.payload, privacy.get(r.payload.eventId)),
+      ),
     startDate,
   );
 }
@@ -131,8 +143,16 @@ export async function exportPersonalSharedMemories(
   userId: string,
 ) {
   if (!(await present(tx))) return [];
-  return tx.query(
+  const rows = await tx.query<{ payload: PersonalSharedMemory }>(
     'SELECT branch_id,event_id,known_at::text,first_history_position,payload FROM aw_shared_personal_memories WHERE user_id=$1 ORDER BY branch_id,first_history_position,created_at,id',
     [userId],
   );
+  const privacy = await sharedPrivacyForEvents(
+    tx,
+    rows.map((r) => r.payload.eventId),
+  );
+  return rows.map((r) => ({
+    ...r,
+    payload: projectPersonalMemory(r.payload, privacy.get(r.payload.eventId)),
+  }));
 }

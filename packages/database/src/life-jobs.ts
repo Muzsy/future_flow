@@ -11,6 +11,7 @@ import {
 } from '@future-flow/core';
 import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
+import { personalPrivacyEventIds } from './shared-privacy';
 
 export type LifeJob = Record<string, unknown> & {
   id: string;
@@ -22,6 +23,7 @@ export type LifeJob = Record<string, unknown> & {
   checkpoints: Record<string, unknown>;
   lease_token: string;
   attempt: number;
+  shared_privacy_event_ids?: string[];
 };
 function lost(): never {
   throw new DomainError(
@@ -35,6 +37,36 @@ export class LifeJobRepository {
     public readonly db: Database,
     private readonly leaseSeconds = 180,
   ) {}
+  async verifySharedPrivacy(job: LifeJob, tx: Database = this.db) {
+    if (
+      job.shared_privacy_event_ids === undefined &&
+      !job.payload.memory.sharedEvents?.length
+    )
+      return;
+    if (
+      !(
+        await tx.query(
+          "SELECT id FROM aw_jobs WHERE id=$1 AND lease_token=$2 AND status='running' AND lease_until>clock_timestamp()",
+          [job.id, job.lease_token],
+        )
+      ).length
+    )
+      lost();
+    const current = await personalPrivacyEventIds(
+      tx,
+      job.user_id,
+      job.branch_id,
+      job.payload.startDate,
+    );
+    if (
+      hash(current) !== hash([...(job.shared_privacy_event_ids ?? [])].sort())
+    )
+      throw new DomainError(
+        'SHARED_PRIVACY_CHANGED',
+        'Shared privacy changed. Retry with refreshed history.',
+        409,
+      );
+  }
   async claim(): Promise<LifeJob | null> {
     return this.db.transaction(async (tx) => {
       const job = (
@@ -110,6 +142,7 @@ export class LifeJobRepository {
         )
       )[0];
       if (!current) lost();
+      await this.verifySharedPrivacy(job, tx);
       const repo = new LifeRepository(tx),
         branch = await repo.branch(job.user_id, job.branch_id, tx, true);
       if (

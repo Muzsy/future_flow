@@ -735,6 +735,19 @@ try {
   assert.equal(pm.first_history_position, 3);
   const later = await personalPeriod(pa);
   assert.equal(later.payload.memory.sharedEvents.length, 1);
+  const retainedCanon = await db.query(
+    'SELECT candidate,canon_hash FROM aw_shared_events WHERE id=$1',
+    [pe.eventId],
+  );
+  await ownChoice(pa, await personal.branch(pa.id, pa.branchId));
+  const unsafe = await personal.continue(
+    pa.id,
+    pa.branchId,
+    (await personal.branch(pa.id, pa.branchId)).revision,
+    randomUUID(),
+  );
+  const unsafeLease = await personalJobs.claim();
+  assert.equal(unsafeLease.id, unsafe.jobId);
   const race = await Promise.allSettled([
     ownChoice(pb, pbb),
     repo.markDeleting(pb.id),
@@ -742,7 +755,50 @@ try {
   for (const result of race)
     if (result.status === 'rejected')
       assert.equal(result.reason.code, 'ACCOUNT_DELETING');
+  const [redacted] = await events.events(pa.id, pc.contextId);
+  assert.equal(redacted.privacyRedacted, true);
+  assert.equal(redacted.effectiveAt, pab.state.effectiveAt);
+  assert.equal(redacted.resolution.participatingCount, 2);
+  assert.deepEqual(
+    await db.query(
+      'SELECT status,payload,checkpoints FROM aw_jobs WHERE id=$1',
+      [unsafe.jobId],
+    ),
+    [{ status: 'cancelled', payload: {}, checkpoints: {} }],
+  );
+  await assert.rejects(() => personalJobs.verifySharedPrivacy(unsafeLease), {
+    code: 'JOB_LEASE_LOST',
+  });
+  const fresh = await personal.retry(
+    pa.id,
+    unsafe.jobId,
+    (await personal.branch(pa.id, pa.branchId)).revision,
+    randomUUID(),
+  );
+  assert.notEqual(fresh.jobId, unsafe.jobId);
+  const freshLease = await personalJobs.claim();
+  assert.equal(freshLease.id, fresh.jobId);
+  assert.equal(
+    freshLease.payload.memory.sharedEvents[0].title,
+    'Shared opportunity (details hidden)',
+  );
   await repo.deleteAccountData(pb.id);
+  await personalJobs.verifySharedPrivacy(freshLease);
+  assert.deepEqual(
+    await db.query(
+      'SELECT candidate,canon_hash FROM aw_shared_events WHERE id=$1',
+      [pe.eventId],
+    ),
+    retainedCanon,
+  );
+  assert.equal(
+    (await repo.exportAccount(pa.id)).shared.personalMemories[0].payload.title,
+    'Shared opportunity (details hidden)',
+  );
+  await personalJobs.fail(
+    freshLease,
+    new Error('Synthetic privacy verification complete'),
+  );
   assert.equal(
     (
       await db.query(
@@ -850,6 +906,9 @@ try {
       delayedSharedResolution: true,
       concurrentPersonalMemoryOnce: true,
       personalMemoryDeletionRace: true,
+      sharedPrivacyProjection: true,
+      stalePersonalInputCancelled: true,
+      safePersonalRetrySurvivesPhysicalDeletion: true,
       formerMemberDeletionPreservesGeneration: true,
       sharedSafetyPostgres: 'passed',
       overlappingBlockRace: true,

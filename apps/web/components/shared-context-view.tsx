@@ -248,6 +248,12 @@ export function SharedContextView({ id }: { id: string }) {
             <div className="eyebrow">{event.effectiveAt} · AI generated</div>
             <h3>{event.title}</h3>
             <p className="shared-prose">{event.summary}</p>
+            {event.privacyRedacted && (
+              <p className="subtle">
+                Some original text is hidden for privacy. The common date and
+                recorded result are kept.
+              </p>
+            )}
             <SharedDecision
               event={event}
               ownMemberId={detail.ownMemberId}

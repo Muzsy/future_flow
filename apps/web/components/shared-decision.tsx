@@ -16,6 +16,10 @@ export function SharedDecision({
 }) {
   const [optionId, setOptionId] = useState('');
   const d = event.decision;
+  const participatingCount =
+    event.resolution?.participatingCount ??
+    event.resolution?.participatingMemberIds.length ??
+    0;
   if (!d) return null;
   if (event.resolution)
     return (
@@ -27,7 +31,7 @@ export function SharedDecision({
         </h3>
         <p>
           {event.resolution.status === 'resolved'
-            ? `${event.resolution.participatingMemberIds.length} ${event.resolution.participatingMemberIds.length === 1 ? 'member' : 'members'} expressed interest. This does not confirm that the activity took place.`
+            ? `${participatingCount} ${participatingCount === 1 ? 'member' : 'members'} expressed interest. This does not confirm that the activity took place.`
             : 'No new personal participation has been recorded.'}
         </p>
       </div>

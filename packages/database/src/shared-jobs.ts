@@ -14,6 +14,14 @@ import {
 import type { Database } from './index';
 import { SharedEventRepository } from './shared-events';
 import type { SharedContextRow, SharedMemberRow } from './shared-contexts';
+import {
+  sharedPrivacyForEvents,
+  hiddenSharedTitle,
+  hiddenSharedSummary,
+  projectSharedState,
+  contextPrivacyEventIds,
+  privacyJobMetadataPresent,
+} from './shared-privacy';
 
 export type SharedJob = Record<string, unknown> & {
   id: string;
@@ -24,6 +32,7 @@ export type SharedJob = Record<string, unknown> & {
   checkpoints: Record<string, unknown>;
   lease_token: string;
   attempt: number;
+  shared_privacy_event_ids?: string[];
 };
 function lost(): never {
   throw new DomainError(
@@ -114,15 +123,20 @@ export class SharedJobRepository extends SharedEventRepository {
         );
         const yes = randomUUID(),
           no = randomUUID();
+        const privacy = await sharedPrivacyForEvents(
+          tx,
+          history.map((e) => String(e.id)),
+        );
+        const privacyIds = await contextPrivacyEventIds(tx, c.id);
         const input = validateSharedAiInput({
           schemaVersion: '1.0.0',
           locale: 'en',
           context: {
             id: c.id,
-            title: c.title,
+            title: privacyIds.length ? 'Private friend group' : c.title,
             revision: c.revision + 1,
             simulationAt: c.simulation_at,
-            state: c.state,
+            state: privacyIds.length ? projectSharedState(c.state) : c.state,
             governance: sharedPolicySchema.parse(c.governance),
           },
           eventId: randomUUID(),
@@ -148,20 +162,33 @@ export class SharedJobRepository extends SharedEventRepository {
                 status: 'resolved' | 'cancelled';
                 participatingMemberIds: string[];
               } | null;
+            const hidden = privacy.get(String(e.id));
             return {
               eventId: String(e.id),
               effectiveAt: String(e.effective_at),
-              title: candidate.title,
-              summary: candidate.summary,
+              title: hidden ? hiddenSharedTitle : candidate.title,
+              summary: hidden ? hiddenSharedSummary : candidate.summary,
               resolutionStatus: result?.status ?? null,
-              participatingMemberIds: result?.participatingMemberIds ?? [],
+              participatingMemberIds: hidden
+                ? (result?.participatingMemberIds ?? []).filter(
+                    (id) => !hidden.unavailableMemberIds.includes(id),
+                  )
+                : (result?.participatingMemberIds ?? []),
             };
           }),
         });
         const jobId = randomUUID();
+        const metadata = await privacyJobMetadataPresent(tx);
         await tx.query(
-          'INSERT INTO aw_shared_jobs(id,context_id,requested_by_user_id,base_revision,payload) VALUES($1,$2,$3,$4,$5)',
-          [jobId, c.id, userId, input.context.revision, JSON.stringify(input)],
+          `INSERT INTO aw_shared_jobs(id,context_id,requested_by_user_id,base_revision,payload${metadata ? ',shared_privacy_event_ids' : ''}) VALUES($1,$2,$3,$4,$5${metadata ? ',$6' : ''})`,
+          [
+            jobId,
+            c.id,
+            userId,
+            input.context.revision,
+            JSON.stringify(input),
+            ...(metadata ? [privacyIds] : []),
+          ],
         );
         await tx.query(
           'UPDATE aw_shared_contexts SET revision=revision+1,simulation_at=$2,updated_at=now() WHERE id=$1',
@@ -181,6 +208,16 @@ export class SharedJobRepository extends SharedEventRepository {
       members = all.filter((m) => m.status === 'active');
     this.revision(c, job.base_revision);
     this.writable(c);
+    const privacyIds = await contextPrivacyEventIds(tx, c.id);
+    if (
+      hash(privacyIds) !==
+      hash([...(job.shared_privacy_event_ids ?? [])].sort())
+    )
+      throw new DomainError(
+        'SHARED_PRIVACY_CHANGED',
+        'Shared privacy changed. Start a new generation.',
+        409,
+      );
     if (
       c.status !== 'active' ||
       c.type !== 'friend_group' ||
@@ -188,10 +225,10 @@ export class SharedJobRepository extends SharedEventRepository {
       job.base_revision !== input.context.revision ||
       hash({
         id: c.id,
-        title: c.title,
+        title: privacyIds.length ? 'Private friend group' : c.title,
         revision: c.revision,
         simulationAt: c.simulation_at,
-        state: c.state,
+        state: privacyIds.length ? projectSharedState(c.state) : c.state,
         governance: c.governance,
       }) !== hash(input.context) ||
       hash(

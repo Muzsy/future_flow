@@ -27,6 +27,10 @@ import {
   materializeSharedMemories,
   personalSharedMemories,
 } from './shared-personal';
+import {
+  personalPrivacyEventIds,
+  privacyJobMetadataPresent,
+} from './shared-privacy';
 
 type Row = Record<string, unknown>;
 export type LifeBranch = Row & {
@@ -390,6 +394,12 @@ export class LifeRepository {
       branch.id,
       state.effectiveAt,
     );
+    const privacyIds = await personalPrivacyEventIds(
+      tx,
+      userId,
+      branch.id,
+      state.effectiveAt,
+    );
     const payload: LifePeriodInput = {
       input: { ...branch.input, branchId: branch.id },
       state,
@@ -412,18 +422,23 @@ export class LifeRepository {
             };
             return {
               id: e.id,
-              title: e.title,
-              summary: e.summary,
+              title: privacyIds.length
+                ? 'Personal event (details withheld)'
+                : e.title,
+              summary: privacyIds.length
+                ? 'Recorded personal history. Some narrative details are withheld; the current personal state remains authoritative.'
+                : e.summary,
               effectiveAt: e.effectiveAt,
             };
           }),
-        choices: choices.reverse(),
+        choices: privacyIds.length ? [] : choices.reverse(),
         ...(sharedEvents.length ? { sharedEvents } : {}),
       },
     };
     const jobId = randomUUID();
+    const metadata = await privacyJobMetadataPresent(tx);
     await tx.query(
-      'INSERT INTO aw_jobs(id,user_id,life_id,branch_id,base_revision,payload) VALUES($1,$2,$3,$4,$5,$6)',
+      `INSERT INTO aw_jobs(id,user_id,life_id,branch_id,base_revision,payload${metadata ? ',shared_privacy_event_ids' : ''}) VALUES($1,$2,$3,$4,$5,$6${metadata ? ',$7' : ''})`,
       [
         jobId,
         userId,
@@ -431,6 +446,7 @@ export class LifeRepository {
         branch.id,
         branch.revision,
         JSON.stringify(payload),
+        ...(metadata ? [privacyIds] : []),
       ],
     );
     await tx.query(
@@ -665,14 +681,27 @@ export class LifeRepository {
       async (tx) => {
         const job = lifeRow(
           await tx.query<
-            Row & { branch_id: string; status: string; attempt: number }
+            Row & {
+              branch_id: string;
+              status: string;
+              attempt: number;
+              error_code: string | null;
+            }
           >(
-            'SELECT branch_id,status,attempt FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
+            'SELECT branch_id,status,attempt,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
             [jobId, userId],
           ),
         );
         const branch = await this.branch(userId, job.branch_id, tx, true);
         this.revision(branch, revision);
+        if (
+          branch.status === 'failed' &&
+          ['failed', 'cancelled'].includes(job.status) &&
+          job.error_code === 'SHARED_PRIVACY_CHANGED'
+        ) {
+          await materializeSharedMemories(tx, branch);
+          return this.queue(tx, userId, branch);
+        }
         if (
           job.status !== 'failed' ||
           branch.status !== 'failed' ||

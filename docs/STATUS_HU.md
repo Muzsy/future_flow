@@ -13,17 +13,17 @@
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–012 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 33 aw_/33 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
+| Supabase | 001–013 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 33 aw_/33 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `9e3c9c5`: 297 teszt/26 fájl, teljes check/build/42 séma-drift; izolált web/API/worker/Caddy, 001–012 + ismétlés, valós PostgreSQL S0–S3 és selective cleanup/block/moderáció/report proof; verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37303841122) |
-| Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; retained privacy/full Auth még kapu, Shared false |
+| Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
-297 teszt/26 fájl a jelenlegi készletben; [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; új fizetett hívás nincs. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
+Privacy teljes check: 303 teszt/27 fájl; a P09 Shared-kapuval 304-es készlet. [Új privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -38,9 +38,11 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | Új valódi Auth/AI HTTP- és böngészős próba (megszakadt hívással együtt) | 16 | 0.278277000 |
 | Két valódi izolált Shared friend Sol-minta | 2 | 0.023752000 |
 | S3 kezdeti elutasított és pontosított Shared/personal próbák | 7 | 0.119301200 |
-| **Összesen** | **107** | **2.018491105 ≈ 2.02** |
-| **Konzervatívan elszámolt összeg** | | **2.074165875** |
-| **Guard szerint megmaradt keret** | | **2.925834125 ≈ 2.93** |
+| Megszakadt kétfiókos Auth előkészítés | 6 | 0.0824209 |
+| Sikeres teljes Auth/Shared/saját AI lánc | 13 | 0.1698351 |
+| **Összesen** | **126** | **2.270747105 ≈ 2.27** |
+| **Konzervatívan elszámolt összeg** | | **2.356438375** |
+| **Guard szerint megmaradt keret** | | **2.643561625 ≈ 2.64** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -108,4 +110,4 @@ A saját történet függő közös döntés mellett is folytatható. A később
 
 ## Shared S3: Connections és biztonság — 2026-10-05
 
-Angol Connections/csoport/profil/saját ág/consent/meghívó/idővonal/decision/solo és személyes pending banner implementált; block/unblock, saját privát rate-limited report és szerver-only auditált hold/release/dismiss elkészült. 011 szelektív former-member cleanup, 012 safety/moderation; 001–012 alkalmazva/ismételve, 16 Shared RLS-tábla, összesen 33 aw_ RLS-tábla. 297 teszt/26 fájl, teljes helyi check/build sikeres, 42 schema; 39 korábbi schema és 001–010 változatlan. Két valódi szintetikus Auth-fiókos izolált fixture-UI-próba, paid AI nélkül. Shared false, Contabo és AI-keretek változatlanok. Következő S3 kapu: törölt tagot érintő retained szöveg adatvédelmi megjelenítése és nyers/backup-retention, majd teljes valódi fiókos Shared AI → saját AI → export/törlés/recovery. Entitlement/billing és kiadási deadline külön döntés; üres deadline minden választ megvár, 48h nem alapérték. A retained megjelenítési kérdésre még nincs felhasználói válasz. P06 ops, P09–P13 public MVP és S4–S7 megmarad; friend release még nincs. [Megvalósítás és bizonyíték](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
+Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátumozott korábbi bizonyítéka megmarad. A későbbi privacy/Auth szelet felülírja az akkori „megjelenítési döntés/full Auth még hiányzik” státuszt: S0–S2 és S3 személyes/time/Connections/safety/privacy implementált; teljes kétfiókos Auth/Shared AI/saját AI/export/törlés/recovery sikeres. 001–013 alkalmazva, normál Shared flag-ek false. Nyers/backup-retention, régi személyes próza, billing/grace/deadline és friend release még kapu; P09–P13 és S4–S7 megmarad. A felhasználó az érintett közös szöveg elrejtését, a dátum és eredmény megtartását választotta. Új 013 stale-input cancellation és explicit friss retry; a P09 előnézet külön Shared privacy review-t kér. [Részletes megvalósítás, költség és korlát](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).

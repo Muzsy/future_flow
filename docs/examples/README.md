@@ -4,6 +4,7 @@ A fejezetek szintetikus profilokból, valódi OpenAI vagy Claude API-hívásokka
 
 | Minta | Dátum és nyelv | Mit mutat? |
 |---|---|---|
+| [Teljes kétfiókos Auth/Shared/saját AI-minta](AI_SHARED_AUTHENTICATED_ENGLISH_SAMPLE.md) | 2026-10-05, en | Valódi Supabase Auth/PostgreSQL és Sol: egy közös lehetőség, három saját fejezet; nem Official seed |
 | [Shared→saját angol folytatás](AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md) | 2026-10-05, en | Valódi Sol period/chapter/fidelity később megismert közös canon alapján; izolált PGlite, nem teljes friend Auth-release |
 | [Shared→saját Claude-audit](AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md) | 2026-10-05 | Sonnet low, validált verdict/idézet, kánonhű és nyelvileg helyes, nulla jelzett hiba |
 | [Shared finomított angol minta](AI_SHARED_FRIEND_ENGLISH_REFINED_SAMPLE.md) | 2026-10-04, en | Valódi Sol shared_event.v2, offline opportunity, saját opt-in/opt-out és pending memória; izolált, nem personal/Auth release |

@@ -21,6 +21,7 @@ export async function processLifeJob(
   ai: LifeAiProvider,
 ) {
   const input = job.payload;
+  await jobs.verifySharedPrivacy(job);
   const sharedEvents = validatePersonalSharedMemories(
     input.memory.sharedEvents,
     input.startDate,
@@ -46,6 +47,7 @@ export async function processLifeJob(
           repairUsed: true,
           repairKind: 'events',
         });
+      await jobs.verifySharedPrivacy(job);
       const result = await ai.period(input, repair);
       receipts.push(result.receipt);
       await jobs.checkpoint(job, 'EVENT_VALIDATION', { receipts });
@@ -110,6 +112,7 @@ export async function processLifeJob(
         });
       }
       if (!chapter) {
+        await jobs.verifySharedPrivacy(job);
         const result = await ai.periodChapter(story, repair);
         receipts.push(result.receipt);
         chapter = result.output;
@@ -123,6 +126,7 @@ export async function processLifeJob(
         problems = error.code;
       }
       if (!problems) {
+        await jobs.verifySharedPrivacy(job);
         const check = await ai.checkPeriodChapter(story, chapter);
         receipts.push(check.receipt);
         await jobs.checkpoint(job, 'FIDELITY_CHECK', { receipts });

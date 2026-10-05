@@ -21,108 +21,108 @@
   "files": [
     {
       "name": "00_README.md",
-      "bytes": 5949,
-      "sha256": "bc0a37b68d9680f28e0b6d288a5fe74d19f62a238d882eb8a5939915dcd7ba2d"
+      "bytes": 5752,
+      "sha256": "49f6de732d7cd2299459b5d42793c9aa355dcc8d3c6e76a5e49212f572d48976"
     },
     {
       "name": "01_VISION_AND_PRODUCT.md",
-      "bytes": 7118,
-      "sha256": "96756e48fa55af49bdddff728cb92404077b412a02d41ce6972faec9b3ddbb06"
+      "bytes": 6921,
+      "sha256": "91914bad6a274f5a2c76e4cd3baff5da9196784f52fc9238ae21d1e537f1f5b9"
     },
     {
       "name": "02_USER_EXPERIENCE_AND_FLOWS.md",
-      "bytes": 6763,
-      "sha256": "d1c662a5244c7da35290d65223315ad19bfd903406ca09d217a359db91469327"
+      "bytes": 6566,
+      "sha256": "b37644792d77b2ddd2c18c2f34967c97b56c4f17e001ca5e45bb248841e5da74"
     },
     {
       "name": "03_PROFILE_MODEL_AND_QUESTIONNAIRE.md",
-      "bytes": 6753,
-      "sha256": "ea288c86987693f0f958f2b347ba5de22819fa4a2d822f5513a6974ee41344b3"
+      "bytes": 6556,
+      "sha256": "2162552cd02107212a8892073c0dd05e768e6b981f568ec67c10f96035da91e5"
     },
     {
       "name": "04_SIMULATION_ENGINE.md",
-      "bytes": 7535,
-      "sha256": "b999b33b060f612c90b31629c4748ab70f75bc214017e1d4b57dfdd0a54e6064"
+      "bytes": 7338,
+      "sha256": "4002df8044dc3334037c20153b3d4095d631338bab77955bce4d43c036002cbe"
     },
     {
       "name": "05_AI_AND_PROMPT_ARCHITECTURE.md",
-      "bytes": 8287,
-      "sha256": "b0f9e4c235d78bbb27b1ac360c5f7fc46cafade27a8a978a2b5444e29850ea9a"
+      "bytes": 8090,
+      "sha256": "acad998807ddf7014fb1ffc0863f65f4e6da2c1183bfb968955974032ec9403c"
     },
     {
       "name": "06_STORY_ENGINE_AND_CONTENT.md",
-      "bytes": 6719,
-      "sha256": "f65fe900c23289f632b0d0aee47044a9be79292f680d855ef9c013a1a22ecdc7"
+      "bytes": 6522,
+      "sha256": "7db16a46dd20a18ba29b63e7856345c7d9362da685080bf2536aa2fd80e13ab1"
     },
     {
       "name": "07_COMMUNITY_AND_SOCIAL.md",
-      "bytes": 7010,
-      "sha256": "db6df17aa170036291d7d081c2d9a7251185f0ba0275664bb0dd1dbec09159ae"
+      "bytes": 6813,
+      "sha256": "ad5df8486825b74fd83a63fe0a2f43e156ee39b203b4841e74fde503d7a22d35"
     },
     {
       "name": "08_SYSTEM_ARCHITECTURE.md",
-      "bytes": 7428,
-      "sha256": "4908f6e0cff328eab017e30e4894b25b96f647951320c46ada4126533bc10707"
+      "bytes": 7231,
+      "sha256": "f3359f8d9747f71986be9821be0a45fd5db926b0686d7d751e7805af39e810ec"
     },
     {
       "name": "09_DATA_MODEL.md",
-      "bytes": 8444,
-      "sha256": "7a00447740ea421be2e653f363587bce7c4c067ff39290673db696b83ebf6ec0"
+      "bytes": 8247,
+      "sha256": "9552a3395e5bd625ac2ce35c67b1987ab68385dad143fb38ff2132b0c81b2857"
     },
     {
       "name": "10_API_SPEC.md",
-      "bytes": 9071,
-      "sha256": "5c0e4abb0ecfdb2eddf400369daadd9f202c4d92351532bbe3c307beca5b1758"
+      "bytes": 8874,
+      "sha256": "cd9c97e9eec137a07d3d7c14ab0e753d25f84233a64d477e88ef0991d02d072e"
     },
     {
       "name": "11_SECURITY_PRIVACY_COMPLIANCE.md",
-      "bytes": 8547,
-      "sha256": "7679cb4e7ea05f3a8d25bf41e81a9e06b2cc713b0f8afaa60429587e473ec4ab"
+      "bytes": 8350,
+      "sha256": "bf41cb250029a2242d6d11c5d05582bcbc2e7b0449b2e9b5212cc3d13cf46ed6"
     },
     {
       "name": "12_MVP_SCOPE_AND_ROADMAP.md",
-      "bytes": 7403,
-      "sha256": "0631c7092179b9100e2668f27847faa6e59ab96e96308937f527b7d8dfbdae1b"
+      "bytes": 7206,
+      "sha256": "db28bbdd08b6859410c499cc8e9a52f50ef5f251bff2f7ef98c9c6c46645093f"
     },
     {
       "name": "13_ENGINEERING_SETUP.md",
-      "bytes": 7810,
-      "sha256": "2e52a2a892de778613946edd6bb7fdd6ac918dce13c6797927e4a3ebfda8f49c"
+      "bytes": 7613,
+      "sha256": "f16d9e2d9b3039c6e0b2877cc33605a63777a8d26a2bd0640e9b9dc2ca34781a"
     },
     {
       "name": "14_TESTING_AND_QUALITY.md",
-      "bytes": 9055,
-      "sha256": "2cb80a7a6b498637c8f50cf2d212eaa0f8e6cec07152e976d57c72f88f09a256"
+      "bytes": 8858,
+      "sha256": "675fd1eebe981a17c7f0c7b8ad267be5785d795407b9a0c13d6dae4cc9288e6b"
     },
     {
       "name": "15_ANALYTICS_MONETIZATION_OPERATIONS.md",
-      "bytes": 8715,
-      "sha256": "4b2a0e23eb234da16b33f95cab5c20f32cd334b85fdb0c8f8b90f5283345ddd7"
+      "bytes": 8518,
+      "sha256": "fc8701b8f1faebed44f1d1b419b500692f7e5a8961179f143f8bb6e79fd53edb"
     },
     {
       "name": "16_DECISIONS_AND_OPEN_QUESTIONS.md",
-      "bytes": 15264,
-      "sha256": "246fc344cddf3104034cde33681165b8e1d2da3b999762c1c5acfe4cb0827935"
+      "bytes": 15631,
+      "sha256": "9c4d1a1ea854e0c5b1dd5bb8ccdcd9ef8f4ffba9bc47ed95feb4aabe6e1e50ee"
     },
     {
       "name": "17_INITIAL_BACKLOG.md",
-      "bytes": 6642,
-      "sha256": "0ce14e69683e103be7aa3144aef61286fae0d4381d0b7b57b3abebd0e9ccbfa2"
+      "bytes": 6445,
+      "sha256": "4244ddca61360076485f820a00886a5a6a2a506431bfb692cea0b7d80b67739f"
     },
     {
       "name": "18_AGENT_HANDOFF.md",
-      "bytes": 7992,
-      "sha256": "7954e87a2d9445f28f43cc28a25f4f7c99c2d0677ba6cb95729dbc250ccd6e6f"
+      "bytes": 7795,
+      "sha256": "3616fdc9d9618bf89179c402fd51c97d24c1f6eca72b630e8f558da727b54e52"
     },
     {
       "name": "19_SAMPLE_CONTRACTS.md",
-      "bytes": 7641,
-      "sha256": "dbf8e52428d09084536cfa2fccc48d733058f2c65b9d24be52957ebb93ec5cde"
+      "bytes": 7444,
+      "sha256": "2171ae9dd68bffd14241d4675fb4f7e00ad70b46b50473cfcc97a381fdebf992"
     },
     {
       "name": "20_REFERENCES.md",
-      "bytes": 7056,
-      "sha256": "30fbb208537f33e5d18540ee9e041f07611763eb1d0a47ef09dfaec7bdf9788b"
+      "bytes": 6859,
+      "sha256": "9f100964674a3e7f69f865dd28132262c6f266e65491ad52eef7706586a40149"
     }
   ]
 }

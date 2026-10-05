@@ -25,6 +25,7 @@ import {
   type SharedMemberRow,
 } from './shared-contexts';
 import { projectSharedEvent, type SharedCanonRow } from './shared-canon';
+import { projectMemoryImpact, sharedPrivacyForEvents } from './shared-privacy';
 
 function fail(code: string, status = 409): never {
   throw new DomainError(code, code, status);
@@ -492,9 +493,25 @@ export class SharedEventRepository extends SharedContextRepository {
         ).length
       )
         fail('RESOURCE_NOT_FOUND', 404);
-      return tx.query(
+      const rows = await tx.query(
         "SELECT i.id,i.event_id,i.resolution_id,i.context_id,i.effective_at::text,i.kind,i.payload,i.status FROM aw_shared_impacts i JOIN aw_shared_members m ON m.id=i.member_id WHERE i.target_branch_id=$1 AND m.user_id=$2 AND i.status='pending' ORDER BY i.effective_at,i.created_at,i.id",
         [branchId, userId],
+      );
+      const privacy = await sharedPrivacyForEvents(
+        tx,
+        rows.map((r) => String(r.event_id)),
+      );
+      return rows.map((r) =>
+        privacy.has(String(r.event_id))
+          ? {
+              ...r,
+              payload: projectMemoryImpact(
+                r.payload,
+                privacy.get(String(r.event_id)),
+              ),
+              privacyRedacted: true,
+            }
+          : r,
       );
     });
   }

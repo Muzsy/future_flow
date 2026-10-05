@@ -49,6 +49,7 @@ export type SharedEvent = {
   effectiveAt: string;
   participantMemberIds: string[];
   responseCount: number;
+  privacyRedacted?: boolean;
   decision: {
     id: string;
     prompt: string;
@@ -61,6 +62,7 @@ export type SharedEvent = {
     status: string;
     reason: string;
     participatingMemberIds: string[];
+    participatingCount?: number;
   } | null;
 };
 export type InvitePreview = {

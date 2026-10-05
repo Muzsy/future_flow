@@ -1,6 +1,10 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  SHARED_PRIVACY_CHANGED: [
+    'Shared details changed for privacy. Retry with refreshed history.',
+    'A közös részletek adatvédelmi okból változtak. Próbáld újra friss előzménnyel.',
+  ],
   SHARED_MODERATION_HOLD: [
     'This group is paused for a safety review. Your personal story can continue.',
     'A csoport biztonsági ellenőrzés miatt zárolva. A saját történeted folytatható.',
@@ -20,6 +24,10 @@ const errors: Record<string, readonly [string, string]> = {
   PUBLIC_PRIVACY_REVIEW_REQUIRED: [
     'Remove personal details before preparing the preview.',
     'Az előnézet előtt távolítsd el a személyes részleteket.',
+  ],
+  PUBLIC_SHARED_REVIEW_REQUIRED: [
+    'This life includes shared history. A separate privacy review is required before preparing a public copy.',
+    'Ez az élet közös előzményt tartalmaz. Nyilvános másolat előtt külön adatvédelmi ellenőrzés szükséges.',
   ],
   PUBLIC_PREVIEW_UNAVAILABLE: [
     'Finish this period before preparing a preview.',

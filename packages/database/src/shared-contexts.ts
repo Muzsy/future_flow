@@ -31,6 +31,7 @@ import {
 import type { Database } from './index';
 import { cancelPendingSharedDecision, exportSharedCanon } from './shared-canon';
 import { exportPersonalSharedMemories } from './shared-personal';
+import { sharedContextPrivacy, projectSharedState } from './shared-privacy';
 
 type Row = Record<string, unknown>;
 type Context = Row & {
@@ -349,9 +350,16 @@ export class SharedContextRepository {
     });
   }
   async list(userId: string) {
-    return this.db.query(
+    const rows = await this.db.query(
       'SELECT c.id,c.type,c.title,c.status,c.moderation_hold AS "moderationHold",c.content_locale,c.revision,c.simulation_at::text,m.id AS "memberId",m.status AS "membershipStatus" FROM aw_shared_contexts c JOIN aw_shared_members m ON m.context_id=c.id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) ORDER BY c.updated_at DESC LIMIT 100',
       [userId, liveStatuses],
+    );
+    return Promise.all(
+      rows.map(async (r) =>
+        (await sharedContextPrivacy(this.db, String(r.id)))
+          ? { ...r, title: 'Private friend group', privacyRedacted: true }
+          : r,
+      ),
     );
   }
   async detail(userId: string, contextId: string) {
@@ -364,15 +372,17 @@ export class SharedContextRepository {
         'SELECT * FROM aw_shared_members WHERE context_id=$1 ORDER BY joined_at,id',
         [contextId],
       );
+      const hidden = await sharedContextPrivacy(tx, contextId);
       return {
         id: c.id,
         type: c.type,
-        title: c.title,
+        title: hidden ? 'Private friend group' : c.title,
         status: c.status,
         locale: c.content_locale,
         revision: c.revision,
         simulationAt: c.simulation_at,
-        state: c.state,
+        state: hidden ? projectSharedState(c.state) : c.state,
+        privacyRedacted: hidden,
         governance: c.governance,
         ownMemberId: own.id,
         pendingEventId: c.pending_event_id,
@@ -490,11 +500,12 @@ export class SharedContextRepository {
     )[0];
     if (!inviter?.user_id) fail('SHARED_INVITE_INVALID', 404);
     await this.blocked(this.db, userId, inviter.user_id);
+    const hidden = await sharedContextPrivacy(this.db, c.id);
     return {
       inviteId: invite.id,
       contextId: c.id,
       type: c.type,
-      title: c.title,
+      title: hidden ? 'Private friend group' : c.title,
       contextRevision: c.revision,
       simulationAt: c.simulation_at,
       expiresAt: new Date(invite.expires_at).toISOString(),
@@ -811,10 +822,22 @@ export async function exportSharedAccount(tx: Database, userId: string) {
     'SELECT i.id,i.context_id,i.status,i.expires_at,i.created_at,i.responded_at FROM aw_shared_invites i WHERE i.target_user_id=$1 OR EXISTS(SELECT 1 FROM aw_shared_members m WHERE m.id=i.inviter_member_id AND m.user_id=$1)',
     [userId],
   );
+  const safeContexts = await Promise.all(
+    contexts.map(async (c) =>
+      (await sharedContextPrivacy(tx, String(c.id)))
+        ? {
+            ...c,
+            title: 'Private friend group',
+            state: projectSharedState(c.state as SharedState),
+            privacyRedacted: true,
+          }
+        : c,
+    ),
+  );
   return {
     socialProfile: await repo.socialProfile(userId),
     memberships: own,
-    contexts,
+    contexts: safeContexts,
     invitations: invites,
     canon: await exportSharedCanon(tx, userId),
     personalMemories: await exportPersonalSharedMemories(tx, userId),

@@ -37,3 +37,8 @@ A struktúra nullázása nem távolítja el a nevet a korábban generált próz�
 ## S2 AI-job snapshotok
 
 Completed Shared job inputja commitkor törlődik; deleting marker a failed/cancelled input és raw-output checkpointot is tisztítja, korábbi left tagot is beleértve. Nincs receiptben teljes prompt/profil; hash/token/model meta megmarad. A már elküldött provider-hívás költsége a guardban elszámolandó, a késői canon commit lease/member/user ellenőrzéssel tiltott. A retained canon próza teljes redakciója és valódi Shared Auth/AI recovery S3 gate. [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md).
+
+
+## 2026-10-05: közös szövegprojekció és frissebb job védelme
+
+A felhasználó az érintett közös próza elrejtését, dátum és eredmény megtartását választotta. 013 már deleting markerre vetületet ad és scrub/cancel védi a régi Shared/személyes inputot. Privacy miatti explicit retry friss jobot kap; a már megtisztított jobot a fizikai törlés megőrzi. Export/pending/emlék/fork ugyanígy projected. Nyers canon/hash és régi személyes fejezet nem íródik át; nyers/backup-retention és régi személyes próza további kapu. Teljes valódi kétfiókos Auth/Shared/saját AI és kontrollált recovery sikeres; migráció utáni valódi Auth/DB technikai proof nulla provider-hívással. [Bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).

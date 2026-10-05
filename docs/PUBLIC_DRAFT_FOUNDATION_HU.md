@@ -29,3 +29,8 @@ Ellenőrzés: EN/HU projekció, privát mezők/UUID-k tiltása, eredetjelölés,
 A jelenlegi draft-projekció nem Shared-aware. A [Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) szerinti másik valódi tag nevét/profilját/azonosítóját a későbbi public preview külön általánosítja, a közös esemény prózáját is ellenőrzi. Másik tag privát ága és live membership soha nem public checkpoint. Azonosítható többfél-snapshot csak S7 consenttel. Ez P09/P11 új elfogadása; a mai UUID-helyettesítés és tulajdonosi draft-védelem nem bizonyítja, hogy Shared-történet publikálható.
 
 2026-10-04, S0 utáni aktuális kiegészítés: 36 új Shared regresszióval 195 teszt a készlet, foundation kikapcsolt flag mögött. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md). A fenti 159-es béta/public mérési sorozat történeti bizonyíték; valódi Shared AI/UI/privacy és public release még nyitott.
+
+
+## 2026-10-05: Shared-előzmény külön kapuja
+
+A már megismert Shared-emléket tartalmazó saját ág — tagság nélküli fork is — új és korábbi public preview előtt PUBLIC_SHARED_REVIEW_REQUIRED választ kap. Ez fail-closed addig, amíg a más-tag általánosítás/PII/consent/curator elkészül. Privát saját folytatás elérhető; snapshot/hash nem változik és új AI-hívás nem indul. Nem kész Publication/Confirm vagy public fork. [Pontos határ](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
