@@ -42,3 +42,8 @@ Completed Shared job inputja commitkor törlődik; deleting marker a failed/canc
 ## 2026-10-05: közös szövegprojekció és frissebb job védelme
 
 A felhasználó az érintett közös próza elrejtését, dátum és eredmény megtartását választotta. 013 már deleting markerre vetületet ad és scrub/cancel védi a régi Shared/személyes inputot. Privacy miatti explicit retry friss jobot kap; a már megtisztított jobot a fizikai törlés megőrzi. Export/pending/emlék/fork ugyanígy projected. Nyers canon/hash és régi személyes fejezet nem íródik át; nyers/backup-retention és régi személyes próza további kapu. Teljes valódi kétfiókos Auth/Shared/saját AI és kontrollált recovery sikeres; migráció utáni valódi Auth/DB technikai proof nulla provider-hívással. [Bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+
+
+## 2026-10-05: felületről indítható privát AI-review
+
+A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Helyi teljes check: 323 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).

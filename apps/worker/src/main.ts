@@ -4,6 +4,8 @@ import {
   LifeJobRepository,
   SharedJobRepository,
   DatabaseAiBudget,
+  PublicReviewJobRepository,
+  publicReviewJobConfigFromEnv,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -14,6 +16,7 @@ import { processJob } from './processor';
 import { processLifeJob } from './life-processor';
 import { processSharedJob } from './shared-processor';
 import { claimFairQueue } from './fair-queue';
+import { processPublicReviewJob } from './public-review-processor';
 
 async function main() {
   const db = connectDatabase(
@@ -37,6 +40,11 @@ async function main() {
   const jobs = new JobRepository(db, leaseSeconds);
   const lifeJobs = new LifeJobRepository(db, leaseSeconds);
   const sharedJobs = new SharedJobRepository(db, undefined, leaseSeconds);
+  const publicReviews = new PublicReviewJobRepository(
+    db,
+    publicReviewJobConfigFromEnv(),
+    leaseSeconds,
+  );
   for (const name of ['SHARED_CONTEXTS_ENABLED', 'SHARED_FRIEND_ENABLED'])
     if (!['true', 'false'].includes(process.env[name] ?? 'false'))
       throw new Error('Invalid Shared feature flag');
@@ -57,19 +65,22 @@ async function main() {
       type Claimed =
         | import('@future-flow/database').LifeJob
         | import('@future-flow/database').SharedJob
+        | import('@future-flow/database').PublicReviewJob
         | import('@future-flow/database').Job;
       const selection = await claimFairQueue<Claimed>(
         [
           () => lifeJobs.claim(),
           () => (sharedEnabled ? sharedJobs.claim() : Promise.resolve(null)),
           () => jobs.claim(),
+          () => publicReviews.claim(),
         ],
         queueStart,
       );
       queueStart = selection.next;
       const job = selection.job;
       const v2 = selection.index === 0,
-        shared = selection.index === 1;
+        shared = selection.index === 1,
+        publicReview = selection.index === 3;
       if (!job) {
         await new Promise((resolve) =>
           setTimeout(resolve, Number(process.env.WORKER_POLL_MS ?? 2000)),
@@ -79,15 +90,19 @@ async function main() {
       let leaseLost = false;
       const claimed = job;
       const heartbeatJob = () =>
-        shared
-          ? sharedJobs.heartbeat(
-              claimed as import('@future-flow/database').SharedJob,
+        publicReview
+          ? publicReviews.heartbeat(
+              claimed as import('@future-flow/database').PublicReviewJob,
             )
-          : v2
-            ? lifeJobs.heartbeat(
-                claimed as import('@future-flow/database').LifeJob,
+          : shared
+            ? sharedJobs.heartbeat(
+                claimed as import('@future-flow/database').SharedJob,
               )
-            : jobs.heartbeat(claimed as import('@future-flow/database').Job);
+            : v2
+              ? lifeJobs.heartbeat(
+                  claimed as import('@future-flow/database').LifeJob,
+                )
+              : jobs.heartbeat(claimed as import('@future-flow/database').Job);
       const budget = new DatabaseAiBudget(
         db,
         shared
@@ -129,7 +144,13 @@ async function main() {
             )
           : budget;
         const ai = new OpenAiProvider({ ...aiConfig, guard });
-        if (shared)
+        if (publicReview)
+          await processPublicReviewJob(
+            job as import('@future-flow/database').PublicReviewJob,
+            publicReviews,
+            ai,
+          );
+        else if (shared)
           await processSharedJob(
             job as import('@future-flow/database').SharedJob,
             sharedJobs,
@@ -150,7 +171,11 @@ async function main() {
         console.log(JSON.stringify({ jobId: job.id, status: 'completed' }));
       } catch (error) {
         if (!leaseLost) {
-          if (shared)
+          if (publicReview)
+            await publicReviews.fail(
+              job as import('@future-flow/database').PublicReviewJob,
+            );
+          else if (shared)
             await sharedJobs.fail(
               job as import('@future-flow/database').SharedJob,
               error,

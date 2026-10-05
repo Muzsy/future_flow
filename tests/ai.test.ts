@@ -36,6 +36,33 @@ const input = () => {
   };
 };
 describe('OpenAI boundary', () => {
+  it('does not automatically retry a paid public review on a transient provider failure', async () => {
+    const { ai, parse } = provider(null);
+    parse.mockRejectedValue(
+      new OpenAI.InternalServerError(
+        500,
+        {},
+        'Temporary failure',
+        new Headers(),
+      ),
+    );
+    await expect(
+      ai.reviewPublicCopy({
+        policyVersion: 'public-review-1',
+        locale: 'en',
+        fields: [
+          { key: 'field-1', path: 'title', text: 'A fictional life' },
+          { key: 'field-2', path: 'summary', text: 'A career story.' },
+          {
+            key: 'field-3',
+            path: 'goal.description',
+            text: 'Explore another path',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 'AI_PROVIDER_FAILED' });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
   it('pre-screens only a closed public copy using the checker, without quotes or publication authority', async () => {
     const { ai, parse } = provider(
       {

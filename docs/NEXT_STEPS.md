@@ -123,7 +123,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 ## P09 — Publikálható snapshot, Official Scenario és kurált seed
 
-**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). A [külön AI-pre-screen operatori szelete](PUBLIC_AI_REVIEW_REPORT_HU.md) is elkészült. A [szerkeszthető privát Privacy/Content Preview](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md), ingyenes mezőszintű preflight, idempotens mentés/visszatöltés és saját AI-review nézet is kész. Következő a fizetett scan-job költségőrrel; curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
+**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). A [külön AI-pre-screen operatori szelete](PUBLIC_AI_REVIEW_REPORT_HU.md) is elkészült. A [szerkeszthető privát Privacy/Content Preview](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md), ingyenes mezőszintű preflight, idempotens mentés/visszatöltés és saját AI-review nézet is kész. A [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) is kész költségőrrel és egyszeri queue-val. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed.
 
 **Feladat:** külön Publication/PublicSnapshot/ScenarioVersion modul és additív tárolás. Allowlist alapján anonimizált idővonal/fejezet/állapot, fork-checkpoint, Official/Community/AI-generated/user-edited jelölés. PII/tartalmi elővizsgálat és curator-jóváhagyás. Először néhány valódi AI-szintetikus Official minta az új több időszakos láncon.
 
@@ -179,3 +179,8 @@ Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapj
 ## 2026-10-05: következő helyi szelet
 
 P09 angol AI-pre-screen és privát eredménytárolás kész, 014 fejlesztői Supabase-on alkalmazva/ismételve. Következő az explicit Privacy/Content Preview felület és a curator/Publication/hash-Confirm alap; a fizetős felhasználói scan-queue külön projekt/user keretőrt kap. Shared-előzmény továbbra külön privacy-kaput kér. Az alterward.com megvásárolt, aktív Cloudflare-domain, bekötés a későbbi Contabo-ops része. [Pontos bizonyíték és korlátok](PUBLIC_AI_REVIEW_REPORT_HU.md).
+
+
+## 2026-10-05: felületről indítható privát AI-review
+
+A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Helyi teljes check: 323 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).

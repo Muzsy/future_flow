@@ -215,6 +215,7 @@ export class OpenAiProvider implements AiProvider {
   }
   private async parseWithRetries(
     parameters: Parameters<OpenAI['responses']['parse']>[0],
+    retry = true,
   ) {
     for (let attempt = 0; ; attempt++) {
       const reservation = await this.config.guard?.reserve(parameters);
@@ -225,7 +226,11 @@ export class OpenAiProvider implements AiProvider {
         return response;
       } catch (error) {
         if (reservation) await this.config.guard!.settle(reservation, null);
-        if (!(error instanceof OpenAI.APIError) || billingFailure(error))
+        if (
+          !retry ||
+          !(error instanceof OpenAI.APIError) ||
+          billingFailure(error)
+        )
           throw error;
         const transient =
           error instanceof OpenAI.APIConnectionError ||
@@ -257,23 +262,26 @@ export class OpenAiProvider implements AiProvider {
   ): Promise<AiResult<T>> {
     const start = Date.now();
     try {
-      const response = await this.parseWithRetries({
-        model,
-        store: false,
-        max_output_tokens:
-          task === 'public_review'
-            ? Math.min(this.config.maxOutputTokens, 2200)
-            : task === 'shared_event'
-              ? Math.min(this.config.maxOutputTokens, 4500)
-              : task.startsWith('life_')
-                ? Math.min(this.config.maxOutputTokens, 6500)
-                : this.config.maxOutputTokens,
-        input: [
-          { role: 'system', content: instructions },
-          { role: 'user', content: JSON.stringify(input) },
-        ],
-        text: { format: zodTextFormat(schema, task) },
-      });
+      const response = await this.parseWithRetries(
+        {
+          model,
+          store: false,
+          max_output_tokens:
+            task === 'public_review'
+              ? Math.min(this.config.maxOutputTokens, 2200)
+              : task === 'shared_event'
+                ? Math.min(this.config.maxOutputTokens, 4500)
+                : task.startsWith('life_')
+                  ? Math.min(this.config.maxOutputTokens, 6500)
+                  : this.config.maxOutputTokens,
+          input: [
+            { role: 'system', content: instructions },
+            { role: 'user', content: JSON.stringify(input) },
+          ],
+          text: { format: zodTextFormat(schema, task) },
+        },
+        task !== 'public_review',
+      );
       if (response.status !== 'completed' || !response.output_parsed)
         throw new DomainError(
           'AI_INCOMPLETE_OR_REFUSED',

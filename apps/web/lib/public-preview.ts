@@ -2,6 +2,7 @@ import {
   publicPreviewCopySchema,
   publicPreviewTextFields,
   publicReviewViewSchema,
+  publicReviewJobViewSchema,
   type PublicPreviewCopy,
   type PublicSnapshotDraft,
   type PublicPreviewRecord,
@@ -107,4 +108,16 @@ export function reviewForPreview(raw: unknown, preview: PublicPreviewRecord) {
       throw new Error('Unknown review field');
   }
   return review;
+}
+export function reviewJobForPreview(
+  raw: unknown,
+  preview: PublicPreviewRecord,
+) {
+  const job = publicReviewJobViewSchema.parse(raw);
+  if (
+    job.snapshotHash !== preview.snapshotHash ||
+    job.sourceRevision !== preview.sourceRevision
+  )
+    throw new Error('Review job does not match this preview');
+  return job;
 }

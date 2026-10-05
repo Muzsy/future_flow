@@ -16,6 +16,11 @@ x-shared: &shared
   SHARED_FRIEND_ENABLED: ${SHARED_FRIEND_ENABLED:-false}
   SHARED_CONNECTED_ENABLED: ${SHARED_CONNECTED_ENABLED:-false}
   SHARED_WORLD_ENABLED: ${SHARED_WORLD_ENABLED:-false}
+x-review: &review
+  PUBLIC_REVIEW_JOBS_ENABLED: ${PUBLIC_REVIEW_JOBS_ENABLED:-false}
+  PUBLIC_REVIEW_DAILY_LIMIT: ${PUBLIC_REVIEW_DAILY_LIMIT:-5}
+  AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
+  AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
 services:
   web:
     <<: *runtime
@@ -52,7 +57,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
-      <<: [*database, *shared]
+      <<: [*database, *shared, *review]
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
@@ -83,7 +88,7 @@ services:
     # Deliver SIGTERM directly to the worker so it can finish and close the DB.
     command: [node, apps/worker/dist/main.js]
     environment:
-      <<: [*database, *shared]
+      <<: [*database, *shared, *review]
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
       AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
       AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}

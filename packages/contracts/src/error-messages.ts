@@ -37,6 +37,14 @@ const errors: Record<string, readonly [string, string]> = {
     'This preview already has an AI review attempt. Prepare a new preview after a failed check.',
     'Ehhez az előnézethez már indult AI-ellenőrzés. Sikertelen próba után készíts új előnézetet.',
   ],
+  PUBLIC_REVIEW_DISABLED: [
+    'Paid AI reviews are currently unavailable. This copy remains private.',
+    'Az AI-ellenőrzés jelenleg nem elérhető. A másolat privát marad.',
+  ],
+  PUBLIC_REVIEW_LIMIT: [
+    'You have reached the review limit, or another review is still pending. Refresh its status before starting a new one.',
+    'Elérted az ellenőrzési limitet, vagy még egy ellenőrzés folyamatban van.',
+  ],
   PUBLIC_PRIVACY_REVIEW_REQUIRED: [
     'Remove personal details before preparing the preview.',
     'Az előnézet előtt távolítsd el a személyes részleteket.',

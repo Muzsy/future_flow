@@ -12,6 +12,8 @@ import {
   type PublicPreviewRecord,
   type PublicPreviewWorkspace,
   type PublicReviewView,
+  PUBLIC_REVIEW_VERSION,
+  type PublicReviewJobView,
 } from '@future-flow/contracts';
 import { lifeApi, clientErrorMessage, ClientError } from '../lib/client';
 import {
@@ -19,6 +21,7 @@ import {
   copyFromSnapshot,
   editCopyField,
   reviewForPreview,
+  reviewJobForPreview,
 } from '../lib/public-preview';
 import { publicPreviewMessages } from '../lib/public-preview-messages';
 import { PublicContentPreview } from './public-content-preview';
@@ -30,7 +33,9 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     ),
     [copy, setCopy] = useState<PublicPreviewCopy | null>(null),
     [preview, setPreview] = useState<PublicPreviewRecord | null>(null),
-    [review, setReview] = useState<PublicReviewView | null>(null);
+    [review, setReview] = useState<PublicReviewView | null>(null),
+    [reviewJob, setReviewJob] = useState<PublicReviewJobView | null>(null),
+    [reviewConsent, setReviewConsent] = useState(false);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(''),
@@ -42,6 +47,7 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     [focusPath, setFocusPath] = useState(''),
     [now, setNow] = useState(Date.now());
   const request = useRef<{ signature: string; key: string } | null>(null),
+    reviewRequest = useRef<{ draftId: string; key: string } | null>(null),
     alive = useRef(true),
     abort = useRef<AbortController | null>(null);
   const dirty =
@@ -73,15 +79,18 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
   async function readReview(saved: PublicPreviewRecord) {
     const signal = abort.current?.signal;
     try {
-      const raw = await lifeApi(`/public-previews/${saved.draftId}/review`, {
-        signal,
-      });
+      const [raw, job] = await Promise.all([
+        lifeApi(`/public-previews/${saved.draftId}/review`, { signal }),
+        lifeApi(`/public-previews/${saved.draftId}/review-job`, { signal }),
+      ]);
       if (!alive.current || signal?.aborted) return;
       setReview(reviewForPreview(raw, saved));
+      setReviewJob(reviewJobForPreview(job, saved));
       setReviewError('');
     } catch (error) {
       if (alive.current && !signal?.aborted) {
         setReview(null);
+        setReviewJob(null);
         setReviewError(
           error instanceof ClientError
             ? clientErrorMessage(error)
@@ -95,6 +104,8 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     setLoading(true);
     setNotice('');
     setReview(null);
+    setReviewJob(null);
+    setReviewConsent(false);
     setIssues([]);
     setInvalid([]);
     setAcknowledged(false);
@@ -131,6 +142,7 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     if (!copy) return;
     setCopy(editCopyField(copy, path, text));
     setAcknowledged(false);
+    setReviewConsent(false);
     setInvalid([]);
     setIssues([]);
     setNotice('');
@@ -226,10 +238,58 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     request.current = null;
     setPreview(null);
     setReview(null);
+    setReviewJob(null);
+    setReviewConsent(false);
+    reviewRequest.current = null;
     setReviewError('');
     setAcknowledged(false);
     setView('privacy');
     setNotice('');
+  }
+  async function startReview() {
+    const signal = abort.current?.signal;
+    if (
+      busy ||
+      !preview ||
+      dirty ||
+      expired ||
+      !reviewConsent ||
+      !reviewJob?.enabled ||
+      review?.status !== 'not_started'
+    )
+      return;
+    setBusy(true);
+    setNotice('');
+    if (reviewRequest.current?.draftId !== preview.draftId)
+      reviewRequest.current = {
+        draftId: preview.draftId,
+        key: crypto.randomUUID(),
+      };
+    try {
+      const raw = await lifeApi(
+        `/public-previews/${preview.draftId}/review-job`,
+        {
+          method: 'POST',
+          headers: { 'Idempotency-Key': reviewRequest.current.key },
+          signal,
+          body: JSON.stringify({
+            snapshotHash: preview.snapshotHash,
+            sourceRevision: preview.sourceRevision,
+            policyVersion: PUBLIC_REVIEW_VERSION,
+            acknowledged: true,
+          }),
+        },
+      );
+      if (!alive.current || signal?.aborted) return;
+      setReviewJob(reviewJobForPreview(raw, preview));
+      setReviewConsent(false);
+      await readReview(preview);
+    } catch (error) {
+      if (alive.current && !signal?.aborted)
+        setNotice(clientErrorMessage(error));
+    } finally {
+      if (alive.current && !signal?.aborted) setBusy(false);
+    }
   }
   const moveToField = (path: string) => {
     setView('privacy');
@@ -427,7 +487,9 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
                   : !review || review.status === 'not_started'
                     ? m.notStarted
                     : review.status === 'running'
-                      ? m.running
+                      ? reviewJob?.job?.status === 'queued'
+                        ? m.reviewQueued
+                        : m.running
                       : review.status === 'failed'
                         ? m.failed
                         : review.report.verdict === 'no_findings'
@@ -436,6 +498,31 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
                             ? m.unable
                             : m.reviewRequired}
               </p>
+              {review?.status === 'not_started' &&
+                reviewJob &&
+                (reviewJob.enabled ? (
+                  <>
+                    <label className="shared-check">
+                      <input
+                        type="checkbox"
+                        checked={reviewConsent}
+                        disabled={busy}
+                        onChange={(e) => setReviewConsent(e.target.checked)}
+                      />
+                      <span>{m.reviewConsent}</span>
+                    </label>
+                    <p className="subtle">{m.reviewCost}</p>
+                    <button
+                      className="primary"
+                      disabled={busy || !reviewConsent}
+                      onClick={() => void startReview()}
+                    >
+                      {m.startReview}
+                    </button>
+                  </>
+                ) : (
+                  <p className="subtle">{m.reviewDisabled}</p>
+                ))}
               {review?.status === 'completed' &&
                 review.report.findings.length > 0 && (
                   <ul className="preview-findings">

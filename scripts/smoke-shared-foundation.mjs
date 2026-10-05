@@ -24,6 +24,7 @@ const {
   LifeRepository,
   LifeJobRepository,
   PublicReviewRepository,
+  PublicReviewJobRepository,
   buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
@@ -1037,6 +1038,133 @@ try {
     );
     assert.deepEqual(guard, { rls: true, anon: false, client: false });
   }
+  {
+    const { PublicDraftRepository } = require('@future-flow/database');
+    const { hash } = require('@future-flow/core');
+    const owner = await person();
+    await personalPeriod(owner);
+    const drafts = new PublicDraftRepository(db),
+      workspace = await drafts.workspace(owner.id, owner.branchId);
+    const preview = await drafts.prepare(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      workspace.source.copy,
+      randomUUID(),
+    );
+    // Only a closed technical fixture: positive queue config with no provider or budget reservation.
+    const queue = new PublicReviewJobRepository(db, {
+      enabled: true,
+      daily: 5,
+      projectUsd: 1,
+      userUsd: 1,
+    });
+    const request = {
+      snapshotHash: preview.snapshotHash,
+      sourceRevision: preview.sourceRevision,
+      policyVersion: 'public-review-1',
+      acknowledged: true,
+    };
+    const key = randomUUID();
+    const starts = await Promise.all([
+      queue.enqueue(owner.id, preview.draftId, request, key),
+      queue.enqueue(owner.id, preview.draftId, request, key),
+      queue.enqueue(owner.id, preview.draftId, request, randomUUID()),
+    ]);
+    assert.equal(new Set(starts.map((r) => r.job.id)).size, 1);
+    const claimed = await Promise.all([queue.claim(), queue.claim()]);
+    assert.equal(claimed.filter(Boolean).length, 1);
+    const job = claimed.find(Boolean),
+      input = await queue.input(job);
+    const output = { verdict: 'no_findings', findings: [] },
+      receipt = {
+        task: 'public_review',
+        promptVersion: 'isolated-ci',
+        locale: 'en',
+        model: 'isolated-fixture-no-provider',
+        requestId: null,
+        inputHash: hash(input),
+        outputHash: hash(output),
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+      };
+    await queue.complete(job, output, receipt);
+    assert.equal(
+      (await queue.enqueue(owner.id, preview.draftId, request, key)).job.status,
+      'completed',
+    );
+    assert.equal(await queue.claim(), null);
+    const next = await drafts.prepare(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      { ...workspace.source.copy, title: 'Queued synthetic copy' },
+      randomUUID(),
+    );
+    await queue.enqueue(
+      owner.id,
+      next.draftId,
+      { ...request, snapshotHash: next.snapshotHash },
+      randomUUID(),
+    );
+    const interrupted = await queue.claim();
+    await db.query(
+      "UPDATE aw_public_review_jobs SET lease_until=now()-interval '1 second' WHERE id=$1",
+      [interrupted.id],
+    );
+    assert.equal(await queue.claim(), null);
+    assert.equal(
+      (await queue.get(owner.id, next.draftId)).job.status,
+      'failed',
+    );
+    await assert.rejects(
+      queue.complete(interrupted, output, receipt),
+      (e) => e.code === 'JOB_LEASE_LOST',
+    );
+    const deletion = await drafts.prepare(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      { ...workspace.source.copy, title: 'Deletion race copy' },
+      randomUUID(),
+    );
+    await queue.enqueue(
+      owner.id,
+      deletion.draftId,
+      { ...request, snapshotHash: deletion.snapshotHash },
+      randomUUID(),
+    );
+    const deleting = await queue.claim();
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      queue.complete(deleting, output, receipt),
+      (e) => e.code === 'JOB_LEASE_LOST',
+    );
+    await repo.restoreActive(owner.id);
+    assert.equal(
+      (await queue.get(owner.id, deletion.draftId)).job.status,
+      'cancelled',
+    );
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_public_review_jobs.length,
+      3,
+    );
+    await repo.deleteAccountData(owner.id);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_review_jobs WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
+    const [guard] = await db.query(
+      "SELECT c.relrowsecurity AS rls,has_table_privilege('anon','aw_public_review_jobs','SELECT') AS anon,has_table_privilege('authenticated','aw_public_review_jobs','INSERT') AS client FROM pg_class c WHERE c.oid='aw_public_review_jobs'::regclass",
+    );
+    assert.deepEqual(guard, { rls: true, anon: false, client: false });
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
@@ -1046,6 +1174,10 @@ try {
       publicEditorRestoreAndNewReview: true,
       publicReviewConcurrentStartOnce: true,
       publicReviewSourceDeletionGuard: true,
+      publicReviewJobConcurrentEnqueueOnce: true,
+      publicReviewJobConcurrentClaimOnce: true,
+      publicReviewJobNoAutomaticRetry: true,
+      publicReviewJobDeletionGuard: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

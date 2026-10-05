@@ -41,6 +41,14 @@ const en = {
   validation: 'Check the length of the highlighted fields.',
   preflight: 'Remove the details found in these fields, then save again.',
   review: 'AI review',
+  startReview: 'Run AI review',
+  reviewQueued: 'Your AI review is queued. This copy remains private.',
+  reviewConsent:
+    'I agree to send this saved copy to AI for a privacy and content check.',
+  reviewCost:
+    'This uses the available AI allowance. One attempt is allowed per saved copy; refreshing the status does not use AI.',
+  reviewDisabled:
+    'AI reviews are currently unavailable. You can keep editing your private copy.',
   refreshReview: 'Refresh review status',
   notStarted: 'An AI review has not been run for this saved copy.',
   running: 'The AI review is in progress. This copy remains private.',

@@ -27,6 +27,8 @@ import {
   publicPreviewWorkspaceSchema,
   publicReviewViewSchema,
   publicPreviewPreflightSchema,
+  publicReviewJobRequestSchema,
+  publicReviewJobViewSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -88,6 +90,8 @@ for (const [name, schema] of Object.entries({
   previewWorkspace: publicPreviewWorkspaceSchema,
   reviewView: publicReviewViewSchema,
   previewPreflight: publicPreviewPreflightSchema,
+  reviewJobRequest: publicReviewJobRequestSchema,
+  reviewJobView: publicReviewJobViewSchema,
 })) {
   writeFileSync(
     resolve(publicDirectory, `${name}.schema.json`),

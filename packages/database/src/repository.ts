@@ -609,6 +609,16 @@ export class Repository {
               [userId],
             )
           : [];
+      const [publicReviewJobs] = await tx.query(
+        "SELECT to_regclass('public.aw_public_review_jobs') IS NOT NULL AS present",
+      );
+      result.aw_public_review_jobs =
+        publicReviewJobs?.present === true
+          ? await tx.query(
+              'SELECT * FROM aw_public_review_jobs WHERE user_id=$1',
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],
@@ -642,6 +652,19 @@ export class Repository {
         [userId],
       );
       await cancelSharedAccountJobs(tx, userId);
+      const [reviewJobs] = await tx.query(
+        "SELECT to_regclass('public.aw_public_review_jobs') IS NOT NULL AS present",
+      );
+      if (reviewJobs?.present === true) {
+        await tx.query(
+          "UPDATE aw_public_review_jobs SET status='cancelled',lease_token=NULL,lease_until=NULL,finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')",
+          [userId],
+        );
+        await tx.query(
+          "UPDATE aw_public_draft_reviews SET status='failed',failure_code='PUBLIC_REVIEW_INTERRUPTED',finished_at=now() WHERE user_id=$1 AND status='running' AND id IN (SELECT review_id FROM aw_public_review_jobs WHERE user_id=$1 AND status='cancelled')",
+          [userId],
+        );
+      }
     });
   }
   async restoreActive(userId: string) {

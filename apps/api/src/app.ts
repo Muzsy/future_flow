@@ -53,6 +53,8 @@ import {
   publicPreviewRequestSchema,
   publicPreviewWorkspaceSchema,
   publicPreviewPreflightSchema,
+  publicReviewJobRequestSchema,
+  publicReviewJobViewSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -63,6 +65,9 @@ import {
   LifeRepository,
   PublicDraftRepository,
   PublicReviewRepository,
+  PublicReviewJobRepository,
+  publicReviewJobConfigFromEnv,
+  type PublicReviewJobConfig,
   BetaFeedbackRepository,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
@@ -338,7 +343,11 @@ class LifeController {
   }
   private readonly lives: LifeRepository;
   private readonly publicDrafts: PublicDraftRepository;
-  constructor(@Inject(REPOSITORY) private readonly repo: Repository) {
+  constructor(
+    @Inject(REPOSITORY) private readonly repo: Repository,
+    @Inject('PUBLIC_REVIEW_CONFIG')
+    private readonly publicReviewConfig: PublicReviewJobConfig,
+  ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.lives = new LifeRepository(repo.db, {
       daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
@@ -461,6 +470,40 @@ class LifeController {
       idSchema.parse(id),
     );
   }
+  @Get('public-previews/:id/review-job')
+  @ApiOperation({
+    summary: 'Read own paid review availability and job status. No AI call.',
+  })
+  @ApiOkResponse({ schema: z.toJSONSchema(publicReviewJobViewSchema) as never })
+  publicReviewJob(@Req() req: AuthRequest, @Param('id') id: string) {
+    return new PublicReviewJobRepository(
+      this.repo.db,
+      this.publicReviewConfig,
+    ).get(req.userId, idSchema.parse(id));
+  }
+  @Post('public-previews/:id/review-job')
+  @ApiOperation({
+    summary:
+      'Request one budget-guarded AI pre-screen of the own immutable copy.',
+  })
+  @ApiBody({ schema: z.toJSONSchema(publicReviewJobRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(publicReviewJobViewSchema) as never })
+  startPublicReviewJob(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    return new PublicReviewJobRepository(
+      this.repo.db,
+      this.publicReviewConfig,
+    ).enqueue(
+      req.userId,
+      idSchema.parse(id),
+      publicReviewJobRequestSchema.parse(body),
+      key ?? '',
+    );
+  }
   @Post('branches/:id/choice') async choose(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -539,6 +582,7 @@ export async function createApp(
   origin = 'http://localhost:3000',
   proxyHops: 0 | 1 = 0,
   sharedFeatures: SharedFeatures = sharedFeaturesFromEnv(),
+  publicReviewConfig: PublicReviewJobConfig = publicReviewJobConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -555,6 +599,7 @@ export async function createApp(
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
+      { provide: 'PUBLIC_REVIEW_CONFIG', useValue: publicReviewConfig },
       AuthGuard,
     ],
   })

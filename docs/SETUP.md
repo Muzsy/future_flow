@@ -123,3 +123,10 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 ## Kétfiókos Shared integráció ellenőrzése
 
 `pnpm smoke:shared:auth --preflight`: valódi saját szintetikus Auth/DB, explicit technikai fixture-output, nulla fizetett AI. A `--run` és `--refined` egyszeri fizetett eset már lezárult; meglévő attempt/minta blokkolja a megismétlést. Napló/attempt nem törölhető új paid próba indításához. `--cleanup`, `--cleanup-refined`, `--cleanup-preflight` kizárólag saját provenance-ellenőrzött szintetikus manifestet takarít. A normál feature flag-ek false maradnak. [Parancskorlátok, eredmény és költség](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+
+
+## 2026-10-05: felületről indítható privát AI-review
+
+A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Helyi teljes check: 323 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
+
+A review-job aktiválásához API és worker ugyanazt a `PUBLIC_REVIEW_JOBS_ENABLED=true`, pozitív közös `AI_PROJECT_BUDGET_USD`/`AI_USER_BUDGET_USD` konfigurációt kapja. A projekt/user DB-limitek korábbi működése változatlan; konfigurációemelés nem növeli automatikusan a már tárolt allowance-t. Helyi fizetett kísérlet csak a közös abszolút `AI_EXPERIMENT_LEDGER_PATH` és az összesített, legfeljebb 5 USD guard mellett indulhat. Alap `PUBLIC_REVIEW_DAILY_LIMIT=5`, egy pending review/user. Normál és deploy példa tiltott marad; API-flag önmagában nem futtat worker-hívást.
