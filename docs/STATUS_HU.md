@@ -16,7 +16,7 @@
 | Supabase | 001–015 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 35 aw_/35 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
-| Runtime CI | `4745a3`: 314 teszt/27 fájl, teljes check/build/48 séma-drift; izolált web/API/worker/Caddy, 001–014 + ismétlés, valós PostgreSQL P09 editor-preflight/párhuzamos mentés/restore/új copy/review/deletion/RLS és korábbi S0–S3 proof; verified DB TLS/HTTPS, üres queue/tiszta leállás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37347782878) |
+| Runtime CI | `33bea6f`: 324 teszt/28 fájl, teljes check/build/50 séma-drift; izolált PostgreSQL review-job enqueue/claim/reuse/lease/deletion/RLS és korábbi P09/S0–S3 proof, 001–015 + ismétlés; verified TLS/HTTPS, üres queue/tiszta leállás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37353253492) |
 | P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) kész; curator/Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
@@ -43,9 +43,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | Sikeres teljes Auth/Shared/saját AI lánc | 13 | 0.1698351 |
 | P09 valódi angol privacy AI-audit | 1 | 0.009006 |
 | P09 privát szerkesztő valódi Auth/AI és két copy-review | 5 | 0.063175000 |
-| **Összesen** | **132** | **2.342928105 ≈ 2.34** |
-| **Konzervatívan elszámolt összeg** | | **2.428628375** |
-| **Guard szerint megmaradt keret** | | **2.571371625 ≈ 2.57** |
+| P09 felületről indított valódi AI-review | 1 | 0.005243500 |
+| **Összesen** | **133** | **2.348171605 ≈ 2.35** |
+| **Konzervatívan elszámolt összeg** | | **2.433873375** |
+| **Guard szerint megmaradt keret** | | **2.566126625 ≈ 2.57** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -128,4 +129,13 @@ A [privát angol szerkesztő](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) elkészült: s
 
 ## 2026-10-05: felületről indítható privát AI-review
 
-A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Helyi teljes check: 323 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
+A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Main CI sikeres: 324 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
+
+
+### P09 review-job lezárási bizonyíték
+
+[Main CI](https://github.com/Muzsy/future_flow/actions/runs/37353253492) runtime `33bea6fb3ca70b8c722f6c315db810ec8076bab5`: verify és container sikeres. 324 teszt/28 fájl, formázás, típusellenőrzés, API/worker/Next production build és 50 séma-drift. Izolált valós PostgreSQL/TLS: 001–015 + ismétlés, párhuzamos három review-enqueue → egy job és két claim → egy nyertes, eredmény-újrahasználat, lejárt lease automatikus retry nélkül, törlési marker/visszaállítás/export/cascade/RLS és minden korábbi S0–S3 proof. Web/API/Caddy verified HTTPS/DB TLS, üres négy queue és worker tiszta 0-s leállás, nulla provider-AI és valódi CI-kulcs, egress tiltva.
+
+Valódi Supabase Auth/böngészős kliens → queue → worker → OpenAI ellenőrzés sikeres: egy Sol-hívás, no_findings/0 finding, publicationApproved false. A korábban valóban AI-val generált időszak csak technikai replay-forrás volt, nem új paid generálás vagy AI nélküli termékmód. Hozzájárulás és queued-státusz látható; reload/refresh ugyanazt az eredményt használja, dirty copy elrejti azt és az indítást, source reload az eredeti mentett szöveget hozza vissza. Saját export elkészült, szintetikus Auth/DB-fiók és jobok törölve, credential fájl hiányzik, 3200/4200 tesztport leállt.
+
+Új OpenAI-költségbecslés 0.005243500 USD, konzervatív 0.005245000 USD. Kumulatív 133 hívás, 2.348171605 USD becslés, 2.433873375 USD guard-összeg; maradt 2.566126625 USD, ismeretlen usage 0. Claude változatlan: maradt 2.661985 USD. Naplók nem nullázva.
