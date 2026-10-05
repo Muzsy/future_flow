@@ -162,6 +162,22 @@ try {
     '60',
     'postgres',
   );
+  // Create the Supabase client roles in this disposable PostgreSQL fixture before
+  // migration revokes run. These roles cannot log in and never touch a live DB.
+  compose(
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'postgres',
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-c',
+    'CREATE ROLE anon NOLOGIN',
+    '-c',
+    'CREATE ROLE authenticated NOLOGIN',
+  );
   // Both runs use verified DB TLS and the production migration/checksum runner.
   compose('run', '--rm', '--no-deps', 'api', 'pnpm', 'db:migrate');
   compose('run', '--rm', '--no-deps', 'api', 'pnpm', 'db:migrate');
@@ -184,6 +200,9 @@ try {
     ).trim(),
   );
   assert.equal(sharedFoundation.sharedFoundationPostgres, 'passed');
+  assert.equal(sharedFoundation.publicReviewPostgres, 'passed');
+  assert.equal(sharedFoundation.publicReviewConcurrentStartOnce, true);
+  assert.equal(sharedFoundation.publicReviewSourceDeletionGuard, true);
   assert.equal(sharedFoundation.sharedEnginePostgres, 'passed');
   assert.equal(sharedFoundation.tenParallelIntents, true);
   assert.equal(sharedFoundation.decisionResolutionOnce, true);
