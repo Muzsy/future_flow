@@ -41,6 +41,22 @@ const errors: Record<string, readonly [string, string]> = {
     'Paid AI reviews are currently unavailable. This copy remains private.',
     'Az AI-ellenőrzés jelenleg nem elérhető. A másolat privát marad.',
   ],
+  PUBLIC_CURATION_DISABLED: [
+    'Copy text reviews are currently unavailable. Your copy remains private.',
+    'A másolat szövegellenőrzése jelenleg nem elérhető.',
+  ],
+  PUBLIC_CURATION_AI_REQUIRED: [
+    'Complete the AI review and resolve its findings before requesting a copy text review.',
+    'Előbb sikeres, jelzés nélküli AI-ellenőrzés szükséges.',
+  ],
+  PUBLIC_CURATION_INVALID: [
+    'This text review does not match the saved copy. Prepare a new preview.',
+    'A szövegellenőrzés nem egyezik a mentett másolattal.',
+  ],
+  PUBLIC_CURATION_DECIDED: [
+    'This copy already has a text review decision. Prepare a new preview for changes.',
+    'A másolat szövegellenőrzési döntése már végleges.',
+  ],
   PUBLIC_REVIEW_LIMIT: [
     'You have reached the review limit, or another review is still pending. Refresh its status before starting a new one.',
     'Elérted az ellenőrzési limitet, vagy még egy ellenőrzés folyamatban van.',

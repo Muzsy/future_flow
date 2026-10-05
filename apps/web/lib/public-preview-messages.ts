@@ -50,6 +50,28 @@ const en = {
   reviewDisabled:
     'AI reviews are currently unavailable. You can keep editing your private copy.',
   refreshReview: 'Refresh review status',
+  curation: 'Copy text review',
+  curationConsent:
+    'I agree to send this saved copy for a trusted privacy and content review.',
+  submitCuration: 'Request a copy text review',
+  curationHint:
+    'This makes no additional AI call. The review covers this copy text; publishing will need a separate confirmation.',
+  curationDisabled: 'Trusted copy text reviews are not available yet.',
+  curationPending:
+    'Your copy is waiting for a text review. It remains private.',
+  curationReviewed:
+    'The copy text review is complete. This preview remains private.',
+  curationChanges:
+    'The reviewer requested changes. Edit this copy and save a new preview.',
+  curationRejected:
+    'This copy was declined for further preparation. It remains private.',
+  curationReasons: {
+    privacy: 'Privacy',
+    content: 'Content',
+    quality: 'Writing quality',
+    story_consistency: 'Story consistency',
+    other: 'Further review needed',
+  },
   notStarted: 'An AI review has not been run for this saved copy.',
   running: 'The AI review is in progress. This copy remains private.',
   failed:

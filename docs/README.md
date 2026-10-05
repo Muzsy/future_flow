@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [P09 kurátori szövegellenőrzés](PUBLIC_TEXT_CURATION_REPORT_HU.md) | Tulajdonosi consent, védett operatori copy/döntés, immutable text_only eredmény; további kiadási kapuk még nyitottak |
 | [P09 felületről indítható AI-review](PUBLIC_REVIEW_JOB_REPORT_HU.md) | Explicit kérés, egyszeri queue, közös költségőr, concurrency/lease és export/törlés; nem publikálás |
 | [P09 privát szerkesztő és előnézet](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) | Mezőszintű ingyenes ellenőrzés, külön másolat mentése/visszatöltése és kötött AI-jelzések; kiadás még nincs |
 | [P09 privát AI-ellenőrzés](PUBLIC_AI_REVIEW_REPORT_HU.md) | Angol privacy/content pre-screen, valódi Sol-próba, tartós privát eredmény és main/konténeres bizonyíték; kiadási kapuk |

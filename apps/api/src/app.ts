@@ -55,6 +55,8 @@ import {
   publicPreviewPreflightSchema,
   publicReviewJobRequestSchema,
   publicReviewJobViewSchema,
+  publicCurationRequestSchema,
+  publicCurationViewSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -66,6 +68,8 @@ import {
   PublicDraftRepository,
   PublicReviewRepository,
   PublicReviewJobRepository,
+  PublicCurationRepository,
+  publicCurationEnabledFromEnv,
   publicReviewJobConfigFromEnv,
   type PublicReviewJobConfig,
   BetaFeedbackRepository,
@@ -347,6 +351,8 @@ class LifeController {
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('PUBLIC_REVIEW_CONFIG')
     private readonly publicReviewConfig: PublicReviewJobConfig,
+    @Inject('PUBLIC_CURATION_ENABLED')
+    private readonly publicCurationEnabled: boolean,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.lives = new LifeRepository(repo.db, {
@@ -504,6 +510,40 @@ class LifeController {
       key ?? '',
     );
   }
+  @Get('public-previews/:id/curation')
+  @ApiOperation({
+    summary: 'Read own copy text review status. No publication or AI call.',
+  })
+  @ApiOkResponse({ schema: z.toJSONSchema(publicCurationViewSchema) as never })
+  publicCuration(@Req() req: AuthRequest, @Param('id') id: string) {
+    return new PublicCurationRepository(
+      this.repo.db,
+      this.publicCurationEnabled,
+    ).get(req.userId, idSchema.parse(id));
+  }
+  @Post('public-previews/:id/curation')
+  @ApiOperation({
+    summary:
+      'Submit own immutable copy for a trusted text review. No publication or AI call.',
+  })
+  @ApiBody({ schema: z.toJSONSchema(publicCurationRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(publicCurationViewSchema) as never })
+  submitPublicCuration(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
+  ) {
+    return new PublicCurationRepository(
+      this.repo.db,
+      this.publicCurationEnabled,
+    ).submit(
+      req.userId,
+      idSchema.parse(id),
+      publicCurationRequestSchema.parse(body),
+      key ?? '',
+    );
+  }
   @Post('branches/:id/choice') async choose(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -583,6 +623,7 @@ export async function createApp(
   proxyHops: 0 | 1 = 0,
   sharedFeatures: SharedFeatures = sharedFeaturesFromEnv(),
   publicReviewConfig: PublicReviewJobConfig = publicReviewJobConfigFromEnv(),
+  publicCurationEnabled = publicCurationEnabledFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -600,6 +641,7 @@ export async function createApp(
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
       { provide: 'PUBLIC_REVIEW_CONFIG', useValue: publicReviewConfig },
+      { provide: 'PUBLIC_CURATION_ENABLED', useValue: publicCurationEnabled },
       AuthGuard,
     ],
   })

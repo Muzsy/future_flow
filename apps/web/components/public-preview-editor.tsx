@@ -14,6 +14,8 @@ import {
   type PublicReviewView,
   PUBLIC_REVIEW_VERSION,
   type PublicReviewJobView,
+  PUBLIC_CURATION_VERSION,
+  type PublicCurationView,
 } from '@future-flow/contracts';
 import { lifeApi, clientErrorMessage, ClientError } from '../lib/client';
 import {
@@ -22,6 +24,7 @@ import {
   editCopyField,
   reviewForPreview,
   reviewJobForPreview,
+  curationForPreview,
 } from '../lib/public-preview';
 import { publicPreviewMessages } from '../lib/public-preview-messages';
 import { PublicContentPreview } from './public-content-preview';
@@ -35,7 +38,9 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     [preview, setPreview] = useState<PublicPreviewRecord | null>(null),
     [review, setReview] = useState<PublicReviewView | null>(null),
     [reviewJob, setReviewJob] = useState<PublicReviewJobView | null>(null),
-    [reviewConsent, setReviewConsent] = useState(false);
+    [reviewConsent, setReviewConsent] = useState(false),
+    [curation, setCuration] = useState<PublicCurationView | null>(null),
+    [curationConsent, setCurationConsent] = useState(false);
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(''),
@@ -48,6 +53,7 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     [now, setNow] = useState(Date.now());
   const request = useRef<{ signature: string; key: string } | null>(null),
     reviewRequest = useRef<{ draftId: string; key: string } | null>(null),
+    curationRequest = useRef<{ draftId: string; key: string } | null>(null),
     alive = useRef(true),
     abort = useRef<AbortController | null>(null);
   const dirty =
@@ -79,18 +85,21 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
   async function readReview(saved: PublicPreviewRecord) {
     const signal = abort.current?.signal;
     try {
-      const [raw, job] = await Promise.all([
+      const [raw, job, textCuration] = await Promise.all([
         lifeApi(`/public-previews/${saved.draftId}/review`, { signal }),
         lifeApi(`/public-previews/${saved.draftId}/review-job`, { signal }),
+        lifeApi(`/public-previews/${saved.draftId}/curation`, { signal }),
       ]);
       if (!alive.current || signal?.aborted) return;
       setReview(reviewForPreview(raw, saved));
       setReviewJob(reviewJobForPreview(job, saved));
+      setCuration(curationForPreview(textCuration, saved));
       setReviewError('');
     } catch (error) {
       if (alive.current && !signal?.aborted) {
         setReview(null);
         setReviewJob(null);
+        setCuration(null);
         setReviewError(
           error instanceof ClientError
             ? clientErrorMessage(error)
@@ -102,6 +111,9 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
   async function load() {
     const signal = abort.current?.signal;
     setLoading(true);
+    setCuration(null);
+    setCurationConsent(false);
+    curationRequest.current = null;
     setNotice('');
     setReview(null);
     setReviewJob(null);
@@ -143,6 +155,7 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     setCopy(editCopyField(copy, path, text));
     setAcknowledged(false);
     setReviewConsent(false);
+    setCurationConsent(false);
     setInvalid([]);
     setIssues([]);
     setNotice('');
@@ -198,6 +211,7 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
       setCopy(copyFromSnapshot(saved.snapshot));
       setReview(null);
       setNotice(m.checked);
+      setCurationConsent(false);
       setNow(Date.now());
       await readReview(saved);
       setView('content');
@@ -241,6 +255,9 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
     setReviewJob(null);
     setReviewConsent(false);
     reviewRequest.current = null;
+    curationRequest.current = null;
+    setCuration(null);
+    setCurationConsent(false);
     setReviewError('');
     setAcknowledged(false);
     setView('privacy');
@@ -284,6 +301,52 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
       setReviewJob(reviewJobForPreview(raw, preview));
       setReviewConsent(false);
       await readReview(preview);
+    } catch (error) {
+      if (alive.current && !signal?.aborted)
+        setNotice(clientErrorMessage(error));
+    } finally {
+      if (alive.current && !signal?.aborted) setBusy(false);
+    }
+  }
+  async function submitCuration() {
+    const signal = abort.current?.signal;
+    if (
+      busy ||
+      !preview ||
+      dirty ||
+      expired ||
+      !curationConsent ||
+      !curation?.enabled ||
+      curation.curation ||
+      review?.status !== 'completed' ||
+      review.report.verdict !== 'no_findings'
+    )
+      return;
+    setBusy(true);
+    setNotice('');
+    if (curationRequest.current?.draftId !== preview.draftId)
+      curationRequest.current = {
+        draftId: preview.draftId,
+        key: crypto.randomUUID(),
+      };
+    try {
+      const raw = await lifeApi(
+        `/public-previews/${preview.draftId}/curation`,
+        {
+          method: 'POST',
+          signal,
+          headers: { 'Idempotency-Key': curationRequest.current.key },
+          body: JSON.stringify({
+            snapshotHash: preview.snapshotHash,
+            sourceRevision: preview.sourceRevision,
+            curationVersion: PUBLIC_CURATION_VERSION,
+            acknowledged: true,
+          }),
+        },
+      );
+      if (!alive.current || signal?.aborted) return;
+      setCuration(curationForPreview(raw, preview));
+      setCurationConsent(false);
     } catch (error) {
       if (alive.current && !signal?.aborted)
         setNotice(clientErrorMessage(error));
@@ -547,6 +610,55 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
                       );
                     })}
                   </ul>
+                )}
+              {review?.status === 'completed' &&
+                review.report.verdict === 'no_findings' &&
+                curation && (
+                  <section aria-label={m.curation}>
+                    <h3>{m.curation}</h3>
+                    {curation.curation ? (
+                      <>
+                        <p>
+                          {curation.curation.status === 'pending'
+                            ? m.curationPending
+                            : curation.curation.status === 'text_reviewed'
+                              ? m.curationReviewed
+                              : curation.curation.status === 'changes_requested'
+                                ? m.curationChanges
+                                : m.curationRejected}
+                        </p>
+                        {curation.curation.reasonCode && (
+                          <p>
+                            {m.curationReasons[curation.curation.reasonCode]}
+                          </p>
+                        )}
+                      </>
+                    ) : curation.enabled ? (
+                      <>
+                        <label className="shared-check">
+                          <input
+                            type="checkbox"
+                            checked={curationConsent}
+                            disabled={busy}
+                            onChange={(e) =>
+                              setCurationConsent(e.target.checked)
+                            }
+                          />
+                          <span>{m.curationConsent}</span>
+                        </label>
+                        <p className="subtle">{m.curationHint}</p>
+                        <button
+                          className="primary"
+                          disabled={busy || !curationConsent}
+                          onClick={() => void submitCuration()}
+                        >
+                          {m.submitCuration}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="subtle">{m.curationDisabled}</p>
+                    )}
+                  </section>
                 )}
               <button
                 className="secondary"

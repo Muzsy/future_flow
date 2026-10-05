@@ -341,6 +341,7 @@ export * from './public-draft';
 export * from './public-review';
 export * from './public-preview-editor';
 export * from './public-review-jobs';
+export * from './public-curation';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';

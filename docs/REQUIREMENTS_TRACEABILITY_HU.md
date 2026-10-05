@@ -62,7 +62,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C5 · A három tartalmi réteg | Három tartalmi réteg, Official vs Community külön | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P09–P11 |
 | C6 · Láthatósági szintek | Private/unlisted/public; anonymous author külön beállítás | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P11 |
 | C7 · Publikálási folyamat | Publish → scan → Privacy Preview → Content Preview → Confirm | [02](alter_jovo_docs/02_USER_EXPERIENCE_AND_FLOWS.md) | Privát előnézeti API kész; publish/Confirm tervezett | P11 |
-| C8 · Privacy Preview és anonimizálás | PII/harmadik személy vizsgálat és szerkeszthető preview | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Részleges privát preflight kész; teljes scan/preview UI tervezett | P09, P11, P13 |
+| C8 · Privacy Preview és anonimizálás | PII/harmadik személy vizsgálat és szerkeszthető preview | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Privát preflight/AI-scan/editor és text-only curator kész; kiadási checkpoint/Confirm még tervezett | P09, P11, P13 |
 | C9 · Mi számít publikus életútnak | Nyilvános élet csak jóváhagyott külön snapshot | [09](alter_jovo_docs/09_DATA_MODEL.md) | Immutable privát piszkozat kész; publication tervezett | P09 |
 | C10 · Publikus életút-oldal felépítése | Cím/summary/badge/timeline/milestone/decision/branch/Save/Share/Fork/Report | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10, P12 |
 | C11 · Discovery oldal | Kurált kollekciók/kategóriák és nyelvi szűrő | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
@@ -83,7 +83,7 @@ A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtár
 | C26 · Rangsorolás és ajánlórendszer | Egyszerű aggregált ranking, fork erősebb mint view | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10 |
 | C27 · Reakciók, mentések, követés és kommentek | Save/Share/Fork első, reaction/follow majd comment később | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett, social halasztott | P10–P12, MVP után |
 | C28 · Moderáció | Scan/Report/review/soft hide/hard remove/warning/abuse limit | [07](alter_jovo_docs/07_COMMUNITY_AND_SOCIAL.md) | Tervezett | P10–P13 |
-| C29 · Személyes adatok és érzékeny információk | PII és érzékeny/third-party adat nem automatikusan public | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Tervezett public ellenőrzés | P09, P11, P13 |
+| C29 · Személyes adatok és érzékeny információk | PII és érzékeny/third-party adat nem automatikusan public | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Privát text-only curator kész; teljes kiadási ellenőrzés tervezett | P09, P11, P13 |
 | C30 · Publikálás visszavonása és törlés | Unpublish/link/index/cache/OG/delete/fork attribution | [11](alter_jovo_docs/11_SECURITY_PRIVACY_COMPLIANCE.md) | Tervezett; retention döntés nyitott | P11–P13 |
 | C31 · Monetizációs szerep | Olcsó/free olvasásból limitált saját generálás | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Üzleti hipotézis | P05, P13 |
 | C32 · Free és fizetős funkcióhatárok | Free olvasás/Save/Share/Publish; paid mélység később | [15](alter_jovo_docs/15_ANALYTICS_MONETIZATION_OPERATIONS.md) | Árak/limitek nyitottak | P05, MVP után |
@@ -167,3 +167,8 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 ## 2026-10-05: felületről indítható privát AI-review
 
 A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Main CI sikeres: 324 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
+
+
+## 2026-10-05: tulajdonosi beküldés és text-curation
+
+A P09 tulajdonosi beküldés és trusted text-curation nyilvántartás elkészült: explicit consent, aktuális immutable copy és no_findings AI-review, idempotens beküldés, védett operatori lista/döntésfájl, egyszeri változatlan döntés, English/Shared/ownership/revision/hash/expiry/törlés kapu, export/cascade és 016 RLS-migráció. Scope text_only, publicationApproved false. Teljes ScenarioVersion/sanitized fork-checkpoint és azok ellenőrzése, Publication/Confirm/Official eredetengedély/seed még hátravan; majd P10–P13. 52 séma, a korábbi 50 és 001–015 változatlan; fejlesztői DB 001–016 alkalmazva/ismételve, 19 ff_ és 36 aw_/36 RLS. Új AI-hívás nincs; a közös OpenAI/Claude keretek, S3 retention/S4–S7 és Contabo/Cloudflare kapuk megmaradnak. [Kurátori szövegellenőrzés és pontos korlátok](PUBLIC_TEXT_CURATION_REPORT_HU.md).

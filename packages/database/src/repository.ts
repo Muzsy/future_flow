@@ -619,6 +619,16 @@ export class Repository {
               [userId],
             )
           : [];
+      const [textCuration] = await tx.query(
+        "SELECT to_regclass('public.aw_public_text_curations') IS NOT NULL AS present",
+      );
+      result.aw_public_text_curations =
+        textCuration?.present === true
+          ? await tx.query(
+              'SELECT * FROM aw_public_text_curations WHERE user_id=$1',
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

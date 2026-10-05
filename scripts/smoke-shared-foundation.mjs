@@ -25,6 +25,7 @@ const {
   LifeJobRepository,
   PublicReviewRepository,
   PublicReviewJobRepository,
+  PublicCurationRepository,
   buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
@@ -1165,6 +1166,148 @@ try {
     );
     assert.deepEqual(guard, { rls: true, anon: false, client: false });
   }
+  {
+    const { PublicDraftRepository } = require('@future-flow/database');
+    const { hash } = require('@future-flow/core');
+    const owner = await person();
+    await personalPeriod(owner);
+    const drafts = new PublicDraftRepository(db),
+      reviews = new PublicReviewRepository(db),
+      curations = new PublicCurationRepository(db, true);
+    const workspace = await drafts.workspace(owner.id, owner.branchId);
+    async function prepareCopy(title) {
+      const preview = await drafts.prepare(
+        owner.id,
+        owner.branchId,
+        workspace.source.sourceRevision,
+        { ...workspace.source.copy, title },
+        randomUUID(),
+      );
+      const started = await reviews.start(owner.id, preview.draftId),
+        output = { verdict: 'no_findings', findings: [] };
+      await reviews.complete(
+        owner.id,
+        preview.draftId,
+        started.reviewId,
+        output,
+        {
+          task: 'public_review',
+          promptVersion: 'isolated-ci',
+          locale: 'en',
+          model: 'isolated-fixture-no-provider',
+          requestId: null,
+          inputHash: hash(started.input),
+          outputHash: hash(output),
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+        },
+      );
+      return {
+        preview,
+        request: {
+          snapshotHash: preview.snapshotHash,
+          sourceRevision: preview.sourceRevision,
+          curationVersion: 'text-curation-1',
+          acknowledged: true,
+        },
+      };
+    }
+    const { preview, request } = await prepareCopy('Synthetic curation copy'),
+      key = randomUUID();
+    const submitted = await Promise.all([
+      curations.submit(owner.id, preview.draftId, request, key),
+      curations.submit(owner.id, preview.draftId, request, key),
+      curations.submit(owner.id, preview.draftId, request, randomUUID()),
+    ]);
+    assert.equal(new Set(submitted.map((x) => x.curation.id)).size, 1);
+    const curationId = submitted[0].curation.id;
+    const input = {
+      curationId,
+      snapshotHash: preview.snapshotHash,
+      sourceRevision: preview.sourceRevision,
+      status: 'text_reviewed',
+      reasonCode: null,
+      actorLabel: 'Isolated CI technical fixture',
+      privacyChecked: true,
+      contentChecked: true,
+    };
+    const competing = await Promise.allSettled([
+      curations.decide(input),
+      curations.decide({ ...input, status: 'rejected', reasonCode: 'content' }),
+    ]);
+    assert.equal(competing.filter((x) => x.status === 'fulfilled').length, 1);
+    assert.equal(
+      competing.find((x) => x.status === 'rejected').reason.code,
+      'PUBLIC_CURATION_DECIDED',
+    );
+    const winner = competing.find((x) => x.status === 'fulfilled').value;
+    const reapply =
+      winner.curation.status === 'text_reviewed'
+        ? input
+        : { ...input, status: 'rejected', reasonCode: 'content' };
+    assert.deepEqual(await curations.decide(reapply), winner);
+    assert.equal(winner.publicationApproved, false);
+    assert.equal(
+      (await drafts.get(owner.id, preview.draftId)).status,
+      'awaiting_review',
+    );
+    await assert.rejects(
+      db.query(
+        'UPDATE aw_public_text_curations SET actor_label=$1 WHERE id=$2',
+        ['Replacement actor', curationId],
+      ),
+    );
+    const next = await prepareCopy('Synthetic pending curation'),
+      pending = await curations.submit(
+        owner.id,
+        next.preview.draftId,
+        next.request,
+        randomUUID(),
+      );
+    await db.query('UPDATE aw_branches SET revision=revision+1 WHERE id=$1', [
+      owner.branchId,
+    ]);
+    const nextDecision = {
+      ...input,
+      curationId: pending.curation.id,
+      snapshotHash: next.preview.snapshotHash,
+    };
+    await assert.rejects(
+      curations.decide(nextDecision),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    assert.equal(
+      (await curations.pending()).some(
+        (x) => x.curationId === pending.curation.id,
+      ),
+      false,
+    );
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      curations.decide(nextDecision),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await repo.restoreActive(owner.id);
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_public_text_curations.length,
+      2,
+    );
+    await repo.deleteAccountData(owner.id);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_text_curations WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
+    const [guard] = await db.query(
+      "SELECT c.relrowsecurity AS rls,has_table_privilege('anon','aw_public_text_curations','SELECT') AS anon,has_table_privilege('authenticated','aw_public_text_curations','INSERT') AS client FROM pg_class c WHERE c.oid='aw_public_text_curations'::regclass",
+    );
+    assert.deepEqual(guard, { rls: true, anon: false, client: false });
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
@@ -1178,6 +1321,10 @@ try {
       publicReviewJobConcurrentClaimOnce: true,
       publicReviewJobNoAutomaticRetry: true,
       publicReviewJobDeletionGuard: true,
+      publicCurationConcurrentSubmitOnce: true,
+      publicCurationConcurrentDecisionOnce: true,
+      publicCurationSourceDeletionGuard: true,
+      publicCurationNoPublication: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

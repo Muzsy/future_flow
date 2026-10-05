@@ -29,6 +29,8 @@ import {
   publicPreviewPreflightSchema,
   publicReviewJobRequestSchema,
   publicReviewJobViewSchema,
+  publicCurationRequestSchema,
+  publicCurationViewSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -92,6 +94,8 @@ for (const [name, schema] of Object.entries({
   previewPreflight: publicPreviewPreflightSchema,
   reviewJobRequest: publicReviewJobRequestSchema,
   reviewJobView: publicReviewJobViewSchema,
+  curationRequest: publicCurationRequestSchema,
+  curationView: publicCurationViewSchema,
 })) {
   writeFileSync(
     resolve(publicDirectory, `${name}.schema.json`),

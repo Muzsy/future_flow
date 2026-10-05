@@ -3,6 +3,7 @@ import {
   publicPreviewTextFields,
   publicReviewViewSchema,
   publicReviewJobViewSchema,
+  publicCurationViewSchema,
   type PublicPreviewCopy,
   type PublicSnapshotDraft,
   type PublicPreviewRecord,
@@ -120,4 +121,13 @@ export function reviewJobForPreview(
   )
     throw new Error('Review job does not match this preview');
   return job;
+}
+export function curationForPreview(raw: unknown, preview: PublicPreviewRecord) {
+  const curation = publicCurationViewSchema.parse(raw);
+  if (
+    curation.snapshotHash !== preview.snapshotHash ||
+    curation.sourceRevision !== preview.sourceRevision
+  )
+    throw new Error('Text curation does not match this preview');
+  return curation;
 }

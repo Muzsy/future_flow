@@ -9,6 +9,7 @@ export * from './metrics';
 export * from './public-drafts';
 export * from './public-reviews';
 export * from './public-review-jobs';
+export * from './public-curation';
 export * from './beta';
 export * from './shared-contexts';
 export * from './shared-events';

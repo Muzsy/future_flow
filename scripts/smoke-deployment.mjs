@@ -210,6 +210,10 @@ try {
   assert.equal(sharedFoundation.publicReviewJobConcurrentClaimOnce, true);
   assert.equal(sharedFoundation.publicReviewJobNoAutomaticRetry, true);
   assert.equal(sharedFoundation.publicReviewJobDeletionGuard, true);
+  assert.equal(sharedFoundation.publicCurationConcurrentSubmitOnce, true);
+  assert.equal(sharedFoundation.publicCurationConcurrentDecisionOnce, true);
+  assert.equal(sharedFoundation.publicCurationSourceDeletionGuard, true);
+  assert.equal(sharedFoundation.publicCurationNoPublication, true);
   assert.equal(sharedFoundation.sharedEnginePostgres, 'passed');
   assert.equal(sharedFoundation.tenParallelIntents, true);
   assert.equal(sharedFoundation.decisionResolutionOnce, true);
@@ -315,7 +319,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs)',
   );
-  assert.equal(counts.trim(), '15|0|0|0');
+  assert.equal(counts.trim(), '16|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -324,7 +328,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 15,
+      migrations: 16,
       sharedFoundation,
       repeatMigration: 'passed',
       webAndApiViaVerifiedTls: true,
