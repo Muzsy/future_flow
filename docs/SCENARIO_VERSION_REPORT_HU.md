@@ -43,3 +43,7 @@ Ebben a szeletben új OpenAI/Claude-hívás nincs. A kumulatív OpenAI guard 2.4
 Ez saját fiókon belüli előkészítés: `status=awaiting_review`, `publicationApproved=false`. A determinisztikus kontakt/UUID preflight nem teljes anonimizálás, tartalmi/nyelvi vizsgálat vagy jóváhagyás. Név, harmadik személy, érzékeny tény és visszaazonosíthatóság teljes review-ja kiadás előtt szükséges. A meglévő text-only curator eredménye erre az új strukturált sablonra nem érvényes.
 
 Következő a külön sanitized, futtatható döntési fork-checkpoint, majd a teljes strukturált Privacy/Content Preview és új teljes-scope review, Publication/Confirm/Official eredetengedély, kis valódi AI seed. A 006 coarse scenario draft és `readyForFork=false` változatlan; nem lesz csendesen futtatható checkpoint. P10–P13, a 50–100 Official Life/20–30 Scenario cél, S3 retention/S4–S7, backup/restore/email és Contabo/Cloudflare élesítési kapuk megmaradnak. Ebben a szeletben éles telepítés, DNS/TLS-aktiválás és production allowance nincs.
+
+## Következő szelet elkészült — 2026-10-05
+
+A [sanitized döntési checkpoint foundation](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) is kész. A legfrissebb helyi teljes check 372/32, 62 séma, 001–018 alkalmazva/ismételve. A fent rögzített 354-es ScenarioVersion bizonyíték megmarad; következő teljes strukturált preview/review.

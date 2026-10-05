@@ -27,6 +27,7 @@ const {
   PublicReviewJobRepository,
   PublicCurationRepository,
   ScenarioRepository,
+  PublicForkCheckpointRepository,
   buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
@@ -1462,6 +1463,81 @@ try {
       assert.deepEqual(guard, { rls: true, anon: false, client: false });
     }
   }
+  {
+    const owner = await person();
+    await personalPeriod(owner);
+    const { PublicDraftRepository } = require('@future-flow/database'),
+      drafts = new PublicDraftRepository(db),
+      workspace = await drafts.workspace(owner.id, owner.branchId),
+      preview = await drafts.prepare(
+        owner.id,
+        owner.branchId,
+        workspace.source.sourceRevision,
+        workspace.source.copy,
+        randomUUID(),
+      ),
+      forks = new PublicForkCheckpointRepository(db, true),
+      [candidate] = await forks.candidates(owner.id, preview.draftId);
+    assert.ok(candidate.checkpoint);
+    assert.equal(candidate.checkpoint.readyForPublicFork, false);
+    const input = {
+        snapshotHash: preview.snapshotHash,
+        sourceRevision: preview.sourceRevision,
+        checkpoint: candidate.checkpoint,
+      },
+      key = randomUUID(),
+      copies = await Promise.all([
+        forks.save(owner.id, preview.draftId, input, key),
+        forks.save(owner.id, preview.draftId, input, key),
+        forks.save(owner.id, preview.draftId, input, randomUUID()),
+      ]);
+    assert.equal(new Set(copies.map((x) => x.checkpointId)).size, 1);
+    assert.equal(copies[0].publicationApproved, false);
+    assert.deepEqual(
+      await new PublicForkCheckpointRepository(db).save(
+        owner.id,
+        preview.draftId,
+        input,
+        key,
+      ),
+      copies[0],
+    );
+    await assert.rejects(
+      db.query(
+        'UPDATE aw_public_fork_checkpoints SET checkpoint_hash=$1 WHERE id=$2',
+        ['0'.repeat(64), copies[0].checkpointId],
+      ),
+    );
+    await ownChoice(owner, await personal.branch(owner.id, owner.branchId));
+    await assert.rejects(
+      forks.list(owner.id, preview.draftId),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      forks.save(owner.id, preview.draftId, input, key),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await repo.restoreActive(owner.id);
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_public_fork_checkpoints.length,
+      1,
+    );
+    await repo.deleteAccountData(owner.id);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_fork_checkpoints WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
+    const [guard] = await db.query(
+      "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid='aw_public_fork_checkpoints'::regclass",
+    );
+    assert.deepEqual(guard, { rls: true, anon: false, client: false });
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
@@ -1485,6 +1561,9 @@ try {
       scenarioPrivateFreshReferences: true,
       scenarioQuotaRollback: true,
       scenarioDeletionGuard: true,
+      forkCheckpointConcurrentSaveOnce: true,
+      forkCheckpointSourceDeletionGuard: true,
+      forkCheckpointNoPublication: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

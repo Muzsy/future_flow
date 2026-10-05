@@ -61,6 +61,9 @@ import {
   scenarioVersionRequestSchema,
   scenarioStartRequestSchema,
   scenarioVersionSchema,
+  forkCheckpointRequestSchema,
+  forkCheckpointViewSchema,
+  forkCheckpointCandidateSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -76,6 +79,8 @@ import {
   publicCurationEnabledFromEnv,
   ScenarioRepository,
   scenarioVersionsEnabledFromEnv,
+  PublicForkCheckpointRepository,
+  publicForkCheckpointsEnabledFromEnv,
   publicReviewJobConfigFromEnv,
   type PublicReviewJobConfig,
   BetaFeedbackRepository,
@@ -354,6 +359,7 @@ class LifeController {
   private readonly lives: LifeRepository;
   private readonly publicDrafts: PublicDraftRepository;
   private readonly scenarios: ScenarioRepository;
+  private readonly publicCheckpoints: PublicForkCheckpointRepository;
   constructor(
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('PUBLIC_REVIEW_CONFIG')
@@ -362,8 +368,14 @@ class LifeController {
     private readonly publicCurationEnabled: boolean,
     @Inject('SCENARIO_VERSIONS_ENABLED')
     private readonly scenarioVersionsEnabled: boolean,
+    @Inject('PUBLIC_FORK_CHECKPOINTS_ENABLED')
+    private readonly publicForkCheckpointsEnabled: boolean,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
+    this.publicCheckpoints = new PublicForkCheckpointRepository(
+      repo.db,
+      publicForkCheckpointsEnabled,
+    );
     this.lives = new LifeRepository(repo.db, {
       daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
       concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
@@ -383,6 +395,35 @@ class LifeController {
   }
   @Get('scenarios') scenariosList(@Req() req: AuthRequest) {
     return this.scenarios.list(req.userId);
+  }
+  @Get('public-previews/:id/fork-checkpoints') publicForkList(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ) {
+    return this.publicCheckpoints.list(req.userId, idSchema.parse(id));
+  }
+  @Post('public-previews/:id/fork-checkpoints')
+  @ApiBody({ schema: z.toJSONSchema(forkCheckpointRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(forkCheckpointViewSchema) as never })
+  publicForkSave(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.publicCheckpoints.save(
+      req.userId,
+      idSchema.parse(id),
+      body,
+      key ?? '',
+    );
+  }
+  @Get('public-previews/:id/fork-checkpoint-candidates')
+  @ApiOkResponse({
+    schema: z.toJSONSchema(z.array(forkCheckpointCandidateSchema)) as never,
+  })
+  publicForkCandidates(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.publicCheckpoints.candidates(req.userId, idSchema.parse(id));
   }
   @Post('scenarios')
   @ApiBody({ schema: z.toJSONSchema(scenarioCreateRequestSchema) as never })
@@ -687,6 +728,7 @@ export async function createApp(
   publicReviewConfig: PublicReviewJobConfig = publicReviewJobConfigFromEnv(),
   publicCurationEnabled = publicCurationEnabledFromEnv(),
   scenarioVersionsEnabled = scenarioVersionsEnabledFromEnv(),
+  publicForkCheckpointsEnabled = publicForkCheckpointsEnabledFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -710,6 +752,10 @@ export async function createApp(
         useValue: scenarioVersionsEnabled,
       },
       AuthGuard,
+      {
+        provide: 'PUBLIC_FORK_CHECKPOINTS_ENABLED',
+        useValue: publicForkCheckpointsEnabled,
+      },
     ],
   })
   class AppModule {}

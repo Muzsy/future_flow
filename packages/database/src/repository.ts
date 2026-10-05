@@ -633,6 +633,7 @@ export class Repository {
         'aw_scenarios',
         'aw_scenario_versions',
         'aw_scenario_starts',
+        'aw_public_fork_checkpoints',
       ]) {
         const [storage] = await tx.query(
           'SELECT to_regclass($1) IS NOT NULL AS present',

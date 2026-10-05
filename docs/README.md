@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Döntési checkpoint foundation](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) | Canon/copy/opció kötésű gépi állapot, saját candidate és immutable mentés; full review/kiadás még szükséges |
 | [ScenarioVersion foundation](SCENARIO_VERSION_REPORT_HU.md) | Teljes angol sablon, immutable verziók, friss ID-k, saját privát start normál AI-jobbal; kiadás még külön kapu |
 | [P09 kurátori szövegellenőrzés](PUBLIC_TEXT_CURATION_REPORT_HU.md) | Tulajdonosi consent, védett operatori copy/döntés, immutable text_only eredmény; további kiadási kapuk még nyitottak |
 | [P09 felületről indítható AI-review](PUBLIC_REVIEW_JOB_REPORT_HU.md) | Explicit kérés, egyszeri queue, közös költségőr, concurrency/lease és export/törlés; nem publikálás |

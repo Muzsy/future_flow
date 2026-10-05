@@ -4,6 +4,7 @@ export * from './repository';
 export * from './jobs';
 export * from './lives';
 export * from './public-scenarios';
+export * from './public-fork';
 export * from './life-jobs';
 export * from './ai-budget';
 export * from './metrics';

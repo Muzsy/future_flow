@@ -1,6 +1,34 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_FORK_DISABLED: [
+    'Decision checkpoint preparation is currently unavailable.',
+    'A döntési checkpoint előkészítése jelenleg nem elérhető.',
+  ],
+  PUBLIC_FORK_INVALID: [
+    'This decision checkpoint could not be verified.',
+    'A döntési checkpoint nem ellenőrizhető.',
+  ],
+  PUBLIC_FORK_PRIVACY: [
+    'Generalize identifying details in the decision checkpoint.',
+    'Általánosítsd az azonosító részleteket a döntési checkpointban.',
+  ],
+  PUBLIC_FORK_REFERENCE: [
+    'The decision checkpoint contains inconsistent references.',
+    'A döntési checkpoint hivatkozásai nem konzisztensek.',
+  ],
+  PUBLIC_FORK_SOURCE: [
+    'Reload the saved preview before preparing a decision checkpoint.',
+    'A döntési checkpoint előtt töltsd újra a mentett előnézetet.',
+  ],
+  PUBLIC_FORK_SEMANTICS: [
+    'Generalization changed the decision facts, effects or displayed options.',
+    'Az általánosítás módosította a döntés tényeit, hatásait vagy megjelenített opcióit.',
+  ],
+  PUBLIC_FORK_LIMIT: [
+    'You have reached the checkpoint limit for this copy.',
+    'Elérted a másolat checkpointkorlátját.',
+  ],
   SCENARIO_DISABLED: [
     'Scenario preparation is currently unavailable.',
     'A szcenárió-előkészítés jelenleg nem elérhető.',

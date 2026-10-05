@@ -37,6 +37,12 @@ import {
   scenarioVersionRequestSchema,
   scenarioVersionSchema,
   scenarioStartRequestSchema,
+  FORK_CHECKPOINT_VERSION,
+  forkCheckpointSchema,
+  forkFactChangeSchema,
+  forkCheckpointRequestSchema,
+  forkCheckpointViewSchema,
+  forkCheckpointCandidateSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -116,6 +122,25 @@ for (const [name, schema] of Object.entries({
   );
 }
 const v2Directory = resolve(directory, 'v2');
+for (const [name, schema] of Object.entries({
+  forkCheckpoint: forkCheckpointSchema,
+  forkFactChange: forkFactChangeSchema,
+  forkCheckpointRequest: forkCheckpointRequestSchema,
+  forkCheckpointView: forkCheckpointViewSchema,
+  forkCheckpointCandidate: forkCheckpointCandidateSchema,
+})) {
+  writeFileSync(
+    resolve(publicDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public:${name}:${FORK_CHECKPOINT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 for (const [name, schema] of Object.entries({
   scenarioTemplate: scenarioTemplateSchema,
   scenarioCreateRequest: scenarioCreateRequestSchema,

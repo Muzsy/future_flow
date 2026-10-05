@@ -36,7 +36,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik mind a tizenhét alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a tizennyolc alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -117,3 +117,5 @@ Aktuális runtime `14caf62`: [main CI](https://github.com/Muzsy/future_flow/acti
 P09: [AI-review queue](docs/PUBLIC_REVIEW_JOB_REPORT_HU.md) és [kurátori text-only ellenőrzés](docs/PUBLIC_TEXT_CURATION_REPORT_HU.md) implementált. Publication/Confirm/Official seed és Discovery még fejlesztendő.
 
 P09: [ScenarioVersion foundation](docs/SCENARIO_VERSION_REPORT_HU.md) elkészült; a sanitized döntési checkpoint és teljes kiadási review következik.
+
+P09: [Sanitized döntési checkpoint foundation](docs/PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) kész. Következő a teljes strukturált előnézet és annak külön ellenőrzése.
