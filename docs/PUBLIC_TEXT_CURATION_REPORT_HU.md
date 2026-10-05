@@ -63,6 +63,10 @@ A teljes helyi `pnpm check` sikeres: 336 teszt/29 fájl, formázás, típusellen
 
 Védett operatori opt-in nélkül a parancs elutasítva, védett könyvtáron kívüli döntésfájl elutasítva. A Windows ACL két engedélyezett bejegyzése és öröklésvédelme ellenőrzött. A teszt végén a pending lista újraolvasva üres, a technikai döntésfájl eltávolítva.
 
+Main CI `4d66981` sikeres: 336 teszt/29 fájl, formázás, típusellenőrzés, API/worker/Next production build és 52 séma-drift. Izolált valódi PostgreSQL/TLS: 001–016 + ismétlés, párhuzamos curation-submit és versengő döntés → egy nyertes, azonos apply újrahasználata, revision/törlés/RLS/export/cascade és publication=false; minden korábbi P09/S0–S3 proof megmarad. Konténeres web/API/worker/Caddy verified HTTPS/DB TLS, üres queue és tiszta worker-leállás, nulla provider-AI/valódi CI-kulcs, egress tiltva. [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37358126556).
+
+Dokumentációaudit: 118 Markdown, ebből 115 docs; 21 aktív/21 archív téma, 52 séma és 130 immutable forrás/minta/séma/migráció változatlan. Mind a 80 stratégiai fejezet, 14 public MVP-elem és 15 Shared téma/17 checksum teljes; eredeti ZIP hash változatlan, helyi fájl- és anchorhivatkozások törés nélkül.
+
 ## Következő
 
 A teljes, külön privacy/content ellenőrzést igénylő ScenarioVersion és sanitized fork-checkpoint következik, majd Publication/Confirm/Official seed. P10–P13, S3 retention/S4–S7, backup/restore/email és Contabo/Cloudflare élesítési kapuk a kombinált tervben maradnak. Nincs új éles telepítés, DNS/TLS-aktiválás vagy production allowance.
