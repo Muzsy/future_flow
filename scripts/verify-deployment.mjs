@@ -91,6 +91,10 @@ try {
   }
   assert.equal(config.services.worker.environment.AI_PROJECT_BUDGET_USD, '0');
   assert.equal(config.services.worker.environment.AI_USER_BUDGET_USD, '0');
+  assert.deepEqual(config.services.worker.command, [
+    'node',
+    'apps/worker/dist/main.js',
+  ]);
   console.log(
     JSON.stringify({
       deploymentPreflight: 'passed',

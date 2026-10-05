@@ -294,10 +294,7 @@ try {
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
   assert.equal(worker.State.Running, false);
-  assert(
-    [0, 143].includes(worker.State.ExitCode),
-    'Worker required forced termination',
-  );
+  assert.equal(worker.State.ExitCode, 0, 'Worker did not exit cleanly');
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',

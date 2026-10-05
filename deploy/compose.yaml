@@ -80,7 +80,8 @@ services:
       start_period: 30s
   worker:
     <<: *runtime
-    command: [pnpm, --filter, '@future-flow/worker', start]
+    # Deliver SIGTERM directly to the worker so it can finish and close the DB.
+    command: [node, apps/worker/dist/main.js]
     environment:
       <<: [*database, *shared]
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
