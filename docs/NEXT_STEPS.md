@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–013 alkalmazva és ismétléssel ellenőrizve; teljes helyi/main CI check/build: 304 teszt/27 fájl, 42 változatlan schema. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–014 alkalmazva és ismétléssel ellenőrizve; teljes helyi/main CI check/build: 311 teszt/27 fájl, 44 schema, a korábbi 42 változatlan. P09 privát AI-pre-screen és izolált PostgreSQL review-verseny/törlési próba is sikeres. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -167,7 +167,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** P09 külön Shared privacy/általánosítás/curator és publikációs modell, utána P10 Discovery; a Shared-emléket tartalmazó jelenlegi előnézet fail-closed. S3 megjelenítés és valódi Auth/AI/recovery kész; nyers canon/backup-retention és régi személyes próza kezelése még tisztázandó. Entitlement/billing/grace és kiadási deadline külön döntés. P06 ops és S4–S7 megmarad; Contabo később. [Aktuális bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
+**Következő helyben:** P09 szerkeszthető Privacy/Content Preview, felhasználói scan-queue költségőrrel, külön Shared privacy/általánosítás/curator és publikációs modell, utána P10 Discovery; a Shared-emléket tartalmazó jelenlegi előnézet fail-closed. S3 megjelenítés és valódi Auth/AI/recovery kész; nyers canon/backup-retention és régi személyes próza kezelése még tisztázandó. Entitlement/billing/grace és kiadási deadline külön döntés. P06 ops és S4–S7 megmarad; Contabo később. [Aktuális P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 ## Claude-mérés utáni AI-feladatok
 

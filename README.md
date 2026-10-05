@@ -36,7 +36,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik mind a tíz alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a tizennégy alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -76,7 +76,7 @@ A [dokumentációs központ](docs/README.md) a két stratégiai tervet, az új S
 
 Az API-kulcsok, `.env` fájlok és az `env` mappa nem kerülnek a Gitbe. Kliensoldalra kizárólag a `NEXT_PUBLIC_*` változók kerülhetnek.
 
-Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztkészlet: 297, fizetett API nélkül.
+Külön Claude-kutatás és külső történetaudit elkészült: [modellek, token/cache/effort/limit és ár/érték](docs/CLAUDE_MODEL_EVALUATION_HU.md), [EN/HU auditori észrevételek](docs/examples/CLAUDE_EXTERNAL_AUDIT_HU.md). ANTHROPIC_API_KEY kizárólag védett szerveroldali .env-ben. pnpm evaluate:claude count ingyenes; paid módok a külön Claude 5 USD naplóját folytatják. A termék workerének OpenAI alapmodellje változatlan. Aktuális automatikus tesztkészlet: 311, fizetett API nélkül.
 
 Az induló kiadás kizárólag angol felületet és angol történeteket ad; magyar elrejtve. AI szerkesztői ellenőrzés és korlátozott béta, majd használói visszajelzés alapján javítunk. [Indulási terv](docs/ENGLISH_RELEASE_PLAN_HU.md), [Contabo előkészítése](docs/CONTABO_PREPARATION_REPORT_HU.md); éles deploy nincs. A [teljes Linux CI](https://github.com/Muzsy/future_flow/actions/runs/37262177593) 279 teszttel, 39 séma-drifttel, image-builddel és izolált web/API/worker/Caddy futással sikeres: 001–010 és ismétlés, verified TLS/HTTPS, korábbi Shared-versenyek és új késői resolution/own memória/konkurens choice/törlés proof. A [S3 riport](docs/SHARED_CONTEXT_S3_REPORT_HU.md) a pontos kiadási határt rögzíti.
 
@@ -108,5 +108,7 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 
 
 ## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
+
+Aktuális runtime `14caf62`: [main CI](https://github.com/Muzsy/future_flow/actions/runs/37328921024) verify és container sikeres, 311 teszt/27 fájl, teljes build és 44 séma drift nélkül. Izolált PostgreSQL/TLS-en egyszeri review-start/reuse, forrásváltozás/deleting marker, account cascade és RLS/client tiltás; 001–014 és ismétlés, a korábbi S0–S3 próbák és verified HTTPS/üres worker-stop rendben. Az alterward.com Caddy-minta hálózat nélkül parszolva; nincs élő DNS/TLS/Contabo-változás vagy paid CI-AI. [Részletes bizonyíték és következő kapu](docs/PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 [Privát AI-pre-screen](docs/PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.

@@ -69,6 +69,8 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 
 ## 2026-10-05: alterward.com Cloudflare-domain
 
+Aktuális helyi/main runtime: `14caf62`, [sikeres verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37328921024), 311 teszt és 44 schema. 001–014 alkalmazása/ismétlése, izolált PostgreSQL review-verseny/RLS/törlés, korábbi S0–S3 proof, verified web/API HTTPS és worker-stop sikeres. A valódi hostname-et tartalmazó helyi Caddy-minta egress nélküli adapt-tal elfogadott. Ez nem élő route-aktiválás vagy domain/origin TLS-smoke; azok a későbbi élesítés részei.
+
 A felhasználó az alterward.com domaint adta meg és megnyitotta a bejelentkezett Cloudflare-fiókot. Olvasási vizsgálat: domain/registrar aktív, DNS-rekordlista üres, SSL/TLS Full. Nem történt DNS/TLS-változás, API-token létrehozás vagy éles deploy. A bejelentkezett felület a későbbi manuális bekötéshez elegendő; tartós automatizáláshoz külön, kizárólag erre a zónára korlátozott token később választható.
 
 Előkészített hostname: **alterward.com**; **www.alterward.com** → HTTPS főcím, 308 és megőrzött útvonal/query. Tervezett DNS: proxied A az apexhez a védetten ismert Contabo IPv4-re, proxied CNAME www → alterward.com. IPv6/AAAA csak ellenőrzött origin-elérés esetén. A meglévő Caddy site-blokkjai megmaradnak; a [helyi route-minta](../deploy/Caddyfile.contabo.example) nem aktív szerverkonfiguráció. [Caddy átirányítás](https://caddyserver.com/docs/caddyfile/directives/redir).

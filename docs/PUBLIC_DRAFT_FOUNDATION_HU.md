@@ -1,8 +1,8 @@
 # alterward — a nyilvános rendszer privát előnézeti alapja
 
-2026-10-04 · [Státusz](STATUS_HU.md) · [Nyilvános terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Backlog](NEXT_STEPS.md).
+2026-10-05 · [Státusz](STATUS_HU.md) · [Nyilvános terv](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Backlog](NEXT_STEPS.md).
 
-P09 előkészítő szelet. Az integrált privát életből külön, engedett mezős snapshot- és szcenáriópiszkozat készíthető. Ez tulajdonosi előnézet: `awaiting_review`, nincs aktív Publication, nyilvános olvasás, Official badge vagy publikáló Confirm. Teljes PII/content scan és explicit tulajdonosi Privacy/Content Preview még hiányzik. Az angol nyelvi előminősítés AI-feladat, a használói élmény kiadás után mérendő; ez nem váltja ki a későbbi publikálási adatvédelmi kaput.
+P09 előkészítő szelet. Az integrált privát életből külön, engedett mezős snapshot- és szcenáriópiszkozat készíthető. Ez tulajdonosi előnézet: `awaiting_review`, nincs aktív Publication, nyilvános olvasás, Official badge vagy publikáló Confirm. A [privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md) operatori szelete elkészült; a felhasználói scan-queue, szerkeszthető Privacy/Content Preview és megbízható kiadási jóváhagyás még hiányzik. Az angol nyelvi előminősítés AI-feladat, a használói élmény kiadás után mérendő; ez nem váltja ki a későbbi publikálási adatvédelmi kaput.
 
 ## Elkészült
 
@@ -20,9 +20,9 @@ Hitelesített tulajdonosi API: `POST /api/v2/branches/:id/public-preview` `{revi
 
 A `startingPoint` csak általánosított koncepció, `readyForFork:false`; nem futtatható döntési checkpoint vagy teljes ScenarioVersion. Public forkhoz külön állapot/korlát/opció projekció, új belső ID-k és domain-ellenőrzés szükséges. Itt nem másolunk a privát állapotból végrehajtható checkpointot.
 
-Következő: AI PII/content scan és emberi Privacy/Content Preview; kurátor-jóváhagyás, teljes Scenario/ScenarioVersion/Publication, preview hash-Confirm/idempotencia, public/unlisted token/permission, moderáció/visszavonás/cache/OG; ezután Discovery/Save/Share/Report, Community Publishing, public fork/personalize. Official seed a meglévő valódi mintákból csak új privacy/minőségi vizsgálat után lehet. Teszthelyettesítő nem kerül nyilvános AI-tartalomba.
+Következő: felhasználói scan-queue külön projekt/user költségőrrel és szerkeszthető Privacy/Content Preview; kurátor-jóváhagyás, teljes Scenario/ScenarioVersion/Publication, preview hash-Confirm/idempotencia, public/unlisted token/permission, moderáció/visszavonás/cache/OG; ezután Discovery/Save/Share/Report, Community Publishing, public fork/personalize. Official seed a meglévő valódi mintákból csak új privacy/minőségi vizsgálat után lehet. Teszthelyettesítő nem kerül nyilvános AI-tartalomba.
 
-Ellenőrzés: EN/HU projekció, privát mezők/UUID-k tiltása, eredetjelölés, kliensbadge elutasítása, ownership/FK/RLS, forrásváltozás, lejárat, immutable tárolás, export/törlés; külön HTTP-próba igazolja, hogy nincs anon olvasás vagy publish művelet. A jelenlegi teljes projekt 159 automatizált tesztje sikeres; az előnézeti szelet elkészültekor 139 volt. Valódi Auth/DB-törlés a draft-gráfot is takarította; public publikáció továbbra nincs. [Aktuális bizonyíték](BETA_IMPLEMENTATION_REPORT_HU.md).
+Ellenőrzés: EN/HU projekció, privát mezők/UUID-k tiltása, eredetjelölés, kliensbadge elutasítása, ownership/FK/RLS, forrásváltozás, lejárat, immutable tárolás, export/törlés; külön HTTP-próba igazolja, hogy nincs anon olvasás vagy publish művelet. A teljes projekt 311 automatizált tesztje sikeres; az eredeti előnézeti szelet elkészültekor 139 volt. Valódi Auth/DB-törlés a draft-gráfot is takarította; public publikáció továbbra nincs. [Aktuális AI-review és ellenőrzési bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 ## Új Shared Context követelmény — nem teljesített kapu
 

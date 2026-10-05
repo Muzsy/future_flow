@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [P09 privát AI-ellenőrzés](PUBLIC_AI_REVIEW_REPORT_HU.md) | Angol privacy/content pre-screen, valódi Sol-próba, tartós privát eredmény és main/konténeres bizonyíték; kiadási kapuk |
 | [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; S0–S2 és S3 személyes/time/UI/safety implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; retention még kapu |
 | [S3 adatvédelmi megjelenítés és valódi fiókos AI](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md) | Elfogadott szövegelrejtés, stale-input cancellation, friss retry, teljes Auth/Shared/saját AI/recovery és kumulatív költség |
 | [Shared Context integráció](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) | Több valódi felhasználó privát életágának közös AI-eseményei, consent, entitlement, személyes hatások és kiadási kapuk |
