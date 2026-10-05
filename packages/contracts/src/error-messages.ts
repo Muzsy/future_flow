@@ -1,6 +1,38 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  SCENARIO_DISABLED: [
+    'Scenario preparation is currently unavailable.',
+    'A szcenárió-előkészítés jelenleg nem elérhető.',
+  ],
+  SCENARIO_PRIVACY_PREFLIGHT: [
+    'Remove contact details and internal references from the template.',
+    'Távolítsd el az elérhetőségeket és belső hivatkozásokat a sablonból.',
+  ],
+  SCENARIO_REFERENCE: [
+    'The template contains inconsistent goals or placeholder references.',
+    'A sablon céljai vagy helyettesítő hivatkozásai nem konzisztensek.',
+  ],
+  SCENARIO_INTERVAL: [
+    'Check the starting date and opportunity expiry dates.',
+    'Ellenőrizd a kezdőnapot és a lehetőségek lejáratát.',
+  ],
+  SCENARIO_REVISION_CONFLICT: [
+    'Reload the current scenario before continuing.',
+    'A folytatás előtt töltsd újra az aktuális szcenáriót.',
+  ],
+  SCENARIO_INVALID: [
+    'This template could not be verified.',
+    'A sablon nem ellenőrizhető.',
+  ],
+  SCENARIO_TOO_LARGE: [
+    'Shorten this scenario template.',
+    'Rövidítsd le a szcenáriósablont.',
+  ],
+  SCENARIO_LIMIT: [
+    'You have reached the scenario or version limit.',
+    'Elérted a szcenáriók vagy verziók korlátját.',
+  ],
   SHARED_PRIVACY_CHANGED: [
     'Shared details changed for privacy. Retry with refreshed history.',
     'A közös részletek adatvédelmi okból változtak. Próbáld újra friss előzménnyel.',

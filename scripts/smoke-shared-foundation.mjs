@@ -26,6 +26,7 @@ const {
   PublicReviewRepository,
   PublicReviewJobRepository,
   PublicCurationRepository,
+  ScenarioRepository,
   buildLifeInput,
 } = require('@future-flow/database');
 const raw = connectDatabase(process.env.DATABASE_URL, true);
@@ -1308,6 +1309,163 @@ try {
     );
     assert.deepEqual(guard, { rls: true, anon: false, client: false });
   }
+  {
+    const owner = await person(),
+      scenarios = new ScenarioRepository(db, true, { daily: 1, concurrent: 1 });
+    const template = {
+      schemaVersion: 'scenario-1',
+      contentLocale: 'en',
+      title: 'Synthetic executable CI scenario',
+      summary: 'A fictional template used only to check database behavior.',
+      identity: { mode: 'alternate', label: null, ageBand: '35_44' },
+      environment: {
+        version: 'fictional-neutral-1',
+        description: 'A fictional neutral environment.',
+      },
+      goals: [
+        {
+          key: 'goal-1',
+          category: 'business',
+          description: 'A synthetic independent studio goal',
+          priority: 'primary',
+          horizonMonths: 24,
+          motivation: null,
+          acceptableTradeoffs: [],
+          unacceptableTradeoffs: [],
+          status: 'active',
+          note: null,
+        },
+      ],
+      startingState: {
+        effectiveAt: '2026-10-05',
+        employment: {
+          status: 'self_employed',
+          employerLabel: null,
+          workDomain: null,
+        },
+        location: { country: 'GB', region: null, housing: null },
+        finance: { currency: 'USD', monthlyIncome: 2000, liquidFunds: 5000 },
+        ownedAssets: [
+          {
+            key: 'asset-1',
+            kind: 'business',
+            label: 'A fictional studio',
+            sharePercent: 100,
+          },
+        ],
+        actors: [],
+        skills: [],
+        opportunities: [],
+        resources: { energy: null, availableHoursPerWeek: null },
+      },
+      constraints: [
+        {
+          key: 'constraint-1',
+          description: 'Keep the studio initially.',
+          strength: 'hard',
+          scope: 'branch',
+          validFrom: '2026-10-05',
+          validUntil: '2027-04-05',
+          predicate: {
+            type: 'asset_is_owned',
+            assetKey: 'asset-1',
+            owned: true,
+          },
+        },
+      ],
+    };
+    const key = randomUUID(),
+      copies = await Promise.all([
+        scenarios.create(owner.id, { template }, key),
+        scenarios.create(owner.id, { template }, key),
+      ]),
+      first = copies[0];
+    assert.equal(copies[1].id, first.id);
+    const request = {
+        expectedVersion: 1,
+        expectedHash: first.templateHash,
+        template: { ...template, title: 'A revised synthetic CI template' },
+      },
+      race = await Promise.allSettled([
+        scenarios.revise(owner.id, first.scenarioId, request, randomUUID()),
+        scenarios.revise(owner.id, first.scenarioId, request, randomUUID()),
+      ]);
+    assert.equal(race.filter((x) => x.status === 'fulfilled').length, 1);
+    assert.equal(
+      race.find((x) => x.status === 'rejected').reason.code,
+      'SCENARIO_REVISION_CONFLICT',
+    );
+    assert.deepEqual(await scenarios.get(owner.id, first.id), first);
+    const startKey = randomUUID(),
+      startRequest = { templateHash: first.templateHash, acknowledged: true },
+      starts = await Promise.all([
+        scenarios.start(owner.id, first.id, startRequest, startKey),
+        scenarios.start(owner.id, first.id, startRequest, startKey),
+      ]);
+    assert.equal(starts[0].lifeId, starts[1].lifeId);
+    const branch = await new LifeRepository(db).branch(
+      owner.id,
+      starts[0].branchId,
+    );
+    assert.notEqual(branch.life_id, owner.lifeId);
+    assert.equal(branch.input.visibility, 'private');
+    assert.equal(branch.state.goals[0].goalId, branch.input.goals[0].id);
+    assert.equal(
+      branch.input.constraints[0].predicate.assetId,
+      branch.state.ownedAssets[0].id,
+    );
+    assert.deepEqual(branch.accepted_decision_ids, []);
+    await assert.rejects(
+      scenarios.start(owner.id, first.id, startRequest, randomUUID()),
+      (e) => e.code === 'GENERATION_LIMIT',
+    );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT life_id FROM aw_scenario_starts WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      1,
+    );
+    await assert.rejects(
+      db.query('UPDATE aw_scenario_versions SET template_hash=$1 WHERE id=$2', [
+        '0'.repeat(64),
+        first.id,
+      ]),
+    );
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      scenarios.start(owner.id, first.id, startRequest, startKey),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await repo.restoreActive(owner.id);
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_scenario_versions.length,
+      2,
+    );
+    await repo.deleteAccountData(owner.id);
+    for (const table of [
+      'aw_scenarios',
+      'aw_scenario_versions',
+      'aw_scenario_starts',
+    ]) {
+      assert.equal(
+        (
+          await db.query(
+            `SELECT * FROM ${table} WHERE user_id=$1`,
+            [owner.id],
+          )
+        ).length,
+        0,
+      );
+      const [guard] = await db.query(
+        "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid=$1::regclass",
+        [table],
+      );
+      assert.deepEqual(guard, { rls: true, anon: false, client: false });
+    }
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
@@ -1325,6 +1483,12 @@ try {
       publicCurationConcurrentDecisionOnce: true,
       publicCurationSourceDeletionGuard: true,
       publicCurationNoPublication: true,
+      scenarioConcurrentCreateOnce: true,
+      scenarioConcurrentRevisionOnce: true,
+      scenarioConcurrentStartOnce: true,
+      scenarioPrivateFreshReferences: true,
+      scenarioQuotaRollback: true,
+      scenarioDeletionGuard: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

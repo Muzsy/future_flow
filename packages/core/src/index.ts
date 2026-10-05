@@ -258,6 +258,7 @@ export function worldState(profile: Profile): WorldState {
 export * from './public-draft';
 export * from './public-review';
 export * from './public-preview-editor';
+export * from './public-scenarios';
 export * from './shared-context';
 export * from './shared-engine';
 export * from './shared-ai';

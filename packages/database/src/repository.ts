@@ -629,6 +629,22 @@ export class Repository {
               [userId],
             )
           : [];
+      for (const table of [
+        'aw_scenarios',
+        'aw_scenario_versions',
+        'aw_scenario_starts',
+      ]) {
+        const [storage] = await tx.query(
+          'SELECT to_regclass($1) IS NOT NULL AS present',
+          [`public.${table}`],
+        );
+        result[table] =
+          storage?.present === true
+            ? await tx.query(`SELECT * FROM ${table} WHERE user_id=$1`, [
+                userId,
+              ])
+            : [];
+      }
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

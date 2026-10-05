@@ -57,6 +57,10 @@ import {
   publicReviewJobViewSchema,
   publicCurationRequestSchema,
   publicCurationViewSchema,
+  scenarioCreateRequestSchema,
+  scenarioVersionRequestSchema,
+  scenarioStartRequestSchema,
+  scenarioVersionSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -70,6 +74,8 @@ import {
   PublicReviewJobRepository,
   PublicCurationRepository,
   publicCurationEnabledFromEnv,
+  ScenarioRepository,
+  scenarioVersionsEnabledFromEnv,
   publicReviewJobConfigFromEnv,
   type PublicReviewJobConfig,
   BetaFeedbackRepository,
@@ -347,15 +353,22 @@ class LifeController {
   }
   private readonly lives: LifeRepository;
   private readonly publicDrafts: PublicDraftRepository;
+  private readonly scenarios: ScenarioRepository;
   constructor(
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('PUBLIC_REVIEW_CONFIG')
     private readonly publicReviewConfig: PublicReviewJobConfig,
     @Inject('PUBLIC_CURATION_ENABLED')
     private readonly publicCurationEnabled: boolean,
+    @Inject('SCENARIO_VERSIONS_ENABLED')
+    private readonly scenarioVersionsEnabled: boolean,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.lives = new LifeRepository(repo.db, {
+      daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
+      concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
+    });
+    this.scenarios = new ScenarioRepository(repo.db, scenarioVersionsEnabled, {
       daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
       concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
     });
@@ -367,6 +380,55 @@ class LifeController {
   }
   @Get('lives') list(@Req() req: AuthRequest) {
     return this.lives.list(req.userId, enabledLocales);
+  }
+  @Get('scenarios') scenariosList(@Req() req: AuthRequest) {
+    return this.scenarios.list(req.userId);
+  }
+  @Post('scenarios')
+  @ApiBody({ schema: z.toJSONSchema(scenarioCreateRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(scenarioVersionSchema) as never })
+  scenarioCreate(
+    @Req() req: AuthRequest,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.scenarios.create(req.userId, body, key ?? '');
+  }
+  @Post('scenarios/:id/versions')
+  @ApiBody({ schema: z.toJSONSchema(scenarioVersionRequestSchema) as never })
+  scenarioRevise(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.scenarios.revise(
+      req.userId,
+      idSchema.parse(id),
+      body,
+      key ?? '',
+    );
+  }
+  @Get('scenario-versions/:id') scenarioGet(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ) {
+    return this.scenarios.get(req.userId, idSchema.parse(id));
+  }
+  @Post('scenario-versions/:id/start')
+  @ApiBody({ schema: z.toJSONSchema(scenarioStartRequestSchema) as never })
+  scenarioStart(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.scenarios.start(
+      req.userId,
+      idSchema.parse(id),
+      body,
+      key ?? '',
+    );
   }
   @Get('draft') draft(@Req() req: AuthRequest) {
     return this.lives.draft(req.userId);
@@ -624,6 +686,7 @@ export async function createApp(
   sharedFeatures: SharedFeatures = sharedFeaturesFromEnv(),
   publicReviewConfig: PublicReviewJobConfig = publicReviewJobConfigFromEnv(),
   publicCurationEnabled = publicCurationEnabledFromEnv(),
+  scenarioVersionsEnabled = scenarioVersionsEnabledFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -642,6 +705,10 @@ export async function createApp(
       { provide: AUTH, useValue: auth },
       { provide: 'PUBLIC_REVIEW_CONFIG', useValue: publicReviewConfig },
       { provide: 'PUBLIC_CURATION_ENABLED', useValue: publicCurationEnabled },
+      {
+        provide: 'SCENARIO_VERSIONS_ENABLED',
+        useValue: scenarioVersionsEnabled,
+      },
       AuthGuard,
     ],
   })

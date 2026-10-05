@@ -327,33 +327,47 @@ export class LifeRepository {
         setup,
         new Date().toISOString().slice(0, 10),
       );
-      await tx.query(
-        'INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,$3,$4,$5,$6)',
-        [
-          input.lifeId,
-          userId,
-          setup.goal.description,
-          input.locale,
-          JSON.stringify(input),
-          input.branchId,
-        ],
-      );
-      await tx.query(
-        'INSERT INTO aw_branches(id,user_id,life_id,name,state) VALUES($1,$2,$3,$4,$5)',
-        [
-          input.branchId,
-          userId,
-          input.lifeId,
-          input.locale === 'hu' ? 'Az életem' : 'My life',
-          JSON.stringify(input.initialState),
-        ],
-      );
-      return this.queue(
-        tx,
-        userId,
-        await this.branch(userId, input.branchId, tx),
-      );
+      return this.persistPrepared(tx, userId, input);
     });
+  }
+  // Trusted server-side templates only; never exposed as an arbitrary input API.
+  async createPrepared(userId: string, raw: unknown, key: string) {
+    const input = validateLifeInputV2(raw);
+    return this.once(userId, 'v2:prepared-create', key, input, (tx) =>
+      this.persistPrepared(tx, userId, input),
+    );
+  }
+  private async persistPrepared(
+    tx: Database,
+    userId: string,
+    input: LifeInputV2,
+  ) {
+    await tx.query(
+      'INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,$3,$4,$5,$6)',
+      [
+        input.lifeId,
+        userId,
+        input.goals.find((goal) => goal.priority === 'primary')!.description,
+        input.locale,
+        JSON.stringify(input),
+        input.branchId,
+      ],
+    );
+    await tx.query(
+      'INSERT INTO aw_branches(id,user_id,life_id,name,state) VALUES($1,$2,$3,$4,$5)',
+      [
+        input.branchId,
+        userId,
+        input.lifeId,
+        input.locale === 'hu' ? 'Az életem' : 'My life',
+        JSON.stringify(input.initialState),
+      ],
+    );
+    return this.queue(
+      tx,
+      userId,
+      await this.branch(userId, input.branchId, tx),
+    );
   }
   private async queue(tx: Database, userId: string, branch: LifeBranch) {
     if (branch.pending_decision)

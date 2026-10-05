@@ -31,6 +31,12 @@ import {
   publicReviewJobViewSchema,
   publicCurationRequestSchema,
   publicCurationViewSchema,
+  SCENARIO_CONTRACT_VERSION,
+  scenarioTemplateSchema,
+  scenarioCreateRequestSchema,
+  scenarioVersionRequestSchema,
+  scenarioVersionSchema,
+  scenarioStartRequestSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -110,6 +116,25 @@ for (const [name, schema] of Object.entries({
   );
 }
 const v2Directory = resolve(directory, 'v2');
+for (const [name, schema] of Object.entries({
+  scenarioTemplate: scenarioTemplateSchema,
+  scenarioCreateRequest: scenarioCreateRequestSchema,
+  scenarioVersionRequest: scenarioVersionRequestSchema,
+  scenarioVersion: scenarioVersionSchema,
+  scenarioStartRequest: scenarioStartRequestSchema,
+})) {
+  writeFileSync(
+    resolve(publicDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public:${name}:${SCENARIO_CONTRACT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(v2Directory, { recursive: true });
 for (const [name, schema] of Object.entries({
   lifeInput: lifeInputV2Schema,
