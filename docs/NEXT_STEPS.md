@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–014 alkalmazva és ismétléssel ellenőrizve; új teljes helyi check/build: 314 teszt/27 fájl, 48 schema, a korábbi 44 változatlan; a 311-es korábbi main CI dátumozott bizonyítéka megmarad. P09 privát AI-pre-screen és izolált PostgreSQL review-verseny/törlési próba is sikeres. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–014 alkalmazva és ismétléssel ellenőrizve; teljes helyi és main CI check/build: 314 teszt/27 fájl, 48 schema, a korábbi 44 változatlan; [4745a3 CI](https://github.com/Muzsy/future_flow/actions/runs/37347782878) sikeres. P09 privát AI-pre-screen és izolált PostgreSQL review-verseny/törlési próba is sikeres. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
