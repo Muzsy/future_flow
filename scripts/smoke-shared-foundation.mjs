@@ -1451,12 +1451,8 @@ try {
       'aw_scenario_starts',
     ]) {
       assert.equal(
-        (
-          await db.query(
-            `SELECT * FROM ${table} WHERE user_id=$1`,
-            [owner.id],
-          )
-        ).length,
+        (await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [owner.id]))
+          .length,
         0,
       );
       const [guard] = await db.query(
