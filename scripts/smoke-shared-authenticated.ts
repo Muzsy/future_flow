@@ -765,6 +765,16 @@ async function main() {
     // Controlled interruption after real Auth deletion, before DB confirmation;
     // this proves the recovery path, not a real DB outage or backup restoration.
     await repo.markDeleting(accounts[1]!.id);
+    const markedGroup = await request(
+      `/api/v2/shared-contexts/${context.contextId}`,
+    );
+    assert(
+      markedGroup.members.some(
+        (m: { status: string; interactionProfile: { displayName: string } }) =>
+          m.status === 'deleted' &&
+          m.interactionProfile.displayName === 'Former member',
+      ),
+    );
     await auth.deleteUser(accounts[1]!.id);
     assert.equal(await auth.userExists!(accounts[1]!.id), false);
     assert.equal(

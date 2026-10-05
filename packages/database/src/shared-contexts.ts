@@ -369,7 +369,7 @@ export class SharedContextRepository {
       const c = await this.context(tx, contextId, true);
       const own = await this.member(tx, userId, contextId);
       const members = await tx.query<Member>(
-        'SELECT * FROM aw_shared_members WHERE context_id=$1 ORDER BY joined_at,id',
+        'SELECT m.*,u.status AS account_status FROM aw_shared_members m LEFT JOIN ff_users u ON u.id=m.user_id WHERE m.context_id=$1 ORDER BY m.joined_at,m.id',
         [contextId],
       );
       const hidden = await sharedContextPrivacy(tx, contextId);
@@ -396,10 +396,13 @@ export class SharedContextRepository {
           )[0] ?? null,
         members: members.map((m) => ({
           id: m.id,
-          status: m.status,
-          adminRole: m.admin_role,
-          worldRole: m.world_role,
-          interactionProfile: m.interaction_profile,
+          status: m.account_status === 'active' ? m.status : 'deleted',
+          adminRole: m.account_status === 'active' ? m.admin_role : 'member',
+          worldRole: m.account_status === 'active' ? m.world_role : null,
+          interactionProfile:
+            m.account_status === 'active'
+              ? m.interaction_profile
+              : minimalInteractionProfile('Former member'),
           ...(m.user_id === userId
             ? { branchId: m.branch_id, lifeId: m.life_id }
             : {}),

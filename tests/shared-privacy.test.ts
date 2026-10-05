@@ -198,6 +198,11 @@ describe('Shared retained text projections and stale input invalidation', () => 
       secretText,
     );
     await new Repository(db).markDeleting(g.b.id);
+    expect(
+      (await shared.detail(g.a.id, g.contextId)).members.find(
+        (m) => m.interactionProfile.displayName === 'Former member',
+      ),
+    ).toMatchObject({ status: 'deleted', worldRole: null });
     const [event] = await shared.events(g.a.id, g.contextId);
     expect(event).toMatchObject({
       privacyRedacted: true,
