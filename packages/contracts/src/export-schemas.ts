@@ -23,6 +23,10 @@ import {
   publicPreviewCopySchema,
   publicReviewInputSchema,
   publicReviewReportSchema,
+  publicPreviewRecordSchema,
+  publicPreviewWorkspaceSchema,
+  publicReviewViewSchema,
+  publicPreviewPreflightSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -80,6 +84,10 @@ for (const [name, schema] of Object.entries({
   previewCopy: publicPreviewCopySchema,
   reviewInput: publicReviewInputSchema,
   reviewReport: publicReviewReportSchema,
+  previewRecord: publicPreviewRecordSchema,
+  previewWorkspace: publicPreviewWorkspaceSchema,
+  reviewView: publicReviewViewSchema,
+  previewPreflight: publicPreviewPreflightSchema,
 })) {
   writeFileSync(
     resolve(publicDirectory, `${name}.schema.json`),

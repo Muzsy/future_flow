@@ -95,7 +95,7 @@ Próbák: hitelességi badge, dupla publish/save/fork, lejárt preview, cache-pu
 
 A Continuation Rate/Continued Life Sessions mellett views/read depth/completion, Save/Share, public life → sign-up → sikeres fork → első sikeres időszak, publish/unlisted/unpublish/report/removal és referral mérendő. Minimális azonosítók/összesítések, történet/cél/prompt/token analitikába nem kerül. Kattintás és siker külön szám; paid conversion csak későbbi fizetési funkció után mérhető.
 
-Az AI-ra bízott angol szerkesztői döntés a nyelvi minősítésre vonatkozik; a tervezett publikálási Privacy Preview, tulajdonosi Confirm és kurátori eredetellenőrzés külön marad. Ezekhez még nincs kész UI vagy aktív Publication. A jelenlegi tulajdonosi előnézet és részleges determinisztikus preflight önmagában nem teljes anonimizálás.
+Az AI-ra bízott angol szerkesztői döntés a nyelvi minősítésre vonatkozik; a tervezett publikálási Privacy Preview, tulajdonosi Confirm és kurátori eredetellenőrzés külön marad. A privát szerkesztő és mentett tartalomnézet elkészült; a kiadási Confirm, kurátori folyamat és aktív Publication még hátravan. A jelenlegi tulajdonosi előnézet és részleges determinisztikus preflight önmagában nem teljes anonimizálás.
 
 ## Shared történetek publikálása — új privacy-kapu
 
@@ -104,4 +104,9 @@ A [Shared Context](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) első kiadásban pr
 
 ## 2026-10-05: angol AI-pre-screen elkészült
 
-Az eddig hiányzó AI-elővizsgálat operatori szelete elkészült: a külön angol copy mezőnként ellenőrizhető, a 014 RLS-táblában hash/revision/policy/receipt kötésű privát eredmény tárolódik, saját olvasási API és export/törlés integrált. Egy valódi Sol-próba öt privacy-problémát talált az eredeti angol mintában. Ez nem teljes PII-garancia, nem curator/Official/Publication/Confirm és nem fizetős felhasználói job. Az explicit Privacy/Content Preview és a további public kapuk változatlanul hátravannak. [Megvalósítás és elfogadás](PUBLIC_AI_REVIEW_REPORT_HU.md).
+Az eddig hiányzó AI-elővizsgálat operatori szelete elkészült: a külön angol copy mezőnként ellenőrizhető, a 014 RLS-táblában hash/revision/policy/receipt kötésű privát eredmény tárolódik, saját olvasási API és export/törlés integrált. Egy valódi Sol-próba öt privacy-problémát talált az eredeti angol mintában. Ez nem teljes PII-garancia, nem curator/Official/Publication/Confirm és nem fizetős felhasználói job. A szerkeszthető privát Privacy/Content Preview elkészült; a fizetett scan-job és a további public kapuk hátravannak. [Megvalósítás és elfogadás](PUBLIC_AI_REVIEW_REPORT_HU.md).
+
+
+## 2026-10-05: szerkeszthető privát Privacy/Content Preview
+
+A [privát angol szerkesztő](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) elkészült: saját forrásszöveg, mezőszintű ingyenes preflight, idempotens immutable mentés, legutóbbi érvényes copy visszatöltése és teljes mentett tartalomnézet. Az operatori AI-review csak a megfelelő hash/revision és mezőkészlet mellett látható; finding a javítandó mezőre mutat. Mentés/olvasás nem hív AI-t, Shared-előzmény és HU továbbra tiltott. Helyi teljes check: 314 teszt/27 fájl, 48 séma, a korábbi 44 és 001–014 változatlan. Következő a külön fizetett scan-job költségőrrel, curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm; majd P10–P13. Éles bekötés továbbra nincs.

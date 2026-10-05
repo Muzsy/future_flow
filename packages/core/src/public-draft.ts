@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import {
   publicPreviewCopySchema,
   publicSnapshotDraftSchema,
+  publicPreviewTextFields,
+  publicPreviewPreflightSchema,
   type PublicSnapshotDraft,
   type LifeInputV2,
   type PeriodCandidateV2,
@@ -13,7 +15,7 @@ export type SnapshotSourcePeriod = {
   candidate: PeriodCandidateV2;
   chapter: PeriodChapterV2;
 };
-export const PUBLIC_SCAN_VERSION = 'deterministic-preview-v1';
+export const PUBLIC_SCAN_VERSION = 'deterministic-preview-v2';
 // This is a preflight, never an approval or a claim of anonymity.
 export function publicDraftIssues(
   value: unknown,
@@ -39,6 +41,67 @@ export function publicDraftIssues(
   }
   return [...issues].sort();
 }
+function privateCopyLabels(
+  input: LifeInputV2,
+  periods: SnapshotSourcePeriod[],
+) {
+  const labels = [
+    input.identity.label,
+    input.initialState.employment.employerLabel,
+    input.initialState.location.region,
+    input.initialState.location.housing,
+    ...input.initialState.actors.map((a) => a.label),
+    ...input.initialState.ownedAssets.map((a) => a.label),
+  ];
+  for (const p of periods)
+    for (const e of p.candidate.events)
+      for (const c of [
+        ...e.changes,
+        ...(e.decision?.options.flatMap((o) => o.changes) ?? []),
+      ]) {
+        if (c.type === 'actor_add' || c.type === 'asset_add')
+          labels.push(c.value.label);
+        if (c.type === 'employment_set') labels.push(c.value.employerLabel);
+        if (c.type === 'location_set')
+          labels.push(c.value.region, c.value.housing);
+      }
+  return labels.filter((s): s is string => !!s);
+}
+export function inspectPublicPreviewCopy(
+  input: LifeInputV2,
+  periods: SnapshotSourcePeriod[],
+  sourceRevision: number,
+  raw: unknown,
+) {
+  const copy = publicPreviewCopySchema.parse(raw);
+  if (copy.periods.length !== periods.length)
+    throw new DomainError(
+      'PUBLIC_PREVIEW_INVALID',
+      'Period count does not match.',
+    );
+  for (let i = 0; i < periods.length; i++) {
+    const original = periods[i]!,
+      edited = copy.periods[i]!,
+      decision = original.candidate.events.at(-1)?.decision;
+    if (
+      !decision ||
+      original.candidate.events.length !== edited.events.length ||
+      decision.options.length !== edited.decision.options.length
+    )
+      throw new DomainError(
+        'PUBLIC_PREVIEW_INVALID',
+        'Event or option count does not match.',
+      );
+  }
+  const labels = privateCopyLabels(input, periods);
+  return publicPreviewPreflightSchema.parse({
+    sourceRevision,
+    issues: publicPreviewTextFields(copy).flatMap((field) => {
+      const codes = publicDraftIssues(field.text, labels);
+      return codes.length ? [{ path: field.path, codes }] : [];
+    }),
+  });
+}
 export function preparePublicSnapshotDraft(
   input: LifeInputV2,
   periods: SnapshotSourcePeriod[],
@@ -51,33 +114,7 @@ export function preparePublicSnapshotDraft(
       'PUBLIC_PREVIEW_INVALID',
       'Period count does not match.',
     );
-  const labels = [
-    input.identity.label,
-    input.initialState.employment.employerLabel,
-    input.initialState.location.region,
-    input.initialState.location.housing,
-    ...input.initialState.actors.map((a) => a.label),
-    ...input.initialState.ownedAssets.map((a) => a.label),
-  ];
-  // New actors/employers may appear after onboarding; scan their canon changes as well.
-  for (const p of periods)
-    for (const e of p.candidate.events) {
-      for (const c of [
-        ...e.changes,
-        ...(e.decision?.options.flatMap((o) => o.changes) ?? []),
-      ]) {
-        if (c.type === 'actor_add' || c.type === 'asset_add')
-          labels.push(c.value.label);
-        if (c.type === 'employment_set') labels.push(c.value.employerLabel);
-        if (c.type === 'location_set')
-          labels.push(c.value.region, c.value.housing);
-      }
-    }
-  const issues = publicDraftIssues(
-    copy,
-    labels.filter((s): s is string => !!s),
-  );
-  if (issues.length)
+  if (inspectPublicPreviewCopy(input, periods, 0, copy).issues.length)
     throw new DomainError(
       'PUBLIC_PRIVACY_REVIEW_REQUIRED',
       'Copy failed the privacy preflight.',
@@ -128,25 +165,37 @@ export function preparePublicSnapshotDraft(
       },
     };
   });
-  const userEdited = copy.periods.some((p, i) => {
-    const original = periods[i]!,
-      d = original.candidate.events.at(-1)!.decision!;
-    return (
-      p.chapter.title !== original.chapter.title ||
-      p.chapter.body !== original.chapter.body ||
-      p.events.some(
-        (e, n) =>
-          e.title !== original.candidate.events[n]!.title ||
-          e.summary !== original.candidate.events[n]!.summary,
-      ) ||
-      p.decision.prompt !== d.prompt ||
-      p.decision.options.some(
-        (o, n) =>
-          o.label !== d.options[n]!.label ||
-          o.description !== d.options[n]!.description,
-      )
-    );
-  });
+  const goal = input.goals.find((g) => g.priority === 'primary')!;
+  const sourceCategory =
+    goal.category === 'finance'
+      ? 'money'
+      : goal.category === 'other'
+        ? 'fictional'
+        : goal.category;
+  const userEdited =
+    copy.title !== periods[0]!.chapter.title ||
+    copy.summary !== periods[0]!.candidate.events[0]!.summary ||
+    copy.goalDescription !== goal.description ||
+    copy.category !== sourceCategory ||
+    copy.periods.some((p, i) => {
+      const original = periods[i]!,
+        d = original.candidate.events.at(-1)!.decision!;
+      return (
+        p.chapter.title !== original.chapter.title ||
+        p.chapter.body !== original.chapter.body ||
+        p.events.some(
+          (e, n) =>
+            e.title !== original.candidate.events[n]!.title ||
+            e.summary !== original.candidate.events[n]!.summary,
+        ) ||
+        p.decision.prompt !== d.prompt ||
+        p.decision.options.some(
+          (o, n) =>
+            o.label !== d.options[n]!.label ||
+            o.description !== d.options[n]!.description,
+        )
+      );
+    });
   return publicSnapshotDraftSchema.parse({
     schemaVersion: '1.0.0',
     snapshotKey: randomUUID(),

@@ -339,6 +339,7 @@ export const jobStatuses = [
 export type JobStatus = (typeof jobStatuses)[number];
 export * from './public-draft';
 export * from './public-review';
+export * from './public-preview-editor';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';

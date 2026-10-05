@@ -34,6 +34,7 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { LifeExperience } from './life-experience';
+import { PublicPreviewEditor } from './public-preview-editor';
 import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
 import { formatDate } from '../lib/i18n';
@@ -562,6 +563,7 @@ export function Experience() {
     'lives',
     'start',
     'life',
+    'preview',
     'onboarding',
     'profile',
     'futures',
@@ -672,6 +674,9 @@ export function Experience() {
                 id={id}
                 inviteCode={inviteCode}
               />
+            )}
+            {page === 'preview' && user && id && (
+              <PublicPreviewEditor key={`${id}:${user}`} branchId={id} />
             )}
             {page === 'feedback' && user && <FeedbackForm key={user} />}
             {page === 'home' && (

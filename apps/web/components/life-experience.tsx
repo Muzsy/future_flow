@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   lifeSetupV2Schema,
   lifeDraftV2Schema,
@@ -982,6 +983,13 @@ export function LifeExperience({
         <button className="secondary" onClick={() => router.push('/lives')}>
           {m.lives}
         </button>
+        {detail.periods.length > 0 &&
+          b.status !== 'generating' &&
+          b.status !== 'failed' && (
+            <Link className="secondary" href={`/preview/${b.id}`}>
+              Prepare a story copy
+            </Link>
+          )}
       </div>
       {sharedUpdates.length > 0 && (
         <aside className="notice" aria-label="Shared updates">

@@ -1063,3 +1063,70 @@ progress {
   flex-direction: column;
   gap: 15px;
 }
+.public-preview-editor {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.page-head a.secondary {
+  text-decoration: none;
+}
+.preview-form .field {
+  margin-top: 22px;
+}
+.preview-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.65;
+  resize: vertical;
+}
+.preview-form [aria-invalid='true'] {
+  border-color: #a12f2f;
+}
+.preview-field-error {
+  color: #a12f2f;
+}
+.preview-period {
+  min-width: 0;
+}
+.preview-period legend {
+  font-weight: 600;
+  padding: 0 8px;
+}
+.preview-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 18px;
+}
+.preview-facts dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.preview-facts dd {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+.preview-option {
+  margin: 18px 0;
+}
+.preview-option small {
+  color: var(--green);
+}
+.preview-findings li {
+  margin: 16px 0;
+}
+.preview-findings span {
+  display: block;
+  margin-top: 5px;
+}
+.preview-source-reload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 26px;
+}

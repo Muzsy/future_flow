@@ -17,14 +17,14 @@
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `14caf62`: 311 teszt/27 fájl, teljes check/build/44 séma-drift; izolált web/API/worker/Caddy, 001–014 + ismétlés, valós PostgreSQL P09 review-start/reuse/revision/delete/RLS és korábbi S0–S3 proof; verified DB TLS/HTTPS, üres queue/tiszta 0-s leállás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37328921024) |
-| P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; Privacy/Content Preview, curator/Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
+| P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job/curator/Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
-Aktuális helyi és main CI: 311 teszt/27 fájl és 44 schema; a korábbi 42 változatlan. [P09 AI-review és konténeres bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md), [korábbi privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
+Aktuális helyi check: 314 teszt/27 fájl és 48 schema; a korábbi 44 változatlan. [Privát szerkesztő és ellenőrzés](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md). A korábbi 311-es main CI dátumozott bizonyítéka megmarad. [P09 AI-review és konténeres bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md), [korábbi privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
 
 Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörlés sikeres, admin kulcs már rendelkezésre áll. Böngészőben angol onboarding, draft-visszaállítás, első fejezet/döntés/második fejezet és mindkét feedback mentése ellenőrizve. [Aktuális béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). Backup/restore, valós DB-kiesésből admin recovery és email-kézbesítés még nyitott. P09 privát előnézeti alap kész, Discovery/publishing/Official seed/public fork még fejlesztendő. Main/CI nem éles Contabo-deploy. A jelenlegi és a hátralévő Contabo-ops részleteit a [végrehajtási riport](CONTABO_PREPARATION_REPORT_HU.md) választja szét. Éles AI-allowance nincs kijelölve; a mintakonfigurációban nulla.
 
@@ -42,9 +42,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | Megszakadt kétfiókos Auth előkészítés | 6 | 0.0824209 |
 | Sikeres teljes Auth/Shared/saját AI lánc | 13 | 0.1698351 |
 | P09 valódi angol privacy AI-audit | 1 | 0.009006 |
-| **Összesen** | **127** | **2.279753105 ≈ 2.28** |
-| **Konzervatívan elszámolt összeg** | | **2.365445875** |
-| **Guard szerint megmaradt keret** | | **2.634554125 ≈ 2.63** |
+| P09 privát szerkesztő valódi Auth/AI és két copy-review | 5 | 0.063175000 |
+| **Összesen** | **132** | **2.342928105 ≈ 2.34** |
+| **Konzervatívan elszámolt összeg** | | **2.428628375** |
+| **Guard szerint megmaradt keret** | | **2.571371625 ≈ 2.57** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 
@@ -118,3 +119,8 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 ## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
 
 [Privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.
+
+
+## 2026-10-05: szerkeszthető privát Privacy/Content Preview
+
+A [privát angol szerkesztő](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) elkészült: saját forrásszöveg, mezőszintű ingyenes preflight, idempotens immutable mentés, legutóbbi érvényes copy visszatöltése és teljes mentett tartalomnézet. Az operatori AI-review csak a megfelelő hash/revision és mezőkészlet mellett látható; finding a javítandó mezőre mutat. Mentés/olvasás nem hív AI-t, Shared-előzmény és HU továbbra tiltott. Helyi teljes check: 314 teszt/27 fájl, 48 séma, a korábbi 44 és 001–014 változatlan. Következő a külön fizetett scan-job költségőrrel, curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm; majd P10–P13. Éles bekötés továbbra nincs.

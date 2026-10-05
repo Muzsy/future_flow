@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [P09 privát szerkesztő és előnézet](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) | Mezőszintű ingyenes ellenőrzés, külön másolat mentése/visszatöltése és kötött AI-jelzések; kiadás még nincs |
 | [P09 privát AI-ellenőrzés](PUBLIC_AI_REVIEW_REPORT_HU.md) | Angol privacy/content pre-screen, valódi Sol-próba, tartós privát eredmény és main/konténeres bizonyíték; kiadási kapuk |
 | [Következő lépések](NEXT_STEPS.md) | L01, P01–P13 és S0–S7; S0–S2 és S3 személyes/time/UI/safety implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; retention még kapu |
 | [S3 adatvédelmi megjelenítés és valódi fiókos AI](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md) | Elfogadott szövegelrejtés, stale-input cancellation, friss retry, teljes Auth/Shared/saját AI/recovery és kumulatív költség |
@@ -88,4 +89,9 @@ Angol Connections, block/report/moderáció és 011/012 elkészült; ezek dátum
 
 ## 2026-10-05: P09 AI-ellenőrzés és megvásárolt domain
 
-[Privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: Privacy/Content Preview és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.
+[Privát AI-pre-screen](PUBLIC_AI_REVIEW_REPORT_HU.md): kizárólag az előkészített angol copy, immutable hash/revision/policy és receipt, egyszeri operatori futás és saját olvasási API, export/törlés. Egy valódi Sol-negatív kontroll öt privacy-jelzést adott; nincs publikálási/Official jóváhagyás. A 014 migráció a fejlesztői Supabase-on alkalmazva és ismételve. Az alterward.com aktív Cloudflare-domain; a DNS még üres, TLS Full, éles bekötés nem történt. Következő: fizetett scan-job és curator/Publication/Confirm, majd P10–P13; S3 retention és S4–S7 továbbra megmarad.
+
+
+## 2026-10-05: szerkeszthető privát Privacy/Content Preview
+
+A [privát angol szerkesztő](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) elkészült: saját forrásszöveg, mezőszintű ingyenes preflight, idempotens immutable mentés, legutóbbi érvényes copy visszatöltése és teljes mentett tartalomnézet. Az operatori AI-review csak a megfelelő hash/revision és mezőkészlet mellett látható; finding a javítandó mezőre mutat. Mentés/olvasás nem hív AI-t, Shared-előzmény és HU továbbra tiltott. Helyi teljes check: 314 teszt/27 fájl, 48 séma, a korábbi 44 és 001–014 változatlan. Következő a külön fizetett scan-job költségőrrel, curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm; majd P10–P13. Éles bekötés továbbra nincs.

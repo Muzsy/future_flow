@@ -21,6 +21,22 @@ const errors: Record<string, readonly [string, string]> = {
     'The preview does not match this life.',
     'Az előnézet nem egyezik ezzel az élettel.',
   ],
+  PUBLIC_PREVIEW_PERIOD_LIMIT: [
+    'Copy previews currently support lives with 1–12 completed periods.',
+    'Az előnézet jelenleg 1–12 befejezett időszakot tartalmazó életből készülhet.',
+  ],
+  PUBLIC_REVIEW_TOO_LARGE: [
+    'This copy is too long for a complete AI review. Shorten it before saving a new preview.',
+    'A másolat túl hosszú a teljes AI-ellenőrzéshez. Új előnézet előtt rövidítsd le.',
+  ],
+  PUBLIC_REVIEW_INVALID: [
+    'This AI review could not be verified. Keep the copy private and prepare a new preview.',
+    'Az AI-ellenőrzés nem igazolható. A másolat maradjon privát; készíts új előnézetet.',
+  ],
+  PUBLIC_REVIEW_ALREADY_STARTED: [
+    'This preview already has an AI review attempt. Prepare a new preview after a failed check.',
+    'Ehhez az előnézethez már indult AI-ellenőrzés. Sikertelen próba után készíts új előnézetet.',
+  ],
   PUBLIC_PRIVACY_REVIEW_REQUIRED: [
     'Remove personal details before preparing the preview.',
     'Az előnézet előtt távolítsd el a személyes részleteket.',

@@ -169,6 +169,12 @@ describe('Shared retained text projections and stale input invalidation', () => 
     });
     await ready(g);
     const branch = await lives.branch(g.a.id, g.a.branchId);
+    await expect(drafts.workspace(g.a.id, branch.id)).rejects.toMatchObject({
+      code: 'PUBLIC_SHARED_REVIEW_REQUIRED',
+    });
+    await expect(
+      drafts.preflight(g.a.id, branch.id, branch.revision, copy),
+    ).rejects.toMatchObject({ code: 'PUBLIC_SHARED_REVIEW_REQUIRED' });
     await expect(
       drafts.prepare(g.a.id, branch.id, branch.revision, copy),
     ).rejects.toMatchObject({ code: 'PUBLIC_SHARED_REVIEW_REQUIRED' });

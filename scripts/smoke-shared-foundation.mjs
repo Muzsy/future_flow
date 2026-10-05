@@ -895,89 +895,72 @@ try {
   );
   assert.deepEqual(queues, { v1: 0, v2: 0, shared: 0 });
   {
-    // Closed synthetic public copy in the isolated fixture only. No generated/published content.
-    const { publicSnapshotDraftSchema } = require('@future-flow/contracts');
+    // Synthetic canon in the isolated fixture only; no provider, UI or publication.
     const { hash } = require('@future-flow/core');
-    const owner = await person(),
-      draftId = randomUUID();
-    const snapshot = publicSnapshotDraftSchema.parse({
-      schemaVersion: '1.0.0',
-      snapshotKey: randomUUID(),
-      locale: 'en',
-      title: 'A synthetic CI life',
-      summary: 'An isolated technical privacy fixture with no real person.',
-      category: 'personal_growth',
-      origin: {
-        aiGenerated: true,
-        userEdited: false,
-        classification: 'unreviewed',
-      },
-      profile: { ageBand: '35_44', country: 'GB', employmentStatus: null },
-      goal: {
-        category: 'personal_growth',
-        description: 'Explore a fictional habit',
-      },
-      periods: [
-        {
-          key: 'period-1',
-          startDate: '2026-10-04',
-          endDate: '2027-04-04',
-          chapter: {
-            title: 'A possible habit',
-            body: 'A fictional adult considers a new habit while keeping the outcome uncertain. '.repeat(
-              9,
-            ),
-          },
-          events: [
-            {
-              key: 'event-1',
-              effectiveAt: '2026-11-04',
-              title: 'An idea appears',
-              summary:
-                'A possible hobby is considered without spending or commitments.',
-            },
-            {
-              key: 'event-2',
-              effectiveAt: '2027-04-04',
-              title: 'A possible next step',
-              summary:
-                'A choice remains open and nobody has agreed to an outcome.',
-            },
-          ],
-          decision: {
-            key: 'decision-1',
-            prompt: 'Which possible next step should be considered?',
-            options: [
-              {
-                key: 'option-1',
-                label: 'Try a small step',
-                description: 'Explore without committing to an outcome.',
-              },
-              {
-                key: 'option-2',
-                label: 'Keep reflecting',
-                description: 'Postpone the experiment while thinking further.',
-              },
-            ],
-            selectedOptionKey: null,
-          },
-        },
-      ],
-      startingPoint: {
-        effectiveAt: '2026-10-04',
-        country: 'GB',
-        employmentStatus: null,
-        goalCategory: 'personal_growth',
-        readyForFork: false,
-      },
-    });
+    const { PublicDraftRepository } = require('@future-flow/database');
+    const owner = await person();
+    await personalPeriod(owner);
+    const drafts = new PublicDraftRepository(db),
+      workspace = await drafts.workspace(owner.id, owner.branchId),
+      copy = workspace.source.copy,
+      key = randomUUID();
+    assert.equal(workspace.preview, null);
+    const unsafe = {
+      ...copy,
+      summary: 'A technical contact address: ci@example.invalid',
+    };
+    const checked = await drafts.preflight(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      unsafe,
+    );
+    assert.deepEqual(checked.issues, [{ path: 'summary', codes: ['email'] }]);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_publication_drafts WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
+    const copies = await Promise.all([
+      drafts.prepare(
+        owner.id,
+        owner.branchId,
+        workspace.source.sourceRevision,
+        copy,
+        key,
+      ),
+      drafts.prepare(
+        owner.id,
+        owner.branchId,
+        workspace.source.sourceRevision,
+        copy,
+        key,
+      ),
+    ]);
+    assert.equal(copies[0].draftId, copies[1].draftId);
+    const draftId = copies[0].draftId;
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_publication_drafts WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      1,
+    );
+    assert.equal(
+      (await drafts.workspace(owner.id, owner.branchId)).preview.draftId,
+      draftId,
+    );
+    assert.equal(
+      (await drafts.get(owner.id, draftId)).snapshot.origin.userEdited,
+      false,
+    );
     const reviews = new PublicReviewRepository(db);
-    const insert = async (id) =>
-      db.query(
-        "INSERT INTO aw_publication_drafts(id,user_id,life_id,branch_id,source_revision,snapshot,snapshot_hash,scan_version,expires_at) VALUES($1,$2,$3,$4,0,$5,$6,'isolated-ci',now()+interval '30 minutes')",
-        [id, owner.id, owner.lifeId, owner.branchId, snapshot, hash(snapshot)],
-      );
-    await insert(draftId);
     const starts = await Promise.allSettled([
       reviews.start(owner.id, draftId),
       reviews.start(owner.id, draftId),
@@ -1009,8 +992,23 @@ try {
       (await reviews.get(owner.id, draftId)).publicationApproved,
       false,
     );
-    const staleDraft = randomUUID();
-    await insert(staleDraft);
+    const next = await drafts.prepare(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      { ...copy, title: 'A revised synthetic copy' },
+      randomUUID(),
+    );
+    const staleDraft = next.draftId;
+    assert.equal(next.snapshot.origin.userEdited, true);
+    assert.equal(
+      (await reviews.get(owner.id, staleDraft)).status,
+      'not_started',
+    );
+    assert.equal(
+      (await drafts.get(owner.id, draftId)).snapshot.title,
+      copy.title,
+    );
     const stale = await reviews.start(owner.id, staleDraft);
     await db.query('UPDATE aw_branches SET revision=revision+1 WHERE id=$1', [
       owner.branchId,
@@ -1043,6 +1041,9 @@ try {
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
       publicReviewPostgres: 'passed',
+      publicEditorPreflightPrivate: true,
+      publicEditorConcurrentSaveOnce: true,
+      publicEditorRestoreAndNewReview: true,
       publicReviewConcurrentStartOnce: true,
       publicReviewSourceDeletionGuard: true,
       lastExplorerSlotRace: true,

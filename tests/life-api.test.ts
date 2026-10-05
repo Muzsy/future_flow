@@ -195,6 +195,52 @@ describe.sequential('versioned private life API', () => {
     expect(response.status).toBe(201);
     expect(response.headers.get('cache-control')).toBe('no-store');
     const preview = await response.json();
+    const repeated = await request(
+      `/api/v2/branches/${created.branchId}/public-preview`,
+      'POST',
+      { revision: detail.branch.revision, copy },
+    );
+    expect(await repeated.json()).toEqual(preview);
+    const workspacePath = `/api/v2/branches/${created.branchId}/public-preview`;
+    const workspace = await request(workspacePath);
+    expect(workspace.status).toBe(200);
+    expect(workspace.headers.get('cache-control')).toBe('no-store');
+    expect((await workspace.json()).preview.draftId).toBe(preview.draftId);
+    expect((await fetch(base + workspacePath)).status).toBe(401);
+    expect(
+      (await request(workspacePath, 'GET', undefined, 'unused', otherToken))
+        .status,
+    ).toBe(404);
+    const checkPath = workspacePath + '/check';
+    const checked = await request(checkPath, 'POST', {
+      revision: detail.branch.revision,
+      copy: { ...copy, summary: 'A contact address: contact@example.invalid' },
+    });
+    expect(checked.status).toBe(201);
+    expect(checked.headers.get('cache-control')).toBe('no-store');
+    expect(await checked.json()).toMatchObject({
+      issues: [{ path: 'summary', codes: ['email'] }],
+    });
+    expect(
+      (
+        await fetch(base + checkPath, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ revision: detail.branch.revision, copy }),
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request(
+          checkPath,
+          'POST',
+          { revision: detail.branch.revision, copy },
+          'unused',
+          otherToken,
+        )
+      ).status,
+    ).toBe(404);
     expect(preview.status).toBe('awaiting_review');
     expect(preview.snapshot.startingPoint.readyForFork).toBe(false);
     const reviewPath = `/api/v2/public-previews/${preview.draftId}/review`;

@@ -114,6 +114,49 @@ describe.sequential('English release boundary', () => {
     for (const [path, body] of [
       [`/api/v2/branches/${hidden.branchId}/continue`, { revision: 0 }],
       [
+        `/api/v2/branches/${hidden.branchId}/public-preview/check`,
+        {
+          revision: 0,
+          copy: {
+            title: 'An English copy',
+            summary: 'A fictional life with an English preview.',
+            category: 'career',
+            goalDescription: 'Explore a new career',
+            periods: [
+              {
+                chapter: {
+                  title: 'A first chapter',
+                  body: 'A technical test story. '.repeat(30),
+                },
+                events: [
+                  {
+                    title: 'A first step',
+                    summary: 'A small technical test step.',
+                  },
+                  {
+                    title: 'A second step',
+                    summary: 'A further technical test step.',
+                  },
+                ],
+                decision: {
+                  prompt: 'Which step should be considered?',
+                  options: [
+                    {
+                      label: 'A possible first choice',
+                      description: 'An uncertain technical choice.',
+                    },
+                    {
+                      label: 'A possible second choice',
+                      description: 'A different technical choice.',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+      [
         `/api/v2/branches/${hidden.branchId}/choice`,
         { revision: 0, decisionId: randomUUID(), optionId: randomUUID() },
       ],

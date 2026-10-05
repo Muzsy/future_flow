@@ -1,0 +1,279 @@
+{
+  "$id": "urn:alterward:public:reviewView:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "not_started"
+        },
+        "publicationApproved": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "required": [
+        "status",
+        "publicationApproved"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "publicationApproved": {
+          "type": "boolean",
+          "const": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "const": "public-review-1"
+        },
+        "snapshotHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fields": {
+          "minItems": 3,
+          "maxItems": 300,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^field-[1-9][0-9]*$"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "key",
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "const": "running"
+        },
+        "report": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "publicationApproved",
+        "policyVersion",
+        "snapshotHash",
+        "sourceRevision",
+        "fields",
+        "status",
+        "report"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "publicationApproved": {
+          "type": "boolean",
+          "const": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "const": "public-review-1"
+        },
+        "snapshotHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fields": {
+          "minItems": 3,
+          "maxItems": 300,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^field-[1-9][0-9]*$"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "key",
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "const": "failed"
+        },
+        "report": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "publicationApproved",
+        "policyVersion",
+        "snapshotHash",
+        "sourceRevision",
+        "fields",
+        "status",
+        "report"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "publicationApproved": {
+          "type": "boolean",
+          "const": false
+        },
+        "policyVersion": {
+          "type": "string",
+          "const": "public-review-1"
+        },
+        "snapshotHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fields": {
+          "minItems": 3,
+          "maxItems": 300,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^field-[1-9][0-9]*$"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "key",
+              "path"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "const": "completed"
+        },
+        "report": {
+          "type": "object",
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "no_findings",
+                "review_required",
+                "unable_to_assess"
+              ]
+            },
+            "findings": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "fieldKey": {
+                    "type": "string",
+                    "pattern": "^field-[1-9][0-9]*$"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "person_name",
+                      "precise_location",
+                      "organization",
+                      "contact_details",
+                      "identifying_combination",
+                      "private_financial",
+                      "sensitive_personal",
+                      "third_party_sensitive",
+                      "harassment",
+                      "hate",
+                      "sexual",
+                      "violence",
+                      "self_harm",
+                      "illegal",
+                      "scam",
+                      "impersonation",
+                      "spam",
+                      "embedded_instructions",
+                      "language"
+                    ]
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "remove",
+                      "generalize",
+                      "manual_review"
+                    ]
+                  }
+                },
+                "required": [
+                  "fieldKey",
+                  "category",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "verdict",
+            "findings"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "publicationApproved",
+        "policyVersion",
+        "snapshotHash",
+        "sourceRevision",
+        "fields",
+        "status",
+        "report"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

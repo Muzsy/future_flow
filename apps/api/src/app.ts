@@ -28,6 +28,7 @@ import {
   ApiBody,
   ApiHeader,
   ApiOperation,
+  ApiOkResponse,
   DocumentBuilder,
   SwaggerModule,
 } from '@nestjs/swagger';
@@ -50,6 +51,8 @@ import {
   lifeRevisionRequestV2Schema,
   lifeInteractionV2Schema,
   publicPreviewRequestSchema,
+  publicPreviewWorkspaceSchema,
+  publicPreviewPreflightSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -381,6 +384,21 @@ class LifeController {
     const branch = await this.availableBranch(req.userId, id);
     return this.lives.detail(req.userId, branch.id);
   }
+  @Get('branches/:id/public-preview')
+  @ApiOperation({
+    summary:
+      'Read the own private copy editor and latest valid preview. No AI call.',
+  })
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicPreviewWorkspaceSchema) as never,
+  })
+  async publicPreviewWorkspace(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ) {
+    const branch = await this.availableBranch(req.userId, id);
+    return this.publicDrafts.workspace(req.userId, branch.id);
+  }
   @Post('branches/:id/public-preview')
   @ApiOperation({
     summary: 'Prepare an owner-only draft. This does not publish content.',
@@ -390,6 +408,7 @@ class LifeController {
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
+    @Headers('idempotency-key') key: string | undefined,
   ) {
     const input = publicPreviewRequestSchema.parse(body);
     const branch = await this.availableBranch(req.userId, id);
@@ -398,13 +417,38 @@ class LifeController {
       branch.id,
       input.revision,
       input.copy,
+      key,
     );
   }
   @Get('public-previews/:id')
+  @ApiOperation({ summary: 'Read the own saved private preview.' })
   async publicPreview(@Req() req: AuthRequest, @Param('id') id: string) {
     const preview = await this.publicDrafts.get(req.userId, idSchema.parse(id));
     requireEnabledLocale(preview.snapshot.locale);
     return preview;
+  }
+  @Post('branches/:id/public-preview/check')
+  @ApiOperation({
+    summary:
+      'Check the own copy text for deterministic privacy findings. No AI or persistence.',
+  })
+  @ApiBody({ schema: z.toJSONSchema(publicPreviewRequestSchema) as never })
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicPreviewPreflightSchema) as never,
+  })
+  async checkPublicPreview(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const input = publicPreviewRequestSchema.parse(body),
+      branch = await this.availableBranch(req.userId, id);
+    return this.publicDrafts.preflight(
+      req.userId,
+      branch.id,
+      input.revision,
+      input.copy,
+    );
   }
   @Get('public-previews/:id/review')
   @ApiOperation({

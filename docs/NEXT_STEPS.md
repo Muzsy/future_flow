@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–014 alkalmazva és ismétléssel ellenőrizve; teljes helyi/main CI check/build: 311 teszt/27 fájl, 44 schema, a korábbi 42 változatlan. P09 privát AI-pre-screen és izolált PostgreSQL review-verseny/törlési próba is sikeres. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–014 alkalmazva és ismétléssel ellenőrizve; új teljes helyi check/build: 314 teszt/27 fájl, 48 schema, a korábbi 44 változatlan; a 311-es korábbi main CI dátumozott bizonyítéka megmarad. P09 privát AI-pre-screen és izolált PostgreSQL review-verseny/törlési próba is sikeres. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [P09 bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -123,7 +123,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 ## P09 — Publikálható snapshot, Official Scenario és kurált seed
 
-**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). A [külön AI-pre-screen operatori szelete](PUBLIC_AI_REVIEW_REPORT_HU.md) is elkészült. Teljes Privacy/Content Preview, curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
+**Aktuális állapot:** előkészítő szelet kész: külön allowlist-séma, privacy preflight, immutable/hash/revision/lejáró tulajdonosi előnézet és szcenáriópiszkozat, 006 migráció, export/törlés. [Pontos határ](PUBLIC_DRAFT_FOUNDATION_HU.md). A [külön AI-pre-screen operatori szelete](PUBLIC_AI_REVIEW_REPORT_HU.md) is elkészült. A [szerkeszthető privát Privacy/Content Preview](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md), ingyenes mezőszintű preflight, idempotens mentés/visszatöltés és saját AI-review nézet is kész. Következő a fizetett scan-job költségőrrel; curator/Publication/Confirm/Official seed és futtatható fork-checkpoint még hiányzik.
 
 **Feladat:** külön Publication/PublicSnapshot/ScenarioVersion modul és additív tárolás. Allowlist alapján anonimizált idővonal/fejezet/állapot, fork-checkpoint, Official/Community/AI-generated/user-edited jelölés. PII/tartalmi elővizsgálat és curator-jóváhagyás. Először néhány valódi AI-szintetikus Official minta az új több időszakos láncon.
 

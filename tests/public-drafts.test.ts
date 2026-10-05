@@ -4,12 +4,17 @@ import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import {
   publicSnapshotDraftSchema,
   type PublicPreviewCopy,
+  publicPreviewWorkspaceSchema,
+  publicPreviewRecordSchema,
+  publicPreviewTextFields,
 } from '@future-flow/contracts';
 import {
   publicDraftIssues,
   hash,
   preparePublicReviewInput,
   validatePublicReview,
+  preparePublicEditorSource,
+  preparePublicSnapshotDraft,
 } from '@future-flow/core';
 import type { PublicReviewAiProvider } from '@future-flow/ai';
 import { runPublicDraftReview } from '../scripts/lib/public-review';
@@ -24,6 +29,12 @@ import {
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture, lifeTestAi } from './life-fixtures';
+import {
+  copyFromSnapshot,
+  copyFields,
+  editCopyField,
+  reviewForPreview,
+} from '../apps/web/lib/public-preview';
 let engine: PGlite,
   db: Database,
   repo: Repository,
@@ -126,7 +137,7 @@ describe.sequential('owner-only public preparation', () => {
       expect(preview.snapshot.locale).toBe(locale);
       expect(preview.snapshot.origin).toEqual({
         aiGenerated: true,
-        userEdited: false,
+        userEdited: true,
         classification: 'unreviewed',
       });
       const text = JSON.stringify(preview.snapshot);
@@ -208,6 +219,227 @@ describe.sequential('owner-only public preparation', () => {
       ),
     ).rejects.toThrow();
   });
+  it('opens a closed owner editor from real source fields, restores the latest copy and preserves private canon', async () => {
+    const { created, detail, copy } = await source();
+    const workspace = publicPreviewWorkspaceSchema.parse(
+      await drafts.workspace(user, created.branchId),
+    );
+    expect(workspace.preview).toBeNull();
+    expect(workspace.source.copy.periods).toEqual(copy.periods);
+    const project = (edited: PublicPreviewCopy) =>
+      preparePublicSnapshotDraft(
+        detail.branch.input,
+        detail.periods as any,
+        detail.choices as any,
+        edited,
+      );
+    expect(project(workspace.source.copy).origin.userEdited).toBe(false);
+    for (const metadata of [
+      { title: 'A new title' },
+      { summary: 'A generalized summary.' },
+      { goalDescription: 'Explore a new direction.' },
+      { category: 'career' as const },
+    ])
+      expect(
+        project({ ...workspace.source.copy, ...metadata }).origin.userEdited,
+      ).toBe(true);
+    const encoded = JSON.stringify(workspace.source);
+    for (const forbidden of [
+      user,
+      created.lifeId,
+      created.branchId,
+      'monthlyIncome',
+      'liquidFunds',
+      'memory',
+      'initialState',
+    ])
+      expect(encoded).not.toContain(forbidden);
+    await expect(
+      drafts.workspace(other, created.branchId),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    copy.periods[0]!.chapter.title = 'An edited private preview';
+    const saved = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+      randomUUID(),
+    );
+    expect(publicPreviewRecordSchema.parse(saved)).toMatchObject({
+      scanVersion: 'deterministic-preview-v2',
+    });
+    const restored = publicPreviewWorkspaceSchema.parse(
+      await drafts.workspace(user, created.branchId),
+    );
+    expect(restored.preview?.draftId).toBe(saved.draftId);
+    expect(copyFromSnapshot(restored.preview!.snapshot)).toEqual(copy);
+    expect(await lives.detail(user, created.branchId)).toEqual(detail);
+    const input = (await lives.branch(user, created.branchId)).input;
+    input.goals[0]!.category = 'finance';
+    expect(
+      preparePublicEditorSource(
+        input,
+        detail.periods as any,
+        detail.branch.revision,
+      ).copy.category,
+    ).toBe('money');
+    expect(() => preparePublicEditorSource(input, [], 1)).toThrow();
+    expect(() =>
+      preparePublicEditorSource(input, Array(13).fill(detail.periods[0]), 1),
+    ).toThrow();
+  });
+  it('reports only field paths/codes in a free preflight and creates one immutable preview for a repeated request', async () => {
+    const { created, detail, copy } = await source();
+    const before = await db.query(
+      'SELECT id FROM aw_publication_drafts WHERE branch_id=$1',
+      [created.branchId],
+    );
+    const unsafe = structuredClone(copy);
+    unsafe.title = 'Private Person working life';
+    unsafe.summary = 'A contact address: somebody@example.invalid';
+    const checked = await drafts.preflight(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      unsafe,
+    );
+    expect(checked.issues).toEqual([
+      { path: 'title', codes: ['private_label'] },
+      { path: 'summary', codes: ['email'] },
+    ]);
+    expect(JSON.stringify(checked)).not.toMatch(
+      /Private Person|somebody@example/,
+    );
+    expect(
+      await db.query(
+        'SELECT id FROM aw_publication_drafts WHERE branch_id=$1',
+        [created.branchId],
+      ),
+    ).toEqual(before);
+    await expect(
+      drafts.preflight(other, created.branchId, detail.branch.revision, unsafe),
+    ).rejects.toMatchObject({ code: 'RESOURCE_NOT_FOUND' });
+    const key = randomUUID();
+    const [first, second] = await Promise.all([
+      drafts.prepare(user, created.branchId, detail.branch.revision, copy, key),
+      drafts.prepare(user, created.branchId, detail.branch.revision, copy, key),
+    ]);
+    expect(second).toEqual(first);
+    expect(
+      await db.query(
+        'SELECT id FROM aw_publication_drafts WHERE branch_id=$1',
+        [created.branchId],
+      ),
+    ).toHaveLength(1);
+    expect(
+      await db.query(
+        'SELECT id FROM aw_scenario_drafts WHERE source_draft_id=$1',
+        [first.draftId],
+      ),
+    ).toHaveLength(1);
+    await expect(
+      drafts.prepare(
+        user,
+        created.branchId,
+        detail.branch.revision,
+        { ...copy, title: 'Changed copy' },
+        key,
+      ),
+    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    await expect(
+      drafts.prepare(
+        user,
+        created.branchId,
+        detail.branch.revision,
+        copy,
+        'bad',
+      ),
+    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
+    const edited = editCopyField(
+      copy,
+      'period-1.chapter.body',
+      copy.periods[0]!.chapter.body + ' A safe edited ending.',
+    );
+    const next = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      edited,
+      randomUUID(),
+    );
+    expect(next.draftId).not.toBe(first.draftId);
+    expect(next.snapshot.origin.userEdited).toBe(true);
+    expect((await drafts.get(user, first.draftId)).snapshot).toEqual(
+      first.snapshot,
+    );
+    expect(
+      await new PublicReviewRepository(db).get(user, next.draftId),
+    ).toEqual({ status: 'not_started', publicationApproved: false });
+  });
+  it('maps every AI finding to the copy editor and refuses a review from another snapshot or field set', async () => {
+    const { created, detail, copy } = await source();
+    const p = await drafts.prepare(
+      user,
+      created.branchId,
+      detail.branch.revision,
+      copy,
+    );
+    const preview = publicPreviewRecordSchema.parse(p),
+      fields = preparePublicReviewInput(p.snapshot).fields;
+    expect(publicPreviewTextFields(copy).map((f) => f.path)).toEqual(
+      fields.map((f) => f.path),
+    );
+    const raw = {
+      status: 'completed',
+      publicationApproved: false,
+      policyVersion: 'public-review-1',
+      snapshotHash: p.snapshotHash,
+      sourceRevision: p.sourceRevision,
+      fields: fields.map(({ key, path }) => ({ key, path })),
+      report: {
+        verdict: 'review_required',
+        findings: [
+          {
+            fieldKey: fields.at(-1)!.key,
+            category: 'person_name',
+            action: 'generalize',
+          },
+        ],
+      },
+    };
+    const review = reviewForPreview(raw, preview);
+    expect(review.status).toBe('completed');
+    expect(copyFields(copy).at(-1)?.fullLabel).toContain('Option 2');
+    expect(() =>
+      reviewForPreview({ ...raw, snapshotHash: 'a'.repeat(64) }, preview),
+    ).toThrow();
+    expect(() =>
+      reviewForPreview(
+        { ...raw, sourceRevision: raw.sourceRevision + 1 },
+        preview,
+      ),
+    ).toThrow();
+    expect(() =>
+      reviewForPreview({ ...raw, publicationApproved: true }, preview),
+    ).toThrow();
+    expect(() =>
+      reviewForPreview({ ...raw, fields: raw.fields.slice(1) }, preview),
+    ).toThrow();
+    expect(() =>
+      editCopyField(copy, 'origin.classification', 'official'),
+    ).toThrow();
+    const edited = editCopyField(
+      copy,
+      fields.at(-1)!.path,
+      'A generic option description',
+    );
+    expect(edited.periods[0]!.decision.options.at(-1)!.description).toBe(
+      'A generic option description',
+    );
+    expect(copy.periods[0]!.decision.options.at(-1)!.description).not.toBe(
+      'A generic option description',
+    );
+  });
   it('invalidates the preview when the source changes and keeps old snapshot content immutable', async () => {
     const { created, detail, copy, period } = await source();
     const p = await drafts.prepare(
@@ -228,6 +460,7 @@ describe.sequential('owner-only public preparation', () => {
     await expect(drafts.get(user, p.draftId)).rejects.toMatchObject({
       code: 'LIFE_REVISION_CONFLICT',
     });
+    expect((await drafts.workspace(user, created.branchId)).preview).toBeNull();
     const [row] = await db.query<{ snapshot_hash: string }>(
       'SELECT snapshot_hash FROM aw_publication_drafts WHERE id=$1',
       [p.draftId],

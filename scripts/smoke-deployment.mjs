@@ -201,6 +201,9 @@ try {
   );
   assert.equal(sharedFoundation.sharedFoundationPostgres, 'passed');
   assert.equal(sharedFoundation.publicReviewPostgres, 'passed');
+  assert.equal(sharedFoundation.publicEditorPreflightPrivate, true);
+  assert.equal(sharedFoundation.publicEditorConcurrentSaveOnce, true);
+  assert.equal(sharedFoundation.publicEditorRestoreAndNewReview, true);
   assert.equal(sharedFoundation.publicReviewConcurrentStartOnce, true);
   assert.equal(sharedFoundation.publicReviewSourceDeletionGuard, true);
   assert.equal(sharedFoundation.sharedEnginePostgres, 'passed');
