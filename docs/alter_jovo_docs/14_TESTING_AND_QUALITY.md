@@ -55,4 +55,4 @@ S2: 29 új regresszióval 260 teszt/23 fájl; teljes check és két valós Sol/P
 
 ## S3 személyes integráció — 2026-10-05
 
-S3 késői resolution, once/batch/stale/rollback, in-flight/retry snapshot, history-position/fork, leave/export/törlés/RLS, bounded input és compatible-month regressziók. 279 teszt/24 fájl; új valós PostgreSQL choice/delete verseny a CI-ben ellenőrzendő. Egy valódi angol Sol-eset, validált külső Claude-audit; nem húsz generatív eset vagy friend Auth-release. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).
+S3 késői resolution, once/batch/stale/rollback, in-flight/retry snapshot, history-position/fork, leave/export/törlés/RLS, bounded input és compatible-month regressziók. 279 teszt/24 fájl; új valós PostgreSQL choice/delete verseny a main CI-ben sikeres. Egy valódi angol Sol-eset, validált külső Claude-audit; nem húsz generatív eset vagy friend Auth-release. [Részletes bizonyíték és korlátok](../SHARED_CONTEXT_S3_REPORT_HU.md).

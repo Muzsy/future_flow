@@ -1,4 +1,4 @@
-# alterward — jelenlegi implementáció, 2026-10-04
+# alterward — jelenlegi implementáció, 2026-10-05
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -123,3 +123,6 @@ Fejlesztői DB-n 008/009 Session pooler kapcsolaton alkalmazva, megismételt run
 ## S3 személyes memória és időkezelés — 2026-10-05
 
 S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később. [Részletes ellenőrzés](SHARED_CONTEXT_S3_REPORT_HU.md), [angol minta](examples/AI_SHARED_PERSONAL_ENGLISH_SAMPLE.md), [külső Claude-audit](examples/AI_SHARED_PERSONAL_CLAUDE_AUDIT_HU.md).
+
+
+[Main CI](https://github.com/Muzsy/future_flow/actions/runs/37262177593) (`4a74daa`) verify és container sikeres: 279 teszt/24 fájl, formázás/típusok/API/worker/Next build és 39 séma-drift. Izolált valós PostgreSQL/TLS: késői Shared resolution, konkurens saját choice mellett egyszeri memória, choice/account-deletion verseny, own cleanup és más tag canon/memória megtartása. A korábbi S0/S1/S2 slot/tag/ötcontextes törlés/tíz intent/lease-reclaim bizonyíték is megmarad. 001–010 és ismételt migráció, web/API/Caddy HTTPS, API401, üres queue és worker-leállítás sikeres, paid AI és valódi credential nélkül. Nem Contabo-élesítés vagy teljes friend Auth-release.

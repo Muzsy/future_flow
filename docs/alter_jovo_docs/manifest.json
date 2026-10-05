@@ -91,8 +91,8 @@
     },
     {
       "name": "14_TESTING_AND_QUALITY.md",
-      "bytes": 7807,
-      "sha256": "5023f022be0bb8eda7ddb54d8d6e986a9167285d32a64c6a0455054180798185"
+      "bytes": 7805,
+      "sha256": "5bfa0bd510a93d105b6a29c2c0f188a5b2e4532b5d4d066419f4bf9575c4aa88"
     },
     {
       "name": "15_ANALYTICS_MONETIZATION_OPERATIONS.md",
@@ -111,8 +111,8 @@
     },
     {
       "name": "18_AGENT_HANDOFF.md",
-      "bytes": 7331,
-      "sha256": "747999a6b83cc3674deaa4fb28b06c730e98b7071cc9c9a7dec292b7910e8501"
+      "bytes": 6742,
+      "sha256": "026d3fcbba0751d5ff6a0cb54d928cd925e08f0b515edb566a1591e0371ffc62"
     },
     {
       "name": "19_SAMPLE_CONTRACTS.md",

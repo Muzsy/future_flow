@@ -53,3 +53,8 @@ A Life v2 2.0.0 megmarad; a külön Shared Context 1.0.0 szerződés S0-ban elk�
 ## S1 határ
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). A külön Shared szerződés hat új server/intent/resolution/memoryImpact sémával bővült, a Life v2 input/state és régi 29 séma változatlan. S1 nem ír személyes branchet és nem materializál: a pending canon memória saját period-inputba emelése S3.
+
+
+## S3 opcionális személyes Shared-memória — 2026-10-05
+
+LifePeriodInput.memory.sharedEvents opcionális, legfeljebb nyolc own projekció; LifeStateV2/2.0.0 és régi tárolt jobok változatlanok. Eredeti effectiveAt és saját knownAt külön; knownAt nem későbbi a period kezdeténél. Másik tag privát állapota/intentje nem szerepel. Fork csak history-position szerint korábban ismert emléket örököl, live membership nélkül; retry az eredeti snapshotot használja. [Szerződés, időtesztek és valódi AI-bizonyíték](SHARED_CONTEXT_S3_REPORT_HU.md).
