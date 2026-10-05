@@ -87,6 +87,19 @@ afterAll(async () => {
 });
 
 describe.sequential('Shared foundation HTTP boundaries', () => {
+  it('exposes only authenticated server availability, including disabled rollout', async () => {
+    const anonymous = await fetch(base + '/api/v2/shared-capabilities');
+    expect(anonymous.status).toBe(401);
+    const enabled = await request(owner.id, 'shared-capabilities');
+    expect(enabled.body).toEqual({ friendEnabled: true });
+    expect(enabled.response.headers.get('cache-control')).toBe('no-store');
+    const off = await fetch(disabledBase + '/api/v2/shared-capabilities', {
+      headers: headers(owner.id),
+    });
+    expect(off.status).toBe(200);
+    expect(await off.json()).toEqual({ friendEnabled: false });
+    expect(off.headers.get('cache-control')).toBe('no-store');
+  });
   it('requires verified auth and remains inaccessible with the default feature flags', async () => {
     const anonymous = await fetch(base + '/api/v2/shared-contexts');
     expect(anonymous.status).toBe(401);

@@ -20,6 +20,7 @@ const {
   SharedContextRepository,
   SharedEventRepository,
   SharedJobRepository,
+  SharedSafetyRepository,
   LifeRepository,
   LifeJobRepository,
   buildLifeInput,
@@ -413,6 +414,182 @@ try {
     branchesBefore,
   );
 
+  // 011: deleting a former member preserves a newer job for the remaining pair.
+  for (const running of [false, true]) {
+    const trio = await Promise.all([
+      person('world'),
+      person('world'),
+      person('world'),
+    ]);
+    const own = trio[0],
+      cid = (await group(own)).contextId;
+    for (const p of trio.slice(1)) {
+      const i = await invite(own, cid);
+      await shared.acceptInvite(
+        p.id,
+        i.inviteId,
+        {
+          token: i.token,
+          branchId: p.branchId,
+          revision: 0,
+          contextRevision: i.revision,
+          sharingAcknowledged: true,
+        },
+        randomUUID(),
+      );
+    }
+    let d = await shared.detail(own.id, cid);
+    const first = await sharedJobs.enqueue(
+        own.id,
+        cid,
+        d.revision,
+        randomUUID(),
+      ),
+      old = await sharedJobs.claim();
+    assert.equal(old.id, first.jobId);
+    await sharedJobs.fail(old, new Error('Synthetic rejected output'));
+    d = await shared.detail(own.id, cid);
+    await shared.lifecycle(trio[2].id, cid, d.revision, 'leave', randomUUID());
+    d = await shared.detail(own.id, cid);
+    const next = await sharedJobs.enqueue(
+      own.id,
+      cid,
+      d.revision,
+      randomUUID(),
+    );
+    let lease = running ? await sharedJobs.claim() : null;
+    const before = await db.query(
+      'SELECT revision,status FROM aw_shared_contexts WHERE id=$1',
+      [cid],
+    );
+    const beforeJob = await db.query(
+      'SELECT status,payload,checkpoints,lease_token FROM aw_shared_jobs WHERE id=$1',
+      [next.jobId],
+    );
+    await repo.markDeleting(trio[2].id);
+    await repo.deleteAccountData(trio[2].id);
+    assert.deepEqual(
+      await db.query(
+        'SELECT revision,status FROM aw_shared_contexts WHERE id=$1',
+        [cid],
+      ),
+      before,
+    );
+    assert.deepEqual(
+      await db.query(
+        'SELECT status,payload,checkpoints,lease_token FROM aw_shared_jobs WHERE id=$1',
+        [next.jobId],
+      ),
+      beforeJob,
+    );
+    assert.deepEqual(
+      await db.query(
+        'SELECT payload,checkpoints FROM aw_shared_jobs WHERE id=$1',
+        [first.jobId],
+      ),
+      [{ payload: {}, checkpoints: {} }],
+    );
+    lease ??= await sharedJobs.claim();
+    assert.equal(lease.id, next.jobId);
+    await sharedJobs.verify(lease);
+    await sharedJobs.fail(lease, new Error('Synthetic verification complete'));
+    for (const p of trio.slice(0, 2)) {
+      await repo.markDeleting(p.id);
+      await repo.deleteAccountData(p.id);
+    }
+  }
+
+  // S3 safety: actual PostgreSQL lock race, lease cancellation and private reports.
+  const sa = await person('world'),
+    sb = await person('world'),
+    sc = (await group(sa)).contextId;
+  const si = await invite(sa, sc);
+  await shared.acceptInvite(
+    sb.id,
+    si.inviteId,
+    {
+      token: si.token,
+      branchId: sb.branchId,
+      revision: 0,
+      contextRevision: si.revision,
+      sharingAcknowledged: true,
+    },
+    randomUUID(),
+  );
+  const safety = new SharedSafetyRepository(db),
+    sd = await shared.detail(sa.id, sc);
+  const sr = await safety.report(
+    sa.id,
+    sc,
+    { targetType: 'context', reason: 'privacy', details: 'Isolated CI report' },
+    randomUUID(),
+  );
+  const sj = await sharedJobs.enqueue(sa.id, sc, sd.revision, randomUUID()),
+    sl = await sharedJobs.claim();
+  assert.equal(sl.id, sj.jobId);
+  const ownIds = await db.query(
+    'SELECT id,user_id FROM aw_shared_members WHERE context_id=$1',
+    [sc],
+  );
+  winner(
+    await Promise.allSettled(
+      [sa, sb].map((p) =>
+        safety.setBlock(
+          p.id,
+          sc,
+          {
+            contextRevision: sj.revision,
+            memberId: ownIds.find((m) => m.user_id !== p.id).id,
+          },
+          true,
+          randomUUID(),
+        ),
+      ),
+    ),
+    'SHARED_REVISION_CONFLICT',
+  );
+  assert.equal((await sharedJobs.job(sa.id, sj.jobId)).status, 'cancelled');
+  await assert.rejects(() => sharedJobs.verify(sl));
+  assert.equal((await safety.safety(sb.id, sc)).reports.length, 0);
+  const held = await safety.moderate(sc, {
+    actionId: randomUUID(),
+    contextRevision: (await shared.detail(sa.id, sc)).revision,
+    action: 'hold',
+    actorLabel: 'isolated-ci',
+    reason: 'Synthetic review',
+    reportId: sr.reportId,
+  });
+  assert.equal(
+    (await new SharedSafetyRepository(db).detail(sb.id, sc)).moderationHold,
+    true,
+  );
+  await assert.rejects(
+    () => sharedJobs.enqueue(sb.id, sc, held.revision, randomUUID()),
+    (e) => e.code === 'SHARED_MODERATION_HOLD',
+  );
+  await repo.markDeleting(sa.id);
+  await repo.deleteAccountData(sa.id);
+  assert.equal(
+    (
+      await db.query(
+        'SELECT id FROM aw_shared_reports WHERE reporter_user_id=$1',
+        [sa.id],
+      )
+    ).length,
+    0,
+  );
+  assert.equal(
+    (
+      await db.query(
+        'SELECT report_id FROM aw_shared_moderation_audit WHERE context_id=$1',
+        [sc],
+      )
+    )[0].report_id,
+    null,
+  );
+  await repo.markDeleting(sb.id);
+  await repo.deleteAccountData(sb.id);
+
   // S3 deliberately changes only the requesting personal branch. Earlier S0/S1/S2
   // no-personal-write assertions above remain scoped to their separate fixtures.
   const personal = new LifeRepository(db),
@@ -673,6 +850,11 @@ try {
       delayedSharedResolution: true,
       concurrentPersonalMemoryOnce: true,
       personalMemoryDeletionRace: true,
+      formerMemberDeletionPreservesGeneration: true,
+      sharedSafetyPostgres: 'passed',
+      overlappingBlockRace: true,
+      moderationHoldAfterRestart: true,
+      privateReportsCascade: true,
       parallelSharedEnqueueAndClaim: true,
       reclaimedSharedLease: true,
       tenParallelIntents: true,

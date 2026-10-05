@@ -30,9 +30,12 @@ import {
   sharedRevisionRequestSchema,
   sharedIntentRequestSchema,
   socialProfileSchema,
+  sharedBlockRequestSchema,
+  sharedReportRequestSchema,
+  sharedInviteReportRequestSchema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
-import { Repository, SharedJobRepository } from '@future-flow/database';
+import { Repository, SharedSafetyRepository } from '@future-flow/database';
 
 export type SharedFeatures = {
   enabled: boolean;
@@ -98,9 +101,9 @@ export function createSharedContextController(
   @UseGuards(authGuard)
   @ApiBearerAuth()
   class SharedContextController {
-    private readonly shared: SharedJobRepository;
+    private readonly shared: SharedSafetyRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.shared = new SharedJobRepository(
+      this.shared = new SharedSafetyRepository(
         repo.db,
         flags.inviteSecret,
         180,
@@ -112,9 +115,91 @@ export function createSharedContextController(
       if (!flags.enabled || !flags.friend)
         throw new DomainError('NOT_FOUND', 'This feature is unavailable.', 404);
     }
+    @Get('shared-capabilities')
+    @ApiOperation({
+      summary: 'Read the server-controlled availability of Connections.',
+    })
+    capabilities() {
+      return { friendEnabled: flags.enabled && flags.friend };
+    }
     @Get('social-profile') social(@Req() req: SharedRequest) {
       this.enabled();
       return this.shared.socialProfile(req.userId);
+    }
+    @Get('shared-contexts/:id/safety')
+    safety(@Req() req: SharedRequest, @Param('id') id: string) {
+      this.enabled();
+      return this.shared.safety(req.userId, idSchema.parse(id));
+    }
+    @Post('shared-contexts/:id/block')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedBlockRequestSchema) as never })
+    block(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.setBlock(
+        req.userId,
+        idSchema.parse(id),
+        sharedBlockRequestSchema.parse(body),
+        true,
+        key ?? '',
+      );
+    }
+    @Post('shared-contexts/:id/unblock')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedBlockRequestSchema) as never })
+    unblock(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.setBlock(
+        req.userId,
+        idSchema.parse(id),
+        sharedBlockRequestSchema.parse(body),
+        false,
+        key ?? '',
+      );
+    }
+    @Post('shared-contexts/:id/reports')
+    @ApiHeader(idempotency)
+    @ApiBody({ schema: z.toJSONSchema(sharedReportRequestSchema) as never })
+    report(
+      @Req() req: SharedRequest,
+      @Param('id') id: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.report(
+        req.userId,
+        idSchema.parse(id),
+        sharedReportRequestSchema.parse(body),
+        key ?? '',
+      );
+    }
+    @Post('shared-invites/reports')
+    @ApiHeader(idempotency)
+    @ApiBody({
+      schema: z.toJSONSchema(sharedInviteReportRequestSchema) as never,
+    })
+    reportInvite(
+      @Req() req: SharedRequest,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string,
+    ) {
+      this.enabled();
+      return this.shared.reportInvite(
+        req.userId,
+        sharedInviteReportRequestSchema.parse(body),
+        key ?? '',
+      );
     }
     @Put('social-profile')
     @ApiBody({ schema: z.toJSONSchema(socialProfileSchema) as never })

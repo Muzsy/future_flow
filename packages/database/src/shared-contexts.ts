@@ -44,6 +44,7 @@ type Context = Row & {
   revision: number;
   simulation_at: string;
   pending_event_id: string | null;
+  moderation_hold: boolean;
 };
 type Member = Row & {
   id: string;
@@ -177,6 +178,7 @@ export class SharedContextRepository {
     if (context.revision !== expected) fail('SHARED_REVISION_CONFLICT');
   }
   protected writable(context: Context) {
+    if (context.moderation_hold) fail('SHARED_MODERATION_HOLD', 403);
     if (!['inviting', 'active', 'paused'].includes(context.status))
       fail('SHARED_MEMBER_INACTIVE', 403);
     if (context.pending_event_id) fail('SHARED_PENDING_DECISION');
@@ -348,7 +350,7 @@ export class SharedContextRepository {
   }
   async list(userId: string) {
     return this.db.query(
-      'SELECT c.id,c.type,c.title,c.status,c.content_locale,c.revision,c.simulation_at::text,m.id AS "memberId",m.status AS "membershipStatus" FROM aw_shared_contexts c JOIN aw_shared_members m ON m.context_id=c.id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) ORDER BY c.updated_at DESC LIMIT 100',
+      'SELECT c.id,c.type,c.title,c.status,c.moderation_hold AS "moderationHold",c.content_locale,c.revision,c.simulation_at::text,m.id AS "memberId",m.status AS "membershipStatus" FROM aw_shared_contexts c JOIN aw_shared_members m ON m.context_id=c.id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) ORDER BY c.updated_at DESC LIMIT 100',
       [userId, liveStatuses],
     );
   }
@@ -373,6 +375,15 @@ export class SharedContextRepository {
         state: c.state,
         governance: c.governance,
         ownMemberId: own.id,
+        pendingEventId: c.pending_event_id,
+        moderationHold: c.moderation_hold,
+        generation:
+          (
+            await tx.query(
+              'SELECT id,status,stage,error_code AS "errorCode" FROM aw_shared_jobs WHERE context_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1',
+              [contextId],
+            )
+          )[0] ?? null,
         members: members.map((m) => ({
           id: m.id,
           status: m.status,
@@ -488,6 +499,7 @@ export class SharedContextRepository {
       simulationAt: c.simulation_at,
       expiresAt: new Date(invite.expires_at).toISOString(),
       inviter: inviter.interaction_profile.displayName,
+      canDecline: invite.target_user_id === userId,
     };
   }
   async listInvites(userId: string) {

@@ -6,7 +6,7 @@
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–010 alkalmazva és ismétléssel ellenőrizve; 279 teszt/24 fájl, 39 schema. Korábbi 20 determinisztikus eset ×3 időszak és négy valódi EN/HU lánc megmarad. A v1 archívum megmarad. [Státusz](STATUS_HU.md), [routing](AI_V2_ROUTING_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork, memória/javítás és közös költségőr integrált. Supabase 001–012 alkalmazva és ismétléssel ellenőrizve; 297 teszt/26 fájl, 42 schema. Korábbi determinisztikus és valódi AI-minták megmaradnak. [Státusz](STATUS_HU.md), [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -16,22 +16,22 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 ## Új helyi fejlesztési szál — Shared Context S0–S7
 
-**Állapot:** S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva. [S0](SHARED_CONTEXT_S0_REPORT_HU.md), [S1](SHARED_CONTEXT_S1_REPORT_HU.md), [S2](SHARED_CONTEXT_S2_REPORT_HU.md), [S3 személyes/time szelet](SHARED_CONTEXT_S3_REPORT_HU.md). Következő S3 Connections/moderáció/retained privacy/full Auth. A [részletes Shared terv](SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md) az elfogadások gazdája; a forráscsomag változatlan. L01/P01–P13 számozása megmarad.
+**Állapot:** S0–S2 és S3 személyes/time/Connections/block/report/moderáció implementált; S3 retained privacy/full Auth és friend release még kapu. 001–012 alkalmazva, Shared kikapcsolva. [S3 személyes/time](SHARED_CONTEXT_S3_REPORT_HU.md), [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). S4–S7 és P01–P13 megmarad.
 
 | Pont | Következő eredmény                                                                              | Függőség / kapu                                                                          |
 | ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | S0   | Implementáció kész: Shared contract/core, 008/009, social/entitlement, create/list/detail/invite/accept és lifecycle | 36 új regresszió, flag kikapcsolva; 001–009 a fejlesztői DB-n alkalmazva; még nincs release |
 | S1   | Implementált: 2–10 fős friend canon, saját intent, opt-in resolution, pending memory impact        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                            |
 | S2   | Implementált: valódi Shared OpenAI, job/worker fair queue, validálás/repair, projekt/user költség             | S1; lease/idempotencia és kumulatív keret, max 1 repair                                  |
-| S3   | **Részben kész:** lazy own memória, személyes AI/fork/export/törlés, compatible-month; Connections/privacy/Auth kapu hátravan | S2; teljes moderation/PII/retention/recovery és valódi fiókos próba; friend release csak utána |
+| S3   | **Részben kész:** saját memória/AI/fork/export/törlés/time, angol Connections, block/report/moderáció; retained privacy/full Auth hátravan | S2; PII/retention/recovery és valódi fiókos próba; friend release csak utána |
 | S4   | Connected romantikus típus                                                                      | S3; 2 tag, max 1/user, mutual consent és unilateral end                                  |
 | S5   | Connected work/project és hobby                                                                 | S3 és típusos governance; saját intent, validált authority/adapter                       |
 | S6   | World sport, max 20, roster/subset/quorum                                                       | S5 szerep/governance; 20 párhuzamos intent és lock-verseny                               |
 | S7   | Split/group fork, sponsored seats, directory, public többfél-snapshot                           | Validált shared alap; public résznél P09–P13 és külön consent, későbbi scope             |
 
-A shared szál S0→S1→S2 elkészült helyben, S3 személyes/time rész kész, UI/privacy/Auth a következő; a további típusok fokozatosan követik a friend ellenőrzését. P09–P13 továbbra a teljes nyilvános MVP része, nem kell S7-ig várnia; a shared adatot tartalmazó publikációhoz előbb a P09/P11 általánosítás/PII/fork kapuit bővítjük. P06 backup/restore/email/valós kiesés és a későbbi Contabo-ops továbbra kiadási feladat, nem akadálya a helyi foundation fejlesztésének.
+A shared szál S0→S1→S2 elkészült helyben, S3 személyes/time és UI/safety kész, retained privacy/full Auth a következő; a további típusok fokozatosan követik a friend ellenőrzését. P09–P13 továbbra a teljes nyilvános MVP része, nem kell S7-ig várnia; a shared adatot tartalmazó publikációhoz előbb a P09/P11 általánosítás/PII/fork kapuit bővítjük. P06 backup/restore/email/valós kiesés és a későbbi Contabo-ops továbbra kiadási feladat, nem akadálya a helyi foundation fejlesztésének.
 
-S0 előtt nincs ár- vagy domainszükséglet. Grace/downgrade-választás, pontos deadline/quorum, eltérő dátumú ágak időszabálya és retained prose redakciója a függő szelet előtt tisztázandó; entitlementet csak megbízható szerverforrás adhat, éles fizetős aktiválás billing nélkül nem tekinthető késznek. 008/009 implementálva, checksumos alkalmazás és ismétlés a fejlesztői Supabase-on sikeres; 010 moderáció későbbi, 001–007 változatlan. S0 pontos dátumegyezést kér, owner invite 20/24h és 7 napos token; a részletek és a kulcsrotáció a megvalósítási riportban szerepelnek.
+S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható szerverforrás/billing, grace/downgrade és kiadási deadline még döntés. 008/009 foundation, 010 személyes memória, 011 szelektív törlés és 012 moderáció alkalmazva/ismételve; mind immutable. S3 compatible-month/latest-anchor kész; nincs személyes catch-up. Owner invite 20/24h és 7 napos token. Retained próza/backup-retention és teljes friend Auth/AI/recovery még kiadási kapu.
 
 ## L01 — Többnyelvű alap, felhasználói elsőbbséggel
 
@@ -167,7 +167,7 @@ S0 előtt nincs ár- vagy domainszükséglet. Grace/downgrade-választás, ponto
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** S3 angol Connections/invite/decision/solo felület, block/report/moderáció és retained PII/törlés; majd teljes valódi fiókos Shared→saját AI próba. A személyes/time szelet, 010 és izolált Sol/Claude-minta kész. P09–P13 public MVP és P06 backup/restore/email/valós kiesés továbbra megmarad. Contabo-élesítés később, domain és külön éles keret mellett; [indulás](ENGLISH_RELEASE_PLAN_HU.md), [telepítés](DEPLOYMENT_HU.md).
+**Következő helyben:** S3 retained szöveg privacy/retention (megjelenítési kérdés feltéve), majd teljes valódi fiókos Shared→saját AI→export/törlés/recovery. S3 angol Connections/block/report/moderáció és 011/012 elkészült; 297 teszt/42 schema, nincs új paid hívás. P09–P13 public MVP és P06 ops megmarad; Contabo később. [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
 
 ## Claude-mérés utáni AI-feladatok
 

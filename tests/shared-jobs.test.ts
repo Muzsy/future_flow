@@ -17,7 +17,11 @@ import {
   type Database,
 } from '@future-flow/database';
 import { applyMigrations } from '../scripts/lib/migrations';
-import { sharedAdapter, testInviteSecret } from './shared-fixtures';
+import {
+  sharedAdapter,
+  testInviteSecret,
+  sharedParticipant,
+} from './shared-fixtures';
 import { sharedAiGroup, candidateFor } from './shared-ai-fixtures';
 import { processSharedJob } from '../apps/worker/src/shared-processor';
 let engine: PGlite,
@@ -40,7 +44,14 @@ afterEach(async () => {
   );
   if (c && ['active', 'inviting', 'paused'].includes(String(c.status)))
     await jobs.lifecycle(
-      g.people[0]!.id,
+      String(
+        (
+          await db.query(
+            "SELECT user_id FROM aw_shared_members WHERE context_id=$1 AND status='active' AND admin_role='owner' ORDER BY id LIMIT 1",
+            [g.contextId],
+          )
+        )[0]!.user_id,
+      ),
       g.contextId,
       Number(c.revision),
       'end',
@@ -53,6 +64,132 @@ afterAll(async () => {
 const enqueue = (key = randomUUID()) =>
   jobs.enqueue(g.people[0]!.id, g.contextId, g.detail.revision, key);
 describe('Shared queued generation persistence', () => {
+  it.each(['queued', 'running'] as const)(
+    'keeps an unrelated %s job valid through a former member’s marker and physical account deletion',
+    async (status) => {
+      const third = await sharedParticipant(db, 'world', 'Test Morgan'),
+        a = g.people[0]!,
+        b = g.people[1]!;
+      const invite = await jobs.createInvite(
+        a.id,
+        g.contextId,
+        { contextRevision: g.detail.revision, targetUserId: third.id },
+        randomUUID(),
+      );
+      await jobs.acceptInvite(
+        third.id,
+        invite.inviteId,
+        {
+          token: invite.token,
+          branchId: third.branchId,
+          revision: third.revision,
+          contextRevision: invite.revision,
+          sharingAcknowledged: true,
+        },
+        randomUUID(),
+      );
+      let d = await jobs.detail(a.id, g.contextId);
+      await jobs.enqueue(a.id, g.contextId, d.revision, randomUUID());
+      const old = (await jobs.claim())!;
+      await jobs.checkpoint(
+        old,
+        'REJECTED',
+        { candidate: candidateFor(old.payload) },
+        {
+          task: 'shared_event',
+          inputHash: 'synthetic',
+          outputHash: 'synthetic',
+        },
+      );
+      await jobs.fail(old, new Error('Synthetic failed snapshot'));
+      d = await jobs.detail(a.id, g.contextId);
+      await jobs.lifecycle(
+        a.id,
+        g.contextId,
+        d.revision,
+        'leave',
+        randomUUID(),
+      );
+      d = await jobs.detail(b.id, g.contextId);
+      const q = await jobs.enqueue(b.id, g.contextId, d.revision, randomUUID());
+      let current = status === 'running' ? (await jobs.claim())! : null;
+      const before = (
+        await db.query(
+          'SELECT revision,status FROM aw_shared_contexts WHERE id=$1',
+          [g.contextId],
+        )
+      )[0];
+      const beforeJob = (
+        await db.query(
+          'SELECT status,payload,checkpoints,lease_token FROM aw_shared_jobs WHERE id=$1',
+          [q.jobId],
+        )
+      )[0];
+      const repo = new Repository(db);
+      await repo.markDeleting(a.id);
+      await repo.deleteAccountData(a.id);
+      expect(
+        (
+          await db.query(
+            'SELECT revision,status FROM aw_shared_contexts WHERE id=$1',
+            [g.contextId],
+          )
+        )[0],
+      ).toEqual(before);
+      expect(
+        (
+          await db.query(
+            'SELECT status,payload,checkpoints,lease_token FROM aw_shared_jobs WHERE id=$1',
+            [q.jobId],
+          )
+        )[0],
+      ).toEqual(beforeJob);
+      expect(
+        (
+          await db.query(
+            'SELECT payload,checkpoints FROM aw_shared_jobs WHERE id=$1',
+            [old.id],
+          )
+        )[0],
+      ).toEqual({ payload: {}, checkpoints: {} });
+      expect(
+        await db.query(
+          'SELECT id FROM aw_shared_ai_runs WHERE shared_job_id=$1',
+          [old.id],
+        ),
+      ).toHaveLength(1);
+      current ??= (await jobs.claim())!;
+      expect(current.id).toBe(q.jobId);
+      await jobs.verify(current);
+      await jobs.complete(current, candidateFor(current.payload));
+      expect(await jobs.events(b.id, g.contextId)).toHaveLength(1);
+    },
+  );
+  it('projects only safe current generation status into the Connections detail', async () => {
+    const q = await enqueue();
+    await db.query('UPDATE aw_shared_jobs SET checkpoints=$2 WHERE id=$1', [
+      q.jobId,
+      JSON.stringify({ privateMarker: 'never-in-connections-detail' }),
+    ]);
+    const d = await jobs.detail(g.people[1]!.id, g.contextId);
+    expect(d.generation).toEqual({
+      id: q.jobId,
+      status: 'queued',
+      stage: 'QUEUED',
+      errorCode: null,
+    });
+    const text = JSON.stringify(d);
+    for (const forbidden of [
+      'never-in-connections-detail',
+      'payload',
+      'checkpoints',
+      g.people[0]!.id,
+      g.people[0]!.branchId,
+      'Private goal',
+      'Private employer',
+    ])
+      expect(text).not.toContain(forbidden);
+  });
   it('enqueues once with strict safe input and no private state or branch writes', async () => {
     const before = await db.query(
         'SELECT id,state,revision,status FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',

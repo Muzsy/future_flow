@@ -30,6 +30,7 @@ import {
   cancelSharedAccountJobs,
   exportSharedAccount,
 } from './shared-contexts';
+import { exportSharedSafety } from './shared-safety';
 
 type Row = Record<string, unknown>;
 type ProfileRow = Row & {
@@ -608,6 +609,7 @@ export class Repository {
       );
       result.sharedContextContractVersion = '1.0.0';
       result.shared = await exportSharedAccount(tx, userId);
+      result.sharedSafety = await exportSharedSafety(tx, userId);
       return result;
     });
   }

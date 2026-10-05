@@ -1,6 +1,6 @@
 # alterward — Shared Context integrációs és fejlesztési terv
 
-2026-10-05 · **S0–S2 implementált; S3 személyes backend/AI/időkezelés elkészült, a teljes friend kiadási kapu még nyitott; S4–S7 tervezett. 001–010 alkalmazva, Shared kikapcsolva.** A [változatlan specifikáció](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md) aktív értelmezése. [Sorrend](NEXT_STEPS.md) · [Követelménymátrix](REQUIREMENTS_TRACEABILITY_HU.md) · [Állapot](STATUS_HU.md).
+2026-10-05 · **S0–S2 és S3 személyes/time/Connections/safety implementált; retained privacy/full Auth és friend kiadás még kapu.** [Változatlan forrás](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md), [sorrend](NEXT_STEPS.md), [státusz](STATUS_HU.md).
 
 ## 1. Cél és meglévő alap
 
@@ -164,3 +164,8 @@ Megvalósítás előtt részletezendő: grace hossza és downgrade-context vála
 ## S3 személyes/time implementációs pontosítások
 
 A saját történet függő közös döntés mellett is folytatható. A később lezárt esemény eredeti effectiveAt dátuma és az ág knownAt dátuma külön marad; a következő saját mutation egyszer veszi át, régi fejezetet/futó vagy retryolt jobot nem módosít. Fork csak a forkpontig ismert saját memóriát kap, élő tagság nélkül. Új közös generálás és accept azonos naptári hónap/latest-anchor szabályt használ; eltérő hónap elutasítva, személyes catch-up nincs. 010 és két új séma, 279 teszt/39 schema; own safe memória max8 a promptban, minden rekord exportban megmarad. Valódi Sol-folytatás és Sonnet-audit sikeres, sikertelen első timeline próba külön elszámolva. Connections angol felület, block/report/moderáció, retained próza PII-redakció/retention és teljes valódi fiókos Shared→saját AI→export/törlés/recovery még S3 kapu. A határidő kiadási alapértéke és entitlement/billing külön döntés; üres deadline mindenkit megvár, 48h javaslat. Mind a négy Shared flag false, Contabo-élesítés később. [Részletes riport](SHARED_CONTEXT_S3_REPORT_HU.md).
+
+
+## Shared S3: Connections és biztonság — 2026-10-05
+
+Angol Connections/csoport/profil/saját ág/consent/meghívó/idővonal/decision/solo és személyes pending banner implementált; block/unblock, saját privát rate-limited report és szerver-only auditált hold/release/dismiss elkészült. 011 szelektív former-member cleanup, 012 safety/moderation; 001–012 alkalmazva/ismételve, 16 Shared RLS-tábla, összesen 33 aw_ RLS-tábla. 297 teszt/26 fájl, teljes helyi check/build sikeres, 42 schema; 39 korábbi schema és 001–010 változatlan. Két valódi szintetikus Auth-fiókos izolált fixture-UI-próba, paid AI nélkül. Shared false, Contabo és AI-keretek változatlanok. Következő S3 kapu: törölt tagot érintő retained szöveg adatvédelmi megjelenítése és nyers/backup-retention, majd teljes valódi fiókos Shared AI → saját AI → export/törlés/recovery. Entitlement/billing és kiadási deadline külön döntés; üres deadline minden választ megvár, 48h nem alapérték. A retained megjelenítési kérdésre még nincs felhasználói válasz. P06 ops, P09–P13 public MVP és S4–S7 megmarad; friend release még nincs. [Megvalósítás és bizonyíték](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).

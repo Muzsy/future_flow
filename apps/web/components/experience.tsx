@@ -34,6 +34,7 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { LifeExperience } from './life-experience';
+import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
 import { formatDate } from '../lib/i18n';
 
@@ -122,6 +123,30 @@ export function Experience() {
   const page = route ?? 'home';
   const [user, setUser] = useState<string | null>(null),
     [authReady, setAuthReady] = useState(false);
+  const [sharedEnabled, setSharedEnabled] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  useEffect(() => {
+    if (page !== 'connections' || id !== 'invite') {
+      setInviteCode('');
+      return;
+    }
+    const capture = () => {
+      const value = new URLSearchParams(window.location.hash.slice(1)).get(
+        'invite',
+      );
+      if (window.location.hash) {
+        window.history.replaceState(
+          window.history.state,
+          '',
+          window.location.pathname,
+        );
+        setInviteCode(value ?? '');
+      }
+    };
+    capture();
+    window.addEventListener('hashchange', capture);
+    return () => window.removeEventListener('hashchange', capture);
+  }, [page, id]);
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [signup, setSignup] = useState(false);
@@ -141,6 +166,19 @@ export function Experience() {
   const [tab, setTab] = useState<'story' | 'timeline' | 'compare'>('story'),
     [compareBranch, setCompareBranch] = useState<Branch | null>(null),
     [confirmation, setConfirmation] = useState('');
+  useEffect(() => {
+    let stopped = false;
+    setSharedEnabled(false);
+    if (user)
+      void api<{ friendEnabled: boolean }>('/shared-capabilities', {}, 'v2')
+        .then((value) => {
+          if (!stopped) setSharedEnabled(value.friendEnabled);
+        })
+        .catch(() => {});
+    return () => {
+      stopped = true;
+    };
+  }, [user]);
   useEffect(() => {
     setNotice('');
     setConfirmation('');
@@ -171,6 +209,7 @@ export function Experience() {
     });
     const { data } = auth.onAuthStateChange((_event, session) => {
       setUser(session?.user.email ?? null);
+      if (_event === 'SIGNED_OUT') setInviteCode('');
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -530,6 +569,7 @@ export function Experience() {
     'job',
     'settings',
     'feedback',
+    'connections',
   ].includes(page);
   return (
     <>
@@ -566,6 +606,14 @@ export function Experience() {
             >
               {t('nav.profile')}
             </button>
+            {user && sharedEnabled && (
+              <button
+                className={page === 'connections' ? 'active' : ''}
+                onClick={() => navigate('/connections')}
+              >
+                Connections
+              </button>
+            )}
             <button onClick={() => navigate('/privacy')}>
               {t('nav.privacy')}
             </button>
@@ -615,6 +663,14 @@ export function Experience() {
                 page={page}
                 id={id}
                 user={user}
+                sharedEnabled={sharedEnabled}
+              />
+            )}
+            {page === 'connections' && user && (
+              <ConnectionsExperience
+                key={`${id ?? ''}:${user}`}
+                id={id}
+                inviteCode={inviteCode}
               />
             )}
             {page === 'feedback' && user && <FeedbackForm key={user} />}

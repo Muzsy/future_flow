@@ -92,10 +92,12 @@ export function LifeExperience({
   page,
   id,
   user,
+  sharedEnabled = false,
 }: {
   page: string;
   id?: string;
   user: string | null;
+  sharedEnabled?: boolean;
 }) {
   const { locale } = useLanguage(),
     m = lifeMessages[locale],
@@ -105,6 +107,43 @@ export function LifeExperience({
     [busy, setBusy] = useState(false);
   const [list, setList] = useState<Summary[]>([]),
     [detail, setDetail] = useState<Detail | null>(null);
+  const [sharedUpdates, setSharedUpdates] = useState<
+    {
+      id: string;
+      context_id: string;
+      effective_at: string;
+      payload: { memory: { title: string } };
+    }[]
+  >([]);
+  useEffect(() => {
+    let stopped = false;
+    setSharedUpdates([]);
+    if (!sharedEnabled || !detail?.branch.id) return;
+    const branchId = detail.branch.id;
+    let running = false;
+    async function refresh() {
+      if (stopped || running || document.visibilityState !== 'visible') return;
+      running = true;
+      try {
+        const updates = await lifeApi<typeof sharedUpdates>(
+          `/branches/${branchId}/shared-impacts`,
+        );
+        if (!stopped) setSharedUpdates(updates);
+      } catch {
+        if (!stopped) setSharedUpdates([]);
+      } finally {
+        running = false;
+      }
+    }
+    void refresh();
+    const timer = setInterval(() => void refresh(), 5000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [sharedEnabled, detail?.branch.id, detail?.branch.revision]);
   const [setup, setSetup] = useState<LifeSetupV2>(
       structuredClone(defaultSetup),
     ),
@@ -944,6 +983,26 @@ export function LifeExperience({
           {m.lives}
         </button>
       </div>
+      {sharedUpdates.length > 0 && (
+        <aside className="notice" aria-label="Shared updates">
+          <p>
+            Shared updates are waiting for your next personal continuation. Your
+            completed chapters stay as they are.
+          </p>
+          <ul>
+            {sharedUpdates.map((update) => (
+              <li key={update.id}>
+                <a href={`/connections/${update.context_id}`}>
+                  {update.payload.memory.title}
+                </a>
+                {update.effective_at > b.state.effectiveAt
+                  ? ` · Available when your branch reaches ${update.effective_at}`
+                  : ''}
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
       <div className="tabs">
         <button
           className={tab === 'story' ? 'active' : ''}

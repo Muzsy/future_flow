@@ -515,7 +515,7 @@ describe.sequential('Shared Context private foundation persistence', () => {
     const tables = await db.query(
       "SELECT tablename,rowsecurity FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'aw_shared_%' OR tablename IN ('aw_social_profiles','aw_user_entitlements','aw_user_blocks'))",
     );
-    expect(tables).toHaveLength(14);
+    expect(tables).toHaveLength(16);
     for (const t of tables) {
       expect(t.rowsecurity).toBe(true);
       const [p] = await db.query(

@@ -62,6 +62,7 @@ export class SharedEventRepository extends SharedContextRepository {
       const c = await this.context(tx, contextId, true),
         m = await this.member(tx, userId, contextId, true),
         all = await this.members(tx, contextId);
+      if (c.moderation_hold) fail('SHARED_MODERATION_HOLD', 403);
       // A join after the preliminary snapshot requires a retry, never user locks after context.
       if (
         all.some(

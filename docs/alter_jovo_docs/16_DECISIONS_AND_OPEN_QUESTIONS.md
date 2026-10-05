@@ -93,3 +93,13 @@ Sol marad, külön strict friend input/output, max4500 outputtoken és egy célz
 ## ADR-027 — Személyes folytatás a közös válaszok megérkezése előtt
 
 2026-10-04 · **Felhasználói döntés:** a személyes élet folytatható, amíg egy közös döntés válaszokra vár. A későbbi lezárás a következő személyes folytatásban újonnan megismert előzmény; elkészült fejezetet nem írunk át. Az immutable közös `effectiveAt` és az adott személyes ág `knownAt` dátuma külön marad. Futó személyes job bemenetét nem módosítjuk, és a retry ugyanazzal a pillanatfelvétellel dolgozik. Saját user/branch lock alatt egyszeri lazy memóriaátvétel történik, kliensrevision-ellenőrzés után. A történeti fork csak a forkfejezetig ismert memóriát örökli; élő tagságot és későbbi pending hatást nem. A válaszadási határidő külön, továbbra nyitott kiadási beállítás. [S3 személyes integráció](../SHARED_CONTEXT_S3_REPORT_HU.md).
+
+
+## Shared S3: Connections és biztonság — 2026-10-05
+
+Angol Connections/csoport/profil/saját ág/consent/meghívó/idővonal/decision/solo és személyes pending banner implementált; block/unblock, saját privát rate-limited report és szerver-only auditált hold/release/dismiss elkészült. 011 szelektív former-member cleanup, 012 safety/moderation; 001–012 alkalmazva/ismételve, 16 Shared RLS-tábla, összesen 33 aw_ RLS-tábla. 297 teszt/26 fájl, teljes helyi check/build sikeres, 42 schema; 39 korábbi schema és 001–010 változatlan. Két valódi szintetikus Auth-fiókos izolált fixture-UI-próba, paid AI nélkül. Shared false, Contabo és AI-keretek változatlanok. Következő S3 kapu: törölt tagot érintő retained szöveg adatvédelmi megjelenítése és nyers/backup-retention, majd teljes valódi fiókos Shared AI → saját AI → export/törlés/recovery. Entitlement/billing és kiadási deadline külön döntés; üres deadline minden választ megvár, 48h nem alapérték. A retained megjelenítési kérdésre még nincs felhasználói válasz. P06 ops, P09–P13 public MVP és S4–S7 megmarad; friend release még nincs. [Megvalósítás és bizonyíték](../SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).
+
+
+## ADR-028 · S3 Connections és privát biztonsági műveletek
+
+2026-10-05 · Technikai munkadöntés: a szerver friend-capability irányítja a navigációt; fragment token memóriában, explicit consent/own branch és idempotencia. Free report/block/leave; mások reportjai és block-actor adatai privátak. Tíz új report/user/24h és tartós target/reason dedup. Moderáció csak védett operátori CLI, külön hold, immutable audit, automatikus verdict/AI/újraindítás nélkül. Ezen rész implementált és izoláltan tesztelt. A retained szöveg megjelenítési kérdése felhasználói döntésre vár, nem elfogadott alapérték. [Részletek](../SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).

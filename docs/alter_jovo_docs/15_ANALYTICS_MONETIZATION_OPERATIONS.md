@@ -47,3 +47,8 @@ Free 0, Explorer 1 friend, Connected 3 friend/romantic/work/hobby, World 5 minde
 ## S2 implementációs kiegészítés
 
 S2 a kezdeményező user/project budgetet terheli; olvasás/intent nem paid. Két kisminta összesen 0.023755 USD konzervatív fogyasztás; OpenAI maradvány 3.051006625 USD, Claude 2.681955 USD. Éles budget továbbra 0, entitlement nem költési engedély. [Részletes riport](../SHARED_CONTEXT_S2_REPORT_HU.md).
+
+
+## Shared S3: Connections és biztonság — 2026-10-05
+
+Angol Connections/csoport/profil/saját ág/consent/meghívó/idővonal/decision/solo és személyes pending banner implementált; block/unblock, saját privát rate-limited report és szerver-only auditált hold/release/dismiss elkészült. 011 szelektív former-member cleanup, 012 safety/moderation; 001–012 alkalmazva/ismételve, 16 Shared RLS-tábla, összesen 33 aw_ RLS-tábla. 297 teszt/26 fájl, teljes helyi check/build sikeres, 42 schema; 39 korábbi schema és 001–010 változatlan. Két valódi szintetikus Auth-fiókos izolált fixture-UI-próba, paid AI nélkül. Shared false, Contabo és AI-keretek változatlanok. Következő S3 kapu: törölt tagot érintő retained szöveg adatvédelmi megjelenítése és nyers/backup-retention, majd teljes valódi fiókos Shared AI → saját AI → export/törlés/recovery. Entitlement/billing és kiadási deadline külön döntés; üres deadline minden választ megvár, 48h nem alapérték. A retained megjelenítési kérdésre még nincs felhasználói válasz. P06 ops, P09–P13 public MVP és S4–S7 megmarad; friend release még nincs. [Megvalósítás és bizonyíték](../SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md).

@@ -1,6 +1,14 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  SHARED_MODERATION_HOLD: [
+    'This group is paused for a safety review. Your personal story can continue.',
+    'A csoport biztonsági ellenőrzés miatt zárolva. A saját történeted folytatható.',
+  ],
+  SHARED_REPORT_LIMIT: [
+    'You have reached the report limit. Please try again tomorrow.',
+    'Elérted a jelentési korlátot. Próbáld újra holnap.',
+  ],
   FEEDBACK_LIMIT: [
     'You have reached the feedback limit. Please try again tomorrow.',
     'Elérted a visszajelzési korlátot. Próbáld újra holnap.',
