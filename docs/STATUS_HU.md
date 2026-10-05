@@ -16,7 +16,7 @@
 | Supabase | 001–012 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 33 aw_/33 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
-| Runtime CI | `4a74daa`: 279 teszt/24 fájl, teljes check/build/39 séma-drift; izolált web/API/worker/Caddy, 001–010 + ismétlés, valós PostgreSQL késői Shared→saját memória/konkurens choice/törlés és korábbi S0–S2 proof; verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37262177593) |
+| Runtime CI | `9e3c9c5`: 297 teszt/26 fájl, teljes check/build/42 séma-drift; izolált web/API/worker/Caddy, 001–012 + ismétlés, valós PostgreSQL S0–S3 és selective cleanup/block/moderáció/report proof; verified DB TLS/HTTPS, üres queue/leállítás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37303841122) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; retained privacy/full Auth még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
