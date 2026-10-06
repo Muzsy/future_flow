@@ -8,6 +8,7 @@ import {
   DiscoveryRepository,
   PublicationRepository,
   SavedLivesRepository,
+  PublicSafetyRepository,
   type Database,
 } from '@future-flow/database';
 import {
@@ -335,6 +336,97 @@ async function main() {
       community.owner,
     ])
       assert(!JSON.stringify(cards).includes(secret));
+    const safety = new PublicSafetyRepository(
+      db,
+      { enabled: true },
+      readerConfig,
+      readerConfig,
+    );
+    const reportReplies = await Promise.all(
+      [1, 2, 3].map(() =>
+        safety.report(f.owner, secondPublication.slug, {
+          reason: 'personal_data',
+          details: 'Isolated CI technical concern',
+        }),
+      ),
+    );
+    assert.equal(new Set(reportReplies.map((r) => r.reportId)).size, 1);
+    assert.equal(
+      (await safety.queue()).filter(
+        (r) => r.reportId === reportReplies[0]!.reportId,
+      ).length,
+      1,
+    );
+    const reportDecision = {
+      reportId: reportReplies[0]!.reportId,
+      reportRevision: 1,
+      publicationRevision: secondPublication.revision,
+      snapshotHash: secondPublication.snapshotHash,
+      action: 'warn',
+      reasonCode: 'personal_data',
+      actorLabel: 'Isolated CI safety moderator',
+      restrictPublishing: false,
+      acknowledged: true,
+    };
+    const warns = await Promise.all([
+      safety.resolve(reportDecision),
+      safety.resolve(reportDecision),
+    ]);
+    assert.deepEqual(warns[0], warns[1]);
+    assert.equal((await safety.ownSafety(other.owner)).warnings.length, 1);
+    assert.equal((await safety.ownSafety(f.owner)).warnings.length, 0);
+    const competingReport = await safety.report(
+      f.owner,
+      secondPublication.slug,
+      { reason: 'spam' },
+    );
+    const moderationRace = await Promise.allSettled([
+      safety.resolve({
+        ...reportDecision,
+        reportId: competingReport.reportId,
+        action: 'dismiss',
+      }),
+      safety.resolve({
+        ...reportDecision,
+        reportId: competingReport.reportId,
+        action: 'warn',
+      }),
+    ]);
+    assert.equal(
+      moderationRace.filter((r) => r.status === 'fulfilled').length,
+      1,
+    );
+    const restrictInput = {
+      userId: f.owner,
+      revision: 0,
+      active: true,
+      reasonCode: 'spam',
+      actorLabel: 'Isolated CI repeat-offender check',
+      acknowledged: true,
+    };
+    const restrictions = await Promise.all([
+      safety.setRestriction(restrictInput),
+      safety.setRestriction(restrictInput),
+    ]);
+    assert.deepEqual(restrictions[0], restrictions[1]);
+    await assert.rejects(
+      publications.prepare(f.owner, publicationInput, randomUUID()),
+      (e: unknown) => (e as { code: string }).code === 'PUBLICATION_RESTRICTED',
+    );
+    const restorations = await Promise.all([
+      safety.setRestriction({ ...restrictInput, revision: 1, active: false }),
+      safety.setRestriction({ ...restrictInput, revision: 1, active: false }),
+    ]);
+    assert.deepEqual(restorations[0], restorations[1]);
+    const [restrictionCount] = await db.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM aw_publication_restriction_actions WHERE user_id=$1',
+      [f.owner],
+    );
+    assert.equal(restrictionCount!.count, '2');
+    assert.equal((await safety.ownSafety(f.owner)).publishingRestricted, false);
+    const reporterExport = await f.repo.exportAccount(f.owner);
+    assert.equal((reporterExport.aw_public_reports as unknown[]).length, 2);
+    assert.equal((reporterExport.aw_public_warnings as unknown[]).length, 0);
     const saved = new SavedLivesRepository(
       db,
       { enabled: true },
@@ -421,6 +513,9 @@ async function main() {
     await assert.rejects(publications.readPublic(secondPublication.slug));
     assert.deepEqual((await discovery.list()).items, []);
     assert.equal((await saved.list(f.owner)).items[0]!.card, null);
+    await assert.rejects(
+      safety.report(f.owner, secondPublication.slug, { reason: 'harassment' }),
+    );
     await other.repo.restoreActive(other.owner);
     assert.equal(
       (await publications.confirm(other.owner, secondConfirm, secondKey))
@@ -457,6 +552,10 @@ async function main() {
         (e as { code: string }).code === 'OFFICIAL_LIFE_EVIDENCE_REQUIRED',
     );
     for (const table of [
+      'aw_public_reports',
+      'aw_public_warnings',
+      'aw_publication_restrictions',
+      'aw_publication_restriction_actions',
       'aw_saved_lives',
       'aw_official_life_starts',
       'aw_official_life_sources',
@@ -473,6 +572,10 @@ async function main() {
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
     for (const table of [
+      'aw_public_reports',
+      'aw_public_warnings',
+      'aw_publication_restrictions',
+      'aw_publication_restriction_actions',
       'aw_saved_lives',
       'aw_official_life_starts',
       'aw_official_life_sources',
@@ -515,6 +618,15 @@ async function main() {
           withdrawalBetweenLookupAndRead: true,
           sourceRevocationAndDeletionExcluded: true,
           noPrivateProvenanceInCards: true,
+          actualProviderCalls: 0,
+        },
+        publicSafety: {
+          concurrentReportDedupOnce: true,
+          moderationDecisionRaceOnce: true,
+          warningPrivateToPublisher: true,
+          explicitRestrictionRestoreOnce: true,
+          liveOfficialPermissionAndExport: true,
+          deletionCascadeRls: true,
           actualProviderCalls: 0,
         },
         savedLives: {

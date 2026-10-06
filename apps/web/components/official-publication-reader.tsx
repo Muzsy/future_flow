@@ -7,6 +7,7 @@ import {
 import { PublicationContent } from './publication-content';
 import { SaveLifeButton } from './save-life-button';
 import { ShareLifeButton } from './share-life-button';
+import { PublicReportForm } from './public-report-form';
 export function OfficialPublicationReader({ slug }: { slug?: string }) {
   const [view, setView] = useState<Reader | null>(null),
     [notice, setNotice] = useState('Loading this life…');
@@ -114,6 +115,7 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
             <PublicationContent snapshot={view.snapshot} />
             {slug && <SaveLifeButton slug={slug} />}
             {slug && <ShareLifeButton slug={slug} />}
+            {slug && <PublicReportForm slug={slug} />}
           </>
         )}
       </main>

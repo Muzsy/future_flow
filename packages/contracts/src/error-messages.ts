@@ -358,6 +358,22 @@ const errors: Record<string, readonly [string, string]> = {
     'You can save up to 500 lives. Remove a save before adding another.',
     'Legfeljebb 500 történetet menthetsz. Törölj egy mentést az újhoz.',
   ],
+  PUBLIC_REPORTS_DISABLED: [
+    'Public reports are not available yet.',
+    'A nyilvános bejelentés még nem érhető el.',
+  ],
+  PUBLIC_REPORT_LIMIT: [
+    'You can submit up to ten new reports in 24 hours.',
+    '24 óránként legfeljebb tíz új bejelentést küldhetsz.',
+  ],
+  PUBLIC_MODERATION_CONFLICT: [
+    'This moderation decision changed. Reload the queue.',
+    'A moderációs döntés megváltozott. Töltsd újra a sort.',
+  ],
+  PUBLICATION_RESTRICTED: [
+    'Publishing is restricted for your account. Check your safety notices in Settings.',
+    'A fiókod publikálása korlátozott. A figyelmeztetések a beállításokban láthatók.',
+  ],
   INTERNAL_ERROR: [
     'The request could not be completed. Please try again later.',
     'A kérés nem sikerült. Próbáld meg később.',

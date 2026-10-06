@@ -1232,3 +1232,19 @@ progress {
 .save-life-controls .notice {
   flex-basis: 100%;
 }
+.public-report-controls {
+  margin-block: 1.5rem;
+}
+.public-report-controls form {
+  display: grid;
+  gap: 1rem;
+  max-width: 40rem;
+  margin-block: 1rem;
+}
+.public-report-controls label {
+  display: grid;
+  gap: 0.5rem;
+}
+.public-report-controls textarea {
+  min-height: 7rem;
+}

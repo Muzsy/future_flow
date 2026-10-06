@@ -2,6 +2,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_SAFETY_VERSION,
+  publicReportRequestSchema,
+  publicReportReceiptSchema,
+  publicReportModerationSchema,
+  publicRestrictionRequestSchema,
+  publicSafetyViewSchema,
+} from './public-safety';
+import {
   SAVED_LIVES_VERSION,
   savedLivesQuerySchema,
   savedLifeStatusSchema,
@@ -346,6 +354,27 @@ for (const [name, schema] of Object.entries({
 const sharedDirectory = resolve(directory, 'shared');
 const discoveryDirectory = resolve(directory, 'discovery');
 const savedLivesDirectory = resolve(directory, 'saved-lives');
+const publicSafetyDirectory = resolve(directory, 'public-safety');
+mkdirSync(publicSafetyDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  reportRequest: publicReportRequestSchema,
+  receipt: publicReportReceiptSchema,
+  moderation: publicReportModerationSchema,
+  restriction: publicRestrictionRequestSchema,
+  ownSafety: publicSafetyViewSchema,
+})) {
+  writeFileSync(
+    resolve(publicSafetyDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-safety:${name}:${PUBLIC_SAFETY_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(savedLivesDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   query: savedLivesQuerySchema,

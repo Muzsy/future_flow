@@ -1,9 +1,9 @@
 # alterward — API specifikáció és tervezett bővítés
 
 
-## Aktuális: hitelesített mentés és public link
+## Aktuális: Report és trusted moderáció
 
-Az angol Discovery után a P10 hitelesített, idempotens Save és egyszerű public linkmegosztás elkészült. /saved saját angol lista, 500/fiók korlát, teljes aktuális Official/Community readerkapu; unlisted/private kizárt, withdraw/hide/revoke/deletion után nincs történet a mentésben. 026 FK/RLS, minimális saját export/cascade, két valódi disposable Supabase Auth-fiók és a változatlan háromfejezetes genuine seed HTTP-próbája sikeres. Helyi teljes check 481/41 és production build; 112 séma, régi 108 és 001–025 változatlan; fejlesztői DB 001–026 alkalmazva/ismételve, 56 aw_/56 RLS. Új runtime main CI még ellenőrizendő. Rendes SAVED_LIVES/DISCOVERY/kiadási/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő Report/moderációs queue/warning/abuse guard, OG/index opt-in/cache, kollekció/metrika és pozitív UI-próba; P10 nem teljes. P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](../SAVED_LIVES_AND_SHARE_REPORT_HU.md).
+A P10 angol Discovery/Save/public link után hitelesített Report, tartós privát moderációs sor és trusted CLI dismiss/warn/hide/remove elkészült. Kilenc eredeti kategória, user+copy+reason dedup/első details megőrzése, 10 új case/24h, külön saját Settings-notice és explicit publikálási restriction/restoration; bejelentésszám nem rejt automatikusan. 027 RLS/immutable döntés/minimális export/reporter-warning detach/publisher cascade kész. Két valódi Supabase Auth-fiók, genuine seed Report és külön ideiglenes technikai Community CLI-moderáció/export/tényleges cleanup sikeres; valódi seed és AI-naplók változatlanok. Helyi teljes check 491/42 és production build; 117 séma, régi 112 és 001–026 változatlan; fejlesztői DB 001–027 ismételve, 60 aw_/60 RLS. Save/Share 3d49bef verify/container CI sikeres; új Report runtime CI még ellenőrizendő. Normál public/Report/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő metrikák/kollekciók/explicit OG-index-cache és pozitív UI-próba; teljes P10/P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](../PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md).
 
 **2026-10-04-i kiinduló állapot (történeti):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap, AI-pre-screen és szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
@@ -169,3 +169,8 @@ Anon GET /api/public/discovery?q=…&category=education&classification=official&
 ## 2026-10-07: mentési és megosztási szelet
 
 GET/PUT/DELETE /api/v2/saved-lives/:slug és GET /api/v2/saved-lives, saját Auth, zárt query/body, no-store, 500/fiók szerializált kvóta, teljes live public reader; default SAVED_LIVES_ENABLED=false. Két valódi fiókos HTTP/export/tényleges cleanup sikeres.
+
+
+## 2026-10-07: bejelentési és safety szelet
+
+POST /api/v2/public-reports/:slug és GET /api/v2/public-safety kész, bearer Auth/no-store; user+publication+reason dedup, 1000 character details és 10 new/24h. Nincs browser admin route. PUBLIC_REPORTS_ENABLED=false; operator flag csak CLI. Saját receipt/warning DTO, nincs idegen reporter vagy story.

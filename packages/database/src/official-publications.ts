@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { assertPublicationAllowed } from './publication-safety';
 import {
   officialPublicationPrepareRequestSchema,
   officialPublicationConfirmRequestSchema,
@@ -237,6 +238,7 @@ export class OfficialPublicationRepository {
       scope = 'official-publication-prepare';
     return this.db.transaction(async (tx) => {
       await this.owner(tx, userId);
+      await assertPublicationAllowed(tx, userId);
       const prior = await this.prior(tx, userId, scope, key, inputHash),
         bound = await this.bound(tx, userId, input);
       const [published] = await tx.query(
@@ -301,6 +303,7 @@ export class OfficialPublicationRepository {
       scope = 'official-publication-confirm';
     return this.db.transaction(async (tx) => {
       await this.owner(tx, userId);
+      await assertPublicationAllowed(tx, userId);
       const prior = await this.prior(tx, userId, scope, key, inputHash);
       const [candidate] = await tx.query<PreviewRow>(
         'SELECT * FROM aw_official_publication_previews WHERE id=$1 AND user_id=$2',

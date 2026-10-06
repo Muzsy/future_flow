@@ -1,0 +1,31 @@
+{
+  "$id": "urn:alterward:public-safety:reportRequest:public-safety-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reason": {
+      "type": "string",
+      "enum": [
+        "personal_data",
+        "harassment",
+        "hate",
+        "explicit_sexual_content",
+        "violence",
+        "illegal_content",
+        "scam",
+        "impersonation",
+        "spam"
+      ]
+    },
+    "details": {
+      "default": "",
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "reason",
+    "details"
+  ],
+  "additionalProperties": false
+}

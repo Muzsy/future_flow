@@ -312,6 +312,16 @@ try {
   ])
     assert.equal(officialLife.savedLives[proof], true);
   assert.equal(officialLife.savedLives.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentReportDedupOnce',
+    'moderationDecisionRaceOnce',
+    'warningPrivateToPublisher',
+    'explicitRestrictionRestoreOnce',
+    'liveOfficialPermissionAndExport',
+    'deletionCascadeRls',
+  ])
+    assert.equal(officialLife.publicSafety[proof], true);
+  assert.equal(officialLife.publicSafety.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -410,7 +420,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '26|0|0|0|0');
+  assert.equal(counts.trim(), '27|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -419,7 +429,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 26,
+      migrations: 27,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

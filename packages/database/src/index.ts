@@ -14,6 +14,7 @@ export * from './publications';
 export * from './official-publications';
 export * from './discovery';
 export * from './saved-lives';
+export * from './public-safety';
 export * from './life-jobs';
 export * from './ai-budget';
 export * from './metrics';

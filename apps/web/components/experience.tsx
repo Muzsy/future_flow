@@ -37,6 +37,7 @@ import { LifeExperience } from './life-experience';
 import { PublicPreviewEditor } from './public-preview-editor';
 import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
+import { PublicSafetyPanel } from './public-safety-panel';
 import { formatDate } from '../lib/i18n';
 
 type Answers = Record<string, string | number | boolean | string[]>;
@@ -1556,6 +1557,7 @@ export function Experience() {
                       {t('privacy.download')}
                     </button>
                     <h2>{t('privacy.deleteTitle')}</h2>
+                    <PublicSafetyPanel key={user} />
                     <label className="field">
                       <span>{t('privacy.deletePrompt')}</span>
                       <input

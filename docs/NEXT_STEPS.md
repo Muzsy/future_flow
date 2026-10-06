@@ -1,9 +1,9 @@
 # alterward — következő lépések, sorrendben
 
 
-## Aktuális: hitelesített mentés és public link
+## Aktuális: Report és trusted moderáció
 
-Az angol Discovery után a P10 hitelesített, idempotens Save és egyszerű public linkmegosztás elkészült. /saved saját angol lista, 500/fiók korlát, teljes aktuális Official/Community readerkapu; unlisted/private kizárt, withdraw/hide/revoke/deletion után nincs történet a mentésben. 026 FK/RLS, minimális saját export/cascade, két valódi disposable Supabase Auth-fiók és a változatlan háromfejezetes genuine seed HTTP-próbája sikeres. Helyi teljes check 481/41 és production build; 112 séma, régi 108 és 001–025 változatlan; fejlesztői DB 001–026 alkalmazva/ismételve, 56 aw_/56 RLS. Új runtime main CI még ellenőrizendő. Rendes SAVED_LIVES/DISCOVERY/kiadási/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő Report/moderációs queue/warning/abuse guard, OG/index opt-in/cache, kollekció/metrika és pozitív UI-próba; P10 nem teljes. P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](SAVED_LIVES_AND_SHARE_REPORT_HU.md).
+A P10 angol Discovery/Save/public link után hitelesített Report, tartós privát moderációs sor és trusted CLI dismiss/warn/hide/remove elkészült. Kilenc eredeti kategória, user+copy+reason dedup/első details megőrzése, 10 új case/24h, külön saját Settings-notice és explicit publikálási restriction/restoration; bejelentésszám nem rejt automatikusan. 027 RLS/immutable döntés/minimális export/reporter-warning detach/publisher cascade kész. Két valódi Supabase Auth-fiók, genuine seed Report és külön ideiglenes technikai Community CLI-moderáció/export/tényleges cleanup sikeres; valódi seed és AI-naplók változatlanok. Helyi teljes check 491/42 és production build; 117 séma, régi 112 és 001–026 változatlan; fejlesztői DB 001–027 ismételve, 60 aw_/60 RLS. Save/Share 3d49bef verify/container CI sikeres; új Report runtime CI még ellenőrizendő. Normál public/Report/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő metrikák/kollekciók/explicit OG-index-cache és pozitív UI-próba; teljes P10/P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -146,7 +146,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 ## P10 — Read-only Discovery, public életoldal, Save/Share/Report
 
-**Részben elkészült:** [angol anonim Discovery API/UI](DISCOVERY_FOUNDATION_REPORT_HU.md), 13 kategória, literal keresés, Official/Community szűrő, newest lapozás, teljes reader-permission kapu és valódi seed/Auth/HTTP próba, 0 AI. Default-off. [Hitelesített idempotens Save és public link](SAVED_LIVES_AND_SHARE_REPORT_HU.md) elkészült, saját /saved listával és valódi Auth-próbával. OG/indexelési opt-in/Report/moderációs queue/warning/kollekciók/metrikák és pozitív UI-próba továbbra feladat; ez nem teljes P10.
+**Részben elkészült:** [angol anonim Discovery API/UI](DISCOVERY_FOUNDATION_REPORT_HU.md), 13 kategória, literal keresés, Official/Community szűrő, newest lapozás, teljes reader-permission kapu és valódi seed/Auth/HTTP próba, 0 AI. Default-off. [Hitelesített idempotens Save és public link](SAVED_LIVES_AND_SHARE_REPORT_HU.md) elkészült, saját /saved listával és valódi Auth-próbával. [Hitelesített Report/tartós queue/trusted warn-hide-remove/restriction](PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md) is kész. OG/indexelési opt-in/kollekciók/metrikák és pozitív UI-próba továbbra feladat; ez nem teljes P10.
 
 **Feladat:** kurált kollekciók, fix taxonómia és tartalomnyelv-szűrő, egyszerű ranking, bejelentkezés nélkül olvasható Official snapshot, Save/Share/OG és Report. Alap moderation queue/soft hide/hard remove/figyelmeztetés/rate-limit. Snapshot-cache mellett aktív publication/permission ellenőrzés; indexelés külön engedély szerint.
 
@@ -182,7 +182,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** P10 felhasználói Report/moderációs queue/warning/abuse guard, majd olvasási/mentési/megosztási metrikák, kurált kollekciók és explicit OG/index/permission/cache-kapu, pozitív UI-próba. A hitelesített Save és public link kész. A [Discovery első read-only API/UI szelete](DISCOVERY_FOUNDATION_REPORT_HU.md) és valódi seed/Auth/HTTP ellenőrzése kész; rendes feature-ek false. P11–P13, S3 retention/régi személyes próza/billing/grace/deadline, S4–S7 és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
+**Következő helyben:** P10 tartalom nélküli olvasási/mentési/megosztási/report/moderation metrikák, kurált kollekciók és explicit OG/index/permission/cache-kapu, pozitív UI-próba. A hitelesített Save/public link és Report/trusted queue/warn-hide-remove/restriction kész. A [Discovery első read-only API/UI szelete](DISCOVERY_FOUNDATION_REPORT_HU.md) és valódi seed/Auth/HTTP ellenőrzése kész; rendes feature-ek false. P11–P13, S3 retention/régi személyes próza/billing/grace/deadline, S4–S7 és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
 
 ## Claude-mérés utáni AI-feladatok
 

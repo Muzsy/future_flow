@@ -676,6 +676,39 @@ export class Repository {
               [userId],
             )
           : [];
+      const [reportStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_reports') IS NOT NULL AS present",
+      );
+      result.aw_public_reports =
+        reportStorage?.present === true
+          ? await tx.query(
+              `SELECT r.id,COALESCE(c.slug,o.slug) AS slug,r.reason,r.details,r.status,r.created_at
+         FROM aw_public_reports r LEFT JOIN aw_publications c ON c.id=r.community_publication_id
+         LEFT JOIN aw_official_publications o ON o.id=r.official_publication_id WHERE r.user_id=$1 ORDER BY r.created_at,r.id`,
+              [userId],
+            )
+          : [];
+      result.aw_public_warnings =
+        reportStorage?.present === true
+          ? await tx.query(
+              'SELECT id,slug,reason,action,created_at FROM aw_public_warnings WHERE user_id=$1 ORDER BY created_at,id',
+              [userId],
+            )
+          : [];
+      result.aw_publication_restrictions =
+        reportStorage?.present === true
+          ? await tx.query(
+              'SELECT active,revision,reason,updated_at FROM aw_publication_restrictions WHERE user_id=$1',
+              [userId],
+            )
+          : [];
+      result.aw_publication_restriction_actions =
+        reportStorage?.present === true
+          ? await tx.query(
+              'SELECT active,revision,reason,created_at FROM aw_publication_restriction_actions WHERE user_id=$1 ORDER BY revision',
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],
