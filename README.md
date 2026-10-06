@@ -171,3 +171,10 @@ Elkészült az első valódi angol Official seed: 3 hat hónapos AI-időszak, 2 
 ## 2026-10-06: P10 read-only Discovery első szelet
 
 Angol /discover kereső, kategória és Official/Community szűrő, newest lapozás. A rendes Discovery gate false, a felület még nem aktivált béta. 471/40 teljes helyi check; valódi háromfejezetes seed HTTP-keresése, exact reader és unchanged private state/AI naplók sikeres. [Részletes bizonyíték és következő kapuk](docs/DISCOVERY_FOUNDATION_REPORT_HU.md).
+
+
+## 2026-10-07: Discovery runtime CI-kapu lezárva
+
+A P10 első angol Discovery-szelet runtime [CI](https://github.com/Muzsy/future_flow/actions/runs/37537224387), `d5fa97ca460bb042e3b9b6d3c7034887913808bf`, verify/container sikeres: 471/40, formázás/típusok/API/worker/Next build, 108 séma drift nélkül. Valódi izolált PostgreSQL/CA TLS és HTTPS: Official+Community kártyák, literal search/filter, bounded newest lapok, lookup közbeni withdraw, revocation/deleting kapu és privát provenance kizárás; 6 új proof, mind a 71 korábbi Shared/P09 és a teljes Official proof megmarad. 001–025 és ismétlés, default-off HTTP és tiszta worker-leállás, egress tiltva, paid CI AI 0. Valódi seed/Auth/HTTP próba külön szintén sikeres; pozitív böngészős/UI ellenőrzés és Save/Share/OG/Report/moderációs queue/metrikák még feladat. P11–P13/S3-retention/S4–S7 és teljes ops/backup/email/Contabo kapuk megmaradnak.
+
+133 Markdown/130 docs, 21 aktív +21 archív téma, 108 séma és 198 változatlan immutable forrás/példa/séma/migráció; 1500 helyi link, 0 hibás link/anchor. 80 stratégiai fejezet, 14 public MVP-elem, 15 Shared téma, 17 checksum és eredeti ZIP hash változatlan. Új providerhívás 0.
