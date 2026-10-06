@@ -105,9 +105,12 @@ import {
 import { deleteAccount } from './account-deletion';
 import { createPublicationControllers } from './publications';
 import { createOfficialPublicationControllers } from './official-publications';
+import { createDiscoveryController } from './discovery';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
+  discoveryConfigFromEnv,
+  type DiscoveryConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -860,6 +863,7 @@ export async function createApp(
   publicContentCurationEnabled = publicContentCurationEnabledFromEnv(),
   publicationConfig: PublicationConfig = publicationConfigFromEnv(),
   officialPublicationConfig: OfficialPublicationConfig = officialPublicationConfigFromEnv(),
+  discoveryConfig: DiscoveryConfig = discoveryConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -868,6 +872,12 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createDiscoveryController(
+        REPOSITORY,
+        discoveryConfig,
+        publicationConfig,
+        officialPublicationConfig,
+      ),
       ...createPublicationControllers(AuthGuard, REPOSITORY, publicationConfig),
       ...createOfficialPublicationControllers(
         AuthGuard,

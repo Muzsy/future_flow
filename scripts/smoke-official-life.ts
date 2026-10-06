@@ -5,6 +5,9 @@ import {
   Repository,
   LifeRepository,
   OfficialPublicationRepository,
+  DiscoveryRepository,
+  PublicationRepository,
+  type Database,
 } from '@future-flow/database';
 import {
   officialLifeFixture,
@@ -12,6 +15,10 @@ import {
   officialBundleFixture,
   officialGrant,
 } from '../tests/official-life-fixtures';
+import {
+  publicationFixture,
+  approvePublicationFixture,
+} from '../tests/publication-fixtures';
 
 async function main() {
   // Only isolated CI server evidence: simulated provider receipts, never a real Official seed.
@@ -133,6 +140,15 @@ async function main() {
       'official',
     );
     await assert.rejects(publications.readPublic(published.slug));
+    const readerConfig = { enabled: true, linkSecret: 'c'.repeat(64) },
+      discovery = new DiscoveryRepository(
+        db,
+        { enabled: true },
+        readerConfig,
+        readerConfig,
+      );
+    await assert.rejects(new DiscoveryRepository(db).list());
+    assert.deepEqual((await discovery.list()).items, []);
     const rotateInput = {
         revision: published.revision,
         snapshotHash: published.snapshotHash,
@@ -266,12 +282,101 @@ async function main() {
       secondConfirm,
       secondKey,
     );
+    const community = await publicationFixture(db);
+    owners.push(community.owner);
+    const communityInput = await approvePublicationFixture(db, community);
+    assert.ok(communityInput);
+    communityInput.settings.visibility = 'public';
+    const communityPublications = new PublicationRepository(db, readerConfig),
+      communityPreview = await communityPublications.prepare(
+        community.owner,
+        communityInput,
+        randomUUID(),
+      ),
+      communityPublication = await communityPublications.confirm(
+        community.owner,
+        {
+          previewId: communityPreview.previewId,
+          previewHash: communityPreview.previewHash,
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+    const cards = await discovery.list();
+    assert.equal(cards.items.length, 2);
+    assert.deepEqual(cards.items.map((c) => c.classification).sort(), [
+      'community',
+      'official',
+    ]);
+    for (const q of ['%', '_', '\\', "'; DROP TABLE ff_users; --"])
+      assert.deepEqual((await discovery.list({ q })).items, []);
+    assert.equal(
+      (
+        await discovery.list({
+          q: secondPublication.snapshot.story.title.toUpperCase(),
+          category: secondPublication.snapshot.story.category,
+          classification: 'official',
+        })
+      ).items[0]!.slug,
+      secondPublication.slug,
+    );
+    const firstPage = await discovery.list({ pageSize: 1 }),
+      secondPage = await discovery.list({ pageSize: 1, page: 2 });
+    assert.equal(firstPage.hasMore, true);
+    assert.equal(secondPage.hasMore, false);
+    assert.notEqual(firstPage.items[0]!.slug, secondPage.items[0]!.slug);
+    for (const secret of [
+      other.owner,
+      second.lifeId,
+      second.branchId,
+      secondGrant.grant!.id,
+      secondInspect.evidenceHash,
+      community.owner,
+    ])
+      assert(!JSON.stringify(cards).includes(secret));
+    let race = true;
+    const raced: Database = {
+      ...db,
+      query: async <T extends Record<string, unknown>>(
+        sql: string,
+        values: unknown[] = [],
+      ) => {
+        const rows = await db.query<T>(sql, values);
+        if (race && sql.includes('ORDER BY published_at DESC')) {
+          race = false;
+          await communityPublications.action(
+            community.owner,
+            communityPublication.publicationId,
+            'withdraw',
+            {
+              revision: communityPublication.revision,
+              snapshotHash: communityPublication.snapshotHash,
+              acknowledged: true,
+            },
+            randomUUID(),
+          );
+        }
+        return rows;
+      },
+    };
+    assert.deepEqual(
+      (
+        await new DiscoveryRepository(
+          raced,
+          { enabled: true },
+          readerConfig,
+          readerConfig,
+        ).list()
+      ).items.map((c) => c.slug),
+      [secondPublication.slug],
+    );
     const deletionRace = await Promise.allSettled([
       publications.readPublic(secondPublication.slug),
       other.repo.markDeleting(other.owner),
     ]);
     assert.equal(deletionRace[1]!.status, 'fulfilled');
     await assert.rejects(publications.readPublic(secondPublication.slug));
+    assert.deepEqual((await discovery.list()).items, []);
     await other.repo.restoreActive(other.owner);
     assert.equal(
       (await publications.confirm(other.owner, secondConfirm, secondKey))
@@ -353,6 +458,15 @@ async function main() {
           deletionReaderRaceRecoveryCascadeRls: true,
           actualProviderCalls: 0,
           actualOfficialSeed: false,
+        },
+        discovery: {
+          activePublicReaderCardsOnly: true,
+          boundedLiteralEnglishSearch: true,
+          stableNewestPages: true,
+          withdrawalBetweenLookupAndRead: true,
+          sourceRevocationAndDeletionExcluded: true,
+          noPrivateProvenanceInCards: true,
+          actualProviderCalls: 0,
         },
         publicationApproved: false,
         actualProviderCalls: 0,

@@ -1,9 +1,9 @@
 # alterward — következő lépések, sorrendben
 
 
-## Aktuális: valódi angol Official seed és Auth-próba
+## Aktuális: angol Discovery első olvasási szelete
 
-Elkészült az első valódi angol Official seed: 3 hat hónapos AI-időszak, 2 választás, 3 ellenőrzött döntési checkpoint, új Scenario/full-copy review, külön curator/Official eredet és valódi Supabase Auth/HTTP preview/Confirm/public/unlisted olvasó/linkcsere/withdraw/export/próbafiók-cleanup. Sonnet-audit: kánonhű/természetes angol, 0 story finding; 4/4/5/4/4 gépi pontszám. A teljes checker 3 automatikus korlátleírás-hibát talált; a core angol mondatot ad, az új másolat no_findings, a régi blokkolt csomag immutable. 1 fiktív staging seed megmarad P10-hez, rendes feature-ek false. Helyi teljes check 464/39 és production build sikeres; 105 séma/001–025 változatlan; új runtime CI még ellenőrizendő. Új 13 OpenAI +1 Claude hívás; guard-maradék 2.254014125 / 2.62877 USD, naplók megőrizve. Pozitív böngészős Official UI és teljes P10–P13/S3-retention/S4–S7/ops/backup/email/éles Contabo kapuk megmaradnak. Következő P10 Discovery és nyilvános moderáció. [Bizonyíték és határ](OFFICIAL_SEED_REPORT_HU.md).
+A P10 első read-only Discovery szelete elkészült: angol anonim API és /discover felület, 13 fix kategória, szó szerinti cím/summary keresés, Official/Community szűrő, legújabb szerinti lapozás és minden találaton teljes aktív olvasói jogosultságellenőrzés. Private/unlisted/withdrawn/hidden/removed/törlés alatt álló élet kizárt; nincs privát eredetadat a kártyán. Valódi háromfejezetes Official seed + Supabase Auth/HTTP keresés/olvasó/private-state változatlanság sikeres. Helyi teljes check 471/40 és production build; 108 séma, a régi 105 és 001–025 változatlan. Új P10 runtime CI még ellenőrizendő. Rendes DISCOVERY/PUBLICATIONS/OFFICIAL/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Save/Share/OG/Report/moderációs queue és használati metrikák még P10-feladat; nincs teljes P10 vagy éles release. Pozitív böngészős Discovery/Official UI és teljes P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](DISCOVERY_FOUNDATION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -146,6 +146,8 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 ## P10 — Read-only Discovery, public életoldal, Save/Share/Report
 
+**Részben elkészült:** [angol anonim Discovery API/UI](DISCOVERY_FOUNDATION_REPORT_HU.md), 13 kategória, literal keresés, Official/Community szűrő, newest lapozás, teljes reader-permission kapu és valódi seed/Auth/HTTP próba, 0 AI. Default-off. Save/Share/OG/Report/moderációs queue/kollekciók/metrikák és pozitív UI-próba továbbra feladat; ez nem teljes P10.
+
 **Feladat:** kurált kollekciók, fix taxonómia és tartalomnyelv-szűrő, egyszerű ranking, bejelentkezés nélkül olvasható Official snapshot, Save/Share/OG és Report. Alap moderation queue/soft hide/hard remove/figyelmeztetés/rate-limit. Snapshot-cache mellett aktív publication/permission ellenőrzés; indexelés külön engedély szerint.
 
 **Elfogadás:** olvasás/újratöltés nem indít AI-hívást. Anon/másik fiók csak engedett snapshotot kap; private/unlisted nincs Discoveryben. Save hitelesített és idempotens. Rejtett/visszavont élet nem olvasható, Report nem jelent ellenőrizetlen ranking-tiltást. Olvasás/mentés/megosztás mérhető.
@@ -180,7 +182,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** P10 Discovery és nyilvános bejelentés/moderáció az első [valódi angol Official pilot](OFFICIAL_SEED_REPORT_HU.md) köré; majd P11–P13. 3 fejezet/3 checkpoint, külön Sonnet-audit, tényleges curator/eredet/Confirm és Auth/HTTP public/unlisted próba kész; pozitív Official böngészős UI még feladat. A teljes P01–P13/S0–S7, S3 retention/régi személyes próza/billing/grace/deadline és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
+**Következő helyben:** P10 Save/Share/OG és felhasználói Report/moderációs queue/abuse guard, majd olvasási/mentési/megosztási metrikák és pozitív UI-próba. A [Discovery első read-only API/UI szelete](DISCOVERY_FOUNDATION_REPORT_HU.md) és valódi seed/Auth/HTTP ellenőrzése kész; rendes feature-ek false. P11–P13, S3 retention/régi személyes próza/billing/grace/deadline, S4–S7 és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
 
 ## Claude-mérés utáni AI-feladatok
 

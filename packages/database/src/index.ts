@@ -12,6 +12,7 @@ export * from './public-content-review-jobs';
 export * from './public-content-curation';
 export * from './publications';
 export * from './official-publications';
+export * from './discovery';
 export * from './life-jobs';
 export * from './ai-budget';
 export * from './metrics';

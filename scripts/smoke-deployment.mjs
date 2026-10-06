@@ -293,6 +293,16 @@ try {
     assert.equal(officialLife.officialPublication[proof], true);
   assert.equal(officialLife.officialPublication.actualProviderCalls, 0);
   assert.equal(officialLife.officialPublication.actualOfficialSeed, false);
+  for (const proof of [
+    'activePublicReaderCardsOnly',
+    'boundedLiteralEnglishSearch',
+    'stableNewestPages',
+    'withdrawalBetweenLookupAndRead',
+    'sourceRevocationAndDeletionExcluded',
+    'noPrivateProvenanceInCards',
+  ])
+    assert.equal(officialLife.discovery[proof], true);
+  assert.equal(officialLife.discovery.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -334,6 +344,10 @@ try {
     run('curl', [...curlArgs, 'https://localhost/api/v1/me']),
   );
   assert.equal(response.error.code, 'AUTH_REQUIRED');
+  const disabledDiscovery = JSON.parse(
+    run('curl', [...curlArgs, 'https://localhost/api/public/discovery']),
+  );
+  assert.equal(disabledDiscovery.error.code, 'DISCOVERY_DISABLED');
   assert.equal(
     run('curl', [
       ...curlArgs,

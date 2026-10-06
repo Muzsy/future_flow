@@ -1,9 +1,9 @@
 # alterward — jelenlegi implementáció, 2026-10-06
 
 
-## Aktuális: valódi angol Official seed és Auth-próba
+## Aktuális: angol Discovery első olvasási szelete
 
-Elkészült az első valódi angol Official seed: 3 hat hónapos AI-időszak, 2 választás, 3 ellenőrzött döntési checkpoint, új Scenario/full-copy review, külön curator/Official eredet és valódi Supabase Auth/HTTP preview/Confirm/public/unlisted olvasó/linkcsere/withdraw/export/próbafiók-cleanup. Sonnet-audit: kánonhű/természetes angol, 0 story finding; 4/4/5/4/4 gépi pontszám. A teljes checker 3 automatikus korlátleírás-hibát talált; a core angol mondatot ad, az új másolat no_findings, a régi blokkolt csomag immutable. 1 fiktív staging seed megmarad P10-hez, rendes feature-ek false. Helyi teljes check 464/39 és production build sikeres; 105 séma/001–025 változatlan; új runtime CI még ellenőrizendő. Új 13 OpenAI +1 Claude hívás; guard-maradék 2.254014125 / 2.62877 USD, naplók megőrizve. Pozitív böngészős Official UI és teljes P10–P13/S3-retention/S4–S7/ops/backup/email/éles Contabo kapuk megmaradnak. Következő P10 Discovery és nyilvános moderáció. [Bizonyíték és határ](OFFICIAL_SEED_REPORT_HU.md).
+A P10 első read-only Discovery szelete elkészült: angol anonim API és /discover felület, 13 fix kategória, szó szerinti cím/summary keresés, Official/Community szűrő, legújabb szerinti lapozás és minden találaton teljes aktív olvasói jogosultságellenőrzés. Private/unlisted/withdrawn/hidden/removed/törlés alatt álló élet kizárt; nincs privát eredetadat a kártyán. Valódi háromfejezetes Official seed + Supabase Auth/HTTP keresés/olvasó/private-state változatlanság sikeres. Helyi teljes check 471/40 és production build; 108 séma, a régi 105 és 001–025 változatlan. Új P10 runtime CI még ellenőrizendő. Rendes DISCOVERY/PUBLICATIONS/OFFICIAL/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Save/Share/OG/Report/moderációs queue és használati metrikák még P10-feladat; nincs teljes P10 vagy éles release. Pozitív böngészős Discovery/Official UI és teljes P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](DISCOVERY_FOUNDATION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -202,3 +202,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-06: külön Official kiadási másolat
 
 [Exact Official preview/Confirm és immutable publikáció](OFFICIAL_PUBLICATION_REPORT_HU.md) kész; a source grant külön kapu marad. Default OFFICIAL_PUBLICATIONS_ENABLED=false; védett PUBLICATION_LINK_SECRET, külön HMAC-névtér. Public/unlisted olvasó, saját listázás/linkcsere/withdraw, trusted moderáció; source-revoke és fióktörlés tranzakciós hozzáférésmegszüntetése, export/cascade/recovery. 025 alkalmazva/ismételve, 55 RLS, 105 séma; a korábbi 96/001–024 változatlan. Új paid AI 0, valódi seed/Auth/böngészős pozitív próba még feladat. Runtime `9850a6ae` [CI](https://github.com/Muzsy/future_flow/actions/runs/37507371476) verify/container sikeres; nem Contabo-deploy. A teljes P01–P13/S0–S7 és ops kapuk megmaradnak.
+
+
+## 2026-10-06: P10 read-only Discovery első szelet
+
+GET /api/public/discovery és /discover angol API/UI; zárt discovery-1 DTO, parametrikus literal search, fix kategóriák/newest és teljes aktív public readerkapu. Default DISCOVERY_ENABLED=false. SQL read-only a meglévő kiadási táblákon; 0 AI/új tábla/migráció. [Részletes bizonyíték és következő kapuk](DISCOVERY_FOUNDATION_REPORT_HU.md).

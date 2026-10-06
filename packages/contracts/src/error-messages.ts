@@ -346,6 +346,10 @@ const errors: Record<string, readonly [string, string]> = {
     'The request could not be completed.',
     'A kérés nem sikerült.',
   ],
+  DISCOVERY_DISABLED: [
+    'Discovery is not available yet.',
+    'A történetek böngészése még nem érhető el.',
+  ],
   INTERNAL_ERROR: [
     'The request could not be completed. Please try again later.',
     'A kérés nem sikerült. Próbáld meg később.',

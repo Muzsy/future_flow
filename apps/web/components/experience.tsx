@@ -596,6 +596,7 @@ export function Experience() {
         <div className="header-actions">
           <LanguageSelect />
           <nav className="nav" aria-label={t('nav.main')}>
+            <a href="/discover">Discover lives</a>
             <button
               className={page === 'futures' ? 'active' : ''}
               onClick={() => navigate(user ? '/lives' : '/login')}

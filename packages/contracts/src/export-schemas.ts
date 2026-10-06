@@ -2,6 +2,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  DISCOVERY_VERSION,
+  discoveryQuerySchema,
+  discoveryCardSchema,
+  discoveryPageSchema,
+} from './discovery';
+import {
   OFFICIAL_PUBLICATION_VERSION,
   officialPublicationSnapshotSchema,
   officialPublicationPrepareRequestSchema,
@@ -331,6 +337,25 @@ for (const [name, schema] of Object.entries({
   );
 }
 const sharedDirectory = resolve(directory, 'shared');
+const discoveryDirectory = resolve(directory, 'discovery');
+mkdirSync(discoveryDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  query: discoveryQuerySchema,
+  card: discoveryCardSchema,
+  page: discoveryPageSchema,
+})) {
+  writeFileSync(
+    resolve(discoveryDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:discovery:${name}:${DISCOVERY_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const officialPublicationDirectory = resolve(directory, 'official-publication');
 mkdirSync(officialPublicationDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

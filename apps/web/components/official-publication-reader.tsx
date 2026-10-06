@@ -89,7 +89,10 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
         <a className="brand" href="/">
           alterward
         </a>
-        <a href="/login">Sign in</a>
+        <div className="header-actions">
+          <a href="/discover">Discover lives</a>
+          <a href="/login">Sign in</a>
+        </div>
       </header>
       <main className="publication-page">
         <h1>An Official life</h1>

@@ -91,10 +91,14 @@ header {
   gap: 28px;
   align-items: center;
 }
-.nav button {
+.nav button,
+.nav a {
   background: transparent;
   color: var(--muted);
   font-size: 13px;
+}
+.nav a {
+  text-decoration: none;
 }
 .nav button.active {
   color: var(--ink);
@@ -1149,4 +1153,72 @@ progress {
   padding: 0 24px 64px;
   display: grid;
   gap: 24px;
+}
+.discovery-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+}
+.discovery-filters label {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 180px;
+}
+.discovery-filters label:first-child {
+  flex: 2 1 280px;
+}
+.discovery-filters input,
+.discovery-filters select {
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.discovery-clear {
+  padding: 12px 0;
+}
+.discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 24px;
+}
+.discovery-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  overflow-wrap: anywhere;
+}
+.discovery-card h2,
+.discovery-card p {
+  margin: 0;
+}
+.discovery-card h2 a {
+  color: var(--ink);
+}
+.discovery-card-meta,
+.discovery-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+}
+.discovery-card-meta {
+  color: var(--green);
+  font-size: 13px;
+}
+.discovery-read {
+  margin-top: auto;
+  padding-top: 8px;
+}
+.discovery-pagination {
+  align-items: center;
 }

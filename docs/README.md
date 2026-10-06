@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Discovery első olvasási szelet](DISCOVERY_FOUNDATION_REPORT_HU.md) | Angol anonymous API/UI, literal keresés, 13 kategória, Official/Community/newest lapozás, teljes live permission; valódi seed/Auth/HTTP, 0 AI; Save/Share/Report még következik |
 | [Első valódi Official seed](OFFICIAL_SEED_REPORT_HU.md) | Három angol AI-fejezet, Sonnet-audit, 3 checkpoint, külön teljes review/curator/eredet és tényleges Auth/HTTP kiadás; 1 staging pilot, rendes feature-ek false |
 | [Külön Official publikálás és megerősítés](OFFICIAL_PUBLICATION_REPORT_HU.md) | Exact grant/evidence/review kötésű preview/Confirm, public/unlisted angol olvasó, source-revoke/withdraw/linkcsere/deletion; első valódi seed és Auth/HTTP próba kész; pozitív Official böngészős UI még következik |
 | [Külön Official LIFE eredetigazolás](OFFICIAL_LIFE_PROVENANCE_REPORT_HU.md) | Előzetes trusted start, teljes canon/AI receipt/accounting és külön source/jog/minőség grant, terminal revoke; külön kiadási projekció és első valódi seed kész |
