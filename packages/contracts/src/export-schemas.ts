@@ -48,6 +48,14 @@ import {
   officialScenarioSourceRequestSchema,
   officialScenarioSourceRevokeSchema,
   scenarioReleaseViewSchema,
+  OFFICIAL_LIFE_SOURCE_VERSION,
+  officialLifeStartRequestSchema,
+  officialLifeGenerationBindingSchema,
+  officialLifeReceiptSchema,
+  officialLifeEvidenceSchema,
+  officialLifeGrantRequestSchema,
+  officialLifeRevokeRequestSchema,
+  officialLifeSourceViewSchema,
   FORK_CHECKPOINT_VERSION,
   forkCheckpointSchema,
   forkFactChangeSchema,
@@ -185,6 +193,29 @@ for (const [name, schema] of Object.entries({
   );
 }
 const v2Directory = resolve(directory, 'v2');
+const officialLifeDirectory = resolve(directory, 'official-life');
+mkdirSync(officialLifeDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  startRequest: officialLifeStartRequestSchema,
+  generationBinding: officialLifeGenerationBindingSchema,
+  receipt: officialLifeReceiptSchema,
+  evidence: officialLifeEvidenceSchema,
+  grantRequest: officialLifeGrantRequestSchema,
+  revokeRequest: officialLifeRevokeRequestSchema,
+  sourceView: officialLifeSourceViewSchema,
+})) {
+  writeFileSync(
+    resolve(officialLifeDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:official-life:${name}:${OFFICIAL_LIFE_SOURCE_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 for (const [name, schema] of Object.entries({
   contentCurationRequest: publicContentCurationRequestSchema,
   contentCurationView: publicContentCurationViewSchema,

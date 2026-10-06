@@ -1,0 +1,85 @@
+{
+  "$id": "urn:alterward:official-life:receipt:official-life-source-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "task": {
+      "type": "string",
+      "enum": [
+        "life_period",
+        "life_chapter",
+        "life_fidelity",
+        "public_content_review"
+      ]
+    },
+    "promptVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "locale": {
+      "type": "string",
+      "const": "en"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "inputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "inputTokens": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "outputTokens": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "cachedInputTokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "cacheWriteTokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "reasoningTokens": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "latencyMs": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "task",
+    "promptVersion",
+    "locale",
+    "model",
+    "requestId",
+    "inputHash",
+    "outputHash",
+    "inputTokens",
+    "outputTokens",
+    "latencyMs"
+  ],
+  "additionalProperties": false
+}

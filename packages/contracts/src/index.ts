@@ -344,6 +344,7 @@ export * from './public-review-jobs';
 export * from './public-curation';
 export * from './public-scenarios';
 export * from './scenario-release';
+export * from './official-life';
 export * from './public-fork';
 export * from './public-content';
 export * from './public-content-review-jobs';

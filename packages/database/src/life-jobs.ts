@@ -261,6 +261,19 @@ export class LifeJobRepository {
             repairUsed: Boolean(job.checkpoints.repairUsed),
             repairKind: job.checkpoints.repairKind ?? null,
             repairReasonCode: job.checkpoints.repairReasonCode ?? null,
+            receiptOrder: receipts.map(hash),
+            ...(job.checkpoints.periodInputHash &&
+            job.checkpoints.chapterInputHash &&
+            job.checkpoints.fidelityInputHash
+              ? {
+                  generationBinding: {
+                    sourceHash: hash(job.payload),
+                    periodInputHash: job.checkpoints.periodInputHash,
+                    chapterInputHash: job.checkpoints.chapterInputHash,
+                    fidelityInputHash: job.checkpoints.fidelityInputHash,
+                  },
+                }
+              : {}),
           }),
         ],
       );

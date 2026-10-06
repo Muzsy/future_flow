@@ -1,5 +1,6 @@
 import {
   DomainError,
+  hash,
   simulatePeriodV2,
   validatePeriodChapterV2,
   validatePersonalSharedMemories,
@@ -67,7 +68,10 @@ export async function processLifeJob(
           scope,
         );
         candidate = result.output;
-        await jobs.checkpoint(job, 'CANON_READY', { candidate });
+        await jobs.checkpoint(job, 'CANON_READY', {
+          candidate,
+          periodInputHash: hash({ ...input, repair: repair ?? null }),
+        });
         break;
       } catch (error) {
         if (attempt || !(error instanceof DomainError)) throw error;
@@ -116,7 +120,11 @@ export async function processLifeJob(
         const result = await ai.periodChapter(story, repair);
         receipts.push(result.receipt);
         chapter = result.output;
-        await jobs.checkpoint(job, 'CHAPTER_READY', { chapter, receipts });
+        await jobs.checkpoint(job, 'CHAPTER_READY', {
+          chapter,
+          receipts,
+          chapterInputHash: hash({ ...story, repair: repair ?? null }),
+        });
       }
       let problems: string | null = null;
       try {
@@ -129,7 +137,10 @@ export async function processLifeJob(
         await jobs.verifySharedPrivacy(job);
         const check = await ai.checkPeriodChapter(story, chapter);
         receipts.push(check.receipt);
-        await jobs.checkpoint(job, 'FIDELITY_CHECK', { receipts });
+        await jobs.checkpoint(job, 'FIDELITY_CHECK', {
+          receipts,
+          fidelityInputHash: hash({ ...story, chapter }),
+        });
         if (!check.output.valid || check.output.issues.length)
           problems =
             check.output.issues.map((issue) => issue.reason).join(' ') ||

@@ -636,6 +636,8 @@ export class Repository {
         'aw_scenario_reviews',
         'aw_scenario_curations',
         'aw_official_scenario_sources',
+        'aw_official_life_starts',
+        'aw_official_life_sources',
         'aw_public_fork_checkpoints',
         'aw_public_content_bundles',
         'aw_public_content_bundle_checkpoints',
@@ -705,6 +707,14 @@ export class Repository {
       const [publications] = await tx.query(
         "SELECT to_regclass('public.aw_publications') IS NOT NULL AS present",
       );
+      const [officialLives] = await tx.query(
+        "SELECT to_regclass('public.aw_official_life_sources') IS NOT NULL AS present",
+      );
+      if (officialLives?.present === true)
+        await tx.query(
+          "UPDATE aw_official_life_sources SET status='revoked',revoked_at=now(),revoke_reason='account_deletion',revoke_actor='Account deletion' WHERE user_id=$1 AND status='active'",
+          [userId],
+        );
       if (publications?.present === true) {
         const withdrawn = await tx.query<{ id: string; revision: number }>(
           "UPDATE aw_publications SET status='withdrawn',revision=revision+1,token_hash=NULL WHERE user_id=$1 AND status IN ('active','hidden') RETURNING id,revision",
