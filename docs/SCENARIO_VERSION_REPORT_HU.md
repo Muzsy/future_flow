@@ -55,3 +55,8 @@ A [checkpoint előnézeti felülete](PUBLIC_FORK_PREVIEW_REPORT_HU.md) is kész;
 ## Teljes csomag és CI-folytatás — 2026-10-06
 
 A [teljes történet+választott checkpoint csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) és pontlista is elkészült, új teljes-scope input/report alap mellett. A [02b6838 verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37410712015) sikeres, 001–018 és ismétlés/ScenarioVersion/checkpoint párhuzamosság/privacy/export/cascade/RLS/TLS/HTTPS ellenőrzéssel, nulla paid AI. Ez lezárja az itt korábban még nyitott 017/018 CI-kaput; 019 külön ellenőrizendő.
+
+
+## 2026-10-06: teljes ScenarioVersion review és külön sablon-eredetengedély
+
+[Teljes sablonvizsgálat és trusted Official SCENARIO source](SCENARIO_RELEASE_REVIEW_REPORT_HU.md) elkészült: aktuális angol template/input/report/receipt kötés, külön kurátor és explicit fictional-source/rights grant, terminal revoke, export/cascade/deletion recovery. Helyi teljes check 441/37, 89 séma, 001–023 alkalmazva/ismételve, 50 aw_/50 RLS; két valódi Sol-review 0,0093245 USD becslés, tényleges Auth/DB cleanup sikeres. Új runtime CI még ellenőrizendő. Ez nem Official LIFE/publication/fork/Discovery engedély; a régi Community Publication kész. Következő a tényleges generálási lánc eredetengedélye és külön Official kiadási projekció, majd kis valódi angol seed. A teljes P/S-terv és operatív kapuk megmaradnak.

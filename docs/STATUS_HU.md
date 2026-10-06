@@ -1,9 +1,9 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
 
-## Aktuális: Publication és külön Confirm
+## Aktuális: ScenarioVersion teljes review és külön eredetengedély
 
-Elkészült a P09 angol Community Publication/Confirm: pontos teljes AI+curator binding, külön végleges előnézet és explicit hozzájárulás, immutable public/unlisted másolat, anonim olvasás, tulajdonosi visszavonás/linkcsere és trusted hide/remove. 022 additív/RLS/export/cascade, default PUBLICATIONS_ENABLED=false; indexelés és nyilvános fork még tiltott. Helyi teljes check 428 teszt/36 fájl, 81 séma; Supabase 001–022 alkalmazva/ismételve, 47 aw_/47 RLS, verified TLS. Valódi Auth/HTTP/böngésző/CLI, két kiadás exportja és mindkét ideiglenes Auth/DB-fiók tényleges cleanupja sikeres; izolált PostgreSQL/HTTPS main CI is sikeres a `bad1b816` runtime commiton: 428 teszt/36 fájl, 81 változatlan kimeneti séma, 001–022 és ismétlés, párhuzamos Confirm/linkcsere/immutability/moderáció/törlés/export/RLS; [CI](https://github.com/Muzsy/future_flow/actions/runs/37457083884). Új paid AI 0; külön kumulatív 5–5 USD keret változatlan. Következő Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed, majd P10–P13. P01–P13/S0–S7, Shared privacy/retention és ops kapuk megmaradnak. [Bizonyíték és határ](PUBLICATION_CONFIRM_REPORT_HU.md).
+Elkészült a P09 teljes ScenarioVersion AI-review, külön immutable kurátori döntés és visszavonható trusted Official SCENARIO eredetengedély. Pontos template/input/report/receipt/policy kötés, egy attempt/180s lease, közös text/full/scenario kvóta és projekt/user + kumulatív helyi költségőr; nincs paid/decision/grant HTTP-route vagy automatikus retry. A grant csak sablonforrás, nem Official LIFE vagy publikálási jog; a Community Publication/Confirm kész és változatlan. Helyi teljes check 441 teszt/37 fájl, 89 séma; Supabase 001–023 alkalmazva/ismételve, 50 aw_/50 RLS, verified TLS. Két valódi Sol-review: tiszta sablon no_findings, negatív kontroll embedded_instructions + meaning_mismatch; összesen 0,0093245 USD becslés, guard-maradék OpenAI 2,520186625 USD / Claude 2,661985 USD. Valódi kétfiókos Auth/HTTP/CLI/export/törlés/recovery és tényleges cleanup sikeres. Az új izolált PostgreSQL/HTTPS main CI még ellenőrizendő. Következő Official LIFE forrás-/generálási receipt-grant és külön kiadási projekció/Confirm, majd kis valódi angol AI seed és P10–P13; a teljes P01–P13/S0–S7 és ops/retention kapuk megmaradnak. [Bizonyíték és határ](SCENARIO_RELEASE_REVIEW_REPORT_HU.md).
 
 2026-10-06 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
@@ -18,7 +18,7 @@ Elkészült a P09 angol Community Publication/Confirm: pontos teljes AI+curator 
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–022 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 47 aw_/47 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
+| Supabase | 001–023 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 50 aw_/50 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `bad1b816`: 428 teszt/36 fájl, teljes check/build és 81 séma drift nélkül; izolált PostgreSQL párhuzamos Publication preview/Confirm egyszer, hash-only unlisted/linkcsere, privát továbbhaladás melletti immutable kiadás, moderáció/visszavonás verseny és deletion/recovery/export/cascade/RLS; minden korábbi P09/S0–S3 proof, 001–022 + ismétlés; verified TLS/HTTPS és tiszta worker-leállás, provider-AI 0; [CI](https://github.com/Muzsy/future_flow/actions/runs/37457083884) |
@@ -26,7 +26,7 @@ Elkészült a P09 angol Community Publication/Confirm: pontos teljes AI+curator 
 | P09 checkpoint UI | Angol saját állapot/korlát/opció/hatás előnézet, általánosított leírások mentése és verzióválasztás/visszatöltés; explicit csomag/pontlista/hash már kész, teljes-scope scan is kész, külön full curator kész; [riport](PUBLIC_FORK_PREVIEW_REPORT_HU.md) |
 | P09 teljes csomag | Immutable történet+explicit checkpointlista/hash, külön teljes AI-job és külön teljes curator/angol panel kész; 021/owner/review/hash/privacy/export/cascade. Külön Community Publication/Confirm is kész; [riport](PUBLIC_CONTENT_CURATION_REPORT_HU.md) |
 | P09 Publication/Confirm | Exact privát végleges előnézet és külön consent; immutable public/unlisted Community kiadás/reader, withdrawal/linkcsere/hide/remove, export/cascade; 022/RLS/default-off, noindex/fork tiltva; [riport](PUBLICATION_CONFIRM_REPORT_HU.md) |
-| P09 ScenarioVersion | Angol zárt/verziózott sablon, friss ID-k, saját privát élet + normál job/kvóta, export/cascade; default-off és kiadási review még nyitott; [riport](SCENARIO_VERSION_REPORT_HU.md) |
+| P09 ScenarioVersion | Zárt angol sablon, friss privát ID-k/normál AI-job/kvóta, immutable verzió/export/cascade; [külön teljes review/curation és Official SCENARIO source grant](SCENARIO_RELEASE_REVIEW_REPORT_HU.md) kész, a sablon még nem public Scenario vagy Official Life |
 | P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) kész; [text-only curator](PUBLIC_TEXT_CURATION_REPORT_HU.md) kész; teljes-scope történet+checkpoint scan is kész; full curator és Community Publication/Confirm kész; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
@@ -59,9 +59,10 @@ Valódi szintetikus Supabase/Auth/DB/OpenAI HTTP-hurok és tényleges fióktörl
 | P09 privát szerkesztő valódi Auth/AI és két copy-review | 5 | 0.063175000 |
 | P09 felületről indított valódi AI-review | 1 | 0.005243500 |
 | P09 teljes tartalom checker negatív kontroll | 1 | 0.036611 |
-| **Összesen** | **134** | **2.384782605 ≈ 2.38** |
-| **Konzervatívan elszámolt összeg** | | **2.470485875** |
-| **Guard szerint megmaradt keret** | | **2.529514125 ≈ 2.53** |
+| P09 valódi teljes ScenarioVersion pozitív/negatív review | 2 | 0.009324500 |
+| **Összesen** | **136** | **2.394107105 ≈ 2.39** |
+| **Konzervatívan elszámolt összeg** | | **2.479813375** |
+| **Guard szerint megmaradt keret** | | **2.520186625 ≈ 2.52** |
 
 Ismeretlen fogyasztású kérés nincs. Ezek dátumozott tokenbecslések, nem lekérdezett szolgáltatói kreditegyenleg. A teljes korábbi napló megmarad .local/ai-smoke/usage.json alatt. Smoke és opcionális helyi alkalmazás-worker egy paid-run.lock fájlt használ; kérés előtt bemeneti/maxkimeneti foglalás, ismeretlen fogyasztásnál teljes plafon marad. Az 5 USD összesített, nem futtatásonkénti keret.
 

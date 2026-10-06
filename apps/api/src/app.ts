@@ -61,6 +61,7 @@ import {
   scenarioVersionRequestSchema,
   scenarioStartRequestSchema,
   scenarioVersionSchema,
+  scenarioReleaseViewSchema,
   forkCheckpointRequestSchema,
   forkCheckpointViewSchema,
   forkCheckpointCandidateSchema,
@@ -89,6 +90,7 @@ import {
   PublicCurationRepository,
   publicCurationEnabledFromEnv,
   ScenarioRepository,
+  ScenarioReleaseRepository,
   scenarioVersionsEnabledFromEnv,
   PublicForkCheckpointRepository,
   publicForkCheckpointsEnabledFromEnv,
@@ -561,6 +563,19 @@ class LifeController {
     @Param('id') id: string,
   ) {
     return this.scenarios.get(req.userId, idSchema.parse(id));
+  }
+  @Get('scenario-versions/:id/release-review')
+  @ApiOkResponse({ schema: z.toJSONSchema(scenarioReleaseViewSchema) as never })
+  async scenarioReleaseReview(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ) {
+    const versionId = idSchema.parse(id);
+    await this.scenarios.get(req.userId, versionId);
+    return new ScenarioReleaseRepository(this.repo.db).get(
+      req.userId,
+      versionId,
+    );
   }
   @Post('scenario-versions/:id/start')
   @ApiBody({ schema: z.toJSONSchema(scenarioStartRequestSchema) as never })

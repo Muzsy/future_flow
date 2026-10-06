@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [ScenarioVersion teljes review és külön eredetengedély](SCENARIO_RELEASE_REVIEW_REPORT_HU.md) | Teljes sablon AI/curator, külön trusted Official SCENARIO source, visszavonás, receipt/költség/törlés és valódi pozitív/negatív próba; Official LIFE külön kapu |
 | [Publication és külön Confirm](PUBLICATION_CONFIRM_REPORT_HU.md) | Végleges másolat, explicit hozzájárulás, public/unlisted reader, visszavonás/linkcsere/moderáció és bizonyíték; Official grant még következik |
 | [Teljes tartalom kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) | Külön consent, teljes csomag és AI-jelentés privát kurátori vizsgálata, immutable döntés, angol felület és bizonyíték; a későbbi külön Publication/Confirm is kész |
 | [Teljes tartalom AI-vizsgálata](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) | Egyszeri saját scan-job, közös költségőr, teljes típusos input, angol eredménypanel és bizonyíték; kurátor/kiadás külön kapu |

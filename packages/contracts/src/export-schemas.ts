@@ -37,6 +37,17 @@ import {
   scenarioVersionRequestSchema,
   scenarioVersionSchema,
   scenarioStartRequestSchema,
+  SCENARIO_REVIEW_VERSION,
+  SCENARIO_CURATION_VERSION,
+  OFFICIAL_SCENARIO_SOURCE_VERSION,
+  scenarioReviewInputSchema,
+  scenarioReviewReportSchema,
+  scenarioReviewReceiptSchema,
+  scenarioReviewRequestSchema,
+  scenarioCurationDecisionSchema,
+  officialScenarioSourceRequestSchema,
+  officialScenarioSourceRevokeSchema,
+  scenarioReleaseViewSchema,
   FORK_CHECKPOINT_VERSION,
   forkCheckpointSchema,
   forkFactChangeSchema,
@@ -137,6 +148,35 @@ for (const [name, schema] of Object.entries({
     JSON.stringify(
       {
         $id: `urn:alterward:public:${name}:${PUBLIC_DRAFT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+const scenarioReleaseDirectory = resolve(directory, 'scenario-release');
+mkdirSync(scenarioReleaseDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  reviewInput: scenarioReviewInputSchema,
+  reviewReport: scenarioReviewReportSchema,
+  reviewReceipt: scenarioReviewReceiptSchema,
+  reviewRequest: scenarioReviewRequestSchema,
+  curationDecision: scenarioCurationDecisionSchema,
+  sourceRequest: officialScenarioSourceRequestSchema,
+  sourceRevoke: officialScenarioSourceRevokeSchema,
+  releaseView: scenarioReleaseViewSchema,
+})) {
+  const version = name.startsWith('source')
+    ? OFFICIAL_SCENARIO_SOURCE_VERSION
+    : name === 'curationDecision'
+      ? SCENARIO_CURATION_VERSION
+      : SCENARIO_REVIEW_VERSION;
+  writeFileSync(
+    resolve(scenarioReleaseDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:scenario-release:${name}:${version}`,
         ...z.toJSONSchema(schema),
       },
       null,

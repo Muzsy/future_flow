@@ -633,6 +633,9 @@ export class Repository {
         'aw_scenarios',
         'aw_scenario_versions',
         'aw_scenario_starts',
+        'aw_scenario_reviews',
+        'aw_scenario_curations',
+        'aw_official_scenario_sources',
         'aw_public_fork_checkpoints',
         'aw_public_content_bundles',
         'aw_public_content_bundle_checkpoints',
@@ -686,6 +689,19 @@ export class Repository {
         [userId],
       );
       await cancelSharedAccountJobs(tx, userId);
+      const [scenarioRelease] = await tx.query(
+        "SELECT to_regclass('public.aw_scenario_reviews') IS NOT NULL AS present",
+      );
+      if (scenarioRelease?.present === true) {
+        await tx.query(
+          "UPDATE aw_scenario_reviews SET status='cancelled',lease_token=NULL,lease_until=NULL,finished_at=now() WHERE user_id=$1 AND status='running'",
+          [userId],
+        );
+        await tx.query(
+          "UPDATE aw_official_scenario_sources SET status='revoked',revoked_at=now(),revoke_reason='account_deletion',revoke_actor='Account deletion' WHERE user_id=$1 AND status='active'",
+          [userId],
+        );
+      }
       const [publications] = await tx.query(
         "SELECT to_regclass('public.aw_publications') IS NOT NULL AS present",
       );

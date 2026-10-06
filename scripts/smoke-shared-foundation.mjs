@@ -1384,6 +1384,134 @@ try {
       ]),
       first = copies[0];
     assert.equal(copies[1].id, first.id);
+    // Complete-template technical evidence only, egress disabled: never an Official life.
+    const {
+      ScenarioReleaseRepository,
+      DatabaseAiBudget,
+    } = require('@future-flow/database');
+    const { hash } = require('@future-flow/core');
+    const releases = new ScenarioReleaseRepository(db, {
+      operatorEnabled: true,
+      daily: 5,
+      projectUsd: 1,
+      userUsd: 1,
+    });
+    const scanRequest = {
+      scenarioVersionId: first.id,
+      templateHash: first.templateHash,
+      policyVersion: 'scenario-review-1',
+      acknowledged: true,
+    };
+    const reviewRace = await Promise.allSettled([
+      releases.start(owner.id, scanRequest),
+      releases.start(owner.id, scanRequest),
+    ]);
+    assert.equal(reviewRace.filter((x) => x.status === 'fulfilled').length, 1);
+    assert.equal(
+      reviewRace.find((x) => x.status === 'rejected').reason.code,
+      'SCENARIO_REVIEW_ALREADY_STARTED',
+    );
+    const started = reviewRace.find((x) => x.status === 'fulfilled').value;
+    const output = {
+      policyVersion: 'scenario-review-1',
+      scope: 'complete_scenario_template',
+      templateHash: first.templateHash,
+      publicationApproved: false,
+      verdict: 'no_findings',
+      findings: [],
+    };
+    // Simulated receipt/accounting for persistence races; no actual provider request.
+    const budget = new DatabaseAiBudget(db, owner.id, started.reviewId, {
+      projectUsd: 1,
+      userUsd: 1,
+    });
+    const reservation = await budget.reserve({
+      model: 'gpt-6.1-sol',
+      max_output_tokens: 2200,
+      text: { format: { name: 'scenario_review' } },
+    });
+    await budget.settle(reservation, { input_tokens: 32, output_tokens: 12 });
+    const receipt = {
+      task: 'scenario_review',
+      promptVersion: 'scenario_review.v1.en',
+      locale: 'en',
+      model: 'gpt-6.1-sol',
+      requestId: 'isolated-ci-technical-only',
+      inputHash: hash(started.input),
+      outputHash: hash(output),
+      inputTokens: 32,
+      outputTokens: 12,
+      latencyMs: 0,
+    };
+    const reviewed = await releases.complete(
+      owner.id,
+      first.id,
+      started.reviewId,
+      started.leaseToken,
+      output,
+      receipt,
+    );
+    assert.equal(reviewed.review.providerEvidence, true);
+    const decision = {
+      ...scanRequest,
+      reviewId: started.reviewId,
+      reportHash: hash(output),
+      curationVersion: 'scenario-curation-1',
+      status: 'scenario_reviewed',
+      reasonCode: null,
+      actorLabel: 'Isolated CI technical curator',
+      privacyChecked: true,
+      contentChecked: true,
+      meaningChecked: true,
+      qualityChecked: true,
+    };
+    delete decision.acknowledged;
+    const decisions = await Promise.allSettled([
+      releases.decide(decision),
+      releases.decide({
+        ...decision,
+        actorLabel: 'Another isolated CI technical curator',
+      }),
+    ]);
+    assert.equal(decisions.filter((x) => x.status === 'fulfilled').length, 1);
+    const curated = await releases.get(owner.id, first.id);
+    assert.equal(curated.curation.status, 'scenario_reviewed');
+    assert.equal((await releases.start(owner.id, scanRequest)).reused, true);
+    // Only a reviewed technical fixture receives this simulated source grant.
+    if (curated.curation.status === 'scenario_reviewed') {
+      const grantRequest = {
+        ...scanRequest,
+        reviewId: started.reviewId,
+        reportHash: hash(output),
+        curationVersion: 'scenario-curation-1',
+        curationId: curated.curation.id,
+        sourceVersion: 'official-scenario-source-1',
+        fictionalSourceChecked: true,
+        rightsChecked: true,
+        actorLabel: 'Isolated CI technical source',
+      };
+      const grants = await Promise.all([
+        releases.grant(grantRequest),
+        releases.grant(grantRequest),
+      ]);
+      assert.equal(grants[0].sourceGrant.id, grants[1].sourceGrant.id);
+      assert.equal(grants[0].officialLifeApproved, false);
+      assert.equal(grants[0].publicationApproved, false);
+    } else {
+      await assert.rejects(
+        releases.grant({
+          ...scanRequest,
+          reviewId: started.reviewId,
+          reportHash: hash(output),
+          curationVersion: 'scenario-curation-1',
+          curationId: curated.curation.id,
+          sourceVersion: 'official-scenario-source-1',
+          fictionalSourceChecked: true,
+          rightsChecked: true,
+          actorLabel: 'Isolated CI technical source',
+        }),
+      );
+    }
     const request = {
         expectedVersion: 1,
         expectedHash: first.templateHash,
@@ -1399,6 +1527,16 @@ try {
       'SCENARIO_REVISION_CONFLICT',
     );
     assert.deepEqual(await scenarios.get(owner.id, first.id), first);
+    await assert.rejects(
+      releases.start(owner.id, scanRequest),
+      (e) => e.code === 'SCENARIO_RELEASE_STALE',
+    );
+    assert.equal((await releases.get(owner.id, first.id)).current, false);
+    if (curated.curation.status === 'scenario_reviewed')
+      assert.equal(
+        (await releases.get(owner.id, first.id)).sourceGrant.usable,
+        false,
+      );
     const startKey = randomUUID(),
       startRequest = { templateHash: first.templateHash, acknowledged: true },
       starts = await Promise.all([
@@ -1437,6 +1575,16 @@ try {
         first.id,
       ]),
     );
+    const latestScenario = (await scenarios.list(owner.id))[0];
+    const pendingScenarioRequest = {
+      ...scanRequest,
+      scenarioVersionId: latestScenario.id,
+      templateHash: latestScenario.templateHash,
+    };
+    const pendingScenarioReview = await releases.start(
+      owner.id,
+      pendingScenarioRequest,
+    );
     await repo.markDeleting(owner.id);
     await assert.rejects(
       scenarios.start(owner.id, first.id, startRequest, startKey),
@@ -1444,10 +1592,57 @@ try {
     );
     await repo.restoreActive(owner.id);
     assert.equal(
+      (await releases.get(owner.id, latestScenario.id)).review.status,
+      'cancelled',
+    );
+    await assert.rejects(
+      releases.start(owner.id, pendingScenarioRequest),
+      (e) => e.code === 'SCENARIO_REVIEW_ALREADY_STARTED',
+    );
+    assert.equal(
+      (
+        await db.query('SELECT id FROM aw_scenario_reviews WHERE id=$1', [
+          pendingScenarioReview.reviewId,
+        ])
+      ).length,
+      1,
+    );
+    if (curated.curation.status === 'scenario_reviewed')
+      assert.equal(
+        (await releases.get(owner.id, first.id)).sourceGrant.status,
+        'revoked',
+      );
+    assert.equal(
       (await repo.exportAccount(owner.id)).aw_scenario_versions.length,
       2,
     );
+    const scenarioExport = await repo.exportAccount(owner.id);
+    for (const table of [
+      'aw_scenario_reviews',
+      'aw_scenario_curations',
+      'aw_official_scenario_sources',
+    ]) {
+      assert.equal(
+        scenarioExport[table].length,
+        table === 'aw_scenario_reviews' ? 2 : 1,
+      );
+      const [guard] = await db.query(
+        "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid=$1::regclass",
+        [table],
+      );
+      assert.deepEqual(guard, { rls: true, anon: false, client: false });
+    }
     await repo.deleteAccountData(owner.id);
+    for (const table of [
+      'aw_scenario_reviews',
+      'aw_scenario_curations',
+      'aw_official_scenario_sources',
+    ])
+      assert.equal(
+        (await db.query(`SELECT id FROM ${table} WHERE user_id=$1`, [owner.id]))
+          .length,
+        0,
+      );
     for (const table of [
       'aw_scenarios',
       'aw_scenario_versions',
@@ -2228,6 +2423,11 @@ try {
       scenarioPrivateFreshReferences: true,
       scenarioQuotaRollback: true,
       scenarioDeletionGuard: true,
+      scenarioFullReviewConcurrentStartOnce: true,
+      scenarioCurationDecisionRaceOnce: true,
+      scenarioSourceTechnicalOnlyNoLifeApproval: true,
+      scenarioSourceRevisionDeletionExportCascadeRls: true,
+      scenarioReviewNoAutomaticRetry: true,
       forkCheckpointConcurrentSaveOnce: true,
       forkCheckpointSourceDeletionGuard: true,
       forkCheckpointNoPublication: true,

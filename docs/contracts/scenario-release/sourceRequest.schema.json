@@ -1,0 +1,74 @@
+{
+  "$id": "urn:alterward:scenario-release:sourceRequest:official-scenario-source-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scenarioVersionId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "templateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "scenario-review-1"
+    },
+    "reviewId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "reportHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "curationVersion": {
+      "type": "string",
+      "const": "scenario-curation-1"
+    },
+    "curationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "sourceVersion": {
+      "type": "string",
+      "const": "official-scenario-source-1"
+    },
+    "fictionalSourceChecked": {
+      "type": "boolean",
+      "const": true
+    },
+    "rightsChecked": {
+      "type": "boolean",
+      "const": true
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    }
+  },
+  "required": [
+    "scenarioVersionId",
+    "templateHash",
+    "policyVersion",
+    "reviewId",
+    "reportHash",
+    "curationVersion",
+    "curationId",
+    "sourceVersion",
+    "fictionalSourceChecked",
+    "rightsChecked",
+    "acknowledged",
+    "actorLabel"
+  ],
+  "additionalProperties": false
+}

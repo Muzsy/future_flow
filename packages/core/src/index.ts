@@ -259,6 +259,7 @@ export * from './public-draft';
 export * from './public-review';
 export * from './public-preview-editor';
 export * from './public-scenarios';
+export * from './scenario-release';
 export * from './public-fork';
 export * from './public-content';
 export * from './shared-context';

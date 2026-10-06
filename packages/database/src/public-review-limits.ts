@@ -1,11 +1,21 @@
 import type { Database } from './index';
 
-// Call with the owner locked. Both queues share one concurrent/daily allowance.
+// Call with the owner locked. Text, full-content and scenario reviews share limits.
 export async function publicReviewLimits(tx: Database, userId: string) {
   const [storage] = await tx.query(
     "SELECT to_regclass('public.aw_public_content_reviews') IS NOT NULL AS present",
   );
   const full = storage?.present === true;
+  const [scenarioStorage] = await tx.query(
+    "SELECT to_regclass('public.aw_scenario_reviews') IS NOT NULL AS present",
+  );
+  const scenarios = scenarioStorage?.present === true;
+  if (scenarios)
+    await tx.query(
+      `UPDATE aw_scenario_reviews r SET status='failed',lease_token=NULL,lease_until=NULL,finished_at=now()
+    FROM aw_scenario_versions v,aw_scenarios s WHERE r.user_id=$1 AND r.status='running' AND v.id=r.scenario_version_id AND s.id=v.scenario_id AND (r.lease_until<=now() OR s.current_version<>v.version)`,
+      [userId],
+    );
   const stale = await tx.query<{ review_id: string }>(
     `UPDATE aw_public_review_jobs j SET status='failed',lease_token=NULL,lease_until=NULL,finished_at=now()
     FROM aw_publication_drafts d,aw_branches b WHERE j.user_id=$1 AND d.id=j.draft_id AND b.id=d.branch_id AND
@@ -29,7 +39,8 @@ export async function publicReviewLimits(tx: Database, userId: string) {
     `SELECT count(*) FILTER(WHERE created_at>now()-interval '24 hours')::text AS daily,
     count(*) FILTER(WHERE status IN ('queued','running'))::text AS concurrent FROM (
     SELECT created_at,status FROM aw_public_review_jobs WHERE user_id=$1
-    ${full ? 'UNION ALL SELECT created_at,status FROM aw_public_content_reviews WHERE user_id=$1' : ''}) reviews`,
+    ${full ? 'UNION ALL SELECT created_at,status FROM aw_public_content_reviews WHERE user_id=$1' : ''}
+    ${scenarios ? 'UNION ALL SELECT created_at,status FROM aw_scenario_reviews WHERE user_id=$1' : ''}) reviews`,
     [userId],
   );
   return limits!;
