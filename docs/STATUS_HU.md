@@ -1,6 +1,6 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
-2026-10-05 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
+2026-10-06 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
 ## Ténylegesen elkészült
 
@@ -18,6 +18,7 @@
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `4d66981`: 336 teszt/29 fájl, teljes check/build/52 séma-drift; izolált PostgreSQL curation submit/decision/reuse/source/deletion/RLS és korábbi P09/S0–S3 proof, 001–016 + ismétlés; verified TLS/HTTPS, üres queue/tiszta leállás; [CI](https://github.com/Muzsy/future_flow/actions/runs/37358126556) |
 | P09 checkpoint | Külön gépi szerződés, canon/copy/hatás binding, saját candidate és immutable tárolás; public fork nincs, teljes structured preview/review következik; [riport](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) |
+| P09 checkpoint UI | Angol saját állapot/korlát/opció/hatás előnézet, általánosított leírások mentése és verzióválasztás/visszatöltés; kiadásra kiválasztott teljes csomag/hash/review még nincs; [riport](PUBLIC_FORK_PREVIEW_REPORT_HU.md) |
 | P09 ScenarioVersion | Angol zárt/verziózott sablon, friss ID-k, saját privát élet + normál job/kvóta, export/cascade; default-off és kiadási review még nyitott; [riport](SCENARIO_VERSION_REPORT_HU.md) |
 | P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) kész; [text-only curator](PUBLIC_TEXT_CURATION_REPORT_HU.md) kész; teljes checkpoint/curator és Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
@@ -25,6 +26,8 @@
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
+
+Aktuális UI-szelet: 375 sikeres helyi teszt/32 fájl, teljes formázás/típusellenőrzés/API/worker/Next build, 62 változatlan schema. Valódi szintetikus Auth-böngésző/DB: két leírásváltozat, régi mentés/reload/ingyenes reuse/dirty-copy elrejtés, export és tényleges cleanup sikeres. A `5d29fcf` GitHub-run mindkét jobja indítás előtt cancelled, futtatási lépések nélkül; 017/018 teljes konténeres CI-bizonyítéka még nyitott. A fenti korábbi sikeres Runtime CI nem bizonyítja az új szeletet. [Legújabb bizonyíték és következő csomaghash/review feladat](PUBLIC_FORK_PREVIEW_REPORT_HU.md).
 
 Aktuális checkpoint szelet: 372 sikeres helyi teszt/32 fájl, 62 schema; a korábbi 57 változatlan. [Checkpoint bizonyíték](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md). Korábbi ScenarioVersion: 354/30/57. [ScenarioVersion bizonyíték](SCENARIO_VERSION_REPORT_HU.md). Korábbi text-curation: 336/29/52. A teljes ellenőrzés/CI a [text-curation riportban](PUBLIC_TEXT_CURATION_REPORT_HU.md) szerepel. Az új main CI eredménye a [review-job riportban](PUBLIC_REVIEW_JOB_REPORT_HU.md) szerepel; korábbi sikeres main CI: 314 teszt/27 fájl és 48 schema. [Privát szerkesztő és ellenőrzés](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md). A korábbi 311-es main CI dátumozott bizonyítéka megmarad. [P09 AI-review és konténeres bizonyíték](PUBLIC_AI_REVIEW_REPORT_HU.md), [korábbi privacy/Auth bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md). A korábbi CI: [S3 UI/safety](SHARED_CONTEXT_S3_UI_SAFETY_REPORT_HU.md). A 279-es személyes/time bizonyíték és korábbi valódi Sol/Claude minták megmaradnak; újabb teljes Auth/Shared/saját lánc 19 fizetett hívását és a megszakadt próbát az alábbi kumulatív keret tartalmazza. Izolált fixture-teszt nem húsz generatív eset vagy használói megtartási mérés.
 
@@ -156,3 +159,8 @@ A P09 teljes angol ScenarioVersion foundation elkészült: külön zárt scenari
 ## 2026-10-05: sanitized döntési checkpoint foundation
 
 A P09 sanitized döntési checkpoint foundation elkészült: külön fork-checkpoint-1, teljes típusos állapot/korlát/előfeltétel/hatás és helyettesítő kulcskatalógus, exact canon/copy/opció binding, minden opció végrehajtható, új ID-s privát kezdőállapot motor. Saját candidate/save/read API, immutable hash/dedupe/default-off és privacy-fail-closed, export/cascade, 018 alkalmazva/ismételve; 19 ff_ és 40 aw_/40 RLS. Teljes helyi check/build: 372 teszt/32 fájl, 62 séma; a korábbi 57 és 001–017 változatlan. Valódi kétfiókos Auth/DB HTTP-próba: három párhuzamos save egy rekord, source-advance tiltás, három technikai időszak, export/tényleges Auth/DB cleanup; új paid AI 0. A régi coarse readyForFork=false változatlan, új record publicationApproved=false/readyForPublicFork=false/full review required. Következő teljes strukturált Privacy/Content Preview UI és új teljes-scope hash/AI/curator, majd Publication/Confirm/Official seed és P10–P13. A külön 5–5 USD keret, a három forrás teljes scope-ja és 50–100 élet/20–30 scenario cél, S3 retention/S4–S7 és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Megvalósítás és pontos korlátok](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md).
+
+
+## 2026-10-06: döntési előnézet és leírásszerkesztő
+
+Az angol saját döntési előnézet és leírásszerkesztő elkészült: tényleges választás előtti állapot/cél/korlát/előfeltétel/hatás, egyértelmű objektumsorszámok, forráskötés mellett javítható prose, immutable saját mentés/verziómegtekintés és ingyenes visszatöltés. Helyi teljes check: 375 teszt/32 fájl, API/worker/Next build; végleges textarea-címkézés után format/Next build ismét sikeres. 62 schema és 001–018 változatlan. Valódi Auth-böngésző/DB próba: két mentés, régi verzió/reload/azonos reuse/dirty-copy elrejtés, export és tényleges cleanup; új paid AI 0. A megtekintett verzió még nem kiadási pontlista. Következő immutable szöveg+választott checkpoint tartalomcsomag/közös hash, új teljes-scope AI/curator, majd Publication/Confirm/Official seed és P10–P13. A korábbi 5d29fcf CI-jobok indítás előtt cancelled, ezért az új 017/018 konténeres proof még nyitott. A teljes korábbi P/S-terv, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Aktuális bizonyíték](PUBLIC_FORK_PREVIEW_REPORT_HU.md).

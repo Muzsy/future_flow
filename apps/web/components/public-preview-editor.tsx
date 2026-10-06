@@ -28,6 +28,7 @@ import {
 } from '../lib/public-preview';
 import { publicPreviewMessages } from '../lib/public-preview-messages';
 import { PublicContentPreview } from './public-content-preview';
+import { ForkCheckpointPreview } from './fork-checkpoint-preview';
 
 export function PublicPreviewEditor({ branchId }: { branchId: string }) {
   const m = publicPreviewMessages.en;
@@ -541,6 +542,12 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
           ) : preview && !dirty && !expired ? (
             <PublicContentPreview snapshot={preview.snapshot} />
           ) : null}
+          {preview && !dirty && !expired && (
+            <ForkCheckpointPreview
+              key={`${preview.draftId}:${preview.snapshotHash}:${preview.sourceRevision}`}
+              preview={preview}
+            />
+          )}
           {preview && !dirty && !expired && (
             <section className="panel" aria-label={m.review}>
               <h2>{m.review}</h2>

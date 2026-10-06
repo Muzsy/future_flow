@@ -119,3 +119,5 @@ P09: [AI-review queue](docs/PUBLIC_REVIEW_JOB_REPORT_HU.md) és [kurátori text-
 P09: [ScenarioVersion foundation](docs/SCENARIO_VERSION_REPORT_HU.md) elkészült; a sanitized döntési checkpoint és teljes kiadási review következik.
 
 P09: [Sanitized döntési checkpoint foundation](docs/PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) kész. Következő a teljes strukturált előnézet és annak külön ellenőrzése.
+
+P09: [Angol döntési állapot előnézet és leírásszerkesztő](docs/PUBLIC_FORK_PREVIEW_REPORT_HU.md) kész, 375 helyi teszt/32 fájl és valós Auth-böngésző/DB cleanup sikeres. Következő a szöveg és kiválasztott checkpointok immutable közös tartalomcsomagja, teljes-scope ellenőrzés és kiadási kapuk.

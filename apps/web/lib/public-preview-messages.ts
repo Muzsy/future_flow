@@ -40,11 +40,11 @@ const en = {
     'These edits are unsaved. Save a new preview before checking its AI result or viewing the saved content.',
   validation: 'Check the length of the highlighted fields.',
   preflight: 'Remove the details found in these fields, then save again.',
-  review: 'AI review',
+  review: 'Copy text AI review',
   startReview: 'Run AI review',
   reviewQueued: 'Your AI review is queued. This copy remains private.',
   reviewConsent:
-    'I agree to send this saved copy to AI for a privacy and content check.',
+    'I agree to send this saved story text to AI for a privacy and content check.',
   reviewCost:
     'This uses the available AI allowance. One attempt is allowed per saved copy; refreshing the status does not use AI.',
   reviewDisabled:
@@ -77,7 +77,7 @@ const en = {
   failed:
     'The AI review did not finish. Start a new preview before another check.',
   noFindings:
-    'The AI check reported no findings. Please still review the whole copy; it remains private.',
+    'The story text check reported no findings. Decision starting points need a separate complete review. This copy remains private.',
   reviewRequired:
     'The AI check found details that need attention. Edit the indicated fields and save a new preview.',
   unable:

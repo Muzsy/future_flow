@@ -1130,3 +1130,16 @@ progress {
   gap: 8px;
   margin-bottom: 26px;
 }
+.fork-preview .field {
+  margin: 20px 0;
+}
+.fork-preview .preview-facts dd,
+.fork-preview li {
+  overflow-wrap: anywhere;
+}
+.fork-preview .shared-check {
+  margin-top: 24px;
+}
+.fork-preview > .secondary {
+  margin-top: 24px;
+}

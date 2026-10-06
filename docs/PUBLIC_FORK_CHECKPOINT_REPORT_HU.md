@@ -45,3 +45,7 @@ Izolált PostgreSQL/CI smoke bővült concurrent checkpoint-save, immutable/hash
 ## Következő
 
 A teljes strukturált Privacy/Content Preview felületi szerkesztése és tényleges checkpointválasztása, új teljes-scope AI/curator ellenőrzés és közös tartalomhash következik. Ezután Publication/Confirm/Official eredetengedély és kis valódi AI seed, majd P10–P13. S3 retention/S4–S7, 50–100 élet/20–30 scenario cél, backup/restore/email és Contabo/Cloudflare élesítési kapuk megmaradnak; nincs éles telepítés vagy új production allowance.
+
+## Felületi folytatás — 2026-10-06
+
+Az [angol döntési állapot előnézete és leírásszerkesztője](PUBLIC_FORK_PREVIEW_REPORT_HU.md) is kész; 375/32/62 és valós Auth-böngésző/DB cleanup sikeres. A fenti runtime 5d29fcf CI-run mindkét jobja később indítás előtt cancelled lett, lépések/log nélkül; 017/018 Linux/container proof még szükséges. Következő immutable teljes csomag és új scope-os ellenőrzés.

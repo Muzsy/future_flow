@@ -20,6 +20,13 @@ import { createApp } from '../apps/api/src/app';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { lifeTestAi } from './life-fixtures';
 import { scenarioFixture } from './scenario-fixtures';
+import {
+  checkpointsForPreview,
+  checkpointTextFields,
+  editCheckpointText,
+  checkpointStateFacts,
+  changeDescription,
+} from '../apps/web/lib/fork-preview';
 
 let engine: PGlite,
   db: Database,
@@ -115,6 +122,156 @@ async function fixture(context?: string) {
   };
 }
 describe('private source-bound checkpoint preparation', () => {
+  it('binds browser candidates and saved details to the exact displayed copy', async () => {
+    const f = await fixture(),
+      candidates = await forks().candidates(f.owner, f.preview.draftId),
+      saved = await forks().save(
+        f.owner,
+        f.preview.draftId,
+        f.request,
+        randomUUID(),
+      );
+    expect(checkpointsForPreview(candidates, [saved], f.preview).saved).toEqual(
+      [saved],
+    );
+    for (const wrong of [
+      { ...saved, draftId: randomUUID() },
+      { ...saved, snapshotHash: '0'.repeat(64) },
+      { ...saved, sourceRevision: saved.sourceRevision + 1 },
+      {
+        ...saved,
+        checkpoint: {
+          ...saved.checkpoint,
+          decision: {
+            ...saved.checkpoint.decision,
+            prompt: 'Another decision question',
+          },
+        },
+      },
+    ])
+      expect(() =>
+        checkpointsForPreview(candidates, [wrong], f.preview),
+      ).toThrow();
+    expect(() =>
+      checkpointsForPreview(candidates, [saved, saved], f.preview),
+    ).toThrow();
+    expect(() => checkpointsForPreview([], [], f.preview)).toThrow();
+    expect(() =>
+      checkpointsForPreview(
+        [{ ...candidates[0], unavailableReason: 'privacy' }],
+        [],
+        f.preview,
+      ),
+    ).toThrow();
+    expect(
+      checkpointsForPreview(
+        [
+          {
+            decisionKey: candidates[0]!.decisionKey,
+            checkpoint: null,
+            unavailableReason: 'privacy',
+          },
+        ],
+        [],
+        f.preview,
+      ).candidates[0]!.checkpoint,
+    ).toBeNull();
+  });
+  it('allows privacy prose edits from the UI while retaining source-bound executable facts', async () => {
+    const f = await fixture(),
+      before = hash(f.checkpoint);
+    let updated = f.checkpoint;
+    for (const field of checkpointTextFields(updated))
+      updated = editCheckpointText(
+        updated,
+        field.path,
+        'A generalized description',
+      );
+    expect(hash(f.checkpoint)).toBe(before);
+    expect(updated.startingState.finance).toEqual(
+      f.checkpoint.startingState.finance,
+    );
+    expect(updated.decision.prompt).toBe(f.checkpoint.decision.prompt);
+    expect(
+      updated.decision.options.map((option) => ({
+        label: option.label,
+        preconditions: option.preconditions,
+      })),
+    ).toEqual(
+      f.checkpoint.decision.options.map((option) => ({
+        label: option.label,
+        preconditions: option.preconditions,
+      })),
+    );
+    const record = await forks().save(
+      f.owner,
+      f.preview.draftId,
+      { ...f.request, checkpoint: updated },
+      randomUUID(),
+    );
+    expect(record.checkpoint).toEqual(updated);
+    expect(record.publicationApproved).toBe(false);
+    expect(record.checkpoint.readyForPublicFork).toBe(false);
+    expect(
+      editCheckpointText(updated, ['identity', 'label'], '   ').identity.label,
+    ).toBeNull();
+    for (const path of [
+      ['startingState', 'finance', 'liquidFunds'],
+      ['goals', 0, 'horizonMonths'],
+      ['decision', 'prompt'],
+      ['decision', 'options', 0, 'label'],
+      ['referenceCatalog', 'assetKeys', 0],
+      ['__proto__', 'label'],
+    ])
+      expect(() => editCheckpointText(updated, path, 'Changed')).toThrow();
+  });
+  it('shows exact numbers, missing values and distinct consequences without applying a choice', async () => {
+    const f = await fixture(),
+      before = hash(f.checkpoint);
+    const financial = changeDescription(
+      {
+        type: 'finance_set',
+        value: { currency: 'USD', monthlyIncome: 0, liquidFunds: -125 },
+      },
+      f.checkpoint,
+    );
+    expect(financial).toContain('monthly income: 0 USD');
+    expect(financial).toContain('liquid funds: -125 USD');
+    expect(
+      changeDescription(
+        {
+          type: 'resources_set',
+          value: { energy: 0, availableHoursPerWeek: 0 },
+        },
+        f.checkpoint,
+      ),
+    ).toContain('available time: 0 hours per week');
+    expect(
+      changeDescription(
+        {
+          type: 'location_set',
+          value: { country: null, region: null, housing: null },
+        },
+        f.checkpoint,
+      ),
+    ).toContain('Country: Not specified');
+    const facts = checkpointStateFacts(f.checkpoint);
+    expect(facts.find(([key]) => key === 'Assets')?.[1]).toContain(
+      'Asset 1: A business asset',
+    );
+    expect(facts.find(([key]) => key === 'Assets')?.[1]).toContain(
+      'Asset 2: A business asset',
+    );
+    expect(facts.find(([key]) => key === 'Date')?.[1]).toBe(
+      f.checkpoint.startingState.effectiveAt,
+    );
+    for (const option of f.checkpoint.decision.options)
+      for (const change of option.changes)
+        expect(changeDescription(change, f.checkpoint).length).toBeGreaterThan(
+          10,
+        );
+    expect(hash(f.checkpoint)).toBe(before);
+  });
   it('keeps a point unavailable when preserved context cannot pass the privacy preflight', async () => {
     const f = await fixture(
         'A private context containing owner@example.invalid',

@@ -47,3 +47,7 @@ Következő a külön sanitized, futtatható döntési fork-checkpoint, majd a t
 ## Következő szelet elkészült — 2026-10-05
 
 A [sanitized döntési checkpoint foundation](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) is kész. A legfrissebb helyi teljes check 372/32, 62 séma, 001–018 alkalmazva/ismételve. A fent rögzített 354-es ScenarioVersion bizonyíték megmarad; következő teljes strukturált preview/review.
+
+## Előnézeti folytatás — 2026-10-06
+
+A [checkpoint előnézeti felülete](PUBLIC_FORK_PREVIEW_REPORT_HU.md) is kész; legfrissebb helyi teljes check 375/32/62. A 5743d93 verify sikeres, container indítás előtt cancelled; későbbi 5d29fcf mindkét jobja indítás előtt cancelled. Korábbi teljes container proof nem helyettesíti a 017/018 ellenőrzését. Teljes csomaghash/review és a ScenarioVersion saját kiadási review/eredetengedélye továbbra külön kapu.

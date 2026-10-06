@@ -2,7 +2,7 @@
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
-2026-10-04 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. A [P09 privát előnézeti alapja](PUBLIC_DRAFT_FOUNDATION_HU.md) elkészült. Publikálás, Discovery és nyilvános fork még nincs bekötve az alkalmazásba; az alábbi viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
+2026-10-06 · A [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) végrehajtható bontása. A P09 privát szövegszerkesztő, scan-queue, text-curation, [ScenarioVersion](SCENARIO_VERSION_REPORT_HU.md) és [döntési checkpoint](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) alapja elkészült. A teljes strukturált előnézet/review, publikálás, Discovery és nyilvános fork még fejlesztendő; az alábbi kiadási viselkedés tervezett. A sorrendet a [backlog](NEXT_STEPS.md) tartalmazza.
 
 ## Sorrend és modulhatár
 
@@ -41,6 +41,8 @@ Snapshot frissítése új verziót és új megerősítést igényel. Privát fol
 6. Explicit Confirm a megtekintett snapshot hash-éhez, forrásrevisionhöz és scanverzióhoz kötve. Lejárt/módosult bemenet új previewt kér; kiadás atomikus és idempotens.
 
 Scan/anonim átírás/ellenőrzés külön AI-szerep és költség; olcsóbb modell csak PII/minőségi értékelés után választható. Strukturált allowlist és jogosultság minden modell mellett kötelező. Official tartalmat emberi curator hagy jóvá; a badge nem kliensflagből származik.
+
+A következő P09-szelet külön immutable teljes előnézeti csomagot vezet be: a megtekintett szöveg és az explicit kiválasztott, source-bound checkpointverziók együtt kapnak szerveroldali tartalomhash-t. Üres checkpointlista továbbindítás nélküli kiadást jelent. Checkpoint csere/eltávolítás vagy bármely tartalommódosítás új csomag és új teljes-scope vizsgálat; a régi `public-review-1`/`text-curation-1` csak szövegre szóló eredménye nem emelhető át. Az új AI-input minden kiadásra szánt strukturált mezőt és hatást vizsgál, nyers privát forrás nélkül. Full review/curator sem ad automatikus publikációs vagy Official eredetengedélyt. A [végrehajtási sorrend és ellenőrzési kapuk](NEXT_STEPS.md#2026-10-05-a-teljes-strukturált-előnézet-végrehajtási-sorrendje) rögzítik a hash-, forrás-, költség-, törlési és visszavonási feltételeket.
 
 ## Jogosultság és URL
 
@@ -130,3 +132,8 @@ A P09 teljes angol ScenarioVersion foundation elkészült: külön zárt scenari
 ## 2026-10-05: sanitized döntési checkpoint foundation
 
 A P09 sanitized döntési checkpoint foundation elkészült: külön fork-checkpoint-1, teljes típusos állapot/korlát/előfeltétel/hatás és helyettesítő kulcskatalógus, exact canon/copy/opció binding, minden opció végrehajtható, új ID-s privát kezdőállapot motor. Saját candidate/save/read API, immutable hash/dedupe/default-off és privacy-fail-closed, export/cascade, 018 alkalmazva/ismételve; 19 ff_ és 40 aw_/40 RLS. Teljes helyi check/build: 372 teszt/32 fájl, 62 séma; a korábbi 57 és 001–017 változatlan. Valódi kétfiókos Auth/DB HTTP-próba: három párhuzamos save egy rekord, source-advance tiltás, három technikai időszak, export/tényleges Auth/DB cleanup; új paid AI 0. A régi coarse readyForFork=false változatlan, új record publicationApproved=false/readyForPublicFork=false/full review required. Következő teljes strukturált Privacy/Content Preview UI és új teljes-scope hash/AI/curator, majd Publication/Confirm/Official seed és P10–P13. A külön 5–5 USD keret, a három forrás teljes scope-ja és 50–100 élet/20–30 scenario cél, S3 retention/S4–S7 és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Megvalósítás és pontos korlátok](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md).
+
+
+## 2026-10-06: döntési előnézet és leírásszerkesztő
+
+Az angol saját döntési előnézet és leírásszerkesztő elkészült: tényleges választás előtti állapot/cél/korlát/előfeltétel/hatás, egyértelmű objektumsorszámok, forráskötés mellett javítható prose, immutable saját mentés/verziómegtekintés és ingyenes visszatöltés. Helyi teljes check: 375 teszt/32 fájl, API/worker/Next build; végleges textarea-címkézés után format/Next build ismét sikeres. 62 schema és 001–018 változatlan. Valódi Auth-böngésző/DB próba: két mentés, régi verzió/reload/azonos reuse/dirty-copy elrejtés, export és tényleges cleanup; új paid AI 0. A megtekintett verzió még nem kiadási pontlista. Következő immutable szöveg+választott checkpoint tartalomcsomag/közös hash, új teljes-scope AI/curator, majd Publication/Confirm/Official seed és P10–P13. A korábbi 5d29fcf CI-jobok indítás előtt cancelled, ezért az új 017/018 konténeres proof még nyitott. A teljes korábbi P/S-terv, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Aktuális bizonyíték](PUBLIC_FORK_PREVIEW_REPORT_HU.md).
