@@ -28,3 +28,5 @@ A Claude-minták önálló narrátorpróbák: nem az OpenAI által írt három i
 Az induló termék kizárólag angol. A HU példák történeti mérési bizonyítékok; a felhasználó jelzett fogalmazási hibái az auditorok kedvező gépi pontszámai mellett is érvényesek. Az angol kiadás használói visszajelzéssel fejlődik; [aktív terv](../ENGLISH_RELEASE_PLAN_HU.md).
 
 - [Angol privacy AI-audit](AI_PUBLIC_REVIEW_ENGLISH_AUDIT_HU.md): egy valódi Sol-pre-screen az eredeti szintetikus angol mintán; öt jelzés, nincs publikáció.
+
+- [Első valódi angol Official seed](AI_OFFICIAL_SEED_ENGLISH_STORY.md): 2026-10-06, három Sol-időszak, két mentett döntés, három teljesen ellenőrzött checkpoint; staging, rendes feature-ek false. [Külön Sonnet-audit](AI_OFFICIAL_SEED_CLAUDE_AUDIT_HU.md): 0 story finding, angol 5/5, többi szempont 4/5; auditor-összefoglaló ismétlése jelölve.

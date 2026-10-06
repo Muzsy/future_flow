@@ -576,8 +576,36 @@ export function prepareForkCheckpointCandidate(source: ForkCheckpointSource) {
     actor.label = actorLabel(actor.relationship);
   for (const opportunity of checkpoint.startingState.opportunities)
     opportunity.title = 'An available opportunity';
-  for (const constraint of checkpoint.constraints)
-    constraint.description = `A ${constraint.strength} condition: ${constraint.predicate.type.replaceAll('_', ' ')}.`;
+  for (const constraint of checkpoint.constraints) {
+    const prefix = constraint.strength === 'hard' ? 'Must' : 'Prefer to';
+    const predicate = constraint.predicate;
+    switch (predicate.type) {
+      case 'liquid_funds_at_least':
+        constraint.description = `${prefix} keep at least ${predicate.currency} ${predicate.amount} in liquid funds.`;
+        break;
+      case 'country_is':
+        constraint.description = `${prefix} keep the country set to ${predicate.value}.`;
+        break;
+      case 'employment_status_is':
+        constraint.description =
+          predicate.value === null
+            ? `${prefix} keep the employment status unspecified.`
+            : `${prefix} keep the employment status set to ${predicate.value.replaceAll('_', ' ')}.`;
+        break;
+      case 'asset_is_owned':
+        constraint.description = predicate.owned
+          ? `${prefix} retain ownership of the referenced asset.`
+          : `${constraint.strength === 'hard' ? 'Must not' : 'Prefer not to'} own the referenced asset.`;
+        break;
+      default: {
+        const unhandled: never = predicate;
+        throw new DomainError(
+          'PUBLIC_FORK_SOURCE',
+          `Unknown condition: ${unhandled}`,
+        );
+      }
+    }
+  }
   for (const option of checkpoint.decision.options)
     for (const change of option.changes) {
       if (change.type === 'employment_set')

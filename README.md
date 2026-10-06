@@ -8,7 +8,7 @@ A privát v2 mag 12 lépéses angol onboardingból hat hónapos valódi AI-tört
 
 Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez és a történet ellenőrzéséhez. A működő alkalmazásban nincs AI nélküli demo vagy mock mód. A tesztek elkülönített tesztadatokat és teszthelyettesítőket használnak.
 
-A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md) és angol public/unlisted olvasó elkészült, default-off kiadási kapuval. Official eredetengedély, valódi AI seed, Discovery és public fork következik; Contabo-telepítés még nincs.
+A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md), [Official eredet és kiadás](docs/OFFICIAL_PUBLICATION_REPORT_HU.md), valamint az [első valódi angol AI seed](docs/OFFICIAL_SEED_REPORT_HU.md) elkészült. A háromrészes mintát Sonnet is auditálta, és a public/unlisted kiadást valódi Auth/HTTP-próba ellenőrizte. A rendes kiadási funkciók kikapcsolva maradnak; Discovery és public fork következik, Contabo-telepítés még nincs.
 
 ## Indítás
 
@@ -38,7 +38,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik mind a tizennyolc alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a huszonöt alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -57,7 +57,7 @@ A `pnpm smoke:ai` valódi OpenAI-kérésekkel ellenőrzi az alapforgatókönyv, 
 
 ## Dokumentáció
 
-A [dokumentációs központ](docs/README.md) a két stratégiai tervet, az új Shared Context forráscsomagot, a frissített 21 témadokumentumot, a [követelménymátrixot](docs/REQUIREMENTS_TRACEABILITY_HU.md) és a [közös megvalósítási státuszt/AI-keretet](docs/STATUS_HU.md) fogja össze. A `docs/alter_jovo_docs` az aktív 0.2 témacsomag; az eredeti v0.1 és manifest változatlan másolata a `docs/archive/alter_jovo_v0_1` mappában, a ZIP az eredeti helyén marad. V2 tárolás/API/worker, rövid élet/folytatás/memória és projekt/user költségőr integrált, privát public-előnézeti alap, szerkeszthető külön copy, ingyenes mezőszintű ellenőrzés és AI-review megjelenítése kész. Valódi szintetikus Auth/AI HTTP- és böngészős próba, Auth/DB-törlés és kontrollált recovery sikeres; privát feedback/session-mérés kész. Backup/restore, valódi használói béta és Discovery/publishing/public fork még nyitott.
+A [dokumentációs központ](docs/README.md) a két stratégiai tervet, az új Shared Context forráscsomagot, a frissített 21 témadokumentumot, a [követelménymátrixot](docs/REQUIREMENTS_TRACEABILITY_HU.md) és a [közös megvalósítási státuszt/AI-keretet](docs/STATUS_HU.md) fogja össze. A `docs/alter_jovo_docs` az aktív 0.2 témacsomag; az eredeti v0.1 és manifest változatlan másolata a `docs/archive/alter_jovo_v0_1` mappában, a ZIP az eredeti helyén marad. V2 tárolás/API/worker, rövid élet/folytatás/memória és projekt/user költségőr integrált, a teljes publikációs copy-review/curator/eredet/Confirm és az első valódi angol seed kész. Valódi szintetikus Auth/AI HTTP- és korábbi privát böngészős próba, Auth/DB-törlés és kontrollált recovery sikeres; privát feedback/session-mérés kész. Backup/restore, valódi használói béta, Discovery/public fork és a pozitív Official böngészős UI-próba még nyitott.
 
 - [V2 megvalósítás, valós AI-mérés és határok](docs/V2_IMPLEMENTATION_REPORT_HU.md)
 - [Privát másolat szerkesztése és Privacy/Content Preview](docs/PUBLIC_PREVIEW_EDITOR_REPORT_HU.md)
@@ -161,3 +161,8 @@ Az új izolált PostgreSQL/HTTPS main [CI](https://github.com/Muzsy/future_flow/
 ## 2026-10-06: Official publikáció CI-lezárás
 
 Az új main [CI](https://github.com/Muzsy/future_flow/actions/runs/37507371476) verify/container sikeres a `9850a6ae` runtime commiton: 464 teszt/39 fájl, 105 séma drift nélkül, format/types/API/worker/Next production build; izolált PostgreSQL/CA TLS 001–025 és ismétlés, párhuzamos Official preview/Confirm/linkcsere/source-revoke és deletion-reader/recovery/export/cascade/RLS. Minden 71 korábbi P09/Shared proof megmarad, web/API verified HTTPS és worker tiszta leállás, egress tiltva, paid CI AI 0. Dokumentáció: 129 Markdown/126 docs, 21 aktív +21 archivált téma, 105 séma és 193 változatlan immutable forrás/példa/séma/migráció; relatív linkek és anchorok ismét ellenőrizve. OpenAI/Claude guard-maradék 2,520186625 / 2,661985 USD, új paid hívás 0. Következő kis valódi angol többidőszakos seed, Claude-auditor/szerkesztői és Auth/kiadási ellenőrzés, majd P10–P13; a teljes P01–P13/S0–S7 és ops/retention kapuk megmaradnak.
+
+
+## 2026-10-06: első valódi Official seed
+
+Elkészült az első valódi angol Official seed: 3 hat hónapos AI-időszak, 2 választás, 3 ellenőrzött döntési checkpoint, új Scenario/full-copy review, külön curator/Official eredet és valódi Supabase Auth/HTTP preview/Confirm/public/unlisted olvasó/linkcsere/withdraw/export/próbafiók-cleanup. Sonnet-audit: kánonhű/természetes angol, 0 story finding; 4/4/5/4/4 gépi pontszám. A teljes checker 3 automatikus korlátleírás-hibát talált; a core angol mondatot ad, az új másolat no_findings, a régi blokkolt csomag immutable. 1 fiktív staging seed megmarad P10-hez, rendes feature-ek false. Helyi teljes check 464/39 és production build sikeres; 105 séma/001–025 változatlan; új runtime CI még ellenőrizendő. Új 13 OpenAI +1 Claude hívás; guard-maradék 2.254014125 / 2.62877 USD, naplók megőrizve. Pozitív böngészős Official UI és teljes P10–P13/S3-retention/S4–S7/ops/backup/email/éles Contabo kapuk megmaradnak. Következő P10 Discovery és nyilvános moderáció. [Részletes bizonyíték](docs/OFFICIAL_SEED_REPORT_HU.md).

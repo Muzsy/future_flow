@@ -51,3 +51,8 @@ OpenAI guard-maradék **2,520186625 USD**, Claude **2,661985 USD**; a két kül�
 ### Pontos runtime CI-lezárás
 
 Az új main [CI](https://github.com/Muzsy/future_flow/actions/runs/37507371476) verify/container sikeres a `9850a6ae` runtime commiton: 464 teszt/39 fájl, 105 séma drift nélkül, format/types/API/worker/Next production build; izolált PostgreSQL/CA TLS 001–025 és ismétlés, párhuzamos Official preview/Confirm/linkcsere/source-revoke és deletion-reader/recovery/export/cascade/RLS. Minden 71 korábbi P09/Shared proof megmarad, web/API verified HTTPS és worker tiszta leállás, egress tiltva, paid CI AI 0. A lokális Docker hiányában a konténeres eredmény a fenti GitHub-futásból származik. A pozitív fixture-ek továbbra technikai, izolált szimulált receipt/adatbázis-elszámolások, nem valódi Official seed. A hiányzó pozitív böngészős/Auth kiadási próba és a valódi angol AI-lánc/Claude-audit megmarad következő feladatnak.
+
+
+### Későbbi valódi AI/Auth pilot
+
+Az első [valódi angol háromrészes Official seed](OFFICIAL_SEED_REPORT_HU.md) elkészült: külön új forrás/review/curator/eredet és tényleges Auth/HTTP public/unlisted Confirm/reader/linkcsere/withdraw/export. A rendes feature-ek false; pozitív Official böngészős UI és P10–P13/ops kapuk megmaradnak. A korábbi fixture/CI bizonyíték továbbra külön technikai kör.
