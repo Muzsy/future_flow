@@ -2,6 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  SAVED_LIVES_VERSION,
+  savedLivesQuerySchema,
+  savedLifeStatusSchema,
+  savedLifeMutationSchema,
+  savedLivesPageSchema,
+} from './saved-lives';
+import {
   DISCOVERY_VERSION,
   discoveryQuerySchema,
   discoveryCardSchema,
@@ -338,6 +345,26 @@ for (const [name, schema] of Object.entries({
 }
 const sharedDirectory = resolve(directory, 'shared');
 const discoveryDirectory = resolve(directory, 'discovery');
+const savedLivesDirectory = resolve(directory, 'saved-lives');
+mkdirSync(savedLivesDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  query: savedLivesQuerySchema,
+  status: savedLifeStatusSchema,
+  mutation: savedLifeMutationSchema,
+  page: savedLivesPageSchema,
+})) {
+  writeFileSync(
+    resolve(savedLivesDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:saved-lives:${name}:${SAVED_LIVES_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(discoveryDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   query: discoveryQuerySchema,

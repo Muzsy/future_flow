@@ -597,6 +597,7 @@ export function Experience() {
           <LanguageSelect />
           <nav className="nav" aria-label={t('nav.main')}>
             <a href="/discover">Discover lives</a>
+            {user && <a href="/saved">Saved lives</a>}
             <button
               className={page === 'futures' ? 'active' : ''}
               onClick={() => navigate(user ? '/lives' : '/login')}

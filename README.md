@@ -8,7 +8,7 @@ A privát v2 mag 12 lépéses angol onboardingból hat hónapos valódi AI-tört
 
 Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez és a történet ellenőrzéséhez. A működő alkalmazásban nincs AI nélküli demo vagy mock mód. A tesztek elkülönített tesztadatokat és teszthelyettesítőket használnak.
 
-A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md), [Official eredet és kiadás](docs/OFFICIAL_PUBLICATION_REPORT_HU.md), valamint az [első valódi angol AI seed](docs/OFFICIAL_SEED_REPORT_HU.md) elkészült. A háromrészes mintát Sonnet is auditálta, és a public/unlisted kiadást valódi Auth/HTTP-próba ellenőrizte. A rendes kiadási funkciók kikapcsolva maradnak; Discovery és public fork következik, Contabo-telepítés még nincs.
+A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md), [Official eredet és kiadás](docs/OFFICIAL_PUBLICATION_REPORT_HU.md), valamint az [első valódi angol AI seed](docs/OFFICIAL_SEED_REPORT_HU.md) elkészült. A háromrészes mintát Sonnet is auditálta, és a public/unlisted kiadást valódi Auth/HTTP-próba ellenőrizte. A rendes kiadási funkciók kikapcsolva maradnak; Discovery/Save/public link alapja kész; public fork következik, Contabo-telepítés még nincs.
 
 ## Indítás
 
@@ -178,3 +178,8 @@ Angol /discover kereső, kategória és Official/Community szűrő, newest lapoz
 A P10 első angol Discovery-szelet runtime [CI](https://github.com/Muzsy/future_flow/actions/runs/37537224387), `d5fa97ca460bb042e3b9b6d3c7034887913808bf`, verify/container sikeres: 471/40, formázás/típusok/API/worker/Next build, 108 séma drift nélkül. Valódi izolált PostgreSQL/CA TLS és HTTPS: Official+Community kártyák, literal search/filter, bounded newest lapok, lookup közbeni withdraw, revocation/deleting kapu és privát provenance kizárás; 6 új proof, mind a 71 korábbi Shared/P09 és a teljes Official proof megmarad. 001–025 és ismétlés, default-off HTTP és tiszta worker-leállás, egress tiltva, paid CI AI 0. Valódi seed/Auth/HTTP próba külön szintén sikeres; pozitív böngészős/UI ellenőrzés és Save/Share/OG/Report/moderációs queue/metrikák még feladat. P11–P13/S3-retention/S4–S7 és teljes ops/backup/email/Contabo kapuk megmaradnak.
 
 133 Markdown/130 docs, 21 aktív +21 archív téma, 108 séma és 198 változatlan immutable forrás/példa/séma/migráció; 1500 helyi link, 0 hibás link/anchor. 80 stratégiai fejezet, 14 public MVP-elem, 15 Shared téma, 17 checksum és eredeti ZIP hash változatlan. Új providerhívás 0.
+
+
+## 2026-10-07: hitelesített Save és public link
+
+Az angol Discovery után a P10 hitelesített, idempotens Save és egyszerű public linkmegosztás elkészült. /saved saját angol lista, 500/fiók korlát, teljes aktuális Official/Community readerkapu; unlisted/private kizárt, withdraw/hide/revoke/deletion után nincs történet a mentésben. 026 FK/RLS, minimális saját export/cascade, két valódi disposable Supabase Auth-fiók és a változatlan háromfejezetes genuine seed HTTP-próbája sikeres. Helyi teljes check 481/41 és production build; 112 séma, régi 108 és 001–025 változatlan; fejlesztői DB 001–026 alkalmazva/ismételve, 56 aw_/56 RLS. Új runtime main CI még ellenőrizendő. Rendes SAVED_LIVES/DISCOVERY/kiadási/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő Report/moderációs queue/warning/abuse guard, OG/index opt-in/cache, kollekció/metrika és pozitív UI-próba; P10 nem teljes. P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Részletes bizonyíték](docs/SAVED_LIVES_AND_SHARE_REPORT_HU.md).

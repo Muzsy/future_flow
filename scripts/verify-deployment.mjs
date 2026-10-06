@@ -82,6 +82,7 @@ try {
   );
   assert.equal(config.services.api.environment.PUBLICATIONS_ENABLED, 'false');
   assert.equal(config.services.api.environment.DISCOVERY_ENABLED, 'false');
+  assert.equal(config.services.api.environment.SAVED_LIVES_ENABLED, 'false');
   assert.equal(
     config.services.worker.environment.SUPABASE_SERVICE_ROLE_KEY,
     undefined,

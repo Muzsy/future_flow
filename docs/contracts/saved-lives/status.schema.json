@@ -1,0 +1,32 @@
+{
+  "$id": "urn:alterward:saved-lives:status:saved-lives-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "saved-lives-1"
+    },
+    "slug": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^life-[a-f0-9]{32}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^official-[a-f0-9]{32}$"
+        }
+      ]
+    },
+    "saved": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "slug",
+    "saved"
+  ],
+  "additionalProperties": false
+}

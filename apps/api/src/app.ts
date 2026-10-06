@@ -106,11 +106,14 @@ import { deleteAccount } from './account-deletion';
 import { createPublicationControllers } from './publications';
 import { createOfficialPublicationControllers } from './official-publications';
 import { createDiscoveryController } from './discovery';
+import { createSavedLivesController } from './saved-lives';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
   discoveryConfigFromEnv,
   type DiscoveryConfig,
+  savedLivesConfigFromEnv,
+  type SavedLivesConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -864,6 +867,7 @@ export async function createApp(
   publicationConfig: PublicationConfig = publicationConfigFromEnv(),
   officialPublicationConfig: OfficialPublicationConfig = officialPublicationConfigFromEnv(),
   discoveryConfig: DiscoveryConfig = discoveryConfigFromEnv(),
+  savedLivesConfig: SavedLivesConfig = savedLivesConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -872,6 +876,13 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createSavedLivesController(
+        AuthGuard,
+        REPOSITORY,
+        savedLivesConfig,
+        publicationConfig,
+        officialPublicationConfig,
+      ),
       createDiscoveryController(
         REPOSITORY,
         discoveryConfig,

@@ -5,6 +5,8 @@ import {
   type PublicationReader as Reader,
 } from '@future-flow/contracts';
 import { PublicationContent } from './publication-content';
+import { SaveLifeButton } from './save-life-button';
+import { ShareLifeButton } from './share-life-button';
 export function PublicationReader({ slug }: { slug?: string }) {
   const [view, setView] = useState<Reader | null>(null),
     [notice, setNotice] = useState('Loading this life…');
@@ -108,6 +110,8 @@ export function PublicationReader({ slug }: { slug?: string }) {
                 : 'Public copy'}
             </p>
             <PublicationContent snapshot={view.snapshot} />
+            {slug && <SaveLifeButton slug={slug} />}
+            {slug && <ShareLifeButton slug={slug} />}
           </>
         )}
       </main>

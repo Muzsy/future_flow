@@ -7,6 +7,7 @@ import {
   OfficialPublicationRepository,
   DiscoveryRepository,
   PublicationRepository,
+  SavedLivesRepository,
   type Database,
 } from '@future-flow/database';
 import {
@@ -334,6 +335,39 @@ async function main() {
       community.owner,
     ])
       assert(!JSON.stringify(cards).includes(secret));
+    const saved = new SavedLivesRepository(
+      db,
+      { enabled: true },
+      readerConfig,
+      readerConfig,
+    );
+    const parallelSaves = await Promise.all(
+      [1, 2, 3].map(() => saved.save(f.owner, secondPublication.slug)),
+    );
+    assert.deepEqual(parallelSaves[0], parallelSaves[1]);
+    assert.deepEqual(parallelSaves[1], parallelSaves[2]);
+    await saved.save(f.owner, communityPublication.slug);
+    // Opposite-direction saves exercise the global user lock order on real PG.
+    await Promise.all([
+      saved.save(other.owner, communityPublication.slug),
+      saved.save(community.owner, secondPublication.slug),
+    ]);
+    assert.equal((await saved.list(f.owner)).items.length, 2);
+    assert.equal((await saved.list(other.owner)).items.length, 1);
+    assert.equal(
+      (await saved.getStatus(other.owner, secondPublication.slug)).saved,
+      false,
+    );
+    const saveExport = (await f.repo.exportAccount(f.owner))
+      .aw_saved_lives as Record<string, unknown>[];
+    assert.equal(saveExport.length, 2);
+    for (const item of saveExport)
+      assert.deepEqual(Object.keys(item).sort(), ['saved_at', 'slug']);
+    const [saveCount] = await db.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM aw_saved_lives WHERE user_id=$1',
+      [f.owner],
+    );
+    assert.equal(saveCount!.count, '2');
     let race = true;
     const raced: Database = {
       ...db,
@@ -370,13 +404,23 @@ async function main() {
       ).items.map((c) => c.slug),
       [secondPublication.slug],
     );
+    assert.equal(
+      (await saved.list(f.owner)).items.find(
+        (i) => i.slug === communityPublication.slug,
+      )!.card,
+      null,
+    );
+    await saved.remove(f.owner, communityPublication.slug);
+    await saved.remove(f.owner, communityPublication.slug);
     const deletionRace = await Promise.allSettled([
       publications.readPublic(secondPublication.slug),
       other.repo.markDeleting(other.owner),
+      saved.save(f.owner, secondPublication.slug),
     ]);
     assert.equal(deletionRace[1]!.status, 'fulfilled');
     await assert.rejects(publications.readPublic(secondPublication.slug));
     assert.deepEqual((await discovery.list()).items, []);
+    assert.equal((await saved.list(f.owner)).items[0]!.card, null);
     await other.repo.restoreActive(other.owner);
     assert.equal(
       (await publications.confirm(other.owner, secondConfirm, secondKey))
@@ -395,6 +439,9 @@ async function main() {
     await assert.rejects(
       other.official.inspect(other.owner, secondCopy.bundle.bundleId),
     );
+    assert.equal((await saved.list(f.owner)).items[0]!.card, null);
+    await other.repo.deleteAccountData(other.owner);
+    assert.deepEqual((await saved.list(f.owner)).items, []);
     const technical = await officialLifeFixture(db);
     owners.push(technical.owner);
     const third = await technical.official.start(
@@ -410,6 +457,7 @@ async function main() {
         (e as { code: string }).code === 'OFFICIAL_LIFE_EVIDENCE_REQUIRED',
     );
     for (const table of [
+      'aw_saved_lives',
       'aw_official_life_starts',
       'aw_official_life_sources',
       'aw_official_publication_previews',
@@ -425,6 +473,7 @@ async function main() {
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
     for (const table of [
+      'aw_saved_lives',
       'aw_official_life_starts',
       'aw_official_life_sources',
       'aw_official_publication_previews',
@@ -466,6 +515,14 @@ async function main() {
           withdrawalBetweenLookupAndRead: true,
           sourceRevocationAndDeletionExcluded: true,
           noPrivateProvenanceInCards: true,
+          actualProviderCalls: 0,
+        },
+        savedLives: {
+          concurrentIdempotentSaveOnce: true,
+          oppositeDirectionLockOrder: true,
+          privateAccountIsolationAndMinimalExport: true,
+          withdrawAndUnsaveIdempotency: true,
+          deletionRaceRecoveryCascadeRls: true,
           actualProviderCalls: 0,
         },
         publicationApproved: false,

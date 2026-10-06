@@ -1,9 +1,9 @@
 # alterward — fióktörlés helyreállítása
 
 
-## Aktuális: angol Discovery első olvasási szelete
+## Aktuális: hitelesített mentés és public link
 
-A P10 első read-only Discovery szelete elkészült: angol anonim API és /discover felület, 13 fix kategória, szó szerinti cím/summary keresés, Official/Community szűrő, legújabb szerinti lapozás és minden találaton teljes aktív olvasói jogosultságellenőrzés. Private/unlisted/withdrawn/hidden/removed/törlés alatt álló élet kizárt; nincs privát eredetadat a kártyán. Valódi háromfejezetes Official seed + Supabase Auth/HTTP keresés/olvasó/private-state változatlanság sikeres. Helyi teljes check 471/40 és production build; 108 séma, a régi 105 és 001–025 változatlan. P10 runtime d5fa97ca verify/container [CI](https://github.com/Muzsy/future_flow/actions/runs/37537224387) sikeres. Rendes DISCOVERY/PUBLICATIONS/OFFICIAL/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Save/Share/OG/Report/moderációs queue és használati metrikák még P10-feladat; nincs teljes P10 vagy éles release. Pozitív böngészős Discovery/Official UI és teljes P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](DISCOVERY_FOUNDATION_REPORT_HU.md).
+Az angol Discovery után a P10 hitelesített, idempotens Save és egyszerű public linkmegosztás elkészült. /saved saját angol lista, 500/fiók korlát, teljes aktuális Official/Community readerkapu; unlisted/private kizárt, withdraw/hide/revoke/deletion után nincs történet a mentésben. 026 FK/RLS, minimális saját export/cascade, két valódi disposable Supabase Auth-fiók és a változatlan háromfejezetes genuine seed HTTP-próbája sikeres. Helyi teljes check 481/41 és production build; 112 séma, régi 108 és 001–025 változatlan; fejlesztői DB 001–026 alkalmazva/ismételve, 56 aw_/56 RLS. Új runtime main CI még ellenőrizendő. Rendes SAVED_LIVES/DISCOVERY/kiadási/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő Report/moderációs queue/warning/abuse guard, OG/index opt-in/cache, kollekció/metrika és pozitív UI-próba; P10 nem teljes. P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](SAVED_LIVES_AND_SHARE_REPORT_HU.md).
 
 2026-10-04 · [Dokumentációs központ](README.md) · [Státusz és keret](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
@@ -93,3 +93,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-06: teljes tartalom AI-job CI-bizonyítéka
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609), runtime `e1067ddbb958f2402b88f84b7c2206c3ac8efc69`: verify és container sikeres. 402 teszt/34 fájl, format/types/API/worker/Next production build és 70 séma-drift. Izolált PostgreSQL/TLS: 001–020 és ismétlés, párhuzamos teljes-scope enqueue/claim egy attempt, immutable receipt/result, nincs automatikus paid retry, source-change/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres review queue-k és tiszta worker-leállás, nulla paid AI/valódi CI-kulcs, egress tiltva. A 020 runtime-kapu lezárult; külön full-scope curator és kiadási kapuk következnek. Ez nem éles Contabo-telepítés.
+
+
+## 2026-10-07: mentési és megosztási szelet
+
+026 a saját mentési pointereket usertörlésnél és az idegen publication fizikai törlésénél kaszkáddal törli; a deleting/withdraw/hidden/revoked példányok mentettlistája addig sem mutat tartalmat. Valódi kétfiókos friss Auth HTTP-delete, tényleges Auth/DB/cascade cleanup sikeres.

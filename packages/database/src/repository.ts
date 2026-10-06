@@ -661,6 +661,21 @@ export class Repository {
               ])
             : [];
       }
+      const [savedStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_saved_lives') IS NOT NULL AS present",
+      );
+      // Own bookmark metadata only. Never export the foreign publisher ID,
+      // provenance, withdrawn story text or a cached snapshot through a save.
+      result.aw_saved_lives =
+        savedStorage?.present === true
+          ? await tx.query(
+              `SELECT COALESCE(c.slug,o.slug) AS slug,s.created_at AS saved_at
+         FROM aw_saved_lives s LEFT JOIN aw_publications c ON c.id=s.community_publication_id
+         LEFT JOIN aw_official_publications o ON o.id=s.official_publication_id
+         WHERE s.user_id=$1 ORDER BY s.created_at,s.id`,
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

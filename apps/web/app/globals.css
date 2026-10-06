@@ -1222,3 +1222,13 @@ progress {
 .discovery-pagination {
   align-items: center;
 }
+.save-life-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+.save-life-controls .notice {
+  flex-basis: 100%;
+}

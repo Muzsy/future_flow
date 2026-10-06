@@ -1,0 +1,24 @@
+{
+  "$id": "urn:alterward:saved-lives:query:saved-lives-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "page": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "pageSize": {
+      "default": 12,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 24
+    }
+  },
+  "required": [
+    "page",
+    "pageSize"
+  ],
+  "additionalProperties": false
+}

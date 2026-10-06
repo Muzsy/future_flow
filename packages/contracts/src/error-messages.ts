@@ -350,6 +350,14 @@ const errors: Record<string, readonly [string, string]> = {
     'Discovery is not available yet.',
     'A történetek böngészése még nem érhető el.',
   ],
+  SAVED_LIVES_DISABLED: [
+    'Saved lives are not available yet.',
+    'A történetek mentése még nem érhető el.',
+  ],
+  SAVED_LIVES_LIMIT: [
+    'You can save up to 500 lives. Remove a save before adding another.',
+    'Legfeljebb 500 történetet menthetsz. Törölj egy mentést az újhoz.',
+  ],
   INTERNAL_ERROR: [
     'The request could not be completed. Please try again later.',
     'A kérés nem sikerült. Próbáld meg később.',
