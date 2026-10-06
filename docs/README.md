@@ -9,8 +9,9 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Teljes tartalom kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) | Külön consent, teljes csomag és AI-jelentés privát kurátori vizsgálata, immutable döntés, angol felület és bizonyíték; Publication/Confirm még következik |
 | [Teljes tartalom AI-vizsgálata](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) | Egyszeri saját scan-job, közös költségőr, teljes típusos input, angol eredménypanel és bizonyíték; kurátor/kiadás külön kapu |
-| [Teljes előnézeti csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) | Immutable történet+explicit döntési pontlista/hash, angol áttekintés és teljes-scope AI-job is kész; külön full curator és kiadás még következik |
+| [Teljes előnézeti csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) | Immutable történet+explicit döntési pontlista/hash, angol áttekintés, teljes-scope AI-job és külön teljes curator kész; kiadás még következik |
 | [Döntési állapot előnézete](PUBLIC_FORK_PREVIEW_REPORT_HU.md) | Angol állapot/feltétel/hatás nézet, általánosított leírások és immutable saját mentések; a teljes csomag már kész, új review még szükséges |
 | [Döntési checkpoint foundation](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) | Canon/copy/opció kötésű gépi állapot, saját candidate és immutable mentés; full review/kiadás még szükséges |
 | [ScenarioVersion foundation](SCENARIO_VERSION_REPORT_HU.md) | Teljes angol sablon, immutable verziók, friss ID-k, saját privát start normál AI-jobbal; kiadás még külön kapu |

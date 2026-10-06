@@ -31,7 +31,7 @@ Operátori parancs: `pnpm curation:public:content --list`, csak külön `PUBLIC_
 
 A valódi Auth/böngésző/CLI próbákban a tartalom és AI-jelentés kizárólag ellenőrzött technikai fixture. Ez nem valódi AI-élet kurátori minősítése vagy Official seed. Az előző szelet egyetlen valódi, teljes AI-checker próbahívása és negatív kontrollja a [külön riportban](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) szerepel; a 11 findingot ez a kurátori fejlesztés nem írja felül.
 
-Az új 021 runtime GitHub CI és izolált valódi PostgreSQL/HTTPS-konkurenciabizonyíték publikálás után rögzítendő. A korábbi 020 exact runtime [verify/container CI sikeres](https://github.com/Muzsy/future_flow/actions/runs/37447883609).
+A [021 exact runtime GitHub CI](https://github.com/Muzsy/future_flow/actions/runs/37451125069) sikeres: `24d002dde0045ef695cd0dc6fa3674f31053f64e`, verify és container. 414 teszt/35 fájl, format/types/API/worker/Next build és 72 séma-drift. Izolált valódi PostgreSQL/TLS: 001–021 és ismétlés; három párhuzamos beküldés egy sor, két ellentmondó végleges döntésből egy nyer, azonos reapply, immutable/private/no-publication/source/deletion/export/cascade/RLS; minden korábbi P09/S0–S3 bizonyíték megmarad. Web/API/Caddy verified HTTPS, üres queue-k, tiszta worker-leállás, paid AI/valódi CI-kulcs 0, egress tiltva. A korábbi [020 CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609) dátumozott bizonyítéka megmarad. Ez izolált kiadási próba, nem éles Contabo-telepítés.
 
 ## Költség és következő kapu
 
