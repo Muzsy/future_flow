@@ -1,6 +1,26 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_CONTENT_DISABLED: [
+    'Full content preparation is currently unavailable.',
+    'A teljes tartalom előkészítése jelenleg nem elérhető.',
+  ],
+  PUBLIC_CONTENT_INVALID: [
+    'This content bundle could not be verified.',
+    'A tartalomcsomag nem ellenőrizhető.',
+  ],
+  PUBLIC_CONTENT_PRIVACY: [
+    'Generalize identifying details before preparing this content.',
+    'Általánosítsd az azonosító részleteket a tartalom előkészítése előtt.',
+  ],
+  PUBLIC_CONTENT_SOURCE: [
+    'Reload the saved preview before preparing this content.',
+    'Töltsd újra a mentett előnézetet a tartalom előkészítése előtt.',
+  ],
+  PUBLIC_CONTENT_LIMIT: [
+    'This content exceeds the preparation limit.',
+    'A tartalom meghaladja az előkészítési korlátot.',
+  ],
   PUBLIC_FORK_DISABLED: [
     'Decision checkpoint preparation is currently unavailable.',
     'A döntési checkpoint előkészítése jelenleg nem elérhető.',

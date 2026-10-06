@@ -49,3 +49,7 @@ A teljes strukturált Privacy/Content Preview felületi szerkesztése és tényl
 ## Felületi folytatás — 2026-10-06
 
 Az [angol döntési állapot előnézete és leírásszerkesztője](PUBLIC_FORK_PREVIEW_REPORT_HU.md) is kész; 375/32/62 és valós Auth-böngésző/DB cleanup sikeres. A fenti runtime 5d29fcf CI-run mindkét jobja később indítás előtt cancelled lett, lépések/log nélkül; 017/018 Linux/container proof még szükséges. Következő immutable teljes csomag és új scope-os ellenőrzés.
+
+## Teljes csomag és CI-folytatás — 2026-10-06
+
+A [teljes történet+választott checkpoint csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) és pontlista is elkészült, új teljes-scope input/report alap mellett. A [02b6838 verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37410712015) sikeres, 001–018 és ismétlés/ScenarioVersion/checkpoint párhuzamosság/privacy/export/cascade/RLS/TLS/HTTPS ellenőrzéssel, nulla paid AI. Ez lezárja az itt korábban még nyitott 017/018 CI-kaput; 019 külön ellenőrizendő.

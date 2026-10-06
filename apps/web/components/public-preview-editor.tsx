@@ -29,6 +29,7 @@ import {
 import { publicPreviewMessages } from '../lib/public-preview-messages';
 import { PublicContentPreview } from './public-content-preview';
 import { ForkCheckpointPreview } from './fork-checkpoint-preview';
+import { PublicContentBundle } from './public-content-bundle';
 
 export function PublicPreviewEditor({ branchId }: { branchId: string }) {
   const m = publicPreviewMessages.en;
@@ -544,7 +545,13 @@ export function PublicPreviewEditor({ branchId }: { branchId: string }) {
           ) : null}
           {preview && !dirty && !expired && (
             <ForkCheckpointPreview
-              key={`${preview.draftId}:${preview.snapshotHash}:${preview.sourceRevision}`}
+              key={`checkpoint:${preview.draftId}:${preview.snapshotHash}:${preview.sourceRevision}`}
+              preview={preview}
+            />
+          )}
+          {preview && !dirty && !expired && (
+            <PublicContentBundle
+              key={`bundle:${preview.draftId}:${preview.snapshotHash}:${preview.sourceRevision}`}
               preview={preview}
             />
           )}

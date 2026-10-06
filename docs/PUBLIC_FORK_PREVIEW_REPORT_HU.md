@@ -29,3 +29,7 @@ A GitHub runtime ellenőrzésnek külön meg kell erősítenie a Linux/container
 ## Következő
 
 Külön immutable teljes előnézeti csomag és szerveroldali közös tartalomhash: szövegsnapshot + explicit kiválasztott checkpointpéldányok. Utána új teljes-scope AI-input/report/queue és curator, majd Publication/Confirm/Official eredetengedély és kis valódi AI seed. P10–P13, a korábbi terv minden 50–100 élet/20–30 scenario célja és S3 retention/S4–S7, valamint backup/restore/email/Contabo kapuk megmaradnak.
+
+## Teljes csomag és CI-folytatás — 2026-10-06
+
+A [teljes történet+választott checkpoint csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) és pontlista is elkészült, új teljes-scope input/report alap mellett. A [02b6838 verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37410712015) sikeres, 001–018 és ismétlés/ScenarioVersion/checkpoint párhuzamosság/privacy/export/cascade/RLS/TLS/HTTPS ellenőrzéssel, nulla paid AI. Ez lezárja az itt korábban még nyitott 017/018 CI-kaput; 019 külön ellenőrizendő.

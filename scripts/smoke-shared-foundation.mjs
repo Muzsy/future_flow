@@ -1493,6 +1493,48 @@ try {
       ]);
     assert.equal(new Set(copies.map((x) => x.checkpointId)).size, 1);
     assert.equal(copies[0].publicationApproved, false);
+    const { PublicContentRepository } = require('@future-flow/database'),
+      bundles = new PublicContentRepository(db, true),
+      bundleRequest = {
+        snapshotHash: preview.snapshotHash,
+        sourceRevision: preview.sourceRevision,
+        selectedCheckpointIds: [copies[0].checkpointId],
+        acknowledged: true,
+      },
+      bundleKey = randomUUID(),
+      bundleCopies = await Promise.all([
+        bundles.save(owner.id, preview.draftId, bundleRequest, bundleKey),
+        bundles.save(owner.id, preview.draftId, bundleRequest, bundleKey),
+        bundles.save(owner.id, preview.draftId, bundleRequest, randomUUID()),
+      ]);
+    assert.equal(new Set(bundleCopies.map((x) => x.bundleId)).size, 1);
+    assert.equal(bundleCopies[0].publicationApproved, false);
+    assert.equal(
+      bundleCopies[0].content.checkpoints[0].readyForPublicFork,
+      false,
+    );
+    assert.equal(
+      JSON.stringify(bundleCopies[0].content).includes(
+        preview.snapshot.snapshotKey,
+      ),
+      false,
+    );
+    assert.deepEqual(
+      await new PublicContentRepository(db).save(
+        owner.id,
+        preview.draftId,
+        bundleRequest,
+        bundleKey,
+      ),
+      bundleCopies[0],
+    );
+    for (const table of [
+      'aw_public_content_bundles',
+      'aw_public_content_bundle_checkpoints',
+    ])
+      await assert.rejects(
+        db.query(`UPDATE ${table} SET user_id=$1 WHERE user_id=$1`, [owner.id]),
+      );
     assert.deepEqual(
       await new PublicForkCheckpointRepository(db).save(
         owner.id,
@@ -1510,20 +1552,53 @@ try {
     );
     await ownChoice(owner, await personal.branch(owner.id, owner.branchId));
     await assert.rejects(
+      bundles.workspace(owner.id, preview.draftId),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    await assert.rejects(
+      bundles.save(owner.id, preview.draftId, bundleRequest, bundleKey),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    await assert.rejects(
       forks.list(owner.id, preview.draftId),
       (e) => e.code === 'LIFE_REVISION_CONFLICT',
     );
     await repo.markDeleting(owner.id);
     await assert.rejects(
+      bundles.save(owner.id, preview.draftId, bundleRequest, bundleKey),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await assert.rejects(
       forks.save(owner.id, preview.draftId, input, key),
       (e) => e.code === 'ACCOUNT_DELETING',
     );
     await repo.restoreActive(owner.id);
+    const bundleExport = await repo.exportAccount(owner.id);
+    for (const table of [
+      'aw_public_content_bundles',
+      'aw_public_content_bundle_checkpoints',
+    ])
+      assert.equal(bundleExport[table].length, 1);
     assert.equal(
       (await repo.exportAccount(owner.id)).aw_public_fork_checkpoints.length,
       1,
     );
     await repo.deleteAccountData(owner.id);
+    for (const table of [
+      'aw_public_content_bundles',
+      'aw_public_content_bundle_checkpoints',
+    ]) {
+      assert.equal(
+        (await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [owner.id]))
+          .length,
+        0,
+      );
+      const [guard] = await db.query(
+        "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid=$1::regclass",
+        [table],
+      );
+      assert.deepEqual(guard, { rls: true, anon: false, client: false });
+    }
     assert.equal(
       (
         await db.query(
@@ -1564,6 +1639,9 @@ try {
       forkCheckpointConcurrentSaveOnce: true,
       forkCheckpointSourceDeletionGuard: true,
       forkCheckpointNoPublication: true,
+      contentBundleConcurrentSaveOnce: true,
+      contentBundleSourceDeletionGuard: true,
+      contentBundleImmutablePrivateAndExported: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

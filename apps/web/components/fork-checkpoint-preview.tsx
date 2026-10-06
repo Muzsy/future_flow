@@ -241,110 +241,7 @@ export function ForkCheckpointPreview({
               </p>
             ) : (
               <>
-                <h3>{m.startingState}</h3>
-                <dl className="preview-facts">
-                  {checkpointStateFacts(checkpoint).map(([label, value]) => (
-                    <div key={label}>
-                      <dt>{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <h3>{m.goals}</h3>
-                <ol>
-                  {checkpoint.goals.map((goal) => (
-                    <li key={goal.key}>
-                      <p>
-                        <strong>{goal.description}</strong> ·{' '}
-                        {goal.category.replaceAll('_', ' ')} · {goal.priority} ·{' '}
-                        {goal.horizonMonths} months · {goal.status}
-                      </p>
-                      <p>
-                        Motivation: {goal.motivation ?? 'Not specified'};
-                        progress note: {goal.note ?? 'None'}
-                      </p>
-                      <p>
-                        Acceptable tradeoffs:{' '}
-                        {goal.acceptableTradeoffs.join('; ') || 'None recorded'}
-                        ; unacceptable tradeoffs:{' '}
-                        {goal.unacceptableTradeoffs.join('; ') ||
-                          'None recorded'}
-                      </p>
-                    </li>
-                  ))}
-                </ol>
-                <h3>{m.constraints}</h3>
-                {checkpoint.constraints.length ? (
-                  <ol>
-                    {checkpoint.constraints.map((constraint) => (
-                      <li key={constraint.key}>
-                        <p>
-                          <strong>{constraint.description}</strong> ·{' '}
-                          {constraint.strength === 'hard'
-                            ? 'Required'
-                            : 'Preference'}{' '}
-                          ·{' '}
-                          {constraint.scope === 'life'
-                            ? 'Whole life'
-                            : 'This branch'}
-                        </p>
-                        <p>
-                          {predicateDescription(
-                            constraint.predicate,
-                            checkpoint,
-                          )}
-                        </p>
-                        <p>
-                          From {constraint.validFrom};{' '}
-                          {constraint.validUntil
-                            ? `ends before ${constraint.validUntil}`
-                            : 'no fixed expiry'}
-                          {constraint.endsOnDecisionKey
-                            ? '; ends when this choice is made'
-                            : ''}
-                          .
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p>{m.noConstraints}</p>
-                )}
-                <h3>{m.choices}</h3>
-                <p>{checkpoint.decision.prompt}</p>
-                <p className="subtle">{m.optionsHint}</p>
-                <ol>
-                  {checkpoint.decision.options.map((option) => (
-                    <li className="preview-option" key={option.key}>
-                      <strong>{option.label}</strong>
-                      <p>{option.description}</p>
-                      <h4>{m.conditions}</h4>
-                      {option.preconditions.length ? (
-                        <ul>
-                          {option.preconditions.map((condition, i) => (
-                            <li key={i}>
-                              {predicateDescription(condition, checkpoint)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>{m.noConditions}</p>
-                      )}
-                      <h4>{m.consequences}</h4>
-                      {option.changes.length ? (
-                        <ul>
-                          {option.changes.map((change, i) => (
-                            <li key={i}>
-                              {changeDescription(change, checkpoint)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>{m.noChanges}</p>
-                      )}
-                    </li>
-                  ))}
-                </ol>
+                <CheckpointDetails checkpoint={checkpoint} />
                 <form
                   className="preview-form"
                   onSubmit={(event) => void save(event)}
@@ -420,5 +317,106 @@ export function ForkCheckpointPreview({
       </button>
       <p className="subtle">{m.reloadHint}</p>
     </section>
+  );
+}
+
+export function CheckpointDetails({
+  checkpoint,
+}: {
+  checkpoint: ForkCheckpoint;
+}) {
+  const m = forkPreviewMessages.en;
+  return (
+    <>
+      <h3>{m.startingState}</h3>
+      <dl className="preview-facts">
+        {checkpointStateFacts(checkpoint).map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <h3>{m.goals}</h3>
+      <ol>
+        {checkpoint.goals.map((goal) => (
+          <li key={goal.key}>
+            <p>
+              <strong>{goal.description}</strong> ·{' '}
+              {goal.category.replaceAll('_', ' ')} · {goal.priority} ·{' '}
+              {goal.horizonMonths} months · {goal.status}
+            </p>
+            <p>
+              Motivation: {goal.motivation ?? 'Not specified'}; progress note:{' '}
+              {goal.note ?? 'None'}
+            </p>
+            <p>
+              Acceptable tradeoffs:{' '}
+              {goal.acceptableTradeoffs.join('; ') || 'None recorded'};
+              unacceptable tradeoffs:{' '}
+              {goal.unacceptableTradeoffs.join('; ') || 'None recorded'}
+            </p>
+          </li>
+        ))}
+      </ol>
+      <h3>{m.constraints}</h3>
+      {checkpoint.constraints.length ? (
+        <ol>
+          {checkpoint.constraints.map((constraint) => (
+            <li key={constraint.key}>
+              <p>
+                <strong>{constraint.description}</strong> ·{' '}
+                {constraint.strength === 'hard' ? 'Required' : 'Preference'} ·{' '}
+                {constraint.scope === 'life' ? 'Whole life' : 'This branch'}
+              </p>
+              <p>{predicateDescription(constraint.predicate, checkpoint)}</p>
+              <p>
+                From {constraint.validFrom};{' '}
+                {constraint.validUntil
+                  ? `ends before ${constraint.validUntil}`
+                  : 'no fixed expiry'}
+                {constraint.endsOnDecisionKey
+                  ? '; ends when this choice is made'
+                  : ''}
+                .
+              </p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p>{m.noConstraints}</p>
+      )}
+      <h3>{m.choices}</h3>
+      <p>{checkpoint.decision.prompt}</p>
+      <p className="subtle">{m.optionsHint}</p>
+      <ol>
+        {checkpoint.decision.options.map((option) => (
+          <li className="preview-option" key={option.key}>
+            <strong>{option.label}</strong>
+            <p>{option.description}</p>
+            <h4>{m.conditions}</h4>
+            {option.preconditions.length ? (
+              <ul>
+                {option.preconditions.map((condition, i) => (
+                  <li key={i}>{predicateDescription(condition, checkpoint)}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>{m.noConditions}</p>
+            )}
+            <h4>{m.consequences}</h4>
+            {option.changes.length ? (
+              <ul>
+                {option.changes.map((change, i) => (
+                  <li key={i}>{changeDescription(change, checkpoint)}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>{m.noChanges}</p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }

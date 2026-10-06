@@ -43,6 +43,14 @@ import {
   forkCheckpointRequestSchema,
   forkCheckpointViewSchema,
   forkCheckpointCandidateSchema,
+  PUBLIC_CONTENT_VERSION,
+  PUBLIC_CONTENT_REVIEW_VERSION,
+  publicContentSchema,
+  publicContentRequestSchema,
+  publicContentViewSchema,
+  publicContentWorkspaceSchema,
+  publicContentReviewInputSchema,
+  publicContentReviewReportSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -161,6 +169,26 @@ for (const [name, schema] of Object.entries({
   );
 }
 mkdirSync(v2Directory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  contentBundle: publicContentSchema,
+  contentBundleRequest: publicContentRequestSchema,
+  contentBundleView: publicContentViewSchema,
+  contentBundleWorkspace: publicContentWorkspaceSchema,
+  contentReviewInput: publicContentReviewInputSchema,
+  contentReviewReport: publicContentReviewReportSchema,
+})) {
+  writeFileSync(
+    resolve(publicDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public:${name}:${name.startsWith('contentReview') ? PUBLIC_CONTENT_REVIEW_VERSION : PUBLIC_CONTENT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 for (const [name, schema] of Object.entries({
   lifeInput: lifeInputV2Schema,
   lifeState: lifeStateV2Schema,

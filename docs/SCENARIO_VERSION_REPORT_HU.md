@@ -51,3 +51,7 @@ A [sanitized döntési checkpoint foundation](PUBLIC_FORK_CHECKPOINT_REPORT_HU.m
 ## Előnézeti folytatás — 2026-10-06
 
 A [checkpoint előnézeti felülete](PUBLIC_FORK_PREVIEW_REPORT_HU.md) is kész; legfrissebb helyi teljes check 375/32/62. A 5743d93 verify sikeres, container indítás előtt cancelled; későbbi 5d29fcf mindkét jobja indítás előtt cancelled. Korábbi teljes container proof nem helyettesíti a 017/018 ellenőrzését. Teljes csomaghash/review és a ScenarioVersion saját kiadási review/eredetengedélye továbbra külön kapu.
+
+## Teljes csomag és CI-folytatás — 2026-10-06
+
+A [teljes történet+választott checkpoint csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) és pontlista is elkészült, új teljes-scope input/report alap mellett. A [02b6838 verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37410712015) sikeres, 001–018 és ismétlés/ScenarioVersion/checkpoint párhuzamosság/privacy/export/cascade/RLS/TLS/HTTPS ellenőrzéssel, nulla paid AI. Ez lezárja az itt korábban még nyitott 017/018 CI-kaput; 019 külön ellenőrizendő.

@@ -64,6 +64,9 @@ import {
   forkCheckpointRequestSchema,
   forkCheckpointViewSchema,
   forkCheckpointCandidateSchema,
+  publicContentRequestSchema,
+  publicContentViewSchema,
+  publicContentWorkspaceSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -81,6 +84,8 @@ import {
   scenarioVersionsEnabledFromEnv,
   PublicForkCheckpointRepository,
   publicForkCheckpointsEnabledFromEnv,
+  PublicContentRepository,
+  publicContentBundlesEnabledFromEnv,
   publicReviewJobConfigFromEnv,
   type PublicReviewJobConfig,
   BetaFeedbackRepository,
@@ -360,6 +365,7 @@ class LifeController {
   private readonly publicDrafts: PublicDraftRepository;
   private readonly scenarios: ScenarioRepository;
   private readonly publicCheckpoints: PublicForkCheckpointRepository;
+  private readonly publicContent: PublicContentRepository;
   constructor(
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('PUBLIC_REVIEW_CONFIG')
@@ -370,8 +376,14 @@ class LifeController {
     private readonly scenarioVersionsEnabled: boolean,
     @Inject('PUBLIC_FORK_CHECKPOINTS_ENABLED')
     private readonly publicForkCheckpointsEnabled: boolean,
+    @Inject('PUBLIC_CONTENT_BUNDLES_ENABLED')
+    private readonly publicContentBundlesEnabled: boolean,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
+    this.publicContent = new PublicContentRepository(
+      repo.db,
+      publicContentBundlesEnabled,
+    );
     this.publicCheckpoints = new PublicForkCheckpointRepository(
       repo.db,
       publicForkCheckpointsEnabled,
@@ -395,6 +407,29 @@ class LifeController {
   }
   @Get('scenarios') scenariosList(@Req() req: AuthRequest) {
     return this.scenarios.list(req.userId);
+  }
+  @Get('public-previews/:id/content-bundles')
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicContentWorkspaceSchema) as never,
+  })
+  publicContentList(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.publicContent.workspace(req.userId, idSchema.parse(id));
+  }
+  @Post('public-previews/:id/content-bundles')
+  @ApiBody({ schema: z.toJSONSchema(publicContentRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(publicContentViewSchema) as never })
+  publicContentSave(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return this.publicContent.save(
+      req.userId,
+      idSchema.parse(id),
+      body,
+      key ?? '',
+    );
   }
   @Get('public-previews/:id/fork-checkpoints') publicForkList(
     @Req() req: AuthRequest,
@@ -729,6 +764,7 @@ export async function createApp(
   publicCurationEnabled = publicCurationEnabledFromEnv(),
   scenarioVersionsEnabled = scenarioVersionsEnabledFromEnv(),
   publicForkCheckpointsEnabled = publicForkCheckpointsEnabledFromEnv(),
+  publicContentBundlesEnabled = publicContentBundlesEnabledFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -755,6 +791,10 @@ export async function createApp(
       {
         provide: 'PUBLIC_FORK_CHECKPOINTS_ENABLED',
         useValue: publicForkCheckpointsEnabled,
+      },
+      {
+        provide: 'PUBLIC_CONTENT_BUNDLES_ENABLED',
+        useValue: publicContentBundlesEnabled,
       },
     ],
   })

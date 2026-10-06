@@ -4,7 +4,7 @@ import { publicPreviewMessages } from '../lib/public-preview-messages';
 export function PublicContentPreview({
   snapshot,
 }: {
-  snapshot: PublicSnapshotDraft;
+  snapshot: Omit<PublicSnapshotDraft, 'snapshotKey'>;
 }) {
   const m = publicPreviewMessages.en;
   return (

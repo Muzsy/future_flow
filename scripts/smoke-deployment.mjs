@@ -328,7 +328,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs)',
   );
-  assert.equal(counts.trim(), '18|0|0|0');
+  assert.equal(counts.trim(), '19|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -337,7 +337,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 18,
+      migrations: 19,
       sharedFoundation,
       repeatMigration: 'passed',
       webAndApiViaVerifiedTls: true,
