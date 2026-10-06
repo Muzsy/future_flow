@@ -1,9 +1,9 @@
 # alterward — adatmodell és migráció
 
 
-## Aktuális: nyilvános aktivitás mérése
+## Aktuális: kurált nyilvános gyűjtemények
 
-P10 Discovery/Save/Share/Report és trusted moderáció után a tartalom nélküli public read/depth/end/share és sikeres Save/Unsave/Report/Publish/owner-withdraw/hide/remove metrika elkészült. Rövid, csak memóriában élő reading UUID, egyszeri signal, UTC napi aggregate, DNT/GPC, 20 perc TTL, flagfüggetlen worker-cleanup, saját export/privát platform-riport; nincs tartós readerprofil vagy automatikus ranking. 028 RLS/cascade és default PUBLIC_METRICS_ENABLED=false. Helyi check 503/43 és production build; 121 séma, régi 117/001–027 változatlan; dev DB 001–028 ismételve, 62 aw_/62 RLS. 31 valódi Supabase Auth/HTTP/PG ellenőrzés és teljes cleanup sikeres, genuine seed és AI-naplók változatlanok. Report 726f7f4 CI verify/container sikeres; új metrics runtime CI még ellenőrizendő. Új paid AI 0, guard-maradék 2.254014125 / 2.62877 USD. Következő kurált kollekciók/explicit OG-index-cache/pozitív UI; teljes P10/P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](../PUBLIC_ACTIVITY_METRICS_REPORT_HU.md).
+P10 szerkesztett Featured/Community Picks/Turning Points és meglévő Official-lista navigáció elkészült. Exact snapshot/publication/collection revision, idempotens trusted CLI teljes csere, legfeljebb 24 pointer és curated sorrend; minden card teljes live EN/public/Official readerből jön. 029 három RLS-tábla, immutable platform-audit és publisher cascade, PUBLIC_COLLECTIONS_ENABLED=false. Genuine háromfejezetes angol seed egyetlen életként Featured/Turning Points staging-válogatásban; Community Picks üres. Helyi check 513/44/build, 124 séma, régi 121/001–028 változatlan; dev DB 001–029 repeat, 65 aw_/65 RLS. 28 valódi Auth/HTTP/PG/CLI ellenőrzés és actual cleanup sikeres, genuine private export/AI-naplók változatlanok. Metrics ea517bc verify/container CI sikeres; új collection runtime CI még ellenőrizendő. Új paid AI 0; guard-maradék 2.254014125 / 2.62877 USD. Következő explicit OG-index-permission-cache és pozitív UI, majd P11–P13; Trending/Most Forked/fork/cohort külön kapu. P01–P13/S0–S7/retention/ops/Contabo scope megmarad. [Bizonyíték és határ](../CURATED_PUBLIC_COLLECTIONS_REPORT_HU.md).
 
 **2026-10-04-i kiinduló állapot (történeti):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap, AI-pre-screen és szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
@@ -149,3 +149,8 @@ Discovery nem kap külön tartalommásolatot vagy új táblát: a 022/025 kiadá
 ## 2026-10-07: public aktivitásmérés
 
 028 aw_public_metrics_daily: publication FK/UTC day/kind/total; aw_public_reading_sessions: ephemeral UUID/exact publication FK/server TTL/monotonic signals. Két RLS/REVOKE tábla, publisher/publication cascade; 62 aw_/62 RLS. Raw session binding immutable, worker lejárat+24h után flagfüggetlenül takarít; aggregate publication deletionig marad. 121 séma, korábbi 117/001–027 változatlan. [Bizonyíték](../PUBLIC_ACTIVITY_METRICS_REPORT_HU.md).
+
+
+## 2026-10-07: kurált gyűjtemények
+
+029 aw_public_collections/entries/actions: 3 fixed keys/revision/last-request hash, max24 publication pointer/slot unique, immutable platform request-hash/actor/time audit. Publisher/publication delete cascades entries, platform audit story/user/publisher ID nélkül marad. Supabase 65 aw_/65 RLS, 001–029 repeat; 124 séma, régiek változatlanok. [Bizonyíték](../CURATED_PUBLIC_COLLECTIONS_REPORT_HU.md).

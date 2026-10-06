@@ -109,6 +109,7 @@ import { createDiscoveryController } from './discovery';
 import { createSavedLivesController } from './saved-lives';
 import { createPublicSafetyController } from './public-safety';
 import { createPublicMetricsController } from './public-metrics';
+import { createPublicCollectionsController } from './public-collections';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
@@ -120,6 +121,8 @@ import {
   type PublicReportsConfig,
   publicMetricsConfigFromEnv,
   type PublicMetricsConfig,
+  publicCollectionsConfigFromEnv,
+  type PublicCollectionsConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -876,6 +879,7 @@ export async function createApp(
   savedLivesConfig: SavedLivesConfig = savedLivesConfigFromEnv(),
   publicReportsConfig: PublicReportsConfig = publicReportsConfigFromEnv(),
   publicMetricsConfig: PublicMetricsConfig = publicMetricsConfigFromEnv(),
+  publicCollectionsConfig: PublicCollectionsConfig = publicCollectionsConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -884,6 +888,13 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createPublicCollectionsController(
+        REPOSITORY,
+        publicCollectionsConfig,
+        discoveryConfig,
+        publicationConfig,
+        officialPublicationConfig,
+      ),
       createPublicMetricsController(
         REPOSITORY,
         publicMetricsConfig,

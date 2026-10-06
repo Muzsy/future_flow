@@ -17,6 +17,7 @@
     "privacy:recover": "tsx --env-file-if-exists=.env scripts/recover-account-deletion.ts",
     "metrics:private": "tsx --env-file-if-exists=.env scripts/private-metrics.ts",
     "metrics:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-metrics.ts",
+    "curation:collections": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-collections.ts",
     "feedback:report": "tsx --env-file-if-exists=.env scripts/feedback-report.ts",
     "moderation:shared": "tsx --env-file-if-exists=.env scripts/shared-moderation.ts",
     "curation:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-curation.ts",

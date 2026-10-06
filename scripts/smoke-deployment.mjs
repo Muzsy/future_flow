@@ -333,6 +333,16 @@ try {
   ])
     assert.equal(officialLife.publicMetrics[proof], true);
   assert.equal(officialLife.publicMetrics.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentExactSelectionOnce',
+    'competingRevisionDecisionOnce',
+    'curatedOrderAndMinimalProjection',
+    'officialCommunityEligibility',
+    'liveWithdrawalDeletionRace',
+    'publisherCascadePrivateRlsImmutableAudit',
+  ])
+    assert.equal(officialLife.publicCollections[proof], true);
+  assert.equal(officialLife.publicCollections.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -391,6 +401,13 @@ try {
     ]),
   );
   assert.equal(disabledMetrics.error.code, 'PUBLIC_METRICS_DISABLED');
+  const disabledCollections = JSON.parse(
+    run('curl', [
+      ...curlArgs,
+      'https://localhost/api/public/collections/featured',
+    ]),
+  );
+  assert.equal(disabledCollections.error.code, 'PUBLIC_COLLECTIONS_DISABLED');
   assert.equal(
     run('curl', [
       ...curlArgs,
@@ -444,7 +461,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '28|0|0|0|0');
+  assert.equal(counts.trim(), '29|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -453,7 +470,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 28,
+      migrations: 29,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

@@ -2,6 +2,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_COLLECTIONS_VERSION,
+  publicCollectionRequestSchema,
+  publicCollectionPageSchema,
+  publicCollectionReceiptSchema,
+} from './public-collections';
+import {
   PUBLIC_METRICS_VERSION,
   publicReadingStartSchema,
   publicReadingSessionSchema,
@@ -156,6 +162,25 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const publicCollectionsDirectory = resolve(directory, 'public-collections');
+mkdirSync(publicCollectionsDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  request: publicCollectionRequestSchema,
+  page: publicCollectionPageSchema,
+  receipt: publicCollectionReceiptSchema,
+})) {
+  writeFileSync(
+    resolve(publicCollectionsDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-collections:${name}:${PUBLIC_COLLECTIONS_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const publicMetricsDirectory = resolve(directory, 'public-metrics');
 mkdirSync(publicMetricsDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

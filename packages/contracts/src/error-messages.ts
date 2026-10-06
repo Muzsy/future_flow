@@ -366,6 +366,18 @@ const errors: Record<string, readonly [string, string]> = {
     'Reading measurements are unavailable.',
     'Az olvasásmérés nem érhető el.',
   ],
+  PUBLIC_COLLECTIONS_DISABLED: [
+    'Collections are not open yet.',
+    'A gyűjtemények még nem nyíltak meg.',
+  ],
+  PUBLIC_COLLECTION_CONFLICT: [
+    'The collection or publication changed. Reload before applying.',
+    'A gyűjtemény vagy publikáció megváltozott. Töltsd újra.',
+  ],
+  PUBLIC_COLLECTION_INELIGIBLE: [
+    'This life does not fit this collection.',
+    'Ez az élet nem illik ebbe a gyűjteménybe.',
+  ],
   PUBLIC_METRICS_LIMIT: [
     'Reading measurement limit reached.',
     'Elértük az olvasásmérés korlátját.',

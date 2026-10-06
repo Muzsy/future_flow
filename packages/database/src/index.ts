@@ -17,6 +17,7 @@ export * from './saved-lives';
 export * from './public-safety';
 export * from './public-metrics';
 export * from './public-metrics-maintenance';
+export * from './public-collections';
 export {
   publicMetricsConfigFromEnv,
   type PublicMetricsConfig,

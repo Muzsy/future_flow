@@ -11,6 +11,7 @@ import {
   discoveryPageLink,
   discoveryLifeLink,
 } from '../lib/discovery';
+import { CollectionNavigation } from './collection-navigation';
 
 export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
   const [view, setView] = useState<DiscoveryPage | null>(null),
@@ -125,6 +126,7 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
             those choices lead.
           </p>
         </div>
+        <CollectionNavigation />
         <form
           className="discovery-filters"
           action="/discover"
@@ -153,7 +155,7 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
             </select>
           </label>
           <label>
-            Collection
+            Origin
             <select
               name="classification"
               defaultValue={query?.classification ?? 'all'}

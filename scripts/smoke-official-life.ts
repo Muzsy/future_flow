@@ -12,6 +12,7 @@ import {
   PublicMetricsRepository,
   cleanupExpiredPublicReadings,
   publicMetricsSummary,
+  PublicCollectionsRepository,
   type Database,
 } from '@future-flow/database';
 import {
@@ -318,6 +319,81 @@ async function main() {
       );
     const cards = await discovery.list();
     assert.equal(cards.items.length, 2);
+    const collections = new PublicCollectionsRepository(
+        db,
+        { enabled: true },
+        { enabled: true },
+        readerConfig,
+        readerConfig,
+      ),
+      curatedEntry = (copy: {
+        slug: string;
+        revision: number;
+        snapshotHash: string;
+      }) => ({
+        slug: copy.slug,
+        publicationRevision: copy.revision,
+        snapshotHash: copy.snapshotHash,
+      }),
+      selection = {
+        collectionId: 'featured',
+        revision: 1,
+        entries: [
+          curatedEntry(communityPublication),
+          curatedEntry(secondPublication),
+        ],
+        actorLabel: 'Isolated CI collection editor',
+        acknowledged: true,
+      };
+    const curated = await Promise.all(
+      [1, 2, 3].map(() => collections.set(selection)),
+    );
+    assert.deepEqual(curated[0], curated[1]);
+    assert.deepEqual(curated[1], curated[2]);
+    assert.deepEqual(
+      (await collections.list('featured')).items.map((c) => c.slug),
+      [communityPublication.slug, secondPublication.slug],
+    );
+    assert.equal(
+      (
+        await db.query(
+          "SELECT id FROM aw_public_collection_actions WHERE collection_key='featured'",
+        )
+      ).length,
+      1,
+    );
+    const selectionRace = await Promise.allSettled([
+      collections.set({
+        ...selection,
+        revision: 2,
+        entries: [curatedEntry(communityPublication)],
+      }),
+      collections.set({
+        ...selection,
+        revision: 2,
+        entries: [curatedEntry(secondPublication)],
+      }),
+    ]);
+    assert.equal(
+      selectionRace.filter((r) => r.status === 'fulfilled').length,
+      1,
+    );
+    await collections.set({ ...selection, revision: 3 });
+    await assert.rejects(
+      collections.set({ ...selection, collectionId: 'community-picks' }),
+      (e: unknown) =>
+        (e as { code: string }).code === 'PUBLIC_COLLECTION_INELIGIBLE',
+    );
+    const collectionProjection = JSON.stringify(
+      await collections.list('featured'),
+    );
+    for (const hidden of [
+      other.owner,
+      community.owner,
+      secondPublication.publicationId,
+      secondPublication.snapshotHash,
+    ])
+      assert(!collectionProjection.includes(hidden));
     assert.deepEqual(cards.items.map((c) => c.classification).sort(), [
       'community',
       'official',
@@ -605,13 +681,25 @@ async function main() {
       )!.card,
       null,
     );
+    assert.deepEqual(
+      (await collections.list('featured')).items.map((c) => c.slug),
+      [secondPublication.slug],
+    );
     await saved.remove(f.owner, communityPublication.slug);
     await saved.remove(f.owner, communityPublication.slug);
     const unsaveDeletion = await Promise.allSettled([
       saved.remove(other.owner, communityPublication.slug),
       new Repository(db).deleteAccountData(community.owner),
+      collections.set({
+        collectionId: 'community-picks',
+        revision: 1,
+        entries: [curatedEntry(communityPublication)],
+        actorLabel: 'Isolated deleting publisher race',
+        acknowledged: true,
+      }),
     ]);
-    assert(unsaveDeletion.every((r) => r.status === 'fulfilled'));
+    assert(unsaveDeletion.slice(0, 2).every((r) => r.status === 'fulfilled'));
+    assert.equal(unsaveDeletion[2]!.status, 'rejected');
     assert.equal(
       (
         await db.query(
@@ -637,6 +725,7 @@ async function main() {
     ]);
     assert.equal(deletionRace[1]!.status, 'fulfilled');
     await assert.rejects(publications.readPublic(secondPublication.slug));
+    assert.deepEqual((await collections.list('featured')).items, []);
     await assert.rejects(
       metrics.signal(secondPublication.slug, {
         readingId,
@@ -683,7 +772,59 @@ async function main() {
       (e: unknown) =>
         (e as { code: string }).code === 'OFFICIAL_LIFE_EVIDENCE_REQUIRED',
     );
+    // An actually active candidate exercises curation versus physical deletion,
+    // independently of the earlier already-withdrawn candidate.
+    const deletionCandidate = await publicationFixture(db);
+    owners.push(deletionCandidate.owner);
+    const deletionInput = await approvePublicationFixture(
+      db,
+      deletionCandidate,
+    );
+    assert.ok(deletionInput);
+    deletionInput.settings.visibility = 'public';
+    const deletionPreview = await communityPublications.prepare(
+        deletionCandidate.owner,
+        deletionInput,
+        randomUUID(),
+      ),
+      deletionCopy = await communityPublications.confirm(
+        deletionCandidate.owner,
+        {
+          previewId: deletionPreview.previewId,
+          previewHash: deletionPreview.previewHash,
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+    const activeCurationDeletion = await Promise.allSettled([
+      collections.set({
+        collectionId: 'turning-points',
+        revision: 1,
+        entries: [curatedEntry(deletionCopy)],
+        actorLabel: 'Isolated active curation deletion race',
+        acknowledged: true,
+      }),
+      new Repository(db).deleteAccountData(deletionCandidate.owner),
+    ]);
+    assert.equal(activeCurationDeletion[1]!.status, 'fulfilled');
+    if (activeCurationDeletion[0]!.status === 'rejected')
+      assert.equal(
+        (activeCurationDeletion[0] as PromiseRejectedResult).reason.status,
+        404,
+      );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_collection_entries WHERE community_publication_id=$1',
+          [deletionCopy.publicationId],
+        )
+      ).length,
+      0,
+    );
     for (const table of [
+      'aw_public_collections',
+      'aw_public_collection_entries',
+      'aw_public_collection_actions',
       'aw_public_metrics_daily',
       'aw_public_reading_sessions',
       'aw_public_reports',
@@ -712,6 +853,20 @@ async function main() {
     assert.equal(
       (await db.query('SELECT id FROM aw_public_reading_sessions')).length,
       0,
+    );
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_collection_entries')).length,
+      0,
+    );
+    const [collectionAudit] = await db.query<{ id: string }>(
+      'SELECT id FROM aw_public_collection_actions LIMIT 1',
+    );
+    assert.ok(collectionAudit);
+    await assert.rejects(
+      db.query(
+        'UPDATE aw_public_collection_actions SET actor_label=$1 WHERE id=$2',
+        ['Changed', collectionAudit.id],
+      ),
     );
     for (const table of [
       'aw_public_reports',
@@ -779,6 +934,15 @@ async function main() {
           unsavePublisherDeletionRace: true,
           expiredCleanupAndPrivateExport: true,
           livePermissionCascadeRls: true,
+          actualProviderCalls: 0,
+        },
+        publicCollections: {
+          concurrentExactSelectionOnce: true,
+          competingRevisionDecisionOnce: true,
+          curatedOrderAndMinimalProjection: true,
+          officialCommunityEligibility: true,
+          liveWithdrawalDeletionRace: true,
+          publisherCascadePrivateRlsImmutableAudit: true,
           actualProviderCalls: 0,
         },
         savedLives: {
