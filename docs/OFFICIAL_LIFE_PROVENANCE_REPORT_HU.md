@@ -43,7 +43,7 @@ Helyi `pnpm check`: **453 teszt / 38 fájl**, formázás, típusellenőrzés és
 
 Fejlesztői Supabase: **001–024 alkalmazva és ismételve**, verified CA/TLS; 19 ff_ és **52 aw_ / 52 RLS**. Auth és az admin kulcs konfigurációja elérhető. Ez a fejlesztői migráció ellenőrzése; nem új valódi provider seed vagy új teljes Auth/story próba.
 
-Új izolált PostgreSQL-konténeres próba került a CI-be: párhuzamos előzetes start és exact grant egyszer, két időszak és javított fejezet teljes bizonyítéka, cross-owner és technikai receipt deny, versengő terminal revocation, deletion/recovery/export/cascade/RLS; a korábbi összes P09/S0–S3 konténeres próba megmarad. **Az új runtime main CI eredménye még ellenőrizendő.** Helyben Docker nincs telepítve.
+Új izolált PostgreSQL-konténeres próba került a CI-be: párhuzamos előzetes start és exact grant egyszer, két időszak és javított fejezet teljes bizonyítéka, cross-owner és technikai receipt deny, versengő terminal revocation, deletion/recovery/export/cascade/RLS; a korábbi összes P09/S0–S3 konténeres próba megmarad. **Az új runtime main [CI](https://github.com/Muzsy/future_flow/actions/runs/37503358807) verify/container sikeres**, commit `da9c01187d6088418fe563a394a8eea59bc874ae`. 453 teszt/38 fájl, formázás, típusellenőrzés és API/worker/Next production build; 96 séma drift nélkül. Izolált valós PostgreSQL/CA TLS: 001–024 és ismétlés, minden fenti új tranzakciós proof és 71 korábbi P09/S0–S3 bizonyítékmező. Web/API verified HTTPS, üres queue-k, worker 0-s tiszta leállás SIGKILL nélkül; egress tiltva, valódi CI-kulcs/provider AI 0. Helyben Docker nincs telepítve; a konténeres eredmény a main CI-é.
 
 A determinisztikus pozitív integration fixture-ekben a trusted worker/provider receipt-et és DB-tokenelszámolást explicit szimuláljuk az izolált tesztben. Ezek kizárólag tranzakciós, binding- és jogosultsági ellenőrzések; nem valódi AI, szerkesztői jóváhagyás vagy nyilvános Official seed. A nulla/null receipt-eket az új kapu elutasítja.
 
@@ -54,3 +54,8 @@ A determinisztikus pozitív integration fixture-ekben a trusted worker/provider 
 Külön Official kiadási szerződés/projekció/preview/Confirm és olvasói lifecycle, a korábbi `publication-1` Community sémák megőrzésével. Ezután kis **valódi**, angol többidőszakos AI seed, külön Claude-auditor és szerkesztői minősítés, majd P10 Discovery/Save/Share és P11–P13. A 50–100 Official Life / 20–30 Scenario cél nem most elkészült vagy automatikusan költhető állomány.
 
 A teljes kombinált P01–P13/S0–S7 terv megmarad. S3 nyers/backup-retention és régi személyes próza, billing/grace/deadline, S4–S7; P06 email/backup/restore/valós kiesés, későbbi Contabo/Cloudflare élesítés továbbra külön kapu. Domain/DNS/TLS/deploy módosítás nem történt. [Következő lépések](NEXT_STEPS.md) · [Állapot és keret](STATUS_HU.md).
+
+
+### CI indítófolyamat javítása
+
+A korábbi `f154785` és `ddd7bd5` futások verify része sikeres volt, az új konténeres helper indítása elakadt. A helper felső szintű await helyett async mainből indul; a konténer közvetlenül Node-dal hívja az installált tsx CLI-t, és hiba esetén továbbítja a child diagnosztikáját. Az izolációs/zero-budget/CI-only kapuk és minden korábbi teszt megmaradt. A fenti `da9c0118` teljes verify/container futása sikeres; a domainmigrációt nem módosítottuk a fejlesztői alkalmazás után.
