@@ -262,9 +262,8 @@ try {
       '-e',
       'AI_USER_BUDGET_USD=0',
       'api',
-      'pnpm',
-      'exec',
-      'tsx',
+      'node',
+      'node_modules/tsx/dist/cli.mjs',
       '--tsconfig',
       'tsconfig.scripts.json',
       'scripts/smoke-official-life.ts',
@@ -403,6 +402,9 @@ try {
   );
 } catch (error) {
   console.error(error.message);
+  // This runner is guarded to synthetic, egress-disabled CI only. Preserve the
+  // child launcher diagnostic instead of hiding it behind a Docker exit code.
+  if (error.stderr) console.error(error.stderr.toString().slice(-8000));
   try {
     console.error(compose('logs', '--no-color', '--tail', '60'));
   } catch {
