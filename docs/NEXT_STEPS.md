@@ -1,12 +1,17 @@
 # alterward — következő lépések, sorrendben
 
+
+## Aktuális: teljes tartalom kurátori ellenőrzése
+
+Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A 021 exact runtime CI még rögzítendő. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
 2026-10-06 · A [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md), a [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) és az új [Shared Context specifikáció](plans/README.md) alapján bővített backlog. A célállapot részletes leírása az [aktív termékterv](PRODUCT_PLAN_HU.md); a meglévő működés az [implementációs dokumentumban](IMPLEMENTATION.md) szerepel. P01–P05 technikai mag elkészült; P06 valódi Auth/AI HTTP-próba kész, ops még nyitott; P07 új angol minta auditálva, P08 visszajelzés és session-mérés elkészült. [2026-10-04-i béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). [Részletes bizonyíték](V2_IMPLEMENTATION_REPORT_HU.md).
 
 ## Kiinduló állapot
 
-V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork és közös költségőr integrált. P09 text-only szerkesztő/review/curator, ScenarioVersion, sanitized checkpoint, angol explicit teljes csomag és külön teljes-scope AI-job/worker/eredménypanel elkészült. Supabase 001–020 alkalmazva/ismételve; helyi check 402 teszt/34 fájl, 70 séma, valódi Auth/HTTP/export/tényleges cleanup sikeres. Az [e1067dd verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609) 001–020-ig sikeres, izolált PostgreSQL párhuzamos full review/lease/source/deletion/export/RLS és HTTPS ellenőrzéssel. Következő a külön teljes-scope curator, majd kiadási kapuk. [Aktuális bizonyíték](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
+V2 12 lépéses onboarding, hat hónapos valódi AI, choice/folytatás/történeti fork és közös költségőr integrált. P09 text-only szerkesztő/review/curator, ScenarioVersion, sanitized checkpoint, teljes immutable angol csomag, külön teljes AI-job és külön teljes kurátori beküldés/döntés/angol panel kész. Supabase 001–021 alkalmazva/ismételve, helyi check 414 teszt/35 fájl, 72 séma; Auth/HTTP/böngésző/operátori CLI/export/tényleges cleanup sikeres. Korábbi 020 CI sikeres; új 021 exact runtime CI rögzítendő. [Aktuális bizonyíték](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
 
 Valódi szintetikus Supabase-fiókos Auth/DB/OpenAI HTTP-próba és tényleges fióktörlés sikeres; backup/restore és éles telepítés nyitott. A felhasználó angol bétát és kiadás utáni visszajelzéseket választott, indulás előtti kézi EN/HU minősítést nem kér. Auth/ops és automatikus kánonellenőrzés továbbra szükséges; a későbbi public alap előkészíthető, aktiválás nem minősül késznek.
 
@@ -175,7 +180,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** P09 külön teljes-scope kurátori submission/queue/decision az immutable történet+explicit checkpoint csomaghoz. Teljes AI-job/worker és angol eredménypanel kész; régi text-only review/curator nem használható teljes jóváhagyásként. Ezután Publication/Confirm/Official source grant/kis valódi AI seed, majd P10–P13. Shared-emlék fail-closed; S3 retention/korábbi személyes próza, S4–S7 és Contabo/Cloudflare/backup/email külön kapu. [Aktuális bizonyíték](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
+**Következő helyben:** P09 immutable kiadási snapshot és Publication/Confirm, full-scope AI+curator/hash/source kötés, láthatóság/visszavonás/törlés/cache és Official eredetengedély. A ScenarioVersion külön teljes ellenőrzést igényel; utána kis valódi AI seed és P10–P13. A külön teljes AI-review és teljes curator kész. Shared-emlék fail-closed; S3 retention/korábbi személyes próza, S4–S7 és Contabo/Cloudflare/backup/email külön kapu. [Aktuális bizonyíték](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
 
 ## Claude-mérés utáni AI-feladatok
 

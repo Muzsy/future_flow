@@ -1,5 +1,10 @@
 # alterward — jelenlegi implementáció, 2026-10-06
 
+
+## Aktuális: teljes tartalom kurátori ellenőrzése
+
+Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A 021 exact runtime CI még rögzítendő. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
 Ez a dokumentum a működő v1 prototípust és az integrált v2 időszakos életet írja le. `docs/contracts/*.schema.json` a v1, `docs/contracts/v2` az új szerződés. A következő verzió a [pozicionálás](PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md) és [közösségi specifikáció](PUBLIC_LIVES_DISCOVERY_COMMUNITY_SPEC_HU.md) szerinti [aktív terméktervre](PRODUCT_PLAN_HU.md) épül; sorrendje a [backlog](NEXT_STEPS.md). Az eredeti ZIP változatlan.

@@ -637,6 +637,7 @@ export class Repository {
         'aw_public_content_bundles',
         'aw_public_content_bundle_checkpoints',
         'aw_public_content_reviews',
+        'aw_public_content_curations',
       ]) {
         const [storage] = await tx.query(
           'SELECT to_regclass($1) IS NOT NULL AS present',

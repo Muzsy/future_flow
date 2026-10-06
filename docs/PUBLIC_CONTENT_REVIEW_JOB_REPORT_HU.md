@@ -42,3 +42,7 @@ Valódi szintetikus Auth-fiókkal az angol böngészős consent/gombvédelem, ch
 Külön, tartós **full-scope curator** submission/queue/decision és teljes csomag újraolvasása, pontos bundle/policy/contentHash/review kötés, majd Publication/Confirm, eredet/Official source grant és kis valódi AI seed. A ScenarioVersion sablon önálló vizsgálatot és eredetengedélyt igényel. Public olvasás/Discovery, likes/follow/report, public fork permission/remap, starter cache/regenerálás csak a kapcsolódó P10–P13 kapuk után. A végcél 50–100 AI-élet és 20–30 scenario; az első próba kisebb.
 
 S3 nyers/backup-retention, korábbi személyes próza, billing/grace/deadline, S4–S7, backup/restore/email/outage és Contabo/Cloudflare telepítési kapuk változatlanul nyitottak. Új éles telepítés, DNS/TLS aktiválás nem történt.
+
+## Kurátori folytatás — 2026-10-06
+
+A [külön teljes-scope kurátori beküldés/döntés és angol panel](PUBLIC_CONTENT_CURATION_REPORT_HU.md) is elkészült, 021 additív migrációval, exact review/report/content/source kötésével. A fent következőként jelölt curator teljesült; Publication/Confirm és Official eredetengedély marad a következő kapu. Új paid AI 0.

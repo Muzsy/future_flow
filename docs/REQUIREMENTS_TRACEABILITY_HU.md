@@ -1,5 +1,10 @@
 # alterward — a három forrás követelményeinek visszakövetése
 
+
+## Aktuális: teljes tartalom kurátori ellenőrzése
+
+Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A 021 exact runtime CI még rögzítendő. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+
 2026-10-06 · A 38 pozicionálási és 42 közösségi fő fejezet teljes lefedése. A két stratégiai forrás és az új Shared Context csomag szövege változatlan; ez a mátrix az aktív értelmezést, témagazdát és megvalósítási státuszt rendeli hozzájuk. [Dokumentáció](README.md) · [Státusz/keret](STATUS_HU.md) · [Backlog](NEXT_STEPS.md).
 
 A „rögzítve” termékdöntést jelent, nem kész feature-t. A „könyvtári alap” nem API/worker/tárolás. A hipotézis még nem validált. A gazdadokumentum részletes követelmény; a feladat elfogadását a backlog írja le. A legújabb felhasználói döntés felülírja a kétnyelvű indulást: P01–P13 angol élményt követel; magyar halasztva. Az előzetes kézi EN/HU pilot helyett AI angol szerkesztői döntés és éles béta visszajelzés a terv; [aktív indulási út](ENGLISH_RELEASE_PLAN_HU.md).

@@ -1,6 +1,22 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_CONTENT_CURATION_DISABLED: [
+    'Complete curator submissions are currently disabled.',
+    'A teljes kurátori beküldés jelenleg ki van kapcsolva.',
+  ],
+  PUBLIC_CONTENT_CURATION_AI_REQUIRED: [
+    'A complete AI review with no findings is required before curator review.',
+    'A kurátori vizsgálat előtt találatmentes teljes AI-ellenőrzés szükséges.',
+  ],
+  PUBLIC_CONTENT_CURATION_INVALID: [
+    'The curator review does not match this saved copy. Reload its status.',
+    'A kurátori vizsgálat nem ehhez a mentett másolathoz tartozik. Töltsd újra az állapotát.',
+  ],
+  PUBLIC_CONTENT_CURATION_DECIDED: [
+    'This complete curator decision is final. Prepare a revised copy for another review.',
+    'Ez a teljes kurátori döntés végleges. Új vizsgálathoz készíts módosított másolatot.',
+  ],
   PUBLIC_CONTENT_REVIEW_DISABLED: [
     'Paid complete content reviews are currently disabled.',
     'A fizetős teljes tartalomvizsgálat jelenleg ki van kapcsolva.',

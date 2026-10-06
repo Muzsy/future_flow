@@ -69,6 +69,8 @@ import {
   publicContentWorkspaceSchema,
   publicContentReviewJobRequestSchema,
   publicContentReviewJobViewSchema,
+  publicContentCurationRequestSchema,
+  publicContentCurationViewSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -82,6 +84,8 @@ import {
   PublicReviewJobRepository,
   PublicContentReviewJobRepository,
   publicContentReviewJobConfigFromEnv,
+  PublicContentCurationRepository,
+  publicContentCurationEnabledFromEnv,
   PublicCurationRepository,
   publicCurationEnabledFromEnv,
   ScenarioRepository,
@@ -384,6 +388,8 @@ class LifeController {
     private readonly publicContentBundlesEnabled: boolean,
     @Inject('PUBLIC_CONTENT_REVIEW_CONFIG')
     private readonly publicContentReviewConfig: PublicReviewJobConfig,
+    @Inject('PUBLIC_CONTENT_CURATION_ENABLED')
+    private readonly publicContentCurationEnabled: boolean,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.publicContent = new PublicContentRepository(
@@ -430,6 +436,34 @@ class LifeController {
       this.repo.db,
       this.publicContentReviewConfig,
     ).get(req.userId, idSchema.parse(id));
+  }
+  @Get('public-content-bundles/:id/curation')
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicContentCurationViewSchema) as never,
+  })
+  publicFullCuration(@Req() req: AuthRequest, @Param('id') id: string) {
+    return new PublicContentCurationRepository(
+      this.repo.db,
+      this.publicContentCurationEnabled,
+    ).get(req.userId, idSchema.parse(id));
+  }
+  @Post('public-content-bundles/:id/curation')
+  @ApiBody({
+    schema: z.toJSONSchema(publicContentCurationRequestSchema) as never,
+  })
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicContentCurationViewSchema) as never,
+  })
+  submitPublicFullCuration(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return new PublicContentCurationRepository(
+      this.repo.db,
+      this.publicContentCurationEnabled,
+    ).submit(req.userId, idSchema.parse(id), body, key ?? '');
   }
   @Post('public-content-bundles/:id/review-job')
   @ApiBody({
@@ -800,6 +834,7 @@ export async function createApp(
   publicForkCheckpointsEnabled = publicForkCheckpointsEnabledFromEnv(),
   publicContentBundlesEnabled = publicContentBundlesEnabledFromEnv(),
   publicContentReviewConfig: PublicReviewJobConfig = publicContentReviewJobConfigFromEnv(),
+  publicContentCurationEnabled = publicContentCurationEnabledFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -822,6 +857,10 @@ export async function createApp(
         useValue: publicContentReviewConfig,
       },
       { provide: 'PUBLIC_CURATION_ENABLED', useValue: publicCurationEnabled },
+      {
+        provide: 'PUBLIC_CONTENT_CURATION_ENABLED',
+        useValue: publicContentCurationEnabled,
+      },
       {
         provide: 'SCENARIO_VERSIONS_ENABLED',
         useValue: scenarioVersionsEnabled,

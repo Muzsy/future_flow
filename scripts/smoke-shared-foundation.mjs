@@ -26,6 +26,7 @@ const {
   PublicReviewRepository,
   PublicReviewJobRepository,
   PublicContentReviewJobRepository,
+  PublicContentCurationRepository,
   PublicCurationRepository,
   ScenarioRepository,
   PublicForkCheckpointRepository,
@@ -1586,6 +1587,94 @@ try {
         latencyMs: 0,
       };
     await fullReviews.complete(fullJob, report, receipt);
+    const fullCurations = new PublicContentCurationRepository(db, true),
+      curationRequest = {
+        contentHash: bundle.contentHash,
+        reviewId: fullJob.id,
+        reviewHash: hash(report),
+        policyVersion: 'public-content-review-1',
+        curationVersion: 'public-content-curation-1',
+        acknowledged: true,
+      },
+      curationKey = randomUUID();
+    const fullSubmissions = await Promise.all([
+      fullCurations.submit(
+        owner.id,
+        bundle.bundleId,
+        curationRequest,
+        curationKey,
+      ),
+      fullCurations.submit(
+        owner.id,
+        bundle.bundleId,
+        curationRequest,
+        curationKey,
+      ),
+      fullCurations.submit(
+        owner.id,
+        bundle.bundleId,
+        curationRequest,
+        randomUUID(),
+      ),
+    ]);
+    assert.equal(new Set(fullSubmissions.map((x) => x.curation.id)).size, 1);
+    const fullDecision = {
+      curationId: fullSubmissions[0].curation.id,
+      bundleId: bundle.bundleId,
+      draftId: bundle.draftId,
+      snapshotHash: bundle.snapshotHash,
+      sourceRevision: bundle.sourceRevision,
+      contentHash: bundle.contentHash,
+      reviewId: fullJob.id,
+      reviewHash: hash(report),
+      policyVersion: 'public-content-review-1',
+      curationVersion: 'public-content-curation-1',
+      status: 'content_reviewed',
+      reasonCode: null,
+      actorLabel: 'Isolated technical test',
+      privacyChecked: true,
+      contentChecked: true,
+      consistencyChecked: true,
+    };
+    const fullDecisions = await Promise.allSettled([
+      fullCurations.decide(fullDecision),
+      fullCurations.decide({
+        ...fullDecision,
+        status: 'rejected',
+        reasonCode: 'quality',
+      }),
+    ]);
+    assert.equal(
+      fullDecisions.filter((x) => x.status === 'fulfilled').length,
+      1,
+    );
+    assert.equal(
+      fullDecisions.filter((x) => x.status === 'rejected').length,
+      1,
+    );
+    const fullWinner = fullDecisions.find(
+      (x) => x.status === 'fulfilled',
+    ).value;
+    const fullReapply =
+      fullWinner.curation.status === 'content_reviewed'
+        ? fullDecision
+        : { ...fullDecision, status: 'rejected', reasonCode: 'quality' };
+    assert.deepEqual(await fullCurations.decide(fullReapply), fullWinner);
+    assert.equal(fullWinner.publicationApproved, false);
+    const operatorCopy = (await fullCurations.pending()).find(
+      (x) => x.curationId === fullDecision.curationId,
+    );
+    assert.equal(operatorCopy, undefined);
+    await assert.rejects(
+      db.query(
+        'UPDATE aw_public_content_curations SET actor_label=$1 WHERE id=$2',
+        ['Replacement', fullDecision.curationId],
+      ),
+    );
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_public_content_curations.length,
+      1,
+    );
     assert.equal(
       (
         await new PublicContentReviewJobRepository(db).enqueue(
@@ -1680,6 +1769,10 @@ try {
     await ownChoice(owner, await personal.branch(owner.id, owner.branchId));
     assert.equal(await fullReviews.claim(), null);
     await assert.rejects(
+      fullCurations.decide(fullReapply),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
+    await assert.rejects(
       fullReviews.get(owner.id, bundle.bundleId),
       (e) => e.code === 'LIFE_REVISION_CONFLICT',
     );
@@ -1701,6 +1794,10 @@ try {
       (e) => e.code === 'ACCOUNT_DELETING',
     );
     await assert.rejects(
+      fullCurations.decide(fullReapply),
+      (e) => e.code === 'ACCOUNT_DELETING',
+    );
+    await assert.rejects(
       forks.save(owner.id, preview.draftId, input, key),
       (e) => e.code === 'ACCOUNT_DELETING',
     );
@@ -1709,6 +1806,7 @@ try {
     assert.equal(bundleExport.aw_public_content_bundles.length, 3);
     assert.equal(bundleExport.aw_public_content_bundle_checkpoints.length, 2);
     assert.equal(bundleExport.aw_public_content_reviews.length, 3);
+    assert.equal(bundleExport.aw_public_content_curations.length, 1);
     assert.equal(
       (await repo.exportAccount(owner.id)).aw_public_fork_checkpoints.length,
       2,
@@ -1718,6 +1816,7 @@ try {
       'aw_public_content_bundles',
       'aw_public_content_bundle_checkpoints',
       'aw_public_content_reviews',
+      'aw_public_content_curations',
     ]) {
       assert.equal(
         (await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [owner.id]))
@@ -1841,6 +1940,10 @@ try {
       fullContentReviewConcurrentClaimOnce: true,
       fullContentReviewNoAutomaticRetry: true,
       fullContentReviewSourceDeletionGuard: true,
+      fullContentCurationConcurrentSubmitOnce: true,
+      fullContentCurationConcurrentDecisionOnce: true,
+      fullContentCurationPrivateImmutableExported: true,
+      fullContentCurationSourceDeletionGuard: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

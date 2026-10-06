@@ -53,6 +53,9 @@ import {
   publicContentReviewReportSchema,
   publicContentReviewJobRequestSchema,
   publicContentReviewJobViewSchema,
+  PUBLIC_CONTENT_CURATION_VERSION,
+  publicContentCurationRequestSchema,
+  publicContentCurationViewSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -132,6 +135,22 @@ for (const [name, schema] of Object.entries({
   );
 }
 const v2Directory = resolve(directory, 'v2');
+for (const [name, schema] of Object.entries({
+  contentCurationRequest: publicContentCurationRequestSchema,
+  contentCurationView: publicContentCurationViewSchema,
+})) {
+  writeFileSync(
+    resolve(publicDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public:${name}:${PUBLIC_CONTENT_CURATION_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 for (const [name, schema] of Object.entries({
   forkCheckpoint: forkCheckpointSchema,
   forkFactChange: forkFactChangeSchema,

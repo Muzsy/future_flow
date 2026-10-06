@@ -214,6 +214,16 @@ try {
   assert.equal(sharedFoundation.fullContentReviewConcurrentClaimOnce, true);
   assert.equal(sharedFoundation.fullContentReviewNoAutomaticRetry, true);
   assert.equal(sharedFoundation.fullContentReviewSourceDeletionGuard, true);
+  assert.equal(sharedFoundation.fullContentCurationConcurrentSubmitOnce, true);
+  assert.equal(
+    sharedFoundation.fullContentCurationConcurrentDecisionOnce,
+    true,
+  );
+  assert.equal(
+    sharedFoundation.fullContentCurationPrivateImmutableExported,
+    true,
+  );
+  assert.equal(sharedFoundation.fullContentCurationSourceDeletionGuard, true);
   assert.equal(sharedFoundation.publicCurationConcurrentSubmitOnce, true);
   assert.equal(sharedFoundation.publicCurationConcurrentDecisionOnce, true);
   assert.equal(sharedFoundation.publicCurationSourceDeletionGuard, true);
@@ -332,7 +342,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '20|0|0|0|0');
+  assert.equal(counts.trim(), '21|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -341,7 +351,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 20,
+      migrations: 21,
       sharedFoundation,
       repeatMigration: 'passed',
       webAndApiViaVerifiedTls: true,

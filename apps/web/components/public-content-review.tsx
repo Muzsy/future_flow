@@ -11,6 +11,7 @@ import {
 } from '../lib/public-content-review';
 import { lifeApi, ClientError, clientErrorMessage } from '../lib/client';
 import { publicPreviewMessages } from '../lib/public-preview-messages';
+import { PublicContentCuration } from './public-content-curation';
 
 export function PublicContentReview({ bundle }: { bundle: PublicContentView }) {
   const [view, setView] = useState<PublicContentReviewJobView | null>(null),
@@ -158,7 +159,7 @@ export function PublicContentReview({ bundle }: { bundle: PublicContentView }) {
         <>
           <p role="status">
             {report.verdict === 'no_findings'
-              ? 'The complete AI check reported no findings. A separate full content curator review is still required.'
+              ? 'The complete AI check reported no findings. Curator review is handled separately below.'
               : report.verdict === 'review_required'
                 ? 'The complete AI check found details that need attention. Review the indicated story or starting point fields and prepare a revised copy.'
                 : 'The AI could not assess the complete copy. It requires further review.'}
@@ -198,6 +199,20 @@ export function PublicContentReview({ bundle }: { bundle: PublicContentView }) {
       >
         Reload complete review status
       </button>
+      {report?.verdict === 'no_findings' && view && (
+        <PublicContentCuration
+          key={
+            'curation:' +
+            bundle.bundleId +
+            ':' +
+            bundle.contentHash +
+            ':' +
+            view.job!.id
+          }
+          bundle={bundle}
+          review={view}
+        />
+      )}
       <p className="subtle">
         An AI result does not grant publication or guarantee anonymity. Each
         saved copy has one review attempt; status reloads reuse that attempt.

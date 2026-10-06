@@ -107,4 +107,6 @@ A [4745a3 main CI](https://github.com/Muzsy/future_flow/actions/runs/37347782878
 
 P09: [Teljes angol tartalomcsomag és explicit döntésipont-lista](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) kész. Következő a teljes-scope AI/curator, majd kiadási kapuk.
 
-P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. Következő a külön teljes-scope curator.
+P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. A külön teljes-scope curator is elkészült; következő Publication/Confirm.
+
+P09: [Teljes történet és kiválasztott checkpointok külön kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) kész; privát eredmény, új AI-költség nélkül.

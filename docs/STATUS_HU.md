@@ -1,5 +1,10 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
+
+## Aktuális: teljes tartalom kurátori ellenőrzése
+
+Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A 021 exact runtime CI még rögzítendő. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+
 2026-10-06 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
 ## Ténylegesen elkészült
@@ -13,22 +18,22 @@
 | Tartós működés | Job/checkpoint/lease/heartbeat, revision/hash/idempotencia, egy ág egy aktív job |
 | Memória/javítás | Aktuális állapot +közeli canon/választások, egy célzott automatikus javítás, bounded manuális retry |
 | Költségőr | Tranzakciós projekt/user foglalás, ismert/ismeretlen elszámolás, v1/v2 közös limitek; helyben közös 5 USD fileguard |
-| Supabase | 001–020 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 43 aw_/43 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
+| Supabase | 001–021 alkalmazva/ismételve; 16 Shared RLS-tábla, 19 ff_ és 44 aw_/44 RLS; verified TLS, Auth reachable, anon/authenticated közvetlen tiltás |
 | Export/törlés | Teljes privát v1/v2 gráf, worker-stop, durable Auth/DB recovery; valódi szintetikus Auth/DB-törlés sikeres; valós DB-kiesésből recovery/backup még nyitott |
 | Contabo-előkészítés | Kulcsos SSH és jelszavas tiltás kipróbálva; 25 védett config/storage másolat hash-e egyezik; elkülönített Compose és meglévő proxy merge/adapt sikeres; éles route/alkalmazás nincs |
 | Runtime CI | `e1067dd`: 402 teszt/34 fájl, teljes check/build/70 séma-drift; izolált PostgreSQL full content review enqueue/claim egyszer, nincs automatikus retry, source/deletion/export/cascade/RLS és minden korábbi P09/S0–S3 proof, 001–020 + ismétlés; verified TLS/HTTPS és tiszta worker-leállás, provider-AI 0; [CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609) |
-| P09 checkpoint | Külön gépi szerződés, canon/copy/hatás binding, saját candidate és immutable tárolás; teljes előnézet/csomag alap kész, teljes AI-review is kész, külön full curator és public fork következik; [riport](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) |
-| P09 checkpoint UI | Angol saját állapot/korlát/opció/hatás előnézet, általánosított leírások mentése és verzióválasztás/visszatöltés; explicit csomag/pontlista/hash már kész, teljes-scope scan is kész, külön full curator még következik; [riport](PUBLIC_FORK_PREVIEW_REPORT_HU.md) |
-| P09 teljes csomag | Immutable történet+explicit checkpointlista/hash, külön teljes-scope AI-job/worker és angol panel, 020/receipt/source/lease/privacy/export/cascade kész; full curator és publikáció következik; [riport](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) |
+| P09 checkpoint | Külön gépi szerződés, canon/copy/hatás binding, saját candidate és immutable tárolás; teljes előnézet/csomag alap kész, teljes AI-review is kész, külön full curator kész, public fork következik; [riport](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md) |
+| P09 checkpoint UI | Angol saját állapot/korlát/opció/hatás előnézet, általánosított leírások mentése és verzióválasztás/visszatöltés; explicit csomag/pontlista/hash már kész, teljes-scope scan is kész, külön full curator kész; [riport](PUBLIC_FORK_PREVIEW_REPORT_HU.md) |
+| P09 teljes csomag | Immutable történet+explicit checkpointlista/hash, külön teljes AI-job és külön teljes curator/angol panel kész; 021/owner/review/hash/privacy/export/cascade. Publication/Confirm következik; [riport](PUBLIC_CONTENT_CURATION_REPORT_HU.md) |
 | P09 ScenarioVersion | Angol zárt/verziózott sablon, friss ID-k, saját privát élet + normál job/kvóta, export/cascade; default-off és kiadási review még nyitott; [riport](SCENARIO_VERSION_REPORT_HU.md) |
-| P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) kész; [text-only curator](PUBLIC_TEXT_CURATION_REPORT_HU.md) kész; teljes-scope történet+checkpoint scan is kész; full curator és Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
+| P09 AI-review | Privát angol copy, hash/revision/policy/receipt, operatori egyszeri scan és tulajdonosi eredményolvasás; valódi Sol-minta 5 finding; szerkeszthető privát Privacy/Content Preview kész; [felületről indítható fizetett scan-job](PUBLIC_REVIEW_JOB_REPORT_HU.md) kész; [text-only curator](PUBLIC_TEXT_CURATION_REPORT_HU.md) kész; teljes-scope történet+checkpoint scan is kész; full curator kész, Publication/Confirm még nincs; [riport](PUBLIC_AI_REVIEW_REPORT_HU.md) |
 | Shared S3 rész | Saját memória/AI/time/fork/export/törlés, angol Connections és block/report/moderáció implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és korábbi személyes próza még kapu, Shared false |
 | Shared S0 | Külön contract/core, 13 RLS-tábla, profil/entitlement/meghívás és lifecycle API; 36 új regresszió, mind a négy flag kikapcsolva, valódi AI/UI S2/S3 |
 | Mérési alap | Privát feedback, szerveroldali 30 perces session, fejezetvég-kohorsz és sikeres/későbbi folytatás; [definíciók](BETA_FEEDBACK_AND_METRICS_HU.md) |
 
 ## Bizonyíték és hiányzó kapuk
 
-Aktuális teljes tartalom AI-job: 402 teszt/34 fájl, 70 séma; format/types/API/worker/Next build, valódi Auth/HTTP/böngésző és tényleges cleanup sikeres. Külön provider-próba 1 hívással és checkpoint-only teszthiba észlelésével, 11 finding/review_required. [Pontos scope, budget és bizonyíték](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
+Korábbi teljes tartalom AI-job: 402 teszt/34 fájl, 70 séma; format/types/API/worker/Next build, valódi Auth/HTTP/böngésző és tényleges cleanup sikeres. Külön provider-próba 1 hívással és checkpoint-only teszthiba észlelésével, 11 finding/review_required. [Pontos scope, budget és bizonyíték](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
 
 Korábbi döntési UI-szelet: 375 sikeres helyi teszt/32 fájl, teljes formázás/típusellenőrzés/API/worker/Next build, 62 változatlan schema. Valódi szintetikus Auth-böngésző/DB: két leírásváltozat, régi mentés/reload/ingyenes reuse/dirty-copy elrejtés, export és tényleges cleanup sikeres. A `5d29fcf` korábban indítás előtt cancelled lett; a későbbi `02b6838` verify/container sikerével a 017/018 kapu lezárult. A 019 csomag-szeletet a későbbi `8868a34` sikeres verify/container CI is igazolja. [Legújabb bizonyíték és következő csomaghash/review feladat](PUBLIC_FORK_PREVIEW_REPORT_HU.md).
 
