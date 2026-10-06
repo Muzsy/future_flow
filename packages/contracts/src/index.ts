@@ -350,6 +350,7 @@ export * from './public-content';
 export * from './public-content-review-jobs';
 export * from './public-content-curation';
 export * from './publication';
+export * from './official-publication';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';

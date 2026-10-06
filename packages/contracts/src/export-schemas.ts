@@ -2,6 +2,18 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  OFFICIAL_PUBLICATION_VERSION,
+  officialPublicationSnapshotSchema,
+  officialPublicationPrepareRequestSchema,
+  officialPublicationPreviewSchema,
+  officialPublicationConfirmRequestSchema,
+  officialPublicationOwnerViewSchema,
+  officialPublicationActionRequestSchema,
+  officialPublicationModerationRequestSchema,
+  officialPublicationReaderSchema,
+  officialPublicationStatusSchema,
+} from './official-publication';
+import {
   profileSchema,
   stateSchema,
   simulationOutputSchema,
@@ -319,6 +331,31 @@ for (const [name, schema] of Object.entries({
   );
 }
 const sharedDirectory = resolve(directory, 'shared');
+const officialPublicationDirectory = resolve(directory, 'official-publication');
+mkdirSync(officialPublicationDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  snapshot: officialPublicationSnapshotSchema,
+  prepareRequest: officialPublicationPrepareRequestSchema,
+  preview: officialPublicationPreviewSchema,
+  confirmRequest: officialPublicationConfirmRequestSchema,
+  ownerView: officialPublicationOwnerViewSchema,
+  actionRequest: officialPublicationActionRequestSchema,
+  moderationRequest: officialPublicationModerationRequestSchema,
+  reader: officialPublicationReaderSchema,
+  status: officialPublicationStatusSchema,
+})) {
+  writeFileSync(
+    resolve(officialPublicationDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:official-publication:${name}:${OFFICIAL_PUBLICATION_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const publicationDirectory = resolve(directory, 'publication');
 mkdirSync(publicationDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

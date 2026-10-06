@@ -1,0 +1,26 @@
+{
+  "$id": "urn:alterward:official-publication:actionRequest:official-publication-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "revision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "revision",
+    "snapshotHash",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

@@ -118,5 +118,8 @@ export const officialLifeSourceViewSchema = z
       .nullable(),
   })
   .strict();
+export type OfficialLifeSourceView = z.infer<
+  typeof officialLifeSourceViewSchema
+>;
 export type OfficialLifeReceipt = z.infer<typeof officialLifeReceiptSchema>;
 export type OfficialLifeEvidence = z.infer<typeof officialLifeEvidenceSchema>;

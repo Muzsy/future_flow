@@ -10,6 +10,7 @@ import {
 import { contentCurationForBundle } from '../lib/public-content-curation';
 import { lifeApi, ClientError, clientErrorMessage } from '../lib/client';
 import { PublicationConfirm } from './publication-confirm';
+import { OfficialPublicationConfirm } from './official-publication-confirm';
 
 export function PublicContentCuration({
   bundle,
@@ -206,6 +207,13 @@ export function PublicContentCuration({
         Submitting for curator review does not run AI again or publish your
         copy.
       </p>
+      {view?.curation?.status === 'content_reviewed' && (
+        <OfficialPublicationConfirm
+          key={`official:${bundle.bundleId}:${bundle.contentHash}:${view.curation.id}`}
+          bundle={bundle}
+          curator={view}
+        />
+      )}
       {view?.curation?.status === 'content_reviewed' && (
         <PublicationConfirm
           key={`${bundle.bundleId}:${bundle.contentHash}:${view.curation.id}`}

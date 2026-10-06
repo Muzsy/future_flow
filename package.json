@@ -21,6 +21,7 @@
     "curation:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-curation.ts",
     "curation:public:content": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-content-curation.ts",
     "moderation:publication": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/publication-moderation.ts",
+    "moderation:official-publication": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/official-publication-moderation.ts",
     "release:scenario": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/scenario-release.ts",
     "release:official-life": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/official-life.ts",
     "review:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/review-public-draft.ts",

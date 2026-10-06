@@ -497,6 +497,34 @@ export class OfficialLifeRepository {
       };
     });
   }
+  // Read/use an EXISTING grant only. This never enables operator actions or creates a grant.
+  async forPublication(userId: string, bundleId: string) {
+    return this.db.transaction(async (tx) => {
+      const inspected = await this.evidence(tx, userId, bundleId);
+      const [grant] = await tx.query<Grant>(
+        "SELECT * FROM aw_official_life_sources WHERE bundle_id=$1 AND user_id=$2 AND status='active' FOR SHARE",
+        [bundleId, userId],
+      );
+      if (!grant || grant.evidence_hash !== inspected.evidenceHash)
+        throw officialLifeInvalid();
+      const view = this.view(
+        bundleId,
+        inspected.bundle.contentHash,
+        grant,
+        true,
+      );
+      return {
+        bundle: inspected.bundle,
+        binding: {
+          ...inspected.evidence.binding,
+          sourceVersion: OFFICIAL_LIFE_SOURCE_VERSION,
+          grantId: grant.id,
+          evidenceHash: inspected.evidenceHash,
+        },
+        view,
+      };
+    });
+  }
   async grant(userId: string, raw: unknown) {
     this.operator();
     const request = officialLifeGrantRequestSchema.parse(raw);

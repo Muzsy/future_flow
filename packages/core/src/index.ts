@@ -268,3 +268,4 @@ export * from './shared-engine';
 export * from './shared-ai';
 export * from './shared-personal';
 export * from './publication';
+export * from './official-publication';

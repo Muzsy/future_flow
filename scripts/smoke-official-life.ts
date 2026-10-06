@@ -4,6 +4,7 @@ import {
   connectDatabase,
   Repository,
   LifeRepository,
+  OfficialPublicationRepository,
 } from '@future-flow/database';
 import {
   officialLifeFixture,
@@ -90,6 +91,72 @@ async function main() {
     assert.deepEqual(grants[0], grants[1]);
     assert.deepEqual(grants[1], grants[2]);
     assert.equal(grants[0]!.publicationApproved, false);
+    const publications = new OfficialPublicationRepository(db, {
+      enabled: true,
+      linkSecret: 'c'.repeat(64),
+    });
+    const publicationInput = {
+      binding: {
+        ...inspected.evidence.binding,
+        sourceVersion: 'official-life-source-1',
+        grantId: grants[0]!.grant!.id,
+        evidenceHash: inspected.evidenceHash,
+      },
+      settings: {
+        visibility: 'unlisted',
+        authorMode: 'anonymous',
+        indexable: false,
+      },
+    };
+    const previews = await Promise.all(
+      [1, 2, 3].map(() =>
+        publications.prepare(f.owner, publicationInput, randomUUID()),
+      ),
+    );
+    assert.deepEqual(previews[0], previews[1]);
+    assert.deepEqual(previews[1], previews[2]);
+    const confirm = {
+        previewId: previews[0]!.previewId,
+        previewHash: previews[0]!.previewHash,
+        acknowledged: true,
+      },
+      confirmKey = randomUUID();
+    const released = await Promise.all(
+      [1, 2, 3].map(() => publications.confirm(f.owner, confirm, confirmKey)),
+    );
+    assert.deepEqual(released[0], released[1]);
+    assert.deepEqual(released[1], released[2]);
+    const published = released[0]!;
+    assert.equal(
+      (await publications.readUnlisted(published.unlistedToken!)).snapshot
+        .classification,
+      'official',
+    );
+    await assert.rejects(publications.readPublic(published.slug));
+    const rotateInput = {
+        revision: published.revision,
+        snapshotHash: published.snapshotHash,
+        acknowledged: true,
+      },
+      rotateKey = randomUUID();
+    const rotations = await Promise.all(
+      [1, 2].map(() =>
+        publications.action(
+          f.owner,
+          published.publicationId,
+          'rotate',
+          rotateInput,
+          rotateKey,
+        ),
+      ),
+    );
+    assert.deepEqual(rotations[0], rotations[1]);
+    await assert.rejects(publications.readUnlisted(published.unlistedToken!));
+    assert.equal(
+      (await publications.readUnlisted(rotations[0]!.unlistedToken!)).snapshot
+        .story.title,
+      published.snapshot.story.title,
+    );
     assert.equal(
       (
         await db.query('SELECT id FROM aw_publications WHERE user_id=$1', [
@@ -119,6 +186,22 @@ async function main() {
       }),
     ]);
     assert.equal(races.filter((r) => r.status === 'fulfilled').length, 1);
+    await assert.rejects(
+      publications.readUnlisted(rotations[0]!.unlistedToken!),
+    );
+    assert.equal(
+      (await publications.confirm(f.owner, confirm, confirmKey)).status,
+      'withdrawn',
+    );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT reason_code FROM aw_official_publication_actions WHERE publication_id=$1 ORDER BY revision DESC LIMIT 1',
+          [published.publicationId],
+        )
+      )[0]!.reason_code,
+      'source_revocation',
+    );
     assert.equal(
       (await f.official.grant(f.owner, request)).grant!.status,
       'revoked',
@@ -138,6 +221,7 @@ async function main() {
     const exported = await f.repo.exportAccount(f.owner);
     assert.equal((exported.aw_official_life_starts as unknown[]).length, 1);
     assert.equal((exported.aw_official_life_sources as unknown[]).length, 1);
+    assert.equal((exported.aw_official_publications as unknown[]).length, 1);
     // Separate unrevoked source proves account deletion itself terminates permission.
     const second = await other.official.start(
       other.owner,
@@ -150,9 +234,50 @@ async function main() {
         other.owner,
         secondCopy.bundle.bundleId,
       );
-    await other.official.grant(other.owner, officialGrant(secondInspect));
-    await other.repo.markDeleting(other.owner);
+    const secondGrant = await other.official.grant(
+      other.owner,
+      officialGrant(secondInspect),
+    );
+    const secondPreview = await publications.prepare(
+      other.owner,
+      {
+        binding: {
+          ...secondInspect.evidence.binding,
+          sourceVersion: 'official-life-source-1',
+          grantId: secondGrant.grant!.id,
+          evidenceHash: secondInspect.evidenceHash,
+        },
+        settings: {
+          visibility: 'public',
+          authorMode: 'anonymous',
+          indexable: false,
+        },
+      },
+      randomUUID(),
+    );
+    const secondConfirm = {
+        previewId: secondPreview.previewId,
+        previewHash: secondPreview.previewHash,
+        acknowledged: true,
+      },
+      secondKey = randomUUID();
+    const secondPublication = await publications.confirm(
+      other.owner,
+      secondConfirm,
+      secondKey,
+    );
+    const deletionRace = await Promise.allSettled([
+      publications.readPublic(secondPublication.slug),
+      other.repo.markDeleting(other.owner),
+    ]);
+    assert.equal(deletionRace[1]!.status, 'fulfilled');
+    await assert.rejects(publications.readPublic(secondPublication.slug));
     await other.repo.restoreActive(other.owner);
+    assert.equal(
+      (await publications.confirm(other.owner, secondConfirm, secondKey))
+        .status,
+      'withdrawn',
+    );
     assert.equal(
       (
         await db.query(
@@ -182,6 +307,9 @@ async function main() {
     for (const table of [
       'aw_official_life_starts',
       'aw_official_life_sources',
+      'aw_official_publication_previews',
+      'aw_official_publications',
+      'aw_official_publication_actions',
     ]) {
       const [guard] = await db.query(
         "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid=$1::regclass",
@@ -191,7 +319,13 @@ async function main() {
     }
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
-    for (const table of ['aw_official_life_starts', 'aw_official_life_sources'])
+    for (const table of [
+      'aw_official_life_starts',
+      'aw_official_life_sources',
+      'aw_official_publication_previews',
+      'aw_official_publications',
+      'aw_official_publication_actions',
+    ])
       assert.equal(
         (
           await db.query(
@@ -211,6 +345,15 @@ async function main() {
         crossOwnerRejected: true,
         terminalRevocationRace: true,
         deletionRecoveryExportCascadeRls: true,
+        officialPublication: {
+          concurrentExactPreviewConfirmOnce: true,
+          distinctOfficialProjection: true,
+          concurrentSecretRotation: true,
+          sourceRevocationWithdrawsCopy: true,
+          deletionReaderRaceRecoveryCascadeRls: true,
+          actualProviderCalls: 0,
+          actualOfficialSeed: false,
+        },
         publicationApproved: false,
         actualProviderCalls: 0,
         actualOfficialSeed: false,

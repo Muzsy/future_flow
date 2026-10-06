@@ -1,17 +1,25 @@
-import type { PublicationSnapshot } from '@future-flow/contracts';
+import type {
+  PublicationSnapshot,
+  OfficialPublicationSnapshot,
+} from '@future-flow/contracts';
 import { PublicContentPreview } from './public-content-preview';
 import { CheckpointDetails } from './fork-checkpoint-preview';
 export function PublicationContent({
   snapshot,
   preview = false,
 }: {
-  snapshot: PublicationSnapshot;
+  snapshot: PublicationSnapshot | OfficialPublicationSnapshot;
   preview?: boolean;
 }) {
   return (
     <>
       <p className="subtle">
-        {preview ? 'Publication preview' : 'Community life'} · AI-generated
+        {preview
+          ? 'Publication preview'
+          : snapshot.classification === 'official'
+            ? 'Official life'
+            : 'Community life'}{' '}
+        · AI-generated
         {snapshot.story.origin.userEdited
           ? ', edited by its author'
           : ''} ·{' '}
@@ -21,7 +29,13 @@ export function PublicationContent({
       </p>
       <PublicContentPreview
         snapshot={snapshot.story}
-        label={preview ? 'Private release preview' : 'Community life'}
+        label={
+          preview
+            ? 'Private release preview'
+            : snapshot.classification === 'official'
+              ? 'Official life'
+              : 'Community life'
+        }
       />
       <section className="panel" aria-label="Reviewed decision points">
         <h2>Decision points ({snapshot.checkpoints.length})</h2>

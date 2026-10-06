@@ -646,6 +646,9 @@ export class Repository {
         'aw_publication_previews',
         'aw_publications',
         'aw_publication_actions',
+        'aw_official_publication_previews',
+        'aw_official_publications',
+        'aw_official_publication_actions',
       ]) {
         const [storage] = await tx.query(
           'SELECT to_regclass($1) IS NOT NULL AS present',
