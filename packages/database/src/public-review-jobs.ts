@@ -9,6 +9,7 @@ import { DomainError, hash, preparePublicReviewInput } from '@future-flow/core';
 import type { Database } from './index';
 import { PublicDraftRepository } from './public-drafts';
 import { PublicReviewRepository } from './public-reviews';
+import { publicReviewLimits } from './public-review-limits';
 
 export type PublicReviewJobConfig = {
   enabled: boolean;
@@ -185,11 +186,7 @@ export class PublicReviewJobRepository {
           'Paid reviews are disabled.',
           503,
         );
-      const [limits] = await tx.query<{ daily: string; concurrent: string }>(
-        `SELECT count(*) FILTER(WHERE created_at>now()-interval '24 hours')::text AS daily,
-        count(*) FILTER(WHERE status IN ('queued','running'))::text AS concurrent FROM aw_public_review_jobs WHERE user_id=$1`,
-        [userId],
-      );
+      const limits = await publicReviewLimits(tx, userId);
       if (
         Number(limits!.daily) >= this.config.daily ||
         Number(limits!.concurrent) >= 1

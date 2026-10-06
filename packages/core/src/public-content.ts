@@ -124,12 +124,23 @@ export function validatePublicContentReviewReport(
   if (
     report.contentHash !== hash(input.content) ||
     report.findings.some((f) => !keys.has(f.fieldKey)) ||
-    new Set(
-      report.findings.map((f) => `${f.fieldKey}:${f.category}:${f.action}`),
-    ).size !== report.findings.length ||
+    new Set(report.findings.map((f) => `${f.fieldKey}:${f.category}`)).size !==
+      report.findings.length ||
     (report.verdict === 'no_findings' && report.findings.length) ||
     (report.verdict === 'review_required' && !report.findings.length)
   )
     throw invalid('Review does not cover this content bundle.');
   return report;
+}
+
+// Review the whole bundle or refuse it; never truncate content or omit typed fields.
+export function preparePublicContentScanInput(raw: unknown) {
+  const input = preparePublicContentReviewInput(raw);
+  if (Buffer.byteLength(JSON.stringify(input)) > 70000)
+    throw new DomainError(
+      'PUBLIC_CONTENT_REVIEW_LIMIT',
+      'The complete review input is too large. Prepare a shorter copy.',
+      422,
+    );
+  return input;
 }

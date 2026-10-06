@@ -25,6 +25,7 @@ const {
   LifeJobRepository,
   PublicReviewRepository,
   PublicReviewJobRepository,
+  PublicContentReviewJobRepository,
   PublicCurationRepository,
   ScenarioRepository,
   PublicForkCheckpointRepository,
@@ -1535,6 +1536,132 @@ try {
       await assert.rejects(
         db.query(`UPDATE ${table} SET user_id=$1 WHERE user_id=$1`, [owner.id]),
       );
+    const fullReviews = new PublicContentReviewJobRepository(db, {
+        enabled: true,
+        daily: 5,
+        projectUsd: 1,
+        userUsd: 1,
+      }),
+      bundle = bundleCopies[0],
+      fullRequest = {
+        contentHash: bundle.contentHash,
+        policyVersion: 'public-content-review-1',
+        acknowledged: true,
+      },
+      fullKey = randomUUID();
+    const enqueued = await Promise.all([
+      fullReviews.enqueue(owner.id, bundle.bundleId, fullRequest, fullKey),
+      fullReviews.enqueue(owner.id, bundle.bundleId, fullRequest, fullKey),
+      fullReviews.enqueue(owner.id, bundle.bundleId, fullRequest, randomUUID()),
+    ]);
+    assert.equal(new Set(enqueued.map((x) => x.job.id)).size, 1);
+    const claimed = await Promise.all([
+      fullReviews.claim(),
+      fullReviews.claim(),
+      fullReviews.claim(),
+    ]);
+    assert.equal(claimed.filter(Boolean).length, 1);
+    const fullJob = claimed.find(Boolean),
+      fullInput = await fullReviews.input(fullJob),
+      { hash } = require('@future-flow/core');
+    assert.deepEqual(fullInput.content, bundle.content);
+    const report = {
+        policyVersion: 'public-content-review-1',
+        scope: 'story_and_selected_checkpoints',
+        contentHash: bundle.contentHash,
+        publicationApproved: false,
+        verdict: 'no_findings',
+        findings: [],
+      },
+      receipt = {
+        task: 'public_content_review',
+        promptVersion: 'public_content_review.v1.en',
+        locale: 'en',
+        model: 'isolated-no-provider',
+        requestId: null,
+        inputHash: hash(fullInput),
+        outputHash: hash(report),
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+      };
+    await fullReviews.complete(fullJob, report, receipt);
+    assert.equal(
+      (
+        await new PublicContentReviewJobRepository(db).enqueue(
+          owner.id,
+          bundle.bundleId,
+          fullRequest,
+          fullKey,
+        )
+      ).job.id,
+      fullJob.id,
+    );
+    await assert.rejects(
+      db.query(
+        'UPDATE aw_public_content_reviews SET content_hash=$1 WHERE id=$2',
+        ['0'.repeat(64), fullJob.id],
+      ),
+    );
+    await assert.rejects(
+      fullReviews.input(fullJob),
+      (e) => e.code === 'JOB_LEASE_LOST',
+    );
+    const storyOnly = await bundles.save(
+        owner.id,
+        preview.draftId,
+        { ...bundleRequest, selectedCheckpointIds: [] },
+        randomUUID(),
+      ),
+      storyRequest = { ...fullRequest, contentHash: storyOnly.contentHash };
+    await fullReviews.enqueue(
+      owner.id,
+      storyOnly.bundleId,
+      storyRequest,
+      randomUUID(),
+    );
+    const expired = await fullReviews.claim();
+    assert.ok(expired);
+    await db.query(
+      "UPDATE aw_public_content_reviews SET lease_until=now()-interval '1 second' WHERE id=$1",
+      [expired.id],
+    );
+    assert.equal(await fullReviews.claim(), null);
+    assert.equal(
+      (
+        await fullReviews.enqueue(
+          owner.id,
+          storyOnly.bundleId,
+          storyRequest,
+          randomUUID(),
+        )
+      ).job.status,
+      'failed',
+    );
+    const variant = structuredClone(candidate.checkpoint);
+    variant.environment.description =
+      'A generalized fictional working environment';
+    const variantPoint = await forks.save(
+        owner.id,
+        preview.draftId,
+        { ...input, checkpoint: variant },
+        randomUUID(),
+      ),
+      variantBundle = await bundles.save(
+        owner.id,
+        preview.draftId,
+        {
+          ...bundleRequest,
+          selectedCheckpointIds: [variantPoint.checkpointId],
+        },
+        randomUUID(),
+      );
+    await fullReviews.enqueue(
+      owner.id,
+      variantBundle.bundleId,
+      { ...fullRequest, contentHash: variantBundle.contentHash },
+      randomUUID(),
+    );
     assert.deepEqual(
       await new PublicForkCheckpointRepository(db).save(
         owner.id,
@@ -1551,6 +1678,11 @@ try {
       ),
     );
     await ownChoice(owner, await personal.branch(owner.id, owner.branchId));
+    assert.equal(await fullReviews.claim(), null);
+    await assert.rejects(
+      fullReviews.get(owner.id, bundle.bundleId),
+      (e) => e.code === 'LIFE_REVISION_CONFLICT',
+    );
     await assert.rejects(
       bundles.workspace(owner.id, preview.draftId),
       (e) => e.code === 'LIFE_REVISION_CONFLICT',
@@ -1574,19 +1706,18 @@ try {
     );
     await repo.restoreActive(owner.id);
     const bundleExport = await repo.exportAccount(owner.id);
-    for (const table of [
-      'aw_public_content_bundles',
-      'aw_public_content_bundle_checkpoints',
-    ])
-      assert.equal(bundleExport[table].length, 1);
+    assert.equal(bundleExport.aw_public_content_bundles.length, 3);
+    assert.equal(bundleExport.aw_public_content_bundle_checkpoints.length, 2);
+    assert.equal(bundleExport.aw_public_content_reviews.length, 3);
     assert.equal(
       (await repo.exportAccount(owner.id)).aw_public_fork_checkpoints.length,
-      1,
+      2,
     );
     await repo.deleteAccountData(owner.id);
     for (const table of [
       'aw_public_content_bundles',
       'aw_public_content_bundle_checkpoints',
+      'aw_public_content_reviews',
     ]) {
       assert.equal(
         (await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [owner.id]))
@@ -1612,6 +1743,70 @@ try {
       "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid='aw_public_fork_checkpoints'::regclass",
     );
     assert.deepEqual(guard, { rls: true, anon: false, client: false });
+  }
+  {
+    const owner = await person();
+    await personalPeriod(owner);
+    const {
+        PublicDraftRepository,
+        PublicContentRepository,
+      } = require('@future-flow/database'),
+      drafts = new PublicDraftRepository(db),
+      workspace = await drafts.workspace(owner.id, owner.branchId),
+      preview = await drafts.prepare(
+        owner.id,
+        owner.branchId,
+        workspace.source.sourceRevision,
+        workspace.source.copy,
+        randomUUID(),
+      ),
+      bundle = await new PublicContentRepository(db, true).save(
+        owner.id,
+        preview.draftId,
+        {
+          snapshotHash: preview.snapshotHash,
+          sourceRevision: preview.sourceRevision,
+          selectedCheckpointIds: [],
+          acknowledged: true,
+        },
+        randomUUID(),
+      ),
+      q = new PublicContentReviewJobRepository(db, {
+        enabled: true,
+        daily: 5,
+        projectUsd: 1,
+        userUsd: 1,
+      });
+    await q.enqueue(
+      owner.id,
+      bundle.bundleId,
+      {
+        contentHash: bundle.contentHash,
+        policyVersion: 'public-content-review-1',
+        acknowledged: true,
+      },
+      randomUUID(),
+    );
+    const job = await q.claim();
+    assert.ok(job);
+    await repo.markDeleting(owner.id);
+    await assert.rejects(q.input(job), (e) => e.code === 'JOB_LEASE_LOST');
+    await assert.rejects(q.heartbeat(job), (e) => e.code === 'JOB_LEASE_LOST');
+    await repo.restoreActive(owner.id);
+    assert.equal(
+      (await q.get(owner.id, bundle.bundleId)).job.status,
+      'cancelled',
+    );
+    await repo.deleteAccountData(owner.id);
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_content_reviews WHERE user_id=$1',
+          [owner.id],
+        )
+      ).length,
+      0,
+    );
   }
   console.log(
     JSON.stringify({
@@ -1642,6 +1837,10 @@ try {
       contentBundleConcurrentSaveOnce: true,
       contentBundleSourceDeletionGuard: true,
       contentBundleImmutablePrivateAndExported: true,
+      fullContentReviewConcurrentEnqueueOnce: true,
+      fullContentReviewConcurrentClaimOnce: true,
+      fullContentReviewNoAutomaticRetry: true,
+      fullContentReviewSourceDeletionGuard: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

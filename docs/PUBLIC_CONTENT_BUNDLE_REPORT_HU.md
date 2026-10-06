@@ -39,3 +39,7 @@ Valódi kétfiókos Supabase Auth/HTTP: párhuzamos három csomagmentés egy rek
 ## Main CI lezárás — 2026-10-06
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37412306422), runtime `8868a34cc079fccbc1df42dc767e4c65cd4666dd`: verify és container sikeres. 390 teszt/33 fájl, format/types/API/worker/Next production build és 68 séma-drift. Izolált valódi PostgreSQL/TLS: 001–019 és ismétlés, három párhuzamos csomagmentés egy rekord, immutable/free reuse/source-advance/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres négy queue és worker tiszta leállás, nulla paid AI/valódi CI-kulcs, hálózati egress tiltva. A 019 runtime-kapu lezárult; teljes-scope AI-job/worker/curator és kiadás továbbra következik. Ez nem éles Contabo-telepítés.
+
+## Futtatási folytatás — 2026-10-06
+
+A [külön teljes-scope AI-job/worker és angol panel](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) elkészült, 020 additív migrációval, közös költségkorláttal és egyszeri futással. Az itt korábban következőként jelölt AI-futtatás teljesült; a külön full-scope curator és a publikációs kapuk továbbra hátravannak.

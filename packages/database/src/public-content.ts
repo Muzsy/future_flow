@@ -159,6 +159,30 @@ export class PublicContentRepository {
       });
     });
   }
+  async get(userId: string, bundleId: string) {
+    return this.db.transaction(async (tx) => {
+      // Owner lock precedes the source-branch lock, as in save/worker/deletion.
+      const user = lifeRow(
+        await tx.query('SELECT status FROM ff_users WHERE id=$1 FOR UPDATE', [
+          userId,
+        ]),
+      );
+      if (user.status !== 'active')
+        throw new DomainError(
+          'ACCOUNT_DELETING',
+          'Account is being deleted.',
+          403,
+        );
+      const row = lifeRow(
+        await tx.query<Row>(
+          'SELECT * FROM aw_public_content_bundles WHERE id=$1 AND user_id=$2',
+          [bundleId, userId],
+        ),
+      );
+      const preview = await this.bound(tx, userId, row.draft_id);
+      return this.view(tx, userId, row, preview);
+    });
+  }
   async save(userId: string, draftId: string, raw: unknown, key: string) {
     const input = publicContentRequestSchema.parse(raw);
     if (!/^[A-Za-z0-9_-]{8,100}$/.test(key))

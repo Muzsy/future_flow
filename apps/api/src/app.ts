@@ -67,6 +67,8 @@ import {
   publicContentRequestSchema,
   publicContentViewSchema,
   publicContentWorkspaceSchema,
+  publicContentReviewJobRequestSchema,
+  publicContentReviewJobViewSchema,
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
@@ -78,6 +80,8 @@ import {
   PublicDraftRepository,
   PublicReviewRepository,
   PublicReviewJobRepository,
+  PublicContentReviewJobRepository,
+  publicContentReviewJobConfigFromEnv,
   PublicCurationRepository,
   publicCurationEnabledFromEnv,
   ScenarioRepository,
@@ -378,6 +382,8 @@ class LifeController {
     private readonly publicForkCheckpointsEnabled: boolean,
     @Inject('PUBLIC_CONTENT_BUNDLES_ENABLED')
     private readonly publicContentBundlesEnabled: boolean,
+    @Inject('PUBLIC_CONTENT_REVIEW_CONFIG')
+    private readonly publicContentReviewConfig: PublicReviewJobConfig,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.publicContent = new PublicContentRepository(
@@ -414,6 +420,34 @@ class LifeController {
   })
   publicContentList(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.publicContent.workspace(req.userId, idSchema.parse(id));
+  }
+  @Get('public-content-bundles/:id/review-job')
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicContentReviewJobViewSchema) as never,
+  })
+  publicContentReview(@Req() req: AuthRequest, @Param('id') id: string) {
+    return new PublicContentReviewJobRepository(
+      this.repo.db,
+      this.publicContentReviewConfig,
+    ).get(req.userId, idSchema.parse(id));
+  }
+  @Post('public-content-bundles/:id/review-job')
+  @ApiBody({
+    schema: z.toJSONSchema(publicContentReviewJobRequestSchema) as never,
+  })
+  @ApiOkResponse({
+    schema: z.toJSONSchema(publicContentReviewJobViewSchema) as never,
+  })
+  startPublicContentReview(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    return new PublicContentReviewJobRepository(
+      this.repo.db,
+      this.publicContentReviewConfig,
+    ).enqueue(req.userId, idSchema.parse(id), body, key ?? '');
   }
   @Post('public-previews/:id/content-bundles')
   @ApiBody({ schema: z.toJSONSchema(publicContentRequestSchema) as never })
@@ -765,6 +799,7 @@ export async function createApp(
   scenarioVersionsEnabled = scenarioVersionsEnabledFromEnv(),
   publicForkCheckpointsEnabled = publicForkCheckpointsEnabledFromEnv(),
   publicContentBundlesEnabled = publicContentBundlesEnabledFromEnv(),
+  publicContentReviewConfig: PublicReviewJobConfig = publicContentReviewJobConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -782,6 +817,10 @@ export async function createApp(
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
       { provide: 'PUBLIC_REVIEW_CONFIG', useValue: publicReviewConfig },
+      {
+        provide: 'PUBLIC_CONTENT_REVIEW_CONFIG',
+        useValue: publicContentReviewConfig,
+      },
       { provide: 'PUBLIC_CURATION_ENABLED', useValue: publicCurationEnabled },
       {
         provide: 'SCENARIO_VERSIONS_ENABLED',

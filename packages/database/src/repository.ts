@@ -636,6 +636,7 @@ export class Repository {
         'aw_public_fork_checkpoints',
         'aw_public_content_bundles',
         'aw_public_content_bundle_checkpoints',
+        'aw_public_content_reviews',
       ]) {
         const [storage] = await tx.query(
           'SELECT to_regclass($1) IS NOT NULL AS present',
@@ -681,6 +682,14 @@ export class Repository {
         [userId],
       );
       await cancelSharedAccountJobs(tx, userId);
+      const [contentReviews] = await tx.query(
+        "SELECT to_regclass('public.aw_public_content_reviews') IS NOT NULL AS present",
+      );
+      if (contentReviews?.present === true)
+        await tx.query(
+          "UPDATE aw_public_content_reviews SET status='cancelled',lease_token=NULL,lease_until=NULL,finished_at=now(),failure_code='PUBLIC_CONTENT_REVIEW_INTERRUPTED' WHERE user_id=$1 AND status IN ('queued','running')",
+          [userId],
+        );
       const [reviewJobs] = await tx.query(
         "SELECT to_regclass('public.aw_public_review_jobs') IS NOT NULL AS present",
       );

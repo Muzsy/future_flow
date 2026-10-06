@@ -1,6 +1,18 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_CONTENT_REVIEW_DISABLED: [
+    'Paid complete content reviews are currently disabled.',
+    'A fizetős teljes tartalomvizsgálat jelenleg ki van kapcsolva.',
+  ],
+  PUBLIC_CONTENT_REVIEW_INVALID: [
+    'The complete review does not match this saved copy. Reload its status.',
+    'A teljes vizsgálat nem ehhez a mentett másolathoz tartozik. Töltsd újra az állapotát.',
+  ],
+  PUBLIC_CONTENT_REVIEW_LIMIT: [
+    'The complete copy is too large for an AI review. Prepare a shorter copy.',
+    'A teljes másolat túl nagy az AI-vizsgálathoz. Készíts rövidebb másolatot.',
+  ],
   PUBLIC_CONTENT_DISABLED: [
     'Full content preparation is currently unavailable.',
     'A teljes tartalom előkészítése jelenleg nem elérhető.',

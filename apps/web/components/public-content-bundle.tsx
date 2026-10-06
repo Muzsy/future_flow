@@ -12,6 +12,7 @@ import { publicContentMessages } from '../lib/public-content-messages';
 import { lifeApi, ClientError, clientErrorMessage } from '../lib/client';
 import { PublicContentPreview } from './public-content-preview';
 import { CheckpointDetails } from './fork-checkpoint-preview';
+import { PublicContentReview } from './public-content-review';
 
 export function PublicContentBundle({
   preview,
@@ -233,26 +234,32 @@ export function PublicContentBundle({
                 >
                   {workspace.data.bundles.map((b, i) => (
                     <option key={b.bundleId} value={b.bundleId}>
-                      {m.savedCopy} {i + 1} · {b.selection.length} starting
-                      points
+                      {m.savedCopy} {i + 1} · Starting points:{' '}
+                      {b.selection.length}
                     </option>
                   ))}
                 </select>
               </label>
               {stored && (
-                <details>
-                  <summary>{m.savedCopy}</summary>
-                  <PublicContentPreview snapshot={stored.content.snapshot} />
-                  {stored.content.checkpoints.length ? (
-                    stored.content.checkpoints.map((c) => (
-                      <article key={c.decision.key}>
-                        <CheckpointDetails checkpoint={c} />
-                      </article>
-                    ))
-                  ) : (
-                    <p>{m.none}</p>
-                  )}
-                </details>
+                <>
+                  <details>
+                    <summary>{m.savedCopy}</summary>
+                    <PublicContentPreview snapshot={stored.content.snapshot} />
+                    {stored.content.checkpoints.length ? (
+                      stored.content.checkpoints.map((c) => (
+                        <article key={c.decision.key}>
+                          <CheckpointDetails checkpoint={c} />
+                        </article>
+                      ))
+                    ) : (
+                      <p>{m.none}</p>
+                    )}
+                  </details>
+                  <PublicContentReview
+                    key={stored.bundleId + ':' + stored.contentHash}
+                    bundle={stored}
+                  />
+                </>
               )}
             </>
           )}

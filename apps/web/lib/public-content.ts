@@ -27,6 +27,7 @@ async function digest(value: unknown) {
     b.toString(16).padStart(2, '0'),
   ).join('');
 }
+export { digest as publicContentHash };
 export async function contentBundlesForPreview(
   raw: unknown,
   savedRaw: unknown,

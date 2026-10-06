@@ -6,6 +6,8 @@ import {
   DatabaseAiBudget,
   PublicReviewJobRepository,
   publicReviewJobConfigFromEnv,
+  PublicContentReviewJobRepository,
+  publicContentReviewJobConfigFromEnv,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -17,6 +19,7 @@ import { processLifeJob } from './life-processor';
 import { processSharedJob } from './shared-processor';
 import { claimFairQueue } from './fair-queue';
 import { processPublicReviewJob } from './public-review-processor';
+import { processPublicContentReviewJob } from './public-content-review-processor';
 
 async function main() {
   const db = connectDatabase(
@@ -45,6 +48,11 @@ async function main() {
     publicReviewJobConfigFromEnv(),
     leaseSeconds,
   );
+  const contentReviews = new PublicContentReviewJobRepository(
+    db,
+    publicContentReviewJobConfigFromEnv(),
+    leaseSeconds,
+  );
   for (const name of ['SHARED_CONTEXTS_ENABLED', 'SHARED_FRIEND_ENABLED'])
     if (!['true', 'false'].includes(process.env[name] ?? 'false'))
       throw new Error('Invalid Shared feature flag');
@@ -66,6 +74,7 @@ async function main() {
         | import('@future-flow/database').LifeJob
         | import('@future-flow/database').SharedJob
         | import('@future-flow/database').PublicReviewJob
+        | import('@future-flow/database').PublicContentReviewJob
         | import('@future-flow/database').Job;
       const selection = await claimFairQueue<Claimed>(
         [
@@ -73,6 +82,7 @@ async function main() {
           () => (sharedEnabled ? sharedJobs.claim() : Promise.resolve(null)),
           () => jobs.claim(),
           () => publicReviews.claim(),
+          () => contentReviews.claim(),
         ],
         queueStart,
       );
@@ -80,7 +90,8 @@ async function main() {
       const job = selection.job;
       const v2 = selection.index === 0,
         shared = selection.index === 1,
-        publicReview = selection.index === 3;
+        publicReview = selection.index === 3,
+        contentReview = selection.index === 4;
       if (!job) {
         await new Promise((resolve) =>
           setTimeout(resolve, Number(process.env.WORKER_POLL_MS ?? 2000)),
@@ -90,19 +101,25 @@ async function main() {
       let leaseLost = false;
       const claimed = job;
       const heartbeatJob = () =>
-        publicReview
-          ? publicReviews.heartbeat(
-              claimed as import('@future-flow/database').PublicReviewJob,
+        contentReview
+          ? contentReviews.heartbeat(
+              claimed as import('@future-flow/database').PublicContentReviewJob,
             )
-          : shared
-            ? sharedJobs.heartbeat(
-                claimed as import('@future-flow/database').SharedJob,
+          : publicReview
+            ? publicReviews.heartbeat(
+                claimed as import('@future-flow/database').PublicReviewJob,
               )
-            : v2
-              ? lifeJobs.heartbeat(
-                  claimed as import('@future-flow/database').LifeJob,
+            : shared
+              ? sharedJobs.heartbeat(
+                  claimed as import('@future-flow/database').SharedJob,
                 )
-              : jobs.heartbeat(claimed as import('@future-flow/database').Job);
+              : v2
+                ? lifeJobs.heartbeat(
+                    claimed as import('@future-flow/database').LifeJob,
+                  )
+                : jobs.heartbeat(
+                    claimed as import('@future-flow/database').Job,
+                  );
       const budget = new DatabaseAiBudget(
         db,
         shared
@@ -144,7 +161,13 @@ async function main() {
             )
           : budget;
         const ai = new OpenAiProvider({ ...aiConfig, guard });
-        if (publicReview)
+        if (contentReview)
+          await processPublicContentReviewJob(
+            job as import('@future-flow/database').PublicContentReviewJob,
+            contentReviews,
+            ai,
+          );
+        else if (publicReview)
           await processPublicReviewJob(
             job as import('@future-flow/database').PublicReviewJob,
             publicReviews,
@@ -171,7 +194,11 @@ async function main() {
         console.log(JSON.stringify({ jobId: job.id, status: 'completed' }));
       } catch (error) {
         if (!leaseLost) {
-          if (publicReview)
+          if (contentReview)
+            await contentReviews.fail(
+              job as import('@future-flow/database').PublicContentReviewJob,
+            );
+          else if (publicReview)
             await publicReviews.fail(
               job as import('@future-flow/database').PublicReviewJob,
             );

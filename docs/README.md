@@ -105,3 +105,5 @@ A [privát angol szerkesztő](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md) elkészült: s
 A [4745a3 main CI](https://github.com/Muzsy/future_flow/actions/runs/37347782878) verify és container jobja sikeres: 314 teszt/27 fájl, teljes build/48 séma-drift, 14 migráció/ismétlés, PostgreSQL editor-preflight/duplamentés/visszatöltés/új review és korábbi Shared-próbák, TLS és tiszta worker-stop. Valódi böngészős/Auth/Sol próba is sikeres; öt új kérés 0.063175 USD. [Teljes előnézeti bizonyíték](PUBLIC_PREVIEW_EDITOR_REPORT_HU.md). Következő a fizetett scan-job közös projekt/user költségőrrel; publikáció még nincs.
 
 P09: [Teljes angol tartalomcsomag és explicit döntésipont-lista](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) kész. Következő a teljes-scope AI/curator, majd kiadási kapuk.
+
+P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. Következő a külön teljes-scope curator.

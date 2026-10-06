@@ -1,0 +1,25 @@
+{
+  "$id": "urn:alterward:public:contentReviewJobRequest:public-content-review-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "public-content-review-1"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "contentHash",
+    "policyVersion",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

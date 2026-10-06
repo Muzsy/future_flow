@@ -123,3 +123,5 @@ P09: [Sanitized döntési checkpoint foundation](docs/PUBLIC_FORK_CHECKPOINT_REP
 P09: [Angol döntési állapot előnézet és leírásszerkesztő](docs/PUBLIC_FORK_PREVIEW_REPORT_HU.md) kész, 375 helyi teszt/32 fájl és valós Auth-böngésző/DB cleanup sikeres. Következő a szöveg és kiválasztott checkpointok immutable közös tartalomcsomagja, teljes-scope ellenőrzés és kiadási kapuk.
 
 P09: [Teljes angol tartalomcsomag és explicit döntésipont-lista](docs/PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) kész. Következő a teljes-scope AI/curator, majd kiadási kapuk.
+
+P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](docs/PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. Következő a külön teljes-scope curator.

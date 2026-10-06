@@ -51,6 +51,8 @@ import {
   publicContentWorkspaceSchema,
   publicContentReviewInputSchema,
   publicContentReviewReportSchema,
+  publicContentReviewJobRequestSchema,
+  publicContentReviewJobViewSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -176,6 +178,8 @@ for (const [name, schema] of Object.entries({
   contentBundleWorkspace: publicContentWorkspaceSchema,
   contentReviewInput: publicContentReviewInputSchema,
   contentReviewReport: publicContentReviewReportSchema,
+  contentReviewJobRequest: publicContentReviewJobRequestSchema,
+  contentReviewJobView: publicContentReviewJobViewSchema,
 })) {
   writeFileSync(
     resolve(publicDirectory, `${name}.schema.json`),
