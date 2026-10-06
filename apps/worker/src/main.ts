@@ -8,6 +8,7 @@ import {
   publicReviewJobConfigFromEnv,
   PublicContentReviewJobRepository,
   publicContentReviewJobConfigFromEnv,
+  cleanupExpiredPublicReadings,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -60,6 +61,7 @@ async function main() {
     process.env.SHARED_CONTEXTS_ENABLED === 'true' &&
     process.env.SHARED_FRIEND_ENABLED === 'true';
   let queueStart = 0;
+  let nextReadingCleanup = 0;
   let stopping = false;
   process.on('SIGINT', () => {
     stopping = true;
@@ -70,6 +72,19 @@ async function main() {
   console.log('AI worker started');
   try {
     while (!stopping) {
+      if (Date.now() >= nextReadingCleanup) {
+        try {
+          const result = await cleanupExpiredPublicReadings(db);
+          nextReadingCleanup =
+            Date.now() + (result.batchFull ? 2000 : 15 * 60 * 1000);
+        } catch {
+          // Retry soon without exposing SQL/credentials or starving AI queues.
+          nextReadingCleanup = Date.now() + 60000;
+          console.error(
+            'Expired public reading cleanup failed; retry scheduled.',
+          );
+        }
+      }
       type Claimed =
         | import('@future-flow/database').LifeJob
         | import('@future-flow/database').SharedJob

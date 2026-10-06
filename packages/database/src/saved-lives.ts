@@ -9,6 +9,11 @@ import {
 import type { Database } from './index';
 import { PublicationRepository, type PublicationConfig } from './publications';
 import { OfficialPublicationRepository } from './official-publications';
+import {
+  recordPublicMetric,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
+} from './public-metric-recording';
 
 export interface SavedLivesConfig {
   enabled: boolean;
@@ -31,6 +36,7 @@ export class SavedLivesRepository {
     private readonly config: SavedLivesConfig = { enabled: false },
     private readonly community: PublicationConfig = off,
     private readonly official: PublicationConfig = off,
+    private readonly metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
   ) {}
   private enabled() {
     if (!this.config.enabled)
@@ -114,6 +120,17 @@ export class SavedLivesRepository {
         `INSERT INTO aw_saved_lives(user_id,${target.column}) VALUES($1,$2) ON CONFLICT DO NOTHING`,
         [userId, seed.id],
       );
+      await recordPublicMetric(
+        tx,
+        {
+          id: seed.id,
+          classification: slug.startsWith('official-')
+            ? 'official'
+            : 'community',
+        },
+        'saved',
+        this.metrics,
+      );
       return this.status(slug, true);
     });
   }
@@ -122,12 +139,41 @@ export class SavedLivesRepository {
     const slug = publicLifeSlugSchema.parse(rawSlug),
       target = this.target(slug);
     return this.db.transaction(async (tx) => {
-      await this.owner(tx, userId, true);
+      const [seed] = await tx.query<Target>(
+        `SELECT id,user_id FROM ${target.table} WHERE slug=$1`,
+        [slug],
+      );
+      // Lock publisher before its publication/save rows even when it is
+      // deleting. Unsave needs no content permission; this order protects the
+      // aggregate FK from a simultaneous physical publisher deletion.
+      for (const id of [
+        ...new Set([userId, ...(seed ? [seed.user_id] : [])]),
+      ].sort()) {
+        if (id === userId) await this.owner(tx, id, true);
+        else
+          await tx.query('SELECT id FROM ff_users WHERE id=$1 FOR SHARE', [id]);
+      }
+      if (seed)
+        await tx.query(`SELECT id FROM ${target.table} WHERE id=$1 FOR SHARE`, [
+          seed.id,
+        ]);
       // Removal remains possible after withdrawal or a feature gate closes.
-      await tx.query(
-        `DELETE FROM aw_saved_lives WHERE user_id=$1 AND ${target.column} IN (SELECT id FROM ${target.table} WHERE slug=$2)`,
+      const deleted = await tx.query<{ target_id: string }>(
+        `DELETE FROM aw_saved_lives WHERE user_id=$1 AND ${target.column} IN (SELECT id FROM ${target.table} WHERE slug=$2) RETURNING ${target.column} AS target_id`,
         [userId, slug],
       );
+      if (deleted[0])
+        await recordPublicMetric(
+          tx,
+          {
+            id: deleted[0].target_id,
+            classification: slug.startsWith('official-')
+              ? 'official'
+              : 'community',
+          },
+          'unsaved',
+          this.metrics,
+        );
       return this.status(slug, false);
     });
   }

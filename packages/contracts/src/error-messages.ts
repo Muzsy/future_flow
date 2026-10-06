@@ -362,6 +362,18 @@ const errors: Record<string, readonly [string, string]> = {
     'Public reports are not available yet.',
     'A nyilvános bejelentés még nem érhető el.',
   ],
+  PUBLIC_METRICS_DISABLED: [
+    'Reading measurements are unavailable.',
+    'Az olvasásmérés nem érhető el.',
+  ],
+  PUBLIC_METRICS_LIMIT: [
+    'Reading measurement limit reached.',
+    'Elértük az olvasásmérés korlátját.',
+  ],
+  PUBLIC_READING_TOO_EARLY: [
+    'Reading end is not yet measurable.',
+    'Az olvasás vége még nem mérhető.',
+  ],
   PUBLIC_REPORT_LIMIT: [
     'You can submit up to ten new reports in 24 hours.',
     '24 óránként legfeljebb tíz új bejelentést küldhetsz.',

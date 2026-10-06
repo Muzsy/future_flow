@@ -22,6 +22,8 @@ import {
   PublicSafetyRepository,
   type PublicReportsConfig,
   type PublicationConfig,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
 } from '@future-flow/database';
 export function createPublicSafetyController(
   guard: Type<CanActivate>,
@@ -29,6 +31,7 @@ export function createPublicSafetyController(
   config: PublicReportsConfig,
   community: PublicationConfig,
   official: PublicationConfig,
+  metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
 ): Type {
   @Controller('api/v2')
   @UseGuards(guard)
@@ -41,6 +44,7 @@ export function createPublicSafetyController(
         config,
         community,
         official,
+        metrics,
       );
     }
     @Post('public-reports/:slug')

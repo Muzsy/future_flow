@@ -28,6 +28,8 @@ import {
   PublicationRepository,
   Repository,
   type PublicationConfig,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
 } from '@future-flow/database';
 import type { Request } from 'express';
 
@@ -35,6 +37,7 @@ export function createPublicationControllers(
   guard: Type<CanActivate>,
   repositoryToken: symbol,
   config: PublicationConfig,
+  metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
 ): Type[] {
   @Controller('api/v2')
   @UseGuards(guard)
@@ -42,7 +45,7 @@ export function createPublicationControllers(
   class OwnerPublicationController {
     private readonly publications: PublicationRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.publications = new PublicationRepository(repo.db, config);
+      this.publications = new PublicationRepository(repo.db, config, metrics);
     }
     @Get('publications')
     @ApiOkResponse({
@@ -142,7 +145,7 @@ export function createPublicationControllers(
   class PublicationReaderController {
     private readonly publications: PublicationRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.publications = new PublicationRepository(repo.db, config);
+      this.publications = new PublicationRepository(repo.db, config, metrics);
     }
     @Get('lives/:slug')
     @ApiOkResponse({ schema: z.toJSONSchema(publicationReaderSchema) as never })

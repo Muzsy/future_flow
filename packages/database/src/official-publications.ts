@@ -1,6 +1,11 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { assertPublicationAllowed } from './publication-safety';
 import {
+  recordPublicMetric,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
+} from './public-metric-recording';
+import {
   officialPublicationPrepareRequestSchema,
   officialPublicationConfirmRequestSchema,
   officialPublicationPreviewSchema,
@@ -84,6 +89,7 @@ export class OfficialPublicationRepository {
       enabled: false,
       linkSecret: '',
     },
+    private readonly metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
   ) {}
   private enabled() {
     if (!this.config.enabled || !/^[a-f0-9]{64}$/.test(this.config.linkSecret))
@@ -358,6 +364,13 @@ export class OfficialPublicationRepository {
       );
       if (!row) throw conflict();
       await this.remember(tx, userId, scope, key, inputHash, id);
+      if (row.visibility === 'public')
+        await recordPublicMetric(
+          tx,
+          { id, classification: 'official' },
+          'published',
+          this.metrics,
+        );
       return this.view(row);
     });
   }
@@ -448,6 +461,13 @@ export class OfficialPublicationRepository {
         ],
       );
       await this.remember(tx, userId, scope, key, inputHash, id);
+      if (row.visibility === 'public' && action === 'withdraw')
+        await recordPublicMetric(
+          tx,
+          { id, classification: 'official' },
+          'owner_withdrawn',
+          this.metrics,
+        );
       return this.view(next!);
     });
   }
@@ -508,6 +528,13 @@ export class OfficialPublicationRepository {
           input.actorLabel,
         ],
       );
+      if (row.visibility === 'public')
+        await recordPublicMetric(
+          tx,
+          { id: row.id, classification: 'official' },
+          input.action === 'hide' ? 'hidden' : 'removed',
+          this.metrics,
+        );
       return { publicationId: row.id, revision: row.revision + 1, status };
     });
   }

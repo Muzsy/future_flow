@@ -709,6 +709,20 @@ export class Repository {
               [userId],
             )
           : [];
+      const [metricsStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_metrics_daily') IS NOT NULL AS present",
+      );
+      // Publisher's aggregate activity only. No raw reading IDs or foreign publisher IDs.
+      result.aw_public_metrics_daily =
+        metricsStorage?.present === true
+          ? await tx.query(
+              `SELECT COALESCE(c.slug,o.slug) AS slug,m.day::text AS day,m.kind,m.total
+          FROM aw_public_metrics_daily m LEFT JOIN aw_publications c ON c.id=m.community_publication_id
+          LEFT JOIN aw_official_publications o ON o.id=m.official_publication_id
+          WHERE c.user_id=$1 OR o.user_id=$1 ORDER BY m.day,slug,m.kind`,
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

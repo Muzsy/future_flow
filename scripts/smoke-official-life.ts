@@ -9,6 +9,9 @@ import {
   PublicationRepository,
   SavedLivesRepository,
   PublicSafetyRepository,
+  PublicMetricsRepository,
+  cleanupExpiredPublicReadings,
+  publicMetricsSummary,
   type Database,
 } from '@future-flow/database';
 import {
@@ -100,10 +103,15 @@ async function main() {
     assert.deepEqual(grants[0], grants[1]);
     assert.deepEqual(grants[1], grants[2]);
     assert.equal(grants[0]!.publicationApproved, false);
-    const publications = new OfficialPublicationRepository(db, {
-      enabled: true,
-      linkSecret: 'c'.repeat(64),
-    });
+    const metricsConfig = { enabled: true };
+    const publications = new OfficialPublicationRepository(
+      db,
+      {
+        enabled: true,
+        linkSecret: 'c'.repeat(64),
+      },
+      metricsConfig,
+    );
     const publicationInput = {
       binding: {
         ...inspected.evidence.binding,
@@ -289,7 +297,11 @@ async function main() {
     const communityInput = await approvePublicationFixture(db, community);
     assert.ok(communityInput);
     communityInput.settings.visibility = 'public';
-    const communityPublications = new PublicationRepository(db, readerConfig),
+    const communityPublications = new PublicationRepository(
+        db,
+        readerConfig,
+        metricsConfig,
+      ),
       communityPreview = await communityPublications.prepare(
         community.owner,
         communityInput,
@@ -341,6 +353,7 @@ async function main() {
       { enabled: true },
       readerConfig,
       readerConfig,
+      metricsConfig,
     );
     const reportReplies = await Promise.all(
       [1, 2, 3].map(() =>
@@ -432,6 +445,7 @@ async function main() {
       { enabled: true },
       readerConfig,
       readerConfig,
+      metricsConfig,
     );
     const parallelSaves = await Promise.all(
       [1, 2, 3].map(() => saved.save(f.owner, secondPublication.slug)),
@@ -460,6 +474,95 @@ async function main() {
       [f.owner],
     );
     assert.equal(saveCount!.count, '2');
+    const metrics = new PublicMetricsRepository(
+        db,
+        metricsConfig,
+        readerConfig,
+        readerConfig,
+      ),
+      readingId = randomUUID();
+    const readings = await Promise.all(
+      [1, 2, 3].map(() => metrics.start(secondPublication.slug, { readingId })),
+    );
+    assert.deepEqual(readings[0], readings[1]);
+    assert.deepEqual(readings[1], readings[2]);
+    const signals = await Promise.all(
+      [1, 2, 3].map(() =>
+        metrics.signal(secondPublication.slug, {
+          readingId,
+          signal: 'depth_25',
+        }),
+      ),
+    );
+    assert.equal(signals.filter((r) => !r.duplicate).length, 1);
+    await assert.rejects(
+      metrics.signal(secondPublication.slug, {
+        readingId,
+        signal: 'end_reached',
+      }),
+      (e: unknown) =>
+        (e as { code: string }).code === 'PUBLIC_READING_TOO_EARLY',
+    );
+    const [officialMetrics] = await db.query<{
+      published: number;
+      saved: number;
+      reported: number;
+      readings: number;
+      depth: number;
+    }>(
+      `SELECT max(total) FILTER(WHERE kind='published') AS published,max(total) FILTER(WHERE kind='saved') AS saved,
+       max(total) FILTER(WHERE kind='reported') AS reported,max(total) FILTER(WHERE kind='reading_started') AS readings,
+       max(total) FILTER(WHERE kind='depth_25') AS depth FROM aw_public_metrics_daily WHERE official_publication_id=$1`,
+      [secondPublication.publicationId],
+    );
+    assert.deepEqual(officialMetrics, {
+      published: 1,
+      saved: 2,
+      reported: 2,
+      readings: 1,
+      depth: 1,
+    });
+    const ownerMetrics = (await other.repo.exportAccount(other.owner))
+      .aw_public_metrics_daily as Record<string, unknown>[];
+    assert.equal(ownerMetrics.length, 5);
+    assert(!JSON.stringify(ownerMetrics).includes(readingId));
+    await db.query(
+      "INSERT INTO aw_public_metrics_daily(community_publication_id,kind,total) VALUES($1,'reading_started',9999)",
+      [communityPublication.publicationId],
+    );
+    const quota = await Promise.allSettled(
+      [1, 2, 3].map(() =>
+        metrics.start(communityPublication.slug, { readingId: randomUUID() }),
+      ),
+    );
+    assert.equal(quota.filter((r) => r.status === 'fulfilled').length, 1);
+    assert(
+      quota
+        .filter((r) => r.status === 'rejected')
+        .every(
+          (r) =>
+            (r as PromiseRejectedResult).reason.code === 'PUBLIC_METRICS_LIMIT',
+        ),
+    );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_reading_sessions WHERE community_publication_id=$1',
+          [communityPublication.publicationId],
+        )
+      ).length,
+      1,
+    );
+    const expiredId = randomUUID();
+    await db.query(
+      "INSERT INTO aw_public_reading_sessions(id,community_publication_id,created_at,expires_at) VALUES($1,$2,now()-interval '26 hours',now()-interval '25 hours 40 minutes')",
+      [expiredId, communityPublication.publicationId],
+    );
+    assert.deepEqual(await cleanupExpiredPublicReadings(db), {
+      deleted: 1,
+      batchFull: false,
+    });
+    assert((await publicMetricsSummary(db)).daily.length > 0);
     let race = true;
     const raced: Database = {
       ...db,
@@ -504,6 +607,29 @@ async function main() {
     );
     await saved.remove(f.owner, communityPublication.slug);
     await saved.remove(f.owner, communityPublication.slug);
+    const unsaveDeletion = await Promise.allSettled([
+      saved.remove(other.owner, communityPublication.slug),
+      new Repository(db).deleteAccountData(community.owner),
+    ]);
+    assert(unsaveDeletion.every((r) => r.status === 'fulfilled'));
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_metrics_daily WHERE community_publication_id=$1',
+          [communityPublication.publicationId],
+        )
+      ).length,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query(
+          'SELECT id FROM aw_public_reading_sessions WHERE community_publication_id=$1',
+          [communityPublication.publicationId],
+        )
+      ).length,
+      0,
+    );
     const deletionRace = await Promise.allSettled([
       publications.readPublic(secondPublication.slug),
       other.repo.markDeleting(other.owner),
@@ -511,6 +637,12 @@ async function main() {
     ]);
     assert.equal(deletionRace[1]!.status, 'fulfilled');
     await assert.rejects(publications.readPublic(secondPublication.slug));
+    await assert.rejects(
+      metrics.signal(secondPublication.slug, {
+        readingId,
+        signal: 'share_clicked',
+      }),
+    );
     assert.deepEqual((await discovery.list()).items, []);
     assert.equal((await saved.list(f.owner)).items[0]!.card, null);
     await assert.rejects(
@@ -552,6 +684,8 @@ async function main() {
         (e as { code: string }).code === 'OFFICIAL_LIFE_EVIDENCE_REQUIRED',
     );
     for (const table of [
+      'aw_public_metrics_daily',
+      'aw_public_reading_sessions',
       'aw_public_reports',
       'aw_public_warnings',
       'aw_publication_restrictions',
@@ -571,6 +705,14 @@ async function main() {
     }
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_metrics_daily')).length,
+      0,
+    );
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_reading_sessions')).length,
+      0,
+    );
     for (const table of [
       'aw_public_reports',
       'aw_public_warnings',
@@ -627,6 +769,16 @@ async function main() {
           explicitRestrictionRestoreOnce: true,
           liveOfficialPermissionAndExport: true,
           deletionCascadeRls: true,
+          actualProviderCalls: 0,
+        },
+        publicMetrics: {
+          concurrentReadingAndSignalOnce: true,
+          dailyAdmissionRollbackRace: true,
+          serverElapsedTimeRequired: true,
+          serverActionsCountOnce: true,
+          unsavePublisherDeletionRace: true,
+          expiredCleanupAndPrivateExport: true,
+          livePermissionCascadeRls: true,
           actualProviderCalls: 0,
         },
         savedLives: {

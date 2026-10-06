@@ -108,6 +108,7 @@ import { createOfficialPublicationControllers } from './official-publications';
 import { createDiscoveryController } from './discovery';
 import { createSavedLivesController } from './saved-lives';
 import { createPublicSafetyController } from './public-safety';
+import { createPublicMetricsController } from './public-metrics';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
@@ -117,6 +118,8 @@ import {
   type SavedLivesConfig,
   publicReportsConfigFromEnv,
   type PublicReportsConfig,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -872,6 +875,7 @@ export async function createApp(
   discoveryConfig: DiscoveryConfig = discoveryConfigFromEnv(),
   savedLivesConfig: SavedLivesConfig = savedLivesConfigFromEnv(),
   publicReportsConfig: PublicReportsConfig = publicReportsConfigFromEnv(),
+  publicMetricsConfig: PublicMetricsConfig = publicMetricsConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -880,12 +884,19 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createPublicMetricsController(
+        REPOSITORY,
+        publicMetricsConfig,
+        publicationConfig,
+        officialPublicationConfig,
+      ),
       createPublicSafetyController(
         AuthGuard,
         REPOSITORY,
         publicReportsConfig,
         publicationConfig,
         officialPublicationConfig,
+        publicMetricsConfig,
       ),
       createSavedLivesController(
         AuthGuard,
@@ -893,6 +904,7 @@ export async function createApp(
         savedLivesConfig,
         publicationConfig,
         officialPublicationConfig,
+        publicMetricsConfig,
       ),
       createDiscoveryController(
         REPOSITORY,
@@ -900,11 +912,17 @@ export async function createApp(
         publicationConfig,
         officialPublicationConfig,
       ),
-      ...createPublicationControllers(AuthGuard, REPOSITORY, publicationConfig),
+      ...createPublicationControllers(
+        AuthGuard,
+        REPOSITORY,
+        publicationConfig,
+        publicMetricsConfig,
+      ),
       ...createOfficialPublicationControllers(
         AuthGuard,
         REPOSITORY,
         officialPublicationConfig,
+        publicMetricsConfig,
       ),
       ApiController,
       LifeController,

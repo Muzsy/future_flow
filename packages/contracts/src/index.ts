@@ -354,6 +354,7 @@ export * from './official-publication';
 export * from './discovery';
 export * from './saved-lives';
 export * from './public-safety';
+export * from './public-metrics';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';

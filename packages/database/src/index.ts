@@ -15,6 +15,12 @@ export * from './official-publications';
 export * from './discovery';
 export * from './saved-lives';
 export * from './public-safety';
+export * from './public-metrics';
+export * from './public-metrics-maintenance';
+export {
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
+} from './public-metric-recording';
 export * from './life-jobs';
 export * from './ai-budget';
 export * from './metrics';

@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Nyilvános aktivitás összesített mérése](PUBLIC_ACTIVITY_METRICS_REPORT_HU.md) | Rövid anonymous read/depth/end/share és sikeres szerverműveletek; UTC aggregate/worker-cleanup/own export, 31 valódi Auth/PG próba és 0 AI |
 | [Report és trusted moderáció](PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md) | Kilenc kategória/dedup/kvóta, tartós privát queue, warning/hide/remove és explicit restriction/restoration, saját notices/export/törlés; valódi Auth/CLI, 0 AI |
 | [Hitelesített mentés és public link](SAVED_LIVES_AND_SHARE_REPORT_HU.md) | Saját /saved, idempotens Auth API, élő permission, export/törlés/kvóta/RLS; két valódi fiók, 0 AI; OG még következik, Report/trusted safety kész |
 | [Discovery első olvasási szelet](DISCOVERY_FOUNDATION_REPORT_HU.md) | Angol anonymous API/UI, literal keresés, 13 kategória, Official/Community/newest lapozás, teljes live permission; valódi seed/Auth/HTTP, 0 AI; Save/public link már kész, OG még következik; Report/trusted safety kész |

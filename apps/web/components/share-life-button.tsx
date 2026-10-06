@@ -3,9 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import {
   officialPublicationReaderSchema,
   publicationReaderSchema,
+  type PublicReadingSignal,
 } from '@future-flow/contracts';
 import { publicLifeShareUrl } from '../lib/public-life-link';
-export function ShareLifeButton({ slug }: { slug: string }) {
+export function ShareLifeButton({
+  slug,
+  onSignal,
+}: {
+  slug: string;
+  onSignal?: (signal: PublicReadingSignal) => Promise<void>;
+}) {
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(''),
     [link, setLink] = useState('');
@@ -18,6 +25,7 @@ export function ShareLifeButton({ slug }: { slug: string }) {
   );
   async function share() {
     if (busy) return;
+    void onSignal?.('share_clicked');
     setBusy(true);
     setNotice('');
     setLink('');
@@ -51,8 +59,10 @@ export function ShareLifeButton({ slug }: { slug: string }) {
       const url = publicLifeShareUrl(window.location.origin, slug);
       try {
         await navigator.clipboard.writeText(url);
+        void onSignal?.('link_copied');
         if (!abort.signal.aborted) setNotice('Public link copied.');
       } catch {
+        void onSignal?.('copy_failed');
         if (!abort.signal.aborted) {
           setLink(url);
           setNotice('Select and copy this public link.');

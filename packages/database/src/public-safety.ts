@@ -10,6 +10,11 @@ import {
 import type { Database } from './index';
 import { PublicationRepository, type PublicationConfig } from './publications';
 import { OfficialPublicationRepository } from './official-publications';
+import {
+  recordPublicMetric,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
+} from './public-metric-recording';
 export interface PublicReportsConfig {
   enabled: boolean;
 }
@@ -52,6 +57,7 @@ export class PublicSafetyRepository {
     private readonly config: PublicReportsConfig = { enabled: false },
     private readonly community: PublicationConfig = off,
     private readonly official: PublicationConfig = off,
+    private readonly metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
   ) {}
   private target(slug: string) {
     return slug.startsWith('official-')
@@ -119,6 +125,17 @@ export class PublicSafetyRepository {
       const [row] = await tx.query<Report>(
         `INSERT INTO aw_public_reports(user_id,${target.column},reason,details) VALUES($1,$2,$3,$4) RETURNING *`,
         [userId, seed.id, input.reason, input.details],
+      );
+      await recordPublicMetric(
+        tx,
+        {
+          id: seed.id,
+          classification: slug.startsWith('official-')
+            ? 'official'
+            : 'community',
+        },
+        'reported',
+        this.metrics,
       );
       return this.receipt(row!, slug, false);
     });
@@ -267,8 +284,8 @@ export class PublicSafetyRepository {
         throw conflict();
       if (input.action === 'hide' || input.action === 'remove') {
         const repo = seed.official_publication_id
-          ? new OfficialPublicationRepository(tx)
-          : new PublicationRepository(tx);
+          ? new OfficialPublicationRepository(tx, undefined, this.metrics)
+          : new PublicationRepository(tx, undefined, this.metrics);
         await repo.moderate({
           publicationId: copy.id,
           revision: copy.revision,

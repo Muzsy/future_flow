@@ -1,9 +1,9 @@
 # alterward — fióktörlés helyreállítása
 
 
-## Aktuális: Report és trusted moderáció
+## Aktuális: nyilvános aktivitás mérése
 
-A P10 angol Discovery/Save/public link után hitelesített Report, tartós privát moderációs sor és trusted CLI dismiss/warn/hide/remove elkészült. Kilenc eredeti kategória, user+copy+reason dedup/első details megőrzése, 10 új case/24h, külön saját Settings-notice és explicit publikálási restriction/restoration; bejelentésszám nem rejt automatikusan. 027 RLS/immutable döntés/minimális export/reporter-warning detach/publisher cascade kész. Két valódi Supabase Auth-fiók, genuine seed Report és külön ideiglenes technikai Community CLI-moderáció/export/tényleges cleanup sikeres; valódi seed és AI-naplók változatlanok. Helyi teljes check 491/42 és production build; 117 séma, régi 112 és 001–026 változatlan; fejlesztői DB 001–027 ismételve, 60 aw_/60 RLS. Save/Share 3d49bef verify/container CI sikeres; új Report runtime CI még ellenőrizendő. Normál public/Report/Shared flag-ek false; új paid AI 0, OpenAI/Claude guard-maradék 2.254014125 / 2.62877 USD. Következő metrikák/kollekciók/explicit OG-index-cache és pozitív UI-próba; teljes P10/P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md).
+P10 Discovery/Save/Share/Report és trusted moderáció után a tartalom nélküli public read/depth/end/share és sikeres Save/Unsave/Report/Publish/owner-withdraw/hide/remove metrika elkészült. Rövid, csak memóriában élő reading UUID, egyszeri signal, UTC napi aggregate, DNT/GPC, 20 perc TTL, flagfüggetlen worker-cleanup, saját export/privát platform-riport; nincs tartós readerprofil vagy automatikus ranking. 028 RLS/cascade és default PUBLIC_METRICS_ENABLED=false. Helyi check 503/43 és production build; 121 séma, régi 117/001–027 változatlan; dev DB 001–028 ismételve, 62 aw_/62 RLS. 31 valódi Supabase Auth/HTTP/PG ellenőrzés és teljes cleanup sikeres, genuine seed és AI-naplók változatlanok. Report 726f7f4 CI verify/container sikeres; új metrics runtime CI még ellenőrizendő. Új paid AI 0, guard-maradék 2.254014125 / 2.62877 USD. Következő kurált kollekciók/explicit OG-index-cache/pozitív UI; teljes P10/P11–P13/S3-retention/S4–S7/ops/backup/email/Contabo kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_ACTIVITY_METRICS_REPORT_HU.md).
 
 2026-10-04 · [Dokumentációs központ](README.md) · [Státusz és keret](STATUS_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
@@ -103,3 +103,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-07: bejelentési és safety szelet
 
 027 report data saját reporter/publication cascade; már kiadott publisher-warning report FK-ja nullázódik reporter-delete után, a warning és explicit restriction az érintett publishernek megmarad. Publisher own-delete warning/restriction/audit cascade. Valódi friss Auth HTTP mindkét deletion/DB cleanup és genuine seed változatlanság bizonyított.
+
+
+## 2026-10-07: public aktivitásmérés
+
+028 daily aggregate/raw reading session nem tartalmaz saját reader-azonosítást. Reader/reporter törlése nem vonja vissza másik publisher névtelen darabszámát; publisher/publication physical delete mindkét FK-táblát kaszkáddal törli. Saját export csak own publication slug/day/kind/total. Valódi Auth-delete/cascade ellenőrzött; Unsave/publisher physical-delete verseny külön real-PG CI proof. [Bizonyíték](PUBLIC_ACTIVITY_METRICS_REPORT_HU.md).

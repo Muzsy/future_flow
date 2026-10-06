@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   officialPublicationReaderSchema,
   type OfficialPublicationReader as Reader,
@@ -8,9 +8,13 @@ import { PublicationContent } from './publication-content';
 import { SaveLifeButton } from './save-life-button';
 import { ShareLifeButton } from './share-life-button';
 import { PublicReportForm } from './public-report-form';
+import { usePublicReading } from '../lib/public-reading';
+import { PublicReadingProgress } from './public-reading-progress';
 export function OfficialPublicationReader({ slug }: { slug?: string }) {
   const [view, setView] = useState<Reader | null>(null),
     [notice, setNotice] = useState('Loading this life…');
+  const article = useRef<HTMLDivElement | null>(null),
+    emit = usePublicReading(slug, Boolean(view));
   useEffect(() => {
     let controller: AbortController | null = null,
       stopped = false;
@@ -98,7 +102,21 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
         </div>
       </header>
       <main className="publication-page">
+        {slug && (
+          <PublicReadingProgress
+            slug={slug}
+            available={Boolean(view)}
+            container={article}
+            emit={emit}
+          />
+        )}
         <h1>An Official life</h1>
+        {slug && (
+          <p className="hint">
+            Reading and sharing may be measured in aggregate without tracking
+            cookies or a reader profile.
+          </p>
+        )}
         {notice && (
           <p className="notice" role="status">
             {notice}
@@ -112,9 +130,11 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
                 ? 'Shared by secret link'
                 : 'Public copy'}
             </p>
-            <PublicationContent snapshot={view.snapshot} />
+            <div ref={article}>
+              <PublicationContent snapshot={view.snapshot} />
+            </div>
             {slug && <SaveLifeButton slug={slug} />}
-            {slug && <ShareLifeButton slug={slug} />}
+            {slug && <ShareLifeButton slug={slug} onSignal={emit} />}
             {slug && <PublicReportForm slug={slug} />}
           </>
         )}

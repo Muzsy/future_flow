@@ -25,6 +25,8 @@ import {
   SavedLivesRepository,
   type SavedLivesConfig,
   type PublicationConfig,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
 } from '@future-flow/database';
 export function createSavedLivesController(
   guard: Type<CanActivate>,
@@ -32,6 +34,7 @@ export function createSavedLivesController(
   config: SavedLivesConfig,
   community: PublicationConfig,
   official: PublicationConfig,
+  metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
 ): Type {
   @Controller('api/v2/saved-lives')
   @UseGuards(guard)
@@ -44,6 +47,7 @@ export function createSavedLivesController(
         config,
         community,
         official,
+        metrics,
       );
     }
     @Get()

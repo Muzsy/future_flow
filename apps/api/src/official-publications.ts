@@ -28,6 +28,8 @@ import {
   OfficialPublicationRepository,
   Repository,
   type OfficialPublicationConfig,
+  publicMetricsConfigFromEnv,
+  type PublicMetricsConfig,
 } from '@future-flow/database';
 import type { Request } from 'express';
 
@@ -35,6 +37,7 @@ export function createOfficialPublicationControllers(
   guard: Type<CanActivate>,
   repositoryToken: symbol,
   config: OfficialPublicationConfig,
+  metrics: PublicMetricsConfig = publicMetricsConfigFromEnv(),
 ): Type[] {
   @Controller('api/v2')
   @UseGuards(guard)
@@ -42,7 +45,11 @@ export function createOfficialPublicationControllers(
   class OwnerOfficialPublicationController {
     private readonly publications: OfficialPublicationRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.publications = new OfficialPublicationRepository(repo.db, config);
+      this.publications = new OfficialPublicationRepository(
+        repo.db,
+        config,
+        metrics,
+      );
     }
     @Get('official-publications')
     @ApiOkResponse({
@@ -148,7 +155,11 @@ export function createOfficialPublicationControllers(
   class OfficialPublicationReaderController {
     private readonly publications: OfficialPublicationRepository;
     constructor(@Inject(repositoryToken) repo: Repository) {
-      this.publications = new OfficialPublicationRepository(repo.db, config);
+      this.publications = new OfficialPublicationRepository(
+        repo.db,
+        config,
+        metrics,
+      );
     }
     @Get('official-lives/:slug')
     @ApiOkResponse({

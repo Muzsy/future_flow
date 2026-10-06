@@ -322,6 +322,17 @@ try {
   ])
     assert.equal(officialLife.publicSafety[proof], true);
   assert.equal(officialLife.publicSafety.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentReadingAndSignalOnce',
+    'dailyAdmissionRollbackRace',
+    'serverElapsedTimeRequired',
+    'serverActionsCountOnce',
+    'unsavePublisherDeletionRace',
+    'expiredCleanupAndPrivateExport',
+    'livePermissionCascadeRls',
+  ])
+    assert.equal(officialLife.publicMetrics[proof], true);
+  assert.equal(officialLife.publicMetrics.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -367,6 +378,19 @@ try {
     run('curl', [...curlArgs, 'https://localhost/api/public/discovery']),
   );
   assert.equal(disabledDiscovery.error.code, 'DISCOVERY_DISABLED');
+  const disabledMetrics = JSON.parse(
+    run('curl', [
+      ...curlArgs,
+      '-X',
+      'POST',
+      '-H',
+      'Content-Type: application/json',
+      '--data',
+      '{"readingId":"00000000-0000-4000-8000-000000000000"}',
+      'https://localhost/api/public/reading/life-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    ]),
+  );
+  assert.equal(disabledMetrics.error.code, 'PUBLIC_METRICS_DISABLED');
   assert.equal(
     run('curl', [
       ...curlArgs,
@@ -420,7 +444,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '27|0|0|0|0');
+  assert.equal(counts.trim(), '28|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -429,7 +453,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 27,
+      migrations: 28,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',
