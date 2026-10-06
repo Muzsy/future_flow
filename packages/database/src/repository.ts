@@ -638,6 +638,9 @@ export class Repository {
         'aw_public_content_bundle_checkpoints',
         'aw_public_content_reviews',
         'aw_public_content_curations',
+        'aw_publication_previews',
+        'aw_publications',
+        'aw_publication_actions',
       ]) {
         const [storage] = await tx.query(
           'SELECT to_regclass($1) IS NOT NULL AS present',
@@ -683,6 +686,20 @@ export class Repository {
         [userId],
       );
       await cancelSharedAccountJobs(tx, userId);
+      const [publications] = await tx.query(
+        "SELECT to_regclass('public.aw_publications') IS NOT NULL AS present",
+      );
+      if (publications?.present === true) {
+        const withdrawn = await tx.query<{ id: string; revision: number }>(
+          "UPDATE aw_publications SET status='withdrawn',revision=revision+1,token_hash=NULL WHERE user_id=$1 AND status IN ('active','hidden') RETURNING id,revision",
+          [userId],
+        );
+        for (const publication of withdrawn)
+          await tx.query(
+            "INSERT INTO aw_publication_actions(id,user_id,publication_id,revision,action,reason_code,actor_label) VALUES($1,$2,$3,$4,'withdraw','account_deletion','Account deletion')",
+            [randomUUID(), userId, publication.id, publication.revision],
+          );
+      }
       const [contentReviews] = await tx.query(
         "SELECT to_regclass('public.aw_public_content_reviews') IS NOT NULL AS present",
       );

@@ -70,11 +70,17 @@ try {
     'OPENAI_API_KEY',
     'SUPABASE_SERVICE_ROLE_KEY',
     'DATABASE_URL',
+    'PUBLICATION_LINK_SECRET',
   ]) {
     assert.equal(config.services.web.environment[secret], undefined);
     assert.equal(config.services.web.build.args[secret], undefined);
   }
   assert.equal(config.services.api.environment.OPENAI_API_KEY, undefined);
+  assert.equal(
+    config.services.worker.environment.PUBLICATION_LINK_SECRET,
+    undefined,
+  );
+  assert.equal(config.services.api.environment.PUBLICATIONS_ENABLED, 'false');
   assert.equal(
     config.services.worker.environment.SUPABASE_SERVICE_ROLE_KEY,
     undefined,

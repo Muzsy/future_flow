@@ -1,9 +1,9 @@
 # alterward — nyilvános tartalom megvalósítási terve
 
 
-## Aktuális: teljes tartalom kurátori ellenőrzése
+## Aktuális: Publication és külön Confirm
 
-Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A [24d002d verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37451125069) sikeres: 001–021 és ismétlés, valódi PostgreSQL párhuzamos full curator submit/ellentmondó decision egyszer, source/deletion/export/cascade/RLS, verified TLS/HTTPS és tiszta worker-leállás; CI paid AI 0. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+Elkészült a P09 angol Community Publication/Confirm: pontos teljes AI+curator binding, külön végleges előnézet és explicit hozzájárulás, immutable public/unlisted másolat, anonim olvasás, tulajdonosi visszavonás/linkcsere és trusted hide/remove. 022 additív/RLS/export/cascade, default PUBLICATIONS_ENABLED=false; indexelés és nyilvános fork még tiltott. Helyi teljes check 428 teszt/36 fájl, 81 séma; Supabase 001–022 alkalmazva/ismételve, 47 aw_/47 RLS, verified TLS. Valódi Auth/HTTP/böngésző/CLI, két kiadás exportja és mindkét ideiglenes Auth/DB-fiók tényleges cleanupja sikeres; új izolált PostgreSQL/HTTPS main CI még ellenőrizendő. Új paid AI 0; külön kumulatív 5–5 USD keret változatlan. Következő Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed, majd P10–P13. P01–P13/S0–S7, Shared privacy/retention és ops kapuk megmaradnak. [Bizonyíték és határ](PUBLICATION_CONFIRM_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -163,3 +163,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-06: teljes tartalom AI-job CI-bizonyítéka
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609), runtime `e1067ddbb958f2402b88f84b7c2206c3ac8efc69`: verify és container sikeres. 402 teszt/34 fájl, format/types/API/worker/Next production build és 70 séma-drift. Izolált PostgreSQL/TLS: 001–020 és ismétlés, párhuzamos teljes-scope enqueue/claim egy attempt, immutable receipt/result, nincs automatikus paid retry, source-change/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres review queue-k és tiszta worker-leállás, nulla paid AI/valódi CI-kulcs, egress tiltva. A 020 runtime-kapu lezárult; külön full-scope curator és kiadási kapuk következnek. Ez nem éles Contabo-telepítés.
+
+
+## 2026-10-06: Community Publication és külön Confirm
+
+[Angol kiadási előnézet és explicit tulajdonosi megerősítés](PUBLICATION_CONFIRM_REPORT_HU.md) elkészült: csak a teljes AI+curator által ellenőrzött aktuális példány; immutable public/unlisted olvasás, anonymous/handle credit, visszavonás/linkcsere és trusted moderáció, export/cascade. Kiadás alapból kikapcsolva, indexelés/fork még tiltott; Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed következik. A korábbi dátumozott riportok bizonyítékát az aktuális státusz egészíti ki; a teljes P/S-terv és ops kapuk megmaradnak.

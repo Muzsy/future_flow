@@ -5,7 +5,7 @@ const en = {
     'Inspect the situation before each choice, including the conditions and consequences of every option. You can generalize the descriptions without changing the facts.',
   private: 'Private preparation',
   fullReview:
-    'These decision details still need a complete privacy and content review. The story text review does not cover them. Publishing and starting another life are not available yet.',
+    'These decision details need a complete privacy and content review together with the story. Publication requires separate confirmation after those checks. Starting another life from them will be available later.',
   loading: 'Loading decision details…',
   reload: 'Reload decision details',
   reloadHint:

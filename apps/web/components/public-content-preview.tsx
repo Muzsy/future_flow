@@ -3,8 +3,12 @@ import { publicPreviewMessages } from '../lib/public-preview-messages';
 
 export function PublicContentPreview({
   snapshot,
+  label,
 }: {
-  snapshot: Omit<PublicSnapshotDraft, 'snapshotKey'>;
+  snapshot: Omit<PublicSnapshotDraft, 'snapshotKey' | 'origin'> & {
+    origin: Pick<PublicSnapshotDraft['origin'], 'aiGenerated' | 'userEdited'>;
+  };
+  label?: string;
 }) {
   const m = publicPreviewMessages.en;
   return (
@@ -14,7 +18,7 @@ export function PublicContentPreview({
       className="public-content-preview"
     >
       <article className="panel">
-        <div className="eyebrow">{m.private}</div>
+        <div className="eyebrow">{label ?? m.private}</div>
         <h2>{snapshot.title}</h2>
         <p>{snapshot.summary}</p>
         <dl className="preview-facts">

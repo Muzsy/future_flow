@@ -1,9 +1,9 @@
 # alterward — helyi fejlesztés és későbbi Contabo-telepítés
 
 
-## Aktuális: teljes tartalom kurátori ellenőrzése
+## Aktuális: Publication és külön Confirm
 
-Elkészült a P09 külön public-content-curation-1 teljes történet+explicit checkpoint kurátori beküldése, privát várólistája, immutable döntése és angol felülete. Kötelező a saját találatmentes teljes AI-review és külön consent; legacy text-only jóváhagyás nem vihető át. 021 additív/RLS/export/cascade, alapból kikapcsolva. Helyi check 414 teszt/35 fájl, 72 séma; Supabase 001–021 alkalmazva/ismételve, 44 aw_/44 RLS; tényleges Auth/HTTP/böngésző/CLI/cleanup sikeres. Új paid AI 0; a külön 5–5 USD kumulatív keret változatlan. A [24d002d verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/37451125069) sikeres: 001–021 és ismétlés, valódi PostgreSQL párhuzamos full curator submit/ellentmondó decision egyszer, source/deletion/export/cascade/RLS, verified TLS/HTTPS és tiszta worker-leállás; CI paid AI 0. Következő Publication/Confirm és Official eredetengedély, majd kis valódi AI seed/P10–P13. PublicationApproved=false; P01–P13/S0–S7 és a meglévő retention/ops kapuk megmaradnak. [Bizonyíték és határ](PUBLIC_CONTENT_CURATION_REPORT_HU.md).
+Elkészült a P09 angol Community Publication/Confirm: pontos teljes AI+curator binding, külön végleges előnézet és explicit hozzájárulás, immutable public/unlisted másolat, anonim olvasás, tulajdonosi visszavonás/linkcsere és trusted hide/remove. 022 additív/RLS/export/cascade, default PUBLICATIONS_ENABLED=false; indexelés és nyilvános fork még tiltott. Helyi teljes check 428 teszt/36 fájl, 81 séma; Supabase 001–022 alkalmazva/ismételve, 47 aw_/47 RLS, verified TLS. Valódi Auth/HTTP/böngésző/CLI, két kiadás exportja és mindkét ideiglenes Auth/DB-fiók tényleges cleanupja sikeres; új izolált PostgreSQL/HTTPS main CI még ellenőrizendő. Új paid AI 0; külön kumulatív 5–5 USD keret változatlan. Következő Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed, majd P10–P13. P01–P13/S0–S7, Shared privacy/retention és ops kapuk megmaradnak. [Bizonyíték és határ](PUBLICATION_CONFIRM_REPORT_HU.md).
 
 2026-10-05 · [Indulási terv](ENGLISH_RELEASE_PLAN_HU.md) · [Beállítás](SETUP.md) · [Contabo Compose](../deploy/compose.contabo.yaml) · [Előkészítési riport](CONTABO_PREPARATION_REPORT_HU.md).
 

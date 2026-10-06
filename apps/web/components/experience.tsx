@@ -616,6 +616,11 @@ export function Experience() {
                 Connections
               </button>
             )}
+            {user && (
+              <button onClick={() => navigate('/publications')}>
+                Published copies
+              </button>
+            )}
             <button onClick={() => navigate('/privacy')}>
               {t('nav.privacy')}
             </button>

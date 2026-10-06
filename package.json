@@ -20,6 +20,7 @@
     "moderation:shared": "tsx --env-file-if-exists=.env scripts/shared-moderation.ts",
     "curation:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-curation.ts",
     "curation:public:content": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/public-content-curation.ts",
+    "moderation:publication": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/publication-moderation.ts",
     "review:public": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/review-public-draft.ts",
     "smoke:public:review": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-public-review.ts",
     "smoke:public:content-review": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-public-content-review.ts",

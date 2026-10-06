@@ -1143,3 +1143,10 @@ progress {
 .fork-preview > .secondary {
   margin-top: 24px;
 }
+.publication-page {
+  max-width: 980px;
+  margin: 40px auto;
+  padding: 0 24px 64px;
+  display: grid;
+  gap: 24px;
+}

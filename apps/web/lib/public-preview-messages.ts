@@ -88,7 +88,7 @@ const en = {
     'This preview has expired. Start a new preview using your reviewed text.',
   newPreview: 'Start a new preview',
   publication:
-    'This is a private preview. Publishing and sharing are not available yet.',
+    'This preview stays private. Publishing requires complete AI and curator checks, then a separate final confirmation.',
   copiedProfile: 'Generalized starting profile',
   age: 'Age range',
   country: 'Country',

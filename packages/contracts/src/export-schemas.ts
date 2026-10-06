@@ -56,6 +56,16 @@ import {
   PUBLIC_CONTENT_CURATION_VERSION,
   publicContentCurationRequestSchema,
   publicContentCurationViewSchema,
+  PUBLICATION_VERSION,
+  publicationSnapshotSchema,
+  publicationPrepareRequestSchema,
+  publicationPreviewSchema,
+  publicationConfirmRequestSchema,
+  publicationOwnerViewSchema,
+  publicationActionRequestSchema,
+  publicationModerationRequestSchema,
+  publicationReaderSchema,
+  publicationStatusSchema,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
   SHARED_CONTEXT_CONTRACT_VERSION,
@@ -238,6 +248,31 @@ for (const [name, schema] of Object.entries({
   );
 }
 const sharedDirectory = resolve(directory, 'shared');
+const publicationDirectory = resolve(directory, 'publication');
+mkdirSync(publicationDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  snapshot: publicationSnapshotSchema,
+  prepareRequest: publicationPrepareRequestSchema,
+  preview: publicationPreviewSchema,
+  confirmRequest: publicationConfirmRequestSchema,
+  ownerView: publicationOwnerViewSchema,
+  actionRequest: publicationActionRequestSchema,
+  moderationRequest: publicationModerationRequestSchema,
+  reader: publicationReaderSchema,
+  status: publicationStatusSchema,
+})) {
+  writeFileSync(
+    resolve(publicationDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:publication:${name}:${PUBLICATION_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(sharedDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   socialProfile: socialProfileSchema,

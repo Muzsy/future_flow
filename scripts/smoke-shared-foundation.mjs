@@ -1907,6 +1907,304 @@ try {
       0,
     );
   }
+  // Publication permissions exercise real PostgreSQL races on isolated synthetic copies.
+  {
+    const {
+      PublicDraftRepository,
+      PublicContentRepository,
+      PublicationRepository,
+    } = require('@future-flow/database');
+    const { hash } = require('@future-flow/core');
+    const owner = await person();
+    await personalPeriod(owner);
+    const drafts = new PublicDraftRepository(db),
+      workspace = await drafts.workspace(owner.id, owner.branchId);
+    const draft = await drafts.prepare(
+      owner.id,
+      owner.branchId,
+      workspace.source.sourceRevision,
+      workspace.source.copy,
+      randomUUID(),
+    );
+    const forks = new PublicForkCheckpointRepository(db, true),
+      [candidate] = await forks.candidates(owner.id, draft.draftId);
+    assert.ok(candidate.checkpoint);
+    const point = await forks.save(
+      owner.id,
+      draft.draftId,
+      {
+        snapshotHash: draft.snapshotHash,
+        sourceRevision: draft.sourceRevision,
+        checkpoint: candidate.checkpoint,
+      },
+      randomUUID(),
+    );
+    const bundles = new PublicContentRepository(db, true),
+      reviews = new PublicContentReviewJobRepository(db, {
+        enabled: true,
+        daily: 5,
+        projectUsd: 1,
+        userUsd: 1,
+      }),
+      curations = new PublicContentCurationRepository(db, true);
+    const publications = new PublicationRepository(db, {
+      enabled: true,
+      linkSecret: 'b'.repeat(64),
+    });
+    async function approved(selected, visibility) {
+      const bundle = await bundles.save(
+        owner.id,
+        draft.draftId,
+        {
+          snapshotHash: draft.snapshotHash,
+          sourceRevision: draft.sourceRevision,
+          selectedCheckpointIds: selected,
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+      await reviews.enqueue(
+        owner.id,
+        bundle.bundleId,
+        {
+          contentHash: bundle.contentHash,
+          policyVersion: 'public-content-review-1',
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+      const job = await reviews.claim();
+      assert.ok(job);
+      assert.equal(job.bundle_id, bundle.bundleId);
+      const input = await reviews.input(job),
+        report = {
+          policyVersion: 'public-content-review-1',
+          scope: 'story_and_selected_checkpoints',
+          publicationApproved: false,
+          contentHash: bundle.contentHash,
+          verdict: 'no_findings',
+          findings: [],
+        };
+      await reviews.complete(job, report, {
+        task: 'public_content_review',
+        promptVersion: 'public_content_review.v1.en',
+        locale: 'en',
+        model: 'isolated-ci-no-provider',
+        requestId: null,
+        inputHash: hash(input),
+        outputHash: hash(report),
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+      });
+      const request = {
+        contentHash: bundle.contentHash,
+        reviewId: job.id,
+        reviewHash: hash(report),
+        policyVersion: 'public-content-review-1',
+        curationVersion: 'public-content-curation-1',
+        acknowledged: true,
+      };
+      const submitted = await curations.submit(
+        owner.id,
+        bundle.bundleId,
+        request,
+        randomUUID(),
+      );
+      const { acknowledged: _ack, ...decisionBinding } = request;
+      await curations.decide({
+        ...decisionBinding,
+        bundleId: bundle.bundleId,
+        draftId: bundle.draftId,
+        snapshotHash: bundle.snapshotHash,
+        sourceRevision: bundle.sourceRevision,
+        curationId: submitted.curation.id,
+        status: 'content_reviewed',
+        reasonCode: null,
+        actorLabel: 'Isolated technical test',
+        privacyChecked: true,
+        contentChecked: true,
+        consistencyChecked: true,
+      });
+      const binding = {
+        bundleId: bundle.bundleId,
+        contentHash: bundle.contentHash,
+        sourceRevision: bundle.sourceRevision,
+        reviewId: job.id,
+        reviewHash: hash(report),
+        policyVersion: request.policyVersion,
+        curationId: submitted.curation.id,
+        curationVersion: request.curationVersion,
+      };
+      const prepare = {
+          binding,
+          settings: { visibility, authorMode: 'anonymous', indexable: false },
+        },
+        key = randomUUID();
+      const previews = await Promise.all([
+        publications.prepare(owner.id, prepare, key),
+        publications.prepare(owner.id, prepare, key),
+        publications.prepare(owner.id, prepare, randomUUID()),
+      ]);
+      assert.equal(new Set(previews.map((x) => x.previewId)).size, 1);
+      const confirmation = {
+          previewId: previews[0].previewId,
+          previewHash: previews[0].previewHash,
+          acknowledged: true,
+        },
+        confirmKey = randomUUID();
+      const copies = await Promise.all([
+        publications.confirm(owner.id, confirmation, confirmKey),
+        publications.confirm(owner.id, confirmation, confirmKey),
+        publications.confirm(owner.id, confirmation, randomUUID()),
+      ]);
+      assert.equal(new Set(copies.map((x) => x.publicationId)).size, 1);
+      return { view: copies[0], confirmation, confirmKey };
+    }
+    const publicCopy = await approved([], 'public'),
+      secretCopy = await approved([point.checkpointId], 'unlisted');
+    const original = await publications.readPublic(publicCopy.view.slug);
+    for (const id of [owner.id, owner.branchId, publicCopy.view.publicationId])
+      assert.equal(JSON.stringify(original).includes(id), false);
+    await assert.rejects(
+      publications.readPublic(secretCopy.view.slug),
+      (e) => e.status === 404,
+    );
+    assert.equal(
+      (await publications.readUnlisted(secretCopy.view.unlistedToken)).snapshot
+        .checkpoints.length,
+      1,
+    );
+    const rotate = {
+        revision: secretCopy.view.revision,
+        snapshotHash: secretCopy.view.snapshotHash,
+        acknowledged: true,
+      },
+      rotateKey = randomUUID();
+    const rotated = await Promise.all([
+      publications.action(
+        owner.id,
+        secretCopy.view.publicationId,
+        'rotate',
+        rotate,
+        rotateKey,
+      ),
+      publications.action(
+        owner.id,
+        secretCopy.view.publicationId,
+        'rotate',
+        rotate,
+        rotateKey,
+      ),
+    ]);
+    assert.deepEqual(rotated[0], rotated[1]);
+    assert.notEqual(rotated[0].unlistedToken, secretCopy.view.unlistedToken);
+    await assert.rejects(
+      publications.readUnlisted(secretCopy.view.unlistedToken),
+      (e) => e.status === 404,
+    );
+    const stored =
+      JSON.stringify(
+        await db.query('SELECT * FROM aw_publications WHERE user_id=$1', [
+          owner.id,
+        ]),
+      ) +
+      JSON.stringify(
+        await db.query('SELECT response FROM ff_idempotency WHERE user_id=$1', [
+          owner.id,
+        ]),
+      );
+    assert.equal(stored.includes(rotated[0].unlistedToken), false);
+    await ownChoice(owner, await personal.branch(owner.id, owner.branchId));
+    assert.deepEqual(
+      await publications.readPublic(publicCopy.view.slug),
+      original,
+    );
+    assert.deepEqual(
+      await publications.confirm(
+        owner.id,
+        publicCopy.confirmation,
+        publicCopy.confirmKey,
+      ),
+      publicCopy.view,
+    );
+    const moderation = {
+      publicationId: publicCopy.view.publicationId,
+      revision: publicCopy.view.revision,
+      snapshotHash: publicCopy.view.snapshotHash,
+      acknowledged: true,
+      action: 'hide',
+      reasonCode: 'privacy',
+      actorLabel: 'Technical operator',
+    };
+    const races = await Promise.allSettled([
+      publications.moderate(moderation),
+      publications.action(
+        owner.id,
+        publicCopy.view.publicationId,
+        'withdraw',
+        {
+          revision: publicCopy.view.revision,
+          snapshotHash: publicCopy.view.snapshotHash,
+          acknowledged: true,
+        },
+        randomUUID(),
+      ),
+    ]);
+    assert.equal(races.filter((x) => x.status === 'fulfilled').length, 1);
+    assert.equal(races.filter((x) => x.status === 'rejected').length, 1);
+    await assert.rejects(
+      publications.readPublic(publicCopy.view.slug),
+      (e) => e.status === 404,
+    );
+    assert.notEqual(
+      (
+        await publications.confirm(
+          owner.id,
+          publicCopy.confirmation,
+          publicCopy.confirmKey,
+        )
+      ).status,
+      'active',
+    );
+    await assert.rejects(
+      db.query('UPDATE aw_publications SET snapshot=$1 WHERE id=$2', [
+        {},
+        publicCopy.view.publicationId,
+      ]),
+    );
+    assert.equal(
+      (await repo.exportAccount(owner.id)).aw_publications.length,
+      2,
+    );
+    await repo.markDeleting(owner.id);
+    await assert.rejects(
+      publications.readUnlisted(rotated[0].unlistedToken),
+      (e) => e.status === 404,
+    );
+    await repo.restoreActive(owner.id);
+    await assert.rejects(
+      publications.readUnlisted(rotated[0].unlistedToken),
+      (e) => e.status === 404,
+    );
+    await repo.deleteAccountData(owner.id);
+    for (const table of [
+      'aw_publication_previews',
+      'aw_publications',
+      'aw_publication_actions',
+    ]) {
+      assert.equal(
+        (await db.query(`SELECT id FROM ${table} WHERE user_id=$1`, [owner.id]))
+          .length,
+        0,
+      );
+      const [guard] = await db.query(
+        "SELECT c.relrowsecurity AS rls,has_table_privilege('anon',c.oid,'SELECT') AS anon,has_table_privilege('authenticated',c.oid,'INSERT') AS client FROM pg_class c WHERE c.oid=$1::regclass",
+        [table],
+      );
+      assert.deepEqual(guard, { rls: true, anon: false, client: false });
+    }
+  }
   console.log(
     JSON.stringify({
       sharedFoundationPostgres: 'passed',
@@ -1944,6 +2242,11 @@ try {
       fullContentCurationConcurrentDecisionOnce: true,
       fullContentCurationPrivateImmutableExported: true,
       fullContentCurationSourceDeletionGuard: true,
+      publicationConcurrentPreviewAndConfirmOnce: true,
+      publicationUnlistedHashAndRotation: true,
+      publicationImmutableAfterSourceAdvance: true,
+      publicationModerationWithdrawalRace: true,
+      publicationDeletionRecoveryExportCascadeRls: true,
       lastExplorerSlotRace: true,
       lastWorldSlotRace: true,
       lastMemberRace: true,

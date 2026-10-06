@@ -9,7 +9,8 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
-| [Teljes tartalom kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) | Külön consent, teljes csomag és AI-jelentés privát kurátori vizsgálata, immutable döntés, angol felület és bizonyíték; Publication/Confirm még következik |
+| [Publication és külön Confirm](PUBLICATION_CONFIRM_REPORT_HU.md) | Végleges másolat, explicit hozzájárulás, public/unlisted reader, visszavonás/linkcsere/moderáció és bizonyíték; Official grant még következik |
+| [Teljes tartalom kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) | Külön consent, teljes csomag és AI-jelentés privát kurátori vizsgálata, immutable döntés, angol felület és bizonyíték; a későbbi külön Publication/Confirm is kész |
 | [Teljes tartalom AI-vizsgálata](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) | Egyszeri saját scan-job, közös költségőr, teljes típusos input, angol eredménypanel és bizonyíték; kurátor/kiadás külön kapu |
 | [Teljes előnézeti csomag](PUBLIC_CONTENT_BUNDLE_REPORT_HU.md) | Immutable történet+explicit döntési pontlista/hash, angol áttekintés, teljes-scope AI-job és külön teljes curator kész; kiadás még következik |
 | [Döntési állapot előnézete](PUBLIC_FORK_PREVIEW_REPORT_HU.md) | Angol állapot/feltétel/hatás nézet, általánosított leírások és immutable saját mentések; a teljes csomag már kész, új review még szükséges |
@@ -111,3 +112,8 @@ P09: [Teljes angol tartalomcsomag és explicit döntésipont-lista](PUBLIC_CONTE
 P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. A külön teljes-scope curator is elkészült; következő Publication/Confirm.
 
 P09: [Teljes történet és kiválasztott checkpointok külön kurátori ellenőrzése](PUBLIC_CONTENT_CURATION_REPORT_HU.md) kész; privát eredmény, új AI-költség nélkül.
+
+
+## 2026-10-06: Community Publication és külön Confirm
+
+[Angol kiadási előnézet és explicit tulajdonosi megerősítés](PUBLICATION_CONFIRM_REPORT_HU.md) elkészült: csak a teljes AI+curator által ellenőrzött aktuális példány; immutable public/unlisted olvasás, anonymous/handle credit, visszavonás/linkcsere és trusted moderáció, export/cascade. Kiadás alapból kikapcsolva, indexelés/fork még tiltott; Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed következik. A korábbi dátumozott riportok bizonyítékát az aktuális státusz egészíti ki; a teljes P/S-terv és ops kapuk megmaradnak.

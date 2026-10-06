@@ -11,7 +11,7 @@ const en = {
   saved:
     'The complete private preparation is saved. Full AI and curator review are still required.',
   pendingReview:
-    'The story text review does not cover this complete preparation. Publishing and public starting points are not available yet.',
+    'The story text review does not cover this complete preparation. Publication requires a clear complete AI review, curator approval and separate confirmation. Starting another life from it will be available later.',
   proposed: 'Review the story and selected starting points',
   none: 'This preparation includes the story without starting points.',
   savedCopy: 'Saved complete preparation',

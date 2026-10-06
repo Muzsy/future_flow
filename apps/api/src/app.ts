@@ -97,8 +97,11 @@ import {
   publicReviewJobConfigFromEnv,
   type PublicReviewJobConfig,
   BetaFeedbackRepository,
+  publicationConfigFromEnv,
+  type PublicationConfig,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
+import { createPublicationControllers } from './publications';
 import {
   createSharedContextController,
   sharedFeaturesFromEnv,
@@ -835,6 +838,7 @@ export async function createApp(
   publicContentBundlesEnabled = publicContentBundlesEnabledFromEnv(),
   publicContentReviewConfig: PublicReviewJobConfig = publicContentReviewJobConfigFromEnv(),
   publicContentCurationEnabled = publicContentCurationEnabledFromEnv(),
+  publicationConfig: PublicationConfig = publicationConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -843,6 +847,7 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      ...createPublicationControllers(AuthGuard, REPOSITORY, publicationConfig),
       ApiController,
       LifeController,
       SharedContextController,
@@ -890,6 +895,9 @@ export async function createApp(
     );
     response.setHeader('X-Request-Id', request.requestId);
     response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Referrer-Policy', 'no-referrer');
+    if (request.path.startsWith('/api/public/'))
+      response.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
   });
   app.use(json({ limit: '64kb' }));

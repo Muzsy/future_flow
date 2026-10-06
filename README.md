@@ -8,6 +8,8 @@ A privát v2 mag 12 lépéses angol onboardingból hat hónapos valódi AI-tört
 
 Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez és a történet ellenőrzéséhez. A működő alkalmazásban nincs AI nélküli demo vagy mock mód. A tesztek elkülönített tesztadatokat és teszthelyettesítőket használnak.
 
+A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md) és angol public/unlisted olvasó elkészült, default-off kiadási kapuval. Official eredetengedély, valódi AI seed, Discovery és public fork következik; Contabo-telepítés még nincs.
+
 ## Indítás
 
 Node.js 24 és pnpm 11.19.0 szükséges.
@@ -127,3 +129,8 @@ P09: [Teljes angol tartalomcsomag és explicit döntésipont-lista](docs/PUBLIC_
 P09: [Teljes tartalom AI-job, angol eredménypanel és egyszeri költségvédett vizsgálat](docs/PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md) kész. A külön teljes-scope curator is elkészült; következő Publication/Confirm.
 
 P09: [Teljes történet és kiválasztott checkpointok külön kurátori ellenőrzése](docs/PUBLIC_CONTENT_CURATION_REPORT_HU.md) kész; privát eredmény, új AI-költség nélkül.
+
+
+## 2026-10-06: Community Publication és külön Confirm
+
+[Angol kiadási előnézet és explicit tulajdonosi megerősítés](docs/PUBLICATION_CONFIRM_REPORT_HU.md) elkészült: csak a teljes AI+curator által ellenőrzött aktuális példány; immutable public/unlisted olvasás, anonymous/handle credit, visszavonás/linkcsere és trusted moderáció, export/cascade. Kiadás alapból kikapcsolva, indexelés/fork még tiltott; Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed következik. A korábbi dátumozott riportok bizonyítékát az aktuális státusz egészíti ki; a teljes P/S-terv és ops kapuk megmaradnak.
