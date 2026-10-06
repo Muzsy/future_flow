@@ -134,3 +134,5 @@ P09: [Teljes történet és kiválasztott checkpointok külön kurátori ellenő
 ## 2026-10-06: Community Publication és külön Confirm
 
 [Angol kiadási előnézet és explicit tulajdonosi megerősítés](docs/PUBLICATION_CONFIRM_REPORT_HU.md) elkészült: csak a teljes AI+curator által ellenőrzött aktuális példány; immutable public/unlisted olvasás, anonymous/handle credit, visszavonás/linkcsere és trusted moderáció, export/cascade. Kiadás alapból kikapcsolva, indexelés/fork még tiltott; Official eredetengedély/ScenarioVersion teljes kiadási review/valódi AI seed következik. A korábbi dátumozott riportok bizonyítékát az aktuális státusz egészíti ki; a teljes P/S-terv és ops kapuk megmaradnak.
+
+Publication runtime `bad1b816`: [main CI](https://github.com/Muzsy/future_flow/actions/runs/37457083884) verify/container sikeres, 428 teszt/36 fájl, teljes build, 81 séma drift nélkül; izolált PostgreSQL/HTTPS 001–022 és ismétlés, párhuzamos Confirm, linkcsere, immutable snapshot, moderáció/törlés/export/RLS. Új paid AI 0; nincs éles Contabo-aktiválás.
