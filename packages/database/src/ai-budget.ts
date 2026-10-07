@@ -3,30 +3,117 @@ import { DomainError } from '@future-flow/core';
 import type { Database } from './index';
 import { lifeRow } from './lives';
 
-// Standard short-context ceilings, including cache writes. Checked 2026-10-03:
-// https://developers.openai.com/api/docs/pricing?tab=suite
+// Standard short-context ceilings, including cache writes. Checked 2026-10-07:
+// https://developers.openai.com/api/docs/pricing
 export const applicationModelPrices: Record<
   string,
   { inputCeiling: number; output: number }
 > = {
   'gpt-6.1-sol': { inputCeiling: 2.5, output: 10 },
   'gpt-6-luna': { inputCeiling: 0.125, output: 0.5 },
+  // Standard global, up to 5m cache writes; the Claude transport rejects 1h usage.
+  // https://platform.claude.com/docs/en/models/sonnet-5-5/overview
+  'claude-sonnet-5-5': { inputCeiling: 2.5, output: 10 },
 };
 type Usage = { input_tokens: number; output_tokens: number };
+export type ApplicationAiBudgetConfig = {
+  provider?: 'openai' | 'anthropic';
+  projectUsd: number;
+  userUsd: number;
+  initialProjectSpentUsd?: number;
+  // A fixed, explicitly approved period. It never rolls over automatically.
+  window?: { startsAt: string; endsAt: string };
+};
+function invalidBudgetConfig(): never {
+  throw new DomainError(
+    'AI_BUDGET_CONFIG',
+    'Invalid budget configuration.',
+    503,
+  );
+}
+function budgetWindow(window: ApplicationAiBudgetConfig['window']) {
+  if (!window) return undefined;
+  const timestamps = [window.startsAt, window.endsAt].map((value) => {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value))
+      invalidBudgetConfig();
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return invalidBudgetConfig();
+    const canonical = date.toISOString();
+    if (canonical !== value.replace(/Z$/, value.includes('.') ? 'Z' : '.000Z'))
+      invalidBudgetConfig();
+    return canonical;
+  });
+  const startsAt = timestamps[0]!,
+    endsAt = timestamps[1]!;
+  const duration = Date.parse(endsAt) - Date.parse(startsAt);
+  if (duration <= 0 || duration > 366 * 24 * 60 * 60 * 1000)
+    return invalidBudgetConfig();
+  return { startsAt, endsAt };
+}
+export function applicationAiBudgetConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  provider: 'openai' | 'anthropic' = 'openai',
+): ApplicationAiBudgetConfig {
+  const required = env.AI_BUDGET_WINDOW_REQUIRED ?? 'false';
+  if (!['true', 'false'].includes(required)) return invalidBudgetConfig();
+  const startsAt = env.AI_BUDGET_WINDOW_START?.trim() ?? '',
+    endsAt = env.AI_BUDGET_WINDOW_END?.trim() ?? '';
+  if (Boolean(startsAt) !== Boolean(endsAt)) return invalidBudgetConfig();
+  const config: ApplicationAiBudgetConfig = {
+    ...(provider === 'anthropic' ? { provider } : {}),
+    projectUsd: Number(
+      provider === 'anthropic'
+        ? (env.CLAUDE_PRODUCTION_BUDGET_USD ?? 0)
+        : (env.AI_PROJECT_BUDGET_USD ?? 0),
+    ),
+    userUsd: Number(env.AI_USER_BUDGET_USD ?? 0),
+    initialProjectSpentUsd:
+      provider === 'anthropic'
+        ? 0
+        : Number(env.AI_PROJECT_INITIAL_SPENT_USD ?? 0),
+    ...(startsAt ? { window: budgetWindow({ startsAt, endsAt }) } : {}),
+  };
+  if (
+    (required === 'true' || provider === 'anthropic') &&
+    config.projectUsd > 0 &&
+    config.userUsd > 0 &&
+    !config.window
+  )
+    return invalidBudgetConfig();
+  for (const value of [
+    config.projectUsd,
+    config.userUsd,
+    config.initialProjectSpentUsd ?? 0,
+  ])
+    if (!Number.isFinite(value) || value < 0 || value > 100000)
+      return invalidBudgetConfig();
+  return config;
+}
 export class DatabaseAiBudget {
-  private readonly projectKey = 'project';
+  private readonly projectKey: string;
   private readonly userKey: string;
+  private readonly config: ApplicationAiBudgetConfig;
   constructor(
     private readonly db: Database,
     private readonly userId: string,
     private readonly jobId: string,
-    private readonly config: {
-      projectUsd: number;
-      userUsd: number;
-      initialProjectSpentUsd?: number;
-    },
+    config: ApplicationAiBudgetConfig,
   ) {
-    this.userKey = `user:${userId}`;
+    this.config = { ...config, window: budgetWindow(config.window) };
+    if (
+      config.provider !== undefined &&
+      !['openai', 'anthropic'].includes(config.provider)
+    )
+      invalidBudgetConfig();
+    if (config.provider === 'anthropic' && !this.config.window)
+      invalidBudgetConfig();
+    const window = this.config.window;
+    this.projectKey = window
+      ? `project:${config.provider === 'anthropic' ? 'anthropic:' : ''}window:${window.startsAt}:${window.endsAt}`
+      : 'project';
+    this.userKey = window
+      ? `user:${userId}:window:${window.startsAt}:${window.endsAt}`
+      : `user:${userId}`;
     for (const value of [
       config.projectUsd,
       config.userUsd,
@@ -52,12 +139,16 @@ export class DatabaseAiBudget {
       max_output_tokens: number;
       text?: { format?: { name?: string } };
     };
-    const rates = applicationModelPrices[p.model];
+    const rates = Object.hasOwn(applicationModelPrices, p.model)
+      ? applicationModelPrices[p.model]
+      : undefined;
     // Byte count is a conservative bound for this JSON text request, including
     // schemas and an additional protocol margin. Long-context pricing is rejected.
     const inputBound = Buffer.byteLength(JSON.stringify(raw), 'utf8') + 4096;
     if (
       !rates ||
+      (p.model.startsWith('claude-') ? 'anthropic' : 'openai') !==
+        (this.config.provider ?? 'openai') ||
       inputBound > 100000 ||
       !Number.isInteger(p.max_output_tokens) ||
       p.max_output_tokens < 1 ||
@@ -107,10 +198,31 @@ export class DatabaseAiBudget {
           [this.userKey],
         ),
       );
-      for (const account of [project, personal])
+      // Use the database wall clock after the account locks: a request that waited
+      // for another worker cannot spend after the approved period has expired.
+      if (this.config.window) {
+        const [clock] = await tx.query<{ budget_now: Date }>(
+          'SELECT clock_timestamp() AS budget_now',
+        );
+        const now = new Date(clock!.budget_now).getTime();
+        if (
+          !Number.isFinite(now) ||
+          now < Date.parse(this.config.window.startsAt) ||
+          now >= Date.parse(this.config.window.endsAt)
+        )
+          throw new DomainError(
+            'AI_BUDGET_WINDOW_CLOSED',
+            'The approved AI spending period is not active.',
+            503,
+          );
+      }
+      for (const [account, configured] of [
+        [project, this.config.projectUsd],
+        [personal, this.config.userUsd],
+      ] as const)
         if (
           Number(account.accounted_micro) + reserved >
-          Number(account.limit_micro)
+          Math.min(Number(account.limit_micro), Math.floor(configured * 1e6))
         )
           throw new DomainError(
             'AI_BUDGET_EXCEEDED',

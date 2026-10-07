@@ -2,7 +2,7 @@
 
 2026-10-07 · P12 részeredmény · English-only
 
-P12 public-fork engine, három valódi angol AI-időszak és külső Claude-audit kész: nyelv/kánon helyes, 0 finding, 4/5/5/5/4 szerkesztői pontszám. Az eredeti private canon és public reader változatlan; az új élet privát, nem Official. Az olvasás utáni login/signup csak ellenőrzött public útvonalra tér vissza, új fiók külön felnőtt/AI-privacy és költség-hozzájárulást ad; fiókváltás nem küld indítást más felhasználó nevében. Teljes helyi check 563 teszt/50 fájl/build és 144 séma; végső kliensjavítás további két új célzott teszttel/típus/build ellenőrzéssel, 17 valódi Auth/HTTP check és tényleges cleanup. A d38b0e3 034 verify/container CI és nyolc PG-proof sikeres; az új onboarding pontos CI még ellenőrizendő. Új genuine próba 9 OpenAI + 1 Claude hívás: 0,1814238 / 0,031204 USD becslés. Kumulatív guard OpenAI 2,939418375 USD, Claude 2,409600 USD; külön 5–5 USD keretből 2,060581625 / 2,590400 USD marad. Következő Scenario személyre szabás és P13; privacy/retention/Shared/ops, eredeti célállomány és éles név/kontakt/AI-keret/kínálat döntése megmarad. Contabo élesítés még nem történt.
+P12 public-fork engine, három valódi angol AI-időszak és külső Claude-audit kész: nyelv/kánon helyes, 0 finding, 4/5/5/5/4 szerkesztői pontszám. Az eredeti private canon és public reader változatlan; az új élet privát, nem Official. Az olvasás utáni login/signup csak ellenőrzött public útvonalra tér vissza, új fiók külön felnőtt/AI-privacy és költség-hozzájárulást ad; fiókváltás nem küld indítást más felhasználó nevében. Teljes helyi check 563 teszt/50 fájl/build és 144 séma; végső kliensjavítás további két új célzott teszttel/típus/build ellenőrzéssel, 17 valódi Auth/HTTP check és tényleges cleanup. A d38b0e3 034 verify/container CI és nyolc PG-proof sikeres; a javított 4cb911c onboarding verify/container CI sikeres (565/51/144). Új genuine próba 9 OpenAI + 1 Claude hívás: 0,1814238 / 0,031204 USD becslés. Kumulatív guard OpenAI 2,939418375 USD, Claude 2,409600 USD; külön 5–5 USD keretből 2,060581625 / 2,590400 USD marad. Következő Scenario személyre szabás és P13; privacy/retention/Shared/ops, eredeti célállomány és éles név/kontakt/AI-keret/kínálat döntése megmarad. Contabo élesítés még nem történt.
 
 ## Valódi generálás és audit
 
@@ -24,7 +24,7 @@ A kliens API explicit várt user ID-t tud kérni. A session egyszer beolvasott u
 
 ## Ellenőrzés és kiadási határ
 
-563 teszt/50 fájl teljes format/types/script-types/API/worker/Next production build és 144 schema; a régi 143, 001–034, forrás ZIP/tervek és korábbi példák változatlanok. A végső kliens-user binding két további async identity tesztje és két redirect teszt, typecheck/Next build külön sikeres; az új teljes main CI még ellenőrizendő.
+563 teszt/50 fájl teljes format/types/script-types/API/worker/Next production build és 144 schema; a régi 143, 001–034, forrás ZIP/tervek és korábbi példák változatlanok. A végső kliens-user binding két további async identity tesztje és két redirect teszt, typecheck/Next build külön sikeres; a javított 4cb911c teljes main CI sikeres: 565 teszt/51 fájl, build és 144 változatlan séma.
 
 17 valódi kétfiókos Supabase Auth/HTTP próba: unaccepted own status/anon/query/foreign identity, új fiók no-consent start tiltás, adult false tiltás, három consent retry egy rekord, explicit consent utáni private start és exact retry, paid provider nélkül fogva tartott technikai job, friss Auth account-delete, tényleges Auth+DB cleanup és seed/ledger változatlanság. Két próbafiók eltávolítva, credential fájl törölve. Pozitív interaktív böngészős próba továbbra külön kapu; a korábbi eszközpolicy tiltást nem kerültük meg.
 
@@ -33,3 +33,8 @@ A [d38b0e3 034 CI](https://github.com/Muzsy/future_flow/actions/runs/37577143227
 ## Folytatás
 
 Scenario + saját jóváhagyott identitás/cél/korlát új privát kezdőállapota következik. Utána P13 fork-click/create/first-period/referral és közösségi minőségi/indulási folyamat. P11 retained prose/PII/retention, Shared S3/S4–S7, backup/restore/valós DB-kiesés/email, Contabo/Cloudflare/TLS/tűzfal/karbantartás és éles üzemeltető/kontakt/AI-keret megmarad. Az 50–100 Official Life/20–30 Scenario cél nem törölt; az induló kisebb béta vagy külön keretű teljes állomány kérdése még folyamatban. [Kombinált sorrend](NEXT_STEPS.md).
+
+
+## 2026-10-07: pontos main CI lezárása
+
+A b99b5c1 első verify futása az utolsó kliens-teszt formázásán megállt; a container sikeres volt. A formázási javítást tartalmazó 4cb911c8d7cac290ad2c032253deaa8e8c534779 teljes [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37635652928) verify és container sikeres: 565/51/144, 001–034 és ismétlés, minden korábbi P09/S0–S3/PG-proof, web/API/Caddy HTTPS, DB TLS, üres queue és tiszta worker-stop, paid AI 0. Az eredeti failed futás bizonyítéka és a javított pontos eredmény külön megmarad. Ez nem Contabo-deploy.

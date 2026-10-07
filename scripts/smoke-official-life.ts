@@ -4,6 +4,7 @@ import { publicationRefreshProof } from './lib/publication-refresh-proof';
 import { lifeDeletionProof } from './lib/life-deletion-proof';
 import { publicForkPermissionProof } from './lib/public-fork-permission-proof';
 import { publicForkStartProof } from './lib/public-fork-start-proof';
+import { aiBudgetWindowProof } from './lib/ai-budget-window-proof';
 import {
   connectDatabase,
   Repository,
@@ -959,6 +960,7 @@ async function main() {
     const lifeDeletion = await lifeDeletionProof(db);
     const publicForkPermission = await publicForkPermissionProof(db);
     const publicForkStart = await publicForkStartProof(db);
+    const aiBudgetWindow = await aiBudgetWindowProof(db);
     for (const table of [
       'aw_publication_refreshes',
       'aw_public_fork_permissions',
@@ -1049,6 +1051,7 @@ async function main() {
         lifeDeletion,
         publicForkPermission,
         publicForkStart,
+        aiBudgetWindow,
         prospectiveConcurrentStartOnce: true,
         completeChainAndRepairEvidence: true,
         concurrentExactGrantOnce: true,

@@ -4,6 +4,7 @@ import {
   LifeJobRepository,
   SharedJobRepository,
   DatabaseAiBudget,
+  applicationAiBudgetConfigFromEnv,
   PublicReviewJobRepository,
   publicReviewJobConfigFromEnv,
   PublicContentReviewJobRepository,
@@ -39,6 +40,7 @@ async function main() {
   // Validate configuration before accepting jobs. Actual calls always reserve
   // the shared application budget, including legacy generation and SDK retries.
   new OpenAiProvider(aiConfig);
+  const budgetConfig = applicationAiBudgetConfigFromEnv();
   const leaseSeconds = Number(process.env.JOB_LEASE_SECONDS ?? 180);
   if (!Number.isFinite(leaseSeconds) || leaseSeconds < 60)
     throw new Error('JOB_LEASE_SECONDS must be at least 60');
@@ -149,13 +151,7 @@ async function main() {
                 | import('@future-flow/database').Job
             ).user_id,
         job.id,
-        {
-          projectUsd: Number(process.env.AI_PROJECT_BUDGET_USD ?? 0),
-          userUsd: Number(process.env.AI_USER_BUDGET_USD ?? 0),
-          initialProjectSpentUsd: Number(
-            process.env.AI_PROJECT_INITIAL_SPENT_USD ?? 0,
-          ),
-        },
+        budgetConfig,
       );
       let experiment: ExperimentAiBudget | undefined;
       const heartbeat = setInterval(

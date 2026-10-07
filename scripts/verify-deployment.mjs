@@ -17,6 +17,9 @@ const env = {
   DATABASE_SSL_CA_HOST_FILE: '/etc/alterward/supabase-ca.crt',
   AI_PROJECT_BUDGET_USD: '0',
   AI_USER_BUDGET_USD: '0',
+  AI_BUDGET_WINDOW_REQUIRED: 'true',
+  AI_BUDGET_WINDOW_START: '',
+  AI_BUDGET_WINDOW_END: '',
 };
 
 try {
@@ -153,6 +156,20 @@ try {
   }
   assert.equal(config.services.worker.environment.AI_PROJECT_BUDGET_USD, '0');
   assert.equal(config.services.worker.environment.AI_USER_BUDGET_USD, '0');
+  assert.equal(
+    config.services.worker.environment.AI_BUDGET_WINDOW_REQUIRED,
+    'true',
+  );
+  assert.equal(config.services.worker.environment.AI_BUDGET_WINDOW_START, '');
+  assert.equal(config.services.worker.environment.AI_BUDGET_WINDOW_END, '');
+  for (const key of [
+    'AI_BUDGET_WINDOW_REQUIRED',
+    'AI_BUDGET_WINDOW_START',
+    'AI_BUDGET_WINDOW_END',
+  ]) {
+    assert.equal(config.services.web.environment[key], undefined);
+    assert.equal(config.services.web.build.args[key], undefined);
+  }
   assert.deepEqual(config.services.worker.command, [
     'node',
     'apps/worker/dist/main.js',

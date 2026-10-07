@@ -1,9 +1,9 @@
 # alterward — döntések és nyitott kérdések
 
 
-## Aktuális: valódi public-fork AI és belépési útvonal
+## Aktuális: jóváhagyott éles AI-keret és lejárati védelem
 
-P12 public-fork engine, három valódi angol AI-időszak és külső Claude-audit kész: nyelv/kánon helyes, 0 finding, 4/5/5/5/4 szerkesztői pontszám. Az eredeti private canon és public reader változatlan; az új élet privát, nem Official. Az olvasás utáni login/signup csak ellenőrzött public útvonalra tér vissza, új fiók külön felnőtt/AI-privacy és költség-hozzájárulást ad; fiókváltás nem küld indítást más felhasználó nevében. Teljes helyi check 563 teszt/50 fájl/build és 144 séma; végső kliensjavítás további két új célzott teszttel/típus/build ellenőrzéssel, 17 valódi Auth/HTTP check és tényleges cleanup. A d38b0e3 034 verify/container CI és nyolc PG-proof sikeres; az új onboarding pontos CI még ellenőrizendő. Új genuine próba 9 OpenAI + 1 Claude hívás: 0,1814238 / 0,031204 USD becslés. Kumulatív guard OpenAI 2,939418375 USD, Claude 2,409600 USD; külön 5–5 USD keretből 2,060581625 / 2,590400 USD marad. Következő Scenario személyre szabás és P13; privacy/retention/Shared/ops, eredeti célállomány és éles név/kontakt/AI-keret/kínálat döntése megmarad. Contabo élesítés még nem történt. [Bizonyíték és határ](../PUBLIC_FORK_QUALITY_ONBOARDING_REPORT_HU.md).
+Az első éles 30 napra jóváhagyott keret 10 USD OpenAI + 5 USD Claude, összesen 15 USD; a felhasználói 0,50 USD közös a két szolgáltató között. A tényleges induláskor kezdődik, nincs automatikus megújítás. Külön időszakos provider-projekt és közös saját számla, tranzakciós előfoglalás, lock utáni DB-óra/lejárat, késői egyszeri elszámolás és megmaradó projektköltés kész; Claude transport technikai DB-guard próbája is sikeres. A régi kutatási naplók és 5–5 USD keretek változatlanok; új paid AI 0, éles aktiválás nincs. Teljes helyi check 578 teszt/52 fájl/types/script-types/build és 144 változatlan schema; az új budget runtime CI még ellenőrizendő. A public-fork minőség/login/consent pontos 4cb911c verify/container CI sikeres: 565/51, 001–034/repeat, nyolc fork-start PG-proof, minden korábbi proof, verified HTTPS/DB TLS és 0 AI. Következő Scenario personalization/P13, továbbra P11/Shared/retention/ops, operator/kontakt és induló kínálat; Contabo-deploy még nem történt. [Keret, bizonyíték és határ](../AI_PRODUCTION_BUDGET_HU.md).
 
 **Shared állapot:** S0–S2 és S3 személyes/time/Connections/safety/privacy implementált; teljes kétfiókos Auth/Shared AI/saját AI/export/törlés/recovery sikeres. 001–013 alkalmazva, normál Shared flag-ek false. Nyers/backup-retention, régi személyes próza, billing/grace/deadline és friend release még kapu; P09–P13 és S4–S7 megmarad. [Aktuális bizonyíték](../SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
 
@@ -174,3 +174,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-06: P10 read-only Discovery első szelet
 
 A P10 első rankingje determinisztikus newest; Featured/Trending/Most Forked csak valódi kuráció/mérés után. Kezdetben a jóváhagyott angol cím/summary kereshető, a 13 kategória változatlan. Bounded offset pilot, nem stabil snapshot/cursor vagy full-text terhelésígéret. A felhasználó teljes P/S-terve és a későbbi Contabo-indulás megmarad. [Részletes bizonyíték és következő kapuk](../DISCOVERY_FOUNDATION_REPORT_HU.md).
+
+
+## 2026-10-07: jóváhagyott első éles AI-időszak
+
+Lezárt költségdöntés: első éles 30 nap 10 USD OpenAI + 5 USD Claude, összesen 15 USD; közös user 0,50 USD, lejárat/keret végén stop és nincs önmegújítás. Induláskori UTC dátum még nincs, mert élesítés nem történt. Üzemeltető nyilvános neve/kontaktja és a célállományhoz igazított induló kínálat döntése továbbra szükséges. [Részletek](../AI_PRODUCTION_BUDGET_HU.md).

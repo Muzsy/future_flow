@@ -245,6 +245,10 @@ const errors: Record<string, readonly [string, string]> = {
     'The AI budget is exhausted. Your saved story remains available.',
     'Az AI-keret elfogyott. A mentett történeted továbbra is elérhető.',
   ],
+  AI_BUDGET_WINDOW_CLOSED: [
+    'AI generation is paused outside the approved spending period. Your saved story remains available.',
+    'AI generation is paused outside the approved spending period. Your saved story remains available.',
+  ],
   AUTH_REQUIRED: [
     'Please sign in to continue.',
     'Jelentkezz be a folytatáshoz.',

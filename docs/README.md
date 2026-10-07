@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Jóváhagyott éles AI-keret](AI_PRODUCTION_BUDGET_HU.md) | 10 USD OpenAI + 5 USD Claude az első éles 30 napra, közös személyes limit, lejárat és nincs automatikus megújítás |
 | [Valódi fork-AI és belépési útvonal](PUBLIC_FORK_QUALITY_ONBOARDING_REPORT_HU.md) | Három genuine AI-időszak/Claude audit, biztonságos public returnTo, új fiók consent és async user binding |
 | [Saját privát élet nyilvános pontból](PUBLIC_FORK_START_REPORT_HU.md) | Explicit választásból új saját élet, normál AI-job/kvóta, kezdeti memória, leválasztható forrás és törlési tombstone |
 | [Külön fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) | Explicit Community/Official engedély, visszavonás és minimális döntési projection; a külön start engine is implementált |
