@@ -653,6 +653,8 @@ export class Repository {
         'aw_public_scenario_previews',
         'aw_scenario_publications',
         'aw_scenario_publication_moderation',
+        'aw_personal_scenario_previews',
+        'aw_personal_scenario_starts',
         'aw_official_life_starts',
         'aw_official_life_sources',
         'aw_public_fork_checkpoints',

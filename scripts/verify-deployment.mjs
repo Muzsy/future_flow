@@ -90,6 +90,7 @@ try {
     'PUBLIC_FORK_PERMISSION_ENABLED',
     'PUBLIC_FORK_STARTS_ENABLED',
     'PUBLIC_SCENARIOS_ENABLED',
+    'SCENARIO_PERSONALIZATION_ENABLED',
   ]) {
     for (const name of ['api', 'worker'])
       assert.equal(config.services[name].environment[flag], 'false');

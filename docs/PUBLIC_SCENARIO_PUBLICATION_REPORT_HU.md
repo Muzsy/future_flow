@@ -54,3 +54,8 @@ A saját, tartós és lejáró **személyes** előnézet, élő public consent/s
 ## 2026-10-07: helyi és fejlesztői DB-lezárás
 
 Teljes helyi `pnpm check` sikeres: 600 teszt/54 fájl, format/types/script-types és éles build. Összesen 154 JSON-séma, a korábbi 148 és 001–034 változatlan. A fejlesztői Supabase DB-n 001–035 alkalmazva és megismételve; az új három tábla üres, RLS enabled, közvetlen anon/authenticated hozzáférés nincs, normál feature és operator false. Új valódi AI 0, nincs új valódi fiók vagy nyilvános Scenario, éles allowance/Contabo-deploy nincs. Az új commit valós PostgreSQL concurrency/TLS/container és verify CI eredménye még ellenőrizendő.
+
+
+## 2026-10-07: javított pontos CI lezárva
+
+Az eredeti 370370b container a fix 34 migráció elvárásán állt meg, ténylegesen 35 volt; verify sikeres. Az ede2499 javítás a migrációs fájlokból számol, meglévő SQL-t nem módosít. A [pontos CI](https://github.com/Muzsy/future_flow/actions/runs/37669583762) verify/container sikeres: 600/54/154, 001–035/repeat, mind a nyolc új public Scenario PG-proof és az összes korábbi PG/HTTPS/TLS, paid AI 0. A következő [saját personal preview/start backend](PERSONAL_SCENARIO_START_REPORT_HU.md) implementált, annak új exact CI/Auth/AI kapuja és angol UI még külön feladat.

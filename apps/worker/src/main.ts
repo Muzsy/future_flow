@@ -11,6 +11,7 @@ import {
   publicContentReviewJobConfigFromEnv,
   cleanupExpiredPublicReadings,
   cleanupExpiredLifeAdmissions,
+  cleanupExpiredPersonalScenarioPreviews,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -79,9 +80,15 @@ async function main() {
         try {
           const result = await cleanupExpiredPublicReadings(db);
           const admissions = await cleanupExpiredLifeAdmissions(db);
+          const personalPreviews =
+            await cleanupExpiredPersonalScenarioPreviews(db);
           nextReadingCleanup =
             Date.now() +
-            (result.batchFull || admissions.batchFull ? 2000 : 15 * 60 * 1000);
+            (result.batchFull ||
+            admissions.batchFull ||
+            personalPreviews.batchFull
+              ? 2000
+              : 15 * 60 * 1000);
         } catch {
           // Retry soon without exposing SQL/credentials or starving AI queues.
           nextReadingCleanup = Date.now() + 60000;

@@ -345,6 +345,7 @@ export * from './public-curation';
 export * from './public-scenarios';
 export * from './scenario-personalization';
 export * from './public-scenario-publication';
+export * from './personal-scenario-start';
 export * from './scenario-release';
 export * from './official-life';
 export * from './public-fork';

@@ -5,6 +5,7 @@ export * from './jobs';
 export * from './lives';
 export * from './public-scenarios';
 export * from './public-scenario-publications';
+export * from './personal-scenario-starts';
 export * from './scenario-release';
 export * from './official-life';
 export * from './public-fork';

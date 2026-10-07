@@ -1,0 +1,58 @@
+{
+  "$id": "urn:alterward:personal-scenario:attribution:personal-scenario-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "personal-scenario-1"
+    },
+    "lifeId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "origin": {
+      "type": "string",
+      "const": "personalized_scenario"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "pattern": "^scenario-[a-f0-9]{32}$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "officialScenario": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": [
+            "slug",
+            "title",
+            "officialScenario"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "lifeId",
+    "origin",
+    "source"
+  ],
+  "additionalProperties": false
+}

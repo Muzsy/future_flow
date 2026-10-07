@@ -119,6 +119,11 @@ import { createPublicExposureControllers } from './public-exposure';
 import { createPublicationRefreshController } from './publication-refresh';
 import { createPublicForkPermissionControllers } from './public-fork-permission';
 import { createPublicScenarioPublicationControllers } from './public-scenario-publications';
+import { createPersonalScenarioController } from './personal-scenario-starts';
+import {
+  personalScenarioConfigFromEnv,
+  type PersonalScenarioConfig,
+} from '@future-flow/database';
 import {
   publicScenarioConfigFromEnv,
   type PublicScenarioConfig,
@@ -932,6 +937,7 @@ export async function createApp(
   publicationRefreshConfig: PublicationRefreshConfig = publicationRefreshConfigFromEnv(),
   publicForkPermissionConfig: PublicForkPermissionConfig = publicForkPermissionConfigFromEnv(),
   publicScenarioConfig: PublicScenarioConfig = publicScenarioConfigFromEnv(),
+  personalScenarioConfig: PersonalScenarioConfig = personalScenarioConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -940,6 +946,12 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createPersonalScenarioController(
+        AuthGuard,
+        REPOSITORY,
+        personalScenarioConfig,
+        publicScenarioConfig,
+      ),
       ...createPublicScenarioPublicationControllers(
         AuthGuard,
         REPOSITORY,

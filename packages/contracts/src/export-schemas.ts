@@ -1,4 +1,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
+import {
+  PERSONAL_SCENARIO_VERSION,
+  personalScenarioPrepareRequestSchema,
+  personalScenarioPreviewSchema,
+  personalScenarioStartRequestSchema,
+  personalScenarioStartReceiptSchema,
+  personalScenarioAttributionSchema,
+} from './personal-scenario-start';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
@@ -212,6 +220,27 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const personalScenarioDirectory = resolve(directory, 'personal-scenario');
+mkdirSync(personalScenarioDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  prepareRequest: personalScenarioPrepareRequestSchema,
+  preview: personalScenarioPreviewSchema,
+  startRequest: personalScenarioStartRequestSchema,
+  receipt: personalScenarioStartReceiptSchema,
+  attribution: personalScenarioAttributionSchema,
+})) {
+  writeFileSync(
+    resolve(personalScenarioDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:personal-scenario:${name}:${PERSONAL_SCENARIO_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const consentDirectory = resolve(directory, 'privacy-consent');
 mkdirSync(consentDirectory, { recursive: true });
 writeFileSync(
