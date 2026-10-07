@@ -357,6 +357,7 @@ export * from './public-safety';
 export * from './public-metrics';
 export * from './public-collections';
 export * from './public-exposure';
+export * from './publication-refresh';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';

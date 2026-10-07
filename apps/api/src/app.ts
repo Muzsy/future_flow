@@ -111,6 +111,7 @@ import { createPublicSafetyController } from './public-safety';
 import { createPublicMetricsController } from './public-metrics';
 import { createPublicCollectionsController } from './public-collections';
 import { createPublicExposureControllers } from './public-exposure';
+import { createPublicationRefreshController } from './publication-refresh';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
@@ -126,6 +127,8 @@ import {
   type PublicCollectionsConfig,
   publicExposureConfigFromEnv,
   type PublicExposureConfig,
+  publicationRefreshConfigFromEnv,
+  type PublicationRefreshConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -884,6 +887,7 @@ export async function createApp(
   publicMetricsConfig: PublicMetricsConfig = publicMetricsConfigFromEnv(),
   publicCollectionsConfig: PublicCollectionsConfig = publicCollectionsConfigFromEnv(),
   publicExposureConfig: PublicExposureConfig = publicExposureConfigFromEnv(),
+  publicationRefreshConfig: PublicationRefreshConfig = publicationRefreshConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -892,6 +896,14 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createPublicationRefreshController(
+        AuthGuard,
+        REPOSITORY,
+        publicationRefreshConfig,
+        publicationConfig,
+        officialPublicationConfig,
+        publicMetricsConfig,
+      ),
       ...createPublicExposureControllers(
         AuthGuard,
         REPOSITORY,

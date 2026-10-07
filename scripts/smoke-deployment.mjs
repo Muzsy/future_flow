@@ -353,6 +353,18 @@ try {
   ])
     assert.equal(officialLife.publicExposure[proof], true);
   assert.equal(officialLife.publicExposure.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentExactRefreshOnce',
+    'competingReplacementOnce',
+    'immutableNewCopyAndPrivateCanon',
+    'oldPublicUnlistedAndExternalPermissionsStop',
+    'exactOfficialGrantAndRollback',
+    'inactiveReplayExportAndImmutableHistory',
+    'physicalDeletionRaceAndCascade',
+  ])
+    assert.equal(officialLife.publicationRefresh[proof], true);
+  assert.equal(officialLife.publicationRefresh.actualProviderCalls, 0);
+  assert.equal(officialLife.publicationRefresh.actualOfficialSeed, false);
   compose(
     'up',
     '-d',
@@ -496,7 +508,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '30|0|0|0|0');
+  assert.equal(counts.trim(), '31|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -505,7 +517,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 30,
+      migrations: 31,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

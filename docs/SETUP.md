@@ -1,9 +1,9 @@
 # Beállítás és helyi titokkezelés
 
 
-## Aktuális: külső indexelés és megosztási előnézet
+## Aktuális: explicit snapshotfrissítés
 
-P10 explicit külső engedély elkészült: default none, preview/noindex és index+preview; Community own opt-in, Official trusted curator és own revoke. Exact publication hash/revision + permission CAS/immutable audit, teljes live EN/Official reader minden metaadat/kép/sitemap kérésnél. 030 két RLS-tábla, saját export és cascade; PUBLIC_EXTERNAL_EXPOSURE_ENABLED=false. Angol panel, dynamic OG/canonical/robots, 1200×630 code-native PNG és bounded live sitemap, browser/API/CDN no-store. Helyi teljes check 525/45/build, 130 séma; régi 124/001–029 változatlan, dev DB 001–030 repeat, 67 aw_/67 RLS. 33 valódi Auth/production HTTP/PG/CLI ellenőrzés és actual cleanup sikeres; PNG vizuálisan átnézve. Genuine private export és provider ledgers változatlanok, új paid AI 0. 8ca6231 collection verify/container CI sikeres; új 030 runtime CI még ellenőrizendő. Következő P11 snapshot refresh/owner privacy workflow, P12 public fork/scenario personalization, P13 kínálat/quality/usage/release; pozitív interaktív UI és Trending/Most Forked külön kapu. P01–P13/S0–S7/retention/backup/email/Contabo/Cloudflare/éles allowance teljes scope megmarad; folyamatos haladás az élesítésig. [Bizonyíték és határ](EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md).
+P11 explicit snapshot refresh elkészült: új teljes AI/curator által ellenőrzött copy + régi aktív példány withdraw egy tranzakcióban, eltérő új slug/token; nincs snapshot-átírás, redirect vagy külső grant-öröklés. Same-owner/same-private-branch és exact old revision/hash/new preview binding, consent, default PUBLICATION_REFRESH_ENABLED=false. Official új exact origin grantet kér. Immutable 031/RLS/own export/cascade, angol külön replacement választás és Confirm. Teljes check 535/46/build, 133 séma, régi 130/001–030 változatlan; dev DB 001–031 repeat, 68 aw_/68 RLS. 25 sikeres valódi kétfiókos Supabase Auth/HTTP/TLS ellenőrzés és actual cleanup, seed export/ledgers változatlan, új paid AI 0. A 030 pontos 63d49f4 CI verify/container sikeres; az új 031 runtime CI még ellenőrizendő. Következő P11 egyetlen élet törlése/owner privacy, P12 public fork/scenario personalization, P13 release; pozitív interaktív UI és retention/backup/email/Contabo/Cloudflare/éles allowance teljes scope megmarad. [Bizonyíték és határ](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -222,3 +222,8 @@ PUBLIC_COLLECTIONS_ENABLED=false, PUBLIC_COLLECTION_OPERATOR_ENABLED=false. Oper
 ## 2026-10-07: külön külső előnézet és indexelés
 
 PUBLIC_EXTERNAL_EXPOSURE_ENABLED=false, PUBLIC_EXPOSURE_OPERATOR_ENABLED=false. Server-only PUBLIC_SITE_URL root origin (külső HTTPS; localhost HTTP), API_INTERNAL_URL /api/public. Compose web csak origin/API/featureflag; nem kap DB/admin/link-secretet. pnpm curation:exposure --list / --request-file protected JSON --apply csak Official grants; own revoke az angol public-copy panelből. Actual .env változatlan. [Bizonyíték](EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md).
+
+
+## 2026-10-07: explicit új snapshot és korábbi visszavonás
+
+PUBLICATION_REFRESH_ENABLED=false a helyi/szerver mintában és Compose API/workerben; web csak saját Auth API-eredményből jeleníti meg a választást. A feature aktiválása nem helyettesít review/curator/grant/Confirmot. Actual .env változatlan. [Bizonyíték](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).

@@ -84,6 +84,15 @@ try {
   assert.equal(config.services.api.environment.DISCOVERY_ENABLED, 'false');
   assert.equal(config.services.api.environment.SAVED_LIVES_ENABLED, 'false');
   assert.equal(config.services.api.environment.PUBLIC_REPORTS_ENABLED, 'false');
+  for (const name of ['api', 'worker'])
+    assert.equal(
+      config.services[name].environment.PUBLICATION_REFRESH_ENABLED,
+      'false',
+    );
+  assert.equal(
+    config.services.web.environment.PUBLICATION_REFRESH_ENABLED,
+    undefined,
+  );
   for (const name of ['web', 'api', 'worker']) {
     assert.equal(
       config.services[name].environment.PUBLIC_EXTERNAL_EXPOSURE_ENABLED,

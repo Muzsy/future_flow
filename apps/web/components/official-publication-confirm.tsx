@@ -7,6 +7,7 @@ import type {
   OfficialPublicationOwnerView,
   PublicationSettings,
   OfficialLifeSourceView,
+  PublicationRefreshTarget,
 } from '@future-flow/contracts';
 import { lifeApi } from '../lib/client';
 import { officialPublicationStatusSchema } from '@future-flow/contracts';
@@ -18,6 +19,8 @@ import {
 } from '../lib/official-publication';
 import { PublicationContent } from './publication-content';
 import { OfficialPublicationControls } from './official-publication-controls';
+import { PublicationRefreshChoice } from './publication-refresh-choice';
+import { publicationRefreshReceiptSchema } from '@future-flow/contracts';
 export function OfficialPublicationConfirm({
   bundle,
   curator,
@@ -40,10 +43,20 @@ export function OfficialPublicationConfirm({
     [source, setSource] = useState<OfficialLifeSourceView | null>(null),
     [expired, setExpired] = useState(false),
     [notice, setNotice] = useState('');
+  const [replacement, setReplacement] =
+    useState<PublicationRefreshTarget | null>(null);
   const controller = useRef<AbortController | null>(null),
     prepareKey = useRef<string | null>(null),
     confirmKey = useRef<string | null>(null);
   useEffect(() => {
+    setPreview(null);
+    setPublished(null);
+    setAck(false);
+    setReplacement(null);
+    setSource(null);
+    setExpired(false);
+    prepareKey.current = null;
+    confirmKey.current = null;
     const abort = new AbortController();
     controller.current = abort;
     void read(abort.signal);
@@ -145,8 +158,11 @@ export function OfficialPublicationConfirm({
     setBusy(true);
     setNotice('');
     try {
-      const next = await verifiedOwnedOfficialPublication(
-        await lifeApi('/official-publications/confirm', {
+      const raw = await lifeApi(
+        replacement
+          ? '/publication-refresh/official'
+          : '/official-publications/confirm',
+        {
           method: 'POST',
           signal,
           headers: { 'Idempotency-Key': confirmKey.current },
@@ -154,8 +170,23 @@ export function OfficialPublicationConfirm({
             previewId: preview.previewId,
             previewHash: preview.previewHash,
             acknowledged: true,
+            ...(replacement
+              ? {
+                  previousPublicationId: replacement.publicationId,
+                  previousRevision: replacement.revision,
+                  previousSnapshotHash: replacement.snapshotHash,
+                }
+              : {}),
           }),
-        }),
+        },
+      );
+      const result = replacement
+        ? publicationRefreshReceiptSchema.parse(raw)
+        : null;
+      if (result && result.previousPublicationId !== replacement!.publicationId)
+        throw Error('Wrong previous copy');
+      const next = await verifiedOwnedOfficialPublication(
+        result ? result.publication : raw,
       );
       if (
         next.bundleId !== bundle.bundleId ||
@@ -232,8 +263,19 @@ export function OfficialPublicationConfirm({
       </label>
       <p className="subtle">
         A secret link can be forwarded by anyone who receives it. Search
-        indexing and starting a new life from this copy are currently disabled.
+        indexing and story link previews require a separate permission after
+        publication. Starting a new life from this copy is currently disabled.
       </p>
+      <PublicationRefreshChoice
+        bundleId={bundle.bundleId}
+        origin="official"
+        disabled={busy}
+        onChange={(target) => {
+          setReplacement(target);
+          setAck(false);
+          confirmKey.current = null;
+        }}
+      />
       <button
         className="secondary"
         disabled={busy || !enabled}
@@ -272,6 +314,8 @@ export function OfficialPublicationConfirm({
               {preview.snapshot.checkpoints.length} decision points. I consent
               to publishing exactly this copy with the visibility and author
               credit shown above.
+              {replacement &&
+                ' I also consent to withdrawing the selected previous published copy and replacing it with this new link.'}
             </span>
           </label>
           <button
@@ -279,7 +323,9 @@ export function OfficialPublicationConfirm({
             disabled={busy || !ack || expired}
             onClick={() => void confirm()}
           >
-            Confirm publication
+            {replacement
+              ? 'Confirm replacement and publication'
+              : 'Confirm publication'}
           </button>
         </>
       )}

@@ -19,6 +19,7 @@ export * from './public-metrics';
 export * from './public-metrics-maintenance';
 export * from './public-collections';
 export * from './public-exposure';
+export * from './publication-refresh';
 export {
   publicMetricsConfigFromEnv,
   type PublicMetricsConfig,

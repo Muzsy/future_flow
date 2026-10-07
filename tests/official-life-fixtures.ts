@@ -144,15 +144,18 @@ export async function officialBundleFixture(
   f: Awaited<ReturnType<typeof officialLifeFixture>>,
   created: { branchId: string },
   reviewAccounted = true,
+  editedTitle?: string,
 ) {
   const lives = new LifeRepository(db),
     drafts = new PublicDraftRepository(db),
     workspace = await drafts.workspace(f.owner, created.branchId);
+  const copy = structuredClone(workspace.source.copy);
+  if (editedTitle !== undefined) copy.title = editedTitle;
   const preview = await drafts.prepare(
     f.owner,
     created.branchId,
     workspace.source.sourceRevision,
-    workspace.source.copy,
+    copy,
     randomUUID(),
   );
   const bundle = await new PublicContentRepository(db, true).save(

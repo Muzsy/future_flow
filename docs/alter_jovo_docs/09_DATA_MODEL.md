@@ -1,9 +1,9 @@
 # alterward — adatmodell és migráció
 
 
-## Aktuális: külső indexelés és megosztási előnézet
+## Aktuális: explicit snapshotfrissítés
 
-P10 explicit külső engedély elkészült: default none, preview/noindex és index+preview; Community own opt-in, Official trusted curator és own revoke. Exact publication hash/revision + permission CAS/immutable audit, teljes live EN/Official reader minden metaadat/kép/sitemap kérésnél. 030 két RLS-tábla, saját export és cascade; PUBLIC_EXTERNAL_EXPOSURE_ENABLED=false. Angol panel, dynamic OG/canonical/robots, 1200×630 code-native PNG és bounded live sitemap, browser/API/CDN no-store. Helyi teljes check 525/45/build, 130 séma; régi 124/001–029 változatlan, dev DB 001–030 repeat, 67 aw_/67 RLS. 33 valódi Auth/production HTTP/PG/CLI ellenőrzés és actual cleanup sikeres; PNG vizuálisan átnézve. Genuine private export és provider ledgers változatlanok, új paid AI 0. 8ca6231 collection verify/container CI sikeres; új 030 runtime CI még ellenőrizendő. Következő P11 snapshot refresh/owner privacy workflow, P12 public fork/scenario personalization, P13 kínálat/quality/usage/release; pozitív interaktív UI és Trending/Most Forked külön kapu. P01–P13/S0–S7/retention/backup/email/Contabo/Cloudflare/éles allowance teljes scope megmarad; folyamatos haladás az élesítésig. [Bizonyíték és határ](../EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md).
+P11 explicit snapshot refresh elkészült: új teljes AI/curator által ellenőrzött copy + régi aktív példány withdraw egy tranzakcióban, eltérő új slug/token; nincs snapshot-átírás, redirect vagy külső grant-öröklés. Same-owner/same-private-branch és exact old revision/hash/new preview binding, consent, default PUBLICATION_REFRESH_ENABLED=false. Official új exact origin grantet kér. Immutable 031/RLS/own export/cascade, angol külön replacement választás és Confirm. Teljes check 535/46/build, 133 séma, régi 130/001–030 változatlan; dev DB 001–031 repeat, 68 aw_/68 RLS. 25 sikeres valódi kétfiókos Supabase Auth/HTTP/TLS ellenőrzés és actual cleanup, seed export/ledgers változatlan, új paid AI 0. A 030 pontos 63d49f4 CI verify/container sikeres; az új 031 runtime CI még ellenőrizendő. Következő P11 egyetlen élet törlése/owner privacy, P12 public fork/scenario personalization, P13 release; pozitív interaktív UI és retention/backup/email/Contabo/Cloudflare/éles allowance teljes scope megmarad. [Bizonyíték és határ](../PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).
 
 **2026-10-04-i kiinduló állapot (történeti):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap, AI-pre-screen és szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
@@ -159,3 +159,8 @@ Discovery nem kap külön tartalommásolatot vagy új táblát: a 022/025 kiadá
 ## 2026-10-07: külön külső előnézet és indexelés
 
 030 aw_public_exposures + aw_public_exposure_actions, 67 aw_/67 RLS és 130 schema. Publication pointer/revision/hash, három explicit mode és monotonic permission revision; action immutable és publication-delete cascade. Own export csak saját minimális beállítás/idő/binding; nem másol történetet vagy private canon. 001–029 és a régi 124 schema változatlan. [Bizonyíték](../EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md).
+
+
+## 2026-10-07: explicit új snapshot és korábbi visszavonás
+
+031 aw_publication_refreshes, owner composite FK old/new copy, exact preview/hash/request; immutable/RLS/revoke/cascade/minimal own export. Új slug/token, immutable snapshotok nem frissülnek helyben. [Bizonyíték](../PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).

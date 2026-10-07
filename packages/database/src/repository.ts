@@ -744,6 +744,16 @@ export class Repository {
               [userId],
             )
           : [];
+      const [refreshStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_publication_refreshes') IS NOT NULL AS present",
+      );
+      result.aw_publication_refreshes =
+        refreshStorage?.present === true
+          ? await tx.query(
+              'SELECT id,classification,previous_community_id,next_community_id,previous_official_id,next_official_id,previous_revision,previous_snapshot_hash,preview_id,preview_hash,created_at FROM aw_publication_refreshes WHERE user_id=$1 ORDER BY created_at,id',
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],
