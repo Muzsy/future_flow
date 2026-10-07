@@ -84,6 +84,33 @@ try {
   assert.equal(config.services.api.environment.DISCOVERY_ENABLED, 'false');
   assert.equal(config.services.api.environment.SAVED_LIVES_ENABLED, 'false');
   assert.equal(config.services.api.environment.PUBLIC_REPORTS_ENABLED, 'false');
+  for (const name of ['web', 'api', 'worker']) {
+    assert.equal(
+      config.services[name].environment.PUBLIC_EXTERNAL_EXPOSURE_ENABLED,
+      'false',
+    );
+    assert.equal(
+      config.services[name].environment.PUBLIC_EXPOSURE_OPERATOR_ENABLED,
+      undefined,
+    );
+  }
+  assert.equal(
+    config.services.web.environment.PUBLIC_SITE_URL,
+    'https://beta.example.com',
+  );
+  assert.equal(
+    config.services.web.environment.API_INTERNAL_URL,
+    'http://api:4000/api/public',
+  );
+  assert.equal(config.services.web.environment.DATABASE_URL, undefined);
+  assert.equal(
+    config.services.web.environment.SUPABASE_SERVICE_ROLE_KEY,
+    undefined,
+  );
+  assert.equal(
+    config.services.web.environment.PUBLICATION_LINK_SECRET,
+    undefined,
+  );
   assert.equal(
     config.services.api.environment.PUBLIC_REPORT_OPERATOR_ENABLED,
     undefined,

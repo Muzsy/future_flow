@@ -2,6 +2,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_EXPOSURE_VERSION,
+  publicExposureRequestSchema,
+  officialExposureRequestSchema,
+  publicExposureOwnerViewSchema,
+  publicExposureSchema,
+  publicExposureSitemapQuerySchema,
+  publicExposureSitemapSchema,
+} from './public-exposure';
+import {
   PUBLIC_COLLECTIONS_VERSION,
   publicCollectionRequestSchema,
   publicCollectionPageSchema,
@@ -163,6 +172,28 @@ import {
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
 const publicCollectionsDirectory = resolve(directory, 'public-collections');
+const publicExposureDirectory = resolve(directory, 'public-exposure');
+mkdirSync(publicExposureDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  request: publicExposureRequestSchema,
+  officialRequest: officialExposureRequestSchema,
+  ownerView: publicExposureOwnerViewSchema,
+  projection: publicExposureSchema,
+  sitemapQuery: publicExposureSitemapQuerySchema,
+  sitemap: publicExposureSitemapSchema,
+})) {
+  writeFileSync(
+    resolve(publicExposureDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-exposure:${name}:${PUBLIC_EXPOSURE_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(publicCollectionsDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   request: publicCollectionRequestSchema,

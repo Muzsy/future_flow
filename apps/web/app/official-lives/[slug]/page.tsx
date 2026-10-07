@@ -1,10 +1,13 @@
-import type { Metadata } from 'next';
+import { storyMetadata } from '../../../lib/public-exposure';
 import { OfficialPublicationReader } from '../../../components/official-publication-reader';
-export const metadata: Metadata = {
-  title: 'Official life · alterward',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  return slug.startsWith('official-') ? storyMetadata(slug) : storyMetadata('');
+}
 export default async function Page({
   params,
 }: {

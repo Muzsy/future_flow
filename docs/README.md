@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Külső indexelés és linkelőnézet](EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md) | Explicit own/Official curator permission, live OG/PNG/sitemap/no-store és 33 valódi Auth/production HTTP próba, 0 AI |
 | [Kurált nyilvános gyűjtemények](CURATED_PUBLIC_COLLECTIONS_REPORT_HU.md) | Featured/Community Picks/Turning Points, exact trusted selection és full live card; 28 valódi Auth/CLI/PG próba, egy genuine staging seed, 0 AI |
 | [Nyilvános aktivitás összesített mérése](PUBLIC_ACTIVITY_METRICS_REPORT_HU.md) | Rövid anonymous read/depth/end/share és sikeres szerverműveletek; UTC aggregate/worker-cleanup/own export, 31 valódi Auth/PG próba és 0 AI |
 | [Report és trusted moderáció](PUBLIC_REPORTS_AND_MODERATION_REPORT_HU.md) | Kilenc kategória/dedup/kvóta, tartós privát queue, warning/hide/remove és explicit restriction/restoration, saját notices/export/törlés; valódi Auth/CLI, 0 AI |

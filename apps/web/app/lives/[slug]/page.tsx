@@ -1,10 +1,13 @@
-import type { Metadata } from 'next';
+import { storyMetadata } from '../../../lib/public-exposure';
 import { PublicationReader } from '../../../components/publication-reader';
-export const metadata: Metadata = {
-  title: 'Community life · alterward',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  return slug.startsWith('life-') ? storyMetadata(slug) : storyMetadata('');
+}
 export default async function Page({
   params,
 }: {

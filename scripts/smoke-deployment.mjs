@@ -343,6 +343,16 @@ try {
   ])
     assert.equal(officialLife.publicCollections[proof], true);
   assert.equal(officialLife.publicCollections.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentExactPermissionOnce',
+    'competingPermissionRevisionOnce',
+    'explicitOwnerAndCuratorAuthority',
+    'boundedSitemapAndMinimalProjection',
+    'liveRevocationAndDeletionRecovery',
+    'deletionRaceCascadePrivateAudit',
+  ])
+    assert.equal(officialLife.publicExposure[proof], true);
+  assert.equal(officialLife.publicExposure.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -408,6 +418,31 @@ try {
     ]),
   );
   assert.equal(disabledCollections.error.code, 'PUBLIC_COLLECTIONS_DISABLED');
+  const sitemapXml = run('curl', [
+    ...curlArgs,
+    '--fail',
+    'https://localhost/sitemap.xml',
+  ]);
+  assert(sitemapXml.includes('<urlset'));
+  assert(!sitemapXml.includes('<url>'));
+  const disabledPreview = run('curl', [
+    ...curlArgs,
+    '-o',
+    '/dev/null',
+    '-w',
+    '%{http_code}',
+    'https://localhost/share-preview/life-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  ]);
+  assert.equal(disabledPreview, '404');
+  const noindexPage = run('curl', [
+    ...curlArgs,
+    '-D',
+    '-',
+    'https://localhost/lives/life-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  ]);
+  assert(noindexPage.includes('noindex'));
+  assert(noindexPage.toLowerCase().includes('cdn-cache-control: no-store'));
+  assert(!noindexPage.includes('property="og:title"'));
   assert.equal(
     run('curl', [
       ...curlArgs,
@@ -461,7 +496,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '29|0|0|0|0');
+  assert.equal(counts.trim(), '30|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -470,7 +505,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 29,
+      migrations: 30,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

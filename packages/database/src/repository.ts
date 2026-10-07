@@ -723,6 +723,27 @@ export class Repository {
               [userId],
             )
           : [];
+      const [exposureStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_exposures') IS NOT NULL AS present",
+      );
+      result.aw_public_exposures =
+        exposureStorage?.present === true
+          ? await tx.query(
+              `SELECT COALESCE(c.slug,o.slug) AS slug,e.publication_revision,e.snapshot_hash,e.permission_revision,e.mode,e.created_at,e.updated_at
+        FROM aw_public_exposures e LEFT JOIN aw_publications c ON c.id=e.community_publication_id LEFT JOIN aw_official_publications o ON o.id=e.official_publication_id
+        WHERE c.user_id=$1 OR o.user_id=$1 ORDER BY slug`,
+              [userId],
+            )
+          : [];
+      result.aw_public_exposure_actions =
+        exposureStorage?.present === true
+          ? await tx.query(
+              `SELECT COALESCE(c.slug,o.slug) AS slug,a.permission_revision,a.publication_revision,a.snapshot_hash,a.mode,a.created_at
+        FROM aw_public_exposure_actions a JOIN aw_public_exposures e ON e.id=a.exposure_id LEFT JOIN aw_publications c ON c.id=e.community_publication_id LEFT JOIN aw_official_publications o ON o.id=e.official_publication_id
+        WHERE c.user_id=$1 OR o.user_id=$1 ORDER BY slug,a.permission_revision`,
+              [userId],
+            )
+          : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

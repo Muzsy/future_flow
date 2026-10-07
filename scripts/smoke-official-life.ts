@@ -13,6 +13,7 @@ import {
   cleanupExpiredPublicReadings,
   publicMetricsSummary,
   PublicCollectionsRepository,
+  PublicExposureRepository,
   type Database,
 } from '@future-flow/database';
 import {
@@ -319,6 +320,112 @@ async function main() {
       );
     const cards = await discovery.list();
     assert.equal(cards.items.length, 2);
+    const exposure = new PublicExposureRepository(
+        db,
+        { enabled: true },
+        readerConfig,
+        readerConfig,
+      ),
+      exposureRequest = (
+        copy: { revision: number; snapshotHash: string },
+        mode: 'none' | 'preview' | 'index' = 'index',
+        permissionRevision = 0,
+      ) => ({
+        publicationRevision: copy.revision,
+        snapshotHash: copy.snapshotHash,
+        permissionRevision,
+        mode,
+        acknowledged: true,
+      });
+    await assert.rejects(exposure.project(communityPublication.slug));
+    const opted = await Promise.all(
+      [1, 2, 3].map(() =>
+        exposure.setOwner(
+          community.owner,
+          communityPublication.slug,
+          exposureRequest(communityPublication),
+        ),
+      ),
+    );
+    assert.deepEqual(opted[0], opted[1]);
+    assert.deepEqual(opted[1], opted[2]);
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_exposure_actions')).length,
+      1,
+    );
+    const permissionRace = await Promise.allSettled([
+      exposure.setOwner(
+        community.owner,
+        communityPublication.slug,
+        exposureRequest(communityPublication, 'preview', 1),
+      ),
+      exposure.setOwner(
+        community.owner,
+        communityPublication.slug,
+        exposureRequest(communityPublication, 'none', 1),
+      ),
+    ]);
+    assert.equal(
+      permissionRace.filter((r) => r.status === 'fulfilled').length,
+      1,
+    );
+    assert(
+      permissionRace
+        .filter((r) => r.status === 'rejected')
+        .every(
+          (r) =>
+            (r as PromiseRejectedResult).reason.code ===
+            'PUBLIC_EXPOSURE_CONFLICT',
+        ),
+    );
+    await exposure.setOwner(
+      community.owner,
+      communityPublication.slug,
+      exposureRequest(communityPublication, 'index', 2),
+    );
+    await assert.rejects(
+      exposure.setOwner(
+        other.owner,
+        secondPublication.slug,
+        exposureRequest(secondPublication),
+      ),
+    );
+    const officialExternal = {
+      ...exposureRequest(secondPublication),
+      slug: secondPublication.slug,
+      actorLabel: 'Isolated CI external curator',
+    };
+    const officialOpted = await Promise.all(
+      [1, 2, 3].map(() => exposure.setOfficial(officialExternal)),
+    );
+    assert.deepEqual(officialOpted[0], officialOpted[1]);
+    assert.deepEqual(officialOpted[1], officialOpted[2]);
+    const externalCard = await exposure.project(secondPublication.slug);
+    assert.equal(externalCard.classification, 'official');
+    assert.equal(externalCard.indexable, true);
+    assert(
+      !JSON.stringify(externalCard).includes(secondPublication.snapshotHash),
+    );
+    assert(!JSON.stringify(externalCard).includes(other.owner));
+    const externalPage1 = await exposure.sitemap({ limit: 1 }),
+      externalPage2 = await exposure.sitemap({
+        limit: 1,
+        cursor: externalPage1.nextCursor,
+      });
+    assert.equal(externalPage1.items.length, 1);
+    assert.equal(externalPage2.items.length, 1);
+    assert.equal(externalPage2.nextCursor, null);
+    await new PublicExposureRepository(db).setOwner(
+      community.owner,
+      communityPublication.slug,
+      exposureRequest(communityPublication, 'none', 3),
+    );
+    await assert.rejects(exposure.project(communityPublication.slug));
+    await exposure.setOwner(
+      community.owner,
+      communityPublication.slug,
+      exposureRequest(communityPublication, 'index', 4),
+    );
     const collections = new PublicCollectionsRepository(
         db,
         { enabled: true },
@@ -738,6 +845,8 @@ async function main() {
       safety.report(f.owner, secondPublication.slug, { reason: 'harassment' }),
     );
     await other.repo.restoreActive(other.owner);
+    await assert.rejects(exposure.project(secondPublication.slug));
+    assert.deepEqual((await exposure.sitemap({})).items, []);
     assert.equal(
       (await publications.confirm(other.owner, secondConfirm, secondKey))
         .status,
@@ -805,8 +914,19 @@ async function main() {
         acknowledged: true,
       }),
       new Repository(db).deleteAccountData(deletionCandidate.owner),
+      exposure.setOwner(
+        deletionCandidate.owner,
+        deletionCopy.slug,
+        exposureRequest(deletionCopy),
+      ),
     ]);
     assert.equal(activeCurationDeletion[1]!.status, 'fulfilled');
+    if (activeCurationDeletion[2]!.status === 'rejected')
+      assert.equal(
+        (activeCurationDeletion[2] as PromiseRejectedResult).reason.status,
+        404,
+      );
+    await assert.rejects(exposure.project(deletionCopy.slug));
     if (activeCurationDeletion[0]!.status === 'rejected')
       assert.equal(
         (activeCurationDeletion[0] as PromiseRejectedResult).reason.status,
@@ -822,6 +942,8 @@ async function main() {
       0,
     );
     for (const table of [
+      'aw_public_exposures',
+      'aw_public_exposure_actions',
       'aw_public_collections',
       'aw_public_collection_entries',
       'aw_public_collection_actions',
@@ -844,8 +966,26 @@ async function main() {
       );
       assert.deepEqual(guard, { rls: true, anon: false, client: false });
     }
+    const [exposureAudit] = await db.query<{ id: string }>(
+      'SELECT id FROM aw_public_exposure_actions LIMIT 1',
+    );
+    assert.ok(exposureAudit);
+    await assert.rejects(
+      db.query(
+        "UPDATE aw_public_exposure_actions SET mode='none' WHERE id=$1",
+        [exposureAudit.id],
+      ),
+    );
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_exposures')).length,
+      0,
+    );
+    assert.equal(
+      (await db.query('SELECT id FROM aw_public_exposure_actions')).length,
+      0,
+    );
     assert.equal(
       (await db.query('SELECT id FROM aw_public_metrics_daily')).length,
       0,
@@ -943,6 +1083,15 @@ async function main() {
           officialCommunityEligibility: true,
           liveWithdrawalDeletionRace: true,
           publisherCascadePrivateRlsImmutableAudit: true,
+          actualProviderCalls: 0,
+        },
+        publicExposure: {
+          concurrentExactPermissionOnce: true,
+          competingPermissionRevisionOnce: true,
+          explicitOwnerAndCuratorAuthority: true,
+          boundedSitemapAndMinimalProjection: true,
+          liveRevocationAndDeletionRecovery: true,
+          deletionRaceCascadePrivateAudit: true,
           actualProviderCalls: 0,
         },
         savedLives: {

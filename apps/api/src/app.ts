@@ -110,6 +110,7 @@ import { createSavedLivesController } from './saved-lives';
 import { createPublicSafetyController } from './public-safety';
 import { createPublicMetricsController } from './public-metrics';
 import { createPublicCollectionsController } from './public-collections';
+import { createPublicExposureControllers } from './public-exposure';
 import {
   officialPublicationConfigFromEnv,
   type OfficialPublicationConfig,
@@ -123,6 +124,8 @@ import {
   type PublicMetricsConfig,
   publicCollectionsConfigFromEnv,
   type PublicCollectionsConfig,
+  publicExposureConfigFromEnv,
+  type PublicExposureConfig,
 } from '@future-flow/database';
 import {
   createSharedContextController,
@@ -880,6 +883,7 @@ export async function createApp(
   publicReportsConfig: PublicReportsConfig = publicReportsConfigFromEnv(),
   publicMetricsConfig: PublicMetricsConfig = publicMetricsConfigFromEnv(),
   publicCollectionsConfig: PublicCollectionsConfig = publicCollectionsConfigFromEnv(),
+  publicExposureConfig: PublicExposureConfig = publicExposureConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -888,6 +892,13 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      ...createPublicExposureControllers(
+        AuthGuard,
+        REPOSITORY,
+        publicExposureConfig,
+        publicationConfig,
+        officialPublicationConfig,
+      ),
       createPublicCollectionsController(
         REPOSITORY,
         publicCollectionsConfig,
@@ -982,6 +993,8 @@ export async function createApp(
     );
     response.setHeader('X-Request-Id', request.requestId);
     response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('CDN-Cache-Control', 'no-store');
+    response.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
     response.setHeader('Referrer-Policy', 'no-referrer');
     if (request.path.startsWith('/api/public/'))
       response.setHeader('X-Robots-Tag', 'noindex, nofollow');

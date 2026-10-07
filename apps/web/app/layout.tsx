@@ -12,6 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translate(locale, 'metadata.title'),
     description: translate(locale, 'metadata.description'),
+    robots: { index: false, follow: false, noarchive: true },
+    referrer: 'no-referrer',
   };
 }
 export default async function RootLayout({
