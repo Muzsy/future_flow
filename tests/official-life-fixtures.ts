@@ -8,6 +8,7 @@ import {
   LifeRepository,
   LifeJobRepository,
   PublicDraftRepository,
+  PublicForkCheckpointRepository,
   PublicContentRepository,
   PublicContentReviewJobRepository,
   PublicContentCurationRepository,
@@ -24,8 +25,8 @@ import {
   scenarioGrant,
   scenarioReleaseTestConfig,
 } from './scenario-release-fixtures';
-export async function officialLifeFixture(db: Database) {
-  const f = await scenarioReleaseFixture(db);
+export async function officialLifeFixture(db: Database, owner?: string) {
+  const f = await scenarioReleaseFixture(db, owner);
   const completed = await completeScenarioFixture(db, f, true);
   const curated = await f.release.decide(scenarioDecision(f, completed.view));
   const source = await f.release.grant(scenarioGrant(f, curated));
@@ -145,6 +146,7 @@ export async function officialBundleFixture(
   created: { branchId: string },
   reviewAccounted = true,
   editedTitle?: string,
+  includeCheckpoint = false,
 ) {
   const lives = new LifeRepository(db),
     drafts = new PublicDraftRepository(db),
@@ -158,13 +160,30 @@ export async function officialBundleFixture(
     copy,
     randomUUID(),
   );
+  const selectedCheckpointIds: string[] = [];
+  if (includeCheckpoint) {
+    const forks = new PublicForkCheckpointRepository(db, true),
+      [candidate] = await forks.candidates(f.owner, preview.draftId);
+    if (!candidate) throw Error('Technical fork checkpoint missing');
+    const saved = await forks.save(
+      f.owner,
+      preview.draftId,
+      {
+        snapshotHash: preview.snapshotHash,
+        sourceRevision: preview.sourceRevision,
+        checkpoint: candidate.checkpoint,
+      },
+      randomUUID(),
+    );
+    selectedCheckpointIds.push(saved.checkpointId);
+  }
   const bundle = await new PublicContentRepository(db, true).save(
     f.owner,
     preview.draftId,
     {
       snapshotHash: preview.snapshotHash,
       sourceRevision: preview.sourceRevision,
-      selectedCheckpointIds: [],
+      selectedCheckpointIds,
       acknowledged: true,
     },
     randomUUID(),

@@ -20,9 +20,11 @@ export const scenarioReleaseTestConfig = {
   projectUsd: 5,
   userUsd: 1,
 };
-export async function scenarioReleaseFixture(db: Database) {
-  const owner = randomUUID(),
-    repo = new Repository(db);
+export async function scenarioReleaseFixture(
+  db: Database,
+  owner: string = randomUUID(),
+) {
+  const repo = new Repository(db);
   await repo.ensureUser(owner);
   await repo.acceptPrivacy(owner);
   const scenarios = new ScenarioRepository(db, true),

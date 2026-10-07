@@ -83,6 +83,19 @@ try {
   assert.equal(config.services.api.environment.PUBLICATIONS_ENABLED, 'false');
   assert.equal(config.services.api.environment.DISCOVERY_ENABLED, 'false');
   assert.equal(config.services.api.environment.SAVED_LIVES_ENABLED, 'false');
+  for (const flag of [
+    'PUBLIC_FORK_PERMISSION_ENABLED',
+    'PUBLIC_FORK_STARTS_ENABLED',
+  ]) {
+    for (const name of ['api', 'worker'])
+      assert.equal(config.services[name].environment[flag], 'false');
+    assert.equal(config.services.web.environment[flag], undefined);
+  }
+  for (const name of ['web', 'api', 'worker'])
+    assert.equal(
+      config.services[name].environment.PUBLIC_FORK_OPERATOR_ENABLED,
+      undefined,
+    );
   assert.equal(config.services.api.environment.PUBLIC_REPORTS_ENABLED, 'false');
   for (const name of ['api', 'worker'])
     assert.equal(

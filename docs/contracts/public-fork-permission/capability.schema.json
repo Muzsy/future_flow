@@ -1,0 +1,111 @@
+{
+  "$id": "urn:alterward:public-fork-permission:capability:public-fork-permission-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "public-fork-permission-1"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^(life|official)-[a-f0-9]{32}$"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "community",
+        "official"
+      ]
+    },
+    "contentLocale": {
+      "type": "string",
+      "const": "en"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160
+    },
+    "capabilityHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "permissionRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "startsEnabled": {
+      "type": "boolean"
+    },
+    "checkpoints": {
+      "minItems": 1,
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 11
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "options": {
+            "minItems": 2,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "pattern": "^option-[1-9][0-9]{0,2}$"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 160
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "index",
+          "prompt",
+          "options"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "slug",
+    "classification",
+    "contentLocale",
+    "title",
+    "capabilityHash",
+    "permissionRevision",
+    "startsEnabled",
+    "checkpoints"
+  ],
+  "additionalProperties": false
+}

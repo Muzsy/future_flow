@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import type { PublicationOwnerView } from '@future-flow/contracts';
 import { lifeApi } from '../lib/client';
 import { ExternalExposureControls } from './external-exposure-controls';
+import { PublicForkPermissionControls } from './public-fork-permission-controls';
 import {
   verifiedOwnedPublication,
   publicationLink,
@@ -80,6 +81,14 @@ export function PublicationControls({
         Your private life can continue independently. This published copy stays
         unchanged.
       </p>
+      {view.settings.visibility === 'public' && (
+        <PublicForkPermissionControls
+          slug={view.slug}
+          publicationRevision={view.revision}
+          snapshotHash={view.snapshotHash}
+          active={view.status === 'active'}
+        />
+      )}
       {view.settings.visibility === 'public' && (
         <ExternalExposureControls
           slug={view.slug}

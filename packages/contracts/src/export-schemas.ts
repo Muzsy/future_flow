@@ -2,6 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_FORK_PERMISSION_VERSION,
+  publicForkPermissionRequestSchema,
+  officialForkPermissionRequestSchema,
+  publicForkPermissionOwnerSchema,
+  publicForkCapabilitySchema,
+} from './public-fork-permission';
+import {
   lifeDeletionRequestSchema,
   lifeDeletionReceiptSchema,
 } from './life-deletion';
@@ -181,6 +188,25 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const forkPermissionDirectory = resolve(directory, 'public-fork-permission');
+mkdirSync(forkPermissionDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  request: publicForkPermissionRequestSchema,
+  officialRequest: officialForkPermissionRequestSchema,
+  ownerView: publicForkPermissionOwnerSchema,
+  capability: publicForkCapabilitySchema,
+}))
+  writeFileSync(
+    resolve(forkPermissionDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-fork-permission:${name}:${PUBLIC_FORK_PERMISSION_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 const publicCollectionsDirectory = resolve(directory, 'public-collections');
 const publicExposureDirectory = resolve(directory, 'public-exposure');
 const publicationRefreshDirectory = resolve(directory, 'publication-refresh');

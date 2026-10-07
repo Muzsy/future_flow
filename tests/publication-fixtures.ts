@@ -27,7 +27,10 @@ export const publicationReviewConfig = {
   projectUsd: 5,
   userUsd: 1,
 };
-export async function publicationFixture(db: Database, owner = randomUUID()) {
+export async function publicationFixture(
+  db: Database,
+  owner: string = randomUUID(),
+) {
   const repo = new Repository(db);
   await repo.ensureUser(owner);
   await repo.acceptPrivacy(owner);

@@ -745,11 +745,30 @@ export class Repository {
               [userId],
             )
           : [];
-      const [refreshStorage] = await tx.query(
+      const [forkPermissionStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_fork_permissions') IS NOT NULL AS present",
+      );
+      result.aw_public_fork_permissions = forkPermissionStorage?.present
+        ? await tx.query(
+            `SELECT COALESCE(c.slug,o.slug) AS slug,f.publication_revision,f.snapshot_hash,f.permission_revision,f.allowed,f.created_at,f.updated_at
+         FROM aw_public_fork_permissions f LEFT JOIN aw_publications c ON c.id=f.community_publication_id LEFT JOIN aw_official_publications o ON o.id=f.official_publication_id
+         WHERE c.user_id=$1 OR o.user_id=$1 ORDER BY slug`,
+            [userId],
+          )
+        : [];
+      result.aw_public_fork_permission_actions = forkPermissionStorage?.present
+        ? await tx.query(
+            `SELECT COALESCE(c.slug,o.slug) AS slug,a.permission_revision,a.publication_revision,a.snapshot_hash,a.allowed,a.created_at
+         FROM aw_public_fork_permission_actions a JOIN aw_public_fork_permissions f ON f.id=a.permission_id LEFT JOIN aw_publications c ON c.id=f.community_publication_id LEFT JOIN aw_official_publications o ON o.id=f.official_publication_id
+         WHERE c.user_id=$1 OR o.user_id=$1 ORDER BY slug,a.permission_revision`,
+            [userId],
+          )
+        : [];
+      const [publicationRefreshStorage] = await tx.query(
         "SELECT to_regclass('public.aw_publication_refreshes') IS NOT NULL AS present",
       );
       result.aw_publication_refreshes =
-        refreshStorage?.present === true
+        publicationRefreshStorage?.present === true
           ? await tx.query(
               'SELECT id,classification,previous_community_id,next_community_id,previous_official_id,next_official_id,previous_revision,previous_snapshot_hash,preview_id,preview_hash,created_at FROM aw_publication_refreshes WHERE user_id=$1 ORDER BY created_at,id',
               [userId],

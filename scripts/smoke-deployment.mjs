@@ -376,6 +376,17 @@ try {
   ])
     assert.equal(officialLife.lifeDeletion[proof], true);
   assert.equal(officialLife.lifeDeletion.actualProviderCalls, 0);
+  for (const proof of [
+    'concurrentExactConsentOnce',
+    'competingConsentRevisionOnce',
+    'reviewedMinimalChoicesAndPrivateCanon',
+    'refreshRequiresIndependentConsent',
+    'officialCuratorRevokeAndSourceRevocation',
+    'physicalLifeDeletionRaceCascadePrivateAudit',
+  ])
+    assert.equal(officialLife.publicForkPermission[proof], true);
+  assert.equal(officialLife.publicForkPermission.actualProviderCalls, 0);
+  assert.equal(officialLife.publicForkPermission.actualOfficialSeed, false);
   compose(
     'up',
     '-d',
@@ -521,7 +532,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '32|0|0|0|0');
+  assert.equal(counts.trim(), '33|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -530,7 +541,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 32,
+      migrations: 33,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

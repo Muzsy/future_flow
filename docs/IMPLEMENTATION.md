@@ -1,9 +1,9 @@
 # alterward — jelenlegi implementáció, 2026-10-06
 
 
-## Aktuális: külön saját élet törlése
+## Aktuális: külön nyilvános fork-hozzájárulás
 
-P11 külön egész-élet törlés elkészült: saját life + aktuális branch/revision, gépelt DELETE LIFE, friss verified Auth, pontos idempotens retry. Minden saját ág/fejezet/választás/job/preview/review/kiadás/refresh/token/save/external jog cascade; másik élet és account aktív marad. Az adott élet Shared-tagsága leválik; érintett próza rejtett, dátum/eredmény/canon változatlan, unsafe personal/shared input és lease érvénytelen. A törlés nem nulláz napi kvótát: 032 csak kind/admitted_at, legfeljebb 24h + worker 15m; RLS/immutable/minimal export/account-cascade. Teljes check 544/47/build, 135 séma; régi 133/001–031 változatlan. Dev DB 001–032 repeat, 69 aw_/69 RLS. 26 valódi kétfiókos Auth/HTTP/TLS ellenőrzés és actual cleanup, genuine seed/ledgers változatlan, paid AI 0. A 031 pontos c36abdd CI verify/container és hét PG-proof sikeres; az új 032 runtime CI még ellenőrizendő. Következő P12 public fork/scenario personalization; P11 teljes privacy/retention/pozitív UI, P13 és Shared/backup/email/Contabo/Cloudflare/éles allowance megmarad. [Bizonyíték és határ](SELECTIVE_LIFE_DELETION_REPORT_HU.md).
+P12 külön fork-hozzájárulás elkészült: Community tulajdonosi opt-in, Official kurátori engedély és tulajdonosi visszavonás. Az engedély a konkrét ellenőrzött kiadáshoz és revízióhoz kötött; a régi snapshot változatlan, frissítéskor nem öröklődik. Az anonim végpont csak ellenőrzött döntési feliratokat ad, privát azonosítókat nem. A tényleges új privát élet indítása még zárt, ez a következő feladat. Teljes helyi check: 552 teszt/48 fájl/build, 139 séma; dev 001–033 + ismétlés, 71 aw_/71 RLS, 37 valódi Auth/HTTP/CLI/TLS ellenőrzés és fióktakarítás, új paid AI 0. A javított 032 runtime 9a7ecf7 CI verify/container sikeres, hét élet-törlési PG-proof lezárult; az új 033 pontos CI még ellenőrizendő. A teljes P11 privacy/retention, P12 start/personalization/attribution, P13, Shared és üzemeltetési terv megmarad; Contabo élesítés még nem történt. [Bizonyíték és határ](PUBLIC_FORK_PERMISSION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -242,3 +242,8 @@ PublicationRefreshRepository/controller és angol replacement választás/Confir
 ## 2026-10-07: saját élet törlése és kvótamegőrzés
 
 LifeDeletionRepository/controller/angol own panel, két life-deletion-1 schema és 032. 544/47/full build/135, 26 actual Auth/TLS proof; local whole graph/input/no-resurrection/TTL/minimal export és CI verseny proof. Pozitív UI, 032 CI és éles Contabo még külön kapu. [Bizonyíték](SELECTIVE_LIFE_DELETION_REPORT_HU.md).
+
+
+## 2026-10-07: külön fork-hozzájárulás
+
+PublicForkPermissionRepository, két controller, angol külön consent panel és protected Official CLI. 552/48/full build/139 és valódi kétfiókos Auth/CLI/cleanup, 0 AI. Start engine és 033 exact CI következik. [Bizonyíték](PUBLIC_FORK_PERMISSION_REPORT_HU.md).

@@ -26,6 +26,7 @@ export {
 } from './public-metric-recording';
 export * from './life-jobs';
 export * from './life-deletion';
+export * from './public-fork-permissions';
 export * from './ai-budget';
 export * from './metrics';
 export * from './public-drafts';

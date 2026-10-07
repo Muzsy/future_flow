@@ -15,6 +15,7 @@ import {
 export async function officialRefreshFixture(
   db: Database,
   config: PublicationConfig,
+  includeCheckpoint = false,
 ) {
   const f = await officialLifeFixture(db),
     created = await f.official.start(f.owner, f.startRequest, randomUUID());
@@ -23,7 +24,14 @@ export async function officialRefreshFixture(
     enabled: false,
   });
   async function prepare(editedTitle?: string) {
-    const copy = await officialBundleFixture(db, f, created, true, editedTitle),
+    const copy = await officialBundleFixture(
+        db,
+        f,
+        created,
+        true,
+        editedTitle,
+        includeCheckpoint,
+      ),
       inspected = await f.official.inspect(f.owner, copy.bundle.bundleId),
       grant = await f.official.grant(f.owner, officialGrant(inspected)),
       preview = await pubs.prepare(

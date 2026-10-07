@@ -359,6 +359,7 @@ export * from './public-collections';
 export * from './public-exposure';
 export * from './publication-refresh';
 export * from './life-deletion';
+export * from './public-fork-permission';
 export * from './beta';
 export * from './shared-context';
 export * from './shared-engine';
