@@ -10,6 +10,7 @@ import { ShareLifeButton } from './share-life-button';
 import { PublicReportForm } from './public-report-form';
 import { usePublicReading } from '../lib/public-reading';
 import { PublicReadingProgress } from './public-reading-progress';
+import { PublicForkLauncher } from './public-fork-launcher';
 export function PublicationReader({ slug }: { slug?: string }) {
   const [view, setView] = useState<Reader | null>(null),
     [notice, setNotice] = useState('Loading this life…');
@@ -132,6 +133,7 @@ export function PublicationReader({ slug }: { slug?: string }) {
               <PublicationContent snapshot={view.snapshot} />
             </div>
             {slug && <SaveLifeButton slug={slug} />}
+            {slug && <PublicForkLauncher slug={slug} />}
             {slug && <ShareLifeButton slug={slug} onSignal={emit} />}
             {slug && <PublicReportForm slug={slug} />}
           </>

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { publicationRefreshProof } from './lib/publication-refresh-proof';
 import { lifeDeletionProof } from './lib/life-deletion-proof';
 import { publicForkPermissionProof } from './lib/public-fork-permission-proof';
+import { publicForkStartProof } from './lib/public-fork-start-proof';
 import {
   connectDatabase,
   Repository,
@@ -957,9 +958,12 @@ async function main() {
     const publicationRefresh = await publicationRefreshProof(db);
     const lifeDeletion = await lifeDeletionProof(db);
     const publicForkPermission = await publicForkPermissionProof(db);
+    const publicForkStart = await publicForkStartProof(db);
     for (const table of [
       'aw_publication_refreshes',
       'aw_public_fork_permissions',
+      'aw_public_fork_starts',
+      'aw_initial_choices',
       'aw_public_fork_permission_actions',
       'aw_public_exposures',
       'aw_public_exposure_actions',
@@ -1044,6 +1048,7 @@ async function main() {
         publicationRefresh,
         lifeDeletion,
         publicForkPermission,
+        publicForkStart,
         prospectiveConcurrentStartOnce: true,
         completeChainAndRepairEvidence: true,
         concurrentExactGrantOnce: true,

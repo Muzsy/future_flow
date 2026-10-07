@@ -6,6 +6,8 @@ import {
   lifeDraftV2Schema,
   lifeInteractionV2Schema,
   lifeStateV2Schema,
+  periodCandidateV2Schema,
+  publicForkInitialChoiceSchema,
   supportedLocales,
   type LifeInputV2,
   type LifeSetupV2,
@@ -20,6 +22,7 @@ import {
   applyFactChangesV2,
   hash,
   validateLifeInputV2,
+  type instantiateForkCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
 import { activitySession } from './beta';
@@ -275,6 +278,7 @@ export class LifeRepository {
     );
     return {
       branch,
+      initialChoice: await this.initialChoice(userId, branch.life_id),
       periods,
       branches: await this.db.query(
         'SELECT id,name,parent_branch_id,status FROM aw_branches WHERE life_id=$1 AND user_id=$2 ORDER BY created_at',
@@ -338,10 +342,91 @@ export class LifeRepository {
       this.persistPrepared(tx, userId, input),
     );
   }
+  // Trusted materialized public checkpoint only. The browser never supplies this DTO.
+  async createPreparedFork(
+    userId: string,
+    raw: ReturnType<typeof instantiateForkCheckpoint>,
+    key: string,
+  ) {
+    const input = validateLifeInputV2(raw.input),
+      stateBefore = lifeStateV2Schema.parse(raw.stateBefore),
+      decision = periodCandidateV2Schema.shape.events.element.shape.decision
+        .unwrap()
+        .parse(raw.decision),
+      option = decision.options.find((o) => o.id === raw.choice.optionId);
+    if (
+      input.locale !== 'en' ||
+      !option ||
+      decision.id !== raw.choice.decisionId ||
+      stateBefore.effectiveAt !== input.initialState.effectiveAt
+    )
+      throw new DomainError(
+        'PUBLIC_FORK_START_CONFLICT',
+        'Invalid initial choice.',
+        409,
+      );
+    const state = applyFactChangesV2(
+      stateBefore,
+      option.changes,
+      stateBefore.effectiveAt,
+      option.preconditions,
+      input.constraints,
+      {
+        lifeId: input.lifeId,
+        branchId: input.branchId,
+        acceptedDecisionIds: [decision.id],
+      },
+    ).state;
+    if (hash(state) !== hash(input.initialState))
+      throw new DomainError(
+        'PUBLIC_FORK_START_CONFLICT',
+        'Initial choice was not applied exactly once.',
+        409,
+      );
+    const initial = { stateBefore, decision, option };
+    return this.once(
+      userId,
+      'v2:prepared-public-fork',
+      key,
+      { input, ...initial },
+      (tx) => this.persistPrepared(tx, userId, input, initial),
+    );
+  }
+  private async initialChoice(userId: string, lifeId: string) {
+    const [storage] = await this.db.query(
+      "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
+    );
+    if (!storage?.present) return null;
+    const [choice] = await this.db.query<{
+      decision_id: string;
+      option_id: string;
+      prompt: string;
+      payload: { label: string; description: string };
+      created_at: Date;
+    }>(
+      'SELECT decision_id,option_id,prompt,payload,created_at FROM aw_initial_choices WHERE life_id=$1 AND user_id=$2',
+      [lifeId, userId],
+    );
+    return choice
+      ? publicForkInitialChoiceSchema.parse({
+          decisionId: choice.decision_id,
+          optionId: choice.option_id,
+          prompt: choice.prompt,
+          label: choice.payload.label,
+          description: choice.payload.description,
+          chosenAt: new Date(choice.created_at).toISOString(),
+        })
+      : null;
+  }
   private async persistPrepared(
     tx: Database,
     userId: string,
     input: LifeInputV2,
+    initial?: {
+      stateBefore: LifeStateV2;
+      decision: NonNullable<LifeBranch['pending_decision']>;
+      option: NonNullable<LifeBranch['pending_decision']>['options'][number];
+    },
   ) {
     await tx.query(
       'INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,$3,$4,$5,$6)',
@@ -355,15 +440,31 @@ export class LifeRepository {
       ],
     );
     await tx.query(
-      'INSERT INTO aw_branches(id,user_id,life_id,name,state) VALUES($1,$2,$3,$4,$5)',
+      'INSERT INTO aw_branches(id,user_id,life_id,name,state,accepted_decision_ids) VALUES($1,$2,$3,$4,$5,$6)',
       [
         input.branchId,
         userId,
         input.lifeId,
         input.locale === 'hu' ? 'Az életem' : 'My life',
         JSON.stringify(input.initialState),
+        JSON.stringify(initial ? [initial.decision.id] : []),
       ],
     );
+    if (initial)
+      await tx.query(
+        'INSERT INTO aw_initial_choices(user_id,life_id,branch_id,decision_id,option_id,prompt,payload,state_before,state_after) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [
+          userId,
+          input.lifeId,
+          input.branchId,
+          initial.decision.id,
+          initial.option.id,
+          initial.decision.prompt,
+          JSON.stringify(initial.option),
+          JSON.stringify(initial.stateBefore),
+          JSON.stringify(input.initialState),
+        ],
+      );
     return this.queue(
       tx,
       userId,
@@ -398,9 +499,14 @@ export class LifeRepository {
       'SELECT p.events FROM aw_history h JOIN aw_periods p ON p.id=h.period_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 2',
       [branch.id, userId],
     );
+    const [initialChoiceStorage] = await tx.query(
+      "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
+    );
     const choices = await tx.query(
-      'SELECT decision_id,payload FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 10',
-      [branch.id, userId],
+      `SELECT decision_id,payload FROM (SELECT decision_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY created_at DESC LIMIT 10`,
+      initialChoiceStorage?.present
+        ? [branch.id, userId, branch.life_id]
+        : [branch.id, userId],
     );
     const state = lifeStateV2Schema.parse(branch.state);
     const sharedEvents = await personalSharedMemories(

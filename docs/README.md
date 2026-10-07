@@ -9,6 +9,7 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Saját privát élet nyilvános pontból](PUBLIC_FORK_START_REPORT_HU.md) | Explicit választásból új saját élet, normál AI-job/kvóta, kezdeti memória, leválasztható forrás és törlési tombstone |
 | [Külön fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) | Explicit Community/Official engedély, visszavonás és minimális döntési projection; start engine következik |
 | [Külön saját élet törlése](SELECTIVE_LIFE_DELETION_REPORT_HU.md) | Friss Auth/typed Confirm, egész graph/Shared/input/public cleanup, kvótamegőrzés és TTL |
 | [Explicit snapshotfrissítés](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md) | Új immutable copy/régi withdraw együtt; own/Official full grant, replay/rollback/Auth/export/törlés |

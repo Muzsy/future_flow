@@ -43,3 +43,8 @@ A 032 9a7ecf7 [CI](https://github.com/Muzsy/future_flow/actions/runs/37573794428
 ## Folytatás
 
 P12 cross-owner private start, választás egyszer, normál AI-job/kvóta, friss forrásellenőrzés/idempotencia/attribution, három időszak, majd Scenario személyre szabás és P13 mérések/minőség/indulás. Teljes P11 privacy/retention, S3 régi személyes próza/nyers backup/billing/grace/deadline, S4–S7 és P06 backup/restore/email/outage/Contabo/Cloudflare scope megmarad. Üzemeltetői név/kontakt és kisebb induló béta vagy teljes 50–100 élet/20–30 szcenárió kínálat külön keretének felhasználói döntése még folyamatban. [Terv](NEXT_STEPS.md).
+
+
+## 2026-10-07: CI lezárás és következő engine
+
+33bcd8a [CI](https://github.com/Muzsy/future_flow/actions/runs/37575063093) verify/container sikeres: 552/48/139, mind a hat consent PG-proof és 001–033 ismétlés, HTTPS/TLS/worker-stop, paid AI 0. A 033 starts=true korai tiltása ennek a történeti szeletnek a határa volt. Az új [034 privát indítási engine](PUBLIC_FORK_START_REPORT_HU.md) implementált; normál flag-ek továbbra false.

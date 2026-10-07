@@ -1,0 +1,61 @@
+{
+  "$id": "urn:alterward:public-fork-start:attribution:public-fork-start-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "public-fork-start-1"
+    },
+    "lifeId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "origin": {
+      "type": "string",
+      "const": "public_checkpoint"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "pattern": "^(life|official)-[a-f0-9]{32}$"
+            },
+            "classification": {
+              "type": "string",
+              "enum": [
+                "community",
+                "official"
+              ]
+            },
+            "title": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 160
+            }
+          },
+          "required": [
+            "slug",
+            "classification",
+            "title"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "lifeId",
+    "origin",
+    "source"
+  ],
+  "additionalProperties": false
+}

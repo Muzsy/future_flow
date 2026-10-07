@@ -1,0 +1,31 @@
+{
+  "$id": "urn:alterward:public-fork-start:request:public-fork-start-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "capabilityHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "checkpointIndex": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 11
+    },
+    "optionKey": {
+      "type": "string",
+      "pattern": "^option-[1-9][0-9]{0,2}$"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "capabilityHash",
+    "checkpointIndex",
+    "optionKey",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

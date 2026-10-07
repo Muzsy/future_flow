@@ -11,6 +11,7 @@ import {
   type PeriodCandidateV2,
   type PeriodChapterV2,
   type LifeStateV2,
+  type PublicForkInitialChoice,
 } from '@future-flow/contracts';
 import { api, lifeApi, ClientError, clientErrorMessage } from '../lib/client';
 import { lifeMessages } from '../lib/life-messages';
@@ -18,6 +19,7 @@ import { useLanguage } from './language-provider';
 import { trackLife, lifeSessionId } from '../lib/life-analytics';
 import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
+import { PublicForkOrigin } from './public-fork-origin';
 
 type Summary = {
   id: string;
@@ -27,6 +29,7 @@ type Summary = {
   status: string;
 };
 type Detail = {
+  initialChoice: PublicForkInitialChoice | null;
   branch: {
     id: string;
     life_id: string;
@@ -1001,6 +1004,13 @@ export function LifeExperience({
         disabled={busy}
         onDeleted={() => router.push('/lives')}
       />
+      {detail.initialChoice && (
+        <PublicForkOrigin
+          key={b.life_id}
+          lifeId={b.life_id}
+          initialChoice={detail.initialChoice}
+        />
+      )}
       {sharedUpdates.length > 0 && (
         <aside className="notice" aria-label="Shared updates">
           <p>

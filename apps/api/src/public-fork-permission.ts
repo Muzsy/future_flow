@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Inject,
   Param,
   Post,
@@ -18,10 +19,14 @@ import {
   publicForkPermissionRequestSchema,
   publicForkPermissionOwnerSchema,
   publicForkCapabilitySchema,
+  publicForkStartRequestSchema,
+  publicForkStartReceiptSchema,
+  publicForkAttributionSchema,
 } from '@future-flow/contracts';
 import {
   Repository,
   PublicForkPermissionRepository,
+  PublicForkStartRepository,
   type PublicForkPermissionConfig,
   type PublicationConfig,
 } from '@future-flow/database';
@@ -94,5 +99,50 @@ export function createPublicForkPermissionControllers(
       return this.forks.capability(slug);
     }
   }
-  return [OwnerForkPermissionController, ForkCapabilityController];
+  @Controller('api/v2/public-forks')
+  @UseGuards(guard)
+  @ApiBearerAuth()
+  class PublicForkStartController {
+    private readonly starts: PublicForkStartRepository;
+    constructor(@Inject(token) repo: Repository) {
+      this.starts = new PublicForkStartRepository(
+        repo.db,
+        config,
+        community,
+        official,
+      );
+    }
+    @Post(':slug')
+    @ApiBody({ schema: z.toJSONSchema(publicForkStartRequestSchema) as never })
+    @ApiOkResponse({
+      schema: z.toJSONSchema(publicForkStartReceiptSchema) as never,
+    })
+    start(
+      @Req() req: Request & { userId: string },
+      @Param('slug') slug: string,
+      @Body() body: unknown,
+      @Headers('idempotency-key') key: string | undefined,
+      @Query() raw: unknown,
+    ) {
+      z.object({}).strict().parse(raw);
+      return this.starts.start(req.userId, slug, body, key ?? '');
+    }
+    @Get('lives/:lifeId/source')
+    @ApiOkResponse({
+      schema: z.toJSONSchema(publicForkAttributionSchema) as never,
+    })
+    attribution(
+      @Req() req: Request & { userId: string },
+      @Param('lifeId') lifeId: string,
+      @Query() raw: unknown,
+    ) {
+      z.object({}).strict().parse(raw);
+      return this.starts.attribution(req.userId, lifeId);
+    }
+  }
+  return [
+    OwnerForkPermissionController,
+    ForkCapabilityController,
+    PublicForkStartController,
+  ];
 }

@@ -2,6 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_FORK_START_VERSION,
+  publicForkStartRequestSchema,
+  publicForkStartReceiptSchema,
+  publicForkAttributionSchema,
+  publicForkInitialChoiceSchema,
+} from './public-fork-start';
+import {
   PUBLIC_FORK_PERMISSION_VERSION,
   publicForkPermissionRequestSchema,
   officialForkPermissionRequestSchema,
@@ -188,6 +195,25 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const forkStartDirectory = resolve(directory, 'public-fork-start');
+mkdirSync(forkStartDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  request: publicForkStartRequestSchema,
+  receipt: publicForkStartReceiptSchema,
+  attribution: publicForkAttributionSchema,
+  initialChoice: publicForkInitialChoiceSchema,
+}))
+  writeFileSync(
+    resolve(forkStartDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-fork-start:${name}:${PUBLIC_FORK_START_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 const forkPermissionDirectory = resolve(directory, 'public-fork-permission');
 mkdirSync(forkPermissionDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

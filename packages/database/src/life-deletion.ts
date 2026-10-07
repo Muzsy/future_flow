@@ -152,6 +152,10 @@ export class LifeDeletionRepository {
         [branches.map((b) => b.id), userId],
       );
       await tx.query(
+        "UPDATE ff_idempotency SET response='{\"deleted\":true}'::jsonb WHERE user_id=$1 AND scope LIKE 'v2:public-fork:%' AND (response->>'lifeId'=$2 OR response->>'branchId'=ANY($3::text[]))",
+        [userId, lifeId, branches.map((b) => b.id)],
+      );
+      await tx.query(
         "DELETE FROM ff_idempotency WHERE user_id=$1 AND (response->>'lifeId'=$2 OR response->>'branchId'=ANY($3::text[]))",
         [userId, lifeId, branches.map((b) => b.id)],
       );

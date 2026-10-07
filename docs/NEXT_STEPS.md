@@ -1,9 +1,9 @@
 # alterward — következő lépések, sorrendben
 
 
-## Aktuális: külön nyilvános fork-hozzájárulás
+## Aktuális: saját élet nyilvános döntési pontból
 
-P12 külön fork-hozzájárulás elkészült: Community tulajdonosi opt-in, Official kurátori engedély és tulajdonosi visszavonás. Az engedély a konkrét ellenőrzött kiadáshoz és revízióhoz kötött; a régi snapshot változatlan, frissítéskor nem öröklődik. Az anonim végpont csak ellenőrzött döntési feliratokat ad, privát azonosítókat nem. A tényleges új privát élet indítása még zárt, ez a következő feladat. Teljes helyi check: 552 teszt/48 fájl/build, 139 séma; dev 001–033 + ismétlés, 71 aw_/71 RLS, 37 valódi Auth/HTTP/CLI/TLS ellenőrzés és fióktakarítás, új paid AI 0. A javított 032 runtime 9a7ecf7 CI verify/container sikeres, hét élet-törlési PG-proof lezárult; az új 033 pontos CI még ellenőrizendő. A teljes P11 privacy/retention, P12 start/personalization/attribution, P13, Shared és üzemeltetési terv megmarad; Contabo élesítés még nem történt. [Bizonyíték és határ](PUBLIC_FORK_PERMISSION_REPORT_HU.md).
+P12 nyilvános, teljesen ellenőrzött döntési pontból külön saját privát élet indítása elkészült. A választás egyszer alkalmazódik, friss saját azonosítók és normál AI-job/kvóta készül; három technikai időszakban megmarad a döntés emlékezete. Az eredeti élet változatlan, Official eredetengedély és élő Shared-tagság nem öröklődik. Visszavonás leállítja az új indításokat; fizikai forrástörlés csak a hivatkozást választja le. Saját élet törlése után a régi kérés nem hozhatja újra létre. Teljes helyi check 560 teszt/49 fájl/build, 143 séma; dev 001–034 és ismétlés, 73 aw_/73 RLS; 50 valódi Auth/HTTP/TLS ellenőrzés és fióktakarítás, új paid AI 0. A 033 33bcd8a verify/container CI sikeres; az új 034 pontos CI és valódi generatív fork-minőség még ellenőrizendő. Scenario személyre szabás, P13, P11 privacy/retention, Shared és üzemeltetési kapuk megmaradnak; Contabo élesítés még nem történt. [Bizonyíték és határ](PUBLIC_FORK_START_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -168,7 +168,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 **Elfogadás:** másik felhasználó forkja nem örököl privát előzményt vagy jogot; az eredeti élet változatlan. Döntésből indulás nem másol el nem döntött jövőt. Új élet privát és három időszakon át folytatható. Visszavont/rejtett forrásból nincs új fork; forrástörlés leválasztja a public attributiont a meglévő példányról. Kattintás, létrehozás és első sikeres időszak külön mérhető.
 
-**Függőség:** P03–P05, P09–P11. [Külön explicit fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) kész; a tényleges privát indítás még zárt. A mai saját branch API más tulajdonosi jelentésű; nem nyitjuk meg idegen privát ágakhoz.
+**Függőség:** P03–P05, P09–P11. [Külön explicit fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) kész; a [tényleges privát indítás](PUBLIC_FORK_START_REPORT_HU.md) is implementált, normál kiadási flag-ek false. A mai saját branch API más tulajdonosi jelentésű; nem nyitjuk meg idegen privát ágakhoz.
 
 ## P13 — Nyilvános indulási kapu és közösségi mérés
 
@@ -182,7 +182,7 @@ S0–S3 helyi fejlesztéshez nincs domainszükséglet. Entitlement megbízható 
 
 Reakció/követés, majd komment/szerzői profil a működő public/fork és moderáció után. Szimulációmélység, célok/élettípusok, szabad szöveges döntés/compare mérés alapján bővül. Alkotói szcenárió/analitika, billing, marketplace és mobil külön terv; Shared Context entitlement és S0–S6 fejlesztés már az új helyi szál része. Meglévő compare megőrizhető; bővítése nem előzi meg a folytatást.
 
-**Következő helyben:** P12 cross-owner private start; explicit fork-consent kész, majd scenario personalization és P13. Snapshot refresh és egész saját élet törlése/Shared input cleanup kész; P11 privacy/retention és interaktív UI/ops teljes kapuk megmaradnak. P10 explicit OG/index/permission/cache és három szerkesztett kollekció kész; pozitív interaktív UI még külön ellenőrzés. A hitelesített Save/public link/Report/trusted queue/warn-hide-remove/restriction és rövid anonim reading/napi szerverműveleti metrikák kész. Referral/public-fork/cohort külön P12–P13 kapu. A [Discovery első read-only API/UI szelete](DISCOVERY_FOUNDATION_REPORT_HU.md) és valódi seed/Auth/HTTP ellenőrzése kész; rendes feature-ek false. P11–P13, S3 retention/régi személyes próza/billing/grace/deadline, S4–S7 és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
+**Következő helyben:** P12 valódi generatív fork-minőség és Scenario személyre szabás; explicit consent és cross-owner start kész, majd scenario personalization és P13. Snapshot refresh és egész saját élet törlése/Shared input cleanup kész; P11 privacy/retention és interaktív UI/ops teljes kapuk megmaradnak. P10 explicit OG/index/permission/cache és három szerkesztett kollekció kész; pozitív interaktív UI még külön ellenőrzés. A hitelesített Save/public link/Report/trusted queue/warn-hide-remove/restriction és rövid anonim reading/napi szerverműveleti metrikák kész. Referral/public-fork/cohort külön P12–P13 kapu. A [Discovery első read-only API/UI szelete](DISCOVERY_FOUNDATION_REPORT_HU.md) és valódi seed/Auth/HTTP ellenőrzése kész; rendes feature-ek false. P11–P13, S3 retention/régi személyes próza/billing/grace/deadline, S4–S7 és ops/Contabo/Cloudflare/backup/email kapuk megmaradnak.
 
 ## Claude-mérés utáni AI-feladatok
 

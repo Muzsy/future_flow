@@ -746,9 +746,24 @@ export class Repository {
             )
           : [];
       const [forkPermissionStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_public_fork_starts') IS NOT NULL AS present",
+      );
+      result.aw_public_fork_starts = forkPermissionStorage?.present
+        ? await tx.query(
+            `SELECT s.life_id,s.branch_id,s.source_kind,COALESCE(c.slug,o.slug) AS source_slug,s.capability_hash,s.permission_revision,s.checkpoint_index,s.checkpoint_hash,s.option_key,s.created_at FROM aw_public_fork_starts s LEFT JOIN aw_publications c ON c.id=s.community_publication_id LEFT JOIN aw_official_publications o ON o.id=s.official_publication_id WHERE s.user_id=$1 ORDER BY s.created_at,s.life_id`,
+            [userId],
+          )
+        : [];
+      result.aw_initial_choices = forkPermissionStorage?.present
+        ? await tx.query(
+            'SELECT life_id,branch_id,decision_id,option_id,prompt,payload,state_before,state_after,created_at FROM aw_initial_choices WHERE user_id=$1 ORDER BY created_at,life_id',
+            [userId],
+          )
+        : [];
+      const [forkConsentStorage] = await tx.query(
         "SELECT to_regclass('public.aw_public_fork_permissions') IS NOT NULL AS present",
       );
-      result.aw_public_fork_permissions = forkPermissionStorage?.present
+      result.aw_public_fork_permissions = forkConsentStorage?.present
         ? await tx.query(
             `SELECT COALESCE(c.slug,o.slug) AS slug,f.publication_revision,f.snapshot_hash,f.permission_revision,f.allowed,f.created_at,f.updated_at
          FROM aw_public_fork_permissions f LEFT JOIN aw_publications c ON c.id=f.community_publication_id LEFT JOIN aw_official_publications o ON o.id=f.official_publication_id
@@ -756,7 +771,7 @@ export class Repository {
             [userId],
           )
         : [];
-      result.aw_public_fork_permission_actions = forkPermissionStorage?.present
+      result.aw_public_fork_permission_actions = forkConsentStorage?.present
         ? await tx.query(
             `SELECT COALESCE(c.slug,o.slug) AS slug,a.permission_revision,a.publication_revision,a.snapshot_hash,a.allowed,a.created_at
          FROM aw_public_fork_permission_actions a JOIN aw_public_fork_permissions f ON f.id=a.permission_id LEFT JOIN aw_publications c ON c.id=f.community_publication_id LEFT JOIN aw_official_publications o ON o.id=f.official_publication_id

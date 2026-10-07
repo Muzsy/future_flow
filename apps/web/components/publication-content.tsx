@@ -40,8 +40,8 @@ export function PublicationContent({
       <section className="panel" aria-label="Reviewed decision points">
         <h2>Decision points ({snapshot.checkpoints.length})</h2>
         <p>
-          These are the reviewed starting states and choices. Starting your own
-          life from them will be available later.
+          These are the reviewed starting states and choices. Starting a private
+          life requires separate permission for this published copy.
         </p>
         {snapshot.checkpoints.map((point, i) => (
           <details key={point.decision.key}>

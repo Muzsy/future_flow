@@ -1,6 +1,18 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_FORK_START_CONFLICT: [
+    'This story or its permission changed. Reload the decision points before starting your life.',
+    'This story or its permission changed. Reload the decision points before starting your life.',
+  ],
+  PUBLIC_FORK_START_DISABLED: [
+    'Starting a private life from this story is currently unavailable.',
+    'Starting a private life from this story is currently unavailable.',
+  ],
+  PUBLIC_FORK_START_DELETED: [
+    'The life created by this request was deleted. A new life requires a new explicit request.',
+    'The life created by this request was deleted. A new life requires a new explicit request.',
+  ],
   PUBLIC_CONTENT_CURATION_DISABLED: [
     'Complete curator submissions are currently disabled.',
     'A teljes kurátori beküldés jelenleg ki van kapcsolva.',

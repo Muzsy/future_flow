@@ -92,7 +92,7 @@ async function copy(visibility: 'public' | 'unlisted' = 'public') {
   return { ...f, pubs, view };
 }
 describe('explicit independent private-start permission', () => {
-  it('defaults off and refuses premature start activation, wrong owner, unlisted and unknown fields', async () => {
+  it('defaults off and refuses invalid start configuration, wrong owner, unlisted and unknown fields', async () => {
     expect(publicForkPermissionConfigFromEnv({})).toEqual({
       enabled: false,
       startsEnabled: false,
@@ -100,19 +100,14 @@ describe('explicit independent private-start permission', () => {
     for (const env of [
       { PUBLIC_FORK_PERMISSION_ENABLED: 'yes' },
       { PUBLIC_FORK_STARTS_ENABLED: 'true' },
-      {
-        PUBLIC_FORK_PERMISSION_ENABLED: 'true',
-        PUBLIC_FORK_STARTS_ENABLED: 'true',
-      },
     ])
       expect(() => publicForkPermissionConfigFromEnv(env)).toThrow();
     expect(
-      () =>
-        new PublicForkPermissionRepository(db, {
-          enabled: true,
-          startsEnabled: true,
-        }),
-    ).toThrow();
+      publicForkPermissionConfigFromEnv({
+        PUBLIC_FORK_PERMISSION_ENABLED: 'true',
+        PUBLIC_FORK_STARTS_ENABLED: 'true',
+      }),
+    ).toEqual({ enabled: true, startsEnabled: true });
     const f = await copy(),
       r = forks();
     expect(await r.own(f.owner, f.view.slug)).toMatchObject({
@@ -399,7 +394,7 @@ describe('explicit independent private-start permission', () => {
       await db.query('SELECT status FROM ff_users WHERE id=$1', [other]),
     ).toEqual([{ status: 'active' }]);
   });
-  it('provides no-store anonymous choices but protects owner consent, rejects query substitutions and has no curator or premature start route', async () => {
+  it('provides no-store anonymous choices but protects owner consent, rejects query substitutions and keeps the start feature closed', async () => {
     const f = await copy(),
       r = forks();
     await r.setOwner(f.owner, f.view.slug, request(f.view));
@@ -467,7 +462,9 @@ describe('explicit independent private-start permission', () => {
           },
           body: JSON.stringify(request(f.view, false, 1)),
         });
-        expect(response.status).toBe(path.includes('?') ? 422 : 404);
+        expect(response.status).toBe(
+          path.includes('?') || path.includes('/public-forks/') ? 422 : 404,
+        );
       }
       const revoked = await fetch(
         base + '/api/v2/public-fork-permission/' + f.view.slug,

@@ -1,9 +1,9 @@
 # alterward — adatmodell és migráció
 
 
-## Aktuális: külön nyilvános fork-hozzájárulás
+## Aktuális: saját élet nyilvános döntési pontból
 
-P12 külön fork-hozzájárulás elkészült: Community tulajdonosi opt-in, Official kurátori engedély és tulajdonosi visszavonás. Az engedély a konkrét ellenőrzött kiadáshoz és revízióhoz kötött; a régi snapshot változatlan, frissítéskor nem öröklődik. Az anonim végpont csak ellenőrzött döntési feliratokat ad, privát azonosítókat nem. A tényleges új privát élet indítása még zárt, ez a következő feladat. Teljes helyi check: 552 teszt/48 fájl/build, 139 séma; dev 001–033 + ismétlés, 71 aw_/71 RLS, 37 valódi Auth/HTTP/CLI/TLS ellenőrzés és fióktakarítás, új paid AI 0. A javított 032 runtime 9a7ecf7 CI verify/container sikeres, hét élet-törlési PG-proof lezárult; az új 033 pontos CI még ellenőrizendő. A teljes P11 privacy/retention, P12 start/personalization/attribution, P13, Shared és üzemeltetési terv megmarad; Contabo élesítés még nem történt. [Bizonyíték és határ](../PUBLIC_FORK_PERMISSION_REPORT_HU.md).
+P12 nyilvános, teljesen ellenőrzött döntési pontból külön saját privát élet indítása elkészült. A választás egyszer alkalmazódik, friss saját azonosítók és normál AI-job/kvóta készül; három technikai időszakban megmarad a döntés emlékezete. Az eredeti élet változatlan, Official eredetengedély és élő Shared-tagság nem öröklődik. Visszavonás leállítja az új indításokat; fizikai forrástörlés csak a hivatkozást választja le. Saját élet törlése után a régi kérés nem hozhatja újra létre. Teljes helyi check 560 teszt/49 fájl/build, 143 séma; dev 001–034 és ismétlés, 73 aw_/73 RLS; 50 valódi Auth/HTTP/TLS ellenőrzés és fióktakarítás, új paid AI 0. A 033 33bcd8a verify/container CI sikeres; az új 034 pontos CI és valódi generatív fork-minőség még ellenőrizendő. Scenario személyre szabás, P13, P11 privacy/retention, Shared és üzemeltetési kapuk megmaradnak; Contabo élesítés még nem történt. [Bizonyíték és határ](../PUBLIC_FORK_START_REPORT_HU.md).
 
 **2026-10-04-i kiinduló állapot (történeti):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap, AI-pre-screen és szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
@@ -174,3 +174,8 @@ Discovery nem kap külön tartalommásolatot vagy új táblát: a 022/025 kiadá
 ## 2026-10-07: külön fork-hozzájárulás
 
 033 külön consent/audit publication FK-val, CAS/revision/hash, immutable/RLS/own minimal export/whole-life és account cascade. 71 aw_/71 RLS, 139 schema; korábbi szerződés/migráció változatlan. [Bizonyíték](../PUBLIC_FORK_PERMISSION_REPORT_HU.md).
+
+
+## 2026-10-07: saját élet publikus pontból
+
+034 saját immutable fork-start/initial-choice; source SET NULL, own cascade, export private source ID nélkül, minimális deleted-request tombstone. 73 aw_/73 RLS, 143 schema. [Bizonyíték](../PUBLIC_FORK_START_REPORT_HU.md).

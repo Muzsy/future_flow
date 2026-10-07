@@ -26,10 +26,6 @@ export function publicForkPermissionConfigFromEnv(
     (values[1] === 'true' && values[0] !== 'true')
   )
     throw Error('Invalid public fork flags');
-  // The cross-owner start engine is a separate release gate. Consent alone
-  // must not advertise a usable start action before that engine exists.
-  if (values[1] === 'true')
-    throw Error('Public fork starts are not implemented yet');
   return { enabled: values[0] === 'true', startsEnabled: values[1] === 'true' };
 }
 type Copy = Record<string, unknown> & {
@@ -70,8 +66,8 @@ export class PublicForkPermissionRepository {
     private readonly community: PublicationConfig = off,
     private readonly official: PublicationConfig = off,
   ) {
-    if (config.startsEnabled)
-      throw Error('Public fork starts are not implemented yet');
+    if (config.startsEnabled && !config.enabled)
+      throw Error('Invalid public fork flags');
   }
   private table(slug: string) {
     return slug.startsWith('official-')
