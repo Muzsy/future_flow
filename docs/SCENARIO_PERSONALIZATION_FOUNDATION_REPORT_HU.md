@@ -42,3 +42,8 @@ Négy új JSON-séma külön könyvtárba kerül; a korábbi 144 séma és 001�
 A jóváhagyott első éles 30 nap **10 USD OpenAI + 5 USD Claude**, közös felhasználói **0,50 USD**; az induláskor kezdődik, nincs automatikus megújítás. Az ehhez tartozó `05e6014` [pontos CI](https://github.com/Muzsy/future_flow/actions/runs/37642982869) verify és container sikeres: 578 teszt/52 fájl, build, 144 változatlan séma, 001–034 és repeat, mind a nyolc új valós PostgreSQL költségablak-próba, korábbi bizonyítékok, verified HTTPS/DB TLS és fizetett hívás 0. Ez nem éles aktiválás vagy Contabo-telepítés.
 
 [Keret részletei](AI_PRODUCTION_BUDGET_HU.md) · [Teljes következő lépések](NEXT_STEPS.md) · [P12 követelmény](PUBLIC_CONTENT_IMPLEMENTATION_PLAN_HU.md) · [Forráskövetés](REQUIREMENTS_TRACEABILITY_HU.md)
+
+
+## 2026-10-07: foundation pontos CI és következő szelet
+
+A 89a7cf54d1e149fe9873c1a894cf8fe87316a20e [pontos CI-je](https://github.com/Muzsy/future_flow/actions/runs/37663653592) verify/container sikeres: 588/53/148, 001–034/repeat, korábbi PG/HTTPS/TLS proofok és 0 paid AI. Az első következő P12 szelet, a [külön public Scenario snapshot/Confirm/consent/reader API](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md) implementált; own tartós személyes preview/start/attribution és angol UI még következik. Ez nem Contabo-deploy vagy éles activation.

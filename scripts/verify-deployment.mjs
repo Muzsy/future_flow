@@ -89,6 +89,7 @@ try {
   for (const flag of [
     'PUBLIC_FORK_PERMISSION_ENABLED',
     'PUBLIC_FORK_STARTS_ENABLED',
+    'PUBLIC_SCENARIOS_ENABLED',
   ]) {
     for (const name of ['api', 'worker'])
       assert.equal(config.services[name].environment[flag], 'false');
@@ -97,6 +98,11 @@ try {
   for (const name of ['web', 'api', 'worker'])
     assert.equal(
       config.services[name].environment.PUBLIC_FORK_OPERATOR_ENABLED,
+      undefined,
+    );
+  for (const name of ['web', 'api', 'worker'])
+    assert.equal(
+      config.services[name].environment.SCENARIO_PUBLICATION_OPERATOR_ENABLED,
       undefined,
     );
   assert.equal(config.services.api.environment.PUBLIC_REPORTS_ENABLED, 'false');

@@ -2,6 +2,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  PUBLIC_SCENARIO_VERSION,
+  publicScenarioPrepareRequestSchema,
+  publicScenarioPreviewSchema,
+  publicScenarioConfirmRequestSchema,
+  publicScenarioOwnerSchema,
+  publicScenarioReaderSchema,
+  publicScenarioModerationSchema,
+} from './public-scenario-publication';
+import {
   SCENARIO_PERSONALIZATION_VERSION,
   scenarioPersonalProfileSchema,
   scenarioPersonalizationFactsSchema,
@@ -639,6 +648,31 @@ for (const [name, schema] of Object.entries({
   );
 }
 const personalizationDirectory = resolve(directory, 'scenario-personalization');
+const scenarioPublicationDirectory = resolve(
+  directory,
+  'public-scenario-publication',
+);
+mkdirSync(scenarioPublicationDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  prepareRequest: publicScenarioPrepareRequestSchema,
+  preview: publicScenarioPreviewSchema,
+  confirmRequest: publicScenarioConfirmRequestSchema,
+  ownerView: publicScenarioOwnerSchema,
+  reader: publicScenarioReaderSchema,
+  moderation: publicScenarioModerationSchema,
+})) {
+  writeFileSync(
+    resolve(scenarioPublicationDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-scenario:${name}:${PUBLIC_SCENARIO_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(personalizationDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   personalProfile: scenarioPersonalProfileSchema,

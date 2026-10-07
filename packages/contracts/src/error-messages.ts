@@ -1,6 +1,18 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  PUBLIC_SCENARIO_CHANGED: [
+    'The Scenario or its permissions changed. Review its current publication preview.',
+    'The Scenario or its permissions changed. Review its current publication preview.',
+  ],
+  PUBLIC_SCENARIO_DISABLED: [
+    'Public Scenario publication is currently unavailable.',
+    'Public Scenario publication is currently unavailable.',
+  ],
+  PUBLIC_SCENARIO_PREVIEW_EXPIRED: [
+    'This publication preview expired. Prepare a new preview before confirming.',
+    'This publication preview expired. Prepare a new preview before confirming.',
+  ],
   SCENARIO_PERSONALIZATION_LIMIT: [
     'Shorten the personal context so the complete starting setup fits.',
     'Shorten the personal context so the complete starting setup fits.',

@@ -1,9 +1,9 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
 
-## Aktuális: Scenario személyre szabási alap és lezárt költségvédelem
+## Aktuális: külön nyilvános Scenario-kiadás
 
-Az éles 30 nap 10 USD OpenAI + 5 USD Claude kerete és a közös user 0,50 USD jóváhagyott; csak tényleges indulástól, nincs automatikus megújítás. A 05e6014 pontos verify/container CI sikeres: 578/52/144, nyolc új valós PG budget-window proof, 001–034/repeat, korábbi proofok és verified HTTPS/DB TLS, 0 AI; éles aktiválás/Contabo-deploy nincs. P12 Scenario személyre szabás privát könyvtári alap kész: saját teljes állapot/cél/korlát, külön forrástéma, exact preview/approval és friss referenciák; három normál technikai időszak/export/törlés ellenőrzött. Public Scenario snapshot/consent, own tartós előnézet, API/UI/start még következik, ezért P12 nem teljes. Teljes helyi check 588 teszt/53 fájl/types/script-types/build, 148 séma (144 korábbi változatlan), új paid AI 0; a foundation commit pontos CI még ellenőrizendő. P13, P11/Shared/retention/ops, operator/kontakt és teljes 50–100 élet/20–30 Scenario cél megmarad. A régi 5–5 USD kutatási keretek és naplók változatlanok. [Megvalósítás és következő kapuk](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
+Az első éles 30 nap 10 USD OpenAI + 5 USD Claude és közös user 0,50 USD jóváhagyott, csak valódi indulástól; nincs automatikus megújítás vagy éles aktiválás. Budget 05e6014 és private Scenario-composition 89a7cf5 pontos verify/container CI sikeres (578/52/144, majd 588/53/148), PG/HTTPS/TLS és 0 AI. P12 külön public Scenario kiadási preview/Confirm, explicit personalization consent, immutable snapshot és anonymous minimális olvasó API, élő teljes source/review/evidence, revoke/withdraw/moderation, export/cascade/RLS implementált. Fejlesztői DB 001–035/repeat, három új üres privát RLS-tábla, normál feature/operator false. Teljes helyi check 600 teszt/54 fájl/types/script-types/build, 154 séma (148 korábbi változatlan); az új public Scenario pontos CI/PG-proof még ellenőrizendő. Saját tartós személyes preview, cross-owner start/attribution, angol UI és actual Auth/AI proof még P12 feladat. P13/P11/Shared/retention/ops és teljes 50–100 élet/20–30 Scenario cél megmarad. Új paid AI 0, a régi kutatási naplók/5–5 USD keret változatlan; Contabo-deploy nincs. [Megvalósítás és határ](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md).
 
 2026-10-06 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
@@ -231,3 +231,8 @@ A P10 első angol Discovery-szelet runtime [CI](https://github.com/Muzsy/future_
 ## 2026-10-07: Scenario személyre szabás privát alapja
 
 P12 új privát könyvtári alap: saját identitás/teljes állapot/cél/korlát, Scenario elsődleges témája másodlagos célként, forrásanyag változatlan, explicit újraszámolt preview/approval. Public kiadás/jogosultság/tartós own preview/API/UI/start még nincs. 588/53 teljes helyi check és 148 schema; a 144 korábbi és 001–034 változatlan. Budget exact 05e6014 CI már sikeres, éles aktiválás nincs. [Részletek](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
+
+
+## 2026-10-07: külön public Scenario kiadási API
+
+P12 public Scenario kiadási API kész: explicit saját preview/Confirm és külön personalization consent, immutable reader snapshot/élő source-evidence, visszavonás és trusted moderáció. DB 035/repeat/3 üres RLS-tábla, normál flags false; 600/54/154 helyi full check. Private személyes preview/start/UI még feladat, új actual Auth/PG/AI proof nem tekinthető késznek. [Részletek](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md).

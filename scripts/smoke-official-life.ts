@@ -5,6 +5,7 @@ import { lifeDeletionProof } from './lib/life-deletion-proof';
 import { publicForkPermissionProof } from './lib/public-fork-permission-proof';
 import { publicForkStartProof } from './lib/public-fork-start-proof';
 import { aiBudgetWindowProof } from './lib/ai-budget-window-proof';
+import { publicScenarioPublicationProof } from './lib/public-scenario-publication-proof';
 import {
   connectDatabase,
   Repository,
@@ -961,6 +962,7 @@ async function main() {
     const publicForkPermission = await publicForkPermissionProof(db);
     const publicForkStart = await publicForkStartProof(db);
     const aiBudgetWindow = await aiBudgetWindowProof(db);
+    const publicScenarioPublication = await publicScenarioPublicationProof(db);
     for (const table of [
       'aw_publication_refreshes',
       'aw_public_fork_permissions',
@@ -1048,6 +1050,7 @@ async function main() {
       JSON.stringify({
         officialLifePostgres: 'passed',
         publicationRefresh,
+        publicScenarioPublication,
         lifeDeletion,
         publicForkPermission,
         publicForkStart,
