@@ -353,6 +353,16 @@ async function main() {
       (await db.query('SELECT id FROM aw_public_exposure_actions')).length,
       1,
     );
+    const [exposureAudit] = await db.query<{ id: string }>(
+      'SELECT id FROM aw_public_exposure_actions LIMIT 1',
+    );
+    assert.ok(exposureAudit);
+    await assert.rejects(
+      db.query(
+        "UPDATE aw_public_exposure_actions SET mode='none' WHERE id=$1",
+        [exposureAudit.id],
+      ),
+    );
     const permissionRace = await Promise.allSettled([
       exposure.setOwner(
         community.owner,
@@ -966,16 +976,6 @@ async function main() {
       );
       assert.deepEqual(guard, { rls: true, anon: false, client: false });
     }
-    const [exposureAudit] = await db.query<{ id: string }>(
-      'SELECT id FROM aw_public_exposure_actions LIMIT 1',
-    );
-    assert.ok(exposureAudit);
-    await assert.rejects(
-      db.query(
-        "UPDATE aw_public_exposure_actions SET mode='none' WHERE id=$1",
-        [exposureAudit.id],
-      ),
-    );
     for (const owner of owners)
       await new Repository(db).deleteAccountData(owner);
     assert.equal(
