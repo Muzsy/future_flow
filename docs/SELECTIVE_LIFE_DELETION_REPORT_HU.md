@@ -38,4 +38,6 @@ A 031 runtime c36abdd92c0fd9d1ad39bec673b41a46c1d488c3 [CI](https://github.com/M
 
 ## Következő kapuk
 
+A 032 d903475 runtime első konténeres [CI-futásában](https://github.com/Muzsy/future_flow/actions/runs/37573279787) a migrációk és adatbázis-proofok után a worker readiness ellenőrzés a teljes, növekvő PostgreSQL statement log beolvasásakor ENOBUFS hibát kapott. A worker mindkét sort ténylegesen pollolta, ezt a hibanapló is mutatja; a teljes konténeres ellenőrzés ettől még sikertelen. A javítás a legutóbbi 200 naplósorra korlátozza ezt az olvasást, a readiness feltétel és a többi proof változatlan. A javított pontos commit CI-jét külön ellenőrizzük; nem tekintjük az első futást sikeresnek.
+
 P12 külön tulajdonosi public fork consent/cross-owner private start/choice egyszer/scenario personalization/attribution; P13 usage/referral/cohort/genuine kínálat/minőség/launch. P11 privacy/retention/pozitív UI, S3 régi personal prose/raw backup/billing/grace/deadline, S4–S7 és P06 backup/restore/email/outage/Contabo/Cloudflare teljes scope megmarad. Üzemeltetői név/nyilvános kontakt és induló kínálat/engedélyezett éles keret tisztázása folyamatban; addig önálló technikai haladás. [Végrehajtási terv](NEXT_STEPS.md).

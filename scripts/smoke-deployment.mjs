@@ -478,7 +478,9 @@ try {
     '401',
   );
   await waitFor('Worker queue polling', () => {
-    const log = compose('logs', '--no-color', 'postgres');
+    // The full statement log includes every preceding database proof. Read a
+    // bounded recent window so a growing history cannot exhaust exec's buffer.
+    const log = compose('logs', '--no-color', '--tail', '200', 'postgres');
     return (
       log.includes('SELECT j.* FROM aw_jobs') && log.includes('FROM ff_jobs')
     );
