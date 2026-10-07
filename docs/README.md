@@ -10,6 +10,7 @@
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
 | [Induló kínálat költségbecslése és döntése](INITIAL_CATALOG_COST_ESTIMATE_HU.md) | Jóváhagyott 10 USD közös keret: 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat későbbi bővítés |
+| [Őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) | Valódi AI/Claude, külön seed-költségablak, megőrzött javítások és auditok; staging folyamatban |
 | [Tízfős béta AI-hozzáférése](CLOSED_BETA_ADMISSION_REPORT_HU.md) | Szerveroldali UUID-lista, API/worker ellenőrzés, költségvédelem és megmaradó adatkezelési hozzáférés |
 | [Angol Scenario-felület](SCENARIO_ENGLISH_UI_REPORT_HU.md) | Teljes reader, saját kiadási Confirm és személyes profil/előnézet/start; 3c9a6edc pontos CI sikeres, pozitív interaktív UI még kapu |
 | [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Privát profil/előnézet/start, source-detach és törlés/retention; a72 pontos CI és 38 actual Auth próba sikeres, személyes AI-minőség még kapu |
@@ -69,7 +70,7 @@ Termékdöntések sorrendje: felhasználói döntések → a két stratégiai fo
 - **Működik:** v2 rövid onboarding, hat hónapos valódi AI, választás/ugyanazon ág folytatása/történeti fork, memória/javítás és alkalmazáskeret; v1 archívum megmarad.
 - **Ellenőrizendő:** backup/restore, valós DB-kiesésből helyreállítás, email-kézbesítés és későbbi Contabo-indulás; a valódi Auth/AI HTTP-hurok és Auth/DB-törlés már sikeres, kontrollált megszakításból valódi recovery és a teljes izolált konténeres CI sikeres, az új angol minta auditálva. Emberi minőség a béta után mérendő.
 - **Shared alap:** S0 szerződés/tárolás/social/entitlement/meghívási API elkészült kikapcsolt feature mögött; fejlesztői DB-alkalmazás/ismétlés és valódi S0 Auth-próba sikeres; S1 friend motor is implementált. [S0 megvalósítás és korlátok](SHARED_CONTEXT_S0_REPORT_HU.md).
-- **Tervezett:** Shared S3 nyers/backup-retention és korábbi személyes próza kiadási kapu és S4–S7 típusbővítés; Discovery és nyilvános fork; a publishing és első valódi Official seed kész. A foundation nem felhasználói friend release.
+- **Tervezett:** Shared S3 nyers/backup-retention és korábbi személyes próza kiadási kapu és S4–S7 típusbővítés; Teljes 15/5 katalógus, Scenario Discovery-navigáció és indulási üzemeltetés; a publishing, élet-Discovery és valódi public fork már implementált. A foundation nem felhasználói friend release.
 - **Mérendő:** emberi történetminőség, folytatási igény, visszatérés, konverzió és v2 költség.
 
 Közös rögzített irány: **alterward**, valódi OpenAI-tartalom, külön Claude-kutatás/külső audit, Supabase, 18+ web, kizárólag angol indulás, magyar elrejtve, privát alapállapot, ingyenes adathozzáférés/törlés, `Muzsy/future_flow` → `main`. Az induló termék három rétege a Private Personal Simulation, Official Lives/Scenarios és Community Lives. A személyes hurok készül először; a nyilvános réteg az induló teljes MVP része. A Shared Context tervezett Free/Explorer/Connected/World jogosultsági modellje bekerült; pontos ár és billing még nincs eldöntve; domain: alterward.com, Cloudflare.

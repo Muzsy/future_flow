@@ -25,3 +25,8 @@ Hat új érdemi konfiguráció-/adatbázis-/HTTP-próba ellenőrzi a maximális 
 A megelőző angol Scenario-felület `3c9a6edc` pontos [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37681767172) verify és container sikeres: 618/56/162, 001–036 és ismétlés, az összes korábbi PostgreSQL-proof és verified HTTPS/DB TLS. Az új meghívási kapu saját commitjának pontos CI-je még külön ellenőrizendő. Pozitív interaktív UI-próba továbbra nincs igazolva.
 
 A normál helyi és telepítési mintákban a béta flag false, a meghívási lista üres; új használati költségidőszak nincs aktiválva. A tényleges tíz tesztelő kiválasztása, UUID-k rögzítése, a teljes webhely zárása, a 15/5 kínálat/audit, kapcsolattartási e-mail, retention/backup/restore és Contabo-telepítés még indulási feladat. Nem küldtünk meghívókat vagy más üzenetet.
+
+
+## Pontos admission CI lezárva
+
+A `c53aa58e0d0213c694d3e5160e0e3b4e4cd45269` [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37684863424) verify és container sikeres: 624/57/162, 001–036/repeat, PostgreSQL-proofok és HTTPS/DB TLS. Ez lezárja a fenti akkori függő CI-kaput. A teljes webhely-zárás és a tíz tényleges meghívott továbbra indulási feladat; normál runtime nem aktivált. A külön, jóváhagyott [15/5 seed előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) azóta valódi fizetett hívásokat használ az eredeti 6 + 1 USD plafonból.

@@ -69,9 +69,14 @@ A felhasználó a teljes 50–100 élet/20–30 Scenario kínálatot az éles in
 
 ## Legfrissebb döntés az előző szakasz helyett
 
-10 USD közös keret (8 OpenAI + 2 Claude), 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat később. A fenti korábbi 35 + 5 USD javaslat és 10 + 5 USD használati keret nem aktuális engedély. Seed/audit maximum 6 + 1 USD, teszthasználat 2 + 1 USD; a tízfős API/worker admission és a tesztkeret konfigurációs védelme implementált; külön seed ledgers/window/guard még elkészítendő. Runtime nem aktivált. A fennmaradó email/ops/retention/Contabo kapuk megmaradnak.
+10 USD közös keret (8 OpenAI + 2 Claude), 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat később. A fenti korábbi 35 + 5 USD javaslat és 10 + 5 USD használati keret nem aktuális engedély. Seed/audit maximum 6 + 1 USD, teszthasználat 2 + 1 USD; a tízfős API/worker admission és a tesztkeret konfigurációs védelme implementált; külön seed DB-őr és eredeti hét napos, megújítás nélküli execution-ablak implementált; valódi előállítás folyamatban. Runtime nem aktivált. A fennmaradó email/ops/retention/Contabo kapuk megmaradnak.
 
 
 ## Tízfős meghívási és konfigurációs védelem
 
-Bekapcsolt béta mellett legfeljebb tíz különböző, szerveroldali Auth UUID engedélyezett; a provider-foglalás is újra ellenőrzi. Hibás lista, 2 USD feletti OpenAI vagy 1 USD feletti Claude tesztplafon, 0,50 USD feletti közös user limit és hiányzó/nem pontosan 30 napos ablak elutasított. Az anonim oldalak teljes zárása külön telepítési feladat. Hat új érdemi próba és teljes 624/57/162 check sikeres, új saját CI még ellenőrizendő. [Részletek](CLOSED_BETA_ADMISSION_REPORT_HU.md).
+Bekapcsolt béta mellett legfeljebb tíz különböző, szerveroldali Auth UUID engedélyezett; a provider-foglalás is újra ellenőrzi. Hibás lista, 2 USD feletti OpenAI vagy 1 USD feletti Claude tesztplafon, 0,50 USD feletti közös user limit és hiányzó/nem pontosan 30 napos ablak elutasított. Az anonim oldalak teljes zárása külön telepítési feladat. Hat új érdemi próba és teljes 624/57/162 check sikeres; c53aa58e pontos verify/container CI is sikeres. [Részletek](CLOSED_BETA_ADMISSION_REPORT_HU.md).
+
+
+## Külön seed-folyamat tényleges működése
+
+A 6 USD OpenAI + 1 USD Claude előállítási plafont külön, egyszer rögzített hét napos DB-számlák és execution-rekord védik. Nem a normál worker béta-konfigurációját emeltük meg, és nem a régi 5–5 USD kutatási ledgereket használjuk. A két szolgáltató előfoglalása és ismeretlen költségfoglalása itt is megmarad; bizonytalan hívás további fizetett fázist blokkol. A fenntartott 2 + 1 USD béta-keret és annak valódi indulástól számított 30 napja érintetlen. [Állapot, tényleges költség és külön audit/szerkesztői kapu](CLOSED_BETA_CATALOG_REPORT_HU.md).
