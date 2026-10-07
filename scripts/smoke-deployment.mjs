@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
   mkdtempSync,
+  readdirSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -17,6 +18,9 @@ assert.equal(process.platform, 'linux');
 assert.equal(process.env.CI, 'true');
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const migrationCount = readdirSync(join(root, 'database', 'migrations')).filter(
+  (file) => file.endsWith('.sql'),
+).length;
 const temporaryRoot = realpathSync(tmpdir());
 const fixture = mkdtempSync(join(temporaryRoot, 'alterward-ci-'));
 const project = `alterward-ci-${process.pid}`;
@@ -545,7 +549,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '34|0|0|0|0');
+  assert.equal(counts.trim(), `${migrationCount}|0|0|0|0`);
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -554,7 +558,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 34,
+      migrations: migrationCount,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',
