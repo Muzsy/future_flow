@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { DomainError } from '@future-flow/core';
 import type { Database } from './index';
 import { lifeRow } from './lives';
+import {
+  closedBetaConfigFromEnv,
+  validateClosedBetaConfig,
+  assertClosedBetaAdmission,
+} from './closed-beta';
 
 // Standard short-context ceilings, including cache writes. Checked 2026-10-07:
 // https://developers.openai.com/api/docs/pricing
@@ -23,6 +28,7 @@ export type ApplicationAiBudgetConfig = {
   initialProjectSpentUsd?: number;
   // A fixed, explicitly approved period. It never rolls over automatically.
   window?: { startsAt: string; endsAt: string };
+  closedBetaUserIds?: string[];
 };
 function invalidBudgetConfig(): never {
   throw new DomainError(
@@ -87,6 +93,21 @@ export function applicationAiBudgetConfigFromEnv(
   ])
     if (!Number.isFinite(value) || value < 0 || value > 100000)
       return invalidBudgetConfig();
+  const beta = closedBetaConfigFromEnv(env);
+  if (beta.enabled) {
+    config.closedBetaUserIds = beta.userIds;
+    if (
+      config.projectUsd > (provider === 'anthropic' ? 1 : 2) ||
+      config.userUsd > 0.5
+    )
+      return invalidBudgetConfig();
+    if (
+      !config.window ||
+      Date.parse(config.window.endsAt) - Date.parse(config.window.startsAt) !==
+        30 * 86400000
+    )
+      return invalidBudgetConfig();
+  }
   return config;
 }
 export class DatabaseAiBudget {
@@ -100,6 +121,22 @@ export class DatabaseAiBudget {
     config: ApplicationAiBudgetConfig,
   ) {
     this.config = { ...config, window: budgetWindow(config.window) };
+    if (config.closedBetaUserIds !== undefined) {
+      this.config.closedBetaUserIds = validateClosedBetaConfig({
+        enabled: true,
+        userIds: config.closedBetaUserIds,
+      }).userIds;
+      if (
+        config.projectUsd >
+          ((config.provider ?? 'openai') === 'anthropic' ? 1 : 2) ||
+        config.userUsd > 0.5 ||
+        !this.config.window ||
+        Date.parse(this.config.window.endsAt) -
+          Date.parse(this.config.window.startsAt) !==
+          30 * 86400000
+      )
+        invalidBudgetConfig();
+    }
     if (
       config.provider !== undefined &&
       !['openai', 'anthropic'].includes(config.provider)
@@ -127,6 +164,11 @@ export class DatabaseAiBudget {
         );
   }
   async reserve(raw: unknown): Promise<string> {
+    if (this.config.closedBetaUserIds !== undefined)
+      assertClosedBetaAdmission(
+        { enabled: true, userIds: this.config.closedBetaUserIds },
+        this.userId,
+      );
     // Zero disables spending even when the database retains a previously approved limit.
     if (this.config.projectUsd === 0 || this.config.userUsd === 0)
       throw new DomainError(

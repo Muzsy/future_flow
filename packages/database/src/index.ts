@@ -100,3 +100,4 @@ export function connectDatabase(
     close: () => pool.end(),
   };
 }
+export * from './closed-beta';

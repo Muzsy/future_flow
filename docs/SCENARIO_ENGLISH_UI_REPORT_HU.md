@@ -36,3 +36,8 @@ A kész UI nem jelent aktiválást vagy Contabo-telepítést. Szükséges a véd
 ## Teljes helyi check lezárva
 
 `pnpm check`: 618 teszt/56 fájl, format, minden package/API/worker/web és script types, production build sikeres; 162 séma, korábbi 159 változatlan. A végső form/lejárati/fiók-epoch finomítás után a külön teljes format és web types/production build is sikeres. A szerkesztés visszatölti az előző saját profilt, új jóváhagyással; gyors A→B→A fiókváltás is új saját session-verziót kap. Új migration nincs. Pontos új CI még külön ellenőrizendő, új paid AI 0.
+
+
+## Pontos commit CI-je lezárva
+
+A `3c9a6edc3fbb7b2c19ff70c5c52450116eb73c9a` [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37681767172) verify és container sikeres: 618 teszt/56 fájl/162 séma, formázás/types/script types/production build, 001–036 és ismétlés, minden korábbi valós PostgreSQL-proof, verified HTTPS/DB TLS és tiszta worker-leállás. Új paid AI 0. Ez lezárja a fenti függő CI-kaput; pozitív interaktív UI és személyes valódi AI-minőség továbbra külön ellenőrizendő.

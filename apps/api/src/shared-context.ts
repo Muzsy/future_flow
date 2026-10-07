@@ -238,6 +238,7 @@ export function createSharedContextController(
       return this.shared.detail(req.userId, idSchema.parse(id));
     }
     @Post('shared-contexts/:id/continue')
+    @ClosedBetaGeneration()
     @ApiHeader(idempotency)
     @ApiBody({ schema: z.toJSONSchema(sharedRevisionRequestSchema) as never })
     @ApiOperation({
@@ -463,3 +464,4 @@ export function createSharedContextController(
   }
   return SharedContextController;
 }
+import { ClosedBetaGeneration } from './closed-beta';

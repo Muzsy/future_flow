@@ -33,6 +33,8 @@ A használt rövid kontextusú Standard modellek árait 2026-10-07-én ellenőri
 A védett éles konfigurációban a tényleges indulás UTC-időpontját és az attól számított 30 napos, kizáró záróidőpontot kell rögzíteni:
 
 ```dotenv
+CLOSED_BETA_ENABLED=true
+CLOSED_BETA_USER_IDS=<up to 10 distinct verified Auth UUIDs, comma-separated>
 AI_PROJECT_BUDGET_USD=2
 CLAUDE_PRODUCTION_BUDGET_USD=1
 AI_USER_BUDGET_USD=0.50
@@ -67,4 +69,9 @@ A felhasználó a teljes 50–100 élet/20–30 Scenario kínálatot az éles in
 
 ## Legfrissebb döntés az előző szakasz helyett
 
-10 USD közös keret (8 OpenAI + 2 Claude), 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat később. A fenti korábbi 35 + 5 USD javaslat és 10 + 5 USD használati keret nem aktuális engedély. Seed/audit maximum 6 + 1 USD, teszthasználat 2 + 1 USD; védett separate ledgers/window/guard és admission még elkészítendő. Runtime nem aktivált. A fennmaradó email/ops/retention/Contabo kapuk megmaradnak.
+10 USD közös keret (8 OpenAI + 2 Claude), 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat később. A fenti korábbi 35 + 5 USD javaslat és 10 + 5 USD használati keret nem aktuális engedély. Seed/audit maximum 6 + 1 USD, teszthasználat 2 + 1 USD; a tízfős API/worker admission és a tesztkeret konfigurációs védelme implementált; külön seed ledgers/window/guard még elkészítendő. Runtime nem aktivált. A fennmaradó email/ops/retention/Contabo kapuk megmaradnak.
+
+
+## Tízfős meghívási és konfigurációs védelem
+
+Bekapcsolt béta mellett legfeljebb tíz különböző, szerveroldali Auth UUID engedélyezett; a provider-foglalás is újra ellenőrzi. Hibás lista, 2 USD feletti OpenAI vagy 1 USD feletti Claude tesztplafon, 0,50 USD feletti közös user limit és hiányzó/nem pontosan 30 napos ablak elutasított. Az anonim oldalak teljes zárása külön telepítési feladat. Hat új érdemi próba és teljes 624/57/162 check sikeres, új saját CI még ellenőrizendő. [Részletek](CLOSED_BETA_ADMISSION_REPORT_HU.md).

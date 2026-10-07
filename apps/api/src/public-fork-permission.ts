@@ -114,6 +114,7 @@ export function createPublicForkPermissionControllers(
     }
     @Post(':slug')
     @ApiBody({ schema: z.toJSONSchema(publicForkStartRequestSchema) as never })
+    @ClosedBetaGeneration()
     @ApiOkResponse({
       schema: z.toJSONSchema(publicForkStartReceiptSchema) as never,
     })
@@ -146,3 +147,4 @@ export function createPublicForkPermissionControllers(
     PublicForkStartController,
   ];
 }
+import { ClosedBetaGeneration } from './closed-beta';

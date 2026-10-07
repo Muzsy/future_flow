@@ -253,3 +253,8 @@ Saját, lejáró teljes Scenario-előnézet és külön indítási megerősíté
 ## 2026-10-07: angol Scenario-felület és jóváhagyott zárt béta
 
 Angol Scenario-reader, külön publikálási Confirm és teljes saját profil/privát preview/start/attribution elkészült. Teljes helyi check 618/56/162, korábbi 159 séma és 001–036 immutable; új exact CI és pozitív interaktív UI még kapu. [Részletek](docs/SCENARIO_ENGLISH_UI_REPORT_HU.md). Legfrissebb döntés: 10 USD összesen (8 OpenAI + 2 Claude), 15 élet/5 Scenario és 10 fős zárt béta, seed 6 + 1 USD és külön fenntartott teszthasználat 2 + 1 USD. Ez helyettesíti a korábbi 10 + 5 USD induló használati keretet. Teljes kínálat későbbi bővítés, teljes nyilvános indulás külön lépés. Új paid AI 0, runtime-keret inaktív, Contabo-deploy nincs. [Keret](docs/AI_PRODUCTION_BUDGET_HU.md).
+
+
+## 2026-10-07: tízfős béta AI-hozzáférése
+
+Legfeljebb tíz hitelesített meghívott indíthat fizetett generálást; API és worker ellenőrzés, 2 USD OpenAI + 1 USD Claude tesztkeret, közös személyes 0,50 USD és rögzített 30 nap. Saját adatolvasás/export/törlés továbbra elérhető. Teljes helyi check 624/57/162 sikeres; új saját CI még ellenőrizendő. A megelőző angol Scenario UI pontos 3c9a6edc CI-je sikeres. A 10 USD közös induló keretből előállításra külön 6 + 1 USD marad; 15 élet/5 Scenario előállítása, tíz tesztelő kiválasztása és a teljes webhely zárása még következik. Nincs éles aktiválás, új paid AI vagy Contabo-deploy. [Részletek](docs/CLOSED_BETA_ADMISSION_REPORT_HU.md).

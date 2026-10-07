@@ -74,6 +74,7 @@ try {
     'SUPABASE_SERVICE_ROLE_KEY',
     'DATABASE_URL',
     'PUBLICATION_LINK_SECRET',
+    'CLOSED_BETA_USER_IDS',
   ]) {
     assert.equal(config.services.web.environment[secret], undefined);
     assert.equal(config.services.web.build.args[secret], undefined);
@@ -91,6 +92,7 @@ try {
     'PUBLIC_FORK_STARTS_ENABLED',
     'PUBLIC_SCENARIOS_ENABLED',
     'SCENARIO_PERSONALIZATION_ENABLED',
+    'CLOSED_BETA_ENABLED',
   ]) {
     for (const name of ['api', 'worker'])
       assert.equal(config.services[name].environment[flag], 'false');
@@ -107,6 +109,8 @@ try {
       undefined,
     );
   assert.equal(config.services.api.environment.PUBLIC_REPORTS_ENABLED, 'false');
+  for (const name of ['api', 'worker'])
+    assert.equal(config.services[name].environment.CLOSED_BETA_USER_IDS, '');
   for (const name of ['api', 'worker'])
     assert.equal(
       config.services[name].environment.PUBLICATION_REFRESH_ENABLED,

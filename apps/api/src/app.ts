@@ -1,4 +1,11 @@
 import 'reflect-metadata';
+import { ClosedBetaGeneration, CLOSED_BETA_GENERATION } from './closed-beta';
+import {
+  closedBetaConfigFromEnv,
+  validateClosedBetaConfig,
+  assertClosedBetaAdmission,
+  type ClosedBetaConfig,
+} from '@future-flow/database';
 import { randomUUID } from 'node:crypto';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -177,6 +184,7 @@ class AuthGuard implements CanActivate {
   constructor(
     @Inject(AUTH) private readonly auth: AuthProvider,
     @Inject(REPOSITORY) private readonly repo: Repository,
+    @Inject('CLOSED_BETA_CONFIG') private readonly beta: ClosedBetaConfig,
   ) {}
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthRequest>();
@@ -191,6 +199,10 @@ class AuthGuard implements CanActivate {
       );
     request.token = match[1];
     request.userId = (await this.auth.verify(request.token)).id;
+    if (
+      Reflect.getMetadata(CLOSED_BETA_GENERATION, context.getHandler()) === true
+    )
+      assertClosedBetaAdmission(this.beta, request.userId);
     await this.repo.ensureUser(request.userId);
     return true;
   }
@@ -312,6 +324,7 @@ class ApiController {
   futures(@Req() req: AuthRequest) {
     return this.repo.listFutures(req.userId, enabledLocales);
   }
+  @ClosedBetaGeneration()
   @Post('futures')
   @ApiBody({ schema: z.toJSONSchema(futureRequestSchema) as never })
   @ApiHeader({
@@ -371,6 +384,7 @@ class ApiController {
     );
     return this.repo.timeline(req.userId, branchId);
   }
+  @ClosedBetaGeneration()
   @Post('decisions/:id/resolve')
   @ApiBody({ schema: z.toJSONSchema(resolveDecisionSchema) as never })
   @ApiHeader({
@@ -546,6 +560,7 @@ class LifeController {
       this.publicContentCurationEnabled,
     ).submit(req.userId, idSchema.parse(id), body, key ?? '');
   }
+  @ClosedBetaGeneration()
   @Post('public-content-bundles/:id/review-job')
   @ApiBody({
     schema: z.toJSONSchema(publicContentReviewJobRequestSchema) as never,
@@ -653,6 +668,7 @@ class LifeController {
       versionId,
     );
   }
+  @ClosedBetaGeneration()
   @Post('scenario-versions/:id/start')
   @ApiBody({ schema: z.toJSONSchema(scenarioStartRequestSchema) as never })
   scenarioStart(
@@ -681,7 +697,9 @@ class LifeController {
       .parse(body);
     return this.lives.saveDraft(req.userId, input.revision, input.payload);
   }
-  @Post('lives') create(
+  @ClosedBetaGeneration()
+  @Post('lives')
+  create(
     @Req() req: AuthRequest,
     @Body() body: unknown,
     @Headers('idempotency-key') key: string,
@@ -787,6 +805,7 @@ class LifeController {
       this.publicReviewConfig,
     ).get(req.userId, idSchema.parse(id));
   }
+  @ClosedBetaGeneration()
   @Post('public-previews/:id/review-job')
   @ApiOperation({
     summary:
@@ -861,7 +880,9 @@ class LifeController {
       key ?? '',
     );
   }
-  @Post('branches/:id/continue') async continue(
+  @ClosedBetaGeneration()
+  @Post('branches/:id/continue')
+  async continue(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
@@ -877,7 +898,9 @@ class LifeController {
       input.sessionId,
     );
   }
-  @Post('branches/:id/periods/:periodId/fork') async fork(
+  @ClosedBetaGeneration()
+  @Post('branches/:id/periods/:periodId/fork')
+  async fork(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Param('periodId') periodId: string,
@@ -898,7 +921,9 @@ class LifeController {
       key ?? '',
     );
   }
-  @Post('jobs/:id/retry') async retry(
+  @ClosedBetaGeneration()
+  @Post('jobs/:id/retry')
+  async retry(
     @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: unknown,
@@ -941,6 +966,7 @@ export async function createApp(
   publicForkPermissionConfig: PublicForkPermissionConfig = publicForkPermissionConfigFromEnv(),
   publicScenarioConfig: PublicScenarioConfig = publicScenarioConfigFromEnv(),
   personalScenarioConfig: PersonalScenarioConfig = personalScenarioConfigFromEnv(),
+  closedBetaConfig: ClosedBetaConfig = closedBetaConfigFromEnv(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -1042,6 +1068,10 @@ export async function createApp(
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
+      {
+        provide: 'CLOSED_BETA_CONFIG',
+        useValue: validateClosedBetaConfig(closedBetaConfig),
+      },
       { provide: 'PUBLIC_REVIEW_CONFIG', useValue: publicReviewConfig },
       {
         provide: 'PUBLIC_CONTENT_REVIEW_CONFIG',

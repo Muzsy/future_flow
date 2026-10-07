@@ -1,6 +1,10 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  CLOSED_BETA_INVITE_REQUIRED: [
+    'This closed beta is available to invited testers. You can still access and delete your existing data.',
+    'This closed beta is available to invited testers. You can still access and delete your existing data.',
+  ],
   PUBLIC_SCENARIO_CHANGED: [
     'The Scenario or its permissions changed. Review its current publication preview.',
     'The Scenario or its permissions changed. Review its current publication preview.',

@@ -78,6 +78,7 @@ export function createPersonalScenarioController(
       return this.scenarios.preview(req.userId, id);
     }
     @Post('sources/:slug/start')
+    @ClosedBetaGeneration()
     @ApiBody({
       schema: z.toJSONSchema(personalScenarioStartRequestSchema) as never,
     })
@@ -135,3 +136,4 @@ export function createScenarioPersonalizationCapabilityController(
   }
   return CapabilityController;
 }
+import { ClosedBetaGeneration } from './closed-beta';
