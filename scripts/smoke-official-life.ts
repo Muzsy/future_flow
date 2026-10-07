@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { publicationRefreshProof } from './lib/publication-refresh-proof';
+import { lifeDeletionProof } from './lib/life-deletion-proof';
 import {
   connectDatabase,
   Repository,
@@ -953,6 +954,7 @@ async function main() {
       0,
     );
     const publicationRefresh = await publicationRefreshProof(db);
+    const lifeDeletion = await lifeDeletionProof(db);
     for (const table of [
       'aw_publication_refreshes',
       'aw_public_exposures',
@@ -1036,6 +1038,7 @@ async function main() {
       JSON.stringify({
         officialLifePostgres: 'passed',
         publicationRefresh,
+        lifeDeletion,
         prospectiveConcurrentStartOnce: true,
         completeChainAndRepairEvidence: true,
         concurrentExactGrantOnce: true,

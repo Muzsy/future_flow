@@ -17,6 +17,7 @@ import { lifeMessages } from '../lib/life-messages';
 import { useLanguage } from './language-provider';
 import { trackLife, lifeSessionId } from '../lib/life-analytics';
 import { FeedbackForm } from './feedback-form';
+import { LifeDeletionControl } from './life-deletion-control';
 
 type Summary = {
   id: string;
@@ -28,6 +29,7 @@ type Summary = {
 type Detail = {
   branch: {
     id: string;
+    life_id: string;
     revision: number;
     status: string;
     content_locale: 'en' | 'hu';
@@ -991,6 +993,14 @@ export function LifeExperience({
             </Link>
           )}
       </div>
+      <LifeDeletionControl
+        lifeId={b.life_id}
+        branchId={b.id}
+        revision={b.revision}
+        branchCount={detail.branches.length}
+        disabled={busy}
+        onDeleted={() => router.push('/lives')}
+      />
       {sharedUpdates.length > 0 && (
         <aside className="notice" aria-label="Shared updates">
           <p>

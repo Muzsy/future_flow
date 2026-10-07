@@ -1,9 +1,9 @@
 # alterward — jelenlegi implementáció, 2026-10-06
 
 
-## Aktuális: explicit snapshotfrissítés
+## Aktuális: külön saját élet törlése
 
-P11 explicit snapshot refresh elkészült: új teljes AI/curator által ellenőrzött copy + régi aktív példány withdraw egy tranzakcióban, eltérő új slug/token; nincs snapshot-átírás, redirect vagy külső grant-öröklés. Same-owner/same-private-branch és exact old revision/hash/new preview binding, consent, default PUBLICATION_REFRESH_ENABLED=false. Official új exact origin grantet kér. Immutable 031/RLS/own export/cascade, angol külön replacement választás és Confirm. Teljes check 535/46/build, 133 séma, régi 130/001–030 változatlan; dev DB 001–031 repeat, 68 aw_/68 RLS. 25 sikeres valódi kétfiókos Supabase Auth/HTTP/TLS ellenőrzés és actual cleanup, seed export/ledgers változatlan, új paid AI 0. A 030 pontos 63d49f4 CI verify/container sikeres; az új 031 runtime CI még ellenőrizendő. Következő P11 egyetlen élet törlése/owner privacy, P12 public fork/scenario personalization, P13 release; pozitív interaktív UI és retention/backup/email/Contabo/Cloudflare/éles allowance teljes scope megmarad. [Bizonyíték és határ](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).
+P11 külön egész-élet törlés elkészült: saját life + aktuális branch/revision, gépelt DELETE LIFE, friss verified Auth, pontos idempotens retry. Minden saját ág/fejezet/választás/job/preview/review/kiadás/refresh/token/save/external jog cascade; másik élet és account aktív marad. Az adott élet Shared-tagsága leválik; érintett próza rejtett, dátum/eredmény/canon változatlan, unsafe personal/shared input és lease érvénytelen. A törlés nem nulláz napi kvótát: 032 csak kind/admitted_at, legfeljebb 24h + worker 15m; RLS/immutable/minimal export/account-cascade. Teljes check 544/47/build, 135 séma; régi 133/001–031 változatlan. Dev DB 001–032 repeat, 69 aw_/69 RLS. 26 valódi kétfiókos Auth/HTTP/TLS ellenőrzés és actual cleanup, genuine seed/ledgers változatlan, paid AI 0. A 031 pontos c36abdd CI verify/container és hét PG-proof sikeres; az új 032 runtime CI még ellenőrizendő. Következő P12 public fork/scenario personalization; P11 teljes privacy/retention/pozitív UI, P13 és Shared/backup/email/Contabo/Cloudflare/éles allowance megmarad. [Bizonyíték és határ](SELECTIVE_LIFE_DELETION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -237,3 +237,8 @@ PublicExposureRepository + 030 + hat public-exposure-1 schema; külön own/exter
 ## 2026-10-07: explicit új snapshot és korábbi visszavonás
 
 PublicationRefreshRepository/controller és angol replacement választás/Confirm: új teljes review/grant után confirm+withdraw tranzakció, exact retry nem reaktivál, rollback régi kiadást megőrzi. 535/46/build/133 és valódi Auth/TLS cleanup. [Bizonyíték](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).
+
+
+## 2026-10-07: saját élet törlése és kvótamegőrzés
+
+LifeDeletionRepository/controller/angol own panel, két life-deletion-1 schema és 032. 544/47/full build/135, 26 actual Auth/TLS proof; local whole graph/input/no-resurrection/TTL/minimal export és CI verseny proof. Pozitív UI, 032 CI és éles Contabo még külön kapu. [Bizonyíték](SELECTIVE_LIFE_DELETION_REPORT_HU.md).

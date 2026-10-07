@@ -25,6 +25,7 @@ export {
   type PublicMetricsConfig,
 } from './public-metric-recording';
 export * from './life-jobs';
+export * from './life-deletion';
 export * from './ai-budget';
 export * from './metrics';
 export * from './public-drafts';

@@ -26,9 +26,9 @@ Same input/key és másik key exact replay ugyanazt a példányt adja vissza. M�
 
 Valódi Supabase Auth/HTTP/TLS: 25 ellenőrzés, két disposable account, Community technikai fixture. Három párhuzamos HTTP-request egy history és egy new-copy; own/foreign/anon/strict, old public/unlisted/external stop, new external default-none, teljes private branch byte-egyező; inactive replay/stale rollback/minimal export/actual Auth DELETE és DB cascade. Teljes genuine seed export és mindkét provider ledger változatlan. Új paid AI 0.
 
-Az izolált valódi PostgreSQL konténerpróba hét új proofot ellenőriz: három exact párhuzamos refresh, versengő új változat egy nyertes; canon/history immutable; régi public/unlisted/external jog megszűnése; Official full grant és rollback; inactive replay/export; fizikai account-delete verseny/cascade. CI 031 proof csak sikeres pontos main futás után tekinthető lezártnak. HTTPS/migrations-repeat/worker/DB TLS és minden korábbi Shared/P09/P10 bizonyíték megmarad.
+Az izolált valódi PostgreSQL konténerpróba hét új proofot ellenőriz: három exact párhuzamos refresh, versengő új változat egy nyertes; canon/history immutable; régi public/unlisted/external jog megszűnése; Official full grant és rollback; inactive replay/export; fizikai account-delete verseny/cascade. A pontos 031 c36abdd CI sikeres, a hét proof ellenőrzött. HTTPS/migrations-repeat/worker/DB TLS és minden korábbi Shared/P09/P10 bizonyíték megmarad.
 
-A 030 pontos runtime 63d49f4 [main CI](https://github.com/Muzsy/future_flow/actions/runs/37570248739) verify/container sikeres; a korábbi hibás tesztsorrend javítva. Az új 031 main CI még ellenőrizendő. Pozitív interaktív UI nem igazolt; a korábbi browser-eszközkorlátot nem kerülte meg a HTTP-próba.
+A 030 pontos runtime 63d49f4 [main CI](https://github.com/Muzsy/future_flow/actions/runs/37570248739) verify/container sikeres; a korábbi hibás tesztsorrend javítva. A pontos 031 c36abdd [main CI](https://github.com/Muzsy/future_flow/actions/runs/37571756710) verify/container sikeres: 535/46/133, 001–031 + repeat, hét új PG-proof és minden korábbi bizonyíték. Pozitív interaktív UI nem igazolt; a korábbi browser-eszközkorlátot nem kerülte meg a HTTP-próba.
 
 ## Következő kapuk
 

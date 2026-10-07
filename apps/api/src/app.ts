@@ -75,11 +75,14 @@ import {
   enabledLocales,
   betaFeedbackSchema,
   lifeContinueRequestV2Schema,
+  lifeDeletionRequestSchema,
+  lifeDeletionReceiptSchema,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import {
   Repository,
   LifeRepository,
+  LifeDeletionRepository,
   PublicDraftRepository,
   PublicReviewRepository,
   PublicReviewJobRepository,
@@ -447,6 +450,23 @@ class LifeController {
   }
   @Get('lives') list(@Req() req: AuthRequest) {
     return this.lives.list(req.userId, enabledLocales);
+  }
+  @Delete('lives/:id')
+  @ApiBody({ schema: z.toJSONSchema(lifeDeletionRequestSchema) as never })
+  @ApiOkResponse({ schema: z.toJSONSchema(lifeDeletionReceiptSchema) as never })
+  deleteLife(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') key: string,
+  ) {
+    requireRecentAuthentication(req.token);
+    return new LifeDeletionRepository(this.repo.db).remove(
+      req.userId,
+      id,
+      body,
+      key ?? '',
+    );
   }
   @Get('scenarios') scenariosList(@Req() req: AuthRequest) {
     return this.scenarios.list(req.userId);

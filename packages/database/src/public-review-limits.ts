@@ -1,4 +1,5 @@
 import type { Database } from './index';
+import { deletedLifeAdmissionSql } from './life-deletion';
 
 // Call with the owner locked. Text, full-content and scenario reviews share limits.
 export async function publicReviewLimits(tx: Database, userId: string) {
@@ -40,7 +41,7 @@ export async function publicReviewLimits(tx: Database, userId: string) {
     count(*) FILTER(WHERE status IN ('queued','running'))::text AS concurrent FROM (
     SELECT created_at,status FROM aw_public_review_jobs WHERE user_id=$1
     ${full ? 'UNION ALL SELECT created_at,status FROM aw_public_content_reviews WHERE user_id=$1' : ''}
-    ${scenarios ? 'UNION ALL SELECT created_at,status FROM aw_scenario_reviews WHERE user_id=$1' : ''}) reviews`,
+    ${scenarios ? 'UNION ALL SELECT created_at,status FROM aw_scenario_reviews WHERE user_id=$1' : ''} ${await deletedLifeAdmissionSql(tx, 'public_review')}) reviews`,
     [userId],
   );
   return limits!;

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
   lifeSetupV2Schema,
@@ -384,7 +385,7 @@ export class LifeRepository {
       );
     const counts = lifeRow(
       await tx.query(
-        `SELECT count(*) FILTER(WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS daily,count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM (SELECT status,created_at FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status,created_at FROM aw_jobs WHERE user_id=$1) q`,
+        `SELECT count(*) FILTER(WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS daily,count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM (SELECT status,created_at FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status,created_at FROM aw_jobs WHERE user_id=$1 ${await deletedLifeAdmissionSql(tx, 'generation')}) q`,
         [userId],
       ),
     );

@@ -365,6 +365,17 @@ try {
     assert.equal(officialLife.publicationRefresh[proof], true);
   assert.equal(officialLife.publicationRefresh.actualProviderCalls, 0);
   assert.equal(officialLife.publicationRefresh.actualOfficialSeed, false);
+  for (const proof of [
+    'concurrentExactDeleteOnce',
+    'refreshDeletionRaceNoResurrection',
+    'publicExternalSourceCascade',
+    'sharedInFlightScrubAndRemainingLife',
+    'quotaNotResetByDeletion',
+    'minimalExportExpiryImmutableRls',
+    'accountAdmissionCascade',
+  ])
+    assert.equal(officialLife.lifeDeletion[proof], true);
+  assert.equal(officialLife.lifeDeletion.actualProviderCalls, 0);
   compose(
     'up',
     '-d',
@@ -508,7 +519,7 @@ try {
     '-Atc',
     'SELECT (SELECT count(*) FROM ff_migrations), (SELECT count(*) FROM ff_jobs), (SELECT count(*) FROM aw_jobs), (SELECT count(*) FROM aw_public_review_jobs), (SELECT count(*) FROM aw_public_content_reviews)',
   );
-  assert.equal(counts.trim(), '31|0|0|0|0');
+  assert.equal(counts.trim(), '32|0|0|0|0');
   compose('stop', '-t', '10', 'worker');
   const workerId = compose('ps', '-aq', 'worker').trim();
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
@@ -517,7 +528,7 @@ try {
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
-      migrations: 31,
+      migrations: 32,
       sharedFoundation,
       officialLife,
       repeatMigration: 'passed',

@@ -9,6 +9,7 @@ import {
   PublicContentReviewJobRepository,
   publicContentReviewJobConfigFromEnv,
   cleanupExpiredPublicReadings,
+  cleanupExpiredLifeAdmissions,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -75,8 +76,10 @@ async function main() {
       if (Date.now() >= nextReadingCleanup) {
         try {
           const result = await cleanupExpiredPublicReadings(db);
+          const admissions = await cleanupExpiredLifeAdmissions(db);
           nextReadingCleanup =
-            Date.now() + (result.batchFull ? 2000 : 15 * 60 * 1000);
+            Date.now() +
+            (result.batchFull || admissions.batchFull ? 2000 : 15 * 60 * 1000);
         } catch {
           // Retry soon without exposing SQL/credentials or starving AI queues.
           nextReadingCleanup = Date.now() + 60000;

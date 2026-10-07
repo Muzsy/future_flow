@@ -1,4 +1,5 @@
 import { randomInt, randomUUID } from 'node:crypto';
+import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   profileSchema,
   questionnaire,
@@ -274,7 +275,7 @@ export class Repository {
       const counts = requireRow(
         await tx.query(
           `SELECT count(*) FILTER(WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS daily,
-        count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM (SELECT status,created_at FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status,created_at FROM aw_jobs WHERE user_id=$1) q`,
+        count(*) FILTER(WHERE status IN ('queued','running','validating'))::int AS concurrent FROM (SELECT status,created_at FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status,created_at FROM aw_jobs WHERE user_id=$1 ${await deletedLifeAdmissionSql(tx, 'generation')}) q`,
           [userId],
         ),
       );
@@ -754,6 +755,15 @@ export class Repository {
               [userId],
             )
           : [];
+      const [admissionStorage] = await tx.query(
+        "SELECT to_regclass('public.aw_deleted_life_admissions') IS NOT NULL AS present",
+      );
+      result.aw_deleted_life_admissions = admissionStorage?.present
+        ? await tx.query(
+            'SELECT kind,admitted_at FROM aw_deleted_life_admissions WHERE user_id=$1 ORDER BY admitted_at,kind',
+            [userId],
+          )
+        : [];
       result.account = await tx.query(
         'SELECT id,status,created_at FROM ff_users WHERE id=$1',
         [userId],

@@ -2,6 +2,10 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import {
+  lifeDeletionRequestSchema,
+  lifeDeletionReceiptSchema,
+} from './life-deletion';
+import {
   PUBLICATION_REFRESH_VERSION,
   publicationRefreshRequestSchema,
   publicationRefreshTargetsSchema,
@@ -180,6 +184,23 @@ mkdirSync(directory, { recursive: true });
 const publicCollectionsDirectory = resolve(directory, 'public-collections');
 const publicExposureDirectory = resolve(directory, 'public-exposure');
 const publicationRefreshDirectory = resolve(directory, 'publication-refresh');
+const lifeDeletionDirectory = resolve(directory, 'life-deletion');
+mkdirSync(lifeDeletionDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  request: lifeDeletionRequestSchema,
+  receipt: lifeDeletionReceiptSchema,
+}))
+  writeFileSync(
+    resolve(lifeDeletionDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:life-deletion:${name}:life-deletion-1`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 mkdirSync(publicationRefreshDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   request: publicationRefreshRequestSchema,
