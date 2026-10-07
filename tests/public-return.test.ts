@@ -8,13 +8,14 @@ describe('public reader return after authentication', () => {
     for (const slug of [
       'life-' + 'a'.repeat(32),
       'official-' + 'b'.repeat(32),
+      'scenario-' + 'c'.repeat(32),
     ]) {
       const href = publicLoginHref(slug),
         value = new URL(href, 'https://alterward.com').searchParams.get(
           'returnTo',
         );
       expect(publicReturnPath(value)).toBe(
-        `/${slug.startsWith('official-') ? 'official-lives' : 'lives'}/${slug}`,
+        `/${slug.startsWith('scenario-') ? 'scenarios' : slug.startsWith('official-') ? 'official-lives' : 'lives'}/${slug}`,
       );
     }
   });
@@ -37,6 +38,9 @@ describe('public reader return after authentication', () => {
       '%2Flives%2Flife-' + 'a'.repeat(32),
       source + '%0d%0a',
       '/login?returnTo=/settings',
+      '/scenarios/publish/' + crypto.randomUUID(),
+      '/scenarios/life-' + 'a'.repeat(32),
+      '/scenarios/scenario-' + 'a'.repeat(32) + '?profile=secret',
     ])
       expect(publicReturnPath(value)).toBeNull();
     expect(publicLoginHref('malformed')).toBe('/login');

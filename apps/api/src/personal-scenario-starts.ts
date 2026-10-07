@@ -21,6 +21,7 @@ import {
   personalScenarioStartRequestSchema,
   personalScenarioStartReceiptSchema,
   personalScenarioAttributionSchema,
+  scenarioPersonalizationCapabilitySchema,
 } from '@future-flow/contracts';
 import {
   Repository,
@@ -107,4 +108,30 @@ export function createPersonalScenarioController(
     }
   }
   return PersonalScenarioController;
+}
+export function createScenarioPersonalizationCapabilityController(
+  token: symbol,
+  config: PersonalScenarioConfig,
+  publicConfig: PublicScenarioConfig,
+): Type {
+  @Controller('api/public/scenario-personalization')
+  class CapabilityController {
+    private readonly scenarios: PersonalScenarioRepository;
+    constructor(@Inject(token) repo: Repository) {
+      this.scenarios = new PersonalScenarioRepository(
+        repo.db,
+        config,
+        publicConfig,
+      );
+    }
+    @Get(':slug')
+    @ApiOkResponse({
+      schema: z.toJSONSchema(scenarioPersonalizationCapabilitySchema) as never,
+    })
+    read(@Param('slug') slug: string, @Query() query: unknown) {
+      z.object({}).strict().parse(query);
+      return this.scenarios.capability(slug);
+    }
+  }
+  return CapabilityController;
 }

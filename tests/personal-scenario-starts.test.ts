@@ -8,6 +8,7 @@ import {
   LifeJobRepository,
   LifeDeletionRepository,
   PersonalScenarioRepository,
+  PublicScenarioPublicationRepository,
   personalScenarioConfigFromEnv,
   cleanupExpiredPersonalScenarioPreviews,
   type Database,
@@ -89,6 +90,127 @@ const body = (f: Awaited<ReturnType<typeof fixture>>) => ({
 });
 
 describe('private starts from explicitly approved personal Scenario previews', () => {
+  it('exposes only a current public capability, requiring both runtime and source personalization permission', async () => {
+    const f = await fixture();
+    expect(await personal().capability(f.publication.slug)).toEqual({
+      schemaVersion: 'scenario-ui-1',
+      slug: f.publication.slug,
+      templateHash: f.version.templateHash,
+      personalizationEnabled: true,
+    });
+    const off = new PersonalScenarioRepository(
+      db,
+      { enabled: false },
+      publicFlags,
+    );
+    expect(
+      (await off.capability(f.publication.slug)).personalizationEnabled,
+    ).toBe(false);
+    const denied = await fixture(false);
+    expect(
+      (await personal().capability(denied.publication.slug))
+        .personalizationEnabled,
+    ).toBe(false);
+    await f.pubs.withdraw(f.owner, f.publication.id);
+    await expect(
+      personal().capability(f.publication.slug),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+  it('provides private current publication context and permits own withdrawal history while publication is off', async () => {
+    const f = await fixture(),
+      foreign = await target();
+    const source = await f.pubs.publicationSource(f.owner, f.version.id);
+    expect(source.templateHash).toBe(f.version.templateHash);
+    expect(hash(source.template)).toBe(source.templateHash);
+    expect(source.officialLifeApproved).toBe(false);
+    await expect(
+      f.pubs.publicationSource(foreign, f.version.id),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      f.pubs.forVersion(foreign, f.version.id),
+    ).rejects.toMatchObject({ status: 404 });
+    const off = new PublicScenarioPublicationRepository(db);
+    await expect(
+      off.publicationSource(f.owner, f.version.id),
+    ).rejects.toMatchObject({ status: 404 });
+    expect((await off.forVersion(f.owner, f.version.id)).publications).toEqual([
+      f.publication,
+    ]);
+    await off.withdraw(f.owner, f.publication.id);
+    expect(
+      (await off.forVersion(f.owner, f.version.id)).publications[0]!.status,
+    ).toBe('withdrawn');
+  });
+  it('binds new UI support endpoints to verified ownership and strict query projections without exposing private profiles', async () => {
+    const f = await fixture(),
+      foreign = await target(),
+      args: Parameters<typeof createApp> = [
+        new Repository(db),
+        {
+          verify: async (token) => {
+            if ([f.user, f.owner, foreign].includes(token))
+              return { id: token };
+            throw new DomainError('AUTH_INVALID', 'Invalid token.', 401);
+          },
+          deleteUser: async () => {},
+        },
+      ];
+    args[22] = publicFlags;
+    args[23] = { enabled: true };
+    const app = await createApp(...args);
+    await app.listen(0, '127.0.0.1');
+    const base = await app.getUrl();
+    try {
+      const capability = await fetch(
+        `${base}/api/public/scenario-personalization/${f.publication.slug}`,
+      );
+      expect(capability.status).toBe(200);
+      expect(capability.headers.get('cache-control')).toBe('no-store');
+      expect(Object.keys(await capability.json()).sort()).toEqual(
+        [
+          'personalizationEnabled',
+          'schemaVersion',
+          'slug',
+          'templateHash',
+        ].sort(),
+      );
+      expect(
+        (
+          await fetch(
+            `${base}/api/public/scenario-personalization/${f.publication.slug}?profile=secret`,
+          )
+        ).status,
+      ).toBe(422);
+      for (const suffix of ['source', 'publications']) {
+        const endpoint = `${base}/api/v2/scenario-publications/versions/${f.version.id}/${suffix}`;
+        expect((await fetch(endpoint)).status).toBe(401);
+        expect(
+          (
+            await fetch(endpoint, {
+              headers: { Authorization: `Bearer ${foreign}` },
+            })
+          ).status,
+        ).toBe(404);
+        expect(
+          (
+            await fetch(endpoint + '?userId=' + foreign, {
+              headers: { Authorization: `Bearer ${f.owner}` },
+            })
+          ).status,
+        ).toBe(422);
+        const response = await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${f.owner}` },
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('cache-control')).toBe('no-store');
+        expect(JSON.stringify(await response.json())).not.toContain(
+          f.request.profile.identity.label,
+        );
+      }
+    } finally {
+      await app.close();
+    }
+  });
   it('continues three normal technical periods after source deletion, using only its own approved starting canon', async () => {
     const f = await fixture(),
       receipt = await personal().start(

@@ -8,6 +8,9 @@ import {
   publicScenarioOwnerSchema,
   publicScenarioReaderSchema,
   publicScenarioModerationSchema,
+  SCENARIO_UI_VERSION,
+  scenarioPublicationSourceSchema,
+  scenarioOwnedPublicationsSchema,
 } from '@future-flow/contracts';
 import { DomainError, hash, validateScenarioTemplate } from '@future-flow/core';
 import type { Database } from './index';
@@ -357,6 +360,53 @@ export class PublicScenarioPublicationRepository {
           ),
         ),
       );
+    });
+  }
+  async publicationSource(userId: string, versionId: string) {
+    return this.db.transaction(async (tx) => {
+      await this.owner(tx, userId);
+      this.gate();
+      const view = await new ScenarioReleaseRepository(tx).get(
+        userId,
+        versionId,
+      );
+      if (!view.sourceGrant?.usable) throw changed();
+      const template = await this.source(
+        tx,
+        userId,
+        versionId,
+        view.sourceGrant.id,
+        view.templateHash,
+      );
+      return scenarioPublicationSourceSchema.parse({
+        schemaVersion: SCENARIO_UI_VERSION,
+        scenarioVersionId: versionId,
+        templateHash: view.templateHash,
+        sourceGrantId: view.sourceGrant.id,
+        template,
+        publicationApproved: false,
+        officialLifeApproved: false,
+      });
+    });
+  }
+  async forVersion(userId: string, versionId: string) {
+    return this.db.transaction(async (tx) => {
+      await this.owner(tx, userId);
+      lifeRow(
+        await tx.query(
+          'SELECT id FROM aw_scenario_versions WHERE id=$1 AND user_id=$2',
+          [versionId, userId],
+        ),
+      );
+      const rows = await tx.query(
+        'SELECT * FROM aw_scenario_publications WHERE scenario_version_id=$1 AND user_id=$2 ORDER BY published_at DESC,id DESC LIMIT 100',
+        [versionId, userId],
+      );
+      return scenarioOwnedPublicationsSchema.parse({
+        schemaVersion: SCENARIO_UI_VERSION,
+        scenarioVersionId: versionId,
+        publications: rows.map((row) => this.view(row)),
+      });
     });
   }
   async withdraw(userId: string, id: string) {

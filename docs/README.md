@@ -9,7 +9,9 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
-| [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Teljes privát profil/előnézet, explicit start/egy normál AI-job, source-detach és törlés/retention; angol UI és actual Auth/AI még kapu |
+| [Induló kínálat költségbecslése és döntése](INITIAL_CATALOG_COST_ESTIMATE_HU.md) | Jóváhagyott 10 USD közös keret: 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat későbbi bővítés |
+| [Angol Scenario-felület](SCENARIO_ENGLISH_UI_REPORT_HU.md) | Teljes reader, saját kiadási Confirm és személyes profil/előnézet/start; új ellenőrzések lezárása folyamatban |
+| [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Privát profil/előnézet/start, source-detach és törlés/retention; a72 pontos CI és 38 actual Auth próba sikeres, személyes AI-minőség még kapu |
 | [Külön nyilvános Scenario-kiadás](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md) | Saját preview/Confirm, külön personalization consent, immutable anonymous reader API és terminális withdrawal/moderáció; személyes start/UI még P12 feladat |
 | [Scenario személyre szabási alap](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md) | Privát saját állapot/cél/korlát, külön forrástéma és teljes preview-kötés; public API/UI/start még külön P12 szelet |
 | [Jóváhagyott éles AI-keret](AI_PRODUCTION_BUDGET_HU.md) | 10 USD OpenAI + 5 USD Claude az első éles 30 napra, közös személyes limit, lejárat és nincs automatikus megújítás |

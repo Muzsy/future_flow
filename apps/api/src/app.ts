@@ -119,7 +119,10 @@ import { createPublicExposureControllers } from './public-exposure';
 import { createPublicationRefreshController } from './publication-refresh';
 import { createPublicForkPermissionControllers } from './public-fork-permission';
 import { createPublicScenarioPublicationControllers } from './public-scenario-publications';
-import { createPersonalScenarioController } from './personal-scenario-starts';
+import {
+  createPersonalScenarioController,
+  createScenarioPersonalizationCapabilityController,
+} from './personal-scenario-starts';
 import {
   personalScenarioConfigFromEnv,
   type PersonalScenarioConfig,
@@ -946,6 +949,11 @@ export async function createApp(
   );
   @Module({
     controllers: [
+      createScenarioPersonalizationCapabilityController(
+        REPOSITORY,
+        personalScenarioConfig,
+        publicScenarioConfig,
+      ),
       createPersonalScenarioController(
         AuthGuard,
         REPOSITORY,

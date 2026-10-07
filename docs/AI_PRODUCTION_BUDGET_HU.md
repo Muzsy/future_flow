@@ -1,8 +1,16 @@
-# alterward — az első éles AI-költségkeret
+# alterward — jóváhagyott közös zárt béta AI-költségkeret
 
 2026-10-07 · Jóváhagyott felhasználói döntés · Az éles alkalmazás még nem fut
 
-A felhasználó az első 30 napra **10 USD OpenAI és 5 USD Claude**, összesen **15 USD éles AI-keretet** engedélyezett. A javasolt **0,50 USD felhasználói plafon közös a két szolgáltató között**. A 30 nap a tényleges éles induláskor kezdődik. Nincs automatikus megújítás vagy feltöltés; új időszak és új keret külön döntés.
+A legfrissebb felhasználói döntés **10 USD teljes induló keret: 8 USD OpenAI + 2 USD Claude**. Ebből 15 angol Official Life, öt Scenario és legfeljebb 10 fős zárt béta készül. A teljes 50–100 élet/20–30 Scenario kínálat későbbi bővítés; teljes nyilvános indulás külön lépés. Ez **helyettesíti** a korábban jóváhagyott 10 USD OpenAI + 5 USD Claude használati keretet; nem összeadjuk vele. A 35 + 5 USD külön előállítási javaslatot nem fogadta el a felhasználó.
+
+| Rész | OpenAI | Claude | Összesen |
+| --- | ---: | ---: | ---: |
+| Előállítás: 15 élet, 5 Scenario, minden élet külön auditja | 6 USD | 1 USD | 7 USD |
+| Teszthasználatra előre fenntartva, legfeljebb 10 fő | 2 USD | 1 USD | 3 USD |
+| Jóváhagyott teljes plafon | **8 USD** | **2 USD** | **10 USD** |
+
+A tesztkeret nem költhető seedre. A teszthasználati **0,50 USD felhasználói plafon közös a két szolgáltató között**, a szigorúbb szolgáltatói/projektplafon előbb megállíthatja a generálást. A tervezési cél tesztelőnként három új fejezet, nem korlátlan használat vagy garantált darabszám. A használati 30 nap a tényleges zárt béta induláskor kezdődik; az előállítás külön védett költségszakasz. Nincs automatikus megújítás/feltöltés vagy részek közötti átcsoportosítás. Kifogyáskor új fizetett hívás nem indul, a már mentett történet olvasható marad.
 
 Ez költési plafon, nem havi előfizetési díj és nem szolgáltatói egyenleglekérdezés. A VPS, domain és más infrastruktúra költsége külön számít. A két korábbi, összesített **5–5 USD fejlesztési keret változatlan**, naplójuk megmarad. A fejlesztési maradék nem kerül át az éles keretbe, és az új éles keret nem finanszíroz további helyi kutatási próbákat.
 
@@ -12,11 +20,11 @@ A legutóbbi [három valódi angol public-fork fejezet](examples/AI_PUBLIC_FORK_
 
 | Példa a mért OpenAI-lánccal | Becsült történetköltség |
 | --- | ---: |
-| 20 felhasználó, fejenként három fejezet | kb. 3,63 USD |
-| 30 felhasználó, fejenként három fejezet | kb. 5,44 USD |
-| 50 felhasználó, fejenként három fejezet | kb. 9,07 USD |
+| 10 tesztelő, fejenként három új fejezet | kb. 1,81 USD OpenAI tokenbecslés |
+| Ugyanez konzervatív OpenAI-elszámolással | kb. 1,93 USD |
+| Mind a tíz teljes háromrészes lánc Claude-auditja, konzervatívan | kb. 0,38 USD |
 
-Ezek tervezési példák, nem garantált generálási darabszámok. A 10 USD OpenAI-kerethez az első, 20–30 fős használati kör ésszerű tartalékot hagy. Az 50–100 Official Life és 20–30 Scenario eredeti tartalmi cél ettől nem szűnik meg; annak teljes előállítása és az induló kínálat külön tervezési tétel. A Claude-keret mintavételes külső auditot szolgál; a normál generálás saját kánonellenőrzője továbbra OpenAI.
+Ezek tervezési példák, nem garantált darabszámok. A 2 USD OpenAI használati rész a mért háromrészes lánccal közel tíz tesztelőre elegendő, de javítás/hosszabb kontextus csökkentheti a számot. A Claude 1 USD használati rész a külső auditokra van fenntartva; a normál generálás saját kánonellenőrzője továbbra OpenAI. A [seed és teljes induló becslés](INITIAL_CATALOG_COST_ESTIMATE_HU.md) külön tartalmazza a 15 élet/öt Scenario előállítását. A 50–100 élet/20–30 Scenario cél későbbi bővítésként marad.
 
 A használt rövid kontextusú Standard modellek árait 2026-10-07-én ellenőriztük: [OpenAI hivatalos árlista](https://developers.openai.com/api/docs/pricing), [Claude Sonnet 5.5 hivatalos árak](https://platform.claude.com/docs/en/models/sonnet-5-5/overview). A jelenlegi alap továbbra Sol, a külső auditor Sonnet 5.5; ez a döntés nem jelent automatikus modellcserét. A költségőr cache-write-ot is fedező, konzervatív bemeneti árral foglal. A Claude-kliens Standard/global és legfeljebb ötperces cache-írás mellett működik; egyórás cache-usage esetén megtartja a teljes ismeretlen foglalást.
 
@@ -25,8 +33,8 @@ A használt rövid kontextusú Standard modellek árait 2026-10-07-én ellenőri
 A védett éles konfigurációban a tényleges indulás UTC-időpontját és az attól számított 30 napos, kizáró záróidőpontot kell rögzíteni:
 
 ```dotenv
-AI_PROJECT_BUDGET_USD=10
-CLAUDE_PRODUCTION_BUDGET_USD=5
+AI_PROJECT_BUDGET_USD=2
+CLAUDE_PRODUCTION_BUDGET_USD=1
 AI_USER_BUDGET_USD=0.50
 AI_PROJECT_INITIAL_SPENT_USD=0
 AI_BUDGET_WINDOW_REQUIRED=true
@@ -50,3 +58,13 @@ A lejárati és szolgáltatói védelem 13 célzott adatbázis-/konfiguráció-/
 Az OpenAI worker időszakos kerete implementált. A meglévő Claude-kliens a provider-specifikus adatbázis-őrrel is integrálható és technikai transporttal ellenőrzött; az éles mintavételi auditor indítását külön védett operator-folyamatba kell bekötni. Nem tettünk Anthropic-kulcsot a webbe vagy a normál workerbe, nem indult éles Claude-hívás és nincs automatikus fizetett retry. Az indulási pillanat, szolgáltatói fedezet, éles operator-konfiguráció és auditmintavételi folyamat a telepítéskor ellenőrizendő.
 
 Az élesítés többi kapuja és a P01–P13/S0–S7 teljes terv megmarad: [következő lépések](NEXT_STEPS.md), [Contabo-telepítés](DEPLOYMENT_HU.md), [angol kiadás](ENGLISH_RELEASE_PLAN_HU.md).
+
+
+## Korábbi, később felülírt 2026-10-07-i kínálati kérés
+
+A felhasználó a teljes 50–100 élet/20–30 Scenario kínálatot az éles indulás elé helyezte. A korábbi kisebb béta lehetősége fejlesztési/pilot fázis; éles indulási engedélyként már nem alkalmazható. A [külön előállítási becslés](INITIAL_CATALOG_COST_ESTIMATE_HU.md) javaslata 75 élet/25 Scenario és egyszeri 35 + 5 USD; új keret nincs jóváhagyva vagy aktiválva. A 10 + 5 USD első 30 napos használati keret változatlan. Üzemeltető Müller Ákos, email még függőben.
+
+
+## Legfrissebb döntés az előző szakasz helyett
+
+10 USD közös keret (8 OpenAI + 2 Claude), 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat később. A fenti korábbi 35 + 5 USD javaslat és 10 + 5 USD használati keret nem aktuális engedély. Seed/audit maximum 6 + 1 USD, teszthasználat 2 + 1 USD; védett separate ledgers/window/guard és admission még elkészítendő. Runtime nem aktivált. A fennmaradó email/ops/retention/Contabo kapuk megmaradnak.

@@ -53,3 +53,10 @@ A következő P12 feladat az angol Scenario-olvasó, kiadási Confirm, saját pr
 ## 2026-10-07: teljes helyi ellenőrzés
 
 `pnpm check` sikeres: 610 teszt/55 fájl, format, minden package/web/API/worker és scripts typecheck, éles Next/API/worker build. Összesen 159 JSON-séma, a korábbi 154 változatlan. A fejlesztői DB 001–036 alkalmazva/megismételve, két új üres private RLS tábla és normál flags false; 0 paid AI. Az új pontos CI/valós PG/Auth/AI proof még ellenőrizendő.
+
+
+## 2026-10-07: pontos CI és tényleges Auth lezárva
+
+Az a72c939 [pontos CI](https://github.com/Muzsy/future_flow/actions/runs/37674410965) verify és container sikeres: 610 teszt/55 fájl/159 séma, 001–036/repeat, nyolc új personal Scenario PostgreSQL-proof, minden korábbi proof és HTTPS/DB TLS, 0 paid AI. A korábbi sémák és migrációk változatlanok.
+
+Két új szintetikus tényleges Supabase Auth-fiók, 38 ellenőrzés: külön felnőtt/privacy consent, teljes saját profil/preview, foreign 404, profilváltozás 409, párhuzamos prep/start egy rekord/élet/job, private canon és source attribution, withdrawal utáni replay és új start tiltás, default-off replay, export, szelektív élettörlés/tombstone és tényleges Auth/DB cleanup. A próba a meglévő valódi AI-seed ellenőrzött Scenario-ját használta, ideiglenes helyi publikációval, amelyet visszavontunk. A probe job a létrehozási tranzakción belül le lett foglalva, a worker nem generált fizetett tartalmat. Mindkét kutatási napló változatlan. A seed canon/AI-receipt/review/grant változatlan; az új withdrawn publication audit megmaradt, ezért a teljes seed-export nem változatlan. Pozitív interaktív UI és valódi személyre szabott AI-történetminőség még nincs ezzel bizonyítva.

@@ -248,3 +248,8 @@ Az első éles 30 nap 10 USD OpenAI + 5 USD Claude és közös user 0,50 USD jó
 ## 2026-10-07: saját személyes Scenario-előnézet és életindítás
 
 Saját, lejáró teljes Scenario-előnézet és külön indítási megerősítés, privát élet/egy normál AI-job, source-detach és törlési újraélesztés tiltása implementált. 036/repeat/610/55/159 helyi ellenőrzés; normál flags false, új CI/Auth/AI és angol UI még következik. [Részletek](docs/PERSONAL_SCENARIO_START_REPORT_HU.md).
+
+
+## 2026-10-07: angol Scenario-felület és jóváhagyott zárt béta
+
+Angol Scenario-reader, külön publikálási Confirm és teljes saját profil/privát preview/start/attribution elkészült. Teljes helyi check 618/56/162, korábbi 159 séma és 001–036 immutable; új exact CI és pozitív interaktív UI még kapu. [Részletek](docs/SCENARIO_ENGLISH_UI_REPORT_HU.md). Legfrissebb döntés: 10 USD összesen (8 OpenAI + 2 Claude), 15 élet/5 Scenario és 10 fős zárt béta, seed 6 + 1 USD és külön fenntartott teszthasználat 2 + 1 USD. Ez helyettesíti a korábbi 10 + 5 USD induló használati keretet. Teljes kínálat későbbi bővítés, teljes nyilvános indulás külön lépés. Új paid AI 0, runtime-keret inaktív, Contabo-deploy nincs. [Keret](docs/AI_PRODUCTION_BUDGET_HU.md).

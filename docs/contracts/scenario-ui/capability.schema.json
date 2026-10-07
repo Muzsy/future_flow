@@ -1,0 +1,29 @@
+{
+  "$id": "urn:alterward:scenario-ui:capability:scenario-ui-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "scenario-ui-1"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^scenario-[a-f0-9]{32}$"
+    },
+    "templateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "personalizationEnabled": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "slug",
+    "templateHash",
+    "personalizationEnabled"
+  ],
+  "additionalProperties": false
+}

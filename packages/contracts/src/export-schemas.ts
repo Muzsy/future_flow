@@ -1,5 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
+  SCENARIO_UI_VERSION,
+  scenarioPersonalizationCapabilitySchema,
+  scenarioPublicationSourceSchema,
+  scenarioOwnedPublicationsSchema,
+} from './scenario-ui';
+import {
   PERSONAL_SCENARIO_VERSION,
   personalScenarioPrepareRequestSchema,
   personalScenarioPreviewSchema,
@@ -220,6 +226,25 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const scenarioUiDirectory = resolve(directory, 'scenario-ui');
+mkdirSync(scenarioUiDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  capability: scenarioPersonalizationCapabilitySchema,
+  publicationSource: scenarioPublicationSourceSchema,
+  ownedPublications: scenarioOwnedPublicationsSchema,
+})) {
+  writeFileSync(
+    resolve(scenarioUiDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:scenario-ui:${name}:${SCENARIO_UI_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 const personalScenarioDirectory = resolve(directory, 'personal-scenario');
 mkdirSync(personalScenarioDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

@@ -9,6 +9,8 @@ import {
   scenarioPersonalProfileSchema,
   scenarioPersonalizationPreviewSchema,
   publicScenarioSlugSchema,
+  SCENARIO_UI_VERSION,
+  scenarioPersonalizationCapabilitySchema,
 } from '@future-flow/contracts';
 import {
   DomainError,
@@ -449,6 +451,20 @@ export class PersonalScenarioRepository {
         origin: 'personalized_scenario',
         source,
       });
+    });
+  }
+  async capability(rawSlug: unknown) {
+    const slug = publicScenarioSlugSchema.parse(rawSlug),
+      source = await new PublicScenarioPublicationRepository(
+        this.db,
+        this.publicConfig,
+      ).read(slug);
+    return scenarioPersonalizationCapabilitySchema.parse({
+      schemaVersion: SCENARIO_UI_VERSION,
+      slug,
+      templateHash: source.templateHash,
+      personalizationEnabled:
+        this.config.enabled && source.allowPersonalization,
     });
   }
 }

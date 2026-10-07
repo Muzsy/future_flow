@@ -61,3 +61,6 @@ export const personalScenarioAttributionSchema = z
       .nullable(),
   })
   .strict();
+export type PersonalScenarioPreview = z.infer<
+  typeof personalScenarioPreviewSchema
+>;

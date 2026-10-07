@@ -20,6 +20,7 @@ import { trackLife, lifeSessionId } from '../lib/life-analytics';
 import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
 import { PublicForkOrigin } from './public-fork-origin';
+import { PersonalScenarioOrigin } from './personal-scenario-origin';
 
 type Summary = {
   id: string;
@@ -1004,6 +1005,13 @@ export function LifeExperience({
         disabled={busy}
         onDeleted={() => router.push('/lives')}
       />
+      {user && (
+        <PersonalScenarioOrigin
+          key={user + b.life_id}
+          lifeId={b.life_id}
+          user={user}
+        />
+      )}
       {detail.initialChoice && (
         <PublicForkOrigin
           key={b.life_id}

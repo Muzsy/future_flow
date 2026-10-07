@@ -1533,6 +1533,7 @@ export function Experience() {
                 <div className="eyebrow">{t('home.privateTitle')}</div>
                 <h1 style={{ margin: '15px 0 25px' }}>{t('privacy.title')}</h1>
                 <p>{t('privacy.introduction')}</p>
+                <p>{t('privacy.operator')}</p>
                 <h2>{t('privacy.aiTitle')}</h2>
                 <p>{t('privacy.aiDescription')}</p>
                 <h2>{t('privacy.scenarioTitle')}</h2>

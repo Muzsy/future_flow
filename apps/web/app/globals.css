@@ -115,6 +115,83 @@ header {
   margin: auto;
   padding: 52px 5.5% 70px;
 }
+.scenario-page {
+  max-width: 1040px;
+  line-height: 1.65;
+}
+.scenario-page .panel {
+  margin-top: 24px;
+}
+.scenario-page h1,
+.scenario-page h2,
+.scenario-page h3,
+.scenario-page h4 {
+  margin: 20px 0 12px;
+}
+.scenario-page fieldset {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 20px 0;
+  min-width: 0;
+}
+.scenario-page legend {
+  font-weight: 600;
+  padding: 0 8px;
+}
+.scenario-page label {
+  display: block;
+  margin: 16px 0;
+}
+.scenario-page input:not([type='checkbox']),
+.scenario-page select,
+.scenario-page textarea {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font: inherit;
+  color: inherit;
+}
+.scenario-page textarea {
+  min-height: 100px;
+}
+.scenario-page input[type='checkbox'] {
+  accent-color: var(--green);
+  margin-right: 10px;
+}
+.scenario-page button {
+  display: inline-block;
+  min-height: 44px;
+  padding: 10px 16px;
+  margin: 8px 12px 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--green);
+  font: inherit;
+  cursor: pointer;
+}
+.scenario-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.scenario-page :focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+.scenario-facts {
+  overflow-wrap: anywhere;
+}
+.scenario-facts section {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
 .eyebrow {
   font-size: 11px;
   font-weight: 700;
