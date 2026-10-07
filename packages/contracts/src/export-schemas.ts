@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { privacyConsentStatusSchema } from './privacy-consent';
 import {
   PUBLIC_FORK_START_VERSION,
   publicForkStartRequestSchema,
@@ -195,6 +196,19 @@ import {
 
 const directory = resolve(__dirname, '../../../docs/contracts');
 mkdirSync(directory, { recursive: true });
+const consentDirectory = resolve(directory, 'privacy-consent');
+mkdirSync(consentDirectory, { recursive: true });
+writeFileSync(
+  resolve(consentDirectory, 'status.schema.json'),
+  JSON.stringify(
+    {
+      $id: 'urn:alterward:privacy-consent:status:privacy-consent-status-1',
+      ...z.toJSONSchema(privacyConsentStatusSchema),
+    },
+    null,
+    2,
+  ) + '\n',
+);
 const forkStartDirectory = resolve(directory, 'public-fork-start');
 mkdirSync(forkStartDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({

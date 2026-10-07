@@ -113,6 +113,19 @@ export class Repository {
       [randomUUID(), userId],
     );
   }
+  async privacyStatus(userId: string) {
+    const row = requireRow(
+      await this.db.query<{ acknowledged: boolean }>(
+        "SELECT EXISTS(SELECT 1 FROM ff_consents c WHERE c.user_id=u.id AND c.policy_version='alpha-privacy-v1' AND c.consent_type='adult_and_ai_acknowledgement') AS acknowledged FROM ff_users u WHERE u.id=$1 AND u.status='active'",
+        [userId],
+      ),
+    );
+    return {
+      schemaVersion: 'privacy-consent-status-1' as const,
+      acknowledged: row.acknowledged,
+      policyVersion: 'alpha-privacy-v1' as const,
+    };
+  }
   private async requirePrivacy(tx: Database, userId: string) {
     const consent = await tx.query(
       "SELECT id FROM ff_consents WHERE user_id=$1 AND policy_version='alpha-privacy-v1' AND consent_type='adult_and_ai_acknowledgement'",

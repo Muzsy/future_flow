@@ -34,9 +34,12 @@ export async function api<T>(
   path: string,
   options: RequestInit = {},
   version: 'v1' | 'v2' = 'v1',
+  expectedUserId?: string,
 ): Promise<T> {
   const { data } = await supabase().auth.getSession();
   if (!data.session) throw new ClientError('AUTH_REQUIRED');
+  if (expectedUserId !== undefined && data.session.user.id !== expectedUserId)
+    throw new ClientError('AUTH_REQUIRED');
   const response = await fetch(
     `${(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1').replace(/\/v1\/?$/, `/${version}`)}${path}`,
     {
@@ -57,5 +60,8 @@ export async function api<T>(
     );
   return body as T;
 }
-export const lifeApi = <T>(path: string, options: RequestInit = {}) =>
-  api<T>(path, options, 'v2');
+export const lifeApi = <T>(
+  path: string,
+  options: RequestInit = {},
+  expectedUserId?: string,
+) => api<T>(path, options, 'v2', expectedUserId);

@@ -4,14 +4,17 @@ import { useRouter } from 'next/navigation';
 import {
   publicForkCapabilitySchema,
   publicForkStartReceiptSchema,
+  privacyConsentStatusSchema,
   type PublicForkCapability,
 } from '@future-flow/contracts';
 import {
   authConfigured,
+  api,
   supabase,
   lifeApi,
   clientErrorMessage,
 } from '../lib/client';
+import { publicLoginHref } from '../lib/public-return';
 export function PublicForkLauncher({ slug }: { slug: string }) {
   return <ForkLauncher key={slug} slug={slug} />;
 }
@@ -19,6 +22,8 @@ function ForkLauncher({ slug }: { slug: string }) {
   const router = useRouter(),
     [capability, setCapability] = useState<PublicForkCapability | null>(null),
     [user, setUser] = useState<string | null>(null),
+    [privacy, setPrivacy] = useState<boolean | null>(null),
+    [adult, setAdult] = useState(false),
     [point, setPoint] = useState(0),
     [option, setOption] = useState(''),
     [ack, setAck] = useState(false),
@@ -40,6 +45,8 @@ function ForkLauncher({ slug }: { slug: string }) {
         version.current++;
         request.current = null;
         setUser(nextUser);
+        setPrivacy(null);
+        setAdult(false);
         setBusy(false);
         setAck(false);
         setNotice('');
@@ -51,6 +58,24 @@ function ForkLauncher({ slug }: { slug: string }) {
       subscription.unsubscribe();
     };
   }, []);
+  useEffect(() => {
+    if (!user) return;
+    const own = version.current,
+      abort = new AbortController();
+    void api('/me/consent', { signal: abort.signal }, 'v1', user)
+      .then((raw) => {
+        const state = privacyConsentStatusSchema.parse(raw);
+        if (!abort.signal.aborted && own === version.current)
+          setPrivacy(state.acknowledged);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted && own === version.current)
+          setNotice(
+            'We could not load your privacy settings. Reload this page to try again.',
+          );
+      });
+    return () => abort.abort();
+  }, [user]);
   useEffect(() => {
     let controller: AbortController | null = null,
       stopped = false;
@@ -114,7 +139,16 @@ function ForkLauncher({ slug }: { slug: string }) {
     };
   }, [slug]);
   async function start() {
-    if (!user || !capability?.startsEnabled || !option || !ack || busy) return;
+    if (
+      !user ||
+      !capability?.startsEnabled ||
+      !option ||
+      !ack ||
+      busy ||
+      privacy === null ||
+      (!privacy && !adult)
+    )
+      return;
     const own = version.current,
       body = {
         capabilityHash: capability.capabilityHash,
@@ -125,16 +159,34 @@ function ForkLauncher({ slug }: { slug: string }) {
       signature = JSON.stringify({ user, slug, ...body });
     if (request.current?.signature !== signature)
       request.current = { signature, key: crypto.randomUUID() };
+    const requestKey = request.current.key;
     setBusy(true);
     setNotice('');
     try {
+      if (!privacy) {
+        await api(
+          '/me/consent',
+          {
+            method: 'POST',
+            body: JSON.stringify({ adult: true, acknowledged: true }),
+          },
+          'v1',
+          user,
+        );
+        if (own !== version.current) return;
+        setPrivacy(true);
+      }
       const receipt = publicForkStartReceiptSchema.parse(
-        await lifeApi(`/public-forks/${encodeURIComponent(slug)}`, {
-          method: 'POST',
-          headers: { 'Idempotency-Key': request.current.key },
-          body: JSON.stringify(body),
-          referrerPolicy: 'no-referrer',
-        }),
+        await lifeApi(
+          `/public-forks/${encodeURIComponent(slug)}`,
+          {
+            method: 'POST',
+            headers: { 'Idempotency-Key': requestKey },
+            body: JSON.stringify(body),
+            referrerPolicy: 'no-referrer',
+          },
+          user,
+        ),
       );
       if (own === version.current) router.push(`/life/${receipt.branchId}`);
     } catch (e) {
@@ -197,6 +249,22 @@ function ForkLauncher({ slug }: { slug: string }) {
       )}
       {user ? (
         <>
+          {privacy === null && (
+            <p role="status">Loading your privacy settings…</p>
+          )}
+          {privacy === false && (
+            <label>
+              <input
+                type="checkbox"
+                checked={adult}
+                disabled={busy}
+                onChange={(e) => setAdult(e.target.checked)}
+              />{' '}
+              I am at least 18 and understand that alterward uses AI to create
+              fictional stories. I have read the{' '}
+              <a href="/privacy">Privacy and AI use notice</a>.
+            </label>
+          )}
           <p>
             Creating your private life starts an AI generation and uses your
             allowance. You can continue it independently. The original author
@@ -214,14 +282,20 @@ function ForkLauncher({ slug }: { slug: string }) {
           </label>
           <button
             type="button"
-            disabled={busy || !ack || !option}
+            disabled={
+              busy ||
+              !ack ||
+              !option ||
+              privacy === null ||
+              (!privacy && !adult)
+            }
             onClick={() => void start()}
           >
             {busy ? 'Creating your life…' : 'Start my private life'}
           </button>
         </>
       ) : (
-        <a href="/login">Sign in to start your own life</a>
+        <a href={publicLoginHref(slug)}>Sign in to start your own life</a>
       )}
       {notice && (
         <p role="status" className="notice">

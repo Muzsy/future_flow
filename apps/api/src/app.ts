@@ -5,6 +5,7 @@ import {
   Module,
   Controller,
   Get,
+  Query,
   Post,
   Patch,
   Delete,
@@ -38,6 +39,7 @@ import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import {
   getQuestionnaire,
+  privacyConsentStatusSchema,
   localeFromAcceptLanguage,
   errorMessage,
   type Locale,
@@ -247,6 +249,16 @@ class ApiController {
       .parse(body);
     await this.repo.acceptPrivacy(req.userId);
     return { accepted: true, policyVersion: 'alpha-privacy-v1' };
+  }
+  @Get('me/consent')
+  @ApiOkResponse({
+    schema: z.toJSONSchema(privacyConsentStatusSchema) as never,
+  })
+  async consentStatus(@Req() req: AuthRequest, @Query() raw: unknown) {
+    z.object({}).strict().parse(raw);
+    return privacyConsentStatusSchema.parse(
+      await this.repo.privacyStatus(req.userId),
+    );
   }
   @Get('questionnaires/current')
   questions(@Req() req: AuthRequest) {

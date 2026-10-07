@@ -1,9 +1,9 @@
 # alterward — nyilvános tartalom megvalósítási terve
 
 
-## Aktuális: saját élet nyilvános döntési pontból
+## Aktuális: valódi public-fork AI és belépési útvonal
 
-P12 nyilvános, teljesen ellenőrzött döntési pontból külön saját privát élet indítása elkészült. A választás egyszer alkalmazódik, friss saját azonosítók és normál AI-job/kvóta készül; három technikai időszakban megmarad a döntés emlékezete. Az eredeti élet változatlan, Official eredetengedély és élő Shared-tagság nem öröklődik. Visszavonás leállítja az új indításokat; fizikai forrástörlés csak a hivatkozást választja le. Saját élet törlése után a régi kérés nem hozhatja újra létre. Teljes helyi check 560 teszt/49 fájl/build, 143 séma; dev 001–034 és ismétlés, 73 aw_/73 RLS; 50 valódi Auth/HTTP/TLS ellenőrzés és fióktakarítás, új paid AI 0. A 033 33bcd8a verify/container CI sikeres; az új 034 pontos CI és valódi generatív fork-minőség még ellenőrizendő. Scenario személyre szabás, P13, P11 privacy/retention, Shared és üzemeltetési kapuk megmaradnak; Contabo élesítés még nem történt. [Bizonyíték és határ](PUBLIC_FORK_START_REPORT_HU.md).
+P12 public-fork engine, három valódi angol AI-időszak és külső Claude-audit kész: nyelv/kánon helyes, 0 finding, 4/5/5/5/4 szerkesztői pontszám. Az eredeti private canon és public reader változatlan; az új élet privát, nem Official. Az olvasás utáni login/signup csak ellenőrzött public útvonalra tér vissza, új fiók külön felnőtt/AI-privacy és költség-hozzájárulást ad; fiókváltás nem küld indítást más felhasználó nevében. Teljes helyi check 563 teszt/50 fájl/build és 144 séma; végső kliensjavítás további két új célzott teszttel/típus/build ellenőrzéssel, 17 valódi Auth/HTTP check és tényleges cleanup. A d38b0e3 034 verify/container CI és nyolc PG-proof sikeres; az új onboarding pontos CI még ellenőrizendő. Új genuine próba 9 OpenAI + 1 Claude hívás: 0,1814238 / 0,031204 USD becslés. Kumulatív guard OpenAI 2,939418375 USD, Claude 2,409600 USD; külön 5–5 USD keretből 2,060581625 / 2,590400 USD marad. Következő Scenario személyre szabás és P13; privacy/retention/Shared/ops, eredeti célállomány és éles név/kontakt/AI-keret/kínálat döntése megmarad. Contabo élesítés még nem történt. [Bizonyíték és határ](PUBLIC_FORK_QUALITY_ONBOARDING_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A két terv teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -228,3 +228,8 @@ P12 külön consent/Official curator és tulajdonosi revoke kész. Cross-owner p
 ## 2026-10-07: saját élet publikus pontból
 
 P12 explicit Community/Official consent és cross-owner private start/choice/memória/attribution/törlés kész. Scenario személyre szabás, valódi generatív fork-minőség és P13 következik; P11/Shared/ops scope megmarad. [Bizonyíték](PUBLIC_FORK_START_REPORT_HU.md).
+
+
+## 2026-10-07: genuine fork és belépési útvonal
+
+P12 genuine fork-minőség és login/consent kész. Scenario personalization majd P13 public-fork/referral mérés következik; full P/S/ops scope megmarad. [Bizonyíték](PUBLIC_FORK_QUALITY_ONBOARDING_REPORT_HU.md).

@@ -9,8 +9,9 @@
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
+| [Valódi fork-AI és belépési útvonal](PUBLIC_FORK_QUALITY_ONBOARDING_REPORT_HU.md) | Három genuine AI-időszak/Claude audit, biztonságos public returnTo, új fiók consent és async user binding |
 | [Saját privát élet nyilvános pontból](PUBLIC_FORK_START_REPORT_HU.md) | Explicit választásból új saját élet, normál AI-job/kvóta, kezdeti memória, leválasztható forrás és törlési tombstone |
-| [Külön fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) | Explicit Community/Official engedély, visszavonás és minimális döntési projection; start engine következik |
+| [Külön fork-hozzájárulás](PUBLIC_FORK_PERMISSION_REPORT_HU.md) | Explicit Community/Official engedély, visszavonás és minimális döntési projection; a külön start engine is implementált |
 | [Külön saját élet törlése](SELECTIVE_LIFE_DELETION_REPORT_HU.md) | Friss Auth/typed Confirm, egész graph/Shared/input/public cleanup, kvótamegőrzés és TTL |
 | [Explicit snapshotfrissítés](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md) | Új immutable copy/régi withdraw együtt; own/Official full grant, replay/rollback/Auth/export/törlés |
 | [Külső indexelés és linkelőnézet](EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md) | Explicit own/Official curator permission, live OG/PNG/sitemap/no-store és 33 valódi Auth/production HTTP próba, 0 AI |

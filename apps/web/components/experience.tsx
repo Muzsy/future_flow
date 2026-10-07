@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { publicReturnPath } from '../lib/public-return';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -200,6 +201,13 @@ export function Experience() {
     router.push(path);
   };
   useEffect(() => {
+    if (page !== 'login' || !user) return;
+    const target = publicReturnPath(
+      new URLSearchParams(window.location.search).get('returnTo'),
+    );
+    if (target) router.replace(target);
+  }, [page, user, router]);
+  useEffect(() => {
     if (!authConfigured) {
       setAuthReady(true);
       return;
@@ -296,12 +304,21 @@ export function Experience() {
   }
   async function login(event: FormEvent) {
     event.preventDefault();
+    const target = publicReturnPath(
+      new URLSearchParams(window.location.search).get('returnTo'),
+    );
     await action(async () => {
       if (signup) {
         const { data, error } = await supabase().auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + '/login' },
+          options: {
+            emailRedirectTo:
+              window.location.origin +
+              (target
+                ? '/login?returnTo=' + encodeURIComponent(target)
+                : '/login'),
+          },
         });
         if (error) throw error;
         if (!data.session) {
@@ -316,7 +333,7 @@ export function Experience() {
         if (error) throw error;
       }
       setPassword('');
-      navigate('/lives');
+      navigate(target ?? '/lives');
     });
   }
   async function save() {

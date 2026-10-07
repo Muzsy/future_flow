@@ -1,0 +1,24 @@
+{
+  "$id": "urn:alterward:privacy-consent:status:privacy-consent-status-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "privacy-consent-status-1"
+    },
+    "acknowledged": {
+      "type": "boolean"
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "alpha-privacy-v1"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "acknowledged",
+    "policyVersion"
+  ],
+  "additionalProperties": false
+}

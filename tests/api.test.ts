@@ -46,6 +46,52 @@ afterAll(async () => {
   await engine?.close();
 });
 describe('API ownership boundary', () => {
+  it('reads only own minimal consent and requires explicit adult acknowledgement', async () => {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    expect((await fetch(`${base}/api/v1/me/consent`)).status).toBe(401);
+    expect(
+      (
+        await fetch(`${base}/api/v1/me/consent?userId=${randomUUID()}`, {
+          headers,
+        })
+      ).status,
+    ).toBe(422);
+    const before = await fetch(`${base}/api/v1/me/consent`, { headers });
+    expect(await before.json()).toEqual({
+      schemaVersion: 'privacy-consent-status-1',
+      acknowledged: false,
+      policyVersion: 'alpha-privacy-v1',
+    });
+    expect(
+      (
+        await fetch(`${base}/api/v1/me/consent`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ adult: false, acknowledged: true }),
+        })
+      ).status,
+    ).toBe(422);
+    const accepted = await Promise.all(
+      [1, 2, 3].map(() =>
+        fetch(`${base}/api/v1/me/consent`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ adult: true, acknowledged: true }),
+        }),
+      ),
+    );
+    expect(accepted.every((r) => r.status === 201)).toBe(true);
+    const after = await fetch(`${base}/api/v1/me/consent`, { headers });
+    expect(after.headers.get('cache-control')).toContain('no-store');
+    expect(await after.json()).toEqual({
+      schemaVersion: 'privacy-consent-status-1',
+      acknowledged: true,
+      policyVersion: 'alpha-privacy-v1',
+    });
+  });
   it('serves a public health check', async () => {
     const response = await fetch(`${base}/health`);
     expect(response.status).toBe(200);

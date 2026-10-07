@@ -41,3 +41,14 @@ Nyolc új izolált PostgreSQL CI-proof: concurrent exact start, opposite directi
 A korábbi [033 pontos CI](https://github.com/Muzsy/future_flow/actions/runs/37575063093) 33bcd8a verify/container sikeres: 552/48/139, 001–033 ismétlés, mind a hat consent PG-proof, minden korábbi bizonyíték, HTTPS/DB TLS/tiszta worker-stop és paid AI 0.
 
 Ez technikai funkcióbizonyíték, nem új valódi generatív minőség vagy használói mérés. Következő a genuine checkpointból három valódi AI-időszak és külső Claude audit, Scenario személyre szabás, signup/fork mérés/P13, privacy/retention/backup/restore/email/outage, majd Contabo/Cloudflare kiadási ellenőrzés. Az eredeti P01–P13/S0–S7, 50–100 Official Life/20–30 Scenario cél és külön kumulatív 5–5 USD keret megmarad. Üzemeltető/kontakt és induló kínálat/keret döntése még folyamatban. [Sorrend](NEXT_STEPS.md).
+
+
+## 2026-10-07: pontos CI és genuine AI-minőség lezárva
+
+A d38b0e3 [main CI](https://github.com/Muzsy/future_flow/actions/runs/37577143227) verify/container sikeres: 560 teszt/49 fájl/143 séma, 001–034 migráció + ismétlés, mind a nyolc új PG-proof és minden korábbi P09/S0–S3 bizonyíték, HTTPS/DB TLS, worker-stop, providerhívás 0.
+
+Reviewed genuine Official checkpointból új saját privát élet három valódi Sol-időszakkal, majd külön Sonnet audit: natural English/canon true, 0 finding, personal/coherent/language/decisionStakes/curiosity 4/5/5/5/4. Kilenc OpenAI-hívás 0.18142380 USD becslés / 0.19343250 USD guard; egy Claude-hívás 0.031204 / 0.038370 USD. [Nyers angol minta](examples/AI_PUBLIC_FORK_ENGLISH_SAMPLE.md), [audit és tokenoptimalizálás](examples/AI_PUBLIC_FORK_CLAUDE_AUDIT_HU.md).
+
+A saját kutatási fiók és DB-gráf ténylegesen eltávolítva. Az eredeti private canon és public reader változatlan; a forrás kurátori forkengedélyét a próba idejére explicit bekapcsoltuk, majd visszavontuk. Ez az immutable permission-auditot szándékosan bővíti, ezért itt nem állítunk változatlan teljes seed-account exportot. Az első előkészítő próbában a test-helper más DB-kapcsolaton keresett még nem commitolt jobot; rollback és nulla providerhívás után csak igazolt üres saját gráfból, külön recover-attempttel folytattuk. Az audit első méret-preflightja szintén fizetés előtt állt meg; duplikált állapotok elhagyásával, teljes tényanyag megtartásával egy paid audit történt. Nincs elhallgatott siker vagy automatikus fizetett újrapróbálás.
+
+Kumulatív OpenAI guard 2.939418375 USD, maradék 2.060581625 USD; Claude guard 2.409600 USD, maradék 2.590400 USD. Guard nem provider-egyenleg. Scenario personalization, belépési/adult-consent útvonal, P13 és minden privacy/Shared/ops kapu megmarad.
