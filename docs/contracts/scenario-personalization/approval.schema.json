@@ -1,0 +1,20 @@
+{
+  "$id": "urn:alterward:scenario-personalization:approval:scenario-personalization-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "previewHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "previewHash",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

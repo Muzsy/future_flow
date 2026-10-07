@@ -1,6 +1,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import {
+  SCENARIO_PERSONALIZATION_VERSION,
+  scenarioPersonalProfileSchema,
+  scenarioPersonalizationFactsSchema,
+  scenarioPersonalizationPreviewSchema,
+  scenarioPersonalizationApprovalSchema,
+} from './scenario-personalization';
 import { privacyConsentStatusSchema } from './privacy-consent';
 import {
   PUBLIC_FORK_START_VERSION,
@@ -624,6 +631,26 @@ for (const [name, schema] of Object.entries({
     JSON.stringify(
       {
         $id: `urn:alterward:official-publication:${name}:${OFFICIAL_PUBLICATION_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+const personalizationDirectory = resolve(directory, 'scenario-personalization');
+mkdirSync(personalizationDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  personalProfile: scenarioPersonalProfileSchema,
+  facts: scenarioPersonalizationFactsSchema,
+  preview: scenarioPersonalizationPreviewSchema,
+  approval: scenarioPersonalizationApprovalSchema,
+})) {
+  writeFileSync(
+    resolve(personalizationDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:scenario-personalization:${name}:${SCENARIO_PERSONALIZATION_VERSION}`,
         ...z.toJSONSchema(schema),
       },
       null,

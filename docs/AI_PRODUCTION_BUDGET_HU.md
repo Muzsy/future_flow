@@ -45,7 +45,7 @@ Az új konfiguráció nem emeli meg a korábban eltárolt pozitív limiteket. Az
 
 ## Ellenőrzés és kiadási határ
 
-A lejárati és szolgáltatói védelem 13 célzott adatbázis-/konfiguráció-/kliensintegrációs teszttel ellenőrzött, fizetett hívás nélkül. Külön izolált PostgreSQL-proof készült a végső projekt- és személyes foglalás versenyére, a két szolgáltató közös személyes keretére, a tényleges lock-várakozás alatti lejáratra, a késői elszámolásra, a törlésre/export/RLS-re. A pontos új runtime CI eredménye még ellenőrzendő.
+A lejárati és szolgáltatói védelem 13 célzott adatbázis-/konfiguráció-/kliensintegrációs teszttel ellenőrzött, fizetett hívás nélkül. Külön izolált PostgreSQL-proof készült a végső projekt- és személyes foglalás versenyére, a két szolgáltató közös személyes keretére, a tényleges lock-várakozás alatti lejáratra, a késői elszámolásra, a törlésre/export/RLS-re. A 05e6014 pontos [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37642982869) verify és container sikeres: 578/52/144, mind a nyolc új valós PostgreSQL budget-window proof, 001–034/repeat, korábbi bizonyítékok és verified HTTPS/DB TLS, új paid AI 0. Az éles keret nincs aktiválva.
 
 Az OpenAI worker időszakos kerete implementált. A meglévő Claude-kliens a provider-specifikus adatbázis-őrrel is integrálható és technikai transporttal ellenőrzött; az éles mintavételi auditor indítását külön védett operator-folyamatba kell bekötni. Nem tettünk Anthropic-kulcsot a webbe vagy a normál workerbe, nem indult éles Claude-hívás és nincs automatikus fizetett retry. Az indulási pillanat, szolgáltatói fedezet, éles operator-konfiguráció és auditmintavételi folyamat a telepítéskor ellenőrizendő.
 

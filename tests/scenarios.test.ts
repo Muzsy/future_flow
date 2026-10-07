@@ -8,6 +8,8 @@ import {
   hash,
   instantiateScenarioTemplate,
   validateScenarioTemplate,
+  prepareScenarioPersonalization,
+  instantiateScenarioPersonalization,
   applyFactChangesV2,
 } from '@future-flow/core';
 import {
@@ -23,6 +25,7 @@ import { createApp } from '../apps/api/src/app';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { lifeTestAi } from './life-fixtures';
 import { scenarioFixture } from './scenario-fixtures';
+import { personalScenarioFixture } from './scenario-personalization-fixtures';
 
 let engine: PGlite,
   db: Database,
@@ -486,5 +489,94 @@ describe('owner-only scenario versions and guarded private starts', () => {
         (await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [f.owner]))
           .length,
       ).toBe(0);
+  });
+  it('keeps approved personal facts and constraints through three normal technical periods without changing the source or granting Official provenance', async () => {
+    const f = await fixture(),
+      profile = personalScenarioFixture(),
+      originalProfile = hash(profile),
+      preview = prepareScenarioPersonalization(f.template, profile),
+      input = instantiateScenarioPersonalization(f.template, profile, {
+        previewHash: preview.previewHash,
+        acknowledged: true,
+      }),
+      lives = new LifeRepository(db),
+      jobs = new LifeJobRepository(db),
+      created = await lives.createPrepared(f.owner, input, randomUUID());
+    let jobId = created.jobId;
+    for (let n = 0; n < 3; n++) {
+      await db.query("UPDATE aw_jobs SET created_at='1999-01-01' WHERE id=$1", [
+        jobId,
+      ]);
+      const claimed = (await jobs.claim())!;
+      expect(claimed.id).toBe(jobId);
+      await processLifeJob(claimed, jobs, lifeTestAi);
+      const branch = await lives.branch(f.owner, created.branchId);
+      expect(branch.status).toBe('decision');
+      expect(branch.state.location.country).toBe('DE');
+      expect(branch.state.finance.currency).toBe('EUR');
+      expect(branch.input.identity).toMatchObject(profile.identity);
+      expect(branch.input.goals[0]!.description).toBe(
+        profile.goals[0]!.description,
+      );
+      expect(branch.input.goals[1]!.description).toBe(
+        f.template.goals[0]!.description,
+      );
+      expect(branch.input.constraints[0]!.predicate).toEqual({
+        type: 'country_is',
+        value: 'DE',
+      });
+      expect(
+        branch.state.ownedAssets.some((a) => a.label === 'The studio'),
+      ).toBe(false);
+      expect(branch.state.actors.map((a) => a.label)).toEqual(['My partner']);
+      const decision = branch.pending_decision!;
+      await lives.choose(
+        f.owner,
+        created.branchId,
+        branch.revision,
+        decision.id,
+        decision.options[1]!.id,
+        randomUUID(),
+      );
+      if (n < 2) {
+        const ready = await lives.branch(f.owner, created.branchId);
+        jobId = (
+          await lives.continue(
+            f.owner,
+            created.branchId,
+            ready.revision,
+            randomUUID(),
+          )
+        ).jobId;
+      }
+    }
+    expect(
+      (await lives.detail(f.owner, created.branchId)).periods,
+    ).toHaveLength(3);
+    expect(await scenarios().get(f.owner, f.version.id)).toEqual(f.version);
+    expect(hash(profile)).toBe(originalProfile);
+    expect(
+      (
+        await db.query(
+          'SELECT life_id FROM aw_official_life_starts WHERE life_id=$1',
+          [created.lifeId],
+        )
+      ).length,
+    ).toBe(0);
+    expect(
+      (
+        await db.query(
+          'SELECT life_id FROM aw_scenario_starts WHERE life_id=$1',
+          [created.lifeId],
+        )
+      ).length,
+    ).toBe(0);
+    const exported = await repo.exportAccount(f.owner);
+    expect(exported.aw_lives).toHaveLength(1);
+    await repo.deleteAccountData(f.owner);
+    expect(
+      (await db.query('SELECT id FROM aw_lives WHERE id=$1', [created.lifeId]))
+        .length,
+    ).toBe(0);
   });
 });

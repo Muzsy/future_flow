@@ -1,9 +1,9 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
 
-## Aktuális: jóváhagyott éles AI-keret és lejárati védelem
+## Aktuális: Scenario személyre szabási alap és lezárt költségvédelem
 
-Az első éles 30 napra jóváhagyott keret 10 USD OpenAI + 5 USD Claude, összesen 15 USD; a felhasználói 0,50 USD közös a két szolgáltató között. A tényleges induláskor kezdődik, nincs automatikus megújítás. Külön időszakos provider-projekt és közös saját számla, tranzakciós előfoglalás, lock utáni DB-óra/lejárat, késői egyszeri elszámolás és megmaradó projektköltés kész; Claude transport technikai DB-guard próbája is sikeres. A régi kutatási naplók és 5–5 USD keretek változatlanok; új paid AI 0, éles aktiválás nincs. Teljes helyi check 578 teszt/52 fájl/types/script-types/build és 144 változatlan schema; az új budget runtime CI még ellenőrizendő. A public-fork minőség/login/consent pontos 4cb911c verify/container CI sikeres: 565/51, 001–034/repeat, nyolc fork-start PG-proof, minden korábbi proof, verified HTTPS/DB TLS és 0 AI. Következő Scenario personalization/P13, továbbra P11/Shared/retention/ops, operator/kontakt és induló kínálat; Contabo-deploy még nem történt. [Keret, bizonyíték és határ](AI_PRODUCTION_BUDGET_HU.md).
+Az éles 30 nap 10 USD OpenAI + 5 USD Claude kerete és a közös user 0,50 USD jóváhagyott; csak tényleges indulástól, nincs automatikus megújítás. A 05e6014 pontos verify/container CI sikeres: 578/52/144, nyolc új valós PG budget-window proof, 001–034/repeat, korábbi proofok és verified HTTPS/DB TLS, 0 AI; éles aktiválás/Contabo-deploy nincs. P12 Scenario személyre szabás privát könyvtári alap kész: saját teljes állapot/cél/korlát, külön forrástéma, exact preview/approval és friss referenciák; három normál technikai időszak/export/törlés ellenőrzött. Public Scenario snapshot/consent, own tartós előnézet, API/UI/start még következik, ezért P12 nem teljes. Teljes helyi check 588 teszt/53 fájl/types/script-types/build, 148 séma (144 korábbi változatlan), új paid AI 0; a foundation commit pontos CI még ellenőrizendő. P13, P11/Shared/retention/ops, operator/kontakt és teljes 50–100 élet/20–30 Scenario cél megmarad. A régi 5–5 USD kutatási keretek és naplók változatlanok. [Megvalósítás és következő kapuk](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
 
 2026-10-06 · [Megvalósítási riport](V2_IMPLEMENTATION_REPORT_HU.md) · [Sorrend](NEXT_STEPS.md) · [Lokalizáció](LOCALIZATION_HU.md).
 
@@ -226,3 +226,8 @@ A P10 első read-only Discovery szelete elkészült: angol anonim API és /disco
 A P10 első angol Discovery-szelet runtime [CI](https://github.com/Muzsy/future_flow/actions/runs/37537224387), `d5fa97ca460bb042e3b9b6d3c7034887913808bf`, verify/container sikeres: 471/40, formázás/típusok/API/worker/Next build, 108 séma drift nélkül. Valódi izolált PostgreSQL/CA TLS és HTTPS: Official+Community kártyák, literal search/filter, bounded newest lapok, lookup közbeni withdraw, revocation/deleting kapu és privát provenance kizárás; 6 új proof, mind a 71 korábbi Shared/P09 és a teljes Official proof megmarad. 001–025 és ismétlés, default-off HTTP és tiszta worker-leállás, egress tiltva, paid CI AI 0. Valódi seed/Auth/HTTP próba külön szintén sikeres; pozitív böngészős/UI ellenőrzés és Save/Share/OG/Report/moderációs queue/metrikák még feladat. P11–P13/S3-retention/S4–S7 és teljes ops/backup/email/Contabo kapuk megmaradnak.
 
 133 Markdown/130 docs, 21 aktív +21 archív téma, 108 séma és 198 változatlan immutable forrás/példa/séma/migráció; 1500 helyi link, 0 hibás link/anchor. 80 stratégiai fejezet, 14 public MVP-elem, 15 Shared téma, 17 checksum és eredeti ZIP hash változatlan. Új providerhívás 0.
+
+
+## 2026-10-07: Scenario személyre szabás privát alapja
+
+P12 új privát könyvtári alap: saját identitás/teljes állapot/cél/korlát, Scenario elsődleges témája másodlagos célként, forrásanyag változatlan, explicit újraszámolt preview/approval. Public kiadás/jogosultság/tartós own preview/API/UI/start még nincs. 588/53 teljes helyi check és 148 schema; a 144 korábbi és 001–034 változatlan. Budget exact 05e6014 CI már sikeres, éles aktiválás nincs. [Részletek](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).

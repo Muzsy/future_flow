@@ -1,6 +1,14 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  SCENARIO_PERSONALIZATION_LIMIT: [
+    'Shorten the personal context so the complete starting setup fits.',
+    'Shorten the personal context so the complete starting setup fits.',
+  ],
+  SCENARIO_PERSONALIZATION_CHANGED: [
+    'Your details or the scenario changed. Review the new starting setup before creating a life.',
+    'Your details or the scenario changed. Review the new starting setup before creating a life.',
+  ],
   PUBLIC_FORK_START_CONFLICT: [
     'This story or its permission changed. Reload the decision points before starting your life.',
     'This story or its permission changed. Reload the decision points before starting your life.',

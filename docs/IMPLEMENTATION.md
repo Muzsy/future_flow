@@ -1,9 +1,9 @@
 # alterward — jelenlegi implementáció, 2026-10-06
 
 
-## Aktuális: jóváhagyott éles AI-keret és lejárati védelem
+## Aktuális: Scenario személyre szabási alap és lezárt költségvédelem
 
-Az első éles 30 napra jóváhagyott keret 10 USD OpenAI + 5 USD Claude, összesen 15 USD; a felhasználói 0,50 USD közös a két szolgáltató között. A tényleges induláskor kezdődik, nincs automatikus megújítás. Külön időszakos provider-projekt és közös saját számla, tranzakciós előfoglalás, lock utáni DB-óra/lejárat, késői egyszeri elszámolás és megmaradó projektköltés kész; Claude transport technikai DB-guard próbája is sikeres. A régi kutatási naplók és 5–5 USD keretek változatlanok; új paid AI 0, éles aktiválás nincs. Teljes helyi check 578 teszt/52 fájl/types/script-types/build és 144 változatlan schema; az új budget runtime CI még ellenőrizendő. A public-fork minőség/login/consent pontos 4cb911c verify/container CI sikeres: 565/51, 001–034/repeat, nyolc fork-start PG-proof, minden korábbi proof, verified HTTPS/DB TLS és 0 AI. Következő Scenario personalization/P13, továbbra P11/Shared/retention/ops, operator/kontakt és induló kínálat; Contabo-deploy még nem történt. [Keret, bizonyíték és határ](AI_PRODUCTION_BUDGET_HU.md).
+Az éles 30 nap 10 USD OpenAI + 5 USD Claude kerete és a közös user 0,50 USD jóváhagyott; csak tényleges indulástól, nincs automatikus megújítás. A 05e6014 pontos verify/container CI sikeres: 578/52/144, nyolc új valós PG budget-window proof, 001–034/repeat, korábbi proofok és verified HTTPS/DB TLS, 0 AI; éles aktiválás/Contabo-deploy nincs. P12 Scenario személyre szabás privát könyvtári alap kész: saját teljes állapot/cél/korlát, külön forrástéma, exact preview/approval és friss referenciák; három normál technikai időszak/export/törlés ellenőrzött. Public Scenario snapshot/consent, own tartós előnézet, API/UI/start még következik, ezért P12 nem teljes. Teljes helyi check 588 teszt/53 fájl/types/script-types/build, 148 séma (144 korábbi változatlan), új paid AI 0; a foundation commit pontos CI még ellenőrizendő. P13, P11/Shared/retention/ops, operator/kontakt és teljes 50–100 élet/20–30 Scenario cél megmarad. A régi 5–5 USD kutatási keretek és naplók változatlanok. [Megvalósítás és következő kapuk](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
 
 [Dokumentációs központ](README.md) · [Közös státusz és keret](STATUS_HU.md) · [A három forrás teljes visszakövetése](REQUIREMENTS_TRACEABILITY_HU.md).
 
@@ -262,3 +262,8 @@ Genuine fork három Sol-időszak/Sonnet audit, public returnTo/login/signup és 
 ## 2026-10-07: jóváhagyott első éles AI-időszak
 
 ApplicationAiBudgetConfig és szigorú UTC-window parser, provider-szeparált project/Közös user, DB-óra a locks után, eredeti időszakra késői settlement és fail-closed nulla/cross-provider model. A meglévő ClaudeEvaluator transport a tranzakciós Sonnet-budget guarddal is technikailag ellenőrzött; külső audit éles futása még nincs. [Részletek](AI_PRODUCTION_BUDGET_HU.md).
+
+
+## 2026-10-07: Scenario személyre szabás privát alapja
+
+scenario-personalization-1 külön private ID-free profile/facts/preview/approval, pure prepareScenarioPersonalization és exact approved instantiateScenarioPersonalization. A közös belső Scenario-materializáló a régi public privacy preflight megtartásával remappeli a referenciákat. Nem nyilvános permission, repository vagy indító API. [Részletek](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).

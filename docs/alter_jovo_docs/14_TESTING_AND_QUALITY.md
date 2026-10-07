@@ -1,9 +1,9 @@
 # alterward — tesztelés és minőség
 
 
-## Aktuális: jóváhagyott éles AI-keret és lejárati védelem
+## Aktuális: Scenario személyre szabási alap és lezárt költségvédelem
 
-Az első éles 30 napra jóváhagyott keret 10 USD OpenAI + 5 USD Claude, összesen 15 USD; a felhasználói 0,50 USD közös a két szolgáltató között. A tényleges induláskor kezdődik, nincs automatikus megújítás. Külön időszakos provider-projekt és közös saját számla, tranzakciós előfoglalás, lock utáni DB-óra/lejárat, késői egyszeri elszámolás és megmaradó projektköltés kész; Claude transport technikai DB-guard próbája is sikeres. A régi kutatási naplók és 5–5 USD keretek változatlanok; új paid AI 0, éles aktiválás nincs. Teljes helyi check 578 teszt/52 fájl/types/script-types/build és 144 változatlan schema; az új budget runtime CI még ellenőrizendő. A public-fork minőség/login/consent pontos 4cb911c verify/container CI sikeres: 565/51, 001–034/repeat, nyolc fork-start PG-proof, minden korábbi proof, verified HTTPS/DB TLS és 0 AI. Következő Scenario personalization/P13, továbbra P11/Shared/retention/ops, operator/kontakt és induló kínálat; Contabo-deploy még nem történt. [Keret, bizonyíték és határ](../AI_PRODUCTION_BUDGET_HU.md).
+Az éles 30 nap 10 USD OpenAI + 5 USD Claude kerete és a közös user 0,50 USD jóváhagyott; csak tényleges indulástól, nincs automatikus megújítás. A 05e6014 pontos verify/container CI sikeres: 578/52/144, nyolc új valós PG budget-window proof, 001–034/repeat, korábbi proofok és verified HTTPS/DB TLS, 0 AI; éles aktiválás/Contabo-deploy nincs. P12 Scenario személyre szabás privát könyvtári alap kész: saját teljes állapot/cél/korlát, külön forrástéma, exact preview/approval és friss referenciák; három normál technikai időszak/export/törlés ellenőrzött. Public Scenario snapshot/consent, own tartós előnézet, API/UI/start még következik, ezért P12 nem teljes. Teljes helyi check 588 teszt/53 fájl/types/script-types/build, 148 séma (144 korábbi változatlan), új paid AI 0; a foundation commit pontos CI még ellenőrizendő. P13, P11/Shared/retention/ops, operator/kontakt és teljes 50–100 élet/20–30 Scenario cél megmarad. A régi 5–5 USD kutatási keretek és naplók változatlanok. [Megvalósítás és következő kapuk](../SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
 
 **2026-10-04-i kiinduló állapot (történeti):** P01–P05 privát v2 mag kész; valódi Auth/AI HTTP- és böngészős próba, export, Auth/DB-törlés és kontrollált megszakításból recovery sikeres. P07 új angol minta Sonnet auditja és P08 privát feedback/session-mérés kész; használói minőség kiadás után mérendő. Kizárólag angol indulás, magyar elrejtve. P09 tulajdonosi előnézeti alap, AI-pre-screen és szerkeszthető privát Privacy/Content Preview kész; fizetett scan-job, publishing/Discovery/Official seed/public fork tervezett. [Közös státusz és bizonyíték](../STATUS_HU.md), [indulási döntés](../ENGLISH_RELEASE_PLAN_HU.md). [Contabo-előkészítés](../CONTABO_PREPARATION_REPORT_HU.md) és teljes izolált web/API/worker/proxy CI sikeres; éles deploy, backup/restore, valós DB-kiesésből recovery és email-kézbesítés még nyitott.
 
@@ -134,3 +134,8 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-07: jóváhagyott első éles AI-időszak
 
 578/52 helyi full format/types/script-types/build és 144 schema, köztük 13 fixwindow/provider/Claude-transport teszt, új paid AI 0. Új izolált PG-proof final project/personal/provider race, lock-várakozási lejárat, late settlement/export/törlés/RLS; pontos runtime CI még ellenőrizendő. Public-fork onboarding 4cb911c verify/container CI 565/51/144 már sikeres. [Részletek](../AI_PRODUCTION_BUDGET_HU.md).
+
+
+## 2026-10-07: Scenario személyre szabás privát alapja
+
+588 teszt/53 fájl teljes helyi check/build, 148 schema; kilenc új tiszta composition/binding/privacy/references teszt és egy háromidőszakos technikai élet/export/törlés próba. Ez nem genuine új AI-minőség vagy public Auth/PG startbizonyíték. Budget exact CI 05e6014 minden verify/container/PG/TLS próbája már sikeres. [Részletek](../SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
