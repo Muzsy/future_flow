@@ -64,12 +64,10 @@ describe('explicit private-start identity across an async session lookup', () =>
         },
       },
     });
-    const sent = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({ receipt: 'technical' }),
-      });
+    const sent = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ receipt: 'technical' }),
+    });
     vi.stubGlobal('fetch', sent);
     expect(
       await lifeApi(
