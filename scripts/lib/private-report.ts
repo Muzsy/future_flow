@@ -53,8 +53,14 @@ export function privateReportFile(
   if (!/^[a-z][a-z-]{1,60}\.json$/.test(name))
     throw Error('Invalid report file');
   const file = resolve(directory, name);
-  if (existsSync(file)) {
-    if (lstatSync(file).isSymbolicLink() || lstatSync(file).nlink !== 1)
+  let info;
+  try {
+    info = lstatSync(file);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (info) {
+    if (info.isSymbolicLink() || info.nlink !== 1)
       throw Error('Private report cannot replace a linked file');
     if (process.platform === 'win32')
       execFileSync('icacls', [file, '/reset'], { stdio: 'ignore' });
