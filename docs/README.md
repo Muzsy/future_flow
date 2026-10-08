@@ -13,6 +13,7 @@
 | [Őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) | 15 Official/45 fejezet és 5 public Scenario Confirm/reader; külön 45 fork-capability, Featured/Discovery, megőrzött javítás/audit és kerethatár |
 | [Olvasható teljes angol béta-kínálat](beta-catalog/README.md) | 15 élet, egyenként 3 teljes fejezet/választások; 5 kezdő Scenario, jóváhagyott readerből |
 | [Tízfős béta AI-hozzáférése](CLOSED_BETA_ADMISSION_REPORT_HU.md) | Szerveroldali UUID-lista, API/worker ellenőrzés, költségvédelem és megmaradó adatkezelési hozzáférés |
+| [Scenario-böngésző és keresés](SCENARIO_DISCOVERY_REPORT_HU.md) | Angol közös lista, live provenance/consent ellenőrzés, minimális kártyák, keresés/lapozás; valódi öt forrás, 0 AI |
 | [Angol Scenario-felület](SCENARIO_ENGLISH_UI_REPORT_HU.md) | Teljes reader, saját kiadási Confirm és személyes profil/előnézet/start; 3c9a6edc pontos CI sikeres, pozitív interaktív UI még kapu |
 | [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Privát profil/előnézet/start, source-detach és törlés/retention; a72 pontos CI és 38 actual Auth próba sikeres, személyes AI-minőség még kapu |
 | [Külön nyilvános Scenario-kiadás](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md) | Saját preview/Confirm, külön personalization consent, immutable anonymous reader API és terminális withdrawal/moderáció; személyes start/UI még P12 feladat |

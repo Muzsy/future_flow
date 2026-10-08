@@ -21,6 +21,8 @@ import {
   publicScenarioConfirmRequestSchema,
   publicScenarioOwnerSchema,
   publicScenarioReaderSchema,
+  scenarioDiscoveryPageSchema,
+  parseScenarioDiscoveryWireQuery,
   scenarioPublicationSourceSchema,
   scenarioOwnedPublicationsSchema,
 } from '@future-flow/contracts';
@@ -145,6 +147,13 @@ export function createPublicScenarioPublicationControllers(
         repo.db,
         config,
       );
+    }
+    @Get()
+    @ApiOkResponse({
+      schema: z.toJSONSchema(scenarioDiscoveryPageSchema) as never,
+    })
+    list(@Query() raw: unknown) {
+      return this.publications.list(parseScenarioDiscoveryWireQuery(raw));
     }
     @Get(':slug')
     @ApiOkResponse({

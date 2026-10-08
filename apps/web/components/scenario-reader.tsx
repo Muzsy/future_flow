@@ -82,7 +82,8 @@ function Reader({ slug }: { slug: string }) {
   return (
     <main className="shell scenario-page">
       <nav>
-        <a href="/">alterward</a> · <a href="/discover">Discover lives</a>
+        <a href="/">alterward</a> · <a href="/discover">Discover lives</a> ·{' '}
+        <a href="/scenarios">Explore Scenarios</a>
       </nav>
       {source ? (
         <>

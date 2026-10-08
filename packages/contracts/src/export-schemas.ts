@@ -1,5 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
+  SCENARIO_DISCOVERY_VERSION,
+  scenarioDiscoveryQuerySchema,
+  scenarioDiscoveryCardSchema,
+  scenarioDiscoveryPageSchema,
+} from './scenario-discovery';
+import {
   SCENARIO_UI_VERSION,
   scenarioPersonalizationCapabilitySchema,
   scenarioPublicationSourceSchema,
@@ -706,6 +712,25 @@ const scenarioPublicationDirectory = resolve(
   directory,
   'public-scenario-publication',
 );
+const scenarioDiscoveryDirectory = resolve(directory, 'scenario-discovery');
+mkdirSync(scenarioDiscoveryDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  query: scenarioDiscoveryQuerySchema,
+  card: scenarioDiscoveryCardSchema,
+  page: scenarioDiscoveryPageSchema,
+})) {
+  writeFileSync(
+    resolve(scenarioDiscoveryDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:scenario-discovery:${name}:${SCENARIO_DISCOVERY_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(scenarioPublicationDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   prepareRequest: publicScenarioPrepareRequestSchema,

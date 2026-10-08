@@ -367,6 +367,7 @@ export * from './public-fork-permission';
 export * from './public-fork-start';
 export * from './privacy-consent';
 export * from './beta';
+export * from './scenario-discovery';
 export * from './shared-context';
 export * from './shared-engine';
 export * from './shared-ai';

@@ -11,6 +11,9 @@ import {
   SCENARIO_UI_VERSION,
   scenarioPublicationSourceSchema,
   scenarioOwnedPublicationsSchema,
+  scenarioDiscoveryQuerySchema,
+  scenarioDiscoveryCardSchema,
+  scenarioDiscoveryPageSchema,
 } from '@future-flow/contracts';
 import { DomainError, hash, validateScenarioTemplate } from '@future-flow/core';
 import type { Database } from './index';
@@ -428,6 +431,57 @@ export class PublicScenarioPublicationRepository {
           ),
         );
       return this.view(row);
+    });
+  }
+  async list(raw: unknown = {}) {
+    this.gate();
+    const query = scenarioDiscoveryQuerySchema.parse(raw),
+      pattern = '%' + query.q.replace(/[\\%_]/g, '\\$&') + '%';
+    // Candidate metadata is never an anonymous response. Every card, including
+    // the pagination sentinel, passes the live source/consent/provenance reader.
+    const rows = await this.db.query<{ slug: string }>(
+      `SELECT p.slug FROM aw_scenario_publications p
+       JOIN ff_users u ON u.id=p.user_id
+       JOIN aw_official_scenario_sources s ON s.id=p.source_grant_id AND s.user_id=p.user_id AND s.scenario_version_id=p.scenario_version_id
+       WHERE p.status='active' AND u.status='active' AND s.status='active'
+         AND p.snapshot->>'contentLocale'='en'
+         AND ((p.snapshot->>'title')||' '||(p.snapshot->>'summary')) ILIKE $1 ESCAPE E'\\\\'
+       ORDER BY p.published_at DESC,p.slug ASC LIMIT $2 OFFSET $3`,
+      [pattern, query.pageSize + 1, (query.page - 1) * query.pageSize],
+    );
+    const items = [];
+    for (const row of rows) {
+      try {
+        const reader = await this.read(row.slug),
+          goal =
+            reader.template.goals.find((g) => g.priority === 'primary') ??
+            reader.template.goals[0]!;
+        items.push(
+          scenarioDiscoveryCardSchema.parse({
+            slug: reader.slug,
+            contentLocale: reader.template.contentLocale,
+            title: reader.template.title,
+            summary: reader.template.summary,
+            goalDescription: goal.description,
+            officialScenario: reader.officialScenario,
+            officialLifeApproved: reader.officialLifeApproved,
+            allowPersonalization: reader.allowPersonalization,
+            publishedAt: reader.publishedAt,
+          }),
+        );
+      } catch (error) {
+        if (!(error instanceof DomainError) || error.status !== 404)
+          throw error;
+      }
+    }
+    return scenarioDiscoveryPageSchema.parse({
+      schemaVersion: 'scenario-discovery-1',
+      contentLocale: 'en',
+      ranking: 'newest',
+      page: query.page,
+      pageSize: query.pageSize,
+      hasMore: query.page < 100 && items.length > query.pageSize,
+      items: items.slice(0, query.pageSize),
     });
   }
   async read(rawSlug: unknown) {
