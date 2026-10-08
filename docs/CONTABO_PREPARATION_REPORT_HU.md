@@ -1,5 +1,7 @@
 # alterward — Contabo üzemeltetési előkészítés
 
+2026-10-08-i friss olvasási [előellenőrzés](RELEASE_PREFLIGHT_2026_10_08_HU.md): kulcsos belépés és a jelszavas tiltás működik; alterward még nincs telepítve, szerverkarbantartás/tűzfal/restore kapuk megmaradnak. Az éles indulást a [zárt webhely és részletes Claude Cloud-audit terve](CLOSED_SITE_RELEASE_PLAN_HU.md) egészíti ki.
+
 2026-10-04 · Az [olvasási audit](CONTABO_SERVER_AUDIT_HU.md) utáni végrehajtott változások. [Telepítési útmutató](DEPLOYMENT_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
 ## Elvégzett szervermódosítás
@@ -13,7 +15,9 @@ Privát kulcs: `%LOCALAPPDATA%\FutureFlow\secrets\contabo_alterward_ed25519`. Ho
 Windows OpenSSH-ból a védett kulccsal és pinfájllal lehet belépni; a SERVER_IP helyére a saját fájlban szereplő IP kerül:
 
 ```powershell
-ssh -i "$env:LOCALAPPDATA\FutureFlow\secrets\contabo_alterward_ed25519" -o "UserKnownHostsFile=$env:LOCALAPPDATA\FutureFlow\secrets\contabo_known_hosts" -o StrictHostKeyChecking=yes root@SERVER_IP
+$pin = "$env:LOCALAPPDATA\FutureFlow\secrets\contabo_known_hosts".Replace('\', '/')
+$pinOption = 'UserKnownHostsFile="' + $pin + '"'
+ssh -i "$env:LOCALAPPDATA\FutureFlow\secrets\contabo_alterward_ed25519" -o $pinOption -o StrictHostKeyChecking=yes -o BatchMode=yes root@SERVER_IP
 ```
 
 A privát kulcs jelszó nélküli, helyi Windows ACL védi. A gép elvesztése esetére külön biztonságos kulcsmentés és Contabo-konzolos hozzáférés szükséges. Az SSH-jelszavas tiltás nem változtatta meg a rendszer jelszavát; szükség esetén a szolgáltató konzolja a helyreállítási út. Külön, korlátozott üzemeltetői felhasználó bevezetése további lépés.
