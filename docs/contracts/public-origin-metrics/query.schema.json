@@ -1,0 +1,17 @@
+{
+  "$id": "urn:alterward:public-origin-metrics:query:public-origin-metrics-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "windowDays": {
+      "default": 30,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 90
+    }
+  },
+  "required": [
+    "windowDays"
+  ],
+  "additionalProperties": false
+}

@@ -1,5 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
+  PUBLIC_ORIGIN_METRICS_VERSION,
+  publicOriginMetricsQuerySchema,
+  publicOriginMetricsReportSchema,
+} from './public-origin-metrics';
+import {
   SCENARIO_DISCOVERY_VERSION,
   scenarioDiscoveryQuerySchema,
   scenarioDiscoveryCardSchema,
@@ -286,6 +291,24 @@ writeFileSync(
   ) + '\n',
 );
 const forkStartDirectory = resolve(directory, 'public-fork-start');
+const originMetricsDirectory = resolve(directory, 'public-origin-metrics');
+mkdirSync(originMetricsDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  query: publicOriginMetricsQuerySchema,
+  report: publicOriginMetricsReportSchema,
+})) {
+  writeFileSync(
+    resolve(originMetricsDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:public-origin-metrics:${name}:${PUBLIC_ORIGIN_METRICS_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
 mkdirSync(forkStartDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   request: publicForkStartRequestSchema,

@@ -8,6 +8,7 @@ import {
   LifeJobRepository,
   LifeDeletionRepository,
   Repository,
+  publicOriginMetricsSummary,
   type Database,
   type LifeJob,
 } from '@future-flow/database';
@@ -59,6 +60,21 @@ export async function publicForkStartProof(db: Database) {
     await processLifeJob(job, new LifeJobRepository(db), lifeTestAi);
   }
   try {
+    const cohortTotals = async () => {
+      const report = await publicOriginMetricsSummary(db);
+      return report.cohorts
+        .filter((r) => r.channel === 'community_public_checkpoint')
+        .reduce(
+          (n, r) => [
+            n[0]! + r.createdLives,
+            n[1]! + r.firstPeriodCompletedLives,
+            n[2]! + r.secondPeriodCompletedLives,
+            n[3]! + r.thirdPeriodCompletedLives,
+          ],
+          [0, 0, 0, 0],
+        );
+    };
+    const cohortBefore = await cohortTotals();
     const source = await communityForkCopy(db, config);
     owners.push(source.owner);
     const user = await target(),
@@ -71,6 +87,10 @@ export async function publicForkStartProof(db: Database) {
     assert.deepEqual(requests[0], requests[1]);
     assert.deepEqual(requests[1], requests[2]);
     const created = requests[0]!;
+    assert.deepEqual(await cohortTotals(), [
+      cohortBefore[0]! + 1,
+      ...cohortBefore.slice(1),
+    ]);
     assert.equal(
       (await db.query('SELECT id FROM aw_jobs WHERE user_id=$1', [user]))
         .length,
@@ -94,6 +114,10 @@ export async function publicForkStartProof(db: Database) {
       await process(user, jobId);
       const detail = await lives.detail(user, created.branchId);
       assert.equal(detail.periods.length, i + 1);
+      assert.deepEqual(
+        await cohortTotals(),
+        cohortBefore.map((n, index) => n + (index <= i + 1 ? 1 : 0)),
+      );
       if (i === 0)
         assert.deepEqual(detail.periods[0]!.start_state, initial.state);
       const branch = await lives.branch(user, created.branchId);
@@ -323,6 +347,7 @@ export async function publicForkStartProof(db: Database) {
     for (const owner of owners) await repo.deleteAccountData(owner);
     for (const table of ['aw_public_fork_starts', 'aw_initial_choices'])
       assert.equal((await db.query(`SELECT id FROM ${table}`)).length, 0);
+    assert.deepEqual(await cohortTotals(), cohortBefore);
     return {
       concurrentExactPrivateStartOnce: true,
       oppositeDirectionOwnerLockOrder: true,
@@ -332,6 +357,8 @@ export async function publicForkStartProof(db: Database) {
       quotaRollbackAndDeletedRequestNoResurrection: true,
       officialSourceDoesNotGrantPrivateProvenance: true,
       privateExportImmutableRlsAndCascade: true,
+      publicOriginCreatedAndThreeOriginalPeriods: true,
+      publicOriginReplayAndDeletionCohorts: true,
       actualProviderCalls: 0,
       actualOfficialSeed: false,
     };

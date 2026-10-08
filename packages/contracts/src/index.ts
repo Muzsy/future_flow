@@ -359,6 +359,7 @@ export * from './discovery';
 export * from './saved-lives';
 export * from './public-safety';
 export * from './public-metrics';
+export * from './public-origin-metrics';
 export * from './public-collections';
 export * from './public-exposure';
 export * from './publication-refresh';

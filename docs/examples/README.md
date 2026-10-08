@@ -35,3 +35,8 @@ Az induló termék kizárólag angol. A HU példák történeti mérési bizony�
 ## 2026-10-07: valódi public-fork folytatás
 
 [Három nyers angol AI-időszak](AI_PUBLIC_FORK_ENGLISH_SAMPLE.md) és [külön Claude-audit](AI_PUBLIC_FORK_CLAUDE_AUDIT_HU.md): reviewed Official pontból saját privát élet, kezdeti döntés egyszer, eredeti canon változatlan. Új élet nem Official; valódi használói mérést nem helyettesít.
+
+
+## Saját profilos angol Scenario-minta
+
+[Három valódi angol AI-fejezet és pontos döntések](AI_PERSONAL_SCENARIO_ENGLISH_SAMPLE.md): saját DE/EUR/heti négyórás profil, külön teljes Claude-audit és tényleges Auth/DB-cleanup. [Bizonyíték/minőségi határ](../PERSONAL_SCENARIO_AI_QUALITY_REPORT_HU.md). Ez fejlesztési minta, nem Official Life vagy emberi retention-bizonyíték.

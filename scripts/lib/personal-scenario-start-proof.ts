@@ -8,6 +8,7 @@ import {
   LifeJobRepository,
   LifeDeletionRepository,
   cleanupExpiredPersonalScenarioPreviews,
+  publicOriginMetricsSummary,
   type Database,
   type LifeJob,
 } from '@future-flow/database';
@@ -70,6 +71,21 @@ export async function personalScenarioStartProof(db: Database) {
     await processLifeJob(job, new LifeJobRepository(db), lifeTestAi);
   }
   try {
+    const cohortTotals = async () => {
+      const report = await publicOriginMetricsSummary(db);
+      return report.cohorts
+        .filter((r) => r.channel === 'official_personal_scenario')
+        .reduce(
+          (n, r) => [
+            n[0]! + r.createdLives,
+            n[1]! + r.firstPeriodCompletedLives,
+            n[2]! + r.secondPeriodCompletedLives,
+            n[3]! + r.thirdPeriodCompletedLives,
+          ],
+          [0, 0, 0, 0],
+        );
+    };
+    const cohortBefore = await cohortTotals();
     const f = await source(),
       user = await target(),
       r = personal(),
@@ -115,6 +131,10 @@ export async function personalScenarioStartProof(db: Database) {
     assert.deepEqual(starts[1], starts[2]);
     const created = starts[0]!,
       initial = await lives.branch(user, created.branchId);
+    assert.deepEqual(await cohortTotals(), [
+      cohortBefore[0]! + 1,
+      ...cohortBefore.slice(1),
+    ]);
     assert.equal(
       (await db.query('SELECT id FROM aw_jobs WHERE user_id=$1', [user]))
         .length,
@@ -162,6 +182,10 @@ export async function personalScenarioStartProof(db: Database) {
       await process(user, jobId);
       const detail = await lives.detail(user, created.branchId);
       assert.equal(detail.periods.length, i + 1);
+      assert.deepEqual(
+        await cohortTotals(),
+        cohortBefore.map((n, index) => n + (index <= i + 1 ? 1 : 0)),
+      );
       if (i === 0)
         assert.deepEqual(detail.periods[0]!.start_state, initial.state);
       const branch = await lives.branch(user, created.branchId);
@@ -465,6 +489,7 @@ export async function personalScenarioStartProof(db: Database) {
       contendedOwnerLockUsesDatabaseExpiry: true,
       quotaRollbackDeletionNoResurrection: true,
       privateExportImmutableRlsCascade: true,
+      publicOriginPersonalCohortAfterSourceDeletion: true,
       actualProviderCalls: 0,
       actualEditorialScenario: false,
     };
