@@ -20,7 +20,7 @@ Next 16 `proxy.ts` ellenőriz a renderelés előtt; az API minden route-ja, a do
 | GET/HEAD `/healthz` a weben, `/health` az API belső hálózatán | Minimális működésjelzés; a web healthcheck nem a védett kezdőlapot kéri. |
 | GET/HEAD `/_next/static/*`, `/favicon.ico` | Inert build assetek a külön rights oldalhoz; nincs `/_next/image`, általános asset/file vagy API bypass. |
 
-A `/login`, `/settings`, a rights útvonalak gyermekei, a különböző metódusok és a teljes `/api/*` nem kivételek. A beta UI nem kínál önregisztrációt. A Supabase saját signup kapcsolóját, SMTP-t és a `/account-access` invite/recovery redirectet élesben külön be kell állítani és valódi levelezéssel ellenőrizni.
+A `/login`, `/settings`, a rights útvonalak gyermekei, a különböző metódusok és a teljes `/api/*` nem kivételek. A beta UI nem kínál önregisztrációt. A Supabase saját signup kapcsolóját, SMTP-t és a `/account-access` invite/recovery redirectet élesben külön be kell állítani és valódi levelezéssel ellenőrizni. A választott küldő a meglévő SMTP2GO EU-fiók; a [hosztolt Supabase SMTP útmutatója és operátori sablonja](SMTP2GO_SUPABASE_SETUP_HU.md) kész, a dedikált SMTP-hozzáférés és tényleges beállítás még hiányzik. Az alkalmazás nem szinkronizál SMTP-beállítást a VPS env-ből.
 
 ## Konfigurálás és sorrend
 
