@@ -1,5 +1,7 @@
 # alterward — megvalósítási állapot és kísérleti keret
 
+2026-10-08: sikeres [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md): hivatalos CLI-ből küldött prompt, automatikusan visszaolvasott JSON és önálló értékelés. Egy reprodukált, alacsony súlyosságú privát riportírási hiba javítva, öt új regresszióval; teljes helyi check 658 sikeres / 2 Windows-korlát miatt kihagyott teszt, 62 fájl és production build. A `de2d76d5` runtime main [CI](https://github.com/Muzsy/future_flow/actions/runs/37825268093) verify/container sikeres: 660 teszt / 62 fájl, mind az öt új próba, kihagyás nélkül; types/build/séma-drift és izolált DB/HTTPS/TLS rendben. A kijelzett Cloud-kredit 99/100 USD; részletes session 0,56 USD, Sonnet-rész 0,40 USD, 80% cache-találat, felületi kerekítés. Korábbi API-keretek változatlanok. Ez nem teljes projekt-audit vagy Contabo-kiadás.
+
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 

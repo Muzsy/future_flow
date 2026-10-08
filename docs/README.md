@@ -15,6 +15,7 @@
 | [Tízfős béta AI-hozzáférése](CLOSED_BETA_ADMISSION_REPORT_HU.md) | Szerveroldali UUID-lista, API/worker ellenőrzés, költségvédelem és megmaradó adatkezelési hozzáférés |
 | [Személyes Scenario valódi AI-minőség](PERSONAL_SCENARIO_AI_QUALITY_REPORT_HU.md) | Saját profilos valódi Auth/API/3 fejezet + teljes Claude-audit, olvasható angol minta, tényleges cleanup |
 | [P13 nyilvános eredetű életek kohorszriportja](PUBLIC_ORIGIN_COHORT_REPORT_HU.md) | Privát read-only sikeres start/első három eredeti periódus; identitás és szöveg nélkül, click/referral külön |
+| [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md) | Közvetlen prompt/válasz/önálló értékelés; hat fájl, egy reprodukált alacsony súlyosságú riportírási hiba és javítás, külön Cloud-kredit |
 | [Scenario-böngésző és keresés](SCENARIO_DISCOVERY_REPORT_HU.md) | Angol közös lista, live provenance/consent ellenőrzés, minimális kártyák, keresés/lapozás; valódi öt forrás, 0 AI |
 | [Angol Scenario-felület](SCENARIO_ENGLISH_UI_REPORT_HU.md) | Teljes reader, saját kiadási Confirm és személyes profil/előnézet/start; 3c9a6edc pontos CI sikeres, pozitív interaktív UI még kapu |
 | [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Privát profil/előnézet/start, source-detach és törlés/retention; a72 pontos CI és 38 actual Auth próba sikeres, személyes AI-minőség még kapu |

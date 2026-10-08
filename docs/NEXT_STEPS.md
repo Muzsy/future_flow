@@ -1,5 +1,7 @@
 # alterward — következő lépések, sorrendben
 
+2026-10-08: a [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md) közvetlen promptküldéssel és visszaolvasással működik. A hatfájlos audit egy alacsony súlyosságú privát riportírási hibát talált; a Linux reprodukció igazolta, a javítás és öt regresszió elkészült. A `de2d76d5` main [CI](https://github.com/Muzsy/future_flow/actions/runs/37825268093) verify/container sikeres: 660 teszt / 62 fájl, kihagyás nélkül. Ez a kiegészítő ellenőrzés a meglévő P01–P13 / Shared S0–S7 tervbe épül; a kiadási kapuk megmaradnak, a Cloud-promóció külön keret.
+
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 
