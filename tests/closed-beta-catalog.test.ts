@@ -12,6 +12,8 @@ import {
   catalogCorrectedCopy,
   catalogCorrectedCheckpoint,
   validateCatalogAuditDisposition,
+  assertCatalogPreviewRenewal,
+  validateCatalogPublicationApproval,
 } from '../scripts/lib/closed-beta-catalog';
 
 const approval = () => ({
@@ -35,6 +37,102 @@ const approval = () => ({
 });
 
 describe('approved closed-beta catalog preparation', () => {
+  it('requires a separate exact positive publication decision and keeps indexing disabled', () => {
+    const editorial = {
+      at: '2026-10-08T03:00:00.000Z',
+      actor: 'Delegated English editor',
+      contentHash: 'a'.repeat(64),
+      reviewId: '10000000-0000-4000-8000-000000000001',
+      reviewHash: 'b'.repeat(64),
+      auditHash: 'c'.repeat(64),
+      privacyChecked: true,
+      contentChecked: true,
+      consistencyChecked: true,
+      qualityChecked: true,
+      fictionalSourceChecked: true,
+      rightsChecked: true,
+      note: 'Complete fictional English copy and checkpoints reviewed separately.',
+    };
+    const preview = {
+      previewId: '10000000-0000-4000-8000-000000000002',
+      previewHash: 'd'.repeat(64),
+      snapshotHash: 'e'.repeat(64),
+      binding: { contentHash: editorial.contentHash },
+      settings: {
+        visibility: 'public',
+        authorMode: 'anonymous',
+        indexable: false,
+      },
+    };
+    const record = {
+      at: editorial.at,
+      actor: editorial.actor,
+      contentHash: editorial.contentHash,
+      previewId: preview.previewId,
+      previewHash: preview.previewHash,
+      snapshotHash: preview.snapshotHash,
+      editorialApprovalHash: hash(editorial),
+      fullSnapshotReviewed: true,
+      privacyChecked: true,
+      fictionalSourceChecked: true,
+      rightsChecked: true,
+      betaOnly: true,
+      settings: preview.settings,
+      note: 'Reviewed the exact Official preview and approve this separate beta copy.',
+    };
+    const source = { preview, editorial };
+    expect(validateCatalogPublicationApproval(record, source).betaOnly).toBe(
+      true,
+    );
+    for (const changed of [
+      { ...record, fullSnapshotReviewed: false },
+      { ...record, rightsChecked: 'true' },
+      { ...record, betaOnly: false },
+      { ...record, previewHash: 'f'.repeat(64) },
+      { ...record, snapshotHash: 'f'.repeat(64) },
+      { ...record, editorialApprovalHash: 'f'.repeat(64) },
+      { ...record, settings: { ...record.settings, indexable: true } },
+    ])
+      expect(() =>
+        validateCatalogPublicationApproval(changed, source),
+      ).toThrow();
+    expect(() =>
+      validateCatalogPublicationApproval(record, {
+        preview: { ...preview, previewId: editorial.reviewId },
+        editorial,
+      }),
+    ).toThrow();
+  });
+  it('renews only an expired, unpublished and unchanged clear copy without changing its budget window', () => {
+    const input = {
+      expectedContentHash: 'a'.repeat(64),
+      contentHash: 'a'.repeat(64),
+      sourceRevision: 3,
+      currentRevision: 3,
+      expired: true,
+      published: false,
+      reviewVerdict: 'no_findings',
+      renewals: 0,
+    };
+    expect(assertCatalogPreviewRenewal(input).contentHash).toBe(
+      input.contentHash,
+    );
+    for (const change of [
+      { expired: false },
+      { expired: 'true' },
+      { published: true },
+      { published: 'false' },
+      { currentRevision: 4 },
+      { expectedContentHash: 'b'.repeat(64) },
+      { reviewVerdict: 'review_required' },
+      { renewals: 2 },
+      { renewals: -1 },
+      { budgetWindow: { startsAt: '2026-10-08T00:00:00Z' } },
+    ])
+      expect(() =>
+        assertCatalogPreviewRenewal({ ...input, ...change }),
+      ).toThrow();
+  });
   it('requires a separate, complete and exact editorial disposition rather than treating a model verdict as an automatic grant', () => {
     const audit = {
       issues: [

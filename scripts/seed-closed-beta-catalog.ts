@@ -24,6 +24,7 @@ import {
   PublicContentRepository,
   PublicContentReviewJobRepository,
   PublicContentCurationRepository,
+  OfficialPublicationRepository,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -51,11 +52,13 @@ import {
   catalogCorrectedCheckpoint,
   catalogCheckpointNotesSchema,
   validateCatalogAuditDisposition,
+  assertCatalogPreviewRenewal,
+  validateCatalogPublicationApproval,
 } from './lib/closed-beta-catalog';
 import { runScenarioReview } from './lib/scenario-release';
 
 // Protected operator job, one explicitly selected stage per invocation.
-// No auto retry, source/curation grant or publication. Paid phases use the accepted
+// No auto retry or automatic grant/publication. Paid phases use the accepted
 // seed allocation and a single persisted DB window, never normal worker env budgets.
 const dir = privateReportDirectory('closed-beta-catalog');
 const load = (name: string) =>
@@ -97,7 +100,10 @@ async function main() {
       'audit-copy',
       'prepare',
       'prepare-revised',
+      'prepare-renewed',
       'curate',
+      'publication-preview',
+      'publication-confirm',
     ].includes(phase!),
   );
   let state: any = existsSync(resolve(dir, 'state.json'))
@@ -120,7 +126,10 @@ async function main() {
       'audit-copy',
       'prepare',
       'prepare-revised',
+      'prepare-renewed',
       'curate',
+      'publication-preview',
+      'publication-confirm',
     ].includes(phase!)
   )
     assert.ok(Object.hasOwn(catalogVariants, variant!));
@@ -156,6 +165,7 @@ async function main() {
       'audit-copy',
       'prepare',
       'prepare-revised',
+      'prepare-renewed',
     ].includes(phase!)
   ) {
     assert.ok(state, 'Initialize the protected catalog before any paid phase');
@@ -548,9 +558,77 @@ async function main() {
         life().auditHash = hash(result.output);
       }
       save('state', state);
-    } else if (phase === 'prepare' || phase === 'prepare-revised') {
-      assert.ok(life().auditValidated && !life().officialGrant);
-      if (phase === 'prepare-revised') {
+    } else if (
+      ['prepare', 'prepare-revised', 'prepare-renewed'].includes(phase!)
+    ) {
+      assert.ok(life().auditValidated);
+      assert.ok(phase === 'prepare-renewed' || !life().officialGrant);
+      let renewedContentHash: string | undefined;
+      if (phase === 'prepare-renewed') {
+        assert.ok(life().bundle && life().preview);
+        const oldBundle = life().bundle;
+        const [binding] = await db.query(
+          'SELECT d.expires_at<=now() AS expired,b.revision AS current_revision,EXISTS(SELECT 1 FROM aw_publications p WHERE p.bundle_id=$2) OR EXISTS(SELECT 1 FROM aw_official_publications p WHERE p.bundle_id=$2) AS published FROM aw_publication_drafts d JOIN aw_branches b ON b.id=d.branch_id AND b.user_id=d.user_id WHERE d.id=$1 AND d.user_id=$3',
+          [oldBundle.draftId, oldBundle.bundleId, source().owner],
+        );
+        assert.ok(binding);
+        const priorReview = load(`${token}-content-review`);
+        assert.equal(priorReview.output.contentHash, oldBundle.contentHash);
+        assertCatalogPreviewRenewal({
+          expectedContentHash: process.argv[5],
+          contentHash: oldBundle.contentHash,
+          sourceRevision: oldBundle.sourceRevision,
+          currentRevision: binding.current_revision,
+          expired: binding.expired,
+          published: binding.published,
+          reviewVerdict: priorReview.output.verdict,
+          renewals: life().previewRenewals ?? 0,
+        });
+        const renewal = (life().previewRenewals ?? 0) + 1;
+        const renewalLabel = ['a', 'b'][renewal - 1]!;
+        mark(`${token}-prepare-renewal-${renewalLabel}`, {
+          previousContentHash: oldBundle.contentHash,
+          previousDraftId: oldBundle.draftId,
+        });
+        for (const name of [
+          'workspace',
+          'checkpoint-candidates',
+          'bundle',
+          'content-review',
+          'editorial-approval',
+          'official-evidence',
+          'publication-preview',
+          'publication-approval',
+        ]) {
+          if (existsSync(resolve(dir, `${token}-${name}.json`))) {
+            assert.ok(
+              !existsSync(
+                resolve(dir, `${token}-renewal-${renewalLabel}-${name}.json`),
+              ),
+            );
+            save(
+              `${token}-renewal-${renewalLabel}-${name}`,
+              load(`${token}-${name}`),
+            );
+          }
+        }
+        life().previousBundles ??= [];
+        life().previousBundles.push({
+          kind: 'expired_preview_renewal',
+          bundle: oldBundle,
+          preview: life().preview,
+          review: priorReview.output,
+          officialGrant: life().officialGrant ?? null,
+          publicationPreview: life().publicationPreview ?? null,
+        });
+        life().previewRenewals = renewal;
+        renewedContentHash = oldBundle.contentHash;
+        delete life().officialGrant;
+        delete life().contentReviewId;
+        delete life().contentReviewHash;
+        delete life().publicationPreview;
+        save('state', state);
+      } else if (phase === 'prepare-revised') {
         assert.ok(life().bundle);
         assert.equal(
           process.argv[5],
@@ -700,6 +778,12 @@ async function main() {
         },
         randomUUID(),
       );
+      if (renewedContentHash)
+        assert.equal(
+          bundle.contentHash,
+          renewedContentHash,
+          'Renewal must preserve every reviewed character and checkpoint',
+        );
       life().bundle = bundle;
       if (notes) life().copyCorrection = true;
       save(`${token}-bundle`, bundle);
@@ -795,7 +879,9 @@ async function main() {
           expected.fictionalSourceChecked &&
           expected.rightsChecked,
       );
-      mark(`${token}-curate-${b.contentHash.slice(0, 16)}`);
+      mark(
+        `${token}-curate-${b.contentHash.slice(0, 16)}-${b.draftId.slice(0, 8)}`,
+      );
       const curations = new PublicContentCurationRepository(db, true),
         request = {
           contentHash: b.contentHash,
@@ -821,7 +907,7 @@ async function main() {
         ...binding,
         status: 'content_reviewed',
         reasonCode: null,
-        actorLabel: 'Codex delegated complete-English-copy review 2026-10-07',
+        actorLabel: 'Codex delegated complete English copy review',
         privacyChecked: true,
         contentChecked: true,
         consistencyChecked: true,
@@ -836,9 +922,79 @@ async function main() {
         rightsChecked: true,
         qualityChecked: true,
         acknowledged: true,
-        actorLabel: 'Codex delegated genuine-AI English-life review 2026-10-07',
+        actorLabel: 'Codex delegated genuine AI English life review',
       });
       save('state', state);
+    } else if (phase === 'publication-preview') {
+      const l = life(),
+        b = l.bundle;
+      assert.ok(l.officialGrant?.grant && !l.publication);
+      assert.ok(
+        /^[a-f0-9]{64}$/.test(process.env.PUBLICATION_LINK_SECRET ?? ''),
+        'Protected publication link secret must already be configured',
+      );
+      assert.equal(process.argv[5], b.contentHash);
+      const editorial = catalogLifeEditorialSchema.parse(
+        load(`${token}-editorial-approval`),
+      );
+      assert.equal(editorial.contentHash, b.contentHash);
+      assert.equal(editorial.reviewId, l.contentReviewId);
+      assert.equal(editorial.reviewHash, l.contentReviewHash);
+      assert.equal(editorial.auditHash, l.copyAuditHash ?? l.auditHash);
+      const bound = await official.forPublication(source().owner, b.bundleId);
+      mark(`${token}-publication-preview-${b.bundleId.slice(0, 8)}`);
+      const preview = await new OfficialPublicationRepository(db, {
+        enabled: true,
+        linkSecret: process.env.PUBLICATION_LINK_SECRET!,
+      }).prepare(
+        source().owner,
+        {
+          binding: bound.binding,
+          settings: {
+            visibility: 'public',
+            authorMode: 'anonymous',
+            indexable: false,
+          },
+        },
+        randomUUID(),
+      );
+      save(`${token}-publication-preview`, preview);
+      l.publicationPreview = preview;
+      save('state', state);
+    } else if (phase === 'publication-confirm') {
+      const l = life(),
+        preview = load(`${token}-publication-preview`);
+      assert.ok(l.publicationPreview && !l.publication);
+      assert.equal(hash(preview), hash(l.publicationPreview));
+      assert.equal(preview.binding.contentHash, l.bundle.contentHash);
+      assert.equal(process.argv[5], preview.previewHash);
+      validateCatalogPublicationApproval(
+        load(`${token}-publication-approval`),
+        {
+          preview,
+          editorial: load(`${token}-editorial-approval`),
+        },
+      );
+      mark(`${token}-publication-confirm-${preview.previewId.slice(0, 8)}`);
+      const publications = new OfficialPublicationRepository(db, {
+        enabled: true,
+        linkSecret: process.env.PUBLICATION_LINK_SECRET!,
+      });
+      const published = await publications.confirm(
+        source().owner,
+        {
+          previewId: preview.previewId,
+          previewHash: preview.previewHash,
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+      save(`${token}-publication`, published);
+      l.publication = published;
+      save('state', state);
+      const reader = await publications.readPublic(published.slug);
+      assert.equal(hash(reader.snapshot), published.snapshotHash);
+      save(`${token}-public-reader`, reader);
     }
   } finally {
     await report();

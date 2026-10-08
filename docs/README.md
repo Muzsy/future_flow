@@ -1,6 +1,6 @@
 # alterward — dokumentáció
 
-2026-10-07 · A teljes témadokumentáció frissítve a két stratégiai terv, az új Shared Context specifikáció és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
+2026-10-08 · A teljes témadokumentáció frissítve a két stratégiai terv, az új Shared Context specifikáció és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
 
 ## Olvasási sorrend
 
@@ -10,7 +10,7 @@
 | [Termékterv](PRODUCT_PLAN_HU.md) | Mit építünk, milyen élménnyel és MVP-határral? |
 | [Állapot és kísérleti keret](STATUS_HU.md) | Mi működik, mi tervezett, milyen bizonyíték és pénzügyi keret áll rendelkezésre? |
 | [Induló kínálat költségbecslése és döntése](INITIAL_CATALOG_COST_ESTIMATE_HU.md) | Jóváhagyott 10 USD közös keret: 15 élet/5 Scenario, 10 fős zárt béta; teljes kínálat későbbi bővítés |
-| [Őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) | Valódi AI/Claude, külön seed-költségablak, megőrzött javítások és auditok; staging folyamatban |
+| [Őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) | 45 valódi AI-fejezet/15 eredeti Claude-audit, 5 forrás; külön seed-őr, megőrzött javítás/audit és első exact staging Confirm, teljes kiadás folyamatban |
 | [Tízfős béta AI-hozzáférése](CLOSED_BETA_ADMISSION_REPORT_HU.md) | Szerveroldali UUID-lista, API/worker ellenőrzés, költségvédelem és megmaradó adatkezelési hozzáférés |
 | [Angol Scenario-felület](SCENARIO_ENGLISH_UI_REPORT_HU.md) | Teljes reader, saját kiadási Confirm és személyes profil/előnézet/start; 3c9a6edc pontos CI sikeres, pozitív interaktív UI még kapu |
 | [Saját élet Scenario alapján](PERSONAL_SCENARIO_START_REPORT_HU.md) | Privát profil/előnézet/start, source-detach és törlés/retention; a72 pontos CI és 38 actual Auth próba sikeres, személyes AI-minőség még kapu |

@@ -88,6 +88,32 @@ export function catalogCorrectedCopy(
   return record.copy;
 }
 
+// Expiry requires a new immutable preview and full review, never extending the
+// stored deadline or reusing a paid request. Evidence remains bound to the copy.
+export function assertCatalogPreviewRenewal(raw: unknown) {
+  const input = z
+    .object({
+      expectedContentHash: z.string().regex(/^[a-f0-9]{64}$/),
+      contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+      sourceRevision: z.number().int().nonnegative(),
+      currentRevision: z.number().int().nonnegative(),
+      expired: z.literal(true),
+      published: z.literal(false),
+      reviewVerdict: z.literal('no_findings'),
+      renewals: z.number().int().min(0).max(1),
+    })
+    .strict()
+    .parse(raw);
+  if (
+    input.expectedContentHash !== input.contentHash ||
+    input.sourceRevision !== input.currentRevision
+  )
+    throw Error(
+      'Expired preview renewal requires the exact unchanged reviewed source',
+    );
+  return input;
+}
+
 // Only a dated, non-executable goal note may be clarified. The repository still
 // independently compares the complete checkpoint with its unchanged canon.
 export const catalogCheckpointNotesSchema = z
@@ -193,6 +219,60 @@ export const catalogLifeEditorialSchema = z
     consistencyChecked: z.literal(true),
   })
   .strict();
+
+export const catalogPublicationApprovalSchema = z
+  .object({
+    at: z.iso.datetime(),
+    actor: z.string().trim().min(3).max(200),
+    contentHash: digest,
+    previewId: z.uuid(),
+    previewHash: digest,
+    snapshotHash: digest,
+    editorialApprovalHash: digest,
+    fullSnapshotReviewed: z.literal(true),
+    privacyChecked: z.literal(true),
+    fictionalSourceChecked: z.literal(true),
+    rightsChecked: z.literal(true),
+    betaOnly: z.literal(true),
+    settings: z
+      .object({
+        visibility: z.literal('public'),
+        authorMode: z.literal('anonymous'),
+        indexable: z.literal(false),
+      })
+      .strict(),
+    note: z.string().trim().min(30).max(3000),
+  })
+  .strict();
+export function validateCatalogPublicationApproval(
+  raw: unknown,
+  source: {
+    preview: {
+      previewId: string;
+      previewHash: string;
+      snapshotHash: string;
+      binding: { contentHash: string };
+      settings: unknown;
+    };
+    editorial: unknown;
+  },
+) {
+  const record = catalogPublicationApprovalSchema.parse(raw);
+  const p = source.preview;
+  if (
+    record.contentHash !== p.binding.contentHash ||
+    record.previewId !== p.previewId ||
+    record.previewHash !== p.previewHash ||
+    record.snapshotHash !== p.snapshotHash ||
+    record.editorialApprovalHash !==
+      hash(catalogLifeEditorialSchema.parse(source.editorial)) ||
+    hash(record.settings) !== hash(p.settings)
+  )
+    throw Error(
+      'Explicit publication approval must match the exact preview and separate full editorial decision',
+    );
+  return record;
+}
 
 export const catalogExecutionSchema = z
   .object({

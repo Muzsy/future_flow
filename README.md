@@ -8,7 +8,7 @@ A privát v2 mag 12 lépéses angol onboardingból hat hónapos valódi AI-tört
 
 Az alkalmazás valódi OpenAI API-t használ az eseményekhez, a történethez és a történet ellenőrzéséhez. A működő alkalmazásban nincs AI nélküli demo vagy mock mód. A tesztek elkülönített tesztadatokat és teszthelyettesítőket használnak.
 
-A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md), [Official eredet és kiadás](docs/OFFICIAL_PUBLICATION_REPORT_HU.md), valamint az [első valódi angol AI seed](docs/OFFICIAL_SEED_REPORT_HU.md) elkészült. A háromrészes mintát Sonnet is auditálta, és a public/unlisted kiadást valódi Auth/HTTP-próba ellenőrizte. A rendes kiadási funkciók kikapcsolva maradnak; Discovery/Save/public link alapja kész; public fork következik, Contabo-telepítés még nincs.
+A [külön Community Publication/Confirm](docs/PUBLICATION_CONFIRM_REPORT_HU.md), [Official eredet és kiadás](docs/OFFICIAL_PUBLICATION_REPORT_HU.md), valamint az [első valódi angol AI seed](docs/OFFICIAL_SEED_REPORT_HU.md) elkészült. A háromrészes mintát Sonnet is auditálta, és a public/unlisted kiadást valódi Auth/HTTP-próba ellenőrizte. A rendes kiadási funkciók kikapcsolva maradnak; Élet-Discovery, Save/public link és saját public fork már implementált; a teljes 15/5 kínálat kiadása folyamatban, Contabo-telepítés még nincs.
 
 ## Indítás
 
@@ -38,7 +38,7 @@ pnpm schemas
 pnpm verify:infra
 ```
 
-Az adatbázistesztek PGlite-ba töltik mind a huszonöt alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
+Az adatbázistesztek PGlite-ba töltik mind a harminchat alkalmazott PostgreSQL-migrációt. Ellenőrzik a profilverziókat, tulajdonosi jogosultságokat, idempotenciát, újraindítás utáni folytatást, elágazást, közvetlen hozzáférés tiltását és a teljes fiókgráf törlését. Nem módosítják a Supabase-projektet.
 
 A `verify:infra` a helyi környezet valódi adatbáziskapcsolatát ellenőrzi, és a hiányzó szolgáltatói kulcsokat értékük kiírása nélkül jelzi.
 
@@ -263,3 +263,8 @@ Legfeljebb tíz hitelesített meghívott indíthat fizetett generálást; API é
 ## 2026-10-07: a zárt béta kínálatának őrzött előállítása
 
 A legfrissebb engedély 10 USD összesen, tíz tesztelő, 15 angol élet és öt Scenario; teljes kínálat később. Az új operator CLI külön seed DB-költségablakot és megőrzött javítási/audit/szerkesztői bizonyítékot használ, a tesztelési 3 USD érintetlen. 7 teljes élet és 5 reviewed Official SCENARIO forrás a dátumozott staging-pillanatképben; teljes kiadás és Contabo még nincs. Helyi teljes 632/59 check és végső kilenc célzott próba sikeres; új saját CI külön kapu, a megelőző c53aa58e pontos verify/container CI kész. [Aktuális részletek](docs/CLOSED_BETA_CATALOG_REPORT_HU.md).
+
+
+## 2026-10-08: mind a 45 angol AI-fejezet elkészült
+
+2026-10-08, 2026-10-08T04:14:25.918Z: mind a 15 önálló angol AI-élet elkészült, összesen 45 hat hónapos fejezettel és 15 eredeti Claude-audittal; az öt reviewed/curated/granted Official SCENARIO forrás is kész. Négy külön LIFE-grantból az új kínálat első tényleges Official snapshotja explicit preview/Confirm után DB-readerrel ellenőrzött; a másik 14 élet teljes kiadási folyamatának lezárása és öt public Scenario még feladat. Az utolsó kreatív audit egy saját indoklásában is helyesnek elismert, hat hónapos dátumkülönbséget jelzett; teljes külön editori lezárása még szükséges, az eredeti negatív report megmarad. A teljes 15/5 public katalógus és Contabo-indulás nincs kész. A lejárt, még ki nem adott preview külön exact hashhez kötött megújítása új immutable previewt és teljes scan-t készít, korábbi report/approval/grant megőrzött, az eredeti seed-költségablak változatlan. Külön preview- és Confirm-fázis valódi editori rekordot igényel, AI-jelentés nem automatikus kiadási engedély. A 6f22473b pontos verify/container CI sikeres (633/59/162, 001–036/repeat és PostgreSQL/HTTPS/DB TLS proofok, 0 CI-AI); az új renewal/Confirm 635/59 teljes helyi check és production build sikeres, új saját CI még kapu. Jóváhagyott összesen 10 USD: 8 OpenAI + 2 Claude, seed plafon 6 + 1, tesztelőknek fenntartott 2 + 1 érintetlen. 169 valódi seed-providerhívás; konzervatív összeg 3.733013 USD (3.024785 OpenAI + 0.708228 Claude), ismeretlen 0; ez nem szolgáltatói számla/egyenleg. A legfeljebb 10 fős, tényleges kezdéstől 30 napos béta kerete inaktív, normál kiadási flag-ek false, régi 5–5 USD kutatási naplók változatlanok. Teljes kiadás/permission/katalógus, személyes Scenario AI-minőség/pozitív UI, P13/retention/backup/restore/email/ops, kapcsolat-email, tényleges meghívottak és teljes webhely-zárás további kapu. Teljes 50–100 élet/20–30 Scenario béta utáni bővítés, nyilvános indulás külön lépés. [Aktuális részletek](docs/CLOSED_BETA_CATALOG_REPORT_HU.md).

@@ -1,6 +1,6 @@
 # alterward — a 15 élet / 5 Scenario kínálat őrzött előállítása
 
-2026-10-07 · Előállítás folyamatban, zárt béta és Contabo még nem indult
+2026-10-08 · 45 fejezet előállítva, teljes kiadás folyamatban, zárt béta és Contabo még nem indult
 
 A felhasználó 10 USD teljes induló keretet, legfeljebb tíz tesztelőt, 15 angol életet és öt Scenario-t választott. Az operator-folyamat kizárólag a védett, aktuális döntési rekorddal működik: 6 USD OpenAI + 1 USD Claude az előállításra; 2 + 1 USD változatlanul a béta használatára marad. A régi 10 + 5 USD döntést vagy más összeget nem fogadja el. [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Meghívási védelem](CLOSED_BETA_ADMISSION_REPORT_HU.md).
 
@@ -30,11 +30,14 @@ Belépési pont: `pnpm seed:closed-beta <phase> [topic] [variant] [expected-peri
 | `audit <topic> <variant>` | Teljes háromfejezetes lánc külön külső auditorral | Claude |
 | `prepare <topic> <variant>` | Teljes immutable történetmásolat, mindhárom checkpoint, új full-scope kiadási AI-vizsgálat | OpenAI |
 | `prepare-revised <topic> <variant> <previous-content-hash>` | Külön, explicit javítás egy rögzített kifogásra; a korábbi bundle és report megmarad, új teljes scan szükséges; legfeljebb három változat | OpenAI |
+| `prepare-renewed <topic> <variant> <previous-content-hash>` | Csak lejárt, ki nem adott, változatlan és tiszta scanű másolat; új preview és scan, régi bizonyíték megmarad, legfeljebb két megújítás | OpenAI |
+| `publication-preview <topic> <variant> <content-hash>` | Exact LIFE-grant és külön teljes szerkesztői rekord után anonim Official kiadási előnézet | nincs |
+| `publication-confirm <topic> <variant> <preview-hash>` | Külön védett, exact preview/snapshot/editori approval rekord; indexelés/fork kikapcsolva, normál serving flag nem változik | nincs |
 | `audit-copy <topic> <variant>` | A javított teljes próza ellenőrzése az eredeti canonnal; külön audit, pontos kiadási hash | Claude |
 | `curate <topic> <variant>` | Külön teljes szöveg/pontlista/audit átnézés; exact curation és Official LIFE eredetengedély | nincs |
 | `status` | Saját operator-állapot és konzervatív költség kimutatása | nincs |
 
-A tényleges kiadási preview/Confirm, öt public Scenario és 15 Official reader, külön personalization/fork permission és katalógusnavigáció további külön lépés. Az előállító CLI nem publikál és nem ad automatikus szerkesztői engedélyt egy AI-ítéletből.
+A kínálat első tényleges Official snapshotja külön preview/Confirm után elkészült; a további 14 Official másolat, öt public Scenario, külön personalization/fork permission és katalógusnavigáció még feladat. A CLI külön kiadási fázisokat kínál, de AI-ítéletből nem ad automatikus szerkesztői vagy kiadási engedélyt. A staging DB-ben kiadott másolat nem aktiválja a webhely normál serving flagjeit vagy a Contabo-telepítést.
 
 A `.local/closed-beta-catalog` védett állapotában az eredeti, hét napos seed-költségidőszak külön execution-rekordhoz kötött. Folytatás nem módosíthatja vagy újíthatja meg. OpenAI/Anthropic külön projektplafon, közös operator-személyes számla, tranzakciós előfoglalás és ismeretlen usage teljes foglalása. A béta 30 napja továbbra csak a tényleges bétainduláskor kezdődik.
 
@@ -58,7 +61,7 @@ Ilyen lezárás csak külön, védett szerkesztői rekorddal engedélyezett: exa
 
 ## Ellenőrzési bizonyíték
 
-Az elfogadott összeg, fenntartott tesztkeret, teljes angol források, 15 önálló út, eredeti költségidőszak és külön, valódi igeneket igénylő szerkesztői kötés célzott próbákkal ellenőrzött. Külön valódi SQL-motoros próba igazolja, hogy a lejárt operator-lease nem indít normál workerhívást és user-retry-t, miközben egy másik normál feladat továbbra sorra kerül. A javított szöveg és checkpoint-megjegyzés pontos kötése, valamint az auditor minden jelzését lefedő külön döntés is ellenőrzött: kilenc célzott teszt/2 fájl, script types és formázás sikeres. A megelőző teljes helyi check 632/59 és production build sikeres; a végső új döntési próba után 633 a várt összesített tesztszám, saját commit CI-je még lezárandó. Új SQL-migráció/JSON-séma nincs; 001–036 és 162 séma változatlan.
+Az elfogadott összeg, fenntartott tesztkeret, teljes angol források, 15 önálló út, eredeti költségidőszak és külön, valódi igeneket igénylő szerkesztői kötés célzott próbákkal ellenőrzött. Külön valódi SQL-motoros próba igazolja, hogy a lejárt operator-lease nem indít normál workerhívást és user-retry-t, miközben egy másik normál feladat továbbra sorra kerül. A javított szöveg és checkpoint-megjegyzés pontos kötése, valamint az auditor minden jelzését lefedő külön döntés is ellenőrzött: kilenc célzott teszt/2 fájl, script types és formázás sikeres. A megelőző teljes helyi check 632/59 és production build sikeres; a 6f22473b pontos [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37692894504) 633/59/162 és verify/container sikeres. Az ezt követő renewal és külön publication-approval két új kapupróbája után 635/59 teljes helyi check/build sikeres; új saját CI még lezárandó. Új SQL-migráció/JSON-séma nincs; 001–036 és 162 séma változatlan.
 
 A megelőző tízfős admission `c53aa58e` pontos [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37684863424) verify/container sikeres: 624/57/162, 001–036/repeat, az összes korábbi PostgreSQL-proof és verified HTTPS/DB TLS, fizetett CI-AI nulla. A jelenlegi seed-hívások külön, jóváhagyott operator-költségablakból valósak; a korábbi 5–5 USD kutatási napló változatlan. A szolgáltatói tényleges egyenleget nem kérdeztük le.
 
@@ -68,3 +71,12 @@ Az első háromfejezetes élet Claude-auditja és teljes kiadási AI-scanje hiba
 ## Dátumozott előállítási pillanatkép
 
 2026-10-07T21:53:49.008Z: 5 reviewed/curated/granted ScenarioVersion, 8 elkezdett életből 7 teljes háromfejezetes lánc, 7 eredeti Claude-audit, 2 külön LIFE-grant. Az előállítás és a fennmaradó teljes kiadási ellenőrzések folytatódnak; ez még nem public 15/5 katalógus. 89 tényleges seed-providerhívás, ismeretlen usage 0. Konzervatív elszámolás 1.641817 USD OpenAI + 0.390871 USD Claude = 2.032688 USD; tesztelési 3 USD érintetlen. A szolgáltatói egyenleg és végső számla nem lett lekérdezve.
+
+
+## 2026-10-08: a 45 fejezet előállítása kész
+
+2026-10-08, 2026-10-08T04:14:25.918Z: mind a 15 önálló angol AI-élet elkészült, összesen 45 hat hónapos fejezettel és 15 eredeti Claude-audittal; az öt reviewed/curated/granted Official SCENARIO forrás is kész. Négy külön LIFE-grantból az új kínálat első tényleges Official snapshotja explicit preview/Confirm után DB-readerrel ellenőrzött; a másik 14 élet teljes kiadási folyamatának lezárása és öt public Scenario még feladat. Az utolsó kreatív audit egy saját indoklásában is helyesnek elismert, hat hónapos dátumkülönbséget jelzett; teljes külön editori lezárása még szükséges, az eredeti negatív report megmarad. A teljes 15/5 public katalógus és Contabo-indulás nincs kész. A lejárt, még ki nem adott preview külön exact hashhez kötött megújítása új immutable previewt és teljes scan-t készít, korábbi report/approval/grant megőrzött, az eredeti seed-költségablak változatlan. Külön preview- és Confirm-fázis valódi editori rekordot igényel, AI-jelentés nem automatikus kiadási engedély. A 6f22473b pontos verify/container CI sikeres (633/59/162, 001–036/repeat és PostgreSQL/HTTPS/DB TLS proofok, 0 CI-AI); az új renewal/Confirm 635/59 teljes helyi check és production build sikeres, új saját CI még kapu. Jóváhagyott összesen 10 USD: 8 OpenAI + 2 Claude, seed plafon 6 + 1, tesztelőknek fenntartott 2 + 1 érintetlen. 169 valódi seed-providerhívás; konzervatív összeg 3.733013 USD (3.024785 OpenAI + 0.708228 Claude), ismeretlen 0; ez nem szolgáltatói számla/egyenleg. A legfeljebb 10 fős, tényleges kezdéstől 30 napos béta kerete inaktív, normál kiadási flag-ek false, régi 5–5 USD kutatási naplók változatlanok. Teljes kiadás/permission/katalógus, személyes Scenario AI-minőség/pozitív UI, P13/retention/backup/restore/email/ops, kapcsolat-email, tényleges meghívottak és teljes webhely-zárás további kapu. Teljes 50–100 élet/20–30 Scenario béta utáni bővítés, nyilvános indulás külön lépés.
+
+A hat új költözési/alkotói lánc személyessége 4/5, nyelve 4–5/5, kíváncsisága 3–4/5 a gépi audit szerint. Az utolsó kreatív report egy helyes állítást saját maga is téves riasztásként indokol, de canonFaithful=false maradt; ezt nem nevezzük hibamentes auditnak. A következő szerkesztői lezárás teljes szöveg/eredeti canon és egyedi finding-hash alapján történik.
+
+A kilencedik élet javított teljes copy-auditja hibajelzés nélküli. Lejárt előnézetének első megújítási kísérlete egy belső archív fájlnév-validáción állt meg, fizetett hívás/DB-módosítás előtt; a failed attempt megmaradt. A javított lépés új previewt és tényleges új full scan-t készített. A tartalom hashje változatlan; a korábbi deadline/report/approval megmarad, a copy-audit exact hashhez kötve tovább érvényes, újat nem fizettünk érte. Új teljes editori kötés, külön LIFE-grant, külön kiadási előnézet, exact független publication-approval és Confirm után a DB-reader snapshot-hashje egyezik. Indexelés és fork kikapcsolva, normál serving flag-ek false.
