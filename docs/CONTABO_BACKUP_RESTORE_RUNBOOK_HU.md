@@ -52,6 +52,8 @@ A kliens 256 MiB/0,5 CPU, a restore DB 512 MiB/0,5 CPU, a Caddy ellenőrző 128 
 
 Nyolc célzott biztonsági próba ellenőrzi a normál restore-t, abszolút/parent/sibling útvonalakat, duplicate archive bejegyzést, dot/parent/dupla-elválasztó/backslash aliasokat, symlink/hardlink/device/FIFO tiltást és meglévő fájl felülírásának tiltását. Helyben mind sikeres; a CI verify job ugyanazokat futtatja. Az alias-tiltás a sikeres eredeti proof után szigorította a végrehajtót; a dátumozott proof a ténylegesen akkor használt script hash-ét őrzi.
 
+A szigorított végrehajtóval 2026-10-09 helyi idő szerint a letöltött titkosított példány ismételt izolált restore-ja is sikeres: ugyanaz a 97 tábla/1632 sor és 24 fájl, minden összehasonlítás és sérülés-tiltás egyezik. E változás `04512015fa251ae2c82ccf946501c0370dc88b8d` main [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37860992061) verify/container sikeres; nyolc Python-próba, a korábbi alkalmazási tesztek és izolált futás ellenőrzött. Következő külön lépés a [célkörnyezeti web/API/worker próba](CONTABO_TARGET_REHEARSAL_HU.md).
+
 ## Megmaradó kiadási kapuk
 
 - Ez **alkalmazási `public` séma + proxy/config mentés**. A hosztolt Supabase Auth belső sémái, felhasználói jelszavai, Storage objektumok, globális role/grant, SMTP és dashboard konfiguráció nem részei. A célfixture NOLOGIN szerepköröket kapott; `--no-owner/--no-acl` miatt az éles jogosultságok újraellenőrzése külön szükséges. Nem teljes Supabase-projekt visszaállítás.

@@ -8,6 +8,8 @@
 
 Legújabb üzemeltetési bizonyíték: [Contabo titkosított mentés és izolált restore](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md). A teljes törlésvédelmi/retention és hosztolt Supabase-helyreállítási kaput ez még nem zárja le.
 
+Következő operatív próba: [izolált célkörnyezeti build/web/API/worker](CONTABO_TARGET_REHEARSAL_HU.md), saját korlátozott builderrel és ideiglenes TLS/DB környezettel; éles route nélkül.
+
 | Dokumentum | Mire ad választ? |
 |---|---|
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |
