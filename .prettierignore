@@ -6,3 +6,5 @@ pnpm-lock.yaml
 apps/web/next-env.d.ts
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+# Preserve exact HTML copied to hosted Supabase and verified from stored previews.
+deploy/supabase-auth/en/*.html

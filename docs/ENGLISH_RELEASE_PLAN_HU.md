@@ -1,5 +1,7 @@
 # alterward — angol indulás és visszajelzések
 
+2026-10-08-i végső email-pontosítás: **az Auth-levelek is angolok**. Nyolc teljes angol tárgy/HTML-sablon és pontos HTTPS `/account-access` visszatérés elmentve a Supabase dashboardon; a teljes HTML újranyitott előnézetben visszaellenőrzött. SMTP-feladó `Alterward <info@alterward.com>`. A felhasználó első meghívója spambe érkezett; új kézbesítés, éles callback/belépés és bejövő válasz még tesztelendő. [Sablonok](../deploy/supabase-auth/en/README.md) · [Bizonyíték és korlátok](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
+
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 
