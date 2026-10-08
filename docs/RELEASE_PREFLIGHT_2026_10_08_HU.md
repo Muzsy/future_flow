@@ -19,7 +19,7 @@ Szerver- vagy Cloudflare-módosítás, új AI-költés és meghívó nem törté
 
 ## Következő végrehajtási lépések
 
-1. Üzemeltető belépési emailje és a kapcsolattartási továbbítás tényleges fogadó címe/működése tisztázandó. A public `info@alterward.com` cím önmagában nem az Access Allow identitása.
+1. A későbbi felhasználói pontosítás alapján a külön üzemeltetői login rögzítve, az `info@alterward.com` hivatalos értesítési cím privát postafiókba továbbítása megerősítve. [Email-konfiguráció](OPERATOR_EMAIL_CONFIGURATION_HU.md). Automatikus küldés/SMTP és valós Auth próba még hátravan.
 2. A tényleges más alkalmazások figyelembevételével szerverkarbantartás és a failed unitok vizsgálata; teljes tűzfal-/portellenőrzés, hozzáférésvesztést megelőző visszaállítási eljárással. A reboot jelzés nem jogosít automatikus újraindításra a többi alkalmazás ellenőrzése nélkül.
 3. Friss, védett config/secret mentés és külön Supabase DB-mentés, izolált tényleges restore és rollback-bizonyíték; törölt adatok visszaállítási/retention kezelése. A régi hash-ellenőrzött másolat ezt még nem teljesíti.
 4. Cloudflare Access team/app/AUD, explicit OTP és owner Allow, azonos origin email-lista; szűk rights/asset kivételek és Supabase signup/invite/recovery/SMTP. Ezután izolált Contabo-rehearsal, privacy/retention és végleges flag-mátrix.

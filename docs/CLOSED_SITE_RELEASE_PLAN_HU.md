@@ -4,7 +4,7 @@
 
 ## Elfogadott indulási sorrend
 
-Üzemeltető: **Müller Ákos**, kapcsolattartási cím: **info@alterward.com**. A cím bekerült a termék angol adatkezelési/Settings felületére kattintható email-linkként. A postafiók/továbbítás tényleges működését még ellenőrizni kell; a megadott cím önmagában nem jelenti a levelezés beállítását, és nem választja ki az üzemeltető belépési fiókját.
+Üzemeltető: **Müller Ákos**, hivatalos kapcsolati és értesítési cím: **info@alterward.com**. A cím a privát postafiókjába továbbít, ezt a felhasználó megerősítette. A külön üzemeltetői belépési cím megadva és a helyi védett konfigurációban rögzítve; ebből készül az első Access/origin engedélylista és a tervezett Supabase-fiók. A kapcsolati cím szerepel a termék angol adatkezelési/Settings felületén. Az automatikus levélküldés/SMTP még külön beállítandó és ellenőrizendő. [Rögzített email-szerepek és pontos állapot](OPERATOR_EMAIL_CONFIGURATION_HU.md).
 
 **Tesztelők még nincsenek. Először zárt, üzemeltető számára elérhető Contabo-telepítés készül az alterward.com címen, a tesztelők meghívása ezt követi.** A korábbi dokumentumok tesztelőlistát kérő kapuja a tényleges tesztelői használat indulására vonatkozik; üres listával a védett telepítés és költségmentes üzemeltetői ellenőrzés haladhat.
 
@@ -39,7 +39,7 @@ Cache nem adhat ki előzőleg jogosult felhasználónak kiszolgált tartalmat n�
 
 ## Végrehajtási sorrend
 
-1. Postafiók/továbbítás és üzemeltetői belépési email tisztázása. A kapcsolattartási cím automatikusan nem kerül az Access Allow listájára.
+1. **Címek és beérkező továbbítás tisztázva:** a személyes üzemeltetői login rögzítve, `info@alterward.com` a hivatalos cím, továbbítása a felhasználó által megerősített. Következő külön levélküldési/SMTP feladat; a kapcsolattartási cím automatikusan nem kerül az Access Allow listájára.
 2. Origin tokenvédelme, szűk Account access kivételek és regressziók előkészítése; Cloudflare team/AUD és origin email-lista beállítása csak szerveroldali környezetbe kerül. Nincs késznek jelölt védelem üres konfigurációval.
 3. Cloudflare Access self-hosted alkalmazás, explicit OTP és csak az üzemeltető emailjének Allow szabálya; alternatív hostname-ek és konkrét kivételek ellenőrzése.
 4. Contabo mentés/restore/TLS/tűzfal és éles célkörnyezet előkészítése, izolált telepítési próba; a kész kód és konfiguráció rögzített main verzióján kötelező [részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md), önálló finding-ellenőrzés, javítás és regressziós újraellenőrzés. Csak lezárt kiadási akadályok után védett éles telepítés. A rendes AI-generálás ekkor még nem kap új keretet, a tesztelői UUID-lista üres.
