@@ -4,6 +4,10 @@
 
 ## Mi készült el?
 
+2026-10-09: Supabase nyilvános signup letiltva és dashboard/settings végponttal visszaellenőrizve. Email login megmaradt, Confirm email On, autoconfirm/anonymous/manual linking Off. [Access és signup konfiguráció](CLOUDFLARE_ACCESS_CONFIGURATION_HU.md). Ez nem új kézbesítési vagy belépési próba; a következő lépések 3–5. pontja megmarad.
+
+A hosztolt Auth Rate Limits olvasási ellenőrzése: token refresh 150/IP/5 perc, token verification és sign-in/sign-up egyaránt 30/IP/5 perc; IP forwarding Off. Ezeket nem módosítottuk. A projekt email/óra mezőjét a böngésző maszkírozza, ezért pontos értéke továbbra nincs igazolva; az SMTP2GO 100/óra user-limit ettől külön korlát. A maszkírozás megkerülése nem része a vizsgálatnak.
+
 - Külön SMTP2GO-felhasználó a Supabase Authhoz, egyedi generált jelszóval, API-kulcs nélkül. Az érték kizárólag az SMTP2GO-ban és Supabase-ben szerepel; új VPS/env vagy helyi jelszópéldány nem szükséges.
 - SMTP2GO limit **100 levél/óra**; tracking és leiratkozó lábléc kikapcsolva. Ez a dedikált szolgáltatói limit, nem a Supabase Auth tényleges kvótájának bizonyítéka.
 - A future_flow Supabase-projekt Custom SMTP-je a felhasználó szerint beállítva: `mail-eu.smtp2go.com:587`, feladó **Alterward <info@alterward.com>**.

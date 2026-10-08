@@ -1,8 +1,12 @@
 # alterward — dokumentáció
 
+**2026-10-09-i aktuális kiadási checkpoint:** [Cloudflare Free/OTP, owner-only fő alkalmazás és külön fiókjog/asset kivétel elmentve](CLOUDFLARE_ACCESS_CONFIGURATION_HU.md); Supabase nyilvános signup Off, dashboard és settings végponttal ellenőrizve. [Titkosított offsite másolatból izolált restore sikeres](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md): 97 alkalmazástábla/1632 sor és 24 konfigurációs fájl egyezik, sérült ciphertext elutasított; nyolc biztonsági regresszió helyben sikeres. Contabo alterward runtime, webes DNS/Caddy route és teljes Claude Cloud-audit még nincs. Következő: célkörnyezeti telepítési próba, retention/törlésvédett restore és végleges flag-mátrix, rögzített main teljes Cloud-auditja, majd védett élesítés és külső Access/Auth/email-próbák. A béta-időszak inaktív, a 10 USD keret változatlan. Az alábbi korábbi dátumozott bizonyítékok a saját checkpointjuk állapotát őrzik; az aktuális kiadási helyzetet e bekezdés és a hivatkozott riportok adják.
+
 2026-10-08 · A teljes témadokumentáció frissítve a két stratégiai terv, az új Shared Context specifikáció és a későbbi felhasználói döntések szerint. A dokumentáció nyelve magyar; a termék induló felülete és történetei kizárólag angolok, magyar halasztva. [Legújabb indulási döntés](ENGLISH_RELEASE_PLAN_HU.md).
 
 ## Olvasási sorrend
+
+Legújabb üzemeltetési bizonyíték: [Contabo titkosított mentés és izolált restore](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md). A teljes törlésvédelmi/retention és hosztolt Supabase-helyreállítási kaput ez még nem zárja le.
 
 | Dokumentum | Mire ad választ? |
 |---|---|

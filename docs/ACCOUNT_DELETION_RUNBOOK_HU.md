@@ -23,7 +23,7 @@ Ellenőrzendő: marker és ff_users sor eltűnik; saját v1/v2 élet/ág/draft/c
 
 Automatizált próba fedi az Auth-siker utáni DB-hibát, biztos Auth-hiba visszaállítását és bizonytalan Auth-hiba blokkolását. 2026-10-04: a szerveroldali kulcs ellenőrizve; a szintetikus HTTP-próbában valódi Auth-törlés és a teljes DB-gráf (feedback/session is) takarítása sikeres. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). A kontrollált megszakításból valódi admin recovery sikeres (lásd alább); tényleges DB-kiesésből recovery és backup/restore még nincs végrehajtva; a hibaágak automatizált tesztje nem ezek üzemeltetési bizonyítéka.
 
-Backup/restore próba, konkrét megőrzési idők, Supabase-backup hozzáférés és törölt adat visszaállítását kizáró üzemeltetési eljárás nyitott release-feladat. Ez a runbook a végrehajtott adatbázisgráf-törlést kezeli, szolgáltatói backup-törlést nem igazol.
+2026-10-08: [titkosított alkalmazási/config backup és valódi izolált restore](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) sikeres: 97 tábla/1632 sor és 24 config fájl egyezik; az élő Supabase nem változott. Konkrét megőrzési idők/ütemezés, teljes Supabase Auth/grant restore és törölt adat visszaállítását kizáró visszajátszás továbbra nyitott release-feladat. Ez a runbook a végrehajtott adatbázisgráf-törlést kezeli, szolgáltatói backup-törlést nem igazol; izolált restore proof nem jogosít kiszolgálás visszakapcsolására.
 
 ## 2026-10-04: kontrollált megszakításból valódi recovery
 

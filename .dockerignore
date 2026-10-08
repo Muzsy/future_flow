@@ -8,6 +8,7 @@ env
 **/.next-*
 **/dist
 **/*.tsbuildinfo
+**/__pycache__
 coverage
 test-results
 playwright-report

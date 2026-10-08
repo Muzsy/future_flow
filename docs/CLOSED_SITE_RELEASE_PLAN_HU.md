@@ -1,6 +1,8 @@
 # alterward — zárt Contabo-indulás és későbbi tesztelői meghívás
 
-2026-10-08 · Elfogadott kiadási terv; a teljes P01–P13 / Shared S0–S7 terv kiegészítése. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Kötelező részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
+2026-10-09 · Elfogadott kiadási terv; a teljes P01–P13 / Shared S0–S7 terv kiegészítése. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Kötelező részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
+
+**Aktuális checkpoint:** [Cloudflare Free/OTP, owner-only fő alkalmazás és szűk fiókjog/asset kivétel elmentve](CLOUDFLARE_ACCESS_CONFIGURATION_HU.md); Supabase nyilvános signup letiltva, settings-végponttal is ellenőrizve. [Titkosított offsite másolatból 97 alkalmazástábla/1632 sor és 24 konfigurációs fájl izolált restore-ja sikeres](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md). Contabo alterward alkalmazás, DNS/route, tényleges Access/Auth belépés és teljes Cloud-audit még nincs; béta-időszak inaktív.
 
 ## Elfogadott indulási sorrend
 
@@ -16,7 +18,7 @@ A meglévő `CLOSED_BETA_ENABLED` + `CLOSED_BETA_USER_IDS` a fizetett műveletek
 
 Az Access minden kérés előtt ellenőrizheti az alkalmazási jogosultságot; az alkalmazások alapból tiltottak, csak egy explicit Allow szabálynak megfelelő felhasználó kap hozzáférést. Emailes egyszer használatos kóddal engedélyezett címek is beengedhetők, külön Google/Microsoft integráció nélkül. Az OTP login a jelenlegi Cloudflare-ben külön beállítandó, nem automatikusan rendelkezésre álló alapérték. [Hivatalos Access útmutató](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/), [emailes OTP](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/).
 
-A szolgáltató ingyenes Cloudflare One lehetőséget is dokumentál legfeljebb ötven felhasználóig. A tízfős béta és az üzemeltető ehhez a nagyságrendhez illeszkedik; a tényleges fiókban a Free csomag és az engedélyezett szolgáltatások aktiváláskor ellenőrizendők. Fizetős előfizetést nem választunk e javaslattal. [Hivatalos referencia](https://developers.cloudflare.com/reference-architecture/architectures/sase/).
+A szolgáltató ingyenes Cloudflare One lehetőséget dokumentál legfeljebb ötven felhasználóig. A tízfős béta és az üzemeltető ehhez illeszkedik. A felhasználó aktiválta a Free csomagot, a dashboard aktív állapotát Codex ellenőrizte. Fizetős csomagot nem választottunk; a feltételek és az ingyenes keret feletti számlázás elfogadását a felhasználó végezte. [Hivatalos referencia](https://developers.cloudflare.com/reference-architecture/architectures/sase/).
 
 | Réteg | Mire szolgál? |
 | --- | --- |
@@ -41,7 +43,7 @@ Cache nem adhat ki előzőleg jogosult felhasználónak kiszolgált tartalmat n�
 
 1. **Címek, továbbítás és küldőszolgáltató tisztázva:** a személyes üzemeltetői login rögzítve, `info@alterward.com` a hivatalos cím, SMTP2GO a választott küldő. Dedikált SMTP és első meghívó a felhasználó által igazolva; HTTPS alapértelmezés, pontos callbackek és nyolc angol HTML-sablon elmentve/visszaellenőrizve. Következő új kézbesítés/fejlécek és spam okának vizsgálata, éles callback/belépés, Supabase kvóta/signup és tényleges válaszút. A Contabo env önmagában nem állítja be a hosztolt Supabase küldést. A kapcsolattartási cím automatikusan nem kerül az Access Allow listájára. [Végrehajtási útmutató](SMTP2GO_SUPABASE_SETUP_HU.md).
 2. Origin tokenvédelme, szűk Account access kivételek és regressziók előkészítése; Cloudflare team/AUD és origin email-lista beállítása csak szerveroldali környezetbe kerül. Nincs késznek jelölt védelem üres konfigurációval.
-3. Cloudflare Access self-hosted alkalmazás, explicit OTP és csak az üzemeltető emailjének Allow szabálya; alternatív hostname-ek és konkrét kivételek ellenőrzése.
+3. **Dashboard-konfiguráció kész:** Cloudflare Access self-hosted alkalmazás, explicit OTP és csak az üzemeltető pontos emailjének Allow szabálya, apex/www és külön fiókjog/asset kivétel elmentve/visszaolvasva. A path-illesztés hierarchikus; a pontos method/path és saját-auth korlátot az origin tartja meg. Supabase signup Off, alkalmazási signup UI zárt-site módban rejtve. Tényleges edge/origin és invite/recovery bizonyíték még szükséges. [Mentett konfiguráció és határok](CLOUDFLARE_ACCESS_CONFIGURATION_HU.md).
 4. Contabo mentés/restore/TLS/tűzfal és éles célkörnyezet előkészítése, izolált telepítési próba; a kész kód és konfiguráció rögzített main verzióján kötelező [részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md), önálló finding-ellenőrzés, javítás és regressziós újraellenőrzés. Csak lezárt kiadási akadályok után védett éles telepítés. A rendes AI-generálás ekkor még nem kap új keretet, a tesztelői UUID-lista üres.
 5. Valódi külső pozitív/negatív böngészős és origin-próba. Ha a védelem hiányos, az alterward route nem nyílik meg.
 6. A kész, ellenőrzött oldal után tesztelő kiválasztása; email az Access listába, külön Supabase-fiók/invite és UUID a béta-listába. Nyilvános önregisztrációt a Supabase-beállítás és az alkalmazási felület is tiltja a béta alatt; invite/recovery út külön működő SMTP-t igényel.
@@ -58,6 +60,6 @@ Cache nem adhat ki előzőleg jogosult felhasználónak kiszolgált tartalmat n�
 
 ## Állapot
 
-A felhasználói sorrend, a Cloudflare Access-megoldás és a kapcsolattartási cím elfogadott. **A részletes Claude Cloud-audit az éles indulás kötelező kapuja; a korábbi próbaaudit ezt nem teljesíti.** A [helyi originvédelem és külön saját-fiókos felület](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) implementált és helyben ellenőrzött; az éles konfiguráció nincs aktiválva. A fenti ellenőrzések elfogadási követelmények, nem elvégzett próbák. A meglévő 660 tesztes main bizonyíték az eddigi kódra vonatkozik. A teljes P01–P13 / Shared S0–S7 terv megmarad; a hiányzó ops/privacy/UI kapuk továbbra előfeltételei a tesztelői használatnak.
+A felhasználói sorrend, a Cloudflare Access-megoldás és a kapcsolattartási cím elfogadott. **A részletes Claude Cloud-audit az éles indulás kötelező kapuja; a korábbi próbaaudit ezt nem teljesíti.** A [helyi originvédelem és külön saját-fiókos felület](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) implementált és helyben ellenőrzött; a Cloudflare dashboard-konfiguráció mentett, a Contabo runtime nincs aktiválva. A fenti élő ellenőrzések elfogadási követelmények, nem elvégzett próbák. A b8deeee runtime CI-bizonyítéka 668 teszt / 63 fájl és 19 production HTTP-próba; az új restore biztonsági próbák külön szerepelnek. A teljes P01–P13 / Shared S0–S7 terv megmarad; a hiányzó ops/privacy/UI kapuk továbbra előfeltételei a tesztelői használatnak.
 
 A kapcsolattartási UI-módosítás célzott formázása és a web teljes típusellenőrzése sikeres. Ehhez a statikus email-linkhez nem indult új AI-próba vagy teljes regressziós tesztfutás. Az új dokumentáció relatív fájl-linkjei ellenőrzöttek.

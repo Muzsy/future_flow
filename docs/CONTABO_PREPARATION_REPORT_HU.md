@@ -1,5 +1,7 @@
 # alterward — Contabo üzemeltetési előkészítés
 
+2026-10-08-i végrehajtott kiegészítés: [titkosított alkalmazási/config mentés és valódi izolált restore](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) sikeres: 97 tábla/1632 sor egyezik, 24 config fájl és Caddy adapt/validate rendben, helyi titkosított példány és sérüléselutasítás ellenőrzött. Mind a hat korábban futó konténer azonos ID/restart-számmal megmaradt. Teljes Supabase Auth/grant restore, törlésvédelmi visszajátszás, retention/ütemezés, proxy/VPS rollback és éles telepítés továbbra hátravan. A korábbi hash-másolatok alább történeti bizonyítékok.
+
 2026-10-08-i friss olvasási [előellenőrzés](RELEASE_PREFLIGHT_2026_10_08_HU.md): kulcsos belépés és a jelszavas tiltás működik; alterward még nincs telepítve, szerverkarbantartás/tűzfal/restore kapuk megmaradnak. Az éles indulást a [zárt webhely és részletes Claude Cloud-audit terve](CLOSED_SITE_RELEASE_PLAN_HU.md) egészíti ki.
 
 2026-10-04 · Az [olvasási audit](CONTABO_SERVER_AUDIT_HU.md) utáni végrehajtott változások. [Telepítési útmutató](DEPLOYMENT_HU.md) · [Következő lépések](NEXT_STEPS.md).
