@@ -1,5 +1,7 @@
 # alterward — következő lépések, sorrendben
 
+2026-10-08: az üzemeltető kapcsolattartási címe **info@alterward.com**. Tesztelők még nincsenek: előbb zárt, üzemeltetői Contabo-telepítés, majd meghívás és tényleges bétaindulás. A telepítéshez nem kell előre tíz tesztelő; a használati időszak nem indul el pusztán a telepítéssel. Következő kiadási feladat a teljes webhely bejárati és origin-védelme, saját export/törlés kivételekkel; utána a Contabo ops/célkörnyezet és védett telepítés. [Részletes megvalósítási javaslat és ellenőrzési kapuk](CLOSED_SITE_RELEASE_PLAN_HU.md). A javasolt Cloudflare Access még nem aktív; a teljes eredeti terv és a jóváhagyott keret megmarad.
+
 2026-10-08: a [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md) közvetlen promptküldéssel és visszaolvasással működik. A hatfájlos audit egy alacsony súlyosságú privát riportírási hibát talált; a Linux reprodukció igazolta, a javítás és öt regresszió elkészült. A `de2d76d5` main [CI](https://github.com/Muzsy/future_flow/actions/runs/37825268093) verify/container sikeres: 660 teszt / 62 fájl, kihagyás nélkül. Ez a kiegészítő ellenőrzés a meglévő P01–P13 / Shared S0–S7 tervbe épül; a kiadási kapuk megmaradnak, a Cloud-promóció külön keret.
 
 

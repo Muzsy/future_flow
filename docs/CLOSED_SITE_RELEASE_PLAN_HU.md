@@ -1,0 +1,63 @@
+# alterward — zárt Contabo-indulás és későbbi tesztelői meghívás
+
+2026-10-08 · Aktuális felhasználói döntés és megvalósítási javaslat. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md).
+
+## Elfogadott indulási sorrend
+
+Üzemeltető: **Müller Ákos**, kapcsolattartási cím: **info@alterward.com**. A cím bekerült a termék angol adatkezelési/Settings felületére kattintható email-linkként. A postafiók/továbbítás tényleges működését még ellenőrizni kell; a megadott cím önmagában nem jelenti a levelezés beállítását, és nem választja ki az üzemeltető belépési fiókját.
+
+**Tesztelők még nincsenek. Először zárt, üzemeltető számára elérhető Contabo-telepítés készül az alterward.com címen, a tesztelők meghívása ezt követi.** A korábbi dokumentumok tesztelőlistát kérő kapuja a tényleges tesztelői használat indulására vonatkozik; üres listával a védett telepítés és költségmentes üzemeltetői ellenőrzés haladhat.
+
+Megmarad a kizárólag angol termék, 15 AI-élet/5 Scenario és legfeljebb tíz tesztelő. A 10 USD közös előállítási/béta plafon, a fenntartott 2 USD OpenAI + 1 USD Claude használati rész és a közös 0,50 USD/user limit változatlan. A Contabo-telepítés önmagában nem indítja el a harmincnapos fizetett tesztidőszakot. A Cloud-audit kredit külön marad. Nem indult új AI-hívás, meghívó vagy szerver-/Cloudflare-módosítás e terv készítésekor.
+
+## Javasolt bejárati védelem: Cloudflare Access
+
+A meglévő `CLOSED_BETA_ENABLED` + `CLOSED_BETA_USER_IDS` a fizetett műveleteket védi. A public reader, Discovery, Scenario, linkelőnézet és sitemap ettől még külön hozzáférési határt igényel. A gyors, ellenőrizhető induláshoz **Cloudflare Access védelmet javaslunk a teljes alterward alkalmazás elé**, a meglévő Supabase Auth és szerveroldali generálási lista megtartásával.
+
+Az Access minden kérés előtt ellenőrizheti az alkalmazási jogosultságot; az alkalmazások alapból tiltottak, csak egy explicit Allow szabálynak megfelelő felhasználó kap hozzáférést. Emailes egyszer használatos kóddal engedélyezett címek is beengedhetők, külön Google/Microsoft integráció nélkül. Az OTP login a jelenlegi Cloudflare-ben külön beállítandó, nem automatikusan rendelkezésre álló alapérték. [Hivatalos Access útmutató](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/), [emailes OTP](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/).
+
+A szolgáltató ingyenes Cloudflare One lehetőséget is dokumentál legfeljebb ötven felhasználóig. A tízfős béta és az üzemeltető ehhez a nagyságrendhez illeszkedik; a tényleges fiókban a Free csomag és az engedélyezett szolgáltatások aktiváláskor ellenőrizendők. Fizetős előfizetést nem választunk e javaslattal. [Hivatalos referencia](https://developers.cloudflare.com/reference-architecture/architectures/sase/).
+
+| Réteg | Mire szolgál? |
+| --- | --- |
+| Cloudflare Access | A teljes védett oldal és API bejárata; elsőként az üzemeltető, később név szerint engedélyezett email-címek. |
+| Contabo oldali Access-token ellenőrzés | A Cloudflare bejáratát megkerülő közvetlen IP/Host kérés sem kaphat történetet vagy API-tartalmat. |
+| Supabase Auth / ownership / RLS | Saját alkalmazási fiók és privát adatok; Access belépésből nem lesz automatikusan Supabase-fiók vagy adminjog. |
+| Meglévő API/worker béta- és költségőr | Fizetett generálás csak jóváhagyott Auth UUID-nak, rögzített időszakban és limiteken belül. |
+
+Az első beengedés emailes Access ellenőrzés, utána a szokásos alterward belépés. Ez a zárt béta alatt két belépési lépés lehet. Egy közös jelszó nem biztosít személyenkénti visszavonást; a név szerinti jogosultsági lista ezt lehetővé teszi.
+
+## Kötelező műszaki határ
+
+A Cloudflare szabály önmagában nem elég a közvetlen origin megkerülés ellen. A meglévő Contabo/Caddy útvonal megtartásához az Access aláírt `Cf-Access-Jwt-Assertion` tokenjét az origin oldalán, a web- és API-kiszolgálás előtt ellenőrizni kell: aláírás, rögzített issuer, alkalmazási audience és lejárat. A kulcsforrás kizárólag a konfigurált Cloudflare team cert végpontja; a kérésben kapott issuer nem választhat tetszőleges hálózati célpontot. Hibás/hiányzó token vagy ellenőrizhetetlen kulcs esetén a védett kérés elutasított. Egy továbbított email- vagy proxyfejléc jelenléte nem jogosultsági bizonyíték. [Cloudflare origin-token ellenőrzés](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
+
+Az `alterward.com` és `www.alterward.com`, minden védett útvonal, API, anonim reader/OG/sitemap és használt alternatív hostname lefedendő; localhost/SSR belső API-hívás sem kap általános bypass-t. A web/API portjai továbbra privát Docker-hálózaton maradnak. A meglévő más Caddy-hostnevek nem kapnak alterward-hozzáférést. Az új védelmet külön telepítési konfiguráció kapcsolja be, a fizetett béta-időszaktól függetlenül.
+
+Az adatkezelési/kapcsolati tájékoztató és a saját adatexport/törlés külön szűk kivételt igényel. Egy korábban engedélyezett, később kizárt tesztelő továbbra hitelesített, kizárólag saját adatain gyakorolhatja ezeket a jogokat. Ehhez külön Account access felület és pontos API-engedélylista készítendő; az egész `/api/*` vagy a teljes alkalmazás bypass-a nem megoldás. A kivétel nem szolgálhat ki katalógust, idegen tartalmat vagy új generálást. A belépési/jelszóhelyreállítási és meghívási callback utak is külön végigtesztelendők. A healthcheck belső, minimális működésjelzés marad.
+
+Cache nem adhat ki előzőleg jogosult felhasználónak kiszolgált tartalmat névtelen kérésre. Béta alatt nincs külső indexelés; az adatkezelési tájékoztató rögzítse a Cloudflare hozzáférés-ellenőrzéshez továbbított email és naplóadatok szerepét is. A régi saját adatok jogait és a Supabase Auth hitelesítését az Access-réteg nem helyettesíti.
+
+## Végrehajtási sorrend
+
+1. Postafiók/továbbítás és üzemeltetői belépési email tisztázása. A kapcsolattartási cím automatikusan nem kerül az Access Allow listájára.
+2. Origin tokenvédelme, szűk Account access kivételek és regressziók előkészítése; Cloudflare team/AUD beállítása csak szerveroldali környezetbe kerül. Nincs késznek jelölt védelem üres konfigurációval.
+3. Cloudflare Access self-hosted alkalmazás, explicit OTP és csak az üzemeltető emailjének Allow szabálya; alternatív hostname-ek és konkrét kivételek ellenőrzése.
+4. Contabo mentés/restore/TLS/tűzfal és éles célkörnyezet; konkrét ellenőrzött main verzió védett telepítése. A rendes AI-generálás ekkor még nem kap új keretet, a tesztelői UUID-lista üres.
+5. Valódi külső pozitív/negatív böngészős és origin-próba. Ha a védelem hiányos, az alterward route nem nyílik meg.
+6. A kész, ellenőrzött oldal után tesztelő kiválasztása; email az Access listába, külön Supabase-fiók/invite és UUID a béta-listába. Nyilvános önregisztrációt a Supabase-beállítás és az alkalmazási felület is tiltja a béta alatt; invite/recovery út külön működő SMTP-t igényel.
+7. Tényleges tesztelői induláskor a jóváhagyott harmincnapos időszak és keret aktiválása, majd első valódi AI-élet/döntés/folytatás. Visszavonáskor Access session visszavonás és UUID eltávolítás, a saját export/törlés továbbra elérhető. Az üzemeltető webhelyhez adott hozzáférése önmagában nem növeli a tízfős generálási listát vagy a költségkeretet.
+
+## Elfogadási bizonyíték
+
+- Üres tesztelőlista mellett a webhely védetten fut, új fizetett hívás nem indul és a harmincnapos keret nem kezdődik el.
+- Üzemeltető bejut; idegen email, kijelentkezett/lejárt session, névtelen deep link, másik hostname és közvetlen IP/Host elérés nem kap történetet vagy katalógus-/API-adatot.
+- Az érvénytelen aláírás, más audience/issuer, lejárt token, hamis email/proxyfejléc és hiányzó kulcs/konfiguráció elutasított; a kulcsrotáció ellenőrzött.
+- Meghívott tesztelő bejut és a normál Supabase-fiókját használja; más account UUID-jára az Access belépés nem ad fizetett jogot.
+- Kizárt tesztelő nem indíthat generálást és nem használhatja a katalógust, de saját exportját/törlését végrehajthatja; account-rights kivételből nincs tartalmi bypass.
+- SPA-navigáció, SSR, statikus/RSC kérések, OG/sitemap, cache, invite és recovery működése ténylegesen ellenőrzött; a szerver többi alkalmazása működik.
+
+## Állapot
+
+A felhasználói sorrend és a kapcsolattartási cím rögzített. **Az Access-megoldás megvalósítási javaslat; originvédelme és éles konfigurációja még nincs implementálva vagy aktiválva.** A fenti ellenőrzések elfogadási követelmények, nem elvégzett próbák. A meglévő 660 tesztes main bizonyíték az eddigi kódra vonatkozik. A teljes P01–P13 / Shared S0–S7 terv megmarad; a hiányzó ops/privacy/UI kapuk továbbra előfeltételei a tesztelői használatnak.
+
+A kapcsolattartási UI-módosítás célzott formázása és a web teljes típusellenőrzése sikeres. Ehhez a statikus email-linkhez nem indult új AI-próba vagy teljes regressziós tesztfutás. Az új dokumentáció relatív fájl-linkjei ellenőrzöttek.

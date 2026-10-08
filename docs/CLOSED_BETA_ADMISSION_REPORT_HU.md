@@ -1,5 +1,7 @@
 # alterward — tízfős zárt béta AI-hozzáférése
 
+2026-10-08-i felhasználói pontosítás: **info@alterward.com** a kapcsolattartási cím; tesztelők még nincsenek, meghívásuk a védett Contabo-telepítést követi. A tényleges UUID-lista a fizetett használathoz kell, a telepítés üres listával és inaktív kerettel előkészíthető. A teljes webhely [külön Access/origin/account-rights terve](CLOSED_SITE_RELEASE_PLAN_HU.md) javaslatként elkészült; még nem aktív védelem.
+
 2026-10-07 · Helyben implementálva, éles aktiválás még nincs
 
 A jóváhagyott indulás 15 angol Official Life, öt Scenario és legfeljebb tíz tesztelő, összesen 10 USD AI-keretből. Az előállítás maximum 6 USD OpenAI + 1 USD Claude; a béta használatára fenntartott 2 + 1 USD külön marad. A teljes kínálat és a teljes nyilvános indulás későbbi lépés. [Keret és időszak](AI_PRODUCTION_BUDGET_HU.md).

@@ -1,5 +1,7 @@
 # alterward — helyi fejlesztés és későbbi Contabo-telepítés
 
+2026-10-08: legfrissebb sorrend: **előbb zárt, üzemeltető számára elérhető Contabo-telepítés, később tesztelői meghívás**. Kapcsolattartás: **info@alterward.com**, levelezési működés még ellenőrizendő. A [zárt webhely terve](CLOSED_SITE_RELEASE_PLAN_HU.md) Cloudflare Access + origin tokenvédelmet és szűk sajátadat-hozzáférést javasol; megvalósítása még kiadási feladat. Üres tesztelőlista nem akadálya a védett, új AI-költés nélküli telepítésnek; a harmincnapos keret tényleges tesztinduláskor kezdődik. A régi tesztelőlista-kapu nem követeli meg a tíz fő kiválasztását a szerveres próbaüzem előtt.
+
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 

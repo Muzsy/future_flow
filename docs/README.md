@@ -13,6 +13,7 @@
 | [Őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) | 15 Official/45 fejezet és 5 public Scenario Confirm/reader; külön 45 fork-capability, Featured/Discovery, megőrzött javítás/audit és kerethatár |
 | [Olvasható teljes angol béta-kínálat](beta-catalog/README.md) | 15 élet, egyenként 3 teljes fejezet/választások; 5 kezdő Scenario, jóváhagyott readerből |
 | [Tízfős béta AI-hozzáférése](CLOSED_BETA_ADMISSION_REPORT_HU.md) | Szerveroldali UUID-lista, API/worker ellenőrzés, költségvédelem és megmaradó adatkezelési hozzáférés |
+| [Zárt Contabo-indulás és későbbi meghívás](CLOSED_SITE_RELEASE_PLAN_HU.md) | info@alterward.com; előbb védett, üzemeltetői telepítés, később tesztelők; Access/origin/account-rights megvalósítási terv |
 | [Személyes Scenario valódi AI-minőség](PERSONAL_SCENARIO_AI_QUALITY_REPORT_HU.md) | Saját profilos valódi Auth/API/3 fejezet + teljes Claude-audit, olvasható angol minta, tényleges cleanup |
 | [P13 nyilvános eredetű életek kohorszriportja](PUBLIC_ORIGIN_COHORT_REPORT_HU.md) | Privát read-only sikeres start/első három eredeti periódus; identitás és szöveg nélkül, click/referral külön |
 | [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md) | Közvetlen prompt/válasz/önálló értékelés; hat fájl, egy reprodukált alacsony súlyosságú riportírási hiba és javítás, külön Cloud-kredit |

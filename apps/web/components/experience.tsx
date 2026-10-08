@@ -1535,6 +1535,10 @@ export function Experience() {
                 <h1 style={{ margin: '15px 0 25px' }}>{t('privacy.title')}</h1>
                 <p>{t('privacy.introduction')}</p>
                 <p>{t('privacy.operator')}</p>
+                <p>
+                  {t('privacy.contact')}{' '}
+                  <a href="mailto:info@alterward.com">info@alterward.com</a>
+                </p>
                 <h2>{t('privacy.aiTitle')}</h2>
                 <p>{t('privacy.aiDescription')}</p>
                 <h2>{t('privacy.scenarioTitle')}</h2>

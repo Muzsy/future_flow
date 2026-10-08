@@ -162,6 +162,7 @@ export const en = {
   'story.loading': 'Loading life branch…',
   'privacy.title': 'Privacy and your data',
   'privacy.operator': 'Operator: Müller Ákos.',
+  'privacy.contact': 'Contact:',
   'privacy.introduction':
     "Your profile and life branches are private. The system uses your life situation, self-reported temperament, goals and pseudonymous relationship labels. We do not ask for exact addresses, employers, diagnoses or other people's real names.",
   'privacy.aiTitle': 'How is the AI story created?',
@@ -359,6 +360,7 @@ export const hu: Record<MessageKey, string> = {
   'story.loading': 'Az életág betöltése…',
   'privacy.title': 'Adatvédelem és saját adataid',
   'privacy.operator': 'Üzemeltető: Müller Ákos.',
+  'privacy.contact': 'Kapcsolat:',
   'privacy.introduction':
     'A profil és az életágak privátak. A rendszer élethelyzetet, önbevallott habitust, célokat és álneves kapcsolati címkéket használ. Pontos címet, munkáltatót, diagnózist vagy mások valódi nevét nem kérjük.',
   'privacy.aiTitle': 'Hogyan készül az AI-történet?',
