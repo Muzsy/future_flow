@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { scenarioTemplateSchema } from '@future-flow/contracts';
+import {
+  scenarioTemplateSchema,
+  forkCheckpointSchema,
+} from '@future-flow/contracts';
 import { hash } from '@future-flow/core';
 import {
   approvedCatalogPlan,
@@ -10,6 +13,8 @@ import {
   catalogSourceEditorialSchema,
   catalogLifeEditorialSchema,
   catalogCorrectedCopy,
+  catalogCorrectedCheckpointLabels,
+  assertCatalogPrivacyCorrection,
   catalogCorrectedCheckpoint,
   validateCatalogAuditDisposition,
   assertCatalogPreviewRenewal,
@@ -356,6 +361,138 @@ describe('approved closed-beta catalog preparation', () => {
         source,
       ),
     ).toThrow();
+  });
+  it('binds checkpoint label clarification while rejecting hidden fact, prose or reference changes', () => {
+    const template = catalogTemplates().business;
+    const checkpoint = forkCheckpointSchema.parse({
+      schemaVersion: 'fork-checkpoint-1',
+      contentLocale: 'en',
+      requiresFullReview: true,
+      readyForPublicFork: false,
+      identity: template.identity,
+      environment: template.environment,
+      goals: template.goals,
+      startingState: template.startingState,
+      constraints: template.constraints.map((c) => ({
+        ...c,
+        endsOnDecisionKey: null,
+      })),
+      referenceCatalog: {
+        assetKeys: [],
+        actorKeys: ['actor-1'],
+        opportunityKeys: ['opportunity-1'],
+      },
+      decision: {
+        key: 'decision-1',
+        prompt: 'What next?',
+        options: [
+          {
+            key: 'option-1',
+            label: 'Wait',
+            description: 'Keep the current state.',
+            preconditions: [],
+            changes: [],
+          },
+          {
+            key: 'option-2',
+            label: 'Plan',
+            description: 'Prepare without spending.',
+            preconditions: [],
+            changes: [
+              {
+                type: 'opportunity_set',
+                value: template.startingState.opportunities[0],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const source = {
+      branchId: '10000000-0000-4000-8000-000000000001',
+      sourceRevision: 5,
+    };
+    const corrected = structuredClone(checkpoint);
+    corrected.startingState.opportunities[0]!.title =
+      'An introductory business workshop';
+    const opportunityChange = corrected.decision.options[1]!.changes[0]!;
+    if (opportunityChange.type !== 'opportunity_set')
+      throw Error('Expected opportunity change');
+    opportunityChange.value.title = 'An introductory business workshop';
+    const record = {
+      ...source,
+      note: 'Clarify the generic opportunity label using the completely reviewed fictional source.',
+      corrections: [
+        {
+          decisionKey: checkpoint.decision.key,
+          originalCheckpointHash: hash(checkpoint),
+          checkpoint: corrected,
+        },
+      ],
+    };
+    expect(
+      catalogCorrectedCheckpointLabels(record, source, checkpoint),
+    ).toEqual(corrected);
+    for (const mutate of [
+      (c: typeof record) => {
+        c.sourceRevision = 4;
+      },
+      (c: typeof record) => {
+        c.corrections[0]!.originalCheckpointHash = '0'.repeat(64);
+      },
+      (c: typeof record) => {
+        c.corrections[0]!.checkpoint.startingState.finance.liquidFunds = 9999;
+      },
+      (c: typeof record) => {
+        c.corrections[0]!.checkpoint.decision.options[0]!.description =
+          'Changed decision';
+      },
+      (c: typeof record) => {
+        c.corrections[0]!.checkpoint.startingState.opportunities[0]!.key =
+          'opportunity-2';
+      },
+      (c: typeof record) => {
+        c.corrections.push(c.corrections[0]!);
+      },
+      (c: typeof record) => {
+        const effect =
+          c.corrections[0]!.checkpoint.decision.options[1]!.changes[0]!;
+        if (effect.type !== 'opportunity_set') throw Error('Expected effect');
+        effect.value.title = 'An unrelated opportunity label';
+      },
+    ]) {
+      const changed = structuredClone(record);
+      mutate(changed);
+      expect(() =>
+        catalogCorrectedCheckpointLabels(changed, source, checkpoint),
+      ).toThrow();
+    }
+  });
+  it('allows explicit privacy recovery only before any preview and after clearing the unchanged failed source', () => {
+    const input = {
+      expectedOriginalCopyHash: 'a'.repeat(64),
+      originalCopyHash: 'a'.repeat(64),
+      correctedCopyHash: 'b'.repeat(64),
+      sourceRevision: 5,
+      currentRevision: 5,
+      priorDrafts: 0,
+      originalIssueCodes: ['private_label'],
+      correctedIssueCount: 0,
+    };
+    expect(assertCatalogPrivacyCorrection(input).priorDrafts).toBe(0);
+    for (const change of [
+      { expectedOriginalCopyHash: 'c'.repeat(64) },
+      { correctedCopyHash: 'a'.repeat(64) },
+      { currentRevision: 6 },
+      { priorDrafts: 1 },
+      { originalIssueCodes: [] },
+      { originalIssueCodes: ['email'] },
+      { correctedIssueCount: 1 },
+      { automaticRetry: true },
+    ])
+      expect(() =>
+        assertCatalogPrivacyCorrection({ ...input, ...change }),
+      ).toThrow();
   });
   it('requires actual affirmative editorial decisions and separate exact source/life bindings', () => {
     const base = {

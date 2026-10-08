@@ -19,6 +19,10 @@ export const applicationModelPrices: Record<
   // Standard global, up to 5m cache writes; the Claude transport rejects 1h usage.
   // https://platform.claude.com/docs/en/models/sonnet-5-5/overview
   'claude-sonnet-5-5': { inputCeiling: 2.5, output: 10 },
+  // Explicit bounded editorial audits; no automatic model fallback.
+  // Standard Haiku 4.5, including 5m cache writes, checked 2026-10-08:
+  // https://platform.claude.com/docs/en/about-claude/pricing
+  'claude-haiku-4-5-20251001': { inputCeiling: 1.25, output: 5 },
 };
 type Usage = { input_tokens: number; output_tokens: number };
 export type ApplicationAiBudgetConfig = {

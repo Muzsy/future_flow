@@ -88,6 +88,34 @@ export function catalogCorrectedCopy(
   return record.copy;
 }
 
+// A failed deterministic preflight has not created a preview or paid review.
+// Its original attempt stays intact. The explicit corrected stage is limited
+// to removing source labels from an otherwise separately reviewed copy.
+export function assertCatalogPrivacyCorrection(raw: unknown) {
+  const input = z
+    .object({
+      expectedOriginalCopyHash: z.string().regex(/^[a-f0-9]{64}$/),
+      originalCopyHash: z.string().regex(/^[a-f0-9]{64}$/),
+      correctedCopyHash: z.string().regex(/^[a-f0-9]{64}$/),
+      sourceRevision: z.number().int().nonnegative(),
+      currentRevision: z.number().int().nonnegative(),
+      priorDrafts: z.literal(0),
+      originalIssueCodes: z.array(z.literal('private_label')).min(1),
+      correctedIssueCount: z.literal(0),
+    })
+    .strict()
+    .parse(raw);
+  if (
+    input.expectedOriginalCopyHash !== input.originalCopyHash ||
+    input.correctedCopyHash === input.originalCopyHash ||
+    input.sourceRevision !== input.currentRevision
+  )
+    throw Error(
+      'Privacy correction requires the exact unchanged failed source and a cleared edited copy',
+    );
+  return input;
+}
+
 // Expiry requires a new immutable preview and full review, never extending the
 // stored deadline or reusing a paid request. Evidence remains bound to the copy.
 export function assertCatalogPreviewRenewal(raw: unknown) {
@@ -170,6 +198,92 @@ export function catalogCorrectedCheckpoint(
     goal.note = change.replacementNote;
   }
   return forkCheckpointSchema.parse(corrected);
+}
+
+export const catalogCheckpointLabelsSchema = z
+  .object({
+    branchId: z.uuid(),
+    sourceRevision: z.number().int().nonnegative(),
+    note: z.string().trim().min(30).max(3000),
+    corrections: z
+      .array(
+        z
+          .object({
+            decisionKey: z.string().regex(/^decision-[1-9][0-9]{0,2}$/),
+            originalCheckpointHash: z.string().regex(/^[a-f0-9]{64}$/),
+            checkpoint: forkCheckpointSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(15),
+  })
+  .strict();
+export function catalogCorrectedCheckpointLabels(
+  raw: unknown,
+  source: { branchId: string; sourceRevision: number },
+  checkpoint: ForkCheckpoint,
+) {
+  const record = catalogCheckpointLabelsSchema.parse(raw),
+    original = forkCheckpointSchema.parse(checkpoint);
+  if (
+    record.branchId !== source.branchId ||
+    record.sourceRevision !== source.sourceRevision
+  )
+    throw Error(
+      'Checkpoint labels require the exact unchanged branch revision',
+    );
+  if (
+    new Set(record.corrections.map((c) => c.decisionKey)).size !==
+    record.corrections.length
+  )
+    throw Error('Duplicate checkpoint label edit');
+  const change = record.corrections.find(
+    (c) => c.decisionKey === original.decision.key,
+  );
+  if (!change) return original;
+  if (
+    change.originalCheckpointHash !== hash(original) ||
+    change.checkpoint.decision.key !== original.decision.key
+  )
+    throw Error('Stale or foreign checkpoint label edit');
+  function withoutLabels(value: ForkCheckpoint) {
+    const copy = structuredClone(value);
+    for (const asset of copy.startingState.ownedAssets) asset.label = 'Asset';
+    for (const opportunity of copy.startingState.opportunities)
+      opportunity.title = 'Opportunity';
+    for (const option of copy.decision.options)
+      for (const effect of option.changes) {
+        if (effect.type === 'asset_add') effect.value.label = 'Asset';
+        if (effect.type === 'opportunity_set')
+          effect.value.title = 'Opportunity';
+      }
+    return copy;
+  }
+  if (hash(withoutLabels(original)) !== hash(withoutLabels(change.checkpoint)))
+    throw Error(
+      'Only asset and opportunity labels may be clarified; all other prose and executable facts stay exact',
+    );
+  const labels = new Map<string, string>();
+  function same(key: string, label: string) {
+    if (labels.has(key) && labels.get(key) !== label)
+      throw Error(
+        'One reference must retain one label throughout the checkpoint',
+      );
+    labels.set(key, label);
+  }
+  for (const asset of change.checkpoint.startingState.ownedAssets)
+    same(asset.key, asset.label);
+  for (const opportunity of change.checkpoint.startingState.opportunities)
+    same(opportunity.key, opportunity.title);
+  for (const option of change.checkpoint.decision.options)
+    for (const effect of option.changes) {
+      if (effect.type === 'asset_add')
+        same(effect.value.key, effect.value.label);
+      if (effect.type === 'opportunity_set')
+        same(effect.value.key, effect.value.title);
+    }
+  return change.checkpoint;
 }
 
 export async function claimCatalogJob(

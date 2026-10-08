@@ -49,8 +49,11 @@ import {
   catalogLifeEditorialSchema,
   claimCatalogJob,
   catalogCorrectedCopy,
+  assertCatalogPrivacyCorrection,
   catalogCorrectedCheckpoint,
   catalogCheckpointNotesSchema,
+  catalogCheckpointLabelsSchema,
+  catalogCorrectedCheckpointLabels,
   validateCatalogAuditDisposition,
   assertCatalogPreviewRenewal,
   validateCatalogPublicationApproval,
@@ -99,6 +102,8 @@ async function main() {
       'audit',
       'audit-copy',
       'prepare',
+      'prepare-sanitized',
+      'prepare-checkpoint-corrected',
       'prepare-revised',
       'prepare-renewed',
       'curate',
@@ -125,6 +130,8 @@ async function main() {
       'audit',
       'audit-copy',
       'prepare',
+      'prepare-sanitized',
+      'prepare-checkpoint-corrected',
       'prepare-revised',
       'prepare-renewed',
       'curate',
@@ -164,6 +171,8 @@ async function main() {
       'audit',
       'audit-copy',
       'prepare',
+      'prepare-sanitized',
+      'prepare-checkpoint-corrected',
       'prepare-revised',
       'prepare-renewed',
     ].includes(phase!)
@@ -559,7 +568,13 @@ async function main() {
       }
       save('state', state);
     } else if (
-      ['prepare', 'prepare-revised', 'prepare-renewed'].includes(phase!)
+      [
+        'prepare',
+        'prepare-sanitized',
+        'prepare-checkpoint-corrected',
+        'prepare-revised',
+        'prepare-renewed',
+      ].includes(phase!)
     ) {
       assert.ok(life().auditValidated);
       assert.ok(phase === 'prepare-renewed' || !life().officialGrant);
@@ -642,7 +657,8 @@ async function main() {
             ? load(`${token}-copy-claude-result`).output
             : null;
         assert.ok(
-          previousReview.output.verdict === 'review_required' ||
+          (previousReview.output.verdict !== 'no_findings' &&
+            previousReview.output.findings.length > 0) ||
             (negativeCopyAudit &&
               (!negativeCopyAudit.canonFaithful ||
                 !negativeCopyAudit.languageCorrect ||
@@ -697,13 +713,50 @@ async function main() {
         delete life().contentReviewId;
         delete life().contentReviewHash;
         save('state', state);
+      } else if (phase === 'prepare-checkpoint-corrected') {
+        assert.ok(life().preview && !life().bundle && !life().contentReviewId);
+        assert.equal(
+          process.argv[5],
+          life().preview.snapshotHash,
+          'Explicit correction must bind the existing immutable preview',
+        );
+        assert.ok(existsSync(resolve(dir, `attempt-${token}-prepare.json`)));
+        assert.ok(existsSync(resolve(dir, `${token}-checkpoint-notes.json`)));
+        const [current] = await db.query(
+          'SELECT d.snapshot_hash,d.source_revision,b.revision AS current_revision FROM aw_publication_drafts d JOIN aw_branches b ON b.id=d.branch_id AND b.user_id=d.user_id WHERE d.id=$1 AND d.user_id=$2 AND d.branch_id=$3',
+          [life().preview.draftId, source().owner, life().created.branchId],
+        );
+        assert.ok(current);
+        assert.equal(current.snapshot_hash, life().preview.snapshotHash);
+        assert.equal(current.source_revision, life().preview.sourceRevision);
+        assert.equal(current.current_revision, current.source_revision);
+        const [saved] = await db.query(
+          'SELECT count(*)::int AS count FROM aw_public_content_bundles c JOIN aw_publication_drafts d ON d.id=c.draft_id WHERE c.user_id=$1 AND d.branch_id=$2',
+          [source().owner, life().created.branchId],
+        );
+        assert.equal(
+          saved.count,
+          0,
+          'A complete or previously reviewed bundle cannot enter checkpoint recovery',
+        );
+        mark(`${token}-prepare-checkpoint-corrected`, {
+          snapshotHash: current.snapshot_hash,
+          notesHash: hash(load(`${token}-checkpoint-notes`)),
+        });
+      } else if (phase === 'prepare-sanitized') {
+        assert.ok(!life().bundle && !life().preview);
+        assert.ok(existsSync(resolve(dir, `attempt-${token}-prepare.json`)));
+        assert.ok(existsSync(resolve(dir, `${token}-workspace.json`)));
+        assert.ok(existsSync(resolve(dir, `${token}-copy-correction.json`)));
       } else {
         assert.ok(!life().bundle);
         mark(`${token}-prepare`);
       }
       const drafts = new PublicDraftRepository(db),
         ws = await drafts.workspace(source().owner, life().created.branchId);
-      save(`${token}-workspace`, ws);
+      const failedWorkspace =
+        phase === 'prepare-sanitized' ? load(`${token}-workspace`) : null;
+      if (phase !== 'prepare-sanitized') save(`${token}-workspace`, ws);
       let copy = ws.source.copy;
       if (existsSync(resolve(dir, `${token}-copy-correction.json`))) {
         copy = catalogCorrectedCopy(load(`${token}-copy-correction`), {
@@ -713,6 +766,50 @@ async function main() {
         });
         life().copyCorrection = true;
       }
+      if (phase === 'prepare-sanitized') {
+        assert.ok(!ws.preview);
+        assert.equal(hash(failedWorkspace.source.copy), hash(ws.source.copy));
+        const originalPreflight = await drafts.preflight(
+          source().owner,
+          life().created.branchId,
+          ws.source.sourceRevision,
+          ws.source.copy,
+        );
+        const correctedPreflight = await drafts.preflight(
+          source().owner,
+          life().created.branchId,
+          ws.source.sourceRevision,
+          copy,
+        );
+        const [prior] = await db.query(
+          'SELECT count(*)::int AS count FROM aw_publication_drafts WHERE user_id=$1 AND branch_id=$2',
+          [source().owner, life().created.branchId],
+        );
+        assertCatalogPrivacyCorrection({
+          expectedOriginalCopyHash: process.argv[5],
+          originalCopyHash: hash(ws.source.copy),
+          correctedCopyHash: hash(copy),
+          sourceRevision: failedWorkspace.source.sourceRevision,
+          currentRevision: ws.source.sourceRevision,
+          priorDrafts: prior.count,
+          originalIssueCodes: originalPreflight.issues.flatMap(
+            (issue: any) => issue.codes,
+          ),
+          correctedIssueCount: correctedPreflight.issues.length,
+        });
+        mark(`${token}-prepare-sanitized`, {
+          originalCopyHash: hash(ws.source.copy),
+          correctedCopyHash: hash(copy),
+        });
+        save(`${token}-privacy-correction-preflights`, {
+          original: originalPreflight,
+          corrected: correctedPreflight,
+          sourceCanonUnchanged: true,
+        });
+        save(`${token}-workspace`, ws);
+      }
+      const incompletePreview =
+        phase === 'prepare-checkpoint-corrected' ? life().preview : null;
       const preview = await drafts.prepare(
         source().owner,
         life().created.branchId,
@@ -720,19 +817,59 @@ async function main() {
         copy,
         randomUUID(),
       );
+      if (incompletePreview) {
+        const { snapshotKey: _oldPrivateKey, ...oldCopy } =
+          incompletePreview.snapshot;
+        const { snapshotKey: _newPrivateKey, ...newCopy } = preview.snapshot;
+        assert.equal(
+          hash(newCopy),
+          hash(oldCopy),
+          'Checkpoint recovery must preserve the complete copy; the new private snapshot key is independent',
+        );
+        assert.equal(preview.sourceRevision, incompletePreview.sourceRevision);
+        save(`${token}-incomplete-checkpoint-preview`, incompletePreview);
+        life().incompletePreviews ??= [];
+        life().incompletePreviews.push(incompletePreview);
+      }
       life().preview = preview;
       save('state', state);
+      const notes = existsSync(resolve(dir, `${token}-checkpoint-notes.json`))
+        ? catalogCheckpointNotesSchema.parse(load(`${token}-checkpoint-notes`))
+        : null;
       const points = new PublicForkCheckpointRepository(db, true),
-        candidates = await points.candidates(source().owner, preview.draftId);
+        candidates = await points.candidates(
+          source().owner,
+          preview.draftId,
+          notes
+            ? (checkpoint) =>
+                catalogCorrectedCheckpoint(
+                  notes,
+                  {
+                    branchId: life().created.branchId,
+                    sourceRevision: preview.sourceRevision,
+                  },
+                  checkpoint,
+                )
+            : undefined,
+        );
       save(`${token}-checkpoint-candidates`, candidates);
       assert.ok(
         candidates.length === 3 && candidates.every((c) => c.checkpoint),
         'All three checkpoints must be available; inspect before changing the copy',
       );
       const selected = [];
-      const notes = existsSync(resolve(dir, `${token}-checkpoint-notes.json`))
-        ? catalogCheckpointNotesSchema.parse(load(`${token}-checkpoint-notes`))
+      const labels = existsSync(resolve(dir, `${token}-checkpoint-labels.json`))
+        ? catalogCheckpointLabelsSchema.parse(
+            load(`${token}-checkpoint-labels`),
+          )
         : null;
+      if (labels)
+        assert.ok(
+          labels.corrections.every((change) =>
+            candidates.some((c) => c.decisionKey === change.decisionKey),
+          ),
+          'Every label edit must target one of these exact checkpoints',
+        );
       if (notes)
         assert.ok(
           notes.corrections.every((n) =>
@@ -745,16 +882,17 @@ async function main() {
           'Every clarification must target one of these exact checkpoints',
         );
       for (const c of candidates) {
-        const checkpoint = notes
-          ? catalogCorrectedCheckpoint(
-              notes,
+        const notedCheckpoint = c.checkpoint;
+        const checkpoint = labels
+          ? catalogCorrectedCheckpointLabels(
+              labels,
               {
                 branchId: life().created.branchId,
                 sourceRevision: preview.sourceRevision,
               },
-              c.checkpoint!,
+              notedCheckpoint!,
             )
-          : c.checkpoint;
+          : notedCheckpoint;
         const p = await points.save(
           source().owner,
           preview.draftId,
@@ -785,7 +923,7 @@ async function main() {
           'Renewal must preserve every reviewed character and checkpoint',
         );
       life().bundle = bundle;
-      if (notes) life().copyCorrection = true;
+      if (notes || labels) life().copyCorrection = true;
       save(`${token}-bundle`, bundle);
       save('state', state);
       const job = await db.transaction(async (tx: any) => {

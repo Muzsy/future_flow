@@ -553,7 +553,10 @@ export function prepareSanitizedForkCheckpoint(
 
 // Owner preview suggestion only. Keeps goals/context/skills verbatim; identifying
 // or non-executable details fail closed until an explicit edited candidate is supplied.
-export function prepareForkCheckpointCandidate(source: ForkCheckpointSource) {
+export function prepareForkCheckpointCandidate(
+  source: ForkCheckpointSource,
+  editProse?: (checkpoint: ForkCheckpoint) => ForkCheckpoint,
+) {
   const checkpoint = projectSource(source);
   checkpoint.identity.label = null;
   const generalizeEmployment = (
@@ -562,7 +565,8 @@ export function prepareForkCheckpointCandidate(source: ForkCheckpointSource) {
   const generalizeLocation = (
     value: ForkCheckpoint['startingState']['location'],
   ) => ({ ...value, region: null, housing: null });
-  const assetLabel = (kind: string) => `A ${kind} asset`;
+  const assetLabel = (kind: string) =>
+    kind === 'other' ? 'An asset' : `A ${kind} asset`;
   const actorLabel = (relationship: string) => `A ${relationship}`;
   checkpoint.startingState.employment = generalizeEmployment(
     checkpoint.startingState.employment,
@@ -619,5 +623,10 @@ export function prepareForkCheckpointCandidate(source: ForkCheckpointSource) {
       if (change.type === 'opportunity_set')
         change.value.title = 'An available opportunity';
     }
-  return prepareSanitizedForkCheckpoint(source, checkpoint);
+  // Owner/editor prose changes still pass the complete source-semantics and
+  // private-label checks. The default candidate never suppresses a PII failure.
+  return prepareSanitizedForkCheckpoint(
+    source,
+    editProse ? editProse(checkpoint) : checkpoint,
+  );
 }

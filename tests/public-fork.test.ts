@@ -11,6 +11,7 @@ import {
   instantiateScenarioTemplate,
   instantiateForkCheckpoint,
   prepareSanitizedForkCheckpoint,
+  prepareForkCheckpointCandidate,
   validateForkCheckpoint,
   applyFactChangesV2,
   type ForkCheckpointSource,
@@ -222,6 +223,66 @@ function fixture() {
   return { source, checkpoint };
 }
 describe('separate sanitized executable decision checkpoints', () => {
+  it('allows explicit owner prose correction before the privacy preflight while still rejecting hidden fact edits', () => {
+    const f = fixture();
+    f.source.input.initialState.location.housing = 'Private apartment label';
+    f.source.state.location.housing = 'Private apartment label';
+    f.source.state.goals[0]!.note =
+      'Prepared a plan from the Private apartment label.';
+    const original = hash(f.source);
+    expect(() => prepareForkCheckpointCandidate(f.source)).toThrow();
+    const corrected = prepareForkCheckpointCandidate(f.source, (checkpoint) => {
+      checkpoint.goals[0]!.note = 'Prepared a plan from the current home.';
+      return checkpoint;
+    });
+    expect(corrected.goals[0]!.note).toBe(
+      'Prepared a plan from the current home.',
+    );
+    expect(hash(f.source)).toBe(original);
+    expect(() =>
+      prepareForkCheckpointCandidate(f.source, (checkpoint) => {
+        checkpoint.goals[0]!.note = 'Prepared a plan from the current home.';
+        checkpoint.startingState.finance.liquidFunds += 1;
+        return checkpoint;
+      }),
+    ).toThrow();
+    expect(() =>
+      prepareForkCheckpointCandidate(f.source, (checkpoint) => {
+        checkpoint.goals[0]!.note = 'Ask private@example.invalid for advice.';
+        return checkpoint;
+      }),
+    ).toThrow();
+  });
+  it('generalizes other assets in natural English in both the state and option effects without changing their facts', () => {
+    const f = fixture();
+    f.source.state.ownedAssets[0]!.kind = 'other';
+    f.source.input.initialState.ownedAssets[0]!.kind = 'other';
+    const addition = f.source.decision.options[1]!.changes.find(
+      (c) => c.type === 'asset_add',
+    )!;
+    if (addition.type !== 'asset_add') throw Error('Expected addition');
+    addition.value.kind = 'other';
+    const original = hash(f.source);
+    const checkpoint = prepareForkCheckpointCandidate(f.source);
+    expect(checkpoint.startingState.ownedAssets[0]).toMatchObject({
+      kind: 'other',
+      label: 'An asset',
+      sharePercent: 100,
+    });
+    expect(
+      checkpoint.decision.options[1]!.changes.find(
+        (c) => c.type === 'asset_add',
+      ),
+    ).toMatchObject({
+      type: 'asset_add',
+      value: { kind: 'other', label: 'An asset', sharePercent: 100 },
+    });
+    expect(hash(f.source)).toBe(original);
+    expect(
+      instantiateForkCheckpoint(checkpoint, checkpoint.decision.options[1]!.key)
+        .input.initialState.ownedAssets,
+    ).toHaveLength(2);
+  });
   it('binds the whole checkpoint to source facts, ordered options and displayed copy', () => {
     const f = fixture(),
       sourceHash = hash(f.source);

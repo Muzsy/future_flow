@@ -164,7 +164,11 @@ export class PublicForkCheckpointRepository {
       publicDecision: publicPeriod.decision,
     };
   }
-  async candidates(userId: string, draftId: string) {
+  async candidates(
+    userId: string,
+    draftId: string,
+    editProse?: (checkpoint: ForkCheckpoint) => ForkCheckpoint,
+  ) {
     return this.db.transaction(async (tx) => {
       const { preview, lives, branch } = await this.bound(tx, userId, draftId),
         detail = await lives.detail(userId, branch.id);
@@ -174,6 +178,7 @@ export class PublicForkCheckpointRepository {
             decisionKey: period.decision.key,
             checkpoint: prepareForkCheckpointCandidate(
               this.source(branch, preview, detail.periods[position], position),
+              editProse,
             ),
             unavailableReason: null,
           });
