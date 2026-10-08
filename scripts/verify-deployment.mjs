@@ -80,6 +80,21 @@ try {
     assert.equal(config.services.web.build.args[secret], undefined);
   }
   assert.equal(config.services.api.environment.OPENAI_API_KEY, undefined);
+  for (const key of [
+    'CLOSED_SITE_ENABLED',
+    'CLOUDFLARE_ACCESS_TEAM_DOMAIN',
+    'CLOUDFLARE_ACCESS_AUD',
+    'CLOSED_SITE_ALLOWED_EMAILS',
+  ]) {
+    assert.equal(
+      config.services.web.environment[key],
+      config.services.api.environment[key],
+    );
+    assert.equal(config.services.web.build.args[key], undefined);
+    assert.equal(config.services.worker.environment[key], undefined);
+  }
+  assert.equal(config.services.web.environment.CLOSED_SITE_ENABLED, 'false');
+  assert(config.services.web.healthcheck.test.at(-1).includes('/healthz'));
   assert.equal(
     config.services.worker.environment.PUBLICATION_LINK_SECRET,
     undefined,

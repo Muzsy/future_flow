@@ -43,7 +43,7 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
           `${base}/discovery${search ? '?' + search : ''}`,
           {
             cache: 'no-store',
-            credentials: 'omit',
+            credentials: 'same-origin',
             referrerPolicy: 'no-referrer',
             headers: { 'Accept-Language': 'en' },
             signal: abort.signal,

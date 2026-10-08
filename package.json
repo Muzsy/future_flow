@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm build:packages && concurrently -k -n web,api,worker \"pnpm --filter @future-flow/web dev\" \"pnpm --filter @future-flow/api dev\" \"pnpm --filter @future-flow/worker dev\"",
-    "build:packages": "pnpm --filter @future-flow/contracts build && pnpm --filter @future-flow/core build && pnpm --filter @future-flow/database build && pnpm --filter @future-flow/ai build",
+    "build:packages": "pnpm --filter @future-flow/access build && pnpm --filter @future-flow/contracts build && pnpm --filter @future-flow/core build && pnpm --filter @future-flow/database build && pnpm --filter @future-flow/ai build",
     "build": "pnpm build:packages && pnpm --filter @future-flow/api build && pnpm --filter @future-flow/worker build && pnpm --filter @future-flow/web build",
     "typecheck": "pnpm build:packages && pnpm -r typecheck && tsc -p tsconfig.scripts.json",
     "test": "pnpm build:packages && vitest run",
@@ -49,6 +49,8 @@
     "check": "pnpm format:check && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
+    "@future-flow/access": "workspace:*",
+    "jose": "6.2.12",
     "@electric-sql/pglite": "^0.3.15",
     "@future-flow/ai": "workspace:*",
     "@future-flow/contracts": "workspace:*",

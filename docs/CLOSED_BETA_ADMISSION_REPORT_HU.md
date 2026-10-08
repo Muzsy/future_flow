@@ -1,6 +1,8 @@
 # alterward — tízfős zárt béta AI-hozzáférése
 
-2026-10-08-i felhasználói pontosítás: **info@alterward.com** a kapcsolattartási cím; tesztelők még nincsenek, meghívásuk a védett Contabo-telepítést követi. A tényleges UUID-lista a fizetett használathoz kell, a telepítés üres listával és inaktív kerettel előkészíthető. A teljes webhely [külön Access/origin/account-rights terve](CLOSED_SITE_RELEASE_PLAN_HU.md) javaslatként elkészült; még nem aktív védelem.
+2026-10-08-i elfogadott kiegészítés: előbb üzemeltető számára zárt Contabo-indulás, utána tesztelői meghívás; Cloudflare Access + külön originellenőrzés és saját export/törlés kivétel. Az éles útvonal aktiválása előtt kötelező a [részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md), a jelzések önálló ellenőrzése és a kiadási hibák javítása. A [zárt kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) a teljes P01–P13 / Shared S0–S7 terv része; a 10 USD keret és a tényleges használattól számított 30 nap változatlan. A [helyi originvédelem és külön saját-fiókos felület](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) implementált és helyben ellenőrzött: teljes check, 666 sikeres teszt / 63 fájl, két korábbi Windows-kihagyás, production build és 19 HTTP-próba. Éles konfiguráció és teljes Cloud-audit még nincs.
+
+2026-10-08-i felhasználói pontosítás: **info@alterward.com** a kapcsolattartási cím; tesztelők még nincsenek, meghívásuk a védett Contabo-telepítést követi. A tényleges UUID-lista a fizetett használathoz kell, a telepítés üres listával és inaktív kerettel előkészíthető. A teljes webhely [külön Access/origin/account-rights terve](CLOSED_SITE_RELEASE_PLAN_HU.md) elfogadott; élesben még nem aktív védelem.
 
 2026-10-07 · Helyben implementálva, éles aktiválás még nincs
 

@@ -91,7 +91,7 @@ function ForkLauncher({ slug }: { slug: string }) {
             `${base}/fork-capabilities/${encodeURIComponent(slug)}`,
             {
               cache: 'no-store',
-              credentials: 'omit',
+              credentials: 'same-origin',
               referrerPolicy: 'no-referrer',
               signal: abort.signal,
             },

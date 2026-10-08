@@ -39,7 +39,7 @@ export function ShareLifeButton({
       const response = await fetch(
         `${base}/${official ? 'official-lives' : 'lives'}/${encodeURIComponent(slug)}`,
         {
-          credentials: 'omit',
+          credentials: 'same-origin',
           cache: 'no-store',
           referrerPolicy: 'no-referrer',
           signal: abort.signal,

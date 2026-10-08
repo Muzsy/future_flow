@@ -15,6 +15,8 @@ import {
 import { applyMigrations } from '../scripts/lib/migrations';
 import { createApp } from '../apps/api/src/app';
 import { setupFixture } from './life-fixtures';
+import { createClosedSiteGate } from '@future-flow/access';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 const period = () => {
   const startsAt = new Date(Date.now() - 60000).toISOString();
   return {
@@ -184,6 +186,158 @@ const token = (id: string) =>
   ).toString('base64url') +
   '.verified-fixture-signature';
 describe('closed beta paid-boundary isolation', () => {
+  it('closes every API entrance at the origin while a revoked user retains only authenticated own export and deletion', async () => {
+    const allowed = await user(),
+      revoked = await user(),
+      allowedToken = token(allowed),
+      revokedToken = token(revoked),
+      pair = await generateKeyPair('RS256'),
+      aud = 'a'.repeat(64),
+      issuer = 'https://fixture.cloudflareaccess.com';
+    const assertion = await new SignJWT({
+      email: 'owner@example.invalid',
+      sub: 'access-owner',
+      type: 'app',
+    })
+      .setProtectedHeader({ alg: 'RS256', kid: 'fixture' })
+      .setIssuer(issuer)
+      .setAudience(aud)
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(pair.privateKey);
+    const gate = createClosedSiteGate(
+      {
+        CLOSED_SITE_ENABLED: 'true',
+        CLOUDFLARE_ACCESS_TEAM_DOMAIN: 'fixture.cloudflareaccess.com',
+        CLOUDFLARE_ACCESS_AUD: aud,
+        CLOSED_SITE_ALLOWED_EMAILS: 'owner@example.invalid',
+      },
+      async () =>
+        Response.json({
+          keys: [
+            {
+              ...(await exportJWK(pair.publicKey)),
+              kid: 'fixture',
+              alg: 'RS256',
+              use: 'sig',
+            },
+          ],
+        }),
+    );
+    const deleted: string[] = [];
+    const args: Parameters<typeof createApp> = [
+      new Repository(db),
+      {
+        verify: async (value) => {
+          if (value === allowedToken) return { id: allowed };
+          if (value === revokedToken) return { id: revoked };
+          throw new DomainError('AUTH_INVALID', 'Invalid token.', 401);
+        },
+        deleteUser: async (id) => {
+          deleted.push(id);
+        },
+      },
+    ];
+    args[24] = { enabled: true, userIds: [allowed] };
+    args[25] = gate;
+    const app = await createApp(...args);
+    await app.listen(0, '127.0.0.1');
+    const base = await app.getUrl(),
+      own = {
+        Authorization: `Bearer ${revokedToken}`,
+        'Content-Type': 'application/json',
+      };
+    try {
+      for (const path of [
+        '/api/v1/me',
+        '/api/v1/me/consent',
+        '/api/v2/lives',
+        '/api/public/discover',
+        '/api/docs',
+        '/api/openapi.json',
+        '/api/v1/me/export/other',
+      ]) {
+        const response = await fetch(base + path, {
+          headers: {
+            ...own,
+            'cf-access-authenticated-user-email': 'owner@example.invalid',
+            'X-Forwarded-Host': 'alterward.com',
+          },
+        });
+        expect(response.status, path).toBe(403);
+        expect((await response.json()).error.code).toBe(
+          'CLOSED_SITE_ACCESS_REQUIRED',
+        );
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+      }
+      const authHeaders = { ...own, 'cf-access-jwt-assertion': assertion };
+      expect(
+        (await fetch(base + '/api/v1/me', { headers: authHeaders })).status,
+      ).toBe(200);
+      expect(
+        (
+          await fetch(base + '/api/v1/me', {
+            headers: { 'cf-access-jwt-assertion': assertion },
+          })
+        ).status,
+      ).toBe(401);
+      const paid = await fetch(base + '/api/v2/lives', {
+        method: 'POST',
+        headers: authHeaders,
+        body: '{}',
+      });
+      expect(paid.status).toBe(403);
+      expect((await paid.json()).error.code).toBe(
+        'CLOSED_BETA_INVITE_REQUIRED',
+      );
+      expect((await fetch(base + '/health')).status).toBe(200);
+      expect((await fetch(base + '/api/v1/me/export')).status).toBe(401);
+      const ownExport = await fetch(
+        base + '/api/v1/me/export?userId=' + allowed,
+        { headers: own },
+      );
+      expect(ownExport.status).toBe(200);
+      const text = await ownExport.text();
+      expect(text).toContain(revoked);
+      expect(text).not.toContain(allowed);
+      expect(
+        (
+          await fetch(base + '/api/v1/me/export', {
+            method: 'POST',
+            headers: own,
+            body: '{}',
+          })
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await fetch(base + '/api/v1/me', {
+            method: 'DELETE',
+            body: JSON.stringify({ confirmation: 'DELETE ACCOUNT' }),
+            headers: { 'Content-Type': 'application/json' },
+          })
+        ).status,
+      ).toBe(401);
+      expect(
+        (
+          await fetch(base + '/api/v1/me', {
+            method: 'DELETE',
+            body: JSON.stringify({ confirmation: 'DELETE ACCOUNT' }),
+            headers: own,
+          })
+        ).status,
+      ).toBe(200);
+      expect(deleted).toEqual([revoked]);
+      expect(
+        await db.query('SELECT id FROM ff_users WHERE id=$1', [revoked]),
+      ).toEqual([]);
+      expect(
+        await db.query('SELECT id FROM ff_users WHERE id=$1', [allowed]),
+      ).toHaveLength(1);
+    } finally {
+      await app.close();
+    }
+  });
   it('prevents an uninvited pending requester from allocating either provider budget while admitted users share their user cap', async () => {
     const owner = await user(),
       foreign = await user(),

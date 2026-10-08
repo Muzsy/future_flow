@@ -1,5 +1,7 @@
 # alterward — helyi fejlesztés és későbbi Contabo-telepítés
 
+2026-10-08-i elfogadott kiegészítés: előbb üzemeltető számára zárt Contabo-indulás, utána tesztelői meghívás; Cloudflare Access + külön originellenőrzés és saját export/törlés kivétel. Az éles útvonal aktiválása előtt kötelező a [részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md), a jelzések önálló ellenőrzése és a kiadási hibák javítása. A [zárt kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) a teljes P01–P13 / Shared S0–S7 terv része; a 10 USD keret és a tényleges használattól számított 30 nap változatlan. A [helyi originvédelem és külön saját-fiókos felület](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) implementált és helyben ellenőrzött: teljes check, 666 sikeres teszt / 63 fájl, két korábbi Windows-kihagyás, production build és 19 HTTP-próba. Éles konfiguráció és teljes Cloud-audit még nincs.
+
 2026-10-08: legfrissebb sorrend: **előbb zárt, üzemeltető számára elérhető Contabo-telepítés, később tesztelői meghívás**. Kapcsolattartás: **info@alterward.com**, levelezési működés még ellenőrizendő. A [zárt webhely terve](CLOSED_SITE_RELEASE_PLAN_HU.md) Cloudflare Access + origin tokenvédelmet és szűk sajátadat-hozzáférést javasol; megvalósítása még kiadási feladat. Üres tesztelőlista nem akadálya a védett, új AI-költés nélküli telepítésnek; a harmincnapos keret tényleges tesztinduláskor kezdődik. A régi tesztelőlista-kapu nem követeli meg a tíz fő kiválasztását a szerveres próbaüzem előtt.
 
 

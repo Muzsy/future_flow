@@ -11,6 +11,11 @@ x-database: &database
   DATABASE_URL: ${DATABASE_URL:?Set the server database URL}
   DATABASE_SSL: 'true'
   DATABASE_SSL_CA_FILE: /run/secrets/supabase-ca.crt
+x-access: &access
+  CLOSED_SITE_ENABLED: ${CLOSED_SITE_ENABLED:-false}
+  CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
+  CLOUDFLARE_ACCESS_AUD: ${CLOUDFLARE_ACCESS_AUD:-}
+  CLOSED_SITE_ALLOWED_EMAILS: ${CLOSED_SITE_ALLOWED_EMAILS:-}
 x-shared: &shared
   SHARED_CONTEXTS_ENABLED: ${SHARED_CONTEXTS_ENABLED:-false}
   SHARED_FRIEND_ENABLED: ${SHARED_FRIEND_ENABLED:-false}
@@ -46,6 +51,7 @@ services:
   web:
     <<: *runtime
     environment:
+      <<: *access
       PUBLIC_EXTERNAL_EXPOSURE_ENABLED: ${PUBLIC_EXTERNAL_EXPOSURE_ENABLED:-false}
       PUBLIC_SITE_URL: https://${PUBLIC_HOST:?Set the public hostname}
       API_INTERNAL_URL: http://api:4000/api/public
@@ -73,7 +79,7 @@ services:
           CMD,
           node,
           -e,
-          'fetch("http://127.0.0.1:3000/").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+          'fetch("http://127.0.0.1:3000/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
         ]
       interval: 30s
       timeout: 5s
@@ -82,7 +88,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
-      <<: [*database, *shared, *review]
+      <<: [*database, *shared, *review, *access]
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { publicReturnPath } from '../lib/public-return';
+import { PrivacyNotice } from './privacy-notice';
 import {
   ArrowUpRight,
   ArrowRight,
@@ -106,7 +107,7 @@ type Job = {
 };
 const message = clientErrorMessage;
 
-export function Experience() {
+export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   const { locale, t } = useLanguage();
   const questionnaire = getQuestionnaire(locale);
   const branchName = (item: {
@@ -308,7 +309,7 @@ export function Experience() {
       new URLSearchParams(window.location.search).get('returnTo'),
     );
     await action(async () => {
-      if (signup) {
+      if (signup && allowSignup) {
         const { data, error } = await supabase().auth.signUp({
           email,
           password,
@@ -876,13 +877,23 @@ export function Experience() {
                     </button>
                   </form>
                 )}
-                <button
-                  className="text-button"
-                  style={{ marginTop: 20 }}
-                  onClick={() => setSignup((value) => !value)}
-                >
-                  {signup ? t('auth.haveAccount') : t('auth.needAccount')}
-                </button>
+                {allowSignup && (
+                  <button
+                    className="text-button"
+                    style={{ marginTop: 20 }}
+                    onClick={() => setSignup((value) => !value)}
+                  >
+                    {signup ? t('auth.haveAccount') : t('auth.needAccount')}
+                  </button>
+                )}
+                {!allowSignup && (
+                  <p>Accounts are created by invitation during private beta.</p>
+                )}
+                <p>
+                  <a href="/account-access">
+                    Account access and password recovery
+                  </a>
+                </p>
               </section>
             )}
             {(page === 'onboarding' || page === 'profile') && user && (
@@ -1532,29 +1543,7 @@ export function Experience() {
                 style={{ maxWidth: 800, margin: 'auto' }}
               >
                 <div className="eyebrow">{t('home.privateTitle')}</div>
-                <h1 style={{ margin: '15px 0 25px' }}>{t('privacy.title')}</h1>
-                <p>{t('privacy.introduction')}</p>
-                <p>{t('privacy.operator')}</p>
-                <p>
-                  {t('privacy.contact')}{' '}
-                  <a href="mailto:info@alterward.com">info@alterward.com</a>
-                </p>
-                <h2>{t('privacy.aiTitle')}</h2>
-                <p>{t('privacy.aiDescription')}</p>
-                <h2>{t('privacy.scenarioTitle')}</h2>
-                <p>{t('privacy.scenarioDescription')}</p>
-                <h2>{t('privacy.dataTitle')}</h2>
-                <p>{t('privacy.dataDescription')}</p>
-                <p>
-                  We record minimal activity signals to understand whether
-                  people continue and return to their lives. These records
-                  contain account, life, chapter and session identifiers, event
-                  types and server timestamps; they do not contain your story or
-                  profile. Voluntary feedback is private, is included in your
-                  data export and is removed from the application database when
-                  you delete your account.
-                </p>
-                <div className="notice">{t('privacy.alphaNotice')}</div>
+                <PrivacyNotice />
                 {user && (
                   <>
                     <button

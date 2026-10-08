@@ -115,6 +115,11 @@ import {
   type PublicationConfig,
 } from '@future-flow/database';
 import { deleteAccount } from './account-deletion';
+import {
+  createClosedSiteGate,
+  publicApiException,
+  type ClosedSiteGate,
+} from '@future-flow/access';
 import { createPublicationControllers } from './publications';
 import { createOfficialPublicationControllers } from './official-publications';
 import { createDiscoveryController } from './discovery';
@@ -967,6 +972,7 @@ export async function createApp(
   publicScenarioConfig: PublicScenarioConfig = publicScenarioConfigFromEnv(),
   personalScenarioConfig: PersonalScenarioConfig = personalScenarioConfigFromEnv(),
   closedBetaConfig: ClosedBetaConfig = closedBetaConfigFromEnv(),
+  closedSiteGate: ClosedSiteGate = createClosedSiteGate(),
 ) {
   const SharedContextController = createSharedContextController(
     AuthGuard,
@@ -1137,6 +1143,28 @@ export async function createApp(
           },
         }),
     }),
+  );
+  app.use(
+    async (request: AuthRequest, response: Response, next: () => void) => {
+      if (
+        !closedSiteGate.enabled ||
+        publicApiException(request.method, request.path) ||
+        (await closedSiteGate.verify(
+          typeof request.headers['cf-access-jwt-assertion'] === 'string'
+            ? request.headers['cf-access-jwt-assertion']
+            : undefined,
+        ))
+      ) {
+        next();
+        return;
+      }
+      response.status(403).json({
+        error: {
+          code: 'CLOSED_SITE_ACCESS_REQUIRED',
+          message: 'Access is by invitation.',
+        },
+      });
+    },
   );
   app.enableCors({
     origin,

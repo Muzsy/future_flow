@@ -73,7 +73,7 @@ export function scenarioPublicApi(path: string, signal?: AbortSignal) {
   ).replace(/\/v[12]\/?$/, '/public');
   return fetch(base + path, {
     cache: 'no-store',
-    credentials: 'omit',
+    credentials: 'same-origin',
     referrerPolicy: 'no-referrer',
     signal,
   }).then(async (response) => {

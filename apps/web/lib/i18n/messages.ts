@@ -175,7 +175,7 @@ export const en = {
   'privacy.dataDescription':
     'You can download your data as JSON. Deletion removes your account, profile and related scenarios from the operational database. Both actions require a recent sign-in.',
   'privacy.alphaNotice':
-    'This version is being prepared for closed testing. Final controller details, retention periods, provider terms and contact information are still being defined.',
+    'This version is being prepared for closed testing. Retention periods and provider terms must be finalized before launch.',
   'privacy.download': 'Download my data',
   'privacy.deleteTitle': 'Permanently delete account',
   'privacy.deletePrompt': 'To delete your account, type: DELETE ACCOUNT',

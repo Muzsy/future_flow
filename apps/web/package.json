@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@future-flow/access": "workspace:*",
     "@future-flow/contracts": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",
     "next": "^16.3.8",

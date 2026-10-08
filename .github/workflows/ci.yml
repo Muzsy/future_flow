@@ -23,6 +23,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Verify closed-site production web without live credentials
+        run: node scripts/smoke-closed-site.mjs
       - run: pnpm schemas
       - run: git diff --exit-code -- docs/contracts
   container:

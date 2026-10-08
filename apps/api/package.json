@@ -9,6 +9,7 @@
     "start": "node --env-file-if-exists=../../.env dist/main.js"
   },
   "dependencies": {
+    "@future-flow/access": "workspace:*",
     "@future-flow/contracts": "workspace:*",
     "@future-flow/core": "workspace:*",
     "@future-flow/database": "workspace:*",

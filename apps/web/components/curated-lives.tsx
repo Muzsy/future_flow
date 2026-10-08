@@ -35,7 +35,7 @@ export function CuratedLives({
         const response = await fetch(
           base + '/collections/' + encodeURIComponent(collectionId!),
           {
-            credentials: 'omit',
+            credentials: 'same-origin',
             cache: 'no-store',
             referrerPolicy: 'no-referrer',
             signal: abort.signal,
