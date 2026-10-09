@@ -14,7 +14,14 @@ Ez a konkrét végrehajtási sorrend; a szerver még nem szolgálja az alterward
 node scripts/contabo-owner-preflight.mjs
 ```
 
-4. Az indító művelet ugyanebben a környezetben közvetlenül az `up` előtt újra futtatja a teljes render-őrt; önmagában egy régi preflight proof nem engedélyez megváltozott env-et. A futó web/API/worker image ID, teljes deklarált feature-környezet és portok ismét ellenőrzendők, titkos értékek kiírása nélkül. Negatív origin Access-próba szükséges a route bekapcsolása előtt.
+4. A [hash-kötött indító](../scripts/contabo-owner-activate.mjs) `--stage` művelete a szerver `/root/alterward-ops/owner` könyvtárában root-only env/manifest/frozen Compose fájlokat készít; a már létező eltérő fájlt nem írja felül. A nyilvános, ellenőrzött DB CA külön read-only mount alapja. A stage nem kapcsolódik DB-hez és nem indít konténert. A `--launch` a szerver saját fájljait a védett helyi stage-proofhoz, a kiadott image-hez, teljes matrixhoz és új renderhez köti. Compose a pontos frozen JSON-t használja, ezért nincs második env-interpoláció; a literális dollárjel is megmarad. Egy operátori lock megakadályozza a párhuzamos indítást.
+
+```powershell
+node scripts/contabo-owner-activate.mjs --stage
+node scripts/contabo-owner-activate.mjs --launch
+```
+
+Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt generálási/review queue ürességét: régi jobot a nulla-budget worker sem claimelhet el. A sikeres `up` után a futó web/API/worker tényleges image ID, teljes deklarált feature-env, publikus portok hiánya, `node` user, CA mount, egészség, restart/OOM és erőforráskorlátok ellenőrzöttek. Négy anonim web/API kérés a proxy-hálózatról 403/no-store eredményt kell adjon. Indulás közbeni env/source/CA/config módosítás is hibakapu. Hibánál csak az `alterward-owner` projekt `down` művelete fut, a közös proxy/DNS változatlan. A jelenlegi stage sikeres, a tényleges launch és annak pozitív/post-start bizonyítéka még nincs; az indító új kódja külön Cloud-delta auditot kap.
 5. A közös Caddy tényleges fájljának és Compose-konfigurációjának root-only/hash-ellenőrzött mentése. A korábbi hat konténer ID/restart/állapot, hálózatok és hostonkénti route-válasz rögzített. A már hibás négy régi origin TLS nem az új kiadás hibája, és nem javítjuk őket a tulajdonos jóváhagyása nélkül.
 
 ## Origin TLS és DNS
@@ -26,6 +33,16 @@ A Cloudflare **Full (strict)** kézi mód 2026-10-09-én elmentve és dashboardo
 Az Origin CA-t a böngésző közvetlenül nem bízza meg: a publikus apex/www rekordok végig **proxied** állapotban működnek, a látogató a Cloudflare publikus certjét kapja. A közvetlen origin-próba a hivatalos Origin CA gyökérrel, bekapcsolt cert/hostname-validálással dolgozik; ez nem böngészős TLS-bypass. A scoped Caddy-szabály továbbra 403-at ad a nem Cloudflare TCP peernek, saját fiókjogoknál is. Cloudflare JWT továbbra szükséges a védett alkalmazásúton, a többi Cloudflare ügyfél IP-je önmagában nem jogosultság.
 
 Csak auditált/ellenőrzött Caddy-merge és működő origin TLS után kerülhet be a proxied apex A és www CNAME rekord. A kilenc meglévő mail-rekord nem változik. IPv6 AAAA nem kerül be külön IPv6-próba nélkül. DNS/route aktiválás nem indítja el a béta-keretet.
+
+## Tanúsítvány-megőrzés és megújítás
+
+A saját Origin CA kulcs **része a meglévő age-titkosított Caddy config-backupnak**. Ez az operátori választás megőrzi a visszaállíthatóságot a korábbi offsite ciphertext/hash/age-hitelesítési határon belül; nem exportálunk nyers kulcsot a helyi gépre, böngészőbe vagy Gitbe. A restore-próba root-only, ideiglenes területére visszafejtett kulcs a többi plaintext configgal együtt eltávolítandó. A kulcsot tartalmazó új mentés nélkül a régi sikeres backup nem bizonyítja az új TLS-állapot helyreállíthatóságát. Az offserver backup-identity továbbra a védett helyi secret-könyvtárban marad.
+
+1. Kiadáskor a cert SHA-256, pontos SAN-ok, nyilvános kulcs hash és UTC lejárat a privát inventoryba kerül. Minden owner használati kör előtt/után a cert ellenőrzendő; 60 napon belül megújítás előkészítése, 30 napon belül hibakapu. Az automatikus értesítés a tesztelők előtti monitorfeladat; jelenleg nem állítunk aktivált ütemezést.
+2. Lejárat előtt ugyanarra a két névre a meglévő, szerveren tartott kulcs/CSR segítségével új egyéves Origin CA cert készül. Kulcskompromittálódás esetén külön új kulcs/CSR és a régi cert visszavonása szükséges, nem rutinszerű ugyanazon kulcs újrahasználata.
+3. Az új certet előbb külön root-only fájlban ellenőrizzük a hivatalos Origin CA gyökérrel, hostname/SAN, key-match és legalább 30 napnyi hátralévő érvényesség alapján. A korábbi certet és configot hash-ellenőrzött rollback-példány őrzi; csak ezután történik atomikus certcsere.
+4. A statikus `tls` fájlcsere után **explicit `caddy reload` szükséges**: a közös proxy újraindítása nem része a megújításnak. Előtte adapt/validate, utána az új kiszolgált cert fingerprint/lejárat, Full (strict) edge és a hat korábbi konténer/route ellenőrzése. Sikertelen reload vagy működési próba esetén a korábbi még érvényes cert/config visszatöltése és validált reload történik.
+5. Az új cert inventoryja és age-titkosított backupja frissítendő. Izolált Caddy certrotációs próba — új lejárat tényleges kiszolgálása és szomszédos fixture-route változatlansága — még elvégzendő, az első issuance önmagában nem bizonyít rotációt.
 
 ## Közös proxy és működési próba
 

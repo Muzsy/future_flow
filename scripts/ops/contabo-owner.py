@@ -29,7 +29,7 @@ def server_environment(text):
     return values
 
 
-def preflight(request):
+def validate_inputs(request, text):
     proof = request['buildProof']
     if not re.fullmatch(r'[a-f0-9]{40}', proof['commit']):
         raise ValueError('Exact application commit required')
@@ -44,7 +44,7 @@ def preflight(request):
     source_flags = owner_overlay((source / 'deploy/closed-site-owner.flags.env').read_text())
     if source_flags != flags:
         raise ValueError('Overlay differs from the built release source')
-    environment = server_environment(request['ownerEnvironment'])
+    environment = server_environment(text)
     if any(environment.get(key) != value for key, value in flags.items()):
         raise ValueError('Protected server env differs from owner matrix')
     if (environment.get('PUBLIC_HOST') != 'alterward.com' or
@@ -52,6 +52,31 @@ def preflight(request):
             environment.get('OPENAI_API_KEY') != 'alterward_owner_provider_access_disabled' or
             environment.get('ANTHROPIC_API_KEY') or environment.get('SMTP_PASSWORD')):
         raise ValueError('Owner-only provider/host configuration differs')
+    return source, image, flags, environment
+
+
+def render_owner(source, image, flags, access, env_file, override_file):
+    config = json.loads(run([
+        'docker', 'compose', '--project-name', 'alterward-owner',
+        '--env-file', str(env_file), '-f', str(source / 'deploy/compose.contabo.yaml'),
+        '-f', str(override_file), 'config', '--format', 'json',
+    ]).stdout)
+    if set(config['services']) != {'web', 'api', 'worker'}:
+        raise ValueError('Unexpected real owner service set')
+    validate_owner_configuration(config, access, flags)
+    for service in config['services'].values():
+        if service.get('ports') or service['image'] != image or service['pull_policy'] != 'never':
+            raise ValueError('Real owner image/port boundary differs')
+        if (service.get('cap_drop') != ['ALL'] or
+                'no-new-privileges:true' not in service.get('security_opt', []) or
+                not service.get('init')):
+            raise ValueError('Real runtime protection differs')
+    return config
+
+
+def preflight(request):
+    source, image, flags, environment = validate_inputs(request, request['ownerEnvironment'])
+    proof = request['buildProof']
     baseline = existing_state()
     with tempfile.TemporaryDirectory(prefix='owner-preflight-', dir=ROOT) as temporary:
         directory = Path(temporary)
@@ -61,24 +86,11 @@ def preflight(request):
                                 for name in ['web', 'api', 'worker']}}
         override_file = directory / 'pinned-image.json'
         private_file(override_file, json.dumps(override).encode())
-        config = json.loads(run([
-            'docker', 'compose', '--project-name', 'alterward-owner',
-            '--env-file', str(env_file), '-f', str(source / 'deploy/compose.contabo.yaml'),
-            '-f', str(override_file), 'config', '--format', 'json',
-        ]).stdout)
-        if set(config['services']) != {'web', 'api', 'worker'}:
-            raise ValueError('Unexpected real owner service set')
-        validate_owner_configuration(config, request['access'], flags)
-        for name, service in config['services'].items():
-            if service.get('ports') or service['image'] != image or service['pull_policy'] != 'never':
-                raise ValueError('Real owner image/port boundary differs')
-            if (service.get('cap_drop') != ['ALL'] or
-                    'no-new-privileges:true' not in service.get('security_opt', []) or
-                    not service.get('init')):
-                raise ValueError('Real runtime protection differs')
+        render_owner(source, image, flags, request['access'], env_file, override_file)
         if existing_state() != baseline:
             raise ValueError('Preflight changed existing containers')
     return {'commit': proof['commit'], 'imageId': image,
+            'ownerEnvironmentSha256': hashlib.sha256(request['ownerEnvironment'].encode()).hexdigest(),
             'renderedActualOwnerEnvironment': True, 'fullOwnerMatrixValidated': True,
             'imageIdPinned': True, 'automaticImagePullDisabled': True,
             'publicPorts': 0, 'paidProviderCredentialPresent': False,
