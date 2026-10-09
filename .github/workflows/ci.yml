@@ -21,7 +21,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - name: Verify backup and source archive boundaries
-        run: python3 -m unittest discover -s tests/ops -p 'test_*.py'
+        run: |
+          python3 -m unittest discover -s tests/ops -p 'test_*.py'
+          node --test tests/ops/daily-archives.test.mjs
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
