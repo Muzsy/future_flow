@@ -77,3 +77,7 @@ Ez valódi többfolyamatos process hard-kill/recovery, de nem a termelési worke
 ## Következő pontos kiadási forrás
 
 A 9a4106c ops HEAD [verify/container CI-je](https://github.com/Muzsy/future_flow/actions/runs/37965704802) sikeres, a négy valódi process-kill próbával együtt. A későbbi [Auth callback-javítás](AUTH_CALLBACK_HARDENING_REPORT_HU.md) 702 helyi teszt / 65 fájl és production build mellett helyi böngészőben is ellenőrzött; az új együttes forrás pontos Cloud-auditja, CI-je, célimage-próbája és őrzött upgrade-je külön következő kapu. Az info@ válaszút emberi visszaigazolása és a 422 / signup_disabled negatív próba sikeres; a használt saját link, inbox és a többi ops kapu még nyitott. Az éles image továbbra 35f9889, új provider-költség 0 USD.
+
+## Process-próba lefedettségének pontosítása
+
+A 1604c71 Cloud-delta HARNESS-01 low jelzése szerint e harness a lefordított processort/repository/költségőrt közvetlenül futtatja; a production main.ts lease-token bekötését és a provider transport-retry útját nem indítja. A COMMIT_INSERT előtti claim-tiltásban a nyitott tranzakció row lockja és a SKIP LOCKED is szerepet kap. A fixture saját szintetikus 10 / 0,50 allowance-t használ, nem valós fizetett providerkeretet; az exact fixture URL, szűkített child-env, provider nélküli adapter és belső hálózat a valódi izoláció. E korlátok a négy sikeres valós PostgreSQL/process-próbát nem teszik production-main/host restart-bizonyítékká. [Auth-audit és önálló értékelés](AUTH_CALLBACK_HARDENING_REPORT_HU.md).

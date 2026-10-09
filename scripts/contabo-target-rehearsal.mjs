@@ -161,6 +161,23 @@ async function main() {
       'scripts/ops/life-recovery-runtime.mjs',
       'utf8',
     ),
+    upgradeSources: Object.fromEntries(
+      [
+        ['owner', 'contabo-owner.py'],
+        ['activation', 'contabo-owner-activation.py'],
+        ['upgrade', 'contabo-owner-upgrade.py'],
+        ['fixture', 'contabo-owner-upgrade-fixture.py'],
+      ].map(([name, file]) => [
+        name,
+        readFileSync(join('scripts/ops', file)).toString('base64'),
+      ]),
+    ),
+    upgradePreviousBuildProof: JSON.parse(
+      readFileSync(
+        join(directory, 'owner-upgrade-rehearsal-baseline.json'),
+        'utf8',
+      ),
+    ),
   });
   privateReportFile(directory, 'target-runtime-proof.json', {
     ...proof,
@@ -171,6 +188,14 @@ async function main() {
     operatorScriptSha256: createHash('sha256')
       .update(script)
       .update(library)
+      .update(readFileSync('scripts/ops/contabo-owner-upgrade.py'))
+      .update(readFileSync('scripts/ops/contabo-owner-upgrade-fixture.py'))
+      .digest('hex'),
+    ownerUpgradeScriptsSha256: createHash('sha256')
+      .update(readFileSync('scripts/ops/contabo-owner.py'))
+      .update(readFileSync('scripts/ops/contabo-owner-activation.py'))
+      .update(readFileSync('scripts/ops/contabo-owner-upgrade.py'))
+      .update(readFileSync('scripts/ops/contabo-owner-upgrade-fixture.py'))
       .digest('hex'),
   });
   console.log(JSON.stringify(proof));

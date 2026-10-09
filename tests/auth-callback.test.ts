@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AuthApiError,
   AuthImplicitGrantRedirectError,
   AuthSessionMissingError,
   AuthRetryableFetchError,
+  GoTrueClient,
   type Session,
   type SupabaseClient,
 } from '@supabase/supabase-js';
@@ -122,4 +123,72 @@ describe('email callback errors and retained account sessions', () => {
       error,
     });
   });
+});
+
+describe('pinned SDK callback initialization with real in-memory storage', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it.each([true, false])(
+    'reports expiry without removing an existing session: stored=%s',
+    async (hasSession) => {
+      vi.stubGlobal('window', {
+        location: {
+          href: 'https://fixture.invalid/account-access#error=access_denied&error_code=otp_expired&error_description=Synthetic%20expired%20link',
+        },
+      });
+      vi.stubGlobal('document', { visibilityState: 'hidden', cookie: '' });
+      vi.stubGlobal('BroadcastChannel', undefined);
+      const session: Session = {
+        access_token: 'synthetic-token',
+        refresh_token: 'synthetic-refresh',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        token_type: 'bearer',
+        user: {
+          id: 'synthetic-user',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2026-10-09T00:00:00Z',
+        },
+      };
+      const storageKey = `callback-sdk-${hasSession}`;
+      const values = new Map<string, string>(
+        hasSession ? [[storageKey, JSON.stringify(session)]] : [],
+      );
+      const fetch = vi.fn(async () => {
+        throw new Error('Provider transport is forbidden in this SDK fixture');
+      });
+      const auth = new GoTrueClient({
+        url: 'https://fixture.invalid/auth/v1',
+        storageKey,
+        autoRefreshToken: false,
+        persistSession: true,
+        detectSessionInUrl: true,
+        fetch,
+        storage: {
+          getItem: (key) => values.get(key) ?? null,
+          setItem: (key, value) => {
+            values.set(key, value);
+          },
+          removeItem: (key) => {
+            values.delete(key);
+          },
+        },
+      });
+      const result = await initializeAuthSession(auth);
+      expect(result.error).toBeInstanceOf(AuthImplicitGrantRedirectError);
+      expect(clientErrorMessage(result.error)).toContain(
+        'invalid, expired, or has already been used',
+      );
+      expect(result.session).toEqual(hasSession ? session : null);
+      expect(values.get(storageKey)).toBe(
+        hasSession ? JSON.stringify(session) : undefined,
+      );
+      // getSession alone does not expose the cached URL initialization error.
+      expect((await auth.getSession()).error).toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
+      await auth.stopAutoRefresh();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 });

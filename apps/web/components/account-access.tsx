@@ -17,6 +17,7 @@ export function AccountAccess() {
     [confirmation, setConfirmation] = useState(''),
     [notice, setNotice] = useState(''),
     [callbackFailed, setCallbackFailed] = useState(false),
+    [authReady, setAuthReady] = useState(false),
     [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!authConfigured) return;
@@ -39,6 +40,9 @@ export function AccountAccess() {
         if (!active) return;
         setCallbackFailed(true);
         setNotice(clientErrorMessage(error));
+      })
+      .finally(() => {
+        if (active) setAuthReady(true);
       });
     return () => {
       active = false;
@@ -112,13 +116,13 @@ export function AccountAccess() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </label>
-            <button className="primary" disabled={busy}>
+            <button className="primary" disabled={busy || !authReady}>
               Sign in again
             </button>
           </form>
           <button
             className="text-button"
-            disabled={busy || !email}
+            disabled={busy || !authReady || !email}
             onClick={() =>
               void run(async () => {
                 const { error } = await supabase().auth.resetPasswordForEmail(
@@ -134,7 +138,7 @@ export function AccountAccess() {
           >
             Send password recovery email
           </button>
-          {userId && (
+          {authReady && userId && (
             <>
               <p>
                 You are signed in. Use a fresh sign-in before exporting or

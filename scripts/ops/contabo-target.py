@@ -17,6 +17,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import types
 import urllib.request
 
 from alterward_backup import (
@@ -387,6 +388,22 @@ def rehearse(request):
             recovery_checks = json.loads(recovery)
             if recovery_checks.get('processRecovery') != 'passed' or recovery_checks.get('paidAiCalls') != 0:
                 raise ValueError('Isolated life recovery did not pass')
+            upgrade_checks = None
+            if request.get('upgradeSources'):
+                PHASE = 'owner-image-upgrade-rollback-fixture'
+                module = types.ModuleType('alterward_target')
+                module.__dict__.update(globals())
+                sys.modules['alterward_target'] = module
+                for key, name in [('owner', 'alterward_owner'), ('activation', 'alterward_activation'),
+                                  ('upgrade', 'alterward_upgrade'), ('fixture', 'alterward_upgrade_fixture')]:
+                    item = types.ModuleType(name)
+                    exec(compile(base64.b64decode(request['upgradeSources'][key]), '<' + name + '>', 'exec'), item.__dict__)
+                    sys.modules[name] = item
+                upgrade_checks = sys.modules['alterward_upgrade_fixture'].exercise({
+                    'project': project, 'network': network, 'fixture': str(fixture),
+                    'environment': env, 'configuration': config, 'access': request['access'],
+                    'ownerFlags': (source / 'deploy/closed-site-owner.flags.env').read_text(),
+                    'previousBuildProof': request['upgradePreviousBuildProof'], 'buildProof': proof})
             result = {'commit': proof['commit'], 'imageId': image, 'migrationsRepeated': True,
                       'applicationMemoryLimitBytes': total_memory, 'publicPorts': 0,
                       'databaseMajor': 17, 'databaseTlsVerified': True,
@@ -397,6 +414,7 @@ def rehearse(request):
                       'paidAiCalls': 0, 'runtimeEgressProbesBlocked': 3,
                       'httpChecks': checks, 'workerExitCode': 0,
                       'lifeProcessRecovery': recovery_checks,
+                      'ownerUpgradeFixture': upgrade_checks,
                       'proxyCandidateSha256': hashlib.sha256(proxy_candidate.encode()).hexdigest()}
         except Exception:
             # Preserve diagnostics from only our disposable project before cleanup.
