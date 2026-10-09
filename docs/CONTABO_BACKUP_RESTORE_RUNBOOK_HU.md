@@ -6,17 +6,17 @@
 
 A `20261008T213621Z-06645147` mentés a `c18a9231869972c892e3de590f847f1c1d287eff` main állapot mellett készült. A valódi Contabo visszaállítási próba 2026-10-08T21:40:25Z-kor sikeres. A 2026-10-08T21:41:51Z utóellenőrzés szerint mind a hat korábban futó konténer azonos azonosítóval és restart-számmal fut; ideiglenes konténer és plaintext scratch könyvtár nincs.
 
-| Bizonyíték | Eredmény |
-| --- | --- |
-| Supabase forrás | PostgreSQL 17, `public` séma, 97 `ff_`/`aw_` alkalmazási tábla |
-| Konzisztencia | Read-only repeatable-read tranzakcióból exportált snapshot; a `pg_dump` ugyanazt importálta |
-| Visszaállított adat | Mind a 97 tábla, összesen 1632 sor; táblánként sorösszeg és rendezett JSON-rekordok ellenőrzőösszege egyezik |
-| Adatbázis-restore | Új, hálózat nélküli PostgreSQL 17 konténer; egy tranzakció, hibánál megállás; nincs éles DB-írás |
-| Proxy/config | 24 fájl visszaállítva saját sandboxba, minden SHA-256 egyezik; a visszaállított Caddyfile adaptálása és validálása sikeres |
-| Offsite példány | A titkosított fájlok helybe letöltve, SHA-256 és méret egyezik; a próba ezt a helyi példányt küldte vissza és fejtette vissza |
-| Sérülés elleni védelem | Mindkét age archívum módosított ciphertextjének visszafejtése elutasított |
-| Takarítás | Ideiglenes DB-konténer és a teszt plaintext/credential/identity fájljai eltávolítva; a mentési archívumok megmaradtak |
-| Mellékhatás | Nyilvános port, alkalmazás-/workerindítás, proxy reload/restart, meghívó, AI-hívás és bétaaktiválás: nulla |
+| Bizonyíték             | Eredmény                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Supabase forrás        | PostgreSQL 17, `public` séma, 97 `ff_`/`aw_` alkalmazási tábla                                                                |
+| Konzisztencia          | Read-only repeatable-read tranzakcióból exportált snapshot; a `pg_dump` ugyanazt importálta                                   |
+| Visszaállított adat    | Mind a 97 tábla, összesen 1632 sor; táblánként sorösszeg és rendezett JSON-rekordok ellenőrzőösszege egyezik                  |
+| Adatbázis-restore      | Új, hálózat nélküli PostgreSQL 17 konténer; egy tranzakció, hibánál megállás; nincs éles DB-írás                              |
+| Proxy/config           | 24 fájl visszaállítva saját sandboxba, minden SHA-256 egyezik; a visszaállított Caddyfile adaptálása és validálása sikeres    |
+| Offsite példány        | A titkosított fájlok helybe letöltve, SHA-256 és méret egyezik; a próba ezt a helyi példányt küldte vissza és fejtette vissza |
+| Sérülés elleni védelem | Mindkét age archívum módosított ciphertextjének visszafejtése elutasított                                                     |
+| Takarítás              | Ideiglenes DB-konténer és a teszt plaintext/credential/identity fájljai eltávolítva; a mentési archívumok megmaradtak         |
+| Mellékhatás            | Nyilvános port, alkalmazás-/workerindítás, proxy reload/restart, meghívó, AI-hívás és bétaaktiválás: nulla                    |
 
 Az adatbázis-archívum titkosítva 1 315 522 byte, a config archívum 8591 byte. Az adategyezés táblánként MD5-alapú rendezett tartalom-összeg; az egész dump, config és titkosított archívum sértetlenségét külön SHA-256 ellenőrzi, a titkosítás hitelesítését az age végzi. Ezek egy visszaállítási próba bizonyítékai, nem folyamatos mentési vagy rendelkezésre állási garanciák.
 
@@ -69,3 +69,7 @@ A két failed unit közül az egyik más alkalmazás ellenőrzése (11 passed, 3
 2026-10-09T07:37:15Z: az éles Origin CA cert/key, közös proxy/Compose és root-only owner env/frozen config/manifest külön age-titkosított config-archívumba került. **36 fájl, 18 049 byte ciphertext**, helyi offsite visszaolvasott hash, tényleges sérülés-tiltás, mind a 36 restore-hash, CA/key/expiry és pinned Caddy hálózat nélküli validate sikeres. Ideiglenes plaintext/age-identity eltávolítva, hat korábbi konténer és saját három szolgáltatás változatlan. Nyers Origin key nem hagyta el a szervert. [Teljes bekötési bizonyíték](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).
 
 Ez új konfigurációs mentés és restore, nem új DB-snapshot. A korábbi 97 táblás/1632 soros DB és 24 fájlos config-próba külön történeti bizonyíték; hosztolt Auth/grant/storage és törlés/visszavonás replay továbbra hiányzó kapu. A napi alkalmazásmentés hét napos retentionja jóváhagyott, végrehajtása még hiányzik. A proxy/alkalmazási rollback ténylegesen sikeres; automatikus backup/expiry/monitor, redundáns kulcs/offsite tárolás és aktív paid-job drain továbbra nyitott.
+
+## Tulajdonosi upgrade utáni config-mentés
+
+A 9eb7732 éles image apply/rollback/újra-apply után új, 47 fájlos titkosított config/upgrade-archívum készült: aktuális runtime-fájlok, előző/candidate fájlok és prepared/applying/applied journal is része. Offsite hash és ugyanabból az izolált restore, ciphertext-sérülés tiltás, cert/key/CA/expiry és hálózat nélküli Caddy validate sikeres; mind a kilenc éles konténer változatlan. Ez nem új DB-snapshot vagy teljes Supabase restore, napi timer/7 napos expiry/privacy-replay még nyitott. [Pontos bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).

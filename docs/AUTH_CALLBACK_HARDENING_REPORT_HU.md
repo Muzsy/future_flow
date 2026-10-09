@@ -33,3 +33,7 @@ AUTH-02 a komponens automatizált eseménysorrend-próbájának hiányát és az
 HARNESS-01 a [négy process-próba](PERSONAL_AI_RECOVERY_HARDENING_REPORT_HU.md) lefedettségét pontosítja: lefordított processor/repository/költségőr, nem production main.ts entrypoint vagy provider transport-retry. A COMMIT_INSERT előtti claim-tiltásban a PostgreSQL row lock/SKIP LOCKED is szerepet kap. A fixture saját szintetikus foglalási allowance-t használ; a környezeti nulla keret nem valós fizetett szolgáltatói mérés. A [guarded upgrade](CONTABO_OWNER_UPGRADE_RUNBOOK_HU.md) új ops-kódja és tényleges fixture-próbája következő kapu.
 
 A 1604c71 image elkülönített Contabo-próbája is sikeres: sha256:f790ea8a8d7c884e28cd41eee425e1780093fe5bd6de1e5f9e82fe1693cb441d; PostgreSQL 17/36 ismételt migráció, DB TLS/private HTTPS, origin/direct-peer/rights/asset határ, három tiltott runtime-egress, üres worker SIGTERM0 és mind a négy valódi process SIGKILL/recovery. Kilenc meglévő konténer változatlan, fixture-ek eltávolítva, provider-költés 0 USD. Ez a konkrét korábbi image bizonyítéka; az utána hozzáadott authReady UI-őr és upgrade-ops új pontos forrás/image-próbát igényel.
+
+## Éles tulajdonosi frissítés
+
+Az alkalmazási 9eb7732 image ops 46f93e8 mellett éles; a szintetikus éles otp_expired callback a helyes angol üzenetet mutatja és megtartja a saját korábbi sessiont. Ez nem a felhasználó nyers régi linkjének kiolvasása vagy tényleges consumed-token próba. A valódi használt-link visszaellenőrzés még nyitott. [Frissítés/rollback és bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).

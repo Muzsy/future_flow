@@ -81,3 +81,7 @@ A 9a4106c ops HEAD [verify/container CI-je](https://github.com/Muzsy/future_flow
 ## Process-próba lefedettségének pontosítása
 
 A 1604c71 Cloud-delta HARNESS-01 low jelzése szerint e harness a lefordított processort/repository/költségőrt közvetlenül futtatja; a production main.ts lease-token bekötését és a provider transport-retry útját nem indítja. A COMMIT_INSERT előtti claim-tiltásban a nyitott tranzakció row lockja és a SKIP LOCKED is szerepet kap. A fixture saját szintetikus 10 / 0,50 allowance-t használ, nem valós fizetett providerkeretet; az exact fixture URL, szűkített child-env, provider nélküli adapter és belső hálózat a valódi izoláció. E korlátok a négy sikeres valós PostgreSQL/process-próbát nem teszik production-main/host restart-bizonyítékká. [Auth-audit és önálló értékelés](AUTH_CALLBACK_HARDENING_REPORT_HU.md).
+
+## Tulajdonosi éles kiadás
+
+Az együttes személyes recovery/Auth alkalmazási 9eb7732 image éles a Contabón, ops 46f93e8 forrással. A négy valós process/PG recovery próba és a három image/explicit recovery fixture sikeres; valódi éles image-rollback és újra-upgrade ellenőrzött. Fő worker-konténer/host vagy valódi provider-transport kiesés továbbra külön kapu, fizetett béta inaktív. [Kiadási bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).
