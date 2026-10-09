@@ -2,7 +2,7 @@
 
 2026-10-09 · [Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) · [Kiadási sorrend](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
-**A CON-01/02 és az új REC-01/02 határesetek helyben reprodukálva és javítva; a teljes helyi ellenőrzés sikeres.** A Contabón egyelőre a korábban auditált `35f9889` alkalmazási image fut. E változat végső pontos Cloud-delta auditja, CI-je, izolált célpróbája és tényleges worker-újraindítási próbája még szükséges a telepítés előtt. A tesztelői fizetett béta inaktív.
+**A CON-01/02 és az új REC-01/02 határesetek helyben reprodukálva és javítva; a teljes helyi ellenőrzés sikeres.** A Contabón egyelőre a korábban auditált `35f9889` alkalmazási image fut. E változat végső pontos Cloud-delta auditja lezárult; CI-je, izolált célpróbája és tényleges worker-újraindítási próbája még szükséges a telepítés előtt. A tesztelői fizetett béta inaktív.
 
 ## Mi változott?
 
@@ -37,10 +37,24 @@ Két alacsony, hypothesis minősítésű új jelzés érkezett. REC-01 szerint a
 - A külön `leaseRecoveryCount` ötven egymást követő automatikus, lejárt running lease átvételnél megállítja a még nem befejezhető jobot; más új feladat a következő lekéréskor haladhat. Ez nem finanszírozott attempt. A saját, kifejezett és idempotens kézi retry ezt a technikai számlálót nullázza, a fizetett attempt/ledger megmarad. Már elfogadott commit-only checkpoint továbbra befejezhető; sérült számláló a hibakapu irányába kezelendő.
 - A mentett eseményjavaslat séma- és pontos inputhash-ellenőrzést kap. A fidelity eredménye csak sémahelyes alakban és az aktuális canon/fejezet pontos hash-éhez újrahasználható; a már passed marker is hash-kötött. Eltéréskor a régi verdict/marker törlődik és új ellenőrzés szükséges. Öt finanszírozott próbálkozás után ez új fizetés helyett megáll, nem ír periódust. A korábbi, result nélküli, de pontos hash-kötött passed checkpoint kompatibilis marad.
 
-E kiegészítések végső pontos auditja külön szükséges. A köztes Cloud-session kijelzett összköltsége 22,65 USD, 88% cache hit, promóciós kijelzés 80 USD maradék; az előző 19,68 USD-hez képest 2,97 USD sessionköltség-változás. Ez külön Cloud-promóció, nem az alkalmazás 10 USD provider/béta kerete vagy szolgáltatói számla. Védett eredeti JSON, usage szöveg/kép és prompt megmaradt. A valódi többfolyamatos PG/kill-restart, vegyes workerverzió és őrzött upgrade továbbra kapu.
+E kiegészítések végső pontos Cloud-auditja az efdf76d exact HEAD-en lezárult, REC-01/02 forrásból rendezett. Egy új alacsony/hypothesis REC-03 jelzés a már commit-ready jobot újra és újra hard-crashsel megszakító, nem talált kódutat feltételezi; Claude opcionális külön nagyobb korlátot vagy megfigyelést javasolt, új kiadási blokkolót nem jelzett. Codex nem tesz be bizonyíték nélkül újabb, az elfogadott eredmény befejezését akadályozó plafont. A hard-crash/container-restart észlelés a tesztelők előtti meglévő monitorfeladat része; a valódi restart-próba ettől még szükséges. A köztes Cloud-session kijelzett összköltsége 22,65 USD, 88% cache hit, promóciós kijelzés 80 USD maradék; az előző 19,68 USD-hez képest 2,97 USD sessionköltség-változás. Ez külön Cloud-promóció, nem az alkalmazás 10 USD provider/béta kerete vagy szolgáltatói számla. Védett eredeti JSON, usage szöveg/kép és prompt megmaradt. A valódi többfolyamatos PG/kill-restart, vegyes workerverzió és őrzött upgrade továbbra kapu.
 
 ## Friss üzemeltetői döntések
 
 A felhasználó a titkosított napi alkalmazásmentésekhez **hét nap** megőrzést választott. Ez jóváhagyott politika, még nem aktivált időzítő/archívumtörlés; nem a hosztolt Supabase Auth vagy szolgáltatói mentések automatikus megőrzési beállítása. [Mentési és privacy-replay kapuk](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md).
 
 A saját meghívó Gmail-fejlécéről a felhasználó **SPF PASS / DKIM PASS / DMARC PASS** eredményt jelentett, `alterward.com` DKIM és From domainnel. Ez ember által visszaolvasott fejlécbizonyíték, nem Codex által elért Gmail-eredeti. A meghívó a spam mappába érkezett; a PASS nem inbox-garancia vagy a spam okának bizonyítéka. Recovery, tiltott signup és tényleges bejövő válaszút továbbra külön próba. [Levelezési checkpoint](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
+
+## Végső audit és saját recovery-kérés
+
+A második célzott Cloud-audit után a session kijelzett összköltsége **23,28 USD**, 89% cache hit, promóciós kijelzés **79 USD maradék**. A két új follow-up együtt 3,60 USD sessionköltség-változás a korábbi 19,68 USD-hez képest; az alkalmazás provider-költése továbbra 0 USD. Összesen hat alap audit, három korábbi ops follow-up és két személyes recovery follow-up: az eredeti 27 mellé három új alacsony/hypothesis megfigyelés; e szám nem harminc igazolt hiba.
+
+A felhasználó külön jóváhagyta a saját jelszóhelyreállító levél küldését. Az éles angol Account access oldalon egy kérés ment; a felület az „If recovery is available for this account, you will receive an email.” választ adta. Ez elfogadott kérés, nem SMTP-kézbesítés vagy befejezett recovery-bizonyíték. A levél tárgya Reset your Alterward password; megnyitás és új jelszó megadása felhasználói átadás. A nyers link/token és jelszó nincs kiolvasva vagy mentve; a felhasználó inbox/spam és belépési megerősítése még hiányzik.
+
+A későbbi felhasználói recovery-befejezés és új belépés megerősítve, levél ismét spam. Az éles belépett Your lives/Sign out és a saját Supabase Updated at/Last signed in **18:55** helyi idő külön visszaolvasva. Nem olvastunk jelszót vagy link/token értéket; a teljes email-flow flag a negatív link/signup és válaszút hiányában továbbra false. [Részletes levelezési bizonyíték](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
+
+## Pontos CI és elkülönített Contabo-célpróba
+
+A efdf76d39093dc4fa866a72ee3372966832583db alkalmazási forrás [verify/container CI-je](https://github.com/Muzsy/future_flow/actions/runs/37961627026) sikeres. A privát, 2 GiB/1 CPU builderből készült image: sha256:13356fef2808c474b126ebd34e5b25fc85ab84d4f1be808d9119a6024b606793; builder eltávolítva. PostgreSQL 17, 36 migráció és ismétlés, CA/hostname-ellenőrzött DB TLS, privát HTTPS, 11 origin-tiltás, nyolc közvetlen peer-tiltás, két rights oldal, három statikus asset, két saját-auth tiltás és hibás cert-name elutasítás sikeres. Három runtime egress-próba tiltott; üres worker SIGTERM exit 0. Nincs nyilvános fixture-port, élő adatbázis-kapcsolat vagy provider-hívás. Az összes már futó konténer azonos állapotban maradt; az eldobható fixture-ek és hálózat eltávolítva.
+
+Ez a konkrét új image runtime-bizonyítéka, de nem az aktív tulajdonosi oldal frissítése vagy feldolgozás közbeni hard-kill/restart. A régi 35f9889 aktív release hat korábbi privát build/runtime/preflight/env/stage/launch proofja külön archivált. Következő kapu a valódi többfolyamatos job megszakítás és őrzött upgrade/rollback; fizetett béta továbbra inaktív.

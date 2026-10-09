@@ -41,3 +41,11 @@ Az [éles olvasási UI](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) sikeres. A S
 2026-10-09: a felhasználó az eredeti Gmail-levélből SPF PASS, DKIM PASS és DMARC PASS eredményt jelentett. A DKIM aláíró domain és a From domain alterward.com; a jelentett DMARC policy NONE. A beszámoló egyetlen saját meghívóra vonatkozik, nem független dashboard/Gmail-visszaellenőrzés vagy más címzett inbox-garancia. A levél spambe érkezett. A bounce azonosítót, nyers fejlécet és belépési linket nem másoljuk Gitbe vagy auditpromptba.
 
 Nincs bizonyíték hibás domainhitelesítésre; e beszámoló alapján DNS-módosítás nem indokolt. A spam okát továbbra nem tekintjük azonosítottnak. Következő külön bizonyíték az SMTP2GO státusz, recovery/lejárt-link és tiltott signup, valamint a tényleges info@ válasz továbbítása. [Google küldési útmutató](https://support.google.com/mail/answer/81126?hl=en), [SMTP2GO hitelesítési útmutató](https://support.smtp2go.com/hc/en-gb/articles/28543815517209-SPF-DKIM-and-DMARC-Overview).
+
+## Későbbi saját recovery-kérés
+
+2026-10-09: a felhasználó konkrét jóváhagyása után az éles angol Account access felületen egy saját recovery-kérés ment. A felület angol, általános sikerüzenetet adott; címzetteket nem listáz, és ez nem kézbesítési bizonyíték. A tárgy Reset your Alterward password; a link megnyitása és új jelszó megadása a felhasználó feladata. Inbox/spam, tényleges HTTPS-callback/recovery és új belépés még visszaellenőrizendő. Korábbi saját invite/belépés/export és az ember által jelentett három PASS ettől külön megmarad. Új invite, tesztelői engedély és paid AI nem aktivált.
+
+## Saját recovery-befejezés és friss belépés
+
+A felhasználó megerősítette: a recovery levél is a **spam** mappába érkezett; a levél linkjével új jelszót állított be és belépett. Codex az éles /lives felületen a belépett Your lives/Sign out állapotot, a saját Supabase-fiók dashboardján pedig **Updated at 18:55 / Last signed in 18:55** helyi időt visszaolvasott. Jelszó vagy callback-token kiolvasás nem történt. A korábbi saját fiók/export bizonyíték megmarad, fizetett jogosultság nem aktivált. Ez konkrét saját recovery és belépési bizonyíték; inbox-kézbesítés, lejárt/újrahasznált link, negatív signup és tényleges támogatási válaszút továbbra külön kapu. A három PASS az eredeti meghívó emberi fejléc-beszámolója, nem a recovery levél új fejlécpróbája.
