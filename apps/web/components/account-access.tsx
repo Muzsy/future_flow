@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
+import { initializeAuthSession } from '../lib/auth-session';
 import {
   api,
   authConfigured,
@@ -15,6 +16,7 @@ export function AccountAccess() {
     [newPassword, setNewPassword] = useState(''),
     [confirmation, setConfirmation] = useState(''),
     [notice, setNotice] = useState(''),
+    [callbackFailed, setCallbackFailed] = useState(false),
     [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!authConfigured) return;
@@ -24,10 +26,19 @@ export function AccountAccess() {
         if (active) setUserId(session?.user.id ?? null);
       },
     );
-    void supabase()
-      .auth.getSession()
-      .then(({ data }) => {
-        if (active) setUserId(data.session?.user.id ?? null);
+    void initializeAuthSession(supabase().auth)
+      .then(({ session, error }) => {
+        if (!active) return;
+        setUserId(session?.user.id ?? null);
+        if (error) {
+          setCallbackFailed(true);
+          setNotice(clientErrorMessage(error));
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setCallbackFailed(true);
+        setNotice(clientErrorMessage(error));
       });
     return () => {
       active = false;
@@ -53,6 +64,7 @@ export function AccountAccess() {
         password,
       });
       if (error) throw error;
+      setCallbackFailed(false);
       setPassword('');
       setNotice('Signed in. Your data actions require a recent sign-in.');
     });
@@ -134,13 +146,14 @@ export function AccountAccess() {
                   type="password"
                   autoComplete="new-password"
                   minLength={10}
+                  disabled={callbackFailed}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </label>
               <button
                 className="secondary"
-                disabled={busy || newPassword.length < 10}
+                disabled={busy || callbackFailed || newPassword.length < 10}
                 onClick={() =>
                   void run(async () => {
                     const { error } = await supabase().auth.updateUser({

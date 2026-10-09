@@ -446,6 +446,22 @@ const errors: Record<string, readonly [string, string]> = {
     'The email address or password is incorrect.',
     'Az e-mail-cím vagy a jelszó hibás.',
   ],
+  otp_expired: [
+    'That sign-in link is invalid, expired, or has already been used. Request a new link, or sign in with your password.',
+    'A belépési link érvénytelen, lejárt vagy már felhasználták. Kérj új linket, vagy jelentkezz be a jelszavaddal.',
+  ],
+  AUTH_CALLBACK_FAILED: [
+    'That sign-in link could not be used. Request a new link, or sign in with your password.',
+    'Ez a belépési link nem használható. Kérj új linket, vagy jelentkezz be a jelszavaddal.',
+  ],
+  same_password: [
+    'Choose a different password. This is already your current password.',
+    'Válassz másik jelszót. Ez már a jelenlegi jelszavad.',
+  ],
+  signup_disabled: [
+    'Registration is by invitation only. Contact info@alterward.com for help.',
+    'Regisztrálni csak meghívással lehet. Segítség: info@alterward.com.',
+  ],
   email_not_confirmed: [
     'Confirm your email address before signing in.',
     'Belépés előtt erősítsd meg az e-mail-címedet.',

@@ -2,19 +2,19 @@
 
 2026-10-09 · [Elfogadott kiadási sorrend](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első üzemeltetői, katalógusolvasásra szánt konfiguráció. A tényleges root-only env/frozen Compose és hash-kötött launch a Contabón aktivált; image/env/port/health/resource ellenőrzött. A [domain is aktív owner Access mögött](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md), húsz anonim külső próba és valódi proxy/alkalmazási rollback sikeres. [Pozitív owner UI](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) sikeres; a későbbi saját Supabase-belépés és friss-auth adatexport is ténylegesen ellenőrzött; a meghívó spambe érkezett, SPF/DKIM/DMARC PASS a felhasználó fejléc-beszámolója szerint; saját recovery és új belépés is ellenőrzött, a recovery levél szintén spam; inbox, negatív Auth és válaszút még külön feladat. Fizetett UUID, allowance és béta-időszak továbbra inaktív; az overlay nem a későbbi tester-paid engedély. A teljes P01–P13 / Shared S0–S7 terv és a későbbi tízfős béta megmarad.
+A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első üzemeltetői, katalógusolvasásra szánt konfiguráció. A tényleges root-only env/frozen Compose és hash-kötött launch a Contabón aktivált; image/env/port/health/resource ellenőrzött. A [domain is aktív owner Access mögött](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md), húsz anonim külső próba és valódi proxy/alkalmazási rollback sikeres. [Pozitív owner UI](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) sikeres; a későbbi saját Supabase-belépés és friss-auth adatexport is ténylegesen ellenőrzött; a meghívó spambe érkezett, SPF/DKIM/DMARC PASS a felhasználó fejléc-beszámolója szerint; saját recovery és új belépés is ellenőrzött, a recovery levél szintén spam; a válasz Gmailbe továbbítását a felhasználó megerősítette; a negatív signup 422 / signup_disabled. Inbox és a felhasznált link helyes üzenete továbbra külön feladat. Fizetett UUID, allowance és béta-időszak továbbra inaktív; az overlay nem a későbbi tester-paid engedély. A teljes P01–P13 / Shared S0–S7 terv és a későbbi tízfős béta megmarad.
 
-| Terület | Első telepítés |
-| --- | --- |
-| Webhely | Access + origin JWT/email gate aktív; pontosan egy üzemeltetői email, tesztelő nincs |
-| Auth | Nyilvános signup tiltott; meghívás és saját fiókjogok külön Supabase-hitelesítéssel |
-| Kínálat | 15 új jóváhagyott Official élet és öt Scenario, Discovery/Featured; a korábbi külön auditált pilot élet is megmarad, ezért a tényleges Discovery-lista jelenleg 16 élet |
-| Kiadási jogosultság | Community publication, új curator/review/release operator műveletek kikapcsolva |
-| Fizetett művelet | Bétaőr aktív, UUID-lista üres; minden provider/project/user allowance 0, időszak üres és kötelező |
-| Továbbindítás | Fork starts és Scenario personalization kikapcsolva; normál saját élet generálását az üres béta-lista és nulla költségkeret tiltja |
-| Külső kitettség | Indexelés, sitemap/OG/external exposure kikapcsolva; Access a védett deep linkeket is lefedi |
-| Shared | Mind a négy Shared flag kikapcsolva |
-| Saját jogok | Account access/privacy/static asset szűk kivétel; saját export/törlés hitelesítést igényel |
+| Terület             | Első telepítés                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Webhely             | Access + origin JWT/email gate aktív; pontosan egy üzemeltetői email, tesztelő nincs                                                                                    |
+| Auth                | Nyilvános signup tiltott; meghívás és saját fiókjogok külön Supabase-hitelesítéssel                                                                                     |
+| Kínálat             | 15 új jóváhagyott Official élet és öt Scenario, Discovery/Featured; a korábbi külön auditált pilot élet is megmarad, ezért a tényleges Discovery-lista jelenleg 16 élet |
+| Kiadási jogosultság | Community publication, új curator/review/release operator műveletek kikapcsolva                                                                                         |
+| Fizetett művelet    | Bétaőr aktív, UUID-lista üres; minden provider/project/user allowance 0, időszak üres és kötelező                                                                       |
+| Továbbindítás       | Fork starts és Scenario personalization kikapcsolva; normál saját élet generálását az üres béta-lista és nulla költségkeret tiltja                                      |
+| Külső kitettség     | Indexelés, sitemap/OG/external exposure kikapcsolva; Access a védett deep linkeket is lefedi                                                                            |
+| Shared              | Mind a négy Shared flag kikapcsolva                                                                                                                                     |
+| Saját jogok         | Account access/privacy/static asset szűk kivétel; saját export/törlés hitelesítést igényel                                                                              |
 
 Az `OFFICIAL_PUBLICATIONS_ENABLED=true` valós, szerveroldali `PUBLICATION_LINK_SECRET` értéket igényel. A már előállított snapshotokhoz a meglévő védett titkot használjuk; új titok vagy hamis fixture nem helyettesíti. Az Access team/AUD és az email-lista a dashboardról ellenőrzött privát konfigurációból kerül a szerverre. SMTP-jelszó nem kerül a Contabóra vagy az image-be. Az owner-only szerverkonfigurációban az OpenAI-kulcs használhatatlan placeholder; éles provider credential csak a külön tesztelői aktiváláskor kerülhet be.
 

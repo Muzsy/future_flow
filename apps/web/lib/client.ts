@@ -1,4 +1,11 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import {
+  createClient,
+  isAuthError,
+  isAuthImplicitGrantRedirectError,
+  isAuthSessionMissingError,
+  isAuthRetryableFetchError,
+  type SupabaseClient,
+} from '@supabase/supabase-js';
 import { errorMessage } from '@future-flow/contracts';
 import { browserLocale, translate } from './i18n';
 export class ClientError extends Error {
@@ -9,6 +16,15 @@ export class ClientError extends Error {
 export function clientErrorMessage(error: unknown): string {
   if (error instanceof ClientError)
     return errorMessage(browserLocale(), error.code);
+  if (isAuthImplicitGrantRedirectError(error))
+    return errorMessage(
+      browserLocale(),
+      error.details?.code === 'otp_expired'
+        ? 'otp_expired'
+        : 'AUTH_CALLBACK_FAILED',
+    );
+  if (isAuthSessionMissingError(error))
+    return errorMessage(browserLocale(), 'AUTH_REQUIRED');
   if (
     error &&
     typeof error === 'object' &&
@@ -16,6 +32,8 @@ export function clientErrorMessage(error: unknown): string {
     typeof error.code === 'string'
   )
     return errorMessage(browserLocale(), error.code);
+  if (isAuthError(error) && !isAuthRetryableFetchError(error))
+    return errorMessage(browserLocale(), 'REQUEST_FAILED');
   return translate(browserLocale(), 'error.network');
 }
 let client: SupabaseClient | null = null;
