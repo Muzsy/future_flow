@@ -81,7 +81,21 @@ def existing_state():
             for c in containers}
 
 
-def validate_owner_configuration(config, access):
+def owner_overlay(text):
+    flags = {}
+    for line in text.splitlines():
+        if not line or line.startswith('#'):
+            continue
+        if not re.fullmatch(r'[A-Z][A-Z0-9_]+=(?:true|false|0)?', line):
+            raise ValueError('Owner flag overlay contains a non-fixture value')
+        key, value = line.split('=', 1)
+        if key in flags:
+            raise ValueError('Duplicate owner flag')
+        flags[key] = value
+    return flags
+
+
+def validate_owner_configuration(config, access, flags):
     """Refuse a mismatched rendered gate before starting any owner fixture."""
     if len(access['allowedEmails']) != 1:
         raise ValueError('Owner-only configuration required')
@@ -108,6 +122,21 @@ def validate_owner_configuration(config, access):
                 'PUBLIC_COLLECTIONS_ENABLED', 'PUBLIC_SCENARIOS_ENABLED']:
         if config['services']['api']['environment'].get(key) != 'true':
             raise ValueError('Owner catalog configuration differs')
+    for service in ['api', 'worker']:
+        environment = config['services'][service]['environment']
+        for key, value in flags.items():
+            # These operator-only keys are checked in the actual server env;
+            # they are deliberately not supplied to the serving containers.
+            if key.endswith('_OPERATOR_ENABLED') or key == 'CLAUDE_PRODUCTION_BUDGET_USD':
+                continue
+            if key == 'CLOSED_SITE_ENABLED' and service == 'worker':
+                continue
+            if key.startswith('AI_BUDGET_WINDOW_') and service == 'api':
+                continue
+            if environment.get(key) != value:
+                raise ValueError('Rendered owner feature matrix differs')
+    if config['services']['web']['environment'].get('PUBLIC_EXTERNAL_EXPOSURE_ENABLED') != 'false':
+        raise ValueError('Owner web could expose public metadata')
 
 
 def prepare_buildx():
@@ -265,13 +294,8 @@ def rehearse(request):
                'CLOUDFLARE_ACCESS_TEAM_DOMAIN': request['access']['teamDomain'],
                'CLOUDFLARE_ACCESS_AUD': request['access']['audience'],
                'CLOSED_SITE_ALLOWED_EMAILS': ','.join(request['access']['allowedEmails'])}
-        for line in (source / 'deploy/closed-site-owner.flags.env').read_text().splitlines():
-            if not line or line.startswith('#'):
-                continue
-            if not re.fullmatch(r'[A-Z][A-Z0-9_]+=(?:true|false|0)?', line):
-                raise ValueError('Owner flag overlay contains a non-fixture value')
-            key, value = line.split('=', 1)
-            env[key] = value
+        flags = owner_overlay((source / 'deploy/closed-site-owner.flags.env').read_text())
+        env.update(flags)
         # Enables the real owner catalog configuration, with a disposable secret.
         env['PUBLICATION_LINK_SECRET'] = '1' * 64
         if any('\n' in v or '\r' in v for v in env.values()):
@@ -281,9 +305,11 @@ def rehearse(request):
         # Exercise the prepared scoped proxy configuration without changing the
         # existing public proxy. Only its certificate source is a private fixture.
         proxy_candidate = request['proxyCandidate']
+        origin_tls = 'tls /data/alterward-origin/origin.crt /data/alterward-origin/origin.key'
+        if proxy_candidate.count(origin_tls) != 2:
+            raise ValueError('Explicit origin certificate configuration required')
         fixture_proxy = proxy_candidate.replace(
-            'alterward.com {',
-            'alterward.com {\n    tls /fixture/server.crt /fixture/server.key')
+            origin_tls, 'tls /fixture/server.crt /fixture/server.key')
         private_file(fixture / 'Caddyfile', (
             'https://localhost {\n tls /fixture/server.crt /fixture/server.key\n'
             ' handle /api/* {\n reverse_proxy alterward-api:4000\n }\n'
@@ -313,7 +339,7 @@ def rehearse(request):
             return run([*compose_args, *args], **kwargs)
         PHASE = 'fixture-compose-boundaries'
         config = json.loads(compose('config', '--format', 'json').stdout)
-        validate_owner_configuration(config, request['access'])
+        validate_owner_configuration(config, request['access'], flags)
         if set(config['services']) != {'web', 'api', 'worker', 'postgres', 'smoke-proxy'}:
             raise ValueError('Unexpected service set')
         if any(service.get('ports') for service in config['services'].values()):

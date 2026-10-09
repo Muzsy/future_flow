@@ -11,6 +11,8 @@
 }
 
 alterward.com {
+    # Cloudflare Origin CA, issued for these two names; no ACME Access bypass.
+    tls /data/alterward-origin/origin.crt /data/alterward-origin/origin.key
     route {
         import alterward-cloudflare-only
         encode zstd gzip
@@ -28,6 +30,7 @@ alterward.com {
 }
 
 www.alterward.com {
+    tls /data/alterward-origin/origin.crt /data/alterward-origin/origin.key
     route {
         import alterward-cloudflare-only
         redir https://alterward.com{uri} 308

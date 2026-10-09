@@ -1,0 +1,46 @@
+# alterward — az első védett indítás és visszaállítás
+
+2026-10-09 · [Kiadási mátrix](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) · [Célpróba](CONTABO_TARGET_REHEARSAL_HU.md) · [Audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
+
+Ez a konkrét végrehajtási sorrend; a szerver még nem szolgálja az alterward oldalt. Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható.
+
+## Indítás előtt
+
+1. A teljes hatrészes Claude Cloud-audit és Codex finding-értékelés lezárása; kiadást érintő közepes jelzések ellenőrzött kezelése. Végső alkalmazási commit, valódi célimage ID és az ettől eltérő operátori/config commit/hash külön rögzített. A main CI verify/container és a pontos image teljes célpróbája sikeres.
+2. A védett owner env új image-tagjának egyeztetése; az OpenAI-kulcs használhatatlan placeholder, minden paid allowance 0, UUID-lista és 30 napos ablak üres. Supabase admin/DB/link kulcsok kizárólag root-only, checkouton kívüli env-ben. SMTP-jelszó nincs a VPS-en.
+3. A [valódi owner preflight](../scripts/contabo-owner-preflight.mjs) a tényleges védett env-et ellenőrzi a célgépi Compose-renderben, nem dummy fixture-rel. Minden owner overlay-érték, a web/API pontos team/AUD/egy email, kikapcsolt Shared/review/fork/exposure, nulla paid konfiguráció és rögzített image ID vizsgált. Az image override mindhárom szolgáltatásnál a korábban ellenőrzött helyi image ID-t használja, `pull_policy: never`; portpublikálás nincs. Hibánál nincs indítás. A preflight csak ideiglenes root-only fájlokat ír, utána eltávolítja őket; nem kapcsolódik DB-hez és nem indít konténert.
+
+```powershell
+node scripts/contabo-owner-preflight.mjs
+```
+
+4. Az indító művelet ugyanebben a környezetben közvetlenül az `up` előtt újra futtatja a teljes render-őrt; önmagában egy régi preflight proof nem engedélyez megváltozott env-et. A futó web/API/worker image ID, teljes deklarált feature-környezet és portok ismét ellenőrzendők, titkos értékek kiírása nélkül. Negatív origin Access-próba szükséges a route bekapcsolása előtt.
+5. A közös Caddy tényleges fájljának és Compose-konfigurációjának root-only/hash-ellenőrzött mentése. A korábbi hat konténer ID/restart/állapot, hálózatok és hostonkénti route-válasz rögzített. A már hibás négy régi origin TLS nem az új kiadás hibája, és nem javítjuk őket a tulajdonos jóváhagyása nélkül.
+
+## Origin TLS és DNS
+
+A kijelölt megoldás **Cloudflare Origin CA**, kizárólag `alterward.com` és `www.alterward.com` névre, a szerveren készített privát kulccsal és publikus CSR-rel. A privát kulcs nem kerül a Cloudflare űrlapjába, chatbe vagy Gitbe. A meglévő Caddy `/data` bind-mountján külön védett alterward-könyvtárban tároljuk; új bind-mount miatti közös proxy-újralétrehozás nem szükséges. A kiadott cert csak e két site blokkban `tls <cert> <key>` beállítással töltődik be. Nincs ACME/Access bypass vagy ideiglenes DNS-only szakasz.
+
+A Cloudflare **Full (strict)** kézi mód 2026-10-09-én elmentve és dashboardon visszaolvasva; az automatikus Full mód kikapcsolva. Aktiválás előtt a cert lánca/nyilvános kulcsa/SAN/lejárata és a kulcshoz tartozása ellenőrzendő. A lejárat root-only inventoryba és az operátori figyelési listába kerül; 30 napon belüli lejárat indítási/üzemeltetési hiba. Saját 30 napos figyelmeztető próba még nem lefutott. [Cloudflare hivatalos útmutató](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/).
+
+Az Origin CA-t a böngésző közvetlenül nem bízza meg: a publikus apex/www rekordok végig **proxied** állapotban működnek, a látogató a Cloudflare publikus certjét kapja. A közvetlen origin-próba a hivatalos Origin CA gyökérrel, bekapcsolt cert/hostname-validálással dolgozik; ez nem böngészős TLS-bypass. A scoped Caddy-szabály továbbra 403-at ad a nem Cloudflare TCP peernek, saját fiókjogoknál is. Cloudflare JWT továbbra szükséges a védett alkalmazásúton, a többi Cloudflare ügyfél IP-je önmagában nem jogosultság.
+
+Csak auditált/ellenőrzött Caddy-merge és működő origin TLS után kerülhet be a proxied apex A és www CNAME rekord. A kilenc meglévő mail-rekord nem változik. IPv6 AAAA nem kerül be külön IPv6-próba nélkül. DNS/route aktiválás nem indítja el a béta-keretet.
+
+## Közös proxy és működési próba
+
+A Caddy jelenlegi hálózatai megmaradnak. Az `alterward_proxy` hálózat élő csatlakoztatása mellett a közös forrás-Compose **tartós** hálózatkiegészítését is el kell menteni és render-diffben ellenőrizni; nem futtatunk `compose up`-ot a közös proxyn. A következő, külön jóváhagyott újralétrehozáskor az új csatlakozás így nem vész el. Az első kiadás csak `caddy reload`, sikeres adapt/validate után. Sikertelen validáláskor a régi config marad; újratöltés után az összes korábbi route és konténerállapot ellenőrzendő.
+
+Külső negatív próba: login nélküli főoldal/deep link/API nem olvasható; hamis token/email, idegen Host, közvetlen IP és leszármazott/method kivétel tiltott. Pozitív próba: tulajdonosi Access OTP, 16 Official/5 Scenario, no-store/noindex, www átirányítás, mobil/asztali használat. A valódi Cloudflare peer melletti `Cf-Connecting-Ip` → API cím/rate-limit pozitív ága és header nélküli 400 ellenőrzendő. A 22 CIDR aktiváláskor összevetendő a [Cloudflare IPv4](https://www.cloudflare.com/ips-v4) és [IPv6](https://www.cloudflare.com/ips-v6) listával; drift fail-closed hibának számít, automatikus vak configcsere nincs.
+
+Auth külön próba: meghívott owner account, angol email, HTTPS callback, friss hitelesítés, saját export/törlés és támogatási válaszút. Email-küldést és jelszó beállítását a konkrét védett oldal elkészülte után egyeztetjük. Spambe érkező levél nem kézbesítési siker minden elfogadási pont szerint; fejlécek/alignment és válasz visszaérkezése külön bizonyíték.
+
+## Megfigyelés és visszaállítás
+
+Owner-próba alatt minden használati kör előtt és után az operátor ellenőrzi a web/API Docker health állapotát, a worker futó/exit/restart/OOM állapotát, a zárt és nulla-budget környezetet, a hat régi konténer változatlanságát és a `privacy:recover` összesített pending számait. Az Access login oldal külső elérhetősége az edge működését bizonyítja, nem a katalógus/backend egészségét; ezek külön saját hitelesített próba és belső health. A workerhez nem állítunk késznek még nem implementált heartbeat-healthchecket. Automatikus monitor/értesítés és pending-recovery figyelés a tesztelői meghívás előtt szükséges.
+
+Hibás első kiadás visszaállítása: csak az alterward szolgáltatásait leállítjuk, az ellenőrzött Caddy előző fájlját visszatöltjük és validálás után reloadoljuk, megőrizzük a hibás kiadás image/config/proofját. A közös proxy nem indul újra, más app nem áll le. Az Access védelmet nem kapcsoljuk ki; a saját API-portok továbbra nem publikáltak. Működő korábbi alterward kiadás még nincs, ezért az első rollback eredménye biztonságos leállított állapot, nem egy régi, auditálatlan alkalmazási image aktiválása.
+
+Későbbi alkalmazási rollback kizárólag a korábban auditált, helyben megőrzött image ID-ra történhet, a jelenlegi hozzáférési és privacy állapot megtartásával, ugyanazzal a teljes render/post-start őrrel. **Adatbázis-visszaállítás nem része ennek:** régi mentés nem állhat kiszolgálásba Auth/törlés/engedély-visszavonás replay nélkül. [Mentési határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md).
+
+Az észlelés → alterward-stop → korábbi Caddy-reload próba, a cert 30 napos figyelmeztetés és a végleges pozitív edge/Auth/UI bizonyíték még nyitott. E runbook elkészülte nem jelenti e gyakorlatok sikerét.

@@ -2,7 +2,7 @@
 
 2026-10-09 · Elfogadott kiadási terv; a teljes P01–P13 / Shared S0–S7 terv kiegészítése. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Kötelező részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-**Aktuális checkpoint:** Cloudflare Free/OTP és owner-only védelem mentett; Supabase signup Off. Titkosított offsite/izolált restore és [teljes Contabo célpróba](CONTABO_TARGET_REHEARSAL_HU.md) sikeres az 5e9 image-en. [Kiadási mátrix](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) rögzített; négy Cloud-audit rész visszaolvasva, ops/synthesis még szükséges. A CON-03 fióktörlési recovery hiba reprodukált/javított; új végső alkalmazási image és próba szükséges. Éles runtime/DNS/route, Access/Auth/email/UI integráció még nincs; béta-időszak inaktív.
+**Aktuális checkpoint:** [Új Contabo appimage/CI/célpróba és valódi owner preflight](CONTABO_TARGET_REHEARSAL_HU.md) sikeres, nulla AI-költéssel. [Cloud-audit öt része és önálló értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész; a hatodik összegzés még nyitott. [Konkrét cert/DNS/aktiválás/rollback runbook](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész, Full (strict) mentett, root-only saját CSR előkészített. Cert/éles runtime/DNS/route és élő Access/Auth/email/UI bizonyíték még nincs; béta-időszak inaktív.
 
 ## Elfogadott indulási sorrend
 

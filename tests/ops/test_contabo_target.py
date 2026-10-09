@@ -19,6 +19,10 @@ sys.modules['alterward_backup'] = library
 spec = importlib.util.spec_from_file_location('target', ROOT / 'scripts/ops/contabo-target.py')
 target = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(target)
+sys.modules['alterward_target'] = target
+owner_spec = importlib.util.spec_from_file_location('owner', ROOT / 'scripts/ops/contabo-owner.py')
+owner = importlib.util.module_from_spec(owner_spec)
+owner_spec.loader.exec_module(owner)
 
 
 def archive(entries):
@@ -37,6 +41,14 @@ def archive(entries):
 
 
 class SourceArchiveSafetyTests(unittest.TestCase):
+    def test_actual_server_environment_is_data_not_shell(self):
+        self.assertEqual(owner.server_environment("# private template\nCLOSED_SITE_ENABLED='true'\nDATABASE_URL='postgresql://fixture@fixture/db'\n"),
+                         {'CLOSED_SITE_ENABLED': 'true', 'DATABASE_URL': 'postgresql://fixture@fixture/db'})
+        for text in ["KEY='first'\nKEY='second'", "KEY=unquoted", "KEY='one' command",
+                     "KEY='line\nbreak'", "KEY='back\\slash'"]:
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                owner.server_environment(text)
+
     def test_rendered_owner_gate_and_paid_state_fail_closed(self):
         access = {'teamDomain': 'example.cloudflareaccess.com',
                   'audience': 'a' * 64, 'allowedEmails': ['owner@example.invalid']}
@@ -46,14 +58,15 @@ class SourceArchiveSafetyTests(unittest.TestCase):
                 'CLOSED_SITE_ALLOWED_EMAILS': access['allowedEmails'][0]}
         paid = {'CLOSED_BETA_ENABLED': 'true', 'CLOSED_BETA_USER_IDS': '',
                 'AI_PROJECT_BUDGET_USD': '0', 'AI_USER_BUDGET_USD': '0'}
+        flags = target.owner_overlay((ROOT / 'deploy/closed-site-owner.flags.env').read_text())
         config = {'services': {
-            'web': {'environment': gate},
-            'api': {'environment': {**gate, **paid,
+            'web': {'environment': {**gate, 'PUBLIC_EXTERNAL_EXPOSURE_ENABLED': 'false'}},
+            'api': {'environment': {**flags, **gate, **paid,
                     **{key: 'true' for key in ['OFFICIAL_PUBLICATIONS_ENABLED',
                        'DISCOVERY_ENABLED', 'PUBLIC_COLLECTIONS_ENABLED', 'PUBLIC_SCENARIOS_ENABLED']}}},
-            'worker': {'environment': {**paid, 'AI_BUDGET_WINDOW_REQUIRED': 'true',
+            'worker': {'environment': {**flags, **paid, 'AI_BUDGET_WINDOW_REQUIRED': 'true',
                        'AI_BUDGET_WINDOW_START': '', 'AI_BUDGET_WINDOW_END': ''}}}}
-        target.validate_owner_configuration(config, access)
+        target.validate_owner_configuration(config, access, flags)
         for service, key, value in [('web', 'CLOSED_SITE_ENABLED', 'false'),
                                     ('api', 'CLOSED_SITE_ENABLED', None),
                                     ('api', 'CLOUDFLARE_ACCESS_AUD', 'b' * 64),
@@ -61,12 +74,22 @@ class SourceArchiveSafetyTests(unittest.TestCase):
                                     ('worker', 'AI_PROJECT_BUDGET_USD', '2'),
                                     ('api', 'CLOSED_BETA_ENABLED', 'false'),
                                     ('worker', 'CLOSED_BETA_USER_IDS', 'uninvited-user'),
-                                    ('worker', 'AI_BUDGET_WINDOW_START', '2026-10-09T00:00:00Z')]:
+                                    ('worker', 'AI_BUDGET_WINDOW_START', '2026-10-09T00:00:00Z'),
+                                    ('api', 'SHARED_FRIEND_ENABLED', 'true'),
+                                    ('worker', 'PUBLIC_REVIEW_JOBS_ENABLED', 'true'),
+                                    ('api', 'PUBLIC_FORK_STARTS_ENABLED', None),
+                                    ('web', 'PUBLIC_EXTERNAL_EXPOSURE_ENABLED', 'true')]:
             with self.subTest(service=service, key=key):
                 changed = deepcopy(config)
                 changed['services'][service]['environment'][key] = value
                 with self.assertRaises(ValueError):
-                    target.validate_owner_configuration(changed, access)
+                    target.validate_owner_configuration(changed, access, flags)
+
+    def test_owner_overlay_rejects_duplicate_or_unbounded_values(self):
+        for text in ['CLOSED_SITE_ENABLED=true\nCLOSED_SITE_ENABLED=false',
+                     'OPENAI_API_KEY=private-key', 'PUBLICATIONS_ENABLED=true; command']:
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                target.owner_overlay(text)
 
     def test_host_credentials_cannot_override_fixture_environment(self):
         with patch.dict(os.environ, {'PATH': 'safe-path', 'HOME': 'safe-home',
