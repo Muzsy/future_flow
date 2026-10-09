@@ -167,7 +167,8 @@ class MonitorTests(unittest.TestCase):
         self.assertFalse(daily.owner_only_environment('api', {}))
         env = {'AI_PROJECT_BUDGET_USD': '0', 'AI_USER_BUDGET_USD': '0',
                'OPENAI_API_KEY': 'alterward_owner_provider_access_disabled'}
-        self.assertTrue(daily.owner_only_environment('api', env))
+        self.assertTrue(daily.owner_only_environment('api', {k: v for k, v in env.items() if k != 'OPENAI_API_KEY'}))
+        self.assertFalse(daily.owner_only_environment('api', env))
         self.assertTrue(daily.owner_only_environment('worker', env))
         self.assertFalse(daily.owner_only_environment('web', env))
         self.assertFalse(daily.owner_only_environment('worker', {**env, 'AI_PROJECT_BUDGET_USD': '1'}))

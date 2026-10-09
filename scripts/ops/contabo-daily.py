@@ -160,7 +160,8 @@ def owner_only_environment(service, env):
     return (not env.get('CLOSED_BETA_USER_IDS') and env.get('AI_PROJECT_BUDGET_USD') == '0' and
             env.get('AI_USER_BUDGET_USD') == '0' and not env.get('ANTHROPIC_API_KEY') and
             not env.get('AI_BUDGET_WINDOW_START') and not env.get('AI_BUDGET_WINDOW_END') and
-            env.get('OPENAI_API_KEY') == 'alterward_owner_provider_access_disabled')
+            (env.get('OPENAI_API_KEY') == 'alterward_owner_provider_access_disabled'
+             if service == 'worker' else not env.get('OPENAI_API_KEY')))
 
 
 def owner_runtime():
