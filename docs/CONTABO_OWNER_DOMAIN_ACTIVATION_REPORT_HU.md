@@ -2,7 +2,7 @@
 
 2026-10-09 · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Végrehajtás és rollback](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) · [Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md).
 
-**Az alterward.com és www.alterward.com HTTPS-bekötése aktív, a katalógus tulajdonosi Cloudflare Access-belépés mögött marad.** A felhasználó külön jóváhagyta az egyéves Origin CA tanúsítványt és a két proxied DNS-rekordot. A bekötés utáni [pozitív tulajdonosi UI-próba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) mind a 16 élet/48 fejezet és öt Scenario tényleges olvashatóságát igazolta; a külön Supabase Auth/email út még nyitott. Tesztelő meghívva nincs, fizetett UUID-lista üres, a 30 napos ablak és minden AI-allowance inaktív. Az alkalmazási image a már auditált `35f9889`; az indító ops állapot `44e22e5`, sikeres [CI-vel](https://github.com/Muzsy/future_flow/actions/runs/37894534132).
+**Az alterward.com és www.alterward.com HTTPS-bekötése aktív, a katalógus tulajdonosi Cloudflare Access-belépés mögött marad.** A felhasználó külön jóváhagyta az egyéves Origin CA tanúsítványt és a két proxied DNS-rekordot. A bekötés utáni [pozitív tulajdonosi UI-próba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) mind a 16 élet/48 fejezet és öt Scenario tényleges olvashatóságát igazolta; a későbbi saját Supabase-meghívó spambe érkezett, megerősített fiók/belépés és friss-auth saját export sikeres; recovery és levélfejlécek/válaszút még nyitott. Tesztelő meghívva nincs, fizetett UUID-lista üres, a 30 napos ablak és minden AI-allowance inaktív. Az alkalmazási image a már auditált `35f9889`; az indító ops állapot `44e22e5`, sikeres [CI-vel](https://github.com/Muzsy/future_flow/actions/runs/37894534132).
 
 ## Tanúsítvány és DNS
 
@@ -40,7 +40,7 @@ A tényleges Cloudflare peer/API átjárás működik, amit az export 401 és a 
 ## Következő kapuk
 
 1. **Tulajdonosi Access/UI lezárult:** a felhasználó belépett; 16 Official élet/48 fejezet és öt Scenario minden külön oldala, mobil/asztali felület, idővonal és védett www út ellenőrzött. Kód/cookie/JWT nem került kiolvasásra, chatbe vagy Gitbe. [Későbbi UI és 27 anonim kérés](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md).
-2. Owner Supabase-fiók/meghívó és angol Auth email, HTTPS callback, friss saját hitelesítés/joggyakorlás, spam/alignment és válaszút külön ellenőrzése. A Codex e bekötés során nem küldött Auth-meghívót vagy emailt.
+2. A bekötéskor még nem ment Auth-email; a későbbi külön jóváhagyott saját meghívó után Supabase-fiók/belépés és friss-auth export sikeres. Spambe kézbesítés igazolt; alignment/fejlécek, recovery/signup, támogatási válasz és törlés-recovery/replay még külön ellenőrzés.
 3. Pozitív owner/origin/cache/IP/limiter próbák, tényleges monitoring/pending-recovery és privacy/retention/replay, majd paid-job concurrency/repair/restart kapuk a tesztelők előtt. API robots-header egységesítése ugyanebbe a későbbi hardening körbe kerül.
 4. Tesztelők kiválasztása, név szerinti jogosultság és Auth UUID, majd a felhasználó által engedélyezett **10 USD** plafon tényleges 30 napjának aktiválása. Ez a domainbekötéssel nem indul el. A teljes P01–P13 / Shared S0–S7 terv megmarad; Shared továbbra kikapcsolt.
 

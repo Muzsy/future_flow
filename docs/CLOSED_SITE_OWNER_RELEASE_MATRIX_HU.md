@@ -2,7 +2,7 @@
 
 2026-10-09 · [Elfogadott kiadási sorrend](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első üzemeltetői, katalógusolvasásra szánt konfiguráció. A tényleges root-only env/frozen Compose és hash-kötött launch a Contabón aktivált; image/env/port/health/resource ellenőrzött. A [domain is aktív owner Access mögött](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md), húsz anonim külső próba és valódi proxy/alkalmazási rollback sikeres. [Pozitív owner UI](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) sikeres; a külön saját Supabase Auth még szükséges. Fizetett UUID, allowance és béta-időszak továbbra inaktív; az overlay nem a későbbi tester-paid engedély. A teljes P01–P13 / Shared S0–S7 terv és a későbbi tízfős béta megmarad.
+A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első üzemeltetői, katalógusolvasásra szánt konfiguráció. A tényleges root-only env/frozen Compose és hash-kötött launch a Contabón aktivált; image/env/port/health/resource ellenőrzött. A [domain is aktív owner Access mögött](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md), húsz anonim külső próba és valódi proxy/alkalmazási rollback sikeres. [Pozitív owner UI](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) sikeres; a későbbi saját Supabase-belépés és friss-auth adatexport is ténylegesen ellenőrzött; a meghívó spambe érkezett, recovery és levelezési fejlécek/válaszút még külön feladat. Fizetett UUID, allowance és béta-időszak továbbra inaktív; az overlay nem a későbbi tester-paid engedély. A teljes P01–P13 / Shared S0–S7 terv és a későbbi tízfős béta megmarad.
 
 | Terület | Első telepítés |
 | --- | --- |

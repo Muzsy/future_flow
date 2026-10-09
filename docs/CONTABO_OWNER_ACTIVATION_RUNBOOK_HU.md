@@ -2,7 +2,7 @@
 
 2026-10-09 · [Kiadási mátrix](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) · [Célpróba](CONTABO_TARGET_REHEARSAL_HU.md) · [Audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-Ez a konkrét végrehajtási sorrend; a három szolgáltatás és az alterward.com HTTPS domain/TLS/Caddy route már aktív, kizárólag tulajdonosi Cloudflare Access mögött. [Tényleges bekötés, rollback és húsz külső próba](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md). Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható; a [későbbi pozitív UI-próba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) mind a 16 élet/48 fejezet és öt Scenario olvashatóságát igazolta. Saját Supabase Auth/email még külön kapu.
+Ez a konkrét végrehajtási sorrend; a három szolgáltatás és az alterward.com HTTPS domain/TLS/Caddy route már aktív, kizárólag tulajdonosi Cloudflare Access mögött. [Tényleges bekötés, rollback és húsz külső próba](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md). Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható; a [későbbi pozitív UI-próba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) mind a 16 élet/48 fejezet és öt Scenario olvashatóságát igazolta. A saját Supabase-belépés és friss-auth export később ellenőrzött; a meghívó spambe érkezett, recovery és fejlécek/válaszút még külön kapu.
 
 ## Indítás előtt
 
@@ -51,7 +51,7 @@ A Caddy jelenlegi hálózatai megmaradnak. Az `alterward_proxy` hálózat élő 
 
 Külső negatív próba: login nélküli főoldal/deep link/API nem olvasható; hamis token/email, idegen Host, közvetlen IP és leszármazott/method kivétel tiltott. Pozitív próba: tulajdonosi Access OTP, 16 Official/5 Scenario, no-store/noindex, www átirányítás, mobil/asztali használat. A valódi Cloudflare peer melletti `Cf-Connecting-Ip` → API cím/rate-limit pozitív ága és header nélküli 400 ellenőrzendő. A 22 CIDR aktiváláskor összevetendő a [Cloudflare IPv4](https://www.cloudflare.com/ips-v4) és [IPv6](https://www.cloudflare.com/ips-v6) listával; drift fail-closed hibának számít, automatikus vak configcsere nincs.
 
-Auth külön próba: meghívott owner account, angol email, HTTPS callback, friss hitelesítés, saját export/törlés és támogatási válaszút. Email-küldést és jelszó beállítását a konkrét védett oldal elkészülte után egyeztetjük. Spambe érkező levél nem kézbesítési siker minden elfogadási pont szerint; fejlécek/alignment és válasz visszaérkezése külön bizonyíték.
+Auth-próba: az egy külön jóváhagyott meghívó után a tulajdonos beállította jelszavát és belépett. A saját confirmation/sign-in, belépett felület és friss-auth export ellenőrzött. Recovery/signup, törlés-recovery/replay és támogatási válaszút még külön próba. Spambe érkező levél nem kézbesítési siker minden elfogadási pont szerint; fejlécek/alignment és válasz visszaérkezése külön bizonyíték.
 
 ## Megfigyelés és visszaállítás
 
@@ -61,7 +61,7 @@ Hibás első kiadás visszaállítása: csak az alterward szolgáltatásait leá
 
 Későbbi alkalmazási rollback kizárólag a korábban auditált, helyben megőrzött image ID-ra történhet, a jelenlegi hozzáférési és privacy állapot megtartásával, ugyanazzal a teljes render/post-start őrrel. **Adatbázis-visszaállítás nem része ennek:** régi mentés nem állhat kiszolgálásba Auth/törlés/engedély-visszavonás replay nélkül. [Mentési határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md).
 
-A DNS-bekötés előtt tényleges korábbi-Caddy reload, tartós proxy-hálózat visszavonás/detach, saját három szolgáltatás stop/down, majd őrzött újralaunch és scoped proxy-újraaktiválás sikeres. A harmincnapos expiry hibakapu valódi fixture-próbája és húsz külső HTTPS-próba is sikeres. A későbbi [pozitív owner Access/UI és 27 névtelen utópróba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) is lezárult. Automatikus észlelés/riasztás, saját Supabase Auth/email, pontos IP/limiter és pozitív cache-header még nyitott; az infrastruktúra-próbákat a [domainriport](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md) rögzíti.
+A DNS-bekötés előtt tényleges korábbi-Caddy reload, tartós proxy-hálózat visszavonás/detach, saját három szolgáltatás stop/down, majd őrzött újralaunch és scoped proxy-újraaktiválás sikeres. A harmincnapos expiry hibakapu valódi fixture-próbája és húsz külső HTTPS-próba is sikeres. A későbbi [pozitív owner Access/UI és 27 névtelen utópróba](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md) is lezárult. Saját Supabase-belépés/export később sikeres. Automatikus észlelés/riasztás, email-fejlécek/válaszút, recovery/signup, pontos IP/limiter és pozitív cache-header még nyitott; az infrastruktúra-próbákat a [domainriport](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md) rögzíti.
 
 ## Megszakítás, rollback és őrzött újraindítás
 
