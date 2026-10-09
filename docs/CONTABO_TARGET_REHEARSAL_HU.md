@@ -69,3 +69,7 @@ A [teljes Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) hat része elk
 ## Későbbi védett domainindulás
 
 2026-10-09: ugyanaz a 35f9889 appimage, 44e22e5 ops állapot és guarded újralaunch a tényleges proxy/alkalmazási rollback után is sikeres. Origin CA/Full (strict), scoped Caddy és tartós hálózat aktivált, apex/www proxied DNS kész. Hat korábbi konténer/route és kilenc mail-rekord változatlan. Az új TLS/owner konfiguráció 36 fájlos titkosított offsite restore-ja és húsz külső anonim HTTPS-contract próba sikeres; owner pozitív belépés/UI és Auth/email/cache/IP még nem késznek jelölt. Béta/paid 0, új provider-költés 0 USD. [Tényleges eredmények](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).
+
+## Pozitív tulajdonosi éles UI és névtelen utópróba
+
+2026-10-09: a felhasználó OTP-belépése után mind a 16 Official élet/48 fejezet és az öt Scenario részlete éles böngészőben betöltött. Idővonal, védett www és mobil/asztali layout ellenőrzött; utána 27 credential nélküli HTTPS-kérés mind loginra irányított, cache HIT nélkül. Token/cookie nem lett kiolvasva. Saját Supabase Auth/email, pozitív cache-header és pontos kliens-IP/limiter külön kapu; paid/béta továbbra 0. [Részletes UI-bizonyíték](CONTABO_OWNER_UI_VERIFICATION_REPORT_HU.md).
