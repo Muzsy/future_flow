@@ -162,6 +162,22 @@ class DailyArchiveTests(unittest.TestCase):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_edge_probe_identifies_itself_and_requires_exact_login_gate(self):
+        import urllib.error
+        from unittest.mock import Mock
+        team = 'fixture.cloudflareaccess.com'
+        opener = Mock()
+        for status, host, cache, accepted in [(302, team, '', True),
+                (302, 'wrong.invalid', '', False), (302, team, 'HIT', False),
+                (403, team, '', False)]:
+            opener.open.side_effect = urllib.error.HTTPError('https://alterward.com/discover',
+                status, 'fixture', {'Location': 'https://' + host + '/cdn-cgi/access/login/alterward.com',
+                                    'CF-Cache-Status': cache}, None)
+            with patch.object(daily.urllib.request, 'build_opener', return_value=opener):
+                self.assertEqual(daily.edge_closed(team), accepted)
+            request = opener.open.call_args.args[0]
+            self.assertEqual(request.get_header('User-agent'), 'Alterward-Release-Verification/1')
+
     def test_database_tls_comes_from_actual_frozen_api_environment(self):
         source = b"DATABASE_URL='postgresql://fixture_user:fixture_pass@fixture.invalid:5432/postgres'\n"
         actual = {'services': {'api': {'environment': {'DATABASE_SSL': 'true'}}}}

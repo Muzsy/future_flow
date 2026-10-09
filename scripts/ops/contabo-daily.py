@@ -445,7 +445,9 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def edge_closed(team):
     opener = urllib.request.build_opener(NoRedirect())
     try:
-        opener.open('https://alterward.com/discover', timeout=15).close()
+        request = urllib.request.Request('https://alterward.com/discover',
+            headers={'User-Agent': 'Alterward-Release-Verification/1'})
+        opener.open(request, timeout=15).close()
         return False
     except urllib.error.HTTPError as error:
         try:
