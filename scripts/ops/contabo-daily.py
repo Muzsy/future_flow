@@ -201,7 +201,8 @@ def owner_database():
             raise ValueError('Protected environment invalid')
         env[match[1]] = match[2]
     value = urllib.parse.urlsplit(env['DATABASE_URL'])
-    if value.scheme not in ['postgres', 'postgresql'] or value.query or env['DATABASE_SSL'] != 'true':
+    actual = json.loads(regular(OWNER / 'effective-compose.json'))['services']['api']['environment']
+    if value.scheme not in ['postgres', 'postgresql'] or value.query or actual.get('DATABASE_SSL') != 'true':
         raise ValueError('Verified database connection required')
     return {'host': value.hostname, 'port': str(value.port or 5432),
             'name': urllib.parse.unquote(value.path[1:]),
@@ -535,6 +536,7 @@ def run_operation(action):
         except Exception:
             result = {'ok': False, 'capturedAt': utcnow().isoformat(),
                       'alerts': [action + '_operation_failed'], 'paidAiCalls': 0,
+                      'phase': backup.PHASE if action == 'backup' else 'monitor-checks',
                       'externalMessageSent': False}
             atomic(ROOT / 'status' / (action + '.json'), result)
             return result

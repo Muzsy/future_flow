@@ -162,6 +162,15 @@ class DailyArchiveTests(unittest.TestCase):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_database_tls_comes_from_actual_frozen_api_environment(self):
+        source = b"DATABASE_URL='postgresql://fixture_user:fixture_pass@fixture.invalid:5432/postgres'\n"
+        actual = {'services': {'api': {'environment': {'DATABASE_SSL': 'true'}}}}
+        with patch.object(daily, 'regular', side_effect=lambda p: source if p.name == 'server.env' else json.dumps(actual).encode()):
+            self.assertEqual(daily.owner_database()['host'], 'fixture.invalid')
+            actual['services']['api']['environment']['DATABASE_SSL'] = 'false'
+            with self.assertRaises(ValueError):
+                daily.owner_database()
+
     def test_web_has_no_provider_configuration_api_and_worker_require_zero_budget(self):
         self.assertTrue(daily.owner_only_environment('web', {}))
         self.assertFalse(daily.owner_only_environment('api', {}))
