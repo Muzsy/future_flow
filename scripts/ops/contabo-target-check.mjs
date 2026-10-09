@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { request as httpsRequest } from 'node:https';
+import { checkServerIdentity } from 'node:tls';
 import { connectDatabase } from '@future-flow/database';
 
 // Runs only inside the isolated API container; contains no live credentials.
@@ -16,7 +17,12 @@ function request(path, method = 'GET', hostname = 'localhost') {
       {
         hostname: 'smoke-proxy',
         port: 443,
-        servername: hostname,
+        // Keep the fixture's configured SNI so a negative identity probe tests
+        // the client certificate check, rather than Caddy's unknown-SNI policy.
+        servername: 'localhost',
+        checkServerIdentity: (_servername, certificate) =>
+          checkServerIdentity(hostname, certificate),
+        agent: false,
         path,
         method,
         ca,

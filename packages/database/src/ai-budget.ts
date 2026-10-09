@@ -41,6 +41,16 @@ function invalidBudgetConfig(): never {
     503,
   );
 }
+// A protected deployment precedes tester selection. Its worker can start with
+// no spending period only when nobody is admitted and every allowance is zero.
+function inactiveClosedBeta(config: ApplicationAiBudgetConfig) {
+  return (
+    config.closedBetaUserIds?.length === 0 &&
+    config.projectUsd === 0 &&
+    config.userUsd === 0 &&
+    (config.initialProjectSpentUsd ?? 0) === 0
+  );
+}
 function budgetWindow(window: ApplicationAiBudgetConfig['window']) {
   if (!window) return undefined;
   const timestamps = [window.startsAt, window.endsAt].map((value) => {
@@ -106,9 +116,11 @@ export function applicationAiBudgetConfigFromEnv(
     )
       return invalidBudgetConfig();
     if (
-      !config.window ||
-      Date.parse(config.window.endsAt) - Date.parse(config.window.startsAt) !==
-        30 * 86400000
+      config.window
+        ? Date.parse(config.window.endsAt) -
+            Date.parse(config.window.startsAt) !==
+          30 * 86400000
+        : !inactiveClosedBeta(config)
     )
       return invalidBudgetConfig();
   }
@@ -134,10 +146,11 @@ export class DatabaseAiBudget {
         config.projectUsd >
           ((config.provider ?? 'openai') === 'anthropic' ? 1 : 2) ||
         config.userUsd > 0.5 ||
-        !this.config.window ||
-        Date.parse(this.config.window.endsAt) -
-          Date.parse(this.config.window.startsAt) !==
-          30 * 86400000
+        (this.config.window
+          ? Date.parse(this.config.window.endsAt) -
+              Date.parse(this.config.window.startsAt) !==
+            30 * 86400000
+          : !inactiveClosedBeta(this.config))
       )
         invalidBudgetConfig();
     }
@@ -146,7 +159,11 @@ export class DatabaseAiBudget {
       !['openai', 'anthropic'].includes(config.provider)
     )
       invalidBudgetConfig();
-    if (config.provider === 'anthropic' && !this.config.window)
+    if (
+      config.provider === 'anthropic' &&
+      !this.config.window &&
+      !inactiveClosedBeta(this.config)
+    )
       invalidBudgetConfig();
     const window = this.config.window;
     this.projectKey = window

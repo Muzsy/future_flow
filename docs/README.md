@@ -10,6 +10,8 @@ Legújabb üzemeltetési bizonyíték: [Contabo titkosított mentés és izolál
 
 Következő operatív próba: [izolált célkörnyezeti build/web/API/worker](CONTABO_TARGET_REHEARSAL_HU.md), saját korlátozott builderrel és ideiglenes TLS/DB környezettel; éles route nélkül.
 
+Az első owner-only telepítés [konkrét konfigurációja](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md): jóváhagyott 15/5 kínálat olvasása, üres fizetett UUID-lista és nulla költségkeret, külső exposure és Shared nélkül. A célgépi build sikeres; az inaktív béta-window worker-indításának feltárt hibája javítás/új runtime-próba alatt.
+
 | Dokumentum | Mire ad választ? |
 |---|---|
 | [Teljes dokumentáció-felülvizsgálat](DOCUMENTATION_REVIEW_HU.md) | Mit javítottunk, milyen kód/CI/operatív bizonyíték alapján és milyen ellenőrzéssel? |

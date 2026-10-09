@@ -10,6 +10,8 @@ Codex írja a promptokat, visszaolvassa és rendszerezi az eredményt, saját ma
 
 ## Vizsgálati csomag
 
+Az első owner-only kiadás konkrét [flag/config mátrixa](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) és [titokmentes overlay-e](../deploy/closed-site-owner.flags.env) a csomag része. A restore kizárólag izolált fixture-be lehetséges; éles privacy-replay/retention nincs késznek állítva. Az audit értékelje külön e korlátozott üzemeltetői kiadást és a későbbi személyes tesztelői használat kapuit.
+
 | Terület | Kötelező vizsgálat |
 | --- | --- |
 | Hozzáférés és hitelesítés | Access/origin aláírás, issuer/audience/lejárat, kulcsrotáció és kiesés; közvetlen IP/Host, alternatív host, hamis fejléc, SSR/RSC, cache; Supabase ownership/RLS, signup/invite/recovery; API/worker UUID-lista. |

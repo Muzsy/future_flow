@@ -31,7 +31,12 @@ PHASE = 'validation'
 
 
 def run(args, *, timeout=120, input=None, check=True):
-    result = subprocess.run(args, input=input, capture_output=True, timeout=timeout)
+    # Compose process variables override --env-file. Never inherit app credentials
+    # or feature flags from the host, even when another application exports them.
+    environment = {key: os.environ[key] for key in ['PATH', 'HOME', 'LANG', 'LC_ALL', 'TMPDIR']
+                   if key in os.environ}
+    result = subprocess.run(args, input=input, capture_output=True, timeout=timeout,
+                            env=environment)
     if check and result.returncode:
         private_file(ROOT / ('failure-' + str(time.time_ns()) + '.json'),
                      json.dumps({'phase': PHASE,
@@ -309,14 +314,30 @@ def rehearse(request):
                       'liveDatabaseConnection': False, 'liveDatabaseWrites': False,
                       'paidAiCalls': 0, 'runtimeEgressProbesBlocked': 3,
                       'httpChecks': checks, 'workerExitCode': 0}
+        except Exception:
+            # Preserve diagnostics from only our disposable project before cleanup.
+            # Even fixture logs can contain the owner address: never print them.
+            try:
+                diagnostic = {'phase': PHASE,
+                              'services': compose('ps', '-a', '--format', 'json', check=False).stdout.decode(errors='replace'),
+                              'logs': compose('logs', '--no-color', '--tail', '80', check=False).stdout.decode(errors='replace')[-32768:]}
+                private_file(ROOT / ('runtime-diagnostic-' + str(time.time_ns()) + '.json'),
+                             json.dumps(diagnostic).encode())
+            except Exception:
+                pass
+            raise
         finally:
             if created:
+                failed_phase = PHASE
+                had_failure = sys.exc_info()[0] is not None
                 PHASE = 'remove-dedicated-fixtures'
                 compose('down', '--volumes', '--remove-orphans', timeout=90)
                 inspected = json.loads(docker('network', 'inspect', network).stdout)[0]
                 if inspected.get('Containers') or inspected.get('Labels', {}).get('com.alterward.rehearsal') != project:
                     raise ValueError('Refusing to remove shared network')
                 docker('network', 'rm', network)
+                if had_failure:
+                    PHASE = failed_phase
     if existing_state() != baseline:
         raise ValueError('Existing container state changed')
     result['existingContainersUnchanged'] = True

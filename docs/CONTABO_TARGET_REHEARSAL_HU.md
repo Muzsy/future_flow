@@ -4,7 +4,7 @@
 
 ## Előkészített végrehajtó
 
-[Windows operátori indító](../scripts/contabo-target-rehearsal.mjs), [szerveroldali build/runtime próba](../scripts/ops/contabo-target.py), [HTTP/TLS ellenőrző](../scripts/ops/contabo-target-check.mjs). A próba nem aktiválja a DNS-t, meglévő Caddyt, éles adatbázist vagy AI-keretet. **A jelen checkpoint a végrehajtó előkészítése; sikeres célkörnyezeti futás még nincs rögzítve.**
+[Windows operátori indító](../scripts/contabo-target-rehearsal.mjs), [szerveroldali build/runtime próba](../scripts/ops/contabo-target.py), [HTTP/TLS ellenőrző](../scripts/ops/contabo-target-check.mjs). A próba nem aktiválja a DNS-t, meglévő Caddyt, éles adatbázist vagy AI-keretet. **A korlátozott célgépi build sikeres; a teljes runtime-próba még nem lezárt.**
 
 ```powershell
 node --env-file=.env scripts/contabo-target-rehearsal.mjs
@@ -26,7 +26,15 @@ A gépen nincs Buildx és a jelen apt metadata nem kínálja a plugint. A végre
 - Üres queue mellett worker SIGTERM-leállás 0 kilépési kóddal, OOM nélkül; csak a saját Compose-projekt/network/fixture takarítása.
 - A korábbi konténerek azonos ID-val, restart-számmal és futó állapottal maradnak meg a build és a runtime-próba után.
 
-A source-archívum öt biztonsági próbája a normál Git-directory és fájl esetét, private pathok, alias/abszolút út, links/device és duplicate fájlok tiltását vizsgálja. Az eredeti nyolc backup-teszttel együtt **13 célzott próba** helyben sikeres; CI verify ugyanazokat futtatja. Titkos helyi fájl és symlink nem kerülhet a buildforrásba. A privát eredmény a Gitből és buildből kizárt `.local/contabo-release/` alatt marad; siker után titokmentes összegzés kerül ide.
+A source-archívum öt biztonsági próbája a normál Git-directory és fájl esetét, private pathok, alias/abszolút út, links/device és duplicate fájlok tiltását vizsgálja. A hatodik próba az örökölt host-kulcsok/DB/béta flag-ek kiszűrését igazolja: a Compose környezete nem írhatja felül a dummy fixture-t. Az eredeti nyolc backup-teszttel együtt **14 célzott próba** helyben sikeres. Titkos helyi fájl és symlink nem kerülhet a buildforrásba. A privát eredmény a Gitből és buildből kizárt `.local/contabo-release/` alatt marad.
+
+## Tényleges célgépi checkpoint
+
+A `37553973021a8205cb615c92663e656c34f2575d` main commit [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37862259691) verify/container sikeres. Ennek tiszta Git-forrásából a Contabón, a tényleges publikus Supabase buildértékekkel elkészült a `node` useres image, saját 2 GiB/1 CPU builderrel, publikált port nélkül. A builder eltávolítva, a hat meglévő konténer ID/restart/állapot változatlan. Éles DB/admin/AI kulcs nem jutott a buildbe.
+
+Az izolált runtime 001–036 migrációja és ismétlése, web/API és a privát HTTPS elindult. A hibás SNI-t a Caddy már a handshake során elutasította; a próba ezután a normál fixture-SNI mellett külön `checkServerIdentity` hívással teszteli a hibás tanúsítványnevet, új kapcsolatban, változatlan CA/`rejectUnauthorized` validálással. A teljes próba következő körében a worker újraindult: a régi budget parser üres béta-lista és minden allowance 0 mellett is 30 napos ablakot követelt. Ez ütközött az elfogadott, telepítéstől független bétaindulással. A javítás kizárólag e teljesen inaktív konfigurációt engedi időszak nélkül; UUID, pozitív allowance vagy inicializált költés esetén a korábbi szigorú időszak-kapu megmarad. A foglalás üres listán provider/DB-hívás előtt elutasított mindkét providernél.
+
+A javított alkalmazási commit új célgépi image-et és ismételt runtime-próbát igényel. A régi image vagy a sikeres CI nem jelölheti ezt késznek. A saját fixture-konténerek/hálózat/ideiglenes kulcsok takarítása a sikertelen próba után is lefut; privát hibadiagnosztika mentett, nyers napló nem kerül a dokumentációba.
 
 ## Az éles kapu megmarad
 

@@ -26,6 +26,59 @@ const period = () => {
 };
 const request = { model: 'gpt-6.1-sol', max_output_tokens: 500, input: [] };
 describe('explicitly limited closed beta configuration', () => {
+  it('starts an uninvited zero-budget deployment without starting the paid window', async () => {
+    const env = {
+      CLOSED_BETA_ENABLED: 'true',
+      CLOSED_BETA_USER_IDS: '',
+      AI_PROJECT_BUDGET_USD: '0',
+      CLAUDE_PRODUCTION_BUDGET_USD: '0',
+      AI_USER_BUDGET_USD: '0',
+      AI_BUDGET_WINDOW_REQUIRED: 'true',
+      AI_BUDGET_WINDOW_START: '',
+      AI_BUDGET_WINDOW_END: '',
+    };
+    let accesses = 0;
+    const forbidden: Database = {
+      query: async () => {
+        accesses++;
+        throw Error('Database must not be reached');
+      },
+      transaction: async () => {
+        accesses++;
+        throw Error('Database must not be reached');
+      },
+    };
+    for (const provider of ['openai', 'anthropic'] as const) {
+      const config = applicationAiBudgetConfigFromEnv(env, provider);
+      expect(config.window).toBeUndefined();
+      expect(config.closedBetaUserIds).toEqual([]);
+      const guard = new DatabaseAiBudget(
+        forbidden,
+        randomUUID(),
+        randomUUID(),
+        config,
+      );
+      await expect(guard.reserve(request)).rejects.toMatchObject({
+        code: 'CLOSED_BETA_INVITE_REQUIRED',
+      });
+      for (const change of [
+        { CLOSED_BETA_USER_IDS: randomUUID() },
+        { AI_USER_BUDGET_USD: '0.50' },
+        { AI_PROJECT_BUDGET_USD: '2', CLAUDE_PRODUCTION_BUDGET_USD: '1' },
+      ])
+        expect(() =>
+          applicationAiBudgetConfigFromEnv({ ...env, ...change }, provider),
+        ).toThrow();
+      expect(
+        () =>
+          new DatabaseAiBudget(forbidden, randomUUID(), randomUUID(), {
+            ...config,
+            initialProjectSpentUsd: 1,
+          }),
+      ).toThrow();
+    }
+    expect(accesses).toBe(0);
+  });
   it('defaults off, accepts at most ten unique verified Auth identifiers, and canonicalizes case', () => {
     expect(closedBetaConfigFromEnv({})).toEqual({
       enabled: false,

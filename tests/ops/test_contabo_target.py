@@ -1,10 +1,13 @@
 import importlib.util
 import io
+import os
 from pathlib import Path
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
+from subprocess import CompletedProcess
 
 ROOT = Path(__file__).resolve().parents[2]
 library_spec = importlib.util.spec_from_file_location(
@@ -33,6 +36,18 @@ def archive(entries):
 
 
 class SourceArchiveSafetyTests(unittest.TestCase):
+    def test_host_credentials_cannot_override_fixture_environment(self):
+        with patch.dict(os.environ, {'PATH': 'safe-path', 'HOME': 'safe-home',
+                                     'OPENAI_API_KEY': 'host-key',
+                                     'SUPABASE_SERVICE_ROLE_KEY': 'host-admin',
+                                     'DATABASE_URL': 'host-database',
+                                     'CLOSED_BETA_ENABLED': 'false'}, clear=True):
+            with patch.object(target.subprocess, 'run',
+                              return_value=CompletedProcess(['docker'], 0, b'', b'')) as command:
+                target.run(['docker', 'compose', 'config'])
+        self.assertEqual(command.call_args.kwargs['env'],
+                         {'PATH': 'safe-path', 'HOME': 'safe-home'})
+
     def test_git_directories_and_regular_files_accepted(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

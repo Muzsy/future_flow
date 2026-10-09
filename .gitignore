@@ -15,4 +15,5 @@ playwright-report/
 apps/web/next-env.d.ts
 .local/
 deploy/*.env
+!deploy/closed-site-owner.flags.env
 __pycache__/
