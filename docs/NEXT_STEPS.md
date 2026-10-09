@@ -1,6 +1,6 @@
 # alterward — következő lépések, sorrendben
 
-**2026-10-09-i aktuális kiadási checkpoint:** [Részletes Claude Cloud-audit és follow-up értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész, kritikus/magas jelzés nélkül; feltételes owner-only indulás, nyitott élő kapukkal. CON-03 reprodukált/javított, teljes app-check 669 sikeres + 2 Windows-kihagyás / 63 fájl; [35f9889 CI](https://github.com/Muzsy/future_flow/actions/runs/37866916470) és [b4a7f36 ops CI](https://github.com/Muzsy/future_flow/actions/runs/37889935586) verify/container sikeres. [Contabo célpróba és tényleges privát indulás](CONTABO_TARGET_REHEARSAL_HU.md): három szolgáltatás belső hálózaton fut, image/env/health/port/korlát-őr és négy anonim 403/no-store sikeres, öt queue üres, kliens TLS/hostname ellenőrzött, hat korábbi konténer változatlan. 23 ops regresszió sikeres. [TLS/DNS/rollback sorrend](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész; Full (strict) mentett, saját szerverkey/CSR kész. **A domain/Caddy route/TLS cert még nincs aktiválva.** Következő: a rövid TLS-probe delta lezárása, cert és védett domainbekötés, majd élő Access/Auth/UI/email és teljes rollback. Retention/privacy replay és tester-paid kapuk nyitottak, béta-időszak inaktív, 10 USD keret változatlan; új paid AI 0. Az alábbi dátumozott előzmények saját checkpointjukat őrzik.
+**2026-10-09-i aktuális kiadási checkpoint:** [Részletes Claude Cloud-audit és follow-up értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész, kritikus/magas jelzés nélkül; feltételes owner-only indulás, nyitott élő kapukkal. CON-03 reprodukált/javított, teljes app-check 669 sikeres + 2 Windows-kihagyás / 63 fájl; [35f9889 CI](https://github.com/Muzsy/future_flow/actions/runs/37866916470) és [44e22e5 ops CI](https://github.com/Muzsy/future_flow/actions/runs/37894534132) verify/container sikeres. [Contabo célpróba és tényleges privát indulás](CONTABO_TARGET_REHEARSAL_HU.md): három szolgáltatás belső hálózaton fut, image/env/health/port/korlát-őr és négy anonim 403/no-store sikeres, öt queue üres, kliens TLS/hostname ellenőrzött, hat korábbi konténer változatlan. 23 ops regresszió és saját szolgáltatás stop/down/őrzött újralaunch sikeres. A merged Caddy candidate syntax-adapt sikeres; cert-validálás/reload még nincs. [TLS/DNS/rollback sorrend](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész; Full (strict) mentett, saját szerverkey/CSR kész. **A domain/Caddy route/TLS cert még nincs aktiválva.** A hatrészes Cloud-audit és mindhárom célzott follow-up lezárult. Következő: cert és védett domainbekötés, majd élő Access/Auth/UI/email és teljes proxy/domain rollback. Retention/privacy replay és tester-paid kapuk nyitottak, béta-időszak inaktív, 10 USD keret változatlan; új paid AI 0. Az alábbi dátumozott előzmények saját checkpointjukat őrzik.
 
 2026-10-08-i email-pontosítás: **info@alterward.com** a hivatalos kapcsolati/értesítési cím és az Auth-levelek tényleges feladója (`Alterward`); külön Reply-To nincs. SMTP2GO dedikált SMTP a felhasználó szerint Supabase-be bekötve, 100 levél/óra user limit, tracking/lábléc kikapcsolva; első Gmail-meghívó spambe érkezett. A Codex elmentette és újranyitással ellenőrizte a HTTPS `/account-access` alapértelmezést, pontos éles/helyi callbackeket és **nyolc angol HTML-sablont**; négy tárgymező külön visszaolvasása maszkírozott. SMTP-jelszó csak a szolgáltatóknál marad. Új kézbesítés/fejlécek, éles callback/belépés és bejövő válasz még tesztelendő. [Email-szerepek](OPERATOR_EMAIL_CONFIGURATION_HU.md) · [Bizonyíték és következő lépések](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
 
@@ -9,7 +9,6 @@
 2026-10-08: az üzemeltető kapcsolattartási címe **info@alterward.com**. Tesztelők még nincsenek: előbb zárt, üzemeltetői Contabo-telepítés, majd meghívás és tényleges bétaindulás. A telepítéshez nem kell előre tíz tesztelő; a használati időszak nem indul el pusztán a telepítéssel. Következő kiadási feladat a teljes webhely bejárati és origin-védelme, saját export/törlés kivételekkel; utána a Contabo ops/célkörnyezet és védett telepítés. [Elfogadott kiadási terv és ellenőrzési kapuk](CLOSED_SITE_RELEASE_PLAN_HU.md). A Cloudflare Access élesben még nem aktív; a teljes eredeti terv és a jóváhagyott keret megmarad.
 
 2026-10-08: a [Claude Cloud próbaaudit](CLAUDE_CLOUD_AUDIT_PILOT_REPORT_HU.md) közvetlen promptküldéssel és visszaolvasással működik. A hatfájlos audit egy alacsony súlyosságú privát riportírási hibát talált; a Linux reprodukció igazolta, a javítás és öt regresszió elkészült. A `de2d76d5` main [CI](https://github.com/Muzsy/future_flow/actions/runs/37825268093) verify/container sikeres: 660 teszt / 62 fájl, kihagyás nélkül. Ez a kiegészítő ellenőrzés a meglévő P01–P13 / Shared S0–S7 tervbe épül; a kiadási kapuk megmaradnak, a Cloud-promóció külön keret.
-
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 
@@ -33,16 +32,16 @@ Az audit utáni [előkészítés](CONTABO_PREPARATION_REPORT_HU.md): külön SSH
 
 **Állapot:** S0–S2 és S3 személyes/time/Connections/safety/privacy implementált; teljes kétfiókos Auth/Shared AI/saját AI/export/törlés/recovery sikeres. 001–013 alkalmazva, normál Shared flag-ek false. Nyers/backup-retention, régi személyes próza, billing/grace/deadline és friend release még kapu; P09–P13 és S4–S7 megmarad. [Aktuális bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
 
-| Pont | Következő eredmény                                                                              | Függőség / kapu                                                                          |
-| ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| S0   | Implementáció kész: Shared contract/core, 008/009, social/entitlement, create/list/detail/invite/accept és lifecycle | 36 új regresszió, flag kikapcsolva; 001–009 a fejlesztői DB-n alkalmazva; még nincs release |
-| S1   | Implementált: 2–10 fős friend canon, saját intent, opt-in resolution, pending memory impact        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                            |
-| S2   | Implementált: valódi Shared OpenAI, job/worker fair queue, validálás/repair, projekt/user költség             | S1; lease/idempotencia és kumulatív keret, max 1 repair                                  |
-| S3   | **Részben kész:** saját memória/AI/fork/export/törlés/time, angol Connections, block/report/moderáció; közös szövegprojekció és teljes kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és régi személyes próza még kapu | S2; PII/retention/recovery és valódi fiókos próba; friend release csak utána |
-| S4   | Connected romantikus típus                                                                      | S3; 2 tag, max 1/user, mutual consent és unilateral end                                  |
-| S5   | Connected work/project és hobby                                                                 | S3 és típusos governance; saját intent, validált authority/adapter                       |
-| S6   | World sport, max 20, roster/subset/quorum                                                       | S5 szerep/governance; 20 párhuzamos intent és lock-verseny                               |
-| S7   | Split/group fork, sponsored seats, directory, public többfél-snapshot                           | Validált shared alap; public résznél P09–P13 és külön consent, későbbi scope             |
+| Pont | Következő eredmény                                                                                                                                                                                                                 | Függőség / kapu                                                                             |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| S0   | Implementáció kész: Shared contract/core, 008/009, social/entitlement, create/list/detail/invite/accept és lifecycle                                                                                                               | 36 új regresszió, flag kikapcsolva; 001–009 a fejlesztői DB-n alkalmazva; még nincs release |
+| S1   | Implementált: 2–10 fős friend canon, saját intent, opt-in resolution, pending memory impact                                                                                                                                        | S0; izolált fixture-tesztek, nem felhasználói AI nélküli demo                               |
+| S2   | Implementált: valódi Shared OpenAI, job/worker fair queue, validálás/repair, projekt/user költség                                                                                                                                  | S1; lease/idempotencia és kumulatív keret, max 1 repair                                     |
+| S3   | **Részben kész:** saját memória/AI/fork/export/törlés/time, angol Connections, block/report/moderáció; közös szövegprojekció és teljes kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és régi személyes próza még kapu | S2; PII/retention/recovery és valódi fiókos próba; friend release csak utána                |
+| S4   | Connected romantikus típus                                                                                                                                                                                                         | S3; 2 tag, max 1/user, mutual consent és unilateral end                                     |
+| S5   | Connected work/project és hobby                                                                                                                                                                                                    | S3 és típusos governance; saját intent, validált authority/adapter                          |
+| S6   | World sport, max 20, roster/subset/quorum                                                                                                                                                                                          | S5 szerep/governance; 20 párhuzamos intent és lock-verseny                                  |
+| S7   | Split/group fork, sponsored seats, directory, public többfél-snapshot                                                                                                                                                              | Validált shared alap; public résznél P09–P13 és külön consent, későbbi scope                |
 
 A shared szál S0→S1→S2 elkészült helyben, S3 személyes/time és UI/safety kész, szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és régi személyes próza még kapu; a további típusok fokozatosan követik a friend ellenőrzését. P09–P13 továbbra a teljes nyilvános MVP része, nem kell S7-ig várnia; a shared adatot tartalmazó publikációhoz előbb a P09/P11 általánosítás/PII/fork kapuit bővítjük. P06 backup/restore/email/valós kiesés és a későbbi Contabo-ops továbbra kiadási feladat, nem akadálya a helyi foundation fejlesztésének.
 
@@ -200,7 +199,6 @@ Rutin külső audit következő jelöltje Sonnet low +1500 outputtoken, validál
 
 Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapján: kevesebb ismételt állapot-/pénzfelsorolás, konkrét jelenet és a korábbi választás megélt következménye, új kánonadat kitalálása nélkül. Azonos canonon Sol/Sonnet és célzott javítás teljes költsége mérendő. Eredeti értékelési minták változatlanok; [auditori észrevételek](examples/CLAUDE_EXTERNAL_AUDIT_HU.md).
 
-
 ## 2026-10-05: a teljes strukturált előnézet végrehajtási sorrendje
 
 1. **Felületi alap kész:** saját angol nézetben checkpointjelöltek és mentett előkészítések, állapot/korlát/opció/hatás, javítható leírások. A megtekintett változat kiválasztása még nem kiadási pontlista; ez a következő teljes csomaggal kerül tárolásra. Elérhetetlen pontnál nincs csendes helyettesítő vagy megváltoztatott hatás. A gépi source binding megmarad; típusos tény, opciósorrend, előfeltétel és hatás változtatásához új érvényes forrás szükséges.
@@ -211,11 +209,9 @@ Az AI szerkesztői ellenőrzése és a későbbi használói visszajelzés alapj
 
 Az alterward.com aktív Cloudflare-domain; Contabo-bekötése továbbra a későbbi üzemeltetési kapu része. Shared többfél-publikáció külön S7 consentet igényel. A teljes angol élmény, valódi AI-történetek, kis pilot után az 50–100 élet/20–30 scenario cél, P06/P09–P13/S3–S7 és a két változatlan 5 USD kísérleti keret megmarad.
 
-
 ## 2026-10-05: felületről indítható privát AI-review
 
 A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Main CI sikeres: 324 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
-
 
 ### P09 review-job lezárási bizonyíték
 
@@ -225,26 +221,21 @@ Valódi Supabase Auth/böngészős kliens → queue → worker → OpenAI ellen�
 
 Új OpenAI-költségbecslés 0.005243500 USD, konzervatív 0.005245000 USD. Kumulatív 133 hívás, 2.348171605 USD becslés, 2.433873375 USD guard-összeg; maradt 2.566126625 USD, ismeretlen usage 0. Claude változatlan: maradt 2.661985 USD. Naplók nem nullázva.
 
-
 ## 2026-10-05: tulajdonosi beküldés és text-curation
 
 A P09 tulajdonosi beküldés és trusted text-curation nyilvántartás elkészült: explicit consent, aktuális immutable copy és no_findings AI-review, idempotens beküldés, védett operatori lista/döntésfájl, egyszeri változatlan döntés, English/Shared/ownership/revision/hash/expiry/törlés kapu, export/cascade és 016 RLS-migráció. Scope text_only, publicationApproved false. Teljes ScenarioVersion/sanitized fork-checkpoint és azok ellenőrzése, Publication/Confirm/Official eredetengedély/seed még hátravan; majd P10–P13. Main CI `4d66981` sikeres: 336 teszt/29 fájl, formázás, típusellenőrzés, API/worker/Next production build és 52 séma-drift. Izolált valódi PostgreSQL/TLS: 001–016 + ismétlés, párhuzamos curation-submit és versengő döntés → egy nyertes, azonos apply újrahasználata, revision/törlés/RLS/export/cascade és publication=false; minden korábbi P09/S0–S3 proof megmarad. Konténeres web/API/worker/Caddy verified HTTPS/DB TLS, üres queue és tiszta worker-leállás, nulla provider-AI/valódi CI-kulcs, egress tiltva. [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37358126556). 52 séma, a korábbi 50 és 001–015 változatlan; fejlesztői DB 001–016 alkalmazva/ismételve, 19 ff_ és 36 aw_/36 RLS. Új AI-hívás nincs; a közös OpenAI/Claude keretek, S3 retention/S4–S7 és Contabo/Cloudflare kapuk megmaradnak. [Kurátori szövegellenőrzés és pontos korlátok](PUBLIC_TEXT_CURATION_REPORT_HU.md).
-
 
 ## 2026-10-05: teljes ScenarioVersion foundation
 
 A P09 teljes angol ScenarioVersion foundation elkészült: külön zárt scenario-1 sablon, immutable/hash/verziózott saját tárolás, friss belső ID-k és teljes cél/állapot/korlát-hivatkozások, explicit indításból normál AI-job és közös kvóták, export/cascade. 017 alkalmazva/ismételve, 19 ff_ és 39 aw_/39 RLS; 354 helyi teszt/30 fájl és teljes check/build, 57 séma, a korábbi 52 és 001–016 változatlan. Két valódi szintetikus Auth/DB HTTP-fiók: ownership/anon, verzió/replay/start és három technikai időszak, export/tényleges törlés sikeres; új paid AI 0. Normál/deploy SCENARIO_VERSIONS_ENABLED=false, publicationApproved=false, saját előkészítő API, scenario UI/public permission még nincs. Következő sanitized fork-checkpoint, teljes structured preview/review, Publication/Confirm/Official seed, majd P10–P13. A három forrás minden követelménye, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret, S3 retention/S4–S7 és Contabo/Cloudflare kiadási kapuk megmaradnak. [Részletes megvalósítás](SCENARIO_VERSION_REPORT_HU.md).
 
-
 ## 2026-10-05: sanitized döntési checkpoint foundation
 
 A P09 sanitized döntési checkpoint foundation elkészült: külön fork-checkpoint-1, teljes típusos állapot/korlát/előfeltétel/hatás és helyettesítő kulcskatalógus, exact canon/copy/opció binding, minden opció végrehajtható, új ID-s privát kezdőállapot motor. Saját candidate/save/read API, immutable hash/dedupe/default-off és privacy-fail-closed, export/cascade, 018 alkalmazva/ismételve; 19 ff_ és 40 aw_/40 RLS. Teljes helyi check/build: 372 teszt/32 fájl, 62 séma; a korábbi 57 és 001–017 változatlan. Valódi kétfiókos Auth/DB HTTP-próba: három párhuzamos save egy rekord, source-advance tiltás, három technikai időszak, export/tényleges Auth/DB cleanup; új paid AI 0. A régi coarse readyForFork=false változatlan, új record publicationApproved=false/readyForPublicFork=false/full review required. Következő teljes strukturált Privacy/Content Preview UI és új teljes-scope hash/AI/curator, majd Publication/Confirm/Official seed és P10–P13. A külön 5–5 USD keret, a három forrás teljes scope-ja és 50–100 élet/20–30 scenario cél, S3 retention/S4–S7 és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Megvalósítás és pontos korlátok](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md).
 
-
 ## 2026-10-06: döntési előnézet és leírásszerkesztő
 
 Az angol saját döntési előnézet és leírásszerkesztő elkészült: tényleges választás előtti állapot/cél/korlát/előfeltétel/hatás, egyértelmű objektumsorszámok, forráskötés mellett javítható prose, immutable saját mentés/verziómegtekintés és ingyenes visszatöltés. Helyi teljes check: 375 teszt/32 fájl, API/worker/Next build; végleges textarea-címkézés után format/Next build ismét sikeres. 62 schema és 001–018 változatlan. Valódi Auth-böngésző/DB próba: két mentés, régi verzió/reload/azonos reuse/dirty-copy elrejtés, export és tényleges cleanup; új paid AI 0. A megtekintett verzió még nem kiadási pontlista. Következő immutable szöveg+választott checkpoint tartalomcsomag/közös hash, új teljes-scope AI/curator, majd Publication/Confirm/Official seed és P10–P13. A korábbi 5d29fcf CI-jobok indítás előtt cancelled, ezért az új 017/018 konténeres proof még nyitott. A teljes korábbi P/S-terv, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Aktuális bizonyíték](PUBLIC_FORK_PREVIEW_REPORT_HU.md).
-
 
 ## 2026-10-06: teljes előnézeti tartalomcsomag
 
@@ -256,51 +247,41 @@ Valódi kétfiókos Supabase Auth/HTTP: párhuzamos három csomagmentés egy rek
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37412306422), runtime `8868a34cc079fccbc1df42dc767e4c65cd4666dd`: verify és container sikeres. 390 teszt/33 fájl, format/types/API/worker/Next production build és 68 séma-drift. Izolált valódi PostgreSQL/TLS: 001–019 és ismétlés, három párhuzamos csomagmentés egy rekord, immutable/free reuse/source-advance/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres négy queue és worker tiszta leállás, nulla paid AI/valódi CI-kulcs, hálózati egress tiltva. A 019 runtime-kapu lezárult; teljes-scope AI-job/worker/curator és kiadás továbbra következik. Ez nem éles Contabo-telepítés.
 
-
 ## 2026-10-06: teljes tartalom AI-job és költségőr
 
 Elkészült a külön public-content-review-1 teljes történet+explicit checkpoint AI-job, tartós egyszeri attempt, worker ötödik fair queue, receipt/hash/source/owner/lease guard és angol hozzájárulás/eredménypanel. Text-only eredmény nem öröklődik; nincs automatikus fizetős retry. Közös text/full napi/pending/projekt/user korlát, max 2200 output token és 70 000 byte teljes scan-input. 020 additív/RLS, export/cancel/cascade; default PUBLIC_CONTENT_REVIEW_JOBS_ENABLED=false. Helyi check 402 teszt/34 fájl, 70 séma; régi 68 és 001–019 változatlan. Supabase 001–020 alkalmazva/ismételve, 19 ff_ és 43 aw_/43 RLS, verified TLS. Valódi Auth/HTTP és tényleges cleanup kész; angol böngészős consent/finding/csomagváltás/dirty/source-reload/reuse/export/tényleges cleanup kész; e1067dd verify/container CI sikeres, 001–020 és ismétlés/konkurencia/source/deletion/export/RLS/TLS/HTTPS proof, paid AI 0. Egyetlen valódi checkerhívás a meglévő angol mintán: checkpoint embedded-instruction észlelve, 11 finding/review_required, 0,036611 USD becslés; OpenAI guard 2,470485875 USD, maradék 2,529514125 USD; Claude guard 2,338015 USD változatlan. Következő a külön teljes-scope curator, majd Publication/Confirm/Official source grant/kis valódi AI seed/P10–P13. PublicationApproved=false. P01–P13/S0–S7, S3 retention/korábbi személyes próza, S4–S7, 50–100 élet/20–30 scenario és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Riport és következő kapuk](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
-
 
 ## 2026-10-06: teljes tartalom AI-job CI-bizonyítéka
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609), runtime `e1067ddbb958f2402b88f84b7c2206c3ac8efc69`: verify és container sikeres. 402 teszt/34 fájl, format/types/API/worker/Next production build és 70 séma-drift. Izolált PostgreSQL/TLS: 001–020 és ismétlés, párhuzamos teljes-scope enqueue/claim egy attempt, immutable receipt/result, nincs automatikus paid retry, source-change/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres review queue-k és tiszta worker-leállás, nulla paid AI/valódi CI-kulcs, egress tiltva. A 020 runtime-kapu lezárult; külön full-scope curator és kiadási kapuk következnek. Ez nem éles Contabo-telepítés.
 
-
 ## 2026-10-07: jóváhagyott első éles AI-időszak
 
 A korábbi hiányzó éles AI-keret döntése lezárult: az első éles 30 nap 10 USD OpenAI + 5 USD Claude, közös user 0,50 USD. Dátumok és éles aktiválás csak tényleges deploykor; önmegújuló keret nincs. Provider/lejárat-védelem és 578 helyi teszt kész, új runtime CI következik; Scenario personalization/P13 és minden korábbi P/S/ops kapu megmarad. [Részletek](AI_PRODUCTION_BUDGET_HU.md).
-
 
 ## 2026-10-07: Scenario személyre szabás privát alapja
 
 Scenario összeállítás foundation kész, de P12 teljes elfogadása még public Scenario snapshot/consent, own tartós preview/expiry, cross-owner idempotens start/attribution, angol UI és valódi AI-minőség feladat. P13 mérés és P11/Shared/ops scope megmarad. A 15 USD éles keret jóváhagyott, az indulásig nem használható új kutatási keretként. [Részletek](SCENARIO_PERSONALIZATION_FOUNDATION_REPORT_HU.md).
 
-
 ## 2026-10-07: külön public Scenario kiadási API
 
 Külön public Scenario kiadás/consent/reader backend implementált, 035/repeat fejlesztői DB és 600/54/154 helyi check kész; exact CI következik. Következő saját tartós personal preview/expiry, live source/consent és cross-owner idempotens privát start/attribution, angol reader/Confirm/personal onboarding UI; aztán P13. Teljes P/S/ops/állomány scope megmarad. [Részletek](PUBLIC_SCENARIO_PUBLICATION_REPORT_HU.md).
-
 
 ## 2026-10-07: saját személyes Scenario-előnézet és életindítás
 
 P12 személyes előnézet/start/attribution backend kész. Következő az angol Scenario-olvasó/kiadási Confirm és saját teljes profil/előnézet/start UI, tényleges Auth/AI próba, majd P13. A teljes P/S/ops/állomány scope megmarad. [Részletek](PERSONAL_SCENARIO_START_REPORT_HU.md).
 
-
 ## 2026-10-07: teljes induló kínálat és üzemeltető
 
 A felhasználó a teljes 50–100 élet/20–30 Scenario kínálatot az éles indulás elé helyezte. A korábbi kisebb béta lehetősége fejlesztési/pilot fázis; éles indulási engedélyként már nem alkalmazható. A [külön előállítási becslés](INITIAL_CATALOG_COST_ESTIMATE_HU.md) javaslata 75 élet/25 Scenario és egyszeri 35 + 5 USD; új keret nincs jóváhagyva vagy aktiválva. A 10 + 5 USD első 30 napos használati keret változatlan. Üzemeltető Müller Ákos, email még függőben.
-
 
 ## 2026-10-07: felülíró zárt béta döntés
 
 A felhasználó az előző teljes-kínálat-minden-indulás-előtt döntést módosította: 15 élet/5 Scenario, majd 10 fős zárt béta, összesen 10 USD (8 OpenAI + 2 Claude). A teljes kínálat a béta után következik, teljes nyilvános indulás külön lépés. Seed 6 + 1 USD, teszthasználat 2 + 1 USD külön fenntartva; a korábbi 10 + 5 USD használati engedélyt ez helyettesíti, nem összeadjuk vele. A teljes cél/P01–P13/Shared S0–S7/ops terv megmarad. [Aktuális keret](AI_PRODUCTION_BUDGET_HU.md).
 
-
 ## A 10 fős zárt béta következő konkrét lépése
 
 Az [őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) fut: öt teljes reviewed/curated Official SCENARIO forrás, önálló háromfejezetes valódi AI-láncok és külön Claude-audit, majd minden élet teljes kiadási scanje és külön teljes szerkesztői/eredetkapuja. A hetedik élet javításai és az auditor téves jelzéseinek indokolt lezárása megőrzött eredeti bizonyítékra kötött. Utána a 15 Official és öt public Scenario tényleges preview/Confirm, külön fork/personalization permission és navigáció szükséges. A teljes kínálat célja nem tűnik el; a 50–100/20–30 készlet a jóváhagyott béta utáni bővítés. A tíz tesztelő és teljes webhely-zárás, P13, retention/backup/restore/email és Contabo-telepítés további kapu.
-
 
 ## 2026-10-08: a 15/5 katalógus utáni sorrend
 
@@ -315,11 +296,9 @@ Az [őrzött 15/5 kínálat-előállítás](CLOSED_BETA_CATALOG_REPORT_HU.md) fu
 
 S4–S7 és a teljes 50–100/20–30 kínálat későbbi bővítés; az eredeti pozicionálás, community specifikáció és Shared csomag együtt marad a terméktervben.
 
-
 ## 2026-10-08: Scenario-navigáció lezárva
 
 Az [angol közös Scenario-böngésző](SCENARIO_DISCOVERY_REPORT_HU.md), keresés/lapozás és kártyák elkészültek; mind az öt valódi staging forrás visszaolvasása sikeres, 0 új AI. Teljes helyi check 650/60 és build sikeres, három új séma, régi 162 és 001–036 változatlan. Következő személyes Scenario valódi AI-minőség és pozitív UI, P13 és a meglévő retention/ops/indulási kapuk. A katalógus 45016eff pontos CI-je sikeres; az új szelet saját CI-je külön kapu. Normál flag-ek/budget inaktív, Contabo-deploy nincs.
-
 
 ## 2026-10-08: saját profilos AI-minőség és P13 operatív kohorszriport
 

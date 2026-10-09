@@ -2,7 +2,7 @@
 
 2026-10-09 · Elfogadott kiadási terv; a teljes P01–P13 / Shared S0–S7 terv kiegészítése. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Kötelező részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-**Aktuális checkpoint:** [Új Contabo appimage/CI/célpróba és valódi owner preflight](CONTABO_TARGET_REHEARSAL_HU.md) sikeres, nulla AI-költéssel. [Cloud-audit mind a hat része és önálló értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész; az összegzés feltételes owner-only indulást támogat, élő ellenőrzési kapukkal. Új őrzött stage/launch és tényleges server-env staging elkészült; külön delta-audit és launch-próba még szükséges. [Konkrét cert/DNS/aktiválás/rollback runbook](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész, Full (strict) mentett, root-only saját CSR előkészített. A privát web/API/worker launch guard sikeres; cert/DNS/route és élő Access/Auth/email/UI bizonyíték még nincs; béta-időszak inaktív.
+**Aktuális checkpoint:** [Új Contabo appimage/CI/célpróba és valódi owner preflight](CONTABO_TARGET_REHEARSAL_HU.md) sikeres, nulla AI-költéssel. [Cloud-audit mind a hat része és önálló értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész; az összegzés feltételes owner-only indulást támogat, élő ellenőrzési kapukkal. Új őrzött stage/launch, tényleges server-env és privát launch, valamint saját szolgáltatás stop/down/őrzött újraindítás sikeres; a három célzott delta-audit és 44e22e5 ops CI lezárult. [Konkrét cert/DNS/aktiválás/rollback runbook](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész, Full (strict) mentett, root-only saját CSR előkészített. A privát web/API/worker launch guard sikeres; cert/DNS/route és élő Access/Auth/email/UI bizonyíték még nincs; béta-időszak inaktív.
 
 ## Elfogadott indulási sorrend
 
@@ -20,12 +20,12 @@ Az Access minden kérés előtt ellenőrizheti az alkalmazási jogosultságot; a
 
 A szolgáltató ingyenes Cloudflare One lehetőséget dokumentál legfeljebb ötven felhasználóig. A tízfős béta és az üzemeltető ehhez illeszkedik. A felhasználó aktiválta a Free csomagot, a dashboard aktív állapotát Codex ellenőrizte. Fizetős csomagot nem választottunk; a feltételek és az ingyenes keret feletti számlázás elfogadását a felhasználó végezte. [Hivatalos referencia](https://developers.cloudflare.com/reference-architecture/architectures/sase/).
 
-| Réteg | Mire szolgál? |
-| --- | --- |
-| Cloudflare Access | A teljes védett oldal és API bejárata; elsőként az üzemeltető, később név szerint engedélyezett email-címek. |
-| Contabo oldali Access-token ellenőrzés | A Cloudflare bejáratát megkerülő közvetlen IP/Host kérés sem kaphat történetet vagy API-tartalmat. |
-| Supabase Auth / ownership / RLS | Saját alkalmazási fiók és privát adatok; Access belépésből nem lesz automatikusan Supabase-fiók vagy adminjog. |
-| Meglévő API/worker béta- és költségőr | Fizetett generálás csak jóváhagyott Auth UUID-nak, rögzített időszakban és limiteken belül. |
+| Réteg                                  | Mire szolgál?                                                                                                  |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Cloudflare Access                      | A teljes védett oldal és API bejárata; elsőként az üzemeltető, később név szerint engedélyezett email-címek.   |
+| Contabo oldali Access-token ellenőrzés | A Cloudflare bejáratát megkerülő közvetlen IP/Host kérés sem kaphat történetet vagy API-tartalmat.             |
+| Supabase Auth / ownership / RLS        | Saját alkalmazási fiók és privát adatok; Access belépésből nem lesz automatikusan Supabase-fiók vagy adminjog. |
+| Meglévő API/worker béta- és költségőr  | Fizetett generálás csak jóváhagyott Auth UUID-nak, rögzített időszakban és limiteken belül.                    |
 
 Az első beengedés emailes Access ellenőrzés, utána a szokásos alterward belépés. Ez a zárt béta alatt két belépési lépés lehet. Egy közös jelszó nem biztosít személyenkénti visszavonást; a név szerinti jogosultsági lista ezt lehetővé teszi.
 

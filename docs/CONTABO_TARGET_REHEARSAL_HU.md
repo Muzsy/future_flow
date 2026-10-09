@@ -61,3 +61,7 @@ A [teljes Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) hat része elk
 ## Sikeres tényleges privát launch
 
 2026-10-09T06:33:53Z: web/API/worker fut a Contabón; három pontos image ID/env, erőforrás/health/no-public-port ellenőrzés sikeres, négy anonim 403/no-store és öt üres queue. A rögzített CA-val hitelesített saját Session pooler TLS-socket és peer hostname igazolt; a PostgreSQL backend által látott pooler flag ettől külön false. Hat régi konténer változatlan, fizetett AI 0, béta-ablak inaktív, DNS/Caddy változatlan. Ez valódi saját runtime, de nem éles domain/UI/Auth/Access pozitív próba. A korábbi 22 ops próba új jelkezelési regresszióval együtt 23; b4a7f36 CI sikeres, a későbbi jelkezelési/TLS ops eltérések külön dokumentáltak.
+
+## Privát leállítás és őrzött újraindítás
+
+2026-10-09T06:42:48Z: három saját szolgáltatás stop/down után, worker exit 0, üres saját proxy-hálózat és a hat korábbi konténer változatlansága igazolt. Ugyanazon image/env/config/CA mellett az őrzött launch megismételve: három futó szolgáltatás, négy anonim 403/no-store, öt üres queue, TLS/cert-hostname guard sikeres, fizetett AI 0, béta-ablak inaktív, DNS/Caddy változatlan. [44e22e5 ops CI](https://github.com/Muzsy/future_flow/actions/runs/37894534132) sikeres; a TLS-delta Cloud-audit új finding nélkül lezárult. Ez alkalmazási rollback-próba, nem teljes proxy/domain rollback.
