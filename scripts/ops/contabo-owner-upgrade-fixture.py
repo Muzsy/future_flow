@@ -169,10 +169,48 @@ def exercise(request):
                 raise ValueError('Actual fixture upgrade proof missing')
             results.append({'case': name, 'newImageRunning': True, 'manifestPromoted': True,
                             'queueTlsVerified': True, 'anonymousDenied': 4})
+            path = upgrade.prepared_path(proofs[1]['commit'])
+            original_queue = upgrade.queue_check
+            queue_calls = 0
+            def fail_second_queue(config_path):
+                nonlocal queue_calls
+                checks = original_queue(config_path)
+                queue_calls += 1
+                if queue_calls == 2:
+                    raise RuntimeError('Deliberate fixture recovery queue failure')
+                return checks
+            upgrade.queue_check = fail_second_queue
+            try:
+                try:
+                    upgrade.recover(value, deliberate_rollback=True)
+                    raise ValueError('Deliberate recovery failure must not be accepted')
+                except RuntimeError as error:
+                    if str(error) != 'Deliberate fixture recovery queue failure':
+                        raise
+            finally:
+                upgrade.queue_check = original_queue
+            items = json.loads(docker('inspect', *own_ids()).stdout)
+            journal = json.loads(upgrade.read_private(path / 'applying.json'))
+            marker = json.loads(upgrade.read_private(path / 'rollback-failed.json'))
+            live_hashes = {file: upgrade.sha(upgrade.read_private(directory / file)) for file in upgrade.FILES}
+            if (len(items) != 3 or any(item['State']['Running'] for item in items) or
+                    journal['state'] != 'rollback-failed' or not marker['ownerStopped'] or
+                    live_hashes != value['preparedProof']['candidateFilesSha256']):
+                raise ValueError('Failed recovery must stop only fixture owner and retain candidate files')
+            recovered = upgrade.recover(value)
+            upgrade.inspect_owner(config, previous['imageId'])
+            if (not recovered['rollbackVerified'] or
+                    json.loads(upgrade.read_private(directory / 'manifest.json')) != manifest or
+                    json.loads(upgrade.read_private(path / 'applying.json'))['state'] != 'recovered'):
+                raise ValueError('Explicit retry must restore the previous checked image and journal')
+            results.append({'case': 'failed-explicit-recovery-then-retry', 'ownerStoppedOnFailure': True,
+                            'candidateFilesPreservedOnFailure': True, 'oldImageRestored': True,
+                            'manifestRestored': True, 'journalRecovered': True,
+                            'queueTlsVerified': True, 'anonymousDenied': 4})
     upgrade.verify_release = original_verify
     return {'fixtureMutationsPassed': True, 'cases': results,
             'productionConfigurationRenderExercised': False, 'fixtureRenderUsed': True,
             'unexercisedRuntimePaths': ['production-render', 'production-proxy-membership',
-                                       'signal-interruption', 'partial-promotion', 'explicit-recovery'],
+                                       'signal-interruption', 'partial-promotion'],
             'liveOwnerChanged': False, 'paidAiCalls': 0, 'databaseRestored': False,
             'dnsChanged': False, 'sharedProxyChanged': False}

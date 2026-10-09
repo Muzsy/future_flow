@@ -240,6 +240,24 @@ def restore_previous(path, prepared):
     return {**checks, 'rollbackVerified': True, 'restoredCommit': manifest['commit']}
 
 
+def record_restore_failure(path, journal):
+    # A failed stop is not proof that the owner is stopped. Persist that distinction.
+    stopped = False
+    try:
+        run(compose(path / 'effective-compose.json') +
+            ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
+        stopped = True
+    except BaseException:
+        pass
+    marker = path / 'rollback-failed.json'
+    value = encoded({'ownerStopped': stopped, 'ownerStopAttempted': True,
+                     'requiresScopedInspection': True, 'previousRightsRestored': False})
+    if not marker.exists():
+        private_file(marker, value)
+    atomic_private(marker, value)
+    atomic_private(path / 'applying.json', encoded({**journal, 'state': 'rollback-failed'}))
+
+
 def apply(request):
     data, previous, old_config = baseline(request)
     path = prepared_path(request['buildProof']['commit'])
@@ -292,8 +310,8 @@ def apply(request):
                   'imageOnly': True, 'paidAiCalls': 0, 'betaWindowActive': False,
                   'proxyChanged': False,
                   'dnsChanged': False, 'databaseRestored': False, 'publicPorts': 0}
-        exact_file(path / 'applied.json', encoded(result))
         atomic_private(journal, encoded({**journal_data, 'state': 'applied'}))
+        exact_file(path / 'applied.json', encoded(result))
         return result
     except BaseException:
         if attempted:
@@ -305,11 +323,7 @@ def apply(request):
                 atomic_private(journal, encoded({**journal_data, 'state': 'rolled-back'}))
             except BaseException:
                 # Do not leave an unverified replacement serving if rollback fails.
-                run(compose(path / 'effective-compose.json') +
-                    ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
-                exact_file(path / 'rollback-failed.json', encoded({'ownerStopped': True,
-                           'requiresScopedInspection': True, 'previousRightsRestored': False}))
-                atomic_private(journal, encoded({**journal_data, 'state': 'rollback-failed'}))
+                record_restore_failure(path, journal_data)
                 raise
         raise
 
@@ -346,13 +360,17 @@ def recover(request, *, deliberate_rollback=False):
     queue_check(previous / 'effective-compose.json')
     for signum in INTERRUPTION_SIGNALS:
         signal.signal(signum, signal.SIG_IGN)
-    run(compose(previous / 'effective-compose.json') +
-        ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
-    queue_check(previous / 'effective-compose.json')
-    result = restore_previous(path, {**prepared, 'foreignContainers': recovery_foreign})
-    exact_file(path / 'recovered.json', encoded(result))
-    atomic_private(path / 'applying.json', encoded({**journal, 'state': 'recovered'}))
-    return result
+    try:
+        run(compose(previous / 'effective-compose.json') +
+            ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
+        queue_check(previous / 'effective-compose.json')
+        result = restore_previous(path, {**prepared, 'foreignContainers': recovery_foreign})
+        atomic_private(path / 'applying.json', encoded({**journal, 'state': 'recovered'}))
+        exact_file(path / 'recovered.json', encoded(result))
+        return result
+    except BaseException:
+        record_restore_failure(path, journal)
+        raise
 
 
 if __name__ == '__main__':

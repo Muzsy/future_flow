@@ -160,7 +160,7 @@ class OwnerUpgradeTests(unittest.TestCase):
                 writes.assert_not_called()
             self.assertEqual((path / 'server.env').read_bytes(), b'changed-rights')
 
-    def exercise_apply(self, failure=None):
+    def exercise_apply(self, failure=None, recovery_failure=None):
         with tempfile.TemporaryDirectory() as temporary, ExitStack() as patches:
             root = Path(temporary)
             directory, path, source = root / 'owner', root / 'candidate', root / 'source'
@@ -201,7 +201,7 @@ class OwnerUpgradeTests(unittest.TestCase):
             (path / 'prepared.json').write_bytes(upgrade.encoded(prepared))
             request = {'buildProof': {'commit': 'a' * 40, 'imageTag': 'alterward:contabo-aaaaaaaaaaaa'},
                        'previousBuildProof': {'sourceDirectory': str(source)},
-                       'preparedProof': prepared, 'access': {}}
+                       'previousStageProof': old, 'preparedProof': prepared, 'access': {}}
             for name, value in [('DIRECTORY', directory), ('CA', ca)]:
                 patches.enter_context(patch.object(upgrade, name, value))
             patches.enter_context(patch.object(upgrade, 'baseline', return_value=(data, old, old_config)))
@@ -232,6 +232,12 @@ class OwnerUpgradeTests(unittest.TestCase):
                     raise OSError('one interrupted promotion write')
                 p.write_bytes(value)
             patches.enter_context(patch.object(upgrade, 'atomic_private', side_effect=write))
+            original_exact_file = upgrade.exact_file
+            def checked_marker(file, value):
+                if file.name == 'applied.json':
+                    self.assertEqual(json.loads((path / 'applying.json').read_bytes())['state'], 'applied')
+                return original_exact_file(file, value)
+            patches.enter_context(patch.object(upgrade, 'exact_file', side_effect=checked_marker))
             if failure:
                 with self.assertRaises((ValueError, OSError)):
                     upgrade.apply(request)
@@ -256,10 +262,38 @@ class OwnerUpgradeTests(unittest.TestCase):
                     self.assertEqual((directory / name).read_bytes(), value)
                 with self.assertRaisesRegex(ValueError, 'Recovery is only for an interrupted upgrade'):
                     upgrade.recover(request)
-            self.assertEqual(queue.call_count, 2)
+                if recovery_failure:
+                    patches.enter_context(patch.object(upgrade, 'validate_inputs',
+                        return_value=(source, old['imageId'], {}, {})))
+                    patches.enter_context(patch.object(upgrade, 'render_owner', return_value=old_config))
+                    if recovery_failure == 'queue':
+                        queue.side_effect = [queue.return_value, ValueError('second recovery queue failed')]
+                    restore = patches.enter_context(patch.object(upgrade, 'restore_previous',
+                        side_effect=ValueError('recovery restore failed'))) if recovery_failure == 'restore' else None
+                    if recovery_failure == 'stop':
+                        commands.side_effect = OSError('owner stop failed')
+                    with self.assertRaises((ValueError, OSError)):
+                        upgrade.recover(request, deliberate_rollback=True)
+                    self.assertEqual(json.loads((path / 'applying.json').read_bytes())['state'], 'rollback-failed')
+                    marker = json.loads((path / 'rollback-failed.json').read_bytes())
+                    self.assertEqual(marker['ownerStopped'], recovery_failure != 'stop')
+                    self.assertTrue(marker['ownerStopAttempted'])
+                    for name, value in candidate.items():
+                        self.assertEqual((directory / name).read_bytes(), value)
+                    self.assertIn('stop', commands.call_args_list[-1].args[0])
+                    queue.side_effect = None
+                    commands.side_effect = None
+                    if restore:
+                        restore.side_effect = None
+                        restore.return_value = {'rollbackVerified': True}
+                    result = upgrade.recover(request)
+                    self.assertTrue(result['rollbackVerified'])
+                    self.assertEqual(json.loads((path / 'applying.json').read_bytes())['state'], 'recovered')
+            if not recovery_failure:
+                self.assertEqual(queue.call_count, 2)
             self.assertTrue((path / 'applying.json').is_file())
             journal_state = json.loads((path / 'applying.json').read_bytes())['state']
-            expected_state = 'applied' if not failure else 'rollback-failed' if failure == 'rights-drift' else 'rolled-back'
+            expected_state = 'recovered' if recovery_failure else 'applied' if not failure else 'rollback-failed' if failure == 'rights-drift' else 'rolled-back'
             self.assertEqual(journal_state, expected_state)
             for call in commands.call_args_list:
                 args = call.args[0]
@@ -278,6 +312,15 @@ class OwnerUpgradeTests(unittest.TestCase):
 
     def test_unrelated_rights_change_is_preserved_and_only_owner_is_stopped(self):
         self.exercise_apply('rights-drift')
+
+    def test_explicit_recovery_second_queue_failure_is_journalled_and_retryable(self):
+        self.exercise_apply(recovery_failure='queue')
+
+    def test_explicit_recovery_restore_failure_is_journalled_and_retryable(self):
+        self.exercise_apply(recovery_failure='restore')
+
+    def test_failed_stop_does_not_claim_owner_is_stopped_and_still_records_recovery_failure(self):
+        self.exercise_apply(recovery_failure='stop')
 
 
 if __name__ == '__main__':

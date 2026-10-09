@@ -169,11 +169,6 @@ async function main() {
     capturedAt: new Date().toISOString(),
   };
   privateReportFile(directory, `owner-${action}-proof.json`, saved);
-  privateReportFile(
-    directory,
-    `owner-${action}-${buildProof.commit}.json`,
-    saved,
-  );
   if (action === 'prepare-upgrade')
     privateReportFile(directory, 'owner-upgrade-baseline-proof.json', {
       previousBuildProof,
@@ -195,7 +190,7 @@ async function main() {
 }
 main().catch(() => {
   console.error(
-    'Owner image-upgrade stopped safely; inspect private evidence before retry. No DNS, proxy or paid-access change.',
+    'Owner image-upgrade could not be completed or recorded; inspect the server journal and private evidence before retry.',
   );
   process.exitCode = 1;
 });
