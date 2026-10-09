@@ -58,3 +58,18 @@ A későbbi felhasználói recovery-befejezés és új belépés megerősítve, 
 A efdf76d39093dc4fa866a72ee3372966832583db alkalmazási forrás [verify/container CI-je](https://github.com/Muzsy/future_flow/actions/runs/37961627026) sikeres. A privát, 2 GiB/1 CPU builderből készült image: sha256:13356fef2808c474b126ebd34e5b25fc85ab84d4f1be808d9119a6024b606793; builder eltávolítva. PostgreSQL 17, 36 migráció és ismétlés, CA/hostname-ellenőrzött DB TLS, privát HTTPS, 11 origin-tiltás, nyolc közvetlen peer-tiltás, két rights oldal, három statikus asset, két saját-auth tiltás és hibás cert-name elutasítás sikeres. Három runtime egress-próba tiltott; üres worker SIGTERM exit 0. Nincs nyilvános fixture-port, élő adatbázis-kapcsolat vagy provider-hívás. Az összes már futó konténer azonos állapotban maradt; az eldobható fixture-ek és hálózat eltávolítva.
 
 Ez a konkrét új image runtime-bizonyítéka, de nem az aktív tulajdonosi oldal frissítése vagy feldolgozás közbeni hard-kill/restart. A régi 35f9889 aktív release hat korábbi privát build/runtime/preflight/env/stage/launch proofja külön archivált. Következő kapu a valódi többfolyamatos job megszakítás és őrzött upgrade/rollback; fizetett béta továbbra inaktív.
+
+## Valódi PostgreSQL és erővel megszakított worker-folyamat
+
+2026-10-09: az efdf76d image új elkülönített Contabo-próbája négy külön Node-folyamatot SIGKILL-lel megszakított, majd új folyamatból folytatta ugyanazt a feladatot. A [próbaindító](../scripts/ops/life-recovery-runtime.mjs) az image tényleges lefordított life-processor/repository/költségőr kódját, PostgreSQL 17-et és ellenőrzött DB TLS-t használja. Kizárólag szintetikus AI-adapter és eldobható adatbázis; az öt másodperces fixture lease valódi óra szerinti lejárását kivárja, nem írja át SQL-lel. Új token igazolt, lejárat előtti takeover tiltott.
+
+| Megszakítás | Újraindítás eredménye | Fixture-foglalások / finanszírozott lease-ek |
+| --- | --- | --- |
+| EVENT_VALIDATION | A mentett javaslat megmarad; nem készül új eseményjavaslat | 3 / 2 |
+| CHAPTER_REJECTED | Az eredeti javítási instrukció megmarad; egy javítás után befejezés | 4 / 2 |
+| FIDELITY_CHECK | A mentett auditból új foglalás nélkül befejezés | 3 / 1 |
+| COMMIT_INSERT | A tényleges nyitott tranzakció SIGKILL után visszagördül; újraindítás új foglalás nélkül befejez | 3 / 1 |
+
+Mindegyik eredménye pontosan egy periódus, egy history-bejegyzés, egy revision-növekedés és kizárólag lezárt szintetikus foglalások; befejezett job újra nem claimelhető. A három korábbi saját és hat legacy konténer változatlan; teljes fixture/hálózat eltávolítva, fizetett provider-költség **0 USD**. A checker hash-e és a konkrét image külön privát proofban rögzített. A próba a [Contabo runtime-indítóba](../scripts/contabo-target-rehearsal.mjs) és a [CI container-smoke-ba](../scripts/smoke-deployment.mjs) is bekerült; az új ops HEAD CI-je külön követendő.
+
+Ez valódi többfolyamatos process hard-kill/recovery, de nem a termelési worker PID1/main konténerének vagy teljes hostnak a restartja, nem valós providerhívás és nem vegyes workerverzió-próba. A már meglévő üres worker SIGTERM0 külön bizonyíték. A próba előkészítésekor az API kulcs nélküli konfigurációja és a túl rövid, már sémaszinten elutasított synthetic chapter miatt két indítókorrekció kellett; ezek nem új alkalmazási findingok. Az éles image továbbra 35f9889; őrzött upgrade/rollback, monitoring és a többi tester-kapu megmarad.

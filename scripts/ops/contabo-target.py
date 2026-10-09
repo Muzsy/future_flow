@@ -380,6 +380,13 @@ def rehearse(request):
             stopped = json.loads(docker('inspect', worker_id).stdout)[0]['State']
             if stopped['ExitCode'] != 0 or stopped['OOMKilled']:
                 raise ValueError('Worker did not stop cleanly')
+            PHASE = 'life-process-kill-recovery'
+            recovery = compose('exec', '-T', '-e', 'ALTERWARD_RECOVERY_FIXTURE=true',
+                               'api', 'node', '--import', 'tsx', '--input-type=module',
+                               input=request['lifeRecoveryChecker'].encode(), timeout=180).stdout
+            recovery_checks = json.loads(recovery)
+            if recovery_checks.get('processRecovery') != 'passed' or recovery_checks.get('paidAiCalls') != 0:
+                raise ValueError('Isolated life recovery did not pass')
             result = {'commit': proof['commit'], 'imageId': image, 'migrationsRepeated': True,
                       'applicationMemoryLimitBytes': total_memory, 'publicPorts': 0,
                       'databaseMajor': 17, 'databaseTlsVerified': True,
@@ -389,6 +396,7 @@ def rehearse(request):
                       'liveDatabaseConnection': False, 'liveDatabaseWrites': False,
                       'paidAiCalls': 0, 'runtimeEgressProbesBlocked': 3,
                       'httpChecks': checks, 'workerExitCode': 0,
+                      'lifeProcessRecovery': recovery_checks,
                       'proxyCandidateSha256': hashlib.sha256(proxy_candidate.encode()).hexdigest()}
         except Exception:
             # Preserve diagnostics from only our disposable project before cleanup.

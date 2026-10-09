@@ -157,10 +157,17 @@ async function main() {
     access,
     proxyCandidate: readFileSync('deploy/Caddyfile.contabo.example', 'utf8'),
     checker: readFileSync('scripts/ops/contabo-target-check.mjs', 'utf8'),
+    lifeRecoveryChecker: readFileSync(
+      'scripts/ops/life-recovery-runtime.mjs',
+      'utf8',
+    ),
   });
   privateReportFile(directory, 'target-runtime-proof.json', {
     ...proof,
     capturedAt: new Date().toISOString(),
+    lifeRecoveryCheckerSha256: createHash('sha256')
+      .update(readFileSync('scripts/ops/life-recovery-runtime.mjs'))
+      .digest('hex'),
     operatorScriptSha256: createHash('sha256')
       .update(script)
       .update(library)

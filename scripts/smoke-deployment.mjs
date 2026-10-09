@@ -555,6 +555,21 @@ try {
   const worker = JSON.parse(run('docker', ['inspect', workerId]))[0];
   assert.equal(worker.State.Running, false);
   assert.equal(worker.State.ExitCode, 0, 'Worker did not exit cleanly');
+  const processRecovery = JSON.parse(
+    compose(
+      'exec',
+      '-T',
+      '-e',
+      'ALTERWARD_RECOVERY_FIXTURE=true',
+      'api',
+      'node',
+      '--import',
+      'tsx',
+      'scripts/ops/life-recovery-runtime.mjs',
+    ),
+  );
+  assert.equal(processRecovery.processRecovery, 'passed');
+  assert.equal(processRecovery.paidAiCalls, 0);
   console.log(
     JSON.stringify({
       containerSmoke: 'passed',
@@ -566,6 +581,7 @@ try {
       apiUnauthorized: 401,
       workerPollingBothQueues: true,
       workerStoppedWithoutSigkill: true,
+      lifeProcessRecovery: processRecovery,
       databaseTlsConnections: Number(tlsConnections.trim()),
       actualCredentialsUsed: false,
       paidAiCalls: 0,
