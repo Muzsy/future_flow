@@ -149,6 +149,7 @@ class OwnerUpgradeTests(unittest.TestCase):
                 (path / 'previous' / name).write_bytes(data[name])
                 (path / name).write_bytes(candidate[name])
             prepared = {**new, 'previousManifestSha256': upgrade.sha(data['manifest.json']),
+                        'previousFilesSha256': {name: upgrade.sha(value) for name, value in data.items()},
                         'foreignContainers': {'proxy': {'restart': 0}},
                         'proxyNetwork': {'id': 'network', 'foreignMembers': ['proxy']}}
             (path / 'prepared.json').write_bytes(upgrade.encoded(prepared))

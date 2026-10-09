@@ -141,6 +141,7 @@ def prepare(request):
                 'accessConfigurationSha256': previous['accessConfigurationSha256']}
     exact_file(path / 'manifest.json', encoded(manifest))
     prepared = {**manifest, 'previousManifestSha256': sha(data['manifest.json']),
+                'previousFilesSha256': {name: sha(value) for name, value in data.items()},
                 'previousCommit': previous['commit'], 'previousImageId': previous['imageId'],
                 'proxyNetwork': proxy_network(), 'foreignContainers': foreign_state()}
     exact_file(path / 'prepared.json', encoded(prepared))
@@ -201,6 +202,15 @@ def restore_previous(path, prepared):
     data = {name: read_private(previous_path / name) for name in FILES}
     if sha(data['manifest.json']) != prepared['previousManifestSha256']:
         raise ValueError('Rollback manifest differs')
+    if {name: sha(value) for name, value in data.items()} != prepared['previousFilesSha256']:
+        raise ValueError('Archived rollback files changed')
+    # A partially promoted release may contain either original or candidate bytes.
+    # An unrelated edit can represent revoked rights: never overwrite that drift.
+    for name, value in data.items():
+        current = read_private(DIRECTORY / name)
+        candidate = read_private(path / name)
+        if current not in (value, candidate):
+            raise ValueError('Live runtime drift; refusing to restore previous rights')
     manifest = json.loads(data['manifest.json'])
     if (sha(data['server.env']) != manifest['ownerEnvironmentSha256'] or
             sha(data['effective-compose.json']) != manifest['effectiveComposeSha256'] or
@@ -267,8 +277,16 @@ def apply(request):
         if attempted:
             for signum in INTERRUPTION_SIGNALS:
                 signal.signal(signum, signal.SIG_IGN)
-            rollback = restore_previous(path, prepared)
-            exact_file(path / 'rolled-back.json', encoded(rollback))
+            try:
+                rollback = restore_previous(path, prepared)
+                exact_file(path / 'rolled-back.json', encoded(rollback))
+            except BaseException:
+                # Do not leave an unverified replacement serving if rollback fails.
+                run(compose(path / 'effective-compose.json') +
+                    ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
+                exact_file(path / 'rollback-failed.json', encoded({'ownerStopped': True,
+                           'requiresScopedInspection': True, 'previousRightsRestored': False}))
+                raise
         raise
 
 
@@ -276,7 +294,9 @@ def recover(request):
     # Explicit operator action after process/host interruption, never automatic.
     path = prepared_path(request['buildProof']['commit'])
     prepared = json.loads(read_private(path / 'prepared.json'))
-    if prepared != request['preparedProof'] or not (path / 'applying.json').is_file():
+    journal = json.loads(read_private(path / 'applying.json'))
+    if (prepared != request['preparedProof'] or
+            journal.get('preparedSha256') != sha(encoded(prepared))):
         raise ValueError('Explicit exact interrupted-upgrade proof required')
     if prepared['foreignContainers'] != foreign_state() or prepared['proxyNetwork'] != proxy_network():
         raise ValueError('Foreign state changed; manual scoped inspection required')
