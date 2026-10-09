@@ -2,7 +2,7 @@
 
 2026-10-09 · [Kiadási mátrix](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) · [Célpróba](CONTABO_TARGET_REHEARSAL_HU.md) · [Audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-Ez a konkrét végrehajtási sorrend; a három szolgáltatás már fut a szerver belső hálózatán, de az alterward.com domain/TLS/Caddy route még nincs aktiválva. Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható.
+Ez a konkrét végrehajtási sorrend; a három szolgáltatás és az alterward.com HTTPS domain/TLS/Caddy route már aktív, kizárólag tulajdonosi Cloudflare Access mögött. [Tényleges bekötés, rollback és húsz külső próba](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md). Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható; belépés utáni UI-ellenőrzés még szükséges.
 
 ## Indítás előtt
 
@@ -21,7 +21,7 @@ node scripts/contabo-owner-activate.mjs --stage
 node scripts/contabo-owner-activate.mjs --launch
 ```
 
-Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt generálási/review queue ürességét: régi jobot a nulla-budget worker sem claimelhet el. A sikeres `up` után a futó web/API/worker tényleges image ID, teljes deklarált feature-env, publikus portok hiánya, `node` user, CA mount, egészség, restart/OOM és erőforráskorlátok ellenőrzöttek. Négy anonim web/API kérés a proxy-hálózatról 403/no-store eredményt kell adjon. Indulás közbeni env/source/CA/config módosítás is hibakapu. Hibánál csak az `alterward-owner` projekt `down` művelete fut, a közös proxy/DNS változatlan. A stage és a tényleges launch/post-start próba sikeres: három futó szolgáltatás, ellenőrzött image/env/health/korlátok, négy anonim 403/no-store, hat régi konténer változatlan. DNS/Caddy még nincs aktiválva. Az indító, jelkezelés és pooler TLS-probe három Cloud-delta auditja a 44e22e5 commitig lezárult; az utolsó nem adott új findingot.
+Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt generálási/review queue ürességét: régi jobot a nulla-budget worker sem claimelhet el. A sikeres `up` után a futó web/API/worker tényleges image ID, teljes deklarált feature-env, publikus portok hiánya, `node` user, CA mount, egészség, restart/OOM és erőforráskorlátok ellenőrzöttek. Négy anonim web/API kérés a proxy-hálózatról 403/no-store eredményt kell adjon. Indulás közbeni env/source/CA/config módosítás is hibakapu. Hibánál csak az `alterward-owner` projekt `down` művelete fut, a közös proxy/DNS változatlan. A stage és a tényleges launch/post-start próba sikeres: három futó szolgáltatás, ellenőrzött image/env/health/korlátok, négy anonim 403/no-store, hat régi konténer változatlan. Az első belső próba idején DNS/Caddy még nem volt aktiválva; a későbbi tényleges bekötés az új domainriportban szerepel. Az indító, jelkezelés és pooler TLS-probe három Cloud-delta auditja a 44e22e5 commitig lezárult; az utolsó nem adott új findingot.
 
 5. A közös Caddy tényleges fájljának és Compose-konfigurációjának root-only/hash-ellenőrzött mentése. A korábbi hat konténer ID/restart/állapot, hálózatok és hostonkénti route-válasz rögzített. A már hibás négy régi origin TLS nem az új kiadás hibája, és nem javítjuk őket a tulajdonos jóváhagyása nélkül.
 
@@ -29,7 +29,7 @@ Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt gene
 
 A kijelölt megoldás **Cloudflare Origin CA**, kizárólag `alterward.com` és `www.alterward.com` névre, a szerveren készített privát kulccsal és publikus CSR-rel. A privát kulcs nem kerül a Cloudflare űrlapjába, chatbe vagy Gitbe. A meglévő Caddy `/data` bind-mountján külön védett alterward-könyvtárban tároljuk; új bind-mount miatti közös proxy-újralétrehozás nem szükséges. A kiadott cert csak e két site blokkban `tls <cert> <key>` beállítással töltődik be. Nincs ACME/Access bypass vagy ideiglenes DNS-only szakasz.
 
-A Cloudflare **Full (strict)** kézi mód 2026-10-09-én elmentve és dashboardon visszaolvasva; az automatikus Full mód kikapcsolva. Aktiválás előtt a cert lánca/nyilvános kulcsa/SAN/lejárata és a kulcshoz tartozása ellenőrzendő. A lejárat root-only inventoryba és az operátori figyelési listába kerül; 30 napon belüli lejárat indítási/üzemeltetési hiba. Saját 30 napos figyelmeztető próba még nem lefutott. [Cloudflare hivatalos útmutató](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/).
+A Cloudflare **Full (strict)** kézi mód 2026-10-09-én elmentve és dashboardon visszaolvasva; az automatikus Full mód kikapcsolva. Aktiválás előtt a cert lánca/nyilvános kulcsa/SAN/lejárata és a kulcshoz tartozása ellenőrzendő. A lejárat root-only inventoryba és az operátori figyelési listába kerül; 30 napon belüli lejárat indítási/üzemeltetési hiba. Az egyéves cert kiadva/telepítve, lejárata 2027-10-09T07:15:00Z. A valódi OpenSSL harmincnapos kapu az egynapos, még érvényes szintetikus certet elutasította; a saját fixture-kulcs/cert eltávolítva. Automatikus riasztás és új CA-certtel végzett rotáció még nyitott. [Cloudflare hivatalos útmutató](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/).
 
 Az Origin CA-t a böngésző közvetlenül nem bízza meg: a publikus apex/www rekordok végig **proxied** állapotban működnek, a látogató a Cloudflare publikus certjét kapja. A közvetlen origin-próba a hivatalos Origin CA gyökérrel, bekapcsolt cert/hostname-validálással dolgozik; ez nem böngészős TLS-bypass. A scoped Caddy-szabály továbbra 403-at ad a nem Cloudflare TCP peernek, saját fiókjogoknál is. Cloudflare JWT továbbra szükséges a védett alkalmazásúton, a többi Cloudflare ügyfél IP-je önmagában nem jogosultság.
 
@@ -61,7 +61,7 @@ Hibás első kiadás visszaállítása: csak az alterward szolgáltatásait leá
 
 Későbbi alkalmazási rollback kizárólag a korábban auditált, helyben megőrzött image ID-ra történhet, a jelenlegi hozzáférési és privacy állapot megtartásával, ugyanazzal a teljes render/post-start őrrel. **Adatbázis-visszaállítás nem része ennek:** régi mentés nem állhat kiszolgálásba Auth/törlés/engedély-visszavonás replay nélkül. [Mentési határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md).
 
-Az észlelés → alterward-stop → korábbi Caddy-reload próba, a cert 30 napos figyelmeztetés és a végleges pozitív edge/Auth/UI bizonyíték még nyitott. E runbook elkészülte nem jelenti e gyakorlatok sikerét.
+A DNS-bekötés előtt tényleges korábbi-Caddy reload, tartós proxy-hálózat visszavonás/detach, saját három szolgáltatás stop/down, majd őrzött újralaunch és scoped proxy-újraaktiválás sikeres. A harmincnapos expiry hibakapu valódi fixture-próbája és húsz külső HTTPS-próba is sikeres. Automatikus észlelés/riasztás, pozitív owner Access/Auth/UI és pontos IP/cache bizonyíték még nyitott; a megtörtént próbákat a [domainriport](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md) rögzíti.
 
 ## Megszakítás, rollback és őrzött újraindítás
 
@@ -75,7 +75,7 @@ Az első `--launch` szándékosan csak hiányzó Alterward-projektet és üres, 
 docker compose --project-name alterward-owner -f /root/alterward-ops/owner/effective-compose.json down --remove-orphans
 ```
 
-4. A projekt konténereinek hiánya, az új hálózat üressége és a korábbi hat konténer/route ismét igazolt. Változatlan env/image mellett ezután ugyanaz a hash-kötött `--launch` fut; nincs kézi, őr nélküli `up`. Sikeres új post-start proof után a scoped Caddy tartós hálózatmerge, csatlakozás és reload ismét elvégezhető. Ez a hálózatleválasztás a rollback-próba része; tényleges próba még nyitott.
+4. A projekt konténereinek hiánya, az új hálózat üressége és a korábbi hat konténer/route ismét igazolt. Változatlan env/image mellett ezután ugyanaz a hash-kötött `--launch` fut; nincs kézi, őr nélküli `up`. Sikeres új post-start proof után a scoped Caddy tartós hálózatmerge, csatlakozás és reload ismét elvégezhető. Ez a teljes hálózatleválasztás és sajátprojekt-stop, majd őrzött újralaunch/proxy-merge/connect/reload a DNS-bekötés előtt ténylegesen sikeres volt; a korábbi hat alkalmazás és route változatlan maradt.
 
 Megváltozott env/image/CA esetén a régi stage külön root-only, hash-ellenőrzött archívumba kerül, nem vak felülírással frissül. Csak teljes új preflight/stage-proof és alkalmazási változásnál új image/audit/célpróba után indulhat új release. Az automatikus upgrade/re-stage jövőbeli ops-fejlesztés, nem az első owner-kiadás előfeltétele.
 
@@ -87,8 +87,12 @@ Az első pre-start queue-próba biztonságosan megállt, a saját konténerek el
 
 A Contabón sikeres: `databaseTlsVerified=true`, `databaseTlsHostnameVerified=true`, `postgresBackendSeesTls=false`, `pendingJobs=0`; ez a saját klienskapcsolat bizonyítéka, nem a Supabase belső hálózatának teljes auditja. A pg belső `client.connection.stream` megfigyelése kizárólag operátori probe, driver-frissítéskor új tényleges próba kell. Az alkalmazási image és adatbázis-kód nem változott. [pg SSL-beállítás és connectionString határ](https://node-postgres.com/features/ssl).
 
-## Végrehajtott alkalmazási rollback és előkészített proxy
+## Korábbi belső checkpoint: alkalmazási rollback és előkészített proxy
 
 2026-10-09T06:42:48Z: kizárólag az Alterward három szolgáltatása leállítva és eltávolítva, worker exit 0 és OOM nélkül; saját proxy-hálózat üres, hat korábbi konténer változatlan. Változatlan image/env/config/CA mellett az őrzött újralaunch és a teljes post-start guard ismét sikeres, négy anonim tiltás és öt üres queue, hitelesített kliens TLS. Ez alkalmazási stop/down/újraindítási próba; közös Caddy reload, tartós hálózatmerge/detach és DNS-rollback még nem történt.
 
 A közös Caddy/Compose eredeti fájlja és hash-e root-only előkészítési mentésbe került; a meglévő route-okhoz hozzáfűzött scoped Alterward candidate syntax-adaptja és a külön tartós hálózat-kiegészítési render sikeres. A tanúsítványos validate, valódi forrásfájl-merge, hálózatcsatlakozás és reload még nincs. A renderelt Compose nem írható vakon a közös YAML helyére: a tényleges merge megőrzi az eredeti más szolgáltatásokat, környezeti hivatkozásokat és hálózatokat.
+
+## Későbbi tényleges domainaktiválás
+
+2026-10-09: Origin CA kiadva/telepítve; a közös Caddyfile inode-megőrzéssel frissítve és explicit reloadolva, a közös Compose-ba csak a saját külső hálózat/csatlakozás került. Tényleges teljes proxy/alkalmazási rollback, majd ismételt guarded launch/merge/connect/reload sikeres; közös proxy restart/recreate nélkül. Proxied apex/www rekordok aktívak, kilenc mail-rekord és hat korábbi konténer/route változatlan. Az új 36 fájlos titkosított TLS/owner config-backup izolált restore-ja és a húsz külső anonim HTTPS-próba sikeres. Pozitív tulajdonosi Access/Auth/UI, cache/IP és levelezés még külön bizonyíték. [Eredmények és megmaradó kapuk](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).

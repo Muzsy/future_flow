@@ -63,3 +63,9 @@ A szigorított végrehajtóval 2026-10-09 helyi idő szerint a letöltött titko
 - Host UFW inaktív; a rögzített IPv4/IPv6 input alap policy accept. Docker külön NAT/forward szabályokat használ, a Contabo oldali tűzfal nem ellenőrzött. Az alterward alkalmazás portjai továbbra nem publikálhatók. Teljes tűzfalváltoztatás csak a többi alkalmazás és az SSH-helyreállítás ismeretében végezhető. [Docker tűzfalhatár](https://docs.docker.com/engine/network/packet-filtering-firewalls/).
 
 A két failed unit közül az egyik más alkalmazás ellenőrzése (11 passed, 3 warnings, 0 errors, de exit 1), a másik bootkori hálózati várakozás. A jelenlegi `eth0` routable, de configuring; a failed jelzés puszta törlése nem javítás. A reboot-required jelzés megmaradt. Ezek vizsgálata nem indított újra más alkalmazást és nem módosított tűzfalat.
+
+## Új TLS/owner konfiguráció mentése és izolált restore-ja
+
+2026-10-09T07:37:15Z: az éles Origin CA cert/key, közös proxy/Compose és root-only owner env/frozen config/manifest külön age-titkosított config-archívumba került. **36 fájl, 18 049 byte ciphertext**, helyi offsite visszaolvasott hash, tényleges sérülés-tiltás, mind a 36 restore-hash, CA/key/expiry és pinned Caddy hálózat nélküli validate sikeres. Ideiglenes plaintext/age-identity eltávolítva, hat korábbi konténer és saját három szolgáltatás változatlan. Nyers Origin key nem hagyta el a szervert. [Teljes bekötési bizonyíték](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).
+
+Ez új konfigurációs mentés és restore, nem új DB-snapshot. A korábbi 97 táblás/1632 soros DB és 24 fájlos config-próba külön történeti bizonyíték; hosztolt Auth/grant/storage, törlés/visszavonás replay és végleges retention továbbra hiányzó kapu. A proxy/alkalmazási rollback ténylegesen sikeres; automatikus backup/expiry/monitor, redundáns kulcs/offsite tárolás és aktív paid-job drain továbbra nyitott.

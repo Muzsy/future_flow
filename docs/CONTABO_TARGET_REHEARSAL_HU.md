@@ -65,3 +65,7 @@ A [teljes Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) hat része elk
 ## Privát leállítás és őrzött újraindítás
 
 2026-10-09T06:42:48Z: három saját szolgáltatás stop/down után, worker exit 0, üres saját proxy-hálózat és a hat korábbi konténer változatlansága igazolt. Ugyanazon image/env/config/CA mellett az őrzött launch megismételve: három futó szolgáltatás, négy anonim 403/no-store, öt üres queue, TLS/cert-hostname guard sikeres, fizetett AI 0, béta-ablak inaktív, DNS/Caddy változatlan. [44e22e5 ops CI](https://github.com/Muzsy/future_flow/actions/runs/37894534132) sikeres; a TLS-delta Cloud-audit új finding nélkül lezárult. Ez alkalmazási rollback-próba, nem teljes proxy/domain rollback.
+
+## Későbbi védett domainindulás
+
+2026-10-09: ugyanaz a 35f9889 appimage, 44e22e5 ops állapot és guarded újralaunch a tényleges proxy/alkalmazási rollback után is sikeres. Origin CA/Full (strict), scoped Caddy és tartós hálózat aktivált, apex/www proxied DNS kész. Hat korábbi konténer/route és kilenc mail-rekord változatlan. Az új TLS/owner konfiguráció 36 fájlos titkosított offsite restore-ja és húsz külső anonim HTTPS-contract próba sikeres; owner pozitív belépés/UI és Auth/email/cache/IP még nem késznek jelölt. Béta/paid 0, új provider-költés 0 USD. [Tényleges eredmények](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).

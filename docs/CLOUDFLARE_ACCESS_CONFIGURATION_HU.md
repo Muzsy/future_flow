@@ -48,9 +48,9 @@ Ez konfigurációs bizonyíték. Nem indult signup-kérés, új account, meghív
 
 ## Hátralévő éles bizonyíték
 
-- A DNS webes bekötése, Contabo alkalmazás/image, runtime origin-konfiguráció és új Caddy route nincs aktiválva.
-- A mentett Access alkalmazások működő webhelyen való OTP/owner pozitív, idegen/lejárt/névtelen negatív próbája még nincs.
-- Közvetlen origin/IP/Host, hamis token/fejléc, alternatív hostname, cache, account-rights bypass és callback ellenőrzés szükséges.
-- A célkörnyezet izolált telepítési próbája, retention/törlésvédett restore, végleges flag-mátrix és [részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md) az útvonal megnyitása előtt következik.
+- A DNS webes bekötése, Contabo alkalmazás/image, runtime origin-konfiguráció és új Caddy route aktív, owner-only. [Tényleges tanúsítvány/DNS/rollback és húsz külső próba](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md).
+- Anonim védett utak, hamisított assertion/cookie/email és közvetlen origin tiltása élesben sikeres. Valódi OTP/owner pozitív, lejárt vagy más audience/issuer token éles pozitív/negatív köre még szükséges; a korábbi izolált JWT-regresszió ettől külön bizonyíték.
+- Közvetlen origin apex/www/rights/API négy hamisított CF/IP/assertion próbája 403; pontos rights/method/descendant és saját export auth-kapu sikeres, nyilvános www privacy redirect ellenőrzött. Hitelesített → anonim cache, védett www és pontos kliens-IP/limiter, callback/own Auth külön nyitott.
+- Az izolált célpróba, tényleges owner flag/env/image-őr, részletes Cloud-audit és valódi proxy/alkalmazási rollback lezárult. Retention/törlésvédett restore, automatikus monitor és paid-job kapuk a tesztelői meghívás előtt még szükségesek.
 
-A harmincnapos béta-időszak inaktív, a fizetett tesztelői UUID-lista üres. E konfigurálás nem indított új fizetett AI-hívást, szerveres alkalmazást vagy levelet. A privát screenshotok és operátori JSON Gitből és Docker-buildből kizártak; nyers személyes login és token nem része a dokumentációnak.
+A harmincnapos béta-időszak inaktív, a fizetett tesztelői UUID-lista üres. Az eredeti dashboard-konfigurációs checkpoint nem indított alkalmazást; a későbbi külön jóváhagyott Contabo/domain-aktiválás a domainriportban szerepel. Új fizetett provider-hívás vagy Codex által küldött email nem indult. A privát screenshotok és operátori JSON Gitből és Docker-buildből kizártak; nyers személyes login és token nem része a dokumentációnak.

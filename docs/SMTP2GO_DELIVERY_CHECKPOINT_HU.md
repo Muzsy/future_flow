@@ -27,3 +27,7 @@ A beszámolt meghívó `redirect_to=http://localhost:3000` célt tartalmaz. Emia
 A felhasználó bejelentkezése után a Codex a future_flow projekt dashboardján **elmentette és újranyitással ellenőrizte az URL-konfigurációt és a nyolc angol sablon teljes HTML-jét**. A Site URL korábban `http://localhost:3000` volt és a Redirect URL-lista üres; most a fenti két pontos callback szerepel. A meglévő SMTP-jelszó nem lett kiolvasva, másolva vagy módosítva. Új levél nem ment. A callbackhez tartozó éles alkalmazás, tényleges invite/recovery belépés, spam és válaszút továbbra nincs e dashboard-módosítással igazolva.
 
 A kötelező részletes Claude Cloud-audit ezt a titokmentes állapotot és a még hiányzó élő bizonyítékot is megkapja. Az oldal zárása, restore/rollback/ops, védett Contabo-telepítés és a később induló fizetett béta külön kapuk maradnak. Új AI-hívás vagy 30 napos bétaaktiválás nem történt.
+
+## Későbbi éles domain-checkpoint
+
+2026-10-09: a [védett Contabo-domain](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md) aktív; az angol HTTPS `/account-access` oldal a böngészőben és credential nélküli HTTP-próbában ténylegesen 200, no-store/noindex. Ez az Auth callback céloldal elérhetőségét igazolja, nem valódi invite/recovery sessiont. Új Auth-levél nem ment; meghívó/recovery és friss belépés, spam/alignment/fejlécek és válasz visszaérkezése továbbra külön ellenőrzés. A kilenc SMTP2GO/Cloudflare mail DNS-rekord változatlan maradt.
