@@ -162,6 +162,16 @@ class DailyArchiveTests(unittest.TestCase):
 
 
 class MonitorTests(unittest.TestCase):
+    def test_web_has_no_provider_configuration_api_and_worker_require_zero_budget(self):
+        self.assertTrue(daily.owner_only_environment('web', {}))
+        self.assertFalse(daily.owner_only_environment('api', {}))
+        env = {'AI_PROJECT_BUDGET_USD': '0', 'AI_USER_BUDGET_USD': '0',
+               'OPENAI_API_KEY': 'alterward_owner_provider_access_disabled'}
+        self.assertTrue(daily.owner_only_environment('api', env))
+        self.assertTrue(daily.owner_only_environment('worker', env))
+        self.assertFalse(daily.owner_only_environment('web', env))
+        self.assertFalse(daily.owner_only_environment('worker', {**env, 'AI_PROJECT_BUDGET_USD': '1'}))
+
     def healthy(self):
         return {'ownerHealthy': True, 'databaseTlsVerified': True, 'pendingJobs': 0,
                 'anonymousDenied': 4, 'edgeClosed': True, 'diskFreeBytes': 10 * 1024**3,

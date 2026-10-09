@@ -154,6 +154,15 @@ def stable_state():
             if v['Config'].get('Labels', {}).get(LABEL) is None}
 
 
+def owner_only_environment(service, env):
+    if service == 'web':
+        return not env.get('OPENAI_API_KEY') and not env.get('ANTHROPIC_API_KEY')
+    return (not env.get('CLOSED_BETA_USER_IDS') and env.get('AI_PROJECT_BUDGET_USD') == '0' and
+            env.get('AI_USER_BUDGET_USD') == '0' and not env.get('ANTHROPIC_API_KEY') and
+            not env.get('AI_BUDGET_WINDOW_START') and not env.get('AI_BUDGET_WINDOW_END') and
+            env.get('OPENAI_API_KEY') == 'alterward_owner_provider_access_disabled')
+
+
 def owner_runtime():
     manifest = json.loads(regular(OWNER / 'manifest.json'))
     for filename, key in [('server.env', 'ownerEnvironmentSha256'),
@@ -167,15 +176,14 @@ def owner_runtime():
                 if v['Config'].get('Labels', {}).get('com.docker.compose.project') == 'alterward-owner'}
     if set(services) != {'web', 'api', 'worker'}:
         raise ValueError('Three owner services required')
+    expected = json.loads(regular(OWNER / 'effective-compose.json'))['services']
     for service, value in services.items():
         env = dict(item.split('=', 1) for item in value['Config']['Env'])
         if (not value['State']['Running'] or value['Image'] != manifest['imageId'] or
                 value['HostConfig'].get('PortBindings') or value['Config']['User'] != 'node' or
                 value['HostConfig'].get('CapDrop') != ['ALL'] or
-                env.get('CLOSED_BETA_USER_IDS') or env.get('AI_PROJECT_BUDGET_USD') != '0' or
-                env.get('AI_USER_BUDGET_USD') != '0' or env.get('ANTHROPIC_API_KEY') or
-                env.get('AI_BUDGET_WINDOW_START') or env.get('AI_BUDGET_WINDOW_END') or
-                env.get('OPENAI_API_KEY') != 'alterward_owner_provider_access_disabled'):
+                not owner_only_environment(service, env) or
+                any(env.get(k) != str(v) for k, v in expected[service]['environment'].items())):
             raise ValueError('Owner-only runtime boundary changed')
         if service != 'worker' and value['State'].get('Health', {}).get('Status') != 'healthy':
             raise ValueError('Owner service unhealthy')

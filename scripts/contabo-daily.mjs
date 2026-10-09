@@ -11,6 +11,7 @@ import {
 
 const actions = [
   'prepare',
+  'update',
   'backup',
   'monitor',
   'status',
@@ -192,7 +193,7 @@ async function runOperator() {
   }
   phase = 'remote-' + action;
   let result;
-  if (action === 'prepare') {
+  if (['prepare', 'update'].includes(action)) {
     if (
       execFileSync('git', ['status', '--porcelain'], {
         encoding: 'utf8',
@@ -235,6 +236,20 @@ async function runOperator() {
     result = await remote({
       action,
       config,
+      ...(action === 'update'
+        ? {
+            previousScriptHashes: JSON.parse(
+              regular(
+                join(
+                  directory,
+                  fs.existsSync(join(directory, 'update-proof.json'))
+                    ? 'update-proof.json'
+                    : 'prepare-proof.json',
+                ),
+              ),
+            ).scriptHashes,
+          }
+        : {}),
       scripts: Object.fromEntries(
         Object.entries(sources).map(([name, data]) => [
           name,

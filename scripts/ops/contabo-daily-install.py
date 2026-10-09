@@ -115,6 +115,64 @@ def installed_daily():
     return module
 
 
+def update_scripts(request, daily):
+    previous = daily.config()
+    candidate = request['config']
+    if request['previousScriptHashes'] != previous['scriptHashes']:
+        raise ValueError('Exact previous source hashes required')
+    if {k: v for k, v in previous.items() if k not in ['scriptHashes', 'sourceCommit']} != {
+            k: v for k, v in candidate.items() if k not in ['scriptHashes', 'sourceCommit']}:
+        raise ValueError('Daily update may change only code and its source commit')
+    scripts = {n: base64.b64decode(v, validate=True) for n, v in request['scripts'].items()}
+    if set(scripts) != set(previous['scriptHashes']) or {
+            n: hashlib.sha256(v).hexdigest() for n, v in scripts.items()} != candidate['scriptHashes']:
+        raise ValueError('Candidate source hashes invalid')
+    if not re.fullmatch(r'[a-f0-9]{40}', candidate['sourceCommit']):
+        raise ValueError('Committed source required')
+    for name in UNITS:
+        state = run(['systemctl', 'show', name, '--property=ActiveState', '--value']).decode().strip()
+        if state in ['active', 'activating', 'deactivating', 'reloading']:
+            raise ValueError('Deactivate only the dedicated timers before updating daily code')
+        if daily.regular(UNIT_ROOT / name) != unit_files()[name].encode():
+            raise ValueError('Existing daily unit changed')
+    baseline = daily.stable_state()
+    with daily.exclusive(ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+        archive = ROOT / ('previous-' + candidate['sourceCommit'])
+        archive.mkdir(mode=0o700)
+        originals = {n: daily.regular(ROOT / 'scripts' / n) for n in scripts}
+        originals['config.json'] = daily.regular(ROOT / 'config.json')
+        for name, content in originals.items():
+            daily.durable_file(archive / name, content)
+        def replace(path, content):
+            import tempfile
+            daily.regular(path)
+            fd, temp = tempfile.mkstemp(prefix='.daily-update-', dir=path.parent)
+            try:
+                with os.fdopen(fd, 'wb') as handle:
+                    os.fchmod(handle.fileno(), 0o600)
+                    handle.write(content)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temp, path)
+            finally:
+                if os.path.exists(temp):
+                    os.unlink(temp)
+        try:
+            for name, content in scripts.items():
+                replace(ROOT / 'scripts' / name, content)
+            replace(ROOT / 'config.json', json.dumps(candidate, sort_keys=True).encode())
+        except Exception:
+            for name, content in originals.items():
+                replace(ROOT / 'config.json' if name == 'config.json' else ROOT / 'scripts' / name, content)
+            raise
+    if daily.stable_state() != baseline:
+        raise ValueError('Daily source update changed existing containers')
+    return {'updated': True, 'sourceCommit': candidate['sourceCommit'],
+            'scriptHashes': candidate['scriptHashes'], 'retentionDays': 7,
+            'recipientChanged': False, 'timersActivated': False,
+            'allExistingContainersUnchanged': True, 'paidAiCalls': 0}
+
+
 def main(request):
     os.umask(0o077)
     if os.geteuid() != 0:
@@ -123,6 +181,8 @@ def main(request):
         return install(request)
     daily = installed_daily()
     action = request['action']
+    if action == 'update':
+        return update_scripts(request, daily)
     if action in ['backup', 'monitor']:
         baseline = daily.stable_state()
         run(['systemctl', 'start', 'alterward-' + action + '.service'], timeout=390)
