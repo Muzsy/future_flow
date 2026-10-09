@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import signal
 import stat
 import sys
 
@@ -21,6 +22,12 @@ PROJECT = 'alterward-owner'
 NETWORK = 'alterward_proxy'
 CA = Path('/etc/alterward/supabase-ca.crt')
 FILES = ['server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json']
+INTERRUPTION_SIGNALS = [getattr(signal, name) for name in ['SIGHUP', 'SIGTERM', 'SIGINT']
+                        if hasattr(signal, name)]
+
+
+def interrupted(_signum, _frame):
+    raise RuntimeError('Owner activation interrupted')
 
 
 def sha(data):
@@ -231,6 +238,9 @@ def launch(request):
                 'existingContainersUnchanged': True, 'dnsChanged': False, 'proxyChanged': False}
     except Exception:
         if attempted:
+            # A second disconnect/termination must not interrupt own cleanup.
+            for signum in INTERRUPTION_SIGNALS:
+                signal.signal(signum, signal.SIG_IGN)
             run(command + ['down', '--remove-orphans'], timeout=180)
             if project_ids():
                 raise RuntimeError('Failed owner launch cleanup incomplete')
@@ -247,6 +257,8 @@ if __name__ == '__main__':
         read_private(lock)
         with lock.open('rb') as handle:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            for signum in INTERRUPTION_SIGNALS:
+                signal.signal(signum, interrupted)
             request = json.load(sys.stdin)
             action = request['action']
             if action not in ['stage', 'launch']:

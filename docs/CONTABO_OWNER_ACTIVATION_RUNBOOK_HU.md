@@ -61,3 +61,21 @@ Hibás első kiadás visszaállítása: csak az alterward szolgáltatásait leá
 Későbbi alkalmazási rollback kizárólag a korábban auditált, helyben megőrzött image ID-ra történhet, a jelenlegi hozzáférési és privacy állapot megtartásával, ugyanazzal a teljes render/post-start őrrel. **Adatbázis-visszaállítás nem része ennek:** régi mentés nem állhat kiszolgálásba Auth/törlés/engedély-visszavonás replay nélkül. [Mentési határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md).
 
 Az észlelés → alterward-stop → korábbi Caddy-reload próba, a cert 30 napos figyelmeztetés és a végleges pozitív edge/Auth/UI bizonyíték még nyitott. E runbook elkészülte nem jelenti e gyakorlatok sikerét.
+
+## Megszakítás, rollback és őrzött újraindítás
+
+Az első `--launch` szándékosan csak hiányzó Alterward-projektet és üres, saját címkéjű proxy-hálózatot enged. Ez az első indítást védi; nem általános rolling upgrade vagy credential-rotációs parancs. A Cloud-delta DELTA-01 jelzésének konkrét owner-eljárása:
+
+1. Az előző Caddy fájl/hash visszatöltése, adapt/validate és reload; az Alterward route eltűnésének és a korábbi route-ok változatlanságának ellenőrzése.
+2. A már rögzített közös Caddy konténert kizárólag az új `alterward_proxy` hálózatról leválasztjuk. A `ghost_default` és `web_proxy` kapcsolat megmarad. Nem indul újra vagy jön létre újra a proxy.
+3. Csak az `alterward-owner` projekt áll le; a frozen config és minden privát bizonyíték megmarad:
+
+```text
+docker compose --project-name alterward-owner -f /root/alterward-ops/owner/effective-compose.json down --remove-orphans
+```
+
+4. A projekt konténereinek hiánya, az új hálózat üressége és a korábbi hat konténer/route ismét igazolt. Változatlan env/image mellett ezután ugyanaz a hash-kötött `--launch` fut; nincs kézi, őr nélküli `up`. Sikeres új post-start proof után a scoped Caddy csatlakozás/reload ismét elvégezhető. Ez a hálózatleválasztás a rollback-próba része; tényleges próba még nyitott.
+
+Megváltozott env/image/CA esetén a régi stage külön root-only, hash-ellenőrzött archívumba kerül, nem vak felülírással frissül. Csak teljes új preflight/stage-proof és alkalmazási változásnál új image/audit/célpróba után indulhat új release. Az automatikus upgrade/re-stage jövőbeli ops-fejlesztés, nem az első owner-kiadás előfeltétele.
+
+DELTA-02: a szerveroldali indító SIGHUP/SIGTERM/SIGINT jelzést normál kivétellé alakít, ezért a már elkezdett indítás sajátprojekt-takarítása lefut; a takarítás idejére a további megszakításokat figyelmen kívül hagyja. A jelkezelés és a kivétel utáni cleanup célzott próbái sikeresek; valódi SSH-disconnect-próba még nincs. SIGKILL, hosthiba vagy elveszett végső SSH-válasz után nem feltételezünk leállást: először a projekt állapotát, image/env/health és proof meglétét kell ellenőrizni. Bizonytalan esetben a fenti sajátprojekt-`down`, majd új őrzött launch következik; addig nincs Caddy/DNS aktiválás.

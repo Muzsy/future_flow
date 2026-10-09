@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import signal
 from pathlib import Path
 from subprocess import CompletedProcess
 import sys
@@ -141,6 +142,15 @@ class OwnerActivationTests(unittest.TestCase):
             self.assertEqual(last[:4], ['docker', 'compose', '--project-name', 'alterward-owner'])
             self.assertEqual(last[-2:], ['down', '--remove-orphans'])
             self.assertFalse(any('restart' in call.args[0] for call in command.call_args_list))
+
+    def test_termination_signal_enters_normal_exception_cleanup_path(self):
+        previous = signal.getsignal(signal.SIGTERM)
+        try:
+            signal.signal(signal.SIGTERM, activation.interrupted)
+            with self.assertRaisesRegex(RuntimeError, 'Owner activation interrupted'):
+                signal.raise_signal(signal.SIGTERM)
+        finally:
+            signal.signal(signal.SIGTERM, previous)
 
 
 if __name__ == '__main__':
