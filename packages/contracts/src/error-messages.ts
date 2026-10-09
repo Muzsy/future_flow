@@ -287,8 +287,8 @@ const errors: Record<string, readonly [string, string]> = {
     'A belépés még nincs beállítva.',
   ],
   PRIVACY_AUTH_DELETE_FAILED: [
-    'Account deletion failed. Please try again later.',
-    'A fiók törlése nem sikerült. Próbáld újra később.',
+    'Account deletion could not be confirmed. Your account remains paused while the deletion is completed. Contact info@alterward.com if you need help.',
+    'A fióktörlés még nem igazolható. A fiókod a törlés befejezéséig zárolva marad. Segítség: info@alterward.com.',
   ],
   ACCOUNT_DELETING: [
     'Your account is being deleted.',

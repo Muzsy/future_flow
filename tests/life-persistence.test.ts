@@ -414,7 +414,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
     ).toEqual([]);
     deletion.mockRestore();
   });
-  it('restores a verified existing Auth account, but retains an uncertain deletion for recovery', async () => {
+  it('retains a rejected Auth deletion until recovery can finish it', async () => {
     const owner = randomUUID();
     await repo.ensureUser(owner);
     await repo.acceptPrivacy(owner);
@@ -439,8 +439,78 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
     expect(
       (await db.query('SELECT status FROM ff_users WHERE id=$1', [owner]))[0]!
         .status,
-    ).toBe('active');
-    expect((await lives.branch(owner, created.branchId)).status).toBe('failed');
+    ).toBe('deleting');
+    expect(
+      (
+        await db.query('SELECT status FROM aw_jobs WHERE branch_id=$1', [
+          created.branchId,
+        ])
+      )[0]!.status,
+    ).toBe('cancelled');
+    expect(
+      (
+        await db.query(
+          'SELECT status FROM aw_account_deletions WHERE user_id=$1',
+          [owner],
+        )
+      )[0]!.status,
+    ).toBe('awaiting_auth');
+    const successfulRetry = vi.fn(async () => {});
+    await recoverAccountDeletion(
+      repo,
+      { ...failed, deleteUser: successfulRetry },
+      owner,
+    );
+    expect(successfulRetry).toHaveBeenCalledOnce();
+    expect(
+      await db.query('SELECT id FROM ff_users WHERE id=$1', [owner]),
+    ).toEqual([]);
+  });
+  it('keeps the marker when a timed-out Auth deletion finishes after the existence check', async () => {
+    const owner = randomUUID();
+    await repo.ensureUser(owner);
+    let authExists = true;
+    const auth = {
+      verify: async () => ({ id: owner }),
+      deleteUser: vi.fn(async () => {
+        throw new Error('Synthetic timeout.');
+      }),
+      userExists: vi.fn(async () => {
+        const observed = authExists;
+        authExists = false; // Auth completes immediately after the point-in-time check.
+        return observed;
+      }),
+    };
+    await expect(deleteAccount(repo, auth, owner)).rejects.toThrow(
+      'Synthetic timeout',
+    );
+    expect(
+      (await db.query('SELECT status FROM ff_users WHERE id=$1', [owner]))[0]!
+        .status,
+    ).toBe('deleting');
+    expect(
+      (
+        await db.query(
+          'SELECT status FROM aw_account_deletions WHERE user_id=$1',
+          [owner],
+        )
+      )[0]!.status,
+    ).toBe('awaiting_auth');
+    await recoverAccountDeletion(repo, auth, owner);
+    expect(auth.deleteUser).toHaveBeenCalledOnce();
+    expect(
+      await db.query('SELECT id FROM ff_users WHERE id=$1', [owner]),
+    ).toEqual([]);
+  });
+  it('retains an uncertain Auth deletion if the existence check also fails', async () => {
+    const owner = randomUUID();
+    await repo.ensureUser(owner);
+    const failed = {
+      verify: async () => ({ id: owner }),
+      deleteUser: async () => {
+        throw new Error('Synthetic timeout.');
+      },
+    };
     await expect(
       deleteAccount(
         repo,

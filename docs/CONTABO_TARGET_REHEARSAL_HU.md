@@ -4,7 +4,7 @@
 
 ## Előkészített végrehajtó
 
-[Windows operátori indító](../scripts/contabo-target-rehearsal.mjs), [szerveroldali build/runtime próba](../scripts/ops/contabo-target.py), [HTTP/TLS ellenőrző](../scripts/ops/contabo-target-check.mjs). A próba nem aktiválja a DNS-t, meglévő Caddyt, éles adatbázist vagy AI-keretet. **A korlátozott célgépi build sikeres; a teljes runtime-próba még nem lezárt.**
+[Windows operátori indító](../scripts/contabo-target-rehearsal.mjs), [szerveroldali build/runtime próba](../scripts/ops/contabo-target.py), [HTTP/TLS ellenőrző](../scripts/ops/contabo-target-check.mjs). A próba nem aktiválja a DNS-t, meglévő Caddyt, éles adatbázist vagy AI-keretet. **A korlátozott célgépi build és a teljes izolált web/API/worker próba sikeres, a négy owner-katalógus flag bekapcsolásával is.**
 
 ```powershell
 node --env-file=.env scripts/contabo-target-rehearsal.mjs
@@ -22,19 +22,27 @@ A gépen nincs Buildx és a jelen apt metadata nem kínálja a plugint. A végre
 - Külön internal Docker-hálózatok és ideiglenes PostgreSQL 17; 001–036 migrációk és ismétlés, a tényleges DB-kapcsolat TLS-e igazolt.
 - Külön Caddy csak privát hálózaton, ideiglenes CA-val; HTTPS hostname-validálás és hibás hostname elutasítása. Ez nem az alterward.com origin-tanúsítványának bizonyítéka.
 - A dashboardról rögzített fő Access team/AUD és owner-lista az originben; hiányzó/hamis Access token, védett útvonal, leszármazott és tiltott method elutasított. Account access/privacy és tényleges statikus asset olvasható, saját export/törlés Supabase Auth nélkül 401.
-- Mindhárom runtime internetes TCP-próbája blokkolt; provider credential csak használhatatlan fixture-érték, élő Supabase/AI-kapcsolat nincs. Fizetett UUID-lista üres, béta-időszak inaktív, minden termék feature alapértéken false.
+- Mindhárom runtime internetes TCP-próbája blokkolt; provider credential csak használhatatlan fixture-érték, élő Supabase/AI-kapcsolat nincs. Fizetett UUID-lista üres, béta-időszak inaktív; Official/Discovery/Collections/Scenarios a tényleges owner-konfiguráció szerint true, a többi termékflag false.
+- Indulás előtt a renderelt web/API kapu pontos team/AUD/email egyezése és true állapota ellenőrzött; API/worker nulla keret, üres UUID-lista és inaktív időszak külön ellenőrzött.
+- A tényleges előkészített alterward.com/www Caddy-szabály nyolc közvetlen kérést tilt, hamis Cloudflare/IP fejlécekkel is. Más webhely szabályát nem módosítja; a pozitív Cloudflare peer/IP-továbbítás még élő próba.
 - Üres queue mellett worker SIGTERM-leállás 0 kilépési kóddal, OOM nélkül; csak a saját Compose-projekt/network/fixture takarítása.
 - A korábbi konténerek azonos ID-val, restart-számmal és futó állapottal maradnak meg a build és a runtime-próba után.
 
-A source-archívum öt biztonsági próbája a normál Git-directory és fájl esetét, private pathok, alias/abszolút út, links/device és duplicate fájlok tiltását vizsgálja. A hatodik próba az örökölt host-kulcsok/DB/béta flag-ek kiszűrését igazolja: a Compose környezete nem írhatja felül a dummy fixture-t. Az eredeti nyolc backup-teszttel együtt **14 célzott próba** helyben sikeres. Titkos helyi fájl és symlink nem kerülhet a buildforrásba. A privát eredmény a Gitből és buildből kizárt `.local/contabo-release/` alatt marad.
+A source-archívum öt biztonsági próbája a normál Git-directory és fájl esetét, private pathok, alias/abszolút út, links/device és duplicate fájlok tiltását vizsgálja. A hatodik próba az örökölt host-kulcsok/DB/béta flag-ek kiszűrését igazolja: a Compose környezete nem írhatja felül a dummy fixture-t. A hetedik próba hibás/hiányzó kapu, eltérő email/AUD, pozitív allowance, UUID vagy induló időszak esetén megállítja az owner-indítást. Az eredeti nyolc backup-teszttel együtt **15 célzott próba** helyben sikeres. Titkos helyi fájl és symlink nem kerülhet a buildforrásba. A privát eredmény a Gitből és buildből kizárt `.local/contabo-release/` alatt marad.
 
 ## Tényleges célgépi checkpoint
 
-A `37553973021a8205cb615c92663e656c34f2575d` main commit [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37862259691) verify/container sikeres. Ennek tiszta Git-forrásából a Contabón, a tényleges publikus Supabase buildértékekkel elkészült a `node` useres image, saját 2 GiB/1 CPU builderrel, publikált port nélkül. A builder eltávolítva, a hat meglévő konténer ID/restart/állapot változatlan. Éles DB/admin/AI kulcs nem jutott a buildbe.
+A `5e9ea9fa7ffbd89aa2ad5016f28b0f10984ff122` main commit [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37864212253) verify/container sikeres. Helyi teljes check: 667 sikeres teszt, két korábbi Windows symlink-kihagyás, 63 fájl és production build. Ennek tiszta Git-forrásából a Contabón, a tényleges publikus Supabase buildértékekkel elkészült a `node` useres image, saját 2 GiB/1 CPU builderrel, publikált port nélkül. A builder eltávolítva, a hat meglévő konténer ID/restart/állapot változatlan. Éles DB/admin/AI kulcs nem jutott a buildbe.
 
 Az izolált runtime 001–036 migrációja és ismétlése, web/API és a privát HTTPS elindult. A hibás SNI-t a Caddy már a handshake során elutasította; a próba ezután a normál fixture-SNI mellett külön `checkServerIdentity` hívással teszteli a hibás tanúsítványnevet, új kapcsolatban, változatlan CA/`rejectUnauthorized` validálással. A teljes próba következő körében a worker újraindult: a régi budget parser üres béta-lista és minden allowance 0 mellett is 30 napos ablakot követelt. Ez ütközött az elfogadott, telepítéstől független bétaindulással. A javítás kizárólag e teljesen inaktív konfigurációt engedi időszak nélkül; UUID, pozitív allowance vagy inicializált költés esetén a korábbi szigorú időszak-kapu megmarad. A foglalás üres listán provider/DB-hívás előtt elutasított mindkét providernél.
 
-A javított alkalmazási commit új célgépi image-et és ismételt runtime-próbát igényel. A régi image vagy a sikeres CI nem jelölheti ezt késznek. A saját fixture-konténerek/hálózat/ideiglenes kulcsok takarítása a sikertelen próba után is lefut; privát hibadiagnosztika mentett, nyers napló nem kerül a dokumentációba.
+Az első sikertelen próba után új alkalmazási image és ismételt runtime-próba volt szükséges; ezek eredménye az alábbi checkpointban szerepel. A saját fixture-konténerek/hálózat/ideiglenes kulcsok takarítása a sikertelen próba után is lefut; privát hibadiagnosztika mentett, nyers napló nem kerül a dokumentációba.
+
+## Sikeres ismétlések és verzióhatár
+
+Az 5e9 image ID: `sha256:771553f10a90a0f3bc89d84c054bf421c5ff1344a426933e2d9a83977a00ef15`. Az új image teljes runtime-próbája, majd a négy valós katalógusflaggel ismételt próba sikeres. A Caddy-peer-védelem hozzáadása után a harmadik próba is sikeres: 36 migráció és ismétlés, DB TLS, 11 Access-tiltás, 8 közvetlen alterward/www kérés tiltása, két rights oldal/három asset, két sajátadat-kérés Auth nélkül 401, hibás cert-hostname elutasítás, három egress-tiltás, worker SIGTERM 0 és teljes fixture-takarítás. Fizetett AI-hívás és éles DB-kapcsolat 0; meglévő hat konténer változatlan. Előkészített Caddy fájl SHA-256: `d686de994ef2a950b6fec6be1a484b5b67f88940787d46a155613c3fc9918a33`.
+
+E bizonyíték az 5e9 alkalmazási image-hez és a privát proofban rögzített operátori script/config hash-ekhez tartozik. A Cloud-auditban később javított fióktörlési hiba új alkalmazási commit/image és ismételt célpróba előtt még nem élesíthető. A végső image-et a végső auditált kóddal kell egyeztetni.
 
 ## Az éles kapu megmarad
 

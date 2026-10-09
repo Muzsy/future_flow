@@ -10,8 +10,16 @@ const headers = {
   'cf-access-jwt-assertion': 'invalid.assertion.value',
   'cf-access-authenticated-user-email': 'owner@example.invalid',
   'x-middleware-subrequest': 'proxy:proxy:proxy:proxy:proxy',
+  'cf-connecting-ip': '173.245.48.1',
+  'x-forwarded-for': '173.245.48.1',
 };
-function request(path, method = 'GET', hostname = 'localhost') {
+function request(
+  path,
+  method = 'GET',
+  hostname = 'localhost',
+  hostHeader = 'localhost',
+  sni = 'localhost',
+) {
   return new Promise((resolve, reject) => {
     const req = httpsRequest(
       {
@@ -19,7 +27,7 @@ function request(path, method = 'GET', hostname = 'localhost') {
         port: 443,
         // Keep the fixture's configured SNI so a negative identity probe tests
         // the client certificate check, rather than Caddy's unknown-SNI policy.
-        servername: 'localhost',
+        servername: sni,
         checkServerIdentity: (_servername, certificate) =>
           checkServerIdentity(hostname, certificate),
         agent: false,
@@ -27,7 +35,7 @@ function request(path, method = 'GET', hostname = 'localhost') {
         method,
         ca,
         rejectUnauthorized: true,
-        headers: { ...headers, host: 'localhost' },
+        headers: { ...headers, host: hostHeader },
         timeout: 5000,
       },
       (response) => {
@@ -113,6 +121,21 @@ await assert.rejects(
   request('/healthz', 'GET', 'unrelated.invalid'),
   (error) => error.code === 'ERR_TLS_CERT_ALTNAME_INVALID',
 );
+let directOriginDenied = 0;
+for (const host of ['alterward.com', 'www.alterward.com']) {
+  for (const [method, path] of [
+    ['GET', '/'],
+    ['GET', '/account-access'],
+    ['GET', '/api/v1/me/export'],
+    ['DELETE', '/api/v1/me'],
+  ]) {
+    const response = await request(path, method, host, host, host);
+    assert.equal(response.status, 403, `${method} ${host}${path}`);
+    assert.equal(response.body, 'Origin access denied.');
+    assert.equal(response.headers.location, undefined);
+    directOriginDenied++;
+  }
+}
 const db = connectDatabase(process.env.DATABASE_URL, true);
 try {
   const tls = await db.query(
@@ -126,6 +149,7 @@ try {
   console.log(
     JSON.stringify({
       denied,
+      directOriginDenied,
       rightsPages,
       staticAssets: assets,
       ownRightsRequireAuth: authRequired,

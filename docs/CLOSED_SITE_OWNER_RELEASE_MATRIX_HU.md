@@ -8,7 +8,7 @@ A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első, k
 | --- | --- |
 | Webhely | Access + origin JWT/email gate aktív; pontosan egy üzemeltetői email, tesztelő nincs |
 | Auth | Nyilvános signup tiltott; meghívás és saját fiókjogok külön Supabase-hitelesítéssel |
-| Kínálat | A meglévő 15 jóváhagyott Official élet, öt Scenario, Discovery és Featured collection olvasható az Access mögött |
+| Kínálat | 15 új jóváhagyott Official élet és öt Scenario, Discovery/Featured; a korábbi külön auditált pilot élet is megmarad, ezért a tényleges Discovery-lista jelenleg 16 élet |
 | Kiadási jogosultság | Community publication, új curator/review/release operator műveletek kikapcsolva |
 | Fizetett művelet | Bétaőr aktív, UUID-lista üres; minden provider/project/user allowance 0, időszak üres és kötelező |
 | Továbbindítás | Fork starts és Scenario personalization kikapcsolva; normál saját élet generálását az üres béta-lista és nulla költségkeret tiltja |
@@ -16,7 +16,7 @@ A [titokmentes owner overlay](../deploy/closed-site-owner.flags.env) az első, k
 | Shared | Mind a négy Shared flag kikapcsolva |
 | Saját jogok | Account access/privacy/static asset szűk kivétel; saját export/törlés hitelesítést igényel |
 
-Az `OFFICIAL_PUBLICATIONS_ENABLED=true` valós, szerveroldali `PUBLICATION_LINK_SECRET` értéket igényel. A már előállított snapshotokhoz a meglévő védett titkot használjuk; új titok vagy hamis fixture nem helyettesíti. Az Access team/AUD és az email-lista a dashboardról ellenőrzött privát konfigurációból kerül a szerverre. SMTP-jelszó nem kerül a Contabóra vagy az image-be.
+Az `OFFICIAL_PUBLICATIONS_ENABLED=true` valós, szerveroldali `PUBLICATION_LINK_SECRET` értéket igényel. A már előállított snapshotokhoz a meglévő védett titkot használjuk; új titok vagy hamis fixture nem helyettesíti. Az Access team/AUD és az email-lista a dashboardról ellenőrzött privát konfigurációból kerül a szerverre. SMTP-jelszó nem kerül a Contabóra vagy az image-be. Az owner-only szerverkonfigurációban az OpenAI-kulcs használhatatlan placeholder; éles provider credential csak a külön tesztelői aktiváláskor kerülhet be.
 
 Az overlay értékeit a teljes, checkouton kívüli, root-only server env-be kell egyesíteni. A Compose induló folyamat környezete nem írhatja felül ezt a fájlt; a célpróba indítója külön kiszűri az örökölt alkalmazási változókat. A tényleges összeállított Compose-konfiguráció, portok és futó web/API/worker értékek ellenőrzendők. A közös sablon false alapértékei nem jelentik e konkrét kiadás aktiválását.
 

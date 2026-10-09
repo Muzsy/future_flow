@@ -81,6 +81,35 @@ def existing_state():
             for c in containers}
 
 
+def validate_owner_configuration(config, access):
+    """Refuse a mismatched rendered gate before starting any owner fixture."""
+    if len(access['allowedEmails']) != 1:
+        raise ValueError('Owner-only configuration required')
+    expected = {'CLOSED_SITE_ENABLED': 'true',
+                'CLOUDFLARE_ACCESS_TEAM_DOMAIN': access['teamDomain'],
+                'CLOUDFLARE_ACCESS_AUD': access['audience'],
+                'CLOSED_SITE_ALLOWED_EMAILS': access['allowedEmails'][0]}
+    for service in ['web', 'api']:
+        environment = config['services'][service]['environment']
+        if any(environment.get(key) != value for key, value in expected.items()):
+            raise ValueError('Rendered web/API origin gate differs from dashboard')
+    for service in ['api', 'worker']:
+        environment = config['services'][service]['environment']
+        if any(environment.get(key) != value for key, value in {
+                'CLOSED_BETA_ENABLED': 'true', 'CLOSED_BETA_USER_IDS': '',
+                'AI_PROJECT_BUDGET_USD': '0', 'AI_USER_BUDGET_USD': '0'}.items()):
+            raise ValueError('Owner deployment could admit paid work')
+    worker = config['services']['worker']['environment']
+    if any(worker.get(key) != value for key, value in {
+            'AI_BUDGET_WINDOW_REQUIRED': 'true',
+            'AI_BUDGET_WINDOW_START': '', 'AI_BUDGET_WINDOW_END': ''}.items()):
+        raise ValueError('Owner deployment could start a paid window')
+    for key in ['OFFICIAL_PUBLICATIONS_ENABLED', 'DISCOVERY_ENABLED',
+                'PUBLIC_COLLECTIONS_ENABLED', 'PUBLIC_SCENARIOS_ENABLED']:
+        if config['services']['api']['environment'].get(key) != 'true':
+            raise ValueError('Owner catalog configuration differs')
+
+
 def prepare_buildx():
     plugins = CLI / 'cli-plugins'
     private_directory(plugins)
@@ -206,7 +235,7 @@ def rehearse(request):
              '-out', str(fixture / 'ca.crt'), '-addext', 'basicConstraints=critical,CA:TRUE'])
         run(['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=localhost',
              '-keyout', str(fixture / 'server.key'), '-out', str(fixture / 'server.csr')])
-        private_file(fixture / 'server.ext', b'subjectAltName=DNS:localhost,DNS:postgres\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n')
+        private_file(fixture / 'server.ext', b'subjectAltName=DNS:localhost,DNS:postgres,DNS:alterward.com,DNS:www.alterward.com\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n')
         run(['openssl', 'x509', '-req', '-days', '1', '-in', str(fixture / 'server.csr'),
              '-CA', str(fixture / 'ca.crt'), '-CAkey', str(fixture / 'ca.key'), '-CAcreateserial',
              '-extfile', str(fixture / 'server.ext'), '-out', str(fixture / 'server.crt')])
@@ -236,11 +265,29 @@ def rehearse(request):
                'CLOUDFLARE_ACCESS_TEAM_DOMAIN': request['access']['teamDomain'],
                'CLOUDFLARE_ACCESS_AUD': request['access']['audience'],
                'CLOSED_SITE_ALLOWED_EMAILS': ','.join(request['access']['allowedEmails'])}
+        for line in (source / 'deploy/closed-site-owner.flags.env').read_text().splitlines():
+            if not line or line.startswith('#'):
+                continue
+            if not re.fullmatch(r'[A-Z][A-Z0-9_]+=(?:true|false|0)?', line):
+                raise ValueError('Owner flag overlay contains a non-fixture value')
+            key, value = line.split('=', 1)
+            env[key] = value
+        # Enables the real owner catalog configuration, with a disposable secret.
+        env['PUBLICATION_LINK_SECRET'] = '1' * 64
         if any('\n' in v or '\r' in v for v in env.values()):
             raise ValueError('Invalid fixture environment')
         env_file = fixture / 'fixture.env'
         private_file(env_file, ''.join(k + '=' + v + '\n' for k, v in env.items()).encode())
-        private_file(fixture / 'Caddyfile', b'https://localhost {\n tls /fixture/server.crt /fixture/server.key\n handle /api/* {\n reverse_proxy alterward-api:4000\n }\n handle {\n reverse_proxy alterward-web:3000\n }\n}\n')
+        # Exercise the prepared scoped proxy configuration without changing the
+        # existing public proxy. Only its certificate source is a private fixture.
+        proxy_candidate = request['proxyCandidate']
+        fixture_proxy = proxy_candidate.replace(
+            'alterward.com {',
+            'alterward.com {\n    tls /fixture/server.crt /fixture/server.key')
+        private_file(fixture / 'Caddyfile', (
+            'https://localhost {\n tls /fixture/server.crt /fixture/server.key\n'
+            ' handle /api/* {\n reverse_proxy alterward-api:4000\n }\n'
+            ' handle {\n reverse_proxy alterward-web:3000\n }\n}\n' + fixture_proxy).encode())
         override = {'services': {
             'postgres': {'image': postgres, 'environment': {'POSTGRES_PASSWORD': 'rehearsal_unused'},
                          'command': ['postgres', '-c', 'ssl=on', '-c', 'ssl_cert_file=/fixture/server.crt',
@@ -266,6 +313,7 @@ def rehearse(request):
             return run([*compose_args, *args], **kwargs)
         PHASE = 'fixture-compose-boundaries'
         config = json.loads(compose('config', '--format', 'json').stdout)
+        validate_owner_configuration(config, request['access'])
         if set(config['services']) != {'web', 'api', 'worker', 'postgres', 'smoke-proxy'}:
             raise ValueError('Unexpected service set')
         if any(service.get('ports') for service in config['services'].values()):
@@ -310,10 +358,12 @@ def rehearse(request):
                       'applicationMemoryLimitBytes': total_memory, 'publicPorts': 0,
                       'databaseMajor': 17, 'databaseTlsVerified': True,
                       'accessConfigMatchesDashboard': True, 'accessOwnerCount': len(request['access']['allowedEmails']),
+                      'renderedOwnerGateValidated': True, 'enabledOwnerCatalogFlags': 4,
                       'paidAuthUuidCount': 0, 'betaWindowActive': False,
                       'liveDatabaseConnection': False, 'liveDatabaseWrites': False,
                       'paidAiCalls': 0, 'runtimeEgressProbesBlocked': 3,
-                      'httpChecks': checks, 'workerExitCode': 0}
+                      'httpChecks': checks, 'workerExitCode': 0,
+                      'proxyCandidateSha256': hashlib.sha256(proxy_candidate.encode()).hexdigest()}
         except Exception:
             # Preserve diagnostics from only our disposable project before cleanup.
             # Even fixture logs can contain the owner address: never print them.

@@ -1,16 +1,35 @@
 # Prepared for alterward.com; append only during the reviewed deployment.
 # Preserve all existing sites in the shared public Caddy configuration.
 # The existing proxy must join the external alterward_proxy Docker network.
+# Cloudflare official IPv4/IPv6 ranges checked 2026-10-09:
+# https://www.cloudflare.com/ips-v4 and https://www.cloudflare.com/ips-v6
+# Refresh the reviewed ranges before activation; never trust a client-sent IP
+# header unless the immediate peer passes this matcher. Other sites are unaffected.
+(alterward-cloudflare-only) {
+    @outside_cloudflare not remote_ip 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+    respond @outside_cloudflare "Origin access denied." 403
+}
+
 alterward.com {
-    encode zstd gzip
-    handle /api/* {
-        reverse_proxy alterward-api:4000
-    }
-    handle {
-        reverse_proxy alterward-web:3000
+    route {
+        import alterward-cloudflare-only
+        encode zstd gzip
+        handle /api/* {
+            @missing_client_ip not header Cf-Connecting-Ip *
+            respond @missing_client_ip "Client address unavailable." 400
+            reverse_proxy alterward-api:4000 {
+                header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
+            }
+        }
+        handle {
+            reverse_proxy alterward-web:3000
+        }
     }
 }
 
 www.alterward.com {
-    redir https://alterward.com{uri} 308
+    route {
+        import alterward-cloudflare-only
+        redir https://alterward.com{uri} 308
+    }
 }

@@ -12,7 +12,7 @@ A felhasználó exportja/törlése friss tényleges Supabase-hitelesítést kér
 ## Állapotok
 
 1. Aktív fiók → deleting; durable awaiting_auth marker. V1/v2 jobok megszakadnak, lease-token visszavonva. A worker nem commitolhat.
-2. Szerveroldali Supabase Auth törlés. Ha hiba után admin getUserById bizonyítja, hogy a fiók megvan, active visszaáll és a v2 generálás manuálisan retryolható. Bizonytalan Auth-állapotban deleting marad, nem találgatunk.
+2. Szerveroldali Supabase Auth törlés. Hiba után a getUserById csak pillanatnyi állapotot mutat: a korábbi kérés ezután is befejeződhet. A fiók ezért deleting állapotban és durable awaiting_auth markerrel marad, amíg az admin recovery igazolja/befejezi a kért törlést. Nincs automatikus active-visszaállítás vagy publikációs engedélyek feltámasztása.
 3. Bizonyított Auth-törlés → auth_deleted marker → belső adatgráf cascade törlése. DB-hibánál marker megmarad, nem kell új belépés a helyreállításhoz.
 
 ## Üzemeltetői parancs
@@ -21,7 +21,7 @@ pnpm privacy:recover csak összesített pending/confirmed számot mutat, nem mó
 
 Ellenőrzendő: marker és ff_users sor eltűnik; saját v1/v2 élet/ág/draft/canon/job/choice/consent/interakció és személyes költségfoglalás cascade törlődik. Projektszintű összesített költség marad személyes tartalom nélkül. Aktív worker nem ír vissza. A 006 előnézeti/szcenáriópiszkozat gráf is cascade törlődik; éles publication/cache gráf még nincs.
 
-Automatizált próba fedi az Auth-siker utáni DB-hibát, biztos Auth-hiba visszaállítását és bizonytalan Auth-hiba blokkolását. 2026-10-04: a szerveroldali kulcs ellenőrizve; a szintetikus HTTP-próbában valódi Auth-törlés és a teljes DB-gráf (feedback/session is) takarítása sikeres. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). A kontrollált megszakításból valódi admin recovery sikeres (lásd alább); tényleges DB-kiesésből recovery és backup/restore még nincs végrehajtva; a hibaágak automatizált tesztje nem ezek üzemeltetési bizonyítéka.
+2026-10-09: a Claude CON-03 jelzését külön szintetikus teszt reprodukálta: a pillanatnyi pozitív Auth-check után befejeződő törlés régen eltüntette a recovery markert. A javítás után marker/deleting megmarad, és a meglévő CLI befejezi a törlést. Három új/frissített eset fedi a visszautasítást és admin újrapróbát, a késői Auth-befejezést, valamint az existence-check hibáját; a teljes life-persistence fájl 32 próbája sikeres. Ez nem szolgáltatói timeout éles reprodukciója. A pending szám ellenőrzése és elakadt kérések operátori lezárása a kiadási runbook része; automatikus scheduler még nincs. Automatizált próba fedi az Auth-siker utáni DB-hibát is. 2026-10-04: a szerveroldali kulcs ellenőrizve; a szintetikus HTTP-próbában valódi Auth-törlés és a teljes DB-gráf (feedback/session is) takarítása sikeres. [Béta-riport](BETA_IMPLEMENTATION_REPORT_HU.md). A kontrollált megszakításból valódi admin recovery sikeres (lásd alább); tényleges DB-kiesésből recovery és backup/restore még nincs végrehajtva; a hibaágak automatizált tesztje nem ezek üzemeltetési bizonyítéka.
 
 2026-10-08: [titkosított alkalmazási/config backup és valódi izolált restore](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) sikeres: 97 tábla/1632 sor és 24 config fájl egyezik; az élő Supabase nem változott. Konkrét megőrzési idők/ütemezés, teljes Supabase Auth/grant restore és törölt adat visszaállítását kizáró visszajátszás továbbra nyitott release-feladat. Ez a runbook a végrehajtott adatbázisgráf-törlést kezeli, szolgáltatói backup-törlést nem igazol; izolált restore proof nem jogosít kiszolgálás visszakapcsolására.
 

@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from subprocess import CompletedProcess
+from copy import deepcopy
 
 ROOT = Path(__file__).resolve().parents[2]
 library_spec = importlib.util.spec_from_file_location(
@@ -36,6 +37,37 @@ def archive(entries):
 
 
 class SourceArchiveSafetyTests(unittest.TestCase):
+    def test_rendered_owner_gate_and_paid_state_fail_closed(self):
+        access = {'teamDomain': 'example.cloudflareaccess.com',
+                  'audience': 'a' * 64, 'allowedEmails': ['owner@example.invalid']}
+        gate = {'CLOSED_SITE_ENABLED': 'true',
+                'CLOUDFLARE_ACCESS_TEAM_DOMAIN': access['teamDomain'],
+                'CLOUDFLARE_ACCESS_AUD': access['audience'],
+                'CLOSED_SITE_ALLOWED_EMAILS': access['allowedEmails'][0]}
+        paid = {'CLOSED_BETA_ENABLED': 'true', 'CLOSED_BETA_USER_IDS': '',
+                'AI_PROJECT_BUDGET_USD': '0', 'AI_USER_BUDGET_USD': '0'}
+        config = {'services': {
+            'web': {'environment': gate},
+            'api': {'environment': {**gate, **paid,
+                    **{key: 'true' for key in ['OFFICIAL_PUBLICATIONS_ENABLED',
+                       'DISCOVERY_ENABLED', 'PUBLIC_COLLECTIONS_ENABLED', 'PUBLIC_SCENARIOS_ENABLED']}}},
+            'worker': {'environment': {**paid, 'AI_BUDGET_WINDOW_REQUIRED': 'true',
+                       'AI_BUDGET_WINDOW_START': '', 'AI_BUDGET_WINDOW_END': ''}}}}
+        target.validate_owner_configuration(config, access)
+        for service, key, value in [('web', 'CLOSED_SITE_ENABLED', 'false'),
+                                    ('api', 'CLOSED_SITE_ENABLED', None),
+                                    ('api', 'CLOUDFLARE_ACCESS_AUD', 'b' * 64),
+                                    ('web', 'CLOSED_SITE_ALLOWED_EMAILS', 'foreign@example.invalid'),
+                                    ('worker', 'AI_PROJECT_BUDGET_USD', '2'),
+                                    ('api', 'CLOSED_BETA_ENABLED', 'false'),
+                                    ('worker', 'CLOSED_BETA_USER_IDS', 'uninvited-user'),
+                                    ('worker', 'AI_BUDGET_WINDOW_START', '2026-10-09T00:00:00Z')]:
+            with self.subTest(service=service, key=key):
+                changed = deepcopy(config)
+                changed['services'][service]['environment'][key] = value
+                with self.assertRaises(ValueError):
+                    target.validate_owner_configuration(changed, access)
+
     def test_host_credentials_cannot_override_fixture_environment(self):
         with patch.dict(os.environ, {'PATH': 'safe-path', 'HOME': 'safe-home',
                                      'OPENAI_API_KEY': 'host-key',

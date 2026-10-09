@@ -155,6 +155,7 @@ async function main() {
     postgresImage: tools.postgresImage,
     proxyImage: manifest.proxyImage,
     access,
+    proxyCandidate: readFileSync('deploy/Caddyfile.contabo.example', 'utf8'),
     checker: readFileSync('scripts/ops/contabo-target-check.mjs', 'utf8'),
   });
   privateReportFile(directory, 'target-runtime-proof.json', {

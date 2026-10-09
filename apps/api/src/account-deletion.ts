@@ -12,16 +12,16 @@ export async function deleteAccount(
   try {
     await auth.deleteUser(userId);
   } catch (error) {
-    // A network error can arrive after Auth actually deleted the account. Only
-    // restore access after confirming Auth still has it; otherwise keep a durable
-    // recovery marker and all workers stopped.
+    // An existence check is only a point-in-time observation: a timed-out Auth
+    // request can finish immediately afterwards. Keep the requested deletion and
+    // its durable recovery marker until Auth removal is confirmed. Restoring an
+    // active account here could strand its data after that late Auth completion.
     let exists: boolean | undefined;
     try {
       exists = await auth.userExists?.(userId);
     } catch {
       /* Recovery remains pending. */
     }
-    if (exists === true) await repo.restoreActive(userId);
     if (exists !== false) throw error;
   }
   await repo.confirmAuthDeleted(userId);
