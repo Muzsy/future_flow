@@ -182,6 +182,37 @@ describe.sequential(
       await processLifeJob(job, jobs, chargingAi(job));
       expect((await lives.branch(owner, created.branchId)).revision).toBe(1);
     });
+    it('bounds automatic unfunded takeovers without consuming paid attempts or starving newer jobs', async () => {
+      const { owner, job: first } = await fixture();
+      const other = randomUUID();
+      await repo.ensureUser(other);
+      await repo.acceptPrivacy(other);
+      const newer = await lives.create(other, setupFixture(), randomUUID());
+      let job = first;
+      for (let i = 0; i < 49; i++) {
+        await expire(job);
+        job = (await jobs.claim())!;
+        expect(job.id).toBe(first.id);
+        expect(job.attempt).toBe(0);
+      }
+      await expire(job);
+      expect(await jobs.claim()).toBeNull();
+      const [stopped] = await db.query(
+        'SELECT status,error_code,attempt FROM aw_jobs WHERE id=$1',
+        [first.id],
+      );
+      expect(stopped).toMatchObject({
+        status: 'failed',
+        error_code: 'JOB_RECOVERY_EXHAUSTED',
+        attempt: 0,
+      });
+      expect((await jobs.claim())!.id).toBe(newer.jobId);
+      await lives.retry(owner, first.id, 0, 'explicit-recovery-retry');
+      const retried = (await jobs.claim())!;
+      expect(retried.id).toBe(first.id);
+      expect(retried.checkpoints.leaseRecoveryCount).toBe(0);
+      await processLifeJob(retried, jobs, chargingAi(retried));
+    });
     it('fences expired and stolen leases before allocation while settling an earlier call after takeover', async () => {
       const { job } = await fixture(),
         old = budget(job),
@@ -433,6 +464,73 @@ describe.sequential(
         checkPeriodChapter: check,
       });
       expect(check).toHaveBeenCalledTimes(1);
+    });
+    it.each(['FIDELITY_CHECK', 'VALIDATED'])(
+      'rechecks a changed cached chapter after restart at %s',
+      async (stage) => {
+        const { job } = await fixture();
+        const check = vi.fn(lifeTestAi.checkPeriodChapter);
+        await expect(
+          processLifeJob(job, new InterruptedJobs(stage), {
+            ...lifeTestAi,
+            checkPeriodChapter: check,
+          }),
+        ).rejects.toMatchObject({ code: 'JOB_LEASE_LOST' });
+        await db.query(
+          "UPDATE aw_jobs SET checkpoints=jsonb_set(checkpoints,'{chapter,body}',to_jsonb((checkpoints#>>'{chapter,body}')||' changed')) WHERE id=$1",
+          [job.id],
+        );
+        await processLifeJob((await jobs.claim())!, jobs, {
+          ...lifeTestAi,
+          checkPeriodChapter: check,
+        });
+        expect(check).toHaveBeenCalledTimes(2);
+      },
+    );
+    it.each(['FIDELITY_CHECK', 'VALIDATED'])(
+      'refuses a changed fifth-attempt chapter after restart at %s without another paid call',
+      async (stage) => {
+        const { owner, created, job } = await fixture();
+        await db.query('UPDATE aw_jobs SET attempt=4 WHERE id=$1', [job.id]);
+        await expect(
+          processLifeJob(job, new InterruptedJobs(stage), chargingAi(job)),
+        ).rejects.toMatchObject({ code: 'JOB_LEASE_LOST' });
+        await db.query(
+          "UPDATE aw_jobs SET checkpoints=jsonb_set(checkpoints,'{chapter,body}',to_jsonb((checkpoints#>>'{chapter,body}')||' changed')) WHERE id=$1",
+          [job.id],
+        );
+        const resumed = (await jobs.claim())!;
+        await expect(
+          processLifeJob(resumed, jobs, chargingAi(resumed)),
+        ).rejects.toMatchObject({ code: 'JOB_LEASE_LOST' });
+        expect((await lives.branch(owner, created.branchId)).revision).toBe(0);
+        expect(
+          await db.query(
+            'SELECT id FROM aw_budget_reservations WHERE job_id=$1',
+            [job.id],
+          ),
+        ).toHaveLength(3);
+        expect(resumed.checkpoints.fidelityPassed).toBe(false);
+      },
+    );
+    it('ignores a malformed cached verdict and rechecks the exact chapter', async () => {
+      const { job } = await fixture();
+      const check = vi.fn(lifeTestAi.checkPeriodChapter);
+      await expect(
+        processLifeJob(job, new InterruptedJobs('FIDELITY_CHECK'), {
+          ...lifeTestAi,
+          checkPeriodChapter: check,
+        }),
+      ).rejects.toMatchObject({ code: 'JOB_LEASE_LOST' });
+      await db.query(
+        'UPDATE aw_jobs SET checkpoints=jsonb_set(checkpoints,\'{fidelityResult}\',\'{"valid":true,"issues":null}\'::jsonb) WHERE id=$1',
+        [job.id],
+      );
+      await processLifeJob((await jobs.claim())!, jobs, {
+        ...lifeTestAi,
+        checkPeriodChapter: check,
+      });
+      expect(check).toHaveBeenCalledTimes(2);
     });
     it.each(['FIDELITY_CHECK', 'VALIDATED'])(
       'commits cached fifth-attempt results after a restart at %s without a sixth paid attempt',

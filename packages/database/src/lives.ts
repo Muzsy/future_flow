@@ -846,7 +846,7 @@ export class LifeRepository {
             429,
           );
         await tx.query(
-          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL WHERE id=$1 AND user_id=$2",
+          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",
           [jobId, userId],
         );
         await tx.query(

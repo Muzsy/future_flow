@@ -5,9 +5,11 @@ import {
   validatePeriodChapterV2,
   validatePersonalSharedMemories,
 } from '@future-flow/core';
-import type {
-  PeriodCandidateV2,
-  PeriodChapterV2,
+import {
+  fidelitySchema,
+  periodCandidateV2Schema,
+  type PeriodCandidateV2,
+  type PeriodChapterV2,
 } from '@future-flow/contracts';
 import type { LifeJob, LifeJobRepository } from '@future-flow/database';
 import type {
@@ -71,8 +73,15 @@ export async function processLifeJob(
           repairKind: 'events',
         });
       await jobs.verifySharedPrivacy(job);
-      let proposal = job.checkpoints.eventProposal as
-        PeriodCandidateV2 | undefined;
+      const proposalInputHash = hash({ ...input, repair: repair ?? null });
+      const cachedProposal = periodCandidateV2Schema.safeParse(
+        job.checkpoints.eventProposal,
+      );
+      let proposal =
+        cachedProposal.success &&
+        job.checkpoints.eventProposalInputHash === proposalInputHash
+          ? cachedProposal.data
+          : undefined;
       if (!proposal) {
         const result = await ai.period(input, repair);
         receipts.push(result.receipt);
@@ -80,6 +89,7 @@ export async function processLifeJob(
         await jobs.checkpoint(job, 'EVENT_VALIDATION', {
           receipts,
           eventProposal: proposal,
+          eventProposalInputHash: proposalInputHash,
         });
       }
       try {
@@ -135,6 +145,22 @@ export async function processLifeJob(
     ...(sharedEvents.length ? { sharedEvents } : {}),
   };
   let chapter = job.checkpoints.chapter as PeriodChapterV2 | undefined;
+  const cachedFidelity = fidelitySchema.safeParse(
+    job.checkpoints.fidelityResult,
+  );
+  const matches =
+    chapter &&
+    job.checkpoints.fidelityInputHash === hash({ ...story, chapter });
+  if (
+    (job.checkpoints.fidelityResult != null ||
+      job.checkpoints.fidelityPassed) &&
+    (!matches ||
+      (job.checkpoints.fidelityResult != null && !cachedFidelity.success))
+  )
+    await jobs.checkpoint(job, 'CACHED_FIDELITY_INVALID', {
+      fidelityPassed: false,
+      fidelityResult: null,
+    });
   if (!job.checkpoints.fidelityPassed) {
     let repair = job.checkpoints.storyRepairReason as string | undefined;
     if (job.checkpoints.storyRepairRejected)
@@ -178,9 +204,12 @@ export async function processLifeJob(
       }
       if (!problems) {
         await jobs.verifySharedPrivacy(job);
-        let fidelity = job.checkpoints.fidelityResult as
-          | Awaited<ReturnType<LifeAiProvider['checkPeriodChapter']>>['output']
-          | undefined;
+        const cached = fidelitySchema.safeParse(job.checkpoints.fidelityResult);
+        let fidelity =
+          cached.success &&
+          job.checkpoints.fidelityInputHash === hash({ ...story, chapter })
+            ? cached.data
+            : undefined;
         if (!fidelity) {
           const check = await ai.checkPeriodChapter(story, chapter);
           receipts.push(check.receipt);

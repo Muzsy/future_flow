@@ -76,10 +76,23 @@ export class LifeJobRepository {
         )
       )[0];
       if (!job) return null;
-      if (job.attempt >= 5 && !lifeJobReadyToCommit(job.checkpoints)) {
+      const savedRecoveries = job.checkpoints.leaseRecoveryCount ?? 0;
+      const recoveries =
+        typeof savedRecoveries === 'number' &&
+        Number.isSafeInteger(savedRecoveries) &&
+        savedRecoveries >= 0
+          ? savedRecoveries + (job.status === 'running' ? 1 : 0)
+          : 50;
+      const ready = lifeJobReadyToCommit(job.checkpoints);
+      if ((job.attempt >= 5 || recoveries >= 50) && !ready) {
         await tx.query(
-          "UPDATE aw_jobs SET status='failed',error_code='JOB_ATTEMPTS_EXHAUSTED',lease_token=NULL,lease_until=NULL WHERE id=$1",
-          [job.id],
+          "UPDATE aw_jobs SET status='failed',error_code=$2,lease_token=NULL,lease_until=NULL WHERE id=$1",
+          [
+            job.id,
+            job.attempt >= 5
+              ? 'JOB_ATTEMPTS_EXHAUSTED'
+              : 'JOB_RECOVERY_EXHAUSTED',
+          ],
         );
         await tx.query(
           "UPDATE aw_branches SET status='failed' WHERE id=$1 AND user_id=$2",
@@ -89,8 +102,8 @@ export class LifeJobRepository {
       }
       return lifeRow(
         await tx.query<LifeJob>(
-          "UPDATE aw_jobs SET status='running',lease_token=$2,lease_until=clock_timestamp()+($3*interval '1 second') WHERE id=$1 RETURNING *",
-          [job.id, randomUUID(), this.leaseSeconds],
+          "UPDATE aw_jobs SET status='running',lease_token=$2,lease_until=clock_timestamp()+($3*interval '1 second'),checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',$4::int) WHERE id=$1 RETURNING *",
+          [job.id, randomUUID(), this.leaseSeconds, Math.min(recoveries, 50)],
         ),
       );
     });

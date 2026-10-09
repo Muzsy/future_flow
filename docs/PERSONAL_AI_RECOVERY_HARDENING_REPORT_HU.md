@@ -2,7 +2,7 @@
 
 2026-10-09 · [Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) · [Kiadási sorrend](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
-**A CON-01/02 jelzések helyben reprodukálva és javítva; a teljes helyi ellenőrzés sikeres.** A Contabón egyelőre a korábban auditált `35f9889` alkalmazási image fut. E változat külön Cloud-delta auditja, CI-je, izolált célpróbája és tényleges worker-újraindítási próbája még szükséges a telepítés előtt. A tesztelői fizetett béta inaktív.
+**A CON-01/02 és az új REC-01/02 határesetek helyben reprodukálva és javítva; a teljes helyi ellenőrzés sikeres.** A Contabón egyelőre a korábban auditált `35f9889` alkalmazási image fut. E változat végső pontos Cloud-delta auditja, CI-je, izolált célpróbája és tényleges worker-újraindítási próbája még szükséges a telepítés előtt. A tesztelői fizetett béta inaktív.
 
 ## Mi változott?
 
@@ -20,13 +20,24 @@ A lease-hez kötött új költségőr a személyes v2 workerben aktív. A négya
 
 ## Bizonyíték és korlát
 
-A régi forráson a célzott helyreállítási esetek és a hiányzó robots fejléc regressziója hibát adott. A javítás után az új [16 helyreállítási próba](../tests/life-job-recovery.test.ts), a [katalógus-lease kerítése](../tests/closed-beta-catalog-worker-fence.test.ts) és a bővített [zárt béta HTTP-próba](../tests/closed-beta.test.ts) sikeres.
+A régi forráson a célzott helyreállítási esetek és a hiányzó robots fejléc regressziója hibát adott. A javítás után az új [22 helyreállítási próba](../tests/life-job-recovery.test.ts), a [katalógus-lease kerítése](../tests/closed-beta-catalog-worker-fence.test.ts) és a bővített [zárt béta HTTP-próba](../tests/closed-beta.test.ts) sikeres.
 
 Az esetek fedik a hat keret nélküli elutasítást, hét finanszírozás nélküli lease-átvételt, az öt finanszírozott próbálkozást, lejárt lease melletti késői hibajelölést és commit/foglalás visszagörgetését, a lease-t elvesztő automatikus transport retryt, megszakított esemény- és történetjavítást, mentett fidelity újrahasználatát, valamint az ötödik próbálkozásból való fizetés nélküli befejezést.
 
-**Teljes helyi `pnpm check`: 685 sikeres teszt, két meglévő Windows symlink-kihagyás, 64 tesztfájl; formázás, csomag-/script-/workspace típusellenőrzés, API/worker/Next production build sikeres.** A próbák izolált PGlite adatbázist és helyettesített provider-transportot használnak. Nem kapcsolódtak a Supabase-hez, nem küldtek levelet és nem indítottak fizetett AI-hívást. Új provider-költség: **0 USD**.
+**Teljes helyi `pnpm check`: 691 sikeres teszt, két meglévő Windows symlink-kihagyás, 64 tesztfájl; formázás, csomag-/script-/workspace típusellenőrzés, API/worker/Next production build sikeres.** A próbák izolált PGlite adatbázist és helyettesített provider-transportot használnak. Nem kapcsolódtak a Supabase-hez, nem küldtek levelet és nem indítottak fizetett AI-hívást. Új provider-költség: **0 USD**.
 
 Ez determinisztikus helyi megszakítási bizonyíték, nem élő, többfolyamatos PostgreSQL- vagy Contabo-restart bizonyíték. A célkörnyezeti próba valós worker-folyamatot szakítson meg izolált adatokkal, fizetett provider-hívás nélkül; ellenőrizze a lease-átvételt, a checkpointot, az egyszeri commitot és a takarítást. A tényleges telepítéshez külön őrzött upgrade/rollback szükséges; az initial-only indítót már futó telepítésre nem használjuk vakon.
+
+## Célzott Cloud-delta és önálló értékelés
+
+Claude a pontos `876e5fd40c922dabc5c54831febc4c7d5fc40a57` forrást visszaolvasta, öt read-only parancs után elfogadta az atomi finanszírozott számlálót, a zárolási sorrendet, a lejárat utáni új foglalás tiltását, a tartós repair/fidelity folytatást és a végső commit-kaput. A [köztes main CI](https://github.com/Muzsy/future_flow/actions/runs/37959832959) verify/container sikeres, beleértve a valódi izolált PostgreSQL/HTTPS/DB-TLS próbákat. Ezek nem a későbbi forrás vagy Contabo-folyamat megszakításának bizonyítékai.
+
+Két alacsony, hypothesis minősítésű új jelzés érkezett. REC-01 szerint a foglalás előtt folyton összeomló legöregebb job újra és újra felvehető; REC-02 a kézzel vagy jövőbeli kóddal módosított checkpoint elavult fidelity eredményét vizsgálja. Utóbbinál Claude nem talált olyan jelenlegi alkalmazási útvonalat, amely rossz chapter/verdict párt mentene. Ezért nem állítunk új, felhasználóból elérhető adatmanipulációt vagy valós queue-starvation incidenst. A hat új determinisztikus határeset a köztes forráson hibát adott, a javítás után sikeres.
+
+- A külön `leaseRecoveryCount` ötven egymást követő automatikus, lejárt running lease átvételnél megállítja a még nem befejezhető jobot; más új feladat a következő lekéréskor haladhat. Ez nem finanszírozott attempt. A saját, kifejezett és idempotens kézi retry ezt a technikai számlálót nullázza, a fizetett attempt/ledger megmarad. Már elfogadott commit-only checkpoint továbbra befejezhető; sérült számláló a hibakapu irányába kezelendő.
+- A mentett eseményjavaslat séma- és pontos inputhash-ellenőrzést kap. A fidelity eredménye csak sémahelyes alakban és az aktuális canon/fejezet pontos hash-éhez újrahasználható; a már passed marker is hash-kötött. Eltéréskor a régi verdict/marker törlődik és új ellenőrzés szükséges. Öt finanszírozott próbálkozás után ez új fizetés helyett megáll, nem ír periódust. A korábbi, result nélküli, de pontos hash-kötött passed checkpoint kompatibilis marad.
+
+E kiegészítések végső pontos auditja külön szükséges. A köztes Cloud-session kijelzett összköltsége 22,65 USD, 88% cache hit, promóciós kijelzés 80 USD maradék; az előző 19,68 USD-hez képest 2,97 USD sessionköltség-változás. Ez külön Cloud-promóció, nem az alkalmazás 10 USD provider/béta kerete vagy szolgáltatói számla. Védett eredeti JSON, usage szöveg/kép és prompt megmaradt. A valódi többfolyamatos PG/kill-restart, vegyes workerverzió és őrzött upgrade továbbra kapu.
 
 ## Friss üzemeltetői döntések
 
