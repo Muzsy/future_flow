@@ -99,6 +99,8 @@ def exercise(request):
         for service in result['services'].values():
             service['image'] = image
             service['pull_policy'] = 'never'
+            if 'build' in service:
+                service['build']['context'] = str(source)
         return result
 
     upgrade.PROJECT = activation.PROJECT = project
@@ -168,7 +170,9 @@ def exercise(request):
             results.append({'case': name, 'newImageRunning': True, 'manifestPromoted': True,
                             'queueTlsVerified': True, 'anonymousDenied': 4})
     upgrade.verify_release = original_verify
-    return {'upgradeAndRollback': 'passed', 'cases': results,
+    return {'fixtureMutationsPassed': True, 'cases': results,
             'productionConfigurationRenderExercised': False, 'fixtureRenderUsed': True,
+            'unexercisedRuntimePaths': ['production-render', 'production-proxy-membership',
+                                       'signal-interruption', 'partial-promotion', 'explicit-recovery'],
             'liveOwnerChanged': False, 'paidAiCalls': 0, 'databaseRestored': False,
             'dnsChanged': False, 'sharedProxyChanged': False}

@@ -32,12 +32,16 @@ def compose(path):
     return ['docker', 'compose', '--project-name', PROJECT, '-f', str(path)]
 
 
-def config_without_images(value):
+def config_without_images(value, source=None):
     result = copy.deepcopy(value)
     if set(result['services']) != {'web', 'api', 'worker'}:
         raise ValueError('Exactly three owner services required')
     for service in result['services'].values():
         service['image'] = '<pinned-image>'
+        if 'build' in service:
+            if source is None or service['build'].get('context') != str(source):
+                raise ValueError('Build context must match verified image source')
+            service['build']['context'] = '<verified-source-directory>'
     return result
 
 
@@ -126,7 +130,8 @@ def prepare(request):
     exact_file(path / 'pinned-image.json', encoded(override))
     config = render_owner(source, image, flags, request['access'],
                           path / 'server.env', path / 'pinned-image.json')
-    if config_without_images(config) != config_without_images(old_config):
+    if config_without_images(config, source) != config_without_images(
+            old_config, Path(request['previousBuildProof']['sourceDirectory'])):
         raise ValueError('Owner upgrade may change only service images')
     exact_file(path / 'effective-compose.json', frozen(config))
     roundtrip = json.loads(run(compose(path / 'effective-compose.json') +
@@ -142,8 +147,9 @@ def prepare(request):
     exact_file(path / 'manifest.json', encoded(manifest))
     prepared = {**manifest, 'previousManifestSha256': sha(data['manifest.json']),
                 'previousFilesSha256': {name: sha(value) for name, value in data.items()},
+                'candidateFilesSha256': {name: sha(read_private(path / name)) for name in FILES},
                 'previousCommit': previous['commit'], 'previousImageId': previous['imageId'],
-                'proxyNetwork': proxy_network(), 'foreignContainers': foreign_state()}
+                'proxyNetwork': proxy_network()}
     exact_file(path / 'prepared.json', encoded(prepared))
     if existing_state() != before:
         raise ValueError('Preparation changed running containers')
@@ -187,9 +193,9 @@ def verify_release(path, config, image, prepared):
                                '-e', ORIGIN_PROBE).stdout)
     if checks.get('anonymousDenied') != 4:
         raise ValueError('Origin probe incomplete')
-    if foreign_state() != prepared['foreignContainers'] or proxy_network() != prepared['proxyNetwork']:
-        raise ValueError('Shared proxy/legacy containers changed')
-    return checks
+    if proxy_network() != prepared['proxyNetwork']:
+        raise ValueError('Shared proxy network changed')
+    return {**checks, 'existingForeignContainersUnchanged': foreign_state() == prepared['foreignContainers']}
 
 
 def replace_services(path):
@@ -197,18 +203,21 @@ def replace_services(path):
         '--pull', 'never', '--wait', '--wait-timeout', '120', 'web', 'api', 'worker'], timeout=180)
 
 
-def restore_previous(path, prepared):
+def rollback_inputs(path, prepared):
     previous_path = path / 'previous'
     data = {name: read_private(previous_path / name) for name in FILES}
     if sha(data['manifest.json']) != prepared['previousManifestSha256']:
         raise ValueError('Rollback manifest differs')
     if {name: sha(value) for name, value in data.items()} != prepared['previousFilesSha256']:
         raise ValueError('Archived rollback files changed')
+    candidates = {name: read_private(path / name) for name in FILES}
+    if {name: sha(value) for name, value in candidates.items()} != prepared['candidateFilesSha256']:
+        raise ValueError('Prepared candidate files changed')
     # A partially promoted release may contain either original or candidate bytes.
     # An unrelated edit can represent revoked rights: never overwrite that drift.
     for name, value in data.items():
         current = read_private(DIRECTORY / name)
-        candidate = read_private(path / name)
+        candidate = candidates[name]
         if current not in (value, candidate):
             raise ValueError('Live runtime drift; refusing to restore previous rights')
     manifest = json.loads(data['manifest.json'])
@@ -216,6 +225,11 @@ def restore_previous(path, prepared):
             sha(data['effective-compose.json']) != manifest['effectiveComposeSha256'] or
             sha(CA.read_bytes()) != manifest['databaseCaSha256']):
         raise ValueError('Rollback bytes/CA changed')
+    return data, manifest
+
+
+def restore_previous(path, prepared):
+    data, manifest = rollback_inputs(path, prepared)
     for name, value in data.items():
         atomic_private(DIRECTORY / name, value)
     replace_services(DIRECTORY / 'effective-compose.json')
@@ -233,10 +247,11 @@ def apply(request):
     if prepared != request['preparedProof']:
         raise ValueError('Prepared proof differs')
     if (prepared['previousManifestSha256'] != sha(data['manifest.json']) or
-            prepared['foreignContainers'] != foreign_state() or
             prepared['proxyNetwork'] != proxy_network()):
         raise ValueError('Live baseline changed after preparation')
     candidate = {name: read_private(path / name) for name in FILES}
+    if {name: sha(value) for name, value in candidate.items()} != prepared['candidateFilesSha256']:
+        raise ValueError('Candidate bytes changed')
     manifest = json.loads(candidate['manifest.json'])
     source, image, flags, _ = validate_inputs(request, candidate['server.env'].decode())
     verify_hashes(manifest, prepared, candidate['server.env'], candidate['effective-compose.json'],
@@ -244,7 +259,8 @@ def apply(request):
     config = render_owner(source, image, flags, request['access'],
                           path / 'server.env', path / 'pinned-image.json')
     if (frozen(config) != candidate['effective-compose.json'] or
-            config_without_images(config) != config_without_images(old_config) or
+            config_without_images(config, source) != config_without_images(
+                old_config, Path(request['previousBuildProof']['sourceDirectory'])) or
             image_only_environment(data['server.env'].decode(), request['buildProof']['imageTag']).encode()
             != candidate['server.env']):
         raise ValueError('Candidate no longer matches image-only preparation')
@@ -252,8 +268,13 @@ def apply(request):
     if journal.exists() or journal.is_symlink():
         raise ValueError('Previous apply attempt requires explicit recovery inspection')
     queues = queue_check(path / 'effective-compose.json')
-    private_file(journal, encoded({'preparedSha256': sha(encoded(prepared)), 'startedAt': time.time(),
-                                 'previousImageId': previous['imageId'], 'candidateImageId': image}))
+    runtime_prepared = {**prepared, 'foreignContainers': foreign_state()}
+    journal_data = {'preparedSha256': sha(encoded(prepared)), 'startedAt': time.time(),
+                    'previousImageId': previous['imageId'], 'candidateImageId': image,
+                    'foreignContainers': runtime_prepared['foreignContainers'], 'state': 'applying'}
+    private_file(journal, encoded(journal_data))
+    # Persist the recovery inputs before the first service stop.
+    atomic_private(journal, encoded(journal_data))
     attempted = False
     try:
         attempted = True
@@ -261,7 +282,7 @@ def apply(request):
             ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
         queues = queue_check(path / 'effective-compose.json')
         replace_services(path / 'effective-compose.json')
-        checks = verify_release(path, config, image, prepared)
+        checks = verify_release(path, config, image, runtime_prepared)
         # No schema/data replay: promoting four runtime files only, with a journal.
         for name, value in candidate.items():
             atomic_private(DIRECTORY / name, value)
@@ -269,28 +290,31 @@ def apply(request):
                       read_private(DIRECTORY / 'effective-compose.json'), source, CA.read_bytes())
         result = {**manifest, **checks, **queues, 'upgraded': True, 'runningServices': 3,
                   'imageOnly': True, 'paidAiCalls': 0, 'betaWindowActive': False,
-                  'existingForeignContainersUnchanged': True, 'proxyChanged': False,
+                  'proxyChanged': False,
                   'dnsChanged': False, 'databaseRestored': False, 'publicPorts': 0}
         exact_file(path / 'applied.json', encoded(result))
+        atomic_private(journal, encoded({**journal_data, 'state': 'applied'}))
         return result
     except BaseException:
         if attempted:
             for signum in INTERRUPTION_SIGNALS:
                 signal.signal(signum, signal.SIG_IGN)
             try:
-                rollback = restore_previous(path, prepared)
+                rollback = restore_previous(path, runtime_prepared)
                 exact_file(path / 'rolled-back.json', encoded(rollback))
+                atomic_private(journal, encoded({**journal_data, 'state': 'rolled-back'}))
             except BaseException:
                 # Do not leave an unverified replacement serving if rollback fails.
                 run(compose(path / 'effective-compose.json') +
                     ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
                 exact_file(path / 'rollback-failed.json', encoded({'ownerStopped': True,
                            'requiresScopedInspection': True, 'previousRightsRestored': False}))
+                atomic_private(journal, encoded({**journal_data, 'state': 'rollback-failed'}))
                 raise
         raise
 
 
-def recover(request):
+def recover(request, *, deliberate_rollback=False):
     # Explicit operator action after process/host interruption, never automatic.
     path = prepared_path(request['buildProof']['commit'])
     prepared = json.loads(read_private(path / 'prepared.json'))
@@ -298,8 +322,11 @@ def recover(request):
     if (prepared != request['preparedProof'] or
             journal.get('preparedSha256') != sha(encoded(prepared))):
         raise ValueError('Explicit exact interrupted-upgrade proof required')
-    if prepared['foreignContainers'] != foreign_state() or prepared['proxyNetwork'] != proxy_network():
-        raise ValueError('Foreign state changed; manual scoped inspection required')
+    allowed = {'applying', 'rollback-failed'} | ({'applied'} if deliberate_rollback else set())
+    if journal.get('state') not in allowed:
+        raise ValueError('Recovery is only for an interrupted upgrade; explicit rollback required')
+    if prepared['proxyNetwork'] != proxy_network():
+        raise ValueError('Proxy network changed; scoped inspection required')
     if sha(encoded(request['access'])) != prepared['accessConfigurationSha256']:
         raise ValueError('Access changed; do not restore previous rights')
     previous = path / 'previous'
@@ -314,14 +341,17 @@ def recover(request):
                              previous / 'server.env', previous / 'pinned-image.json')
     if frozen(old_config) != config_bytes:
         raise ValueError('Rollback frozen config differs')
+    rollback_inputs(path, prepared)  # Refuse unrelated rights drift before stopping.
+    recovery_foreign = foreign_state()
     queue_check(previous / 'effective-compose.json')
     for signum in INTERRUPTION_SIGNALS:
         signal.signal(signum, signal.SIG_IGN)
     run(compose(previous / 'effective-compose.json') +
         ['stop', '--timeout', '60', 'web', 'api', 'worker'], timeout=90)
     queue_check(previous / 'effective-compose.json')
-    result = restore_previous(path, prepared)
+    result = restore_previous(path, {**prepared, 'foreignContainers': recovery_foreign})
     exact_file(path / 'recovered.json', encoded(result))
+    atomic_private(path / 'applying.json', encoded({**journal, 'state': 'recovered'}))
     return result
 
 
@@ -334,7 +364,8 @@ if __name__ == '__main__':
             for signum in INTERRUPTION_SIGNALS:
                 signal.signal(signum, interrupted)
             request = json.load(sys.stdin)
-            handlers = {'prepare-upgrade': prepare, 'apply-upgrade': apply, 'recover-upgrade': recover}
+            handlers = {'prepare-upgrade': prepare, 'apply-upgrade': apply, 'recover-upgrade': recover,
+                        'rollback-upgrade': lambda value: recover(value, deliberate_rollback=True)}
             if request.get('action') not in handlers:
                 raise ValueError('Explicit owner image-upgrade action required')
             result = handlers[request['action']](request)

@@ -46,6 +46,20 @@ class OwnerUpgradeTests(unittest.TestCase):
             self.assertNotEqual(upgrade.config_without_images(old), upgrade.config_without_images(changed))
         self.assertEqual(old['services']['api']['image'], 'old')
 
+    def test_only_verified_build_source_path_is_normalized(self):
+        old, new = self.config('old'), self.config('new')
+        old['services']['web']['build'] = {'context': str(Path('/fixture/old-source')), 'dockerfile': 'Dockerfile',
+                                          'args': {'NEXT_PUBLIC_API_URL': '/api/v1'}}
+        new['services']['web']['build'] = {'context': str(Path('/fixture/new-source')), 'dockerfile': 'Dockerfile',
+                                          'args': {'NEXT_PUBLIC_API_URL': '/api/v1'}}
+        self.assertEqual(upgrade.config_without_images(old, Path('/fixture/old-source')),
+                         upgrade.config_without_images(new, Path('/fixture/new-source')))
+        with self.assertRaises(ValueError):
+            upgrade.config_without_images(new, Path('/fixture/another-source'))
+        new['services']['web']['build']['dockerfile'] = 'UnknownDockerfile'
+        self.assertNotEqual(upgrade.config_without_images(old, Path('/fixture/old-source')),
+                            upgrade.config_without_images(new, Path('/fixture/new-source')))
+
     def test_replacement_is_scoped_to_three_services_without_network_or_proxy_mutation(self):
         with patch.object(upgrade, 'run') as run:
             upgrade.replace_services(Path('/fixture/effective-compose.json'))
@@ -115,6 +129,37 @@ class OwnerUpgradeTests(unittest.TestCase):
              patch.object(upgrade, 'proxy_container', return_value={'Id': 'proxy'}):
             self.assertEqual(upgrade.proxy_network(), {'id': 'network', 'foreignMembers': ['proxy']})
 
+    def test_unrelated_neighbour_restart_is_reported_without_failing_owner_health(self):
+        prepared = {'foreignContainers': {'legacy': {'restarts': 0}},
+                    'proxyNetwork': {'id': 'network'}}
+        with patch.object(upgrade, 'inspect_owner', return_value={'api': {'Id': 'fixture-api'}}), \
+             patch.object(upgrade, 'docker', return_value=CompletedProcess([], 0, b'{"anonymousDenied":4}', b'')), \
+             patch.object(upgrade, 'foreign_state', return_value={'legacy': {'restarts': 1}}), \
+             patch.object(upgrade, 'proxy_network', return_value=prepared['proxyNetwork']):
+            result = upgrade.verify_release(Path('/fixture'), {}, 'fixture-image', prepared)
+            self.assertEqual(result['anonymousDenied'], 4)
+            self.assertFalse(result['existingForeignContainersUnchanged'])
+
+    def test_candidate_archive_drift_cannot_make_new_rights_eligible_for_old_restore(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            (path / 'previous').mkdir()
+            values = {'server.env': b'original-env', 'manifest.json': b'original-manifest',
+                      'effective-compose.json': b'original-config', 'pinned-image.json': b'original-pin'}
+            prepared = {'previousManifestSha256': upgrade.sha(values['manifest.json']),
+                        'previousFilesSha256': {name: upgrade.sha(value) for name, value in values.items()},
+                        'candidateFilesSha256': {name: upgrade.sha(value) for name, value in values.items()}}
+            for name, value in values.items():
+                (path / name).write_bytes(value)
+                (path / 'previous' / name).write_bytes(value)
+            (path / 'server.env').write_bytes(b'changed-rights')
+            with patch.object(upgrade, 'read_private', side_effect=lambda p: p.read_bytes()), \
+                 patch.object(upgrade, 'atomic_private') as writes:
+                with self.assertRaisesRegex(ValueError, 'Prepared candidate files changed'):
+                    upgrade.rollback_inputs(path, prepared)
+                writes.assert_not_called()
+            self.assertEqual((path / 'server.env').read_bytes(), b'changed-rights')
+
     def exercise_apply(self, failure=None):
         with tempfile.TemporaryDirectory() as temporary, ExitStack() as patches:
             root = Path(temporary)
@@ -150,10 +195,12 @@ class OwnerUpgradeTests(unittest.TestCase):
                 (path / name).write_bytes(candidate[name])
             prepared = {**new, 'previousManifestSha256': upgrade.sha(data['manifest.json']),
                         'previousFilesSha256': {name: upgrade.sha(value) for name, value in data.items()},
+                        'candidateFilesSha256': {name: upgrade.sha(value) for name, value in candidate.items()},
                         'foreignContainers': {'proxy': {'restart': 0}},
                         'proxyNetwork': {'id': 'network', 'foreignMembers': ['proxy']}}
             (path / 'prepared.json').write_bytes(upgrade.encoded(prepared))
             request = {'buildProof': {'commit': 'a' * 40, 'imageTag': 'alterward:contabo-aaaaaaaaaaaa'},
+                       'previousBuildProof': {'sourceDirectory': str(source)},
                        'preparedProof': prepared, 'access': {}}
             for name, value in [('DIRECTORY', directory), ('CA', ca)]:
                 patches.enter_context(patch.object(upgrade, name, value))
@@ -171,22 +218,34 @@ class OwnerUpgradeTests(unittest.TestCase):
                 [], 0, json.dumps(old_config).encode(), b'')))
             patches.enter_context(patch.object(upgrade.signal, 'signal'))
             verifications = [ValueError('post-start failed'), {'anonymousDenied': 4}] if failure == 'health' else None
+            if failure == 'rights-drift':
+                def changed_rights(*args):
+                    (directory / 'server.env').write_bytes(b"CLOSED_SITE_ALLOWED_EMAILS='revoked'\n")
+                    raise ValueError('post-start drift')
+                verifications = changed_rights
             patches.enter_context(patch.object(upgrade, 'verify_release', side_effect=verifications,
                                               return_value={'anonymousDenied': 4}))
             writes = []
             def write(p, value):
                 writes.append(p.name)
-                if failure == 'promotion' and len(writes) == 2:
+                if failure == 'promotion' and sum(name in upgrade.FILES for name in writes) == 2:
                     raise OSError('one interrupted promotion write')
                 p.write_bytes(value)
             patches.enter_context(patch.object(upgrade, 'atomic_private', side_effect=write))
             if failure:
                 with self.assertRaises((ValueError, OSError)):
                     upgrade.apply(request)
-                self.assertEqual(replace.call_count, 2)
-                self.assertTrue((path / 'rolled-back.json').is_file())
-                for name, value in data.items():
-                    self.assertEqual((directory / name).read_bytes(), value)
+                if failure == 'rights-drift':
+                    self.assertEqual(replace.call_count, 1)
+                    self.assertEqual((directory / 'server.env').read_bytes(), b"CLOSED_SITE_ALLOWED_EMAILS='revoked'\n")
+                    self.assertTrue((path / 'rollback-failed.json').is_file())
+                    self.assertFalse((path / 'rolled-back.json').exists())
+                    self.assertIn('stop', commands.call_args_list[-1].args[0])
+                else:
+                    self.assertEqual(replace.call_count, 2)
+                    self.assertTrue((path / 'rolled-back.json').is_file())
+                    for name, value in data.items():
+                        self.assertEqual((directory / name).read_bytes(), value)
             else:
                 result = upgrade.apply(request)
                 self.assertTrue(result['upgraded'])
@@ -195,8 +254,13 @@ class OwnerUpgradeTests(unittest.TestCase):
                 self.assertTrue((path / 'applied.json').is_file())
                 for name, value in candidate.items():
                     self.assertEqual((directory / name).read_bytes(), value)
+                with self.assertRaisesRegex(ValueError, 'Recovery is only for an interrupted upgrade'):
+                    upgrade.recover(request)
             self.assertEqual(queue.call_count, 2)
             self.assertTrue((path / 'applying.json').is_file())
+            journal_state = json.loads((path / 'applying.json').read_bytes())['state']
+            expected_state = 'applied' if not failure else 'rollback-failed' if failure == 'rights-drift' else 'rolled-back'
+            self.assertEqual(journal_state, expected_state)
             for call in commands.call_args_list:
                 args = call.args[0]
                 self.assertEqual(args[:4], ['docker', 'compose', '--project-name', 'alterward-owner'])
@@ -211,6 +275,9 @@ class OwnerUpgradeTests(unittest.TestCase):
 
     def test_interruption_during_partial_file_promotion_restores_complete_old_manifest(self):
         self.exercise_apply('promotion')
+
+    def test_unrelated_rights_change_is_preserved_and_only_owner_is_stopped(self):
+        self.exercise_apply('rights-drift')
 
 
 if __name__ == '__main__':

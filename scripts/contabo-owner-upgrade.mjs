@@ -14,7 +14,12 @@ async function main() {
     process.platform !== 'win32' ||
     !process.env.LOCALAPPDATA ||
     process.argv.length !== 3 ||
-    !['prepare-upgrade', 'apply-upgrade', 'recover-upgrade'].includes(action)
+    ![
+      'prepare-upgrade',
+      'apply-upgrade',
+      'recover-upgrade',
+      'rollback-upgrade',
+    ].includes(action)
   )
     throw Error('Explicit pinned owner image-upgrade action required');
   const directory = privateReportDirectory('contabo-release');
@@ -60,15 +65,16 @@ async function main() {
     previousBuildProof.imageId !== previousStageProof.imageId
   )
     throw Error('Exact previous live manifest proof required');
+  const restoring = ['recover-upgrade', 'rollback-upgrade'].includes(action);
   if (
-    action !== 'recover-upgrade' &&
+    !restoring &&
     (runtime.commit !== buildProof.commit ||
       runtime.imageId !== buildProof.imageId ||
       !runtime.existingContainersUnchanged ||
       !runtime.temporaryFixturesRemoved ||
       runtime.paidAiCalls !== 0 ||
       runtime.lifeProcessRecovery?.processRecovery !== 'passed' ||
-      runtime.ownerUpgradeFixture?.upgradeAndRollback !== 'passed')
+      runtime.ownerUpgradeFixture?.fixtureMutationsPassed !== true)
   )
     throw Error('Exact isolated target proof required');
   const request = {
@@ -93,6 +99,8 @@ async function main() {
   const operatorScriptSha256 = digest.digest('hex');
   const fixtureDigest = createHash('sha256');
   for (const file of [
+    'contabo-target.py',
+    'contabo-backup.py',
     'contabo-owner.py',
     'contabo-owner-activation.py',
     'contabo-owner-upgrade.py',
@@ -100,7 +108,7 @@ async function main() {
   ])
     fixtureDigest.update(readFileSync(join('scripts/ops', file)));
   if (
-    action !== 'recover-upgrade' &&
+    !restoring &&
     fixtureDigest.digest('hex') !== runtime.ownerUpgradeScriptsSha256
   )
     throw Error('Operational source changed after actual fixture proof');
@@ -175,7 +183,7 @@ async function main() {
     privateReportFile(directory, 'owner-active-build-proof.json', buildProof);
     privateReportFile(directory, 'owner-stage-proof.json', saved);
   }
-  if (action === 'recover-upgrade' && saved.rollbackVerified) {
+  if (restoring && saved.rollbackVerified) {
     privateReportFile(
       directory,
       'owner-active-build-proof.json',

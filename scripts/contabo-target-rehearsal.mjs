@@ -149,6 +149,18 @@ async function main() {
   console.log(
     'Starting isolated web/API/worker, temporary PostgreSQL and private HTTPS.',
   );
+  // Bind the actual bytes transmitted, even if a local file changes while waiting.
+  const lifeRecoveryChecker = readFileSync(
+    'scripts/ops/life-recovery-runtime.mjs',
+  );
+  const upgradeBytes = Object.fromEntries(
+    [
+      ['owner', 'contabo-owner.py'],
+      ['activation', 'contabo-owner-activation.py'],
+      ['upgrade', 'contabo-owner-upgrade.py'],
+      ['fixture', 'contabo-owner-upgrade-fixture.py'],
+    ].map(([name, file]) => [name, readFileSync(join('scripts/ops', file))]),
+  );
   const proof = await remote({
     action: 'rehearse',
     buildProof,
@@ -157,19 +169,11 @@ async function main() {
     access,
     proxyCandidate: readFileSync('deploy/Caddyfile.contabo.example', 'utf8'),
     checker: readFileSync('scripts/ops/contabo-target-check.mjs', 'utf8'),
-    lifeRecoveryChecker: readFileSync(
-      'scripts/ops/life-recovery-runtime.mjs',
-      'utf8',
-    ),
+    lifeRecoveryChecker: lifeRecoveryChecker.toString('utf8'),
     upgradeSources: Object.fromEntries(
-      [
-        ['owner', 'contabo-owner.py'],
-        ['activation', 'contabo-owner-activation.py'],
-        ['upgrade', 'contabo-owner-upgrade.py'],
-        ['fixture', 'contabo-owner-upgrade-fixture.py'],
-      ].map(([name, file]) => [
+      Object.entries(upgradeBytes).map(([name, bytes]) => [
         name,
-        readFileSync(join('scripts/ops', file)).toString('base64'),
+        bytes.toString('base64'),
       ]),
     ),
     upgradePreviousBuildProof: JSON.parse(
@@ -183,19 +187,21 @@ async function main() {
     ...proof,
     capturedAt: new Date().toISOString(),
     lifeRecoveryCheckerSha256: createHash('sha256')
-      .update(readFileSync('scripts/ops/life-recovery-runtime.mjs'))
+      .update(lifeRecoveryChecker)
       .digest('hex'),
     operatorScriptSha256: createHash('sha256')
       .update(script)
       .update(library)
-      .update(readFileSync('scripts/ops/contabo-owner-upgrade.py'))
-      .update(readFileSync('scripts/ops/contabo-owner-upgrade-fixture.py'))
+      .update(upgradeBytes.upgrade)
+      .update(upgradeBytes.fixture)
       .digest('hex'),
     ownerUpgradeScriptsSha256: createHash('sha256')
-      .update(readFileSync('scripts/ops/contabo-owner.py'))
-      .update(readFileSync('scripts/ops/contabo-owner-activation.py'))
-      .update(readFileSync('scripts/ops/contabo-owner-upgrade.py'))
-      .update(readFileSync('scripts/ops/contabo-owner-upgrade-fixture.py'))
+      .update(script)
+      .update(library)
+      .update(upgradeBytes.owner)
+      .update(upgradeBytes.activation)
+      .update(upgradeBytes.upgrade)
+      .update(upgradeBytes.fixture)
       .digest('hex'),
   });
   console.log(JSON.stringify(proof));
