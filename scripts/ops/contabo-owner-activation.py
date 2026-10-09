@@ -68,7 +68,7 @@ def exact_file(path, data, *, public=False):
 
 
 def project_ids():
-    return docker('ps', '-aq', '--filter', 'label=com.docker.compose.project=' + PROJECT).stdout.decode().split()
+    return docker('ps', '-aq', '--no-trunc', '--filter', 'label=com.docker.compose.project=' + PROJECT).stdout.decode().split()
 
 
 def source_hash(source):
