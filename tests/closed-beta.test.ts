@@ -322,6 +322,7 @@ describe('closed beta paid-boundary isolation', () => {
           'CLOSED_SITE_ACCESS_REQUIRED',
         );
         expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
       }
       const authHeaders = { ...own, 'cf-access-jwt-assertion': assertion };
       expect(
@@ -350,6 +351,15 @@ describe('closed beta paid-boundary isolation', () => {
         { headers: own },
       );
       expect(ownExport.status).toBe(200);
+      expect(ownExport.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+      expect(ownExport.headers.get('Cache-Control')).toBe('no-store');
+      const malformed = await fetch(base + '/api/v1/me', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{',
+      });
+      expect(malformed.status).toBe(400);
+      expect(malformed.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
       const text = await ownExport.text();
       expect(text).toContain(revoked);
       expect(text).not.toContain(allowed);

@@ -159,6 +159,9 @@ async function main() {
             ).user_id,
         job.id,
         budgetConfig,
+        v2
+          ? (job as import('@future-flow/database').LifeJob).lease_token
+          : undefined,
       );
       let experiment: ExperimentAiBudget | undefined;
       const heartbeat = setInterval(

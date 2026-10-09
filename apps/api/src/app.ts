@@ -1120,8 +1120,7 @@ export async function createApp(
     response.setHeader('CDN-Cache-Control', 'no-store');
     response.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
     response.setHeader('Referrer-Policy', 'no-referrer');
-    if (request.path.startsWith('/api/public/'))
-      response.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    response.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
   });
   app.use(json({ limit: '64kb' }));

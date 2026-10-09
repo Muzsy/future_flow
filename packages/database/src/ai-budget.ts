@@ -135,6 +135,7 @@ export class DatabaseAiBudget {
     private readonly userId: string,
     private readonly jobId: string,
     config: ApplicationAiBudgetConfig,
+    private readonly lifeJobLeaseToken?: string,
   ) {
     this.config = { ...config, window: budgetWindow(config.window) };
     if (config.closedBetaUserIds !== undefined) {
@@ -237,6 +238,20 @@ export class DatabaseAiBudget {
           'Account is being deleted.',
           403,
         );
+      // Personal worker claims are fenced before any budget allocation. Keep
+      // user -> job -> project -> user-account lock order with deletion/commit.
+      if (this.lifeJobLeaseToken !== undefined) {
+        const [job] = await tx.query(
+          "SELECT id FROM aw_jobs WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() FOR UPDATE",
+          [this.jobId, this.userId, this.lifeJobLeaseToken],
+        );
+        if (!job)
+          throw new DomainError(
+            'JOB_LEASE_LOST',
+            'The job lease is no longer valid.',
+            409,
+          );
+      }
       await tx.query(
         'INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
         [
@@ -292,6 +307,20 @@ export class DatabaseAiBudget {
             'AI budget exhausted.',
             503,
           );
+      if (this.lifeJobLeaseToken !== undefined) {
+        // Recheck the wall clock after budget locks. Count a processing attempt
+        // only on its first funded call; rejected budgets and restarts are free.
+        const [job] = await tx.query(
+          "UPDATE aw_jobs SET attempt=attempt+CASE WHEN checkpoints->>'fundedLeaseToken'=$3::text THEN 0 ELSE 1 END,checkpoints=checkpoints||jsonb_build_object('fundedLeaseToken',$3::text) WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() AND (attempt<5 OR checkpoints->>'fundedLeaseToken'=$3::text) RETURNING id",
+          [this.jobId, this.userId, this.lifeJobLeaseToken],
+        );
+        if (!job)
+          throw new DomainError(
+            'JOB_LEASE_LOST',
+            'The job lease or funded attempt is no longer valid.',
+            409,
+          );
+      }
       await tx.query(
         'UPDATE aw_budget_accounts SET accounted_micro=accounted_micro+$2 WHERE id IN ($1,$3)',
         [this.projectKey, reserved, this.userKey],

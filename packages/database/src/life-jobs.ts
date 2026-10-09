@@ -12,6 +12,7 @@ import {
 import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
 import { personalPrivacyEventIds } from './shared-privacy';
+import { lifeJobReadyToCommit } from './life-job-state';
 
 export type LifeJob = Record<string, unknown> & {
   id: string;
@@ -71,11 +72,11 @@ export class LifeJobRepository {
     return this.db.transaction(async (tx) => {
       const job = (
         await tx.query<LifeJob>(
-          `SELECT j.* FROM aw_jobs j JOIN ff_users u ON u.id=j.user_id WHERE u.status='active' AND (j.status='queued' OR (j.status='running' AND j.lease_until<now())) ORDER BY j.created_at FOR UPDATE OF j SKIP LOCKED LIMIT 1`,
+          `SELECT j.* FROM aw_jobs j JOIN ff_users u ON u.id=j.user_id WHERE u.status='active' AND (j.status='queued' OR (j.status='running' AND j.lease_until<clock_timestamp())) ORDER BY j.created_at FOR UPDATE OF j SKIP LOCKED LIMIT 1`,
         )
       )[0];
       if (!job) return null;
-      if (job.attempt >= 5) {
+      if (job.attempt >= 5 && !lifeJobReadyToCommit(job.checkpoints)) {
         await tx.query(
           "UPDATE aw_jobs SET status='failed',error_code='JOB_ATTEMPTS_EXHAUSTED',lease_token=NULL,lease_until=NULL WHERE id=$1",
           [job.id],
@@ -88,7 +89,7 @@ export class LifeJobRepository {
       }
       return lifeRow(
         await tx.query<LifeJob>(
-          "UPDATE aw_jobs SET status='running',attempt=attempt+1,lease_token=$2,lease_until=now()+($3*interval '1 second') WHERE id=$1 RETURNING *",
+          "UPDATE aw_jobs SET status='running',lease_token=$2,lease_until=clock_timestamp()+($3*interval '1 second') WHERE id=$1 RETURNING *",
           [job.id, randomUUID(), this.leaseSeconds],
         ),
       );
@@ -98,7 +99,7 @@ export class LifeJobRepository {
     if (
       !(
         await this.db.query(
-          "UPDATE aw_jobs j SET lease_until=now()+($3*interval '1 second') WHERE j.id=$1 AND j.lease_token=$2 AND j.lease_until>now() AND j.status='running' AND EXISTS(SELECT 1 FROM ff_users u WHERE u.id=j.user_id AND u.status='active') RETURNING j.id",
+          "UPDATE aw_jobs j SET lease_until=clock_timestamp()+($3*interval '1 second') WHERE j.id=$1 AND j.lease_token=$2 AND j.lease_until>clock_timestamp() AND j.status='running' AND EXISTS(SELECT 1 FROM ff_users u WHERE u.id=j.user_id AND u.status='active') RETURNING j.id",
           [job.id, job.lease_token, this.leaseSeconds],
         )
       ).length
@@ -113,7 +114,7 @@ export class LifeJobRepository {
     if (
       !(
         await this.db.query(
-          "UPDATE aw_jobs j SET stage=$3,checkpoints=checkpoints||$4::jsonb WHERE j.id=$1 AND j.lease_token=$2 AND j.lease_until>now() AND j.status='running' AND EXISTS(SELECT 1 FROM ff_users u WHERE u.id=j.user_id AND u.status='active') RETURNING j.id",
+          "UPDATE aw_jobs j SET stage=$3,checkpoints=checkpoints||$4::jsonb WHERE j.id=$1 AND j.lease_token=$2 AND j.lease_until>clock_timestamp() AND j.status='running' AND EXISTS(SELECT 1 FROM ff_users u WHERE u.id=j.user_id AND u.status='active') RETURNING j.id",
           [job.id, job.lease_token, stage, JSON.stringify(patch)],
         )
       ).length
@@ -137,7 +138,7 @@ export class LifeJobRepository {
       if (!user) lost();
       const current = (
         await tx.query<LifeJob>(
-          "SELECT * FROM aw_jobs WHERE id=$1 AND lease_token=$2 AND lease_until>now() AND status='running' FOR UPDATE",
+          "SELECT * FROM aw_jobs WHERE id=$1 AND lease_token=$2 AND lease_until>clock_timestamp() AND status='running' FOR UPDATE",
           [job.id, job.lease_token],
         )
       )[0];
@@ -253,8 +254,8 @@ export class LifeJobRepository {
             ? 'fork_first_period_completed'
             : 'continuation_completed',
       );
-      await tx.query(
-        "UPDATE aw_jobs SET status='completed',stage='COMPLETED',checkpoints=$2,lease_token=NULL,lease_until=NULL,completed_at=now() WHERE id=$1",
+      const completed = await tx.query(
+        "UPDATE aw_jobs SET status='completed',stage='COMPLETED',checkpoints=$2,lease_token=NULL,lease_until=NULL,completed_at=now() WHERE id=$1 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() RETURNING id",
         [
           job.id,
           JSON.stringify({
@@ -275,14 +276,16 @@ export class LifeJobRepository {
                 }
               : {}),
           }),
+          job.lease_token,
         ],
       );
+      if (!completed.length) lost();
     });
   }
   async fail(job: LifeJob, error: unknown) {
     await this.db.transaction(async (tx) => {
       const rows = await tx.query(
-        "UPDATE aw_jobs SET status='failed',error_code=$3,lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2 AND status='running' RETURNING id",
+        "UPDATE aw_jobs SET status='failed',error_code=$3,lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2 AND status='running' AND lease_until>clock_timestamp() RETURNING id",
         [
           job.id,
           job.lease_token,

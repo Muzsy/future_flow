@@ -16,6 +16,14 @@ import type {
   PeriodStoryInput,
 } from '@future-flow/ai';
 
+function eventRepair(code: string) {
+  let repair = `Correct the previous event proposal. Validation code: ${code}. Rebuild from the same starting state and request; do not change IDs supplied by the server.`;
+  if (code === 'LIFE_INVALID_TIMELINE')
+    repair +=
+      ' Every new event date must be strictly after startDate, at or before endDate, in nondecreasing order. Historical shared effectiveAt/knownAt dates are background references, never new event dates.';
+  return repair;
+}
+
 export async function processLifeJob(
   job: LifeJob,
   jobs: LifeJobRepository,
@@ -36,9 +44,23 @@ export async function processLifeJob(
   };
   let candidate = job.checkpoints.candidate as PeriodCandidateV2 | undefined;
   if (!candidate) {
-    let repair: string | undefined;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      if (attempt === 1 && job.checkpoints.repairUsed)
+    const previousCode =
+      job.checkpoints.eventRepairReasonCode ??
+      (job.checkpoints.repairKind === 'events' ||
+      (typeof job.checkpoints.repairReasonCode === 'string' &&
+        job.checkpoints.repairReasonCode.startsWith('LIFE_') &&
+        !job.checkpoints.storyRepairReason)
+        ? job.checkpoints.repairReasonCode
+        : undefined);
+    let repair =
+      typeof previousCode === 'string' ? eventRepair(previousCode) : undefined;
+    for (let attempt = repair ? 1 : 0; attempt < 2; attempt++) {
+      if (
+        attempt === 1 &&
+        (job.checkpoints.eventRepairRejected ||
+          (job.checkpoints.repairUsed &&
+            job.checkpoints.repairKind !== 'events'))
+      )
         throw new DomainError(
           'LIFE_REPAIR_EXHAUSTED',
           'Event repair already used.',
@@ -49,40 +71,52 @@ export async function processLifeJob(
           repairKind: 'events',
         });
       await jobs.verifySharedPrivacy(job);
-      const result = await ai.period(input, repair);
-      receipts.push(result.receipt);
-      await jobs.checkpoint(job, 'EVENT_VALIDATION', { receipts });
+      let proposal = job.checkpoints.eventProposal as
+        PeriodCandidateV2 | undefined;
+      if (!proposal) {
+        const result = await ai.period(input, repair);
+        receipts.push(result.receipt);
+        proposal = result.output;
+        await jobs.checkpoint(job, 'EVENT_VALIDATION', {
+          receipts,
+          eventProposal: proposal,
+        });
+      }
       try {
         if (
-          result.output.periodId !== input.periodId ||
-          result.output.durationMonths !== 6
+          proposal.periodId !== input.periodId ||
+          proposal.durationMonths !== 6
         )
           throw new DomainError(
             'LIFE_PERIOD_INTERVAL',
             'Requested period mismatch.',
           );
-        simulatePeriodV2(
-          result.output,
-          input.state,
-          input.input.constraints,
-          scope,
-        );
-        candidate = result.output;
-        await jobs.checkpoint(job, 'CANON_READY', {
-          candidate,
-          periodInputHash: hash({ ...input, repair: repair ?? null }),
-        });
-        break;
+        simulatePeriodV2(proposal, input.state, input.input.constraints, scope);
       } catch (error) {
-        if (attempt || !(error instanceof DomainError)) throw error;
-        repair = `Correct the previous event proposal. Validation code: ${error.code}. Rebuild from the same starting state and request; do not change IDs supplied by the server.`;
-        if (error.code === 'LIFE_INVALID_TIMELINE')
-          repair +=
-            ' Every new event date must be strictly after startDate, at or before endDate, in nondecreasing order. Historical shared effectiveAt/knownAt dates are background references, never new event dates.';
+        if (!(error instanceof DomainError)) throw error;
+        if (attempt) {
+          await jobs.checkpoint(job, 'EVENT_REPAIR_REJECTED', {
+            eventProposal: null,
+            eventRepairRejected: true,
+            repairReasonCode: error.code,
+          });
+          throw error;
+        }
+        repair = eventRepair(error.code);
         await jobs.checkpoint(job, 'EVENT_REJECTED', {
+          eventProposal: null,
+          eventRepairReasonCode: error.code,
           repairReasonCode: error.code,
         });
+        continue;
       }
+      candidate = proposal;
+      await jobs.checkpoint(job, 'CANON_READY', {
+        candidate,
+        eventProposal: null,
+        periodInputHash: hash({ ...input, repair: repair ?? null }),
+      });
+      break;
     }
   }
   if (!candidate)
@@ -103,9 +137,17 @@ export async function processLifeJob(
   let chapter = job.checkpoints.chapter as PeriodChapterV2 | undefined;
   if (!job.checkpoints.fidelityPassed) {
     let repair = job.checkpoints.storyRepairReason as string | undefined;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    if (job.checkpoints.storyRepairRejected)
+      throw new DomainError(
+        'STORY_FIDELITY_FAILED',
+        'The story repair was rejected.',
+      );
+    for (let attempt = repair ? 1 : 0; attempt < 2; attempt++) {
       if (attempt === 1) {
-        if (job.checkpoints.repairUsed)
+        if (
+          job.checkpoints.repairUsed &&
+          job.checkpoints.repairKind !== 'story'
+        )
           throw new DomainError(
             'LIFE_REPAIR_EXHAUSTED',
             'Story repair already used.',
@@ -123,6 +165,7 @@ export async function processLifeJob(
         await jobs.checkpoint(job, 'CHAPTER_READY', {
           chapter,
           receipts,
+          fidelityResult: null,
           chapterInputHash: hash({ ...story, repair: repair ?? null }),
         });
       }
@@ -135,15 +178,22 @@ export async function processLifeJob(
       }
       if (!problems) {
         await jobs.verifySharedPrivacy(job);
-        const check = await ai.checkPeriodChapter(story, chapter);
-        receipts.push(check.receipt);
-        await jobs.checkpoint(job, 'FIDELITY_CHECK', {
-          receipts,
-          fidelityInputHash: hash({ ...story, chapter }),
-        });
-        if (!check.output.valid || check.output.issues.length)
+        let fidelity = job.checkpoints.fidelityResult as
+          | Awaited<ReturnType<LifeAiProvider['checkPeriodChapter']>>['output']
+          | undefined;
+        if (!fidelity) {
+          const check = await ai.checkPeriodChapter(story, chapter);
+          receipts.push(check.receipt);
+          fidelity = check.output;
+          await jobs.checkpoint(job, 'FIDELITY_CHECK', {
+            receipts,
+            fidelityResult: fidelity,
+            fidelityInputHash: hash({ ...story, chapter }),
+          });
+        }
+        if (!fidelity.valid || fidelity.issues.length)
           problems =
-            check.output.issues.map((issue) => issue.reason).join(' ') ||
+            fidelity.issues.map((issue) => issue.reason).join(' ') ||
             'The chapter was rejected by the fidelity checker.';
       }
       if (!problems) {
@@ -159,6 +209,8 @@ export async function processLifeJob(
           ? problems
           : 'STORY_FIDELITY_FAILED',
         fidelityPassed: false,
+        fidelityResult: null,
+        storyRepairRejected: attempt === 1,
       });
       if (attempt)
         throw new DomainError(

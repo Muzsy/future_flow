@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { lifeJobReadyToCommit } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
@@ -806,10 +807,11 @@ export class LifeRepository {
               branch_id: string;
               status: string;
               attempt: number;
+              checkpoints: Record<string, unknown>;
               error_code: string | null;
             }
           >(
-            'SELECT branch_id,status,attempt,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
+            'SELECT branch_id,status,attempt,checkpoints,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
             [jobId, userId],
           ),
         );
@@ -826,7 +828,7 @@ export class LifeRepository {
         if (
           job.status !== 'failed' ||
           branch.status !== 'failed' ||
-          job.attempt >= 5
+          (job.attempt >= 5 && !lifeJobReadyToCommit(job.checkpoints))
         )
           throw new DomainError(
             'LIFE_RETRY_UNAVAILABLE',

@@ -10,7 +10,7 @@
 | SMTP host és port | `mail-eu.smtp2go.com`, **587, STARTTLS**; 2525 alternatíva, ha a kapcsolat indokolja. Titkosítatlan küldésre nincs visszaesés. |
 | Feladó email / név | **`info@alterward.com` / `Alterward`**, tényleges beállítás a felhasználó szerint. Felülírja a korábbi noreply javaslatot. |
 | Válaszcím / kapcsolat | Külön Reply-To nincs; válasz a feladó `info@alterward.com` címére, Cloudflare Email Routing → privát Gmail. Válasz tényleges visszaérkezése még nincs igazolva. |
-| Domainvédelem | Az alterward.com hitelesített, DKIM/SPF/DMARC rendben és a fiók csak @alterward.com feladót enged: felhasználói megerősítés. Élő levél fejlécével még ellenőrizendő. |
+| Domainvédelem | Az alterward.com hitelesített, DKIM/SPF/DMARC rendben és a fiók csak @alterward.com feladót enged: felhasználói megerősítés. A 2026-10-09-i saját éles meghívó Gmail eredetijéből a felhasználó SPF/DKIM/DMARC PASS és alterward.com DKIM/From domaint jelentett; a levél spambe érkezett. |
 | Hozzáférés | Dedikált SMTP-felhasználó és generált jelszó elkészült; kizárólag SMTP2GO/Supabase tárolja a felhasználó szerint. API-kulcs nincs, helyi/VPS jelszómásolat nem szükséges. |
 | SMTP2GO user limit / követés | **100 levél/óra**, tracking és leiratkozó lábléc kikapcsolva: felhasználói megerősítés. A Supabase külön Auth-limitjét nem helyettesíti. |
 
