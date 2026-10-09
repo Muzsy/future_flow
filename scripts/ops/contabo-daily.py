@@ -225,7 +225,8 @@ def extended_config_archive(proxy):
     paths += [upgrade / 'previous' / n for n in ['server.env', 'manifest.json', 'effective-compose.json', 'pinned-image.json']]
     paths += [OWNER / 'origin-install' / n for n in ['inventory.json', 'origin-ca.pem']]
     paths += [OWNER / 'proxy-prepare' / n for n in ['before.Caddyfile', 'before.compose.yaml']]
-    paths += [ROOT / 'config.json', *sorted((ROOT / 'scripts').iterdir())]
+    paths += [ROOT / 'config.json']
+    paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
