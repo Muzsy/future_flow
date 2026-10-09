@@ -2,7 +2,7 @@
 
 2026-10-09 · Elfogadott kiadási terv; a teljes P01–P13 / Shared S0–S7 terv kiegészítése. [Éles telepítés](DEPLOYMENT_HU.md) · [Meglévő AI-hozzáférés](CLOSED_BETA_ADMISSION_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md) · [Kötelező részletes Claude Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-**Aktuális checkpoint:** [Új Contabo appimage/CI/célpróba és valódi owner preflight](CONTABO_TARGET_REHEARSAL_HU.md) sikeres, nulla AI-költéssel. [Cloud-audit mind a hat része és önálló értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész; az összegzés feltételes owner-only indulást támogat, élő ellenőrzési kapukkal. Új őrzött stage/launch és tényleges server-env staging elkészült; külön delta-audit és launch-próba még szükséges. [Konkrét cert/DNS/aktiválás/rollback runbook](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész, Full (strict) mentett, root-only saját CSR előkészített. Cert/éles runtime/DNS/route és élő Access/Auth/email/UI bizonyíték még nincs; béta-időszak inaktív.
+**Aktuális checkpoint:** [Új Contabo appimage/CI/célpróba és valódi owner preflight](CONTABO_TARGET_REHEARSAL_HU.md) sikeres, nulla AI-költéssel. [Cloud-audit mind a hat része és önálló értékelés](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) kész; az összegzés feltételes owner-only indulást támogat, élő ellenőrzési kapukkal. Új őrzött stage/launch és tényleges server-env staging elkészült; külön delta-audit és launch-próba még szükséges. [Konkrét cert/DNS/aktiválás/rollback runbook](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md) kész, Full (strict) mentett, root-only saját CSR előkészített. A privát web/API/worker launch guard sikeres; cert/DNS/route és élő Access/Auth/email/UI bizonyíték még nincs; béta-időszak inaktív.
 
 ## Elfogadott indulási sorrend
 

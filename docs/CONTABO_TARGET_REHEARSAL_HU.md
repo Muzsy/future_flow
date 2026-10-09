@@ -57,3 +57,7 @@ A külön [valódi owner preflight](../scripts/contabo-owner-preflight.mjs) az a
 ## Hatrészes audit után: őrzött szerveroldali stage
 
 A [teljes Cloud-audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md) hat része elkészült; a 244d360 operátori/config CI verify/container sikeres. A SYN-01 jelzés alapján külön [stage/launch indító](../scripts/contabo-owner-activate.mjs) és szerveroldali őr készült. 22 ops regresszió sikeres, beleértve env/flag/tag/config/CA/manifest drift tiltását és hibás post-start utáni sajátprojekt-stopot. A valódi server-env staging, új render és frozen Compose roundtrip a Contabón sikeres: null konténer/DB/AI/DNS/proxy aktiválás, hat korábbi konténer változatlan. A mostani guard-delta külön audit/CI-je és tényleges launch/post-start futása még szükséges; a 35f9889 appimage változatlan. [Végrehajtási sorrend és cert-megőrzés](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md).
+
+## Sikeres tényleges privát launch
+
+2026-10-09T06:33:53Z: web/API/worker fut a Contabón; három pontos image ID/env, erőforrás/health/no-public-port ellenőrzés sikeres, négy anonim 403/no-store és öt üres queue. A rögzített CA-val hitelesített saját Session pooler TLS-socket és peer hostname igazolt; a PostgreSQL backend által látott pooler flag ettől külön false. Hat régi konténer változatlan, fizetett AI 0, béta-ablak inaktív, DNS/Caddy változatlan. Ez valódi saját runtime, de nem éles domain/UI/Auth/Access pozitív próba. A korábbi 22 ops próba új jelkezelési regresszióval együtt 23; b4a7f36 CI sikeres, a későbbi jelkezelési/TLS ops eltérések külön dokumentáltak.

@@ -2,7 +2,7 @@
 
 2026-10-09 · [Kiadási mátrix](CLOSED_SITE_OWNER_RELEASE_MATRIX_HU.md) · [Célpróba](CONTABO_TARGET_REHEARSAL_HU.md) · [Audit](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md).
 
-Ez a konkrét végrehajtási sorrend; a szerver még nem szolgálja az alterward oldalt. Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható.
+Ez a konkrét végrehajtási sorrend; a három szolgáltatás már fut a szerver belső hálózatán, de az alterward.com domain/TLS/Caddy route még nincs aktiválva. Az első indítás üzemeltetői olvasás, nem a fizetett tízfős béta. A 15 új élet mellett a külön korábbi pilot is megmarad, ezért 16 olvasható Official élet és öt Scenario várható.
 
 ## Indítás előtt
 
@@ -21,7 +21,7 @@ node scripts/contabo-owner-activate.mjs --stage
 node scripts/contabo-owner-activate.mjs --launch
 ```
 
-Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt generálási/review queue ürességét: régi jobot a nulla-budget worker sem claimelhet el. A sikeres `up` után a futó web/API/worker tényleges image ID, teljes deklarált feature-env, publikus portok hiánya, `node` user, CA mount, egészség, restart/OOM és erőforráskorlátok ellenőrzöttek. Négy anonim web/API kérés a proxy-hálózatról 403/no-store eredményt kell adjon. Indulás közbeni env/source/CA/config módosítás is hibakapu. Hibánál csak az `alterward-owner` projekt `down` művelete fut, a közös proxy/DNS változatlan. A jelenlegi stage sikeres, a tényleges launch és annak pozitív/post-start bizonyítéka még nincs; az indító új kódja külön Cloud-delta auditot kap.
+Az első éles launch előtt read-only DB/TLS-próba ellenőrzi mind az öt generálási/review queue ürességét: régi jobot a nulla-budget worker sem claimelhet el. A sikeres `up` után a futó web/API/worker tényleges image ID, teljes deklarált feature-env, publikus portok hiánya, `node` user, CA mount, egészség, restart/OOM és erőforráskorlátok ellenőrzöttek. Négy anonim web/API kérés a proxy-hálózatról 403/no-store eredményt kell adjon. Indulás közbeni env/source/CA/config módosítás is hibakapu. Hibánál csak az `alterward-owner` projekt `down` művelete fut, a közös proxy/DNS változatlan. A stage és a tényleges launch/post-start próba sikeres: három futó szolgáltatás, ellenőrzött image/env/health/korlátok, négy anonim 403/no-store, hat régi konténer változatlan. DNS/Caddy még nincs aktiválva. Az indító Cloud-delta auditált; a későbbi pooler TLS-probe javítása még külön rövid ellenőrzést kap.
 5. A közös Caddy tényleges fájljának és Compose-konfigurációjának root-only/hash-ellenőrzött mentése. A korábbi hat konténer ID/restart/állapot, hálózatok és hostonkénti route-válasz rögzített. A már hibás négy régi origin TLS nem az új kiadás hibája, és nem javítjuk őket a tulajdonos jóváhagyása nélkül.
 
 ## Origin TLS és DNS
@@ -67,15 +67,21 @@ Az észlelés → alterward-stop → korábbi Caddy-reload próba, a cert 30 nap
 Az első `--launch` szándékosan csak hiányzó Alterward-projektet és üres, saját címkéjű proxy-hálózatot enged. Ez az első indítást védi; nem általános rolling upgrade vagy credential-rotációs parancs. A Cloud-delta DELTA-01 jelzésének konkrét owner-eljárása:
 
 1. Az előző Caddy fájl/hash visszatöltése, adapt/validate és reload; az Alterward route eltűnésének és a korábbi route-ok változatlanságának ellenőrzése.
-2. A már rögzített közös Caddy konténert kizárólag az új `alterward_proxy` hálózatról leválasztjuk. A `ghost_default` és `web_proxy` kapcsolat megmarad. Nem indul újra vagy jön létre újra a proxy.
+2. SIG-01 kezelése: a közös Compose tartós Alterward-hálózatkiegészítését is visszavonjuk, hash- és render-ellenőrzéssel. Ha a közös config közben más jogos módosítást kapott, csak a saját hálózatkiegészítést távolítjuk el, nem írjuk vakon vissza a teljes régi fájlt. A renderből igazoltan hiányoznia kell az Alterward-csatlakozásnak; így későbbi proxy-recreate sem kapcsolhatja vissza idő előtt. A már rögzített közös Caddy konténert kizárólag az új `alterward_proxy` hálózatról leválasztjuk. A `ghost_default` és `web_proxy` kapcsolat megmarad. Nem indul újra vagy jön létre újra a proxy.
 3. Csak az `alterward-owner` projekt áll le; a frozen config és minden privát bizonyíték megmarad:
 
 ```text
 docker compose --project-name alterward-owner -f /root/alterward-ops/owner/effective-compose.json down --remove-orphans
 ```
 
-4. A projekt konténereinek hiánya, az új hálózat üressége és a korábbi hat konténer/route ismét igazolt. Változatlan env/image mellett ezután ugyanaz a hash-kötött `--launch` fut; nincs kézi, őr nélküli `up`. Sikeres új post-start proof után a scoped Caddy csatlakozás/reload ismét elvégezhető. Ez a hálózatleválasztás a rollback-próba része; tényleges próba még nyitott.
+4. A projekt konténereinek hiánya, az új hálózat üressége és a korábbi hat konténer/route ismét igazolt. Változatlan env/image mellett ezután ugyanaz a hash-kötött `--launch` fut; nincs kézi, őr nélküli `up`. Sikeres új post-start proof után a scoped Caddy tartós hálózatmerge, csatlakozás és reload ismét elvégezhető. Ez a hálózatleválasztás a rollback-próba része; tényleges próba még nyitott.
 
 Megváltozott env/image/CA esetén a régi stage külön root-only, hash-ellenőrzött archívumba kerül, nem vak felülírással frissül. Csak teljes új preflight/stage-proof és alkalmazási változásnál új image/audit/célpróba után indulhat új release. Az automatikus upgrade/re-stage jövőbeli ops-fejlesztés, nem az első owner-kiadás előfeltétele.
 
 DELTA-02: a szerveroldali indító SIGHUP/SIGTERM/SIGINT jelzést normál kivétellé alakít, ezért a már elkezdett indítás sajátprojekt-takarítása lefut; a takarítás idejére a további megszakításokat figyelmen kívül hagyja. A jelkezelés és a kivétel utáni cleanup célzott próbái sikeresek; valódi SSH-disconnect-próba még nincs. SIGKILL, hosthiba vagy elveszett végső SSH-válasz után nem feltételezünk leállást: először a projekt állapotát, image/env/health és proof meglétét kell ellenőrizni. Bizonytalan esetben a fenti sajátprojekt-`down`, majd új őrzött launch következik; addig nincs Caddy/DNS aktiválás.
+
+## Valódi Session pooler TLS-bizonyíték
+
+Az első pre-start queue-próba biztonságosan megállt, a saját konténerek eltávolítva: a `pg_stat_ssl` a PostgreSQL által látott belső pooler-kapcsolatot méri, amely itt false; mind az öt queue üres. Ez nem a Contabo → Session pooler kapcsolat TLS-állapota. A javított one-off próba az image saját pg kliensének tényleges TLSSocketjét, encrypted/authorized állapotát, a rögzített CA és `rejectUnauthorized=true` megmaradását, valamint a peer cert hostname-egyezését ellenőrzi. A `pg_stat_ssl` külön tájékoztató mező, nem helyettesíti ezt. A read-only tranzakció és öt queue továbbra kötelező.
+
+A Contabón sikeres: `databaseTlsVerified=true`, `databaseTlsHostnameVerified=true`, `postgresBackendSeesTls=false`, `pendingJobs=0`; ez a saját klienskapcsolat bizonyítéka, nem a Supabase belső hálózatának teljes auditja. A pg belső `client.connection.stream` megfigyelése kizárólag operátori probe, driver-frissítéskor új tényleges próba kell. Az alkalmazási image és adatbázis-kód nem változott. [pg SSL-beállítás és connectionString határ](https://node-postgres.com/features/ssl).
