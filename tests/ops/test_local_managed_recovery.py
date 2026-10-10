@@ -424,6 +424,48 @@ class LocalManagedTests(unittest.TestCase):
                 reads.append(len(calls))
         self.assertLessEqual(reads[1], 10 * reads[0])
 
+    def test_compaction_clears_verified_pointer_left_after_last_file_unlink(self):
+        manifest, files = fixture(self.root, NOW, write=False)
+        local.store(self.root, PROJECT, NOW, manifest, files)
+        expired_now = NOW + dt.timedelta(days=8)
+        actual = os.unlink
+
+        def stop(path, *args, **kwargs):
+            actual(path, *args, **kwargs)
+            if path.name == manifest['runId'] + '-manifest.json':
+                raise InterruptedError('Synthetic stop before pointer cleanup')
+
+        with patch.object(os, 'unlink', side_effect=stop), self.assertRaises(InterruptedError):
+            local.expire(self.root, PROJECT, expired_now, True)
+        self.assertTrue((self.root / local.POINTER).exists())
+        proof = local.prune(self.root, PROJECT, expired_now, {manifest['runId']: manifest})
+        self.assertTrue(proof['expiredPointerRemoved'])
+        self.assertFalse((self.root / local.POINTER).exists())
+        self.assertEqual(local.metadata(self.root, PROJECT, expired_now)['expectedManifests'], {})
+        newer, newer_files = fixture(self.root, expired_now, write=False)
+        local.store(self.root, PROJECT, expired_now, newer, newer_files)
+        self.assertEqual(local.read_bundle(self.root, PROJECT, expired_now)['manifest'], newer)
+
+    def test_attest_uses_earlier_independent_clock_at_expiry_boundary(self):
+        manifest, _ = fixture(self.root, NOW - dt.timedelta(days=7) + dt.timedelta(minutes=1), write=False)
+        real_datetime = dt.datetime
+
+        class AheadClock(real_datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return NOW + dt.timedelta(minutes=2)
+
+        def attest(root, project, now, manifests):
+            return {'expired': server.validate_manifest(manifests[manifest['runId']], manifest['runId'], project, now) <= now}
+
+        import contextlib
+        with patch.object(local.dt, 'datetime', AheadClock), patch.object(local, 'location'), \
+                patch.object(local, 'local_lock', return_value=contextlib.nullcontext()), \
+                patch.object(local, 'attest', side_effect=attest):
+            result = local.main({'action': 'attest', 'projectBinding': PROJECT,
+                                 'serverObservedAt': NOW.isoformat(), 'manifests': {manifest['runId']: manifest}})
+        self.assertFalse(result['expired'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -202,4 +202,105 @@ describe('managed retention orchestration', () => {
     expect(h.calls).not.toContain('server:read');
     expect(h.calls).not.toContain('local:store');
   });
+  it('flags a partial local apply failure and errors after either expiry', async () => {
+    for (const failAt of [
+      'local:apply',
+      'server:catalog-after-apply',
+      'local:prune',
+    ]) {
+      const h = harness();
+      h.client.expectedManifests = { 'known-run': manifest };
+      h.server.expectedManifests = { 'known-run': manifest };
+      let applied = false;
+      const local = async (request: Record<string, any>) => {
+        if (failAt === 'local:apply' && request.action === 'apply') {
+          await h.local(request); // Models a successful unlink followed by failure.
+          throw Error('Synthetic partial local expiry');
+        }
+        if (failAt === 'local:prune' && request.action === 'prune')
+          throw Error('Synthetic local metadata write failure');
+        return h.local(request);
+      };
+      const remote = async (request: Record<string, any>) => {
+        if (
+          request.mode === 'catalog' &&
+          applied &&
+          failAt === 'server:catalog-after-apply'
+        )
+          throw Error('Synthetic post-expiry catalog failure');
+        const value = await h.remote(request);
+        if (request.mode === 'apply') applied = true;
+        return value;
+      };
+      await expect(
+        reconcileManagedRetention('apply', local, remote),
+      ).rejects.toMatchObject({
+        localExpiryMayHaveCompleted: true,
+        phase:
+          failAt === 'local:apply'
+            ? 'local-apply'
+            : failAt === 'local:prune'
+              ? 'local-compaction'
+              : 'post-expiry-catalog',
+      });
+    }
+  });
+  it('flags a post-compaction mismatch as a possible completed local expiry', async () => {
+    const h = harness();
+    h.client.expectedManifests = { 'known-run': manifest };
+    h.server.expectedManifests = { 'known-run': manifest };
+    let pruned = false;
+    const local = async (request: Record<string, any>) => {
+      const result = await h.local(request);
+      if (request.action === 'prune') pruned = true;
+      if (request.action === 'metadata' && pruned)
+        result.archivedManifests['known-run'] = {
+          ...manifest,
+          source: 'changed',
+        };
+      return result;
+    };
+    await expect(
+      reconcileManagedRetention('apply', local, h.remote),
+    ).rejects.toMatchObject({
+      phase: 'post-compaction-verification',
+      localExpiryMayHaveCompleted: true,
+    });
+  });
+  it('bootstraps more than one batch using a fresh peer clock for each batch', async () => {
+    const h = harness();
+    h.server.archivedManifests = Object.fromEntries(
+      Array.from({ length: 23 }, (_, i) => [
+        `old-${i}`,
+        { ...manifest, runId: `old-${i}` },
+      ]),
+    );
+    let catalog = 0;
+    const requests: Record<string, any>[] = [];
+    const remote = async (request: Record<string, any>) => {
+      const result = await h.remote(request);
+      if (request.mode === 'catalog')
+        result.serverClock = `2026-10-10T16:0${++catalog}:00+00:00`;
+      return result;
+    };
+    const local = async (request: Record<string, any>) => {
+      requests.push(request);
+      return h.local(request);
+    };
+    const proof = await reconcileManagedRetention('sync', local, remote);
+    const batches = requests.filter(
+      (r) => r.action === 'attest' && Object.keys(r.manifests).length,
+    );
+    expect(batches.map((r) => Object.keys(r.manifests).length)).toEqual([
+      20, 3,
+    ]);
+    expect(batches[0].serverObservedAt).not.toBe(batches[1].serverObservedAt);
+    expect(
+      requests
+        .filter((r) => r.action === 'prune')
+        .map((r) => r.serverObservedAt),
+    ).toEqual(batches.map((r) => r.serverObservedAt));
+    expect(proof.metadataReconciled).toBe(true);
+    expect(h.calls).not.toContain('server:read');
+  });
 });

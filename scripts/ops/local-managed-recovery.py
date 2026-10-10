@@ -302,6 +302,19 @@ def prune(root, project, now, acknowledged):
                  if kind not in history.get(run, {})]
     if archived_bytes + sum(len(encoded(value)) for _, _, value in additions) > 32 * 1024**2:
         raise ValueError('Bounded archived metadata bytes required')
+    # A crash after the last ciphertext unlink may leave the original latest
+    # pointer behind. Remove it before moving its completed run to history;
+    # otherwise the next inventory would reject the now unknown active run.
+    pointer_removed = False
+    pointer = root / POINTER
+    if pointer.exists() or pointer.is_symlink():
+        raw, state = safe_read(pointer, 1024)
+        if json.loads(raw)['runId'] in acknowledged:
+            if identity(location(pointer)) != state:
+                raise ValueError('Pointer changed before compaction')
+            os.unlink(pointer)
+            sync_directory(root)
+            pointer_removed = True
     moved = 0
     for run in sorted(acknowledged):
         group = journals.get(run, {})
@@ -327,7 +340,7 @@ def prune(root, project, now, acknowledged):
             os.unlink(path)
             sync_directory(path.parent)
             moved += 1
-    return {'archivedMetadataFiles': moved, 'ciphertextsDeleted': 0,
+    return {'archivedMetadataFiles': moved, 'ciphertextsDeleted': 0, 'expiredPointerRemoved': pointer_removed,
             'metadataHistoryRetained': True, 'keyRead': False}
 
 
@@ -464,12 +477,12 @@ def read_bundle(root, project, now):
 
 def main(request):
     action = request.get('action')
-    extra = {'manifest', 'files'} if action == 'store' else {'manifests'} if action == 'attest' else {'acknowledgedManifests', 'serverObservedAt'} if action == 'prune' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
+    extra = {'manifest', 'files'} if action == 'store' else {'manifests', 'serverObservedAt'} if action == 'attest' else {'acknowledgedManifests', 'serverObservedAt'} if action == 'prune' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
     if (action not in {'store', 'read', 'check', 'apply', 'metadata', 'attest', 'prune'} or
             set(request) != {'action', 'projectBinding'} | extra or not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Exact local operator action required')
     now = dt.datetime.now(dt.timezone.utc)
-    if action in {'check', 'apply', 'prune'}:
+    if action in {'check', 'apply', 'prune', 'attest'}:
         peer = dt.datetime.fromisoformat(request['serverObservedAt'])
         if peer.utcoffset() != dt.timedelta(0) or abs((peer - now).total_seconds()) > 300:
             raise ValueError('Fresh independent server UTC clock required')

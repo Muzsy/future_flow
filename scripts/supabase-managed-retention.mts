@@ -123,7 +123,9 @@ async function main() {
       sourceCommit: commit,
       phase: error instanceof RetentionStopped ? error.phase : 'reconciliation',
       localExpiryMayHaveCompleted:
-        error instanceof RetentionStopped && error.localExpiryMayHaveCompleted,
+        error instanceof RetentionStopped
+          ? error.localExpiryMayHaveCompleted
+          : null,
       operatorIncident: true,
       automaticRetryWithoutValidationAllowed: false,
       rawErrorRecorded: false,

@@ -64,11 +64,19 @@ export async function reconcileManagedRetention(
           .slice(offset, offset + 20)
           .map((run) => [run, server.archivedManifests[run]]),
       );
-      await local({ action: 'attest', manifests: batch });
+      const batchPeer = await remote({ mode: 'catalog' });
+      for (const [run, manifest] of Object.entries(batch))
+        if (stable(batchPeer.archivedManifests[run]) !== stable(manifest))
+          throw Error('Original archived metadata changed during bootstrap');
+      await local({
+        action: 'attest',
+        manifests: batch,
+        serverObservedAt: batchPeer.serverClock,
+      });
       await local({
         action: 'prune',
         acknowledgedManifests: batch,
-        serverObservedAt: server.serverClock,
+        serverObservedAt: batchPeer.serverClock,
       });
     }
     localBefore = await local({ action: 'metadata' });
@@ -98,11 +106,16 @@ export async function reconcileManagedRetention(
       });
       downloaded++;
     }
-    await local({ action: 'attest', manifests: expected });
   }
   const peer = await remote({ mode: 'catalog' });
   if (stable(peer.expectedManifests) !== stable(expected))
     throw Error('Server inventory changed; retry reconciliation');
+  if (mode !== 'check')
+    await local({
+      action: 'attest',
+      manifests: expected,
+      serverObservedAt: peer.serverClock,
+    });
   const localCheck = await local({
     action: 'check',
     serverObservedAt: peer.serverClock,
@@ -120,49 +133,62 @@ export async function reconcileManagedRetention(
       mode: 'check',
       expectedManifests: latest.expectedManifests,
     });
-    localProof = await local({
-      action: 'apply',
-      serverObservedAt: peer.serverClock,
-    });
+    let phase = 'local-apply';
     try {
+      localProof = await local({
+        action: 'apply',
+        serverObservedAt: peer.serverClock,
+      });
+      phase = 'server-apply-after-local';
       serverProof = await remote({
         mode: 'apply',
         expectedManifests: latest.expectedManifests,
       });
+      phase = 'post-expiry-catalog';
+      const completedServer = await remote({ mode: 'catalog' });
+      phase = 'post-expiry-metadata';
+      const completedLocal = await local({ action: 'metadata' });
+      phase = 'pre-compaction-verification';
+      if (
+        stable(allManifests(completedServer)) !==
+        stable(allManifests(completedLocal))
+      )
+        throw Error('Original histories must agree before compaction');
+      const acknowledged = Object.fromEntries(
+        completedServer.completedRuns
+          .filter((run: string) => completedLocal.completedRuns.includes(run))
+          .map((run: string) => [run, completedServer.expectedManifests[run]]),
+      );
+      phase = 'server-compaction';
+      const serverCompaction = await remote({
+        mode: 'prune',
+        expectedManifests: completedServer.expectedManifests,
+        acknowledgedManifests: acknowledged,
+      });
+      phase = 'local-compaction';
+      const localCompaction = await local({
+        action: 'prune',
+        acknowledgedManifests: acknowledged,
+        serverObservedAt: serverCompaction.serverClock,
+      });
+      metadataCompaction = { server: serverCompaction, local: localCompaction };
+      phase = 'post-compaction-catalog';
+      finalServer = await remote({ mode: 'catalog' });
+      phase = 'post-compaction-metadata';
+      finalLocal = await local({ action: 'metadata' });
+      phase = 'post-compaction-verification';
+      if (
+        stable(allManifests(finalLocal)) !==
+          stable(allManifests(finalServer)) ||
+        stable(finalLocal.expectedManifests) !==
+          stable(finalServer.expectedManifests)
+      )
+        throw Error('Completed histories disagree');
     } catch {
-      throw new RetentionStopped('server-apply-after-local', true);
+      // Once apply starts, even an exception from the local helper itself can
+      // follow successful unlinks. Never report that no local expiry happened.
+      throw new RetentionStopped(phase, true);
     }
-    const completedServer = await remote({ mode: 'catalog' });
-    const completedLocal = await local({ action: 'metadata' });
-    if (
-      stable(allManifests(completedServer)) !==
-      stable(allManifests(completedLocal))
-    )
-      throw Error('Original histories must agree before compaction');
-    const acknowledged = Object.fromEntries(
-      completedServer.completedRuns
-        .filter((run: string) => completedLocal.completedRuns.includes(run))
-        .map((run: string) => [run, completedServer.expectedManifests[run]]),
-    );
-    const serverCompaction = await remote({
-      mode: 'prune',
-      expectedManifests: completedServer.expectedManifests,
-      acknowledgedManifests: acknowledged,
-    });
-    const localCompaction = await local({
-      action: 'prune',
-      acknowledgedManifests: acknowledged,
-      serverObservedAt: serverCompaction.serverClock,
-    });
-    metadataCompaction = { server: serverCompaction, local: localCompaction };
-    finalServer = await remote({ mode: 'catalog' });
-    finalLocal = await local({ action: 'metadata' });
-    if (
-      stable(allManifests(finalLocal)) !== stable(allManifests(finalServer)) ||
-      stable(finalLocal.expectedManifests) !==
-        stable(finalServer.expectedManifests)
-    )
-      throw new RetentionStopped('post-compaction-verification', true);
   }
   return {
     checkedAt: new Date().toISOString(),
