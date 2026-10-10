@@ -1,10 +1,30 @@
 # alterward — törlésvédelem a mentés visszaállításakor
 
+2026-10-10-i managed-kiegészítés: [külön titkosított Auth/Storage capture és valódi izolált PG-restore](SUPABASE_RECOVERY_COVERAGE_HU.md) sikeres. A public daily/config mentés külön scope; teljes hosted login/jogosultság/fence/promotion és managed/történeti retention még kapu. [Külső monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) konfigurációja aktív, kézi futása sikeres, schedule/új hibaemail még nem igazolt. Az alábbi korábbi proofok a megjelölt forrás/időpont állapotai.
+
 2026-10-10 · [Következő lépések](NEXT_STEPS.md) · [Mentési eljárás](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Fióktörlés](ACCOUNT_DELETION_RUNBOOK_HU.md).
 
 ## Állapot és feltárt hiány
 
-Ez a következő megvalósítási és ellenőrzési feladat részletes terve. A napi titkosított mentés és az izolált visszaállítás működik; a törlések és visszavonások visszajátszása még nincs elkészítve. A forrás áttekintése nem ilyen visszaállítási próba, és nem engedély a kiszolgálás visszakapcsolására.
+Az operátori, kizárólag karanténban futó törlés/visszavonás replay elkészült. A helyi régi snapshot és a valódi Contabo PostgreSQL-másolat próbája sikeres, pontos Claude-audit és CI kész. **Kiszolgálás-visszakapcsolás, teljes Auth-helyreállítás és Shared személyes próza-redakció nincs kész.** A napi titkosított mentés és offsite izolált restore korábbi, külön bizonyíték; a sikeres replay nem engedély a kiszolgálás visszakapcsolására.
+
+## 2026-10-10-i megvalósítás és bizonyíték
+
+Forrás: [privacy-restore](../scripts/lib/privacy-restore.ts), [közös szintetikus próba](../scripts/lib/privacy-restore-proof.ts), [PostgreSQL runner](../scripts/smoke-privacy-restore.ts), [Contabo végrehajtó](../scripts/ops/contabo-privacy-fixture.py), [regressziók](../tests/privacy-restore.test.ts). Az auditált replay/célpróba `6572dfc2d0ee545bb0a935dac5bee16c8fe1274a`, [verify és container CI](https://github.com/Muzsy/future_flow/actions/runs/38046029955) sikeres.
+
+A friss authority hash/projekt/fence/mentési idő kötést és külön Auth-listával metszett aktív felhasználókat követel. Cél csak a pontos véletlen `aw_restore_…` adatbázis lehet; tényleges current_database és oszlopséma-digest ellenőrzött. Capture/replay fingerprint UTC-ben készül. Egy SERIALIZABLE tranzakció törli a megszűnt fiók/élet/future gráfját, visszavonja a megváltozott publikáció/source/fork/exposure/Scenario-jogokat és tokeneket, leválasztja a nem igazolt Shared-tagokat, minden közös kontextust archive/hold állapotba tesz, megtartja a minimális dátumot/eredményt és hozzáadja az újabb blokkokat.
+
+Régi job/lease/input/checkpoint nem folytatódik, minden költséglimit nulla, elszámolás a régi/aktuális közül a nagyobb. Ha az authority bármely költségszámlája hiányzik a régi másolatból, a replay még módosítás előtt megáll. Külön felülvizsgált egyeztetés kell, nem automatikus új számla nulla költéssel. Az érintett személyes Shared-ágak száma és rendezett ID-listája privát proofba kerül; közös kimenet csak összesítés. A személyes próza nem íródik át és ettől még nem biztonságosan kiszolgálható. A proof mindig serviceActivationAllowed:false, nulla paid AI és Auth-provider írás; nincs production restore/promotion parancs vagy app-import.
+
+Hat helyi teszt sikeres: régi snapshot/bearer előtte-utána, hiányzó/elavult/tampered/másik projekt/duplikáció, név/séma, mentés utáni költségszámla, Tokyo/Los Angeles és rollback/ismétlés. Az eredeti időzónás fingerprint-különbség is reprodukált. Az első teljes helyi check 708 sikeres / két korábbi Windows link-kihagyás és production build; a javított forrás CI-je a friss teljes készletet és PostgreSQL-t ellenőrizte. PGlite-ben csak a kapcsolati adatbázisnév szimulált, a célrunner valós nevet ellenőriz.
+
+A Contabón rögzített 9eb7732 image és három új TS-fájl, rögzített PG17, hitelesített TLS, network-none és /run tmpfs alatt minden fizikai régi snapshot/negatív guard/rollback/ismétlés/időzóna próba sikeres. Saját ideiglenes konténerek/plaintext eltávolítva, kilenc meglévő futó konténer ID/restart/állapot változatlan. Az első próba átmeneti PG init-szerver readiness hibája javítva, teljes újrafutás sikeres. Éles DB-írás, levél és AI nulla. Ez fizikai PostgreSQL-másolat, nem új age/offsite pipeline-próba.
+
+Claude: PRVR-01 medium hiányzó új költségszámla igazolt/javított; PRVR-02 low időzóna-hipotézis reprodukált/javított; PRVR-03 info privát áglista pontosított. A 6572dfc visszaellenőrzés mindhármat elfogadta, új finding nélkül; a karanténos replayt/Shared nélküli bétát nem blokkolónak jelölte. Ez forrásaudit, célteszt/CI Codex-bizonyíték, nem minden béta-kapu lezárása. [Claude session](https://claude.ai/code/session_018ewUTzD4nLq9CkzE5wdiwR).
+
+Határok: fence/Auth/projekt/idő a megbízható operátor bizonyítéka, hash nem igazolja eredetüket. Production capture wrapper és független törlési napló nincs; oszlopdigest nem teljes függvény/trigger/RLS/grant-egyezés. Karantén nem tartós DB/app marker: a másolatról az operátor sem indíthat szolgáltatást. SIGKILL hagyhat kizárólag szintetikus tmpfs fixture-maradékot; daily cleanup ezt nem kezeli. A célrunner egymás utáni poolhívások session-időzónáját használja, a modul tranzakción belül UTC-t állít. Általános hostkiesés és teljes Auth-recovery külön kapu.
+
+Az elfogadott [kétkörös béta](BETA_ROLLOUT_SEQUENCE_HU.md) először személyes, Shared kikapcsolva; nyers Shared-próza kötelező a későbbi öt páros kör előtt. [Hosztolt leltár/helyreállítás](SUPABASE_RECOVERY_COVERAGE_HU.md).
 
 Az [aw_account_deletions tábla](../database/migrations/005_private_metrics_and_deletion.sql) a ff_users sorra ON DELETE CASCADE kapcsolattal hivatkozik. A [fiókadatok végső törlése](../packages/database/src/repository.ts) ezért a recovery markert is eltávolítja. A marker az elakadt törlési folyamat folytatását segíti, nem önálló, törlést túlélő helyreállítási napló. Az [élettörlés](../packages/database/src/life-deletion.ts) idempotens nyugtája a saját felhasználóhoz kötött; fióktörléskor ez sem marad meg. Egy régi mentés e rekordjai önmagukban nem mondják meg, mi történt a mentés után.
 

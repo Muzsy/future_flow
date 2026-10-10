@@ -1,5 +1,7 @@
 # alterward — aktív termék- és megvalósítási terv
 
+**2026-10-10-i elfogadott kiadási pontosítás:** először legfeljebb tízfős személyes béta, minden Shared-funkció kikapcsolva; utána külön öt baráti pár Shared-tesztje, továbbra legfeljebb tíz fővel. Nyers személyes Shared-próza privacy/retention kötelező a páros kör előtt. A teljes S0–S7 és P01–P13 megmarad; húsz fő, új keret vagy automatikus külső barátbeléptetés nincs engedélyezve. [Bétaütemezés](BETA_ROLLOUT_SEQUENCE_HU.md) · [Elkészült karanténos restore](CONTABO_PRIVACY_RESTORE_PLAN_HU.md).
+
 
 ## Aktuális: a 15 élet / 5 Scenario béta-katalógus kiadási példányai elkészültek
 

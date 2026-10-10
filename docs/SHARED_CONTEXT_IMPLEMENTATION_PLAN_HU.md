@@ -1,5 +1,7 @@
 # alterward — Shared Context integrációs és fejlesztési terv
 
+**2026-10-10-i elfogadott kiadási pontosítás:** először legfeljebb tízfős személyes béta, minden Shared-funkció kikapcsolva; utána külön öt baráti pár Shared-tesztje, továbbra legfeljebb tíz fővel. Nyers személyes Shared-próza privacy/retention kötelező a páros kör előtt. A teljes S0–S7 és P01–P13 megmarad; húsz fő, új keret vagy automatikus külső barátbeléptetés nincs engedélyezve. [Bétaütemezés](BETA_ROLLOUT_SEQUENCE_HU.md) · [Elkészült karanténos restore](CONTABO_PRIVACY_RESTORE_PLAN_HU.md).
+
 2026-10-05 · **S0–S2 és S3 személyes/time/Connections/safety implementált; közös szövegprojekció és kétfiókos Auth/AI/recovery is kész; nyers/backup-retention és friend kiadás még kapu.** [Változatlan forrás](plans/alterward_shared_context_implementation_docs/MASTER_SHARED_CONTEXT_SPEC_HU.md), [sorrend](NEXT_STEPS.md), [státusz](STATUS_HU.md).
 
 ## 1. Cél és meglévő alap

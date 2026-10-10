@@ -1,0 +1,12 @@
+name: Alterward alert delivery test
+run-name: Deliberate notification test — no application outage
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  intentional-test-failure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Deliberate failure to verify native GitHub email delivery
+        run: exit 1

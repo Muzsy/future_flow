@@ -1,5 +1,9 @@
 # alterward — Contabo mentés és izolált visszaállítás
 
+2026-10-10-i managed-kiegészítés: [külön titkosított Auth/Storage capture és valódi izolált PG-restore](SUPABASE_RECOVERY_COVERAGE_HU.md) sikeres. A public daily/config mentés külön scope; teljes hosted login/jogosultság/fence/promotion és managed/történeti retention még kapu. [Külső monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) konfigurációja aktív, kézi futása sikeres, schedule/új hibaemail még nem igazolt. Az alábbi korábbi proofok a megjelölt forrás/időpont állapotai.
+
+2026-10-10-i új checkpoint: [karanténos törlés/visszavonás replay](CONTABO_PRIVACY_RESTORE_PLAN_HU.md) implementált és célgépen/Claude/CI-ben ellenőrzött, mindig zárt eredménnyel. Teljes Auth/grant/promóciós és történeti retention megmarad. [Hosztolt helyreállítás/leltár](SUPABASE_RECOVERY_COVERAGE_HU.md). Shared személyes próza kapuja a [későbbi öt páros kör](BETA_ROLLOUT_SEQUENCE_HU.md) előtt kötelező; az első tízfős személyes kör minden Shared-funkció nélkül indulhat a többi kiadási kapu lezárása után.
+
 2026-10-08 · [Zárt kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Szerver-előkészítés](CONTABO_PREPARATION_REPORT_HU.md) · [Fióktörlés](ACCOUNT_DELETION_RUNBOOK_HU.md).
 
 ## Elvégzett próba
