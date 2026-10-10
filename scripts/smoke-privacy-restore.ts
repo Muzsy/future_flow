@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { connectDatabase, type Database } from '@future-flow/database';
+import { hash } from '@future-flow/core';
 import { applyMigrations } from './lib/migrations';
 import {
   preparePrivacyRestoreFixture,
   verifyPrivacyRestoreFixture,
   privacyFixtureBinding,
 } from './lib/privacy-restore-proof';
-import { replayPrivacyRestore } from './lib/privacy-restore';
+import {
+  capturePrivacyRestoreAuthority,
+  replayPrivacyRestore,
+} from './lib/privacy-restore';
 
 async function main() {
   assert.equal(process.platform, 'linux');
@@ -66,6 +70,14 @@ async function main() {
       source = connection(sourceName);
     });
     target = connection(targetName);
+    await source!.query("SET TIME ZONE 'Asia/Tokyo'");
+    f.authority = await capturePrivacyRestoreAuthority(source!, {
+      projectBinding: f.projectBinding,
+      writerFenceDigest: f.writerFenceDigest,
+      authVerifiedAt: new Date().toISOString(),
+      authUserIds: [f.a, f.c],
+    });
+    await target.query("SET TIME ZONE 'America/Los_Angeles'");
     const before = await target.query(
       'SELECT id,status FROM ff_users ORDER BY id',
     );
@@ -85,6 +97,34 @@ async function main() {
         privacyFixtureBinding(f, targetName),
       ),
     );
+    const newAccount = 'privacy-post-backup-project';
+    await source!.query(
+      'INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES($1,2000000,900)',
+      [newAccount],
+    );
+    try {
+      const current = await capturePrivacyRestoreAuthority(source!, {
+        projectBinding: f.projectBinding,
+        writerFenceDigest: f.writerFenceDigest,
+        authVerifiedAt: new Date().toISOString(),
+        authUserIds: [f.a, f.c],
+      });
+      await assert.rejects(
+        replayPrivacyRestore(target, current, {
+          ...privacyFixtureBinding(f, targetName),
+          expectedAuthorityHash: hash(current),
+        }),
+        /budget account missing/,
+      );
+      assert.deepEqual(
+        await target.query('SELECT id,status FROM ff_users ORDER BY id'),
+        before,
+      );
+    } finally {
+      await source!.query('DELETE FROM aw_budget_accounts WHERE id=$1', [
+        newAccount,
+      ]);
+    }
     let injected: Database;
     const failure: Database = {
       query: target.query,
@@ -113,12 +153,18 @@ async function main() {
       before,
     );
     const proof = await verifyPrivacyRestoreFixture(target, f, targetName);
+    assert.equal(
+      (await target.query('SHOW TIME ZONE'))[0]?.TimeZone,
+      'America/Los_Angeles',
+    );
     return {
       ...proof,
       physicalOldSnapshot: true,
       actualDatabaseNameGuard: true,
       missingOrMismatchedAuthorityRejected: true,
       interruptedReplayRolledBack: true,
+      missingCurrentBudgetAccountRejected: true,
+      differentSessionTimezonesVerified: true,
       postgresPrivacyRestore: 'passed',
     };
   } finally {

@@ -2,13 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hash } from '@future-flow/core';
-import type { Database } from '@future-flow/database';
+import { PublicationRepository, type Database } from '@future-flow/database';
 import {
+  capturePrivacyRestoreAuthority,
   replayPrivacyRestore,
   type PrivacyRestoreAuthority,
 } from '../scripts/lib/privacy-restore';
 import {
   preparePrivacyRestoreFixture,
+  privacyFixtureConfig,
   verifyPrivacyRestoreFixture,
   type PrivacyRestoreFixture,
 } from '../scripts/lib/privacy-restore-proof';
@@ -155,6 +157,71 @@ describe('independent authority and quarantined privacy restore', () => {
     expect(
       await db.query('SELECT id FROM ff_users WHERE id=$1', [b]),
     ).toHaveLength(1);
+  });
+  it('refuses a current budget account created after the backup before changing restored data', async () => {
+    const id =
+      'project:window:2026-10-10T00:00:00.000Z:2026-11-09T00:00:00.000Z';
+    await source.query(
+      'INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES($1,2000000,900)',
+      [id],
+    );
+    try {
+      const current = await capturePrivacyRestoreAuthority(adapter(source), {
+        projectBinding,
+        writerFenceDigest,
+        authVerifiedAt: new Date().toISOString(),
+        authUserIds: [a, c],
+      });
+      const db = await restored();
+      const before = await db.query(
+        'SELECT id,status FROM ff_users ORDER BY id',
+      );
+      await expect(
+        replayPrivacyRestore(db, current, {
+          ...proofBinding(),
+          expectedAuthorityHash: hash(current),
+        }),
+      ).rejects.toThrow('budget account missing');
+      expect(
+        await db.query('SELECT id,status FROM ff_users ORDER BY id'),
+      ).toEqual(before);
+      expect(
+        await db.query('SELECT id FROM aw_lives WHERE id=$1', [deletedLife]),
+      ).toHaveLength(1);
+      expect(
+        await db.query('SELECT id FROM aw_budget_accounts WHERE id=$1', [id]),
+      ).toHaveLength(0);
+    } finally {
+      await source.query('DELETE FROM aw_budget_accounts WHERE id=$1', [id]);
+    }
+  });
+  it('preserves an unchanged publication across different capture/replay session timezones', async () => {
+    await source.query("SET TIME ZONE 'Asia/Tokyo'");
+    try {
+      const current = await capturePrivacyRestoreAuthority(adapter(source), {
+        projectBinding,
+        writerFenceDigest,
+        authVerifiedAt: new Date().toISOString(),
+        authUserIds: [a, c],
+      });
+      const db = await restored();
+      await db.query("SET TIME ZONE 'America/Los_Angeles'");
+      const proof = await replayPrivacyRestore(db, current, {
+        ...proofBinding(),
+        expectedAuthorityHash: hash(current),
+      });
+      expect(proof.fingerprintTimeZone).toBe('UTC');
+      expect((await db.query('SHOW TIME ZONE'))[0]).toMatchObject({
+        TimeZone: 'America/Los_Angeles',
+      });
+      expect(
+        await new PublicationRepository(db, privacyFixtureConfig).readPublic(
+          fixture.keptSlug,
+        ),
+      ).toBeTruthy();
+    } finally {
+      await source.query("SET TIME ZONE 'UTC'");
+    }
   });
   it('rolls the complete replay back on an intermediate failure, allowing a clean explicit retry', async () => {
     const db = await restored();

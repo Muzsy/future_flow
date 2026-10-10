@@ -286,6 +286,8 @@ try {
     'actualDatabaseNameGuard',
     'missingOrMismatchedAuthorityRejected',
     'interruptedReplayRolledBack',
+    'missingCurrentBudgetAccountRejected',
+    'differentSessionTimezonesVerified',
   ])
     assert.equal(privacyRestore[check], true);
   assert.equal(privacyRestore.serviceActivationAllowed, false);

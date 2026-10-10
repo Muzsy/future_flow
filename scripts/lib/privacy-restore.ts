@@ -120,6 +120,7 @@ export async function capturePrivacyRestoreAuthority(
     // The operator must supply independently verified Auth and a stopped-writer
     // fence. Neither a hash nor these source reads attest that external fence.
     await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await tx.query("SET LOCAL TIME ZONE 'UTC'");
     const auth = new Set(evidence.authUserIds);
     const activeUserIds = (
       await tx.query<{ id: string }>(
@@ -204,6 +205,7 @@ export async function replayPrivacyRestore(
     throw Error('Authority predates the backup');
   return db.transaction(async (tx) => {
     await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+    await tx.query("SET LOCAL TIME ZONE 'UTC'");
     const [target] = await tx.query<{ name: string }>(
       'SELECT current_database() AS name',
     );
@@ -212,6 +214,13 @@ export async function replayPrivacyRestore(
       hash(await tx.query(schemaSql)) !== a.schemaDigest
     )
       throw Error('Dedicated matching-schema quarantine required');
+    const budgetIds = new Set(
+      (await tx.query<{ id: string }>('SELECT id FROM aw_budget_accounts')).map(
+        (r) => r.id,
+      ),
+    );
+    if (a.budgetAccounts.some((account) => !budgetIds.has(account.id)))
+      throw Error('Current budget account missing from quarantine');
     const changed: Record<string, string[]> = {};
     for (const table of fingerprintTables) {
       const fresh = new Map(a.fingerprints[table].map((r) => [r.id, r.digest]));
@@ -373,7 +382,7 @@ export async function replayPrivacyRestore(
         [account.id, account.accountedMicro],
       );
     const affected = await tx.query<{ branch_id: string }>(
-      "SELECT DISTINCT p.branch_id FROM aw_shared_personal_memories p JOIN aw_shared_event_participants ep ON ep.event_id=p.event_id JOIN aw_shared_members m ON m.id=ep.member_id LEFT JOIN ff_users u ON u.id=m.user_id WHERE m.status='deleted' OR m.user_id IS NULL OR u.status<>'active'",
+      "SELECT DISTINCT p.branch_id FROM aw_shared_personal_memories p JOIN aw_shared_event_participants ep ON ep.event_id=p.event_id JOIN aw_shared_members m ON m.id=ep.member_id LEFT JOIN ff_users u ON u.id=m.user_id WHERE m.status='deleted' OR m.user_id IS NULL OR u.status<>'active' ORDER BY p.branch_id",
     );
     return {
       schemaVersion: 'privacy-restore-replay-proof-1',
@@ -382,6 +391,8 @@ export async function replayPrivacyRestore(
       projectBinding: a.projectBinding,
       quarantineDatabase: binding.quarantineDatabase,
       personalHistoryRequiresReview: affected.length,
+      personalHistoryBranchIds: affected.map((r) => r.branch_id),
+      fingerprintTimeZone: 'UTC',
       serviceActivationAllowed: false,
       paidAiCalls: 0,
       authProviderWrites: false,
