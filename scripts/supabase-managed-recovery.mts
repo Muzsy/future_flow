@@ -219,7 +219,9 @@ async function main() {
             new RegExp(`${name} = (\\{[\\s\\S]*?\\})\\n`),
           )?.[1];
           if (!raw) throw Error('Reviewed managed allowlist required');
-          return new Set([...raw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!));
+          return new Set(
+            [...raw.matchAll(/'([a-z_][a-z0-9_]*)'/g)].map((m) => m[1]!),
+          );
         }
         const storage = fixedSet('KNOWN_STORAGE_TABLES');
         const excludedStorage = fixedSet('EXCLUDED_STORAGE_DATA');
