@@ -16,6 +16,7 @@ import stat
 ROOT = Path('/root/alterward-ops/managed-recovery')
 FILES = {'managed.dump.age', 'catalog.json.age', 'manifest.json'}
 JOURNAL = 'expiry-journal'
+HISTORY = 'expiry-history'
 PG_IMAGE = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 SHA = re.compile(r'[a-f0-9]{64}')
@@ -59,17 +60,21 @@ def identity(value):
             value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
 
 
-def journal_records(root, project, now):
+def journal_records(root, project, now, folder=JOURNAL):
     """Immutable deletion intent survives a killed process without ciphertext."""
-    path = root / JOURNAL
+    path = root / folder
     if not path.exists() and not path.is_symlink():
         return {}
     directory(path)
     result = {}
+    metadata_bytes = 0
     for entry in path.iterdir():
         if not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}\.json', entry.name):
             raise ValueError('Unknown expiry journal entry')
         raw, _ = original_file(entry)
+        metadata_bytes += len(raw)
+        if metadata_bytes > 32 * 1024**2:
+            raise ValueError('Bounded metadata history required')
         if len(raw) > 2 * 1024**2:
             raise ValueError('Bounded expiry journal required')
         record = json.loads(raw)
@@ -95,13 +100,13 @@ def journal_records(root, project, now):
             if name != 'manifest.json' and {k: item[k] for k in ('sha256', 'bytes')} != record['manifest']['encryptedFiles'][name]:
                 raise ValueError('Journal ciphertext differs from manifest')
         result[run] = record
-        if len(result) > 100:
+        if len(result) > (100 if folder == JOURNAL else 10000):
             raise ValueError('Bounded expiry history required')
     return result
 
 
-def write_journal(root, record):
-    path = root / JOURNAL
+def write_journal(root, record, folder=JOURNAL):
+    path = root / folder
     if not path.exists():
         path.mkdir(mode=0o700)
     directory(path)
@@ -165,19 +170,20 @@ def inventory(root, expected, project, now):
         raise ValueError('UTC clock and original local manifest inventory required')
     for run, manifest in expected.items():
         validate_manifest(manifest, run, project, now)
-    if sum(item['bytes'] for manifest in expected.values() for item in manifest['encryptedFiles'].values()) > 512 * 1024**2:
-        raise ValueError('Bounded total ciphertext batch required')
     root_state = directory(root)
     journals = journal_records(root, project, now)
-    names = {p.name for p in root.iterdir() if p.name != JOURNAL}
-    if (names | set(journals) != set(expected) or
+    history = journal_records(root, project, now, HISTORY)
+    names = {p.name for p in root.iterdir() if p.name not in {JOURNAL, HISTORY}}
+    historical_only = set(history) - set(journals)
+    if (names & set(history) or names | set(journals) != set(expected) - historical_only or
             any(not isinstance(n, str) or not RUN_ID.fullmatch(n) for n in expected)):
         raise ValueError('Complete original local manifest set must match server')
     records = []
+    batch_bytes = 0
     for name in sorted(expected):
         manifest = expected[name]
         expires = validate_manifest(manifest, name, project, now)
-        pending = journals.get(name)
+        pending = journals.get(name) or history.get(name)
         if pending and pending['manifest'] != manifest:
             raise ValueError('Local original manifest differs from expiry journal')
         path = root / name
@@ -193,6 +199,9 @@ def inventory(root, expected, project, now):
         present = {p.name for p in path.iterdir()}
         if (not present <= FILES or (not pending and present != FILES)):
             raise ValueError('Incomplete or foreign archive contents')
+        batch_bytes += sum(item['bytes'] for filename, item in manifest['encryptedFiles'].items() if filename in present)
+        if batch_bytes > 512 * 1024**2:
+            raise ValueError('Bounded remaining ciphertext batch required')
         if pending and (pending['rootIdentity'] != list(identity(root_state)[:2]) or
                         pending['directoryIdentity'][:2] != list(identity(dir_state)[:2])):
             raise ValueError('Expiry belongs to another original directory')
@@ -300,9 +309,10 @@ def catalog(root, project, now):
     """Read-only inventory, including complete deletion-intent tombstones."""
     directory(root)
     journals = journal_records(root, project, now)
+    history = journal_records(root, project, now, HISTORY)
     expected = {run: record['manifest'] for run, record in journals.items()}
     for path in root.iterdir():
-        if path.name == JOURNAL:
+        if path.name in {JOURNAL, HISTORY}:
             continue
         if not RUN_ID.fullmatch(path.name):
             raise ValueError('Unknown managed catalog entry')
@@ -316,9 +326,50 @@ def catalog(root, project, now):
             raise ValueError('Bounded managed catalog required')
     records = inventory(root, expected, project, now)
     return {'expectedManifests': expected,
+            'archivedManifests': {run: r['manifest'] for run, r in history.items()},
             'freshRuns': [r['runId'] for r in records if not r['expired']],
             'pendingRuns': [r['runId'] for r in records if r['pendingExpiry'] and r['directoryPresent']],
             'completedRuns': [r['runId'] for r in records if not r['directoryPresent']]}
+
+
+def prune(root, expected, acknowledged, project, now):
+    """Archive metadata only after both operators attest ciphertext absence."""
+    if not isinstance(acknowledged, dict) or not set(acknowledged) <= set(expected):
+        raise ValueError('Explicit jointly completed manifest subset required')
+    records = inventory(root, expected, project, now)
+    by_run = {r['runId']: r for r in records}
+    for run, manifest in acknowledged.items():
+        if by_run[run]['directoryPresent'] or by_run[run]['manifest'] != manifest:
+            raise ValueError('Both copies must be fully expired before metadata archiving')
+    journals = journal_records(root, project, now)
+    history = journal_records(root, project, now, HISTORY)
+    if len(set(history) | set(acknowledged)) > 10000:
+        raise ValueError('Bounded metadata archive required')
+    current_bytes = sum((root / HISTORY / (run + '.json')).lstat().st_size for run in history)
+    additions = [journals[run] for run in acknowledged if run not in history]
+    if current_bytes + sum(len((json.dumps(r, sort_keys=True, separators=(',', ':')) + '\n').encode()) for r in additions) > 32 * 1024**2:
+        raise ValueError('Bounded archived metadata bytes required')
+    archived = 0
+    for run in sorted(acknowledged):
+        record = journals.get(run) or history.get(run)
+        if run in history and history[run] != record:
+            raise ValueError('Archived deletion intent differs')
+        if run not in history:
+            write_journal(root, record, HISTORY)
+        source = root / JOURNAL / (run + '.json')
+        if source.exists() or source.is_symlink():
+            raw, before = original_file(source)
+            if json.loads(raw) != record or identity(source.lstat()) != identity(before):
+                raise ValueError('Metadata changed before archiving')
+            os.unlink(source)
+            fd = os.open(source.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            archived += 1
+    return {'archivedMetadataRecords': archived, 'ciphertextsDeleted': 0,
+            'metadataHistoryRetained': True, 'keyRead': False}
 
 
 def read_bundle(root, expected, project, now, run):
@@ -364,8 +415,10 @@ def main(request):
         keys.add('expectedManifests')
     if mode == 'read':
         keys.add('runId')
+    if mode == 'prune':
+        keys.add('acknowledgedManifests')
     if (os.geteuid() != UID or set(request) != keys or
-            mode not in {'check', 'apply', 'catalog', 'read'} or not isinstance(request['projectBinding'], str) or
+            mode not in {'check', 'apply', 'catalog', 'read', 'prune'} or not isinstance(request['projectBinding'], str) or
             not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Explicit root operator expiry mode required')
     server_clock = utc_now()
@@ -381,6 +434,8 @@ def main(request):
             result = catalog(ROOT, request['projectBinding'], decision_clock)
         elif mode == 'read':
             result = read_bundle(ROOT, request['expectedManifests'], request['projectBinding'], decision_clock, request['runId'])
+        elif mode == 'prune':
+            result = prune(ROOT, request['expectedManifests'], request['acknowledgedManifests'], request['projectBinding'], decision_clock)
         else:
             result = expire(ROOT, request['expectedManifests'], request['projectBinding'],
                             decision_clock, mode == 'apply')

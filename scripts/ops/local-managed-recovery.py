@@ -17,6 +17,7 @@ from alterward_managed_expiry import validate_manifest, RUN_ID, SHA
 
 FILES = {'managed.dump.age', 'catalog.json.age', 'manifest.json'}
 JOURNAL = 'managed-lifecycle'
+HISTORY = 'managed-history'
 LOCK = 'managed-local.lock'
 POINTER = 'managed-backup-latest.json'
 LIMIT = 128 * 1024**2
@@ -117,8 +118,8 @@ def local_lock(root):
         os.close(fd)
 
 
-def journal_dir(root, create=False):
-    path = root / JOURNAL
+def journal_dir(root, create=False, folder=JOURNAL):
+    path = root / folder
     if create and not path.exists():
         path.mkdir(mode=0o700)
         sync_directory(root)
@@ -128,9 +129,10 @@ def journal_dir(root, create=False):
     return None
 
 
-def journal_records(root, project, now):
-    directory = journal_dir(root)
+def journal_records(root, project, now, folder=JOURNAL):
+    directory = journal_dir(root, folder=folder)
     records = {}
+    metadata_bytes = 0
     if not directory:
         return records
     for path in directory.iterdir():
@@ -138,6 +140,9 @@ def journal_records(root, project, now):
         if not match:
             raise ValueError('Unknown lifecycle journal entry')
         raw, _ = safe_read(path, 2 * 1024**2)
+        metadata_bytes += len(raw)
+        if metadata_bytes > 32 * 1024**2:
+            raise ValueError('Bounded metadata archive required')
         record = json.loads(raw)
         run, kind = match.groups()
         required = {'schemaVersion', 'manifest'} | ({'rootIdentity', 'files'} if kind == 'expiry' else set())
@@ -161,7 +166,9 @@ def journal_records(root, project, now):
         group[kind] = record
         if len(group) == 2 and group['capture']['manifest'] != group['expiry']['manifest']:
             raise ValueError('Lifecycle manifests disagree')
-    if len(records) > 100:
+    if folder == HISTORY and any('expiry' not in group for group in records.values()):
+        raise ValueError('Archived completed expiry intent required')
+    if len(records) > (100 if folder == JOURNAL else 10000):
         raise ValueError('Bounded lifecycle batch required')
     return records
 
@@ -170,6 +177,7 @@ def inventory(root, project, now):
     """Entire fresh/expired batch validated before preparing any deletion."""
     root_state = location(root, True)
     journals = journal_records(root, project, now)
+    history = journal_records(root, project, now, HISTORY)
     groups = {run: {} for run in journals}
     for path in root.iterdir():
         match = re.fullmatch(r'([0-9]{8}T[0-9]{6}Z-[a-f0-9]{8})-(managed\.dump\.age|catalog\.json\.age|manifest\.json)', path.name)
@@ -185,12 +193,18 @@ def inventory(root, project, now):
     batch_bytes = 0
     for run, paths in sorted(groups.items()):
         journal = journals.get(run, {})
+        archived = history.get(run, {})
+        if archived and paths:
+            raise ValueError('Archived expired run cannot reappear')
+        for kind, item in journal.items():
+            if kind in archived and archived[kind] != item:
+                raise ValueError('Active and archived metadata differ')
         raw_manifest = safe_read(paths['manifest.json'], 1024**2)[0] if 'manifest.json' in paths else None
         manifest = json.loads(raw_manifest) if raw_manifest is not None else (journal.get('expiry') or journal.get('capture') or {}).get('manifest')
         if not manifest:
             raise ValueError('Original manifest missing')
         expires = validate_manifest(manifest, run, project, now)
-        batch_bytes += sum(item['bytes'] for item in manifest['encryptedFiles'].values())
+        batch_bytes += sum(item['bytes'] for name, item in manifest['encryptedFiles'].items() if name in paths)
         if batch_bytes > 512 * 1024**2:
             raise ValueError('Bounded total local ciphertext batch required')
         for item in journal.values():
@@ -228,8 +242,13 @@ def inventory(root, project, now):
 
 def metadata(root, project, now):
     plan = inventory(root, project, now)
+    history = journal_records(root, project, now, HISTORY)
     return {'expectedManifests': {r['runId']: r['manifest'] for r in plan},
+            'archivedManifests': {run: group['expiry']['manifest'] for run, group in history.items()},
             'completeRuns': [r['runId'] for r in plan if r['complete'] and not r['pendingExpiry']],
+            'completedRuns': [r['runId'] for r in plan if r['pendingExpiry'] and not r['files']],
+            'serverAttestedOnlyRuns': [run for run, group in {**journal_records(root, project, now), **history}.items()
+                                       if 'expiry' in group and not group['expiry']['files'] and 'capture' not in group],
             'expiredRuns': [r['runId'] for r in plan if r['expired']],
             'pendingRuns': [r['runId'] for r in plan if r['pendingExpiry'] and r['files']]}
 
@@ -240,17 +259,76 @@ def attest(root, project, now, manifests):
         raise ValueError('Bounded validated manifest set required')
     plan = inventory(root, project, now)
     known = {r['runId']: r['manifest'] for r in plan}
-    if len(set(known) | set(manifests)) > 100:
+    history = journal_records(root, project, now, HISTORY)
+    if len(set(known) | (set(manifests) - set(history))) > 100:
         raise ValueError('Bounded merged history required')
     for run, manifest in manifests.items():
         validate_manifest(manifest, run, project, now)
         if run in known and known[run] != manifest:
             raise ValueError('Independent manifests disagree')
+        if run in history and history[run]['expiry']['manifest'] != manifest:
+            raise ValueError('Archived original manifest differs')
     for run, manifest in manifests.items():
-        if run not in known:
-            exclusive_write(journal_dir(root, True) / (run + '.capture.json'), encoded({
-                'schemaVersion': 'alterward-local-capture-1', 'manifest': manifest}))
+        if run not in known and run not in history:
+            expired = validate_manifest(manifest, run, project, now) <= now
+            kind = 'expiry' if expired else 'capture'
+            value = {'schemaVersion': 'alterward-local-' + kind + '-1', 'manifest': manifest}
+            if expired:
+                state = location(root, True)
+                value.update({'rootIdentity': [state.st_dev, state.st_ino], 'files': {}})
+            exclusive_write(journal_dir(root, True) / (run + '.' + kind + '.json'), encoded(value))
     return metadata(root, project, now)
+
+
+def prune(root, project, now, acknowledged):
+    """Compact completed active journals; retain original metadata tombstones."""
+    if not isinstance(acknowledged, dict) or len(acknowledged) > 100:
+        raise ValueError('Bounded jointly completed manifest set required')
+    plan = inventory(root, project, now)
+    by_run = {r['runId']: r for r in plan}
+    journals = journal_records(root, project, now)
+    history = journal_records(root, project, now, HISTORY)
+    for run, manifest in acknowledged.items():
+        current = by_run.get(run)
+        archived = history.get(run)
+        if ((not current and not archived) or
+                (current and (current['files'] or not current['pendingExpiry'] or current['manifest'] != manifest)) or
+                (archived and archived['expiry']['manifest'] != manifest)):
+            raise ValueError('Both copies must be fully expired before compaction')
+    if len(set(history) | set(acknowledged)) > 10000:
+        raise ValueError('Bounded archived run count required')
+    archived_bytes = sum(p.lstat().st_size for p in (root / HISTORY).iterdir()) if history else 0
+    additions = [(run, kind, value) for run in acknowledged for kind, value in journals.get(run, {}).items()
+                 if kind not in history.get(run, {})]
+    if archived_bytes + sum(len(encoded(value)) for _, _, value in additions) > 32 * 1024**2:
+        raise ValueError('Bounded archived metadata bytes required')
+    moved = 0
+    for run in sorted(acknowledged):
+        group = journals.get(run, {})
+        # Expiry goes first so even an interrupted history write has a full
+        # tombstone. A torn metadata write remains fail-closed for review.
+        for kind in ('expiry', 'capture'):
+            if kind not in group:
+                continue
+            value = group[kind]
+            path = journal_dir(root, True, HISTORY) / (run + '.' + kind + '.json')
+            if path.exists() or path.is_symlink():
+                if json.loads(safe_read(path, 2 * 1024**2)[0]) != value:
+                    raise ValueError('Archived lifecycle record differs')
+            else:
+                exclusive_write(path, encoded(value))
+        for kind in ('capture', 'expiry'):
+            if kind not in group:
+                continue
+            path = root / JOURNAL / (run + '.' + kind + '.json')
+            raw, state = safe_read(path, 2 * 1024**2)
+            if json.loads(raw) != group[kind] or identity(location(path)) != state:
+                raise ValueError('Original metadata changed before compaction')
+            os.unlink(path)
+            sync_directory(path.parent)
+            moved += 1
+    return {'archivedMetadataFiles': moved, 'ciphertextsDeleted': 0,
+            'metadataHistoryRetained': True, 'keyRead': False}
 
 
 def expire(root, project, now, apply=False):
@@ -320,7 +398,8 @@ def store(root, project, now, manifest, files):
     plan = inventory(root, project, now)
     existing = next((r for r in plan if r['runId'] == run), None)
     journals = journal_records(root, project, now)
-    if run in journals and 'expiry' in journals[run]:
+    history = journal_records(root, project, now, HISTORY)
+    if run in history or (run in journals and 'expiry' in journals[run]):
         raise ValueError('Expired run cannot be resurrected')
     if existing and existing['manifest'] != manifest:
         raise ValueError('Original run cannot be overwritten')
@@ -385,12 +464,12 @@ def read_bundle(root, project, now):
 
 def main(request):
     action = request.get('action')
-    extra = {'manifest', 'files'} if action == 'store' else {'manifests'} if action == 'attest' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
-    if (action not in {'store', 'read', 'check', 'apply', 'metadata', 'attest'} or
+    extra = {'manifest', 'files'} if action == 'store' else {'manifests'} if action == 'attest' else {'acknowledgedManifests', 'serverObservedAt'} if action == 'prune' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
+    if (action not in {'store', 'read', 'check', 'apply', 'metadata', 'attest', 'prune'} or
             set(request) != {'action', 'projectBinding'} | extra or not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Exact local operator action required')
     now = dt.datetime.now(dt.timezone.utc)
-    if action in {'check', 'apply'}:
+    if action in {'check', 'apply', 'prune'}:
         peer = dt.datetime.fromisoformat(request['serverObservedAt'])
         if peer.utcoffset() != dt.timedelta(0) or abs((peer - now).total_seconds()) > 300:
             raise ValueError('Fresh independent server UTC clock required')
@@ -409,6 +488,8 @@ def main(request):
             return metadata(root, request['projectBinding'], now)
         if action == 'attest':
             return attest(root, request['projectBinding'], now, request['manifests'])
+        if action == 'prune':
+            return prune(root, request['projectBinding'], now, request['acknowledgedManifests'])
         return expire(root, request['projectBinding'], now, action == 'apply')
 
 

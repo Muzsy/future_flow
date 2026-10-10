@@ -4,6 +4,8 @@ import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
+let recordFailure: ((error: unknown) => void) | undefined;
+
 async function main() {
   const mode = process.argv[2]?.slice(2);
   if (
@@ -21,6 +23,7 @@ async function main() {
     'scripts/supabase-managed-retention.mts',
     'scripts/lib/private-report.ts',
     'scripts/lib/local-managed-recovery.ts',
+    'scripts/lib/managed-retention.ts',
     'scripts/ops/local-managed-recovery.py',
     'scripts/ops/contabo-managed-expiry.py',
     'pnpm-lock.yaml',
@@ -103,110 +106,47 @@ async function main() {
       throw Error('Managed remote operation stopped safely');
     }
   }
+  let localPythonRuntimeSha256;
   async function local(action: object): Promise<any> {
-    return (await localManagedRecovery({ ...action, projectBinding }, commit))
-      .result;
+    const value = await localManagedRecovery(
+      { ...action, projectBinding },
+      commit,
+    );
+    localPythonRuntimeSha256 = value.runtimeSha256;
+    return value.result;
   }
-  const localBefore = await local({ action: 'metadata' });
-  const server = await remote({ mode: 'catalog' });
-  const original: Record<string, object> = localBefore.expectedManifests;
-  const expected: Record<string, object> = server.expectedManifests;
-  if (Object.keys({ ...original, ...expected }).length > 100)
-    throw Error('Bounded merged batch required');
-  for (const [run, manifest] of Object.entries(original)) {
-    if (JSON.stringify(manifest) !== JSON.stringify(expected[run])) {
-      // JSON property order can differ between independent serializers.
-      if (!expected[run] || stable(manifest) !== stable(expected[run]))
-        throw Error('Independent original manifests disagree');
-    }
-  }
-  const missing: string[] = server.freshRuns.filter(
-    (run: string) => !localBefore.completeRuns.includes(run),
+  const { reconcileManagedRetention, RetentionStopped } =
+    await import('./lib/managed-retention.js');
+  recordFailure = (error) =>
+    privateReportFile(directory, 'managed-retention-failure.json', {
+      checkedAt: new Date().toISOString(),
+      sourceCommit: commit,
+      phase: error instanceof RetentionStopped ? error.phase : 'reconciliation',
+      localExpiryMayHaveCompleted:
+        error instanceof RetentionStopped && error.localExpiryMayHaveCompleted,
+      operatorIncident: true,
+      automaticRetryWithoutValidationAllowed: false,
+      rawErrorRecorded: false,
+      keyRead: false,
+      serviceActivationAllowed: false,
+    });
+  const result = await reconcileManagedRetention(
+    mode as 'check' | 'sync' | 'apply',
+    local,
+    remote,
   );
-  let downloaded = 0;
-  if (mode !== 'check') {
-    for (const run of missing) {
-      const bundle = await remote({
-        mode: 'read',
-        runId: run,
-        expectedManifests: expected,
-      });
-      if (stable(bundle.manifest) !== stable(expected[run]))
-        throw Error('Download manifest differs');
-      await local({
-        action: 'store',
-        manifest: bundle.manifest,
-        files: bundle.files,
-      });
-      downloaded++;
-    }
-    await local({ action: 'attest', manifests: expected });
-  }
-  const peer = await remote({ mode: 'catalog' });
-  if (stable(peer.expectedManifests) !== stable(expected))
-    throw Error('Server inventory changed; retry reconciliation');
-  const localCheck = await local({
-    action: 'check',
-    serverObservedAt: peer.serverClock,
-  });
-  const latest = await local({ action: 'metadata' });
-  let serverProof;
-  let localProof = localCheck;
-  if (mode === 'apply') {
-    if (stable(latest.expectedManifests) !== stable(expected))
-      throw Error('Full metadata reconciliation required');
-    await remote({
-      mode: 'check',
-      expectedManifests: latest.expectedManifests,
-    });
-    localProof = await local({
-      action: 'apply',
-      serverObservedAt: peer.serverClock,
-    });
-    serverProof = await remote({
-      mode: 'apply',
-      expectedManifests: latest.expectedManifests,
-    });
-  }
   const proof = {
-    checkedAt: new Date().toISOString(),
+    ...result,
     sourceCommit: commit,
     sourceHashes: hashes,
-    mode,
-    serverKnownArchives: Object.keys(expected).length,
-    localKnownArchives: Object.keys(latest.expectedManifests).length,
-    serverFreshArchives: server.freshRuns.length,
-    missingFreshLocalCopies: missing.length,
-    downloadedArchives: downloaded,
-    localProof,
-    serverProof,
-    metadataReconciled: stable(latest.expectedManifests) === stable(expected),
-    keyRead: false,
-    decryptionPerformed: false,
-    liveDatabaseWrites: false,
-    messagesSent: 0,
-    paidApplicationAiCalls: 0,
-    serviceActivationAllowed: false,
-    automaticRetentionConfigured: false,
-    historicalCopiesExpired: false,
+    localPythonRuntimeSha256,
+    localPythonIsolated: true,
   };
   privateReportFile(directory, 'managed-retention-proof.json', proof);
   console.log(JSON.stringify(proof));
 }
-function stable(value: any): string {
-  if (Array.isArray(value)) return '[' + value.map(stable).join(',') + ']';
-  if (value && typeof value === 'object')
-    return (
-      '{' +
-      Object.keys(value)
-        .sort()
-        .map((key) => JSON.stringify(key) + ':' + stable(value[key]))
-        .join(',') +
-      '}'
-    );
-  return JSON.stringify(value);
-}
-main().catch(() => {
+main().catch((error: unknown) => {
+  recordFailure?.(error);
   console.error(
     'Managed reconciliation stopped safely; no raw archive or SSH output.',
   );
