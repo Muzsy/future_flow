@@ -2,7 +2,9 @@ param(
     [Parameter(Mandatory=$true)]
     [ValidateSet('Install','Inspect','Remove','Run')]
     [string]$Action,
-    [string]$NodePath
+    [string]$NodePath,
+    [string]$PowerShellPath,
+    [string]$SecretsDirectory
 )
 $ErrorActionPreference = 'Stop'
 $taskName = 'Alterward encrypted backup sync'
@@ -27,6 +29,15 @@ if ($Action -eq 'Remove') {
     exit 0
 }
 if ($null -ne $task) { throw 'Existing task requires an explicit reviewed update' }
+if ([string]::IsNullOrWhiteSpace($PowerShellPath)) { $PowerShellPath = (Get-Command pwsh -ErrorAction Stop).Source }
+if (-not (Test-Path -LiteralPath $PowerShellPath -PathType Leaf)) { throw 'Installed PowerShell 7 is required' }
+$powerShellHash = (Get-FileHash -LiteralPath $PowerShellPath -Algorithm SHA256).Hash
+if ([string]::IsNullOrWhiteSpace($SecretsDirectory)) { $SecretsDirectory = Join-Path $env:LOCALAPPDATA 'FutureFlow\secrets' }
+if (-not [System.IO.Path]::IsPathRooted($SecretsDirectory) -or -not (Test-Path -LiteralPath $SecretsDirectory -PathType Container)) { throw 'Protected SSH secrets directory required' }
+foreach ($name in @('contabo_alterward_ed25519','contabo_known_hosts')) {
+    $file = Get-Item -LiteralPath (Join-Path $SecretsDirectory $name)
+    if ($file.PSIsContainer -or $file.LinkType) { throw 'Original regular SSH credential and host pin required' }
+}
 $workspacePath = (Get-Location).Path
 $wrapperPath = Join-Path $workspacePath 'scripts\contabo-daily.mjs'
 $privatePath = Join-Path $workspacePath '.local\contabo-daily'
@@ -48,12 +59,15 @@ $workspacePath = '__WORKSPACE__'
 $logPath = '__LOG__'
 $installerPath = '__INSTALLER__'
 $reportPath = '__REPORT__'
+$powerShellPath = '__POWERSHELL__'
 try {
+    if ((Get-Process -Id $PID).Path -ne $powerShellPath -or (Get-FileHash -LiteralPath $powerShellPath -Algorithm SHA256).Hash -ne '__POWERSHELL_HASH__') { throw 'Pinned PowerShell changed' }
     if ((Get-FileHash -LiteralPath $nodePath -Algorithm SHA256).Hash -ne '__NODE_HASH__') { throw 'Pinned Node changed' }
     if ((Get-FileHash -LiteralPath $wrapperPath -Algorithm SHA256).Hash -ne '__WRAPPER_HASH__') { throw 'Pinned sync source changed' }
     if ((Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash -ne '__INSTALLER_HASH__') { throw 'Pinned remote operator changed' }
     if ((Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash -ne '__REPORT_HASH__') { throw 'Pinned report dependency changed' }
     Set-Location -LiteralPath $workspacePath
+    $env:ALTERWARD_SSH_SECRETS_DIR = '__SECRETS__'
     & $nodePath $wrapperPath --sync *> $logPath
     exit $LASTEXITCODE
 } catch {
@@ -63,10 +77,12 @@ try {
 '@
 $content = $template.Replace('__NODE__',$NodePath.Replace("'","''")).Replace('__WRAPPER__',$wrapperPath.Replace("'","''")).Replace('__WORKSPACE__',$workspacePath.Replace("'","''")).Replace('__LOG__',(Join-Path $privatePath 'sync-task.log').Replace("'","''")).Replace('__NODE_HASH__',$nodeHash).Replace('__WRAPPER_HASH__',$wrapperHash)
 $content = $content.Replace('__INSTALLER__',$installerPath.Replace("'","''")).Replace('__REPORT__',$reportPath.Replace("'","''")).Replace('__INSTALLER_HASH__',$installerHash).Replace('__REPORT_HASH__',$reportHash)
+$content = $content.Replace('__POWERSHELL__',$PowerShellPath.Replace("'","''")).Replace('__POWERSHELL_HASH__',$powerShellHash)
+$content = $content.Replace('__SECRETS__',$SecretsDirectory.Replace("'","''"))
 Set-Content -LiteralPath $scriptPath -Value $content -Encoding UTF8
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $principal = New-ScheduledTaskPrincipal -UserId $currentSid -LogonType Interactive -RunLevel Limited
-$command = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -File "' + $scriptPath + '"') -WorkingDirectory $workspacePath
+$command = New-ScheduledTaskAction -Execute $PowerShellPath -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -File "' + $scriptPath + '"') -WorkingDirectory $workspacePath
 $triggers = @(
     (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5) -RepetitionInterval (New-TimeSpan -Hours 1)),
     (New-ScheduledTaskTrigger -AtLogOn -User $currentSid)

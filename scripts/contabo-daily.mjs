@@ -157,7 +157,15 @@ async function runOperator() {
     console.log(JSON.stringify({ localExpired, retentionDays: 7 }));
     return;
   }
-  const secrets = join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  const secrets =
+    process.env.ALTERWARD_SSH_SECRETS_DIR ??
+    join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  if (
+    !fs.lstatSync(secrets).isDirectory() ||
+    fs.lstatSync(secrets).isSymbolicLink() ||
+    fs.realpathSync(secrets).toLowerCase() !== resolve(secrets).toLowerCase()
+  )
+    throw Error('Exact protected SSH secrets directory required');
   const key = join(secrets, 'contabo_alterward_ed25519');
   const pin = join(secrets, 'contabo_known_hosts');
   regular(key);
