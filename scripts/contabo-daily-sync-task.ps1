@@ -34,6 +34,10 @@ if (-not (Test-Path -LiteralPath $privatePath -PathType Container)) { throw 'Pri
 if ([string]::IsNullOrWhiteSpace($NodePath) -or -not (Test-Path -LiteralPath $NodePath -PathType Leaf)) { throw 'Pinned Node 24 path is required' }
 $wrapperHash = (Get-FileHash -LiteralPath $wrapperPath -Algorithm SHA256).Hash
 $nodeHash = (Get-FileHash -LiteralPath $NodePath -Algorithm SHA256).Hash
+$installerPath = Join-Path $workspacePath 'scripts\ops\contabo-daily-install.py'
+$reportPath = Join-Path $workspacePath 'scripts\lib\private-report.ts'
+$installerHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash
+$reportHash = (Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash
 $scriptPath = Join-Path $privatePath 'sync-task.ps1'
 if (Test-Path -LiteralPath $scriptPath) { throw 'Existing private task script cannot be overwritten' }
 $template = @'
@@ -42,9 +46,13 @@ $nodePath = '__NODE__'
 $wrapperPath = '__WRAPPER__'
 $workspacePath = '__WORKSPACE__'
 $logPath = '__LOG__'
+$installerPath = '__INSTALLER__'
+$reportPath = '__REPORT__'
 try {
     if ((Get-FileHash -LiteralPath $nodePath -Algorithm SHA256).Hash -ne '__NODE_HASH__') { throw 'Pinned Node changed' }
     if ((Get-FileHash -LiteralPath $wrapperPath -Algorithm SHA256).Hash -ne '__WRAPPER_HASH__') { throw 'Pinned sync source changed' }
+    if ((Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash -ne '__INSTALLER_HASH__') { throw 'Pinned remote operator changed' }
+    if ((Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash -ne '__REPORT_HASH__') { throw 'Pinned report dependency changed' }
     Set-Location -LiteralPath $workspacePath
     & $nodePath $wrapperPath --sync *> $logPath
     exit $LASTEXITCODE
@@ -54,6 +62,7 @@ try {
 }
 '@
 $content = $template.Replace('__NODE__',$NodePath.Replace("'","''")).Replace('__WRAPPER__',$wrapperPath.Replace("'","''")).Replace('__WORKSPACE__',$workspacePath.Replace("'","''")).Replace('__LOG__',(Join-Path $privatePath 'sync-task.log').Replace("'","''")).Replace('__NODE_HASH__',$nodeHash).Replace('__WRAPPER_HASH__',$wrapperHash)
+$content = $content.Replace('__INSTALLER__',$installerPath.Replace("'","''")).Replace('__REPORT__',$reportPath.Replace("'","''")).Replace('__INSTALLER_HASH__',$installerHash).Replace('__REPORT_HASH__',$reportHash)
 Set-Content -LiteralPath $scriptPath -Value $content -Encoding UTF8
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $principal = New-ScheduledTaskPrincipal -UserId $currentSid -LogonType Interactive -RunLevel Limited

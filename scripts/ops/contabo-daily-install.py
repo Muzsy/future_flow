@@ -27,6 +27,9 @@ User=root
 Group=root
 UMask=0077
 Environment=PYTHONDONTWRITEBYTECODE=1
+RuntimeDirectory=alterward-daily-work
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 ExecStart=/usr/bin/python3 /root/alterward-ops/daily/scripts/daily_entry.py --{action}
 TimeoutStartSec={'360' if action == 'backup' else '120'}
 TimeoutStopSec=30
@@ -37,7 +40,7 @@ IOSchedulingClass=idle
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/root/alterward-ops/daily /root/alterward-ops/owner/activation.lock /dev/shm/alterward-daily-work
+ReadWritePaths=/root/alterward-ops/daily /root/alterward-ops/owner/activation.lock /run/alterward-daily-work
 PrivateDevices=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
@@ -74,7 +77,7 @@ def run(args, *, input=None, timeout=60):
 
 
 def install(request):
-    config = request['config']
+    config = {**request['config'], 'unitHashes': {name: hashlib.sha256(text.encode()).hexdigest() for name, text in unit_files().items()}}
     scripts = {name: base64.b64decode(value, validate=True) for name, value in request['scripts'].items()}
     if set(scripts) != {'backup_lib.py', 'contabo-daily.py', 'daily_entry.py'}:
         raise ValueError('Exact script set required')
@@ -87,7 +90,7 @@ def install(request):
     ROOT.mkdir(mode=0o700)
     for name in ['scripts', 'backups', 'status']:
         (ROOT / name).mkdir(mode=0o700)
-    work = Path('/dev/shm/alterward-daily-work')
+    work = Path('/run/alterward-daily-work')
     if work.exists() or work.is_symlink():
         raise ValueError('Existing daily shared-memory workspace')
     work.mkdir(mode=0o700)
@@ -100,7 +103,7 @@ def install(request):
     run(['systemctl', 'daemon-reload'])
     return {'installed': True, 'timersActivated': False, 'retentionDays': 7,
             'decryptionIdentityInstalled': False, 'applicationRestarted': False,
-            'paidAiCalls': 0, 'sourceCommit': config['sourceCommit'], 'scriptHashes': config['scriptHashes']}
+            'paidAiCalls': 0, 'sourceCommit': config['sourceCommit'], 'scriptHashes': config['scriptHashes'], 'unitHashes': config['unitHashes']}
 
 
 def installed_daily():
@@ -117,11 +120,11 @@ def installed_daily():
 
 def update_scripts(request, daily):
     previous = daily.config()
-    candidate = request['config']
+    candidate = {**request['config'], 'unitHashes': {name: hashlib.sha256(text.encode()).hexdigest() for name, text in unit_files().items()}}
     if request['previousScriptHashes'] != previous['scriptHashes']:
         raise ValueError('Exact previous source hashes required')
-    if {k: v for k, v in previous.items() if k not in ['scriptHashes', 'sourceCommit']} != {
-            k: v for k, v in candidate.items() if k not in ['scriptHashes', 'sourceCommit']}:
+    if {k: v for k, v in previous.items() if k not in ['scriptHashes', 'sourceCommit', 'unitHashes']} != {
+            k: v for k, v in candidate.items() if k not in ['scriptHashes', 'sourceCommit', 'unitHashes']}:
         raise ValueError('Daily update may change only code and its source commit')
     scripts = {n: base64.b64decode(v, validate=True) for n, v in request['scripts'].items()}
     if set(scripts) != set(previous['scriptHashes']) or {
@@ -133,7 +136,12 @@ def update_scripts(request, daily):
         state = run(['systemctl', 'show', name, '--property=ActiveState', '--value']).decode().strip()
         if state in ['active', 'activating', 'deactivating', 'reloading']:
             raise ValueError('Deactivate only the dedicated timers before updating daily code')
-        if daily.regular(UNIT_ROOT / name) != unit_files()[name].encode():
+        current = daily.regular(UNIT_ROOT / name)
+        # One reviewed migration from the exact pre-audit unit template. Later
+        # changes require the hashes already stored by a successful installation.
+        legacy = unit_files()[name].replace('RuntimeDirectory=alterward-daily-work\nRuntimeDirectoryMode=0700\nRuntimeDirectoryPreserve=yes\n', '').replace('/run/alterward-daily-work', '/dev/shm/alterward-daily-work').encode()
+        expected = previous.get('unitHashes', {}).get(name, hashlib.sha256(legacy).hexdigest())
+        if daily.digest(current) != expected:
             raise ValueError('Existing daily unit changed')
     baseline = daily.stable_state()
     with daily.exclusive(ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
@@ -141,6 +149,7 @@ def update_scripts(request, daily):
         archive.mkdir(mode=0o700)
         originals = {n: daily.regular(ROOT / 'scripts' / n) for n in scripts}
         originals['config.json'] = daily.regular(ROOT / 'config.json')
+        originals.update({name: daily.regular(UNIT_ROOT / name) for name in UNITS})
         for name, content in originals.items():
             daily.durable_file(archive / name, content)
         def replace(path, content):
@@ -160,15 +169,20 @@ def update_scripts(request, daily):
         try:
             for name, content in scripts.items():
                 replace(ROOT / 'scripts' / name, content)
+            for name, content in unit_files().items():
+                replace(UNIT_ROOT / name, content.encode())
+            run(['systemd-analyze', 'verify', *[str(UNIT_ROOT / n) for n in UNITS]])
             replace(ROOT / 'config.json', json.dumps(candidate, sort_keys=True).encode())
+            run(['systemctl', 'daemon-reload'])
         except Exception:
             for name, content in originals.items():
-                replace(ROOT / 'config.json' if name == 'config.json' else ROOT / 'scripts' / name, content)
+                replace(UNIT_ROOT / name if name in UNITS else ROOT / 'config.json' if name == 'config.json' else ROOT / 'scripts' / name, content)
+            run(['systemctl', 'daemon-reload'])
             raise
     if daily.stable_state() != baseline:
         raise ValueError('Daily source update changed existing containers')
     return {'updated': True, 'sourceCommit': candidate['sourceCommit'],
-            'scriptHashes': candidate['scriptHashes'], 'retentionDays': 7,
+            'scriptHashes': candidate['scriptHashes'], 'unitHashes': candidate['unitHashes'], 'retentionDays': 7,
             'recipientChanged': False, 'timersActivated': False,
             'allExistingContainersUnchanged': True, 'paidAiCalls': 0}
 
@@ -185,29 +199,40 @@ def main(request):
         return update_scripts(request, daily)
     if action in ['backup', 'monitor']:
         baseline = daily.stable_state()
+        started = daily.utcnow()
         run(['systemctl', 'start', 'alterward-' + action + '.service'], timeout=390)
         value = json.loads(daily.regular(ROOT / 'status' / (action + '.json')))
-        if not value.get('ok') or daily.stable_state() != baseline:
+        if (not value.get('ok') or not daily.current_proof(value, daily.config(), 600) or
+                __import__('datetime').datetime.fromisoformat(value['capturedAt']) < started or
+                daily.stable_state() != baseline):
             raise ValueError('Runtime or daily operation failed')
         return value
     if action in ['status', 'inventory']:
-        records = daily.completed_archives(ROOT / 'backups')
-        return {'status': daily.main('status'), 'manifests': [r['manifest'] for r in records],
-                'units': {name: run(['systemctl', 'show', name, '--property=ActiveState,UnitFileState,NextElapseUSecRealtime,Result']).decode().splitlines() for name in UNITS}}
+        with daily.exclusive(ROOT / 'job.lock'):
+            daily.clean_pending()
+            records = daily.completed_archives(ROOT / 'backups')
+            return {'status': daily.status_snapshot(daily.config()), 'manifests': [r['manifest'] for r in records],
+                    'units': {name: run(['systemctl', 'show', name, '--property=ActiveState,UnitFileState,NextElapseUSecRealtime,Result']).decode().splitlines() for name in UNITS}}
     if action == 'activate':
-        status = daily.main('status')
-        proof = request['restoreProof']
-        if (not status['backup'].get('ok') or not status['monitor'].get('ok') or
-                proof.get('runId') != status['backup']['runId'] or
-                not proof.get('offsiteCiphertextVerified') or not proof.get('tamperedCiphertextRejected') or
-                proof.get('tablesRestoredAndDataMatched') != status['backup']['tables'] or
-                not proof.get('temporaryContainersRemoved') or not proof.get('temporaryPlaintextRemoved')):
-            raise ValueError('Successful capture, monitor and offsite restore required')
-        daily.atomic(ROOT / 'status' / 'restore.json', proof)
-        baseline = daily.stable_state()
-        run(['systemctl', 'enable', '--now', 'alterward-backup.timer', 'alterward-monitor.timer'])
-        if daily.stable_state() != baseline:
-            raise ValueError('Timer activation changed existing containers')
+        with daily.exclusive(ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+            value = daily.config()
+            status = daily.status_snapshot(value)
+            proof = request['restoreProof']
+            recorded = json.loads(daily.regular(ROOT / 'status' / 'restore.json'))
+            if (not status['backup'].get('ok') or not status['monitor'].get('ok') or
+                    not daily.current_proof(proof, value, 6 * 3600) or
+                    not daily.current_proof(recorded, value, 6 * 3600) or
+                    any(proof.get(k) != recorded.get(k) for k in ['runId', 'encryptedFiles', 'sourceCommit', 'scriptHashes', 'unitHashes']) or
+                    proof.get('runId') != status['backup']['runId'] or
+                    not recorded.get('offsiteCiphertextVerified') or not recorded.get('tamperedCiphertextRejected') or
+                    recorded.get('tablesRestoredAndDataMatched') != status['backup']['tables'] or
+                    not recorded.get('temporaryContainersRemoved') or not recorded.get('temporaryPlaintextRemoved')):
+                raise ValueError('Fresh current-source capture, monitor and server-recorded offsite restore required')
+            daily.owner_runtime()
+            baseline = daily.stable_state()
+            run(['systemctl', 'enable', '--now', 'alterward-backup.timer', 'alterward-monitor.timer'])
+            if daily.stable_state() != baseline:
+                raise ValueError('Timer activation changed existing containers')
         return {'timersActivated': True, 'dailyUtc': '03:15', 'monitorMinutes': 15,
                 'retentionDays': 7, 'offsiteRestoreVerified': True,
                 'allExistingContainersUnchanged': True, 'paidAiCalls': 0,
@@ -217,12 +242,21 @@ def main(request):
         return {'timersActivated': False, 'archivesDeleted': False, 'applicationRestarted': False}
     if action == 'rehearse':
         library = sys.modules['alterward_backup']
-        baseline = daily.stable_state()
-        proof = library.rehearse(request)
-        if daily.stable_state() != baseline:
-            raise ValueError('Restore changed live containers')
-        proof['allExistingContainersUnchanged'] = True
-        return proof
+        with daily.exclusive(ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+            value = daily.config()
+            manifest = request['manifest']
+            records = daily.completed_archives(ROOT / 'backups')
+            current = next((r['manifest'] for r in records if r['manifest']['runId'] == manifest['runId']), None)
+            if current != manifest or any(manifest.get(k) != v for k, v in daily.source_binding(value).items()):
+                raise ValueError('Exact server archive and current source required for activation rehearsal')
+            baseline = daily.stable_state()
+            proof = library.rehearse(request)
+            if daily.stable_state() != baseline:
+                raise ValueError('Restore changed live containers')
+            proof.update({**daily.source_binding(value), 'encryptedFiles': manifest['encryptedFiles'],
+                          'capturedAt': daily.utcnow().isoformat(), 'allExistingContainersUnchanged': True})
+            daily.atomic(ROOT / 'status' / 'restore.json', proof)
+            return proof
     raise ValueError('Unknown scoped action')
 
 

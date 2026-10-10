@@ -1,6 +1,6 @@
 # alterward — napi titkosított mentés és felügyelet
 
-2026-10-09 · [Mentés és restore-határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md).
+2026-10-10 · [Mentés és restore-határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md).
 
 ## Implementált eljárás, aktiválás előtti ellenőrzés
 
@@ -9,9 +9,9 @@ A napi mentés és felügyelet külön üzemeltetői eszköz, az alkalmazási im
 - Napi szervermentés **03:15 UTC**, legfeljebb egyperces eltolással; két saját systemd timer, a monitor negyedóránként.
 - A PostgreSQL 17 `public` séma csak `ff_`/`aw_` táblái, read-only repeatable-read exportált snapshotból; a forrástábla-sorösszegek és rendezett tartalom-hash ugyanahhoz a snapshothoz tartoznak. A `pg_dump` hitelesített CA/hostname TLS-t és rögzített kliensimage-et használ. Nincs éles DB-írás vagy automatikus restore.
 - Proxy/config, Origin TLS, aktuális/előző owner runtime és upgrade-journal, adatbázis-CA, valamint a napi eszköz/config és négy unit titkosítva mentve. Ez nem teljes Supabase Auth/Storage/grant/SMTP/dashboard backup.
-- A szerveren kizárólag az age nyilvános recipient tartós. A mentési plaintext és ideiglenes DB-credential root-only, host `/dev/shm` munkaterületben van; a Docker-kliens 256 MiB/0,5 CPU korlátú. A restore során az eredeti identity csak ideiglenesen, SSH stdinből használható.
+- A szerveren kizárólag az age nyilvános recipient tartós. A mentési plaintext és ideiglenes DB-credential root-only, host `/run` tmpfs munkaterületben van; a Docker-kliens 256 MiB/0,5 CPU korlátú. A restore során az eredeti identity csak ideiglenesen, SSH stdinből használható.
 - Szigorú **hét nap** megőrzés az új, külön managed daily archívumokra. A teljes batch neve, manifestje, fájlkészlete, link/uid/mode és ciphertext-hash törlés előtt ellenőrzött; csak a három ismert fájl és az üres saját könyvtár törölhető. Sérült/idegen/hiányos archive esetén nincs vak törlés, monitorhibát kell rendezni. A hétnapos utolsó régi másolatot sem tartjuk meg korlátlanul. A régi rehearsal/config proofok külön történeti állományok, nem részei az automatikus expirynek.
-- A helyi gép saját felhasználójának óránkénti és bejelentkezéskori feladata pinned Node/sync-forrást, meglévő SSH-kulcsot és hostpint használ; nem tárol jelszót, nem fut SYSTEM-ként. Az operátor lockja elkerüli az átfedést. Csak bekapcsolt gépen és belépett felhasználó mellett működik; kikapcsolva a másolás és helyi expiry a következő futásig vár. A gép és a szerver együttes elvesztése ellen ez nem független redundancia.
+- A helyi gép saját felhasználójának óránkénti és bejelentkezéskori feladata rögzített Node-, wrapper-, root operátor- és report-dependency hash-eket, meglévő SSH-kulcsot és hostpint használ; nem tárol jelszót, nem fut SYSTEM-ként. Az operátor lockja elkerüli az átfedést. Csak bekapcsolt gépen és belépett felhasználó mellett működik; kikapcsolva a másolás és helyi expiry a következő futásig vár. A gép és a szerver együttes elvesztése ellen ez nem független redundancia.
 
 ## Felügyelet és hibaút
 

@@ -30,7 +30,7 @@ import alterward_backup as backup
 
 ROOT = Path('/root/alterward-ops/daily')
 OWNER = Path('/root/alterward-ops/owner')
-WORK = Path('/dev/shm/alterward-daily-work')
+WORK = Path('/run/alterward-daily-work')
 ORIGINAL_ROOT = Path('/root/alterward-ops')
 UID = 0
 LABEL = 'com.alterward.daily-backup'
@@ -127,7 +127,35 @@ def config():
     for name, expected in value['scriptHashes'].items():
         if digest(regular(ROOT / 'scripts' / name)) != expected:
             raise ValueError('Installed script hash changed')
+    for name, expected in value.get('unitHashes', {}).items():
+        if name not in {'alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer'} or digest(regular(Path('/etc/systemd/system') / name)) != expected:
+            raise ValueError('Installed daily unit changed')
     return value
+
+
+def source_binding(value):
+    return {key: value[key] for key in ['sourceCommit', 'scriptHashes', 'unitHashes']}
+
+
+def current_proof(proof, value, maximum_age):
+    try:
+        captured = dt.datetime.fromisoformat(proof['capturedAt'])
+        age = (utcnow() - captured).total_seconds()
+        return (captured.utcoffset() == dt.timedelta(0) and 0 <= age <= maximum_age and
+                all(proof.get(key) == expected for key, expected in source_binding(value).items()))
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def status_snapshot(value):
+    result = {}
+    for name, maximum_age in [('backup', 26 * 3600), ('monitor', 30 * 60)]:
+        path = ROOT / 'status' / (name + '.json')
+        record = json.loads(regular(path)) if path.exists() else {}
+        if not current_proof(record, value, maximum_age):
+            record = {**record, 'ok': False, 'alerts': [name + '_stale_or_source_changed']}
+        result[name] = record
+    return result
 
 
 @contextlib.contextmanager
@@ -385,7 +413,7 @@ def perform_backup(value):
     baseline = stable_state()
     with exclusive(OWNER / 'activation.lock'):
         manifest, services = owner_runtime()
-        if shutil.disk_usage(ROOT).free < 2 * 1024**3 or shutil.disk_usage('/dev/shm').free < 384 * 1024**2:
+        if shutil.disk_usage(ROOT).free < 2 * 1024**3 or shutil.disk_usage(WORK.parent).free < 384 * 1024**2:
             raise ValueError('Insufficient backup space')
         clean_work()
         started = utcnow()
@@ -404,6 +432,7 @@ def perform_backup(value):
                 'ownerCommit': manifest['commit'], 'ownerImage': manifest['imageId'],
                 'scope': 'application-public-proxy-tls-owner-and-daily-config',
                 'databaseTlsVerified': True, 'retentionSeconds': RETENTION_SECONDS,
+                **source_binding(value),
                 'dailyScriptSha256': value['scriptHashes']['contabo-daily.py']})
             stage = ROOT / 'backups' / ('.pending-' + run_id)
             private_dir(stage)
@@ -426,7 +455,7 @@ def perform_backup(value):
             expired = expire(ROOT / 'backups', utcnow())
             if stable_state() != baseline:
                 raise ValueError('Existing container state changed during backup')
-            status = {'ok': True, 'capturedAt': utcnow().isoformat(), 'runId': run_id,
+            status = {'ok': True, **source_binding(value), 'capturedAt': utcnow().isoformat(), 'runId': run_id,
                 'tables': len(result['expectedTables']), 'rows': sum(t['count'] for t in result['expectedTables']),
                 'configFiles': len(result['configFiles']), 'encryptedBytes': sum(x['bytes'] for x in result['encryptedFiles'].values()),
                 'archivesExpired': expired, 'databaseTlsVerified': True, 'liveDatabaseWrites': False,
@@ -484,6 +513,7 @@ def alerts_for(health, now):
 def monitor(value):
     baseline = stable_state()
     with exclusive(OWNER / 'activation.lock'):
+        clean_work()
         _, services = owner_runtime()
         database = json.loads(command(['docker', 'exec', services['api']['Id'], 'node',
             '--max-old-space-size=128', '--input-type=module', '-e', DATABASE_PROBE, 'monitor']))
@@ -504,7 +534,7 @@ def monitor(value):
         alerts = alerts_for(health, now)
         if stable_state() != baseline:
             alerts.append('container_state_changed')
-        result = {'ok': not alerts, 'capturedAt': now.isoformat(), 'alerts': alerts,
+        result = {'ok': not alerts, **source_binding(value), 'capturedAt': now.isoformat(), 'alerts': alerts,
                   'health': health, 'paidAiCalls': 0, 'externalMessageSent': False}
         atomic(ROOT / 'status' / 'monitor.json', result)
         return result
@@ -516,8 +546,8 @@ def run_operation(action):
         raise ValueError('Explicit root-only action required')
     value = config()
     if action == 'status':
-        return {name: json.loads(regular(ROOT / 'status' / (name + '.json')))
-                if (ROOT / 'status' / (name + '.json')).exists() else None for name in ['backup', 'monitor']}
+        with exclusive(ROOT / 'job.lock'):
+            return status_snapshot(value)
     with exclusive(ROOT / 'job.lock'):
         try:
             clean_pending()

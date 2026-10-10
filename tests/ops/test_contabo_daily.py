@@ -17,6 +17,9 @@ spec.loader.exec_module(library)
 spec = importlib.util.spec_from_file_location('daily', directory / 'contabo-daily.py')
 daily = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(daily)
+spec = importlib.util.spec_from_file_location('daily_installer', directory / 'contabo-daily-install.py')
+installer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(installer)
 NOW = dt.datetime(2026, 10, 10, 4, 0, tzinfo=dt.timezone.utc)
 
 
@@ -227,6 +230,96 @@ class MonitorTests(unittest.TestCase):
                 value = SimpleNamespace(st_mode=mode, st_nlink=links, st_uid=daily.UID)
                 with patch.object(Path, 'lstat', return_value=value), self.assertRaises(ValueError):
                     daily.regular(path)
+
+
+class DailyActivationTests(unittest.TestCase):
+    def setUp(self):
+        self.config = {'sourceCommit': 'a' * 40, 'scriptHashes': {'contabo-daily.py': 'b' * 64},
+                       'unitHashes': {'alterward-backup.service': 'c' * 64}}
+        self.proof = {**self.config, 'capturedAt': NOW.isoformat(), 'ok': True}
+        self.clock = patch.object(daily, 'utcnow', return_value=NOW)
+        self.clock.start()
+
+    def tearDown(self):
+        self.clock.stop()
+
+    def test_source_hash_unit_hash_and_age_are_all_required(self):
+        self.assertTrue(daily.current_proof(self.proof, self.config, 1800))
+        for field in ['sourceCommit', 'scriptHashes', 'unitHashes']:
+            with self.subTest(field=field):
+                self.assertFalse(daily.current_proof({**self.proof, field: None}, self.config, 1800))
+        for timestamp in [(NOW - dt.timedelta(seconds=1801)).isoformat(),
+                          (NOW + dt.timedelta(seconds=1)).isoformat(), 'broken', NOW.replace(tzinfo=None).isoformat()]:
+            self.assertFalse(daily.current_proof({**self.proof, 'capturedAt': timestamp}, self.config, 1800))
+
+    def test_status_does_not_present_old_success_as_current(self):
+        from unittest.mock import Mock
+        path = Mock()
+        path.exists.return_value = True
+        path.__truediv__ = Mock(return_value=path)
+        stale = {**self.proof, 'capturedAt': (NOW - dt.timedelta(days=2)).isoformat()}
+        with patch.object(daily, 'ROOT', path), patch.object(daily, 'regular', return_value=json.dumps(stale).encode()):
+            result = daily.status_snapshot(self.config)
+        self.assertFalse(result['backup']['ok'])
+        self.assertFalse(result['monitor']['ok'])
+
+    def test_runtime_directory_is_created_by_systemd_and_preserved_between_jobs(self):
+        for name, content in installer.unit_files().items():
+            if name.endswith('.service'):
+                self.assertIn('RuntimeDirectory=alterward-daily-work\n', content)
+                self.assertIn('RuntimeDirectoryMode=0700\n', content)
+                self.assertIn('RuntimeDirectoryPreserve=yes\n', content)
+                self.assertIn(daily.WORK.as_posix(), content)
+                self.assertNotIn('/dev/shm/alterward-daily-work', content)
+
+    def test_fabricated_or_previous_source_restore_proof_never_enables_units(self):
+        from contextlib import nullcontext
+        from unittest.mock import Mock
+        mock = Mock()
+        mock.ROOT = daily.ROOT
+        mock.OWNER = daily.OWNER
+        mock.config.return_value = self.config
+        mock.exclusive.side_effect = lambda _: nullcontext()
+        mock.status_snapshot.return_value = {'backup': {**self.proof, 'runId': 'fixture', 'tables': 97}, 'monitor': self.proof}
+        mock.current_proof.side_effect = daily.current_proof
+        restored = {**self.proof, 'runId': 'fixture', 'encryptedFiles': {'config': 'hash'},
+                    'offsiteCiphertextVerified': True, 'tamperedCiphertextRejected': True,
+                    'tablesRestoredAndDataMatched': 97, 'temporaryContainersRemoved': True, 'temporaryPlaintextRemoved': True}
+        mock.regular.return_value = json.dumps(restored).encode()
+        with patch.object(installer, 'installed_daily', return_value=mock), patch.object(installer, 'run') as command, patch.object(installer.os, 'geteuid', return_value=0, create=True):
+            for altered in [{**restored, 'sourceCommit': 'd' * 40}, {**restored, 'encryptedFiles': {'config': 'fabricated'}}]:
+                with self.assertRaises(ValueError):
+                    installer.main({'action': 'activate', 'restoreProof': altered})
+            command.assert_not_called()
+
+    def test_valid_fresh_root_record_allows_only_dedicated_timers(self):
+        from contextlib import nullcontext
+        from unittest.mock import Mock
+        mock = Mock()
+        mock.OWNER = daily.OWNER
+        mock.config.return_value = self.config
+        mock.exclusive.side_effect = lambda _: nullcontext()
+        mock.status_snapshot.return_value = {'backup': {**self.proof, 'runId': 'fixture', 'tables': 97}, 'monitor': self.proof}
+        mock.current_proof.side_effect = daily.current_proof
+        restored = {**self.proof, 'runId': 'fixture', 'encryptedFiles': {'config': 'hash'},
+                    'offsiteCiphertextVerified': True, 'tamperedCiphertextRejected': True,
+                    'tablesRestoredAndDataMatched': 97, 'temporaryContainersRemoved': True, 'temporaryPlaintextRemoved': True}
+        mock.regular.return_value = json.dumps(restored).encode()
+        mock.stable_state.return_value = {'unchanged': True}
+        with patch.object(installer, 'installed_daily', return_value=mock), patch.object(installer, 'run') as command, patch.object(installer.os, 'geteuid', return_value=0, create=True):
+            self.assertTrue(installer.main({'action': 'activate', 'restoreProof': restored})['timersActivated'])
+            command.assert_called_once_with(['systemctl', 'enable', '--now', 'alterward-backup.timer', 'alterward-monitor.timer'])
+        self.assertEqual(mock.exclusive.call_count, 2)
+
+    def test_inventory_refuses_overlapping_backup_before_reading_pending_archives(self):
+        from unittest.mock import Mock
+        mock = Mock()
+        mock.exclusive.side_effect = BlockingIOError('busy')
+        with patch.object(installer, 'installed_daily', return_value=mock), patch.object(installer.os, 'geteuid', return_value=0, create=True):
+            with self.assertRaises(BlockingIOError):
+                installer.main({'action': 'inventory'})
+        mock.completed_archives.assert_not_called()
+        mock.clean_pending.assert_not_called()
 
 
 if __name__ == '__main__':
