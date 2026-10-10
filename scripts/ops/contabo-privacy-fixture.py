@@ -58,6 +58,11 @@ def main(request):
         hosts = scratch/'hosts'
         hosts.write_text('127.0.0.1 localhost postgres\n::1 localhost\n'); hosts.chmod(0o644)
         try:
+            for name in [pg_name, node_name]:
+                if run(['docker', 'inspect', name], check=False).returncode == 0:
+                    raise ValueError('Fixture name already exists')
+            # Register before Docker starts, so a partial start is also cleaned up.
+            created.append(pg_name)
             run(['docker', 'run', '-d', '--name', pg_name, '--network', 'none', '--read-only',
                  '--label', LABEL+'='+nonce, '--memory', '512m', '--cpus', '0.5', '--pids-limit', '128',
                  '--security-opt', 'no-new-privileges:true',
@@ -68,7 +73,6 @@ def main(request):
                  '--mount', 'type=bind,src='+str(cert)+',dst=/run/fixture.crt,readonly',
                  '-e', 'POSTGRES_PASSWORD=rehearsal_unused', PG,
                  '-c', 'ssl=on', '-c', 'ssl_cert_file=/run/fixture.crt', '-c', 'ssl_key_file=/run/fixture.key'])
-            created.append(pg_name)
             deadline=time.monotonic()+45
             while run(['docker','exec',pg_name,'pg_isready','-U','postgres'],check=False).returncode:
                 if time.monotonic()>deadline: raise ValueError('PostgreSQL readiness timeout')
