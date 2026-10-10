@@ -56,10 +56,18 @@ def current(record, config, now, age, require_ok=True):
 
 
 def recovery_current(root, now, unit_root):
+    try:
+        return recovery_projection(root, now, unit_root)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
+def recovery_projection(root, now, unit_root):
     # Installation is optional during the owner-only rollout. Once present,
     # the fixed root-only lifecycle source/status becomes part of backup health.
     if not root.exists() and not root.is_symlink():
-        return True
+        marker = root.parent / 'external-health/require-recovery.json'
+        return not marker.exists() and not marker.is_symlink()
     config = json.loads(read(root / 'config.json'))
     scripts = {'lifecycle.py', 'managed.py', 'expiry.py', 'local.py', 'legacy.py', 'catalog.mjs'}
     units = {'alterward-recovery.service', 'alterward-recovery.timer'}

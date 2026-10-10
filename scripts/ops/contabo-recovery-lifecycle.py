@@ -23,6 +23,7 @@ import urllib.request
 ROOT = Path('/root/alterward-ops/recovery-lifecycle')
 DAILY = Path('/root/alterward-ops/daily')
 WORK = Path('/run/alterward-recovery-work')
+ARCHIVE_ROOT = Path('/root/alterward-ops/managed-recovery')
 LABEL = 'com.alterward.recovery-capture'
 SOURCES = {'lifecycle.py', 'managed.py', 'expiry.py', 'local.py', 'legacy.py', 'catalog.mjs'}
 PHASE = 'validation'
@@ -155,9 +156,9 @@ def clean_work(daily, managed):
             daily.private_dir(path)
         else:
             daily.regular(path)  # Refuses links, hardlinks, special files/owner drift.
-    pending = [p for p in ROOT.iterdir() if p.name.startswith('pending-')]
+    pending = [p for p in ARCHIVE_ROOT.iterdir() if p.name.startswith('.pending-')]
     for parent in pending:
-        if not managed.RUN_ID.fullmatch(parent.name.removeprefix('pending-')):
+        if not managed.RUN_ID.fullmatch(parent.name.removeprefix('.pending-')):
             raise ValueError('Original pending archive required')
         daily.private_dir(parent)
         if set(p.name for p in parent.iterdir()) - managed.FILES - {'manifest.json'}:
@@ -186,13 +187,15 @@ def clean_work(daily, managed):
         for path in parent.iterdir():
             path.unlink()
         parent.rmdir()
-    daily.expiry_sync(ROOT)
+    daily.expiry_sync(ARCHIVE_ROOT)
 
 
 def persist_capture(daily, expiry, managed, manifest):
     run = manifest['runId']
     source = managed.ROOT / run
-    pending = ROOT / ('pending-' + run)
+    # The systemd sandbox creates distinct writable bind mounts. Staging and
+    # final publication must share the same managed-root mount (no EXDEV).
+    pending = expiry.ROOT / ('.pending-' + run)
     pending.mkdir(mode=0o700)
     # Durable files are written outside the usable archive root; the complete
     # original bundle is then atomically renamed into its final run directory.
@@ -210,7 +213,7 @@ def persist_capture(daily, expiry, managed, manifest):
     if target.exists() or target.is_symlink():
         raise ValueError('Never replace an original capture')
     os.rename(pending, target)
-    daily.expiry_sync(expiry.ROOT);daily.expiry_sync(ROOT)
+    daily.expiry_sync(expiry.ROOT)
 
 
 def perform(config, daily, expiry, legacy, managed, force=False):
@@ -306,7 +309,10 @@ def main(force=False):
         # the last successful evidence with a fake fresh success.
         return {'ok': True, 'skippedBusy': True, 'statusRefreshed': False}
     except Exception:
-        previous = previous_status(daily, config)
+        try:
+            previous = previous_status(daily, config)
+        except Exception:
+            previous = None  # Corrupt old metadata must still record failure.
         failure = {'ok': False, 'capturedAt': daily.utcnow().isoformat(),
             **{k: config[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']},
             'phase': PHASE, 'paidAiCalls': 0}

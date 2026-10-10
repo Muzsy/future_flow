@@ -182,7 +182,7 @@ def main(request):
         value = json.loads(daily.regular(ROOT / 'status.json'))
         now = daily.utcnow()
         if (not value.get('ok') or not value.get('databaseTlsVerified') or
-                not value.get('independentClockVerified') or not value.get('capturedThisRun') or
+                not value.get('independentClockVerified') or
                 not value.get('existingContainersUnchanged') or
                 not 0 <= (now - dt_time(value['capturedAt'])).total_seconds() <= 3600 or
                 not 0 <= (now - dt_time(value['lastCaptureAt'])).total_seconds() <= 3600 or
@@ -192,6 +192,14 @@ def main(request):
         if (local.get('ok') is not True or local.get('installedSourceCommit') != config['sourceCommit'] or
                 not 0 <= (now - dt_time(local['capturedAt'])).total_seconds() <= 3600):
             raise ValueError('Fresh original local-copy attestation required')
+        marker = Path('/root/alterward-ops/external-health/require-recovery.json')
+        required = {'schemaVersion': 'alterward-recovery-required-1', 'required': True}
+        if marker.exists() or marker.is_symlink():
+            if json.loads(daily.regular(marker)) != required:
+                raise ValueError('Original recovery-required marker only')
+        else:
+            daily.durable_file(marker, json.dumps(required, sort_keys=True).encode())
+            daily.expiry_sync(marker.parent)
         run(['systemctl', 'enable', '--now', 'alterward-recovery.timer'])
         return {'timerActivated': True, 'checkMinutes': 15, 'captureIntervalHours': 23,
                 'sourceCommit': config['sourceCommit'], 'paidAiCalls': 0, 'automaticRestoreAllowed': False}

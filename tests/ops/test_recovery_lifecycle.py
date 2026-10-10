@@ -145,6 +145,14 @@ class RecoveryLifecycleTests(unittest.TestCase):
         self.assertEqual(failed['lastCaptureAt'], previous['lastCaptureAt'])
         self.assertNotIn('private', json.dumps(failed))
 
+    def test_corrupt_capture_metadata_still_publishes_failure(self):
+        daily, expiry, legacy, managed = self.environment()
+        expiry.operator_locks.side_effect = lambda: contextlib.nullcontext()
+        with patch.object(recovery.os, 'geteuid', return_value=0, create=True), patch.object(recovery, 'load', return_value=(CONFIG, daily, expiry, legacy, managed)), patch.object(recovery, 'previous_status', side_effect=ValueError('corrupt original metadata')), patch.object(recovery, 'perform', side_effect=ValueError('failed')):
+            with self.assertRaises(ValueError):
+                recovery.main()
+        self.assertFalse(daily.atomic.call_args.args[1]['ok'])
+
 
 @unittest.skipIf(os.name == 'nt', 'Actual Linux cleanup and publication filesystem')
 class RecoveryFilesystemTests(unittest.TestCase):
@@ -155,11 +163,13 @@ class RecoveryFilesystemTests(unittest.TestCase):
         self.home = Path(self.temporary.name).resolve()
         self.root = self.home / 'ops';self.work = self.home / 'work'
         self.root.mkdir(mode=0o700);self.work.mkdir(mode=0o700)
+        self.archives = self.home / 'managed';self.archives.mkdir(mode=0o700)
         self.managed = types.SimpleNamespace(RUN_ID=re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}'),
             FILES={'managed.dump.age', 'catalog.json.age'}, PINNED_PG='sha256:'+'b'*64)
         self.stack = contextlib.ExitStack()
         self.stack.enter_context(patch.object(recovery, 'ROOT', self.root))
         self.stack.enter_context(patch.object(recovery, 'WORK', self.work))
+        self.stack.enter_context(patch.object(recovery, 'ARCHIVE_ROOT', self.archives))
         self.stack.enter_context(patch.object(self.daily, 'UID', os.getuid()))
         self.stack.enter_context(patch.object(self.daily, 'command', return_value=b'tmpfs'))
         self.stack.enter_context(patch.object(self.daily, 'containers', return_value=[]))
@@ -173,7 +183,7 @@ class RecoveryFilesystemTests(unittest.TestCase):
     def test_abandoned_plaintext_and_pending_ciphertext_cleaned_without_foreign_mutation(self):
         source = self.work / 'alterward-managed-fixture';source.mkdir(mode=0o700)
         self.file(source / 'pgpass');self.file(source / 'client.env')
-        pending = self.root / 'pending-20261010T210000Z-12345678';pending.mkdir(mode=0o700)
+        pending = self.archives / '.pending-20261010T210000Z-12345678';pending.mkdir(mode=0o700)
         self.file(pending / 'managed.dump.age')
         foreign = self.root / 'config.json';self.file(foreign, b'original configuration')
         recovery.clean_work(self.daily, self.managed)
@@ -183,7 +193,7 @@ class RecoveryFilesystemTests(unittest.TestCase):
 
     def test_symlink_or_foreign_pending_file_blocks_entire_cleanup(self):
         scratch = self.work / 'pgpass';self.file(scratch)
-        pending = self.root / 'pending-20261010T210000Z-12345678';pending.mkdir(mode=0o700)
+        pending = self.archives / '.pending-20261010T210000Z-12345678';pending.mkdir(mode=0o700)
         self.file(pending / 'foreign.txt')
         with self.assertRaises(ValueError):
             recovery.clean_work(self.daily, self.managed)
@@ -212,15 +222,20 @@ class RecoveryFilesystemTests(unittest.TestCase):
             encrypted[name] = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
         manifest = {'runId': run, 'capturedAt': NOW.isoformat(), 'encryptedFiles': encrypted}
         self.file(path / 'manifest.json', json.dumps(manifest).encode())
-        target = self.home / 'managed';target.mkdir(mode=0o700)
+        target = self.archives
         self.managed.ROOT = stage
-        recovery.persist_capture(self.daily, types.SimpleNamespace(ROOT=target), self.managed, manifest)
+        original_rename = os.rename
+        def sandbox_rename(src, dst):
+            if Path(src).parent != Path(dst).parent:
+                raise OSError('Synthetic EXDEV: distinct systemd writable mounts')
+            return original_rename(src, dst)
+        with patch.object(os, 'rename', side_effect=sandbox_rename):
+            recovery.persist_capture(self.daily, types.SimpleNamespace(ROOT=target), self.managed, manifest)
         self.assertEqual(json.loads((target / run / 'manifest.json').read_bytes()), manifest)
-        self.assertFalse((self.root / ('pending-' + run)).exists())
+        self.assertFalse((target / ('.pending-' + run)).exists())
         with self.assertRaises(ValueError):
             recovery.persist_capture(self.daily, types.SimpleNamespace(ROOT=target), self.managed, manifest)
         self.assertEqual(json.loads((target / run / 'manifest.json').read_bytes()), manifest)
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -84,8 +84,12 @@ def install(request, ops=OPS, ssh=SSH):
     previous = previous_identity = None
     if root.exists() or root.is_symlink():
         original(root, True)
-        if {p.name for p in root.iterdir()} - {'health.py'}:
+        if {p.name for p in root.iterdir()} - {'health.py', 'require-recovery.json'}:
             raise ValueError('Unknown projection install entry')
+        marker = root / 'require-recovery.json'
+        if marker.exists() or marker.is_symlink():
+            if json.loads(read(marker)[0]) != {'schemaVersion': 'alterward-recovery-required-1', 'required': True}:
+                raise ValueError('Original required-recovery marker only')
         if target.exists() or target.is_symlink():
             previous, previous_identity = read(target)
             if request['mode'] == 'update':

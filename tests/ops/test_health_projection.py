@@ -179,3 +179,19 @@ class HealthProjectionTests(unittest.TestCase):
                       {'ok': True, 'capturedAt': NOW.isoformat(), 'installedSourceCommit': 'c'*40}]:
             self.write(root / 'local-sync.json', value)
             self.assertFalse(health.recovery_current(root, NOW, self.units))
+
+    def test_missing_startup_status_or_first_failure_only_sets_backup_bit_false(self):
+        root, config, status = self.recovery_fixture()
+        for kind in ('missing', 'first-failure'):
+            if kind == 'missing':
+                (root / 'status.json').unlink()
+            else:
+                self.write(root / 'status.json', {'ok': False, 'capturedAt': NOW.isoformat()})
+            value = health.projection(self.root, NOW, self.units, root)
+            self.assertFalse(value['backupFresh'])
+            self.assertTrue(all(v is True for k, v in value.items() if k != 'backupFresh'))
+
+    def test_removed_required_recovery_root_is_unhealthy(self):
+        marker = self.root / 'external-health';marker.mkdir(mode=0o700)
+        self.write(marker / 'require-recovery.json', {'schemaVersion': 'alterward-recovery-required-1', 'required': True})
+        self.assertFalse(health.recovery_current(self.root / 'absent-recovery', NOW, self.units))
