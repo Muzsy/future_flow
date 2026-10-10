@@ -2,7 +2,7 @@
 
 2026-10-10 · [Külső HTTPS-monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) · [Kiadási sorrend](NEXT_STEPS.md).
 
-## Előkészített működés
+## Aktív működés
 
 A [szerveres projekció](../scripts/ops/contabo-health-projection.py) a már telepített napi monitor pontos forráshashéhez kötött, védett státuszait olvassa. Kizárólag kilenc igaz/hamis ellenőrzést, az ellenőrzés idejét és a projekció forráshashét adja vissza. Felhasználói adatot, konfigurációértéket, SQL-t, mentést, hibaszöveget vagy kulcsot nem küld ki.
 
@@ -20,15 +20,17 @@ A [GitHub-kliens](../scripts/private-health.mjs) a külön monitor-identitást, 
 
 ## Bizonyíték és aktiválási állapot
 
-A **8dab524** forrás tizenegy tényleges Linux fixture-próbája sikeres, kihagyás nélkül; hét Node envelope/credential-próba sikeres. A tényleges, kizárólag olvasási Contabo-próba kilenc igaz bitet adott; saját fixture-ek eltakarítva, kilenc futó konténer teljes állapota/image/restart/port változatlan. A külön kulcs helyben, védett titokkönyvtárban előkészítve, a telepítő valódi `check` módja sikeres. Új GitHub-secret, monitor-hozzáférés és opt-in flag **még nincs aktiválva**.
+A **8dab524** forrás tizenegy tényleges Linux fixture-próbája sikeres, kihagyás nélkül; hét Node envelope/credential-próba sikeres. A tényleges, kizárólag olvasási Contabo-próba kilenc igaz bitet adott; saját fixture-ek eltakarítva, kilenc futó konténer teljes állapota/image/restart/port változatlan.
 
-A 6c7893e statikus Claude-audit szűk aktiválást blokkoló forráshibát nem talált. PH-01 diagnosztikai összecsatolása javítva, PH-02 originadatok secretbe kerülnek, PH-03 SSH-opciók szigorítva, PH-04 végső newline normalizált. A 8dab524 pontos javításdeltát Claude elfogadta; a normalize-before-validation utolsó PH-04 pontosítását a 967df56 kliens és két új regresszió kezeli. A 8dab524 teljes verify/container CI sikeres (38071346257); az utolsó kliensdelta pontos ellenőrzése folyamatban. A forrásaudit nem tényleges GitHub/SSH-kapcsolati vagy béta-készenléti bizonyíték.
+**2026-10-10 20:04 UTC: a felhasználó külön jóváhagyásával aktiválva.** A pontos installer telepítette a külön publikus kulcsot, a meglévő kulcsokat megőrizte. A dedikált identitás eredeti health-kérése kilenc igaz bitet adott, az idegen parancs kilenc hamis bittel és hibakóddal elutasítva, parancsvégrehajtás nélkül. A három előre jóváhagyott adat GitHub repository secretbe, a privát kulcs sealed-box titkosítással került; az opt-in flag visszaolvasva aktív. Az [első tényleges GitHub-próba](https://github.com/Muzsy/future_flow/actions/runs/38082288959) 20:04:21–20:04:32 UTC között sikeres: a publikus és a korlátozott privát lépés külön is success. Az új privát lépés tényleges schedule-futása még várható; a korábbi schedule csak a publikus lépést igazolta. Tesztelői vagy fizetett AI-jogosultság nem aktiválódott.
 
-Aktiválási sorrend: új korlátozott hozzáférés és három GitHub-secret jóváhagyása; pontos installer `install`; külön identitással sikeres eredeti health-kérés és elutasított idegen parancs; secretek titkosított API-bekötése; opt-in flag; kézi, majd tényleges ütemezett Actions-próba. Sikertelen részlépésnél a flag kikapcsolt marad, a projekció nem indít más szolgáltatást. A tesztelők, Access-listák, AI-keret és harmincnapos bétaidőszak nem aktiválódnak ettől.
+A 6c7893e statikus Claude-audit szűk aktiválást blokkoló forráshibát nem talált. PH-01 diagnosztikai összecsatolása javítva, PH-02 originadatok secretbe kerültek, PH-03 SSH-opciók szigorítva, PH-04 végső newline normalizált. A 8dab524 pontos javításdeltát Claude elfogadta; a normalize-before-validation utolsó PH-04 pontosítását a 967df56 kliens és két új regresszió kezeli. A végső kliens és a runbook a083a04 pontos Claude-auditja és verify/container CI-je sikeres (38080957820); az azonos forrásbájtokkal végzett 2caa20f teljes CI is sikeres (38081559761). A forrásaudit önmagában nem tényleges kapcsolat- vagy béta-készenléti bizonyíték.
+
+Az aktiválási sorrend a kézi Actions-próbáig lezárt; a tényleges új privát schedule-próba külön ellenőrzendő. A projekció nem indít más szolgáltatást. A tesztelők, Access-listák, AI-keret és harmincnapos bétaidőszak ettől nem aktiválódnak.
 
 ## Üzemeltetés és rotáció
 
-Az új hozzáférés előkészített lejárata **2027-01-08 UTC**. Legkésőbb hét nappal előtte operátori ellenőrzés és szükség esetén ugyanolyan korlátú új kulcs kell. Lejárat után az SSH-kérés zártan hibázik; a külső Actions-futás jelez, ha maga a GitHub-futás és emailút elérhető.
+Az új hozzáférés telepített lejárata **2027-01-08 17:20:44 UTC**. Legkésőbb hét nappal előtte operátori ellenőrzés és szükség esetén ugyanolyan korlátú új kulcs kell. Lejárat után az SSH-kérés zártan hibázik; a külső Actions-futás jelez, ha maga a GitHub-futás és emailút elérhető.
 
 Rotációkor az operátor előbb az új korlátozott kulcsot és pontos parancsot ellenőrzi, majd az eredeti fájlazonosságot őrző, ellenőrzött módosítással cseréli kizárólag a `alterward-readonly-health` sort. A többi tulajdonosi kulcs megmarad. Csak sikeres tényleges health/idegenparancs próba után kerülhet az új privát monitor-kulcs a GitHub-secretbe; a régi monitor-kulcs jogosultsága visszavonandó. A mostani telepítő eltérő sor esetén szándékosan megáll, nem végez implicit rotációt. Félbeszakadt `health.py` írásnál nincs automatikus újrapróba: az operátor pontos Git-byte-ra ellenőrzi és javítja a privát fájlt, majd új `check` kell.
 
