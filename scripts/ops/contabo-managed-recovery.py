@@ -19,6 +19,7 @@ import time
 import alterward_backup as backup
 
 ROOT = Path('/root/alterward-ops/managed-recovery')
+SCRATCH_ROOT = Path('/run')
 LABEL = 'com.alterward.managed-recovery'
 FILES = {'managed.dump.age', 'catalog.json.age'}
 PINNED_PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
@@ -221,7 +222,7 @@ def capture(request):
     target.mkdir(mode=0o700)  # never replace an existing capture
     name = 'alterward-managed-capture-' + request['runId'].lower()
     try:
-        with tempfile.TemporaryDirectory(dir='/run', prefix='alterward-managed-') as temporary:
+        with tempfile.TemporaryDirectory(dir=SCRATCH_ROOT, prefix='alterward-managed-') as temporary:
             scratch = Path(temporary)
             os.chmod(scratch, 0o700)
             escaped = [str(pg[k]).replace('\\', '\\\\').replace(':', '\\:') for k in

@@ -2,7 +2,7 @@
 
 2026-10-10 · [Mentés és restore-határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md).
 
-## Aktív, célgépen ellenőrzött eljárás
+## Korábbi, 2026-10-10 09:25 UTC célgépi checkpoint
 
 A napi mentés és felügyelet külön üzemeltetői eszköz, az alkalmazási image cseréje nélkül. A bekapcsolás feltétele a tényleges célkörnyezeti mentés, titkosított helyi másolat, abból izolált PostgreSQL/config restore és sikeres első monitor. A szerver és a helyi gép ütemezése aktív; a pontos kiadási és visszaállítási bizonyíték alább szerepel.
 
@@ -43,10 +43,12 @@ Hivatalos háttér: [PostgreSQL snapshot-szinkronizálás](https://www.postgresq
 
 ## Tényleges aktiválás: 2026-10-10
 
+Az aktív szerveres és helyi forrás azóta **dbaac32**; a friss capture/offsite restore és a tényleges óránkénti feladat eredménye a [napi expiry jelentésében](DAILY_EXPIRY_RECOVERY_HU.md) szerepel. Az alábbi táblázat az eredeti telepítés történeti bizonyítéka.
+
 | Ellenőrzés | Eredmény |
 | --- | --- |
-| Szerverforrás | df7550eee2faef081e608a4edce4e5f371b4db48; mindhárom script és négy unit hash-e kötött |
-| Helyi transport | 2eb9a50579fc84dc9d9af2c747cbb0d5ed1190e4; eredeti SSH-kulcs/hostpin, külön másolás nélkül |
+| Korábbi szerverforrás | df7550eee2faef081e608a4edce4e5f371b4db48; mindhárom script és négy unit hash-e kötött |
+| Korábbi helyi transport | 2eb9a50579fc84dc9d9af2c747cbb0d5ed1190e4; eredeti SSH-kulcs/hostpin, külön másolás nélkül |
 | Friss mentés | 20261010T092255Z-ca2becbc; 97 tábla, 1633 sor, 55 configfájl |
 | Offsite restore | 2026-10-10T09:24:39.514Z; ciphertext/tamper/config/adapt/validate és valamennyi tábla egyezett; izolált, nincs éles DB-írás |
 | Időzítők | 2026-10-10T09:25:23.186Z; backup/monitor enabled+active; 03:15 UTC (jelenleg magyar idő szerint 05:15), illetve negyedóra |

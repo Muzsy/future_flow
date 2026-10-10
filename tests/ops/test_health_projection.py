@@ -62,7 +62,7 @@ class HealthProjectionTests(unittest.TestCase):
             self.write(self.root / path, value)
 
     def test_healthy_source_bound_projection_contains_only_fixed_booleans(self):
-        value = health.projection(self.root, NOW, self.units)
+        value = health.projection(self.root, NOW, self.units, self.root / "not-installed")
         self.assertEqual(set(value), set(health.CHECKS))
         self.assertTrue(all(v is True for v in value.values()))
         self.assertNotIn('private-only-value', json.dumps(value))
@@ -72,7 +72,7 @@ class HealthProjectionTests(unittest.TestCase):
         for stamp, ok in [(NOW - dt.timedelta(minutes=31), True), (NOW + dt.timedelta(seconds=1), True), (NOW, False)]:
             self.monitor.update(capturedAt=stamp.isoformat(), ok=ok)
             self.persist()
-            value = health.projection(self.root, NOW, self.units)
+            value = health.projection(self.root, NOW, self.units, self.root / "not-installed")
             self.assertEqual(value['monitorRecordCurrent'], stamp == NOW)
             self.assertFalse(value['workerRuntimeHealthy'])
 
@@ -84,18 +84,18 @@ class HealthProjectionTests(unittest.TestCase):
             self.monitor['health'][field] = value
             self.monitor['ok'] = False  # Real monitor writes failures this way.
             self.persist()
-            self.assertFalse(health.projection(self.root, NOW, self.units)[check])
-            self.assertTrue(health.projection(self.root, NOW, self.units)['monitorRecordCurrent'])
+            self.assertFalse(health.projection(self.root, NOW, self.units, self.root / "not-installed")[check])
+            self.assertTrue(health.projection(self.root, NOW, self.units, self.root / "not-installed")['monitorRecordCurrent'])
             self.monitor['health'][field] = original
             self.monitor['ok'] = True
 
     def test_changed_installed_source_or_status_binding_is_rejected(self):
         name = next(iter(health.SCRIPTS))
         self.write(self.root / 'scripts' / name, b'changed')
-        self.assertFalse(health.projection(self.root, NOW, self.units)['sourceBindingCurrent'])
+        self.assertFalse(health.projection(self.root, NOW, self.units, self.root / "not-installed")['sourceBindingCurrent'])
         self.monitor['sourceCommit'] = 'b' * 40
         self.persist()
-        self.assertFalse(health.projection(self.root, NOW, self.units)['monitorRecordCurrent'])
+        self.assertFalse(health.projection(self.root, NOW, self.units, self.root / "not-installed")['monitorRecordCurrent'])
 
     def test_symlink_and_hardlink_and_oversize_are_refused(self):
         path = self.root / 'status/monitor.json'
@@ -126,6 +126,47 @@ class HealthProjectionTests(unittest.TestCase):
         for stamp, ok in [(NOW - dt.timedelta(hours=27), True), (NOW, False)]:
             self.backup.update(capturedAt=stamp.isoformat(), ok=ok)
             self.persist()
-            value = health.projection(self.root, NOW, self.units)
+            value = health.projection(self.root, NOW, self.units, self.root / "not-installed")
             self.assertFalse(value['backupRecordCurrent'])
             self.assertFalse(value['backupFresh'])
+
+    def recovery_fixture(self):
+        root = self.root / 'recovery'
+        root.mkdir(mode=0o700);(root / 'scripts').mkdir(mode=0o700)
+        scripts = {'lifecycle.py', 'managed.py', 'expiry.py', 'local.py', 'legacy.py', 'catalog.mjs'}
+        units = {'alterward-recovery.service', 'alterward-recovery.timer'}
+        for names, parent in [(scripts, root / 'scripts'), (units, self.units)]:
+            for name in names:
+                self.write(parent / name, b'synthetic recovery source')
+        digest = hashlib.sha256(b'synthetic recovery source').hexdigest()
+        config = {'schemaVersion': 'alterward-recovery-lifecycle-1', 'sourceCommit': 'b'*40,
+                  'scriptHashes': dict.fromkeys(scripts, digest), 'unitHashes': dict.fromkeys(units, digest)}
+        status = {'ok': True, 'capturedAt': NOW.isoformat(), 'lastCaptureAt': NOW.isoformat(),
+                  **{k: config[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']},
+                  'databaseTlsVerified': True, 'independentClockVerified': True,
+                  'existingContainersUnchanged': True, 'automaticRestoreAllowed': False}
+        self.write(root / 'config.json', config);self.write(root / 'status.json', status)
+        return root, config, status
+
+    def test_installed_recovery_is_required_fresh_and_source_bound(self):
+        root, config, status = self.recovery_fixture()
+        self.assertTrue(health.recovery_current(root, NOW, self.units))
+        for update in [{'ok': False}, {'capturedAt': (NOW-dt.timedelta(minutes=31)).isoformat()},
+                       {'lastCaptureAt': (NOW-dt.timedelta(hours=27)).isoformat()},
+                       {'lastCaptureAt': (NOW+dt.timedelta(seconds=1)).isoformat()},
+                       {'databaseTlsVerified': False}, {'independentClockVerified': False},
+                       {'automaticRestoreAllowed': True}, {'sourceCommit': 'c'*40}]:
+            with self.subTest(update=update):
+                self.write(root / 'status.json', {**status, **update})
+                self.assertFalse(health.recovery_current(root, NOW, self.units))
+        self.write(root / 'status.json', status)
+        self.write(root / 'scripts/lifecycle.py', b'changed')
+        self.assertFalse(health.recovery_current(root, NOW, self.units))
+
+    def test_recovery_failure_is_combined_into_backup_bit_only(self):
+        root, config, status = self.recovery_fixture()
+        self.write(root / 'status.json', {**status, 'ok': False})
+        value = health.projection(self.root, NOW, self.units, root)
+        self.assertEqual(set(value), set(health.CHECKS))
+        self.assertFalse(value['backupFresh'])
+        self.assertTrue(all(v is True for k, v in value.items() if k != 'backupFresh'))

@@ -55,7 +55,31 @@ def current(record, config, now, age, require_ok=True):
         return False
 
 
-def projection(root, now, unit_root=Path('/etc/systemd/system')):
+def recovery_current(root, now, unit_root):
+    # Installation is optional during the owner-only rollout. Once present,
+    # the fixed root-only lifecycle source/status becomes part of backup health.
+    if not root.exists() and not root.is_symlink():
+        return True
+    config = json.loads(read(root / 'config.json'))
+    scripts = {'lifecycle.py', 'managed.py', 'expiry.py', 'local.py', 'legacy.py', 'catalog.mjs'}
+    units = {'alterward-recovery.service', 'alterward-recovery.timer'}
+    if (config.get('schemaVersion') != 'alterward-recovery-lifecycle-1' or
+            not re.fullmatch(r'[a-f0-9]{40}', config.get('sourceCommit', '')) or
+            set(config.get('scriptHashes', {})) != scripts or set(config.get('unitHashes', {})) != units):
+        return False
+    for files, parent in [(config['scriptHashes'], root / 'scripts'), (config['unitHashes'], unit_root)]:
+        for name, expected in files.items():
+            if not re.fullmatch(r'[a-f0-9]{64}', expected) or hashlib.sha256(read(parent / name)).hexdigest() != expected:
+                return False
+    status = json.loads(read(root / 'status.json'))
+    captured = dt.datetime.fromisoformat(status['lastCaptureAt'])
+    return (current(status, config, now, 30 * 60) and
+            captured.utcoffset() == dt.timedelta(0) and 0 <= (now - captured).total_seconds() <= 26 * 3600 and
+            status.get('databaseTlsVerified') is True and status.get('independentClockVerified') is True and
+            status.get('existingContainersUnchanged') is True and status.get('automaticRestoreAllowed') is False)
+
+
+def projection(root, now, unit_root=Path('/etc/systemd/system'), recovery_root=Path('/root/alterward-ops/recovery-lifecycle')):
     config = json.loads(read(root / 'config.json'))
     if (config['schemaVersion'] != 'alterward-daily-1' or config['retentionSeconds'] != 7 * 86400 or
             not re.fullmatch(r'[a-f0-9]{40}', config['sourceCommit']) or
@@ -87,7 +111,7 @@ def projection(root, now, unit_root=Path('/etc/systemd/system')):
         'workerRuntimeHealthy': monitor_current and monitor.get('ok') is True and health.get('ownerHealthy') is True and health.get('pendingJobs') == 0,
         'databaseTlsHealthy': monitor_current and health.get('databaseTlsVerified') is True,
         'accessBoundaryClosed': monitor_current and health.get('edgeClosed') is True and health.get('anonymousDenied') == 4,
-        'backupFresh': monitor_current and backup_current and fresh and health.get('backupFailed') is False,
+        'backupFresh': monitor_current and backup_current and fresh and health.get('backupFailed') is False and recovery_current(recovery_root, now, unit_root),
         'diskSpaceHealthy': monitor_current and type(health.get('diskFreeBytes')) is int and health['diskFreeBytes'] >= 2 * 1024**3,
         'originCertificateHealthy': monitor_current and health.get('originCertificateOver30Days') is True,
     }

@@ -51,7 +51,10 @@ def sync(directory):
 
 
 def install(request, ops=OPS, ssh=SSH):
-    if set(request) != {'mode', 'publicKey', 'expiresAt', 'sourceBase64', 'sourceSha256', 'sourceCommit'} or request['mode'] not in {'check', 'install'}:
+    required = {'mode', 'publicKey', 'expiresAt', 'sourceBase64', 'sourceSha256', 'sourceCommit'}
+    if request.get('mode') == 'update':
+        required.add('previousSourceSha256')
+    if set(request) != required or request['mode'] not in {'check', 'install', 'update'}:
         raise ValueError('Exact reviewed install request required')
     if not re.fullmatch(r'[a-f0-9]{40}', request['sourceCommit']) or not re.fullmatch(r'[a-f0-9]{64}', request['sourceSha256']):
         raise ValueError('Exact reviewed source binding required')
@@ -78,13 +81,36 @@ def install(request, ops=OPS, ssh=SSH):
         raise ValueError('Existing monitor access differs; explicit rotation required')
     root = ops / 'external-health'
     target = root / 'health.py'
+    previous = previous_identity = None
     if root.exists() or root.is_symlink():
         original(root, True)
         if {p.name for p in root.iterdir()} - {'health.py'}:
             raise ValueError('Unknown projection install entry')
         if target.exists() or target.is_symlink():
-            if read(target)[0] != source:
+            previous, previous_identity = read(target)
+            if request['mode'] == 'update':
+                if (not re.fullmatch(r'[a-f0-9]{64}', request['previousSourceSha256']) or
+                        hashlib.sha256(previous).hexdigest() != request['previousSourceSha256'] or ours != [line]):
+                    raise ValueError('Exact previous source and unchanged existing restricted access required')
+            elif previous != source:
                 raise ValueError('Installed projection differs; explicit upgrade required')
+    if request['mode'] == 'update':
+        if previous is None or previous_identity is None or ours != [line]:
+            raise ValueError('Only an existing unchanged monitor can be upgraded')
+        fd, name = tempfile.mkstemp(prefix='.health-update-', dir=root)
+        temporary = Path(name)
+        try:
+            with os.fdopen(fd, 'wb') as stream:
+                os.fchmod(stream.fileno(), 0o600)
+                stream.write(source);stream.flush();os.fsync(stream.fileno())
+            if read(target) != (previous, previous_identity) or read(authorized) != (old, before):
+                raise ValueError('Original projection or restricted access changed before update')
+            os.replace(temporary, target);sync(root)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+        if read(target)[0] != source or read(authorized) != (old, before):
+            raise ValueError('Source-only monitor upgrade read-back failed')
     if request['mode'] == 'install':
         if not root.exists():
             root.mkdir(mode=0o700)
@@ -118,7 +144,7 @@ def install(request, ops=OPS, ssh=SSH):
     return {'mode': request['mode'], 'sourceCommit': request['sourceCommit'], 'sourceSha256': request['sourceSha256'],
             'forcedCommandOnly': True, 'forwardingPtyUserRcDisabled': True, 'expiresAt': request['expiresAt'],
             'existingAuthorizedKeysPreserved': True, 'applicationOrGlobalSshConfigurationChanged': False,
-            'privateKeyReceived': False}
+            'privateKeyReceived': False, 'sourceOnlyUpdate': request['mode'] == 'update'}
 
 
 if __name__ == '__main__':

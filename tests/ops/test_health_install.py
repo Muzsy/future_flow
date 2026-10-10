@@ -78,3 +78,27 @@ class HealthInstallTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             installer.install(self.request, self.ops, self.ssh)
         self.assertEqual(self.authorized.read_bytes(), self.old)
+
+    def test_source_only_update_preserves_every_authorized_byte_and_expiry(self):
+        installer.install(self.request, self.ops, self.ssh)
+        before = self.authorized.read_bytes()
+        source = b'# reviewed replacement with same fixed command\n'
+        request = {**self.request, 'mode': 'update', 'previousSourceSha256': self.request['sourceSha256'],
+            'sourceBase64': base64.b64encode(source).decode(), 'sourceSha256': hashlib.sha256(source).hexdigest()}
+        proof = installer.install(request, self.ops, self.ssh)
+        self.assertTrue(proof['sourceOnlyUpdate'])
+        self.assertEqual(self.authorized.read_bytes(), before)
+        self.assertEqual((self.ops / 'external-health/health.py').read_bytes(), source)
+
+    def test_source_update_refuses_changed_key_expiry_or_old_hash(self):
+        installer.install(self.request, self.ops, self.ssh)
+        before = self.authorized.read_bytes()
+        old_source = (self.ops / 'external-health/health.py').read_bytes()
+        request = {**self.request, 'mode': 'update', 'previousSourceSha256': self.request['sourceSha256']}
+        for change in [{'previousSourceSha256': 'f'*64},
+                       {'expiresAt': (dt.datetime.now(dt.timezone.utc)+dt.timedelta(days=88)).strftime('%Y%m%d%H%M%SZ')},
+                       {'publicKey': self.request['publicKey'][:-4]+'eHh5'}]:
+            with self.assertRaises(ValueError):
+                installer.install({**request, **change}, self.ops, self.ssh)
+            self.assertEqual(self.authorized.read_bytes(), before)
+            self.assertEqual((self.ops / 'external-health/health.py').read_bytes(), old_source)

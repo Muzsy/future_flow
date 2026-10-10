@@ -237,7 +237,8 @@ def expire(meta, root, now, apply=False):
                 if inspect_file(path, entry)[0] != group['original']['files'][name]:
                     raise ValueError('Historical file changed before mutation')
                 if entry['field'] is None:
-                    os.unlink(path);sync_directory(parent);removed += 1
+                    unlink_original(parent, name, group['original'])
+                    removed += 1
                 else:
                     temporary = meta / (record['runId'] + '-' + sha(name.encode())[:16] + '.pending')
                     replacement = group['replacements'][name]
@@ -253,7 +254,8 @@ def expire(meta, root, now, apply=False):
                 state = location(parent, True)
                 if [state.st_dev, state.st_ino] != group['original']['directoryIdentity'] or list(parent.iterdir()):
                     raise ValueError('Only original empty historical directory may be removed')
-                os.rmdir(parent);sync_directory(root);directories += 1
+                remove_original_directory(root, parent, value['rootIdentity'], group['original']['directoryIdentity'])
+                directories += 1
     inventory(meta, root, now)
     return {'checkedAt': now.isoformat(), 'mode': 'apply' if apply else 'check',
             'policyDigest': sha(encoded([{k: r[k] for k in ('runId', 'scope', 'baseAt', 'expiresAt', 'timestampEvidence')}
@@ -262,6 +264,39 @@ def expire(meta, root, now, apply=False):
             'embeddedFieldsRemoved': rewritten, 'emptyDirectoriesRemoved': directories,
             'keyRead': False, 'decryptionPerformed': False, 'liveDatabaseWrites': False,
             'dailyOrManagedScopeChanged': False, 'serviceActivationAllowed': False}
+
+
+def unlink_original(parent, name, original):
+    if os.name == 'nt':
+        os.unlink(parent / name);sync_directory(parent)
+        return
+    fd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        opened = os.fstat(fd)
+        if [opened.st_dev, opened.st_ino] != original['directoryIdentity']:
+            raise ValueError('Original historical parent descriptor required')
+        current = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        if identity(current) != original['files'][name]['identity']:
+            raise ValueError('Original historical file descriptor identity required')
+        os.unlink(name, dir_fd=fd);os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def remove_original_directory(root, parent, root_identity, directory_identity):
+    if os.name == 'nt':
+        os.rmdir(parent);sync_directory(root)
+        return
+    fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        opened = os.fstat(fd)
+        current = os.stat(parent.name, dir_fd=fd, follow_symlinks=False)
+        if ([opened.st_dev, opened.st_ino] != root_identity or
+                [current.st_dev, current.st_ino] != directory_identity):
+            raise ValueError('Original root and empty historical directory required')
+        os.rmdir(parent.name, dir_fd=fd);os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def main(request):
