@@ -321,6 +321,31 @@ class DailyActivationTests(unittest.TestCase):
         mock.completed_archives.assert_not_called()
         mock.clean_pending.assert_not_called()
 
+    def test_stale_failure_preserves_the_actual_failure_alert(self):
+        from unittest.mock import Mock
+        path = Mock()
+        path.exists.return_value = True
+        path.__truediv__ = Mock(return_value=path)
+        failed = {**self.proof, 'ok': False, 'alerts': ['backup_operation_failed'],
+                  'capturedAt': (NOW - dt.timedelta(days=2)).isoformat()}
+        with patch.object(daily, 'ROOT', path), patch.object(daily, 'regular', return_value=json.dumps(failed).encode()):
+            self.assertEqual(daily.status_snapshot(self.config)['backup']['alerts'],
+                             ['backup_operation_failed', 'backup_stale_or_source_changed'])
+
+    def test_restore_identity_uses_memory_root_and_cleanup_even_on_exception(self):
+        from types import SimpleNamespace
+        original = library.ROOT, library.LABEL, library.age_path
+        def rehearsal(_):
+            self.assertEqual(library.ROOT, daily.WORK)
+            self.assertEqual(library.LABEL, daily.RESTORE_LABEL)
+            self.assertTrue(Path(library.age_path()).as_posix().endswith('tools/usr/bin/age'))
+            raise RuntimeError('interrupted-fixture')
+        with patch.object(daily, 'clean_work') as cleanup, patch.object(daily.shutil, 'disk_usage', return_value=SimpleNamespace(free=1024**3)), patch.object(library, 'rehearse', side_effect=rehearsal):
+            with self.assertRaises(RuntimeError):
+                daily.rehearse_offsite({})
+            self.assertEqual(cleanup.call_count, 2)
+        self.assertEqual((library.ROOT, library.LABEL, library.age_path), original)
+
 
 if __name__ == '__main__':
     unittest.main()

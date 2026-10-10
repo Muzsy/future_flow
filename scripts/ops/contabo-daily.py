@@ -34,6 +34,7 @@ WORK = Path('/run/alterward-daily-work')
 ORIGINAL_ROOT = Path('/root/alterward-ops')
 UID = 0
 LABEL = 'com.alterward.daily-backup'
+RESTORE_LABEL = 'com.alterward.daily-restore'
 RETENTION_SECONDS = 7 * 86400
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 ARCHIVES = {'config.tar.age', 'application.dump.age', 'manifest.json'}
@@ -153,7 +154,7 @@ def status_snapshot(value):
         path = ROOT / 'status' / (name + '.json')
         record = json.loads(regular(path)) if path.exists() else {}
         if not current_proof(record, value, maximum_age):
-            record = {**record, 'ok': False, 'alerts': [name + '_stale_or_source_changed']}
+            record = {**record, 'ok': False, 'alerts': [*record.get('alerts', []), name + '_stale_or_source_changed']}
         result[name] = record
     return result
 
@@ -179,7 +180,7 @@ def containers():
 
 def stable_state():
     return {v['Id']: (v['RestartCount'], v['State']['Status']) for v in containers()
-            if v['Config'].get('Labels', {}).get(LABEL) is None}
+            if not any(v['Config'].get('Labels', {}).get(label) is not None for label in [LABEL, RESTORE_LABEL])}
 
 
 def owner_only_environment(service, env):
@@ -352,6 +353,13 @@ def clean_work():
             if not any(m['Source'].startswith(str(WORK) + '/') for m in value['Mounts']):
                 raise ValueError('Daily container outside scratch directory')
             command(['docker', 'rm', '-f', value['Id']])
+        if value['Config'].get('Labels', {}).get(RESTORE_LABEL) is not None:
+            run_id = value['Config']['Labels'][RESTORE_LABEL]
+            if (not RUN_ID.fullmatch(run_id) or value['Name'] != '/alterward-restore-' + run_id.lower() or
+                    value['HostConfig']['NetworkMode'] != 'none' or value['HostConfig'].get('PortBindings') or
+                    value['Config']['Image'] != config()['postgresImage']):
+                raise ValueError('Unexpected daily restore fixture')
+            command(['docker', 'rm', '-f', value['Id']])
     for path in sorted(paths, key=lambda p: len(p.parts), reverse=True):
         if path.is_dir():
             path.rmdir()
@@ -407,6 +415,24 @@ def source_snapshot(api):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=10)
+
+
+def rehearse_offsite(request):
+    # /run is verified tmpfs on the target. A hard kill may leave root-only
+    # memory until the next monitor; no decryption identity persists on disk.
+    clean_work()
+    if shutil.disk_usage(WORK).free < 384 * 1024**2:
+        raise ValueError('Insufficient memory-backed restore space')
+    old_root, old_label, old_age = backup.ROOT, backup.LABEL, backup.age_path
+    try:
+        backup.ROOT, backup.LABEL = WORK, RESTORE_LABEL
+        backup.age_path = lambda name='age': str(ORIGINAL_ROOT / 'tools/usr/bin' / name)
+        proof = backup.rehearse(request)
+        proof['decryptionIdentityMemoryOnly'] = True
+        return proof
+    finally:
+        backup.ROOT, backup.LABEL, backup.age_path = old_root, old_label, old_age
+        clean_work()
 
 
 def perform_backup(value):
@@ -567,7 +593,7 @@ def run_operation(action):
             # Another guarded owner operation is running; defer without mutation.
             return {'ok': True, 'deferred': True, 'paidAiCalls': 0}
         except Exception:
-            result = {'ok': False, 'capturedAt': utcnow().isoformat(),
+            result = {'ok': False, **source_binding(value), 'capturedAt': utcnow().isoformat(),
                       'alerts': [action + '_operation_failed'], 'paidAiCalls': 0,
                       'phase': backup.PHASE if action == 'backup' else 'monitor-checks',
                       'externalMessageSent': False}

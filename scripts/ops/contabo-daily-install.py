@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import signal
 from pathlib import Path
 import re
 import subprocess
@@ -250,7 +251,7 @@ def main(request):
             if current != manifest or any(manifest.get(k) != v for k, v in daily.source_binding(value).items()):
                 raise ValueError('Exact server archive and current source required for activation rehearsal')
             baseline = daily.stable_state()
-            proof = library.rehearse(request)
+            proof = daily.rehearse_offsite(request)
             if daily.stable_state() != baseline:
                 raise ValueError('Restore changed live containers')
             proof.update({**daily.source_binding(value), 'encryptedFiles': manifest['encryptedFiles'],
@@ -261,6 +262,10 @@ def main(request):
 
 
 if __name__ == '__main__':
+    def interrupted(signum, frame):
+        raise InterruptedError('Private daily operator interrupted')
+    for name in ['SIGTERM', 'SIGINT', 'SIGHUP']:
+        signal.signal(getattr(signal, name), interrupted)
     try:
         print(json.dumps({'ok': True, 'result': main(json.load(sys.stdin))}))
     except Exception:
