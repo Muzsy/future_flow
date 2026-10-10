@@ -9,9 +9,13 @@ import {
 } from './lib/private-report.ts';
 
 const directory = privateReportDirectory('contabo-recovery');
+const startedAt = Date.now();
+const deadline = startedAt + 14 * 60 * 1000;
 let phase = 'validation';
 let commit;
 async function remote(request) {
+  const remaining = request.ok === false ? 30000 : deadline - Date.now();
+  if (remaining <= 0) throw Error('Bounded local operation deadline reached');
   const secrets = realpathSync(
     process.env.ALTERWARD_SSH_SECRETS_DIR ??
       join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
@@ -60,7 +64,7 @@ async function remote(request) {
       `root@${host}`,
       loader,
     ],
-    { encoding: 'utf8', timeout: 30000, maxBuffer: 4096 },
+    { encoding: 'utf8', timeout: Math.min(30000, remaining), maxBuffer: 4096 },
   );
   pending.child.stdin.end(
     JSON.stringify({
@@ -104,8 +108,10 @@ try {
   )
     throw Error('Committed local operator required');
   const run = async (args) => {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw Error('Bounded local operation deadline reached');
     await promisify(execFile)(process.execPath, args, {
-      timeout: 300000,
+      timeout: Math.min(300000, remaining),
       maxBuffer: 2 * 1024 * 1024,
       env: process.env,
     });
@@ -176,7 +182,9 @@ try {
   } catch {
     // Original journaled operations can be safely retried after a transient
     // lock collision. A false receipt is sent only after both attempts fail.
-    await new Promise((done) => setTimeout(done, 15000));
+    if (Date.now() - startedAt > 6 * 60 * 1000)
+      throw Error('Slow attempt requires the next scheduled retry');
+    await new Promise((done) => setTimeout(done, 150000));
     managed = await reconcile();
   }
   const proof = {

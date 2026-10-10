@@ -91,7 +91,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $sid -LogonType Interactive -Run
 $command = New-ScheduledTaskAction -Execute $PowerShellPath -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -File "' + $scriptPath + '"') -WorkingDirectory $workspacePath
 $triggers = @(
     (New-ScheduledTaskTrigger -Once -At $(
-        $start = (Get-Date).ToUniversalTime().Date.AddHours((Get-Date).ToUniversalTime().Hour).AddMinutes(34)
+        $start = (Get-Date).ToUniversalTime().Date.AddHours((Get-Date).ToUniversalTime().Hour).AddMinutes(11)
         if ($start -le (Get-Date).ToUniversalTime()) { $start = $start.AddHours(1) }
         $start.ToLocalTime()
     ) -RepetitionInterval (New-TimeSpan -Hours 1)),
