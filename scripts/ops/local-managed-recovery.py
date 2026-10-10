@@ -185,7 +185,7 @@ def inventory(root, project, now):
     for run, paths in sorted(groups.items()):
         journal = journals.get(run, {})
         raw_manifest = safe_read(paths['manifest.json'], 1024**2)[0] if 'manifest.json' in paths else None
-        manifest = json.loads(raw_manifest) if raw_manifest else (journal.get('expiry') or journal.get('capture') or {}).get('manifest')
+        manifest = json.loads(raw_manifest) if raw_manifest is not None else (journal.get('expiry') or journal.get('capture') or {}).get('manifest')
         if not manifest:
             raise ValueError('Original manifest missing')
         expires = validate_manifest(manifest, run, project, now)
@@ -204,7 +204,7 @@ def inventory(root, project, now):
             states[name] = {**actual, 'identity': state}
         pending = journal.get('expiry')
         if pending:
-            if pending['rootIdentity'] != [root_state.st_dev, root_state.st_ino]:
+            if states and pending['rootIdentity'] != [root_state.st_dev, root_state.st_ino]:
                 raise ValueError('Expiry journal belongs to another root')
             for name, value in states.items():
                 if pending['files'].get(name) != value:
@@ -300,15 +300,24 @@ def store(root, project, now, manifest, files):
         else:
             exclusive_write(path, data)
     inventory(root, project, now)
-    # Pointer updates use a fixed exclusive temporary entry; an interrupted
-    # write blocks replacement until its content is checked on the next store.
+    # A complete older pending pointer can be superseded after its run is
+    # attested. Torn, unknown or future pending pointers still block safely.
     pointer = root / POINTER
     temporary = root / 'managed-backup-latest.pending.json'
     pointer_data = encoded({'runId': run})
     if temporary.exists() or temporary.is_symlink():
-        if safe_read(temporary, 1024)[0] != pointer_data:
-            raise ValueError('Another pending pointer needs operator review')
-    else:
+        raw, state = safe_read(temporary, 1024)
+        if raw != pointer_data:
+            pending = json.loads(raw)
+            known = {r['runId']: r for r in inventory(root, project, now)}
+            if (set(pending) != {'runId'} or pending['runId'] not in known or
+                    dt.datetime.fromisoformat(known[pending['runId']]['manifest']['capturedAt']) >
+                    dt.datetime.fromisoformat(manifest['capturedAt']) or
+                    identity(location(temporary)) != state):
+                raise ValueError('Unknown or newer pending pointer needs operator review')
+            os.unlink(temporary)
+            sync_directory(root)
+    if not temporary.exists():
         exclusive_write(temporary, pointer_data)
     if pointer.exists() or pointer.is_symlink():
         safe_read(pointer, 1024)

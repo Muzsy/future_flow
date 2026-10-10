@@ -1,5 +1,6 @@
 import { execFile, execFileSync } from 'node:child_process';
-import { readFileSync, lstatSync } from 'node:fs';
+import { readFileSync, lstatSync, realpathSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 
@@ -7,6 +8,8 @@ export const localManagedSources = [
   'scripts/ops/contabo-managed-expiry.py',
   'scripts/ops/local-managed-recovery.py',
   'scripts/lib/local-managed-recovery.ts',
+  'scripts/lib/private-report.ts',
+  'pnpm-lock.yaml',
 ] as const;
 
 // Python holds the kernel lock in the same process that reads/writes/unlinks.
@@ -35,17 +38,35 @@ export async function localManagedRecovery(request: object, commit: string) {
     'sys.stdin=io.StringIO(json.dumps(p["request"]))',
     'exec(compile(base64.b64decode(p["source"]["scripts/ops/local-managed-recovery.py"]),"<local-managed-recovery>","exec"),{"__name__":"__main__"})',
   ].join('\n');
-  const pending = promisify(execFile)(
-    process.env.ALTERWARD_PYTHON ??
-      (process.platform === 'win32' ? 'python' : 'python3'),
-    ['-c', loader],
-    { encoding: 'utf8', timeout: 60000, maxBuffer: 360 * 1024 * 1024 },
-  );
+  const python = process.env.ALTERWARD_PYTHON ?? '';
+  if (!isAbsolute(python)) throw Error('Absolute operator Python required');
+  const runtime = lstatSync(python);
+  if (
+    !runtime.isFile() ||
+    runtime.isSymbolicLink() ||
+    runtime.nlink !== 1 ||
+    runtime.size > 64 * 1024 * 1024 ||
+    realpathSync(python).toLowerCase() !== python.toLowerCase()
+  )
+    throw Error('Original bounded operator Python required');
+  const runtimeSha256 = createHash('sha256')
+    .update(readFileSync(python))
+    .digest('hex');
+  const pending = promisify(execFile)(python, ['-I', '-c', loader], {
+    encoding: 'utf8',
+    timeout: 60000,
+    maxBuffer: 360 * 1024 * 1024,
+  });
   pending.child.stdin!.end(JSON.stringify({ source, request }));
   try {
     const response = JSON.parse((await pending).stdout);
     if (response.ok !== true) throw Error('Local operation refused');
-    return { result: response.result, sourceHashes };
+    return {
+      result: response.result,
+      sourceHashes,
+      runtimeSha256,
+      pythonIsolated: true,
+    };
   } catch {
     throw Error('Local managed operation stopped safely');
   }

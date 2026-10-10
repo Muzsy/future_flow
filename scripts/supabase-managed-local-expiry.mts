@@ -3,11 +3,6 @@ import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import {
-  privateReportDirectory,
-  privateReportFile,
-} from './lib/private-report.js';
-import { localManagedRecovery } from './lib/local-managed-recovery.js';
 
 async function main() {
   const action = process.argv[2]?.slice(2);
@@ -17,17 +12,33 @@ async function main() {
     !['check', 'apply'].includes(action ?? '')
   )
     throw Error('Explicit local expiry command required');
-  const directory = privateReportDirectory('supabase-recovery');
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
   const ownSource = 'scripts/supabase-managed-local-expiry.mts';
-  if (
-    !readFileSync(ownSource).equals(
-      execFileSync('git', ['show', `${commit}:${ownSource}`]),
-    )
-  )
-    throw Error('Exact committed operator required');
+  const verifiedHashes: Record<string, string> = {};
+  // Verify dependencies with built-ins before importing/calling ACL helpers.
+  for (const path of [
+    ownSource,
+    'scripts/lib/private-report.ts',
+    'scripts/lib/local-managed-recovery.ts',
+    'scripts/ops/local-managed-recovery.py',
+    'scripts/ops/contabo-managed-expiry.py',
+    'pnpm-lock.yaml',
+  ]) {
+    const info = lstatSync(path);
+    if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1)
+      throw Error('Original source required');
+    const bytes = readFileSync(path);
+    if (!bytes.equals(execFileSync('git', ['show', `${commit}:${path}`])))
+      throw Error('Exact committed operator required');
+    verifiedHashes[path] = createHash('sha256').update(bytes).digest('hex');
+  }
+  const { privateReportDirectory, privateReportFile } =
+    await import('./lib/private-report.js');
+  const { localManagedRecovery } =
+    await import('./lib/local-managed-recovery.js');
+  const directory = privateReportDirectory('supabase-recovery');
   const project = new URL(process.env.SUPABASE_URL ?? '');
   if (
     project.protocol !== 'https:' ||
@@ -73,20 +84,24 @@ async function main() {
     ],
     { encoding: 'utf8', timeout: 15000, maxBuffer: 1024 },
   );
-  const { result, sourceHashes } = await localManagedRecovery(
-    {
-      action,
-      projectBinding: createHash('sha256')
-        .update(project.hostname.split('.')[0]!)
-        .digest('hex'),
-      serverObservedAt: clock.stdout.trim(),
-    },
-    commit,
-  );
+  const { result, sourceHashes, runtimeSha256, pythonIsolated } =
+    await localManagedRecovery(
+      {
+        action,
+        projectBinding: createHash('sha256')
+          .update(project.hostname.split('.')[0]!)
+          .digest('hex'),
+        serverObservedAt: clock.stdout.trim(),
+      },
+      commit,
+    );
   const proof = {
     ...result,
     sourceCommit: commit,
     sourceHashes,
+    verifiedHashes,
+    runtimeSha256,
+    pythonIsolated,
     remoteClockOnly: true,
   };
   privateReportFile(directory, 'managed-local-expiry-proof.json', proof);

@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -319,6 +320,54 @@ class LocalManagedTests(unittest.TestCase):
                                     'serverObservedAt': (NOW - dt.timedelta(seconds=1)).isoformat()})
             self.assertEqual(proof['expiredArchives'], 0)
             self.assertTrue((root / (manifest['runId'] + '-managed.dump.age')).exists())
+
+    def test_finished_tombstone_can_move_but_still_prevents_resurrection(self):
+        manifest, files = fixture(self.root, NOW - dt.timedelta(days=8))
+        local.expire(self.root, PROJECT, NOW, True)
+        with tempfile.TemporaryDirectory() as temp:
+            copied = Path(temp).resolve() / 'copied'
+            shutil.copytree(self.root, copied)
+            self.assertEqual(local.expire(copied, PROJECT, NOW)['removedFiles'], 0)
+            self.assertEqual(local.expire(copied, PROJECT, NOW)['expiredArchives'], 1)
+            with self.assertRaises(ValueError):
+                local.store(copied, PROJECT, NOW - dt.timedelta(days=8), manifest, files)
+            fresh, fresh_files = fixture(copied, NOW, suffix='87654321', write=False)
+            local.store(copied, PROJECT, NOW, fresh, fresh_files)
+            self.assertEqual(local.read_bundle(copied, PROJECT, NOW)['manifest'], fresh)
+
+    def test_partial_expiry_cannot_move_to_another_root(self):
+        fixture(self.root, NOW - dt.timedelta(days=8))
+        with patch.object(os, 'unlink', side_effect=RuntimeError('interrupt')), self.assertRaises(RuntimeError):
+            local.expire(self.root, PROJECT, NOW, True)
+        with tempfile.TemporaryDirectory() as temp:
+            copied = Path(temp).resolve() / 'copied'
+            shutil.copytree(self.root, copied)
+            with self.assertRaises(ValueError):
+                local.expire(copied, PROJECT, NOW, True)
+            self.assertEqual(sum(p.name.endswith('.age') for p in copied.iterdir()), 2)
+
+    def test_new_capture_supersedes_attested_old_pending_pointer(self):
+        old, old_files = fixture(self.root, NOW - dt.timedelta(hours=1), write=False)
+        local.store(self.root, PROJECT, NOW, old, old_files)
+        local.exclusive_write(self.root / 'managed-backup-latest.pending.json', local.encoded({'runId': old['runId']}))
+        new, new_files = fixture(self.root, NOW, write=False)
+        local.store(self.root, PROJECT, NOW, new, new_files)
+        self.assertEqual(local.read_bundle(self.root, PROJECT, NOW)['manifest'], new)
+        self.assertFalse((self.root / 'managed-backup-latest.pending.json').exists())
+
+    def test_torn_or_unknown_pending_pointer_and_empty_manifest_block(self):
+        manifest, files = fixture(self.root, NOW, write=False)
+        local.store(self.root, PROJECT, NOW, manifest, files)
+        pending = self.root / 'managed-backup-latest.pending.json'
+        local.exclusive_write(pending, b'{')
+        with self.assertRaises(ValueError):
+            local.store(self.root, PROJECT, NOW, manifest, files)
+        pending.write_bytes(local.encoded({'runId': '../foreign'}))
+        with self.assertRaises(ValueError):
+            local.store(self.root, PROJECT, NOW, manifest, files)
+        (self.root / (manifest['runId'] + '-manifest.json')).write_bytes(b'')
+        with self.assertRaises(ValueError):
+            local.expire(self.root, PROJECT, NOW + dt.timedelta(days=8), True)
 
     def test_main_exact_request_and_both_clock_rule_before_lock(self):
         for request in [{'action': 'apply', 'projectBinding': PROJECT, 'root': '../foreign'},
