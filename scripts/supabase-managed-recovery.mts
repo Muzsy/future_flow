@@ -97,9 +97,8 @@ async function main() {
   }
   const script = regular('scripts/ops/contabo-managed-recovery.py');
   const library = regular('scripts/ops/contabo-backup.py');
-  const securitySql = script
-    .toString()
-    .match(/SECURITY_SQL = r"""([\s\S]*?)"""/)?.[1];
+  const sourceText = script.toString().replaceAll('\r\n', '\n');
+  const securitySql = sourceText.match(/SECURITY_SQL = r"""([\s\S]*?)"""/)?.[1];
   if (!securitySql || !/^[a-f0-9]{40}$/.test(commit))
     throw Error('Reviewed source required');
   const loader = `python3 -c 'import sys,json,base64,types,io; p=json.load(sys.stdin); m=types.ModuleType("alterward_backup");exec(compile(base64.b64decode(p["library"]),"<backup-library>","exec"),m.__dict__);sys.modules["alterward_backup"]=m;sys.stdin=io.StringIO(json.dumps(p["request"]));exec(compile(base64.b64decode(p["script"]),"<managed-recovery>","exec"),{"__name__":"__main__"})'`;
@@ -169,6 +168,7 @@ async function main() {
     )
       throw Error('Matching project and verified TLS required');
     const ca = readFileSync(process.env.DATABASE_SSL_CA_FILE, 'utf8');
+    phase = 'original-encryption-recipient';
     const recipientPending = invoke(
       'ssh',
       [...ssh, '/root/alterward-ops/tools/usr/bin/age-keygen -y'],
@@ -180,6 +180,7 @@ async function main() {
       throw Error('Original public recipient unavailable');
     const db = connectDatabase(process.env.DATABASE_URL!, true);
     try {
+      phase = 'read-only-snapshot';
       manifest = await db.transaction(async (tx) => {
         await tx.query(
           'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
@@ -198,24 +199,25 @@ async function main() {
         const names = await tx.query<{ schema: string; name: string }>(
           "SELECT schemaname AS schema,tablename AS name FROM pg_tables WHERE schemaname IN ('auth','storage') ORDER BY schemaname,tablename",
         );
-        const excludedRaw = script
-          .toString()
-          .match(/EXCLUDED_AUTH_DATA = (\{[\s\S]*?\})\n/)?.[1];
+        phase = 'managed-catalog-review';
+        const excludedRaw = sourceText.match(
+          /EXCLUDED_AUTH_DATA = (\{[\s\S]*?\})\n/,
+        )?.[1];
         if (!excludedRaw) throw Error('Fixed ephemeral table catalog missing');
         const excluded = new Set(
           [...excludedRaw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!),
         );
-        const knownRaw = script
-          .toString()
-          .match(/KNOWN_AUTH_TABLES = (\{[\s\S]*?\})\n/)?.[1];
+        const knownRaw = sourceText.match(
+          /KNOWN_AUTH_TABLES = (\{[\s\S]*?\})\n/,
+        )?.[1];
         if (!knownRaw) throw Error('Fixed managed table allowlist missing');
         const known = new Set(
           [...knownRaw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!),
         );
         function fixedSet(name: string) {
-          const raw = script
-            .toString()
-            .match(new RegExp(`${name} = (\\{[\\s\\S]*?\\})\\n`))?.[1];
+          const raw = sourceText.match(
+            new RegExp(`${name} = (\\{[\\s\\S]*?\\})\\n`),
+          )?.[1];
           if (!raw) throw Error('Reviewed managed allowlist required');
           return new Set([...raw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!));
         }
