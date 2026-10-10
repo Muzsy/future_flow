@@ -23,7 +23,7 @@ A napló csak mentési metaadatot tartalmaz, nincs benne Auth-sor vagy ciphertex
 
 Az eredeti **77197467d78048b02de7ee9682c59cc49531e6df** forrás tizenkilenc [célzott Windows-esete](../tests/ops/test_local_managed_recovery.py) sikeres: pontos expiry/check, friss és idegen fájlok megőrzése, sérült friss batch, minden unlink utáni megszakítás, naplóhiba, újra beillesztett fájl, részleges capture és lejárt run feltámasztásának tiltása, pointer, pontos request és két óra. Külön valódi másik folyamat zárütközését/halál utáni feloldását és unlink utáni `os._exit` megszakításból folytatást is ellenőriztük. Mind a tizenkilenc teszt a Contabón, Linuxon is sikeres, kihagyás nélkül; a kilenc futó konténer állapota/image/restart/port és a meglévő archívumok változatlanok, szintetikus fixture eltakarítva. A Windows symlink-létrehozási ág csak akkor fut, ha a gép ezt engedi; Linuxon ténylegesen lefutott.
 
-A 2026-10-10T15:46:01Z tényleges helyi `--check` egy teljes friss archívumot igazolt, lejárt/törölt fájl nulla. Az új zárolt read út mindkét eredeti ciphertexttel byte/hash/méret szerint egyezik. Visszafejtő kulcs/decryption/DB-írás/levél/alkalmazási AI/aktiválás nulla; a távoli check kizárólag órát olvasott. A TypeScript ellenőrzés sikeres. Az eredeti pontos CI container sikeres; verify ekkor még futott.
+A 2026-10-10T15:46:01Z tényleges helyi `--check` egy teljes friss archívumot igazolt, lejárt/törölt fájl nulla. Az új zárolt read út mindkét eredeti ciphertexttel byte/hash/méret szerint egyezik. Visszafejtő kulcs/decryption/DB-írás/levél/alkalmazási AI/aktiválás nulla; a távoli check kizárólag órát olvasott. A TypeScript ellenőrzés sikeres. Az [eredeti pontos verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/38064906690) végül sikeres.
 
 ## Claude-jelzések és javításuk
 
@@ -34,7 +34,21 @@ A 7719746 statikus Claude Cloud-audit read-only/szintetikus próbát nem blokkol
 - LMR-03: a CLI a saját, private-report és helyi helper/validator forrásait, valamint a lockfile-t builtin műveletekkel ellenőrzi, **dinamikus import és ACL-művelet előtt**. Ezek hash-e is megmarad a proofban. A Python törlési célja ettől függetlenül fix; az audit helyi segédforrás-kötési hiányt jelzett.
 - LMR-04 info: a már ismert régebbi pending pointer ellenőrzés után felülírható új capture-rel; ismeretlen/újabb/tépett pointer blokkol. A server-only capture újraletöltési operátora, nagy batch ismételt hashköltsége/timeoutja és száznaplós pruning az összehangolt futtató külön feladata.
 
-Négy új Python-eset és egy [Node/Python izolációs célpróba](../tests/local-managed-runtime.test.ts) készült. Az utóbbi valódi gyermekfolyamatban, külön szintetikus Git-projektben ellenőrzi, hogy a munkakönyvtárba ültetett `json.py` és `PYTHONPATH` nem fut le, a runtime hash egyezik. Javított pontos CI/delta és új valódi check még szükséges; az automatizálás nyitott kapuit nem tekintjük lezártnak.
+Négy új Python-eset és egy [Node/Python izolációs célpróba](../tests/local-managed-runtime.test.ts) készült. Az utóbbi valódi gyermekfolyamatban, külön szintetikus Git-projektben ellenőrzi, hogy a munkakönyvtárba ültetett `json.py` és `PYTHONPATH` nem fut le, a runtime hash egyezik.
+
+A javított **081f4f657a7d3df524b23d315e0c5131521e778b** pontos main forrás mind a **23 Windows- és 23 Contabo Linux-esete sikeres**, Linuxon kihagyás nélkül. A Node/Python izolációs célpróba és scripts TypeScript ellenőrzés sikeres. A Linux fixture eltakarítva, kilenc futó konténer állapota/image/restart/port változatlan. A 2026-10-10T15:56:12Z új tényleges helyi check teljes friss archívumot igazolt, lejárt/törölt nulla; `pythonIsolated=true`, eredeti runtime és ellenőrzött operátori forráshashek rögzítve. Csak távoli óraolvasás, visszafejtő kulcs/decryption/DB-írás/levél/provider/aktiválás nulla.
+
+A pontos 081f4f6 statikus Claude-delta LMR-01/02/03 és LMR-04(a) forrásjavítását elfogadta, új konkrét finding nincs; read-only/szintetikus próba blokkolása false. Automatikus expiry blokkolása true a külön integrációs kapuk miatt, nem új adatvesztési hiba miatt. Claude nem futtatott tesztet és nem látott privát/prod adatot; a célpróbákat mi végeztük. Későbbi server-only újraletöltésnél a már végleges latest pointer visszaléptetését is külön tiltani kell; a jelenlegi capture mindig új runt készít. A [pontos javított verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/38065593193) sikeres, a Linux operátori tesztekkel, typecheckkel, teljes alkalmazástesztekkel/builddel és izolált telepítési próbákkal. Az automatizálás nyitott kapuit nem tekintjük lezártnak.
+
+## Operátori indítás
+
+Az `ALTERWARD_PYTHON` környezeti változóban az eredeti Python 3.12+ executable abszolút útja szükséges; PATH-alapú alapérték nincs. A rögzített SSH-fájlok a meglévő protected secrets könyvtárban maradnak; virtualizált Windows-profil esetén az eredeti mappa az `ALTERWARD_SSH_SECRETS_DIR` változóval választható, kulcsmásolás nélkül. A projekt gyökeréből a törlés nélküli indítás:
+
+```powershell
+pnpm exec tsx --env-file-if-exists=.env scripts/supabase-managed-local-expiry.mts --check
+```
+
+A `--apply` kézi mód implementált és szintetikus adatokon tesztelt. Éles expiry vagy scheduler bekötése előtt a szerver/helyi metadata-aware egyeztetést és teljes megszakítási eljárást le kell zárni; ezt a checkpointot nem tekintjük ilyen bekötésnek.
 
 Ez nem fájlrendszeri tranzakció vagy általános ellenséges helyi admin elleni védelem. Windows alatt a fájl flusholt, de a Python nem biztosít hordozható directory-fsyncet; áramkimaradás utáni directory-durability nem igazolt. Az eredeti private könyvtárban a végső ellenőrzés és név szerinti unlink közti ablak megmarad. A CLI a könyvtár Windows ACL-jét a meglévő private-report eljárással állítja be; a Python önmagában nem Windows ACL-auditor. A forráskönyvtár és helper byte szerint a main commitjához kötött.
 

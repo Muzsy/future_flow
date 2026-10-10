@@ -2,7 +2,7 @@
 
 2026-10-10 · [Mentési eljárás](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Privacy-replay](CONTABO_PRIVACY_RESTORE_PLAN_HU.md) · [Bétaütemezés](BETA_ROLLOUT_SEQUENCE_HU.md).
 
-Friss retention-előrelépés: a [helyi managed fájlkezelés](LOCAL_MANAGED_BACKUP_RETENTION_HU.md) közös kernelzárat, hét napos lejáratot és tartós naplóból folytatást kapott. Tizenkilenc célzott Windows-eset sikeres. Ez nem automatikus retention vagy teljes hosted recovery; valódi mentés törlése nem történt.
+Friss retention-előrelépés: a [helyi managed fájlkezelés](LOCAL_MANAGED_BACKUP_RETENTION_HU.md) közös kernelzárat, hét napos lejáratot és tartós naplóból folytatást kapott. 23 Windows- és 23 valódi Linux-eset, izolált Python-runtime célpróba és tényleges read-only check sikeres; Claude-jelzések javítva, pontos delta új konkrét finding nélkül. Ez nem automatikus retention vagy teljes hosted recovery; valódi mentés törlése nem történt.
 
 ## Tényleges, változtatás nélküli leltár
 
