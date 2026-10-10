@@ -20,3 +20,10 @@ jobs:
           node-version: 24
       - name: Check public rights pages and unauthenticated API without credentials
         run: node scripts/external-availability.mjs --check
+      - name: Check restricted private health projection
+        if: vars.ALTERWARD_PRIVATE_MONITOR_ENABLED == 'true'
+        env:
+          ALTERWARD_MONITOR_HOST: ${{ vars.ALTERWARD_MONITOR_HOST }}
+          ALTERWARD_MONITOR_KNOWN_HOSTS: ${{ vars.ALTERWARD_MONITOR_KNOWN_HOSTS }}
+          ALTERWARD_MONITOR_SSH_KEY: ${{ secrets.ALTERWARD_MONITOR_SSH_KEY }}
+        run: node scripts/private-health.mjs --check

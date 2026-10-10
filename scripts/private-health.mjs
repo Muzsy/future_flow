@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { validatePrivateHealth } from './lib/private-health.mjs';
 
 let directory;
@@ -14,7 +15,13 @@ try {
   const host = process.env.ALTERWARD_MONITOR_HOST ?? '';
   const pin = process.env.ALTERWARD_MONITOR_KNOWN_HOSTS ?? '';
   const key = process.env.ALTERWARD_MONITOR_SSH_KEY ?? '';
-  const source = process.env.ALTERWARD_MONITOR_SOURCE_SHA256 ?? '';
+  const source = createHash('sha256')
+    .update(
+      fs.readFileSync(
+        new URL('./ops/contabo-health-projection.py', import.meta.url),
+      ),
+    )
+    .digest('hex');
   if (
     !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host) ||
     !pin.startsWith(`${host} ssh-ed25519 `) ||
