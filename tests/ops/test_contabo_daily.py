@@ -83,6 +83,101 @@ class DailyArchiveTests(unittest.TestCase):
         self.assertEqual(daily.expire(self.root, NOW), 1)
         self.assertFalse(old.exists())
 
+    def test_interrupted_unlink_resumes_with_manifest_last_and_original_intent(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        actual = os.unlink;calls = []
+        def stop(path, *args, **kwargs):
+            calls.append(str(path));actual(path, *args, **kwargs)
+            raise InterruptedError('Synthetic stop after unlink')
+        with patch.object(os, 'unlink', side_effect=stop), self.assertRaises(InterruptedError):
+            daily.expire(self.root, NOW)
+        self.assertTrue((old / 'manifest.json').exists())
+        self.assertTrue((self.root / daily.EXPIRY_JOURNAL / (old.name + '.json')).exists())
+        self.assertEqual(daily.expire(self.root, NOW), 1)
+        self.assertEqual(daily.expire(self.root, NOW), 0)
+        self.assertFalse(old.exists())
+
+    def test_empty_directory_and_already_removed_directory_resume(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        with patch.object(os, 'rmdir', side_effect=InterruptedError('Synthetic stop before rmdir')), self.assertRaises(InterruptedError):
+            daily.expire(self.root, NOW)
+        self.assertEqual(list(old.iterdir()), [])
+        self.assertEqual(daily.expire(self.root, NOW), 1)
+        self.assertEqual(daily.completed_archives(self.root), [])
+        self.assertEqual(daily.expire(self.root, NOW), 0)
+
+    def test_all_batch_intents_are_durable_before_first_unlink(self):
+        first = create_archive(self.root, NOW - dt.timedelta(days=8))
+        second = create_archive(self.root, NOW - dt.timedelta(days=9))
+        actual = daily.expiry_atomic_intent;calls = []
+        def stop(path, record):
+            calls.append(path)
+            if len(calls) == 2:
+                raise InterruptedError('Synthetic second intent failure')
+            actual(path, record)
+        with patch.object(daily, 'expiry_atomic_intent', side_effect=stop), self.assertRaises(InterruptedError):
+            daily.expire(self.root, NOW)
+        self.assertEqual({p.name for p in first.iterdir()}, daily.ARCHIVES)
+        self.assertEqual({p.name for p in second.iterdir()}, daily.ARCHIVES)
+        self.assertEqual(daily.expire(self.root, NOW), 2)
+
+    def test_torn_or_unknown_journal_blocks_without_deletion(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        metadata = self.root / daily.EXPIRY_JOURNAL;metadata.mkdir(mode=0o700)
+        (metadata / (old.name + '.json')).write_bytes(b'{')
+        with self.assertRaises(ValueError):
+            daily.expire(self.root, NOW)
+        self.assertEqual({p.name for p in old.iterdir()}, daily.ARCHIVES)
+
+    def test_resurrected_archive_and_same_byte_replaced_file_block(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        original = {p.name: p.read_bytes() for p in old.iterdir()}
+        daily.expire(self.root, NOW)
+        old.mkdir(mode=0o700)
+        for name, raw in original.items():
+            (old / name).write_bytes(raw);os.chmod(old / name, 0o600)
+        with self.assertRaises(ValueError):
+            daily.expire(self.root, NOW)
+        self.assertEqual({p.name for p in old.iterdir()}, daily.ARCHIVES)
+
+    def test_clock_regression_and_changed_fresh_batch_block_pending_expiry(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        fresh = create_archive(self.root, NOW)
+        with patch.object(os, 'unlink', side_effect=InterruptedError('Synthetic before unlink')), self.assertRaises(InterruptedError):
+            daily.expire(self.root, NOW)
+        with self.assertRaises(ValueError):
+            daily.expire(self.root, NOW - dt.timedelta(days=2))
+        (fresh / 'config.tar.age').write_bytes(b'corrupt')
+        with self.assertRaises(ValueError):
+            daily.expire(self.root, NOW)
+        self.assertEqual({p.name for p in old.iterdir()}, daily.ARCHIVES)
+
+    def test_pending_inventory_cannot_claim_an_incomplete_archive_complete(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        actual = os.unlink
+        def stop(path, *args, **kwargs):
+            actual(path, *args, **kwargs);raise InterruptedError('Synthetic after unlink')
+        with patch.object(os, 'unlink', side_effect=stop), self.assertRaises(InterruptedError):
+            daily.expire(self.root, NOW)
+        with self.assertRaises(ValueError):
+            daily.completed_archives(self.root)
+        self.assertEqual(daily.expire(self.root, NOW), 1)
+
+    def test_coherent_fresh_archive_change_after_intents_blocks_whole_batch(self):
+        old = create_archive(self.root, NOW - dt.timedelta(days=8))
+        fresh = create_archive(self.root, NOW)
+        actual = daily.expiry_atomic_intent
+        def change(path, record):
+            actual(path, record)
+            data = b'changed but internally hash-consistent fixture'
+            (fresh / 'config.tar.age').write_bytes(data)
+            manifest = json.loads((fresh / 'manifest.json').read_bytes())
+            manifest['encryptedFiles']['config.tar.age'] = {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+            (fresh / 'manifest.json').write_text(json.dumps(manifest))
+        with patch.object(daily, 'expiry_atomic_intent', side_effect=change), self.assertRaises(ValueError):
+            daily.expire(self.root, NOW)
+        self.assertEqual({p.name for p in old.iterdir()}, daily.ARCHIVES)
+
     def test_corrupt_archive_blocks_whole_batch_before_deletion(self):
         old = create_archive(self.root, NOW - dt.timedelta(days=8))
         fresh = create_archive(self.root, NOW)

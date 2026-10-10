@@ -1,0 +1,31 @@
+# alterward — napi mentés megszakítható lejárata
+
+2026-10-10 · [Napi mentés és felügyelet](CONTABO_DAILY_BACKUP_MONITOR_HU.md) · [Managed retention](MANAGED_RETENTION_RECONCILIATION_HU.md) · [Korlátozott külső jelzés](PRIVATE_HEALTH_MONITOR_HU.md).
+
+## Javított működés
+
+A napi alkalmazásmentés régi törlési sorrendje nem őrizte meg tartósan a törlés előtti állapotot. Egy ciphertext eltávolítása utáni megszakítás ezért a következő futáskor hiányos archívumként megállt. A [szerveres végrehajtó](../scripts/ops/contabo-daily.py) és a [helyi másoló](../scripts/contabo-daily.mjs) külön, metadata-only `.expiry-journal` könyvtárban rögzíti az eredeti manifestet, root/könyvtár azonosságát, három fájl eredeti azonosságát, hashét és méretét. A naplóban nincs ciphertext vagy visszafejtő kulcs.
+
+Az eredeti hét napos szabály változatlan: a `capturedAt` UTC-idő és az eredeti run-id egyezik; pontosan hét napnál még megmarad, hét nap után törölhető. A legutolsó lejárt példány ideje sem hosszabbodik meg automatikusan. Új snapshot vagy enrollment nem indítja újra a határidőt.
+
+Az egész friss/lejárt batch eredeti ellenőrzése után **minden** lejárt run intentje flush/fsync és atomikus közzététel után tartós, az első unlink előtt. Újra ellenőrzött teljes batch szükséges. A ciphertext távozik először, a manifest utoljára; csak az eredeti, üres archívumkönyvtár távolítható el. Szerveren a fájltörlés és a könyvtár eltávolítása rögzített, ellenőrzött könyvtárdeszkriptorhoz viszonyított; nincs rekurzív törlés. Windows alatt a helyi fájl-fsync és eredeti azonosság-ellenőrzés működik, könyvtár-entry power-loss tartósság nincs külön igazolva.
+
+Hiányzó fájl vagy könyvtár kizárólag eredeti, teljes intenttel és már lejárt határral fogadható el. A már eltávolított archívum metadata-only előzménye megmarad; az ismételt futás nem számolja új törlésnek. Újrateremtett archívum, megváltozott eredeti fájl, idegen bejegyzés, torn intent, nem publikált temp vagy visszalépett óra megállítja a futást. A félbemaradt archívum használható mentésként nem listázható.
+
+A korlát száz jelen lévő archívum, összesen legfeljebb 512 MiB ciphertext; tízezer metadatarekord és 32 MiB napló, intentenként legfeljebb 1 MiB. A következő batch metadata-kapacitása az első új intent előtt ellenőrzött. A napló nem ürül automatikusan: a határ közelében operátori archiválás/új policy külön ellenőrzést igényel.
+
+## Megszakítás és kézi helyreállítás
+
+1. Állítsuk le kizárólag az érintett saját futást; ne indítsunk párhuzamos expiryt, ne írjuk át az órát vagy a retention-határt. A szerveren a meglévő kernel job-lock, helyben a saját operátori lock védi a futást. A régi és managed archívumok külön életciklusa érintetlen.
+2. Sértetlen végső intent és a már lejárt eredeti határ esetén ugyanazon ellenőrzött forrás új futása folytatja a hiányzó fájl/könyvtár lépését. Nem kell új manifestet vagy dátumot gyártani. A friss példányokat és az egész batch azonosságát újra ellenőrzi.
+3. Ismeretlen vagy `.pending-...` metadata esetén nincs automatikus takarítás. A megszakadt intentközzététel az adott új run törlése előtt állt meg, de egy másik run korábbi részleges expiryje ettől még létezhet. A tempet csak a teljes eredeti batch, a konkrét run mindhárom sértetlen, eredeti manifesthez kötött fájlja és minden már közzétett intent ellenőrzése után lehet külön privát karanténba helyezni, az eredeti byte-ok megőrzésével. Ez operátori javítás, nem a timer feladata. Új futás ismét tartós intentet készít az eredeti dátummal; nem hosszabbít megőrzést.
+4. Sérült végső intentnél kizárólag az eredeti ellenőrzött metadata-példány állítható vissza. Fájlhiány mellett egy új, rekonstruált intent nem bizonyítja az eredeti azonosságot; hiteles eredeti hiányában zárt állapot és operátori incidens marad. A naplót nem töröljük, a hiányos könyvtárat nem kezeljük friss mentésként.
+5. Előbb egész batch-ellenőrzés, majd folytatás, végül saját szolgáltatás státusza és külső health-próba szükséges. A nyers napló, manifest, SSH-hiba vagy kulcs nem kerül GitHub-logba vagy Claude-auditba.
+
+Szerveren a napi backup/monitor sikertelen státuszt ír az expiry hibájáról; a külső projekció összesített hibaként jelzi, ha az adott hourly GitHub-futás és értesítési út elérhető. A helyi másoló hibája jelenleg privát helyi bizonyítékot hagy; a külön gép/schedule elérhetőségének teljes külső riasztása még nincs igazolva.
+
+## Aktuális bizonyíték és kapu
+
+A helyi Python-próba 32 esetből 31 sikeres és egy Windows symlink-kihagyás; a Node-próba tizenkét esetben sikeres, kihagyás nélkül. Unlink/üres könyvtár utáni folytatás, all-batch intent előfeltétel, torn metadata, újrateremtés, friss hash-koherens módosítás és félbemaradt inventory elutasítása ellenőrzött. A tényleges Linux-célpróba, pontos Claude-delta és teljes CI még szükséges. **A javítás még nincs telepítve:** az aktív szerveres napi ops df7550e és helyi szinkron 2eb9a50.
+
+Frissítéskor kizárólag a saját két timer ideiglenes leállítása, pontos forráshash-csere, friss capture/monitor/helyi sync/izolált restore és eredeti timer-visszaaktiválás engedett; az alkalmazás, a többi konténer, Access, providerkeret és tesztelői jogosultság változatlan. A védett helyi óránkénti wrapper pinjeit is a ténylegesen ellenőrzött forráshoz kell igazítani. A hosted Auth/fence/promotion és managed/történeti ütemezési kapu külön megmarad.

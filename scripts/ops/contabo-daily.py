@@ -38,6 +38,7 @@ RESTORE_LABEL = 'com.alterward.daily-restore'
 RETENTION_SECONDS = 7 * 86400
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 ARCHIVES = {'config.tar.age', 'application.dump.age', 'manifest.json'}
+EXPIRY_JOURNAL = '.expiry-journal'
 
 # A separate Node child uses the existing API's verified TLS configuration.
 # It keeps its read-only exported snapshot open until pg_dump has completed.
@@ -277,40 +278,133 @@ def extended_config_archive(proxy):
 original_config_archive = backup.config_archive
 
 
-def completed_archives(directory):
-    result = []
-    if directory.is_symlink() or directory.resolve() != directory.absolute():
-        raise ValueError('Backup directory alias rejected')
+def expiry_directory(path):
+    state = path.lstat()
+    if (path.resolve() != path.absolute() or not stat.S_ISDIR(state.st_mode) or
+            state.st_uid != UID or stat.S_IMODE(state.st_mode) != 0o700):
+        raise ValueError('Original private expiry directory required')
+    return [state.st_dev, state.st_ino]
+
+
+def expiry_file(path):
+    before = path.lstat()
+    def identity(state):
+        return [state.st_dev, state.st_ino, state.st_mode, state.st_nlink,
+                state.st_size, state.st_mtime_ns, state.st_ctime_ns]
+    if before.st_size > 512 * 1024**2:
+        raise ValueError('Bounded daily ciphertext required')
+    data = regular(path)
+    if identity(path.lstat()) != identity(before) or len(data) != before.st_size:
+        raise ValueError('Daily original changed during read')
+    return data, {'identity': identity(before), 'bytes': len(data), 'sha256': digest(data)}
+
+
+def expiry_manifest(manifest, run, now):
+    if (manifest.get('managedBy') != 'alterward-daily-1' or
+            manifest.get('schemaVersion') != 'contabo-backup-1' or manifest.get('runId') != run or
+            set(manifest.get('encryptedFiles', {})) != ARCHIVES - {'manifest.json'}):
+        raise ValueError('Archive identity invalid')
+    created = dt.datetime.fromisoformat(manifest['capturedAt'])
+    named = dt.datetime.strptime(run[:16], '%Y%m%dT%H%M%SZ').replace(tzinfo=dt.timezone.utc)
+    if (created.utcoffset() != dt.timedelta(0) or not 0 <= (created - named).total_seconds() < 1 or
+            created > now + dt.timedelta(minutes=5)):
+        raise ValueError('Archive timestamp invalid')
+    for entry in manifest['encryptedFiles'].values():
+        if (set(entry) != {'bytes', 'sha256'} or type(entry['bytes']) is not int or
+                not 0 < entry['bytes'] <= 512 * 1024**2 or not re.fullmatch(r'[a-f0-9]{64}', entry['sha256'])):
+            raise ValueError('Exact bounded ciphertext binding required')
+    return created
+
+
+def expiry_inventory(directory, now):
+    root_identity = expiry_directory(directory)
+    metadata = directory / EXPIRY_JOURNAL
+    intents, total_metadata = {}, 0
+    if metadata.exists() or metadata.is_symlink():
+        expiry_directory(metadata)
+        for path in sorted(metadata.iterdir()):
+            run = path.name.removesuffix('.json')
+            if not RUN_ID.fullmatch(run) or path.name != run + '.json':
+                raise ValueError('Unknown or interrupted daily deletion metadata')
+            if path.lstat().st_size > 1024**2:
+                raise ValueError('Bounded deletion intent required')
+            raw, _ = expiry_file(path); total_metadata += len(raw)
+            record = json.loads(raw)
+            if (set(record) != {'schemaVersion', 'runId', 'rootIdentity', 'directoryIdentity', 'manifest', 'files'} or
+                    record['schemaVersion'] != 'alterward-daily-expiry-1' or record['runId'] != run or
+                    record['rootIdentity'] != root_identity or set(record['files']) != ARCHIVES or
+                    not isinstance(record['directoryIdentity'], list) or len(record['directoryIdentity']) != 2 or
+                    not all(type(v) is int for v in record['directoryIdentity'])):
+                raise ValueError('Original immutable daily intent required')
+            created = expiry_manifest(record['manifest'], run, now)
+            if (now - created).total_seconds() <= RETENTION_SECONDS:
+                raise ValueError('Pending expiry must be past its original boundary')
+            for name, entry in record['files'].items():
+                if (set(entry) != {'identity', 'bytes', 'sha256'} or not isinstance(entry['identity'], list) or
+                        len(entry['identity']) != 7 or not all(type(v) is int for v in entry['identity']) or
+                        type(entry['bytes']) is not int or not 0 < entry['bytes'] <= 512 * 1024**2 or
+                        not re.fullmatch(r'[a-f0-9]{64}', entry['sha256']) or
+                        (name != 'manifest.json' and {k: entry[k] for k in ('bytes', 'sha256')} != record['manifest']['encryptedFiles'][name])):
+                    raise ValueError('Original daily file identity required')
+            intents[run] = record
+            if len(intents) > 10000 or total_metadata > 32 * 1024**2:
+                raise ValueError('Daily metadata capacity reached')
+    paths = {}
     for path in sorted(directory.iterdir()):
-        if not RUN_ID.fullmatch(path.name) or path.is_symlink() or not path.is_dir():
+        if path.name == EXPIRY_JOURNAL:
+            continue
+        if not RUN_ID.fullmatch(path.name):
             raise ValueError('Unmanaged archive in daily directory')
-        if path.stat().st_uid != UID or stat.S_IMODE(path.stat().st_mode) != 0o700:
-            raise ValueError('Archive directory is not private')
-        if {p.name for p in path.iterdir()} != ARCHIVES:
-            raise ValueError('Daily archive is incomplete or has extra files')
-        data = regular(path / 'manifest.json')
-        manifest = json.loads(data)
-        if (manifest.get('managedBy') != 'alterward-daily-1' or
-                manifest.get('schemaVersion') != 'contabo-backup-1' or
-                manifest.get('runId') != path.name or
-                set(manifest.get('encryptedFiles', {})) != ARCHIVES - {'manifest.json'}):
-            raise ValueError('Archive identity invalid')
-        created = dt.datetime.fromisoformat(manifest['capturedAt'])
-        named = dt.datetime.strptime(path.name[:16], '%Y%m%dT%H%M%SZ').replace(tzinfo=dt.timezone.utc)
-        if created.utcoffset() != dt.timedelta(0) or not 0 <= (created - named).total_seconds() < 1:
-            raise ValueError('Archive timestamp does not match identity')
-        hashes = {'manifest.json': digest(data)}
-        for name, expected in manifest['encryptedFiles'].items():
-            content = regular(path / name)
-            if len(content) != expected['bytes'] or digest(content) != expected['sha256']:
-                raise ValueError('Archive ciphertext mismatch')
-            hashes[name] = digest(content)
-        result.append({'path': path, 'created': created, 'manifest': manifest, 'hashes': hashes})
-    return result
+        paths[path.name] = path
+    if len(paths) > 100:
+        raise ValueError('Daily archive capacity reached')
+    records, total_cipher = [], 0
+    for run in sorted(set(paths) | set(intents)):
+        path = directory / run; intent = intents.get(run); present = run in paths
+        files = {}
+        if present:
+            directory_identity = expiry_directory(path)
+            actual = {p.name for p in path.iterdir()}
+            if not actual <= ARCHIVES or (not intent and actual != ARCHIVES):
+                raise ValueError('Daily archive incomplete without original intent')
+            if intent and directory_identity != intent['directoryIdentity']:
+                raise ValueError('Daily directory resurrected or replaced')
+            for name in sorted(actual):
+                raw, entry = expiry_file(path / name); files[name] = entry
+                if intent and entry != intent['files'][name]:
+                    raise ValueError('Daily original changed after deletion intent')
+                if name != 'manifest.json':
+                    total_cipher += len(raw)
+            manifest = intent['manifest'] if intent else json.loads(regular(path / 'manifest.json'))
+            if 'manifest.json' in files and digest(regular(path / 'manifest.json')) != files['manifest.json']['sha256']:
+                raise ValueError('Daily manifest changed during read')
+            for name in ARCHIVES - {'manifest.json'}:
+                if name in files and {k: files[name][k] for k in ('bytes', 'sha256')} != manifest['encryptedFiles'][name]:
+                    raise ValueError('Daily ciphertext differs from manifest')
+        elif intent:
+            directory_identity = intent['directoryIdentity'];manifest = intent['manifest']
+        else:
+            raise ValueError('Missing unjournaled daily archive')
+        created = expiry_manifest(manifest, run, now)
+        original = intent or {'schemaVersion': 'alterward-daily-expiry-1', 'runId': run,
+                              'rootIdentity': root_identity, 'directoryIdentity': directory_identity,
+                              'manifest': manifest, 'files': files}
+        records.append({'path': path, 'created': created, 'manifest': manifest, 'hashes': {n: f['sha256'] for n, f in files.items()},
+                        'files': files, 'original': original, 'pending': intent is not None, 'present': present})
+    if total_cipher > 512 * 1024**2:
+        raise ValueError('Daily ciphertext byte capacity reached')
+    return records
+
+
+def completed_archives(directory):
+    records = expiry_inventory(directory, utcnow())
+    if any(r['present'] and set(r['files']) != ARCHIVES for r in records):
+        raise ValueError('Daily expiry needs guarded resumption before inventory')
+    return [r for r in records if r['present'] and not r['pending']]
 
 
 def retention_plan(directory, now):
-    records = completed_archives(directory)
+    records = expiry_inventory(directory, now)
     if any(r['created'] > now + dt.timedelta(minutes=5) for r in records):
         raise ValueError('Future archive timestamp')
     return [r for r in records if
@@ -318,20 +412,93 @@ def retention_plan(directory, now):
 
 
 def expire(directory, now):
-    plan = retention_plan(directory, now)
-    # Revalidate the complete batch before the first deletion. No recursive delete.
-    checked = {r['path']: r for r in completed_archives(directory)}
-    if any(checked[r['path']]['hashes'] != r['hashes'] for r in plan):
+    records = expiry_inventory(directory, now)
+    plan = [r for r in records if (now - r['created']).total_seconds() > RETENTION_SECONDS]
+    if expiry_inventory(directory, now) != records:
         raise ValueError('Archive changed before expiry')
+    if not plan:
+        return 0
+    metadata = directory / EXPIRY_JOURNAL
+    if not metadata.exists():
+        metadata.mkdir(mode=0o700); expiry_sync(directory)
+    expiry_directory(metadata)
+    additions = [r for r in plan if not r['pending']]
+    serialized = [json.dumps(r['original'], sort_keys=True, separators=(',', ':')).encode() for r in additions]
+    if (sum(r['pending'] for r in records) + len(additions) > 10000 or
+            any(len(raw) > 1024**2 for raw in serialized) or
+            sum(p.lstat().st_size for p in metadata.iterdir()) + sum(map(len, serialized)) > 32 * 1024**2):
+        raise ValueError('Daily intent capacity would be exceeded')
+    # Durable original intent for EVERY expired run precedes the first unlink.
     for record in plan:
+        if not record['pending']:
+            expiry_atomic_intent(metadata / (record['path'].name + '.json'), record['original'])
+    checked = expiry_inventory(directory, now)
+    if len(checked) != len(records) or any(a['original'] != b['original'] or a['files'] != b['files'] or a['present'] != b['present'] for a, b in zip(records, checked)):
+        raise ValueError('Daily batch changed after durable intent')
+    removed = 0
+    for record in [r for r in checked if (now - r['created']).total_seconds() > RETENTION_SECONDS]:
         path = record['path']
-        for name in sorted(ARCHIVES):
-            if digest(regular(path / name)) != record['hashes'][name]:
-                raise ValueError('Archive changed during expiry')
-        for name in sorted(ARCHIVES):
-            (path / name).unlink()
-        path.rmdir()
-    return len(plan)
+        if not record['present']:
+            continue
+        fd = root_fd = None
+        if os.name != 'nt':
+            fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            if [os.fstat(fd).st_dev, os.fstat(fd).st_ino] != record['original']['directoryIdentity']:
+                os.close(fd);raise ValueError('Original daily directory descriptor required')
+        try:
+            if os.name != 'nt':
+                root_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                if [os.fstat(root_fd).st_dev, os.fstat(root_fd).st_ino] != record['original']['rootIdentity']:
+                    raise ValueError('Original daily root descriptor required')
+            for name in sorted(record['files'], key=lambda n: (n == 'manifest.json', n)):
+                if (expiry_directory(directory) != record['original']['rootIdentity'] or
+                        expiry_directory(path) != record['original']['directoryIdentity'] or
+                        expiry_file(path / name)[1] != record['original']['files'][name]):
+                    raise ValueError('Original daily file changed immediately before unlink')
+                if fd is not None:
+                    os.unlink(name, dir_fd=fd);os.fsync(fd)
+                else:
+                    os.unlink(path / name)
+            if expiry_directory(path) != record['original']['directoryIdentity'] or list(path.iterdir()):
+                raise ValueError('Only original empty daily directory may be removed')
+            if root_fd is not None:
+                os.rmdir(path.name, dir_fd=root_fd);os.fsync(root_fd)
+            else:
+                os.rmdir(path)
+            expiry_sync(directory);removed += 1
+        finally:
+            if fd is not None:
+                os.close(fd)
+            if root_fd is not None:
+                os.close(root_fd)
+    expiry_inventory(directory, now)
+    return removed
+
+
+def expiry_sync(path):
+    if os.name != 'nt':
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
+def expiry_atomic_intent(path, record):
+    # Called under the existing kernel job lock. Never replace an original intent.
+    if path.exists() or path.is_symlink():
+        raise ValueError('Daily intent already exists')
+    temporary = path.parent / ('.pending-' + path.name)
+    raw = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
+    if temporary.exists() or temporary.is_symlink():
+        if regular(temporary) != raw:
+            raise ValueError('Interrupted daily intent needs operator verification')
+    else:
+        with temporary.open('xb') as stream:
+            os.chmod(temporary, 0o600);stream.write(raw);stream.flush();os.fsync(stream.fileno())
+    if path.exists() or path.is_symlink():
+        raise ValueError('Daily intent changed before publication')
+    os.replace(temporary, path);expiry_sync(path.parent)
 
 
 def clean_work():

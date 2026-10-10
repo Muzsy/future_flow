@@ -57,7 +57,7 @@ test('approved retention also removes a sole expired copy', () =>
   sandbox((root) => {
     fixture(root, 8);
     assert.equal(expireLocal(root), 1);
-    assert.deepEqual(fs.readdirSync(root), []);
+    assert.deepEqual(fs.readdirSync(root), ['.expiry-journal']);
   }));
 test('hash corruption blocks every deletion', () =>
   sandbox((root) => {
@@ -88,4 +88,120 @@ test('incomplete pending download is cleaned inside its reserved directory', () 
     fs.writeFileSync(path.join(pending, 'config.tar.age'), 'partial');
     assert.equal(expireLocal(root), 0);
     assert.deepEqual(fs.readdirSync(root), []);
+  }));
+
+test('interrupted unlink resumes with the original manifest removed last', () =>
+  sandbox((root) => {
+    const old = fixture(root, 8),
+      actual = fs.unlinkSync;
+    try {
+      fs.unlinkSync = (path) => {
+        actual(path);
+        throw Error('Synthetic stop after unlink');
+      };
+      assert.throws(() => expireLocal(root));
+    } finally {
+      fs.unlinkSync = actual;
+    }
+    assert(fs.existsSync(path.join(old, 'manifest.json')));
+    assert.equal(expireLocal(root), 1);
+    assert.equal(expireLocal(root), 0);
+    assert.deepEqual(localArchives(root), []);
+  }));
+
+test('empty archive after interrupted rmdir is safely completed', () =>
+  sandbox((root) => {
+    const old = fixture(root, 8),
+      actual = fs.rmdirSync;
+    try {
+      fs.rmdirSync = () => {
+        throw Error('Synthetic stop before rmdir');
+      };
+      assert.throws(() => expireLocal(root));
+    } finally {
+      fs.rmdirSync = actual;
+    }
+    assert.deepEqual(fs.readdirSync(old), []);
+    assert.equal(expireLocal(root), 1);
+    assert.equal(expireLocal(root), 0);
+  }));
+
+test('all expired run intents precede any deletion when publication fails', () =>
+  sandbox((root) => {
+    const first = fixture(root, 8),
+      second = fixture(root, 9),
+      actual = fs.renameSync;
+    let calls = 0;
+    try {
+      fs.renameSync = (a, b) => {
+        calls++;
+        if (calls === 2) throw Error('Synthetic second publish failure');
+        return actual(a, b);
+      };
+      assert.throws(() => expireLocal(root));
+    } finally {
+      fs.renameSync = actual;
+    }
+    assert.equal(fs.readdirSync(first).length, 3);
+    assert.equal(fs.readdirSync(second).length, 3);
+    assert.throws(() => expireLocal(root)); // Unpublished temp requires operator inspection.
+  }));
+
+test('torn metadata and modified fresh ciphertext block resumed deletion', () =>
+  sandbox((root) => {
+    const old = fixture(root, 8),
+      fresh = fixture(root, 1),
+      actual = fs.unlinkSync;
+    try {
+      fs.unlinkSync = () => {
+        throw Error('Synthetic before first unlink');
+      };
+      assert.throws(() => expireLocal(root));
+    } finally {
+      fs.unlinkSync = actual;
+    }
+    fs.writeFileSync(path.join(fresh, 'config.tar.age'), 'corrupt');
+    assert.throws(() => expireLocal(root));
+    assert.equal(fs.readdirSync(old).length, 3);
+    const journal = path.join(
+      root,
+      '.expiry-journal',
+      path.basename(old) + '.json',
+    );
+    fs.writeFileSync(journal, '{');
+    assert.throws(() => expireLocal(root));
+    assert.equal(fs.readdirSync(old).length, 3);
+  }));
+
+test('recreated original ciphertext archive never authorizes a second deletion', () =>
+  sandbox((root) => {
+    const old = fixture(root, 8),
+      saved = Object.fromEntries(
+        fs
+          .readdirSync(old)
+          .map((name) => [name, fs.readFileSync(path.join(old, name))]),
+      );
+    assert.equal(expireLocal(root), 1);
+    fs.mkdirSync(old);
+    for (const [name, bytes] of Object.entries(saved))
+      fs.writeFileSync(path.join(old, name), bytes);
+    assert.throws(() => expireLocal(root));
+    assert.equal(fs.readdirSync(old).length, 3);
+  }));
+
+test('pending incomplete archive cannot be listed as a usable local backup', () =>
+  sandbox((root) => {
+    fixture(root, 8);
+    const actual = fs.unlinkSync;
+    try {
+      fs.unlinkSync = (path) => {
+        actual(path);
+        throw Error('Synthetic after unlink');
+      };
+      assert.throws(() => expireLocal(root));
+    } finally {
+      fs.unlinkSync = actual;
+    }
+    assert.throws(() => localArchives(root));
+    assert.equal(expireLocal(root), 1);
   }));

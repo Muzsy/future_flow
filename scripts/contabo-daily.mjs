@@ -24,6 +24,7 @@ const actions = [
 const runPattern = /^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$/;
 const names = ['config.tar.age', 'application.dump.age', 'manifest.json'];
 const retention = 7 * 86400000;
+const expiryJournal = '.expiry-journal';
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 const execute = promisify(execFile);
 let phase = 'local-validation';
@@ -48,42 +49,229 @@ function archiveDirectory(root, name) {
   return path;
 }
 
-function localArchives(root) {
-  return fs.readdirSync(root).map((name) => {
-    const path = archiveDirectory(root, name);
-    if (fs.readdirSync(path).sort().join('|') !== [...names].sort().join('|'))
-      throw Error('Unexpected archive file set');
-    const bytes = regular(join(path, 'manifest.json'));
-    const manifest = JSON.parse(bytes);
+function directoryIdentity(path) {
+  const value = fs.lstatSync(path, { bigint: true });
+  if (
+    !value.isDirectory() ||
+    value.isSymbolicLink() ||
+    fs.realpathSync(path).toLowerCase() !== resolve(path).toLowerCase()
+  )
+    throw Error('Original daily directory required');
+  return [value.dev.toString(), value.ino.toString()];
+}
+
+function fileSnapshot(path) {
+  const before = fs.lstatSync(path, { bigint: true });
+  const identity = (value) =>
+    [
+      value.dev,
+      value.ino,
+      value.mode,
+      value.nlink,
+      value.size,
+      value.mtimeNs,
+      process.platform === 'win32' ? value.birthtimeNs : value.ctimeNs,
+    ].map(String);
+  if (before.size > BigInt(512 * 1024 ** 2))
+    throw Error('Bounded daily file required');
+  const bytes = regular(path);
+  if (
+    identity(before).join('|') !==
+      identity(fs.lstatSync(path, { bigint: true })).join('|') ||
+    BigInt(bytes.length) !== before.size
+  )
+    throw Error('Daily original changed during read');
+  return {
+    bytes,
+    entry: {
+      identity: identity(before),
+      bytes: bytes.length,
+      sha256: digest(bytes),
+    },
+  };
+}
+
+function manifestCreated(manifest, name, now) {
+  if (
+    manifest.managedBy !== 'alterward-daily-1' ||
+    manifest.schemaVersion !== 'contabo-backup-1' ||
+    manifest.runId !== name ||
+    Object.keys(manifest.encryptedFiles).sort().join('|') !==
+      'application.dump.age|config.tar.age'
+  )
+    throw Error('Daily archive identity invalid');
+  const timestamp = name.slice(0, 16);
+  const namedTime = Date.parse(
+    `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}T${timestamp.slice(9, 11)}:${timestamp.slice(11, 13)}:${timestamp.slice(13, 15)}Z`,
+  );
+  const created = Date.parse(manifest.capturedAt);
+  if (
+    !Number.isFinite(created) ||
+    created - namedTime < 0 ||
+    created - namedTime >= 1000 ||
+    created > now + 300000 ||
+    !/(?:Z|\+00:00)$/.test(manifest.capturedAt)
+  )
+    throw Error('Archive timestamp invalid');
+  for (const expected of Object.values(manifest.encryptedFiles)) {
     if (
-      manifest.managedBy !== 'alterward-daily-1' ||
-      manifest.schemaVersion !== 'contabo-backup-1' ||
-      manifest.runId !== name ||
-      Object.keys(manifest.encryptedFiles).sort().join('|') !==
-        'application.dump.age|config.tar.age'
+      Object.keys(expected).sort().join('|') !== 'bytes|sha256' ||
+      !Number.isSafeInteger(expected.bytes) ||
+      expected.bytes <= 0 ||
+      expected.bytes > 512 * 1024 ** 2 ||
+      !/^[a-f0-9]{64}$/.test(expected.sha256)
     )
-      throw Error('Daily archive identity invalid');
-    const timestamp = name.slice(0, 16);
-    const namedTime = Date.parse(
-      `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)}T${timestamp.slice(9, 11)}:${timestamp.slice(11, 13)}:${timestamp.slice(13, 15)}Z`,
-    );
-    const created = Date.parse(manifest.capturedAt);
-    if (
-      !Number.isFinite(created) ||
-      created - namedTime < 0 ||
-      created - namedTime >= 1000 ||
-      created > Date.now() + 300000
-    )
-      throw Error('Archive timestamp invalid');
-    const hashes = { 'manifest.json': digest(bytes) };
-    for (const [file, expected] of Object.entries(manifest.encryptedFiles)) {
-      const data = regular(join(path, file));
-      if (data.length !== expected.bytes || digest(data) !== expected.sha256)
-        throw Error('Local ciphertext hash mismatch');
-      hashes[file] = digest(data);
+      throw Error('Exact bounded daily ciphertext binding required');
+  }
+  return created;
+}
+
+function archiveInventory(root, now) {
+  const rootIdentity = directoryIdentity(root),
+    metadata = join(root, expiryJournal),
+    intents = new Map();
+  let metadataBytes = 0,
+    cipherBytes = 0;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  let metadataPresent = false;
+  try {
+    fs.lstatSync(metadata);
+    metadataPresent = true;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (metadataPresent) {
+    directoryIdentity(metadata);
+    for (const name of fs.readdirSync(metadata).sort()) {
+      const run = name.replace(/\.json$/, '');
+      if (!runPattern.test(run) || name !== run + '.json')
+        throw Error('Unknown or interrupted daily deletion metadata');
+      const path = join(metadata, name);
+      if (fs.lstatSync(path).size > 1024 ** 2)
+        throw Error('Bounded daily intent required');
+      const raw = fileSnapshot(path).bytes;
+      metadataBytes += raw.length;
+      const record = JSON.parse(raw);
+      if (
+        Object.keys(record).sort().join('|') !==
+          'directoryIdentity|files|manifest|rootIdentity|runId|schemaVersion' ||
+        record.schemaVersion !== 'alterward-local-daily-expiry-1' ||
+        record.runId !== run ||
+        !same(record.rootIdentity, rootIdentity) ||
+        !Array.isArray(record.directoryIdentity) ||
+        record.directoryIdentity.length !== 2 ||
+        record.directoryIdentity.some((v) => !/^\d+$/.test(v)) ||
+        Object.keys(record.files).sort().join('|') !==
+          [...names].sort().join('|') ||
+        now - manifestCreated(record.manifest, run, now) <= retention
+      )
+        throw Error('Original expired daily intent required');
+      for (const [file, entry] of Object.entries(record.files)) {
+        if (
+          Object.keys(entry).sort().join('|') !== 'bytes|identity|sha256' ||
+          !Array.isArray(entry.identity) ||
+          entry.identity.length !== 7 ||
+          entry.identity.some(
+            (v) => typeof v !== 'string' || !/^\d+$/.test(v),
+          ) ||
+          !Number.isSafeInteger(entry.bytes) ||
+          entry.bytes <= 0 ||
+          entry.bytes > 512 * 1024 ** 2 ||
+          !/^[a-f0-9]{64}$/.test(entry.sha256) ||
+          (file !== 'manifest.json' &&
+            (entry.bytes !== record.manifest.encryptedFiles[file].bytes ||
+              entry.sha256 !== record.manifest.encryptedFiles[file].sha256))
+        )
+          throw Error('Original daily file identity required');
+      }
+      intents.set(run, record);
+      if (intents.size > 10000 || metadataBytes > 32 * 1024 ** 2)
+        throw Error('Daily metadata capacity reached');
     }
-    return { path, created, manifest, hashes };
-  });
+  } else if (fs.lstatSync(root).isSymbolicLink())
+    throw Error('Original archive root required');
+  const paths = fs.readdirSync(root).filter((name) => name !== expiryJournal);
+  if (paths.length > 100 || paths.some((name) => !runPattern.test(name)))
+    throw Error('Bounded exact daily archive set required');
+  const records = [];
+  for (const run of [...new Set([...paths, ...intents.keys()])].sort()) {
+    const path = join(root, run),
+      intent = intents.get(run),
+      present = paths.includes(run),
+      files = {};
+    let dirIdentity, manifest;
+    if (present) {
+      dirIdentity = directoryIdentity(archiveDirectory(root, run));
+      const actual = fs.readdirSync(path);
+      if (
+        actual.some((name) => !names.includes(name)) ||
+        (!intent && actual.length !== names.length) ||
+        (intent && !same(dirIdentity, intent.directoryIdentity))
+      )
+        throw Error('Original daily directory incomplete or replaced');
+      for (const name of actual.sort()) {
+        const { bytes, entry } = fileSnapshot(join(path, name));
+        files[name] = entry;
+        if (intent && !same(entry, intent.files[name]))
+          throw Error('Daily original changed after intent');
+        if (name !== 'manifest.json') cipherBytes += bytes.length;
+      }
+      manifest = intent
+        ? intent.manifest
+        : JSON.parse(regular(join(path, 'manifest.json')));
+      if (
+        files['manifest.json'] &&
+        digest(regular(join(path, 'manifest.json'))) !==
+          files['manifest.json'].sha256
+      )
+        throw Error('Manifest changed during read');
+      for (const name of names.filter((n) => n !== 'manifest.json'))
+        if (
+          files[name] &&
+          (files[name].bytes !== manifest.encryptedFiles[name].bytes ||
+            files[name].sha256 !== manifest.encryptedFiles[name].sha256)
+        )
+          throw Error('Daily ciphertext differs from manifest');
+    } else if (intent) {
+      dirIdentity = intent.directoryIdentity;
+      manifest = intent.manifest;
+    } else throw Error('Missing unjournaled daily archive');
+    const created = manifestCreated(manifest, run, now),
+      original = intent ?? {
+        schemaVersion: 'alterward-local-daily-expiry-1',
+        runId: run,
+        rootIdentity,
+        directoryIdentity: dirIdentity,
+        manifest,
+        files,
+      };
+    records.push({
+      path,
+      created,
+      manifest,
+      hashes: Object.fromEntries(
+        Object.entries(files).map(([name, value]) => [name, value.sha256]),
+      ),
+      files,
+      original,
+      pending: !!intent,
+      present,
+    });
+  }
+  if (cipherBytes > 512 * 1024 ** 2)
+    throw Error('Daily ciphertext byte capacity reached');
+  return records;
+}
+
+function localArchives(root) {
+  const records = archiveInventory(root, Date.now());
+  if (
+    records.some(
+      (r) => r.present && Object.keys(r.files).length !== names.length,
+    )
+  )
+    throw Error('Daily expiry needs guarded resumption before inventory');
+  return records.filter((r) => r.present && !r.pending);
 }
 
 function cleanPending(root) {
@@ -115,19 +303,111 @@ function cleanPending(root) {
 
 function expireLocal(root) {
   cleanPending(root);
-  const expired = localArchives(root).filter(
-    (archive) => Date.now() - archive.created > retention,
-  );
-  for (const archive of expired) {
-    for (const file of names)
-      if (digest(regular(join(archive.path, file))) !== archive.hashes[file])
-        throw Error('Archive changed before local expiry');
+  const now = Date.now(),
+    records = archiveInventory(root, now),
+    expired = records.filter((r) => now - r.created > retention);
+  if (JSON.stringify(archiveInventory(root, now)) !== JSON.stringify(records))
+    throw Error('Daily batch changed before intent');
+  if (!expired.length) return 0;
+  const metadata = join(root, expiryJournal);
+  if (!fs.existsSync(metadata)) {
+    fs.mkdirSync(metadata, { mode: 0o700 });
+    syncDirectory(root);
   }
-  for (const archive of expired) {
-    for (const file of names) fs.unlinkSync(join(archive.path, file));
-    fs.rmdirSync(archive.path);
+  directoryIdentity(metadata);
+  const additions = expired.filter((record) => !record.pending),
+    serialized = additions.map((record) =>
+      Buffer.from(JSON.stringify(record.original)),
+    );
+  if (
+    records.filter((record) => record.pending).length + additions.length >
+      10000 ||
+    serialized.some((raw) => raw.length > 1024 ** 2) ||
+    fs
+      .readdirSync(metadata)
+      .reduce((sum, name) => sum + fs.lstatSync(join(metadata, name)).size, 0) +
+      serialized.reduce((sum, raw) => sum + raw.length, 0) >
+      32 * 1024 ** 2
+  )
+    throw Error('Daily intent capacity would be exceeded');
+  for (const record of expired)
+    if (!record.pending) {
+      const path = join(metadata, pathBasename(record.path) + '.json'),
+        temporary = join(
+          metadata,
+          '.pending-' + pathBasename(record.path) + '.json',
+        ),
+        raw = Buffer.from(JSON.stringify(record.original));
+      if (fs.existsSync(path))
+        throw Error('Daily original intent already exists');
+      const fd = fs.openSync(temporary, 'wx', 0o600);
+      try {
+        fs.writeFileSync(fd, raw);
+        fs.fsyncSync(fd);
+      } finally {
+        fs.closeSync(fd);
+      }
+      if (fs.existsSync(path)) throw Error('Daily original intent changed');
+      fs.renameSync(temporary, path);
+      syncDirectory(metadata);
+    }
+  const checked = archiveInventory(root, now);
+  if (
+    checked.length !== records.length ||
+    checked.some(
+      (r, i) =>
+        JSON.stringify(r.original) !== JSON.stringify(records[i].original) ||
+        JSON.stringify(r.files) !== JSON.stringify(records[i].files) ||
+        r.present !== records[i].present,
+    )
+  )
+    throw Error('Daily batch changed after durable intents');
+  let removed = 0;
+  for (const record of checked.filter(
+    (r) => now - r.created > retention && r.present,
+  )) {
+    for (const name of Object.keys(record.files).sort(
+      (a, b) =>
+        (a === 'manifest.json') - (b === 'manifest.json') || a.localeCompare(b),
+    )) {
+      if (
+        JSON.stringify(directoryIdentity(root)) !==
+          JSON.stringify(record.original.rootIdentity) ||
+        JSON.stringify(directoryIdentity(record.path)) !==
+          JSON.stringify(record.original.directoryIdentity) ||
+        JSON.stringify(fileSnapshot(join(record.path, name)).entry) !==
+          JSON.stringify(record.original.files[name])
+      )
+        throw Error('Daily original changed immediately before unlink');
+      fs.unlinkSync(join(record.path, name));
+      syncDirectory(record.path);
+    }
+    if (
+      JSON.stringify(directoryIdentity(record.path)) !==
+        JSON.stringify(record.original.directoryIdentity) ||
+      fs.readdirSync(record.path).length
+    )
+      throw Error('Only original empty daily directory may be removed');
+    fs.rmdirSync(record.path);
+    syncDirectory(root);
+    removed++;
   }
-  return expired.length;
+  archiveInventory(root, now);
+  return removed;
+}
+
+function pathBasename(path) {
+  return path.split(/[\\/]/).at(-1);
+}
+function syncDirectory(path) {
+  if (process.platform !== 'win32') {
+    const fd = fs.openSync(path, 'r');
+    try {
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
 }
 
 async function runOperator() {
