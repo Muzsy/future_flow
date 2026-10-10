@@ -4,6 +4,7 @@ No installer, schedule, live restore, Auth server, email, or provider execution.
 Public data is excluded. Ownership, login roles and Vault recovery are not proved.
 """
 import base64
+import contextlib
 import datetime as dt
 import hashlib
 import json
@@ -12,6 +13,7 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import stat
 import tempfile
 import time
 import alterward_backup as backup
@@ -23,6 +25,16 @@ PINNED_PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 PHASE = 'validation'
 IDENTIFIER = re.compile(r'[a-z_][a-z0-9_]{0,62}')
+EXCLUDED_AUTH_DATA = {'audit_log_entries', 'sessions', 'refresh_tokens', 'one_time_tokens',
+    'flow_state', 'mfa_amr_claims', 'mfa_challenges', 'mfa_recovery_codes',
+    'mfa_recovery_code_sets', 'oauth_authorizations', 'oauth_client_states',
+    'oauth_consents', 'saml_relay_states', 'scim_tokens', 'webauthn_challenges'}
+KNOWN_AUTH_TABLES = {'audit_log_entries', 'custom_oauth_providers', 'flow_state', 'identities',
+    'instances', 'mfa_amr_claims', 'mfa_challenges', 'mfa_factors', 'mfa_recovery_code_sets',
+    'mfa_recovery_codes', 'oauth_authorizations', 'oauth_client_states', 'oauth_clients',
+    'oauth_consents', 'one_time_tokens', 'refresh_tokens', 'saml_providers', 'saml_relay_states',
+    'schema_migrations', 'scim_tokens', 'scim_users', 'sessions', 'sso_domains', 'sso_providers',
+    'users', 'webauthn_challenges', 'webauthn_credentials'}
 SECURITY_SQL = r"""SELECT md5(jsonb_build_object(
 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY x.table_name,x.ordinal_position) FROM (SELECT table_name,column_name,ordinal_position,data_type,udt_schema,udt_name,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public') x),
 'tables',(SELECT jsonb_agg(to_jsonb(x) ORDER BY x.relname) FROM (SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p')) x),
@@ -69,6 +81,58 @@ def cleanup(name, run_id):
     command(['docker', 'rm', '-f', container['Id']])
 
 
+def private_existing(path):
+    value = path.lstat()
+    if (path.resolve() != path or not stat.S_ISREG(value.st_mode) or
+            value.st_uid != 0 or value.st_nlink != 1 or stat.S_IMODE(value.st_mode) != 0o600):
+        raise ValueError('Original private regular file required')
+    return path.read_bytes()
+
+
+@contextlib.contextmanager
+def operator_locks():
+    import fcntl
+    with contextlib.ExitStack() as stack:
+        for path in [Path('/root/alterward-ops/daily/job.lock'),
+                     Path('/root/alterward-ops/owner/activation.lock')]:
+            private_existing(path)
+            fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW)
+            stack.callback(os.close, fd)
+            value = os.fstat(fd)
+            if value.st_uid != 0 or value.st_nlink != 1 or not stat.S_ISREG(value.st_mode):
+                raise ValueError('Private original operator lock required')
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
+
+
+def assert_live_recipient(recipient):
+    config = json.loads(private_existing(Path('/root/alterward-ops/daily/config.json')))
+    if config['recipient'] != recipient or config['postgresImage'] != PINNED_PG:
+        raise ValueError('Original daily recipient and image must match')
+
+
+def validate_manifest(manifest, request):
+    required = {'capturedAt', 'expiresAt', 'schemaVersion', 'runId', 'postgresImage',
+                'projectBinding', 'sourceCommit', 'encryptedFiles', 'scope', 'sourceHashes'}
+    if not required.issubset(manifest):
+        raise ValueError('Complete source manifest required')
+    captured = dt.datetime.fromisoformat(manifest['capturedAt'])
+    expires = dt.datetime.fromisoformat(manifest['expiresAt'])
+    now = dt.datetime.now(dt.timezone.utc)
+    if (manifest['schemaVersion'] != 'alterward-managed-recovery-2' or
+            manifest['runId'] != request['runId'] or
+            manifest['postgresImage'] != PINNED_PG or
+            manifest['projectBinding'] != request['projectBinding'] or
+            not re.fullmatch(r'[a-f0-9]{64}', manifest['projectBinding']) or
+            not re.fullmatch(r'[a-f0-9]{40}', manifest['sourceCommit']) or
+            set(manifest['encryptedFiles']) != FILES or
+            manifest['scope'] != 'auth-storage-data-and-public-security' or
+            captured.utcoffset() != dt.timedelta(0) or expires.utcoffset() != dt.timedelta(0) or
+            captured > now + dt.timedelta(seconds=30) or expires <= now or
+            expires - captured != dt.timedelta(days=7)):
+        raise ValueError('Project-bound unexpired ciphertext manifest required')
+
+
 def validate_base(request):
     if (os.geteuid() != 0 or not RUN_ID.fullmatch(request['runId']) or
             request['image'] != PINNED_PG or
@@ -95,6 +159,7 @@ def safe_catalog(catalog):
             not re.fullmatch(r'[a-f0-9]{32}', catalog['publicSecurityDigest'])):
         raise ValueError('Bounded role catalog required')
     if any(t['schema'] not in {'auth', 'storage'} or
+           (t['schema'] == 'auth' and t['name'] not in KNOWN_AUTH_TABLES) or
            not IDENTIFIER.fullmatch(t['name']) or
            not re.fullmatch(r'[a-f0-9]{32}', t['digest']) or
            not isinstance(t['count'], int) or t['count'] < 0 for t in tables):
@@ -102,6 +167,18 @@ def safe_catalog(catalog):
     keys = [(t['schema'], t['name']) for t in tables]
     if len(set(keys)) != len(keys) or ('auth', 'users') not in keys:
         raise ValueError('Complete distinct managed table catalog required')
+    columns = catalog['authUserInsertColumns']
+    token_columns = catalog['clearedAuthUserTokenColumns']
+    users = catalog['sanitizedAuthUsers']
+    if (not 1 <= catalog['publicTables'] <= 1000 or catalog['publicRlsTables'] != catalog['publicTables'] or
+            not 1 <= len(columns) <= 200 or len(set(columns)) != len(columns) or
+            any(not IDENTIFIER.fullmatch(c) for c in columns + token_columns) or
+            not 0 <= len(users) <= 10000 or
+            len({u['id'] for u in users}) != len(users) or
+            any(u.get(c) not in {None, ''} for u in users for c in token_columns) or
+            any(value not in {None, ''} for u in users for key, value in u.items() if 'token' in key) or
+            any(t['count'] != 0 for t in tables if t['schema'] == 'auth' and t['name'] in EXCLUDED_AUTH_DATA)):
+        raise ValueError('Sanitized Auth identities and empty ephemeral data required')
     return catalog
 
 
@@ -120,6 +197,7 @@ def capture(request):
             not re.fullmatch(r'[0-9A-Fa-f-]{8,100}', request['snapshot']) or
             not re.fullmatch(r'age1[0-9a-z]{58}', request['recipient'])):
         raise ValueError('Project-bound verified snapshot required')
+    assert_live_recipient(request['recipient'])
     before = existing_state()
     target = ROOT / request['runId']
     target.mkdir(mode=0o700)  # never replace an existing capture
@@ -148,6 +226,8 @@ def capture(request):
                     '--env-file', str(scratch / 'client.env'), '--entrypoint', 'pg_dump',
                     PINNED_PG, '--format=custom', '--schema=public', '--schema=auth',
                     '--schema=storage', '--exclude-table-data=public.*',
+                    '--exclude-table-data=auth.users',
+                    *['--exclude-table-data=auth.' + n for n in sorted(EXCLUDED_AUTH_DATA)],
                     '--lock-wait-timeout=5000', '--snapshot=' + request['snapshot']], timeout=180).stdout
             finally:
                 cleanup(name, request['runId'])
@@ -163,12 +243,16 @@ def capture(request):
             if existing_state() != before:
                 raise ValueError('Existing services changed; capture not accepted')
             captured = dt.datetime.now(dt.timezone.utc)
-            manifest = {'schemaVersion': 'alterward-managed-recovery-1',
+            manifest = {'schemaVersion': 'alterward-managed-recovery-2',
                 'runId': request['runId'], 'sourceCommit': request['commit'],
                 'capturedAt': captured.isoformat(),
                 'expiresAt': (captured + dt.timedelta(days=7)).isoformat(),
                 'scope': catalog['scope'], 'postgresImage': PINNED_PG,
                 'projectBinding': sha(ref.encode()), 'dumpSha256': sha(dump),
+                'sourceHashes': request['sourceHashes'],
+                'originalDailyRecipientMatched': True,
+                'ephemeralAuthDataExcludedAtCapture': True,
+                'authUserTokenColumnsClearedAtCapture': True,
                 'catalogSha256': sha(catalog_bytes), 'encryptedFiles': encrypted,
                 'managedTables': len(catalog['tables']),
                 'managedRows': sum(t['count'] for t in catalog['tables']),
@@ -187,12 +271,7 @@ def rehearse(request):
     global PHASE
     validate_base(request)
     manifest = request['manifest']
-    if (manifest['schemaVersion'] != 'alterward-managed-recovery-1' or
-            manifest['runId'] != request['runId'] or
-            manifest['postgresImage'] != PINNED_PG or
-            set(manifest['encryptedFiles']) != FILES or
-            manifest['scope'] != 'auth-storage-data-and-public-security'):
-        raise ValueError('Exact ciphertext manifest required')
+    validate_manifest(manifest, request)
     before = existing_state()
     name = 'alterward-managed-restore-' + request['runId'].lower()
     with tempfile.TemporaryDirectory(dir='/run', prefix='alterward-managed-') as temporary:
@@ -237,9 +316,26 @@ def rehearse(request):
             sql = roles + 'DROP SCHEMA public; CREATE SCHEMA extensions; CREATE EXTENSION "uuid-ossp" WITH SCHEMA extensions; CREATE EXTENSION pgcrypto WITH SCHEMA extensions; CREATE EXTENSION pg_stat_statements WITH SCHEMA extensions;'
             psql = ['docker', 'exec', '-i', name, 'psql', '-U', 'postgres', '-v', 'ON_ERROR_STOP=1', '-Atq']
             command(psql, input=sql.encode())
-            PHASE = 'isolated-managed-restore'
+            PHASE = 'isolated-managed-schema'
             command(['docker', 'exec', '-i', name, 'pg_restore', '-U', 'postgres',
-                     '-d', 'postgres', '--no-owner', '--exit-on-error', '--single-transaction'],
+                     '-d', 'postgres', '--no-owner', '--section=pre-data', '--exit-on-error', '--single-transaction'],
+                    input=plaintext['managed.dump.age'], timeout=180)
+            schemas = command(psql, input=b"SELECT count(*) FROM pg_namespace WHERE nspname IN('public','auth','storage');").stdout.decode().strip()
+            if schemas != '3':
+                raise ValueError('Required schemas were not created')
+            PHASE = 'isolated-sanitized-identities'
+            columns = catalog['authUserInsertColumns']
+            column_sql = ','.join('"' + c + '"' for c in columns)
+            selection = ','.join('u."' + c + '"' for c in columns)
+            insert = 'BEGIN;\n'
+            for user in catalog['sanitizedAuthUsers']:
+                encoded = base64.b64encode(json.dumps(user).encode()).decode()
+                insert += 'INSERT INTO auth.users (' + column_sql + ') SELECT ' + selection + ' FROM jsonb_populate_record(NULL::auth.users,convert_from(decode(\'' + encoded + '\',\'base64\'),\'UTF8\')::jsonb) u;\n'
+            command(psql, input=(insert + 'COMMIT;').encode())
+            PHASE = 'isolated-managed-data'
+            command(['docker', 'exec', '-i', name, 'pg_restore', '-U', 'postgres',
+                     '-d', 'postgres', '--no-owner', '--section=data', '--section=post-data',
+                     '--exit-on-error', '--single-transaction'],
                     input=plaintext['managed.dump.age'], timeout=180)
             PHASE = 'data-comparison'
             restored_tables = command(psql, input=b"SELECT schemaname||'.'||tablename FROM pg_tables WHERE schemaname IN ('auth','storage') ORDER BY schemaname,tablename;").stdout.decode().split()
@@ -261,26 +357,26 @@ def rehearse(request):
             if security != catalog['publicSecurityDigest']:
                 raise ValueError('Public security metadata differs')
             protected = command(psql, input=b"SELECT count(*)||'|'||count(*) FILTER(WHERE relrowsecurity) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p');").stdout.decode().strip()
-            if protected != '97|97':
+            if protected != str(catalog['publicTables']) + '|' + str(catalog['publicRlsTables']):
                 raise ValueError('Public RLS schema differs')
             browser = command(psql, input=b"SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND (has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'));").stdout.decode().strip()
             if browser != '0':
                 raise ValueError('Browser table access differs')
-            # Destruction is solely within the isolated throwaway database.
-            PHASE = 'isolated-session-scrub'
-            command(psql, input=b'TRUNCATE auth.sessions,auth.refresh_tokens,auth.one_time_tokens,auth.flow_state CASCADE;')
-            sessions = command(psql, input=b'SELECT (SELECT count(*) FROM auth.sessions)+(SELECT count(*) FROM auth.refresh_tokens)+(SELECT count(*) FROM auth.one_time_tokens)+(SELECT count(*) FROM auth.flow_state);').stdout.decode().strip()
-            if sessions != '0':
-                raise ValueError('Restored sessions remain')
             proof = {'schemaVersion': 'alterward-managed-restore-proof-1',
                 'runId': request['runId'], 'sourceCommit': request['commit'],
+                'captureSourceCommit': manifest['sourceCommit'],
+                'captureSourceHashes': manifest['sourceHashes'],
+                'rehearsalSourceHashes': request['sourceHashes'],
+                'projectBinding': manifest['projectBinding'], 'backupCapturedAt': manifest['capturedAt'],
+                'backupExpiresAt': manifest['expiresAt'],
                 'offsiteCiphertextVerified': True, 'tamperedCiphertextRejected': True,
                 'managedTablesAndAllRowHashesMatched': len(catalog['tables']),
                 'managedRowsMatched': sum(t['count'] for t in catalog['tables']),
                 'publicSchemaRlsAndBrowserBoundaryMatched': True,
                 'publicColumnsGrantsPoliciesFunctionsTriggersIndexesConstraintsMatched': True,
                 'publicTablesVerifiedEmpty': len(names),
-                'restoredAuthSessionsScrubbed': True, 'publicPorts': 0,
+                'ephemeralAuthTablesVerifiedEmpty': True,
+                'authUserTokenColumnsClearedAtCapture': True, 'publicPorts': 0,
                 'networkMode': 'none', 'authServerStarted': False,
                 'liveDatabaseWrites': False, 'externalMessagesSent': False,
                 'paidAiCalls': 0, 'restoreOrActivationAllowed': False,
@@ -302,10 +398,9 @@ def main():
     for interruption in [signal.SIGTERM, signal.SIGHUP]:
         signal.signal(interruption, interrupted)
     request = json.load(__import__('sys').stdin)
-    if request['action'] == 'capture':
-        return capture(request)
-    if request['action'] == 'rehearse':
-        return rehearse(request)
+    if request['action'] in {'capture', 'rehearse'}:
+        with operator_locks():
+            return capture(request) if request['action'] == 'capture' else rehearse(request)
     raise ValueError('Explicit manual action required')
 
 

@@ -1,8 +1,14 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync, lstatSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  readFileSync,
+  writeFileSync,
+  lstatSync,
+  realpathSync,
+  readdirSync,
+} from 'node:fs';
+import { join, resolve } from 'node:path';
 import { connectDatabase } from '../packages/database/dist/index.js';
 import {
   privateReportDirectory,
@@ -13,6 +19,14 @@ import {
 const invoke = promisify(execFile);
 const image =
   'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f';
+const digest = (data: string | Buffer) =>
+  createHash('sha256').update(data).digest('hex');
+function regular(file: string) {
+  const info = lstatSync(file);
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1)
+    throw Error('Private regular input required');
+  return readFileSync(file);
+}
 let phase = 'validation';
 async function main() {
   const restoreOnly = process.argv[2] === '--rehearse-existing';
@@ -23,7 +37,16 @@ async function main() {
   )
     throw Error('Explicit pinned Windows operator command required');
   const dir = privateReportDirectory('supabase-recovery');
-  const secrets = join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets');
+  const secrets = resolve(
+    process.env.ALTERWARD_SSH_SECRETS_DIR ??
+      join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
+  );
+  if (
+    !lstatSync(secrets).isDirectory() ||
+    lstatSync(secrets).isSymbolicLink() ||
+    realpathSync(secrets).toLowerCase() !== secrets.toLowerCase()
+  )
+    throw Error('Original absolute secrets directory required');
   const key = join(secrets, 'contabo_alterward_ed25519'),
     pin = join(secrets, 'contabo_known_hosts'),
     identityPath = join(secrets, 'alterward_backup_identity.txt');
@@ -51,13 +74,29 @@ async function main() {
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
-  const script = readFileSync('scripts/ops/contabo-managed-recovery.py');
-  const tracked = execFileSync('git', [
-    'show',
-    `${commit}:scripts/ops/contabo-managed-recovery.py`,
-  ]);
-  if (!script.equals(tracked))
-    throw Error('Committed operator source required');
+  const sourceHashes: Record<string, string> = {};
+  for (const path of [
+    'scripts/ops/contabo-managed-recovery.py',
+    'scripts/ops/contabo-backup.py',
+    'scripts/supabase-managed-recovery.mts',
+    'scripts/lib/private-report.ts',
+    'pnpm-lock.yaml',
+  ]) {
+    const bytes = regular(path);
+    if (!bytes.equals(execFileSync('git', ['show', `${commit}:${path}`])))
+      throw Error('Committed operator sources required');
+    sourceHashes[path] = digest(bytes);
+  }
+  for (const dir of ['packages/database/dist', 'packages/core/dist']) {
+    const files = (readdirSync(dir, { recursive: true }) as string[])
+      .filter((p) => p.endsWith('.js'))
+      .sort();
+    sourceHashes[dir] = digest(
+      files.map((p) => p + ':' + digest(regular(join(dir, p)))).join('\n'),
+    );
+  }
+  const script = regular('scripts/ops/contabo-managed-recovery.py');
+  const library = regular('scripts/ops/contabo-backup.py');
   const securitySql = script
     .toString()
     .match(/SECURITY_SQL = r"""([\s\S]*?)"""/)?.[1];
@@ -73,9 +112,7 @@ async function main() {
     pending.child.stdin!.end(
       JSON.stringify({
         request,
-        library: readFileSync('scripts/ops/contabo-backup.py').toString(
-          'base64',
-        ),
+        library: library.toString('base64'),
         script: script.toString('base64'),
       }),
     );
@@ -95,17 +132,28 @@ async function main() {
       throw Error('Remote managed recovery stopped');
     }
   }
-  const identity = readFileSync(identityPath, 'utf8');
+  const identity = regular(identityPath).toString();
+  const projectUrl = new URL(process.env.SUPABASE_URL ?? '');
+  if (
+    projectUrl.protocol !== 'https:' ||
+    !/^[a-z]{20}\.supabase\.co$/.test(projectUrl.hostname)
+  )
+    throw Error('Hosted project binding required');
+  const projectRef = projectUrl.hostname.split('.')[0]!;
+  const projectBinding = digest(projectRef);
   let manifest;
   if (restoreOnly) {
+    const pointer = JSON.parse(
+      regular(join(dir, 'managed-backup-latest.json')).toString(),
+    );
+    if (!/^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$/.test(pointer.runId))
+      throw Error('Exact original run pointer required');
     manifest = JSON.parse(
-      readFileSync(join(dir, 'managed-backup-manifest.json'), 'utf8'),
+      regular(join(dir, `${pointer.runId}-manifest.json`)).toString(),
     );
   } else {
     phase = 'source-project-binding';
-    const projectUrl = new URL(process.env.SUPABASE_URL ?? ''),
-      databaseUrl = new URL(process.env.DATABASE_URL ?? '');
-    const projectRef = projectUrl.hostname.split('.')[0]!;
+    const databaseUrl = new URL(process.env.DATABASE_URL ?? '');
     if (
       projectUrl.protocol !== 'https:' ||
       !/^[a-z]{20}\.supabase\.co$/.test(projectUrl.hostname) ||
@@ -150,24 +198,83 @@ async function main() {
         const names = await tx.query<{ schema: string; name: string }>(
           "SELECT schemaname AS schema,tablename AS name FROM pg_tables WHERE schemaname IN ('auth','storage') ORDER BY schemaname,tablename",
         );
+        const excludedRaw = script
+          .toString()
+          .match(/EXCLUDED_AUTH_DATA = (\{[\s\S]*?\})\n/)?.[1];
+        if (!excludedRaw) throw Error('Fixed ephemeral table catalog missing');
+        const excluded = new Set(
+          [...excludedRaw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!),
+        );
+        const knownRaw = script
+          .toString()
+          .match(/KNOWN_AUTH_TABLES = (\{[\s\S]*?\})\n/)?.[1];
+        if (!knownRaw) throw Error('Fixed managed table allowlist missing');
+        const known = new Set(
+          [...knownRaw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!),
+        );
+        if (names.some((t) => t.schema === 'auth' && !known.has(t.name)))
+          throw Error('New Auth tables require privacy review');
+        const columns = await tx.query<{
+          column_name: string;
+          is_generated: string;
+          data_type: string;
+        }>(
+          "SELECT column_name,is_generated,data_type FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' ORDER BY ordinal_position",
+        );
+        if (columns.some((c) => !/^[a-z_][a-z0-9_]{0,62}$/.test(c.column_name)))
+          throw Error('Unknown Auth column name');
+        const tokenColumns = columns
+          .filter((c) => c.column_name.includes('token'))
+          .map((c) => c.column_name);
+        if (
+          columns.some(
+            (c) =>
+              tokenColumns.includes(c.column_name) &&
+              !['text', 'character varying', 'character'].includes(c.data_type),
+          )
+        )
+          throw Error('New Auth token type requires review');
+        const cleared = [...tokenColumns, 'email_change', 'phone_change'];
+        const overrides = cleared
+          .map((c) => `'${c}',CASE WHEN u."${c}" IS NULL THEN NULL ELSE '' END`)
+          .join(',');
+        const sanitizedSql = `SELECT to_jsonb(u)||jsonb_build_object(${overrides},'email_change_confirm_status',0) AS row FROM auth.users u ORDER BY u.id`;
+        const sanitizedAuthUsers = (
+          await tx.query<{ row: Record<string, unknown> }>(sanitizedSql)
+        ).map((r) => r.row);
         const tables = [];
         for (const table of names) {
           if (!/^[a-z_][a-z0-9_]{0,62}$/.test(table.name))
             throw Error('Unexpected managed table name');
-          const [row] = await tx.query(
-            `SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM "${table.schema}"."${table.name}" t`,
-          );
+          const excludedTable =
+            table.schema === 'auth' && excluded.has(table.name);
+          const query = excludedTable
+            ? "SELECT 0::int AS count,md5('') AS digest"
+            : table.schema === 'auth' && table.name === 'users'
+              ? `SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(row::text),'' ORDER BY md5(row::text)),'')) AS digest FROM (${sanitizedSql}) sanitized`
+              : `SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM "${table.schema}"."${table.name}" t`;
+          const [row] = await tx.query(query);
           tables.push({ ...table, ...row });
         }
         const [security] = await tx.query<{ digest: string }>(securitySql);
         const roles = await tx.query<{ rolname: string }>(
           'SELECT rolname FROM pg_roles ORDER BY rolname',
         );
+        const [publicTables] = await tx.query<{ tables: number; rls: number }>(
+          "SELECT count(*)::int AS tables,count(*) FILTER(WHERE c.relrowsecurity)::int AS rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p')",
+        );
         const catalog = {
           scope: 'auth-storage-data-and-public-security',
           tables,
           roles: roles.map((r) => r.rolname),
           publicSecurityDigest: security!.digest,
+          publicTables: publicTables!.tables,
+          publicRlsTables: publicTables!.rls,
+          authUserInsertColumns: columns
+            .filter((c) => c.is_generated === 'NEVER')
+            .map((c) => c.column_name),
+          clearedAuthUserTokenColumns: tokenColumns,
+          sanitizedAuthUsers,
         };
         const runId =
           new Date()
@@ -183,6 +290,7 @@ async function main() {
           runId,
           commit,
           image,
+          sourceHashes,
           projectRef,
           snapshot: snapshot!.id,
           recipient,
@@ -200,10 +308,10 @@ async function main() {
     } finally {
       await db.close();
     }
-    privateReportFile(dir, 'managed-backup-manifest.json', manifest);
   }
   if (
-    manifest.schemaVersion !== 'alterward-managed-recovery-1' ||
+    manifest.schemaVersion !== 'alterward-managed-recovery-2' ||
+    manifest.projectBinding !== projectBinding ||
     !/^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$/.test(manifest.runId) ||
     Object.keys(manifest.encryptedFiles).sort().join(',') !==
       'catalog.json.age,managed.dump.age'
@@ -217,7 +325,7 @@ async function main() {
   ][]) {
     const file = join(dir, `${manifest.runId}-${name}`);
     const cipher = restoreOnly
-      ? readFileSync(file)
+      ? regular(file)
       : (
           await invoke(
             'ssh',
@@ -245,12 +353,24 @@ async function main() {
     }
     files[name] = cipher.toString('base64');
   }
+  if (!restoreOnly) {
+    writeFileSync(
+      join(dir, `${manifest.runId}-manifest.json`),
+      JSON.stringify(manifest, null, 2) + '\n',
+      { mode: 0o600, flag: 'wx' },
+    );
+    privateReportFile(dir, 'managed-backup-latest.json', {
+      runId: manifest.runId,
+    });
+  }
   phase = 'isolated-managed-proof';
   const proof = await remote({
     action: 'rehearse',
     runId: manifest.runId,
     commit,
     image,
+    sourceHashes,
+    projectBinding,
     manifest,
     files,
     identity,

@@ -1,4 +1,5 @@
 import importlib.util
+import datetime as dt
 import json
 from pathlib import Path
 import sys
@@ -19,6 +20,10 @@ spec.loader.exec_module(managed)
 def catalog():
     return {'scope': 'auth-storage-data-and-public-security',
             'roles': ['postgres', 'anon'], 'publicSecurityDigest': '0' * 32,
+            'publicTables':97, 'publicRlsTables':97,
+            'authUserInsertColumns':['id','confirmation_token'],
+            'clearedAuthUserTokenColumns':['confirmation_token'],
+            'sanitizedAuthUsers':[{'id':'synthetic','confirmation_token':''}],
             'tables': [{'schema': 'auth', 'name': 'users', 'count': 1, 'digest': '0' * 32}]}
 
 
@@ -30,6 +35,9 @@ class ManagedRecoveryBoundaries(unittest.TestCase):
             {'tables': [{'schema': 'public', 'name': 'aw_lives', 'count': 0, 'digest': '0'*32}]},
             {'tables': catalog()['tables'] * 2},
             {'tables': [{'schema': 'auth', 'name': 'sessions', 'count': 0, 'digest': '0'*32}]},
+            {'tables': [{'schema': 'auth', 'name': 'users', 'count': 1, 'digest': '0'*32}, {'schema':'auth','name':'new_token_table','count':1,'digest':'0'*32}]},
+            {'sanitizedAuthUsers':[{'id':'synthetic','confirmation_token':'live-bearer'}]},
+            {'tables':catalog()['tables']+[{'schema':'auth','name':'sessions','count':1,'digest':'0'*32}]},
         ]:
             with self.subTest(change=change), self.assertRaises(ValueError):
                 managed.safe_catalog({**catalog(), **change})
@@ -67,6 +75,21 @@ class ManagedRecoveryBoundaries(unittest.TestCase):
         with patch.object(managed,'validate_base'), patch.object(managed,'existing_state') as state:
             with self.assertRaises(ValueError): managed.rehearse(request)
             state.assert_not_called()
+
+    def test_expired_or_foreign_project_manifest_is_refused_before_any_restore(self):
+        now=dt.datetime.now(dt.timezone.utc)
+        base={'capturedAt':(now-dt.timedelta(hours=1)).isoformat(),
+              'expiresAt':(now-dt.timedelta(hours=1)+dt.timedelta(days=7)).isoformat(),
+              'schemaVersion':'alterward-managed-recovery-2','runId':'20261010T120000Z-12345678',
+              'postgresImage':managed.PINNED_PG,'projectBinding':'a'*64,'sourceCommit':'b'*40,
+              'encryptedFiles':dict.fromkeys(managed.FILES),'scope':'auth-storage-data-and-public-security','sourceHashes':{}}
+        request={'runId':base['runId'],'projectBinding':'a'*64}
+        managed.validate_manifest(base,request)
+        for change in [{'projectBinding':'c'*64},
+                       {'capturedAt':(now-dt.timedelta(days=8)).isoformat(),'expiresAt':(now-dt.timedelta(days=1)).isoformat()},
+                       {'expiresAt':(now+dt.timedelta(days=30)).isoformat()},
+                       {'capturedAt':(now+dt.timedelta(hours=1)).isoformat()}]:
+            with self.assertRaises(ValueError):managed.validate_manifest({**base,**change},request)
 
 
 if __name__ == '__main__':
