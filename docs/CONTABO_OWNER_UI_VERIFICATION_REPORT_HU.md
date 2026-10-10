@@ -1,5 +1,7 @@
 # alterward — éles tulajdonosi felületpróba
 
+**Aktuális pontosítás, 2026-10-10:** a valódi saját, már felhasznált recovery-link helyes angol elutasítását a felhasználó megerősítette. A link kapuja lezárt; Gmail inbox/spam és a többi kiadási kapu külön feladat. A korábbi dátumozott megállapítások történeti állapotok.
+
 2026-10-09 · [Domainbekötés és rollback](CONTABO_OWNER_DOMAIN_ACTIVATION_REPORT_HU.md) · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Cloud-audit értékelése](CLAUDE_CLOUD_PRELAUNCH_AUDIT_REPORT_HU.md).
 
 **A frissített 9eb7732 éles verzión a tulajdonosi belépés és a teljes angol olvasási kínálat működik.** Az új Cloudflare-belépés utáni ellenőrzés 2026-10-09T21:31:25.968Z-kor lezárult; a saját Supabase-fiók belépett felülete is megmaradt. Provider-hívás vagy fizetett bétaaktiválás nem történt. A korábbi saját meghívás/export és mobilpróba bizonyítékai alább külön történeti szakaszban maradnak. A későbbi recovery/belépés, SPF/DKIM/DMARC PASS és támogatási válaszút eredménye a [kézbesítési checkpointban](SMTP2GO_DELIVERY_CHECKPOINT_HU.md); a már használt valódi recovery-link javítás utáni emberi próbája és az inbox-kézbesítés még nyitott.
@@ -65,3 +67,12 @@ A futó alkalmazás `9eb7732`, az ops `46f93e8`; a korábbi mobil/export/www biz
 A [napi eszköz és audit](CONTABO_DAILY_BACKUP_MONITOR_HU.md) df7550e szerverforrással, 2eb9a50 helyi transporttal aktív: hét napos managed retention, napi 03:15 UTC backup, negyedórás monitor és óránkénti current-user helyi sync. A 20261010T092255Z-ca2becbc offsite példányból 97 tábla / 1633 sor / 55 configfájl memóriában kezelt kulcsú izolált restore-ja egyezett; tamper elutasítva, ideiglenes adatok/konténerek eltávolítva. Hiányzó-könyvtár és mesterséges kulcsírás SIGKILL/monitor cleanup célpróba sikeres, host-reboot nélkül. 24 új Linux eset mind sikeres, 65 helyi Python esetből 64 sikeres + egy Windows-korlát; hat Node-retention és két valós helyi pin-negatív próba sikeres. A valódi Windows task kézi és első automatikus futása eredmény 0; a pontos [verify/container CI](https://github.com/Muzsy/future_flow/actions/runs/38041820645) zöld.
 
 Claude elfogadta a napi és transportjavításokat; a 12 új findinggel összesen 55 megfigyelés, nem 55 igazolt hiba. DLY-05/06/07/10/11/12 határai és a külön UPG-10 low feladat megmaradnak. Forrásaudit, célpróba és jövőbeli üzembiztonság külön bizonyíték. App 9eb7732 / egy owner / eredeti Access/CA és nulla paid allowance változatlan; hat idegen futó konténer a korábbi baseline-nal egyezik. Új provider-költés 0 USD. A mentés nem zárja le a deletion/revocation replay, történeti retention, hosztolt Auth/Storage/grants, külső riasztás/független kulcsmentés vagy teljes worker-/host-/providerhibaút kapuját. A teljes P01–P13 / Shared S0–S7 és az inaktív 10 USD/tízfős béta megmarad.
+
+
+## 2026-10-10: tényleges felhasznált recovery-link ellenőrzése
+
+A felhasználó a korábban már felhasznált saját „Reset your Alterward password” linket újranyitotta az éles oldalon, és pontosan ezt az üzenetet jelentette:
+
+> That sign-in link is invalid, expired, or has already been used. Request a new link, or sign in with your password.
+
+Ez a javítás utáni valódi link emberi end-to-end visszaellenőrzése, külön a korábbi szintetikus callback-próbától. A konkrét callback/token nem lett kiolvasva; az általános üzenetből a szolgáltatói hibakódot nem következtetjük ki. A reused-link megjelenítési kapu lezárt. Új levélküldés, jelszóváltoztatás vagy jogosultság-aktiválás nem történt. A korábbi két levél spambe érkezett; inbox/reputáció és szolgáltatói delivery/bounce ellenőrzés továbbra feladat.

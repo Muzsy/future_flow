@@ -1,5 +1,7 @@
 # alterward — SMTP bekötés és első kézbesítési ellenőrzés
 
+**Aktuális pontosítás, 2026-10-10:** a valódi saját, már felhasznált recovery-link helyes angol elutasítását a felhasználó megerősítette. A link kapuja lezárt; Gmail inbox/spam és a többi kiadási kapu külön feladat. A korábbi dátumozott megállapítások történeti állapotok.
+
 2026-10-08 · **SMTP-bekötés és első kézbesítés: felhasználói próba. Auth URL-ek és nyolc angol HTML-sablon: Codex dashboard-mentés és újranyitási ellenőrzés.** A fejlécek és az éles belépés továbbra külön bizonyítékot igényelnek. [SMTP útmutató](SMTP2GO_SUPABASE_SETUP_HU.md) · [Email-szerepek](OPERATOR_EMAIL_CONFIGURATION_HU.md) · [Angol levélsablonok](../deploy/supabase-auth/en/README.md).
 
 ## Mi készült el?
@@ -59,3 +61,12 @@ A már felhasznált saját recovery-linkre a felhasználó a „The service coul
 ## Callback-javítás már éles
 
 A 9eb7732 alkalmazási image a Contabón frissült, őrzött valódi rollback/újra-upgrade után. Az éles szintetikus otp_expired callback az érthető angol invalid/expired/used üzenetet adja és megtartja a saját előző sessiont. A tényleges saját felhasznált link ellenőrzését újra kértük; token nem került kiolvasásra és új Auth-levél nem ment. Mindkét korábbi levél spambe kézbesült, inbox továbbra nincs igazolva. [Friss kiadási bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).
+
+
+## 2026-10-10: tényleges felhasznált recovery-link ellenőrzése
+
+A felhasználó a korábban már felhasznált saját „Reset your Alterward password” linket újranyitotta az éles oldalon, és pontosan ezt az üzenetet jelentette:
+
+> That sign-in link is invalid, expired, or has already been used. Request a new link, or sign in with your password.
+
+Ez a javítás utáni valódi link emberi end-to-end visszaellenőrzése, külön a korábbi szintetikus callback-próbától. A konkrét callback/token nem lett kiolvasva; az általános üzenetből a szolgáltatói hibakódot nem következtetjük ki. A reused-link megjelenítési kapu lezárt. Új levélküldés, jelszóváltoztatás vagy jogosultság-aktiválás nem történt. A korábbi két levél spambe érkezett; inbox/reputáció és szolgáltatói delivery/bounce ellenőrzés továbbra feladat.

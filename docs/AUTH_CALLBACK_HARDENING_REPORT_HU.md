@@ -1,5 +1,7 @@
 # alterward — belépési link hibájának egyértelmű kezelése
 
+**Aktuális pontosítás, 2026-10-10:** a valódi saját, már felhasznált recovery-link helyes angol elutasítását a felhasználó megerősítette. A link kapuja lezárt; Gmail inbox/spam és a többi kiadási kapu külön feladat. A korábbi dátumozott megállapítások történeti állapotok.
+
 2026-10-09 · [Levelezési bizonyíték](SMTP2GO_DELIVERY_CHECKPOINT_HU.md) · [Kiadási kapuk](NEXT_STEPS.md).
 
 A tulajdonos a már felhasznált saját recovery-linkre „The service could not be reached. Please try again.” szöveget jelentett. A konkrét link, token és provider-válasz nincs kiolvasva, ezért e jelentés önmagában nem bizonyít hálózati hibát vagy az újrafelhasználás helyes tiltását. A korábbi sikeres saját jelszóbeállítás/belépés megmarad; mindkét Auth-levél spambe érkezett. A támogatási válasz Gmailbe továbbítását a felhasználó külön megerősítette.
@@ -37,3 +39,12 @@ A 1604c71 image elkülönített Contabo-próbája is sikeres: sha256:f790ea8a8d7
 ## Éles tulajdonosi frissítés
 
 Az alkalmazási 9eb7732 image ops 46f93e8 mellett éles; a szintetikus éles otp_expired callback a helyes angol üzenetet mutatja és megtartja a saját korábbi sessiont. Ez nem a felhasználó nyers régi linkjének kiolvasása vagy tényleges consumed-token próba. A valódi használt-link visszaellenőrzés még nyitott. [Frissítés/rollback és bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).
+
+
+## 2026-10-10: tényleges felhasznált recovery-link ellenőrzése
+
+A felhasználó a korábban már felhasznált saját „Reset your Alterward password” linket újranyitotta az éles oldalon, és pontosan ezt az üzenetet jelentette:
+
+> That sign-in link is invalid, expired, or has already been used. Request a new link, or sign in with your password.
+
+Ez a javítás utáni valódi link emberi end-to-end visszaellenőrzése, külön a korábbi szintetikus callback-próbától. A konkrét callback/token nem lett kiolvasva; az általános üzenetből a szolgáltatói hibakódot nem következtetjük ki. A reused-link megjelenítési kapu lezárt. Új levélküldés, jelszóváltoztatás vagy jogosultság-aktiválás nem történt. A korábbi két levél spambe érkezett; inbox/reputáció és szolgáltatói delivery/bounce ellenőrzés továbbra feladat.
