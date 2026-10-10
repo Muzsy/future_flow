@@ -1,5 +1,7 @@
 # alterward — helyi managed mentések lejárata
 
+2026-10-10T16:52Z friss kiegészítés: [közös managed egyeztetés/naplóarchiválás](MANAGED_RETENTION_RECONCILIATION_HU.md) implementált és tényleges célpróbával ellenőrzött; a b5c23f1 pontos auditja és CI-je sikeres. Független leválasztott kulcspéldány és első sikeres külső schedule igazolt. Automatikus/történeti/ágyazott expiry és teljes hosted recovery még nincs. Az alábbi régebbi checkpointok a megjelölt korábbi forrás állapotai.
+
 2026-10-10 · [Szerveroldali retention](MANAGED_BACKUP_RETENTION_HU.md) · [Mentési lefedettség](SUPABASE_RECOVERY_COVERAGE_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
 A helyi managed másolatokra elkészült a külön [lejárati wrapper](../scripts/supabase-managed-local-expiry.mts) és [közös fájlkezelő](../scripts/ops/local-managed-recovery.py). Az új capture és a meglévő mentés olvasása is ezt használja. A változás nem alkalmazáskiadás, nem tesztelői aktiválás és nem új AI-hívás. Automatikus futtatás és teljes történeti retention még nincs.

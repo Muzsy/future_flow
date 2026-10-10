@@ -1,5 +1,7 @@
 # alterward — törlésvédelem a mentés visszaállításakor
 
+2026-10-10T16:52Z friss kiegészítés: [közös managed egyeztetés/naplóarchiválás](MANAGED_RETENTION_RECONCILIATION_HU.md) implementált és tényleges célpróbával ellenőrzött; a b5c23f1 pontos auditja és CI-je sikeres. Független leválasztott kulcspéldány és első sikeres külső schedule igazolt. Automatikus/történeti/ágyazott expiry és teljes hosted recovery még nincs. Az alábbi régebbi checkpointok a megjelölt korábbi forrás állapotai.
+
 2026-10-10-i managed-kiegészítés: [külön titkosított Auth/Storage capture és valódi izolált PG-restore](SUPABASE_RECOVERY_COVERAGE_HU.md) sikeres. A public daily/config mentés külön scope; teljes hosted login/jogosultság/fence/promotion és managed/történeti retention még kapu. [Külső monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) konfigurációja aktív, kézi futása sikeres; schedule még nem igazolt, a külön szándékos hibaemail Inbox-kézbesítését a felhasználó megerősítette. Az alábbi korábbi proofok a megjelölt forrás/időpont állapotai.
 
 2026-10-10 · [Következő lépések](NEXT_STEPS.md) · [Mentési eljárás](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Fióktörlés](ACCOUNT_DELETION_RUNBOOK_HU.md).

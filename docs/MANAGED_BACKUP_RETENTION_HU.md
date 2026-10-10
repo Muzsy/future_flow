@@ -1,5 +1,7 @@
 # alterward — külön managed Auth-mentések lejárata
 
+2026-10-10T16:52Z friss kiegészítés: [közös managed egyeztetés/naplóarchiválás](MANAGED_RETENTION_RECONCILIATION_HU.md) implementált és tényleges célpróbával ellenőrzött; a b5c23f1 pontos auditja és CI-je sikeres. Független leválasztott kulcspéldány és első sikeres külső schedule igazolt. Automatikus/történeti/ágyazott expiry és teljes hosted recovery még nincs. Az alábbi régebbi checkpointok a megjelölt korábbi forrás állapotai.
+
 2026-10-10 · **Szerveroldali operátori szelet és helyi naplózott fájlkezelés elkészült; automatikus retention még nincs.** [Mentési lefedettség](SUPABASE_RECOVERY_COVERAGE_HU.md) · [Kiadási sorrend](NEXT_STEPS.md).
 
 Új helyi szelet: [helyi managed retention](LOCAL_MANAGED_BACKUP_RETENTION_HU.md), 23 Windows- és 23 tényleges Linux-eset, valódi kernelzár/megszakítás utáni folytatás, izolált Python-runtime célpróba és valódi törlés nélküli check. Claude low-jelzései javítva, pontos delta új konkrét finding nélkül; automatikus expiry továbbra külön integrációs kapukra vár. Az alábbi szerveroldali bizonyítékokat ez nem írja felül; a szerver megszakítási naplója és a teljes összehangolt futtató még külön feladat.
