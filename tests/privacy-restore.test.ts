@@ -196,8 +196,15 @@ describe('independent authority and quarantined privacy restore', () => {
     }
   });
   it('preserves an unchanged publication across different capture/replay session timezones', async () => {
+    const utcRows = await source.query(
+      'SELECT to_jsonb(p) AS record FROM aw_publications p ORDER BY id',
+    );
     await source.query("SET TIME ZONE 'Asia/Tokyo'");
     try {
+      const localRows = await source.query(
+        'SELECT to_jsonb(p) AS record FROM aw_publications p ORDER BY id',
+      );
+      expect(hash(localRows.rows)).not.toBe(hash(utcRows.rows));
       const current = await capturePrivacyRestoreAuthority(adapter(source), {
         projectBinding,
         writerFenceDigest,
