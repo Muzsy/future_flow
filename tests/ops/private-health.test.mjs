@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePrivateHealth } from '../../scripts/lib/private-health.mjs';
+import {
+  validatePrivateHealth,
+  normalizeMonitorCredentials,
+} from '../../scripts/lib/private-health.mjs';
 
 const source = 'a'.repeat(64),
   now = Date.parse('2026-10-10T17:00:00Z');
@@ -83,4 +86,32 @@ test('refuses source mismatch and bounded or invalid envelopes', () => {
   );
   for (const raw of ['x'.repeat(16385), '{}', 'null', '[]', '{'])
     assert.throws(() => validatePrivateHealth(raw, source, now));
+});
+test('normalizes CRLF and a missing final key newline before validation', () => {
+  const key =
+    '-----BEGIN OPENSSH PRIVATE KEY-----\nYWJj\n-----END OPENSSH PRIVATE KEY-----';
+  for (const value of [key, key.replaceAll('\n', '\r\n')]) {
+    const result = normalizeMonitorCredentials(
+      '192.0.2.1',
+      '192.0.2.1 ssh-ed25519 fixture\r\n',
+      value,
+    );
+    assert.equal(result.key, key + '\n');
+    assert.equal(result.pin, '192.0.2.1 ssh-ed25519 fixture');
+  }
+});
+test('refuses additional host pins, option injection and malformed identities', () => {
+  const key =
+    '-----BEGIN OPENSSH PRIVATE KEY-----\nYWJj\n-----END OPENSSH PRIVATE KEY-----\n';
+  for (const [host, pin, identity] of [
+    ['-o', '-o ssh-ed25519 fixture', key],
+    [
+      '192.0.2.1',
+      '192.0.2.1 ssh-ed25519 fixture\n192.0.2.2 ssh-ed25519 fixture',
+      key,
+    ],
+    ['192.0.2.1', '192.0.2.2 ssh-ed25519 fixture', key],
+    ['192.0.2.1', '192.0.2.1 ssh-ed25519 fixture', 'invalid'],
+  ])
+    assert.throws(() => normalizeMonitorCredentials(host, pin, identity));
 });

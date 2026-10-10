@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { validatePrivateHealth } from './lib/private-health.mjs';
+import {
+  validatePrivateHealth,
+  normalizeMonitorCredentials,
+} from './lib/private-health.mjs';
 
 let directory;
 try {
@@ -12,9 +15,11 @@ try {
     process.argv.slice(2).join('|') !== '--check'
   )
     throw Error('Linux private monitor check required');
-  const host = process.env.ALTERWARD_MONITOR_HOST ?? '';
-  const pin = process.env.ALTERWARD_MONITOR_KNOWN_HOSTS ?? '';
-  const key = process.env.ALTERWARD_MONITOR_SSH_KEY ?? '';
+  const { host, pin, key } = normalizeMonitorCredentials(
+    process.env.ALTERWARD_MONITOR_HOST ?? '',
+    process.env.ALTERWARD_MONITOR_KNOWN_HOSTS ?? '',
+    process.env.ALTERWARD_MONITOR_SSH_KEY ?? '',
+  );
   const source = createHash('sha256')
     .update(
       fs.readFileSync(
@@ -22,20 +27,11 @@ try {
       ),
     )
     .digest('hex');
-  if (
-    !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host) ||
-    !pin.startsWith(`${host} ssh-ed25519 `) ||
-    pin.trim().split(/\r?\n/).length !== 1 ||
-    !/^-----BEGIN OPENSSH PRIVATE KEY-----\n[A-Za-z0-9+/=\r\n]+-----END OPENSSH PRIVATE KEY-----\s*$/.test(
-      key,
-    )
-  )
-    throw Error('Dedicated restricted monitor key and exact host pin required');
   directory = fs.mkdtempSync(join(os.tmpdir(), 'alterward-health-'));
   fs.chmodSync(directory, 0o700);
   const identity = join(directory, 'identity'),
     known = join(directory, 'known_hosts');
-  fs.writeFileSync(identity, key.replaceAll('\r\n', '\n').trimEnd() + '\n', {
+  fs.writeFileSync(identity, key, {
     mode: 0o600,
     flag: 'wx',
   });

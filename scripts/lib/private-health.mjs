@@ -10,6 +10,23 @@ const checks = [
   'originCertificateHealthy',
 ];
 
+export function normalizeMonitorCredentials(host, pin, key) {
+  if ([host, pin, key].some((value) => typeof value !== 'string'))
+    throw Error('Dedicated restricted monitor credentials required');
+  const normalizedPin = pin.replaceAll('\r\n', '\n').trimEnd();
+  const normalizedKey = key.replaceAll('\r\n', '\n').trimEnd() + '\n';
+  if (
+    !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host) ||
+    !normalizedPin.startsWith(`${host} ssh-ed25519 `) ||
+    normalizedPin.split('\n').length !== 1 ||
+    !/^-----BEGIN OPENSSH PRIVATE KEY-----\n[A-Za-z0-9+/=\n]+-----END OPENSSH PRIVATE KEY-----\n$/.test(
+      normalizedKey,
+    )
+  )
+    throw Error('Dedicated restricted monitor key and exact host pin required');
+  return { host, pin: normalizedPin, key: normalizedKey };
+}
+
 export function validatePrivateHealth(raw, expectedSource, now = Date.now()) {
   if (
     typeof raw !== 'string' ||
