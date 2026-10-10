@@ -24,6 +24,7 @@ jobs:
         run: |
           python3 -m unittest discover -s tests/ops -p 'test_*.py'
           node --test tests/ops/daily-archives.test.mjs
+          node --test tests/ops/external-monitor.test.mjs
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

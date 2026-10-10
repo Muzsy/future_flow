@@ -1,0 +1,22 @@
+name: Alterward external availability
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: alterward-external-availability
+  cancel-in-progress: false
+jobs:
+  public-availability:
+    if: github.event_name == 'workflow_dispatch' || vars.ALTERWARD_EXTERNAL_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check public rights pages and unauthenticated API without credentials
+        run: node scripts/external-availability.mjs --check
