@@ -73,7 +73,7 @@ class HealthProjectionTests(unittest.TestCase):
             self.monitor.update(capturedAt=stamp.isoformat(), ok=ok)
             self.persist()
             value = health.projection(self.root, NOW, self.units)
-            self.assertFalse(value['monitorRecordCurrent'])
+            self.assertEqual(value['monitorRecordCurrent'], stamp == NOW)
             self.assertFalse(value['workerRuntimeHealthy'])
 
     def test_backup_freshness_and_worker_database_failures_are_independent(self):
@@ -82,9 +82,12 @@ class HealthProjectionTests(unittest.TestCase):
                                     ('diskFreeBytes', 0, 'diskSpaceHealthy'), ('edgeClosed', False, 'accessBoundaryClosed')]:
             original = self.monitor['health'][field]
             self.monitor['health'][field] = value
+            self.monitor['ok'] = False  # Real monitor writes failures this way.
             self.persist()
             self.assertFalse(health.projection(self.root, NOW, self.units)[check])
+            self.assertTrue(health.projection(self.root, NOW, self.units)['monitorRecordCurrent'])
             self.monitor['health'][field] = original
+            self.monitor['ok'] = True
 
     def test_changed_installed_source_or_status_binding_is_rejected(self):
         name = next(iter(health.SCRIPTS))

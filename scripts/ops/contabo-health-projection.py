@@ -45,10 +45,10 @@ def read(path):
         os.close(fd)
 
 
-def current(record, config, now, age):
+def current(record, config, now, age, require_ok=True):
     try:
         captured = dt.datetime.fromisoformat(record['capturedAt'])
-        return (record.get('ok') is True and captured.utcoffset() == dt.timedelta(0) and
+        return ((not require_ok or record.get('ok') is True) and captured.utcoffset() == dt.timedelta(0) and
                 0 <= (now - captured).total_seconds() <= age and
                 all(record.get(k) == config[k] for k in ('sourceCommit', 'scriptHashes', 'unitHashes')))
     except (KeyError, TypeError, ValueError):
@@ -69,7 +69,7 @@ def projection(root, now, unit_root=Path('/etc/systemd/system')):
             binding = binding and hashlib.sha256(read(directory / name)).hexdigest() == expected
     monitor = json.loads(read(root / 'status' / 'monitor.json'))
     backup = json.loads(read(root / 'status' / 'backup.json'))
-    monitor_current = current(monitor, config, now, 30 * 60)
+    monitor_current = current(monitor, config, now, 30 * 60, require_ok=False)
     backup_current = current(backup, config, now, 26 * 3600)
     health = monitor.get('health', {})
     fresh = False
@@ -82,7 +82,9 @@ def projection(root, now, unit_root=Path('/etc/systemd/system')):
         'sourceBindingCurrent': binding,
         'monitorRecordCurrent': monitor_current,
         'backupRecordCurrent': backup_current,
-        'workerRuntimeHealthy': monitor_current and health.get('ownerHealthy') is True and health.get('pendingJobs') == 0,
+        # An overall monitor failure remains an alarm, including an unexpected
+        # container-state change. Other valid health bits still aid diagnosis.
+        'workerRuntimeHealthy': monitor_current and monitor.get('ok') is True and health.get('ownerHealthy') is True and health.get('pendingJobs') == 0,
         'databaseTlsHealthy': monitor_current and health.get('databaseTlsVerified') is True,
         'accessBoundaryClosed': monitor_current and health.get('edgeClosed') is True and health.get('anonymousDenied') == 4,
         'backupFresh': monitor_current and backup_current and fresh and health.get('backupFailed') is False,

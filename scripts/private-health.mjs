@@ -35,7 +35,10 @@ try {
   fs.chmodSync(directory, 0o700);
   const identity = join(directory, 'identity'),
     known = join(directory, 'known_hosts');
-  fs.writeFileSync(identity, key, { mode: 0o600, flag: 'wx' });
+  fs.writeFileSync(identity, key.replaceAll('\r\n', '\n').trimEnd() + '\n', {
+    mode: 0o600,
+    flag: 'wx',
+  });
   fs.writeFileSync(known, pin + '\n', { mode: 0o600, flag: 'wx' });
   delete process.env.ALTERWARD_MONITOR_SSH_KEY;
   const raw = execFileSync(
@@ -49,6 +52,18 @@ try {
       `UserKnownHostsFile=${known}`,
       '-o',
       'StrictHostKeyChecking=yes',
+      '-o',
+      'GlobalKnownHostsFile=/dev/null',
+      '-o',
+      'PreferredAuthentications=publickey',
+      '-o',
+      'PasswordAuthentication=no',
+      '-o',
+      'IdentityAgent=none',
+      '-o',
+      'HostKeyAlgorithms=ssh-ed25519',
+      '-o',
+      'UpdateHostKeys=no',
       '-o',
       'BatchMode=yes',
       '-o',
