@@ -212,8 +212,21 @@ async function main() {
         const known = new Set(
           [...knownRaw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!),
         );
-        if (names.some((t) => t.schema === 'auth' && !known.has(t.name)))
-          throw Error('New Auth tables require privacy review');
+        function fixedSet(name: string) {
+          const raw = script
+            .toString()
+            .match(new RegExp(`${name} = (\\{[\\s\\S]*?\\})\\n`))?.[1];
+          if (!raw) throw Error('Reviewed managed allowlist required');
+          return new Set([...raw.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!));
+        }
+        const storage = fixedSet('KNOWN_STORAGE_TABLES');
+        const excludedStorage = fixedSet('EXCLUDED_STORAGE_DATA');
+        if (
+          names.some(
+            (t) => !(t.schema === 'auth' ? known : storage).has(t.name),
+          )
+        )
+          throw Error('New managed tables require privacy review');
         const columns = await tx.query<{
           column_name: string;
           is_generated: string;
@@ -221,8 +234,17 @@ async function main() {
         }>(
           "SELECT column_name,is_generated,data_type FROM information_schema.columns WHERE table_schema='auth' AND table_name='users' ORDER BY ordinal_position",
         );
-        if (columns.some((c) => !/^[a-z_][a-z0-9_]{0,62}$/.test(c.column_name)))
-          throw Error('Unknown Auth column name');
+        const userColumns = fixedSet('KNOWN_AUTH_USER_COLUMNS');
+        if (
+          columns.length !== userColumns.size ||
+          columns.some(
+            (c) =>
+              !userColumns.has(c.column_name) ||
+              c.is_generated !==
+                (c.column_name === 'confirmed_at' ? 'ALWAYS' : 'NEVER'),
+          )
+        )
+          throw Error('Changed Auth columns require privacy review');
         const tokenColumns = columns
           .filter((c) => c.column_name.includes('token'))
           .map((c) => c.column_name);
@@ -247,7 +269,9 @@ async function main() {
           if (!/^[a-z_][a-z0-9_]{0,62}$/.test(table.name))
             throw Error('Unexpected managed table name');
           const excludedTable =
-            table.schema === 'auth' && excluded.has(table.name);
+            table.schema === 'auth'
+              ? excluded.has(table.name)
+              : excludedStorage.has(table.name);
           const query = excludedTable
             ? "SELECT 0::int AS count,md5('') AS digest"
             : table.schema === 'auth' && table.name === 'users'

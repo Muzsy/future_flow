@@ -35,6 +35,17 @@ KNOWN_AUTH_TABLES = {'audit_log_entries', 'custom_oauth_providers', 'flow_state'
     'oauth_consents', 'one_time_tokens', 'refresh_tokens', 'saml_providers', 'saml_relay_states',
     'schema_migrations', 'scim_tokens', 'scim_users', 'sessions', 'sso_domains', 'sso_providers',
     'users', 'webauthn_challenges', 'webauthn_credentials'}
+KNOWN_AUTH_USER_COLUMNS = {'instance_id', 'id', 'aud', 'role', 'email', 'encrypted_password',
+    'email_confirmed_at', 'invited_at', 'confirmation_token', 'confirmation_sent_at',
+    'recovery_token', 'recovery_sent_at', 'email_change_token_new', 'email_change',
+    'email_change_sent_at', 'last_sign_in_at', 'raw_app_meta_data', 'raw_user_meta_data',
+    'is_super_admin', 'created_at', 'updated_at', 'phone', 'phone_confirmed_at', 'phone_change',
+    'phone_change_token', 'phone_change_sent_at', 'confirmed_at', 'email_change_token_current',
+    'email_change_confirm_status', 'banned_until', 'reauthentication_token',
+    'reauthentication_sent_at', 'is_sso_user', 'deleted_at', 'is_anonymous'}
+KNOWN_STORAGE_TABLES = {'buckets', 'buckets_analytics', 'buckets_vectors', 'migrations',
+    'objects', 's3_multipart_uploads', 's3_multipart_uploads_parts', 'vector_indexes'}
+EXCLUDED_STORAGE_DATA = {'s3_multipart_uploads', 's3_multipart_uploads_parts'}
 SECURITY_SQL = r"""SELECT md5(jsonb_build_object(
 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY x.table_name,x.ordinal_position) FROM (SELECT table_name,column_name,ordinal_position,data_type,udt_schema,udt_name,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public') x),
 'tables',(SELECT jsonb_agg(to_jsonb(x) ORDER BY x.relname) FROM (SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p')) x),
@@ -160,6 +171,7 @@ def safe_catalog(catalog):
         raise ValueError('Bounded role catalog required')
     if any(t['schema'] not in {'auth', 'storage'} or
            (t['schema'] == 'auth' and t['name'] not in KNOWN_AUTH_TABLES) or
+           (t['schema'] == 'storage' and t['name'] not in KNOWN_STORAGE_TABLES) or
            not IDENTIFIER.fullmatch(t['name']) or
            not re.fullmatch(r'[a-f0-9]{32}', t['digest']) or
            not isinstance(t['count'], int) or t['count'] < 0 for t in tables):
@@ -171,13 +183,19 @@ def safe_catalog(catalog):
     token_columns = catalog['clearedAuthUserTokenColumns']
     users = catalog['sanitizedAuthUsers']
     if (not 1 <= catalog['publicTables'] <= 1000 or catalog['publicRlsTables'] != catalog['publicTables'] or
-            not 1 <= len(columns) <= 200 or len(set(columns)) != len(columns) or
+            set(columns) != KNOWN_AUTH_USER_COLUMNS - {'confirmed_at'} or len(set(columns)) != len(columns) or
+            set(token_columns) != {c for c in KNOWN_AUTH_USER_COLUMNS if 'token' in c} or
             any(not IDENTIFIER.fullmatch(c) for c in columns + token_columns) or
             not 0 <= len(users) <= 10000 or
             len({u['id'] for u in users}) != len(users) or
+            any(set(u) != KNOWN_AUTH_USER_COLUMNS for u in users) or
+            any(u['email_change'] not in {None, ''} or u['phone_change'] not in {None, ''} or
+                u['email_change_confirm_status'] != 0 for u in users) or
             any(u.get(c) not in {None, ''} for u in users for c in token_columns) or
             any(value not in {None, ''} for u in users for key, value in u.items() if 'token' in key) or
-            any(t['count'] != 0 for t in tables if t['schema'] == 'auth' and t['name'] in EXCLUDED_AUTH_DATA)):
+            any(t['count'] != 0 for t in tables if
+                (t['schema'] == 'auth' and t['name'] in EXCLUDED_AUTH_DATA) or
+                (t['schema'] == 'storage' and t['name'] in EXCLUDED_STORAGE_DATA))):
         raise ValueError('Sanitized Auth identities and empty ephemeral data required')
     return catalog
 
@@ -228,6 +246,7 @@ def capture(request):
                     '--schema=storage', '--exclude-table-data=public.*',
                     '--exclude-table-data=auth.users',
                     *['--exclude-table-data=auth.' + n for n in sorted(EXCLUDED_AUTH_DATA)],
+                    *['--exclude-table-data=storage.' + n for n in sorted(EXCLUDED_STORAGE_DATA)],
                     '--lock-wait-timeout=5000', '--snapshot=' + request['snapshot']], timeout=180).stdout
             finally:
                 cleanup(name, request['runId'])
@@ -252,6 +271,7 @@ def capture(request):
                 'sourceHashes': request['sourceHashes'],
                 'originalDailyRecipientMatched': True,
                 'ephemeralAuthDataExcludedAtCapture': True,
+                'ephemeralStorageUploadDataExcludedAtCapture': True,
                 'authUserTokenColumnsClearedAtCapture': True,
                 'catalogSha256': sha(catalog_bytes), 'encryptedFiles': encrypted,
                 'managedTables': len(catalog['tables']),
@@ -376,6 +396,7 @@ def rehearse(request):
                 'publicColumnsGrantsPoliciesFunctionsTriggersIndexesConstraintsMatched': True,
                 'publicTablesVerifiedEmpty': len(names),
                 'ephemeralAuthTablesVerifiedEmpty': True,
+                'ephemeralStorageUploadTablesVerifiedEmpty': True,
                 'authUserTokenColumnsClearedAtCapture': True, 'publicPorts': 0,
                 'networkMode': 'none', 'authServerStarted': False,
                 'liveDatabaseWrites': False, 'externalMessagesSent': False,

@@ -18,12 +18,14 @@ spec.loader.exec_module(managed)
 
 
 def catalog():
+    user=dict.fromkeys(managed.KNOWN_AUTH_USER_COLUMNS)
+    user.update(id='synthetic',email_change_confirm_status=0)
     return {'scope': 'auth-storage-data-and-public-security',
             'roles': ['postgres', 'anon'], 'publicSecurityDigest': '0' * 32,
             'publicTables':97, 'publicRlsTables':97,
-            'authUserInsertColumns':['id','confirmation_token'],
-            'clearedAuthUserTokenColumns':['confirmation_token'],
-            'sanitizedAuthUsers':[{'id':'synthetic','confirmation_token':''}],
+            'authUserInsertColumns': sorted(managed.KNOWN_AUTH_USER_COLUMNS-{'confirmed_at'}),
+            'clearedAuthUserTokenColumns':sorted(c for c in managed.KNOWN_AUTH_USER_COLUMNS if 'token' in c),
+            'sanitizedAuthUsers':[user],
             'tables': [{'schema': 'auth', 'name': 'users', 'count': 1, 'digest': '0' * 32}]}
 
 
@@ -38,6 +40,10 @@ class ManagedRecoveryBoundaries(unittest.TestCase):
             {'tables': [{'schema': 'auth', 'name': 'users', 'count': 1, 'digest': '0'*32}, {'schema':'auth','name':'new_token_table','count':1,'digest':'0'*32}]},
             {'sanitizedAuthUsers':[{'id':'synthetic','confirmation_token':'live-bearer'}]},
             {'tables':catalog()['tables']+[{'schema':'auth','name':'sessions','count':1,'digest':'0'*32}]},
+            {'tables':catalog()['tables']+[{'schema':'storage','name':'new_upload_codes','count':0,'digest':'0'*32}]},
+            {'tables':catalog()['tables']+[{'schema':'storage','name':'s3_multipart_uploads','count':1,'digest':'0'*32}]},
+            {'sanitizedAuthUsers':[{**catalog()['sanitizedAuthUsers'][0],'otp':'future-live-code'}]},
+            {'authUserInsertColumns':catalog()['authUserInsertColumns']+['otp']},
         ]:
             with self.subTest(change=change), self.assertRaises(ValueError):
                 managed.safe_catalog({**catalog(), **change})
