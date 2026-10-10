@@ -74,6 +74,27 @@ def run(args, timeout=60):
     return result.stdout
 
 
+def local_attestation(request, config, daily, expiry, legacy):
+    required = {'action', 'ok', 'sourceCommit', 'observedAt', 'managedArchives', 'legacyPolicyDigest'}
+    if (set(request) != required or request['action'] != 'record-local' or type(request['ok']) is not bool or
+            not re.fullmatch(r'[a-f0-9]{40}', request['sourceCommit']) or
+            not re.fullmatch(r'[a-f0-9]{64}', request['legacyPolicyDigest']) or
+            type(request['managedArchives']) is not int or not 0 <= request['managedArchives'] <= 100):
+        raise ValueError('Bounded original local attestation required')
+    now = daily.utcnow()
+    if not 0 <= (now - dt_time(request['observedAt'])).total_seconds() <= 300:
+        raise ValueError('Fresh local UTC attestation required')
+    if request['ok']:
+        catalog = expiry.catalog(expiry.ROOT, config['projectBinding'], now)
+        original = legacy.expire(Path('/root/alterward-ops/legacy-retention'), Path('/root/alterward-ops/backups'), now)
+        if (request['managedArchives'] < 1 or request['managedArchives'] != len(catalog['freshRuns']) or
+                request['legacyPolicyDigest'] != original['policyDigest']):
+            raise ValueError('Current server/local metadata relationship required')
+    return {'ok': request['ok'], 'capturedAt': now.isoformat(),
+        'installedSourceCommit': config['sourceCommit'], 'localSourceCommit': request['sourceCommit'],
+        'managedArchives': request['managedArchives'], 'operatorAttestation': True}
+
+
 def main(request):
     os.umask(0o077);sys.dont_write_bytecode = True
     if os.geteuid() != 0:
@@ -136,6 +157,13 @@ def main(request):
                 raise ValueError('Existing containers changed')
         return {'installed': True, 'timerActivated': False, 'sourceCommit': config['sourceCommit'],
                 'decryptionIdentityInstalled': False, 'credentialsCopied': False, 'paidAiCalls': 0}
+    if action == 'record-local':
+        lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
+        config, daily, expiry, legacy, _ = lifecycle.load()
+        with daily.exclusive(daily.ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+            value = local_attestation(request, config, daily, expiry, legacy)
+            daily.atomic(ROOT / 'local-sync.json', value)
+        return {'localAttestationRecorded': True, 'ok': request['ok'], 'privateDataReceived': False}
     if action not in {'run', 'status', 'activate', 'disable'} or set(request) != {'action'}:
         raise ValueError('Explicit scoped lifecycle action required')
     lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
@@ -160,6 +188,10 @@ def main(request):
                 not 0 <= (now - dt_time(value['lastCaptureAt'])).total_seconds() <= 3600 or
                 any(value.get(k) != config[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes'])):
             raise ValueError('Fresh actual managed capture/service proof required')
+        local = json.loads(daily.regular(ROOT / 'local-sync.json'))
+        if (local.get('ok') is not True or local.get('installedSourceCommit') != config['sourceCommit'] or
+                not 0 <= (now - dt_time(local['capturedAt'])).total_seconds() <= 3600):
+            raise ValueError('Fresh original local-copy attestation required')
         run(['systemctl', 'enable', '--now', 'alterward-recovery.timer'])
         return {'timerActivated': True, 'checkMinutes': 15, 'captureIntervalHours': 23,
                 'sourceCommit': config['sourceCommit'], 'paidAiCalls': 0, 'automaticRestoreAllowed': False}

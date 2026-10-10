@@ -146,6 +146,7 @@ class HealthProjectionTests(unittest.TestCase):
                   'databaseTlsVerified': True, 'independentClockVerified': True,
                   'existingContainersUnchanged': True, 'automaticRestoreAllowed': False}
         self.write(root / 'config.json', config);self.write(root / 'status.json', status)
+        self.write(root / 'local-sync.json', {'ok': True, 'capturedAt': NOW.isoformat(), 'installedSourceCommit': config['sourceCommit']})
         return root, config, status
 
     def test_installed_recovery_is_required_fresh_and_source_bound(self):
@@ -170,3 +171,11 @@ class HealthProjectionTests(unittest.TestCase):
         self.assertEqual(set(value), set(health.CHECKS))
         self.assertFalse(value['backupFresh'])
         self.assertTrue(all(v is True for k, v in value.items() if k != 'backupFresh'))
+
+    def test_failed_or_stale_or_changed_local_sync_receipt_is_unhealthy(self):
+        root, config, status = self.recovery_fixture()
+        for value in [{'ok': False, 'capturedAt': NOW.isoformat(), 'installedSourceCommit': config['sourceCommit']},
+                      {'ok': True, 'capturedAt': (NOW-dt.timedelta(hours=27)).isoformat(), 'installedSourceCommit': config['sourceCommit']},
+                      {'ok': True, 'capturedAt': NOW.isoformat(), 'installedSourceCommit': 'c'*40}]:
+            self.write(root / 'local-sync.json', value)
+            self.assertFalse(health.recovery_current(root, NOW, self.units))

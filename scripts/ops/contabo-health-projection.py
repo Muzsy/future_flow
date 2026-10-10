@@ -72,8 +72,12 @@ def recovery_current(root, now, unit_root):
             if not re.fullmatch(r'[a-f0-9]{64}', expected) or hashlib.sha256(read(parent / name)).hexdigest() != expected:
                 return False
     status = json.loads(read(root / 'status.json'))
+    local = json.loads(read(root / 'local-sync.json'))
+    local_stamp = dt.datetime.fromisoformat(local['capturedAt'])
     captured = dt.datetime.fromisoformat(status['lastCaptureAt'])
     return (current(status, config, now, 30 * 60) and
+            local.get('ok') is True and local.get('installedSourceCommit') == config['sourceCommit'] and
+            local_stamp.utcoffset() == dt.timedelta(0) and 0 <= (now - local_stamp).total_seconds() <= 26 * 3600 and
             captured.utcoffset() == dt.timedelta(0) and 0 <= (now - captured).total_seconds() <= 26 * 3600 and
             status.get('databaseTlsVerified') is True and status.get('independentClockVerified') is True and
             status.get('existingContainersUnchanged') is True and status.get('automaticRestoreAllowed') is False)
