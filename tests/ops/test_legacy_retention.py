@@ -106,7 +106,7 @@ class LegacyRetentionTests(unittest.TestCase):
         record, parent = self.fixture('server')
         actual = os.unlink;calls = []
         def stop(path, *args, **kwargs):
-            calls.append(path.name)
+            calls.append(Path(path).name)
             actual(path, *args, **kwargs)
             raise InterruptedError('Synthetic stop after original unlink')
         with patch.object(os, 'unlink', side_effect=stop), self.assertRaises(InterruptedError):
@@ -117,6 +117,24 @@ class LegacyRetentionTests(unittest.TestCase):
         self.assertEqual(proof['filesRemoved'], 1)
         self.assertEqual(proof['emptyDirectoriesRemoved'], 1)
         self.assertFalse(parent.exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux no-follow directory descriptor')
+    def test_swapped_parent_is_refused_before_original_unlink(self):
+        record, parent = self.fixture('server')
+        original = parent.with_name(parent.name + '-original')
+        replacement = self.home / 'replacement';replacement.mkdir(mode=0o700)
+        actual = os.open
+        changed = False
+        def swap(path, *args, **kwargs):
+            nonlocal changed
+            if Path(path) == parent and not changed:
+                changed = True;parent.rename(original);parent.symlink_to(replacement, target_is_directory=True)
+            return actual(path, *args, **kwargs)
+        with patch.object(os, 'open', side_effect=swap), self.assertRaises(OSError):
+            legacy.expire(self.meta, self.root, NOW, True)
+        self.assertTrue((original / 'owner-config.tar.age').exists())
+        self.assertTrue((original / 'manifest.json').exists())
+        self.assertEqual(list(replacement.iterdir()), [])
 
     def test_empty_server_directory_after_interruption_can_finish(self):
         record, parent = self.fixture('server')
