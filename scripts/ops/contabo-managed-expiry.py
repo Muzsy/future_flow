@@ -18,6 +18,8 @@ PG_IMAGE = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e6
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 SHA = re.compile(r'[a-f0-9]{64}')
 UID = 0
+LOCK_PATHS = (Path('/root/alterward-ops/daily/job.lock'),
+              Path('/root/alterward-ops/owner/activation.lock'))
 
 
 def fingerprint(data):
@@ -130,6 +132,7 @@ def expire(root, expected, project, now, apply=False):
     root_identity = identity(directory(root))
     records = inventory(root, expected, project, now)
     expired = [r for r in records if r['expired']]
+    removed = 0
     if apply:
         # Locks cover all cooperating capture/restore/daily operators. Directory
         # descriptors confine each unlink even if an unrelated path is swapped.
@@ -160,12 +163,13 @@ def expire(root, expected, project, now, apply=False):
                 if (current.st_dev, current.st_ino) != record['directoryIdentity'][:2]:
                     raise ValueError('Archive replaced before directory removal')
                 os.rmdir(name, dir_fd=root_fd)
+                removed += 1
             os.fsync(root_fd)
         finally:
             os.close(root_fd)
     return {'schemaVersion': 'alterward-managed-expiry-1', 'checkedAt': now.isoformat(),
             'projectBinding': project, 'validatedArchives': len(records),
-            'expiredArchives': len(expired), 'removedArchives': len(expired) if apply else 0,
+            'expiredArchives': len(expired), 'removedArchives': removed,
             'mode': 'apply' if apply else 'check',
             'expiredManifestHashes': [r['manifestSha256'] for r in expired],
             'keyRead': False, 'decryptionPerformed': False, 'liveDatabaseWrites': False,
@@ -177,8 +181,7 @@ def expire(root, expected, project, now, apply=False):
 def operator_locks():
     import fcntl
     with contextlib.ExitStack() as stack:
-        for path in [Path('/root/alterward-ops/daily/job.lock'),
-                     Path('/root/alterward-ops/owner/activation.lock')]:
+        for path in LOCK_PATHS:
             original_file(path)
             fd = os.open(path, os.O_RDWR | os.O_NOFOLLOW)
             stack.callback(os.close, fd)
@@ -190,14 +193,28 @@ def operator_locks():
         yield
 
 
+def utc_now():
+    return dt.datetime.now(dt.timezone.utc)
+
+
 def main(request):
-    if (os.geteuid() != UID or set(request) != {'mode', 'projectBinding', 'expectedManifests'} or
+    if (os.geteuid() != UID or set(request) != {'mode', 'projectBinding', 'expectedManifests', 'clientObservedAt'} or
             request['mode'] not in {'check', 'apply'} or not isinstance(request['projectBinding'], str) or
             not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Explicit root operator expiry mode required')
+    server_clock = utc_now()
+    client_clock = dt.datetime.fromisoformat(request['clientObservedAt'])
+    if (client_clock.utcoffset() != dt.timedelta(0) or
+            abs((server_clock - client_clock).total_seconds()) > 300):
+        raise ValueError('Protected operator UTC clock must match within five minutes')
+    # Expiry must have passed on both clocks. This bounds independent drift;
+    # two equally wrong clocks or a forged caller are not attested by this check.
+    decision_clock = min(server_clock, client_clock)
     with operator_locks():
-        return expire(ROOT, request['expectedManifests'], request['projectBinding'],
-                      dt.datetime.now(dt.timezone.utc), request['mode'] == 'apply')
+        result = expire(ROOT, request['expectedManifests'], request['projectBinding'],
+                        decision_clock, request['mode'] == 'apply')
+    return {**result, 'serverClock': server_clock.isoformat(),
+            'clientClock': client_clock.isoformat(), 'bothClocksPastExpiryRequired': True}
 
 
 if __name__ == '__main__':

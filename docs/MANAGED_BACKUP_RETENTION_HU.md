@@ -6,17 +6,22 @@ A [managed capture](../scripts/ops/contabo-managed-recovery.py) manifestje hét 
 
 ## Pontos határ
 
-- Kizárólag a `/root/alterward-ops/managed-recovery` saját archívumai és a `managed-recovery-2` manifest fogadható el. A napi és régi történeti mentések külön eljárások.
+- Kizárólag a `/root/alterward-ops/managed-recovery` saját archívumai és az `alterward-managed-recovery-2` manifest fogadható el. A napi és régi történeti mentések külön eljárások.
 - Root operátor, a napi job és owner activation meglévő lockjai, pontos projektkötés és a **helyi eredeti manifestek teljes halmaza** szükséges. Legfeljebb száz archívum egy batchben; a szerver és a helyi jegyzék eltérése megállítja a műveletet.
 - A teljes batch minden friss és régi archívumát ellenőrzi törlés előtt: eredeti 0700 könyvtár, 0600 egyszeres regular fájl, pontos háromfájlos készlet, manifestegyezés és mindkét ciphertext méret/hash. Link, idegen fájl, hiányos capture vagy sérülés esetén nincs törlés. `mtime` nem lejárati authority.
 - A capture és expiry UTC, különbségük pontosan hét nap. Az expiry pillanatában a mentés lejárt; az utolsó régi példány sem marad meg korlátlanul. A `check` mód csak leltárt ad, az `apply` külön explicit művelet.
+- A helyi operátor friss UTC-órája és a szerveróra legfeljebb öt perccel térhet el. Lejártnak csak akkor minősül a mentés, ha **mindkét óra szerint lejárt**. Két egyformán rossz óra vagy hamisított operátori kérés ellen ez nem idő-attesztáció; a védett helyi wrapper külön szükséges.
 - Linuxon a törlés nyitott eredeti könyvtárhoz kötött, pontos fájlnevekkel történik, rekurzív törlés nélkül. Közvetlenül előtte a batch, könyvtár és fájlok azonossága újra ellenőrzött. Kulcsot, plaintextet, adatbázist vagy szolgáltatást az eszköz nem használ.
 
 Az eredmény csak összesítést és a lejárt manifestek hash-eit tartalmazza; nincs személyes Auth-sor vagy belépési adat. A manifestek a védett operátori csatornán jutnak be, nem shell argumentumban. A forrás még nem integrált automatikus futtató vagy a helyi másolatokat kezelő wrapper.
 
 ## Ellenőrzés és hátralévő integráció
 
-Nyolc [célzott eset](../tests/ops/test_managed_expiry.py): pontos hét nap/check, Linux descriptoros törlés és utolsó példány, sérült friss mentés miatti teljes batch-stop, hiányos/idegen/eltérő helyi jegyzék, hibás projekt/idő/scope, hardlink, jogosultság/típus és közben megváltozott batch. Windows alatt hét sikeres, a Linux-törlés egy esete platform miatt kihagyva; valódi Linux-próba és pontos Claude-delta még szükséges.
+Tizenöt [célzott eset](../tests/ops/test_managed_expiry.py): pontos hét nap/check, Linux descriptoros törlés és utolsó példány, sérült friss mentés miatti teljes batch-stop, hiányos/idegen/eltérő helyi jegyzék, hibás projekt/idő/scope, hardlink, jogosultság/típus és közben megváltozott batch. Külön root-/archívum-/fájlcsere és rmdir előtti csere, mindkét valódi flock ütközése/feloldása, ismeretlen kérésmező/nonroot, hibás/eltérő óra és mindkét órás expiry. Windows alatt kilenc sikeres, hat Linux-specifikus eset kihagyva.
+
+Az első `df7a0b0` forrás nyolc esetét a Contabón ténylegesen lefuttattuk, mind sikeres kihagyás nélkül. A 2026-10-10T14:57:55Z olvasási check egy aktuális managed archívumot teljes helyi manifestegyezéssel és két ciphertext-hashsel igazolt; lejárt/törölt archívum nulla, kulcsolvasás/decryption/DB-írás/levél/paid AI nulla, kilenc futó konténer változatlan. A tizenöt esetes javított forrás új Linux-próbája és Claude-visszaellenőrzése külön szükséges.
+
+A `df7a0b0` Claude-forrásaudit nem talált törlési scope-/frissességi/adatszivárgási hibát. EXP-01 low hipotézis: hibás szerveróra; peer-clock ellenőrzés és a két óra minimuma beépítve. EXP-02 low: a legutolsó csereablakok és lockok tesztlefedettsége; hét új eset kész. EXP-03 info: a ténylegesen eltávolított archívumokat számláljuk. EXP-04 info: a hashcheck lockütközése napi mentést halaszthat; az operátori futás a **03:15 UTC napi mentéstől és negyedórás ellenőrzés időpontjától távol**, korlátozott batchben történjen. Ez auditjelzés és saját ellenőrzés, nem négy igazolt éles hiba vagy teljes retention-jóváhagyás.
 
 Az apply nem fájlrendszeri tranzakció. Folyamat/host megszakítása részleges archívumot hagyhat; a következő leltár ezt blokkolja, nem folytat vak rekurzív törlést. Tartós megszakítási napló és célzott recovery még integrációs feladat. A sikeres törlés nem mentéssértetlenségi vagy későbbi szolgáltatás-visszaállítási bizonyíték.
 

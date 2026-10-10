@@ -1,4 +1,5 @@
 import datetime as dt
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -173,6 +174,134 @@ class ManagedExpiryTests(unittest.TestCase):
         with patch.object(expiry, 'inventory', side_effect=changed), self.assertRaises(ValueError):
             expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
         self.assertTrue((due / 'managed.dump.age').exists())
+
+    def test_main_refuses_unknown_keys_nonroot_and_clock_skew_before_locks(self):
+        request = {'mode': 'check', 'projectBinding': PROJECT, 'expectedManifests': {},
+                   'clientObservedAt': NOW.isoformat()}
+        for change in [{'root': '/some/other/root'}, {'mode': 'other'},
+                       {'clientObservedAt': NOW.replace(tzinfo=None).isoformat()},
+                       {'clientObservedAt': (NOW + dt.timedelta(seconds=301)).isoformat()},
+                       {'clientObservedAt': (NOW - dt.timedelta(seconds=301)).isoformat()}]:
+            with patch.object(os, 'geteuid', return_value=expiry.UID, create=True), \
+                    patch.object(expiry, 'utc_now', return_value=NOW), \
+                    patch.object(expiry, 'operator_locks') as locks, self.assertRaises(ValueError):
+                expiry.main({**request, **change})
+            locks.assert_not_called()
+        with patch.object(os, 'geteuid', return_value=expiry.UID + 1, create=True), \
+                patch.object(expiry, 'operator_locks') as locks, self.assertRaises(ValueError):
+            expiry.main(request)
+        locks.assert_not_called()
+
+    def test_main_requires_expiry_on_both_clocks_and_valid_clock_enters_locks(self):
+        request = {'mode': 'check', 'projectBinding': PROJECT, 'expectedManifests': {},
+                   'clientObservedAt': (NOW - dt.timedelta(seconds=120)).isoformat()}
+        for server_clock, client_clock in [(NOW, NOW - dt.timedelta(seconds=120)),
+                                           (NOW - dt.timedelta(seconds=120), NOW)]:
+            request['clientObservedAt'] = client_clock.isoformat()
+            entered = []
+
+            @contextlib.contextmanager
+            def locks():
+                entered.append(True)
+                yield
+
+            with patch.object(os, 'geteuid', return_value=expiry.UID, create=True), \
+                    patch.object(expiry, 'utc_now', return_value=server_clock), \
+                    patch.object(expiry, 'operator_locks', side_effect=locks), \
+                    patch.object(expiry, 'expire', return_value={}) as run:
+                result = expiry.main(request)
+            self.assertEqual(entered, [True])
+            self.assertEqual(run.call_args.args[3], min(server_clock, client_clock))
+            self.assertTrue(result['bothClocksPastExpiryRequired'])
+
+    @unittest.skipIf(os.name == 'nt', 'Linux root descriptor guard')
+    def test_replaced_root_after_recheck_cannot_delete(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_open = os.open
+
+        def swapped(path, flags, *args, **kwargs):
+            if path == self.root:
+                replacement = self.root / 'replacement-root'
+                replacement.mkdir(mode=0o700)
+                return real_open(replacement, flags, *args, **kwargs)
+            return real_open(path, flags, *args, **kwargs)
+
+        with patch.object(os, 'open', side_effect=swapped), self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue((due / 'managed.dump.age').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux O_NOFOLLOW archive descriptor guard')
+    def test_archive_symlink_swap_after_stat_cannot_delete(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_open = os.open
+        held = self.root / (due.name + '-held')
+
+        def swapped(path, flags, *args, **kwargs):
+            if path == due.name and kwargs.get('dir_fd') is not None:
+                due.rename(held)
+                due.symlink_to(held, target_is_directory=True)
+            return real_open(path, flags, *args, **kwargs)
+
+        with patch.object(os, 'open', side_effect=swapped), self.assertRaises(OSError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue((held / 'managed.dump.age').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux descriptor-relative last-moment file guard')
+    def test_file_replaced_after_recheck_blocks_all_unlinks(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_stat = os.stat
+        changed = False
+
+        def swapped(path, *args, **kwargs):
+            nonlocal changed
+            if path == 'catalog.json.age' and kwargs.get('dir_fd') is not None and not changed:
+                changed = True
+                original = due / 'catalog.json.age'
+                data = original.read_bytes()
+                original.rename(due / 'original-catalog')
+                original.write_bytes(data)
+                original.chmod(0o600)
+            return real_stat(path, *args, **kwargs)
+
+        with patch.object(os, 'stat', side_effect=swapped), self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue(changed)
+        self.assertTrue((due / 'managed.dump.age').exists() and (due / 'manifest.json').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux descriptor-relative directory-removal guard')
+    def test_replaced_directory_before_rmdir_preserves_foreign_replacement(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_unlink = os.unlink
+        held = self.root / (due.name + '-held')
+
+        def swapped(path, *args, **kwargs):
+            result = real_unlink(path, *args, **kwargs)
+            if path == 'manifest.json' and kwargs.get('dir_fd') is not None:
+                due.rename(held)
+                due.mkdir(mode=0o700)
+                (due / 'foreign-data').write_text('preserve this synthetic replacement')
+            return result
+
+        with patch.object(os, 'unlink', side_effect=swapped), self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue((due / 'foreign-data').exists() and held.exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux actual flock contention and release')
+    def test_both_lock_contentions_fail_and_release_previously_acquired_lock(self):
+        import fcntl
+        locks = (self.root / 'job.lock', self.root / 'activation.lock')
+        for path in locks:
+            path.write_bytes(b'')
+            path.chmod(0o600)
+        for held in locks:
+            with held.open('r+b') as handle, patch.object(expiry, 'LOCK_PATHS', locks):
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with self.assertRaises(BlockingIOError):
+                    with expiry.operator_locks():
+                        self.fail('Cannot acquire a held lock')
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                with expiry.operator_locks():
+                    pass
 
 
 original_reader = expiry.original_file
