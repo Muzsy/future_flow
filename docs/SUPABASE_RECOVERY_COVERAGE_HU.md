@@ -65,7 +65,7 @@ A szolgáltatói logikai költözés külön role-, schema- és data-exportot, v
 
 ## Történeti megőrzés, kulcs és riasztás
 
-A külön [managed lejáratkezelés szerveroldali operátori szelete](MANAGED_BACKUP_RETENTION_HU.md) elkészült; az első nyolc Linux-próba és az egy valódi archívum olvasási checkje sikeres. Claude után peer-clock és hét új határeset készült; a javított forrás új Linux-/Claude-próbája külön szükséges. Nem telepítettünk automatikus expiry-t és nem töröltünk valódi archívumot. A teljes helyi/történeti/ágyazott másolatkezelés, megszakítási recovery és ütemezés külön megmarad.
+A külön [managed lejáratkezelés szerveroldali operátori szelete](MANAGED_BACKUP_RETENTION_HU.md) elkészült; peer-clock, tizenöt tényleges sikeres Linux-eset, egy valódi archívum olvasási checkje, pontos Claude-delta és zöld verify/container CI kész. Nem telepítettünk automatikus expiry-t és nem töröltünk valódi archívumot. A teljes helyi/történeti/ágyazott másolatkezelés, megszakítási recovery és ütemezés külön megmarad.
 
 A managed capture előtti célgépi, csak olvasó ciphertext-leltár 14 age-fájlt talált, ebből 4 a managed daily határon kívüli történeti mentés. Egyik történeti ciphertext sem régebbi hét napnál. Fájl nem lett törölve. Az új managed capture két további ciphertextje külön scope és külön expiry; a korábbi leltár nem a capture utáni teljes darabszám. Ezekre a meglévő daily expiry nem vonatkozik: külön pontos manifest/hash/útvonal-regiszter és ellenőrzött expiry kell. A mtime önmagában nem engedély a törlésre, a regiszterhez a valódi capture-idő és scope is szükséges. A helyi történeti másolatokat is rendezni kell.
 

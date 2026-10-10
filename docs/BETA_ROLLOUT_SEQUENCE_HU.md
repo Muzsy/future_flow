@@ -12,6 +12,8 @@ A Shared teljes egészében kikapcsolva marad: `SHARED_CONTEXTS_ENABLED`, `SHARE
 
 A meglévő tízfős szerveroldali beléptetési korlát változatlan. A teljes oldal név szerinti Access/origin hozzáférése, a saját Supabase-fiók és a fizetett UUID-jog külön ellenőrzés. Egy belső Shared-meghívó nem ad hozzáférést az egész zárt webhelyhez. Nyílt regisztráció vagy továbbadható webhely-belépő nem készül.
 
+A tényleges meghívottaknak előre jelezni kell az angol `Alterward` feladót, az `info@alterward.com` címet és a spam mappa ellenőrzését. A két saját Auth-levélhez a szolgáltató Delivered státuszt adott, de mindkettő Gmail spambe érkezett; a hitelesített domain és a három PASS nem inbox-garancia. Meghívás után címzettenként a megérkezés/spam és sikeres HTTPS-belépés ellenőrzendő, külön a fizetett UUID-aktiválástól. Nincs automatikus ismételt küldés vagy nyitott signup a levél keresésének helyettesítésére. [Provider-bizonyíték és pontos határ](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
+
 ## Második kör: öt baráti pár
 
 Előbb kötelező a törölt/kilépett/blokkolt résztvevőkhöz kapcsolódó régi személyes szöveg olvasási, export- és AI-input határának megvalósítása, a teljes privacy/retention és Shared kiadási ellenőrzés, valódi páros működési próba és pontos Claude Cloud-audit. A most elkészült karanténos restore-replay és a közös minimális szövegprojekció önmagában ezt nem teljesíti.
