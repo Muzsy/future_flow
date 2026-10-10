@@ -1,19 +1,17 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash, randomBytes } from 'node:crypto';
-import {
-  readFileSync,
-  writeFileSync,
-  lstatSync,
-  realpathSync,
-  readdirSync,
-} from 'node:fs';
+import { readFileSync, lstatSync, realpathSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { connectDatabase } from '../packages/database/dist/index.js';
 import {
   privateReportDirectory,
   privateReportFile,
 } from './lib/private-report.js';
+import {
+  localManagedRecovery,
+  localManagedSources,
+} from './lib/local-managed-recovery.js';
 
 // Manual backup/throwaway proof, never a live restore or a schedule installer.
 const invoke = promisify(execFile);
@@ -80,6 +78,7 @@ async function main() {
     'scripts/ops/contabo-backup.py',
     'scripts/supabase-managed-recovery.mts',
     'scripts/lib/private-report.ts',
+    ...localManagedSources,
     'pnpm-lock.yaml',
   ]) {
     const bytes = regular(path);
@@ -141,15 +140,14 @@ async function main() {
   const projectRef = projectUrl.hostname.split('.')[0]!;
   const projectBinding = digest(projectRef);
   let manifest;
+  let existingFiles: Record<string, string> | undefined;
   if (restoreOnly) {
-    const pointer = JSON.parse(
-      regular(join(dir, 'managed-backup-latest.json')).toString(),
+    const local = await localManagedRecovery(
+      { action: 'read', projectBinding },
+      commit,
     );
-    if (!/^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$/.test(pointer.runId))
-      throw Error('Exact original run pointer required');
-    manifest = JSON.parse(
-      regular(join(dir, `${pointer.runId}-manifest.json`)).toString(),
-    );
+    manifest = local.result.manifest;
+    existingFiles = local.result.files;
   } else {
     phase = 'source-project-binding';
     const databaseUrl = new URL(process.env.DATABASE_URL ?? '');
@@ -351,9 +349,8 @@ async function main() {
     string,
     { sha256: string; bytes: number },
   ][]) {
-    const file = join(dir, `${manifest.runId}-${name}`);
     const cipher = restoreOnly
-      ? regular(file)
+      ? Buffer.from(existingFiles![name]!, 'base64')
       : (
           await invoke(
             'ssh',
@@ -373,23 +370,13 @@ async function main() {
       createHash('sha256').update(cipher).digest('hex') !== expected.sha256
     )
       throw Error('Offsite cipher differs');
-    if (!restoreOnly) writeFileSync(file, cipher, { mode: 0o600, flag: 'wx' });
-    else {
-      const info = lstatSync(file);
-      if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1)
-        throw Error('Private cipher cannot be linked');
-    }
     files[name] = cipher.toString('base64');
   }
   if (!restoreOnly) {
-    writeFileSync(
-      join(dir, `${manifest.runId}-manifest.json`),
-      JSON.stringify(manifest, null, 2) + '\n',
-      { mode: 0o600, flag: 'wx' },
+    await localManagedRecovery(
+      { action: 'store', projectBinding, manifest, files },
+      commit,
     );
-    privateReportFile(dir, 'managed-backup-latest.json', {
-      runId: manifest.runId,
-    });
   }
   phase = 'isolated-managed-proof';
   const proof = await remote({

@@ -2,6 +2,8 @@
 
 2026-10-10 · [Mentési eljárás](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Privacy-replay](CONTABO_PRIVACY_RESTORE_PLAN_HU.md) · [Bétaütemezés](BETA_ROLLOUT_SEQUENCE_HU.md).
 
+Friss retention-előrelépés: a [helyi managed fájlkezelés](LOCAL_MANAGED_BACKUP_RETENTION_HU.md) közös kernelzárat, hét napos lejáratot és tartós naplóból folytatást kapott. Tizenkilenc célzott Windows-eset sikeres. Ez nem automatikus retention vagy teljes hosted recovery; valódi mentés törlése nem történt.
+
 ## Tényleges, változtatás nélküli leltár
 
 A [read-only operátori eszköz](../scripts/supabase-recovery-inventory.ts) sikeresen lefutott. Az Auth és a PostgreSQL projektazonosságát külön ellenőrzi, TLS-t követel, az adatbázist read-only tranzakcióban olvassa; nem készít Auth-mentést, nem töröl fiókot, nem küld levelet és nem indít AI-t. A lapozott Auth-lista azonosítói és emailjei csak memóriában vannak; a védett proof összesítést és hash-t tartalmaz.

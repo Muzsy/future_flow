@@ -1,6 +1,8 @@
 # alterward — külön managed Auth-mentések lejárata
 
-2026-10-10 · **Szerveroldali operátori szelet elkészült, automatikus retention még nincs.** [Mentési lefedettség](SUPABASE_RECOVERY_COVERAGE_HU.md) · [Kiadási sorrend](NEXT_STEPS.md).
+2026-10-10 · **Szerveroldali operátori szelet és helyi naplózott fájlkezelés elkészült; automatikus retention még nincs.** [Mentési lefedettség](SUPABASE_RECOVERY_COVERAGE_HU.md) · [Kiadási sorrend](NEXT_STEPS.md).
+
+Új helyi szelet: [helyi managed retention](LOCAL_MANAGED_BACKUP_RETENTION_HU.md), tizenkilenc célzott Windows-eset, valódi kernelzár és megszakítás utáni pontos folytatás. Az alábbi szerveroldali bizonyítékokat ez nem írja felül; a szerver megszakítási naplója és a teljes összehangolt futtató még külön feladat.
 
 A [managed capture](../scripts/ops/contabo-managed-recovery.py) manifestje hét napos `expiresAt` időt ad; ez a restore használatát már tiltja lejárat után, de önmagában nem törli a titkosított másolatokat. A külön [lejáratkezelő](../scripts/ops/contabo-managed-expiry.py) ennek szerveroldali törlési részét készíti elő. Nem telepítettünk új timert, és nem töröltünk valódi mentést.
 
