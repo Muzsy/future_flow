@@ -67,8 +67,9 @@ export async function inspectExternalAvailability(
       let expectedBody = false;
       if (check.heading)
         expectedBody =
-          text.includes(check.heading) &&
-          !text.includes('Start a new life branch.');
+          new RegExp(`<h1\\b[^>]*>\\s*${check.heading}\\s*</h1\\s*>`, 'i').test(
+            text,
+          ) && !text.includes('Start a new life branch.');
       else {
         try {
           const value = JSON.parse(text);
@@ -84,9 +85,11 @@ export async function inspectExternalAvailability(
       const cached = /^(HIT|STALE|UPDATING|REVALIDATED)$/i.test(
         response.headers.get('cf-cache-status') ?? '',
       );
-      const contentType = (response.headers.get('content-type') ?? '').includes(
-        check.type,
-      );
+      const contentType =
+        (response.headers.get('content-type') ?? '')
+          .split(';')[0]
+          .trim()
+          .toLowerCase() === check.type;
       results.push({
         path: check.path,
         passed:

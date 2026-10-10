@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { connectDatabase } from '@future-flow/database';
 import { hash } from '@future-flow/core';
+import { assertCompleteAuthInventory } from './lib/auth-inventory';
 import {
   privateReportDirectory,
   privateReportFile,
@@ -60,7 +61,9 @@ async function main() {
       if (user.banned_until && Date.parse(user.banned_until) > Date.now())
         bannedAuthUsers++;
     }
-    if (data.users.length < 1000) {
+    if (data.nextPage === null) {
+      if (data.total > 0 && data.total !== authUsers)
+        throw Error('Auth pagination total differs; retry separately');
       complete = true;
       break;
     }
@@ -74,6 +77,13 @@ async function main() {
       );
       await tx.query("SET LOCAL TIME ZONE 'UTC'");
       await tx.query("SET LOCAL statement_timeout='15s'");
+      const databaseAuthIds = await tx.query<{ id: string }>(
+        'SELECT id FROM auth.users ORDER BY id',
+      );
+      assertCompleteAuthInventory(
+        authIds,
+        databaseAuthIds.map((user) => user.id),
+      );
       const tables = await tx.query<{
         name: string;
         rls: boolean;
@@ -149,6 +159,7 @@ async function main() {
         bannedUsers: bannedAuthUsers,
         pages,
         paginationComplete: complete,
+        databaseIdentitySetMatched: true,
       },
       ...result,
       databaseTlsCertificateVerified: true,
