@@ -241,6 +241,7 @@ def capture(request):
                     '--label', LABEL + '=' + request['runId'], '--read-only',
                     '--memory', '256m', '--cpus', '0.5', '--pids-limit', '64',
                     '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
+                    '--tmpfs', '/var/lib/postgresql/data:ro,noexec,nosuid,size=1m',
                     '--mount', 'type=bind,src=' + str(scratch) + ',dst=/private,readonly',
                     '--env-file', str(scratch / 'client.env'), '--entrypoint', 'pg_dump',
                     PINNED_PG, '--format=custom', '--schema=public', '--schema=auth',

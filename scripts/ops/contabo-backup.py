@@ -220,6 +220,7 @@ def capture(request):
                     '--memory', '256m', '--cpus', '0.5', '--pids-limit', '64',
                     '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
                     '--tmpfs', '/tmp:rw,noexec,nosuid,size=16m',
+                    '--tmpfs', '/var/lib/postgresql/data:ro,noexec,nosuid,size=1m',
                     '--mount', 'type=bind,src=' + str(scratch) + ',dst=/private,readonly',
                     '--env-file', str(scratch / 'client.env'), '--entrypoint', 'pg_dump',
                     image, '--format=custom', '--schema=public', '--no-owner',
