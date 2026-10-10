@@ -377,6 +377,53 @@ class LocalManagedTests(unittest.TestCase):
                 local.main(request)
             lock.assert_not_called()
 
+    def test_metadata_retains_completed_manifest_and_attests_server_only_expired_run(self):
+        manifest, _ = fixture(self.root, NOW - dt.timedelta(days=8), write=False)
+        local.attest(self.root, PROJECT, NOW, {manifest['runId']: manifest})
+        self.assertFalse(any(p.name.endswith('.age') for p in self.root.iterdir()))
+        self.assertEqual(local.metadata(self.root, PROJECT, NOW)['expectedManifests'], {manifest['runId']: manifest})
+        self.assertEqual(local.expire(self.root, PROJECT, NOW, True)['removedFiles'], 0)
+        self.assertEqual(local.metadata(self.root, PROJECT, NOW)['expectedManifests'], {manifest['runId']: manifest})
+
+    def test_attestation_conflict_validates_whole_batch_before_metadata_write(self):
+        known, _ = fixture(self.root, NOW)
+        unknown, _ = fixture(self.root, NOW, suffix='87654321', write=False)
+        manifests = {unknown['runId']: unknown, known['runId']: {**known, 'sourceCommit': 'c' * 40}}
+        with self.assertRaises(ValueError):
+            local.attest(self.root, PROJECT, NOW, manifests)
+        self.assertFalse((self.root / local.JOURNAL).exists())
+
+    def test_downloading_older_fresh_run_never_moves_latest_pointer_backwards(self):
+        new, new_files = fixture(self.root, NOW, write=False)
+        old, old_files = fixture(self.root, NOW - dt.timedelta(hours=1), write=False)
+        local.store(self.root, PROJECT, NOW, new, new_files)
+        proof = local.store(self.root, PROJECT, NOW, old, old_files)
+        self.assertTrue(proof['latestPointerPreserved'])
+        self.assertEqual(local.read_bundle(self.root, PROJECT, NOW)['manifest'], new)
+        self.assertIn(old['runId'], local.metadata(self.root, PROJECT, NOW)['completeRuns'])
+
+    def test_expiry_hash_work_scales_linearly_for_multiple_archives(self):
+        reads = []
+        actual = local.safe_read
+        for count in (1, 8):
+            with tempfile.TemporaryDirectory() as name:
+                root = Path(name).resolve()
+                root.chmod(0o700)
+                for i in range(count):
+                    fixture(root, NOW - dt.timedelta(days=8), suffix=f'{i:08x}')
+                calls = []
+
+                def read(path, *args, **kwargs):
+                    if path.name.endswith('.age'):
+                        calls.append(path)
+                    return actual(path, *args, **kwargs)
+
+                with patch.object(local, 'safe_read', side_effect=read):
+                    proof = local.expire(root, PROJECT, NOW, True)
+                self.assertEqual(proof['removedFiles'], 3 * count)
+                reads.append(len(calls))
+        self.assertLessEqual(reads[1], 10 * reads[0])
+
 
 if __name__ == '__main__':
     unittest.main()

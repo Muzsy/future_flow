@@ -412,6 +412,80 @@ class ManagedExpiryTests(unittest.TestCase):
             expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
         self.assertTrue((due / 'managed.dump.age').exists() and (due / 'manifest.json').exists())
 
+    @unittest.skipIf(os.name == 'nt', 'Linux fsync ordering and journal recovery')
+    def test_file_and_both_directory_fsyncs_precede_first_unlink(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        actual_sync, actual_unlink = os.fsync, os.unlink
+        synced = []
+
+        def sync(fd):
+            synced.append(Path(os.readlink(f'/proc/self/fd/{fd}')))
+            return actual_sync(fd)
+
+        def unlink(path, *args, **kwargs):
+            if path == 'catalog.json.age' and 'dir_fd' in kwargs:
+                self.assertEqual(synced[:3], [self.root / expiry.JOURNAL / (due.name + '.json'), self.root / expiry.JOURNAL, self.root])
+            return actual_unlink(path, *args, **kwargs)
+
+        with patch.object(os, 'fsync', side_effect=sync), patch.object(os, 'unlink', side_effect=unlink):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+
+    @unittest.skipIf(os.name == 'nt', 'Linux multi-journal interruption')
+    def test_two_due_intents_resume_after_second_journal_write_before_any_unlink(self):
+        first, a = fixture(self.root, NOW - dt.timedelta(days=9))
+        second, b = fixture(self.root, NOW - dt.timedelta(days=8))
+        actual = expiry.write_journal
+        count = 0
+
+        def stop(*args):
+            nonlocal count
+            actual(*args)
+            count += 1
+            if count == 2:
+                raise InterruptedError('Synthetic journal stop')
+
+        with patch.object(expiry, 'write_journal', side_effect=stop), self.assertRaises(InterruptedError):
+            expiry.expire(self.root, {first.name: a, second.name: b}, PROJECT, NOW, apply=True)
+        self.assertEqual({p.name for p in first.iterdir()}, expiry.FILES)
+        self.assertEqual({p.name for p in second.iterdir()}, expiry.FILES)
+        proof = expiry.expire(self.root, {first.name: a, second.name: b}, PROJECT, NOW, apply=True)
+        self.assertEqual(proof['removedArchives'], 2)
+
+    @unittest.skipIf(os.name == 'nt', 'Linux shaped journal tampering')
+    def test_validly_shaped_changed_root_directory_or_manifest_blocks_resume(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        with patch.object(os, 'unlink', side_effect=InterruptedError('Synthetic stop')), self.assertRaises(InterruptedError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        path = self.root / expiry.JOURNAL / (due.name + '.json')
+        original = json.loads(path.read_bytes())
+        for field in ('rootIdentity', 'directoryIdentity', 'manifest', 'files'):
+            value = json.loads(json.dumps(original))
+            if field == 'manifest':
+                value[field]['sourceCommit'] = 'c' * 40
+            elif field == 'files':
+                value[field]['managed.dump.age']['identity'][1] += 1
+            else:
+                value[field][1] += 1
+            path.write_text(json.dumps(value))
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+            self.assertEqual({p.name for p in due.iterdir()}, expiry.FILES)
+
+    def test_read_only_catalog_and_fresh_bundle_reject_expired_or_unknown_runs(self):
+        due, old = fixture(self.root, NOW - dt.timedelta(days=8))
+        fresh, recent = fixture(self.root, NOW)
+        before = {p.name for p in self.root.iterdir()}
+        catalog = expiry.catalog(self.root, PROJECT, NOW)
+        self.assertEqual(catalog['freshRuns'], [fresh.name])
+        expected = catalog['expectedManifests']
+        bundle = expiry.read_bundle(self.root, expected, PROJECT, NOW, fresh.name)
+        self.assertEqual(bundle['manifest'], recent)
+        self.assertEqual(set(bundle['files']), expiry.FILES - {'manifest.json'})
+        for run in (due.name, '../foreign', NOW.strftime('%Y%m%dT%H%M%SZ-') + 'ffffffff'):
+            with self.assertRaises(ValueError):
+                expiry.read_bundle(self.root, expected, PROJECT, NOW, run)
+        self.assertEqual(before, {p.name for p in self.root.iterdir()})
+
 
 original_reader = expiry.original_file
 

@@ -4,6 +4,7 @@ No scheduler, key access, decryption, database, container or service operations.
 Historical/daily archives and local copies have separate retention procedures.
 """
 import contextlib
+import base64
 import datetime as dt
 import hashlib
 import json
@@ -162,6 +163,10 @@ def inventory(root, expected, project, now):
     if (now.utcoffset() != dt.timedelta(0) or not isinstance(expected, dict) or
             len(expected) > 100):
         raise ValueError('UTC clock and original local manifest inventory required')
+    for run, manifest in expected.items():
+        validate_manifest(manifest, run, project, now)
+    if sum(item['bytes'] for manifest in expected.values() for item in manifest['encryptedFiles'].values()) > 512 * 1024**2:
+        raise ValueError('Bounded total ciphertext batch required')
     root_state = directory(root)
     journals = journal_records(root, project, now)
     names = {p.name for p in root.iterdir() if p.name != JOURNAL}
@@ -282,12 +287,54 @@ def expire(root, expected, project, now, apply=False):
             'expiredArchives': len(expired), 'removedArchives': removed,
             'pendingArchives': sum(r['pendingExpiry'] and r['directoryPresent'] for r in records),
             'completedTombstones': sum(not r['directoryPresent'] for r in records),
-            'durableDeletionIntent': True,
+            'durableDeletionIntent': apply and bool(expired),
+            'resumableDeletionIntentSupported': True,
             'mode': 'apply' if apply else 'check',
             'expiredManifestHashes': [r['manifestSha256'] for r in expired],
             'keyRead': False, 'decryptionPerformed': False, 'liveDatabaseWrites': False,
             'serviceActivationAllowed': False, 'localCopiesExpired': False,
             'historicalCopiesExpired': False, 'automaticRetentionConfigured': False}
+
+
+def catalog(root, project, now):
+    """Read-only inventory, including complete deletion-intent tombstones."""
+    directory(root)
+    journals = journal_records(root, project, now)
+    expected = {run: record['manifest'] for run, record in journals.items()}
+    for path in root.iterdir():
+        if path.name == JOURNAL:
+            continue
+        if not RUN_ID.fullmatch(path.name):
+            raise ValueError('Unknown managed catalog entry')
+        directory(path)
+        if path.name not in expected:
+            raw, _ = original_file(path / 'manifest.json')
+            if len(raw) > 1024**2:
+                raise ValueError('Bounded original manifest required')
+            expected[path.name] = json.loads(raw)
+        if len(expected) > 100:
+            raise ValueError('Bounded managed catalog required')
+    records = inventory(root, expected, project, now)
+    return {'expectedManifests': expected,
+            'freshRuns': [r['runId'] for r in records if not r['expired']],
+            'pendingRuns': [r['runId'] for r in records if r['pendingExpiry'] and r['directoryPresent']],
+            'completedRuns': [r['runId'] for r in records if not r['directoryPresent']]}
+
+
+def read_bundle(root, expected, project, now, run):
+    if not isinstance(run, str) or not RUN_ID.fullmatch(run):
+        raise ValueError('Exact archive run required')
+    plan = inventory(root, expected, project, now)
+    record = next((r for r in plan if r['runId'] == run), None)
+    if not record or record['expired'] or record['pendingExpiry'] or set(record['files']) != FILES:
+        raise ValueError('Fresh complete server archive required')
+    files = {}
+    for name in sorted(FILES - {'manifest.json'}):
+        raw, state = original_file(root / run / name)
+        if {'identity': list(identity(state)), 'sha256': fingerprint(raw), 'bytes': len(raw)} != record['files'][name]:
+            raise ValueError('Archive changed during read')
+        files[name] = base64.b64encode(raw).decode()
+    return {'manifest': record['manifest'], 'files': files}
 
 
 @contextlib.contextmanager
@@ -311,8 +358,14 @@ def utc_now():
 
 
 def main(request):
-    if (os.geteuid() != UID or set(request) != {'mode', 'projectBinding', 'expectedManifests', 'clientObservedAt'} or
-            request['mode'] not in {'check', 'apply'} or not isinstance(request['projectBinding'], str) or
+    mode = request.get('mode')
+    keys = {'mode', 'projectBinding', 'clientObservedAt'}
+    if mode != 'catalog':
+        keys.add('expectedManifests')
+    if mode == 'read':
+        keys.add('runId')
+    if (os.geteuid() != UID or set(request) != keys or
+            mode not in {'check', 'apply', 'catalog', 'read'} or not isinstance(request['projectBinding'], str) or
             not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Explicit root operator expiry mode required')
     server_clock = utc_now()
@@ -324,8 +377,13 @@ def main(request):
     # two equally wrong clocks or a forged caller are not attested by this check.
     decision_clock = min(server_clock, client_clock)
     with operator_locks():
-        result = expire(ROOT, request['expectedManifests'], request['projectBinding'],
-                        decision_clock, request['mode'] == 'apply')
+        if mode == 'catalog':
+            result = catalog(ROOT, request['projectBinding'], decision_clock)
+        elif mode == 'read':
+            result = read_bundle(ROOT, request['expectedManifests'], request['projectBinding'], decision_clock, request['runId'])
+        else:
+            result = expire(ROOT, request['expectedManifests'], request['projectBinding'],
+                            decision_clock, mode == 'apply')
     return {**result, 'serverClock': server_clock.isoformat(),
             'clientClock': client_clock.isoformat(), 'bothClocksPastExpiryRequired': True}
 

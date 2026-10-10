@@ -182,6 +182,7 @@ def inventory(root, project, now):
     if len(groups) > 100:
         raise ValueError('Bounded local batch required')
     plan = []
+    batch_bytes = 0
     for run, paths in sorted(groups.items()):
         journal = journals.get(run, {})
         raw_manifest = safe_read(paths['manifest.json'], 1024**2)[0] if 'manifest.json' in paths else None
@@ -189,6 +190,9 @@ def inventory(root, project, now):
         if not manifest:
             raise ValueError('Original manifest missing')
         expires = validate_manifest(manifest, run, project, now)
+        batch_bytes += sum(item['bytes'] for item in manifest['encryptedFiles'].values())
+        if batch_bytes > 512 * 1024**2:
+            raise ValueError('Bounded total local ciphertext batch required')
         for item in journal.values():
             if item['manifest'] != manifest:
                 raise ValueError('Original manifest and journal differ')
@@ -222,6 +226,33 @@ def inventory(root, project, now):
     return plan
 
 
+def metadata(root, project, now):
+    plan = inventory(root, project, now)
+    return {'expectedManifests': {r['runId']: r['manifest'] for r in plan},
+            'completeRuns': [r['runId'] for r in plan if r['complete'] and not r['pendingExpiry']],
+            'expiredRuns': [r['runId'] for r in plan if r['expired']],
+            'pendingRuns': [r['runId'] for r in plan if r['pendingExpiry'] and r['files']]}
+
+
+def attest(root, project, now, manifests):
+    """Retain server-validated metadata even after local ciphertext expiry."""
+    if not isinstance(manifests, dict) or len(manifests) > 100:
+        raise ValueError('Bounded validated manifest set required')
+    plan = inventory(root, project, now)
+    known = {r['runId']: r['manifest'] for r in plan}
+    if len(set(known) | set(manifests)) > 100:
+        raise ValueError('Bounded merged history required')
+    for run, manifest in manifests.items():
+        validate_manifest(manifest, run, project, now)
+        if run in known and known[run] != manifest:
+            raise ValueError('Independent manifests disagree')
+    for run, manifest in manifests.items():
+        if run not in known:
+            exclusive_write(journal_dir(root, True) / (run + '.capture.json'), encoded({
+                'schemaVersion': 'alterward-local-capture-1', 'manifest': manifest}))
+    return metadata(root, project, now)
+
+
 def expire(root, project, now, apply=False):
     plan = inventory(root, project, now)
     removed = 0
@@ -230,14 +261,20 @@ def expire(root, project, now, apply=False):
         if inventory(root, project, now) != plan:
             raise ValueError('Batch changed before expiry')
         for record in expired:
-            run = record['runId']
             if not record['pendingExpiry']:
-                exclusive_write(journal_dir(root, True) / (run + '.expiry.json'), encoded({
+                exclusive_write(journal_dir(root, True) / (record['runId'] + '.expiry.json'), encoded({
                     'schemaVersion': 'alterward-local-expiry-1', 'manifest': record['manifest'],
                     'rootIdentity': record['rootIdentity'], 'files': record['files']}))
-            # Validate the whole batch again after journal creation. A resumed
-            # run allows only missing previously attested files, never replacements.
-            inventory(root, project, now)
+        after_intents = inventory(root, project, now)
+        if len(after_intents) != len(plan) or any(
+                any(a[k] != b[k] for k in ('runId', 'manifest', 'files', 'complete', 'rootIdentity'))
+                for a, b in zip(plan, after_intents)):
+            raise ValueError('Batch changed while recording expiry intents')
+        for record in expired:
+            run = record['runId']
+            # The batch was fully hashed twice above. Every remaining original
+            # file is checked again immediately before unlink, avoiding a full
+            # re-hash of unrelated runs for every expired record.
             for name in ['catalog.json.age', 'managed.dump.age', 'manifest.json']:
                 path = root / (run + '-' + name)
                 if path.exists() or path.is_symlink():
@@ -320,7 +357,15 @@ def store(root, project, now, manifest, files):
     if not temporary.exists():
         exclusive_write(temporary, pointer_data)
     if pointer.exists() or pointer.is_symlink():
-        safe_read(pointer, 1024)
+        current = json.loads(safe_read(pointer, 1024)[0])
+        known = {r['runId']: r for r in inventory(root, project, now)}
+        current_manifest = known[current['runId']]['manifest']
+        if dt.datetime.fromisoformat(current_manifest['capturedAt']) > dt.datetime.fromisoformat(manifest['capturedAt']):
+            # Downloading an older fresh server-only run fills its copy, but
+            # never moves the final latest pointer backwards.
+            os.unlink(temporary)
+            sync_directory(root)
+            return {'stored': True, 'runId': run, 'latestPointerPreserved': True}
     location(root, True)
     os.replace(temporary, pointer)
     sync_directory(root)
@@ -340,8 +385,8 @@ def read_bundle(root, project, now):
 
 def main(request):
     action = request.get('action')
-    extra = {'manifest', 'files'} if action == 'store' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
-    if (action not in {'store', 'read', 'check', 'apply'} or
+    extra = {'manifest', 'files'} if action == 'store' else {'manifests'} if action == 'attest' else {'serverObservedAt'} if action in {'check', 'apply'} else set()
+    if (action not in {'store', 'read', 'check', 'apply', 'metadata', 'attest'} or
             set(request) != {'action', 'projectBinding'} | extra or not SHA.fullmatch(request['projectBinding'])):
         raise ValueError('Exact local operator action required')
     now = dt.datetime.now(dt.timezone.utc)
@@ -360,6 +405,10 @@ def main(request):
             return store(root, request['projectBinding'], now, request['manifest'], request['files'])
         if action == 'read':
             return read_bundle(root, request['projectBinding'], now)
+        if action == 'metadata':
+            return metadata(root, request['projectBinding'], now)
+        if action == 'attest':
+            return attest(root, request['projectBinding'], now, request['manifests'])
         return expire(root, request['projectBinding'], now, action == 'apply')
 
 
