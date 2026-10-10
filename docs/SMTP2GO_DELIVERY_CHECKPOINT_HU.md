@@ -1,6 +1,23 @@
 # alterward — SMTP bekötés és első kézbesítési ellenőrzés
 
-**Aktuális pontosítás, 2026-10-10:** a valódi saját, már felhasznált recovery-link helyes angol elutasítását a felhasználó megerősítette. A link kapuja lezárt; Gmail inbox/spam és a többi kiadási kapu külön feladat. A korábbi dátumozott megállapítások történeti állapotok.
+**Aktuális állapot, 2026-10-10:** az SMTP2GO EU dashboardján a saját meghívó és recovery levél is **Delivered**, az alterward.com **Verified**, a dedikált Supabase SMTP-felhasználó limitje **100/óra**. A saját invite/recovery belépés, a már felhasznált recovery-link helyes angol elutasítása és az info@ válaszút ellenőrzött. Mindkét Auth-levél Gmail spambe érkezett; inbox és a spam oka továbbra nincs igazolva. Az alábbi korábbi dátumozott megállapítások történeti állapotok.
+
+## 2026-10-10: szolgáltatói olvasási ellenőrzés
+
+A felhasználó bejelentkezése után Codex az SMTP2GO **Reports → Activity**, **Sending → Verified Senders** és **Sending → SMTP Users** lapjait olvasta. Új levélküldés és beállításmódosítás nem történt; jelszót, nyers levelet, fejlécet vagy Auth-linket nem olvastunk ki.
+
+| Ellenőrzés                         | Látható eredmény                                  | Bizonyíték határa                                                                      |
+| ---------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Your invitation to Alterward       | Delivered; 2026-10-09, a felület szerint 17:20:59 | A szolgáltatói lista időzónája külön nincs igazolva. A felhasználó szerint Gmail spam. |
+| Reset your Alterward password      | Delivered; 2026-10-09, a felület szerint 18:51:18 | A szolgáltatói lista időzónája külön nincs igazolva. A felhasználó szerint Gmail spam. |
+| alterward.com                      | Verified                                          | A provider domainállapota; a három Gmail PASS külön, korábbi emberi fejléc-beszámoló.  |
+| Dedikált Supabase SMTP-felhasználó | 100 levél/óra; EU SMTP host látható               | Nem a Supabase Auth tényleges emailkvótájának mérése.                                  |
+
+A dashboard aktuális havi számlálója **4/1000**, bounce rate **0,00%**, spam rate **0,00%**. Ez a kis mintájú szolgáltatói összesítés nem igazolja a Gmail inboxot: a Delivered a fogadó szerver sikeres átvételét jelenti, a spam esemény pedig külön visszajelzés. [SMTP2GO események](https://developers.smtp2go.com/docs/webhooks-overview).
+
+A domainlistában **Tracking Enabled** látható. A dedikált SMTP-felhasználó tracking/lábléc kikapcsolása korábbi felhasználói megerősítés; a meghívó közvetlen Supabase-linkjét is a felhasználó ellenőrizte. A domain jelzőjéből nem következtetünk a dedikált küldő tényleges kapcsolóira, ezeket most nem módosítottuk és nem ellenőriztük vissza a jelszót tartalmazó szerkesztőből.
+
+**Hátralévő kézbesítési feladat:** az első meghívottaknak előre jelezni kell az `Alterward` feladót, az `info@alterward.com` címet és a spam mappa ellenőrzését; a tényleges meghívás után címzettenként rögzíteni a kézbesítési eredményt és a sikeres belépést. A saját Gmailben a valódi levél „Nem spam” jelölése és a feladó névjegybe vétele segíthet, de nem garancia más címzettek inboxára. Hitelesítési hibára nincs bizonyíték, ezért DNS- vagy DMARC-módosítást nem végeztünk. A friss domain vagy közös küldő-IP reputációja lehetséges tényező, az adott két levél spambe sorolásának oka nincs azonosítva. [Google küldési útmutató](https://support.google.com/mail/answer/81126?hl=en).
 
 2026-10-08 · **SMTP-bekötés és első kézbesítés: felhasználói próba. Auth URL-ek és nyolc angol HTML-sablon: Codex dashboard-mentés és újranyitási ellenőrzés.** A fejlécek és az éles belépés továbbra külön bizonyítékot igényelnek. [SMTP útmutató](SMTP2GO_SUPABASE_SETUP_HU.md) · [Email-szerepek](OPERATOR_EMAIL_CONFIGURATION_HU.md) · [Angol levélsablonok](../deploy/supabase-auth/en/README.md).
 
@@ -61,7 +78,6 @@ A már felhasznált saját recovery-linkre a felhasználó a „The service coul
 ## Callback-javítás már éles
 
 A 9eb7732 alkalmazási image a Contabón frissült, őrzött valódi rollback/újra-upgrade után. Az éles szintetikus otp_expired callback az érthető angol invalid/expired/used üzenetet adja és megtartja a saját előző sessiont. A tényleges saját felhasznált link ellenőrzését újra kértük; token nem került kiolvasásra és új Auth-levél nem ment. Mindkét korábbi levél spambe kézbesült, inbox továbbra nincs igazolva. [Friss kiadási bizonyíték](CONTABO_OWNER_UPGRADE_REPORT_HU.md).
-
 
 ## 2026-10-10: tényleges felhasznált recovery-link ellenőrzése
 

@@ -6,16 +6,16 @@
 
 A [read-only operátori eszköz](../scripts/supabase-recovery-inventory.ts) sikeresen lefutott. Az Auth és a PostgreSQL projektazonosságát külön ellenőrzi, TLS-t követel, az adatbázist read-only tranzakcióban olvassa; nem készít Auth-mentést, nem töröl fiókot, nem küld levelet és nem indít AI-t. A lapozott Auth-lista azonosítói és emailjei csak memóriában vannak; a védett proof összesítést és hash-t tartalmaz.
 
-| Ellenőrzés | 2026-10-10-i eredmény |
-| --- | --- |
-| Alkalmazástáblák | 97, mind a 97 RLS-védett |
-| Közvetlen anon/authenticated táblajog | 0 érintett tábla |
-| Auth | 8 fiók, teljes egyoldalas leltár, 0 aktuálisan tiltott fiók |
-| Alkalmazási fiókok | 7 aktív, mindegyiknek van Auth-párja; a különbség nem törlési utasítás |
-| Storage | 0 bucket, 0 objektum |
-| Függő fióktörlési marker | 0 |
-| Shared | 0 aktív személyes tagság, 0 megtanult személyes emlék |
-| Biztonsági metaadat | 3 séma, 1358 grant-bejegyzés, 27 alkalmazási függvény, 66 trigger; privát digest rögzítve |
+| Ellenőrzés                            | 2026-10-10-i eredmény                                                                     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Alkalmazástáblák                      | 97, mind a 97 RLS-védett                                                                  |
+| Közvetlen anon/authenticated táblajog | 0 érintett tábla                                                                          |
+| Auth                                  | 8 fiók, teljes egyoldalas leltár, 0 aktuálisan tiltott fiók                               |
+| Alkalmazási fiókok                    | 7 aktív, mindegyiknek van Auth-párja; a különbség nem törlési utasítás                    |
+| Storage                               | 0 bucket, 0 objektum                                                                      |
+| Függő fióktörlési marker              | 0                                                                                         |
+| Shared                                | 0 aktív személyes tagság, 0 megtanult személyes emlék                                     |
+| Biztonsági metaadat                   | 3 séma, 1358 grant-bejegyzés, 27 alkalmazási függvény, 66 trigger; privát digest rögzítve |
 
 A közvetlen böngészős hozzáférés tiltása miatt az alkalmazástáblákon a nulla policy szándékos default-deny állapot. A grant-bejegyzések teljes száma nem böngészős hozzáférések száma. A metaadat-digest eltérésjelző, nem önmagában visszaállítható teljes schema/role/grant-mentés. A fiókleltár időponti megfigyelés, nem writer-fence vagy replay-engedély.
 
@@ -25,16 +25,16 @@ A dashboardban a future_flow projekt **Free**, és a Scheduled backups felület 
 
 A [Windows operátori indító](../scripts/supabase-managed-recovery.mts) és a [szerveroldali végrehajtó](../scripts/ops/contabo-managed-recovery.py) cdab90bb4c34ad5b30fbb5660bbf5c97eff707cb main forrással **ténylegesen sikeres** mentést és visszaállítási próbát készített. Capture 2026-10-10T14:17:10Z, manifest expiry 2026-10-17T14:17:10Z; a run-specific manifest és proof védett, Gitből kizárt helyen marad.
 
-| Ellenőrzés | Eredmény |
-| --- | --- |
-| Forrás | PG17, ellenőrzött TLS/CA, read-only repeatable-read exportált snapshot; hosted adatírás 0 |
-| Managed adat | 27 Auth + 8 Storage tábla, 171 megőrzött sor; mind a 35 táblán pontos sor- és tartalomösszeg-egyezés |
-| Tokenhatár | 15 ephemerális Auth-adatkészlet és két multipart upload tábla adatai kihagyva; auth.users natív token- és függő változtatási mezői csak a mentés vetületében törölve |
-| Séma | 97 public tábla adat nélkül; public columns/grants/policies/functions/triggers/indexes/constraints digest, RLS és anon/authenticated táblajoghatár egyezik |
-| Titkosítás | Eredeti daily age-recipient/image egyezik; mindkét helyi ciphertext hash/méret egyezik; mindkét sérült ciphertext elutasítva |
-| Cél | Új PG17, network none, publikált port 0, tmpfs adat; Auth-szerver nem indul |
-| Takarítás | Ideiglenes konténer és plaintext eltávolítva; mind a 10 meglévő konténer állapota változatlan |
-| Mellékhatás | Levél, provider AI, live restore vagy aktiválás 0 |
+| Ellenőrzés   | Eredmény                                                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Forrás       | PG17, ellenőrzött TLS/CA, read-only repeatable-read exportált snapshot; hosted adatírás 0                                                                            |
+| Managed adat | 27 Auth + 8 Storage tábla, 171 megőrzött sor; mind a 35 táblán pontos sor- és tartalomösszeg-egyezés                                                                 |
+| Tokenhatár   | 15 ephemerális Auth-adatkészlet és két multipart upload tábla adatai kihagyva; auth.users natív token- és függő változtatási mezői csak a mentés vetületében törölve |
+| Séma         | 97 public tábla adat nélkül; public columns/grants/policies/functions/triggers/indexes/constraints digest, RLS és anon/authenticated táblajoghatár egyezik           |
+| Titkosítás   | Eredeti daily age-recipient/image egyezik; mindkét helyi ciphertext hash/méret egyezik; mindkét sérült ciphertext elutasítva                                         |
+| Cél          | Új PG17, network none, publikált port 0, tmpfs adat; Auth-szerver nem indul                                                                                          |
+| Takarítás    | Ideiglenes konténer és plaintext eltávolítva; mind a 10 meglévő konténer állapota változatlan                                                                        |
+| Mellékhatás  | Levél, provider AI, live restore vagy aktiválás 0                                                                                                                    |
 
 A mentés **bizalmas**: fiókazonosítót, emailt/telefont, jelszóhash-t és tartós MFA/SSO/OAuth-konfigurációs titkot is őriz titkosítva. Nem titokmentes archívum, és nem a tartós MFA-titkok kizárása a cél. Új Auth-tábla, új auth.users oszlop/generált mező vagy új Storage-tábla privacy-felülvizsgálatig megállítja a capture-t. A 35 oszlop és a táblalisták a hosted projekt csak olvasó leltárából származnak. Az éles fiókok/tokenek nem módosulnak; a sanitized vetület csak az izolált másolaté.
 
@@ -46,10 +46,10 @@ A source-binding öt követett operátori fájl pontos Git-byte-egyezését elle
 
 Kézi indítás Node24/Windows alatt, eredeti védett SSH/age-kulccsal:
 
-~~~powershell
+```powershell
 node --env-file=.env --import tsx scripts/supabase-managed-recovery.mts --capture-and-rehearse
 node --env-file=.env --import tsx scripts/supabase-managed-recovery.mts --rehearse-existing
-~~~
+```
 
 A második művelet a helyi, hash-ellenőrzött két ciphertextet használja; az eredeti run-specific manifestet nem írja felül. Éles visszaállítást egyik sem végez.
 
@@ -64,6 +64,8 @@ A második művelet a helyi, hash-ellenőrzött két ciphertextet használja; az
 A szolgáltatói logikai költözés külön role-, schema- és data-exportot, valamint az Auth/Storage saját változásainak és esetleges titkosítási kulcsainak kezelését igényli. A managed szerepköröket és jelszavakat nem másoljuk vakon egy másik projektbe. [Hivatalos backup/restore eljárás](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore).
 
 ## Történeti megőrzés, kulcs és riasztás
+
+A külön [managed lejáratkezelés szerveroldali operátori szelete](MANAGED_BACKUP_RETENTION_HU.md) elkészült; Windows alatt hét célpróba sikeres és egy Linux-specifikus kihagyva. Nem telepítettünk automatikus expiry-t és nem töröltünk valódi archívumot. A teljes helyi/történeti/ágyazott másolatkezelés, megszakítási recovery és ütemezés külön megmarad.
 
 A managed capture előtti célgépi, csak olvasó ciphertext-leltár 14 age-fájlt talált, ebből 4 a managed daily határon kívüli történeti mentés. Egyik történeti ciphertext sem régebbi hét napnál. Fájl nem lett törölve. Az új managed capture két további ciphertextje külön scope és külön expiry; a korábbi leltár nem a capture utáni teljes darabszám. Ezekre a meglévő daily expiry nem vonatkozik: külön pontos manifest/hash/útvonal-regiszter és ellenőrzött expiry kell. A mtime önmagában nem engedély a törlésre, a regiszterhez a valódi capture-idő és scope is szükséges. A helyi történeti másolatokat is rendezni kell.
 
