@@ -252,6 +252,43 @@ try {
   assert.equal(sharedFoundation.delayedSharedResolution, true);
   assert.equal(sharedFoundation.concurrentPersonalMemoryOnce, true);
   assert.equal(sharedFoundation.personalMemoryDeletionRace, true);
+  const privacyRestore = JSON.parse(
+    compose(
+      'run',
+      '--rm',
+      '--no-deps',
+      '-e',
+      'ALTERWARD_PRIVACY_FIXTURE=true',
+      '-e',
+      'AI_PROJECT_BUDGET_USD=0',
+      '-e',
+      'AI_USER_BUDGET_USD=0',
+      'api',
+      'node',
+      'node_modules/tsx/dist/cli.mjs',
+      '--tsconfig',
+      'tsconfig.scripts.json',
+      'scripts/smoke-privacy-restore.ts',
+    ).trim(),
+  );
+  assert.equal(privacyRestore.postgresPrivacyRestore, 'passed');
+  for (const check of [
+    'deletedAccountNotRestored',
+    'deletedLifeNotRestored',
+    'oldBearerLinkRejected',
+    'unchangedCopyRetained',
+    'sharedTextHiddenDateOutcomePreserved',
+    'newerBlockRetained',
+    'budgetNotReducedAndPaidDisabled',
+    'oldJobsCancelledAndScrubbed',
+    'idempotentReplay',
+    'physicalOldSnapshot',
+    'actualDatabaseNameGuard',
+    'missingOrMismatchedAuthorityRejected',
+    'interruptedReplayRolledBack',
+  ])
+    assert.equal(privacyRestore[check], true);
+  assert.equal(privacyRestore.serviceActivationAllowed, false);
   const officialLife = JSON.parse(
     compose(
       'run',
