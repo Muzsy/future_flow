@@ -74,7 +74,9 @@ def main(request):
                  '-e', 'POSTGRES_PASSWORD=rehearsal_unused', PG,
                  '-c', 'ssl=on', '-c', 'ssl_cert_file=/run/fixture.crt', '-c', 'ssl_key_file=/run/fixture.key'])
             deadline=time.monotonic()+45
-            while run(['docker','exec',pg_name,'pg_isready','-U','postgres'],check=False).returncode:
+            # The image starts a temporary socket-only server during initdb.
+            # Wait for the final TCP listener, not that transient server.
+            while run(['docker','exec',pg_name,'pg_isready','-h','127.0.0.1','-U','postgres'],check=False).returncode:
                 if time.monotonic()>deadline: raise ValueError('PostgreSQL readiness timeout')
                 time.sleep(1)
             run(['docker','exec',pg_name,'psql','-U','postgres','-v','ON_ERROR_STOP=1','-c',
