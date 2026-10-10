@@ -182,11 +182,13 @@ class HealthProjectionTests(unittest.TestCase):
 
     def test_missing_startup_status_or_first_failure_only_sets_backup_bit_false(self):
         root, config, status = self.recovery_fixture()
-        for kind in ('missing', 'first-failure'):
+        for kind in ('missing', 'first-failure', 'non-object-config'):
             if kind == 'missing':
                 (root / 'status.json').unlink()
-            else:
+            elif kind == 'first-failure':
                 self.write(root / 'status.json', {'ok': False, 'capturedAt': NOW.isoformat()})
+            else:
+                self.write(root / 'config.json', [])
             value = health.projection(self.root, NOW, self.units, root)
             self.assertFalse(value['backupFresh'])
             self.assertTrue(all(v is True for k, v in value.items() if k != 'backupFresh'))

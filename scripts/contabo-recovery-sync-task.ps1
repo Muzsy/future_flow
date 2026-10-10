@@ -90,7 +90,11 @@ $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $principal = New-ScheduledTaskPrincipal -UserId $sid -LogonType Interactive -RunLevel Limited
 $command = New-ScheduledTaskAction -Execute $PowerShellPath -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -File "' + $scriptPath + '"') -WorkingDirectory $workspacePath
 $triggers = @(
-    (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(7) -RepetitionInterval (New-TimeSpan -Hours 1)),
+    (New-ScheduledTaskTrigger -Once -At $(
+        $start = (Get-Date).ToUniversalTime().Date.AddHours((Get-Date).ToUniversalTime().Hour).AddMinutes(34)
+        if ($start -le (Get-Date).ToUniversalTime()) { $start = $start.AddHours(1) }
+        $start.ToLocalTime()
+    ) -RepetitionInterval (New-TimeSpan -Hours 1)),
     (New-ScheduledTaskTrigger -AtLogOn -User $sid)
 )
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries

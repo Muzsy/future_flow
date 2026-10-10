@@ -2,7 +2,7 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFileSync, lstatSync, realpathSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import {
   privateReportDirectory,
   privateReportFile,
@@ -11,7 +11,7 @@ import {
 const directory = privateReportDirectory('contabo-recovery');
 let phase = 'validation';
 let commit;
-async function receipt(ok, managedArchives, legacyPolicyDigest) {
+async function remote(request) {
   const secrets = realpathSync(
     process.env.ALTERWARD_SSH_SECRETS_DIR ??
       join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
@@ -65,19 +65,26 @@ async function receipt(ok, managedArchives, legacyPolicyDigest) {
   pending.child.stdin.end(
     JSON.stringify({
       source: installer.toString('base64'),
-      request: {
-        action: 'record-local',
-        ok,
-        sourceCommit: commit,
-        observedAt: new Date().toISOString(),
-        managedArchives,
-        legacyPolicyDigest,
-      },
+      request,
     }),
   );
-  const proof = JSON.parse((await pending).stdout);
+  return JSON.parse((await pending).stdout);
+}
+async function receipt(ok, managedArchives, legacyPolicyDigest) {
+  const proof = await remote({
+    action: 'record-local',
+    ok,
+    sourceCommit: commit,
+    observedAt: new Date().toISOString(),
+    managedArchives,
+    legacyPolicyDigest,
+  });
   if (proof.localAttestationRecorded !== true || proof.ok !== ok)
     throw Error('Original local attestation refused');
+}
+function fresh(value, seconds) {
+  const age = Date.now() - Date.parse(value);
+  return Number.isFinite(age) && age >= -300000 && age <= seconds * 1000;
 }
 
 try {
@@ -103,52 +110,75 @@ try {
       env: process.env,
     });
   };
-  phase = 'application-copy';
-  await run(['scripts/contabo-daily.mjs', '--sync']);
-  phase = 'managed-reconciliation';
-  await run([
-    '--import',
-    'tsx',
-    'scripts/supabase-managed-retention.mts',
-    '--apply',
-  ]);
-  const managed = JSON.parse(
-    readFileSync(
-      '.local/supabase-recovery/managed-retention-proof.json',
-      'utf8',
-    ),
-  );
-  if (
-    managed.sourceCommit !== commit ||
-    managed.mode !== 'apply' ||
-    managed.metadataReconciled !== true ||
-    Date.now() - Date.parse(managed.checkedAt) > 300000 ||
-    managed.serverFreshArchives < 1
-  )
-    throw Error('Fresh joint metadata and encrypted copy proof required');
-  phase = 'historical-expiry';
-  await run([
-    '--import',
-    'tsx',
-    'scripts/legacy-recovery-retention.mts',
-    '--apply',
-  ]);
-  const legacy = JSON.parse(
-    readFileSync('.local/legacy-retention/proof.json', 'utf8'),
-  );
-  if (
-    legacy.sourceCommit !== commit ||
-    legacy.mode !== 'apply' ||
-    legacy.serverResult.policyDigest !== legacy.localResult.policyDigest ||
-    Date.now() - Date.parse(legacy.checkedAt) > 300000
-  )
-    throw Error('Fresh joint historical expiry proof required');
-  phase = 'external-attestation';
-  await receipt(
-    true,
-    managed.serverFreshArchives,
-    legacy.serverResult.policyDigest,
-  );
+  const reconcile = async () => {
+    phase = 'application-copy';
+    await run(['scripts/contabo-daily.mjs', '--sync']);
+    phase = 'managed-reconciliation';
+    await run([
+      '--import',
+      'tsx',
+      'scripts/supabase-managed-retention.mts',
+      '--apply',
+    ]);
+    const managed = JSON.parse(
+      readFileSync(
+        '.local/supabase-recovery/managed-retention-proof.json',
+        'utf8',
+      ),
+    );
+    if (
+      managed.sourceCommit !== commit ||
+      managed.mode !== 'apply' ||
+      managed.metadataReconciled !== true ||
+      !fresh(managed.checkedAt, 300) ||
+      managed.serverFreshArchives < 1
+    )
+      throw Error('Fresh joint metadata and encrypted copy proof required');
+    phase = 'historical-preconditions';
+    const prerequisites = await remote({ action: 'local-preconditions' });
+    if (
+      prerequisites.localExpiryPreconditionsVerified !== true ||
+      !fresh(prerequisites.observedAt, 300) ||
+      !fresh(prerequisites.managedCapturedAt, 26 * 3600) ||
+      !fresh(prerequisites.applicationCapturedAt, 26 * 3600)
+    )
+      throw Error(
+        'Authenticated fresh backups required before local historical expiry',
+      );
+    phase = 'historical-expiry';
+    await run([
+      '--import',
+      'tsx',
+      'scripts/legacy-recovery-retention.mts',
+      '--apply',
+    ]);
+    const legacy = JSON.parse(
+      readFileSync('.local/legacy-retention/proof.json', 'utf8'),
+    );
+    if (
+      legacy.sourceCommit !== commit ||
+      legacy.mode !== 'apply' ||
+      legacy.serverResult.policyDigest !== legacy.localResult.policyDigest ||
+      !fresh(legacy.checkedAt, 300)
+    )
+      throw Error('Fresh joint historical expiry proof required');
+    phase = 'external-attestation';
+    await receipt(
+      true,
+      managed.serverFreshArchives,
+      legacy.serverResult.policyDigest,
+    );
+    return managed;
+  };
+  let managed;
+  try {
+    managed = await reconcile();
+  } catch {
+    // Original journaled operations can be safely retried after a transient
+    // lock collision. A false receipt is sent only after both attempts fail.
+    await new Promise((done) => setTimeout(done, 15000));
+    managed = await reconcile();
+  }
   const proof = {
     ok: true,
     capturedAt: new Date().toISOString(),

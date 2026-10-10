@@ -58,7 +58,7 @@ def current(record, config, now, age, require_ok=True):
 def recovery_current(root, now, unit_root):
     try:
         return recovery_projection(root, now, unit_root)
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
 
 

@@ -32,12 +32,16 @@ class LocalAttestationTests(unittest.TestCase):
 
     def test_old_future_mistyped_private_or_wrong_inventory_refused(self):
         for update in [{'observedAt': (NOW-dt.timedelta(seconds=301)).isoformat()},
-                       {'observedAt': (NOW+dt.timedelta(seconds=1)).isoformat()},
+                       {'observedAt': (NOW+dt.timedelta(seconds=301)).isoformat()},
                        {'ok': 'true'}, {'managedArchives': True}, {'managedArchives': 0},
                        {'managedArchives': 1}, {'legacyPolicyDigest': 'e'*64},
                        {'privateKey': 'must not be accepted'}]:
             with self.subTest(update=update), self.assertRaises(ValueError):
                 self.call(**update)
+
+    def test_small_clock_drift_in_both_directions_tolerated(self):
+        for drift in [-300, -2, 2, 300]:
+            self.assertTrue(self.call(observedAt=(NOW+dt.timedelta(seconds=drift)).isoformat())['ok'])
 
     def test_failure_receipt_stays_failed_even_without_successful_inventory(self):
         value = self.call(ok=False, managedArchives=0, legacyPolicyDigest='0'*64)
@@ -48,6 +52,40 @@ class LocalAttestationTests(unittest.TestCase):
         self.expiry.catalog.return_value = {'freshRuns': ['first', 'second', 'third']}
         with self.assertRaises(ValueError):
             self.call()
+
+
+class LocalExpiryPreconditionsTests(unittest.TestCase):
+    def setUp(self):
+        self.config = {'sourceCommit': 'a'*40, 'projectBinding': 'b'*64}
+        self.daily = Mock();self.daily.utcnow.return_value = NOW
+        self.daily.status_snapshot.return_value = {'backup': {'ok':True, 'capturedAt': NOW.isoformat()}}
+        self.daily.current_proof.return_value = True
+        self.expiry = Mock()
+        self.expiry.catalog.return_value = {'freshRuns':['run'], 'expectedManifests':{'run':{'capturedAt':NOW.isoformat()}}}
+
+    def call(self):
+        return installer.local_expiry_preconditions(self.config, self.daily, self.expiry)
+
+    def test_authenticated_fresh_original_backups_allow_local_expiry(self):
+        self.assertTrue(self.call()['localExpiryPreconditionsVerified'])
+        self.daily.current_proof.assert_called_once_with(self.daily.status_snapshot.return_value['backup'], self.daily.config.return_value, 26*3600)
+
+    def test_stale_or_future_managed_capture_refused(self):
+        for offset in [-26*3600-1, 1]:
+            self.expiry.catalog.return_value['expectedManifests']['run']['capturedAt']=(NOW+dt.timedelta(seconds=offset)).isoformat()
+            with self.assertRaises(ValueError): self.call()
+
+    def test_missing_managed_archive_refused(self):
+        self.expiry.catalog.return_value['freshRuns']=[]
+        with self.assertRaises(ValueError): self.call()
+
+    def test_failed_application_backup_refused(self):
+        self.daily.status_snapshot.return_value['backup']['ok']=False
+        with self.assertRaises(ValueError): self.call()
+
+    def test_stale_or_source_mismatched_application_backup_refused(self):
+        self.daily.current_proof.return_value=False
+        with self.assertRaises(ValueError): self.call()
 
 
 if __name__ == '__main__':

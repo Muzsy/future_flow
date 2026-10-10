@@ -82,7 +82,7 @@ def local_attestation(request, config, daily, expiry, legacy):
             type(request['managedArchives']) is not int or not 0 <= request['managedArchives'] <= 100):
         raise ValueError('Bounded original local attestation required')
     now = daily.utcnow()
-    if not 0 <= (now - dt_time(request['observedAt'])).total_seconds() <= 300:
+    if abs((now - dt_time(request['observedAt'])).total_seconds()) > 300:
         raise ValueError('Fresh local UTC attestation required')
     if request['ok']:
         catalog = expiry.catalog(expiry.ROOT, config['projectBinding'], now)
@@ -93,6 +93,21 @@ def local_attestation(request, config, daily, expiry, legacy):
     return {'ok': request['ok'], 'capturedAt': now.isoformat(),
         'installedSourceCommit': config['sourceCommit'], 'localSourceCommit': request['sourceCommit'],
         'managedArchives': request['managedArchives'], 'operatorAttestation': True}
+
+
+def local_expiry_preconditions(config, daily, expiry):
+    now = daily.utcnow()
+    catalog = expiry.catalog(expiry.ROOT, config['projectBinding'], now)
+    captures = [dt_time(catalog['expectedManifests'][run]['capturedAt']) for run in catalog['freshRuns']]
+    if not captures or not 0 <= (now - max(captures)).total_seconds() <= 26 * 3600:
+        raise ValueError('Fresh managed capture required before local historical expiry')
+    daily_config = daily.config()
+    backup = daily.status_snapshot(daily_config)['backup']
+    if backup.get('ok') is not True or not daily.current_proof(backup, daily_config, 26 * 3600):
+        raise ValueError('Fresh application backup required before local historical expiry')
+    return {'localExpiryPreconditionsVerified': True, 'observedAt': now.isoformat(),
+            'managedCapturedAt': max(captures).isoformat(), 'applicationCapturedAt': backup['capturedAt'],
+            'installedSourceCommit': config['sourceCommit']}
 
 
 def main(request):
@@ -164,6 +179,11 @@ def main(request):
             value = local_attestation(request, config, daily, expiry, legacy)
             daily.atomic(ROOT / 'local-sync.json', value)
         return {'localAttestationRecorded': True, 'ok': request['ok'], 'privateDataReceived': False}
+    if action == 'local-preconditions' and set(request) == {'action'}:
+        lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
+        config, daily, expiry, _, _ = lifecycle.load()
+        with daily.exclusive(daily.ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+            return local_expiry_preconditions(config, daily, expiry)
     if action not in {'run', 'status', 'activate', 'disable'} or set(request) != {'action'}:
         raise ValueError('Explicit scoped lifecycle action required')
     lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
