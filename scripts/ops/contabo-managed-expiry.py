@@ -14,6 +14,7 @@ import stat
 
 ROOT = Path('/root/alterward-ops/managed-recovery')
 FILES = {'managed.dump.age', 'catalog.json.age', 'manifest.json'}
+JOURNAL = 'expiry-journal'
 PG_IMAGE = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
 RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 SHA = re.compile(r'[a-f0-9]{64}')
@@ -57,6 +58,72 @@ def identity(value):
             value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
 
 
+def journal_records(root, project, now):
+    """Immutable deletion intent survives a killed process without ciphertext."""
+    path = root / JOURNAL
+    if not path.exists() and not path.is_symlink():
+        return {}
+    directory(path)
+    result = {}
+    for entry in path.iterdir():
+        if not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}\.json', entry.name):
+            raise ValueError('Unknown expiry journal entry')
+        raw, _ = original_file(entry)
+        if len(raw) > 2 * 1024**2:
+            raise ValueError('Bounded expiry journal required')
+        record = json.loads(raw)
+        run = entry.name[:-5]
+        if (set(record) != {'schemaVersion', 'manifest', 'rootIdentity',
+                           'directoryIdentity', 'files'} or
+                record['schemaVersion'] != 'alterward-server-expiry-1' or
+                validate_manifest(record['manifest'], run, project, now) > now or
+                len(record['rootIdentity']) != 2 or
+                not all(type(v) is int for v in record['rootIdentity']) or
+                len(record['directoryIdentity']) != 8 or
+                not all(type(v) is int for v in record['directoryIdentity']) or
+                set(record['files']) != FILES):
+            raise ValueError('Exact expired original journal required')
+        for name, item in record['files'].items():
+            if (set(item) != {'identity', 'sha256', 'bytes'} or
+                    len(item['identity']) != 8 or
+                    not all(type(v) is int for v in item['identity']) or
+                    not SHA.fullmatch(item['sha256']) or type(item['bytes']) is not int or
+                    not 0 < item['bytes'] <= 128 * 1024**2 or
+                    item['identity'][5] != item['bytes']):
+                raise ValueError('Bounded original journal file required')
+            if name != 'manifest.json' and {k: item[k] for k in ('sha256', 'bytes')} != record['manifest']['encryptedFiles'][name]:
+                raise ValueError('Journal ciphertext differs from manifest')
+        result[run] = record
+        if len(result) > 100:
+            raise ValueError('Bounded expiry history required')
+    return result
+
+
+def write_journal(root, record):
+    path = root / JOURNAL
+    if not path.exists():
+        path.mkdir(mode=0o700)
+    directory(path)
+    data = (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    fd = os.open(path / (record['manifest']['runId'] + '.json'),
+                 os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    try:
+        with os.fdopen(fd, 'wb', closefd=False) as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(fd)
+    finally:
+        os.close(fd)
+    # The journal entry and its containing directory must be durable before
+    # any ciphertext unlink. A torn journal fails closed for operator review.
+    for directory_path in (path, root):
+        fd = os.open(directory_path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+
 def validate_manifest(manifest, run_id, project, now):
     if (manifest.get('schemaVersion') != 'alterward-managed-recovery-2' or
             manifest.get('runId') != run_id or not RUN_ID.fullmatch(run_id) or
@@ -96,33 +163,55 @@ def inventory(root, expected, project, now):
             len(expected) > 100):
         raise ValueError('UTC clock and original local manifest inventory required')
     root_state = directory(root)
-    names = sorted(p.name for p in root.iterdir())
-    if names != sorted(expected) or any(not RUN_ID.fullmatch(n) for n in names):
+    journals = journal_records(root, project, now)
+    names = {p.name for p in root.iterdir() if p.name != JOURNAL}
+    if (names | set(journals) != set(expected) or
+            any(not isinstance(n, str) or not RUN_ID.fullmatch(n) for n in expected)):
         raise ValueError('Complete original local manifest set must match server')
     records = []
-    for name in names:
-        path = root / name
-        dir_state = directory(path)
-        if {p.name for p in path.iterdir()} != FILES:
-            raise ValueError('Incomplete or foreign archive contents')
-        raw, manifest_state = original_file(path / 'manifest.json')
-        if len(raw) > 1024**2:
-            raise ValueError('Bounded manifest required')
-        manifest = json.loads(raw)
-        if manifest != expected[name]:
-            raise ValueError('Original local manifest differs from server')
+    for name in sorted(expected):
+        manifest = expected[name]
         expires = validate_manifest(manifest, name, project, now)
-        file_states = {'manifest.json': identity(manifest_state)}
-        for filename, item in manifest['encryptedFiles'].items():
+        pending = journals.get(name)
+        if pending and pending['manifest'] != manifest:
+            raise ValueError('Local original manifest differs from expiry journal')
+        path = root / name
+        if name not in names:
+            # Completed tombstones contain metadata only. Moving an empty
+            # history does not authorize a new directory at the same run ID.
+            records.append({'runId': name, 'manifest': manifest, 'expired': True,
+                            'manifestSha256': pending['files']['manifest.json']['sha256'],
+                            'directoryIdentity': pending['directoryIdentity'],
+                            'files': {}, 'pendingExpiry': True, 'directoryPresent': False})
+            continue
+        dir_state = directory(path)
+        present = {p.name for p in path.iterdir()}
+        if (not present <= FILES or (not pending and present != FILES)):
+            raise ValueError('Incomplete or foreign archive contents')
+        if pending and (pending['rootIdentity'] != list(identity(root_state)[:2]) or
+                        pending['directoryIdentity'][:2] != list(identity(dir_state)[:2])):
+            raise ValueError('Expiry belongs to another original directory')
+        file_states = {}
+        manifest_hash = pending['files']['manifest.json']['sha256'] if pending else None
+        for filename in sorted(present):
             data, file_state = original_file(path / filename)
-            if len(data) != item['bytes'] or fingerprint(data) != item['sha256']:
+            item = {'identity': list(identity(file_state)), 'bytes': len(data),
+                    'sha256': fingerprint(data)}
+            if filename == 'manifest.json':
+                if len(data) > 1024**2 or json.loads(data) != manifest:
+                    raise ValueError('Original local manifest differs from server')
+                manifest_hash = item['sha256']
+            elif {k: item[k] for k in ('sha256', 'bytes')} != manifest['encryptedFiles'][filename]:
                 raise ValueError('Ciphertext changed; refuse whole batch')
-            file_states[filename] = identity(file_state)
+            if pending and item != pending['files'][filename]:
+                raise ValueError('Archive file replaced after deletion intent')
+            file_states[filename] = item
         if identity(path.lstat()) != identity(dir_state):
             raise ValueError('Archive directory changed')
         records.append({'runId': name, 'expired': expires <= now,
-                        'manifestSha256': fingerprint(raw),
-                        'directoryIdentity': identity(dir_state), 'files': file_states})
+                        'manifest': manifest, 'manifestSha256': manifest_hash,
+                        'directoryIdentity': list(identity(dir_state)), 'files': file_states,
+                        'pendingExpiry': pending is not None, 'directoryPresent': True})
     if identity(root.lstat()) != identity(root_state):
         raise ValueError('Archive root changed')
     return records
@@ -142,34 +231,58 @@ def expire(root, expected, project, now, apply=False):
         try:
             if identity(os.fstat(root_fd)) != root_identity:
                 raise ValueError('Archive root changed before expiry')
+            # Record every new intent after complete batch validation. Partial
+            # progress is allowed only for these exact original identities.
+            for record in expired:
+                if not record['pendingExpiry']:
+                    write_journal(root, {
+                        'schemaVersion': 'alterward-server-expiry-1',
+                        'manifest': record['manifest'], 'rootIdentity': list(root_identity[:2]),
+                        'directoryIdentity': record['directoryIdentity'], 'files': record['files']})
+            # Journal creation changes directory timestamps. Compare immutable
+            # original entries and hashes, then use the new resumable inventory.
+            updated = inventory(root, expected, project, now)
+            for old, new in zip(records, updated):
+                if any(old[k] != new[k] for k in ('runId', 'manifest', 'directoryIdentity', 'files', 'directoryPresent')):
+                    raise ValueError('Batch changed while recording expiry intent')
             for record in expired:
                 name = record['runId']
-                if identity(os.stat(name, dir_fd=root_fd, follow_symlinks=False)) != record['directoryIdentity']:
+                if not record['directoryPresent']:
+                    continue
+                if list(identity(os.stat(name, dir_fd=root_fd, follow_symlinks=False))) != record['directoryIdentity']:
                     raise ValueError('Archive directory changed before expiry')
                 archive_fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
                 try:
-                    if identity(os.fstat(archive_fd)) != record['directoryIdentity'] or set(os.listdir(archive_fd)) != FILES:
+                    if list(identity(os.fstat(archive_fd))) != record['directoryIdentity'] or set(os.listdir(archive_fd)) != set(record['files']):
                         raise ValueError('Archive changed before unlink')
-                    for filename in sorted(FILES):
-                        if identity(os.stat(filename, dir_fd=archive_fd, follow_symlinks=False)) != record['files'][filename]:
+                    for filename, item in record['files'].items():
+                        if list(identity(os.stat(filename, dir_fd=archive_fd, follow_symlinks=False))) != item['identity']:
                             raise ValueError('Archive file changed before unlink')
-                    for filename in sorted(FILES - {'manifest.json'}):
-                        os.unlink(filename, dir_fd=archive_fd)
-                    os.unlink('manifest.json', dir_fd=archive_fd)
+                    for filename in ['catalog.json.age', 'managed.dump.age', 'manifest.json']:
+                        if filename in record['files']:
+                            # Recheck after every previous unlink. A replacement
+                            # entry never inherits a missing file's deletion right.
+                            if list(identity(os.stat(filename, dir_fd=archive_fd, follow_symlinks=False))) != record['files'][filename]['identity']:
+                                raise ValueError('File changed immediately before unlink')
+                            os.unlink(filename, dir_fd=archive_fd)
+                            os.fsync(archive_fd)
                 finally:
                     os.close(archive_fd)
                 # Never unlink a replacement entry or recursively delete.
                 current = os.stat(name, dir_fd=root_fd, follow_symlinks=False)
-                if (current.st_dev, current.st_ino) != record['directoryIdentity'][:2]:
+                if [current.st_dev, current.st_ino] != record['directoryIdentity'][:2]:
                     raise ValueError('Archive replaced before directory removal')
                 os.rmdir(name, dir_fd=root_fd)
                 removed += 1
             os.fsync(root_fd)
         finally:
             os.close(root_fd)
-    return {'schemaVersion': 'alterward-managed-expiry-1', 'checkedAt': now.isoformat(),
+    return {'schemaVersion': 'alterward-managed-expiry-2', 'checkedAt': now.isoformat(),
             'projectBinding': project, 'validatedArchives': len(records),
             'expiredArchives': len(expired), 'removedArchives': removed,
+            'pendingArchives': sum(r['pendingExpiry'] and r['directoryPresent'] for r in records),
+            'completedTombstones': sum(not r['directoryPresent'] for r in records),
+            'durableDeletionIntent': True,
             'mode': 'apply' if apply else 'check',
             'expiredManifestHashes': [r['manifestSha256'] for r in expired],
             'keyRead': False, 'decryptionPerformed': False, 'liveDatabaseWrites': False,

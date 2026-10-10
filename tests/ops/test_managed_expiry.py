@@ -95,9 +95,12 @@ class ManagedExpiryTests(unittest.TestCase):
         self.assertEqual(result['removedArchives'], 1)
         self.assertFalse(due.exists())
         self.assertEqual({p.name for p in fresh.iterdir()}, expiry.FILES)
-        result = expiry.expire(self.root, {fresh.name: b}, PROJECT, NOW + dt.timedelta(days=8), apply=True)
+        result = expiry.expire(self.root, {due.name: a, fresh.name: b}, PROJECT, NOW + dt.timedelta(days=8), apply=True)
         self.assertEqual(result['removedArchives'], 1)
-        self.assertEqual(list(self.root.iterdir()), [])
+        self.assertEqual({p.name for p in self.root.iterdir()}, {expiry.JOURNAL})
+        repeated = expiry.expire(self.root, {due.name: a, fresh.name: b}, PROJECT, NOW + dt.timedelta(days=8), apply=True)
+        self.assertEqual(repeated['completedTombstones'], 2)
+        self.assertEqual(repeated['removedArchives'], 0)
 
     def test_corrupt_fresh_ciphertext_blocks_whole_batch_before_old_deletion(self):
         due, a = fixture(self.root, NOW - dt.timedelta(days=8))
@@ -302,6 +305,112 @@ class ManagedExpiryTests(unittest.TestCase):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
                 with expiry.operator_locks():
                     pass
+
+    @unittest.skipIf(os.name == 'nt', 'Linux durable descriptor-relative unlink')
+    def test_resume_after_every_unlink_and_empty_directory_removal(self):
+        real_unlink, real_rmdir = os.unlink, os.rmdir
+        for stop in ('catalog.json.age', 'managed.dump.age', 'manifest.json', 'directory'):
+            with self.subTest(stop=stop), tempfile.TemporaryDirectory() as name:
+                root = Path(name).resolve()
+                root.chmod(0o700)
+                due, manifest = fixture(root, NOW - dt.timedelta(days=8))
+                fresh, recent = fixture(root, NOW)
+
+                def interrupted_unlink(path, *args, **kwargs):
+                    result = real_unlink(path, *args, **kwargs)
+                    if path == stop and 'dir_fd' in kwargs:
+                        # Intent must be durably readable before the first unlink.
+                        self.assertIn(due.name, expiry.journal_records(root, PROJECT, NOW))
+                        raise InterruptedError('Synthetic process stop')
+                    return result
+
+                def interrupted_rmdir(path, *args, **kwargs):
+                    result = real_rmdir(path, *args, **kwargs)
+                    if stop == 'directory' and path == due.name:
+                        raise InterruptedError('Synthetic stop after directory removal')
+                    return result
+
+                expected = {due.name: manifest, fresh.name: recent}
+                with patch.object(os, 'unlink', side_effect=interrupted_unlink), \
+                        patch.object(os, 'rmdir', side_effect=interrupted_rmdir), self.assertRaises(InterruptedError):
+                    expiry.expire(root, expected, PROJECT, NOW, apply=True)
+                proof = expiry.expire(root, expected, PROJECT, NOW, apply=True)
+                self.assertFalse(due.exists())
+                self.assertEqual({p.name for p in fresh.iterdir()}, expiry.FILES)
+                self.assertEqual(proof['removedArchives'], 0 if stop == 'directory' else 1)
+
+    @unittest.skipIf(os.name == 'nt', 'Linux durable journals')
+    def test_replaced_remaining_file_after_interruption_cannot_be_deleted(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_unlink = os.unlink
+
+        def interrupted(path, *args, **kwargs):
+            result = real_unlink(path, *args, **kwargs)
+            if path == 'catalog.json.age' and 'dir_fd' in kwargs:
+                raise InterruptedError('Synthetic stop')
+            return result
+
+        with patch.object(os, 'unlink', side_effect=interrupted), self.assertRaises(InterruptedError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        remaining = due / 'managed.dump.age'
+        data = remaining.read_bytes()
+        remaining.unlink()
+        remaining.write_bytes(data)
+        remaining.chmod(0o600)
+        with self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue(remaining.exists() and (due / 'manifest.json').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux durable journals')
+    def test_completed_tombstone_refuses_resurrection_and_unknown_local_history(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        with self.assertRaises(ValueError):
+            expiry.expire(self.root, {}, PROJECT, NOW, apply=True)
+        recreated, original = fixture(self.root, NOW - dt.timedelta(days=8))
+        self.assertEqual(original, manifest)
+        with self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue((recreated / 'managed.dump.age').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Linux journal fsync ordering')
+    def test_journal_write_failure_prevents_first_ciphertext_unlink(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        with patch.object(os, 'fsync', side_effect=OSError('Synthetic storage failure')), \
+                self.assertRaises(OSError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertEqual({p.name for p in due.iterdir()}, expiry.FILES)
+
+    @unittest.skipIf(os.name == 'nt', 'Linux durable journals')
+    def test_torn_or_foreign_journal_blocks_fresh_and_expired_batch(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        journal = self.root / expiry.JOURNAL
+        journal.mkdir(mode=0o700)
+        path = journal / (due.name + '.json')
+        path.write_bytes(b'{"torn":')
+        path.chmod(0o600)
+        with self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertEqual({p.name for p in due.iterdir()}, expiry.FILES)
+
+    @unittest.skipIf(os.name == 'nt', 'Linux replacement between sequential unlinks')
+    def test_file_swap_after_first_unlink_preserves_replacement(self):
+        due, manifest = fixture(self.root, NOW - dt.timedelta(days=8))
+        real_unlink = os.unlink
+
+        def swapped(path, *args, **kwargs):
+            result = real_unlink(path, *args, **kwargs)
+            if path == 'catalog.json.age' and 'dir_fd' in kwargs:
+                other = due / 'managed.dump.age'
+                data = other.read_bytes()
+                other.rename(due / 'held-original')
+                other.write_bytes(data)
+                other.chmod(0o600)
+            return result
+
+        with patch.object(os, 'unlink', side_effect=swapped), self.assertRaises(ValueError):
+            expiry.expire(self.root, {due.name: manifest}, PROJECT, NOW, apply=True)
+        self.assertTrue((due / 'managed.dump.age').exists() and (due / 'manifest.json').exists())
 
 
 original_reader = expiry.original_file
