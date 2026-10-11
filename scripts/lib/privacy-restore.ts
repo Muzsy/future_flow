@@ -10,6 +10,10 @@ import { cancelPendingSharedDecision } from '../../packages/database/src/shared-
 import { assertPrivacyRecoveryCoverage } from './privacy-recovery-coverage';
 import {
   assertVerifiedRecoveryAuth,
+  readRecoveryAuthInventory,
+  verifyRecoveryAuthInventory,
+  assertRecoveryAuthStable,
+  recoveryAuthProjectionSql,
   type VerifiedRecoveryAuth,
 } from './recovery-auth-inventory';
 
@@ -140,7 +144,78 @@ export async function capturePrivacyRestoreAuthority(
     return readPrivacyRestoreAuthoritySnapshot(tx, evidence, now);
   });
 }
-export async function readVerifiedPrivacyRestoreAuthoritySnapshot(
+// Keep Auth observation and application authority paired inside this module.
+// An issued proof cannot be reused by a caller with another RR snapshot.
+export async function captureVerifiedPrivacyRestoreAuthority(
+  db: Database,
+  readPage: (page: number) => Promise<unknown>,
+  binding: { projectBinding: string; writerFenceDigest: string },
+) {
+  const deadline = Date.now() + 60000;
+  const readInventory = async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const remaining = Math.min(20000, deadline - Date.now());
+    if (remaining <= 0) throw Error('Auth observation deadline exceeded');
+    try {
+      return await Promise.race([
+        readRecoveryAuthInventory(async (page) => {
+          if (Date.now() >= deadline)
+            throw Error('Auth observation deadline exceeded');
+          const value = await readPage(page);
+          if (Date.now() >= deadline)
+            throw Error('Auth observation deadline exceeded');
+          return value;
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(Error('Auth observation deadline exceeded')),
+            remaining,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const before = await readInventory();
+  return db.transaction(async (tx) => {
+    await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await tx.query("SET LOCAL TIME ZONE 'UTC'");
+    await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
+    await tx.query("SET LOCAL statement_timeout='15s'");
+    await tx.query("SET LOCAL idle_in_transaction_session_timeout='30s'");
+    const localStartedAt = new Date().toISOString();
+    const [clock] = await tx.query<{ observed_at: string }>(
+      'SELECT to_jsonb(clock_timestamp()) AS observed_at',
+    );
+    const localFinishedAt = new Date().toISOString();
+    if (!clock) throw Error('Independent database clock required');
+    const database = (
+      await tx.query<{ record: unknown }>(recoveryAuthProjectionSql)
+    ).map((row) => row.record);
+    const after = await readInventory();
+    const auth = verifyRecoveryAuthInventory(before, database, after, {
+      localStartedAt,
+      localFinishedAt,
+      databaseAt: clock.observed_at,
+    });
+    const authority = await readVerifiedPrivacyRestoreAuthoritySnapshot(
+      tx,
+      auth,
+      binding,
+    );
+    const final = await readInventory();
+    assertRecoveryAuthStable(before, final);
+    return {
+      authority,
+      authStateDigest: auth.digest,
+      independentAuthStateVerified: true as const,
+      singleReadOnlySourceSnapshot: true as const,
+      serviceActivationAllowed: false as const,
+    };
+  });
+}
+async function readVerifiedPrivacyRestoreAuthoritySnapshot(
   tx: Database,
   auth: VerifiedRecoveryAuth,
   binding: { projectBinding: string; writerFenceDigest: string },
