@@ -204,6 +204,7 @@ def prepare(request, daily, policy):
         raise ValueError('Fresh external Access readback required')
     if STATE.exists() or STATE.is_symlink():
         raise ValueError('Previous reader preparation requires explicit inspection')
+    private_directory(STATE)
     private_directory(STATE / 'original')
     for name, value in data.items():
         durable_file(STATE / 'original' / name, value)
