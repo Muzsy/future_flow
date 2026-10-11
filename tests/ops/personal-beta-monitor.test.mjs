@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { applyMigrations } from '../../scripts/lib/migrations.ts';
 
 // Exercise the actual production SQL helper, not a duplicated implementation.
 const source = readFileSync('scripts/ops/contabo-daily.py', 'utf8');
@@ -101,4 +102,53 @@ test('invalid admission metadata is refused before any database query', async ()
   ])
     await assert.rejects(personalBetaQueueProbe(db, policy));
   assert.equal(calls, 0);
+});
+
+test('production migrations support the read-only personal queue probe and deletion boundary', async () => {
+  const db = new PGlite();
+  await db.waitReady;
+  try {
+    await applyMigrations(db);
+    const life = '44444444-4444-4444-8444-444444444444';
+    const job = '55555555-5555-4555-8555-555555555555';
+    await db.exec('BEGIN');
+    await db.query('INSERT INTO ff_users(id) VALUES($1)', [user]);
+    await db.query(
+      `INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id)
+       VALUES($1,$2,'Synthetic monitor fixture','en','{}',$3)`,
+      [life, user, branch],
+    );
+    await db.query(
+      `INSERT INTO aw_branches(id,user_id,life_id,name,state,status)
+       VALUES($1,$2,$3,'Root','{}','generating')`,
+      [branch, user, life],
+    );
+    await db.query(
+      `INSERT INTO aw_jobs(id,user_id,life_id,branch_id,base_revision,payload)
+       VALUES($1,$2,$3,$4,0,'{}')`,
+      [job, user, life, branch],
+    );
+    await db.exec('COMMIT');
+    const run = async () => {
+      await db.exec('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      try {
+        return await personalBetaQueueProbe(db, {
+          queueAllowed: true,
+          userIds: [user],
+        });
+      } finally {
+        await db.exec('ROLLBACK');
+      }
+    };
+    assert.equal((await run()).queueHealthy, true);
+    await db.exec("UPDATE ff_users SET status='deleting'");
+    assert.equal((await run()).unadmittedPersonal, 1);
+    assert.equal((await run()).queueHealthy, false);
+    await db.exec("UPDATE ff_users SET status='active';DELETE FROM aw_jobs");
+    assert.equal((await run()).unexpectedPending, 1);
+    await db.exec("UPDATE aw_branches SET status='ready'");
+    assert.equal((await run()).queueHealthy, true);
+  } finally {
+    await db.close();
+  }
 });
