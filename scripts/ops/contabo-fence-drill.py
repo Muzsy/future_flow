@@ -29,8 +29,7 @@ NODE_FILES = {
     'scripts/lib/privacy-restore-verifier.ts', 'scripts/lib/quarantined-replay.ts',
     'scripts/lib/migrations.ts', 'scripts/replay-fenced-backup.ts',
 }
-OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
-OWNER_IMAGE = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
+REGISTRY = 'deploy/reviewed-recovery-images.json'
 PHASE = 'validation'
 FAILURE_PHASE = None
 CANCELLED = False
@@ -108,7 +107,7 @@ def original_services(services):
 
 
 def sources(request):
-    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE}:
+    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE, REGISTRY}:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
     for name, value in request['files'].items():
@@ -118,6 +117,25 @@ def sources(request):
         if not 0 < len(data) <= 256*1024 or hashlib.sha256(data).hexdigest() != value['sha256']:
             raise ValueError('Reviewed source bytes differ')
         result[name] = data
+    return result
+
+
+def reviewed_releases(data):
+    value=json.loads(data)
+    if (not isinstance(value,dict) or set(value)!={'version','releases'} or
+            type(value['version']) is not int or value['version']!=1 or
+            not isinstance(value['releases'],list) or not 1<=len(value['releases'])<=8):
+        raise ValueError('Bounded reviewed recovery release list required')
+    result=set()
+    commits,images=set(),set()
+    for item in value['releases']:
+        if (not isinstance(item,dict) or set(item)!={'commit','imageId'} or
+                not isinstance(item['commit'],str) or not re.fullmatch('[a-f0-9]{40}',item['commit']) or
+                not isinstance(item['imageId'],str) or not re.fullmatch('sha256:[a-f0-9]{64}',item['imageId']) or
+                item['commit'] in commits or item['imageId'] in images):
+            raise ValueError('Exact unique reviewed recovery pairs required')
+        commits.add(item['commit']);images.add(item['imageId'])
+        result.add((item['commit'],item['imageId']))
     return result
 
 
@@ -132,6 +150,7 @@ def main(request):
             not re.fullmatch('[a-f0-9]{64}', request['ownerManifestDigest'])):
         raise ValueError('Explicit pinned root drill required')
     files = sources(request)
+    releases=reviewed_releases(files[REGISTRY])
     if hashlib.sha256(files[EXECUTOR]).hexdigest() != globals().get('__operator_source_sha256__'):
         raise ValueError('Executing transport source differs')
     if hashlib.sha256(files[CLIENT]).hexdigest() != globals().get('__operator_client_sha256__'):
@@ -155,8 +174,9 @@ def main(request):
         if hashlib.sha256(fence.original(fence.OWNER/'manifest.json')).hexdigest() != request['ownerManifestDigest']:
             raise ValueError('Original owner manifest differs')
         manifest, services = daily.owner_runtime()
-        if manifest['commit'] != OWNER_COMMIT or manifest['imageId'] != OWNER_IMAGE:
+        if (manifest['commit'],manifest['imageId']) not in releases:
             raise ValueError('Reviewed owner-only image required')
+        owner_image=manifest['imageId']
         fence.validate_services(services)
         baseline = {c['Id']: c for c in daily.containers()}
         if any(re.search('watchtower|autoheal', c['Config'].get('Image', ''), re.I) or
@@ -239,7 +259,7 @@ def main(request):
             backup=None
             if request['mode']=='rehearsal':
                 PHASE='backup-preflight'
-                backup=quarantine.prepare_backup(daily,request,scratch)
+                backup=quarantine.prepare_backup(daily,request,scratch,reviewed_releases=releases)
             selected = {key:env[key] for key in needed}
             selected.update(DATABASE_SSL='true',DATABASE_SSL_CA_FILE='/run/secrets/supabase-ca.crt',
                             ALTERWARD_FENCE_OPERATOR='true',AI_PROJECT_BUDGET_USD='0',AI_USER_BUDGET_USD='0')
@@ -279,7 +299,7 @@ def main(request):
                 wrapper="""const {spawnSync}=require('node:child_process');
 const r=spawnSync(process.execPath,['node_modules/tsx/dist/cli.mjs','--tsconfig','tsconfig.scripts.json','scripts/capture-privacy-authority.ts',process.argv[1]],{stdio:['inherit','pipe','pipe'],encoding:'utf8',timeout:120000,maxBuffer:26*1024**2});
 if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.stdout);}catch{};const phases=['precondition','database-connection','capture-input','authority-verification','envelope-verification'];process.stdout.write(JSON.stringify({observationFailed:true,phase:phases.includes(v?.phase)?v.phase:'observer-process',fields:Array.isArray(v?.fields)?v.fields.filter(x=>typeof x==='string'&&x.length<512&&/^[a-zA-Z_.#?]*$/.test(x)).slice(0,8):[]}));}"""
-                args += [OWNER_IMAGE,'node','-e',wrapper,'--','--'+mode]
+                args += [owner_image,'node','-e',wrapper,'--','--'+mode]
                 try:
                     data=daily.command(args,input=json.dumps(payload).encode() if payload is not None else None,timeout=135)
                     if not 0 < len(data) <= 32*1024**2:
@@ -296,7 +316,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                         observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
                         if observed:
                             item=json.loads(observed)[0]
-                            if (item['Name'] != '/'+name or item['Image'] != OWNER_IMAGE or
+                            if (item['Name'] != '/'+name or item['Image'] != owner_image or
                                     item['Config'].get('Labels',{}).get(LABEL) != nonce or
                                     item['HostConfig'].get('PortBindings') or
                                     item['HostConfig']['LogConfig']['Type'] != 'none'):

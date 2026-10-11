@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "releases": [
+    {
+      "commit": "9eb7732b69e84583cf7e63c237763b51b9bb4eab",
+      "imageId": "sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3"
+    },
+    {
+      "commit": "827d72aceabd7360c9cfbc120166d87cc11e2425",
+      "imageId": "sha256:0a58ee4eee78b5f6fd7693127707224393da980c23ed7b627c1df0a8fcd2527e"
+    }
+  ]
+}

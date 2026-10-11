@@ -3,6 +3,7 @@ import base64
 import copy
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 import os
@@ -20,14 +21,17 @@ spec.loader.exec_module(drill)
 class FenceDrillBoundaryTests(unittest.TestCase):
     def request(self):
         data=b'# synthetic source only\n'
-        return {'mode':'drill','sourceCommit':'a'*40,'ownerManifestDigest':'b'*64,
+        request={'mode':'drill','sourceCommit':'a'*40,'ownerManifestDigest':'b'*64,
                 'files':{name:{'data':base64.b64encode(data).decode(),
                               'sha256':hashlib.sha256(data).hexdigest()}
-                         for name in drill.NODE_FILES|{drill.ENGINE,drill.EXECUTOR,drill.CLIENT,drill.QUARANTINE}}}
+                         for name in drill.NODE_FILES|{drill.ENGINE,drill.EXECUTOR,drill.CLIENT,drill.QUARANTINE,drill.REGISTRY}}}
+        registry=json.dumps({'version':1,'releases':[{'commit':'a'*40,'imageId':'sha256:'+'b'*64}]}).encode()
+        request['files'][drill.REGISTRY]={'data':base64.b64encode(registry).decode(),'sha256':hashlib.sha256(registry).hexdigest()}
+        return request
 
     def test_exact_source_set_and_bytes(self):
         request=self.request()
-        self.assertEqual(len(drill.sources(request)),16)
+        self.assertEqual(len(drill.sources(request)),17)
         for bad in ['path','digest','encoding','size']:
             request=self.request()
             if bad=='path':
@@ -41,6 +45,22 @@ class FenceDrillBoundaryTests(unittest.TestCase):
                 request['files'][drill.ENGINE]={'data':base64.b64encode(value).decode(),'sha256':hashlib.sha256(value).hexdigest()}
             with self.assertRaises(ValueError):
                 drill.sources(request)
+
+    def test_reviewed_release_pairs_do_not_accept_mixed_or_duplicate_pins(self):
+        value={'version':1,'releases':[{'commit':'a'*40,'imageId':'sha256:'+'b'*64},
+                                     {'commit':'c'*40,'imageId':'sha256:'+'d'*64}]}
+        releases=drill.reviewed_releases(json.dumps(value).encode())
+        self.assertIn(('a'*40,'sha256:'+'b'*64),releases)
+        self.assertNotIn(('a'*40,'sha256:'+'d'*64),releases)
+        for mutate in [lambda v:v.update(version=True),lambda v:v.update(extra=True),
+                       lambda v:v.update(releases=[]),lambda v:v.update(releases=v['releases']*5),
+                       lambda v:v['releases'][1].update(commit='a'*40),
+                       lambda v:v['releases'][1].update(imageId='sha256:'+'b'*64),
+                       lambda v:v['releases'][0].update(imageId='alterward:latest'),
+                       lambda v:v['releases'][0].update(extra=True)]:
+            bad=copy.deepcopy(value);mutate(bad)
+            with self.assertRaises(ValueError):
+                drill.reviewed_releases(json.dumps(bad).encode())
 
     def test_recovery_or_unexpected_inputs_do_not_load_root_transport(self):
         for change in [{'mode':'recovery'},{'mode':'automatic'},{'extra':True}]:

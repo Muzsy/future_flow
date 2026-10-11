@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, afterEach, beforeAll, describe, it, expect } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import { DomainError } from '@future-flow/core';
 import {
   Repository,
@@ -216,6 +225,7 @@ beforeAll(async () => {
   db = adapter(engine);
 });
 afterEach(async () => {
+  vi.unstubAllEnvs();
   for (const u of await db.query<{ id: string }>('SELECT id FROM ff_users'))
     await new Repository(db).deleteAccountData(u.id);
 });
@@ -239,6 +249,224 @@ const token = (id: string) =>
   ).toString('base64url') +
   '.verified-fixture-signature';
 describe('closed beta paid-boundary isolation', () => {
+  it('permits a selected reader to use only their unpaid surface with the actual owner release flags', async () => {
+    vi.stubEnv('PUBLICATION_LINK_SECRET', 'b'.repeat(64));
+    for (const line of readFileSync(
+      'deploy/closed-site-owner.flags.env',
+      'utf8',
+    ).split(/\r?\n/)) {
+      if (line && !line.startsWith('#')) {
+        const split = line.indexOf('=');
+        vi.stubEnv(line.slice(0, split), line.slice(split + 1));
+      }
+    }
+    const reader = await user(),
+      other = await user(),
+      readerToken = token(reader);
+    const privateSetup = {
+      ...setupFixture(),
+      context: 'PRIVATE_OTHER_READER_CONTEXT',
+    };
+    const foreign = await new LifeRepository(db).create(
+      other,
+      privateSetup,
+      randomUUID(),
+    );
+    const pair = await generateKeyPair('RS256'),
+      aud = 'a'.repeat(64);
+    const assertion = await new SignJWT({
+      email: 'reader@example.invalid',
+      sub: 'selected-reader',
+      type: 'app',
+    })
+      .setProtectedHeader({ alg: 'RS256', kid: 'reader' })
+      .setIssuer('https://fixture.cloudflareaccess.com')
+      .setAudience(aud)
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(pair.privateKey);
+    const gate = createClosedSiteGate(
+      {
+        CLOSED_SITE_ENABLED: 'true',
+        CLOUDFLARE_ACCESS_TEAM_DOMAIN: 'fixture.cloudflareaccess.com',
+        CLOUDFLARE_ACCESS_AUD: aud,
+        CLOSED_SITE_ALLOWED_EMAILS:
+          'owner@example.invalid,reader@example.invalid',
+      },
+      async () =>
+        Response.json({
+          keys: [
+            {
+              ...(await exportJWK(pair.publicKey)),
+              kid: 'reader',
+              alg: 'RS256',
+              use: 'sig',
+            },
+          ],
+        }),
+    );
+    const args: Parameters<typeof createApp> = [
+      new Repository(db),
+      {
+        verify: async (value) => {
+          if (value !== readerToken)
+            throw new DomainError('AUTH_INVALID', 'Invalid token.', 401);
+          return { id: reader };
+        },
+        deleteUser: async () => {},
+      },
+    ];
+    args[25] = gate;
+    const app = await createApp(...args);
+    await app.listen(0, '127.0.0.1');
+    const base = await app.getUrl(),
+      headers = {
+        Authorization: `Bearer ${readerToken}`,
+        'Content-Type': 'application/json',
+        'Accept-Language': 'en',
+        'cf-access-jwt-assertion': assertion,
+        'Idempotency-Key': randomUUID(),
+      };
+    const queuesBefore = await db.query('SELECT id FROM aw_jobs ORDER BY id');
+    const budgetsBefore = await db.query(
+      'SELECT * FROM aw_budget_accounts ORDER BY id',
+    );
+    const reservationsBefore = await db.query(
+      'SELECT * FROM aw_budget_reservations ORDER BY id',
+    );
+    try {
+      for (const path of [
+        '/api/v1/me',
+        '/api/v1/me/consent',
+        '/api/v1/profile',
+        '/api/v1/questionnaires/current',
+        '/api/v1/futures',
+        '/api/v2/lives',
+        '/api/v2/draft',
+        '/api/public/discovery',
+        '/api/public/scenarios',
+      ]) {
+        const response = await fetch(base + path, { headers });
+        expect(response.status, path).toBe(200);
+        const text = await response.text();
+        expect(text).not.toContain(other);
+        expect(text).not.toContain(foreign.branchId);
+        expect(text).not.toContain(privateSetup.context);
+      }
+      const saved = await fetch(base + '/api/v2/draft', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ revision: 0, payload: setupFixture() }),
+      });
+      expect(saved.status).toBe(200);
+      expect((await fetch(base + '/api/v2/draft', { headers })).status).toBe(
+        200,
+      );
+      const feedback = {
+        feedbackId: randomUUID(),
+        branchId: null,
+        periodId: null,
+        category: 'technical',
+        wouldContinue: null,
+        message: 'Synthetic reader feedback',
+      };
+      expect(
+        (
+          await fetch(base + '/api/v2/feedback', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(feedback),
+          })
+        ).status,
+      ).toBe(201);
+      for (const path of [
+        `/api/v2/branches/${foreign.branchId}`,
+        `/api/v1/jobs/${foreign.jobId}`,
+      ]) {
+        const response = await fetch(base + path, { headers });
+        expect(response.status, path).toBe(404);
+        expect(await response.text()).not.toContain(privateSetup.context);
+      }
+      for (const path of ['/api/v2/interactions', '/api/v2/feedback']) {
+        const body = path.endsWith('interactions')
+          ? {
+              eventId: randomUUID(),
+              sessionId: randomUUID(),
+              branchId: foreign.branchId,
+              kind: 'life_opened',
+            }
+          : {
+              ...feedback,
+              feedbackId: randomUUID(),
+              branchId: foreign.branchId,
+            };
+        expect(
+          (
+            await fetch(base + path, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(body),
+            })
+          ).status,
+          path,
+        ).toBe(404);
+      }
+      for (const path of [
+        '/api/v2/social-profile',
+        '/api/v2/shared-contexts',
+        '/api/v2/shared-invites',
+        `/api/v2/public-fork-permission/life-${'a'.repeat(32)}`,
+      ]) {
+        expect((await fetch(base + path, { headers })).status, path).toBe(404);
+      }
+      const id = randomUUID();
+      for (const path of [
+        '/api/v1/futures',
+        `/api/v1/decisions/${id}/resolve`,
+        '/api/v2/lives',
+        `/api/v2/scenario-versions/${id}/start`,
+        `/api/v2/branches/${id}/continue`,
+        `/api/v2/branches/${id}/periods/${id}/fork`,
+        `/api/v2/jobs/${id}/retry`,
+        `/api/v2/public-content-bundles/${id}/review-job`,
+        `/api/v2/public-previews/${id}/review-job`,
+        `/api/v2/shared-contexts/${id}/continue`,
+        `/api/v2/public-forks/life-${'a'.repeat(32)}`,
+        `/api/v2/personal-scenarios/sources/scenario-${'a'.repeat(32)}/start`,
+      ]) {
+        const response = await fetch(base + path, {
+          method: 'POST',
+          headers,
+          body: '{}',
+        });
+        expect(response.status, path).toBe(403);
+        expect((await response.json()).error.code).toBe(
+          'CLOSED_BETA_INVITE_REQUIRED',
+        );
+      }
+      const exported = await fetch(base + '/api/v1/me/export', { headers });
+      expect(exported.status).toBe(200);
+      const text = await exported.text();
+      expect(text).toContain(reader);
+      expect(text).toContain(feedback.message);
+      expect(text).not.toContain(other);
+      expect(text).not.toContain(privateSetup.context);
+      expect(await db.query('SELECT id FROM aw_jobs ORDER BY id')).toEqual(
+        queuesBefore,
+      );
+      expect(
+        await db.query('SELECT * FROM aw_budget_accounts ORDER BY id'),
+      ).toEqual(budgetsBefore);
+      expect(
+        await db.query('SELECT * FROM aw_budget_reservations ORDER BY id'),
+      ).toEqual(reservationsBefore);
+      expect(
+        await db.query('SELECT id FROM aw_feedback WHERE user_id=$1', [reader]),
+      ).toHaveLength(1);
+    } finally {
+      await app.close();
+    }
+  });
   it('closes every API entrance at the origin while a revoked user retains only authenticated own export and deletion', async () => {
     const allowed = await user(),
       revoked = await user(),

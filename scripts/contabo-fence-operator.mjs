@@ -7,6 +7,34 @@ import { createHash } from 'node:crypto';
 
 // Existing operator SSH identity only; no new credential, access or live restore.
 // A drill requires exact CI, an interpreted Claude audit and an actual fresh plan.
+export function reviewedRecoveryRelease(manifest, registry) {
+  if (
+    !registry ||
+    Object.keys(registry).sort().join(',') !== 'releases,version' ||
+    registry.version !== 1 ||
+    !Array.isArray(registry.releases) ||
+    !registry.releases.length ||
+    registry.releases.length > 8 ||
+    registry.releases.some(
+      (item) =>
+        !item ||
+        Object.keys(item).sort().join(',') !== 'commit,imageId' ||
+        typeof item.commit !== 'string' ||
+        !/^[a-f0-9]{40}$/.test(item.commit) ||
+        typeof item.imageId !== 'string' ||
+        !/^sha256:[a-f0-9]{64}$/.test(item.imageId),
+    ) ||
+    new Set(registry.releases.map((item) => item.commit)).size !==
+      registry.releases.length ||
+    new Set(registry.releases.map((item) => item.imageId)).size !==
+      registry.releases.length ||
+    !registry.releases.some(
+      (item) =>
+        item.commit === manifest?.commit && item.imageId === manifest?.imageId,
+    )
+  )
+    throw Error('Exact reviewed recovery commit/image pair required');
+}
 export function exactFenceCiRuns(listing, sourceCommit) {
   const runs = listing.workflow_runs.filter(
     (run) => run.path === '.github/workflows/ci.yml',
@@ -91,6 +119,8 @@ async function main() {
   }
   const prepared = report('owner-prepare-upgrade-proof.json'),
     applied = report('owner-apply-upgrade-proof.json');
+  const registryName = 'deploy/reviewed-recovery-images.json';
+  reviewedRecoveryRelease(applied, JSON.parse(source(registryName)));
   const ownerKeys = [
     'commit',
     'imageId',
@@ -100,12 +130,7 @@ async function main() {
     'databaseCaSha256',
     'accessConfigurationSha256',
   ];
-  if (
-    ownerKeys.some((key) => prepared[key] !== applied[key]) ||
-    applied.commit !== '9eb7732b69e84583cf7e63c237763b51b9bb4eab' ||
-    applied.imageId !==
-      'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
-  )
+  if (ownerKeys.some((key) => prepared[key] !== applied[key]))
     throw Error('Original reviewed owner manifest and image required');
   const ownerManifestDigest = prepared.candidateFilesSha256['manifest.json'];
   if (!/^[a-f0-9]{64}$/.test(ownerManifestDigest))
@@ -199,6 +224,7 @@ async function main() {
   }
   const files = {};
   const names = [
+    registryName,
     clientName,
     'scripts/ops/contabo-fence-drill.py',
     'scripts/ops/contabo-writer-fence.py',

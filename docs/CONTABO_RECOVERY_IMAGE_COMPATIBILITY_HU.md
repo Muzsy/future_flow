@@ -1,0 +1,13 @@
+# alterward — alkalmazásfrissítés és rögzített helyreállítási image-ek
+
+2026-10-11 · [Limitjavítás](GENERATION_LIMIT_HARDENING_HU.md) · [Aktiválási terv](PERSONAL_BETA_ACTIVATION_PLAN_HU.md) · [Held helyreállítás](HELD_RECOVERY_REHEARSAL_HU.md).
+
+Az éles alkalmazás 9eb7732. A 827d72a API-limit javítása másik image-et igényel. A korábbi fence-transport azonban a 9eb commit/image párt szó szerint követelte, a karanténos backup-előellenőrzés ugyanannak az image-nek a mentését fogadta. Egy puszta alkalmazásfrissítés után ezért a helyreállítás előellenőrzése elutasított volna.
+
+A [közös, verziózott registry](../deploy/reviewed-recovery-images.json) kizárólag teljes commit–image SHA256 párokat enged. Az eredeti 9eb pár megmarad, a Contabón ténylegesen elkészült 827 pár külön bejegyzés. Külön JS és Python ellenőrzés elutasít hiányzó/hibás/ismételt/bounded fölötti listát és összekevert commit/image párokat; a JS a tiszta commitból olvas, a root a teljes hash-ellenőrzött forráscsomag részeként kapja. Tetszőleges image-paraméter, tagből történő feloldás vagy automatikus whitelist-bővítés nincs. A [transport](../scripts/contabo-fence-operator.mjs) és [root végrehajtó](../scripts/ops/contabo-fence-drill.py) ugyanazokat a bytesokat vizsgálja; a csomag most 17 forrás.
+
+A capture-helper az aktuális, ellenőrzött éles manifest image-ét használja, és a cleanup ugyanahhoz az image-hez köti az ideiglenes konténert. A backup csak pontosan engedélyezett `ownerCommit` + `ownerImage` párral mehet tovább. A tiszta karanténos replay image-e változatlanul az eredeti 9eb: a 827 javítás nem módosít migrációt vagy dependencyt. A dump továbbra csak adatot adhat; a teljes tiszta executable katalógus egyezése betöltés előtt és a független utóellenőrzés kötelező. Ez nem régi konfiguráció vagy jogosultság kiszolgálása és nem automatikus éles restore.
+
+Helyi ellenőrzés: nyolc fence-transport Python-esetből hét sikeres / egy Windows-POSIX kihagyott; hat backup-előellenőrzés sikeres; négy Node CI/pin-regresszió sikeres. A teljes Python-sorozat 248 eset / 202 sikeres / 46 Windows-POSIX kihagyás; teljes typecheck sikeres. A registry új pontos Claude-auditja, CI-je és tényleges leállítás nélküli planje még szükséges az alkalmazásfrissítés előtt. A 827 image teljes izolált futáspróbája folyamatban. Éles szolgáltatás/config/Access/provider/ablak nem módosult.
+
+Ez a két konkrét image közötti owner-only frissítés kompatibilitását készíti elő. M-1 személyesbéta-konfigurációváltó és a fizetett állapot későbbi upgrade/recovery története továbbra külön kapu; a registry nem aktivál tesztelőt vagy keretet.

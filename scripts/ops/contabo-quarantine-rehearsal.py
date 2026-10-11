@@ -8,6 +8,7 @@ import re
 import time
 
 APP = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
+APP_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
 PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
 LABEL = 'com.alterward.quarantine-rehearsal'
 # /tmp is 16 MiB; refuse larger input BEFORE the original services stop.
@@ -35,7 +36,7 @@ def selected_table_data(toc, tables):
     return ('\n'.join(entries)+'\n').encode()
 
 
-def prepare_backup(daily, request, scratch):
+def prepare_backup(daily, request, scratch, *, reviewed_releases=None):
     identity = request.get('recoveryIdentity')
     if not isinstance(identity, str) or len(identity) > 4096 or '\0' in identity:
         raise ValueError('Bounded protected recovery identity required')
@@ -51,7 +52,8 @@ def prepare_backup(daily, request, scratch):
             raise ValueError('No original unexpired daily backup')
         selected = max(eligible, key=lambda r:r['created'])
         manifest = selected['manifest']
-        if (manifest['ownerImage'] != APP or manifest['postgresImage'] != PG or
+        releases={(APP_COMMIT,APP)} if reviewed_releases is None else reviewed_releases
+        if ((manifest.get('ownerCommit'),manifest['ownerImage']) not in releases or manifest['postgresImage'] != PG or
                 not re.fullmatch('[a-f0-9]{64}',manifest['dumpSha256'])):
             raise ValueError('Reviewed original backup images and dump digest required')
         cipher, observed = daily.expiry_file(selected['path']/'application.dump.age')
