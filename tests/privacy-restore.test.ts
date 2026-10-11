@@ -126,6 +126,60 @@ describe('independent authority and quarantined privacy restore', () => {
       held: { ...binding, stateDigest: envelope.stateDigest },
     };
   };
+  async function cleanMigrated() {
+    const engine = new PGlite();
+    engines.push(engine);
+    await engine.waitReady;
+    await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
+    await applyMigrations(engine);
+    await engine.exec(
+      'CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',
+    );
+    return adapter(engine);
+  }
+  it('clears only the three known migration seeds after catalogue verification so backup rows can load', async () => {
+    const target = await cleanMigrated();
+    await expect(
+      target.query(
+        "INSERT INTO aw_public_collections(collection_key) VALUES('featured')",
+      ),
+    ).rejects.toThrow(/duplicate key/);
+    const result = await runQuarantinedReplay(target, {
+      ...heldRequest(),
+      action: 'prepare',
+    });
+    expect(result).toMatchObject({
+      cleanMigrationSeedRowsRemoved: 3,
+      serviceActivationAllowed: false,
+    });
+    expect(
+      await target.query('SELECT collection_key FROM aw_public_collections'),
+    ).toEqual([]);
+    await target.query(
+      "INSERT INTO aw_public_collections(collection_key) VALUES('featured'),('community-picks'),('turning-points')",
+    );
+    expect(
+      (await target.query('SELECT collection_key FROM aw_public_collections'))
+        .length,
+    ).toBe(3);
+  });
+  it('refuses a populated or altered migration target without clearing its rows', async () => {
+    for (const mutation of [
+      "UPDATE aw_public_collections SET revision=2 WHERE collection_key='featured'",
+      "INSERT INTO ff_users(id) VALUES('11111111-1111-4111-8111-111111111111')",
+      "INSERT INTO ff_migrations(name,checksum) VALUES('unreviewed.sql','fixture')",
+    ]) {
+      const target = await cleanMigrated();
+      await target.query(mutation);
+      await expect(
+        runQuarantinedReplay(target, { ...heldRequest(), action: 'prepare' }),
+      ).rejects.toThrow();
+      expect(
+        (await target.query('SELECT collection_key FROM aw_public_collections'))
+          .length,
+      ).toBe(3);
+    }
+  }, 60000);
   it('runs a recovery-bound quarantined replay with independent postverification and aggregate output only', async () => {
     const result = await runQuarantinedReplay(await restored(), heldRequest());
     expect(result).toMatchObject({

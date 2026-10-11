@@ -133,7 +133,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
             'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;'],timeout=10)
         daily.command(['docker','exec',pg_name,'createdb','-U','postgres',target],timeout=10)
         prepared=node('prepare')
-        if prepared.get('cleanCatalogHardenedBeforeDataLoad') is not True:
+        if prepared.get('cleanCatalogHardenedBeforeDataLoad') is not True or prepared.get('cleanMigrationSeedRowsRemoved') != 3:
             raise ValueError('Clean executable catalog must pass before old data')
         tables=psql("SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' ORDER BY c.relname").decode().strip().splitlines()
         if len(tables)!=97 or set(tables)!=set(t['name'] for t in backup['manifest']['expectedTables']):

@@ -8,6 +8,7 @@ import {
   assertPrivacySecurityCatalog,
   hardenPrivacyQuarantine,
 } from './privacy-security-catalog';
+import { reviewedPrivacyRecoveryTables } from './privacy-recovery-schema';
 
 // This request is supplied in memory by the privileged root transport AFTER
 // physically checking its originals. Its hashes alone do not establish a fence.
@@ -60,10 +61,44 @@ export async function runQuarantinedReplay(
         'quarantine',
         envelope.authority.securityCatalog,
       );
+      // Migration 029 inserts three default collection rows. They must not
+      // collide with the selected backup, which owns every restored data row.
+      // Check the executable catalog first; never clear a populated old target.
+      for (const table of [...reviewedPrivacyRecoveryTables, 'ff_migrations']) {
+        if (table === 'aw_public_collections') continue;
+        const [row] = await tx.query<{ populated: boolean }>(
+          `SELECT EXISTS(SELECT 1 FROM public."${table}" LIMIT 1) AS populated`,
+        );
+        if (row?.populated !== false)
+          throw Error('Clean migrated target must contain no retained data');
+      }
+      const seeds = await tx.query(
+        'SELECT collection_key,revision,last_request_hash FROM public.aw_public_collections ORDER BY collection_key',
+      );
+      if (
+        JSON.stringify(seeds) !==
+        JSON.stringify(
+          ['community-picks', 'featured', 'turning-points'].map(
+            (collection_key) => ({
+              collection_key,
+              revision: 1,
+              last_request_hash: null,
+            }),
+          ),
+        )
+      )
+        throw Error('Only exact reviewed migration seed rows may be cleared');
+      await tx.query('DELETE FROM public.aw_public_collections');
+      const [remaining] = await tx.query<{ populated: boolean }>(
+        'SELECT EXISTS(SELECT 1 FROM public.aw_public_collections LIMIT 1) AS populated',
+      );
+      if (remaining?.populated !== false)
+        throw Error('Migration seed cleanup did not complete');
     });
     return {
       action: request.action,
       cleanCatalogHardenedBeforeDataLoad: true,
+      cleanMigrationSeedRowsRemoved: 3,
       serviceActivationAllowed: false as const,
     };
   }
