@@ -276,7 +276,11 @@ async function main() {
       `root@${host}`,
       loader,
     ],
-    { encoding: 'utf8', timeout: 900000, maxBuffer: 2 * 1024 ** 2 },
+    {
+      encoding: 'utf8',
+      timeout: mode === 'rehearsal' ? 1200000 : 900000,
+      maxBuffer: 2 * 1024 ** 2,
+    },
   );
   pending.child.stdin.end(JSON.stringify(payload));
   try {

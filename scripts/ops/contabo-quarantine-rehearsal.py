@@ -10,7 +10,8 @@ import time
 APP = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
 PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
 LABEL = 'com.alterward.quarantine-rehearsal'
-MAX_DUMP = 64 * 1024**2
+# /tmp is 16 MiB; refuse larger input BEFORE the original services stop.
+MAX_DUMP = 12 * 1024**2
 
 
 def selected_table_data(toc, tables):
@@ -66,7 +67,7 @@ def prepare_backup(daily, request, scratch):
         path.unlink()
 
 
-def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup):
+def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None):
     pg_name = 'alterward-quarantine-pg-'+nonce
     target = 'aw_restore_'+nonce
     created = []
@@ -88,6 +89,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
     def psql(sql):
         return daily.command(['docker','exec','-i',pg_name,'psql','-X','-A','-t','-U','postgres','-d',target,'-v','ON_ERROR_STOP=1'],input=sql.encode(),timeout=25)
     def node(action):
+        phase('quarantine-'+action)
         name='alterward-quarantine-'+action+'-'+nonce
         args=['docker','run','-i','--name',name,'--network','container:'+pg_name,'--read-only',
               '--log-driver','none','--label',LABEL+'='+nonce,'--user','1000:1000','--cap-drop','ALL',
@@ -110,6 +112,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
             raise ValueError('Isolated quarantine operation refused')
         return value
     try:
+        phase('quarantine-start')
         register(pg_name,PG)
         daily.command(['docker','run','-d','--name',pg_name,'--network','none','--read-only','--log-driver','none',
             '--label',LABEL+'='+nonce,'--memory','512m','--cpus','0.5','--pids-limit','128',
@@ -135,21 +138,22 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
         tables=psql("SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' ORDER BY c.relname").decode().strip().splitlines()
         if len(tables)!=97 or set(tables)!=set(t['name'] for t in backup['manifest']['expectedTables']):
             raise ValueError('Original dump and clean migrated table coverage differ')
-        dump_path=scratch/'selected-application.dump'
-        dump_path.write_bytes(backup['dump']); dump_path.chmod(0o600)
-        daily.command(['docker','cp',str(dump_path),pg_name+':/tmp/application.dump'],timeout=15)
-        dump_path.unlink()
+        # docker cp may refuse a read-only rootfs despite /tmp being tmpfs.
+        # Write via the container's own writable mount, with fixed shell text.
+        daily.command(['docker','exec','-i','--user','999:999',pg_name,'sh','-c',
+            'umask 077; cat > /tmp/application.dump'],input=backup['dump'],timeout=15)
         toc=daily.command(['docker','exec',pg_name,'pg_restore','--list','/tmp/application.dump'],timeout=15)
         listing=selected_table_data(toc,tables)
-        list_path=scratch/'table-data.list'; list_path.write_bytes(listing); list_path.chmod(0o600)
-        daily.command(['docker','cp',str(list_path),pg_name+':/tmp/table-data.list'],timeout=10)
-        list_path.unlink()
+        daily.command(['docker','exec','-i','--user','999:999',pg_name,'sh','-c',
+            'umask 077; cat > /tmp/table-data.list'],input=listing,timeout=10)
         # Disable known triggers only inside one atomic isolated load; no old
         # code, schema, ACL, owner, sequence or large object is restored. The
         # strict catalog and every FK relationship are checked after the load.
+        phase('quarantine-load')
         daily.command(['docker','exec',pg_name,'pg_restore','-U','postgres','-d',target,
             '--data-only','--no-owner','--no-acl','--disable-triggers','--single-transaction','--exit-on-error',
             '--use-list=/tmp/table-data.list','/tmp/application.dump'],timeout=45)
+        phase('quarantine-digest')
         for table in backup['manifest']['expectedTables']:
             sql="SET timezone='UTC'; SELECT count(*)::int,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) FROM public.\""+table['name']+'\" t;'
             observed=psql(sql).decode().strip().splitlines()[-1]

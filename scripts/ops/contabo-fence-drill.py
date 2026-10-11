@@ -354,8 +354,13 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 def quarantine_checkpoint(names):
                     record['quarantineHelperNames']=names
                     daily.atomic(pointer,record)
+                def quarantine_phase(value):
+                    global PHASE
+                    if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay'}:
+                        raise ValueError('Fixed quarantine phase required')
+                    PHASE=value
                 rehearsal_proof=quarantine.replay(daily,scratch,files,NODE_FILES,nonce,backup,last_envelope,
-                    {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup)
+                    {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup,quarantine_phase)
                 check()
                 after=capture('recovery')
                 if after['stateDigest']!=bundle['stateDigest']:
@@ -485,8 +490,12 @@ if __name__=='__main__':
         install_interrupt_handlers()
         # Deliberate total deadline; a slower operation aborts at its next
         # bounded command boundary. Protected cleanup has its own short bounds.
-        signal.alarm(480)
-        result=main(json.load(sys.stdin))
+        request=json.load(sys.stdin)
+        # Rehearsal adds bounded migration/load/digest/replay operations. Leave
+        # time before the 15-minute binding expiry and the longer SSH cleanup
+        # deadline; an expired binding still refuses any further capture/replay.
+        signal.alarm(780 if request.get('mode')=='rehearsal' else 480)
+        result=main(request)
         check_interrupt()
         print(json.dumps({'ok':True,'result':result}))
     except (Exception,KeyboardInterrupt):
