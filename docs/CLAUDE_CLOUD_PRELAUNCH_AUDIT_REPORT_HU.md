@@ -1,5 +1,7 @@
 # alterward — részletes Cloud-audit és Codex értékelés
 
+**2026-10-11 aktuális kiegészítés:** az [összesített személyesbéta-audit](PERSONAL_BETA_FINAL_AUDIT_HU.md) a jelenlegi tulajdonosi telepítésben nem talált blokkolót. A tesztelői konfigurációváltó hiánya M-1, még nyitott; [terv és első policy](PERSONAL_BETA_ACTIVATION_PLAN_HU.md) kész. A korábbi telepítési/mentési/email kapuk aktualizált bizonyítéka a státuszban; az alábbi dátumozott audit és feladatok történeti állapotok.
+
 2026-10-09 · [Auditkapu](CLAUDE_CLOUD_PRELAUNCH_AUDIT_PLAN_HU.md) · [Védett indítás](CONTABO_OWNER_ACTIVATION_RUNBOOK_HU.md).
 
 **Mind a hat rész és a végső összegzés visszaolvasva; a feltételes kiadási vélemény nem éles működési bizonyíték.** Egyetlen Sonnet Cloud session, egymást követő, read-only promptok, agentcsapat nélkül. Az eredeti JSON-riportok és promptok védett, Gitből kizárt helyi fájlban megmaradnak. Claude nem kapott titkos fájlt, valódi felhasználói adatot vagy privát belépési címet; nem indított alkalmazást, emailt, adatbázis-módosítást vagy provider API-hívást.

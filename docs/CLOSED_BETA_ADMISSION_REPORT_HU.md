@@ -1,5 +1,7 @@
 # alterward — tízfős zárt béta AI-hozzáférése
 
+**2026-10-11 aktuális kiegészítés:** az [összesített személyesbéta-audit](PERSONAL_BETA_FINAL_AUDIT_HU.md) a jelenlegi tulajdonosi telepítésben nem talált blokkolót. A tesztelői konfigurációváltó hiánya M-1, még nyitott; [terv és első policy](PERSONAL_BETA_ACTIVATION_PLAN_HU.md) kész. A korábbi telepítési/mentési/email kapuk aktualizált bizonyítéka a státuszban; az alábbi dátumozott audit és feladatok történeti állapotok.
+
 **2026-10-10-i elfogadott kiadási pontosítás:** először legfeljebb tízfős személyes béta, minden Shared-funkció kikapcsolva; utána külön öt baráti pár Shared-tesztje, továbbra legfeljebb tíz fővel. Nyers személyes Shared-próza privacy/retention kötelező a páros kör előtt. A teljes S0–S7 és P01–P13 megmarad; húsz fő, új keret vagy automatikus külső barátbeléptetés nincs engedélyezve. [Bétaütemezés](BETA_ROLLOUT_SEQUENCE_HU.md) · [Elkészült karanténos restore](CONTABO_PRIVACY_RESTORE_PLAN_HU.md).
 
 2026-10-08-i email-pontosítás: **info@alterward.com** a hivatalos kapcsolati/értesítési cím és az Auth-levelek tényleges feladója (`Alterward`); külön Reply-To nincs. SMTP2GO dedikált SMTP a felhasználó szerint Supabase-be bekötve, 100 levél/óra user limit, tracking/lábléc kikapcsolva; első Gmail-meghívó spambe érkezett. A Codex elmentette és újranyitással ellenőrizte a HTTPS `/account-access` alapértelmezést, pontos éles/helyi callbackeket és **nyolc angol HTML-sablont**; négy tárgymező külön visszaolvasása maszkírozott. SMTP-jelszó csak a szolgáltatóknál marad. Új kézbesítés/fejlécek, éles callback/belépés és bejövő válasz még tesztelendő. [Email-szerepek](OPERATOR_EMAIL_CONFIGURATION_HU.md) · [Bizonyíték és következő lépések](SMTP2GO_DELIVERY_CHECKPOINT_HU.md).
@@ -33,7 +35,6 @@ Hat új érdemi konfiguráció-/adatbázis-/HTTP-próba ellenőrzi a maximális 
 A megelőző angol Scenario-felület `3c9a6edc` pontos [CI-je](https://github.com/Muzsy/future_flow/actions/runs/37681767172) verify és container sikeres: 618/56/162, 001–036 és ismétlés, az összes korábbi PostgreSQL-proof és verified HTTPS/DB TLS. Az új meghívási kapu saját commitjának pontos CI-je még külön ellenőrizendő. Pozitív interaktív UI-próba továbbra nincs igazolva.
 
 A normál helyi és telepítési mintákban a béta flag false, a meghívási lista üres; új használati költségidőszak nincs aktiválva. A tényleges tíz tesztelő kiválasztása, UUID-k rögzítése, a teljes webhely zárása, a 15/5 kínálat/audit, kapcsolattartási e-mail, retention/backup/restore és Contabo-telepítés még indulási feladat. Nem küldtünk meghívókat vagy más üzenetet.
-
 
 ## Pontos admission CI lezárva
 
