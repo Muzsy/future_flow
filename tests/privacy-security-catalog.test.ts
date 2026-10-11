@@ -163,6 +163,89 @@ describe('executable and privilege catalog before privacy recovery', () => {
     ])
       await expect(changed(sql)).rejects.toThrow('privileges');
   });
+  it('rejects changes to an existing function and non-origin trigger states', async () => {
+    for (const sql of [
+      'ALTER FUNCTION ff_prevent_canon_update() SECURITY DEFINER',
+      "ALTER FUNCTION ff_prevent_canon_update() SET search_path='public'",
+      'CREATE OR REPLACE FUNCTION ff_prevent_canon_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$',
+      'ALTER TABLE aw_lives ENABLE ALWAYS TRIGGER aw_lives_immutable',
+      'ALTER TABLE aw_lives ENABLE REPLICA TRIGGER aw_lives_immutable',
+    ])
+      await expect(changed(sql)).rejects.toThrow('executable catalog');
+  });
+  it('requires a serializable writable transaction before hardening', async () => {
+    await expect(
+      engine.transaction((tx) =>
+        hardenPrivacyQuarantine(adapter(tx, true), name),
+      ),
+    ).rejects.toThrow('Atomic serializable');
+    await expect(
+      engine.transaction(async (tx) => {
+        await tx.exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE READ ONLY');
+        return hardenPrivacyQuarantine(adapter(tx, true), name);
+      }),
+    ).rejects.toThrow('Atomic serializable');
+  });
+  it('refuses each independently restored privileged capability after hardening', async () => {
+    const fresh = await source();
+    for (const sql of [
+      'CREATE ROLE restored_extra',
+      'ALTER ROLE service_role BYPASSRLS',
+      "ALTER ROLE service_role SET statement_timeout='3s'",
+      'ALTER DEFAULT PRIVILEGES GRANT EXECUTE ON FUNCTIONS TO PUBLIC',
+      'ALTER TABLE ff_users OWNER TO authenticated',
+      'GRANT CREATE ON SCHEMA public TO PUBLIC',
+    ])
+      await expect(
+        engine.transaction(async (tx) => {
+          await tx.exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          await hardenPrivacyQuarantine(adapter(tx, true), name);
+          await tx.exec(sql);
+          return assertPrivacySecurityCatalog(adapter(tx), 'quarantine', fresh);
+        }),
+        sql,
+      ).rejects.toThrow('privileges');
+  });
+  it('refuses missing or mismatched source evidence in an otherwise clean quarantine', async () => {
+    const fresh = await source();
+    for (const expected of [
+      undefined,
+      { ...fresh, immutableDigest: '0'.repeat(64) },
+    ])
+      await expect(
+        engine.transaction(async (tx) => {
+          await tx.exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          await hardenPrivacyQuarantine(adapter(tx, true), name);
+          return assertPrivacySecurityCatalog(
+            adapter(tx),
+            'quarantine',
+            expected,
+          );
+        }),
+      ).rejects.toThrow();
+  });
+  it('rejects database-wide session overrides before quarantine DDL', async () => {
+    await expect(
+      engine.transaction(async (tx) => {
+        await tx.exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        await tx.exec(
+          "ALTER DATABASE template1 SET session_replication_role='replica'",
+        );
+        return hardenPrivacyQuarantine(adapter(tx, true), name);
+      }),
+    ).rejects.toThrow('privileges');
+  });
+  it('rejects an old event trigger before REVOKE can execute its code', async () => {
+    await expect(
+      engine.transaction(async (tx) => {
+        await tx.exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        await tx.exec(
+          "CREATE FUNCTION stale_recovery_ddl() RETURNS event_trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Old event code executed'; END $$; CREATE EVENT TRIGGER stale_recovery_trigger ON ddl_command_start EXECUTE FUNCTION stale_recovery_ddl()",
+        );
+        return hardenPrivacyQuarantine(adapter(tx, true), name);
+      }),
+    ).rejects.toThrow('privileges');
+  });
   it('accepts only the harmless optional migration ledger, with reviewed defaults and indexes', async () => {
     await engine.exec(
       'CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',

@@ -43,6 +43,10 @@ export const privacySecurityCatalogSql = Object.freeze({
     "SELECT t.typname::text AS name,t.typtype::text AS kind FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid=t.typnamespace WHERE n.nspname='public' AND t.typtype IN('d','e','r','m') ORDER BY t.typname",
   rowSecurity:
     "SELECT c.relname::text AS name,c.relrowsecurity,c.relforcerowsecurity FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND c.relname<>'ff_migrations' ORDER BY c.relname",
+  eventTriggers:
+    'SELECT e.evtname::text AS name,e.evtevent::text AS event,e.evtenabled::text AS enabled,pg_catalog.pg_get_userbyid(e.evtowner) AS owner,e.evttags,n.nspname::text AS function_schema,p.proname::text AS function_name FROM pg_catalog.pg_event_trigger e JOIN pg_catalog.pg_proc p ON p.oid=e.evtfoid JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace ORDER BY e.evtname',
+  databaseSettings:
+    "SELECT CASE WHEN s.setdatabase=0 THEN '*' ELSE 'current' END AS database,CASE WHEN s.setrole=0 THEN '*' ELSE pg_catalog.pg_get_userbyid(s.setrole) END AS role,pg_catalog.md5(s.setconfig::text) AS settings_digest FROM pg_catalog.pg_db_role_setting s WHERE s.setdatabase=0 OR s.setdatabase=(SELECT oid FROM pg_catalog.pg_database WHERE datname=current_database()) ORDER BY database,role",
 });
 
 const immutable = {
@@ -154,6 +158,14 @@ async function zero(tx: Database, sql: string, values: unknown[] = []) {
     throw Error('Unreviewed privacy recovery privileges');
 }
 
+async function assertQuarantineGlobalControls(tx: Database) {
+  await zero(tx, 'SELECT 1 FROM pg_catalog.pg_event_trigger');
+  await zero(
+    tx,
+    'SELECT 1 FROM pg_catalog.pg_db_role_setting WHERE setdatabase=0 OR setdatabase=(SELECT oid FROM pg_catalog.pg_database WHERE datname=current_database())',
+  );
+}
+
 // This is deliberately stricter for a non-serving quarantine. Source platform
 // default grants are recorded for drift detection; they are never imported as
 // authority to open the restored application or grant its browser roles access.
@@ -257,6 +269,13 @@ export async function assertPrivacySecurityCatalog(
     );
   }
   if (mode === 'quarantine') {
+    await assertQuarantineGlobalControls(tx);
+    // Restoring PostgreSQL's default PUBLIC function execution removes the
+    // explicit default-ACL row. Absence is therefore unsafe, not an empty ACL.
+    await zero(
+      tx,
+      "SELECT 1 WHERE NOT EXISTS(SELECT 1 FROM pg_catalog.pg_default_acl d WHERE d.defaclnamespace=0 AND d.defaclobjtype='f' AND pg_catalog.pg_get_userbyid(d.defaclrole)='postgres')",
+    );
     await zero(
       tx,
       "SELECT 1 FROM pg_catalog.pg_default_acl d LEFT JOIN pg_catalog.pg_namespace n ON n.oid=d.defaclnamespace CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) a WHERE (d.defaclnamespace=0 OR n.nspname='public') AND (pg_catalog.pg_get_userbyid(d.defaclrole)<>'postgres' OR a.grantee=0 OR pg_catalog.pg_get_userbyid(a.grantee)<>'postgres')",
@@ -322,6 +341,9 @@ export async function hardenPrivacyQuarantine(
     readOnly?.transaction_read_only !== 'off'
   )
     throw Error('Atomic serializable quarantine transaction required');
+  // Event triggers could react to the following REVOKE DDL. Reject them and
+  // global/current-DB settings before any privilege change is attempted.
+  await assertQuarantineGlobalControls(tx);
   await assertPrivacySecurityCatalog(tx);
   await tx.query(
     'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC,anon,authenticated',

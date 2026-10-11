@@ -52,6 +52,25 @@ function fixture() {
   return { envelope, held: { ...binding, stateDigest: envelope.stateDigest } };
 }
 describe('recovery envelope requires the same independently held root fence', () => {
+  it('invalidates the held state when source privileges change between captures', () => {
+    const { envelope, held } = fixture();
+    const changed = createPrivacyFenceEnvelope(
+      {
+        ...authority,
+        securityCatalog: {
+          ...authority.securityCatalog,
+          sourcePrivilegesDigest: hash('changed-source-grants'),
+        },
+      },
+      envelope.authStateDigest,
+      binding,
+      now,
+    );
+    expect(changed.stateDigest).not.toBe(envelope.stateDigest);
+    expect(() => validateRecoveryFenceEnvelope(changed, held, now)).toThrow(
+      'held recovery fence',
+    );
+  });
   it('accepts only matching current recovery state and never permits serving', () => {
     const { envelope, held } = fixture();
     expect(

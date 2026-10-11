@@ -18,6 +18,10 @@ assert.equal(process.platform, 'linux');
 assert.equal(process.env.CI, 'true');
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Same official PostgreSQL 17 registry image as the successful isolated VPS
+// fixture. Its local image ID is sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f.
+const ciPostgresImage =
+  'postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826';
 const migrationCount = readdirSync(join(root, 'database', 'migrations')).filter(
   (file) => file.endsWith('.sql'),
 ).length;
@@ -141,14 +145,14 @@ try {
   chmodSync(join(fixture, 'ca.key'), 0o600);
   chmodSync(join(fixture, 'ca.crt'), 0o644);
   chmodSync(join(fixture, 'server.crt'), 0o644);
-  run('docker', ['pull', 'postgres:16-bookworm']);
+  run('docker', ['pull', ciPostgresImage]);
   run('docker', ['pull', 'caddy:2']);
   const postgresGroup = run('docker', [
     'run',
     '--rm',
     '--entrypoint',
     'id',
-    'postgres:16-bookworm',
+    ciPostgresImage,
     '-g',
     'postgres',
   ]).trim();

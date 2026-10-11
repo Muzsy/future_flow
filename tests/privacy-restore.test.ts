@@ -97,6 +97,17 @@ afterAll(async () => {
   await source?.close();
 });
 describe('independent authority and quarantined privacy restore', () => {
+  it('rejects executable drift before changing any restored account row', async () => {
+    const db = await restored();
+    const before = await db.query('SELECT id,status FROM ff_users ORDER BY id');
+    await db.query('ALTER FUNCTION ff_prevent_canon_update() SECURITY DEFINER');
+    await expect(
+      replayPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('executable catalog');
+    expect(
+      await db.query('SELECT id,status FROM ff_users ORDER BY id'),
+    ).toEqual(before);
+  });
   it('rejects column-only browser access and restored public/paid capabilities', async () => {
     const db = await restored();
     await replayPrivacyRestore(db, authority, proofBinding());

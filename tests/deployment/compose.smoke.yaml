@@ -1,7 +1,7 @@
 # CI fixture only. The production file retains external Supabase and Caddy.
 services:
   postgres:
-    image: postgres:16-bookworm
+    image: postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
     environment:
       POSTGRES_PASSWORD: ci_unused_outside_fixture
     command:
