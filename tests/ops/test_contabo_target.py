@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import sys
@@ -8,6 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from subprocess import CompletedProcess
+from contextlib import ExitStack
 from copy import deepcopy
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -143,6 +145,74 @@ class SourceArchiveSafetyTests(unittest.TestCase):
                 target.source_extract(archive([('same', tarfile.REGTYPE),
                                                ('same', tarfile.REGTYPE)]), root)
             self.assertEqual(list(root.iterdir()), [])
+
+
+class IsolatedWorkerCrashTests(unittest.TestCase):
+    project = 'alterward-rehearsal-' + 'a'*12
+    image = 'sha256:' + 'b'*64
+    cid = 'c'*64
+
+    def container(self):
+        return {'Id': self.cid, 'Image': self.image, 'RestartCount': 0,
+                'Config': {'User': 'node', 'Labels': {'com.docker.compose.project': self.project,
+                           'com.docker.compose.service': 'worker'}, 'Env': [
+                    'DATABASE_URL=postgresql://postgres:rehearsal_unused@postgres:5432/postgres',
+                    'AI_PROJECT_BUDGET_USD=0', 'AI_USER_BUDGET_USD=0',
+                    'CLOSED_BETA_USER_IDS=', 'OPENAI_API_KEY=rehearsal_openai_unused']},
+                'HostConfig': {'PortBindings': {}, 'RestartPolicy': {'Name': 'unless-stopped'}},
+                'NetworkSettings': {'Networks': {self.project+'_backend': {}}},
+                'State': {'Running': True, 'Pid': 500, 'StartedAt': 'original'}}
+
+    def mocks(self, stack, states):
+        compose = stack.enter_context(patch.object(target, 'run'))
+        compose.return_value = CompletedProcess([], 0, (self.cid+'\n').encode())
+        stack.enter_context(patch.object(target, 'docker', side_effect=[
+            CompletedProcess([], 0, json.dumps([value]).encode()) for value in states]))
+        stack.enter_context(patch.object(target.time, 'sleep'))
+        opened = stack.enter_context(patch.object(target.os, 'pidfd_open', return_value=42, create=True))
+        sent = stack.enter_context(patch.object(target.signal, 'pidfd_send_signal', create=True))
+        stack.enter_context(patch.object(target.signal, 'SIGKILL', 9, create=True))
+        closed = stack.enter_context(patch.object(target.os, 'close'))
+        stack.enter_context(patch.object(target.Path, 'read_text', return_value=f'0::/docker-{self.cid}.scope'))
+        return compose, opened, sent, closed
+
+    def test_production_project_and_unsafe_worker_refuse_before_any_signal(self):
+        bad = []
+        for edit in [lambda v: v['Config']['Labels'].update({'com.docker.compose.project': 'alterward-owner'}),
+                     lambda v: v.update(Image='sha256:'+'d'*64),
+                     lambda v: v['Config']['Env'].append('AI_PROJECT_BUDGET_USD=1'),
+                     lambda v: v['HostConfig'].update(PortBindings={'3000/tcp': [{}]}),
+                     lambda v: v['NetworkSettings'].update(Networks={'production': {}})]:
+            value=self.container();edit(value);bad.append(value)
+        for value in bad:
+            with ExitStack() as stack:
+                compose, opened, sent, _ = self.mocks(stack, [value])
+                with self.assertRaises(ValueError):
+                    target.isolated_worker_main_crash(compose, self.project, self.image)
+                opened.assert_not_called();sent.assert_not_called()
+        with ExitStack() as stack:
+            compose, opened, sent, _ = self.mocks(stack, [])
+            with self.assertRaises(ValueError):
+                target.isolated_worker_main_crash(compose, 'alterward-owner', self.image)
+            compose.assert_not_called();opened.assert_not_called();sent.assert_not_called()
+
+    def test_lifecycle_drift_closes_bound_descriptor_without_signalling(self):
+        before=self.container();drift=deepcopy(before);drift['State']['Pid']=600
+        with ExitStack() as stack:
+            compose, opened, sent, closed = self.mocks(stack, [before, drift])
+            with self.assertRaises(ValueError):
+                target.isolated_worker_main_crash(compose, self.project, self.image)
+            opened.assert_called_once_with(500, 0);sent.assert_not_called();closed.assert_called_once_with(42)
+
+    def test_only_bound_fixture_pid_is_killed_and_same_container_restart_required(self):
+        before=self.container();after=deepcopy(before)
+        after.update(RestartCount=1);after['State'].update(Pid=600,StartedAt='restarted')
+        with ExitStack() as stack:
+            compose, opened, sent, closed = self.mocks(stack, [before, before, after])
+            proof=target.isolated_worker_main_crash(compose, self.project, self.image)
+            sent.assert_called_once_with(42, target.signal.SIGKILL);closed.assert_called_once_with(42)
+            self.assertTrue(proof['automaticRestartVerified'])
+            self.assertFalse(proof['productionWorkerKilled']);self.assertFalse(proof['hostRebooted'])
 
 
 if __name__ == '__main__':

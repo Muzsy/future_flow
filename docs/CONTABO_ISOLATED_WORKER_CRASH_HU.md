@@ -1,0 +1,11 @@
+# alterward — elkülönített worker-konténer kiesési próba
+
+2026-10-11 · [Kiadási sorrend](NEXT_STEPS.md) · [Korábbi feldolgozási helyreállítás](PERSONAL_AI_RECOVERY_HARDENING_REPORT_HU.md).
+
+A korábbi négy valódi Node SIGKILL/lease/recovery eset a fordított alkalmazási processzort, a tranzakció rollbackjét, a már mentett checkpointot és az egyszeri canon-commitot vizsgálta szintetikus AI-val. A tényleges held mentéspróba három éles szolgáltatás őrzött megállítását és visszaindítását igazolta. Ezek mellett külön vizsgáljuk a teljes worker-konténer főfolyamatának kiesését és Docker általi automatikus újraindítását, kizárólag az elkülönített Contabo-fixture-ben.
+
+A [célpróba](../scripts/ops/contabo-target.py) csak a saját, véletlen nevű `alterward-rehearsal-…` projekt workerét fogadja el. A pontos konténer/image, szolgáltatáscímke, node-felhasználó, belső teszthálózat, nulla költségkeret, üres UUID-lista és ismert szintetikus DB/provider-konfiguráció előfeltétel. Nyilvános port és idegen hálózat elutasított. A leállítás a host folyamatának Linux pidfd-leírójára kötött; a jelzés előtt a PID, Docker-életciklus és saját cgroup újraellenőrzött. Elavult vagy újrafelhasznált numerikus PID-re nincs jelzés és nincs kevésbé szigorú fallback.
+
+A siker feltétele az eredeti konténer és image megőrzése, pontosan egy automatikus restart, új főfolyamat és új indítási idő. Utána a korábbi tiszta SIGTERM-leállás és négy processzor/recovery-próba is fut. A teljes fixture, saját adatbázis és hálózat takarítása, valamint minden korábban futó konténer változatlansága a meglévő célpróba kapuja marad. Éles worker, teljes host, más alkalmazás és valódi provider nem kap hibainjektálást.
+
+Helyi bizonyíték: a 12 célgépi biztonsági Python-teszt sikeres, köztük három új szemantikai eset: idegen/éles projekt, image, finanszírozott környezet, publikus port vagy idegen hálózat jelzés előtt elutasított; életciklus-drift mellett a pidfd bezáródik jelzés nélkül; csak a megkötött folyamat kap SIGKILL-t és ugyanaz a konténer térhet vissza. A tényleges új Contabo-fixture, a pontos CI és értékelt Claude-audit még hátravan. Ez nem a teljes host újraindításának vagy feldolgozás közben megölt éles main konténernek a bizonyítéka. A korábbi 97 táblás held restore, angol tulajdonosi oldal, személyes béta-monitor és minden elfogadott P01–P13 / Shared S0–S7 kapu megmarad.

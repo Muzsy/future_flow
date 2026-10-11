@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -29,6 +30,71 @@ CLI = ROOT / 'docker-cli'
 BUILDX_URL = 'https://github.com/docker/buildx/releases/download/v0.38.0/buildx-v0.38.0.linux-amd64'
 BUILDX_SHA = '4fe4cc38adf48169132749b6ca22a990928db0118e3407584ee553723115d287'
 PHASE = 'validation'
+
+
+def isolated_worker_main_crash(compose, project, image):
+    """Kill only the disposable worker's host PID through a bound pidfd.
+
+    This exercises Docker's restart policy, not a production host reboot.
+    A replaced PID, different project, funded env or published port refuses.
+    """
+    if (not re.fullmatch(r'alterward-rehearsal-[a-f0-9]{12}', project) or
+            not re.fullmatch(r'sha256:[a-f0-9]{64}', image) or
+            not hasattr(os, 'pidfd_open') or not hasattr(signal, 'pidfd_send_signal')):
+        raise ValueError('Disposable Linux pidfd fixture required')
+    cid = compose('ps', '-q', 'worker').stdout.decode().strip()
+    if not re.fullmatch(r'[a-f0-9]{64}', cid):
+        raise ValueError('Exact disposable worker identity required')
+
+    def current():
+        values = json.loads(docker('inspect', cid).stdout)
+        if len(values) != 1:
+            raise ValueError('One original fixture worker required')
+        value = values[0]
+        env = dict(item.split('=', 1) for item in value['Config']['Env'])
+        if (value['Id'] != cid or value['Image'] != image or
+                value['Config']['Labels'].get('com.docker.compose.project') != project or
+                value['Config']['Labels'].get('com.docker.compose.service') != 'worker' or
+                value['Config']['User'] != 'node' or value['HostConfig'].get('PortBindings') or
+                value['HostConfig']['RestartPolicy']['Name'] != 'unless-stopped' or
+                not value['NetworkSettings']['Networks'] or
+                any(not name.startswith(project + '-') and not name.startswith(project + '_')
+                    for name in value['NetworkSettings']['Networks']) or
+                env.get('DATABASE_URL') != 'postgresql://postgres:rehearsal_unused@postgres:5432/postgres' or
+                env.get('AI_PROJECT_BUDGET_USD') != '0' or env.get('AI_USER_BUDGET_USD') != '0' or
+                env.get('CLOSED_BETA_USER_IDS') != '' or env.get('ANTHROPIC_API_KEY') or
+                env.get('OPENAI_API_KEY') != 'rehearsal_openai_unused'):
+            raise ValueError('Only unfunded internally networked fixture worker may crash')
+        return value
+
+    before = current()
+    if not before['State']['Running'] or before['State']['Pid'] <= 1:
+        raise ValueError('Original fixture worker must be running')
+    # Let the worker initialize and qualify for Docker's restart policy.
+    time.sleep(10)
+    pid = before['State']['Pid']
+    descriptor = os.pidfd_open(pid, 0)
+    try:
+        verified = current()
+        if (verified['State']['Pid'] != pid or not verified['State']['Running'] or
+                verified['State']['StartedAt'] != before['State']['StartedAt'] or
+                verified['RestartCount'] != before['RestartCount'] or
+                cid not in Path(f'/proc/{pid}/cgroup').read_text()):
+            raise ValueError('Fixture PID or lifecycle changed before signal')
+        signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+    finally:
+        os.close(descriptor)
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        after = current()
+        if (after['RestartCount'] == before['RestartCount'] + 1 and after['State']['Running'] and
+                after['State']['Pid'] > 1 and after['State']['Pid'] != pid and
+                after['State']['StartedAt'] != before['State']['StartedAt']):
+            return {'isolatedWorkerMainKilled': True, 'automaticRestartVerified': True,
+                    'sameContainerAndImage': True, 'hostRebooted': False,
+                    'productionWorkerKilled': False, 'paidAiCalls': 0}
+        time.sleep(0.25)
+    raise ValueError('Disposable worker automatic restart was not observed')
 
 
 def run(args, *, timeout=120, input=None, check=True):
@@ -375,6 +441,8 @@ def rehearse(request):
             for service in ['web', 'api', 'worker']:
                 code = "const net=require('node:net');const s=net.connect(443,'1.1.1.1');s.on('connect',()=>{s.destroy();process.exit(1)});s.on('error',()=>process.exit(0));s.setTimeout(1500,()=>{s.destroy();process.exit(0)});"
                 compose('exec', '-T', service, 'node', '-e', code, timeout=10)
+            PHASE = 'isolated-worker-main-crash-restart'
+            main_crash = isolated_worker_main_crash(compose, project, proof['imageId'])
             PHASE = 'worker-graceful-stop'
             worker_id = compose('ps', '-q', 'worker').stdout.decode().strip()
             compose('stop', '-t', '15', 'worker', timeout=30)
@@ -414,6 +482,7 @@ def rehearse(request):
                       'paidAiCalls': 0, 'runtimeEgressProbesBlocked': 3,
                       'httpChecks': checks, 'workerExitCode': 0,
                       'lifeProcessRecovery': recovery_checks,
+                      'isolatedWorkerMainCrash': main_crash,
                       'ownerUpgradeFixture': upgrade_checks,
                       'proxyCandidateSha256': hashlib.sha256(proxy_candidate.encode()).hexdigest()}
         except Exception:
