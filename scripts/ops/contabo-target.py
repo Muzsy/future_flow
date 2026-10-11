@@ -33,7 +33,7 @@ PHASE = 'validation'
 
 
 def isolated_worker_main_crash(compose, project, image):
-    """Kill only the disposable worker's host PID through a bound pidfd.
+    """Kill only the disposable container's init PID through a bound pidfd.
 
     This exercises Docker's restart policy, not a production host reboot.
     A replaced PID, different project, funded env or published port refuses.
@@ -90,9 +90,14 @@ def isolated_worker_main_crash(compose, project, image):
         if (after['RestartCount'] == before['RestartCount'] + 1 and after['State']['Running'] and
                 after['State']['Pid'] > 1 and after['State']['Pid'] != pid and
                 after['State']['StartedAt'] != before['State']['StartedAt']):
-            return {'isolatedWorkerMainKilled': True, 'automaticRestartVerified': True,
-                    'sameContainerAndImage': True, 'hostRebooted': False,
-                    'productionWorkerKilled': False, 'paidAiCalls': 0}
+            # Docker reports Running before Node finishes module/config startup.
+            # This marker is emitted after the worker installs SIGTERM handlers.
+            logs = docker('logs', '--since', after['State']['StartedAt'], '--tail', '20', cid).stdout
+            if b'AI worker started' in [line.strip() for line in logs.splitlines()]:
+                return {'isolatedContainerInitKilled': True, 'automaticRestartVerified': True,
+                        'restartedWorkerStartupVerified': True,
+                        'sameContainerAndImage': True, 'hostRebooted': False,
+                        'productionWorkerKilled': False, 'paidAiCalls': 0}
         time.sleep(0.25)
     raise ValueError('Disposable worker automatic restart was not observed')
 

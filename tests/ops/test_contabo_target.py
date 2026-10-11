@@ -167,7 +167,7 @@ class IsolatedWorkerCrashTests(unittest.TestCase):
         compose = stack.enter_context(patch.object(target, 'run'))
         compose.return_value = CompletedProcess([], 0, (self.cid+'\n').encode())
         stack.enter_context(patch.object(target, 'docker', side_effect=[
-            CompletedProcess([], 0, json.dumps([value]).encode()) for value in states]))
+            CompletedProcess([], 0, value if isinstance(value, bytes) else json.dumps([value]).encode()) for value in states]))
         stack.enter_context(patch.object(target.time, 'sleep'))
         opened = stack.enter_context(patch.object(target.os, 'pidfd_open', return_value=42, create=True))
         sent = stack.enter_context(patch.object(target.signal, 'pidfd_send_signal', create=True))
@@ -208,11 +208,21 @@ class IsolatedWorkerCrashTests(unittest.TestCase):
         before=self.container();after=deepcopy(before)
         after.update(RestartCount=1);after['State'].update(Pid=600,StartedAt='restarted')
         with ExitStack() as stack:
-            compose, opened, sent, closed = self.mocks(stack, [before, before, after])
+            compose, opened, sent, closed = self.mocks(stack, [before, before, after, b'not ready\n', after, b'AI worker started\n'])
             proof=target.isolated_worker_main_crash(compose, self.project, self.image)
             sent.assert_called_once_with(42, target.signal.SIGKILL);closed.assert_called_once_with(42)
             self.assertTrue(proof['automaticRestartVerified'])
+            self.assertTrue(proof['restartedWorkerStartupVerified'])
             self.assertFalse(proof['productionWorkerKilled']);self.assertFalse(proof['hostRebooted'])
+
+    def test_foreign_cgroup_refuses_even_when_docker_pid_matches(self):
+        before=self.container()
+        with ExitStack() as stack:
+            compose, opened, sent, closed = self.mocks(stack, [before, before])
+            stack.enter_context(patch.object(target.Path, 'read_text', return_value='0::/foreign.scope'))
+            with self.assertRaises(ValueError):
+                target.isolated_worker_main_crash(compose, self.project, self.image)
+            sent.assert_not_called();closed.assert_called_once_with(42)
 
 
 if __name__ == '__main__':
