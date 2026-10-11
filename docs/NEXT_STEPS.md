@@ -12,6 +12,8 @@
 
 ## Aktuális kiadási sorrend a tesztelők előtt
 
+2026-10-11 01:32 UTC: eaf23bc [pontos CI-je](https://github.com/Muzsy/future_flow/actions/runs/38101791393), Contabo izolált replay/verifier és Claude-forrásaudit sikeres, kritikus/magas/közepes finding nélkül. A csak eredeti Auth-eredményből, egyetlen forrássnapshotban épülő [authority-bekötés](AUTH_RECOVERY_OBSERVATION_HU.md) és böngészős oszlopjog-ellenőrzés is implementált/céltesztelt. A kilenc privát éles állapotjelző 01:31 UTC-kor pozitív. Következik a valódi root writer-fence végrehajtó és a forrás/digest/held recovery-kötés; ez még nem bétaindítás.
+
 2026-10-11 01:24 UTC: a [szemantikus lefedettség és független utóellenőrzés](PRIVACY_RESTORE_VERIFIER_HU.md) implementált, 26 célpróba és scripts TypeScript sikeres; tényleges izolált PG-célpróba és pontos Claude-visszaellenőrzés következik. Az e7ffd66 sémavédelmes fizikai régi PG-másolat próbája sikeres, meglévő kilenc konténer változatlan. Az audit két további sémakiskaput jelzett; a javítások és a runtime Auth-eredmény fagyasztása ebben az új szeletben vannak. Ez még nem valós fence vagy bétaindítás.
 
 2026-10-10-i korábbi előrelépés: [közös managed retention](MANAGED_RETENTION_RECONCILIATION_HU.md), tartós kétoldali napló, teljes egyeztetés/újraletöltés és metadata-archiválás elkészült. A javított b5c23f1 forrás 62 tényleges Linux-célpróbája, tizenegy JS/runtime-próbája, pontos Claude-auditja és verify/container CI-je sikeres; valódi check/sync/apply nulla törléssel. A véges történeti/ágyazott másolatok felügyelt enrollment/check/apply próbája is kész; managed/történeti automatikus futás még nincs. Független leválasztott kulcspéldány és tényleges GitHub schedule igazolt; béta inaktív.

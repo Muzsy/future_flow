@@ -180,7 +180,7 @@ export async function verifyPrivacyRestore(
     )
       throw Error('Budget high-water mark not preserved');
     await empty(
-      "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND c.relname<>'ff_migrations' AND (NOT c.relrowsecurity OR has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'))",
+      "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p') AND c.relname<>'ff_migrations' AND (NOT c.relrowsecurity OR has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_any_column_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,REFERENCES') OR has_any_column_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))",
     );
     const [history] = await tx.query<{ count: string }>(
       "SELECT count(DISTINCT p.branch_id)::text FROM aw_shared_personal_memories p JOIN aw_shared_event_participants ep ON ep.event_id=p.event_id JOIN aw_shared_members m ON m.id=ep.member_id LEFT JOIN ff_users u ON u.id=m.user_id WHERE m.status='deleted' OR m.user_id IS NULL OR u.status IS DISTINCT FROM 'active'",

@@ -8,6 +8,10 @@ import {
 } from '@future-flow/database';
 import { cancelPendingSharedDecision } from '../../packages/database/src/shared-canon';
 import { assertPrivacyRecoveryCoverage } from './privacy-recovery-coverage';
+import {
+  assertVerifiedRecoveryAuth,
+  type VerifiedRecoveryAuth,
+} from './recovery-auth-inventory';
 
 // Operator-only, never imported by a serving application. There is no promotion
 // command: a successful replay remains quarantined and cannot enable paid AI.
@@ -80,7 +84,7 @@ type SourceEvidence = {
   projectBinding: string;
   writerFenceDigest: string;
   authVerifiedAt: string;
-  authUserIds: string[];
+  authUserIds: readonly string[];
 };
 export const privacyRestoreSchemaSql =
   "SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND (table_name LIKE 'aw\\_%' ESCAPE '\\' OR table_name LIKE 'ff\\_%' ESCAPE '\\') ORDER BY table_name,ordinal_position";
@@ -89,7 +93,7 @@ function freshness(at: string, now: Date) {
   if (!Number.isFinite(age) || age < -30000 || age > 15 * 60 * 1000)
     throw Error('Fresh independently verified authority required');
 }
-function unique(values: string[]) {
+function unique(values: readonly string[]) {
   if (new Set(values).size !== values.length)
     throw Error('Duplicate authority identifier');
 }
@@ -128,74 +132,105 @@ export async function capturePrivacyRestoreAuthority(
   evidence: SourceEvidence,
   now = new Date(),
 ) {
+  // Legacy synthetic fixture boundary; the production observer uses the
+  // separately verified runtime Auth object in the same source transaction.
+  return db.transaction(async (tx) => {
+    await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await tx.query("SET LOCAL TIME ZONE 'UTC'");
+    return readPrivacyRestoreAuthoritySnapshot(tx, evidence, now);
+  });
+}
+export async function readVerifiedPrivacyRestoreAuthoritySnapshot(
+  tx: Database,
+  auth: VerifiedRecoveryAuth,
+  binding: { projectBinding: string; writerFenceDigest: string },
+  now = new Date(),
+) {
+  assertVerifiedRecoveryAuth(auth);
+  const [isolation] = await tx.query('SHOW transaction_isolation');
+  const [readOnly] = await tx.query('SHOW transaction_read_only');
+  if (
+    isolation?.transaction_isolation !== 'repeatable read' ||
+    readOnly?.transaction_read_only !== 'on'
+  )
+    throw Error(
+      'Existing repeatable-read read-only authority snapshot required',
+    );
+  return readPrivacyRestoreAuthoritySnapshot(
+    tx,
+    {
+      ...binding,
+      authVerifiedAt: auth.verifiedAt,
+      authUserIds: auth.eligibleUserIds,
+    },
+    now,
+  );
+}
+async function readPrivacyRestoreAuthoritySnapshot(
+  tx: Database,
+  evidence: SourceEvidence,
+  now: Date,
+) {
   digest.parse(evidence.projectBinding);
   digest.parse(evidence.writerFenceDigest);
   freshness(evidence.authVerifiedAt, now);
   unique(evidence.authUserIds);
   evidence.authUserIds.forEach((id) => uuid.parse(id));
-  return db.transaction(async (tx) => {
-    // The operator must supply independently verified Auth and a stopped-writer
-    // fence. Neither a hash nor these source reads attest that external fence.
-    await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
-    await tx.query("SET LOCAL TIME ZONE 'UTC'");
-    await assertPrivacyRecoveryCoverage(tx);
-    const auth = new Set(evidence.authUserIds);
-    const activeUserIds = (
-      await tx.query<{ id: string }>(
-        "SELECT id FROM ff_users WHERE status='active' ORDER BY id",
+  await assertPrivacyRecoveryCoverage(tx);
+  const auth = new Set(evidence.authUserIds);
+  const activeUserIds = (
+    await tx.query<{ id: string }>(
+      "SELECT id FROM ff_users WHERE status='active' ORDER BY id",
+    )
+  )
+    .map((r) => r.id)
+    .filter((id) => auth.has(id));
+  const allowed = new Set(activeUserIds);
+  const readOwned = async (table: 'aw_lives' | 'ff_futures') =>
+    (
+      await tx.query<{ id: string; user_id: string }>(
+        `SELECT id,user_id FROM ${table} ORDER BY id`,
       )
     )
-      .map((r) => r.id)
-      .filter((id) => auth.has(id));
-    const allowed = new Set(activeUserIds);
-    const readOwned = async (table: 'aw_lives' | 'ff_futures') =>
-      (
-        await tx.query<{ id: string; user_id: string }>(
-          `SELECT id,user_id FROM ${table} ORDER BY id`,
+      .filter((r) => allowed.has(r.user_id))
+      .map((r) => ({ id: r.id, userId: r.user_id }));
+  const result: Record<string, unknown> = {};
+  for (const table of privacyRestoreFingerprintTables)
+    result[table] = (await rows(tx, table)).map(({ record }) => ({
+      id: record.id,
+      digest: privacyRestoreFingerprint(table, record),
+    }));
+  return validatePrivacyRestoreAuthority(
+    {
+      schemaVersion: 'privacy-restore-authority-1',
+      projectBinding: evidence.projectBinding,
+      writerFenceDigest: evidence.writerFenceDigest,
+      authVerifiedAt: evidence.authVerifiedAt,
+      capturedAt: now.toISOString(),
+      schemaDigest: hash(await tx.query(privacyRestoreSchemaSql)),
+      activeUserIds,
+      lives: await readOwned('aw_lives'),
+      futures: await readOwned('ff_futures'),
+      blocks: (
+        await tx.query<{ user_id: string; blocked_user_id: string }>(
+          'SELECT user_id,blocked_user_id FROM aw_user_blocks ORDER BY user_id,blocked_user_id',
         )
       )
-        .filter((r) => allowed.has(r.user_id))
-        .map((r) => ({ id: r.id, userId: r.user_id }));
-    const result: Record<string, unknown> = {};
-    for (const table of privacyRestoreFingerprintTables)
-      result[table] = (await rows(tx, table)).map(({ record }) => ({
-        id: record.id,
-        digest: privacyRestoreFingerprint(table, record),
-      }));
-    return validatePrivacyRestoreAuthority(
-      {
-        schemaVersion: 'privacy-restore-authority-1',
-        projectBinding: evidence.projectBinding,
-        writerFenceDigest: evidence.writerFenceDigest,
-        authVerifiedAt: evidence.authVerifiedAt,
-        capturedAt: now.toISOString(),
-        schemaDigest: hash(await tx.query(privacyRestoreSchemaSql)),
-        activeUserIds,
-        lives: await readOwned('aw_lives'),
-        futures: await readOwned('ff_futures'),
-        blocks: (
-          await tx.query<{ user_id: string; blocked_user_id: string }>(
-            'SELECT user_id,blocked_user_id FROM aw_user_blocks ORDER BY user_id,blocked_user_id',
-          )
+        .filter((r) => allowed.has(r.user_id) && allowed.has(r.blocked_user_id))
+        .map((r) => ({
+          userId: r.user_id,
+          blockedUserId: r.blocked_user_id,
+        })),
+      budgetAccounts: (
+        await tx.query<{ id: string; accounted_micro: string }>(
+          'SELECT id,accounted_micro::text FROM aw_budget_accounts WHERE user_id IS NULL OR user_id=ANY($1::uuid[]) ORDER BY id',
+          [activeUserIds],
         )
-          .filter(
-            (r) => allowed.has(r.user_id) && allowed.has(r.blocked_user_id),
-          )
-          .map((r) => ({
-            userId: r.user_id,
-            blockedUserId: r.blocked_user_id,
-          })),
-        budgetAccounts: (
-          await tx.query<{ id: string; accounted_micro: string }>(
-            'SELECT id,accounted_micro::text FROM aw_budget_accounts WHERE user_id IS NULL OR user_id=ANY($1::uuid[]) ORDER BY id',
-            [activeUserIds],
-          )
-        ).map((r) => ({ id: r.id, accountedMicro: r.accounted_micro })),
-        fingerprints: result,
-      },
-      now,
-    );
-  });
+      ).map((r) => ({ id: r.id, accountedMicro: r.accounted_micro })),
+      fingerprints: result,
+    },
+    now,
+  );
 }
 export type ReplayBinding = {
   projectBinding: string;

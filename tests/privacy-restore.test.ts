@@ -96,6 +96,48 @@ afterAll(async () => {
   await source?.close();
 });
 describe('independent authority and quarantined privacy restore', () => {
+  it('rejects column-only browser access and restored public/paid capabilities', async () => {
+    const db = await restored();
+    await replayPrivacyRestore(db, authority, proofBinding());
+    await db.query(
+      'GRANT SELECT(handle) ON aw_social_profiles TO authenticated',
+    );
+    expect(
+      (
+        await db.query(
+          "SELECT has_table_privilege('authenticated','aw_social_profiles','SELECT') AS granted",
+        )
+      )[0]?.granted,
+    ).toBe(false);
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query(
+      'REVOKE SELECT(handle) ON aw_social_profiles FROM authenticated',
+    );
+    await db.query(
+      "INSERT INTO aw_social_profiles(user_id,handle,display_name,discoverability) VALUES($1,'synthetic_recovery','Synthetic','searchable') ON CONFLICT(user_id) DO UPDATE SET discoverability='searchable'",
+      [a],
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query("UPDATE aw_social_profiles SET discoverability='private'");
+    await db.query(
+      "INSERT INTO aw_user_entitlements(user_id,tier,source) VALUES($1,'connected','Synthetic recovery') ON CONFLICT(user_id) DO UPDATE SET tier='connected'",
+      [a],
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query("UPDATE aw_user_entitlements SET tier='free'");
+    await db.query('DELETE FROM aw_publication_restrictions WHERE user_id=$1', [
+      a,
+    ]);
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+  });
   it('does not require or restore the account of an Auth-ineligible current user', async () => {
     await source.query(
       "INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES('ineligible-post-backup',$1,1000,900)",

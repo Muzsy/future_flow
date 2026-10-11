@@ -15,7 +15,7 @@ from alterward_target import existing_state
 LABEL = 'com.alterward.privacy-fixture'
 APP = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
 PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
-FILES = {'scripts/lib/privacy-restore.ts', 'scripts/lib/privacy-restore-proof.ts', 'scripts/lib/privacy-recovery-schema.ts', 'scripts/lib/privacy-recovery-coverage.ts', 'scripts/lib/privacy-restore-verifier.ts', 'scripts/smoke-privacy-restore.ts'}
+FILES = {'scripts/lib/privacy-restore.ts', 'scripts/lib/privacy-restore-proof.ts', 'scripts/lib/privacy-recovery-schema.ts', 'scripts/lib/privacy-recovery-coverage.ts', 'scripts/lib/privacy-restore-verifier.ts', 'scripts/lib/recovery-auth-inventory.ts', 'scripts/smoke-privacy-restore.ts'}
 
 def main(request):
     os.umask(0o077)

@@ -22,6 +22,8 @@ node --env-file=.env --import tsx scripts/supabase-recovery-inventory.ts --read-
 
 ## Következő kapu
 
+2026-10-11-i bekötés: a [típusos authority-megfigyelő](../scripts/lib/verified-privacy-authority.ts) az Auth API előtti/köztes/végső listáját ugyanahhoz a READ ONLY / REPEATABLE READ DB-snapshothoz egyezteti, amelyből az alkalmazási fiókokat, életeket, jogokat és költséghatárt olvassa. Csak eredeti, fagyasztott, WeakSettel igazolt Auth-eredmény és már fennálló read-only snapshot fogadható el. Az öt [bekötési regresszió](../tests/verified-privacy-authority.test.ts) sikeres; a nyers authUserIds határ a régi szintetikus fixture-é marad. Ez még nem állítja a fizikai writer-fence létrejöttét: a root végrehajtó következik. Az új oszlopjog-próba azt is igazolja, hogy a verifier a táblajog nélküli közvetlen böngészős oszlopengedélyt elutasítja.
+
 Ez **megfigyelés, nem writer-fence vagy replay-engedély**. A valós fence/capture végrehajtó, az explicit táblalefedettségi registry, a karanténos replay utóellenőrzése és a fennálló fence-hez kötött recovery authority következik. A Claude Cloud tervértékelése ezek elkészítését javasolta a személyes tesztelői hozzáférés előtt; az audit nem végzett éles műveletet és nem tekintette a riportált próbákat saját bizonyítékának.
 
 A teljes hosted login/MFA/role/Vault/projektbeállítás helyreállítása ettől külön határ. A Supabase hivatalos logikai költöztetési eljárása a role/schema/data export mellett a managed sémák saját módosításainak és szükség esetén a titkosítási gyökérkulcsnak az egyeztetését is leírja. [Hivatalos backup/restore dokumentáció](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore). Ennek elvégzését ez a leltár nem állítja.
