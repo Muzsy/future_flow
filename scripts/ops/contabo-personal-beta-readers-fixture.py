@@ -123,6 +123,12 @@ def main(request, continuation=None):
                  'readerAccess': {**access, 'allowedEmails': ['owner@example.invalid', 'tester@example.invalid']}}
         daily = types.SimpleNamespace(stable_state=target.existing_state, utcnow=lambda: dt.datetime.now(dt.timezone.utc))
         try:
+            for module in (activation, upgrade, readers):
+                if module.PROJECT != project or module.DIRECTORY != owner:
+                    raise ValueError('Isolated project/directory preflight differs')
+            if (owner.resolve() != owner or not owner.is_relative_to(directory) or
+                    readers.STATE.parent != owner or upgrade.CA != ca or activation.CA != ca):
+                raise ValueError('Confined fixture authority preflight differs')
             target.docker('network', 'create', '--internal', '--label', LABEL + '=' + nonce, network)
             created = True
             upgrade.replace_services(owner / 'effective-compose.json')

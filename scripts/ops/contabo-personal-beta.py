@@ -19,7 +19,6 @@ from alterward_activation import DIRECTORY, FILES, INTERRUPTION_SIGNALS, encoded
 import alterward_upgrade as upgrade
 import alterward_fence as fence
 import alterward_readers as readers
-import alterward_personal_observation as observation
 
 STATE = DIRECTORY / 'personal-beta'
 TERM_KEYS = {'participants', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'}
@@ -223,6 +222,7 @@ def require_future_start(policy, terms, now, minimum_seconds):
 
 
 def apply(request, daily, policy):
+    import alterward_personal_observation as observation
     require_unattempted()
     now = daily.utcnow()
     zero, config, image, selected, access, current, reader_proof, reader_files = reader_baseline(request, policy, now)
@@ -308,10 +308,15 @@ def disable(request):
     # Reuse the independent stop-first ORIGINAL zero recovery. It reads neither
     # our candidate nor our provider nor our preparation/journal before stopping.
     result = readers.disable(request)
+    prior = (STATE / 'journal.json').exists() or (STATE / 'journal.json').is_symlink()
     if STATE.exists() and not STATE.is_symlink():
         readers.update_durable(STATE / 'transition.json', encoded({'state': 'disabled',
             'changedAt': dt.datetime.now(dt.timezone.utc).isoformat()}))
-    return result
+    return {**result, 'operationPaidAiCalls': 0,
+            'paidAiCallsScope': 'this-configuration-operation',
+            'historicalProviderUsageNotMeasured': True,
+            'priorFundedJournalPresent': prior,
+            'providerKeyRevocationRequired': prior}
 
 
 def main(request):

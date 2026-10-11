@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { personalRuntimeManifest } from '../../scripts/contabo-personal-beta.mjs';
+import {
+  personalRuntimeManifest,
+  operatorChildEnvironment,
+} from '../../scripts/contabo-personal-beta.mjs';
 import {
   activeRecoveryManifest,
   reviewedRecoveryRelease,
@@ -90,5 +93,27 @@ test('existing unpaid owner and reader receipts keep their original validator', 
       accessEmailCount: 3,
     }),
     fixture.expectedCanonicalSha256,
+  );
+});
+test('operator helpers inherit only OS paths, never provider, database or Auth credentials', () => {
+  assert.deepEqual(
+    operatorChildEnvironment({
+      Path: 'safe_os_path',
+      SystemRoot: 'safe_os_root',
+      LOCALAPPDATA: 'safe_user_appdata',
+      TEMP: 'safe_temp',
+      OPENAI_API_KEY: 'synthetic_provider',
+      ANTHROPIC_API_KEY: 'synthetic_claude',
+      DATABASE_URL: 'synthetic_database',
+      SUPABASE_SERVICE_ROLE_KEY: 'synthetic_auth_admin',
+      GIT_ASKPASS: 'untrusted_override',
+      NODE_OPTIONS: 'untrusted_child_code',
+    }),
+    {
+      Path: 'safe_os_path',
+      SystemRoot: 'safe_os_root',
+      LOCALAPPDATA: 'safe_user_appdata',
+      TEMP: 'safe_temp',
+    },
   );
 });

@@ -1,9 +1,38 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFileSync, lstatSync, existsSync } from 'node:fs';
+import { readFileSync, lstatSync, existsSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+
+export function operatorChildEnvironment(environment) {
+  const allowed = new Set([
+    'PATH',
+    'PATHEXT',
+    'SYSTEMROOT',
+    'WINDIR',
+    'COMSPEC',
+    'USERPROFILE',
+    'APPDATA',
+    'LOCALAPPDATA',
+    'TEMP',
+    'TMP',
+    'HOME',
+    'HOMEDRIVE',
+    'HOMEPATH',
+    'SYSTEMDRIVE',
+    'PROGRAMFILES',
+    'PROGRAMFILES(X86)',
+    'PROGRAMW6432',
+    'USERNAME',
+    'USERDOMAIN',
+  ]);
+  return Object.fromEntries(
+    Object.entries(environment).filter(([name]) =>
+      allowed.has(name.toUpperCase()),
+    ),
+  );
+}
 
 export function personalRuntimeManifest(
   stage,
@@ -76,6 +105,13 @@ export function personalRuntimeManifest(
 // Existing operator identity only. Funding is explicit, audited and single-window.
 async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
+  // Capture only the one explicitly required input, then scrub this operator
+  // process before git, SSH or private-report's OS helpers can spawn.
+  const providerInput =
+    mode === 'prepare-personal' ? process.env.OPENAI_API_KEY : undefined;
+  const childEnvironment = operatorChildEnvironment(process.env);
+  for (const name of Object.keys(process.env))
+    if (!(name in childEnvironment)) delete process.env[name];
   if (
     process.platform !== 'win32' ||
     ![
@@ -107,19 +143,21 @@ async function main() {
   if (
     digest(regular(fileURLToPath(import.meta.url))) !==
       digest(source('scripts/contabo-personal-beta.mjs')) ||
-    execFileSync('git', ['branch', '--show-current'], {
-      encoding: 'utf8',
-    }).trim() !== 'main' ||
     (mode !== 'disable' &&
-      execFileSync('git', ['status', '--porcelain'], {
+      (execFileSync('git', ['branch', '--show-current'], {
         encoding: 'utf8',
-      }).trim())
+      }).trim() !== 'main' ||
+        execFileSync('git', ['status', '--porcelain'], {
+          encoding: 'utf8',
+        }).trim()))
   )
     throw Error('Exact committed main operator required');
   for (const path of [
     'scripts/contabo-fence-operator.mjs',
     'scripts/lib/private-report.ts',
-    'scripts/lib/personal-beta-admission-observation.mjs',
+    ...(mode === 'disable'
+      ? []
+      : ['scripts/lib/personal-beta-admission-observation.mjs']),
   ])
     if (digest(regular(path)) !== digest(source(path)))
       throw Error('Exact committed operator dependencies required');
@@ -268,7 +306,7 @@ async function main() {
     if (report('owner-stage-proof.json').configurationMode !== 'readers')
       throw Error('Personal beta stage required before funding');
     request.terms = terms;
-    const key = process.env.OPENAI_API_KEY;
+    const key = providerInput;
     if (
       typeof key !== 'string' ||
       !/^[A-Za-z0-9_\-]{16,4096}$/.test(key) ||
@@ -281,7 +319,7 @@ async function main() {
     request.preparedProof = report(
       'personal-beta-prepare-proof.json',
     ).preparedProof;
-  const names = [
+  let names = [
     ['backup', 'alterward_backup', 'contabo-backup.py'],
     ['target', 'alterward_target', 'contabo-target.py'],
     ['owner', 'alterward_owner', 'contabo-owner.py'],
@@ -308,6 +346,14 @@ async function main() {
       'contabo-personal-beta-fixture.py',
     ],
   ];
+  if (mode !== 'fixture')
+    names = names.filter(
+      ([name]) => !['reader_fixture', 'fixture'].includes(name),
+    );
+  if (mode === 'disable')
+    names = names.filter(
+      ([name]) => !['daily', 'policy', 'observation'].includes(name),
+    );
   const bundle = Object.fromEntries(
     names.map(([key, , file]) => [
       key,
@@ -362,7 +408,12 @@ except BaseException:
       `root@${host}`,
       "python3 -c '" + code.replaceAll("'", "'\\''") + "'",
     ],
-    { encoding: 'utf8', timeout: 600000, maxBuffer: 1024 * 1024 },
+    {
+      encoding: 'utf8',
+      timeout: 600000,
+      maxBuffer: 1024 * 1024,
+      env: childEnvironment,
+    },
   );
   pending.child.stdin.end(JSON.stringify({ names, bundle, request }));
   const result = JSON.parse((await pending).stdout);
@@ -387,10 +438,19 @@ except BaseException:
       ok: true,
       resultKeys: Object.keys(result.result),
       paidAiCalls: 0,
+      operationPaidAiCalls: 0,
+      paidAiCallsScope: 'this-configuration-operation',
     }),
   );
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1])
+if (
+  process.argv[1] &&
+  (process.platform === 'win32'
+    ? realpathSync(process.argv[1]).toLowerCase() ===
+      realpathSync(fileURLToPath(import.meta.url)).toLowerCase()
+    : realpathSync(process.argv[1]) ===
+      realpathSync(fileURLToPath(import.meta.url)))
+)
   main().catch(() => {
     console.error(
       'Personal beta operation refused or incomplete. Inspect its private proof and server journal before retrying.',

@@ -3,6 +3,7 @@ import datetime as dt
 import importlib.util
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import types
 import unittest
@@ -115,7 +116,42 @@ class FundedTransitionTests(unittest.TestCase):
              patch.object(beta, 'preparation', side_effect=AssertionError('candidate read forbidden')):
             result = beta.disable({'onlyOriginalZeroInputs': True})
             self.assertTrue(result['zeroBaselineRestored'])
+            self.assertEqual(result['operationPaidAiCalls'], 0)
+            self.assertTrue(result['historicalProviderUsageNotMeasured'])
+            self.assertEqual(result['paidAiCallsScope'], 'this-configuration-operation')
             stop_zero.assert_called_once_with({'onlyOriginalZeroInputs': True})
+
+    def test_disable_marks_prior_provider_exposure_without_claiming_usage_is_zero(self):
+        with patch.object(beta.readers, 'disable', return_value={'zeroBaselineRestored': True}), \
+             patch.object(Path, 'exists', autospec=True, side_effect=lambda p: p.name in {'personal-beta', 'journal.json'}), \
+             patch.object(Path, 'is_symlink', return_value=False), \
+             patch.object(beta.readers, 'update_durable') as record:
+            result = beta.disable({'onlyOriginalZeroInputs': True})
+            self.assertTrue(result['priorFundedJournalPresent'])
+            self.assertTrue(result['providerKeyRevocationRequired'])
+            self.assertTrue(result['historicalProviderUsageNotMeasured'])
+            self.assertEqual(result['paidAiCallsScope'], 'this-configuration-operation')
+            record.assert_called_once()
+
+    def test_emergency_module_import_needs_no_daily_observer_policy_or_fixture(self):
+        # Fresh interpreter models the actual reduced SSH bundle; it never calls
+        # an actuator or uses the installed server filesystem.
+        code = '''import importlib.util,sys
+from pathlib import Path
+sys.dont_write_bytecode=True
+root=Path(sys.argv[1])/'scripts/ops'
+for name,file in [('alterward_backup','contabo-backup.py'),('alterward_target','contabo-target.py'),
+ ('alterward_owner','contabo-owner.py'),('alterward_activation','contabo-owner-activation.py'),
+ ('alterward_upgrade','contabo-owner-upgrade.py'),('alterward_fence','contabo-writer-fence.py'),
+ ('alterward_readers','contabo-personal-beta-readers.py'),('alterward_personal_beta','contabo-personal-beta.py')]:
+ spec=importlib.util.spec_from_file_location(name,root/file)
+ module=importlib.util.module_from_spec(spec);sys.modules[name]=module;spec.loader.exec_module(module)
+assert all(name not in sys.modules for name in ['alterward_daily','alterward_personal_policy',
+ 'alterward_personal_observation','alterward_readers_fixture','alterward_personal_fixture'])
+'''
+        result = subprocess.run([sys.executable, '-B', '-c', code, str(ROOT)],
+            capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 class PersonalEnvironmentTests(unittest.TestCase):

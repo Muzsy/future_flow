@@ -80,6 +80,10 @@ console.log(JSON.stringify({participantCount:fixtureValue.users.length,stdinModu
                 # Separate inert fixture state for each case. Production journals
                 # are never erased, reallocated or rewound by this operator.
                 beta.STATE = owner / ('personal-fixture-' + label)
+                if (beta.DIRECTORY != owner or observation.DIRECTORY != owner or
+                        observation.PROJECT != readers.PROJECT or beta.STATE.parent != owner or
+                        upgrade.DIRECTORY != owner or upgrade.PROJECT != readers.PROJECT):
+                    raise ValueError('Personal fixture project/directory preflight differs')
                 for name, data in reader_files.items():
                     upgrade.atomic_private(owner / name, data)
                 upgrade.atomic_private(readers.STATE / 'journal.json', applied_reader_journal)

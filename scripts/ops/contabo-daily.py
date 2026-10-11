@@ -865,7 +865,38 @@ def alerts_for(health, now):
         alerts.append('backup_stale')
     if health.get('backupFailed'):
         alerts.append('backup_failed')
+    if health.get('personalTransitionHealthy', True) is not True:
+        alerts.append('personal_transition_incomplete')
     return alerts
+
+
+def personal_transition_healthy(mode):
+    """Report an incomplete/killed funding transition; never actuate services.
+
+    All values come from root-only files under the same activation lock. No
+    provider, participant, preparation bytes or window are emitted in health.
+    """
+    path = OWNER / 'personal-beta'
+    try:
+        if not path.exists() and not path.is_symlink():
+            return mode == 'owner'
+        personal_config_paths()  # root-private finite artifact contract
+        transition, journal = path / 'transition.json', path / 'journal.json'
+        exposed = journal.exists() or journal.is_symlink()
+        if not transition.exists() and not transition.is_symlink():
+            return mode == 'owner' and not exposed
+        record = json.loads(regular(transition))
+        state = record.get('state')
+        if mode == 'owner':
+            return state in {'disabled', 'disabled-after-failure'}
+        if mode != 'personal-beta' or state != 'applied' or not exposed:
+            return False
+        intent = json.loads(regular(journal))
+        expected = digest(regular(path / 'prepared.json'))
+        return (intent.get('state') == 'exposure-committed' and
+                record.get('preparedSha256') == expected == intent.get('preparedSha256'))
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
 
 
 def monitor(value):
@@ -889,6 +920,7 @@ def monitor(value):
         expires = dt.datetime.strptime(certificate, '%b %d %H:%M:%S %Y %Z').replace(tzinfo=dt.timezone.utc)
         now = utcnow()
         health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin,
+            'personalTransitionHealthy': personal_transition_healthy(policy['mode']),
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}
