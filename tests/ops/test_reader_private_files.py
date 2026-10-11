@@ -28,7 +28,8 @@ for name, file in [('alterward_backup', 'contabo-backup.py'), ('alterward_target
 readers = load('reader_private_files', 'contabo-personal-beta-readers.py')
 
 
-@unittest.skipIf(sys.platform == 'win32', 'Actual root POSIX fsync/mode/lock contract')
+@unittest.skipIf(sys.platform == 'win32' or getattr(os, 'geteuid', lambda: -1)() != 0,
+                 'Actual root POSIX fsync/mode/lock contract')
 class ReaderPrivateFileTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -37,8 +38,11 @@ class ReaderPrivateFileTests(unittest.TestCase):
         self.owner.chmod(0o700)
         self.state_patch = patch.object(readers, 'STATE', self.state)
         self.state_patch.start()
+        self.root_patch = patch.dict(readers.private_directory.__globals__, ROOT=self.owner)
+        self.root_patch.start()
 
     def tearDown(self):
+        self.root_patch.stop()
         self.state_patch.stop()
         self.temp.cleanup()
 

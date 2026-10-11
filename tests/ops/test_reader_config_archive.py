@@ -38,6 +38,7 @@ class ReaderConfigArchiveTests(unittest.TestCase):
         self.temp.cleanup()
 
     def file(self, path):
+        self.state.mkdir(exist_ok=True, mode=0o700)
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.write_bytes(b'synthetic private configuration\n')
         path.chmod(0o600)
