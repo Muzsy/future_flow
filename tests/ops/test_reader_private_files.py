@@ -64,6 +64,7 @@ class ReaderPrivateFileTests(unittest.TestCase):
 
     def test_public_parent_cannot_receive_new_private_authority(self):
         self.state.mkdir(mode=0o755)
+        self.state.chmod(0o755)
         with self.assertRaises(ValueError):
             readers.durable_file(self.state / 'journal.json', b'never\n')
         self.assertEqual(list(self.state.iterdir()), [])

@@ -28,6 +28,14 @@ jobs:
           node --test tests/ops/private-health.test.mjs
           node --test tests/ops/fence-operator.test.mjs
           node --test tests/ops/personal-beta-monitor.test.mjs
+      - name: Verify root-only reader file contracts without services
+        run: |
+          sudo python3 - <<'PY'
+          import unittest
+          suite = unittest.TestLoader().discover('tests/ops', pattern='test_reader_private_files.py')
+          result = unittest.TextTestRunner().run(suite)
+          assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
+          PY
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
