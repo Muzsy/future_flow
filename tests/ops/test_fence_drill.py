@@ -1,5 +1,6 @@
 """Transport rejects an unbound source before loading privileged operations."""
 import base64
+import copy
 import hashlib
 import importlib.util
 from pathlib import Path
@@ -59,21 +60,54 @@ class FenceDrillBoundaryTests(unittest.TestCase):
             drill.main(request)
 
     @unittest.skipUnless(hasattr(signal,'pthread_sigmask'), 'POSIX cleanup signal boundary')
-    def test_interrupt_is_deferred_until_cleanup_then_further_signals_are_ignored(self):
+    def test_interrupt_is_deferred_until_boundary_then_further_signals_are_ignored(self):
         code="""import importlib.util,os,signal,sys
 s=importlib.util.spec_from_file_location('d',sys.argv[1]);d=importlib.util.module_from_spec(s);s.loader.exec_module(d)
 d.install_interrupt_handlers()
 try:
  with d.protected_cleanup():
-  os.kill(os.getpid(),signal.SIGTERM)
+  os.kill(os.getpid(),getattr(signal,sys.argv[2]))
   print('cleanup-completed',flush=True)
+ d.check_interrupt()
 except KeyboardInterrupt:
  print('interrupt-delivered-after-cleanup',flush=True)
  os.kill(os.getpid(),signal.SIGTERM)
  print('second-interrupt-ignored',flush=True)
 """
-        run=subprocess.run([sys.executable,'-c',code,str(path)],capture_output=True,timeout=5,check=True)
-        self.assertEqual(run.stdout.decode().splitlines(),['cleanup-completed','interrupt-delivered-after-cleanup','second-interrupt-ignored'])
+        for name in ['SIGTERM','SIGINT','SIGHUP','SIGALRM']:
+            with self.subTest(signal=name):
+                run=subprocess.run([sys.executable,'-c',code,str(path),name],capture_output=True,timeout=5,check=True)
+                self.assertEqual(run.stdout.decode().splitlines(),['cleanup-completed','interrupt-delivered-after-cleanup','second-interrupt-ignored'])
+
+    def original(self):
+        return {'Id':'a'*64,'Image':'sha256:'+'b'*64,'RestartCount':0,
+                'HostConfig':{'RestartPolicy':{'Name':'unless-stopped'}},
+                'Config':{'Labels':{'com.docker.compose.project':'alterward-owner'}},
+                'State':{'StartedAt':'original-start','Status':'running','Running':True,'OOMKilled':False}}
+
+    def test_late_daemon_exit_is_observed_before_resume(self):
+        original=self.original()
+        current=copy.deepcopy(original)
+        tick=[0]
+        def wait(_seconds):
+            tick[0]+=1
+            if tick[0]==2:
+                current['State'].update(Status='exited',Running=False)
+        drill.verify_original_exit(original,lambda:{original['Id']:current},seconds=5,clock=lambda:tick[0],wait=wait)
+        self.assertEqual(tick[0],2)
+
+    def test_unknown_stop_or_replaced_identity_remains_refused(self):
+        original=self.original()
+        current=copy.deepcopy(original)
+        tick=[0]
+        def wait(_seconds): tick[0]+=1
+        with self.assertRaisesRegex(ValueError,'did not settle'):
+            drill.verify_original_exit(original,lambda:{original['Id']:current},seconds=2,clock=lambda:tick[0],wait=wait)
+        self.assertEqual(tick[0],2)
+        current['Image']='sha256:'+'c'*64
+        current['State'].update(Status='exited',Running=False)
+        with self.assertRaisesRegex(ValueError,'identity changed'):
+            drill.verify_original_exit(original,lambda:{original['Id']:current},seconds=2,clock=lambda:tick[0],wait=wait)
 
 
 if __name__=='__main__':

@@ -26,6 +26,7 @@ jobs:
           node --test tests/ops/daily-archives.test.mjs
           node --test tests/ops/external-monitor.test.mjs
           node --test tests/ops/private-health.test.mjs
+          node --test tests/ops/fence-operator.test.mjs
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

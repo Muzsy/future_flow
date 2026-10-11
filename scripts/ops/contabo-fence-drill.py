@@ -28,6 +28,8 @@ NODE_FILES = {
 OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
 OWNER_IMAGE = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
 PHASE = 'validation'
+CANCELLED = False
+CLEANUP_DEPTH = 0
 
 
 def interrupt_signals():
@@ -36,22 +38,48 @@ def interrupt_signals():
 
 def install_interrupt_handlers():
     def cancel(_number,_frame):
-        # One interruption initiates cleanup. Further signals cannot interrupt
-        # reverse resume or remove a helper halfway through that cleanup.
+        global CANCELLED
+        # Defer cancellation to an operation boundary. Never raise between a
+        # finally entry and its cleanup mask, or in a durable checkpoint write.
+        CANCELLED = True
         for number in interrupt_signals():
             signal.signal(number,signal.SIG_IGN)
-        raise KeyboardInterrupt()
     for number in interrupt_signals():
         signal.signal(number,cancel)
 
 
+def check_interrupt():
+    if CANCELLED and CLEANUP_DEPTH == 0:
+        raise KeyboardInterrupt()
+
+
 @contextlib.contextmanager
 def protected_cleanup():
+    global CLEANUP_DEPTH
+    CLEANUP_DEPTH += 1
     old=signal.pthread_sigmask(signal.SIG_BLOCK,interrupt_signals())
     try:
         yield
     finally:
         signal.pthread_sigmask(signal.SIG_SETMASK,old)
+        CLEANUP_DEPTH -= 1
+
+
+def verify_original_exit(original, inspect, *, seconds, clock=time.monotonic, wait=time.sleep):
+    until=clock()+seconds
+    while True:
+        value=inspect().get(original['Id'])
+        if (not value or value['Image'] != original['Image'] or
+                value['RestartCount'] != original['RestartCount'] or
+                value['HostConfig']['RestartPolicy'] != original['HostConfig']['RestartPolicy'] or
+                value['Config'].get('Labels') != original['Config'].get('Labels') or
+                value['State'].get('StartedAt') != original['State'].get('StartedAt')):
+            raise ValueError('Original stop identity changed')
+        if value['State']['Status']=='exited' and not value['State']['Running'] and not value['State'].get('OOMKilled'):
+            return
+        if clock()>=until:
+            raise ValueError('Original stop did not settle')
+        wait(1)
 
 
 @contextlib.contextmanager
@@ -104,6 +132,13 @@ def main(request):
     exec(compile(files[ENGINE], '<reviewed-writer-fence>', 'exec'), fence.__dict__)
     PHASE = 'installed-source'
     daily = fence.installed_daily()
+    original_command=daily.command
+    def guarded_command(*args,**kwargs):
+        check_interrupt()
+        result=original_command(*args,**kwargs)
+        check_interrupt()
+        return result
+    daily.command=guarded_command
     for path in (fence.DAILY/'job.lock', fence.OWNER/'activation.lock'):
         fence.original(path)
     PHASE = 'locks'
@@ -126,7 +161,7 @@ def main(request):
             if not ((previous.get('mode') == 'drill' and previous.get('stage') == 'drill-resumed') or
                     (previous.get('mode') == 'plan' and previous.get('stage') == 'plan-complete' and
                      previous.get('writerFenceEstablished') is False) or
-                    (previous.get('mode') == 'plan' and previous.get('stage') in {'prepared','plan-refused'} and
+                    (previous.get('mode') in {'plan','drill'} and previous.get('stage') in {'prepared','plan-refused'} and
                      previous.get('writerFenceEstablished') is False and
                      previous.get('ownerManifestDigest') == request['ownerManifestDigest'] and
                      previous.get('originalServices') == original_services(services))):
@@ -284,6 +319,7 @@ def main(request):
             def stop_original(cid):
                 global PHASE
                 PHASE='stopping-original'
+                check_interrupt()
                 previous=baseline[cid]
                 uncertain_stops.add(cid)
                 failed=False
@@ -291,19 +327,8 @@ def main(request):
                     daily.command(['docker','stop','--time','20',cid],timeout=30)
                 except Exception:
                     failed=True
-                until=time.monotonic()+(45 if failed else 10)
-                while True:
-                    value=inspect().get(cid)
-                    if (not value or fence.identity(value) != fence.identity(previous) or
-                            value['Config'].get('Labels') != previous['Config'].get('Labels') or
-                            value['State'].get('StartedAt') != previous['State'].get('StartedAt')):
-                        raise ValueError('Original stop identity changed')
-                    if value['State']['Status']=='exited' and not value['State']['Running'] and not value['State'].get('OOMKilled'):
-                        uncertain_stops.remove(cid)
-                        return
-                    if time.monotonic()>=until:
-                        raise ValueError('Original stop did not settle')
-                    time.sleep(1)
+                verify_original_exit(previous,inspect,seconds=45 if failed else 10)
+                uncertain_stops.remove(cid)
 
             @contextlib.contextmanager
             def resume_cleanup():
@@ -311,6 +336,14 @@ def main(request):
                 with protected_cleanup():
                     PHASE='resuming-originals'
                     record.update(writerFenceEstablished=False,replayAllowed=False)
+                    # A cancelled stop may still finish in the daemon. Recheck
+                    # immutable IDs under the cleanup mask before any resume.
+                    for cid in sorted(uncertain_stops):
+                        try:
+                            verify_original_exit(baseline[cid],inspect,seconds=45)
+                        except Exception:
+                            continue
+                        uncertain_stops.remove(cid)
                     if uncertain_stops:
                         record.update(stage='drill-stop-unverified',uncertainStopIds=sorted(uncertain_stops))
                         daily.atomic(pointer,record)
@@ -335,16 +368,21 @@ def main(request):
                 record.update(stage='plan-complete',checkedAt=dt.datetime.now(dt.timezone.utc).isoformat())
                 daily.atomic(pointer,record)
                 return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+                        'ownerManifestDigest':request['ownerManifestDigest'],'planNonce':nonce,
                         'mode':'plan','sourceFilesVerified':len(files),'servicesStopped':0,
                         'originalOwnerEgressNetworkVerified':True,'dockerLoggingDisabled':True,
                         'temporaryContainersAndPlaintextRemoved':True,'existingContainersUnchanged':True,
                         **observation,'writerFenceEstablished':False,'authorityCreated':False,
                         'serviceActivationAllowed':False,'paidAiCalls':0,'liveDatabaseWrites':False}
             else:
+                def settle(seconds):
+                    check_interrupt()
+                    time.sleep(seconds)
+                    check_interrupt()
                 result=fence.run_fence('drill',services,inspect=inspect,observe=lambda:helper('observe'),
                     stop=stop_original,
                     start=lambda cid:daily.command(['docker','start',cid],timeout=30),capture=capture,verify=verify,
-                    settle=time.sleep,checkpoint=checkpoint,cleanup=resume_cleanup)
+                    settle=settle,checkpoint=checkpoint,cleanup=resume_cleanup)
         return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
@@ -357,7 +395,11 @@ def main(request):
 if __name__=='__main__':
     try:
         install_interrupt_handlers()
-        signal.alarm(300)
-        print(json.dumps({'ok':True,'result':main(json.load(sys.stdin))}))
+        # Deliberate total deadline; a slower operation aborts at its next
+        # bounded command boundary. Protected cleanup has its own short bounds.
+        signal.alarm(480)
+        result=main(json.load(sys.stdin))
+        check_interrupt()
+        print(json.dumps({'ok':True,'result':result}))
     except (Exception,KeyboardInterrupt):
         print(json.dumps({'ok':False,'phase':PHASE}));sys.exit(1)
