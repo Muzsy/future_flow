@@ -23,6 +23,7 @@ NODE_FILES = {
     'scripts/capture-privacy-authority.ts', 'scripts/lib/privacy-fence-envelope.ts',
     'scripts/lib/verified-privacy-authority.ts', 'scripts/lib/privacy-restore.ts',
     'scripts/lib/privacy-recovery-schema.ts', 'scripts/lib/privacy-recovery-coverage.ts',
+    'scripts/lib/privacy-security-catalog.ts',
     'scripts/lib/recovery-auth-inventory.ts',
 }
 OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'

@@ -16,6 +16,7 @@ import {
 } from '../scripts/lib/privacy-restore-proof';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { verifyPrivacyRestore } from '../scripts/lib/privacy-restore-verifier';
+import { hardenPrivacyQuarantine } from '../scripts/lib/privacy-security-catalog';
 import { LifeRepository } from '@future-flow/database';
 import { setupFixture } from './life-fixtures';
 let fixture: PrivacyRestoreFixture;
@@ -111,7 +112,7 @@ describe('independent authority and quarantined privacy restore', () => {
     ).toBe(false);
     await expect(
       verifyPrivacyRestore(db, authority, proofBinding()),
-    ).rejects.toThrow('verification failed');
+    ).rejects.toThrow('privacy recovery privileges');
     await db.query(
       'REVOKE SELECT(handle) ON aw_social_profiles FROM authenticated',
     );
@@ -175,6 +176,12 @@ describe('independent authority and quarantined privacy restore', () => {
   });
   it('independently rejects an old snapshot and any later resurrected user or life', async () => {
     const db = await restored();
+    // Rebuild only the non-serving privilege boundary; keep all old rows so
+    // the independent verifier must still detect the resurrected data graph.
+    await db.transaction(async (tx) => {
+      await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+      await hardenPrivacyQuarantine(tx, targetName);
+    });
     await expect(
       verifyPrivacyRestore(db, authority, proofBinding()),
     ).rejects.toThrow('verification failed');
@@ -244,7 +251,7 @@ describe('independent authority and quarantined privacy restore', () => {
     await db.query('ALTER TABLE aw_feedback DISABLE ROW LEVEL SECURITY');
     await expect(
       verifyPrivacyRestore(db, authority, proofBinding()),
-    ).rejects.toThrow('verification failed');
+    ).rejects.toThrow('privacy recovery privileges');
   });
   it('removes a deleted account/life, denies withdrawn old links, retains an unchanged copy and preserves minimal Shared canon', async () => {
     const db = await restored();

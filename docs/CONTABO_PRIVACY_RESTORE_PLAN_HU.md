@@ -60,4 +60,4 @@ Negatív próba kell hiányzó/elavult/hiányos alapra, mismatched hash-re, fél
 
 ## Megmaradó függőségek
 
-Külön második tárhely/gép jelenleg nincs. A független kulcsmentés és külső hibaértesítés nem megoldott. A teljes P01–P13 / Shared S0–S7 terv megmarad; a jóváhagyott 10 USD / legfeljebb tízfős béta és a harmincnapos keret továbbra inaktív. A terv nem helyettesít tényleges replay-bizonyítékot.
+Külön második tárhely/gép jelenleg nincs. A visszafejtő kulcs azonos külön példányát a felhasználó leválasztott adathordozón, külön biztonságos helyen tárolja; ezt megerősítette. A korlátozott külső állapotfigyelés és annak Inbox-hibaértesítése ellenőrzött. A [fizikai writer-fence drill](WRITER_FENCE_TRANSPORT_HU.md) 2026-10-11 05:44 UTC-kor két egyező capture-rel sikeres, utána a szolgáltatások visszaindultak; fennálló recovery-fence/replay és teljes biztonsági katalógus még külön kapu. A teljes P01–P13 / Shared S0–S7 terv megmarad; a jóváhagyott 10 USD / legfeljebb tízfős béta és a harmincnapos keret továbbra inaktív. A terv nem helyettesít tényleges replay-bizonyítékot.

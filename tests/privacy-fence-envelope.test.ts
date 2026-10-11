@@ -15,6 +15,11 @@ const authority: PrivacyRestoreAuthority = {
   schemaVersion: 'privacy-restore-authority-1',
   projectBinding: hash('synthetic-project'),
   schemaDigest: hash('synthetic-schema'),
+  securityCatalog: {
+    schemaVersion: 'privacy-security-catalog-1',
+    immutableDigest: hash('synthetic-reviewed-catalog'),
+    sourcePrivilegesDigest: hash('synthetic-source-grants'),
+  },
   writerFenceDigest: hash('synthetic-stopped-fence'),
   capturedAt: now.toISOString(),
   authVerifiedAt: now.toISOString(),

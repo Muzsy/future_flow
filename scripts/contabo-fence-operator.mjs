@@ -206,6 +206,7 @@ async function main() {
     'scripts/lib/verified-privacy-authority.ts',
     'scripts/lib/privacy-restore.ts',
     'scripts/lib/privacy-recovery-schema.ts',
+    'scripts/lib/privacy-security-catalog.ts',
     'scripts/lib/privacy-recovery-coverage.ts',
     'scripts/lib/recovery-auth-inventory.ts',
   ];

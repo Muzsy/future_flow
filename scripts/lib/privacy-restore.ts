@@ -9,6 +9,11 @@ import {
 import { cancelPendingSharedDecision } from '../../packages/database/src/shared-canon';
 import { assertPrivacyRecoveryCoverage } from './privacy-recovery-coverage';
 import {
+  assertPrivacySecurityCatalog,
+  privacySecurityCatalogSchema,
+  hardenPrivacyQuarantine,
+} from './privacy-security-catalog';
+import {
   assertVerifiedRecoveryAuth,
   readRecoveryAuthInventory,
   verifyRecoveryAuthInventory,
@@ -52,6 +57,7 @@ const authoritySchema = z
     schemaVersion: z.literal('privacy-restore-authority-1'),
     projectBinding: digest,
     schemaDigest: digest,
+    securityCatalog: privacySecurityCatalogSchema,
     writerFenceDigest: digest,
     capturedAt: z.string().datetime(),
     authVerifiedAt: z.string().datetime(),
@@ -253,6 +259,7 @@ async function readPrivacyRestoreAuthoritySnapshot(
   unique(evidence.authUserIds);
   evidence.authUserIds.forEach((id) => uuid.parse(id));
   await assertPrivacyRecoveryCoverage(tx);
+  const securityCatalog = await assertPrivacySecurityCatalog(tx);
   const auth = new Set(evidence.authUserIds);
   const activeUserIds = (
     await tx.query<{ id: string }>(
@@ -284,6 +291,7 @@ async function readPrivacyRestoreAuthoritySnapshot(
       authVerifiedAt: evidence.authVerifiedAt,
       capturedAt: now.toISOString(),
       schemaDigest: hash(await tx.query(privacyRestoreSchemaSql)),
+      securityCatalog,
       activeUserIds,
       lives: await readOwned('aw_lives'),
       futures: await readOwned('ff_futures'),
@@ -354,6 +362,13 @@ export async function replayPrivacyRestore(
     )
       throw Error('Dedicated matching-schema quarantine required');
     await assertPrivacyRecoveryCoverage(tx);
+    // Validate executable definitions and ownership before touching old rows.
+    // Privilege reconstruction only revokes access in this named quarantine.
+    const catalog = await assertPrivacySecurityCatalog(tx);
+    if (catalog.immutableDigest !== a.securityCatalog.immutableDigest)
+      throw Error('Fresh source executable catalog mismatch');
+    await hardenPrivacyQuarantine(tx, binding.quarantineDatabase);
+    await assertPrivacySecurityCatalog(tx, 'quarantine', a.securityCatalog);
     const budgetIds = new Set(
       (await tx.query<{ id: string }>('SELECT id FROM aw_budget_accounts')).map(
         (r) => r.id,

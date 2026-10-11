@@ -1,5 +1,6 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
+import { assertPrivacySecurityCatalog } from './privacy-security-catalog';
 import {
   assertPrivacyRecoveryCoverage,
   privacyRecoveryIdentifier as q,
@@ -34,6 +35,11 @@ export async function verifyPrivacyRestore(
     )
       throw Error('Dedicated matching-schema quarantine required');
     const coverage = await assertPrivacyRecoveryCoverage(tx);
+    await assertPrivacySecurityCatalog(
+      tx,
+      'quarantine',
+      authority.securityCatalog,
+    );
     let zeroChecks = 0;
     const empty = async (sql: string, values: unknown[] = []) => {
       const [row] = await tx.query<{ violations: string | number }>(
@@ -193,6 +199,7 @@ export async function verifyPrivacyRestore(
       throw Error('Complete personal history review count required');
     return {
       schemaVersion: 'privacy-restore-verification-1',
+      reviewedSecurityCatalog: true,
       verifiedAt: now.toISOString(),
       authorityHash: hash(authority),
       projectBinding: authority.projectBinding,

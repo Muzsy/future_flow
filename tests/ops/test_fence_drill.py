@@ -27,7 +27,7 @@ class FenceDrillBoundaryTests(unittest.TestCase):
 
     def test_exact_source_set_and_bytes(self):
         request=self.request()
-        self.assertEqual(len(drill.sources(request)),10)
+        self.assertEqual(len(drill.sources(request)),11)
         for bad in ['path','digest','encoding','size']:
             request=self.request()
             if bad=='path':
