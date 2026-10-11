@@ -47,6 +47,19 @@ describe('reviewed schema before privacy capture/replay', () => {
     ).rejects.toThrow('table set');
     expect((await check()).reviewedTables).toBe(96); // Failed DDL transaction rolled back.
   });
+  it('rejects a catalog-shadowing view and materialized personal data', async () => {
+    await expect(
+      changed(
+        "CREATE VIEW public.pg_tables AS SELECT schemaname,tablename FROM pg_catalog.pg_tables WHERE tablename<>'hidden_personal_data'",
+      ),
+    ).rejects.toThrow('table set');
+    await expect(
+      changed(
+        'CREATE MATERIALIZED VIEW retained_user_data AS SELECT id,status FROM ff_users',
+      ),
+    ).rejects.toThrow('table set');
+    expect((await check()).reviewedTables).toBe(96);
+  });
   it('rejects new data on a known table and a changed deletion graph', async () => {
     await expect(
       changed(

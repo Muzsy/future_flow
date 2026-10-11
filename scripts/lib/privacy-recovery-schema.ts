@@ -4,7 +4,7 @@ import type { Database } from '@future-flow/database';
 // Explicit immutable 001–036 baseline, never derived from the current database
 // or automatically extended when a new migration appears. This is a schema
 // drift guard, not proof that every retained text is safe to serve.
-const reviewedTables = `
+export const reviewedPrivacyRecoveryTables = `
 aw_account_deletions aw_activity_sessions aw_ai_runs aw_branches
 aw_budget_accounts aw_budget_reservations aw_choices aw_deleted_life_admissions
 aw_drafts aw_feedback aw_history aw_initial_choices aw_interactions aw_jobs
@@ -46,22 +46,33 @@ const foreignKeysSql =
   "SELECT t.relname AS table_name,k.conname AS constraint_name,pg_get_constraintdef(k.oid) AS definition FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname";
 
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
-  await tx.query("SET LOCAL search_path='public', 'pg_catalog'");
+  await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
   const tables = (
     await tx.query<{ name: string }>(
-      "SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
+      "SELECT c.relname::text AS name FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN('r','p','v','m','f') ORDER BY c.relname",
     )
   ).map((r) => r.name);
   const application = tables.filter((name) => name !== 'ff_migrations');
   if (
-    reviewedTables.length !== 96 ||
-    hash(application) !== hash(reviewedTables)
+    reviewedPrivacyRecoveryTables.length !== 96 ||
+    hash(application) !== hash(reviewedPrivacyRecoveryTables)
   )
     throw Error('Unreviewed privacy recovery table set');
   const columns = await tx.query(columnsSql),
     foreignKeys = await tx.query(foreignKeysSql);
+  const catalogColumns = await tx.query(
+    "SELECT c.relname::text AS table_name,a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'ff_migrations' AND c.relkind IN('r','p') AND a.attnum>0 AND NOT a.attisdropped ORDER BY c.relname,a.attnum",
+  );
   if (
     columns.length !== 854 ||
+    hash(catalogColumns) !==
+      hash(
+        columns.map(({ table_name, column_name, ordinal_position }) => ({
+          table_name,
+          column_name,
+          ordinal_position,
+        })),
+      ) ||
     hash(columns) !== columnsDigest ||
     foreignKeys.length !== 219 ||
     hash(foreignKeys) !== foreignKeysDigest
@@ -94,7 +105,19 @@ export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
         ordinal_position: 3,
       },
     ];
-    if (hash(ledger) !== hash(expected))
+    const ledgerColumns = await tx.query(
+      "SELECT a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='ff_migrations' AND a.attnum>0 AND NOT a.attisdropped ORDER BY a.attnum",
+    );
+    if (
+      hash(ledger) !== hash(expected) ||
+      hash(ledgerColumns) !==
+        hash(
+          expected.map(({ column_name, ordinal_position }) => ({
+            column_name,
+            ordinal_position,
+          })),
+        )
+    )
       throw Error('Unreviewed recovery migration ledger');
   }
   return {

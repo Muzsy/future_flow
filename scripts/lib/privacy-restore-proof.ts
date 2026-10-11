@@ -9,6 +9,7 @@ import {
   type Database,
 } from '@future-flow/database';
 import { hash } from '@future-flow/core';
+import { verifyPrivacyRestore } from './privacy-restore-verifier';
 import {
   capturePrivacyRestoreAuthority,
   replayPrivacyRestore,
@@ -288,6 +289,17 @@ export async function verifyPrivacyRestoreFixture(
   );
   assert.equal(again.deletedAccounts, 0);
   assert.equal(again.deletedLives, 0);
+  const verified = await verifyPrivacyRestore(
+    db,
+    f.authority,
+    privacyFixtureBinding(f, targetName),
+  );
+  assert.equal(verified.reviewedTables, 96);
+  assert.equal(verified.reviewedForeignKeys, 219);
+  assert.equal(verified.accountCascadeTables, 81);
+  assert.equal(verified.heldSharedTables, 11);
+  assert.equal(verified.operatorMetadataTables, 3);
+  assert.equal(verified.serviceActivationAllowed, false);
   return {
     deletedAccountNotRestored: true,
     deletedLifeNotRestored: true,
@@ -298,6 +310,8 @@ export async function verifyPrivacyRestoreFixture(
     budgetNotReducedAndPaidDisabled: true,
     oldJobsCancelledAndScrubbed: true,
     idempotentReplay: true,
+    independentReadOnlyPostReplayVerified: true,
+    schemaWideRelationshipChecks: verified.reviewedForeignKeys,
     serviceActivationAllowed: false,
     paidAiCalls: 0,
     authProviderWrites: false,

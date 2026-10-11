@@ -12,6 +12,8 @@
 
 ## Aktuális kiadási sorrend a tesztelők előtt
 
+2026-10-11 01:24 UTC: a [szemantikus lefedettség és független utóellenőrzés](PRIVACY_RESTORE_VERIFIER_HU.md) implementált, 26 célpróba és scripts TypeScript sikeres; tényleges izolált PG-célpróba és pontos Claude-visszaellenőrzés következik. Az e7ffd66 sémavédelmes fizikai régi PG-másolat próbája sikeres, meglévő kilenc konténer változatlan. Az audit két további sémakiskaput jelzett; a javítások és a runtime Auth-eredmény fagyasztása ebben az új szeletben vannak. Ez még nem valós fence vagy bétaindítás.
+
 2026-10-10-i korábbi előrelépés: [közös managed retention](MANAGED_RETENTION_RECONCILIATION_HU.md), tartós kétoldali napló, teljes egyeztetés/újraletöltés és metadata-archiválás elkészült. A javított b5c23f1 forrás 62 tényleges Linux-célpróbája, tizenegy JS/runtime-próbája, pontos Claude-auditja és verify/container CI-je sikeres; valódi check/sync/apply nulla törléssel. A véges történeti/ágyazott másolatok felügyelt enrollment/check/apply próbája is kész; managed/történeti automatikus futás még nincs. Független leválasztott kulcspéldány és tényleges GitHub schedule igazolt; béta inaktív.
 
 1. [Karanténos restore/replay technikailag kész](CONTABO_PRIVACY_RESTORE_PLAN_HU.md); történeti snapshot retention, valós operátori authority/fence és teljes grant/promóciós kapu megmarad. Friss független állapot nélkül a másolat karanténban marad. Shared-próza kötelező a későbbi páros kör előtt; az első személyes körben minden Shared flag false és a tényleges résztvevők Shared-adatmentessége újra ellenőrzendő.

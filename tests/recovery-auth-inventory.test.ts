@@ -4,6 +4,7 @@ import {
   assertRecoveryAuthMatchesDatabase,
   assertRecoveryAuthStable,
   verifyRecoveryAuthInventory,
+  assertVerifiedRecoveryAuth,
 } from '../scripts/lib/recovery-auth-inventory';
 
 const now = new Date('2026-10-11T01:00:00Z');
@@ -49,6 +50,9 @@ describe('independent recovery Auth evidence', () => {
     });
     const inventory = await read([raw]);
     expect(inventory).not.toHaveProperty('eligibleUserIds');
+    expect(Object.isFrozen(inventory)).toBe(true);
+    expect(Object.isFrozen(inventory.users)).toBe(true);
+    expect(Object.isFrozen(inventory.users[0])).toBe(true);
     expect((await verified([raw])).eligibleUserIds).toEqual([a]);
     assertRecoveryAuthMatchesDatabase(inventory, [
       user(a, { updated_at: '2026-10-11T02:59:00.123456+02:00' }),
@@ -143,6 +147,24 @@ describe('independent recovery Auth evidence', () => {
         ),
       ).toThrow('changed');
     }
+  });
+  it('rejects cloned eligibility objects and freezes issued evidence at runtime', async () => {
+    const observation = await verified([user()]);
+    assertVerifiedRecoveryAuth(observation);
+    expect(Object.isFrozen(observation)).toBe(true);
+    expect(Object.isFrozen(observation.eligibleUserIds)).toBe(true);
+    expect(() => assertVerifiedRecoveryAuth({ ...observation })).toThrow(
+      'Original',
+    );
+    expect(() => assertVerifiedRecoveryAuth({ eligibleUserIds: [a] })).toThrow(
+      'Original',
+    );
+    expect(() => {
+      (observation.eligibleUserIds as string[]).push(b);
+    }).toThrow();
+    expect(() => {
+      observation.digest = '0'.repeat(64);
+    }).toThrow();
   });
   it('rejects clocks ahead or behind and retains bans at the earlier allowed clock', async () => {
     const raw = user(a, { banned_until: '2026-10-11T01:00:05Z' });

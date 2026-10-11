@@ -51,7 +51,7 @@ const pageSchema = z.object({
     total: z.number().int().min(0).max(100000),
   }),
 });
-function ordered(users: RecoveryUser[]) {
+function ordered(users: readonly RecoveryUser[]) {
   const ids = new Set(users.map((u) => u.id));
   if (ids.size !== users.length || users.length > 100000)
     throw Error('Unique bounded Auth inventory required');
@@ -59,7 +59,7 @@ function ordered(users: RecoveryUser[]) {
 }
 export type RecoveryAuthInventory = {
   verifiedAt: string;
-  users: RecoveryUser[];
+  users: readonly RecoveryUser[];
   digest: string;
   pages: number;
 };
@@ -87,12 +87,12 @@ export async function readRecoveryAuthInventory(
         instant = BigInt(now.getTime()) * 1000n;
       if (records.some((u) => BigInt(u.updated_at) > instant + 30000000n))
         throw Error('Auth inventory observation clock differs');
-      return {
+      return Object.freeze({
         verifiedAt: now.toISOString(),
-        users: records,
+        users: Object.freeze(records.map((user) => Object.freeze(user))),
         digest: hash(records),
         pages,
-      };
+      });
     }
     if (response.data.nextPage !== page + 1 || response.data.users.length === 0)
       throw Error('Sequential complete Auth pagination required');
@@ -104,7 +104,10 @@ export function assertRecoveryAuthMatchesDatabase(
   rows: unknown[],
 ) {
   const database = ordered(z.array(userSchema).max(100000).parse(rows));
-  if (hash(database) !== inventory.digest)
+  if (
+    hash(database) !== inventory.digest ||
+    hash(ordered(inventory.users)) !== inventory.digest
+  )
     throw Error(
       'Auth state differs from the independent read-only DB snapshot',
     );
@@ -113,19 +116,34 @@ export function assertRecoveryAuthStable(
   before: RecoveryAuthInventory,
   after: RecoveryAuthInventory,
 ) {
-  if (before.digest !== after.digest)
+  if (
+    before.digest !== after.digest ||
+    hash(ordered(before.users)) !== before.digest ||
+    hash(ordered(after.users)) !== after.digest
+  )
     throw Error('Auth state changed during recovery observation');
 }
 
 const verifiedBrand = Symbol('verified-recovery-auth');
+const verifiedInventories = new WeakSet<object>();
 export type VerifiedRecoveryAuth = {
   readonly [verifiedBrand]: true;
   verifiedAt: string;
   digest: string;
-  eligibleUserIds: string[];
+  eligibleUserIds: readonly string[];
   bannedUsers: number;
   clocksAgree: true;
 };
+export function assertVerifiedRecoveryAuth(
+  value: unknown,
+): asserts value is VerifiedRecoveryAuth {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !verifiedInventories.has(value)
+  )
+    throw Error('Original verified Auth observation required');
+}
 export function verifyRecoveryAuthInventory(
   before: RecoveryAuthInventory,
   databaseRows: unknown[],
@@ -166,25 +184,29 @@ export function verifyRecoveryAuthInventory(
   // can retain a ban longer, never make it expire earlier than the DB clock.
   const instant = start < peer ? start : peer;
   const users = before.users;
-  return {
-    [verifiedBrand]: true,
+  const result: VerifiedRecoveryAuth = Object.freeze({
+    [verifiedBrand]: true as const,
     verifiedAt: new Date(Number(peer / 1000n)).toISOString(),
     digest: before.digest,
-    eligibleUserIds: users
-      .filter(
-        (u) =>
-          u.role === 'authenticated' &&
-          u.is_anonymous === false &&
-          u.deleted_at === null &&
-          u.email_confirmed_at !== null &&
-          (u.banned_until === null || BigInt(u.banned_until) <= instant),
-      )
-      .map((u) => u.id),
+    eligibleUserIds: Object.freeze(
+      users
+        .filter(
+          (u) =>
+            u.role === 'authenticated' &&
+            u.is_anonymous === false &&
+            u.deleted_at === null &&
+            u.email_confirmed_at !== null &&
+            (u.banned_until === null || BigInt(u.banned_until) <= instant),
+        )
+        .map((u) => u.id),
+    ),
     bannedUsers: users.filter(
       (u) => u.banned_until !== null && BigInt(u.banned_until) > instant,
     ).length,
     clocksAgree: true,
-  };
+  });
+  verifiedInventories.add(result);
+  return result;
 }
 
 // SQL JSON preserves PostgreSQL's microsecond timestamps; node-postgres Date

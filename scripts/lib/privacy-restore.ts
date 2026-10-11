@@ -7,11 +7,11 @@ import {
   type Database,
 } from '@future-flow/database';
 import { cancelPendingSharedDecision } from '../../packages/database/src/shared-canon';
-import { assertReviewedPrivacyRecoverySchema } from './privacy-recovery-schema';
+import { assertPrivacyRecoveryCoverage } from './privacy-recovery-coverage';
 
 // Operator-only, never imported by a serving application. There is no promotion
 // command: a successful replay remains quarantined and cannot enable paid AI.
-const fingerprintTables = [
+export const privacyRestoreFingerprintTables = [
   'aw_publications',
   'aw_official_publications',
   'aw_scenario_publications',
@@ -23,6 +23,16 @@ const fingerprintTables = [
   'aw_shared_contexts',
   'aw_public_collection_entries',
 ] as const;
+export function privacyRestoreFingerprint(
+  table: (typeof privacyRestoreFingerprintTables)[number],
+  record: Record<string, unknown>,
+) {
+  // This derived flag changes when replay archives the parent. Check it against
+  // the archived parent in the verifier, not as a fresh membership permission.
+  return hash(
+    table === 'aw_shared_members' ? { ...record, context_live: false } : record,
+  );
+}
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const uuid = z.string().uuid();
 const owned = z.object({ id: uuid, userId: uuid }).strict();
@@ -56,8 +66,11 @@ const authoritySchema = z
     fingerprints: z
       .object(
         Object.fromEntries(
-          fingerprintTables.map((t) => [t, fingerprints]),
-        ) as Record<(typeof fingerprintTables)[number], typeof fingerprints>,
+          privacyRestoreFingerprintTables.map((t) => [t, fingerprints]),
+        ) as Record<
+          (typeof privacyRestoreFingerprintTables)[number],
+          typeof fingerprints
+        >,
       )
       .strict(),
   })
@@ -69,7 +82,7 @@ type SourceEvidence = {
   authVerifiedAt: string;
   authUserIds: string[];
 };
-const schemaSql =
+export const privacyRestoreSchemaSql =
   "SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND (table_name LIKE 'aw\\_%' ESCAPE '\\' OR table_name LIKE 'ff\\_%' ESCAPE '\\') ORDER BY table_name,ordinal_position";
 function freshness(at: string, now: Date) {
   const age = now.getTime() - Date.parse(at);
@@ -80,7 +93,7 @@ function unique(values: string[]) {
   if (new Set(values).size !== values.length)
     throw Error('Duplicate authority identifier');
 }
-function validate(raw: unknown, now: Date) {
+export function validatePrivacyRestoreAuthority(raw: unknown, now: Date) {
   const a = authoritySchema.parse(raw);
   freshness(a.capturedAt, now);
   freshness(a.authVerifiedAt, now);
@@ -102,7 +115,10 @@ function validate(raw: unknown, now: Date) {
     throw Error('Incomplete authority ownership binding');
   return a;
 }
-async function rows(tx: Database, table: (typeof fingerprintTables)[number]) {
+async function rows(
+  tx: Database,
+  table: (typeof privacyRestoreFingerprintTables)[number],
+) {
   return tx.query<{ record: Record<string, unknown> & { id: string } }>(
     `SELECT to_jsonb(t) AS record FROM ${table} t ORDER BY id`,
   );
@@ -122,7 +138,7 @@ export async function capturePrivacyRestoreAuthority(
     // fence. Neither a hash nor these source reads attest that external fence.
     await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
     await tx.query("SET LOCAL TIME ZONE 'UTC'");
-    await assertReviewedPrivacyRecoverySchema(tx);
+    await assertPrivacyRecoveryCoverage(tx);
     const auth = new Set(evidence.authUserIds);
     const activeUserIds = (
       await tx.query<{ id: string }>(
@@ -141,19 +157,19 @@ export async function capturePrivacyRestoreAuthority(
         .filter((r) => allowed.has(r.user_id))
         .map((r) => ({ id: r.id, userId: r.user_id }));
     const result: Record<string, unknown> = {};
-    for (const table of fingerprintTables)
+    for (const table of privacyRestoreFingerprintTables)
       result[table] = (await rows(tx, table)).map(({ record }) => ({
         id: record.id,
-        digest: hash(record),
+        digest: privacyRestoreFingerprint(table, record),
       }));
-    return validate(
+    return validatePrivacyRestoreAuthority(
       {
         schemaVersion: 'privacy-restore-authority-1',
         projectBinding: evidence.projectBinding,
         writerFenceDigest: evidence.writerFenceDigest,
         authVerifiedAt: evidence.authVerifiedAt,
         capturedAt: now.toISOString(),
-        schemaDigest: hash(await tx.query(schemaSql)),
+        schemaDigest: hash(await tx.query(privacyRestoreSchemaSql)),
         activeUserIds,
         lives: await readOwned('aw_lives'),
         futures: await readOwned('ff_futures'),
@@ -171,7 +187,8 @@ export async function capturePrivacyRestoreAuthority(
           })),
         budgetAccounts: (
           await tx.query<{ id: string; accounted_micro: string }>(
-            'SELECT id,accounted_micro::text FROM aw_budget_accounts ORDER BY id',
+            'SELECT id,accounted_micro::text FROM aw_budget_accounts WHERE user_id IS NULL OR user_id=ANY($1::uuid[]) ORDER BY id',
+            [activeUserIds],
           )
         ).map((r) => ({ id: r.id, accountedMicro: r.accounted_micro })),
         fingerprints: result,
@@ -180,20 +197,19 @@ export async function capturePrivacyRestoreAuthority(
     );
   });
 }
-type ReplayBinding = {
+export type ReplayBinding = {
   projectBinding: string;
   expectedAuthorityHash: string;
   writerFenceDigest: string;
   backupCapturedAt: string;
   quarantineDatabase: string;
 };
-export async function replayPrivacyRestore(
-  db: Database,
+export function assertPrivacyRestoreBinding(
   raw: unknown,
   binding: ReplayBinding,
   now = new Date(),
 ) {
-  const a = validate(raw, now);
+  const a = validatePrivacyRestoreAuthority(raw, now);
   digest.parse(binding.expectedAuthorityHash);
   if (
     hash(a) !== binding.expectedAuthorityHash ||
@@ -205,18 +221,28 @@ export async function replayPrivacyRestore(
   const backup = z.string().datetime().parse(binding.backupCapturedAt);
   if (Date.parse(backup) > Date.parse(a.capturedAt))
     throw Error('Authority predates the backup');
+  return a;
+}
+export async function replayPrivacyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now = new Date(),
+) {
+  const a = assertPrivacyRestoreBinding(raw, binding, now);
   return db.transaction(async (tx) => {
     await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
     await tx.query("SET LOCAL TIME ZONE 'UTC'");
+    await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
     const [target] = await tx.query<{ name: string }>(
       'SELECT current_database() AS name',
     );
     if (
       target?.name !== binding.quarantineDatabase ||
-      hash(await tx.query(schemaSql)) !== a.schemaDigest
+      hash(await tx.query(privacyRestoreSchemaSql)) !== a.schemaDigest
     )
       throw Error('Dedicated matching-schema quarantine required');
-    await assertReviewedPrivacyRecoverySchema(tx);
+    await assertPrivacyRecoveryCoverage(tx);
     const budgetIds = new Set(
       (await tx.query<{ id: string }>('SELECT id FROM aw_budget_accounts')).map(
         (r) => r.id,
@@ -225,10 +251,13 @@ export async function replayPrivacyRestore(
     if (a.budgetAccounts.some((account) => !budgetIds.has(account.id)))
       throw Error('Current budget account missing from quarantine');
     const changed: Record<string, string[]> = {};
-    for (const table of fingerprintTables) {
+    for (const table of privacyRestoreFingerprintTables) {
       const fresh = new Map(a.fingerprints[table].map((r) => [r.id, r.digest]));
       changed[table] = (await rows(tx, table))
-        .filter(({ record }) => fresh.get(record.id) !== hash(record))
+        .filter(
+          ({ record }) =>
+            fresh.get(record.id) !== privacyRestoreFingerprint(table, record),
+        )
         .map(({ record }) => record.id);
     }
     const proof = {

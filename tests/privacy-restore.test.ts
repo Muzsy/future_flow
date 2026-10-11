@@ -15,6 +15,9 @@ import {
   type PrivacyRestoreFixture,
 } from '../scripts/lib/privacy-restore-proof';
 import { applyMigrations } from '../scripts/lib/migrations';
+import { verifyPrivacyRestore } from '../scripts/lib/privacy-restore-verifier';
+import { LifeRepository } from '@future-flow/database';
+import { setupFixture } from './life-fixtures';
 let fixture: PrivacyRestoreFixture;
 function adapter(
   client: Pick<PGlite, 'query' | 'transaction'>,
@@ -93,6 +96,114 @@ afterAll(async () => {
   await source?.close();
 });
 describe('independent authority and quarantined privacy restore', () => {
+  it('does not require or restore the account of an Auth-ineligible current user', async () => {
+    await source.query(
+      "INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES('ineligible-post-backup',$1,1000,900)",
+      [c],
+    );
+    try {
+      const current = await capturePrivacyRestoreAuthority(adapter(source), {
+        projectBinding,
+        writerFenceDigest,
+        authVerifiedAt: new Date().toISOString(),
+        authUserIds: [a],
+      });
+      expect(current.activeUserIds).toEqual([a]);
+      expect(
+        current.budgetAccounts.some(
+          (row) => row.id === 'ineligible-post-backup',
+        ),
+      ).toBe(false);
+      const binding = {
+        ...proofBinding(),
+        expectedAuthorityHash: hash(current),
+      };
+      const db = await restored();
+      await replayPrivacyRestore(db, current, binding);
+      const verified = await verifyPrivacyRestore(db, current, binding);
+      expect(verified.serviceActivationAllowed).toBe(false);
+      expect(
+        await db.query('SELECT id FROM ff_users WHERE id=$1', [c]),
+      ).toHaveLength(0);
+    } finally {
+      await source.query(
+        "DELETE FROM aw_budget_accounts WHERE id='ineligible-post-backup'",
+      );
+    }
+  });
+  it('independently rejects an old snapshot and any later resurrected user or life', async () => {
+    const db = await restored();
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await replayPrivacyRestore(db, authority, proofBinding());
+    const verified = await verifyPrivacyRestore(db, authority, proofBinding());
+    expect(verified).toMatchObject({
+      reviewedTables: 96,
+      reviewedForeignKeys: 219,
+      serviceActivationAllowed: false,
+      liveWrites: false,
+      paidAiCalls: 0,
+    });
+    await db.query("INSERT INTO ff_users(id,status) VALUES($1,'active')", [b]);
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query('DELETE FROM ff_users WHERE id=$1', [b]);
+    await new LifeRepository(db).create(a, setupFixture(), randomUUID());
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('ownership');
+  });
+  it('rejects changed live permissions and a lost current block without repairing them', async () => {
+    const db = await restored();
+    await replayPrivacyRestore(db, authority, proofBinding());
+    await db.query(
+      'DELETE FROM aw_user_blocks WHERE user_id=$1 AND blocked_user_id=$2',
+      [a, c],
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query(
+      'INSERT INTO aw_user_blocks(user_id,blocked_user_id) VALUES($1,$2)',
+      [a, c],
+    );
+    await db.query(
+      "UPDATE aw_publications SET status='hidden',revision=revision+1 WHERE status='active'",
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('permission');
+  });
+  it('rejects AI budget rollback, restored queue inputs and weak browser table protection', async () => {
+    const db = await restored();
+    await replayPrivacyRestore(db, authority, proofBinding());
+    await db.query(
+      "UPDATE aw_budget_accounts SET accounted_micro=0 WHERE id='privacy-project'",
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('high-water');
+    await db.query(
+      "UPDATE aw_budget_accounts SET accounted_micro=700,limit_micro=1 WHERE id='privacy-project'",
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query(
+      "UPDATE aw_budget_accounts SET limit_micro=0 WHERE id='privacy-project'",
+    );
+    await db.query('UPDATE aw_jobs SET payload=\'{"old_prompt":true}\'::jsonb');
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query("UPDATE aw_jobs SET payload='{}'");
+    await db.query('ALTER TABLE aw_feedback DISABLE ROW LEVEL SECURITY');
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+  });
   it('removes a deleted account/life, denies withdrawn old links, retains an unchanged copy and preserves minimal Shared canon', async () => {
     const db = await restored();
     const proof = await verifyPrivacyRestoreFixture(db, fixture, targetName);

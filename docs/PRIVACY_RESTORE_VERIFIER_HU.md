@@ -1,0 +1,17 @@
+# alterward — független karanténos utóellenőrzés
+
+2026-10-11 · [Kiadási sorrend](NEXT_STEPS.md) · [Törlésvédelem](CONTABO_PRIVACY_RESTORE_PLAN_HU.md) · [Elfogadott béta-korlát](PERSONAL_BETA_RECOVERY_LIMIT_HU.md).
+
+A [lefedettségi registry](../scripts/lib/privacy-recovery-coverage.ts) a rögzített 96 táblát a fiókgyökérhez, 81 cascade-gyermekhez, 11 zárva tartott Shared-táblához és három operátori konfiguráció/audit táblához rendeli. A cascade-útvonalat a felülvizsgált 219 idegen kulcson külön ellenőrzi. Ismeretlen vagy több kategóriába sorolt tábla elutasítandó; az immutable sémaőr a registry előtt fut.
+
+A [független verifier](../scripts/lib/privacy-restore-verifier.ts) a replay lezárt tranzakciója után új REPEATABLE READ READ ONLY tranzakcióban, ugyanahhoz a friss authorityhoz és pontos karanténnévhez kötve olvas. Nem javít adatot, nem importál Auth-fiókot és nem indít szolgáltatást. Ellenőrzi az aktív fiókhalmazt és az összes közvetlen felhasználói hivatkozást, mind a 219 kapcsolat tényleges sorait, a megmaradt élet/future tulajdonlását, a még élő jogosultságok friss fingerprintjeit és az újabb blokkok megtartását.
+
+Régi aktív queue/lease/input/checkpoint, generáló ág, aktív review, függő Shared-meghívó, nyitott Shared-kontextus, nyilvános profil vagy fizetős entitlement nem maradhat. Minden költséglimit nulla, a megtartott fiókok és projekt költségszámlája legalább az aktuális high-water érték. Az Auth miatt kizárt fiók saját költségszámlája nem kerül az authorityba; a projekt összesített elszámolása megmarad. RLS és a közvetlen anon/authenticated táblajogok külön ellenőrzöttek.
+
+A változatlan, jelenleg is igazolt publikáció megtartható. A Shared-tagság context_live jelzője a szülőből származtatott állapot: a replay archiváláskor false-ra állítja, a verifier ezt külön megköveteli; a jogosultsági fingerprintben ezért normalizált. Más tagsági jogosultság nem kerül ki a fingerprintből. Törölt tag azonosítói és interakciós profilja nem maradhatnak a megőrzött canon mellett. Az érintett korábbi személyes Shared-próza továbbra review-kapu; a verifier nem állítja biztonságosnak a nyers szöveget.
+
+A sémaőrt pg_catalog elsőbbség, a public relkinds r/p/v/m/f teljes ellenőrzése és a nem jogosultságszűrt pg_attribute oszloplista egészíti ki. Rendszernevet utánzó nézet, materializált személyes másolat és a ledgerbe rejtett oszlop is elutasítandó. A hitelesített Auth-eredmény és azonosítólista fagyasztott; az eredeti példányt modulon belüli WeakSet igazolja, másolatát a későbbi builder nem fogadhatja el.
+
+Helyi bizonyíték: 26 célzott próba (11 Auth, 5 séma, 10 replay/verifier), scripts TypeScript sikeres. A próbák közt régi snapshot, újra létrehozott törölt fiók/élet, megváltozott élő publikáció, elveszett blokk, költség-visszatekerés, régi queue-input és kikapcsolt RLS szerepel. A [közös szintetikus runner](../scripts/lib/privacy-restore-proof.ts) a PostgreSQL-célpróbában is meghívja az önálló verifiert. A hosted readonly Auth/séma-megfigyelés 01:24 UTC-kor sikeres, írás/levél/alkalmazási AI nulla.
+
+Megmaradó kapu: valódi writer-fence/capture és csak fennálló recovery-fence mellett elfogadható authority; teljes biztonsági katalógus és manuális kiszolgálási felülvizsgálat. serviceActivationAllowed mindig false. A teljes Supabase-vesztés és Shared-próza korlátait ez a modul nem zárja le.
