@@ -113,6 +113,7 @@ class FundedTransitionTests(unittest.TestCase):
     def test_disable_does_not_read_candidate_provider_or_prepared_proof(self):
         with patch.object(beta.readers, 'disable', return_value={'zeroBaselineRestored': True}) as stop_zero, \
              patch.object(Path, 'exists', return_value=False), \
+             patch.object(Path, 'is_symlink', return_value=False), \
              patch.object(beta, 'preparation', side_effect=AssertionError('candidate read forbidden')):
             result = beta.disable({'onlyOriginalZeroInputs': True})
             self.assertTrue(result['zeroBaselineRestored'])
