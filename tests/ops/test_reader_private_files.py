@@ -98,7 +98,7 @@ class ReaderPrivateFileTests(unittest.TestCase):
         for path in [self.state, self.state / 'original']:
             self.assertEqual(path.stat().st_mode & 0o777, 0o700)
         files = [p for p in self.state.rglob('*') if p.is_file()]
-        self.assertEqual(len(files), 14)
+        self.assertEqual(len(files), 13)  # journal is created only by apply
         for path in files:
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
