@@ -29,6 +29,7 @@ const { Client } = createRequire(resolve('packages/database/package.json'))(
 
 // Root transport only: stdout is sensitive plaintext and MUST be piped directly
 // to encryption in memory with Docker logging disabled. No file/report is made.
+let observationPhase = 'precondition';
 async function main() {
   if (
     !['--observe', '--capture'].includes(process.argv[2] ?? '') ||
@@ -68,6 +69,7 @@ async function main() {
   });
   const watchdog = setTimeout(() => process.exit(1), 120000);
   try {
+    observationPhase = 'database-connection';
     await client.connect();
     const socket = client.connection.stream;
     if (
@@ -141,6 +143,7 @@ async function main() {
       });
       console.log(JSON.stringify(proof));
     } else {
+      observationPhase = 'capture-input';
       let input = '';
       for await (const chunk of process.stdin) {
         input += chunk;
@@ -168,6 +171,7 @@ async function main() {
           },
         },
       );
+      observationPhase = 'authority-verification';
       const result = await captureVerifiedPrivacyRestoreAuthority(
         db,
         (page) => admin.auth.admin.listUsers({ page, perPage: 1000 }),
@@ -176,6 +180,7 @@ async function main() {
           writerFenceDigest: request.binding.writerFenceDigest,
         },
       );
+      observationPhase = 'envelope-verification';
       const output = JSON.stringify(
         createPrivacyFenceEnvelope(
           result.authority,
@@ -195,7 +200,30 @@ async function main() {
     }
   }
 }
-main().catch(() => {
-  console.error('Root authority observation failed');
+main().catch((error) => {
+  // Never print exception messages, SQL, rows, keys or provider responses.
+  // Only fixed phases and a bounded field path locate a refused observation.
+  const issues = Array.isArray(error?.issues)
+    ? error.issues
+        .slice(0, 8)
+        .map((issue: { path: unknown[] }) =>
+          issue.path
+            .map((part) =>
+              typeof part === 'number'
+                ? '#'
+                : /^[a-zA-Z_]{1,40}$/.test(String(part))
+                  ? String(part)
+                  : '?',
+            )
+            .join('.'),
+        )
+    : [];
+  console.log(
+    JSON.stringify({
+      observationFailed: true,
+      phase: observationPhase,
+      fields: issues,
+    }),
+  );
   process.exitCode = 1;
 });

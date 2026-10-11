@@ -129,6 +129,7 @@ async function main() {
       plan.liveLeases !== 0 ||
       plan.foreignActiveSessions !== 0 ||
       plan.databaseTlsVerified !== true ||
+      plan.discardedAuthorityAndEncryptionPreflightPassed !== true ||
       plan.temporaryContainersAndPlaintextRemoved !== true
     )
       throw Error(

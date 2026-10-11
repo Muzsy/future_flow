@@ -28,6 +28,7 @@ NODE_FILES = {
 OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
 OWNER_IMAGE = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
 PHASE = 'validation'
+FAILURE_PHASE = None
 CANCELLED = False
 CLEANUP_DEPTH = 0
 
@@ -255,13 +256,24 @@ def main(request):
                     args+=['-i']
                 for filename in sorted(NODE_FILES):
                     args+=['--mount','type=bind,src='+str(scratch/filename)+',dst=/app/'+filename+',readonly']
-                args += [OWNER_IMAGE,'node','node_modules/tsx/dist/cli.mjs','--tsconfig',
-                         'tsconfig.scripts.json','scripts/capture-privacy-authority.ts','--'+mode]
+                # A bounded parent suppresses all private stderr. A failed
+                # observer may return only its fixed diagnostic object, which
+                # never contains exception text, SQL, rows or credentials.
+                wrapper="""const {spawnSync}=require('node:child_process');
+const r=spawnSync(process.execPath,['node_modules/tsx/dist/cli.mjs','--tsconfig','tsconfig.scripts.json','scripts/capture-privacy-authority.ts',process.argv[1]],{stdio:['inherit','pipe','pipe'],encoding:'utf8',timeout:120000,maxBuffer:26*1024**2});
+if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.stdout);}catch{};const phases=['precondition','database-connection','capture-input','authority-verification','envelope-verification'];process.stdout.write(JSON.stringify({observationFailed:true,phase:phases.includes(v?.phase)?v.phase:'observer-process',fields:Array.isArray(v?.fields)?v.fields.filter(x=>typeof x==='string'&&x.length<512&&/^[a-zA-Z_.#?]*$/.test(x)).slice(0,8):[]}));}"""
+                args += [OWNER_IMAGE,'node','-e',wrapper,'--','--'+mode]
                 try:
                     data=daily.command(args,input=json.dumps(payload).encode() if payload is not None else None,timeout=135)
                     if not 0 < len(data) <= 32*1024**2:
                         raise ValueError('Bounded capture response required')
-                    return json.loads(data)
+                    value=json.loads(data)
+                    if value.get('observationFailed') is True:
+                        PHASE='observer-'+value['phase']
+                        record['observerFailure']={'phase':value['phase'],'fields':value['fields']}
+                        daily.atomic(pointer,record)
+                        raise ValueError('Complete read-only observer refused')
+                    return value
                 finally:
                     with protected_cleanup():
                         observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
@@ -290,14 +302,17 @@ def main(request):
                 daily.atomic(pointer,record)
 
             def capture(mode):
+                global PHASE
                 if mode != 'drill' or held_binding is None or dt.datetime.now(dt.timezone.utc) >= expires:
                     raise ValueError('Current drill fence required')
                 envelope=helper('capture',{'binding':held_binding,'projectBinding':core['projectBinding']})
+                PHASE='capture-binding'
                 if (envelope.get('schemaVersion') != 'privacy-fence-envelope-2' or
                         envelope.get('binding') != held_binding or envelope.get('serviceActivationAllowed') is not False or
                         not re.fullmatch('[a-f0-9]{64}',envelope.get('stateDigest','')) or
                         not re.fullmatch('[a-f0-9]{64}',envelope.get('authStateDigest',''))):
                     raise ValueError('Bound complete observer response required')
+                PHASE='capture-encryption'
                 plaintext=json.dumps(envelope,separators=(',',':')).encode()
                 cipher=daily.command(['age','-r',daily.config()['recipient']],input=plaintext,timeout=20)
                 captures.append({'stateDigest':envelope['stateDigest'],'cipherSha256':hashlib.sha256(cipher).hexdigest(),
@@ -332,8 +347,12 @@ def main(request):
 
             @contextlib.contextmanager
             def resume_cleanup():
-                global PHASE
+                global PHASE,FAILURE_PHASE
                 with protected_cleanup():
+                    if sys.exc_info()[0] is not None:
+                        FAILURE_PHASE=PHASE
+                    record['lastOperationPhase']=PHASE
+                    record['encryptedCapturesCompleted']=len(captures)
                     PHASE='resuming-originals'
                     record.update(writerFenceEstablished=False,replayAllowed=False)
                     # A cancelled stop may still finish in the daemon. Recheck
@@ -355,6 +374,20 @@ def main(request):
             if request['mode']=='plan':
                 try:
                     observation=helper('observe')
+                    # Diagnostic drill binding is explicitly NOT a physical
+                    # fence. Its plaintext/cipher are discarded in memory and
+                    # are never accepted by the recovery validator.
+                    diagnostic={key:core[key] for key in ['nonce','sourceCommit','sourceFilesDigest',
+                                   'ownerManifestDigest','projectBinding','expiresAt']}
+                    diagnostic.update(mode='drill',writerFenceDigest=digest({'noPhysicalFence':True,'nonce':nonce}))
+                    checked=helper('capture',{'binding':diagnostic,'projectBinding':core['projectBinding']})
+                    if checked.get('binding')!=diagnostic or checked.get('schemaVersion')!='privacy-fence-envelope-2' or checked.get('serviceActivationAllowed') is not False:
+                        raise ValueError('Complete discarded authority preflight required')
+                    PHASE='plan-encryption'
+                    encrypted=daily.command(['age','-r',daily.config()['recipient']],input=json.dumps(checked,separators=(',',':')).encode(),timeout=20)
+                    if not encrypted.startswith(b'age-encryption.org/v1\n'):
+                        raise ValueError('Discarded encryption preflight required')
+                    del checked,encrypted
                     current=inspect()
                     if not fence.quiet(observation) or set(current) != set(baseline) or any(fence.runtime(current[cid]) != fence.runtime(value)
                                                          for cid,value in baseline.items()):
@@ -371,6 +404,7 @@ def main(request):
                         'ownerManifestDigest':request['ownerManifestDigest'],'planNonce':nonce,
                         'mode':'plan','sourceFilesVerified':len(files),'servicesStopped':0,
                         'originalOwnerEgressNetworkVerified':True,'dockerLoggingDisabled':True,
+                        'discardedAuthorityAndEncryptionPreflightPassed':True,
                         'temporaryContainersAndPlaintextRemoved':True,'existingContainersUnchanged':True,
                         **observation,'writerFenceEstablished':False,'authorityCreated':False,
                         'serviceActivationAllowed':False,'paidAiCalls':0,'liveDatabaseWrites':False}
@@ -402,4 +436,4 @@ if __name__=='__main__':
         check_interrupt()
         print(json.dumps({'ok':True,'result':result}))
     except (Exception,KeyboardInterrupt):
-        print(json.dumps({'ok':False,'phase':PHASE}));sys.exit(1)
+        print(json.dumps({'ok':False,'phase':FAILURE_PHASE or PHASE}));sys.exit(1)
