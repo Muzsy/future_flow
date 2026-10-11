@@ -1,5 +1,7 @@
 # alterward — régi és JSON-ba ágyazott mentések lejárata
 
+2026-10-11 00:53 UTC: a [managed/történeti életciklus aktiválási riportja](RECOVERY_LIFECYCLE_ACTIVATION_REPORT_HU.md) az aktuális mentési/ütemezési/riasztási bizonyíték. A 1525943 napi és managed szerverforrás, helyi másolás és első recovery timer-futás ellenőrzött; hosted login/roles/privacy authority/fence és kiszolgálási kapu továbbra nyitott. Az alábbi korábbi dátumozott checkpointok az akkori forrás állapotai.
+
 2026-10-10 · [Managed retention](MANAGED_RETENTION_RECONCILIATION_HU.md) · [Helyreállítási leltár](SUPABASE_RECOVERY_COVERAGE_HU.md).
 
 ## Pontos hatókör és időhatár

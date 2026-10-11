@@ -1,5 +1,7 @@
 # alterward — törlésvédelem a mentés visszaállításakor
 
+2026-10-11 00:53 UTC: a [managed/történeti életciklus aktiválási riportja](RECOVERY_LIFECYCLE_ACTIVATION_REPORT_HU.md) az aktuális mentési/ütemezési/riasztási bizonyíték. A 1525943 napi és managed szerverforrás, helyi másolás és első recovery timer-futás ellenőrzött; hosted login/roles/privacy authority/fence és kiszolgálási kapu továbbra nyitott. Az alábbi korábbi dátumozott checkpointok az akkori forrás állapotai.
+
 2026-10-10T16:52Z friss kiegészítés: [közös managed egyeztetés/naplóarchiválás](MANAGED_RETENTION_RECONCILIATION_HU.md) implementált és tényleges célpróbával ellenőrzött; a b5c23f1 pontos auditja és CI-je sikeres. Független leválasztott kulcspéldány és első sikeres külső schedule igazolt. Automatikus/történeti/ágyazott expiry és teljes hosted recovery még nincs. Az alábbi régebbi checkpointok a megjelölt korábbi forrás állapotai.
 
 2026-10-10-i managed-kiegészítés: [külön titkosított Auth/Storage capture és valódi izolált PG-restore](SUPABASE_RECOVERY_COVERAGE_HU.md) sikeres. A public daily/config mentés külön scope; teljes hosted login/jogosultság/fence/promotion és managed/történeti retention még kapu. [Külső monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) konfigurációja aktív, kézi futása sikeres; schedule még nem igazolt, a külön szándékos hibaemail Inbox-kézbesítését a felhasználó megerősítette. Az alábbi korábbi proofok a megjelölt forrás/időpont állapotai.

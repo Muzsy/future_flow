@@ -1,5 +1,7 @@
 # alterward — összehangolt managed mentéskezelés
 
+2026-10-11 00:53 UTC: a [managed/történeti életciklus aktiválási riportja](RECOVERY_LIFECYCLE_ACTIVATION_REPORT_HU.md) az aktuális mentési/ütemezési/riasztási bizonyíték. A 1525943 napi és managed szerverforrás, helyi másolás és első recovery timer-futás ellenőrzött; hosted login/roles/privacy authority/fence és kiszolgálási kapu továbbra nyitott. Az alábbi korábbi dátumozott checkpointok az akkori forrás állapotai.
+
 2026-10-10 · [Kiadási sorrend](NEXT_STEPS.md) · [Szerveres lejárat](MANAGED_BACKUP_RETENTION_HU.md) · [Helyi lejárat](LOCAL_MANAGED_BACKUP_RETENTION_HU.md).
 
 A [közös operátori futtató](../scripts/supabase-managed-retention.mts) a szerver és a helyi gép teljes, projektkötött managed jegyzékét egyezteti. Kizárólag a külön Auth/Storage-adatmentés két ciphertextje és manifestje a hatásköre. A napi alkalmazásmentések, régi archívumok és JSON-ba ágyazott ciphertext-másolatok külön feladatok.

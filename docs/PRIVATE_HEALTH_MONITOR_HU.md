@@ -1,5 +1,7 @@
 # alterward — korlátozott külső állapotfigyelés
 
+2026-10-11 00:53 UTC: a [managed/történeti életciklus aktiválási riportja](RECOVERY_LIFECYCLE_ACTIVATION_REPORT_HU.md) az aktuális mentési/ütemezési/riasztási bizonyíték. A 1525943 napi és managed szerverforrás, helyi másolás és első recovery timer-futás ellenőrzött; hosted login/roles/privacy authority/fence és kiszolgálási kapu továbbra nyitott. Az alábbi korábbi dátumozott checkpointok az akkori forrás állapotai.
+
 2026-10-10 · [Külső HTTPS-monitor](EXTERNAL_AVAILABILITY_MONITOR_HU.md) · [Kiadási sorrend](NEXT_STEPS.md).
 
 ## Aktív működés

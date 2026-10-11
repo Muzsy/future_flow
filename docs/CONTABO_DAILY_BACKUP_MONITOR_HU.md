@@ -1,5 +1,7 @@
 # alterward — napi titkosított mentés és felügyelet
 
+2026-10-11 00:53 UTC: a [managed/történeti életciklus aktiválási riportja](RECOVERY_LIFECYCLE_ACTIVATION_REPORT_HU.md) az aktuális mentési/ütemezési/riasztási bizonyíték. A 1525943 napi és managed szerverforrás, helyi másolás és első recovery timer-futás ellenőrzött; hosted login/roles/privacy authority/fence és kiszolgálási kapu továbbra nyitott. Az alábbi korábbi dátumozott checkpointok az akkori forrás állapotai.
+
 2026-10-10 · [Mentés és restore-határ](CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md) · [Kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md).
 
 ## Korábbi, 2026-10-10 09:25 UTC célgépi checkpoint
@@ -45,18 +47,18 @@ Hivatalos háttér: [PostgreSQL snapshot-szinkronizálás](https://www.postgresq
 
 Az aktív szerveres és helyi forrás azóta **dbaac32**; a friss capture/offsite restore és a tényleges óránkénti feladat eredménye a [napi expiry jelentésében](DAILY_EXPIRY_RECOVERY_HU.md) szerepel. Az alábbi táblázat az eredeti telepítés történeti bizonyítéka.
 
-| Ellenőrzés | Eredmény |
-| --- | --- |
-| Korábbi szerverforrás | df7550eee2faef081e608a4edce4e5f371b4db48; mindhárom script és négy unit hash-e kötött |
-| Korábbi helyi transport | 2eb9a50579fc84dc9d9af2c747cbb0d5ed1190e4; eredeti SSH-kulcs/hostpin, külön másolás nélkül |
-| Friss mentés | 20261010T092255Z-ca2becbc; 97 tábla, 1633 sor, 55 configfájl |
-| Offsite restore | 2026-10-10T09:24:39.514Z; ciphertext/tamper/config/adapt/validate és valamennyi tábla egyezett; izolált, nincs éles DB-írás |
-| Időzítők | 2026-10-10T09:25:23.186Z; backup/monitor enabled+active; 03:15 UTC (jelenleg magyar idő szerint 05:15), illetve negyedóra |
-| Helyi task | Current-user Interactive/Limited, jelszó nélkül; valódi futás eredménye 0, az első automatikus 09:39 UTC futás is sikeres |
-| Fájlhatár | Ideiglenes kulcs/plaintext és PG-kliens eltávolítva, /run tmpfs/root 0700; tartós restore-* maradvány nincs |
-| Működő alkalmazások | Kilenc futó konténer; a hat idegen futó szolgáltatás állapota az owner-upgrade baseline-nal egyezik; a külön már leállított idegen Ghosthoz nem nyúltunk |
-| Tesztek | 65 helyi Python esetből 64 sikeres, egy Windows symlink-korlát; 24 új eset a valódi Linuxon mind sikeres; hat Node-retention eset; két tényleges dependency-tamper elutasítás SSH előtt |
-| CI | [Pontos 2eb9a50 verify/container sikeres](https://github.com/Muzsy/future_flow/actions/runs/38041820645); az előző [df7550e](https://github.com/Muzsy/future_flow/actions/runs/38040938829) és 135fd7b is zöld |
+| Ellenőrzés              | Eredmény                                                                                                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Korábbi szerverforrás   | df7550eee2faef081e608a4edce4e5f371b4db48; mindhárom script és négy unit hash-e kötött                                                                                                                          |
+| Korábbi helyi transport | 2eb9a50579fc84dc9d9af2c747cbb0d5ed1190e4; eredeti SSH-kulcs/hostpin, külön másolás nélkül                                                                                                                      |
+| Friss mentés            | 20261010T092255Z-ca2becbc; 97 tábla, 1633 sor, 55 configfájl                                                                                                                                                   |
+| Offsite restore         | 2026-10-10T09:24:39.514Z; ciphertext/tamper/config/adapt/validate és valamennyi tábla egyezett; izolált, nincs éles DB-írás                                                                                    |
+| Időzítők                | 2026-10-10T09:25:23.186Z; backup/monitor enabled+active; 03:15 UTC (jelenleg magyar idő szerint 05:15), illetve negyedóra                                                                                      |
+| Helyi task              | Current-user Interactive/Limited, jelszó nélkül; valódi futás eredménye 0, az első automatikus 09:39 UTC futás is sikeres                                                                                      |
+| Fájlhatár               | Ideiglenes kulcs/plaintext és PG-kliens eltávolítva, /run tmpfs/root 0700; tartós restore-* maradvány nincs                                                                                                    |
+| Működő alkalmazások     | Kilenc futó konténer; a hat idegen futó szolgáltatás állapota az owner-upgrade baseline-nal egyezik; a külön már leállított idegen Ghosthoz nem nyúltunk                                                       |
+| Tesztek                 | 65 helyi Python esetből 64 sikeres, egy Windows symlink-korlát; 24 új eset a valódi Linuxon mind sikeres; hat Node-retention eset; két tényleges dependency-tamper elutasítás SSH előtt                        |
+| CI                      | [Pontos 2eb9a50 verify/container sikeres](https://github.com/Muzsy/future_flow/actions/runs/38041820645); az előző [df7550e](https://github.com/Muzsy/future_flow/actions/runs/38040938829) és 135fd7b is zöld |
 
 A 03:15 UTC napi és negyedórás schedule engedélyezett; a jövőbeli minden futás sikerét az aktiválás nem bizonyítja. A kimaradt időpontokat a persistent timer követi. A monitor nem indít újra alkalmazást. A státusz csak aktuális source/script/unit-kötéssel és megfelelő frissességgel sikeres: backup legfeljebb 26 óra, monitor 30 perc, aktiválási restore-próba hat óra. Az aktiválás külön job/owner lock alatt, a root által megőrzött tényleges restore-recorddal és runtime-újraellenőrzéssel történt.
 
@@ -70,20 +72,20 @@ A Windows feladat régi powershell.exe indítása execution-policy hibát adott,
 
 A 135fd7b első audit hét, a 6cfeddd javításellenőrzés négy, a df7550e egy további észrevételt adott. A 2eb9a50 transportellenőrzés új finding nélkül elfogadott. A korábbi 43-mal együtt **55 megfigyelés**, nem 55 igazolt hiba. A Claude minden körben forrást olvasott; privát szerveradatot, kulcsot és runtime-proofot nem kapott, tesztet nem futtatott. A tényleges próbákat a Codex külön végezte.
 
-| Jelzés | Értékelés / kezelés |
-| --- | --- |
-| DLY-01 medium/source | A reboot utáni hiányzó munkakönyvtár igazolt tervezési hiba; RuntimeDirectory/mode/Preserve és új forrású státusz, célgépi hiányzó-könyvtár próba kész |
-| DLY-02 low/source | A két hiányzó helyi dependency pin javítva; valódi tamper-elutasítás és teljes Windows task sikeres |
-| DLY-03 low/source | Friss source/script/unit-kötés, root-recorded manifest/cipher restore és két lock implementált, valódi aktiválás sikeres |
-| DLY-04 low/source | Inventory/status job-lock, saját pending cleanup; ütközéskor zártan hibázik, következő órában új próbálkozás |
-| DLY-05 low/hypothesis | Sérült lock/PID-újrahasználat miatti megakadás: operátori feladat; aktív lockot automatikusan nem lopunk el |
-| DLY-06 low/source | Elfogadott szigorú hét nap; folyamatos hét napnál hosszabb hiba a legutolsó managed másolatot is lejáratja. Külső riasztás még külön kapu |
-| DLY-07 info/hypothesis | Adatnövekedéskor vizsgálandó: 15 s query-limit, 240 s snapshot watchdog, 360 s backup unit, 128 MiB file/buffer és 60 s letöltési timeout |
-| DLY-08 low/source | A hiba source-kötése és eredeti alert/phase megőrzése javítva |
-| DLY-09 low/hypothesis | Valódi fennmaradási kockázat megelőzése: daily restore /run tmpfs-ben, signal/finally kezelés és scoped elhagyott PG/scratch cleanup; régi disk-maradvány nincs |
-| DLY-10 info/hypothesis | A megosztott /run kapacitása növekedéskor újra vizsgálandó; jelenleg legalább 384 MiB guard és kis dump |
-| DLY-11 info/source | Régi saját /dev/shm munkakönyvtár üres, szándékosan megmarad rebootig |
-| DLY-12 low/source | A memory-only flag nem önálló per-run filesystem guard: ezen a célgépen külön findmnt tmpfs bizonyíték igazolja; másik gépre portoláskor külön hardening szükséges |
+| Jelzés                 | Értékelés / kezelés                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DLY-01 medium/source   | A reboot utáni hiányzó munkakönyvtár igazolt tervezési hiba; RuntimeDirectory/mode/Preserve és új forrású státusz, célgépi hiányzó-könyvtár próba kész             |
+| DLY-02 low/source      | A két hiányzó helyi dependency pin javítva; valódi tamper-elutasítás és teljes Windows task sikeres                                                                |
+| DLY-03 low/source      | Friss source/script/unit-kötés, root-recorded manifest/cipher restore és két lock implementált, valódi aktiválás sikeres                                           |
+| DLY-04 low/source      | Inventory/status job-lock, saját pending cleanup; ütközéskor zártan hibázik, következő órában új próbálkozás                                                       |
+| DLY-05 low/hypothesis  | Sérült lock/PID-újrahasználat miatti megakadás: operátori feladat; aktív lockot automatikusan nem lopunk el                                                        |
+| DLY-06 low/source      | Elfogadott szigorú hét nap; folyamatos hét napnál hosszabb hiba a legutolsó managed másolatot is lejáratja. Külső riasztás még külön kapu                          |
+| DLY-07 info/hypothesis | Adatnövekedéskor vizsgálandó: 15 s query-limit, 240 s snapshot watchdog, 360 s backup unit, 128 MiB file/buffer és 60 s letöltési timeout                          |
+| DLY-08 low/source      | A hiba source-kötése és eredeti alert/phase megőrzése javítva                                                                                                      |
+| DLY-09 low/hypothesis  | Valódi fennmaradási kockázat megelőzése: daily restore /run tmpfs-ben, signal/finally kezelés és scoped elhagyott PG/scratch cleanup; régi disk-maradvány nincs    |
+| DLY-10 info/hypothesis | A megosztott /run kapacitása növekedéskor újra vizsgálandó; jelenleg legalább 384 MiB guard és kis dump                                                            |
+| DLY-11 info/source     | Régi saját /dev/shm munkakönyvtár üres, szándékosan megmarad rebootig                                                                                              |
+| DLY-12 low/source      | A memory-only flag nem önálló per-run filesystem guard: ezen a célgépen külön findmnt tmpfs bizonyíték igazolja; másik gépre portoláskor külön hardening szükséges |
 
 Az első audit tévesen írta, hogy az aktiválás már owner-lockot tartott; ezt önállóan javítottuk, és a későbbi auditor helyesnek olvasta. A következő audit egyik limitmondata a teljes host-reboot hiányát összemosta a runtime-könyvtár próbájával: a könyvtárpróba ténylegesen megtörtént, host-reboot nem. Az auditor megállapításai nem automatikus engedélyek vagy runtime-bizonyítékok.
 
