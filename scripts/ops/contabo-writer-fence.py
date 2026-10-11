@@ -58,15 +58,18 @@ def quiet(proof):
 
 
 def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
-              settle, checkpoint, cleanup=contextlib.nullcontext):
+              settle, checkpoint, cleanup=contextlib.nullcontext, while_held=None):
     """Callbacks are the root transport boundary, never a web request handler.
 
     Capture must return an encrypted bundle with a stable state digest. Recovery
     never resumes a writer; drill emits no authority until scoped resume passes.
     A dead operator/SIGKILL has no automatic restart path.
     """
-    if mode not in {'drill', 'recovery'}:
-        raise ValueError('Explicit drill or recovery mode required')
+    if mode not in {'drill', 'recovery', 'rehearsal'}:
+        raise ValueError('Explicit drill, recovery or rehearsal mode required')
+    if (mode == 'rehearsal') != callable(while_held):
+        raise ValueError('Rehearsal requires its scoped held callback only')
+    capture_mode = 'recovery' if mode == 'rehearsal' else mode
     original = copy.deepcopy(services)
     own = validate_services(original)
     baseline = inspect()
@@ -92,7 +95,7 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         cipher = value.get('encryptedAuthority')
         return (set(value) == {'mode', 'stateDigest', 'encryptedAuthority'} and
                 re.fullmatch('[a-f0-9]{64}', value.get('stateDigest', '')) and
-                value.get('mode') == mode and isinstance(cipher, bytes) and
+                value.get('mode') == capture_mode and isinstance(cipher, bytes) and
                 cipher.startswith(b'age-encryption.org/v1\n') and
                 32 < len(cipher) <= 32*1024**2)
 
@@ -118,7 +121,7 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         return current
 
     def finish():
-        if stopped and mode == 'drill':
+        if stopped and mode in {'drill', 'rehearsal'}:
             held = unchanged_stopped(allow_unstopped=True)
             for name in reversed(stopped):
                 if not held[original[name]['Id']]['State']['Running']:
@@ -130,7 +133,7 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
                     not resumed[item['Id']]['State']['Running'] or identity(resumed[item['Id']]) != identity(item)
                     for item in original.values()):
                 raise ValueError('Original resume identities changed')
-            record('drill-resumed', own_values(resumed))
+            record('rehearsal-resumed' if mode == 'rehearsal' else 'drill-resumed', own_values(resumed))
         elif stopped and mode == 'recovery':
             # A late queue failure must not leave the worker writing while
             # ingress is held. Do not attempt a restart even on an exception.
@@ -187,12 +190,12 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         if not quiet(observe()):
             raise ValueError('Stopped-writer source is not quiet')
         record('held', own_values(unchanged_stopped()))
-        first = capture(mode)
+        first = capture(capture_mode)
         if not bundle(first):
             raise ValueError('Bounded encrypted authority required')
         settle(2)
         unchanged_stopped()
-        second = capture(mode)
+        second = capture(capture_mode)
         if (first['stateDigest'] != second.get('stateDigest') or
                 not bundle(second) or
                 not quiet(observe())):
@@ -200,11 +203,25 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         unchanged_stopped()
         result = second
         record('captured-held', own_values(unchanged_stopped()))
+        if mode == 'rehearsal':
+            unchanged_stopped()
+            if while_held(second, unchanged_stopped) is not True:
+                raise ValueError('Quarantined held rehearsal did not verify')
+            unchanged_stopped()
+            if not quiet(observe()):
+                raise ValueError('Rehearsed source is no longer quiet')
+            record('rehearsal-verified-held', own_values(unchanged_stopped()))
     finally:
         with cleanup():
             finish()
     if result is None:
         raise ValueError('No verified authority produced')
+    if mode == 'rehearsal':
+        # Recovery envelopes are used only inside the held callback. Once the
+        # unchanged ORIGINAL source resumes, no reusable authority escapes.
+        return {'mode':mode, 'stateDigest':result['stateDigest'],
+                'serviceActivationAllowed':False, 'replayEligibleWhileFenceHeld':False,
+                'rehearsalResumed':True, 'quarantinedReplayVerifiedDuringHold':True}
     return {**result, 'serviceActivationAllowed': False,
             'replayEligibleWhileFenceHeld': mode == 'recovery',
             'drillResumed': mode == 'drill'}

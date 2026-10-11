@@ -23,11 +23,11 @@ class FenceDrillBoundaryTests(unittest.TestCase):
         return {'mode':'drill','sourceCommit':'a'*40,'ownerManifestDigest':'b'*64,
                 'files':{name:{'data':base64.b64encode(data).decode(),
                               'sha256':hashlib.sha256(data).hexdigest()}
-                         for name in drill.NODE_FILES|{drill.ENGINE,drill.EXECUTOR,drill.CLIENT}}}
+                         for name in drill.NODE_FILES|{drill.ENGINE,drill.EXECUTOR,drill.CLIENT,drill.QUARANTINE}}}
 
     def test_exact_source_set_and_bytes(self):
         request=self.request()
-        self.assertEqual(len(drill.sources(request)),11)
+        self.assertEqual(len(drill.sources(request)),16)
         for bad in ['path','digest','encoding','size']:
             request=self.request()
             if bad=='path':

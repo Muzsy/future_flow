@@ -44,11 +44,11 @@ async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
   if (
     process.platform !== 'win32' ||
-    !['plan', 'drill'].includes(mode) ||
+    !['plan', 'drill', 'rehearsal'].includes(mode) ||
     process.argv.length !== 3
   )
     throw Error(
-      'Explicit Windows operator --plan or reviewed --drill required',
+      'Explicit Windows operator --plan, reviewed --drill or --rehearsal required',
     );
   const sha = (data) => createHash('sha256').update(data).digest('hex');
   const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -110,13 +110,14 @@ async function main() {
   const ownerManifestDigest = prepared.candidateFilesSha256['manifest.json'];
   if (!/^[a-f0-9]{64}$/.test(ownerManifestDigest))
     throw Error('Original owner manifest hash required');
-  if (mode === 'drill') {
+  if (mode === 'drill' || mode === 'rehearsal') {
     const audit = report('fence-transport-audit-proof.json'),
       plan = report('fence-transport-plan-proof.json');
     const age = Date.now() - Date.parse(plan.capturedAt);
     if (
       audit.sourceCommit !== sourceCommit ||
       audit.operatorApprovedDrill !== true ||
+      (mode === 'rehearsal' && audit.operatorApprovedRehearsal !== true) ||
       plan.sourceCommit !== sourceCommit ||
       plan.ownerManifestDigest !== ownerManifestDigest ||
       !/^[a-f0-9]{24}$/.test(plan.planNonce) ||
@@ -209,6 +210,11 @@ async function main() {
     'scripts/lib/privacy-security-catalog.ts',
     'scripts/lib/privacy-recovery-coverage.ts',
     'scripts/lib/recovery-auth-inventory.ts',
+    'scripts/lib/privacy-restore-verifier.ts',
+    'scripts/lib/quarantined-replay.ts',
+    'scripts/lib/migrations.ts',
+    'scripts/replay-fenced-backup.ts',
+    'scripts/ops/contabo-quarantine-rehearsal.py',
   ];
   for (const name of names) {
     const data = source(name);
@@ -230,6 +236,17 @@ async function main() {
     script: files['scripts/ops/contabo-fence-drill.py'].data,
     clientSha256: sha(clientBytes),
   };
+  if (mode === 'rehearsal') {
+    const identityPath = privateRequestFile(
+      secrets,
+      join(secrets, 'alterward_backup_identity.txt'),
+    );
+    if (lstatSync(identityPath).size > 4096)
+      throw Error('Bounded original recovery identity required');
+    // Same original key and destination as earlier authorized backup drills.
+    // SSH stdin only: no command argument, request file or report receives it.
+    payload.request.recoveryIdentity = readFileSync(identityPath, 'utf8');
+  }
   // This fixed loader authenticates the exact bytes executed. The root executor
   // checks both transport and this client's digests against the source bundle.
   const loader =
@@ -298,7 +315,9 @@ async function main() {
       capturedAt: new Date().toISOString(),
     });
     console.error(
-      `Scoped fence operation stopped in ${phase}; the owner may be stopped. Inspect the original owner state before retrying.`,
+      mode === 'plan'
+        ? `Read-only plan refused in ${phase}; no service stop was requested. Inspect the original state before retrying.`
+        : `Scoped fence operation stopped in ${phase}; the owner may be stopped. Inspect the original owner state before retrying.`,
     );
     process.exitCode = 1;
   }

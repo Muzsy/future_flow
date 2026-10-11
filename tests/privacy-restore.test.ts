@@ -19,6 +19,8 @@ import { verifyPrivacyRestore } from '../scripts/lib/privacy-restore-verifier';
 import { hardenPrivacyQuarantine } from '../scripts/lib/privacy-security-catalog';
 import { LifeRepository } from '@future-flow/database';
 import { setupFixture } from './life-fixtures';
+import { createPrivacyFenceEnvelope } from '../scripts/lib/privacy-fence-envelope';
+import { runQuarantinedReplay } from '../scripts/lib/quarantined-replay';
 let fixture: PrivacyRestoreFixture;
 function adapter(
   client: Pick<PGlite, 'query' | 'transaction'>,
@@ -97,13 +99,97 @@ afterAll(async () => {
   await source?.close();
 });
 describe('independent authority and quarantined privacy restore', () => {
+  const heldRequest = () => {
+    const now = new Date();
+    const binding = {
+      mode: 'recovery' as const,
+      nonce: 'a'.repeat(24),
+      sourceCommit: 'b'.repeat(40),
+      sourceFilesDigest: hash('synthetic-reviewed-source'),
+      ownerManifestDigest: hash('synthetic-owner'),
+      projectBinding,
+      writerFenceDigest,
+      expiresAt: new Date(now.getTime() + 5 * 60 * 1000).toISOString(),
+    };
+    const envelope = createPrivacyFenceEnvelope(
+      authority,
+      hash('synthetic-auth-state'),
+      binding,
+      now,
+    );
+    return {
+      action: 'replay',
+      quarantineDatabase: targetName,
+      backupCapturedAt,
+      backupDumpSha256: hash('synthetic-original-dump'),
+      envelope,
+      held: { ...binding, stateDigest: envelope.stateDigest },
+    };
+  };
+  it('runs a recovery-bound quarantined replay with independent postverification and aggregate output only', async () => {
+    const result = await runQuarantinedReplay(await restored(), heldRequest());
+    expect(result).toMatchObject({
+      action: 'replay',
+      independentReadOnlyPostReplayVerified: true,
+      reviewedTables: 96,
+      reviewedForeignKeys: 219,
+      reviewedSecurityCatalog: true,
+      serviceActivationAllowed: false,
+      paidAiCalls: 0,
+      authProviderWrites: false,
+    });
+    expect(JSON.stringify(result)).not.toContain(fixture.a);
+    expect(JSON.stringify(result)).not.toContain(fixture.b);
+  });
+  it('refuses a drill, expired or mismatched held request before querying a quarantine', async () => {
+    const good = heldRequest();
+    let queried = false;
+    const forbidden: Database = {
+      query: async () => {
+        queried = true;
+        throw Error('Should not query');
+      },
+      transaction: async () => {
+        queried = true;
+        throw Error('Should not transact');
+      },
+    };
+    for (const raw of [
+      {
+        ...good,
+        envelope: {
+          ...good.envelope,
+          binding: { ...good.envelope.binding, mode: 'drill' },
+        },
+      },
+      { ...good, held: { ...good.held, stateDigest: '0'.repeat(64) } },
+      { ...good, held: { ...good.held, expiresAt: '2020-01-01T00:00:00Z' } },
+      { ...good, quarantineDatabase: 'postgres' },
+      { ...good, backupCapturedAt: '2099-01-01T00:00:00Z' },
+    ])
+      await expect(runQuarantinedReplay(forbidden, raw)).rejects.toThrow();
+    expect(queried).toBe(false);
+  });
   it('rejects executable drift before changing any restored account row', async () => {
     const db = await restored();
     const before = await db.query('SELECT id,status FROM ff_users ORDER BY id');
     await db.query('ALTER FUNCTION ff_prevent_canon_update() SECURITY DEFINER');
+    const attempted: string[] = [];
+    const recording = (inner: Database): Database => ({
+      query: (sql, values) => {
+        attempted.push(sql);
+        return inner.query(sql, values);
+      },
+      transaction: (run) => inner.transaction((tx) => run(recording(tx))),
+    });
     await expect(
-      replayPrivacyRestore(db, authority, proofBinding()),
+      replayPrivacyRestore(recording(db), authority, proofBinding()),
     ).rejects.toThrow('executable catalog');
+    expect(
+      attempted.some((sql) =>
+        /^(?:UPDATE|DELETE|INSERT|REVOKE|ALTER)\b|\bFOR UPDATE\b/.test(sql),
+      ),
+    ).toBe(false);
     expect(
       await db.query('SELECT id,status FROM ff_users ORDER BY id'),
     ).toEqual(before);

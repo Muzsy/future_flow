@@ -72,6 +72,42 @@ class WriterFenceTests(unittest.TestCase):
         self.assertFalse(result['serviceActivationAllowed'])
         self.assertEqual(checkpoints[-1][0], 'recovery-held')
 
+    def test_rehearsal_runs_only_while_originals_are_stopped_and_exports_no_authority(self):
+        services, current, actions, checkpoints, callbacks = self.environment()
+        def replay(bundle, check):
+            self.assertEqual(bundle['mode'], 'recovery')
+            self.assertFalse(any(c['State']['Running'] for c in check().values() if c['Id'] != '4'*64))
+            self.assertFalse(any(action == 'start' for action, _ in actions))
+            return True
+        result = fence.run_fence('rehearsal', services, while_held=replay, **callbacks)
+        self.assertTrue(result['quarantinedReplayVerifiedDuringHold'])
+        self.assertFalse(result['replayEligibleWhileFenceHeld'])
+        self.assertNotIn('encryptedAuthority', result)
+        self.assertTrue(all(current[c['Id']]['State']['Running'] for c in services.values()))
+        self.assertEqual(checkpoints[-1][0], 'rehearsal-resumed')
+
+    def test_rehearsal_callback_failure_resumes_only_the_unchanged_original_source(self):
+        services, current, actions, _, callbacks = self.environment()
+        with self.assertRaisesRegex(ValueError, 'isolated replay failed'):
+            fence.run_fence('rehearsal', services, while_held=Mock(side_effect=ValueError('isolated replay failed')), **callbacks)
+        self.assertEqual([cid for action,cid in actions if action=='start'], [str(i)*64 for i in [3,2,1]])
+        self.assertTrue(current['4'*64]['State']['Running'])
+
+    def test_rehearsal_requires_callback_and_rejects_runtime_drift_after_callback(self):
+        services, current, actions, _, callbacks = self.environment()
+        with self.assertRaisesRegex(ValueError, 'callback'):
+            fence.run_fence('rehearsal', services, **callbacks)
+        self.assertEqual(actions, [])
+        with self.assertRaisesRegex(ValueError, 'callback'):
+            fence.run_fence('drill', services, while_held=lambda *_:True, **callbacks)
+        self.assertEqual(actions, [])
+        def drift(*_):
+            current['4'*64]['RestartCount'] += 1
+            return True
+        with self.assertRaisesRegex(ValueError, 'Foreign runtime changed'):
+            fence.run_fence('rehearsal', services, while_held=drift, **callbacks)
+        self.assertFalse(any(action == 'start' for action,_ in actions))
+
     def test_invalid_identity_or_autostart_refuses_before_any_stop(self):
         for mutation in [lambda s: s['web']['HostConfig']['RestartPolicy'].update(Name='always'),
                          lambda s: s['api'].update(Id=s['web']['Id']),

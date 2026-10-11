@@ -19,12 +19,15 @@ LABEL = 'com.alterward.writer-fence'
 ENGINE = 'scripts/ops/contabo-writer-fence.py'
 EXECUTOR = 'scripts/ops/contabo-fence-drill.py'
 CLIENT = 'scripts/contabo-fence-operator.mjs'
+QUARANTINE = 'scripts/ops/contabo-quarantine-rehearsal.py'
 NODE_FILES = {
     'scripts/capture-privacy-authority.ts', 'scripts/lib/privacy-fence-envelope.ts',
     'scripts/lib/verified-privacy-authority.ts', 'scripts/lib/privacy-restore.ts',
     'scripts/lib/privacy-recovery-schema.ts', 'scripts/lib/privacy-recovery-coverage.ts',
     'scripts/lib/privacy-security-catalog.ts',
     'scripts/lib/recovery-auth-inventory.ts',
+    'scripts/lib/privacy-restore-verifier.ts', 'scripts/lib/quarantined-replay.ts',
+    'scripts/lib/migrations.ts', 'scripts/replay-fenced-backup.ts',
 }
 OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
 OWNER_IMAGE = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
@@ -105,7 +108,7 @@ def original_services(services):
 
 
 def sources(request):
-    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT}:
+    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE}:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
     for name, value in request['files'].items():
@@ -121,8 +124,11 @@ def sources(request):
 def main(request):
     global PHASE
     os.umask(0o077)
-    if (os.geteuid() != 0 or set(request) != {'mode', 'sourceCommit', 'ownerManifestDigest', 'files'} or
-            request['mode'] not in {'plan','drill'} or not re.fullmatch('[a-f0-9]{40}', request['sourceCommit']) or
+    expected = {'mode', 'sourceCommit', 'ownerManifestDigest', 'files'}
+    if request.get('mode')=='rehearsal':
+        expected.add('recoveryIdentity')
+    if (os.geteuid() != 0 or set(request) != expected or
+            request['mode'] not in {'plan','drill','rehearsal'} or not re.fullmatch('[a-f0-9]{40}', request['sourceCommit']) or
             not re.fullmatch('[a-f0-9]{64}', request['ownerManifestDigest'])):
         raise ValueError('Explicit pinned root drill required')
     files = sources(request)
@@ -161,10 +167,12 @@ def main(request):
         if pointer.exists() or pointer.is_symlink():
             previous = json.loads(fence.original(pointer))
             if not ((previous.get('mode') == 'drill' and previous.get('stage') == 'drill-resumed') or
+                    (previous.get('mode')=='rehearsal' and previous.get('stage')=='rehearsal-resumed' and previous.get('writerFenceEstablished') is False and not previous.get('quarantineHelperNames')) or
                     (previous.get('mode') == 'plan' and previous.get('stage') == 'plan-complete' and
                      previous.get('writerFenceEstablished') is False) or
-                    (previous.get('mode') in {'plan','drill'} and previous.get('stage') in {'prepared','plan-refused'} and
+                    (previous.get('mode') in {'plan','drill','rehearsal'} and previous.get('stage') in {'prepared','plan-refused'} and
                      previous.get('writerFenceEstablished') is False and
+                     not previous.get('quarantineHelperNames') and
                      previous.get('ownerManifestDigest') == request['ownerManifestDigest'] and
                      previous.get('originalServices') == original_services(services))):
                 raise ValueError('Previous fence requires manual investigation')
@@ -213,6 +221,8 @@ def main(request):
                   'serviceActivationAllowed':False}
         daily.atomic(pointer,record)
         captures = []
+        last_envelope = None
+        rehearsal_proof = None
         calls = 0
         held_binding = None
         uncertain_stops = set()
@@ -224,6 +234,12 @@ def main(request):
                 destination=scratch/name
                 destination.parent.mkdir(parents=True,exist_ok=True,mode=0o755)
                 destination.write_bytes(files[name]);destination.chmod(0o644)
+            quarantine=types.ModuleType('alterward_quarantine')
+            exec(compile(files[QUARANTINE], '<reviewed-quarantine-rehearsal>', 'exec'),quarantine.__dict__)
+            backup=None
+            if request['mode']=='rehearsal':
+                PHASE='backup-preflight'
+                backup=quarantine.prepare_backup(daily,request,scratch)
             selected = {key:env[key] for key in needed}
             selected.update(DATABASE_SSL='true',DATABASE_SSL_CA_FILE='/run/secrets/supabase-ca.crt',
                             ALTERWARD_FENCE_OPERATOR='true',AI_PROJECT_BUDGET_USD='0',AI_USER_BUDGET_USD='0')
@@ -297,15 +313,19 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     held_binding={key:core[key] for key in ['mode','nonce','sourceCommit','sourceFilesDigest',
                                   'ownerManifestDigest','projectBinding','expiresAt']}
                     held_binding['writerFenceDigest']=digest(held_core)
+                    if request['mode']=='rehearsal':
+                        held_binding['mode']='recovery'
                     record.update(writerFenceEstablished=True,heldCore=held_core,writerFenceDigest=held_binding['writerFenceDigest'])
-                if stage=='drill-resumed':
+                if stage in {'drill-resumed','rehearsal-resumed'}:
                     record['writerFenceEstablished']=False
                 daily.atomic(pointer,record)
 
             def capture(mode):
+                nonlocal last_envelope
                 global PHASE
-                if mode != 'drill' or held_binding is None or dt.datetime.now(dt.timezone.utc) >= expires:
-                    raise ValueError('Current drill fence required')
+                expected_mode='recovery' if request['mode']=='rehearsal' else 'drill'
+                if mode != expected_mode or held_binding is None or dt.datetime.now(dt.timezone.utc) >= expires:
+                    raise ValueError('Current scoped physical fence required')
                 envelope=helper('capture',{'binding':held_binding,'projectBinding':core['projectBinding']})
                 PHASE='capture-binding'
                 if (envelope.get('schemaVersion') != 'privacy-fence-envelope-2' or
@@ -318,7 +338,31 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 cipher=daily.command([daily.backup.age_path(),'-r',daily.config()['recipient']],input=plaintext,timeout=20)
                 captures.append({'stateDigest':envelope['stateDigest'],'cipherSha256':hashlib.sha256(cipher).hexdigest(),
                                  'cipherBytes':len(cipher),'capturedAt':envelope['authority']['capturedAt']})
+                if request['mode']=='rehearsal':
+                    last_envelope=envelope
                 return {'mode':mode,'stateDigest':envelope['stateDigest'],'encryptedAuthority':cipher}
+
+            def while_held(bundle,check):
+                nonlocal rehearsal_proof
+                global PHASE
+                check()
+                before=capture('recovery')
+                if before['stateDigest']!=bundle['stateDigest']:
+                    raise ValueError('Held source changed before quarantined load')
+                check()
+                PHASE='quarantine-replay'
+                def quarantine_checkpoint(names):
+                    record['quarantineHelperNames']=names
+                    daily.atomic(pointer,record)
+                rehearsal_proof=quarantine.replay(daily,scratch,files,NODE_FILES,nonce,backup,last_envelope,
+                    {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup)
+                check()
+                after=capture('recovery')
+                if after['stateDigest']!=bundle['stateDigest']:
+                    raise ValueError('Held source changed after quarantined verification')
+                check()
+                PHASE='quarantine-verified-held'
+                return True
 
             def verify():
                 until=time.monotonic()+60
@@ -414,10 +458,19 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     check_interrupt()
                     time.sleep(seconds)
                     check_interrupt()
-                result=fence.run_fence('drill',services,inspect=inspect,observe=lambda:helper('observe'),
+                result=fence.run_fence(request['mode'],services,inspect=inspect,observe=lambda:helper('observe'),
                     stop=stop_original,
                     start=lambda cid:daily.command(['docker','start',cid],timeout=30),capture=capture,verify=verify,
-                    settle=settle,checkpoint=checkpoint,cleanup=resume_cleanup)
+                    settle=settle,checkpoint=checkpoint,cleanup=resume_cleanup,
+                    while_held=while_held if request['mode']=='rehearsal' else None)
+        if request['mode']=='rehearsal':
+            return {**rehearsal_proof,'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+                'mode':'rehearsal','servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,
+                'foreignContainersUnchanged':True,'freshStateEqualBeforeAndAfterReplay':True,
+                'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
+                'writerFenceStillHeld':False,'replayAllowed':False,'serviceActivationAllowed':False,
+                'ownerOriginBoundaryVerified':True,'liveDatabaseWrites':False,'authProviderWrites':False,
+                'externalMessagesSent':False,'paidAiCalls':0}
         return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
