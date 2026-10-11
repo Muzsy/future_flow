@@ -78,6 +78,7 @@ class ReaderPrivateFileTests(unittest.TestCase):
                 'pinned-image.json': b'{}\n', 'effective-compose.json': b'{}\n', 'manifest.json': b'{}\n'}
         request = {'ownerAccess': access, 'readerAccess': reviewed, 'readers': ['reader@example.invalid'],
                    'ownerFlags': 'synthetic', 'sourceCommit': 'a' * 40, 'zeroStageProof': {},
+                   'previousStageProof': {},
                    'buildProof': {'sourceDirectory': str(self.owner)}}
         daily = types.SimpleNamespace(utcnow=lambda: now, stable_state=lambda: {})
         policy = types.SimpleNamespace(reader_candidate=lambda *args, **kwargs: (candidate, reviewed),
