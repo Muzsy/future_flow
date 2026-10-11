@@ -7,6 +7,7 @@ import {
   type Database,
 } from '@future-flow/database';
 import { cancelPendingSharedDecision } from '../../packages/database/src/shared-canon';
+import { assertReviewedPrivacyRecoverySchema } from './privacy-recovery-schema';
 
 // Operator-only, never imported by a serving application. There is no promotion
 // command: a successful replay remains quarantined and cannot enable paid AI.
@@ -121,6 +122,7 @@ export async function capturePrivacyRestoreAuthority(
     // fence. Neither a hash nor these source reads attest that external fence.
     await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
     await tx.query("SET LOCAL TIME ZONE 'UTC'");
+    await assertReviewedPrivacyRecoverySchema(tx);
     const auth = new Set(evidence.authUserIds);
     const activeUserIds = (
       await tx.query<{ id: string }>(
@@ -214,6 +216,7 @@ export async function replayPrivacyRestore(
       hash(await tx.query(schemaSql)) !== a.schemaDigest
     )
       throw Error('Dedicated matching-schema quarantine required');
+    await assertReviewedPrivacyRecoverySchema(tx);
     const budgetIds = new Set(
       (await tx.query<{ id: string }>('SELECT id FROM aw_budget_accounts')).map(
         (r) => r.id,

@@ -1,0 +1,106 @@
+import { hash } from '@future-flow/core';
+import type { Database } from '@future-flow/database';
+
+// Explicit immutable 001–036 baseline, never derived from the current database
+// or automatically extended when a new migration appears. This is a schema
+// drift guard, not proof that every retained text is safe to serve.
+const reviewedTables = `
+aw_account_deletions aw_activity_sessions aw_ai_runs aw_branches
+aw_budget_accounts aw_budget_reservations aw_choices aw_deleted_life_admissions
+aw_drafts aw_feedback aw_history aw_initial_choices aw_interactions aw_jobs
+aw_lives aw_metrics aw_official_life_sources aw_official_life_starts
+aw_official_publication_actions aw_official_publication_previews
+aw_official_publications aw_official_scenario_sources aw_periods
+aw_personal_scenario_previews aw_personal_scenario_starts
+aw_public_collection_actions aw_public_collection_entries aw_public_collections
+aw_public_content_bundle_checkpoints aw_public_content_bundles
+aw_public_content_curations aw_public_content_reviews aw_public_draft_reviews
+aw_public_exposure_actions aw_public_exposures aw_public_fork_checkpoints
+aw_public_fork_permission_actions aw_public_fork_permissions aw_public_fork_starts
+aw_public_metrics_daily aw_public_reading_sessions aw_public_reports
+aw_public_review_jobs aw_public_scenario_previews aw_public_text_curations
+aw_public_warnings aw_publication_actions aw_publication_drafts
+aw_publication_previews aw_publication_refreshes aw_publication_restriction_actions
+aw_publication_restrictions aw_publications aw_saved_lives aw_scenario_curations
+aw_scenario_drafts aw_scenario_publication_moderation aw_scenario_publications
+aw_scenario_reviews aw_scenario_starts aw_scenario_versions aw_scenarios
+aw_shared_ai_runs aw_shared_contexts aw_shared_event_participants aw_shared_events
+aw_shared_impacts aw_shared_intents aw_shared_invites aw_shared_jobs
+aw_shared_members aw_shared_moderation_audit aw_shared_personal_memories
+aw_shared_reports aw_shared_resolutions aw_social_profiles aw_user_blocks
+aw_user_entitlements ff_ai_runs ff_branches ff_chapter_events ff_chapters
+ff_consents ff_decision_options ff_decision_resolutions ff_decisions ff_events
+ff_futures ff_idempotency ff_jobs ff_life_states ff_profile_drafts
+ff_profile_versions ff_questionnaires ff_users ff_world_versions
+`
+  .trim()
+  .split(/\s+/)
+  .sort();
+const columnsDigest =
+  'c5ac8bcddfc2a635b3923f8be73790d78ff6909734e0b6aaa3b1351be88a7af2';
+const foreignKeysDigest =
+  '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e';
+const columnsSql =
+  "SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name<>'ff_migrations' ORDER BY table_name,ordinal_position";
+const foreignKeysSql =
+  "SELECT t.relname AS table_name,k.conname AS constraint_name,pg_get_constraintdef(k.oid) AS definition FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname";
+
+export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
+  await tx.query("SET LOCAL search_path='public', 'pg_catalog'");
+  const tables = (
+    await tx.query<{ name: string }>(
+      "SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
+    )
+  ).map((r) => r.name);
+  const application = tables.filter((name) => name !== 'ff_migrations');
+  if (
+    reviewedTables.length !== 96 ||
+    hash(application) !== hash(reviewedTables)
+  )
+    throw Error('Unreviewed privacy recovery table set');
+  const columns = await tx.query(columnsSql),
+    foreignKeys = await tx.query(foreignKeysSql);
+  if (
+    columns.length !== 854 ||
+    hash(columns) !== columnsDigest ||
+    foreignKeys.length !== 219 ||
+    hash(foreignKeys) !== foreignKeysDigest
+  )
+    throw Error('Unreviewed privacy recovery columns or foreign-key graph');
+  if (tables.includes('ff_migrations')) {
+    const ledger = await tx.query(
+      "SELECT column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name='ff_migrations' ORDER BY ordinal_position",
+    );
+    const expected = [
+      {
+        column_name: 'name',
+        data_type: 'text',
+        udt_name: 'text',
+        is_nullable: 'NO',
+        ordinal_position: 1,
+      },
+      {
+        column_name: 'checksum',
+        data_type: 'text',
+        udt_name: 'text',
+        is_nullable: 'NO',
+        ordinal_position: 2,
+      },
+      {
+        column_name: 'applied_at',
+        data_type: 'timestamp with time zone',
+        udt_name: 'timestamptz',
+        is_nullable: 'NO',
+        ordinal_position: 3,
+      },
+    ];
+    if (hash(ledger) !== hash(expected))
+      throw Error('Unreviewed recovery migration ledger');
+  }
+  return {
+    reviewedTables: application.length,
+    migrationLedgerPresent: tables.includes('ff_migrations'),
+    reviewedColumns: columns.length,
+    reviewedForeignKeys: foreignKeys.length,
+  };
+}

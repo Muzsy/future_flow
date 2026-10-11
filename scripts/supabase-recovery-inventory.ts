@@ -4,7 +4,7 @@ import { hash } from '@future-flow/core';
 import {
   readRecoveryAuthInventory,
   assertRecoveryAuthMatchesDatabase,
-  assertRecoveryAuthStable,
+  verifyRecoveryAuthInventory,
   recoveryAuthProjectionSql,
 } from './lib/recovery-auth-inventory';
 import {
@@ -52,12 +52,6 @@ async function main() {
     );
   const beforeAuth = await readAuth();
   const authIds = new Set(beforeAuth.users.map((user) => user.id));
-  const bannedAuthUsers = beforeAuth.users.filter(
-    (user) =>
-      user.banned_until !== null &&
-      BigInt(user.banned_until) >
-        BigInt(Date.parse(beforeAuth.verifiedAt)) * 1000n,
-  ).length;
   const db = connectDatabase(process.env.DATABASE_URL ?? '', true);
   try {
     const result = await db.transaction(async (tx) => {
@@ -66,6 +60,12 @@ async function main() {
       );
       await tx.query("SET LOCAL TIME ZONE 'UTC'");
       await tx.query("SET LOCAL statement_timeout='15s'");
+      const localStartedAt = new Date().toISOString();
+      const [clock] = await tx.query<{ observed_at: string }>(
+        'SELECT to_jsonb(clock_timestamp()) AS observed_at',
+      );
+      const localFinishedAt = new Date().toISOString();
+      if (!clock) throw Error('Independent database clock required');
       const databaseAuth = await tx.query<{ record: unknown }>(
         recoveryAuthProjectionSql,
       );
@@ -109,6 +109,17 @@ async function main() {
         "SELECT (SELECT count(*)::int FROM aw_shared_members WHERE user_id IS NOT NULL AND status IN('active','paused_entitlement')) AS activeMemberships,(SELECT count(*)::int FROM aw_shared_personal_memories) AS learnedPersonalMemories",
       );
       return {
+        authObservation: {
+          databaseRows: databaseAuth.map((user) => user.record),
+          clock: {
+            localStartedAt,
+            localFinishedAt,
+            databaseAt: clock.observed_at,
+          },
+        },
+        activeUserIds: users
+          .filter((user) => user.status === 'active')
+          .map((user) => user.id),
         applicationTables: tables.length,
         rlsProtectedTables: tables.filter((t) => t.rls).length,
         browserRoleTablePrivileges: tables.filter(
@@ -141,22 +152,37 @@ async function main() {
       };
     });
     const afterAuth = await readAuth();
-    assertRecoveryAuthStable(beforeAuth, afterAuth);
+    const { authObservation, activeUserIds, ...aggregates } = result;
+    const verified = verifyRecoveryAuthInventory(
+      beforeAuth,
+      authObservation.databaseRows,
+      afterAuth,
+      authObservation.clock,
+    );
+    const eligible = new Set(verified.eligibleUserIds),
+      active = new Set(activeUserIds);
     const report = {
       capturedAt: new Date().toISOString(),
       projectBinding: hash(url.hostname),
       authInventory: {
         users: beforeAuth.users.length,
-        bannedUsers: bannedAuthUsers,
+        bannedUsers: verified.bannedUsers,
         pages: beforeAuth.pages,
         paginationComplete: true,
         stateMatchedReadOnlyDatabase: true,
         unchangedAcrossObservation: true,
         emailAuthenticatedAndNotBannedOrDeleted:
-          beforeAuth.eligibleUserIds.length,
+          verified.eligibleUserIds.length,
+        localAndDatabaseClocksAgree: verified.clocksAgree,
+        activeApplicationUsersNotEligible: activeUserIds.filter(
+          (id) => !eligible.has(id),
+        ).length,
+        eligibleAuthWithoutActiveApplication: verified.eligibleUserIds.filter(
+          (id) => !active.has(id),
+        ).length,
         databaseIdentitySetMatched: true,
       },
-      ...result,
+      ...aggregates,
       databaseTlsCertificateVerified: true,
       liveDatabaseWrites: false,
       authWrites: false,

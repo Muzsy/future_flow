@@ -3,6 +3,7 @@ import {
   readRecoveryAuthInventory,
   assertRecoveryAuthMatchesDatabase,
   assertRecoveryAuthStable,
+  verifyRecoveryAuthInventory,
 } from '../scripts/lib/recovery-auth-inventory';
 
 const now = new Date('2026-10-11T01:00:00Z');
@@ -12,6 +13,7 @@ const user = (id = a, extra: Record<string, unknown> = {}) => ({
   id,
   updated_at: '2026-10-11T00:59:00.123456Z',
   role: 'authenticated',
+  is_anonymous: false,
   email_confirmed_at: '2026-10-10T00:00:00Z',
   ...extra,
 });
@@ -22,6 +24,21 @@ const page = (
 ) => ({ error: null, data: { users, nextPage, total } });
 const read = (users: unknown[]) =>
   readRecoveryAuthInventory(async () => page(users), now);
+const clocks = {
+  localStartedAt: now.toISOString(),
+  localFinishedAt: now.toISOString(),
+  databaseAt: now.toISOString(),
+};
+async function verified(users: unknown[]) {
+  const inventory = await read(users);
+  return verifyRecoveryAuthInventory(
+    inventory,
+    users,
+    await read(users),
+    clocks,
+    now,
+  );
+}
 
 describe('independent recovery Auth evidence', () => {
   it('compares exact safe facets and keeps email/token/arbitrary metadata out', async () => {
@@ -31,9 +48,10 @@ describe('independent recovery Auth evidence', () => {
       user_metadata: { private: true },
     });
     const inventory = await read([raw]);
-    expect(inventory.eligibleUserIds).toEqual([a]);
+    expect(inventory).not.toHaveProperty('eligibleUserIds');
+    expect((await verified([raw])).eligibleUserIds).toEqual([a]);
     assertRecoveryAuthMatchesDatabase(inventory, [
-      user(a, { updated_at: '2026-10-11T00:59:00.123456+00:00' }),
+      user(a, { updated_at: '2026-10-11T02:59:00.123456+02:00' }),
     ]);
     expect(JSON.stringify(inventory)).not.toContain('private');
     expect(() =>
@@ -48,16 +66,22 @@ describe('independent recovery Auth evidence', () => {
       { deleted_at: '2026-10-10T00:00:00Z' },
       { email_confirmed_at: null },
       { role: 'service_role' },
+      { is_anonymous: true },
+      { is_anonymous: undefined },
+      { is_anonymous: null },
     ]) {
-      expect((await read([user(a, extra)])).eligibleUserIds).toEqual([]);
+      expect((await verified([user(a, extra)])).eligibleUserIds).toEqual([]);
     }
     expect(
-      (await read([user(a, { banned_until: now.toISOString() })]))
+      (await verified([user(a, { banned_until: now.toISOString() })]))
         .eligibleUserIds,
     ).toEqual([a]);
     expect(
-      (await read([user(a, { banned_until: '2026-10-11T01:00:00.000001Z' })]))
-        .eligibleUserIds,
+      (
+        await verified([
+          user(a, { banned_until: '2026-10-11T01:00:00.000001Z' }),
+        ])
+      ).eligibleUserIds,
     ).toEqual([]);
   });
   it('requires independent DB agreement even with missing/default SDK totals', async () => {
@@ -83,10 +107,101 @@ describe('independent recovery Auth evidence', () => {
       await read([user(b)]),
       await read([user(a, { banned_until: '2026-10-12T00:00:00Z' })]),
       await read([user(a, { updated_at: '2026-10-11T00:59:00.123457Z' })]),
+      await read([user(a, { is_anonymous: true })]),
+      await read([user(a, { email_confirmed_at: null })]),
+      await read([user(a, { deleted_at: now.toISOString() })]),
+      await read([user(a, { role: 'anon' })]),
     ]) {
       expect(() => assertRecoveryAuthStable(before, after)).toThrow('changed');
     }
     assertRecoveryAuthStable(before, await read([user()]));
+  });
+  it('exposes eligibility only after complete, stable DB agreement', async () => {
+    const inventory = await read([user()]);
+    for (const extra of [
+      { role: 'anon' },
+      { is_anonymous: true },
+      { deleted_at: now.toISOString() },
+      { email_confirmed_at: null },
+    ]) {
+      expect(() =>
+        verifyRecoveryAuthInventory(
+          inventory,
+          [user(a, extra)],
+          inventory,
+          clocks,
+          now,
+        ),
+      ).toThrow('differs');
+      expect(() =>
+        verifyRecoveryAuthInventory(
+          inventory,
+          [user()],
+          { ...inventory, digest: '0'.repeat(64) },
+          clocks,
+          now,
+        ),
+      ).toThrow('changed');
+    }
+  });
+  it('rejects clocks ahead or behind and retains bans at the earlier allowed clock', async () => {
+    const raw = user(a, { banned_until: '2026-10-11T01:00:05Z' });
+    const inventory = await read([raw]);
+    const ahead = new Date('2026-10-11T01:00:10Z');
+    const bad = {
+      ...clocks,
+      localStartedAt: ahead.toISOString(),
+      localFinishedAt: ahead.toISOString(),
+    };
+    expect(() =>
+      verifyRecoveryAuthInventory(inventory, [raw], inventory, bad, ahead),
+    ).toThrow('clock agreement');
+    expect(() =>
+      verifyRecoveryAuthInventory(
+        inventory,
+        [raw],
+        inventory,
+        { ...clocks, databaseAt: ahead.toISOString() },
+        ahead,
+      ),
+    ).toThrow('clock agreement');
+    const slightAhead = new Date('2026-10-11T01:00:01Z');
+    const valid = {
+      ...clocks,
+      localStartedAt: slightAhead.toISOString(),
+      localFinishedAt: slightAhead.toISOString(),
+    };
+    const observation = verifyRecoveryAuthInventory(
+      inventory,
+      [raw],
+      inventory,
+      valid,
+      slightAhead,
+    );
+    expect(observation.eligibleUserIds).toEqual([]);
+    expect(observation.bannedUsers).toBe(1);
+    for (const invalid of [
+      { ...clocks, localFinishedAt: '2026-10-11T00:59:59Z' },
+      { ...clocks, localFinishedAt: '2026-10-11T01:00:11Z' },
+    ])
+      expect(() =>
+        verifyRecoveryAuthInventory(
+          inventory,
+          [raw],
+          inventory,
+          invalid,
+          ahead,
+        ),
+      ).toThrow('clock agreement');
+    expect(() =>
+      verifyRecoveryAuthInventory(
+        inventory,
+        [raw],
+        inventory,
+        clocks,
+        new Date('2026-10-11T01:16:00Z'),
+      ),
+    ).toThrow('clock agreement');
   });
   it('checks sequential pagination, duplicates and nonzero totals', async () => {
     const inventory = await readRecoveryAuthInventory(
@@ -116,6 +231,8 @@ describe('independent recovery Auth evidence', () => {
     ).rejects.toThrow('unavailable');
     for (const extra of [
       { banned_until: 'forever' },
+      { banned_until: 'infinity' },
+      { updated_at: null },
       { updated_at: '2026-10-11T01:01:00Z' },
       { updated_at: '2026-10-11T00:59:00.1234567Z' },
       { updated_at: undefined },

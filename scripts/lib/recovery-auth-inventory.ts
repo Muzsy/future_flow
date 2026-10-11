@@ -22,11 +22,19 @@ const optionalTime = time
   .optional()
   .transform((v) => v ?? null);
 const userSchema = z.object({
-  id: z.string().uuid(),
+  id: z
+    .string()
+    .uuid()
+    .transform((v) => v.toLowerCase()),
   updated_at: time,
   banned_until: optionalTime,
   deleted_at: optionalTime,
   email_confirmed_at: optionalTime,
+  is_anonymous: z
+    .boolean()
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
   role: z
     .string()
     .max(64)
@@ -47,13 +55,12 @@ function ordered(users: RecoveryUser[]) {
   const ids = new Set(users.map((u) => u.id));
   if (ids.size !== users.length || users.length > 100000)
     throw Error('Unique bounded Auth inventory required');
-  return [...users].sort((a, b) => a.id.localeCompare(b.id));
+  return [...users].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 export type RecoveryAuthInventory = {
   verifiedAt: string;
   users: RecoveryUser[];
   digest: string;
-  eligibleUserIds: string[];
   pages: number;
 };
 export async function readRecoveryAuthInventory(
@@ -84,15 +91,6 @@ export async function readRecoveryAuthInventory(
         verifiedAt: now.toISOString(),
         users: records,
         digest: hash(records),
-        eligibleUserIds: records
-          .filter(
-            (u) =>
-              u.role === 'authenticated' &&
-              u.deleted_at === null &&
-              u.email_confirmed_at !== null &&
-              (u.banned_until === null || BigInt(u.banned_until) <= instant),
-          )
-          .map((u) => u.id),
         pages,
       };
     }
@@ -119,9 +117,80 @@ export function assertRecoveryAuthStable(
     throw Error('Auth state changed during recovery observation');
 }
 
+const verifiedBrand = Symbol('verified-recovery-auth');
+export type VerifiedRecoveryAuth = {
+  readonly [verifiedBrand]: true;
+  verifiedAt: string;
+  digest: string;
+  eligibleUserIds: string[];
+  bannedUsers: number;
+  clocksAgree: true;
+};
+export function verifyRecoveryAuthInventory(
+  before: RecoveryAuthInventory,
+  databaseRows: unknown[],
+  after: RecoveryAuthInventory,
+  rawClock: {
+    localStartedAt: string;
+    localFinishedAt: string;
+    databaseAt: string;
+  },
+  now = new Date(),
+): VerifiedRecoveryAuth {
+  if (!Number.isFinite(now.getTime()))
+    throw Error('Valid Auth verification time required');
+  assertRecoveryAuthMatchesDatabase(before, databaseRows);
+  assertRecoveryAuthStable(before, after);
+  const clock = z
+    .object({ localStartedAt: time, localFinishedAt: time, databaseAt: time })
+    .strict()
+    .parse(rawClock);
+  const start = BigInt(clock.localStartedAt),
+    end = BigInt(clock.localFinishedAt),
+    peer = BigInt(clock.databaseAt);
+  const completed = BigInt(now.getTime()) * 1000n;
+  if (
+    end < start ||
+    end - start > 10000000n ||
+    peer < start - 5000000n ||
+    peer > end + 5000000n ||
+    completed < end ||
+    completed - start > 15n * 60n * 1000000n ||
+    [before.verifiedAt, after.verifiedAt].some((at) => {
+      const age = now.getTime() - Date.parse(at);
+      return !Number.isFinite(age) || age < 0 || age > 15 * 60 * 1000;
+    })
+  )
+    throw Error('Fresh two-sided local/database clock agreement required');
+  // Evaluate at the earlier clock: network delay or a small allowed clock skew
+  // can retain a ban longer, never make it expire earlier than the DB clock.
+  const instant = start < peer ? start : peer;
+  const users = before.users;
+  return {
+    [verifiedBrand]: true,
+    verifiedAt: new Date(Number(peer / 1000n)).toISOString(),
+    digest: before.digest,
+    eligibleUserIds: users
+      .filter(
+        (u) =>
+          u.role === 'authenticated' &&
+          u.is_anonymous === false &&
+          u.deleted_at === null &&
+          u.email_confirmed_at !== null &&
+          (u.banned_until === null || BigInt(u.banned_until) <= instant),
+      )
+      .map((u) => u.id),
+    bannedUsers: users.filter(
+      (u) => u.banned_until !== null && BigInt(u.banned_until) > instant,
+    ).length,
+    clocksAgree: true,
+  };
+}
+
 // SQL JSON preserves PostgreSQL's microsecond timestamps; node-postgres Date
 // conversion would discard sub-millisecond revocation/version changes.
 export const recoveryAuthProjectionSql = `SELECT jsonb_build_object(
   'id',id,'updated_at',updated_at,'banned_until',banned_until,
-  'deleted_at',deleted_at,'email_confirmed_at',email_confirmed_at,'role',role
+  'deleted_at',deleted_at,'email_confirmed_at',email_confirmed_at,'role',role,
+  'is_anonymous',is_anonymous
 ) AS record FROM auth.users ORDER BY id`;
