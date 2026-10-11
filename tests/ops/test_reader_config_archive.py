@@ -60,6 +60,19 @@ class ReaderConfigArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             daily.reader_config_paths()
 
+    def test_interrupted_journal_temporary_files_are_bounded_and_private(self):
+        path = self.state / '.upgrade-abc123_4'
+        self.file(path)
+        self.assertEqual(daily.reader_config_paths(), [path])
+        path.chmod(0o644)
+        with self.assertRaises(ValueError):
+            daily.reader_config_paths()
+        path.chmod(0o600)
+        for index in range(8):
+            self.file(self.state / f'.upgrade-{index:08d}')
+        with self.assertRaises(ValueError):
+            daily.reader_config_paths()
+
     def test_aliases_hardlinks_and_public_permissions_are_rejected(self):
         path = self.state / 'server.env'
         self.file(path)

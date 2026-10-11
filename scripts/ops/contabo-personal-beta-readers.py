@@ -13,6 +13,7 @@ import re
 import signal
 import stat
 import sys
+import time
 
 from alterward_backup import private_directory
 from alterward_target import docker, run, validate_owner_configuration, owner_overlay
@@ -332,6 +333,12 @@ def apply(request, daily, policy):
 
 
 def disable(request):
+    # A preparation that never saved its original receipt has no reader state
+    # to revoke. Refuse before touching the already-zero owner services. If the
+    # receipt exists (even damaged), retain the emergency stop-first behavior.
+    original_receipt = STATE / 'original' / 'stage.json'
+    if not original_receipt.exists() and not original_receipt.is_symlink():
+        raise ValueError('No prepared original reader receipt; owner services untouched')
     # Stop first: a damaged candidate or missing provider input cannot retain
     # writers. The verified ORIGINAL bytes are the only restart authority.
     for number in INTERRUPTION_SIGNALS:
@@ -355,6 +362,19 @@ def disable(request):
         raise
 
 
+def exclusive_lock(handle, wait_seconds=0):
+    import fcntl
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return
+        except BlockingIOError:
+            if time.monotonic() >= deadline:
+                raise ValueError('An existing operation holds the lock; no concurrent mutation allowed')
+            time.sleep(0.25)
+
+
 def main(request):
     import fcntl
     mode = request.get('mode')
@@ -363,8 +383,8 @@ def main(request):
     for path in (fence.DAILY / 'job.lock', DIRECTORY / 'activation.lock'):
         fence.original(path)
     with (fence.DAILY / 'job.lock').open('rb') as job, (DIRECTORY / 'activation.lock').open('rb') as owner:
-        fcntl.flock(job, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        exclusive_lock(job, 30 if mode == 'disable' else 0)
+        exclusive_lock(owner, 30 if mode == 'disable' else 0)
         if mode == 'disable':
             return disable(request)
         # Use the verified INSTALLED daily policy; never an arbitrary client copy.

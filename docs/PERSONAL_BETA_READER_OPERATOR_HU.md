@@ -17,3 +17,15 @@ A [fizikai fixture](../scripts/ops/contabo-personal-beta-readers-fixture.py) há
 Helyben tíz tranzakció/byte-contract és hét Node registry/receipt/CI-eset sikeres. A négy POSIX archive-eset Windows alatt kihagyott; pontos Linux CI/célpróba szükséges. Az olvasói operátor még nem aktivált személyt. A fizetett M-1 rész — friss Auth/application UUID-egyeztetés, a seed-ablak pontos megkülönböztetése, egyszeri harmincnapos funded-journal, worker-only kulcs, új konfiguráció és annak hibaútja — továbbra következő fejlesztési kapu. A már mért seed-leltár nem held-aktiválási bizonyíték.
 
 Ha a távoli apply sikerül, de a helyi aktív receipt írása megszakad, az ellenőrzés biztonságosan elutasít. A szervernapló és tényleges manifest egyeztetésével kell a receipteket helyreállítani; régi prepare-t vagy aktív receiptet vakon felülírni és apply-t újraindítani tilos.
+
+## A 23109be audit utáni javítások és tényleges próba
+
+A Claude Cloud 123. válasza egy közepes és öt alacsony findingot talált. A közepes szülőkönyvtár-jogosultsági hibát a 16c61cc javította; ezzel az elkülönített Contabo-próba sikeres lett: tényleges olvasói promotion, sérült candidate utáni nulla-visszaállás, kikényszerített post-check hiba rollbackje és teljes fixture-takarítás. A szolgáltatás-/fájlhatárra érvényes; valódi Auth-, Cloudflare- és DB-próba továbbra külön kapu.
+
+Az eredeti helyi nulla receipt most kizárólag egyszer, exclusive és fsyncelt írással hozható létre. Csak bájttartalmilag azonos adatok újrahasználata engedett; egy már olvasói stage nem lehet nulla baseline. Az emergency eredeti flagjeit az eredeti image forráscommitja szolgáltatja, nem egy későbbi HEAD. Ha az előkészítés még az eredeti szerverreceipt mentése előtt megállt, a disable nem állítja le a változatlan owner-oldalt. Meglévő, akár sérült eredeti receipt esetén megmarad a stop-first viselkedés.
+
+A félbeszakadt journal-csere legfeljebb nyolc, pontos `.upgrade-[a-z0-9_]{8}` nevű, root/private/regular átmeneti fájlját a mentés bizonyítékként megőrzi. Ezek nem újraindítási vagy jogosultsági authority fájlok. Idegen vagy nem megfelelő jogosultságú fájl továbbra tiltott. Új POSIX-regresszió vizsgálja a valódi prepare fájlkezelését 022 umask mellett, a durable create/replace/link-refusal és a lock-várakozás határát.
+
+A disable legfeljebb 30 másodpercet vár egy-egy meglévő lockra. Nem kerülheti meg egy futó mentés vagy konfigurációváltás lockját. Ha ezután is foglalt, nincs párhuzamos módosítás: sürgős esetben az operátor a név/project-label alapján behatárolt saját három szolgáltatást kézzel leállítja, majd a lock birtokosának és a naplóknak az ellenőrzése után folytatja a nulla baseline visszaállítását. Lockot vagy naplót törölni tilos. Ez operátori hibaút, nem automatikusan igazolt visszaállítás.
+
+Ezeket a javításokat új, pontos commitra szóló CI, Claude-forrásaudit és célpróba ellenőrzi a telepítés előtt. Valódi olvasói hozzáférés még nem lett alkalmazva. Image-upgrade előtt aktív olvasókat disable-lel a nulla owner-állapotra kell visszaállítani; az olvasói állapot nem jogosítja fel az image-only upgrade eszközt.

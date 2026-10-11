@@ -1,5 +1,5 @@
 import { execFile, execFileSync } from 'node:child_process';
-import { promisify } from 'node:util';
+import { promisify, isDeepStrictEqual } from 'node:util';
 import { readFileSync, lstatSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,6 +79,14 @@ export function activeRecoveryManifest(stage, build, registry) {
   return createHash('sha256')
     .update(JSON.stringify(manifest) + '\n')
     .digest('hex');
+}
+export function retainOriginalZeroReceipt(zero, registry, existing) {
+  activeRecoveryManifest(zero?.stage, zero?.build, registry);
+  if (zero.stage.imageOnly !== true || zero.stage.configurationOnly === true)
+    throw Error('Original image-only zero owner receipt required');
+  if (existing !== undefined && !isDeepStrictEqual(existing, zero))
+    throw Error('An existing original zero receipt cannot be replaced');
+  return existing === undefined;
 }
 export function assertReplayInputsUnchanged(
   registry,

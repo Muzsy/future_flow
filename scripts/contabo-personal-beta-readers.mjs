@@ -1,6 +1,14 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFileSync, lstatSync } from 'node:fs';
+import {
+  readFileSync,
+  lstatSync,
+  existsSync,
+  openSync,
+  closeSync,
+  writeFileSync,
+  fsyncSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -59,6 +67,7 @@ async function main() {
     reviewedRecoveryRelease,
     exactFenceCiRuns,
     assertExactFenceCiJobs,
+    retainOriginalZeroReceipt,
   } = await import('./contabo-fence-operator.mjs');
   const { privateReportDirectory, privateReportFile, privateRequestFile } =
     await import('./lib/private-report.ts');
@@ -89,7 +98,12 @@ async function main() {
     previousStageProof: zero.stage,
     zeroStageProof: zero.stage,
     ownerAccess: operator.cloudflareAccess,
-    ownerFlags: source('deploy/closed-site-owner.flags.env').toString(),
+    // Emergency restore remains bound to the original release, even after HEAD
+    // changes its overlay. This is the source validate_inputs checks remotely.
+    ownerFlags: execFileSync('git', [
+      'show',
+      `${zero.build.commit}:deploy/closed-site-owner.flags.env`,
+    ]).toString(),
   };
   if (mode !== 'disable')
     request.ownerManifestDigest = activeRecoveryManifest(
@@ -162,7 +176,23 @@ async function main() {
     request.readers = selection.readers;
     request.readerAccess = selection.readerAccess;
     // Retain the original receipt locally BEFORE a remote preparation can exist.
-    privateReportFile(directory, 'personal-beta-readers-zero-proof.json', zero);
+    const originalFile = join(
+      directory,
+      'personal-beta-readers-zero-proof.json',
+    );
+    const existing = existsSync(originalFile)
+      ? JSON.parse(regular(originalFile))
+      : undefined;
+    if (retainOriginalZeroReceipt(zero, registry, existing)) {
+      // An exclusive, durable first write; retries can only reuse equal bytes.
+      const fd = openSync(originalFile, 'wx', 0o600);
+      try {
+        writeFileSync(fd, JSON.stringify(zero, null, 2) + '\n');
+        fsyncSync(fd);
+      } finally {
+        closeSync(fd);
+      }
+    }
   }
   if (mode === 'apply-readers')
     request.preparedProof = report(

@@ -113,6 +113,7 @@ class ReaderTransactionTests(unittest.TestCase):
     def test_disable_never_reads_or_validates_the_current_candidate(self):
         events = []
         with patch.object(readers.upgrade, 'foreign_state', return_value={}), \
+             patch.object(Path, 'exists', return_value=True), \
              patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
              patch.object(readers, 'restore_zero', side_effect=lambda req: events.append('restore')), \
              patch.object(readers, 'verify_zero', side_effect=lambda req, other: {'paidAiCalls': 0}), \
@@ -125,6 +126,7 @@ class ReaderTransactionTests(unittest.TestCase):
     def test_disable_keeps_project_stopped_if_original_validation_fails(self):
         events = []
         with patch.object(readers.upgrade, 'foreign_state', return_value={}), \
+             patch.object(Path, 'exists', return_value=True), \
              patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
              patch.object(readers, 'restore_zero', side_effect=ValueError('bad baseline')):
             with self.assertRaises(ValueError):
@@ -134,12 +136,21 @@ class ReaderTransactionTests(unittest.TestCase):
     def test_missing_foreign_inspection_does_not_prevent_emergency_stop(self):
         events = []
         with patch.object(readers.upgrade, 'foreign_state', side_effect=RuntimeError('unavailable')), \
+             patch.object(Path, 'exists', return_value=True), \
              patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
              patch.object(readers, 'restore_zero') as restore:
             with self.assertRaises(ValueError):
                 readers.disable({})
         self.assertEqual(events, ['stop', 'stop'])
         restore.assert_not_called()
+
+    def test_disable_before_any_saved_original_receipt_cannot_stop_owner_services(self):
+        with patch.object(Path, 'exists', return_value=False), \
+             patch.object(Path, 'is_symlink', return_value=False), \
+             patch.object(readers, 'stop_project') as stop:
+            with self.assertRaises(ValueError):
+                readers.disable({})
+        stop.assert_not_called()
 
     def test_one_stop_failure_still_attempts_all_three_but_cannot_start_candidate(self):
         values = [{'Id': role, 'Config': {'Labels': {'com.docker.compose.project': readers.PROJECT,

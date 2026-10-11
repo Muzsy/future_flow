@@ -398,6 +398,13 @@ def reader_config_paths():
             if item.name in names:
                 regular(item)
                 files.append(item)
+            elif directory == path and re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name):
+                # SIGKILL can leave a replacement journal's private temp file.
+                # Preserve bounded original bytes as evidence, never as authority.
+                regular(item)
+                if sum(value.name.startswith('.upgrade-') for value in files) >= 8:
+                    raise ValueError('Too many interrupted reader journal artifacts')
+                files.append(item)
             elif item.name not in children or not item.is_dir() or item.is_symlink():
                 raise ValueError('Unexpected reader preparation artifact')
     return sorted(files)

@@ -7,9 +7,48 @@ import {
   reviewedRecoveryRelease,
   activeRecoveryManifest,
   assertReplayInputsUnchanged,
+  retainOriginalZeroReceipt,
 } from '../../scripts/contabo-fence-operator.mjs';
 
 const sha = 'a'.repeat(40);
+test('reader preparation cannot overwrite the original zero owner receipt', () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL('./fixtures/recovery-manifest.json', import.meta.url)),
+  );
+  const build = {
+    commit: fixture.manifest.commit,
+    imageId: fixture.manifest.imageId,
+  };
+  const registry = { version: 1, releases: [build] };
+  const zero = {
+    stage: {
+      ...fixture.manifest,
+      upgraded: true,
+      imageOnly: true,
+      runningServices: 3,
+      paidAiCalls: 0,
+      betaWindowActive: false,
+    },
+    build,
+  };
+  assert.equal(retainOriginalZeroReceipt(zero, registry, undefined), true);
+  assert.equal(
+    retainOriginalZeroReceipt(zero, registry, structuredClone(zero)),
+    false,
+  );
+  assert.throws(() =>
+    retainOriginalZeroReceipt(zero, registry, { ...zero, extra: true }),
+  );
+  const admitted = structuredClone(zero);
+  Object.assign(admitted.stage, {
+    imageOnly: false,
+    configurationOnly: true,
+    configurationMode: 'readers',
+    selectedReaders: 1,
+    accessEmailCount: 2,
+  });
+  assert.throws(() => retainOriginalZeroReceipt(admitted, registry, zero));
+});
 test('JS and Python share one pinned canonical manifest byte contract', () => {
   const fixture = JSON.parse(
     readFileSync(new URL('./fixtures/recovery-manifest.json', import.meta.url)),
