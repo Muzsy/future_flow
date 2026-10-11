@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { connectDatabase } from '@future-flow/database';
 import { hash } from '@future-flow/core';
-import { assertCompleteAuthInventory } from './lib/auth-inventory';
+import {
+  readRecoveryAuthInventory,
+  assertRecoveryAuthMatchesDatabase,
+  assertRecoveryAuthStable,
+  recoveryAuthProjectionSql,
+} from './lib/recovery-auth-inventory';
 import {
   privateReportDirectory,
   privateReportFile,
@@ -41,34 +46,18 @@ async function main() {
       },
     },
   );
-  const authIds = new Set<string>();
-  let authUsers = 0,
-    bannedAuthUsers = 0,
-    pages = 0,
-    complete = false;
-  for (let page = 1; page <= 100; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage: 1000,
-    });
-    if (error) throw Error('Auth inventory unavailable');
-    pages++;
-    for (const user of data.users) {
-      if (authIds.has(user.id))
-        throw Error('Auth pagination changed; retry separately');
-      authIds.add(user.id);
-      authUsers++;
-      if (user.banned_until && Date.parse(user.banned_until) > Date.now())
-        bannedAuthUsers++;
-    }
-    if (data.nextPage === null) {
-      if (data.total > 0 && data.total !== authUsers)
-        throw Error('Auth pagination total differs; retry separately');
-      complete = true;
-      break;
-    }
-  }
-  if (!complete) throw Error('Auth inventory exceeds bounded pagination');
+  const readAuth = () =>
+    readRecoveryAuthInventory((page) =>
+      admin.auth.admin.listUsers({ page, perPage: 1000 }),
+    );
+  const beforeAuth = await readAuth();
+  const authIds = new Set(beforeAuth.users.map((user) => user.id));
+  const bannedAuthUsers = beforeAuth.users.filter(
+    (user) =>
+      user.banned_until !== null &&
+      BigInt(user.banned_until) >
+        BigInt(Date.parse(beforeAuth.verifiedAt)) * 1000n,
+  ).length;
   const db = connectDatabase(process.env.DATABASE_URL ?? '', true);
   try {
     const result = await db.transaction(async (tx) => {
@@ -77,12 +66,12 @@ async function main() {
       );
       await tx.query("SET LOCAL TIME ZONE 'UTC'");
       await tx.query("SET LOCAL statement_timeout='15s'");
-      const databaseAuthIds = await tx.query<{ id: string }>(
-        'SELECT id FROM auth.users ORDER BY id',
+      const databaseAuth = await tx.query<{ record: unknown }>(
+        recoveryAuthProjectionSql,
       );
-      assertCompleteAuthInventory(
-        authIds,
-        databaseAuthIds.map((user) => user.id),
+      assertRecoveryAuthMatchesDatabase(
+        beforeAuth,
+        databaseAuth.map((user) => user.record),
       );
       const tables = await tx.query<{
         name: string;
@@ -151,14 +140,20 @@ async function main() {
         },
       };
     });
+    const afterAuth = await readAuth();
+    assertRecoveryAuthStable(beforeAuth, afterAuth);
     const report = {
       capturedAt: new Date().toISOString(),
       projectBinding: hash(url.hostname),
       authInventory: {
-        users: authUsers,
+        users: beforeAuth.users.length,
         bannedUsers: bannedAuthUsers,
-        pages,
-        paginationComplete: complete,
+        pages: beforeAuth.pages,
+        paginationComplete: true,
+        stateMatchedReadOnlyDatabase: true,
+        unchangedAcrossObservation: true,
+        emailAuthenticatedAndNotBannedOrDeleted:
+          beforeAuth.eligibleUserIds.length,
         databaseIdentitySetMatched: true,
       },
       ...result,
