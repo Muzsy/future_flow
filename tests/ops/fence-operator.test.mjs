@@ -4,9 +4,101 @@ import {
   exactFenceCiRuns,
   assertExactFenceCiJobs,
   reviewedRecoveryRelease,
+  activeRecoveryManifest,
+  assertReplayInputsUnchanged,
 } from '../../scripts/contabo-fence-operator.mjs';
 
 const sha = 'a'.repeat(40);
+test('a registry entry cannot silently change the replay schema or runtime dependencies', () => {
+  const registry = {
+    version: 1,
+    releases: [{ commit: sha, imageId: 'sha256:' + 'b'.repeat(64) }],
+  };
+  let visited = false;
+  assertReplayInputsUnchanged(registry, (base, commit, paths) => {
+    visited = true;
+    assert.equal(base, '9eb7732b69e84583cf7e63c237763b51b9bb4eab');
+    assert.equal(commit, sha);
+    assert.deepEqual(paths, [
+      'database',
+      'packages',
+      'Dockerfile',
+      'package.json',
+      'apps/api/package.json',
+      'apps/web/package.json',
+      'apps/worker/package.json',
+      'pnpm-lock.yaml',
+      'pnpm-workspace.yaml',
+      'tsconfig.base.json',
+      'tsconfig.scripts.json',
+    ]);
+    return '';
+  });
+  assert.equal(visited, true);
+  for (const path of [
+    'database/migrations/new.sql',
+    'packages/ai/src/new-provider.ts',
+    'pnpm-lock.yaml',
+    'apps/api/package.json',
+    'pnpm-workspace.yaml',
+    'tsconfig.base.json',
+  ])
+    assert.throws(() =>
+      assertReplayInputsUnchanged(registry, () => path + '\n'),
+    );
+  assert.throws(() => assertReplayInputsUnchanged(registry, () => undefined));
+});
+test('a future prepared candidate cannot replace the still-active manifest binding', () => {
+  const stage = {
+    commit: sha,
+    imageId: 'sha256:' + 'b'.repeat(64),
+    upgraded: true,
+    imageOnly: true,
+    runningServices: 3,
+    paidAiCalls: 0,
+    betaWindowActive: false,
+    ownerEnvironmentSha256: 'c'.repeat(64),
+    effectiveComposeSha256: 'd'.repeat(64),
+    sourceComposeSha256: 'e'.repeat(64),
+    databaseCaSha256: 'f'.repeat(64),
+    accessConfigurationSha256: '1'.repeat(64),
+  };
+  const build = { commit: stage.commit, imageId: stage.imageId };
+  const registry = {
+    version: 1,
+    releases: [
+      build,
+      { commit: '2'.repeat(40), imageId: 'sha256:' + '3'.repeat(64) },
+    ],
+  };
+  const expected = activeRecoveryManifest(stage, build, registry);
+  assert.match(expected, /^[a-f0-9]{64}$/);
+  assert.equal(
+    activeRecoveryManifest(
+      { ...stage, capturedAt: 'another-time' },
+      build,
+      registry,
+    ),
+    expected,
+  );
+  for (const changes of [
+    { commit: registry.releases[1].commit },
+    { imageId: registry.releases[1].imageId },
+    { ownerEnvironmentSha256: 'changed' },
+    { upgraded: false },
+    { imageOnly: false },
+    { paidAiCalls: 1 },
+    { betaWindowActive: true },
+    { runningServices: 2 },
+  ]) {
+    assert.throws(() =>
+      activeRecoveryManifest({ ...stage, ...changes }, build, registry),
+    );
+  }
+  assert.throws(() =>
+    activeRecoveryManifest(stage, registry.releases[1], registry),
+  );
+});
 test('reviewed commit and image must belong to the same bounded registry entry', () => {
   const registry = {
     version: 1,

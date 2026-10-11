@@ -10,7 +10,8 @@ import {
   expect,
   vi,
 } from 'vitest';
-import { DomainError } from '@future-flow/core';
+import { DomainError, hash } from '@future-flow/core';
+import { questionnaire } from '@future-flow/contracts';
 import {
   Repository,
   LifeRepository,
@@ -24,6 +25,7 @@ import {
 import { applyMigrations } from '../scripts/lib/migrations';
 import { createApp } from '../apps/api/src/app';
 import { setupFixture } from './life-fixtures';
+import { answers } from './fixtures';
 import { createClosedSiteGate } from '@future-flow/access';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 const period = () => {
@@ -223,6 +225,10 @@ beforeAll(async () => {
   await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
   await applyMigrations(engine);
   db = adapter(engine);
+  await db.query(
+    'INSERT INTO ff_questionnaires(version,definition,definition_hash) VALUES($1,$2,$3)',
+    [questionnaire.version, JSON.stringify(questionnaire), hash(questionnaire)],
+  );
 });
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -262,7 +268,8 @@ describe('closed beta paid-boundary isolation', () => {
     }
     const reader = await user(),
       other = await user(),
-      readerToken = token(reader);
+      readerToken = token(reader),
+      otherToken = token(other);
     const privateSetup = {
       ...setupFixture(),
       context: 'PRIVATE_OTHER_READER_CONTEXT',
@@ -271,6 +278,15 @@ describe('closed beta paid-boundary isolation', () => {
       other,
       privateSetup,
       randomUUID(),
+    );
+    const legacy = new Repository(db);
+    await legacy.saveDraft(other, 0, answers, []);
+    const profile = await legacy.commitProfile(other, 1);
+    const foreignLegacy = await legacy.createFuture(
+      other,
+      profile.profileVersionId,
+      randomUUID(),
+      'en',
     );
     const pair = await generateKeyPair('RS256'),
       aud = 'a'.repeat(64);
@@ -309,6 +325,7 @@ describe('closed beta paid-boundary isolation', () => {
       new Repository(db),
       {
         verify: async (value) => {
+          if (value === otherToken) return { id: other };
           if (value !== readerToken)
             throw new DomainError('AUTH_INVALID', 'Invalid token.', 401);
           return { id: reader };
@@ -328,6 +345,9 @@ describe('closed beta paid-boundary isolation', () => {
         'Idempotency-Key': randomUUID(),
       };
     const queuesBefore = await db.query('SELECT id FROM aw_jobs ORDER BY id');
+    const legacyQueuesBefore = await db.query(
+      'SELECT id FROM ff_jobs ORDER BY id',
+    );
     const budgetsBefore = await db.query(
       'SELECT * FROM aw_budget_accounts ORDER BY id',
     );
@@ -379,10 +399,13 @@ describe('closed beta paid-boundary isolation', () => {
           })
         ).status,
       ).toBe(201);
-      for (const path of [
-        `/api/v2/branches/${foreign.branchId}`,
-        `/api/v1/jobs/${foreign.jobId}`,
-      ]) {
+      const jobPath = `/api/v1/jobs/${foreignLegacy.jobId}`;
+      const positiveJob = await fetch(base + jobPath, {
+        headers: { ...headers, Authorization: `Bearer ${otherToken}` },
+      });
+      expect(positiveJob.status).toBe(200);
+      expect((await positiveJob.json()).id).toBe(foreignLegacy.jobId);
+      for (const path of [`/api/v2/branches/${foreign.branchId}`, jobPath]) {
         const response = await fetch(base + path, { headers });
         expect(response.status, path).toBe(404);
         expect(await response.text()).not.toContain(privateSetup.context);
@@ -453,6 +476,9 @@ describe('closed beta paid-boundary isolation', () => {
       expect(text).not.toContain(privateSetup.context);
       expect(await db.query('SELECT id FROM aw_jobs ORDER BY id')).toEqual(
         queuesBefore,
+      );
+      expect(await db.query('SELECT id FROM ff_jobs ORDER BY id')).toEqual(
+        legacyQueuesBefore,
       );
       expect(
         await db.query('SELECT * FROM aw_budget_accounts ORDER BY id'),

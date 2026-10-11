@@ -1,4 +1,9 @@
-"""Private, disposable PostgreSQL privacy-replay fixture; no live DB access."""
+"""Historical 9eb-only synthetic privacy fixture; no live DB access.
+
+Intentionally refuses newer serving manifests. Current cross-image recovery
+checks use the registry-bound fence/quarantine transport instead; do not relax
+this historical fixture's pin or claim it exercises a newer serving release.
+"""
 import base64
 import hashlib
 import json

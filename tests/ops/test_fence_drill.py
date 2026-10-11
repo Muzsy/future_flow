@@ -105,6 +105,23 @@ except KeyboardInterrupt:
                 'Config':{'Labels':{'com.docker.compose.project':'alterward-owner'}},
                 'State':{'StartedAt':'original-start','Status':'running','Running':True,'OOMKilled':False}}
 
+    def test_capture_and_cleanup_are_bound_to_the_selected_manifest_image(self):
+        image='sha256:'+'d'*64;name='synthetic-helper';nonce='a'*24
+        self.assertEqual(drill.capture_command(image,'synthetic code','observe'),
+                         [image,'node','-e','synthetic code','--','--observe'])
+        item={'Name':'/'+name,'Image':image,'Config':{'Labels':{drill.LABEL:nonce}},
+              'HostConfig':{'PortBindings':{},'LogConfig':{'Type':'none'}}}
+        self.assertTrue(drill.capture_identity(item,name,image,nonce))
+        for mutate in [lambda v:v.update(Image='sha256:'+'b'*64),
+                       lambda v:v.update(Name='/other'),
+                       lambda v:v['Config']['Labels'].update({drill.LABEL:'c'*24}),
+                       lambda v:v['HostConfig'].update(PortBindings={'443/tcp':[]}),
+                       lambda v:v['HostConfig']['LogConfig'].update(Type='json-file')]:
+            bad=copy.deepcopy(item);mutate(bad)
+            self.assertFalse(drill.capture_identity(bad,name,image,nonce))
+        for bad_image,bad_mode in [('alterward:latest','observe'),(image,'run')]:
+            with self.assertRaises(ValueError):drill.capture_command(bad_image,'code',bad_mode)
+
     def test_late_daemon_exit_is_observed_before_resume(self):
         original=self.original()
         current=copy.deepcopy(original)

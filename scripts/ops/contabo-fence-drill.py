@@ -139,6 +139,19 @@ def reviewed_releases(data):
     return result
 
 
+def capture_command(image, wrapper, mode):
+    if not isinstance(image,str) or not re.fullmatch('sha256:[a-f0-9]{64}',image) or mode not in {'observe','capture'}:
+        raise ValueError('Pinned capture image and mode required')
+    return [image,'node','-e',wrapper,'--','--'+mode]
+
+
+def capture_identity(item, name, image, nonce):
+    return (item['Name']=='/'+name and item['Image']==image and
+            item['Config'].get('Labels',{}).get(LABEL)==nonce and
+            not item['HostConfig'].get('PortBindings') and
+            item['HostConfig']['LogConfig']['Type']=='none')
+
+
 def main(request):
     global PHASE
     os.umask(0o077)
@@ -299,7 +312,7 @@ def main(request):
                 wrapper="""const {spawnSync}=require('node:child_process');
 const r=spawnSync(process.execPath,['node_modules/tsx/dist/cli.mjs','--tsconfig','tsconfig.scripts.json','scripts/capture-privacy-authority.ts',process.argv[1]],{stdio:['inherit','pipe','pipe'],encoding:'utf8',timeout:120000,maxBuffer:26*1024**2});
 if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.stdout);}catch{};const phases=['precondition','database-connection','capture-input','authority-verification','envelope-verification'];process.stdout.write(JSON.stringify({observationFailed:true,phase:phases.includes(v?.phase)?v.phase:'observer-process',fields:Array.isArray(v?.fields)?v.fields.filter(x=>typeof x==='string'&&x.length<512&&/^[a-zA-Z_.#?]*$/.test(x)).slice(0,8):[]}));}"""
-                args += [owner_image,'node','-e',wrapper,'--','--'+mode]
+                args += capture_command(owner_image,wrapper,mode)
                 try:
                     data=daily.command(args,input=json.dumps(payload).encode() if payload is not None else None,timeout=135)
                     if not 0 < len(data) <= 32*1024**2:
@@ -316,10 +329,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                         observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
                         if observed:
                             item=json.loads(observed)[0]
-                            if (item['Name'] != '/'+name or item['Image'] != owner_image or
-                                    item['Config'].get('Labels',{}).get(LABEL) != nonce or
-                                    item['HostConfig'].get('PortBindings') or
-                                    item['HostConfig']['LogConfig']['Type'] != 'none'):
+                            if not capture_identity(item,name,owner_image,nonce):
                                 raise ValueError('Helper cleanup identity differs')
                             daily.command(['docker','rm','-f',item['Id']])
                         record.pop('temporaryHelperName',None)

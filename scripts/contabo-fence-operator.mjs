@@ -35,6 +35,62 @@ export function reviewedRecoveryRelease(manifest, registry) {
   )
     throw Error('Exact reviewed recovery commit/image pair required');
 }
+export function activeRecoveryManifest(stage, build, registry) {
+  reviewedRecoveryRelease(stage, registry);
+  const keys = [
+    'commit',
+    'imageId',
+    'ownerEnvironmentSha256',
+    'effectiveComposeSha256',
+    'sourceComposeSha256',
+    'databaseCaSha256',
+    'accessConfigurationSha256',
+  ].sort();
+  if (
+    stage.commit !== build?.commit ||
+    stage.imageId !== build?.imageId ||
+    stage.upgraded !== true ||
+    stage.imageOnly !== true ||
+    stage.runningServices !== 3 ||
+    stage.paidAiCalls !== 0 ||
+    stage.betaWindowActive !== false ||
+    keys
+      .filter((key) => !['commit', 'imageId'].includes(key))
+      .some(
+        (key) =>
+          typeof stage[key] !== 'string' || !/^[a-f0-9]{64}$/.test(stage[key]),
+      )
+  )
+    throw Error('Exact active owner-only release proof required');
+  const manifest = Object.fromEntries(keys.map((key) => [key, stage[key]]));
+  return createHash('sha256')
+    .update(JSON.stringify(manifest) + '\n')
+    .digest('hex');
+}
+export function assertReplayInputsUnchanged(registry, readChangedPaths) {
+  // The clean replay image stays pinned to this immutable base. Registry
+  // additions cannot silently introduce new migrations or runtime packages.
+  const base = '9eb7732b69e84583cf7e63c237763b51b9bb4eab';
+  for (const release of registry.releases) {
+    const changed = readChangedPaths(base, release.commit, [
+      'database',
+      'packages',
+      'Dockerfile',
+      'package.json',
+      'apps/api/package.json',
+      'apps/web/package.json',
+      'apps/worker/package.json',
+      'pnpm-lock.yaml',
+      'pnpm-workspace.yaml',
+      'tsconfig.base.json',
+      'tsconfig.scripts.json',
+    ]);
+    if (typeof changed !== 'string' || changed.trim())
+      throw Error(
+        'Reviewed capture/replay schema and dependencies must remain identical',
+      );
+  }
+}
 export function exactFenceCiRuns(listing, sourceCommit) {
   const runs = listing.workflow_runs.filter(
     (run) => run.path === '.github/workflows/ci.yml',
@@ -117,24 +173,21 @@ async function main() {
       throw Error('Bounded original report required');
     return JSON.parse(readFileSync(path, 'utf8'));
   }
-  const prepared = report('owner-prepare-upgrade-proof.json'),
-    applied = report('owner-apply-upgrade-proof.json');
   const registryName = 'deploy/reviewed-recovery-images.json';
-  reviewedRecoveryRelease(applied, JSON.parse(source(registryName)));
-  const ownerKeys = [
-    'commit',
-    'imageId',
-    'ownerEnvironmentSha256',
-    'effectiveComposeSha256',
-    'sourceComposeSha256',
-    'databaseCaSha256',
-    'accessConfigurationSha256',
-  ];
-  if (ownerKeys.some((key) => prepared[key] !== applied[key]))
-    throw Error('Original reviewed owner manifest and image required');
-  const ownerManifestDigest = prepared.candidateFilesSha256['manifest.json'];
-  if (!/^[a-f0-9]{64}$/.test(ownerManifestDigest))
-    throw Error('Original owner manifest hash required');
+  const registry = JSON.parse(source(registryName));
+  // Preparing another image must not make the still-running release's plan
+  // impossible. Derive its canonical manifest only from the active receipts;
+  // the root executor independently compares it to the real protected bytes.
+  const ownerManifestDigest = activeRecoveryManifest(
+    report('owner-stage-proof.json'),
+    report('owner-active-build-proof.json'),
+    registry,
+  );
+  assertReplayInputsUnchanged(registry, (base, commit, paths) =>
+    execFileSync('git', ['diff', '--name-only', base, commit, '--', ...paths], {
+      encoding: 'utf8',
+    }),
+  );
   if (mode === 'drill' || mode === 'rehearsal') {
     const audit = report('fence-transport-audit-proof.json'),
       plan = report('fence-transport-plan-proof.json');
