@@ -68,6 +68,17 @@ class HealthProjectionTests(unittest.TestCase):
         self.assertNotIn('private-only-value', json.dumps(value))
         self.assertNotIn('not-projected', json.dumps(value))
 
+    def test_verified_personal_queue_can_be_nonempty_without_expanding_projection(self):
+        self.monitor['health'].update(runtimeMode='personal-beta', pendingJobs=1, queueHealthy=True)
+        self.persist()
+        value = health.projection(self.root, NOW, self.units, self.root / 'not-installed')
+        self.assertTrue(value['workerRuntimeHealthy'])
+        self.assertEqual(set(value), set(health.CHECKS))
+        self.assertTrue(all(type(v) is bool for v in value.values()))
+        self.monitor['health']['queueHealthy'] = False
+        self.persist()
+        self.assertFalse(health.projection(self.root, NOW, self.units, self.root / 'not-installed')['workerRuntimeHealthy'])
+
     def test_stale_or_future_or_failed_monitor_is_not_healthy(self):
         for stamp, ok in [(NOW - dt.timedelta(minutes=31), True), (NOW + dt.timedelta(seconds=1), True), (NOW, False)]:
             self.monitor.update(capturedAt=stamp.isoformat(), ok=ok)

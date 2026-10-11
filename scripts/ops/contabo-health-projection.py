@@ -120,7 +120,7 @@ def projection(root, now, unit_root=Path('/etc/systemd/system'), recovery_root=P
         'backupRecordCurrent': backup_current,
         # An overall monitor failure remains an alarm, including an unexpected
         # container-state change. Other valid health bits still aid diagnosis.
-        'workerRuntimeHealthy': monitor_current and monitor.get('ok') is True and health.get('ownerHealthy') is True and health.get('pendingJobs') == 0,
+        'workerRuntimeHealthy': monitor_current and monitor.get('ok') is True and health.get('ownerHealthy') is True and health.get('queueHealthy', health.get('pendingJobs') == 0) is True,
         'databaseTlsHealthy': monitor_current and health.get('databaseTlsVerified') is True,
         'accessBoundaryClosed': monitor_current and health.get('edgeClosed') is True and health.get('anonymousDenied') == 4,
         'backupFresh': monitor_current and backup_current and fresh and health.get('backupFailed') is False and recovery_current(recovery_root, now, unit_root),

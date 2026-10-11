@@ -6,6 +6,7 @@ Only explicitly managed daily archives expire; historical rehearsals stay intact
 
 import contextlib
 import datetime as dt
+from decimal import Decimal
 import hashlib
 import io
 import json
@@ -40,15 +41,36 @@ RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
 ARCHIVES = {'config.tar.age', 'application.dump.age', 'manifest.json'}
 EXPIRY_JOURNAL = '.expiry-journal'
 
+# This source is also exercised directly by the isolated SQL tests. The helper
+# receives bounded admission metadata in memory and emits only aggregate counts.
+PERSONAL_QUEUE_PROBE = r"""export async function personalBetaQueueProbe(client, policy) {
+  if (typeof policy?.queueAllowed !== 'boolean' || !Array.isArray(policy.userIds) || policy.userIds.length > 10 || new Set(policy.userIds).size !== policy.userIds.length || policy.userIds.some(id=>typeof id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))) throw Error('Bounded monitor policy required');
+  let unexpectedPending=0;
+  for (const table of ['ff_jobs','aw_shared_jobs','aw_public_review_jobs','aw_public_content_reviews','aw_scenario_reviews']) {
+    unexpectedPending+=(await client.query(`SELECT count(*)::int AS n FROM public.${table} WHERE status IN ('queued','running','validating')`)).rows[0].n;
+  }
+  unexpectedPending+=(await client.query("SELECT count(*)::int AS n FROM public.aw_public_draft_reviews WHERE status='running'")).rows[0].n;
+  unexpectedPending+=(await client.query("SELECT count(*)::int AS n FROM public.aw_branches b WHERE b.status='generating' AND NOT EXISTS(SELECT 1 FROM public.aw_jobs j WHERE j.branch_id=b.id AND j.user_id=b.user_id AND j.status IN ('queued','running'))")).rows[0].n;
+  const row=(await client.query(`SELECT count(*)::int AS "personalPending",
+    count(*) FILTER(WHERE j.created_at<clock_timestamp()-interval '30 minutes')::int AS "stalePersonal",
+    count(*) FILTER(WHERE (j.status='running' AND (j.lease_token IS NULL OR j.lease_until IS NULL OR j.lease_until<clock_timestamp()-interval '2 minutes')) OR (j.status='queued' AND (j.lease_token IS NOT NULL OR j.lease_until IS NOT NULL)))::int AS "expiredPersonal",
+    count(*) FILTER(WHERE u.id IS NULL OR u.status IS DISTINCT FROM 'active' OR NOT(j.user_id=ANY($1::uuid[])))::int AS "unadmittedPersonal"
+    FROM public.aw_jobs j LEFT JOIN public.ff_users u ON u.id=j.user_id WHERE j.status IN ('queued','running')`,[policy.userIds])).rows[0];
+  const result={pendingJobs:row.personalPending+unexpectedPending,personalPending:row.personalPending,unexpectedPending,stalePersonal:row.stalePersonal,expiredPersonal:row.expiredPersonal,unadmittedPersonal:row.unadmittedPersonal};
+  if (Object.values(result).some(v=>!Number.isSafeInteger(v)||v<0)) throw Error('Aggregate queue counts required');
+  return {...result,queueHealthy:policy.queueAllowed?unexpectedPending===0&&row.stalePersonal===0&&row.expiredPersonal===0&&row.unadmittedPersonal===0:result.pendingJobs===0};
+}
+"""
+
 # A separate Node child uses the existing API's verified TLS configuration.
 # It keeps its read-only exported snapshot open until pg_dump has completed.
-DATABASE_PROBE = r"""import{createRequire}from'node:module';import{readFileSync}from'node:fs';import{X509Certificate}from'node:crypto';import{TLSSocket}from'node:tls';
+DATABASE_PROBE = PERSONAL_QUEUE_PROBE + r"""import{createRequire}from'node:module';import{readFileSync}from'node:fs';import{X509Certificate}from'node:crypto';import{TLSSocket}from'node:tls';
 const{Client}=createRequire('/app/packages/database/package.json')('pg');
 const client=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:true,ca:readFileSync(process.env.DATABASE_SSL_CA_FILE,'utf8')},connectionTimeoutMillis:10000});
 const mode=process.argv[1];let watchdog;try{await client.connect();const socket=client.connection.stream;const host=new URL(process.env.DATABASE_URL).hostname;if(!(socket instanceof TLSSocket)||!socket.encrypted||socket.authorized!==true||!new X509Certificate(socket.getPeerCertificate().raw).checkHost(host))throw Error('TLS');
 await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await client.query("SET LOCAL statement_timeout='15s'");await client.query("SET LOCAL timezone='UTC'");const version=(await client.query('SHOW server_version_num')).rows[0].server_version_num;if(Math.floor(Number(version)/10000)!==17)throw Error('Major');
 if(mode==='snapshot'){const snapshot=(await client.query('SELECT pg_export_snapshot() AS id')).rows[0].id;const names=(await client.query("SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;if(!names.length||names.length>1000||names.some(t=>!/^(aw_|ff_)[a-z0-9_]+$/.test(t.name)))throw Error('Schema');const tables=[];for(const{name}of names){const row=(await client.query(`SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM public."${name}" t`)).rows[0];tables.push({name,...row});}console.log(JSON.stringify({databaseTlsVerified:true,snapshot,tables}));await new Promise(resolve=>{watchdog=setTimeout(resolve,240000);process.stdin.once('data',resolve);process.stdin.once('end',resolve);});clearTimeout(watchdog);
-}else if(mode==='monitor'){let pendingJobs=0;for(const table of ['ff_jobs','aw_jobs','aw_shared_jobs','aw_public_review_jobs','aw_public_content_reviews']){pendingJobs+=(await client.query(`SELECT count(*)::int AS pending FROM ${table} WHERE status IN ('queued','running','validating')`)).rows[0].pending;}console.log(JSON.stringify({databaseTlsVerified:true,pendingJobs}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
+}else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);console.log(JSON.stringify({databaseTlsVerified:true,...queue}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
 
 ORIGIN_PROBE = """let denied=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover','http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++}console.log(JSON.stringify({anonymousDenied:denied}));"""
 
@@ -194,6 +216,75 @@ def owner_only_environment(service, env):
              if service == 'worker' else not env.get('OPENAI_API_KEY')))
 
 
+SHARED_FLAGS = ('SHARED_CONTEXTS_ENABLED', 'SHARED_FRIEND_ENABLED',
+                'SHARED_CONNECTED_ENABLED', 'SHARED_WORLD_ENABLED')
+ADMISSION_UUID = re.compile(r'[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}')
+
+
+def bounded_budget(env, key, maximum):
+    value = env.get(key, '0')
+    if not isinstance(value, str) or not re.fullmatch(r'\d+(?:\.\d+)?', value):
+        raise ValueError('Finite bounded budget required')
+    amount = Decimal(value)
+    if not 0 <= amount <= Decimal(str(maximum)):
+        raise ValueError('Approved budget ceiling exceeded')
+    return amount
+
+
+def personal_runtime_policy(environments, now):
+    """Validate only an inactive owner or the approved personal beta.
+
+    This function neither admits users nor starts a spending window. UUIDs and
+    provider values stay in process memory and never enter status or logs.
+    """
+    if set(environments) != {'web', 'api', 'worker'}:
+        raise ValueError('Three services required')
+    web, api, worker = (environments[k] for k in ('web', 'api', 'worker'))
+    for env in (web, api):
+        if env.get('CLOSED_SITE_ENABLED') != 'true' or env.get('OPENAI_API_KEY') or env.get('ANTHROPIC_API_KEY'):
+            raise ValueError('Closed origin and worker-only providers required')
+    if web.get('PUBLIC_EXTERNAL_EXPOSURE_ENABLED') != 'false':
+        raise ValueError('External exposure remains disabled')
+    for env in (api, worker):
+        if env.get('CLOSED_BETA_ENABLED') != 'true' or any(env.get(k) != 'false' for k in SHARED_FLAGS):
+            raise ValueError('Personal beta only')
+    for key in ('CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD'):
+        if api.get(key, '') != worker.get(key, ''):
+            raise ValueError('API and worker admission/budget mismatch')
+    users = worker.get('CLOSED_BETA_USER_IDS', '').split(',') if worker.get('CLOSED_BETA_USER_IDS') else []
+    if len(users) > 10 or len(set(users)) != len(users) or any(not ADMISSION_UUID.fullmatch(u) for u in users):
+        raise ValueError('At most ten exact account UUIDs required')
+    oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 2)
+    claude = bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 1)
+    user = bounded_budget(worker, 'AI_USER_BUDGET_USD', .5)
+    bounded_budget(worker, 'AI_PROJECT_INITIAL_SPENT_USD', 0)
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
+        raise ValueError('Fixed spending period required')
+    if not users:
+        if (oa or claude or user or worker.get('AI_BUDGET_WINDOW_START') or worker.get('AI_BUDGET_WINDOW_END') or
+                worker.get('ANTHROPIC_API_KEY') or worker.get('OPENAI_API_KEY') != 'alterward_owner_provider_access_disabled'):
+            raise ValueError('Inactive owner must retain zero allowances')
+        return {'mode': 'owner', 'queueAllowed': False, 'userIds': []}
+    stamps = []
+    for key in ('AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'):
+        value = worker.get(key, '')
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z', value):
+            raise ValueError('Exact UTC budget window required')
+        stamps.append(dt.datetime.fromisoformat(value.replace('Z', '+00:00')))
+    if (stamps[1] - stamps[0]).total_seconds() != 30 * 86400:
+        raise ValueError('Exactly thirty days required')
+    if oa and worker.get('OPENAI_API_KEY') in (None, '', 'alterward_owner_provider_access_disabled'):
+        raise ValueError('Funded OpenAI worker requires its provider')
+    if claude and not worker.get('ANTHROPIC_API_KEY'):
+        raise ValueError('Funded Claude worker requires its provider')
+    if not oa and worker.get('OPENAI_API_KEY') not in (None, '', 'alterward_owner_provider_access_disabled'):
+        raise ValueError('Unfunded OpenAI provider must stay disabled')
+    if not claude and worker.get('ANTHROPIC_API_KEY'):
+        raise ValueError('Unfunded Claude provider must stay disabled')
+    return {'mode': 'personal-beta', 'queueAllowed': stamps[0] <= now < stamps[1] and (oa > 0 or claude > 0) and user > 0,
+            'userIds': users}
+
+
 def owner_runtime():
     manifest = json.loads(regular(OWNER / 'manifest.json'))
     for filename, key in [('server.env', 'ownerEnvironmentSha256'),
@@ -208,14 +299,16 @@ def owner_runtime():
     if set(services) != {'web', 'api', 'worker'}:
         raise ValueError('Three owner services required')
     expected = json.loads(regular(OWNER / 'effective-compose.json'))['services']
+    environments = {service: dict(item.split('=', 1) for item in value['Config']['Env'])
+                    for service, value in services.items()}
+    personal_runtime_policy(environments, utcnow())
     for service, value in services.items():
         env = dict(item.split('=', 1) for item in value['Config']['Env'])
         if (not value['State']['Running'] or value['Image'] != manifest['imageId'] or
                 value['HostConfig'].get('PortBindings') or value['Config']['User'] != 'node' or
                 value['HostConfig'].get('CapDrop') != ['ALL'] or
-                not owner_only_environment(service, env) or
                 any(env.get(k) != str(v) for k, v in expected[service]['environment'].items())):
-            raise ValueError('Owner-only runtime boundary changed')
+            raise ValueError('Protected runtime boundary changed')
         if service != 'worker' and value['State'].get('Health', {}).get('Status') != 'healthy':
             raise ValueError('Owner service unhealthy')
     return manifest, services
@@ -687,8 +780,8 @@ def alerts_for(health, now):
         alerts.append('owner_runtime')
     if not health['databaseTlsVerified']:
         alerts.append('database_tls')
-    if health['pendingJobs'] != 0:
-        alerts.append('unexpected_owner_jobs')
+    if health.get('queueHealthy', health['pendingJobs'] == 0) is not True:
+        alerts.append('personal_queue_unhealthy' if health.get('runtimeMode') == 'personal-beta' else 'unexpected_owner_jobs')
     if health['anonymousDenied'] != 4 or not health['edgeClosed']:
         alerts.append('access_boundary')
     if health['diskFreeBytes'] < 2 * 1024**3:
@@ -708,8 +801,11 @@ def monitor(value):
     with exclusive(OWNER / 'activation.lock'):
         clean_work()
         _, services = owner_runtime()
-        database = json.loads(command(['docker', 'exec', services['api']['Id'], 'node',
-            '--max-old-space-size=128', '--input-type=module', '-e', DATABASE_PROBE, 'monitor']))
+        policy = personal_runtime_policy({service: dict(item.split('=', 1) for item in value['Config']['Env'])
+                                          for service, value in services.items()}, utcnow())
+        database = json.loads(command(['docker', 'exec', '-i', services['api']['Id'], 'node',
+            '--max-old-space-size=128', '--input-type=module', '-e', DATABASE_PROBE, 'monitor'],
+            input=json.dumps({'queueAllowed': policy['queueAllowed'], 'userIds': policy['userIds']}).encode()))
         origin = json.loads(command(['docker', 'exec', services['api']['Id'], 'node',
                                     '--input-type=module', '-e', ORIGIN_PROBE]))
         records = completed_archives(ROOT / 'backups')
@@ -720,7 +816,7 @@ def monitor(value):
                                '-noout', '-enddate']).decode().strip().removeprefix('notAfter=')
         expires = dt.datetime.strptime(certificate, '%b %d %H:%M:%S %Y %Z').replace(tzinfo=dt.timezone.utc)
         now = utcnow()
-        health = {'ownerHealthy': True, **database, **origin,
+        health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin,
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}
