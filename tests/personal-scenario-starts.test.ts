@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { beforeAll, afterAll, afterEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  afterEach,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import { DomainError, hash } from '@future-flow/core';
 import {
   Repository,
@@ -47,6 +55,7 @@ beforeAll(async () => {
   db = adapter(engine);
 });
 afterEach(async () => {
+  vi.unstubAllEnvs();
   for (const user of await db.query<{ id: string }>('SELECT id FROM ff_users'))
     await new Repository(db).deleteAccountData(user.id);
 });
@@ -90,6 +99,61 @@ const body = (f: Awaited<ReturnType<typeof fixture>>) => ({
 });
 
 describe('private starts from explicitly approved personal Scenario previews', () => {
+  it.each(['daily', 'concurrent'] as const)(
+    'honours the configured %s limit at the personal Scenario HTTP start',
+    async (limit) => {
+      vi.stubEnv('GENERATION_DAILY_LIMIT', limit === 'daily' ? '1' : '10');
+      vi.stubEnv(
+        'GENERATION_CONCURRENT_LIMIT',
+        limit === 'concurrent' ? '1' : '2',
+      );
+      const f = await fixture();
+      const args: Parameters<typeof createApp> = [
+        new Repository(db),
+        { verify: async () => ({ id: f.user }), deleteUser: async () => {} },
+      ];
+      args[22] = publicFlags;
+      args[23] = { enabled: true };
+      const app = await createApp(...args);
+      try {
+        await app.listen(0, '127.0.0.1');
+        const endpoint = `${await app.getUrl()}/api/v2/personal-scenarios/sources/${f.publication.slug}/start`;
+        const submit = (input: unknown) =>
+          fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${f.user}`,
+              'Content-Type': 'application/json',
+              'Idempotency-Key': randomUUID(),
+            },
+            body: JSON.stringify(input),
+          });
+        expect((await submit(body(f))).status).toBe(201);
+        if (limit === 'daily')
+          await db.query(
+            "UPDATE aw_jobs SET status='failed' WHERE user_id=$1",
+            [f.user],
+          );
+        const second = await personal().prepare(
+          f.user,
+          f.publication.slug,
+          f.request,
+          randomUUID(),
+        );
+        const denied = await submit({
+          ...body(f),
+          previewId: second.id,
+          previewHash: second.previewHash,
+        });
+        expect(denied.status).toBe(429);
+        expect((await denied.json()).error.code).toBe('GENERATION_LIMIT');
+        expect(await new LifeRepository(db).list(f.user)).toHaveLength(1);
+      } finally {
+        await app.close();
+        vi.unstubAllEnvs();
+      }
+    },
+  );
   it('exposes only a current public capability, requiring both runtime and source personalization permission', async () => {
     const f = await fixture();
     expect(await personal().capability(f.publication.slug)).toEqual({

@@ -1,7 +1,15 @@
 // Isolated reviewed technical copies and simulated continuations. No paid AI or seed.
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { beforeAll, afterAll, afterEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  afterEach,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import {
   PublicForkStartRepository,
   PublicForkPermissionRepository,
@@ -52,6 +60,7 @@ beforeAll(async () => {
   db = adapter(engine);
 });
 afterEach(async () => {
+  vi.unstubAllEnvs();
   for (const row of await db.query<{ id: string }>('SELECT id FROM ff_users'))
     await new Repository(db).deleteAccountData(row.id);
 });
@@ -101,6 +110,53 @@ async function process(userId: string, jobId: string) {
   await processLifeJob(job, new LifeJobRepository(db), lifeTestAi);
 }
 describe('independent private starts from reviewed public checkpoints', () => {
+  it.each(['daily', 'concurrent'] as const)(
+    'honours the configured %s limit at the public fork HTTP start',
+    async (limit) => {
+      vi.stubEnv('GENERATION_DAILY_LIMIT', limit === 'daily' ? '1' : '10');
+      vi.stubEnv(
+        'GENERATION_CONCURRENT_LIMIT',
+        limit === 'concurrent' ? '1' : '2',
+      );
+      const f = await granted(),
+        user = await target();
+      const args: Parameters<typeof createApp> = [
+        new Repository(db),
+        { verify: async () => ({ id: user }), deleteUser: async () => {} },
+      ];
+      args[12] = config;
+      args[13] = config;
+      args[21] = flags;
+      const app = await createApp(...args);
+      try {
+        await app.listen(0, '127.0.0.1');
+        const endpoint = `${await app.getUrl()}/api/v2/public-forks/${f.view.slug}`;
+        const submit = () =>
+          fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${user}`,
+              'Content-Type': 'application/json',
+              'Idempotency-Key': randomUUID(),
+            },
+            body: JSON.stringify(f.body),
+          });
+        expect((await submit()).status).toBe(201);
+        if (limit === 'daily')
+          await db.query(
+            "UPDATE aw_jobs SET status='failed' WHERE user_id=$1",
+            [user],
+          );
+        const denied = await submit();
+        expect(denied.status).toBe(429);
+        expect((await denied.json()).error.code).toBe('GENERATION_LIMIT');
+        expect(await new LifeRepository(db).list(user)).toHaveLength(1);
+      } finally {
+        await app.close();
+        vi.unstubAllEnvs();
+      }
+    },
+  );
   it('requires server start gate, owner consent, current capability, privacy and a strict selected option', async () => {
     const f = await granted(),
       user = await target(),

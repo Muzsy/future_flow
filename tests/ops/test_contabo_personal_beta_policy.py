@@ -78,6 +78,7 @@ class PersonalCandidateTests(unittest.TestCase):
                       {'startsAt': '2026-02-30T12:00:00Z'}):
             cases.append({**self.request, **patch})
         for field, value in [('email', 'Tester@example.invalid'), ('email', 'bad\n@example.invalid'),
+                             ('email', 'tester.@example.invalid'), ('email', 'a' * 65 + '@example.invalid'),
                              ('userId', 'uninvited'), ('userId', '11111111-1111-4111-1111-111111111111')]:
             cases.append({**self.request, 'participants': [{**self.request['participants'][0], field: value}]})
         for field, value in [('email', 'second@example.invalid'),
@@ -87,6 +88,22 @@ class PersonalCandidateTests(unittest.TestCase):
         for request in cases:
             with self.subTest(fields=set(request)), self.assertRaises(ValueError):
                 self.candidate(request=request)
+
+    def test_invalid_types_and_unicode_have_one_private_safe_error(self):
+        calls = [lambda: policy.candidate(None, self.access, self.flags, self.request, now=NOW, prior_window_count=0),
+                 lambda: policy.candidate(self.config, None, self.flags, self.request, now=NOW, prior_window_count=0),
+                 lambda: policy.candidate(self.config, self.access, self.flags, self.request, now='not-a-clock', prior_window_count=0),
+                 lambda: policy.encoded({'unexpected': object()}),
+                 lambda: self.candidate(request={**self.request, 'startsAt': '٢٠٢٦-10-11T12:00:00Z'}),
+                 lambda: self.candidate(request={**self.request, 'projectUsd': '2.٠٠'}),
+                 lambda: self.candidate(request={**self.request, 'projectUsd': '0.1', 'userUsd': '0.5'})]
+        for call in calls:
+            with self.assertRaises(ValueError) as error:
+                call()
+            self.assertNotIn(self.request['openaiKey'], str(error.exception))
+        value, _ = self.candidate(request={**self.request, 'projectUsd': '2.000000', 'userUsd': '0.500000'})
+        self.assertEqual(value['services']['worker']['environment']['AI_PROJECT_BUDGET_USD'], '2')
+        self.assertEqual(value['services']['worker']['environment']['AI_USER_BUDGET_USD'], '0.5')
 
     def test_ten_identities_plus_owner_and_owner_as_participant_are_bounded(self):
         request = {**self.request, 'participants': [
@@ -127,6 +144,34 @@ class PersonalCandidateTests(unittest.TestCase):
             changed['services'][service]['environment'][key] = value
             with self.subTest(key=key), self.assertRaises(ValueError):
                 self.candidate(config=changed)
+
+    def test_reader_stage_changes_only_origin_emails_and_retains_zero_spend(self):
+        readers = ['tester@example.invalid']
+        value, access = policy.reader_candidate(self.config, self.access, self.flags, readers, now=NOW)
+        self.assertEqual(access['allowedEmails'], ['owner@example.invalid', *readers])
+        self.assertEqual(value['services']['worker'], self.config['services']['worker'])
+        self.assertEqual(value['services']['api']['environment']['CLOSED_BETA_USER_IDS'], '')
+        self.assertEqual(value['services']['api']['environment']['PUBLIC_FORK_STARTS_ENABLED'], 'false')
+        summary = policy.validate_reader_candidate(self.config, self.access, self.flags, readers, value, now=NOW)
+        self.assertNotIn('tester', str(summary))
+        funded, _ = policy.funded_from_readers(self.config, self.access, self.flags, readers, value,
+                                               self.request, now=NOW, prior_window_count=0)
+        self.assertEqual(funded, self.candidate()[0])
+
+    def test_reader_drift_invalid_names_and_paid_identity_substitution_are_refused(self):
+        readers = ['tester@example.invalid']
+        value, _ = policy.reader_candidate(self.config, self.access, self.flags, readers, now=NOW)
+        changed = deepcopy(value)
+        changed['services']['worker']['environment']['AI_PROJECT_BUDGET_USD'] = '2'
+        with self.assertRaises(ValueError):
+            policy.validate_reader_candidate(self.config, self.access, self.flags, readers, changed, now=NOW)
+        changed_request = {**self.request, 'participants': [{**self.request['participants'][0], 'email': 'foreign@example.invalid'}]}
+        with self.assertRaises(ValueError):
+            policy.funded_from_readers(self.config, self.access, self.flags, readers, value,
+                                       changed_request, now=NOW, prior_window_count=0)
+        for invalid in ([], readers * 2, readers * 11, ['TESTER@example.invalid'], None):
+            with self.assertRaises(ValueError):
+                policy.reader_candidate(self.config, self.access, self.flags, invalid, now=NOW)
 
 
 if __name__ == '__main__':

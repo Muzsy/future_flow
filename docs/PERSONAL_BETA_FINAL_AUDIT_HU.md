@@ -35,6 +35,14 @@ A Claude szövege a `/health` kivételt a két saját fiókjogi végponttal egy�
 
 ## A valódi béta előtti még szükséges bizonyíték
 
+### Message 115 — a konfigurációs alap külön visszaellenőrzése
+
+A `7c020ab585337a670fecbb5e8d1a3f055f254b90` Cloud-delta a tiszta policyt feltételesen újrahasználhatónak ítélte, M-1/L-1 lezárása nélkül. A tényleges napi modul hash-éhez kötött betöltés, root-only env/manifest/frozen bytes, külön prepare/apply idő, eredeti fájlokból vészleállítás/visszaállítás, reader-only hozzáférés és friss Auth/DB-megfigyelés továbbra implementálási feltétel. A policy hibás típusait egységes ValueError kezeli, az UTC-bemenet ASCII, email-localpart legfeljebb 64 és nem végződhet ponttal; a decimális keretek kanonizáltak és a személyes plafon nem nagyobb a közösnél. Kilenc policy-regresszió sikeres, köztük külön nulla keretű olvasói candidate és a fizetett névsorhoz kötés.
+
+A korábbi költségablak-leltárnál az előállítás pontos, megőrzött seed-ablakát külön kell azonosítani; általános minta szerinti kizárás vagy a számlák törlése tiltott. Az önálló, friss és fence/DB-identitáshoz kötött megfigyelésnek minden további project/provider/user ablakot és korábbi aktiválási naplót kezelnie kell. A puszta nulla egész szám még nem ilyen bizonyíték. A fork/Scenario flagek mellett a tényleges kiadási jogosultsági rekordok és capabilityHash is ellenőrzendő.
+
+V-1 igazolt korábbi API-hiba: a PublicForkStart és PersonalScenario kontrollerek nem adták át a konfigurált napi/egyidejű limiteket, így a repository alap 10/2 korlátját használták a Contabo 3/1 beállítása helyett. A javítás a createApp egyszer beolvasott, immutable limits értékét injektálja az élet/Scenario kontrollerekbe, és ugyanazt adja a két speciális indulásnak. [Részletes korlátjavítás](GENERATION_LIMIT_HARDENING_HU.md). Négy új, valódi PGlite+migráció+HTTP-regresszió külön ellenőrzi a napi és concurrent 429-et, második élet létrejötte nélkül; a két teljes érintett sorozat 25/25 és API typecheck sikeres. Nem hív valódi AI-t. A pontos új CI/audit és éles image-frissítés még szükséges; az éles app továbbra 9eb7732, ahol e két indulási funkció inaktív.
+
 Az M-1 eszköz és pontos audit/CI/szintetikus váltás–visszaállítás után a tényleges kiválasztottak friss email–Auth UUID egyezése, aktív/törlésmentes/Shared-adatmentes állapota, a Cloudflare és origin azonos névsora, sikeres saját HTTPS-belépése és az egyszeri költségidőszak kell. Valós providerkulcs/egress/költségfoglalás és teljes paid böngészős folyamat ebben a Contabo-stackben még nincs kipróbálva; ezek a jóváhagyott használati keretből, tényleges kezdéskor ellenőrizhetők.
 
 A Gmail spamhelyzet, az elfogadott zárt kézi újraépítés teljes Supabase-vesztéskor, az izolált hibapróba host-reboot/prod-worker-kill határa és a későbbi Shared-kör kapui megmaradnak. Tesztelő nem kapott új hozzáférést vagy levelet, keret/harmincnapos ablak nem aktiválódott és új alkalmazási providerhívás nulla.

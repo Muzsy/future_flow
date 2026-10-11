@@ -473,6 +473,8 @@ class LifeController {
     private readonly publicContentReviewConfig: PublicReviewJobConfig,
     @Inject('PUBLIC_CONTENT_CURATION_ENABLED')
     private readonly publicContentCurationEnabled: boolean,
+    @Inject('GENERATION_LIMITS')
+    generationLimits: { daily: number; concurrent: number },
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.publicContent = new PublicContentRepository(
@@ -483,14 +485,12 @@ class LifeController {
       repo.db,
       publicForkCheckpointsEnabled,
     );
-    this.lives = new LifeRepository(repo.db, {
-      daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
-      concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
-    });
-    this.scenarios = new ScenarioRepository(repo.db, scenarioVersionsEnabled, {
-      daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
-      concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
-    });
+    this.lives = new LifeRepository(repo.db, generationLimits);
+    this.scenarios = new ScenarioRepository(
+      repo.db,
+      scenarioVersionsEnabled,
+      generationLimits,
+    );
   }
   private async availableBranch(userId: string, id: string) {
     const branch = await this.lives.branch(userId, idSchema.parse(id));
@@ -974,6 +974,10 @@ export async function createApp(
   closedBetaConfig: ClosedBetaConfig = closedBetaConfigFromEnv(),
   closedSiteGate: ClosedSiteGate = createClosedSiteGate(),
 ) {
+  const generationLimits = Object.freeze({
+    daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
+    concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
+  });
   const SharedContextController = createSharedContextController(
     AuthGuard,
     REPOSITORY,
@@ -991,6 +995,7 @@ export async function createApp(
         REPOSITORY,
         personalScenarioConfig,
         publicScenarioConfig,
+        generationLimits,
       ),
       ...createPublicScenarioPublicationControllers(
         AuthGuard,
@@ -1003,6 +1008,7 @@ export async function createApp(
         publicForkPermissionConfig,
         publicationConfig,
         officialPublicationConfig,
+        generationLimits,
       ),
       createPublicationRefreshController(
         AuthGuard,
@@ -1074,6 +1080,7 @@ export async function createApp(
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
+      { provide: 'GENERATION_LIMITS', useValue: generationLimits },
       {
         provide: 'CLOSED_BETA_CONFIG',
         useValue: validateClosedBetaConfig(closedBetaConfig),

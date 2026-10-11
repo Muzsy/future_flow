@@ -35,6 +35,7 @@ export function createPersonalScenarioController(
   token: symbol,
   config: PersonalScenarioConfig,
   publicConfig: PublicScenarioConfig,
+  limits: { daily: number; concurrent: number },
 ): Type {
   @Controller('api/v2/personal-scenarios')
   @UseGuards(guard)
@@ -46,6 +47,7 @@ export function createPersonalScenarioController(
         repo.db,
         config,
         publicConfig,
+        limits,
       );
     }
     @Post('sources/:slug/preview')

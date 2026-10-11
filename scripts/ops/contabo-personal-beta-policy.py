@@ -10,6 +10,7 @@ from copy import deepcopy
 import datetime as dt
 from decimal import Decimal, InvalidOperation
 import hashlib
+from functools import wraps
 import json
 import re
 
@@ -24,6 +25,18 @@ PAID_FLAGS = ('PUBLIC_FORK_PERMISSION_ENABLED', 'PUBLIC_FORK_STARTS_ENABLED',
 REQUEST_KEYS = {'participants', 'openaiKey', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'}
 
 
+def input_errors(function):
+    """Expose a single fail-closed error type without echoing private inputs."""
+    @wraps(function)
+    def bounded(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except (AttributeError, KeyError, TypeError, OverflowError, InvalidOperation):
+            raise ValueError('Malformed personal configuration input') from None
+    return bounded
+
+
+@input_errors
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
 
@@ -35,6 +48,9 @@ def digest(value):
 def email(value):
     if (not isinstance(value, str) or len(value) > 254 or
             not EMAIL.fullmatch(value) or '..' in value):
+        raise ValueError('Canonical bounded email required')
+    local = value.split('@')[0]
+    if len(local) > 64 or local.endswith('.'):
         raise ValueError('Canonical bounded email required')
     return value
 
@@ -48,11 +64,11 @@ def positive_budget(value, ceiling):
         raise ValueError('Exact decimal budget required') from None
     if not 0 < number <= Decimal(ceiling):
         raise ValueError('Approved positive budget required')
-    return value
+    return format(number.normalize(), 'f')
 
 
 def utc(value):
-    if not isinstance(value, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value):
+    if not isinstance(value, str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z', value):
         raise ValueError('Canonical UTC timestamp required')
     try:
         return dt.datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -60,6 +76,7 @@ def utc(value):
         raise ValueError('Canonical UTC timestamp required') from None
 
 
+@input_errors
 def owner_baseline(config, access, flags, now):
     if set(config.get('services', {})) != {'web', 'api', 'worker'}:
         raise ValueError('Exact three-service baseline required')
@@ -73,6 +90,48 @@ def owner_baseline(config, access, flags, now):
         raise ValueError('Inactive owner baseline required')
 
 
+@input_errors
+def reader_candidate(config, access, flags, readers, *, now):
+    """Prepare origin reading/sign-in only; no UUID, key, flag or budget change.
+
+    External Access policy, invites and server-file promotion remain separate.
+    This step permits real first login before paid UUID admission is considered.
+    """
+    if not isinstance(now, dt.datetime) or now.tzinfo != dt.timezone.utc:
+        raise ValueError('UTC operator clock required')
+    owner_baseline(config, access, flags, now)
+    if not isinstance(readers, list) or not 1 <= len(readers) <= 10:
+        raise ValueError('One to ten selected reader emails required')
+    selected = [email(value) for value in readers]
+    if len(set(selected)) != len(selected):
+        raise ValueError('Unique reader emails required')
+    allowed = access['allowedEmails'] + [value for value in selected if value not in access['allowedEmails']]
+    updated = deepcopy(config)
+    for name in ('web', 'api'):
+        updated['services'][name]['environment']['CLOSED_SITE_ALLOWED_EMAILS'] = ','.join(allowed)
+    return updated, {**access, 'allowedEmails': allowed}
+
+
+@input_errors
+def validate_reader_candidate(config, access, flags, readers, rendered, *, now):
+    expected, expected_access = reader_candidate(config, access, flags, readers, now=now)
+    if encoded(rendered) != encoded(expected):
+        raise ValueError('Reader stage differs outside the exact origin email delta')
+    return {'candidateSha256': digest(rendered), 'previousSha256': digest(config),
+            'accessEmailCount': len(expected_access['allowedEmails']),
+            'containersStarted': 0, 'paidAiCalls': 0}
+
+
+@input_errors
+def funded_from_readers(config, access, flags, readers, current, request, *, now, prior_window_count):
+    """Bind syntactic paid pairs to this exact previously prepared reader set."""
+    validate_reader_candidate(config, access, flags, readers, current, now=now)
+    if [participant['email'] for participant in request['participants']] != readers:
+        raise ValueError('Paid identities must exactly match the selected readers')
+    return candidate(config, access, flags, request, now=now, prior_window_count=prior_window_count)
+
+
+@input_errors
 def candidate(config, access, flags, request, *, now, prior_window_count):
     """Return an in-memory exact candidate; never promote it or claim live proof.
 
@@ -106,6 +165,8 @@ def candidate(config, access, flags, request, *, now, prior_window_count):
         raise ValueError('Bounded worker-only provider input required')
     project = positive_budget(request['projectUsd'], '2')
     user_budget = positive_budget(request['userUsd'], '0.5')
+    if Decimal(user_budget) > Decimal(project):
+        raise ValueError('Personal allowance cannot exceed the project allowance')
     start, end = utc(request['startsAt']), utc(request['endsAt'])
     if end - start != dt.timedelta(days=30) or not now <= start <= now + dt.timedelta(minutes=15):
         raise ValueError('One fresh fixed thirty-day window required')

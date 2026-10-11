@@ -36,6 +36,7 @@ export function createPublicForkPermissionControllers(
   config: PublicForkPermissionConfig,
   community: PublicationConfig,
   official: PublicationConfig,
+  limits: { daily: number; concurrent: number },
 ): Type[] {
   @Controller('api/v2/public-fork-permission')
   @UseGuards(guard)
@@ -110,6 +111,7 @@ export function createPublicForkPermissionControllers(
         config,
         community,
         official,
+        limits,
       );
     }
     @Post(':slug')

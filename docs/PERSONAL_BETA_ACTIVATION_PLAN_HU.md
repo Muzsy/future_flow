@@ -15,6 +15,8 @@ Az angol tulajdonosi oldal a Contabón fut. A személyes béta nem pusztán új 
 
 Ez a konfigurációváltó és saját célpróbája még fejlesztési kapu. Az első owner-aktiváló és az image-only frissítő sikeres próbái önmagukban nem igazolják.
 
+A külön policy már olvasói candidate-ot is készít: csak az origin két emaillistája változhat, UUID/kulcs/keret/indulási flag marad inaktív. Ez lehetővé teszi a tényleges első belépést a fizetett UUID-aktiválás előtt. A későbbi fizetett candidate csak az ellenőrzött olvasói névsorhoz egyező identitáspárokból készülhet. Kilenc regresszió sikeres; az éles Access, szerverfájl, manifest és szolgáltatásváltás még nincs bekötve. A [generálási korlát javítása](GENERATION_LIMIT_HARDENING_HU.md) külön igazolt auditfinding, kiadása megelőzi a fizetett starts bekapcsolását.
+
 ## Tényleges résztvevőkhöz kötött sorrend
 
 1. Legfeljebb tíz kifejezetten kiválasztott emailcím. Cloudflare Access és az origin név szerinti listája egyezzen; nyílt signup marad tiltott. Meghívó küldése a konkrét címzettekre szóló üzemeltetői utasítással történik.
