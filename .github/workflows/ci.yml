@@ -29,6 +29,7 @@ jobs:
           node --test tests/ops/fence-operator.test.mjs
           node --test tests/ops/personal-beta-monitor.test.mjs
           node --test tests/ops/personal-beta-admission-observation.test.mjs
+          node --test tests/ops/personal-beta-operator.test.mjs
       - name: Verify root-only reader file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'

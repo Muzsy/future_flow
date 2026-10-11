@@ -48,208 +48,236 @@ export function validateParticipants(participants) {
   return { emails, users };
 }
 
-export function validateObservationRequest(request) {
+// A test factory permits synthetic public fixtures. Production exports below
+// are permanently bound to deployment pins; the target never reads pins from
+// stdin, environment, selection or an operator request.
+export function createAdmissionObserver({
+  seedSha256,
+  legacySha256,
+  databaseSha256,
+}) {
   if (
-    !request ||
-    Object.keys(request).sort().join(',') !==
-      'participants,seedProjectKeys,seedUserKeys'
-  )
-    fail();
-  const { participants, seedProjectKeys, seedUserKeys } = request;
-  const { emails, users } = validateParticipants(participants);
-  if (
-    !Array.isArray(seedProjectKeys) ||
-    seedProjectKeys.length !== 2 ||
-    !Array.isArray(seedUserKeys) ||
-    seedUserKeys.length !== 5 ||
-    [...seedProjectKeys, ...seedUserKeys].some(
-      (k) => typeof k !== 'string' || k.length > 256,
-    ) ||
-    new Set([...seedProjectKeys, ...seedUserKeys]).size !== 7 ||
-    hash({
-      projectKeys: [...seedProjectKeys].sort(),
-      userKeys: [...seedUserKeys].sort(),
-    }) !== SEED_EXCLUSION_SHA256 ||
-    users.some((id) =>
-      seedUserKeys.some((k) => k.startsWith('user:' + id + ':')),
+    [seedSha256, legacySha256, databaseSha256].some(
+      (value) => typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value),
     )
   )
     fail();
-  return { emails, users };
-}
-
-export function validateIdentityRecords(participants, records, observedAt) {
-  validateParticipants(participants);
-  const now = new Date(observedAt).getTime();
-  const fields =
-    'aud,banned_until,deleted_at,deletion_pending,email,email_change,email_confirmed_at,has_shared_membership,has_shared_memory,id,is_anonymous,last_sign_in_at,role,status';
-  if (
-    !observedAt ||
-    !Number.isFinite(now) ||
-    !Array.isArray(records) ||
-    records.length !== participants.length ||
-    records.some(
-      (row) =>
-        !row ||
-        Object.keys(row).sort().join(',') !== fields ||
-        typeof row.email !== 'string',
-    )
-  )
-    fail();
-  for (const pair of participants) {
-    const found = records.filter(
-      (r) => r.id === pair.userId || r.email?.toLowerCase() === pair.email,
-    );
-    if (found.length !== 1) fail();
-    const row = found[0];
-    const confirmed = new Date(row.email_confirmed_at).getTime();
-    const signedIn = new Date(row.last_sign_in_at).getTime();
+  function validateObservationRequest(request) {
     if (
-      row.id !== pair.userId ||
-      row.email?.toLowerCase() !== pair.email ||
-      row.aud !== 'authenticated' ||
-      row.role !== 'authenticated' ||
-      row.is_anonymous !== false ||
-      row.deleted_at !== null ||
-      row.email_change !== '' ||
-      row.status !== 'active' ||
-      row.deletion_pending !== false ||
-      row.has_shared_membership !== false ||
-      row.has_shared_memory !== false ||
-      !row.email_confirmed_at ||
-      !Number.isFinite(confirmed) ||
-      confirmed > now ||
-      !row.last_sign_in_at ||
-      !Number.isFinite(signedIn) ||
-      signedIn > now ||
-      (row.banned_until !== null &&
-        (!Number.isFinite(new Date(row.banned_until).getTime()) ||
-          new Date(row.banned_until).getTime() > now))
+      !request ||
+      Object.keys(request).sort().join(',') !==
+        'participants,seedProjectKeys,seedUserKeys'
     )
       fail();
-  }
-  return hash(participants.map((p) => ({ email: p.email, userId: p.userId })));
-}
-
-export function validateBudgetInventory(
-  request,
-  accounts,
-  unsettledReservations,
-) {
-  validateObservationRequest(request);
-  if (
-    !Array.isArray(accounts) ||
-    accounts.length > 10000 ||
-    unsettledReservations !== 0 ||
-    accounts.some((a) => typeof a.id !== 'string' || a.id.length > 512) ||
-    new Set(accounts.map((a) => a.id)).size !== accounts.length
-  )
-    fail();
-  const excluded = new Set([
-    ...request.seedProjectKeys,
-    ...request.seedUserKeys,
-  ]);
-  if (
-    accounts.filter((a) => excluded.has(a.id)).length !== 7 ||
-    accounts.some((a) => a.id.includes(':window:') && !excluded.has(a.id))
-  )
-    fail();
-  const legacy = accounts
-    .filter((a) => !a.id.includes(':window:'))
-    .map((a) => a.id)
-    .sort();
-  if (legacy.length !== 2 || hash(legacy) !== LEGACY_ACCOUNT_KEYS_SHA256)
-    fail();
-  return {
-    seedAccounts: 7,
-    legacyAccounts: 2,
-    priorWindowAccounts: 0,
-    unsettledReservations: 0,
-  };
-}
-
-// A trusted target adapter must verify TLS/hostname, hold the writer fence,
-// inspect the durable journal and pass the actual connected hostname. None of
-// these authorities is accepted from the operator's selection JSON.
-export async function observePersonalBetaAdmission(
-  client,
-  request,
-  { activationJournalPresent, connectionHostname },
-) {
-  const selection = validateObservationRequest(request);
-  if (
-    activationJournalPresent !== false ||
-    typeof connectionHostname !== 'string' ||
-    connectionHostname.length > 253 ||
-    !/^[a-z0-9.-]+$/.test(connectionHostname)
-  )
-    fail();
-  let started = false;
-  try {
-    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-    started = true;
-    await client.query("SET LOCAL statement_timeout='10s'");
-    await client.query("SET LOCAL timezone='UTC'");
+    const { participants, seedProjectKeys, seedUserKeys } = request;
+    const { emails, users } = validateParticipants(participants);
     if (
-      (await client.query('SHOW transaction_read_only')).rows[0]
-        ?.transaction_read_only !== 'on'
-    )
-      fail();
-    const clock = (
-      await client.query(
-        'SELECT clock_timestamp() AS observed_at,current_database() AS db,session_user AS role',
+      !Array.isArray(seedProjectKeys) ||
+      seedProjectKeys.length !== 2 ||
+      !Array.isArray(seedUserKeys) ||
+      seedUserKeys.length !== 5 ||
+      [...seedProjectKeys, ...seedUserKeys].some(
+        (k) => typeof k !== 'string' || k.length > 256,
+      ) ||
+      new Set([...seedProjectKeys, ...seedUserKeys]).size !== 7 ||
+      hash({
+        projectKeys: [...seedProjectKeys].sort(),
+        userKeys: [...seedUserKeys].sort(),
+      }) !== seedSha256 ||
+      users.some((id) =>
+        seedUserKeys.some((k) => k.startsWith('user:' + id + ':')),
       )
-    ).rows[0];
-    const observedAt = clock.observed_at;
-    const databaseIdentitySha256 = hash([
-      connectionHostname,
-      clock.db,
-      clock.role,
+    )
+      fail();
+    return { emails, users };
+  }
+
+  function validateIdentityRecords(participants, records, observedAt) {
+    validateParticipants(participants);
+    const now = new Date(observedAt).getTime();
+    const fields =
+      'aud,banned_until,deleted_at,deletion_pending,email,email_change,email_confirmed_at,has_shared_membership,has_shared_memory,id,is_anonymous,last_sign_in_at,role,status';
+    if (
+      !observedAt ||
+      !Number.isFinite(now) ||
+      !Array.isArray(records) ||
+      records.length !== participants.length ||
+      records.some(
+        (row) =>
+          !row ||
+          Object.keys(row).sort().join(',') !== fields ||
+          typeof row.email !== 'string',
+      )
+    )
+      fail();
+    for (const pair of participants) {
+      const found = records.filter(
+        (r) => r.id === pair.userId || r.email?.toLowerCase() === pair.email,
+      );
+      if (found.length !== 1) fail();
+      const row = found[0];
+      const confirmed = new Date(row.email_confirmed_at).getTime();
+      const signedIn = new Date(row.last_sign_in_at).getTime();
+      if (
+        row.id !== pair.userId ||
+        row.email?.toLowerCase() !== pair.email ||
+        row.aud !== 'authenticated' ||
+        row.role !== 'authenticated' ||
+        row.is_anonymous !== false ||
+        row.deleted_at !== null ||
+        row.email_change !== '' ||
+        row.status !== 'active' ||
+        row.deletion_pending !== false ||
+        row.has_shared_membership !== false ||
+        row.has_shared_memory !== false ||
+        !row.email_confirmed_at ||
+        !Number.isFinite(confirmed) ||
+        confirmed > now ||
+        !row.last_sign_in_at ||
+        !Number.isFinite(signedIn) ||
+        signedIn > now ||
+        (row.banned_until !== null &&
+          (!Number.isFinite(new Date(row.banned_until).getTime()) ||
+            new Date(row.banned_until).getTime() > now))
+      )
+        fail();
+    }
+    return hash(
+      participants.map((p) => ({ email: p.email, userId: p.userId })),
+    );
+  }
+
+  function validateBudgetInventory(request, accounts, unsettledReservations) {
+    validateObservationRequest(request);
+    if (
+      !Array.isArray(accounts) ||
+      accounts.length > 10000 ||
+      unsettledReservations !== 0 ||
+      accounts.some((a) => typeof a.id !== 'string' || a.id.length > 512) ||
+      new Set(accounts.map((a) => a.id)).size !== accounts.length
+    )
+      fail();
+    const excluded = new Set([
+      ...request.seedProjectKeys,
+      ...request.seedUserKeys,
     ]);
-    if (databaseIdentitySha256 !== DATABASE_IDENTITY_SHA256) fail();
-    const identities = (
-      await client.query(
-        `SELECT u.id,u.email,u.aud,u.role,u.is_anonymous,u.deleted_at,
+    if (
+      accounts.filter((a) => excluded.has(a.id)).length !== 7 ||
+      accounts.some((a) => a.id.includes(':window:') && !excluded.has(a.id))
+    )
+      fail();
+    const legacy = accounts
+      .filter((a) => !a.id.includes(':window:'))
+      .map((a) => a.id)
+      .sort();
+    if (legacy.length !== 2 || hash(legacy) !== legacySha256) fail();
+    return {
+      seedAccounts: 7,
+      legacyAccounts: 2,
+      priorWindowAccounts: 0,
+      unsettledReservations: 0,
+    };
+  }
+
+  // A trusted target adapter must verify TLS/hostname, hold the writer fence,
+  // inspect the durable journal and pass the actual connected hostname. None of
+  // these authorities is accepted from the operator's selection JSON.
+  async function observePersonalBetaAdmission(
+    client,
+    request,
+    { activationJournalPresent, connectionHostname },
+  ) {
+    const selection = validateObservationRequest(request);
+    if (
+      activationJournalPresent !== false ||
+      typeof connectionHostname !== 'string' ||
+      connectionHostname.length > 253 ||
+      !/^[a-z0-9.-]+$/.test(connectionHostname)
+    )
+      fail();
+    let started = false;
+    try {
+      await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      started = true;
+      await client.query("SET LOCAL statement_timeout='10s'");
+      await client.query("SET LOCAL timezone='UTC'");
+      if (
+        (await client.query('SHOW transaction_read_only')).rows[0]
+          ?.transaction_read_only !== 'on'
+      )
+        fail();
+      const clock = (
+        await client.query(
+          'SELECT clock_timestamp() AS observed_at,current_database() AS db,session_user AS role',
+        )
+      ).rows[0];
+      const observedAt = clock.observed_at;
+      const databaseIdentitySha256 = hash([
+        connectionHostname,
+        clock.db,
+        clock.role,
+      ]);
+      if (databaseIdentitySha256 !== databaseSha256) fail();
+      const identities = (
+        await client.query(
+          `SELECT u.id,u.email,u.aud,u.role,u.is_anonymous,u.deleted_at,
       u.email_confirmed_at,u.last_sign_in_at,u.banned_until,coalesce(u.email_change,'') AS email_change,f.status,
       EXISTS(SELECT 1 FROM public.aw_account_deletions d WHERE d.user_id=u.id) AS deletion_pending,
       EXISTS(SELECT 1 FROM public.aw_shared_members m WHERE m.user_id=u.id) AS has_shared_membership,
       EXISTS(SELECT 1 FROM public.aw_shared_personal_memories m WHERE m.user_id=u.id) AS has_shared_memory
       FROM auth.users u LEFT JOIN public.ff_users f ON f.id=u.id
       WHERE u.id=ANY($1::uuid[]) OR lower(u.email)=ANY($2::text[]) LIMIT 21`,
-        [selection.users, selection.emails],
-      )
-    ).rows;
-    const identityBindingSha256 = validateIdentityRecords(
-      request.participants,
-      identities,
-      observedAt,
-    );
-    const accounts = (
-      await client.query(
-        'SELECT id FROM public.aw_budget_accounts ORDER BY id LIMIT 10001',
-      )
-    ).rows;
-    const unsettled = (
-      await client.query(
-        "SELECT count(*)::int AS count FROM public.aw_budget_reservations WHERE status<>'completed'",
-      )
-    ).rows[0].count;
-    const budget = validateBudgetInventory(request, accounts, unsettled);
-    await client.query('COMMIT');
-    started = false;
-    return {
-      observedAt: new Date(observedAt).toISOString(),
-      participantCount: selection.users.length,
-      identityBindingSha256,
-      databaseIdentitySha256,
-      ...budget,
-      activationJournalAbsent: true,
-      databaseWrites: 0,
-      providerApiCalls: 0,
-    };
-  } catch {
-    fail();
-  } finally {
-    if (started) await client.query('ROLLBACK').catch(() => {});
+          [selection.users, selection.emails],
+        )
+      ).rows;
+      const identityBindingSha256 = validateIdentityRecords(
+        request.participants,
+        identities,
+        observedAt,
+      );
+      const accounts = (
+        await client.query(
+          'SELECT id FROM public.aw_budget_accounts ORDER BY id LIMIT 10001',
+        )
+      ).rows;
+      const unsettled = (
+        await client.query(
+          "SELECT count(*)::int AS count FROM public.aw_budget_reservations WHERE status<>'completed'",
+        )
+      ).rows[0].count;
+      const budget = validateBudgetInventory(request, accounts, unsettled);
+      await client.query('COMMIT');
+      started = false;
+      return {
+        observedAt: new Date(observedAt).toISOString(),
+        participantCount: selection.users.length,
+        identityBindingSha256,
+        databaseIdentitySha256,
+        ...budget,
+        activationJournalAbsent: true,
+        databaseWrites: 0,
+        providerApiCalls: 0,
+      };
+    } catch {
+      fail();
+    } finally {
+      if (started) await client.query('ROLLBACK').catch(() => {});
+    }
   }
+  return Object.freeze({
+    validateObservationRequest,
+    validateIdentityRecords,
+    validateBudgetInventory,
+    observePersonalBetaAdmission,
+  });
 }
+export const {
+  validateObservationRequest,
+  validateIdentityRecords,
+  validateBudgetInventory,
+  observePersonalBetaAdmission,
+} = createAdmissionObserver({
+  seedSha256: SEED_EXCLUSION_SHA256,
+  legacySha256: LEGACY_ACCOUNT_KEYS_SHA256,
+  databaseSha256: DATABASE_IDENTITY_SHA256,
+});

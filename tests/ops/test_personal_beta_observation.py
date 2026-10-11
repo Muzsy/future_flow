@@ -52,19 +52,20 @@ class PersonalObservationTests(unittest.TestCase):
             'databaseTlsVerified': True, 'databaseTlsHostnameVerified': True,
             'priorWindowAccounts': 0, 'unsettledReservations': 0, 'databaseWrites': 0, 'providerApiCalls': 0}
 
-    def observe(self, patch_proof=None, stopped=None, journal=False):
+    def observe(self, patch_proof=None, stopped=None, journal=False, manifests=None,
+                quiet_before=None, quiet_after=None, selection=None, source=None, ids=None):
         proof = {**self.proof, **(patch_proof or {})}
         quiet = {'databaseTlsVerified': True, 'pendingJobs': 0, 'liveLeases': 0, 'foreignActiveSessions': 0}
-        with patch.object(observer.fence, 'original', return_value=self.manifest), \
+        with patch.object(observer.fence, 'original', side_effect=manifests or [self.manifest, self.manifest]), \
              patch.object(Path, 'exists', return_value=journal), \
              patch.object(Path, 'is_symlink', return_value=False), \
-             patch.object(observer, 'project_ids', return_value=self.ids), \
+             patch.object(observer, 'project_ids', return_value=self.ids if ids is None else ids), \
              patch.object(observer, 'docker', return_value=types.SimpleNamespace(stdout=json.dumps(stopped or self.stopped))), \
-             patch.object(observer, 'run', side_effect=[types.SimpleNamespace(stdout=json.dumps(quiet)),
+             patch.object(observer, 'run', side_effect=[types.SimpleNamespace(stdout=json.dumps(quiet if quiet_before is None else quiet_before)),
                                                        types.SimpleNamespace(stdout=json.dumps(proof)),
-                                                       types.SimpleNamespace(stdout=json.dumps(quiet))]) as run:
-            result = observer.observe_held(self.selection, original=self.original,
-                           manifest_digest=self.digest, probe_source='// explicit fixture probe seam')
+                                                       types.SimpleNamespace(stdout=json.dumps(quiet if quiet_after is None else quiet_after))]) as run:
+            result = observer.observe_held(self.selection if selection is None else selection, original=self.original,
+                           manifest_digest=self.digest, probe_source='// explicit fixture probe seam' if source is None else source)
             self.assertEqual(run.call_count, 3)
             for call in run.call_args_list:
                 self.assertIn('--no-deps', call.args[0])
@@ -77,12 +78,14 @@ class PersonalObservationTests(unittest.TestCase):
         self.assertEqual(result['manifestDigest'], self.digest)
 
     def test_any_running_or_drifted_service_prevents_observation(self):
-        for mutation in ['running', 'restart', 'configuration']:
+        for mutation in ['running', 'restart', 'configuration', 'status']:
             values = copy.deepcopy(self.stopped)
             if mutation == 'running':
                 values[0]['State'].update(Status='running', Running=True)
             elif mutation == 'restart':
                 values[0]['RestartCount'] = 1
+            elif mutation == 'status':
+                values[0]['State']['Status'] = 'dead'
             else:
                 values[0]['HostConfig']['Memory'] = 999
             with self.assertRaises(ValueError):
@@ -91,6 +94,31 @@ class PersonalObservationTests(unittest.TestCase):
     def test_existing_activation_intent_cannot_be_ignored(self):
         with self.assertRaises(ValueError):
             self.observe(journal=True)
+
+    def test_manifest_and_membership_drift_before_or_after_probes_refuses(self):
+        for manifests in [[b'changed'], [self.manifest, b'changed']]:
+            with self.subTest(manifests=manifests), self.assertRaises(ValueError):
+                self.observe(manifests=manifests)
+        with self.assertRaises(ValueError):
+            self.observe(ids=self.ids + ['f' * 64])
+
+    def test_queue_lease_or_foreign_writer_activity_before_or_after_refuses(self):
+        quiet = {'databaseTlsVerified': True, 'pendingJobs': 0, 'liveLeases': 0, 'foreignActiveSessions': 0}
+        for field in ['pendingJobs', 'liveLeases', 'foreignActiveSessions', 'databaseTlsVerified']:
+            dirty = {**quiet, field: False if field == 'databaseTlsVerified' else 1}
+            for side in ['quiet_before', 'quiet_after']:
+                with self.subTest(field=field, side=side), self.assertRaises(ValueError):
+                    self.observe(**{side: dirty})
+
+    def test_unbounded_or_extra_authority_cannot_reach_the_probe(self):
+        for selection in [{}, {**self.selection, 'writerFenceHeld': True},
+                          {**self.selection, 'participants': []},
+                          {**self.selection, 'participants': self.selection['participants'] * 11},
+                          {**self.selection, 'seedUserKeys': ['a' * 8192]}]:
+            with self.subTest(selection=selection.keys()), self.assertRaises(ValueError):
+                self.observe(selection=selection)
+        with self.assertRaises(ValueError):
+            self.observe(source='a' * (128 * 1024 + 1))
 
     def test_stale_mixed_wrong_database_or_nonzero_window_proofs_are_refused(self):
         for changes in [{'observedAt': '2020-01-01T00:00:00Z'}, {'participantCount': True},

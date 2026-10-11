@@ -351,6 +351,7 @@ def extended_config_archive(proxy):
     paths += [ROOT / 'config.json']
     paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
     paths += reader_config_paths()
+    paths += personal_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -370,6 +371,35 @@ def extended_config_archive(proxy):
 
 
 READER_ARCHIVE_POLICY_VERSION = 1
+PERSONAL_ARCHIVE_POLICY_VERSION = 1
+
+
+def personal_config_paths():
+    """Exact personal preparation/journal files, including interrupted evidence.
+
+    The ORIGINAL zero bytes stay in the separately captured reader original.
+    Provider credentials are captured only inside the existing encrypted config
+    archive, never in health status, a new authority file or a public report.
+    """
+    path = OWNER / 'personal-beta'
+    if not path.exists() and not path.is_symlink():
+        return []
+    info = path.lstat()
+    if (path.resolve() != path.absolute() or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Original private personal configuration directory required')
+    names = {'server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json',
+             'terms.json', 'prepared.json', 'transition.json', 'journal.json', 'observation.json'}
+    files = []
+    interrupted = 0
+    for item in path.iterdir():
+        if item.name not in names:
+            if not re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name) or interrupted >= 8:
+                raise ValueError('Unexpected personal preparation artifact')
+            interrupted += 1
+        regular(item)
+        files.append(item)
+    return sorted(files)
 
 
 def reader_config_paths():

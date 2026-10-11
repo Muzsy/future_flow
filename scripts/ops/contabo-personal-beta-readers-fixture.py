@@ -25,7 +25,7 @@ import alterward_backup as backup
 LABEL = 'com.alterward.reader-fixture'
 
 
-def main(request):
+def main(request, continuation=None):
     image = request['buildProof']['imageId']
     if os.geteuid() != 0 or not re.fullmatch(r'sha256:[a-f0-9]{64}', image):
         raise ValueError('Root pinned isolated reader fixture required')
@@ -88,6 +88,8 @@ def main(request):
         activation.CA = upgrade.CA = ca
         readers.STATE = owner / 'personal-beta-readers'
         text = "DATABASE_URL='postgresql://synthetic_unused'\nCLOSED_SITE_ALLOWED_EMAILS='owner@example.invalid'\nOPENAI_API_KEY='" + policy.SENTINEL + "'\n"
+        text += ''.join(name + "='" + value + "'\n" for name, value in flags.items()
+                        if name not in {'OPENAI_API_KEY', 'CLOSED_SITE_ALLOWED_EMAILS'})
         for name, data in [('server.env', text.encode()), ('pinned-image.json', b'{}\n'),
                            ('effective-compose.json', activation.frozen(config))]:
             readers.durable_file(owner / name, data)
@@ -130,6 +132,7 @@ def main(request):
             success = readers.apply(local, daily, policy)
             if success['configurationMode'] != 'readers' or success['paidAiCalls'] != 0:
                 raise ValueError('Reader fixture promotion missing')
+            continuation_result = continuation(local, daily, config, image, initial) if continuation else {}
             # Emergency recovery deliberately gets unreadable candidate bytes.
             upgrade.atomic_private(readers.STATE / 'effective-compose.json', b'corrupt candidate\n')
             disabled = readers.disable(local)
@@ -161,6 +164,7 @@ def main(request):
                       'fixtureScope': 'isolated-unpaid-files-and-services',
                       'databaseSourceRenderAndProxyDiscoverySubstituted': True,
                       'cloudflareOrAuthVerified': False, 'paidAiCalls': 0, 'liveDatabaseWrites': 0}
+            result.update(continuation_result)
         finally:
             members = target.docker('ps', '-aq', '--filter', 'label=' + LABEL + '=' + nonce).stdout.decode().split()
             if members:
