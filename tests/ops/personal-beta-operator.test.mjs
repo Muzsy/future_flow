@@ -101,6 +101,8 @@ test('operator helpers inherit only OS paths, never provider, database or Auth c
       Path: 'safe_os_path',
       SystemRoot: 'safe_os_root',
       LOCALAPPDATA: 'safe_user_appdata',
+      ProgramData: 'safe_system_appdata',
+      ALLUSERSPROFILE: 'safe_system_profile',
       TEMP: 'safe_temp',
       OPENAI_API_KEY: 'synthetic_provider',
       ANTHROPIC_API_KEY: 'synthetic_claude',
@@ -113,6 +115,8 @@ test('operator helpers inherit only OS paths, never provider, database or Auth c
       Path: 'safe_os_path',
       SystemRoot: 'safe_os_root',
       LOCALAPPDATA: 'safe_user_appdata',
+      ProgramData: 'safe_system_appdata',
+      ALLUSERSPROFILE: 'safe_system_profile',
       TEMP: 'safe_temp',
     },
   );

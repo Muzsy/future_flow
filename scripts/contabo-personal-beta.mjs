@@ -15,6 +15,8 @@ export function operatorChildEnvironment(environment) {
     'USERPROFILE',
     'APPDATA',
     'LOCALAPPDATA',
+    'PROGRAMDATA',
+    'ALLUSERSPROFILE',
     'TEMP',
     'TMP',
     'HOME',
@@ -415,6 +417,9 @@ except BaseException:
       env: childEnvironment,
     },
   );
+  // An early SSH refusal rejects the awaited process; do not let its closed
+  // input pipe turn that safe refusal into an unhandled Node socket error.
+  pending.child.stdin.on('error', () => {});
   pending.child.stdin.end(JSON.stringify({ names, bundle, request }));
   const result = JSON.parse((await pending).stdout);
   if (result.ok !== true) throw Error('Personal beta operator failed');
