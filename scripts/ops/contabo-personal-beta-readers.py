@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import sys
 
 from alterward_backup import private_directory
@@ -31,7 +32,28 @@ def durable_file(path, data):
         if fence.original(path) != data:
             raise ValueError('Existing durable reader file differs')
     else:
+        parent = path.parent.lstat()
+        if (path.parent.resolve() != path.parent or not stat.S_ISDIR(parent.st_mode) or
+                parent.st_uid != 0 or stat.S_IMODE(parent.st_mode) != 0o700):
+            raise ValueError('Original private reader parent required')
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+
+
+def update_durable(path, data):
+    if path.exists() or path.is_symlink():
+        fence.original(path)
         upgrade.atomic_private(path, data)
+    else:
+        durable_file(path, data)
 
 
 def transition(*, record, stop, held, start, verify, promote, restore, verify_zero):
@@ -279,7 +301,7 @@ def apply(request, daily, policy):
     foreign = upgrade.foreign_state()
     context = {**value, 'foreignContainers': foreign}
     def record(state):
-        upgrade.atomic_private(STATE / 'journal.json', encoded({'state': state,
+        update_durable(STATE / 'journal.json', encoded({'state': state,
                                'preparedSha256': sha(encoded(value)),
                                'changedAt': daily.utcnow().isoformat()}))
     def held():
@@ -323,7 +345,7 @@ def disable(request):
             raise ValueError('No verified foreign runtime baseline; keep writers stopped')
         restore_zero(request)
         stage = verify_zero(request, foreign)
-        upgrade.atomic_private(STATE / 'journal.json', encoded({'state': 'disabled',
+        update_durable(STATE / 'journal.json', encoded({'state': 'disabled',
                                'changedAt': dt.datetime.now(dt.timezone.utc).isoformat()}))
         return {**stage, 'zeroBaselineRestored': True, 'paidAiCalls': 0,
                 'betaWindowActive': False, 'requiresExternalAccessReview': True}

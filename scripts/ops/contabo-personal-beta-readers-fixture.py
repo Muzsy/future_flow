@@ -90,7 +90,7 @@ def main(request):
         text = "DATABASE_URL='postgresql://synthetic_unused'\nCLOSED_SITE_ALLOWED_EMAILS='owner@example.invalid'\nOPENAI_API_KEY='" + policy.SENTINEL + "'\n"
         for name, data in [('server.env', text.encode()), ('pinned-image.json', b'{}\n'),
                            ('effective-compose.json', activation.frozen(config))]:
-            upgrade.atomic_private(owner / name, data)
+            readers.durable_file(owner / name, data)
         config = json.loads(target.run(upgrade.compose(owner / 'effective-compose.json') +
                                        ['config', '--format', 'json']).stdout)
         upgrade.atomic_private(owner / 'effective-compose.json', activation.frozen(config))
@@ -100,7 +100,7 @@ def main(request):
                     'sourceComposeSha256': activation.source_hash(source),
                     'databaseCaSha256': activation.sha(ca.read_bytes()),
                     'accessConfigurationSha256': activation.sha(activation.encoded(access))}
-        upgrade.atomic_private(owner / 'manifest.json', activation.encoded(manifest))
+        readers.durable_file(owner / 'manifest.json', activation.encoded(manifest))
         stage = {**manifest, 'upgraded': True, 'imageOnly': True, 'runningServices': 3,
                  'paidAiCalls': 0, 'betaWindowActive': False}
         def fixture_render(_source, path):

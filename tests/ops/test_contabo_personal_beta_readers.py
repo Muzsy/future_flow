@@ -116,7 +116,7 @@ class ReaderTransactionTests(unittest.TestCase):
              patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
              patch.object(readers, 'restore_zero', side_effect=lambda req: events.append('restore')), \
              patch.object(readers, 'verify_zero', side_effect=lambda req, other: {'paidAiCalls': 0}), \
-             patch.object(readers.upgrade, 'atomic_private'):
+             patch.object(readers, 'update_durable'):
             result = readers.disable({'ownerAccess': 'original receipt only'})
         self.assertEqual(events, ['stop', 'restore'])
         self.assertTrue(result['zeroBaselineRestored'])
