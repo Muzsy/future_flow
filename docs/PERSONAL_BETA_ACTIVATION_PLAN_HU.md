@@ -41,3 +41,7 @@ Az olvasói váltó pontos forrásauditja/CI-je, Linux/inert célpróbája, Dail
 ## 2026-10-11 17:45 UTC — funded vezérlő forrása elkészült
 
 A [személyes operátor](PERSONAL_BETA_OPERATOR_HU.md) implementált: napi/aktiválási lock, tényleges reader-baseline és original-zero bytekötés, friss held megfigyelés közvetlenül promotion előtt, egyszeri sticky exposure-journal, hibánál eredeti nulla-visszaállás, candidate-től független disable és kötelező konkrét offsite-restore proof. A Node loader pontos git-forrást, audit/CI/fixture-t kér; provider csak workerbe, legfeljebb 2 USD / 0,50 USD/user és egyszeri 30 nap. A fizikai fixture, új Daily archive-policy és végső fork/capability ellenőrzés még kiadási feladat. Valódi felhasználó, meghívás, éles keret és window nincs aktiválva.
+
+## 2026-10-11 21:01 UTC — előkészítési szakasz lezárva
+
+A [lezáró jelentés](PERSONAL_BETA_PREPARATION_CLOSURE_HU.md) a legfrissebb állapot. Az általános műszaki kapuk lezárva: értékelt Claude133, pontos CI, inert Docker-váltás/visszaállás, 82 Linux-próba, telepített személyes archívum/riasztási policy, friss mentés/offsite restore és kilenc health/külső monitor. A korábbi M-1/funded implementációs hiány megszűnt; a konkrét résztvevői L-1/held Auth/budget és első valódi paid folyamat a tényleges aktiváláskor ellenőrizhető. Tesztelőlista, meghívás és első belépés hiányában a béta nincs megnyitva, használati ablak és keret nem aktív. A korábbi bejegyzések történetiek.
