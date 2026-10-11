@@ -12,7 +12,7 @@
 
 ## Aktuális kiadási sorrend a tesztelők előtt
 
-2026-10-11: a [külön root plan/drill transport és v2 Auth/fence-envelope](WRITER_FENCE_TRANSPORT_HU.md) helyben elkészült, 16 Python + 9 TS célpróba és scripts TypeScript sikeres. A d1daf30 előellenőrzés pontos CI-je és Claude-auditja sikeres; két kisebb finding javítva. A transport pontos auditja/CI-je/Contabo-próbája következik. A tényleges held-recovery replay kötés és a teljes biztonsági katalógus továbbra kapu.
+2026-10-11 02:17 UTC: a [külön root plan/drill transport és v2 Auth/fence-envelope](WRITER_FENCE_TRANSPORT_HU.md) verziózott Windows-operátorral bővült. A 8ae699b teljes CI-je és statikus Claude-auditja sikeres; négy kisebb megszakítási finding javítása elkészült. A javítás 19 Python célpróbájából 18 sikeres, egy POSIX-próba Windows alatt kihagyott. Az első új transport-plan a Supabase-cím nyers fájlban keresése miatt megállítás előtt elutasított; a három szolgáltatás tovább futott. Az összeállított, már ellenőrzött API-környezet használatával javított, tíz forrásfájlhoz kötött változat auditja/CI-je/tényleges plan és drill próbája következik. A tényleges held-recovery replay kötés és a teljes biztonsági katalógus továbbra kapu.
 
 2026-10-11 01:48 UTC: a 16505bb pontos CI-je, Contabo izolált replay/verifier és Claude-forrásaudit sikeres. Az elfogadott teljes Supabase-vesztési béta-korlát érvényes. A kisebb auditmegállapítások alapján szigorított Auth-megfigyelő és a [root writer-fence előellenőrzése](WRITER_FENCE_PREFLIGHT_HU.md) elkészült; a fizikai stop/capture/held binding és a teljes biztonsági katalógus még kapu. Ezután béta-kompatibilis runtime-monitor, célzott hibapróbák és végső kiadási audit következik. Meghívottak és harmincnapos AI-keret még inaktívak.
 

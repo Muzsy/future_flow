@@ -4,6 +4,7 @@ The public CLI intentionally exposes plan only until the capture/held-fence
 transport is audited. Plan never stops services or emits a restorable authority.
 """
 import copy
+import contextlib
 import hashlib
 import json
 import os
@@ -57,7 +58,7 @@ def quiet(proof):
 
 
 def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
-              settle, checkpoint):
+              settle, checkpoint, cleanup=contextlib.nullcontext):
     """Callbacks are the root transport boundary, never a web request handler.
 
     Capture must return an encrypted bundle with a stable state digest. Recovery
@@ -116,6 +117,55 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
                 raise ValueError('Stopped original writer changed')
         return current
 
+    def finish():
+        if stopped and mode == 'drill':
+            held = unchanged_stopped(allow_unstopped=True)
+            for name in reversed(stopped):
+                if not held[original[name]['Id']]['State']['Running']:
+                    start(original[name]['Id'])
+            if not verify():
+                raise ValueError('Owner resume and origin boundary not verified')
+            resumed = inspect()
+            if {key: runtime(value) for key, value in resumed.items() if key not in own} != foreign or any(
+                    not resumed[item['Id']]['State']['Running'] or identity(resumed[item['Id']]) != identity(item)
+                    for item in original.values()):
+                raise ValueError('Original resume identities changed')
+            record('drill-resumed', own_values(resumed))
+        elif stopped and mode == 'recovery':
+            # A late queue failure must not leave the worker writing while
+            # ingress is held. Do not attempt a restart even on an exception.
+            # Drift must invalidate the proof, not prevent stopping a known
+            # original writer. Stop attempts are scoped by immutable Id/image/
+            # ownership; even a foreign restart cannot leave our worker live.
+            try:
+                current = inspect()
+            except Exception:
+                # Losing a listing must not skip the original stop attempts.
+                # An immutable original Id cannot become a replacement Id.
+                for name in SERVICES:
+                    try:
+                        stop(original[name]['Id'])
+                    except Exception:
+                        pass
+                raise ValueError('Recovery listing unavailable; hold remains unverified')
+            errors = []
+            for name in SERVICES:
+                item = current.get(original[name]['Id'])
+                if (not item or item['Image'] != original[name]['Image'] or
+                        item['Config'].get('Labels') != original[name]['Config'].get('Labels')):
+                    errors.append('Original stop ownership changed')
+                    continue
+                if item['State']['Running']:
+                    if name not in stopped:
+                        stopped.append(name)
+                    try:
+                        stop(original[name]['Id'])
+                    except Exception:
+                        errors.append('Original stop attempt failed')
+            if errors:
+                raise ValueError('Recovery hold could not be verified')
+            record('recovery-held', own_values(unchanged_stopped()))
+
     try:
         record('stopping', original)
         for name in ('web', 'api'):
@@ -151,48 +201,14 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         result = second
         record('captured-held', own_values(unchanged_stopped()))
     finally:
-        if stopped and mode == 'drill':
-            held = unchanged_stopped(allow_unstopped=True)
-            for name in reversed(stopped):
-                if not held[original[name]['Id']]['State']['Running']:
-                    start(original[name]['Id'])
-            if not verify():
-                raise ValueError('Owner resume and origin boundary not verified')
-            resumed = inspect()
-            if {key: runtime(value) for key, value in resumed.items() if key not in own} != foreign or any(
-                    not resumed[item['Id']]['State']['Running'] or identity(resumed[item['Id']]) != identity(item)
-                    for item in original.values()):
-                raise ValueError('Original resume identities changed')
-            record('drill-resumed', own_values(resumed))
-        elif stopped and mode == 'recovery':
-            # A late queue failure must not leave the worker writing while
-            # ingress is held. Do not attempt a restart even on an exception.
-            # Drift must invalidate the proof, not prevent stopping a known
-            # original writer. Stop attempts are scoped by immutable Id/image/
-            # ownership; even a foreign restart cannot leave our worker live.
-            current = inspect()
-            errors = []
-            for name in SERVICES:
-                item = current.get(original[name]['Id'])
-                if (not item or item['Image'] != original[name]['Image'] or
-                        item['Config'].get('Labels') != original[name]['Config'].get('Labels')):
-                    errors.append('Original stop ownership changed')
-                    continue
-                if item['State']['Running']:
-                    if name not in stopped:
-                        stopped.append(name)
-                    try:
-                        stop(original[name]['Id'])
-                    except Exception:
-                        errors.append('Original stop attempt failed')
-            if errors:
-                raise ValueError('Recovery hold could not be verified')
-            record('recovery-held', own_values(unchanged_stopped()))
+        with cleanup():
+            finish()
     if result is None:
         raise ValueError('No verified authority produced')
     return {**result, 'serviceActivationAllowed': False,
             'replayEligibleWhileFenceHeld': mode == 'recovery',
             'drillResumed': mode == 'drill'}
+
 
 
 def original(path):

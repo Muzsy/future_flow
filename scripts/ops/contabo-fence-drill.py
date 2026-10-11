@@ -1,5 +1,6 @@
 """Root-only, scoped writer-fence drill. No production replay or activation."""
 import base64
+import contextlib
 import datetime as dt
 import hashlib
 import json
@@ -17,6 +18,7 @@ STATE = ROOT / 'writer-fence'
 LABEL = 'com.alterward.writer-fence'
 ENGINE = 'scripts/ops/contabo-writer-fence.py'
 EXECUTOR = 'scripts/ops/contabo-fence-drill.py'
+CLIENT = 'scripts/contabo-fence-operator.mjs'
 NODE_FILES = {
     'scripts/capture-privacy-authority.ts', 'scripts/lib/privacy-fence-envelope.ts',
     'scripts/lib/verified-privacy-authority.ts', 'scripts/lib/privacy-restore.ts',
@@ -25,14 +27,55 @@ NODE_FILES = {
 }
 OWNER_COMMIT = '9eb7732b69e84583cf7e63c237763b51b9bb4eab'
 OWNER_IMAGE = 'sha256:da00119b4257a0def0fde3bc9fe80fe09697f554fea8286f6bba600be621a4f3'
+PHASE = 'validation'
+
+
+def interrupt_signals():
+    return {getattr(signal,name) for name in ('SIGTERM','SIGINT','SIGHUP','SIGALRM') if hasattr(signal,name)}
+
+
+def install_interrupt_handlers():
+    def cancel(_number,_frame):
+        # One interruption initiates cleanup. Further signals cannot interrupt
+        # reverse resume or remove a helper halfway through that cleanup.
+        for number in interrupt_signals():
+            signal.signal(number,signal.SIG_IGN)
+        raise KeyboardInterrupt()
+    for number in interrupt_signals():
+        signal.signal(number,cancel)
+
+
+@contextlib.contextmanager
+def protected_cleanup():
+    old=signal.pthread_sigmask(signal.SIG_BLOCK,interrupt_signals())
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK,old)
+
+
+@contextlib.contextmanager
+def memory_scratch(prefix):
+    directory=tempfile.TemporaryDirectory(prefix=prefix,dir='/run')
+    try:
+        yield directory.name
+    finally:
+        with protected_cleanup():
+            directory.cleanup()
 
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
+def original_services(services):
+    return {name:{'id':c['Id'],'image':c['Image'],'startedAt':c['State']['StartedAt'],
+                  'restarts':c['RestartCount'],'restartPolicy':c['HostConfig']['RestartPolicy']['Name']}
+            for name,c in services.items()}
+
+
 def sources(request):
-    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR}:
+    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT}:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
     for name, value in request['files'].items():
@@ -46,6 +89,7 @@ def sources(request):
 
 
 def main(request):
+    global PHASE
     os.umask(0o077)
     if (os.geteuid() != 0 or set(request) != {'mode', 'sourceCommit', 'ownerManifestDigest', 'files'} or
             request['mode'] not in {'plan','drill'} or not re.fullmatch('[a-f0-9]{40}', request['sourceCommit']) or
@@ -54,12 +98,17 @@ def main(request):
     files = sources(request)
     if hashlib.sha256(files[EXECUTOR]).hexdigest() != globals().get('__operator_source_sha256__'):
         raise ValueError('Executing transport source differs')
+    if hashlib.sha256(files[CLIENT]).hexdigest() != globals().get('__operator_client_sha256__'):
+        raise ValueError('Executing client source differs')
     fence = types.ModuleType('alterward_fence')
     exec(compile(files[ENGINE], '<reviewed-writer-fence>', 'exec'), fence.__dict__)
+    PHASE = 'installed-source'
     daily = fence.installed_daily()
     for path in (fence.DAILY/'job.lock', fence.OWNER/'activation.lock'):
         fence.original(path)
+    PHASE = 'locks'
     with daily.exclusive(fence.DAILY/'job.lock'), daily.exclusive(fence.OWNER/'activation.lock'):
+        PHASE = 'owner-runtime'
         if hashlib.sha256(fence.original(fence.OWNER/'manifest.json')).hexdigest() != request['ownerManifestDigest']:
             raise ValueError('Original owner manifest differs')
         manifest, services = daily.owner_runtime()
@@ -76,12 +125,17 @@ def main(request):
             previous = json.loads(fence.original(pointer))
             if not ((previous.get('mode') == 'drill' and previous.get('stage') == 'drill-resumed') or
                     (previous.get('mode') == 'plan' and previous.get('stage') == 'plan-complete' and
-                     previous.get('writerFenceEstablished') is False)):
+                     previous.get('writerFenceEstablished') is False) or
+                    (previous.get('mode') == 'plan' and previous.get('stage') in {'prepared','plan-refused'} and
+                     previous.get('writerFenceEstablished') is False and
+                     previous.get('ownerManifestDigest') == request['ownerManifestDigest'] and
+                     previous.get('originalServices') == original_services(services))):
                 raise ValueError('Previous fence requires manual investigation')
         if daily.command(['findmnt','-no','FSTYPE','--target','/run']).strip() != b'tmpfs':
             raise ValueError('Memory-backed temporary transport required')
         # Reuse only a network already attached to the original owner worker and
         # verified against its effective compose network key and Docker labels.
+        PHASE = 'network'
         effective = json.loads(fence.original(fence.OWNER/'effective-compose.json'))
         declared = effective['networks']
         candidates = []
@@ -95,16 +149,13 @@ def main(request):
         if len(candidates) != 1:
             raise ValueError('One existing owner egress network required')
         network_name, network_id = candidates[0]
-        env = {}
-        for line in fence.original(fence.OWNER/'server.env').decode().splitlines():
-            if not line or line.startswith('#'):
-                continue
-            matched = re.fullmatch(r"([A-Z][A-Z0-9_]*)='([^'\r\n\\]*)'", line)
-            if not matched or matched[1] in env:
-                raise ValueError('Original protected environment required')
-            env[matched[1]] = matched[2]
+        PHASE = 'credentials'
+        # Compose derives SUPABASE_URL from NEXT_PUBLIC_SUPABASE_URL. Read only
+        # the original hash-bound, runtime-verified API environment, not an
+        # assumed raw server.env variable that may not exist.
+        env = effective['services']['api']['environment']
         needed = ('DATABASE_URL','SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY')
-        if any(not env.get(key) or '\n' in env[key] or '\r' in env[key] for key in needed):
+        if any(not isinstance(env.get(key),str) or not env[key] or '\n' in env[key] or '\r' in env[key] or '\0' in env[key] for key in needed):
             raise ValueError('Existing server-side capture credentials required')
         from urllib.parse import urlsplit
         project_host = urlsplit(env['SUPABASE_URL']).hostname
@@ -120,16 +171,15 @@ def main(request):
                 'projectBinding':digest(project_host),
                 'createdAt':started.isoformat().replace('+00:00','Z'),
                 'expiresAt':expires.isoformat().replace('+00:00','Z'),
-                'originalServices':{name:{'id':c['Id'],'image':c['Image'],
-                    'startedAt':c['State']['StartedAt'],'restarts':c['RestartCount'],
-                    'restartPolicy':c['HostConfig']['RestartPolicy']['Name']} for name,c in services.items()}}
+                'originalServices':original_services(services)}
         record = {**core,'stage':'prepared','writerFenceEstablished':False,'replayAllowed':False,
                   'serviceActivationAllowed':False}
         daily.atomic(pointer,record)
         captures = []
         calls = 0
         held_binding = None
-        with tempfile.TemporaryDirectory(prefix='alterward-fence-'+nonce+'-',dir='/run') as tmp:
+        uncertain_stops = set()
+        with memory_scratch('alterward-fence-'+nonce+'-') as tmp:
             scratch = Path(tmp)
             # Source code is public; only the bounded root-owned env file is
             # private. Docker reads it; it is never mounted into the container.
@@ -145,13 +195,14 @@ def main(request):
             client_env.chmod(0o600)
 
             def inspect():
-                values = {c['Id']:c for c in daily.containers()}
-                if set(values) != set(baseline):
-                    raise ValueError('Unrelated container appeared or disappeared')
-                return values
+                # The state machine checks drift; recovery stop attempts must
+                # still see original IDs if an unrelated container was removed.
+                return {c['Id']:c for c in daily.containers()}
 
             def helper(mode, payload=None):
                 nonlocal calls
+                global PHASE
+                PHASE = 'helper-'+mode
                 calls+=1
                 name='alterward-fence-probe-'+nonce+'-'+str(calls)
                 record['temporaryHelperName']=name
@@ -177,17 +228,18 @@ def main(request):
                         raise ValueError('Bounded capture response required')
                     return json.loads(data)
                 finally:
-                    observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
-                    if observed:
-                        item=json.loads(observed)[0]
-                        if (item['Name'] != '/'+name or item['Image'] != OWNER_IMAGE or
-                                item['Config'].get('Labels',{}).get(LABEL) != nonce or
-                                item['HostConfig'].get('PortBindings') or
-                                item['HostConfig']['LogConfig']['Type'] != 'none'):
-                            raise ValueError('Helper cleanup identity differs')
-                        daily.command(['docker','rm','-f',item['Id']])
-                    record.pop('temporaryHelperName',None)
-                    daily.atomic(pointer,record)
+                    with protected_cleanup():
+                        observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
+                        if observed:
+                            item=json.loads(observed)[0]
+                            if (item['Name'] != '/'+name or item['Image'] != OWNER_IMAGE or
+                                    item['Config'].get('Labels',{}).get(LABEL) != nonce or
+                                    item['HostConfig'].get('PortBindings') or
+                                    item['HostConfig']['LogConfig']['Type'] != 'none'):
+                                raise ValueError('Helper cleanup identity differs')
+                            daily.command(['docker','rm','-f',item['Id']])
+                        record.pop('temporaryHelperName',None)
+                        daily.atomic(pointer,record)
 
             def checkpoint(stage, values):
                 nonlocal held_binding
@@ -229,12 +281,57 @@ def main(request):
                             return False
                         time.sleep(2)
 
+            def stop_original(cid):
+                global PHASE
+                PHASE='stopping-original'
+                previous=baseline[cid]
+                uncertain_stops.add(cid)
+                failed=False
+                try:
+                    daily.command(['docker','stop','--time','20',cid],timeout=30)
+                except Exception:
+                    failed=True
+                until=time.monotonic()+(45 if failed else 10)
+                while True:
+                    value=inspect().get(cid)
+                    if (not value or fence.identity(value) != fence.identity(previous) or
+                            value['Config'].get('Labels') != previous['Config'].get('Labels') or
+                            value['State'].get('StartedAt') != previous['State'].get('StartedAt')):
+                        raise ValueError('Original stop identity changed')
+                    if value['State']['Status']=='exited' and not value['State']['Running'] and not value['State'].get('OOMKilled'):
+                        uncertain_stops.remove(cid)
+                        return
+                    if time.monotonic()>=until:
+                        raise ValueError('Original stop did not settle')
+                    time.sleep(1)
+
+            @contextlib.contextmanager
+            def resume_cleanup():
+                global PHASE
+                with protected_cleanup():
+                    PHASE='resuming-originals'
+                    record.update(writerFenceEstablished=False,replayAllowed=False)
+                    if uncertain_stops:
+                        record.update(stage='drill-stop-unverified',uncertainStopIds=sorted(uncertain_stops))
+                        daily.atomic(pointer,record)
+                        raise ValueError('Unknown stop outcome requires manual investigation')
+                    record['stage']='drill-resuming'
+                    daily.atomic(pointer,record)
+                    yield
+
             if request['mode']=='plan':
-                observation=helper('observe')
-                current=inspect()
-                if not fence.quiet(observation) or any(fence.runtime(current[cid]) != fence.runtime(value)
-                                                     for cid,value in baseline.items()):
-                    raise ValueError('Transport preflight changed runtime or is not quiet')
+                try:
+                    observation=helper('observe')
+                    current=inspect()
+                    if not fence.quiet(observation) or set(current) != set(baseline) or any(fence.runtime(current[cid]) != fence.runtime(value)
+                                                         for cid,value in baseline.items()):
+                        raise ValueError('Transport preflight changed runtime or is not quiet')
+                except Exception:
+                    current=inspect()
+                    if set(current) == set(baseline) and all(fence.runtime(current[cid]) == fence.runtime(value) for cid,value in baseline.items()):
+                        record.update(stage='plan-refused',writerFenceEstablished=False)
+                        daily.atomic(pointer,record)
+                    raise
                 record.update(stage='plan-complete',checkedAt=dt.datetime.now(dt.timezone.utc).isoformat())
                 daily.atomic(pointer,record)
                 return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
@@ -245,9 +342,9 @@ def main(request):
                         'serviceActivationAllowed':False,'paidAiCalls':0,'liveDatabaseWrites':False}
             else:
                 result=fence.run_fence('drill',services,inspect=inspect,observe=lambda:helper('observe'),
-                    stop=lambda cid:daily.command(['docker','stop','--time','20',cid],timeout=30),
+                    stop=stop_original,
                     start=lambda cid:daily.command(['docker','start',cid],timeout=30),capture=capture,verify=verify,
-                    settle=time.sleep,checkpoint=checkpoint)
+                    settle=time.sleep,checkpoint=checkpoint,cleanup=resume_cleanup)
         return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
@@ -259,7 +356,8 @@ def main(request):
 
 if __name__=='__main__':
     try:
-        signal.signal(signal.SIGTERM,lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+        install_interrupt_handlers()
+        signal.alarm(300)
         print(json.dumps({'ok':True,'result':main(json.load(sys.stdin))}))
     except (Exception,KeyboardInterrupt):
-        print(json.dumps({'ok':False,'phase':'writer-fence-drill'}));sys.exit(1)
+        print(json.dumps({'ok':False,'phase':PHASE}));sys.exit(1)

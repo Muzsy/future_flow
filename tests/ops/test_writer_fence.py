@@ -190,6 +190,31 @@ class WriterFenceTests(unittest.TestCase):
             self.assertFalse(any(action == 'start' for action, _ in actions))
             callbacks['capture'].assert_not_called()
 
+    def test_recovery_listing_failure_does_not_skip_original_worker_stop(self):
+        services, current, actions, _, callbacks = self.environment()
+        inspect=callbacks['inspect']
+        snapshots=[]
+        def unavailable():
+            snapshots.append(1)
+            if len(snapshots)>1:
+                raise ValueError('listing unavailable')
+            return inspect()
+        callbacks['inspect']=unavailable
+        observe=callbacks['observe']
+        reads=[]
+        def stalled():
+            reads.append(1)
+            proof=observe()
+            if len(reads)>1:
+                proof['pendingJobs']=1
+            return proof
+        callbacks['observe']=stalled
+        with self.assertRaisesRegex(ValueError,'hold remains unverified'):
+            fence.run_fence('recovery',services,**callbacks)
+        self.assertIn(('stop','3'*64),actions)
+        self.assertFalse(current['3'*64]['State']['Running'])
+        self.assertFalse(any(action=='start' for action,_ in actions))
+
     def test_plaintext_or_unknown_bundle_fields_emit_no_authority(self):
         for bad in [b'{"private_user":"plaintext"}', b'age-encryption.org/v1\nshort']:
             services, _, _, _, callbacks = self.environment()

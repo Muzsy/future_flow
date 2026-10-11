@@ -176,15 +176,16 @@ async function main() {
           writerFenceDigest: request.binding.writerFenceDigest,
         },
       );
-      console.log(
-        JSON.stringify(
-          createPrivacyFenceEnvelope(
-            result.authority,
-            result.authStateDigest,
-            request.binding,
-          ),
+      const output = JSON.stringify(
+        createPrivacyFenceEnvelope(
+          result.authority,
+          result.authStateDigest,
+          request.binding,
         ),
       );
+      if (Buffer.byteLength(output) > 24 * 1024 ** 2)
+        throw Error('Bounded encrypted transport payload required');
+      console.log(output);
     }
   } finally {
     try {
