@@ -1,0 +1,12 @@
+{
+  "manifest": {
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "imageId": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "ownerEnvironmentSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "effectiveComposeSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "sourceComposeSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "databaseCaSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "accessConfigurationSha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "expectedCanonicalSha256": "e895460b780c42a3f3b2c05b0b446061e6e5942c46e33f6a87621b23d36c604a"
+}

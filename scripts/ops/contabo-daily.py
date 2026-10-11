@@ -350,6 +350,7 @@ def extended_config_archive(proxy):
     paths += [OWNER / 'proxy-prepare' / n for n in ['before.Caddyfile', 'before.compose.yaml']]
     paths += [ROOT / 'config.json']
     paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
+    paths += reader_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -366,6 +367,40 @@ def extended_config_archive(proxy):
             entry.size, entry.mode = len(data), 0o600
             archive.addfile(entry, io.BytesIO(data))
     return output.getvalue(), {name: digest(data) for name, data in files.items()}
+
+
+READER_ARCHIVE_POLICY_VERSION = 1
+
+
+def reader_config_paths():
+    """Capture durable reader preparation/rollback files, including partial work.
+
+    No generic recursive tree or arbitrary file is added to an encrypted backup.
+    Existing locks serialize this capture with reader prepare/apply/disable.
+    """
+    path = OWNER / 'personal-beta-readers'
+    if not path.exists() and not path.is_symlink():
+        return []
+    original = path / 'original'
+    groups = [(path, {'server.env', 'pinned-image.json', 'effective-compose.json',
+                      'manifest.json', 'readers.json', 'access.json', 'prepared.json', 'journal.json'}, {'original'}),
+              (original, {'server.env', 'pinned-image.json', 'effective-compose.json',
+                          'manifest.json', 'stage.json', 'access.json'}, set())]
+    files = []
+    for directory, names, children in groups:
+        if not directory.exists() and not directory.is_symlink():
+            continue
+        info = directory.lstat()
+        if (directory.resolve() != directory.absolute() or not stat.S_ISDIR(info.st_mode) or
+                info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+            raise ValueError('Original private reader configuration directory required')
+        for item in directory.iterdir():
+            if item.name in names:
+                regular(item)
+                files.append(item)
+            elif item.name not in children or not item.is_dir() or item.is_symlink():
+                raise ValueError('Unexpected reader preparation artifact')
+    return sorted(files)
 
 
 original_config_archive = backup.config_archive

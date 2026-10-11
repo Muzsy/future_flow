@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   exactFenceCiRuns,
   assertExactFenceCiJobs,
@@ -9,13 +10,31 @@ import {
 } from '../../scripts/contabo-fence-operator.mjs';
 
 const sha = 'a'.repeat(40);
+test('JS and Python share one pinned canonical manifest byte contract', () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL('./fixtures/recovery-manifest.json', import.meta.url)),
+  );
+  const stage = {
+    ...fixture.manifest,
+    upgraded: true,
+    imageOnly: true,
+    runningServices: 3,
+    paidAiCalls: 0,
+    betaWindowActive: false,
+  };
+  const build = { commit: stage.commit, imageId: stage.imageId };
+  assert.equal(
+    activeRecoveryManifest(stage, build, { version: 1, releases: [build] }),
+    fixture.expectedCanonicalSha256,
+  );
+});
 test('a registry entry cannot silently change the replay schema or runtime dependencies', () => {
   const registry = {
     version: 1,
     releases: [{ commit: sha, imageId: 'sha256:' + 'b'.repeat(64) }],
   };
   let visited = false;
-  assertReplayInputsUnchanged(registry, (base, commit, paths) => {
+  assertReplayInputsUnchanged(registry, sha, (base, commit, paths) => {
     visited = true;
     assert.equal(base, '9eb7732b69e84583cf7e63c237763b51b9bb4eab');
     assert.equal(commit, sha);
@@ -23,6 +42,8 @@ test('a registry entry cannot silently change the replay schema or runtime depen
       'database',
       'packages',
       'Dockerfile',
+      '.dockerignore',
+      '.nvmrc',
       'package.json',
       'apps/api/package.json',
       'apps/web/package.json',
@@ -44,9 +65,28 @@ test('a registry entry cannot silently change the replay schema or runtime depen
     'tsconfig.base.json',
   ])
     assert.throws(() =>
-      assertReplayInputsUnchanged(registry, () => path + '\n'),
+      assertReplayInputsUnchanged(registry, sha, () => path + '\n'),
     );
-  assert.throws(() => assertReplayInputsUnchanged(registry, () => undefined));
+  assert.throws(() =>
+    assertReplayInputsUnchanged(registry, sha, () => undefined),
+  );
+  for (const source of ['--help', undefined, 'b'.repeat(39)])
+    assert.throws(() =>
+      assertReplayInputsUnchanged(registry, source, () => ''),
+    );
+  assert.throws(() =>
+    assertReplayInputsUnchanged(
+      { version: 1, releases: [{ commit: '--help' }] },
+      sha,
+      () => '',
+    ),
+  );
+  const mounted = 'c'.repeat(40);
+  assert.throws(() =>
+    assertReplayInputsUnchanged(registry, mounted, (_base, current) =>
+      current === mounted ? 'packages/database/src/ai-budget.ts\n' : '',
+    ),
+  );
 });
 test('a future prepared candidate cannot replace the still-active manifest binding', () => {
   const stage = {
@@ -81,6 +121,21 @@ test('a future prepared candidate cannot replace the still-active manifest bindi
     ),
     expected,
   );
+  assert.equal(
+    activeRecoveryManifest(
+      {
+        ...stage,
+        imageOnly: false,
+        configurationOnly: true,
+        configurationMode: 'readers',
+        selectedReaders: 10,
+        accessEmailCount: 11,
+      },
+      build,
+      registry,
+    ),
+    expected,
+  );
   for (const changes of [
     { commit: registry.releases[1].commit },
     { imageId: registry.releases[1].imageId },
@@ -90,6 +145,27 @@ test('a future prepared candidate cannot replace the still-active manifest bindi
     { paidAiCalls: 1 },
     { betaWindowActive: true },
     { runningServices: 2 },
+    {
+      imageOnly: false,
+      configurationOnly: true,
+      configurationMode: 'funded',
+      selectedReaders: 1,
+      accessEmailCount: 2,
+    },
+    {
+      imageOnly: false,
+      configurationOnly: true,
+      configurationMode: 'readers',
+      selectedReaders: 11,
+      accessEmailCount: 12,
+    },
+    {
+      imageOnly: false,
+      configurationOnly: true,
+      configurationMode: 'readers',
+      selectedReaders: 1,
+      accessEmailCount: 11,
+    },
   ]) {
     assert.throws(() =>
       activeRecoveryManifest({ ...stage, ...changes }, build, registry),

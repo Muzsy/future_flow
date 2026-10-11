@@ -50,7 +50,20 @@ export function activeRecoveryManifest(stage, build, registry) {
     stage.commit !== build?.commit ||
     stage.imageId !== build?.imageId ||
     stage.upgraded !== true ||
-    stage.imageOnly !== true ||
+    !(
+      (stage.imageOnly === true &&
+        stage.configurationOnly !== true &&
+        stage.configurationMode === undefined) ||
+      (stage.imageOnly === false &&
+        stage.configurationOnly === true &&
+        stage.configurationMode === 'readers' &&
+        Number.isSafeInteger(stage.selectedReaders) &&
+        stage.selectedReaders >= 1 &&
+        stage.selectedReaders <= 10 &&
+        Number.isSafeInteger(stage.accessEmailCount) &&
+        stage.accessEmailCount >= stage.selectedReaders &&
+        stage.accessEmailCount <= stage.selectedReaders + 1)
+    ) ||
     stage.runningServices !== 3 ||
     stage.paidAiCalls !== 0 ||
     stage.betaWindowActive !== false ||
@@ -67,15 +80,27 @@ export function activeRecoveryManifest(stage, build, registry) {
     .update(JSON.stringify(manifest) + '\n')
     .digest('hex');
 }
-export function assertReplayInputsUnchanged(registry, readChangedPaths) {
+export function assertReplayInputsUnchanged(
+  registry,
+  sourceCommit,
+  readChangedPaths,
+) {
   // The clean replay image stays pinned to this immutable base. Registry
   // additions cannot silently introduce new migrations or runtime packages.
   const base = '9eb7732b69e84583cf7e63c237763b51b9bb4eab';
-  for (const release of registry.releases) {
-    const changed = readChangedPaths(base, release.commit, [
+  reviewedRecoveryRelease(registry?.releases?.[0], registry);
+  if (typeof sourceCommit !== 'string' || !/^[a-f0-9]{40}$/.test(sourceCommit))
+    throw Error('Exact mounted-source commit required');
+  for (const commit of new Set([
+    sourceCommit,
+    ...registry.releases.map((release) => release.commit),
+  ])) {
+    const changed = readChangedPaths(base, commit, [
       'database',
       'packages',
       'Dockerfile',
+      '.dockerignore',
+      '.nvmrc',
       'package.json',
       'apps/api/package.json',
       'apps/web/package.json',
@@ -183,7 +208,7 @@ async function main() {
     report('owner-active-build-proof.json'),
     registry,
   );
-  assertReplayInputsUnchanged(registry, (base, commit, paths) =>
+  assertReplayInputsUnchanged(registry, sourceCommit, (base, commit, paths) =>
     execFileSync('git', ['diff', '--name-only', base, commit, '--', ...paths], {
       encoding: 'utf8',
     }),
