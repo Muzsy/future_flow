@@ -314,7 +314,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     raise ValueError('Bound complete observer response required')
                 PHASE='capture-encryption'
                 plaintext=json.dumps(envelope,separators=(',',':')).encode()
-                cipher=daily.command(['age','-r',daily.config()['recipient']],input=plaintext,timeout=20)
+                cipher=daily.command([daily.backup.age_path(),'-r',daily.config()['recipient']],input=plaintext,timeout=20)
                 captures.append({'stateDigest':envelope['stateDigest'],'cipherSha256':hashlib.sha256(cipher).hexdigest(),
                                  'cipherBytes':len(cipher),'capturedAt':envelope['authority']['capturedAt']})
                 return {'mode':mode,'stateDigest':envelope['stateDigest'],'encryptedAuthority':cipher}
@@ -384,7 +384,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     if checked.get('binding')!=diagnostic or checked.get('schemaVersion')!='privacy-fence-envelope-2' or checked.get('serviceActivationAllowed') is not False:
                         raise ValueError('Complete discarded authority preflight required')
                     PHASE='plan-encryption'
-                    encrypted=daily.command(['age','-r',daily.config()['recipient']],input=json.dumps(checked,separators=(',',':')).encode(),timeout=20)
+                    encrypted=daily.command([daily.backup.age_path(),'-r',daily.config()['recipient']],input=json.dumps(checked,separators=(',',':')).encode(),timeout=20)
                     if not encrypted.startswith(b'age-encryption.org/v1\n'):
                         raise ValueError('Discarded encryption preflight required')
                     del checked,encrypted
