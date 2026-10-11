@@ -155,14 +155,15 @@ export async function captureVerifiedPrivacyRestoreAuthority(
   const readInventory = async () => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const remaining = Math.min(20000, deadline - Date.now());
+    const inventoryDeadline = Date.now() + remaining;
     if (remaining <= 0) throw Error('Auth observation deadline exceeded');
     try {
       return await Promise.race([
         readRecoveryAuthInventory(async (page) => {
-          if (Date.now() >= deadline)
+          if (Date.now() >= inventoryDeadline)
             throw Error('Auth observation deadline exceeded');
           const value = await readPage(page);
-          if (Date.now() >= deadline)
+          if (Date.now() >= inventoryDeadline)
             throw Error('Auth observation deadline exceeded');
           return value;
         }),

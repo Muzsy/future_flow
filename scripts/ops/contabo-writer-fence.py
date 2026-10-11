@@ -167,12 +167,26 @@ def run_fence(mode, services, *, inspect, observe, stop, start, capture, verify,
         elif stopped and mode == 'recovery':
             # A late queue failure must not leave the worker writing while
             # ingress is held. Do not attempt a restart even on an exception.
-            current = unchanged_stopped(allow_unstopped=True)
+            # Drift must invalidate the proof, not prevent stopping a known
+            # original writer. Stop attempts are scoped by immutable Id/image/
+            # ownership; even a foreign restart cannot leave our worker live.
+            current = inspect()
+            errors = []
             for name in SERVICES:
-                if current[original[name]['Id']]['State']['Running']:
+                item = current.get(original[name]['Id'])
+                if (not item or item['Image'] != original[name]['Image'] or
+                        item['Config'].get('Labels') != original[name]['Config'].get('Labels')):
+                    errors.append('Original stop ownership changed')
+                    continue
+                if item['State']['Running']:
                     if name not in stopped:
                         stopped.append(name)
-                    stop(original[name]['Id'])
+                    try:
+                        stop(original[name]['Id'])
+                    except Exception:
+                        errors.append('Original stop attempt failed')
+            if errors:
+                raise ValueError('Recovery hold could not be verified')
             record('recovery-held', own_values(unchanged_stopped()))
     if result is None:
         raise ValueError('No verified authority produced')
@@ -234,7 +248,7 @@ try{await client.connect();const socket=client.connection.stream;if(!(socket ins
 for(const table of ['ff_jobs','aw_jobs','aw_shared_jobs','aw_public_review_jobs','aw_public_content_reviews','aw_scenario_reviews']){const{rows}=await client.query(`SELECT count(*) FILTER(WHERE status IN('queued','running','validating'))::int AS pending,count(*) FILTER(WHERE lease_token IS NOT NULL OR lease_until IS NOT NULL)::int AS leases FROM public.${table}`);pendingJobs+=rows[0].pending;liveLeases+=rows[0].leases;}
 pendingJobs+=(await client.query("SELECT count(*)::int AS n FROM public.aw_public_draft_reviews WHERE status='running'")).rows[0].n;
 pendingJobs+=(await client.query("SELECT count(*)::int AS n FROM public.aw_branches WHERE status='generating'")).rows[0].n;
-const foreignActiveSessions=(await client.query("SELECT count(*)::int AS n FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND usename=current_user AND pid<>pg_backend_pid() AND backend_type='client backend' AND state IS DISTINCT FROM 'idle'")).rows[0].n;await client.query('COMMIT');console.log(JSON.stringify({pendingJobs,liveLeases,foreignActiveSessions,databaseTlsVerified:true}));}catch{process.exitCode=1;}finally{await client.end();}"""
+const foreignActiveSessions=(await client.query("SELECT count(*)::int AS n FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND backend_type='client backend' AND state IS DISTINCT FROM 'idle'")).rows[0].n;await client.query('COMMIT');console.log(JSON.stringify({pendingJobs,liveLeases,foreignActiveSessions,databaseTlsVerified:true}));}catch{process.exitCode=1;}finally{await client.end();}"""
 
 
 def plan(request):

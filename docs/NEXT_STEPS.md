@@ -12,6 +12,8 @@
 
 ## Aktuális kiadási sorrend a tesztelők előtt
 
+2026-10-11: a [külön root plan/drill transport és v2 Auth/fence-envelope](WRITER_FENCE_TRANSPORT_HU.md) helyben elkészült, 16 Python + 9 TS célpróba és scripts TypeScript sikeres. A d1daf30 előellenőrzés pontos CI-je és Claude-auditja sikeres; két kisebb finding javítva. A transport pontos auditja/CI-je/Contabo-próbája következik. A tényleges held-recovery replay kötés és a teljes biztonsági katalógus továbbra kapu.
+
 2026-10-11 01:48 UTC: a 16505bb pontos CI-je, Contabo izolált replay/verifier és Claude-forrásaudit sikeres. Az elfogadott teljes Supabase-vesztési béta-korlát érvényes. A kisebb auditmegállapítások alapján szigorított Auth-megfigyelő és a [root writer-fence előellenőrzése](WRITER_FENCE_PREFLIGHT_HU.md) elkészült; a fizikai stop/capture/held binding és a teljes biztonsági katalógus még kapu. Ezután béta-kompatibilis runtime-monitor, célzott hibapróbák és végső kiadási audit következik. Meghívottak és harmincnapos AI-keret még inaktívak.
 
 2026-10-11 01:32 UTC: eaf23bc [pontos CI-je](https://github.com/Muzsy/future_flow/actions/runs/38101791393), Contabo izolált replay/verifier és Claude-forrásaudit sikeres, kritikus/magas/közepes finding nélkül. A csak eredeti Auth-eredményből, egyetlen forrássnapshotban épülő [authority-bekötés](AUTH_RECOVERY_OBSERVATION_HU.md) és böngészős oszlopjog-ellenőrzés is implementált/céltesztelt. A kilenc privát éles állapotjelző 01:31 UTC-kor pozitív. Következik a valódi root writer-fence végrehajtó és a forrás/digest/held recovery-kötés; ez még nem bétaindítás.

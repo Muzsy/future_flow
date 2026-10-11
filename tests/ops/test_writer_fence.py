@@ -167,6 +167,29 @@ class WriterFenceTests(unittest.TestCase):
         result = fence.run_fence('drill', services, **callbacks)
         self.assertTrue(result['drillResumed'])
 
+    def test_recovery_stops_original_worker_even_if_drain_and_runtime_both_drift(self):
+        for changed in ['foreign', 'worker']:
+            services, current, actions, _, callbacks = self.environment()
+            observe = callbacks['observe']
+            calls = []
+            def failed_drain():
+                calls.append(1)
+                proof = observe()
+                if len(calls) > 1:
+                    proof['pendingJobs'] = 1
+                    cid = '4'*64 if changed == 'foreign' else services['worker']['Id']
+                    current[cid]['RestartCount'] = 1
+                    current[cid]['State']['StartedAt'] = 'external-restart'
+                return proof
+            callbacks['observe'] = failed_drain
+            callbacks['capture'] = Mock()
+            with self.assertRaises(ValueError):
+                fence.run_fence('recovery', services, **callbacks)
+            self.assertIn(('stop', '3'*64), actions)
+            self.assertFalse(current['3'*64]['State']['Running'])
+            self.assertFalse(any(action == 'start' for action, _ in actions))
+            callbacks['capture'].assert_not_called()
+
     def test_plaintext_or_unknown_bundle_fields_emit_no_authority(self):
         for bad in [b'{"private_user":"plaintext"}', b'age-encryption.org/v1\nshort']:
             services, _, _, _, callbacks = self.environment()

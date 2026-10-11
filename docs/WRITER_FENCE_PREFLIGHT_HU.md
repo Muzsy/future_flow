@@ -2,6 +2,8 @@
 
 2026-10-11 · [Kiadási sorrend](NEXT_STEPS.md) · [Elfogadott béta-korlát](PERSONAL_BETA_RECOVERY_LIMIT_HU.md).
 
+Friss folytatás: [külön root `plan`/`drill` transport és v2-envelope](WRITER_FENCE_TRANSPORT_HU.md) implementált és helyben céltesztelt; pontos audit, CI és tényleges célpróba következik. Az alábbi alap állapotgépe nem önálló transport.
+
 A [root végrehajtó](../scripts/ops/contabo-writer-fence.py) nyilvános parancsfelülete jelenleg csak `plan`: nem állít meg szolgáltatást, nem készít helyreállításra használható authorityt és nem kapcsol vissza kiszolgálást. A callback-alapú állapotgép a későbbi transport előkészítése; önmagában nem fizikai writer-fence bizonyíték.
 
 Az előellenőrzés az eredeti napi mentési és tulajdonosi kernelzárakat használja, az eredeti tulajdonosi manifest hash-ét kéri, és ellenőrzi a telepített napi eszköz forrásait. Csak a három eredeti web/API/worker azonosító, image, compose-tulajdonos, egészséges futás és `unless-stopped` újraindítási politika fogadható el. Ismert automatikus konténer-újraindító jelenlétében megáll. Ellenőrzött adatbázis-TLS-en, read-only snapshotban számolja a függő munkákat, lease-eket és más aktív klienskapcsolatokat. Nem cserél le szerverkonfigurációt.
