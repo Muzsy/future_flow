@@ -123,7 +123,10 @@ describe('Shared sponsored guest seats', () => {
       { contextRevision: second.revision, targetUserId: guest.id },
       randomUUID(),
     );
-    const secondPreview = await shared.previewInvite(guest.id, secondInvite.token);
+    const secondPreview = await shared.previewInvite(
+      guest.id,
+      secondInvite.token,
+    );
     const secondInput = {
       token: secondInvite.token,
       branchId: guest.branchId,
