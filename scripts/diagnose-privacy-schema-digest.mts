@@ -31,20 +31,17 @@ for (const file of files) {
   await db.exec(readFileSync(`database/migrations/${file}`, 'utf8'));
 }
 const before = await db.query(columnsSql);
-console.log(
-  JSON.stringify({
-    baselineColumns: before.rows.length,
-    baselineDigest: hash(before.rows),
-  }),
-);
 
 for (const file of files.filter((name) => name.startsWith('037_')))
   await db.exec(readFileSync(`database/migrations/${file}`, 'utf8'));
 const after = await db.query(columnsSql);
-console.log(
+await db.close();
+
+throw new Error(
   JSON.stringify({
+    baselineColumns: before.rows.length,
+    baselineDigest: hash(before.rows),
     nextColumns: after.rows.length,
     nextDigest: hash(after.rows),
   }),
 );
-await db.close();
