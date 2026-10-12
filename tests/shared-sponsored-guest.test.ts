@@ -65,9 +65,9 @@ describe('Shared sponsored guest seats', () => {
         [joined.memberId],
       ),
     ).toEqual([{ entitlement_mode: 'sponsored_guest' }]);
-    expect((await shared.detail(guest.id, created.contextId)).ownEntitlementMode).toBe(
-      'sponsored_guest',
-    );
+    expect(
+      (await shared.detail(guest.id, created.contextId)).ownEntitlementMode,
+    ).toBe('sponsored_guest');
     expect((await shared.socialProfile(guest.id)).entitlement).toMatchObject({
       tier: 'free',
       activeContexts: 0,
@@ -157,9 +157,10 @@ describe('Shared sponsored guest seats', () => {
       ),
     ).toEqual([{ entitlement_mode: 'subscriber' }]);
 
-    await db.query("UPDATE aw_user_entitlements SET tier='free' WHERE user_id=$1", [
-      guest.id,
-    ]);
+    await db.query(
+      "UPDATE aw_user_entitlements SET tier='free' WHERE user_id=$1",
+      [guest.id],
+    );
     const secondDetail = await shared.detail(secondOwner.id, second.contextId);
     await expect(
       shared.enqueue(
