@@ -13,8 +13,10 @@ import {
 import {
   isSharedTimeCompatible,
   requireSharedEntitlement,
+  requireSharedSponsoredGuestEntitlement,
   SHARED_MEMBER_LIMITS,
   SHARED_TIER_LIMITS,
+  SHARED_SPONSORED_GUEST_LIMITS,
   minimalInteractionProfile,
 } from '@future-flow/core';
 import { sharedFeaturesFromEnv } from '../apps/api/src/shared-context';
@@ -82,6 +84,22 @@ describe('Shared Context foundation domain', () => {
       );
     },
   );
+  it('keeps a single sponsored Friend guest slot separate from subscription slots', () => {
+    expect(SHARED_SPONSORED_GUEST_LIMITS).toEqual({
+      activeContexts: 1,
+      types: ['friend_group'],
+    });
+    expect(() =>
+      requireSharedSponsoredGuestEntitlement('friend_group', 0),
+    ).not.toThrow();
+    expect(() =>
+      requireSharedSponsoredGuestEntitlement('friend_group', 1),
+    ).toThrow();
+    for (const type of sharedContextTypeSchema.options.filter(
+      (type) => type !== 'friend_group',
+    ))
+      expect(() => requireSharedSponsoredGuestEntitlement(type, 0)).toThrow();
+  });
   it('counts paused/inviting slots without allowing a higher subscription to bypass its cap', () => {
     for (const tier of ['explorer', 'connected', 'world'] as const)
       expect(() =>

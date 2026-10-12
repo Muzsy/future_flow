@@ -75,6 +75,8 @@ export class SharedJobRepository extends SharedEventRepository {
       async (tx, c, _m, all) => {
         this.revision(c, expected);
         this.writable(c);
+        // Sponsored guests may participate in decisions but never initiate paid AI.
+        await this.hostEntitlement(tx, userId, c.type, false);
         if (c.status !== 'active')
           throw new DomainError(
             'SHARED_MEMBER_INACTIVE',

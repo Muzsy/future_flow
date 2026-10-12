@@ -51,16 +51,16 @@ export const privacySecurityCatalogSql = Object.freeze({
 
 const immutable = {
   constraints: [
-    710,
-    '082fee5ae303682f05770f71adaf32f5cdca476ee85505de341b3c89642d3499',
+    712,
+    '3dade33d6532215bb2f8be3e5825db305898e77bf0904bb8a69f27bff36479bb',
   ],
   indexes: [
-    250,
-    '995a4dd5054f77715249929558a2be05c4f4acc9b45ace3744194e1a07449f70',
+    251,
+    '6b72fda111964ded453fac450b9f2c5a6ed5708ba2079a2b83c4bf5ccd4e2a3e',
   ],
   defaults: [
-    854,
-    '7cff5af0a7d2c5f6f8577bb761acd12c9053690fd2790e8d3f8d8c74e074e1f5',
+    855,
+    '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
   ],
   functions: [
     27,

@@ -76,7 +76,7 @@ export class SharedEventRepository extends SharedContextRepository {
         fail('SHARED_REVISION_CONFLICT');
       if (c.type !== 'friend_group')
         fail('SHARED_CONTEXT_TYPE_NOT_ALLOWED', 403);
-      await this.entitlement(tx, userId, c.type, false);
+      await this.entitlement(tx, userId, c.type, false, m.entitlement_mode);
       return run(tx, c, m, all);
     });
   }
@@ -92,7 +92,13 @@ export class SharedEventRepository extends SharedContextRepository {
     for (const member of all.filter((m) => ids.includes(m.id))) {
       if (member.status !== 'active' || !member.user_id || !member.branch_id)
         fail('SHARED_MEMBER_INACTIVE', 403);
-      await this.entitlement(tx, member.user_id, c.type, false);
+      await this.entitlement(
+        tx,
+        member.user_id,
+        c.type,
+        false,
+        member.entitlement_mode,
+      );
       const [b] = await tx.query(
         "SELECT b.status,b.state->>'effectiveAt' AS effective_at,l.content_locale FROM aw_branches b JOIN aw_lives l ON l.id=b.life_id WHERE b.id=$1 AND b.user_id=$2 AND b.life_id=$3",
         [member.branch_id, member.user_id, member.life_id],
