@@ -24,7 +24,9 @@ import {
   hash,
   SHARED_MEMBER_LIMITS,
   SHARED_TIER_LIMITS,
+  SHARED_SPONSORED_GUEST_LIMITS,
   requireSharedEntitlement,
+  requireSharedSponsoredGuestEntitlement,
   sharedTimeAnchor,
   minimalInteractionProfile,
 } from '@future-flow/core';
@@ -54,6 +56,7 @@ type Member = Row & {
   life_id: string | null;
   status: string;
   admin_role: string;
+  entitlement_mode: 'subscriber' | 'sponsored_guest';
   interaction_profile: InteractionProfile;
   world_role: string | null;
 };
@@ -193,16 +196,17 @@ export class SharedContextRepository {
     )[0];
     return sharedTierSchema.parse(row?.tier ?? 'free');
   }
-  protected async entitlement(
+  protected async hostEntitlement(
     tx: Database,
     userId: string,
     type: SharedContextType,
     joining: boolean,
+    knownTier?: SharedTier,
   ) {
-    const tier = await this.tier(userId, tx);
+    const tier = knownTier ?? (await this.tier(userId, tx));
     const rows = joining
       ? await tx.query(
-          "SELECT count(*)::int AS count FROM aw_shared_members m JOIN aw_shared_contexts c ON c.id=m.context_id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) AND c.status IN ('inviting','active','paused')",
+          "SELECT count(*)::int AS count FROM aw_shared_members m JOIN aw_shared_contexts c ON c.id=m.context_id WHERE m.user_id=$1 AND m.entitlement_mode='subscriber' AND m.status=ANY($2::text[]) AND c.status IN ('inviting','active','paused')",
           [userId, liveStatuses],
         )
       : [];
@@ -222,6 +226,35 @@ export class SharedContextRepository {
       ).length
     )
       fail('SHARED_ROMANTIC_LIMIT');
+    return 'subscriber' as const;
+  }
+  protected async entitlement(
+    tx: Database,
+    userId: string,
+    type: SharedContextType,
+    joining: boolean,
+    allowSponsoredGuestJoin = false,
+  ): Promise<'subscriber' | 'sponsored_guest'> {
+    const tier = await this.tier(userId, tx);
+    if (tier === 'free' && allowSponsoredGuestJoin && joining) {
+      const [row] = await tx.query(
+        "SELECT count(*)::int AS count FROM aw_shared_members WHERE user_id=$1 AND entitlement_mode='sponsored_guest' AND context_live AND status=ANY($2::text[])",
+        [userId, liveStatuses],
+      );
+      requireSharedSponsoredGuestEntitlement(type, Number(row!.count));
+      return 'sponsored_guest';
+    }
+    if (tier === 'free' && !joining) {
+      const [guest] = await tx.query(
+        "SELECT id FROM aw_shared_members WHERE user_id=$1 AND context_type=$2 AND entitlement_mode='sponsored_guest' AND context_live AND status=ANY($3::text[]) LIMIT 1",
+        [userId, type, liveStatuses],
+      );
+      if (guest) {
+        requireSharedSponsoredGuestEntitlement(type);
+        return 'sponsored_guest';
+      }
+    }
+    return this.hostEntitlement(tx, userId, type, joining, tier);
   }
   private async branch(
     tx: Database,
@@ -283,7 +316,14 @@ export class SharedContextRepository {
     const tier = await this.tier(userId);
     return {
       profile: p ?? null,
-      entitlement: { tier, ...SHARED_TIER_LIMITS[tier] },
+      entitlement: {
+        tier,
+        ...SHARED_TIER_LIMITS[tier],
+        sponsoredGuestContexts:
+          tier === 'free' ? SHARED_SPONSORED_GUEST_LIMITS.activeContexts : 0,
+        sponsoredGuestTypes:
+          tier === 'free' ? SHARED_SPONSORED_GUEST_LIMITS.types : [],
+      },
     };
   }
   async saveSocialProfile(userId: string, raw: unknown) {
@@ -313,7 +353,7 @@ export class SharedContextRepository {
     if (input.type !== 'friend_group')
       fail('SHARED_CONTEXT_TYPE_NOT_ALLOWED', 403);
     return this.once(userId, [], 'shared:create', key, input, async (tx) => {
-      await this.entitlement(tx, userId, input.type, true);
+      await this.hostEntitlement(tx, userId, input.type, true);
       const profile = await this.profile(tx, userId, input.interactionProfile);
       const b = await this.branch(tx, userId, input.branchId, input.revision);
       const contextId = randomUUID(),
@@ -335,7 +375,7 @@ export class SharedContextRepository {
         ],
       );
       await tx.query(
-        "INSERT INTO aw_shared_members(id,context_id,context_type,user_id,life_id,branch_id,status,admin_role,interaction_profile,sharing_policy_version) VALUES($1,$2,$3,$4,$5,$6,'active','owner',$7,'shared-profile-v1')",
+        "INSERT INTO aw_shared_members(id,context_id,context_type,user_id,life_id,branch_id,status,admin_role,entitlement_mode,interaction_profile,sharing_policy_version) VALUES($1,$2,$3,$4,$5,$6,'active','owner','subscriber',$7,'shared-profile-v1')",
         [
           memberId,
           contextId,
@@ -351,7 +391,7 @@ export class SharedContextRepository {
   }
   async list(userId: string) {
     const rows = await this.db.query(
-      'SELECT c.id,c.type,c.title,c.status,c.moderation_hold AS "moderationHold",c.content_locale,c.revision,c.simulation_at::text,m.id AS "memberId",m.status AS "membershipStatus" FROM aw_shared_contexts c JOIN aw_shared_members m ON m.context_id=c.id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) ORDER BY c.updated_at DESC LIMIT 100',
+      'SELECT c.id,c.type,c.title,c.status,c.moderation_hold AS "moderationHold",c.content_locale,c.revision,c.simulation_at::text,m.id AS "memberId",m.status AS "membershipStatus",m.entitlement_mode AS "entitlementMode" FROM aw_shared_contexts c JOIN aw_shared_members m ON m.context_id=c.id WHERE m.user_id=$1 AND m.status=ANY($2::text[]) ORDER BY c.updated_at DESC LIMIT 100',
       [userId, liveStatuses],
     );
     return Promise.all(
@@ -385,6 +425,7 @@ export class SharedContextRepository {
         privacyRedacted: hidden,
         governance: c.governance,
         ownMemberId: own.id,
+        ownEntitlementMode: own.entitlement_mode,
         pendingEventId: c.pending_event_id,
         moderationHold: c.moderation_hold,
         generation:
@@ -435,7 +476,7 @@ export class SharedContextRepository {
         this.revision(c, input.contextRevision);
         this.writable(c);
         if (m.admin_role !== 'owner') fail('SHARED_PERMISSION_DENIED', 403);
-        await this.entitlement(tx, userId, c.type, false);
+        await this.hostEntitlement(tx, userId, c.type, false);
         await this.capacity(tx, c);
         if (input.targetUserId) {
           if (input.targetUserId === userId) fail('SHARED_INVITE_INVALID', 422);
@@ -573,7 +614,13 @@ export class SharedContextRepository {
           await this.blocked(tx, userId, m.user_id);
           await this.entitlement(tx, m.user_id, c.type, false);
         }
-        await this.entitlement(tx, userId, c.type, true);
+        const entitlementMode = await this.entitlement(
+          tx,
+          userId,
+          c.type,
+          true,
+          true,
+        );
         await this.capacity(tx, c);
         const profile = await this.profile(
           tx,
@@ -596,7 +643,7 @@ export class SharedContextRepository {
         ]);
         const memberId = randomUUID();
         await tx.query(
-          "INSERT INTO aw_shared_members(id,context_id,context_type,user_id,life_id,branch_id,status,admin_role,interaction_profile,sharing_policy_version) VALUES($1,$2,$3,$4,$5,$6,'active','member',$7,'shared-profile-v1')",
+          "INSERT INTO aw_shared_members(id,context_id,context_type,user_id,life_id,branch_id,status,admin_role,entitlement_mode,interaction_profile,sharing_policy_version) VALUES($1,$2,$3,$4,$5,$6,'active','member',$7,$8,'shared-profile-v1')",
           [
             memberId,
             c.id,
@@ -604,6 +651,7 @@ export class SharedContextRepository {
             userId,
             b.life_id,
             input.branchId,
+            entitlementMode,
             JSON.stringify(profile),
           ],
         );
@@ -680,8 +728,10 @@ export class SharedContextRepository {
         const c = await this.context(tx, contextId, true),
           m = await this.member(tx, userId, contextId);
         this.revision(c, expected);
-        if (action !== 'leave' && m.admin_role !== 'owner')
-          fail('SHARED_PERMISSION_DENIED', 403);
+        if (action !== 'leave') {
+          if (m.admin_role !== 'owner') fail('SHARED_PERMISSION_DENIED', 403);
+          await this.hostEntitlement(tx, userId, c.type, false);
+        }
         if (action === 'archive' && c.status !== 'ended')
           fail('SHARED_MEMBER_INACTIVE', 403);
         if (
@@ -756,6 +806,7 @@ export class SharedContextRepository {
           m = await this.member(tx, userId, contextId, true);
         this.revision(c, expected);
         if (m.admin_role !== 'owner') fail('SHARED_PERMISSION_DENIED', 403);
+        await this.hostEntitlement(tx, userId, c.type, false);
         const [i] = await tx.query<Invite>(
           'SELECT * FROM aw_shared_invites WHERE id=$1 AND context_id=$2 FOR UPDATE',
           [inviteId, c.id],
@@ -814,7 +865,7 @@ export async function exportSharedAccount(tx: Database, userId: string) {
   if (!(await sharedStoragePresent(tx))) return null;
   const repo = new SharedContextRepository(tx);
   const own = await tx.query(
-    'SELECT id,context_id,context_type,life_id,branch_id,status,admin_role,interaction_profile,sharing_policy_version,world_role,joined_at,left_at FROM aw_shared_members WHERE user_id=$1',
+    'SELECT id,context_id,context_type,life_id,branch_id,status,admin_role,entitlement_mode,interaction_profile,sharing_policy_version,world_role,joined_at,left_at FROM aw_shared_members WHERE user_id=$1',
     [userId],
   );
   const contexts = await tx.query(
