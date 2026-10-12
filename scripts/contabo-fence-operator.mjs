@@ -1,6 +1,16 @@
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify, isDeepStrictEqual } from 'node:util';
-import { readFileSync, lstatSync } from 'node:fs';
+import {
+  readFileSync,
+  lstatSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  closeSync,
+  writeFileSync,
+  fsyncSync,
+  renameSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -80,6 +90,322 @@ export function activeRecoveryManifest(stage, build, registry) {
     .update(JSON.stringify(manifest) + '\n')
     .digest('hex');
 }
+// Static, secret-free refusal reasons the reader operator may print verbatim.
+export class OperatorGateError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'OperatorGateError';
+  }
+}
+
+export const READER_PREPARATION_SECONDS = 900;
+const READER_PREPARATION_PROOF = 'personal-beta-readers-prepare-proof.json';
+const READER_ARCHIVE_ID = /^expired-\d{8}T\d{6}Z-[a-f0-9]{16}$/;
+const READER_RUN_ID = /^\d{8}T\d{6}Z-[a-f0-9]{8}$/;
+const READER_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{6})?\+00:00$/;
+const READER_CONFIG_PREFIX = 'root/alterward-ops/owner/personal-beta-readers/';
+const OWNER_FILE_NAMES = [
+  'server.env',
+  'pinned-image.json',
+  'effective-compose.json',
+  'manifest.json',
+];
+
+// Same bytes as Python json.dumps(sort_keys=True, separators=(',', ':')) + "\n".
+export function canonicalJson(value) {
+  const encode = (item) => {
+    if (item === null || typeof item === 'boolean') return JSON.stringify(item);
+    if (typeof item === 'number') return JSON.stringify(item);
+    if (typeof item === 'string')
+      return JSON.stringify(item).replace(
+        /[\u007f-￿]/g,
+        (char) => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'),
+      );
+    if (Array.isArray(item)) return '[' + item.map(encode).join(',') + ']';
+    return (
+      '{' +
+      Object.keys(item)
+        .sort()
+        .map((key) => encode(key) + ':' + encode(item[key]))
+        .join(',') +
+      '}'
+    );
+  };
+  return encode(value) + '\n';
+}
+export const sha256Hex = (text) =>
+  createHash('sha256').update(text).digest('hex');
+
+export function readerPreparationAgeSeconds(prepared, nowMs) {
+  if (!READER_UTC.test(prepared?.preparedAt ?? ''))
+    throw new OperatorGateError('Exact UTC preparation time required');
+  const age = (nowMs - Date.parse(prepared.preparedAt)) / 1000;
+  // Date.parse accepts the format but not an impossible date such as month 13.
+  if (!Number.isFinite(age))
+    throw new OperatorGateError('Exact UTC preparation time required');
+  return age;
+}
+
+// A previous cycle's receipt may not silently become, or be overwritten by, the
+// next cycle's authority: it is archived (below) before any new preparation.
+export function assertNoPreviousPreparationReceipt(releaseDirectory) {
+  if (existsSync(join(releaseDirectory, READER_PREPARATION_PROOF)))
+    throw new OperatorGateError(
+      'A previous reader preparation receipt exists; archive it first',
+    );
+}
+
+// apply may use only the restore proof of THIS preparation: same candidate and
+// original bytes, a backup taken after it, and still inside the 15 minute bound.
+export function assertRestoreBindsPrepared({
+  restore,
+  manifest,
+  prepared,
+  nowMs,
+}) {
+  const age = readerPreparationAgeSeconds(prepared, nowMs);
+  if (age < 0 || age > READER_PREPARATION_SECONDS)
+    throw new OperatorGateError(
+      'Reader preparation expired; archive it and prepare again',
+    );
+  const gate = (message) => {
+    throw new OperatorGateError(message);
+  };
+  if (
+    restore?.schemaVersion !== 'contabo-restore-proof-1' ||
+    !READER_RUN_ID.test(restore.runId ?? '') ||
+    restore.runId !== manifest?.runId
+  )
+    gate('Restore proof is not bound to this backup run');
+  for (const [key, expected] of Object.entries({
+    liveDatabaseWrites: false,
+    applicationStarted: false,
+    publicPorts: 0,
+    paidAiCalls: 0,
+    offsiteCiphertextVerified: true,
+    tamperedCiphertextRejected: true,
+    proxyAdaptAndValidate: true,
+    singleTransactionRestore: true,
+    temporaryContainersRemoved: true,
+    temporaryPlaintextRemoved: true,
+    decryptionIdentityMemoryOnly: true,
+    allExistingContainersUnchanged: true,
+  }))
+    if (restore[key] !== expected) gate('Restore proof is incomplete');
+  const tables = manifest.expectedTables ?? [];
+  if (
+    !isDeepStrictEqual(restore.encryptedFiles, manifest.encryptedFiles) ||
+    restore.configFilesRestored !== Object.keys(manifest.configFiles).length ||
+    tables.length === 0 ||
+    restore.tablesRestoredAndDataMatched !== tables.length ||
+    restore.rowsMatched !== tables.reduce((sum, table) => sum + table.count, 0)
+  )
+    gate('Restore proof does not match the backup manifest');
+  const preparedMs = Date.parse(prepared.preparedAt);
+  const backupMs = Date.parse(manifest.capturedAt);
+  const restoreMs = Date.parse(restore.capturedAt);
+  if (!(backupMs >= preparedMs && restoreMs >= backupMs && restoreMs <= nowMs))
+    gate('Backup and restore must follow this preparation');
+  const bound = (name, expected) => {
+    // An absent expected hash must never match an absent backup entry.
+    if (
+      !/^[a-f0-9]{64}$/.test(expected ?? '') ||
+      manifest.configFiles[READER_CONFIG_PREFIX + name] !== expected
+    )
+      gate('Backup does not contain this preparation: ' + name);
+  };
+  for (const name of OWNER_FILE_NAMES) {
+    bound(name, prepared.candidateFilesSha256?.[name]);
+    bound('original/' + name, prepared.originalFilesSha256?.[name]);
+  }
+  bound('readers.json', prepared.readersSha256);
+  bound('access.json', prepared.accessSha256);
+  bound('prepared.json', sha256Hex(canonicalJson(prepared)));
+  if (
+    !/^[a-f0-9]{64}$/.test(
+      manifest.configFiles[READER_CONFIG_PREFIX + 'original/stage.json'] ?? '',
+    )
+  )
+    gate('Backup does not contain this preparation: original/stage.json');
+  return restore.runId;
+}
+
+// Same identity the server derives (Python archive_identity): UTC second of
+// preparedAt plus the first 16 hex of the canonical prepared receipt hash.
+export function readerArchiveIdentity(prepared) {
+  if (!READER_UTC.test(prepared?.preparedAt ?? ''))
+    throw new OperatorGateError('Exact UTC preparation time required');
+  return (
+    'expired-' +
+    prepared.preparedAt.slice(0, 19).replace(/[-:]/g, '') +
+    'Z-' +
+    sha256Hex(canonicalJson(prepared)).slice(0, 16)
+  );
+}
+
+const MAX_LOCAL_RECEIPT_BYTES = 2 * 1024 ** 2;
+const present = (path) => {
+  try {
+    lstatSync(path);
+    return true;
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+};
+// undefined only when the file is absent; any alias, link, oversize or damage is a gate error.
+function boundedLocalJson(path, message) {
+  let info;
+  try {
+    info = lstatSync(path);
+  } catch (error) {
+    if (error.code === 'ENOENT') return undefined;
+    throw new OperatorGateError(message);
+  }
+  if (
+    !info.isFile() ||
+    info.isSymbolicLink() ||
+    info.nlink !== 1 ||
+    info.size > MAX_LOCAL_RECEIPT_BYTES
+  )
+    throw new OperatorGateError(message);
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    throw new OperatorGateError(message);
+  }
+}
+
+// The receipt the archive request is built from. Normally the active prepare
+// receipt. After the local move (interrupted run, lost output) the active file is
+// gone on purpose: only an EXPLICIT archive id, whose archived receipt proves the
+// same identity, completed server archive and owner baseline, may stand in for it.
+// Never "the latest archive", never a copy back into the active path.
+export function resolveArchivePreparedProof({
+  releaseDirectory,
+  archiveBase,
+  archiveId,
+  ownerManifestDigest,
+}) {
+  if (archiveId !== undefined && !READER_ARCHIVE_ID.test(archiveId))
+    throw new OperatorGateError('Exact archive id required');
+  const bound = (preparedProof, source, identity) => {
+    if (
+      ownerManifestDigest !== undefined &&
+      preparedProof.previousManifestSha256 !== ownerManifestDigest
+    )
+      throw new OperatorGateError(
+        'Preparation baseline differs from the active owner receipt',
+      );
+    return { preparedProof, source, archiveId: identity };
+  };
+  const active = boundedLocalJson(
+    join(releaseDirectory, READER_PREPARATION_PROOF),
+    'Local preparation receipt must be a private regular file',
+  );
+  if (active !== undefined) {
+    const identity = readerArchiveIdentity(active.preparedProof);
+    if (archiveId !== undefined && archiveId !== identity)
+      throw new OperatorGateError(
+        'Archive id does not match the local preparation receipt',
+      );
+    if (present(join(archiveBase, identity, 'prepare-proof.json')))
+      throw new OperatorGateError('The archived receipt already exists');
+    return bound(active.preparedProof, 'active', identity);
+  }
+  if (archiveId === undefined)
+    throw new OperatorGateError(
+      'The local preparation receipt is gone; pass the exact archive id to retry',
+    );
+  const directory = join(archiveBase, archiveId);
+  let info;
+  try {
+    info = lstatSync(directory);
+  } catch {
+    throw new OperatorGateError(
+      'No archived local receipt for that archive id',
+    );
+  }
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw new OperatorGateError('Archived local receipt folder is not private');
+  const message = 'Archived local receipt is incomplete or not private';
+  const moved = boundedLocalJson(
+    join(directory, 'prepare-proof.json'),
+    message,
+  );
+  const receipt = boundedLocalJson(
+    join(directory, 'archive-proof.json'),
+    message,
+  );
+  if (moved === undefined || receipt === undefined)
+    throw new OperatorGateError(message);
+  const preparedSha = sha256Hex(canonicalJson(moved.preparedProof));
+  if (
+    readerArchiveIdentity(moved.preparedProof) !== archiveId ||
+    receipt.archived !== true ||
+    receipt.archiveId !== archiveId ||
+    receipt.preparedSha256 !== preparedSha
+  )
+    throw new OperatorGateError(
+      'Archived local receipt does not match the archive id',
+    );
+  return bound(moved.preparedProof, 'archived', archiveId);
+}
+
+// After the server archived the preparation, retire the matching local receipt
+// into a per-archive folder. Idempotent after an interruption; never overwrites.
+export function archiveLocalPreparation({
+  releaseDirectory,
+  archiveBase,
+  result,
+  nowMs,
+}) {
+  if (result?.archived !== true || !READER_ARCHIVE_ID.test(result.archiveId))
+    throw new OperatorGateError('Completed server archive required');
+  const proofPath = join(releaseDirectory, READER_PREPARATION_PROOF);
+  const target = join(archiveBase, result.archiveId);
+  const movedPath = join(target, 'prepare-proof.json');
+  const receiptPath = join(target, 'archive-proof.json');
+  mkdirSync(archiveBase, { recursive: true, mode: 0o700 });
+  if (!existsSync(target)) mkdirSync(target, { mode: 0o700 });
+  // The server answer must describe THIS receipt: same hash and same identity
+  // (so the timestamp part of the archive id is bound locally as well).
+  const describes = (receipt) =>
+    sha256Hex(canonicalJson(receipt.preparedProof)) === result.preparedSha256 &&
+    readerArchiveIdentity(receipt.preparedProof) === result.archiveId;
+  if (existsSync(proofPath)) {
+    if (existsSync(movedPath))
+      throw new OperatorGateError('The archived receipt already exists');
+    if (!describes(JSON.parse(readFileSync(proofPath))))
+      throw new OperatorGateError(
+        'Local preparation receipt differs from the archived one',
+      );
+  } else if (!existsSync(movedPath))
+    throw new OperatorGateError('No local preparation receipt to archive');
+  else if (!describes(JSON.parse(readFileSync(movedPath))))
+    throw new OperatorGateError(
+      'Archived local receipt differs from the server archive',
+    );
+  if (!existsSync(receiptPath)) {
+    const fd = openSync(receiptPath, 'wx', 0o600);
+    try {
+      writeFileSync(
+        fd,
+        JSON.stringify(
+          { ...result, archivedLocallyAt: new Date(nowMs).toISOString() },
+          null,
+          2,
+        ) + '\n',
+      );
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+  }
+  if (existsSync(proofPath)) renameSync(proofPath, movedPath);
+  return target;
+}
+
 export function retainOriginalZeroReceipt(zero, registry, existing) {
   activeRecoveryManifest(zero?.stage, zero?.build, registry);
   if (zero.stage.imageOnly !== true || zero.stage.configurationOnly === true)

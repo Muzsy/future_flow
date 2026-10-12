@@ -23,9 +23,16 @@ async function main() {
       'fixture',
       'prepare-readers',
       'apply-readers',
+      'archive-expired-readers',
       'disable',
     ].includes(mode) ||
-    process.argv.length !== (mode === 'prepare-readers' ? 4 : 3)
+    // prepare takes the selection file; archive may take the exact archive id
+    // that is required to retry after the local receipt was already retired.
+    process.argv.length >
+      (mode === 'prepare-readers' || mode === 'archive-expired-readers'
+        ? 4
+        : 3) ||
+    process.argv.length < (mode === 'prepare-readers' ? 4 : 3)
   )
     throw Error('Explicit unpaid reader operator mode required');
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -68,6 +75,10 @@ async function main() {
     exactFenceCiRuns,
     assertExactFenceCiJobs,
     retainOriginalZeroReceipt,
+    assertNoPreviousPreparationReceipt,
+    assertRestoreBindsPrepared,
+    archiveLocalPreparation,
+    resolveArchivePreparedProof,
   } = await import('./contabo-fence-operator.mjs');
   const { privateReportDirectory, privateReportFile, privateRequestFile } =
     await import('./lib/private-report.ts');
@@ -83,7 +94,9 @@ async function main() {
   )
     throw Error('Original owner Access receipt required');
   const zero =
-    mode === 'apply-readers' || mode === 'disable'
+    mode === 'apply-readers' ||
+    mode === 'disable' ||
+    mode === 'archive-expired-readers'
       ? report('personal-beta-readers-zero-proof.json')
       : {
           stage: report('owner-stage-proof.json'),
@@ -111,7 +124,11 @@ async function main() {
       report('owner-active-build-proof.json'),
       registry,
     );
-  if (mode === 'prepare-readers' || mode === 'apply-readers') {
+  if (
+    mode === 'prepare-readers' ||
+    mode === 'apply-readers' ||
+    mode === 'archive-expired-readers'
+  ) {
     const audit = report('personal-beta-readers-audit-proof.json');
     const fixture = report('personal-beta-readers-fixture-proof.json');
     if (
@@ -123,7 +140,9 @@ async function main() {
       fixture.sourceCommit !== commit ||
       fixture.actualReaderTransitionPassed !== true ||
       fixture.paidAiCalls !== 0 ||
-      fixture.existingContainersUnchanged !== true
+      fixture.existingContainersUnchanged !== true ||
+      (mode === 'archive-expired-readers' &&
+        fixture.expiredPreparationArchivePassed !== true)
     )
       throw Error(
         'Exact interpreted audit and actual isolated fixture required',
@@ -166,6 +185,8 @@ async function main() {
       );
   }
   if (mode === 'prepare-readers') {
+    // A new cycle starts only after the previous receipt was archived locally.
+    assertNoPreviousPreparationReceipt(directory);
     const privateDirectory = privateReportDirectory('personal-beta-operator');
     const file = privateRequestFile(privateDirectory, process.argv[3]);
     const selection = JSON.parse(regular(file));
@@ -194,10 +215,37 @@ async function main() {
       }
     }
   }
-  if (mode === 'apply-readers')
+  let archiveBase;
+  if (mode === 'archive-expired-readers') {
+    archiveBase = privateReportDirectory('reader-preparation-archive');
+    request.preparedProof = resolveArchivePreparedProof({
+      releaseDirectory: directory,
+      archiveBase,
+      archiveId: process.argv[3],
+      ownerManifestDigest: request.ownerManifestDigest,
+    }).preparedProof;
+  }
+  if (mode === 'apply-readers') {
     request.preparedProof = report(
       'personal-beta-readers-prepare-proof.json',
     ).preparedProof;
+    // Only THIS preparation's candidate backup and isolated restore may unlock
+    // apply, and only inside the same 15 minute bound the server enforces.
+    const daily = privateReportDirectory('contabo-daily');
+    const restore = JSON.parse(
+      regular(join(daily, 'restore-latest-proof.json')),
+    );
+    if (!/^\d{8}T\d{6}Z-[a-f0-9]{8}$/.test(restore.runId ?? ''))
+      throw Error('Restore proof run required');
+    assertRestoreBindsPrepared({
+      restore,
+      manifest: JSON.parse(
+        regular(join(daily, 'archives', restore.runId, 'manifest.json')),
+      ),
+      prepared: request.preparedProof,
+      nowMs: Date.now(),
+    });
+  }
   const names = [
     ['backup', 'alterward_backup', 'contabo-backup.py'],
     ['target', 'alterward_target', 'contabo-target.py'],
@@ -278,11 +326,24 @@ except BaseException:
     opsCommit: commit,
     capturedAt: new Date().toISOString(),
   };
-  privateReportFile(
-    directory,
-    `personal-beta-readers-${mode === 'prepare-readers' ? 'prepare' : mode === 'apply-readers' ? 'apply' : mode}-proof.json`,
-    saved,
-  );
+  let archivedTo;
+  if (mode === 'archive-expired-readers') {
+    // The server move is done and durable. Retire the matching local receipt;
+    // the owner/zero receipts stay untouched. After an interruption the same mode
+    // finishes this step: with the active receipt still present it needs no
+    // argument, once it was already retired it needs the exact archive id.
+    archivedTo = archiveLocalPreparation({
+      releaseDirectory: directory,
+      archiveBase,
+      result: saved,
+      nowMs: Date.now(),
+    });
+  } else
+    privateReportFile(
+      directory,
+      `personal-beta-readers-${mode === 'prepare-readers' ? 'prepare' : mode === 'apply-readers' ? 'apply' : mode}-proof.json`,
+      saved,
+    );
   if (mode === 'apply-readers' || mode === 'disable') {
     privateReportFile(directory, 'owner-stage-proof.json', saved);
     privateReportFile(directory, 'owner-active-build-proof.json', zero.build);
@@ -292,13 +353,27 @@ except BaseException:
       mode,
       ok: true,
       resultKeys: Object.keys(result.result),
+      // Scalar state only: booleans, counts and the archive id (no proof bodies).
+      state: Object.fromEntries(
+        Object.entries(result.result).filter(
+          ([key, value]) =>
+            typeof value === 'boolean' ||
+            typeof value === 'number' ||
+            key === 'archiveId',
+        ),
+      ),
+      ...(archivedTo ? { localArchive: true } : {}),
       paidAiCalls: 0,
     }),
   );
 }
-main().catch(() => {
+main().catch((error) => {
+  // Only the operator's own static gate reasons are printed; everything else
+  // (remote output, paths, proofs) stays out of the console.
   console.error(
-    'Unpaid reader operation refused or incomplete. Inspect its private proof and server journal before retrying.',
+    error?.name === 'OperatorGateError'
+      ? `Reader operation refused: ${error.message}`
+      : 'Unpaid reader operation refused or incomplete. Inspect its private proof and server journal before retrying.',
   );
   process.exitCode = 1;
 });

@@ -26,6 +26,25 @@ import alterward_upgrade as upgrade
 import alterward_fence as fence
 
 STATE = DIRECTORY / 'personal-beta-readers'
+# Apply and prepare share one bound with the expired-preparation archive: a
+# preparation older than this can never be applied, and only then may it be archived.
+READER_PREPARATION_SECONDS = 900
+CLOCK_TOLERANCE_SECONDS = 300
+ARCHIVE_SCHEMA = 'alterward-reader-archive-1'
+ARCHIVE_LIMIT = 8
+ARCHIVE_ID = re.compile(r'expired-[0-9]{8}T[0-9]{6}Z-[a-f0-9]{16}')
+STATE_NAMES = ('server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json',
+               'readers.json', 'access.json', 'prepared.json')
+ORIGINAL_NAMES = ('server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json',
+                  'stage.json', 'access.json')
+PREPARED_KEYS = frozenset({'manifest', 'previousManifestSha256', 'originalFilesSha256',
+                           'candidateFilesSha256', 'readersSha256', 'accessSha256', 'preparedAt',
+                           'sourceCommit', 'proxyNetwork', 'selectedReaders', 'accessEmailCount'})
+
+
+def archive_root():
+    # Derived from STATE so the isolated fixture and tests redirect both together.
+    return STATE.parent / 'personal-beta-readers-archive'
 
 
 def durable_file(path, data):
@@ -137,9 +156,9 @@ def prepared(request):
     return value, candidate, original
 
 
-def zero_baseline(request):
+def zero_baseline(request, base=None):
     # This validation is independent of candidate bytes and selected readers.
-    original = STATE / 'original'
+    original = (base or STATE) / 'original'
     data = files(original)
     stage = json.loads(fence.original(original / 'stage.json'))
     if stage != request['zeroStageProof']:
@@ -201,10 +220,12 @@ def prepare(request, daily, policy):
     if reviewed != allowed_metadata:
         raise ValueError('Reviewed Access differs outside addresses and observation time')
     instant = dt.datetime.fromisoformat(reviewed['checkedAt'].replace('Z', '+00:00'))
-    if instant.tzinfo != dt.timezone.utc or not 0 <= (now - instant).total_seconds() <= 900:
+    if instant.tzinfo != dt.timezone.utc or not 0 <= (now - instant).total_seconds() <= READER_PREPARATION_SECONDS:
         raise ValueError('Fresh external Access readback required')
     if STATE.exists() or STATE.is_symlink():
         raise ValueError('Previous reader preparation requires explicit inspection')
+    # A new cycle may start only beside fully archived, hash-verified predecessors.
+    require_complete_archives()
     private_directory(STATE)
     private_directory(STATE / 'original')
     for name, value in data.items():
@@ -286,7 +307,7 @@ def apply(request, daily, policy):
     if (STATE / 'journal.json').exists() or (STATE / 'journal.json').is_symlink():
         raise ValueError('Previous apply needs explicit disable/inspection')
     now = daily.utcnow()
-    if not 0 <= (now - dt.datetime.fromisoformat(value['preparedAt'])).total_seconds() <= 900:
+    if not 0 <= (now - dt.datetime.fromisoformat(value['preparedAt'])).total_seconds() <= READER_PREPARATION_SECONDS:
         raise ValueError('Fresh reader preparation required')
     data, stage, config, image = zero_baseline(request)
     readers = json.loads(fence.original(STATE / 'readers.json'))
@@ -330,6 +351,305 @@ def apply(request, daily, policy):
             'selectedReaders': value['selectedReaders'], 'accessEmailCount': value['accessEmailCount'],
             'runningServices': 3, 'paidAiCalls': 0, 'betaWindowActive': False,
             'databaseWrites': 0, 'existingForeignContainersUnchanged': True}
+
+
+def private_root_directory(path):
+    info = path.lstat()
+    if (path.is_symlink() or path.resolve() != path or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != 0 or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Original private reader directory required')
+
+
+def sync_directory(path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def sync_file(path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def file_time(path):
+    return path.lstat().st_mtime
+
+
+def utc_time(text):
+    # Exactly what datetime.isoformat() writes for an aware UTC value.
+    if not isinstance(text, str) or not re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{6})?\+00:00', text):
+        raise ValueError('Exact UTC time required')
+    return dt.datetime.fromisoformat(text)
+
+
+def unapplied_tree(base):
+    """Bytes of exactly one complete, never-applied preparation.
+
+    A journal, interrupted-replacement temp file, unknown name, link, public mode
+    or missing file is not "unapplied": it is evidence that needs explicit review.
+    """
+    private_root_directory(base)
+    original = base / 'original'
+    if {item.name for item in base.iterdir()} != set(STATE_NAMES) | {'original'}:
+        raise ValueError('Complete unapplied reader preparation required')
+    private_root_directory(original)
+    if {item.name for item in original.iterdir()} != set(ORIGINAL_NAMES):
+        raise ValueError('Complete unapplied reader preparation required')
+    tree = {name: fence.original(base / name) for name in STATE_NAMES}
+    tree.update({'original/' + name: fence.original(original / name) for name in ORIGINAL_NAMES})
+    return tree
+
+
+def tree_hashes(tree):
+    return {name: sha(data) for name, data in sorted(tree.items())}
+
+
+def valid_prepared(value):
+    digest = re.compile(r'[a-f0-9]{64}')
+    if not isinstance(value, dict) or set(value) != PREPARED_KEYS:
+        raise ValueError('Exact prepared receipt schema required')
+    if (not isinstance(value['manifest'], dict) or not isinstance(value['proxyNetwork'], dict) or
+            not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])):
+        raise ValueError('Exact prepared receipt schema required')
+    for key in ('previousManifestSha256', 'readersSha256', 'accessSha256'):
+        if not isinstance(value[key], str) or not digest.fullmatch(value[key]):
+            raise ValueError('Exact prepared receipt schema required')
+    for key in ('originalFilesSha256', 'candidateFilesSha256'):
+        item = value[key]
+        if (not isinstance(item, dict) or set(item) != set(FILES) or
+                not all(isinstance(entry, str) and digest.fullmatch(entry) for entry in item.values())):
+            raise ValueError('Exact prepared receipt schema required')
+    for key in ('selectedReaders', 'accessEmailCount'):
+        if isinstance(value[key], bool) or not isinstance(value[key], int):
+            raise ValueError('Exact prepared receipt schema required')
+    if not 1 <= value['selectedReaders'] <= 10 or not (
+            value['selectedReaders'] <= value['accessEmailCount'] <= value['selectedReaders'] + 1):
+        raise ValueError('Exact prepared receipt schema required')
+
+
+def owner_zero_serving(request, daily, base):
+    """Serving state is exactly the preserved original zero baseline; nothing runs or stops."""
+    current_digest(request)
+    data, _stage, config, image = zero_baseline(request, base)
+    if files(DIRECTORY) != data:
+        raise ValueError('Serving owner files differ from the original zero baseline')
+    funded = DIRECTORY / 'personal-beta'
+    if funded.exists() or funded.is_symlink():
+        raise ValueError('Funded personal state present; archive refused')
+    _manifest, services = daily.owner_runtime()
+    environments = {name: dict(item.split('=', 1) for item in value['Config']['Env'])
+                    for name, value in services.items()}
+    if daily.personal_runtime_policy(environments, daily.utcnow()).get('mode') != 'owner':
+        raise ValueError('Owner-only serving state required')
+    upgrade.inspect_owner(config, image)
+    return data
+
+
+def expired_preparation(request, daily):
+    """Return (value, tree, now) only for a valid, expired, never-applied preparation."""
+    now = daily.utcnow()
+    if now.tzinfo is None or now.utcoffset() != dt.timedelta(0):
+        raise ValueError('UTC clock required')
+    tree = unapplied_tree(STATE)
+    value = json.loads(tree['prepared.json'])
+    valid_prepared(value)
+    if encoded(value) != tree['prepared.json'] or value != request['preparedProof']:
+        raise ValueError('Exact prepared receipt required')
+    candidate = {name: tree[name] for name in FILES}
+    original = {name: tree['original/' + name] for name in FILES}
+    if ({name: sha(data) for name, data in candidate.items()} != value['candidateFilesSha256'] or
+            {name: sha(data) for name, data in original.items()} != value['originalFilesSha256'] or
+            sha(tree['readers.json']) != value['readersSha256'] or
+            sha(tree['access.json']) != value['accessSha256']):
+        raise ValueError('Durable preparation changed')
+    if value['previousManifestSha256'] != request['ownerManifestDigest']:
+        raise ValueError('Preparation baseline differs from the active owner receipt')
+    prepared_at = utc_time(value['preparedAt'])
+    age = (now - prepared_at).total_seconds()
+    if age < 0:
+        raise ValueError('Future preparation time rejected')
+    if age <= READER_PREPARATION_SECONDS:
+        raise ValueError('A still fresh preparation cannot be archived')
+    written = dt.datetime.fromtimestamp(file_time(STATE / 'prepared.json'), dt.timezone.utc)
+    if written > now or abs((written - prepared_at).total_seconds()) > CLOCK_TOLERANCE_SECONDS:
+        raise ValueError('Preparation time and file time disagree')
+    if owner_zero_serving(request, daily, STATE) != original:
+        raise ValueError('Original zero baseline differs from the preparation')
+    return value, tree, now
+
+
+def archive_identity(value):
+    prepared_at = utc_time(value['preparedAt'])
+    return 'expired-' + prepared_at.strftime('%Y%m%dT%H%M%SZ') + '-' + sha(encoded(value))[:16]
+
+
+def archive_inventory():
+    root = archive_root()
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_root_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > ARCHIVE_LIMIT:
+        raise ValueError('Too many reader preparation archives')
+    inventory = []
+    for entry in entries:
+        if not ARCHIVE_ID.fullmatch(entry.name):
+            raise ValueError('Unexpected reader archive artifact')
+        private_root_directory(entry)
+        names = {item.name for item in entry.iterdir()}
+        if not names <= {'intent.json', 'complete.json', 'state'}:
+            raise ValueError('Unexpected reader archive artifact')
+        intent_bytes = fence.original(entry / 'intent.json') if 'intent.json' in names else None
+        intent = json.loads(intent_bytes) if intent_bytes is not None else None
+        done = json.loads(fence.original(entry / 'complete.json')) if 'complete.json' in names else None
+        if intent is not None and (intent.get('schema') != ARCHIVE_SCHEMA or intent.get('archiveId') != entry.name):
+            raise ValueError('Reader archive intent differs')
+        if done is not None and (intent is None or 'state' not in names or
+                                 done.get('schema') != ARCHIVE_SCHEMA or done.get('archiveId') != entry.name or
+                                 done.get('intentSha256') != sha(intent_bytes)):
+            raise ValueError('Reader archive evidence is inconsistent')
+        if 'state' in names and intent is None:
+            raise ValueError('Reader archive evidence is inconsistent')
+        inventory.append({'id': entry.name, 'path': entry, 'intent': intent, 'intentBytes': intent_bytes,
+                          'complete': done, 'hasState': 'state' in names})
+    return inventory
+
+
+def verify_archived_bytes(item):
+    tree = unapplied_tree(item['path'] / 'state')
+    value = json.loads(tree['prepared.json'])
+    valid_prepared(value)
+    if (encoded(value) != tree['prepared.json'] or archive_identity(value) != item['id'] or
+            tree_hashes(tree) != item['intent']['files'] or
+            sha(tree['prepared.json']) != item['intent']['preparedSha256']):
+        raise ValueError('Archived bytes differ from the recorded intent')
+    return value, tree
+
+
+def require_complete_archives():
+    for item in archive_inventory():
+        if item['complete'] is None:
+            raise ValueError('Incomplete reader preparation archive requires explicit recovery')
+        verify_archived_bytes(item)
+
+
+def archive_summary():
+    try:
+        inventory = archive_inventory()
+    except Exception:
+        return {'valid': False}
+    complete = sum(1 for item in inventory if item['complete'] is not None)
+    return {'valid': True, 'complete': complete, 'incomplete': len(inventory) - complete}
+
+
+def archive_result(item_id, intent, intent_bytes, repeated):
+    return {'archived': True, 'alreadyArchived': repeated, 'archiveId': item_id,
+            'preparedAt': intent['preparedAt'], 'preparedSha256': intent['preparedSha256'],
+            'archiveIntentSha256': sha(intent_bytes), 'archivedFiles': len(intent['files']),
+            'readerStatePresent': False, 'zeroBaselineUnchanged': True,
+            'containersStarted': 0, 'containersStopped': 0, 'paidAiCalls': 0,
+            'databaseWrites': 0, 'betaWindowActive': False}
+
+
+def finish_archive(entry, intent, intent_bytes, daily, stable, foreign):
+    item = {'id': entry.name, 'path': entry, 'intent': intent}
+    verify_archived_bytes(item)
+    if STATE.exists() or STATE.is_symlink():
+        raise ValueError('Active reader preparation remains after archive')
+    if daily.stable_state() != stable or upgrade.foreign_state() != foreign:
+        raise ValueError('Existing containers changed during archive')
+    durable_file(entry / 'complete.json', encoded({
+        'schema': ARCHIVE_SCHEMA, 'archiveId': entry.name, 'intentSha256': sha(intent_bytes),
+        'completedAt': daily.utcnow().isoformat()}))
+
+
+def archive_expired(request, daily, policy):
+    """Move one expired, never-applied preparation into a protected, verifiable archive.
+
+    Nothing is started, stopped, restored or deleted. The preparation directory is
+    renamed (same filesystem, atomic), so bytes, hashes and timestamps are preserved.
+    Durable intent precedes the move and completion follows it; prepare refuses to
+    start from any archive entry without a verified completion.
+    """
+    inventory = archive_inventory()
+    for item in inventory:
+        if item['complete'] is not None:
+            verify_archived_bytes(item)
+    stable, foreign = daily.stable_state(), upgrade.foreign_state()
+    if not (STATE.exists() or STATE.is_symlink()):
+        return reconcile_archive(request, daily, inventory, stable, foreign)
+    value, tree, now = expired_preparation(request, daily)
+    identity = archive_identity(value)
+    if any(item['id'] != identity and item['complete'] is None for item in inventory):
+        raise ValueError('Another reader preparation archive is incomplete')
+    existing = next((item for item in inventory if item['id'] == identity), None)
+    if existing is not None and (existing['complete'] is not None or existing['hasState']):
+        raise ValueError('Archived preparation reappeared; explicit inspection required')
+    # The daily capture and every later gate refuse more than ARCHIVE_LIMIT entries,
+    # so this tool must never be the one that creates the entry beyond the limit.
+    if existing is None and len(inventory) >= ARCHIVE_LIMIT:
+        raise ValueError('Reader preparation archive limit reached; review the evidence first')
+    if existing is not None and existing['intent'] is not None:
+        intent_bytes = existing['intentBytes']
+        intent = existing['intent']
+        if intent['files'] != tree_hashes(tree) or intent['preparedSha256'] != sha(tree['prepared.json']):
+            raise ValueError('Recorded archive intent differs from the preparation')
+    else:
+        intent = {'schema': ARCHIVE_SCHEMA, 'archiveId': identity, 'reason': 'expired-unapplied',
+                  'expirySeconds': READER_PREPARATION_SECONDS, 'archivedAt': now.isoformat(),
+                  'preparedAt': value['preparedAt'], 'preparedSourceCommit': value['sourceCommit'],
+                  'archiverSourceCommit': request['sourceCommit'],
+                  'preparedSha256': sha(tree['prepared.json']),
+                  'ownerManifestSha256': value['previousManifestSha256'],
+                  'servingFilesSha256': {name: sha(data) for name, data in files(DIRECTORY).items()},
+                  'files': tree_hashes(tree)}
+        intent_bytes = encoded(intent)
+    root = archive_root()
+    private_directory(root)
+    entry = root / identity
+    if not entry.exists():
+        private_directory(entry)
+    durable_file(entry / 'intent.json', intent_bytes)
+    # Explicit ordering: the intent file (also when it already existed with equal
+    # bytes after an interrupted run) and the directory entries that name it are
+    # durable BEFORE the preparation moves.
+    sync_file(entry / 'intent.json')
+    sync_directory(entry)
+    sync_directory(root)
+    sync_directory(STATE.parent)
+    # From here a half-done move is recoverable only through this explicit mode.
+    for number in INTERRUPTION_SIGNALS:
+        signal.signal(number, signal.SIG_IGN)
+    os.rename(STATE, entry / 'state')
+    sync_directory(entry)
+    sync_directory(root)
+    sync_directory(STATE.parent)
+    finish_archive(entry, intent, intent_bytes, daily, stable, foreign)
+    return archive_result(identity, intent, intent_bytes, False)
+
+
+def reconcile_archive(request, daily, inventory, stable, foreign):
+    """STATE is gone: finish an interrupted move or report an identical repeat."""
+    value = request['preparedProof']
+    valid_prepared(value)
+    identity = archive_identity(value)
+    item = next((entry for entry in inventory if entry['id'] == identity), None)
+    if item is None or item['intent'] is None or not item['hasState']:
+        raise ValueError('No reader preparation to archive')
+    if item['intent']['preparedSha256'] != sha(encoded(value)):
+        raise ValueError('Archived preparation differs from the request')
+    verify_archived_bytes(item)
+    owner_zero_serving(request, daily, item['path'] / 'state')
+    repeated = item['complete'] is not None
+    if not repeated:
+        finish_archive(item['path'], item['intent'], item['intentBytes'], daily, stable, foreign)
+    return archive_result(identity, item['intent'], item['intentBytes'], repeated)
 
 
 def disable(request):
@@ -378,7 +698,8 @@ def exclusive_lock(handle, wait_seconds=0):
 def main(request):
     import fcntl
     mode = request.get('mode')
-    if os.geteuid() != 0 or mode not in {'inspect', 'prepare-readers', 'apply-readers', 'disable'}:
+    if os.geteuid() != 0 or mode not in {'inspect', 'prepare-readers', 'apply-readers', 'disable',
+                                         'archive-expired-readers'}:
         raise ValueError('Explicit unpaid reader operator mode required')
     for path in (fence.DAILY / 'job.lock', DIRECTORY / 'activation.lock'):
         fence.original(path)
@@ -397,8 +718,13 @@ def main(request):
             manifest, services = daily.owner_runtime()
             return {'manifestDigest': sha(fence.original(DIRECTORY / 'manifest.json')),
                     'commit': manifest['commit'], 'runningServices': len(services),
-                    'readerPreparationPresent': STATE.exists(),
+                    'readerPreparationPresent': STATE.exists(), 'readerArchives': archive_summary(),
                     'paidAiCalls': 0, 'containersStarted': 0, 'databaseWrites': 0}
-        if getattr(daily, 'READER_ARCHIVE_POLICY_VERSION', None) != 1:
+        # The preparation-archive policy keeps archived (expired) states inside the
+        # encrypted daily backup; without it a new cycle must not start or be applied.
+        if (getattr(daily, 'READER_ARCHIVE_POLICY_VERSION', None) != 1 or
+                getattr(daily, 'READER_PREPARATION_ARCHIVE_POLICY_VERSION', None) != 1):
             raise ValueError('Reviewed installed reader journal/config backup required')
+        if mode == 'archive-expired-readers':
+            return archive_expired(request, daily, policy)
         return prepare(request, daily, policy) if mode == 'prepare-readers' else apply(request, daily, policy)

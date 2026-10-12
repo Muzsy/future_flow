@@ -121,7 +121,16 @@ def main(request, continuation=None):
                  'ownerAccess': access, 'previousStageProof': stage, 'zeroStageProof': stage,
                  'readers': ['tester@example.invalid'],
                  'readerAccess': {**access, 'allowedEmails': ['owner@example.invalid', 'tester@example.invalid']}}
-        daily = types.SimpleNamespace(stable_state=target.existing_state, utcnow=lambda: dt.datetime.now(dt.timezone.utc))
+        def fixture_clock(shift=0):
+            return lambda: dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=shift)
+        # owner_runtime/personal_runtime_policy are the fixture seams for the installed
+        # daily tool: the real container inspection of the isolated owner stack.
+        def fixture_daily(shift=0):
+            return types.SimpleNamespace(
+                stable_state=target.existing_state, utcnow=fixture_clock(shift),
+                owner_runtime=lambda: (manifest, upgrade.inspect_owner(config, image)),
+                personal_runtime_policy=lambda environments, at: {'mode': 'owner'})
+        daily = fixture_daily()
         try:
             for module in (activation, upgrade, readers):
                 if module.PROJECT != project or module.DIRECTORY != owner:
@@ -133,7 +142,32 @@ def main(request, continuation=None):
             created = True
             upgrade.replace_services(owner / 'effective-compose.json')
             initial = readers.files(owner)
+            # Expired, never-applied preparation: archive it, then run a normal new cycle.
+            stale = readers.prepare(local, daily, policy)
+            archive_request = {**local, 'preparedProof': stale['preparedProof']}
+            before_archive = target.existing_state()
+            try:
+                readers.archive_expired(archive_request, daily, policy)
+            except ValueError as error:
+                # The refusal must be the freshness gate, not an unrelated failure.
+                if 'still fresh' not in str(error):
+                    raise
+            else:
+                raise ValueError('A still fresh preparation was archived')
+            expired = fixture_daily(readers.READER_PREPARATION_SECONDS + 60)
+            archived = readers.archive_expired(archive_request, expired, policy)
+            if (not archived['archived'] or readers.STATE.exists() or readers.files(owner) != initial or
+                    target.existing_state() != before_archive or archived['containersStarted'] != 0):
+                raise ValueError('Expired preparation archive changed the owner stack')
+            readers.require_complete_archives()
+            if not readers.archive_root().joinpath(archived['archiveId'], 'complete.json').exists():
+                raise ValueError('Archive completion missing')
+            if not readers.archive_expired(archive_request, expired, policy)['alreadyArchived']:
+                raise ValueError('Archive repeat was not idempotent')
+            upgrade.inspect_owner(config, image)
             proof = readers.prepare(local, daily, policy)
+            if proof['preparedProof'] == stale['preparedProof']:
+                raise ValueError('New cycle reused the archived preparation')
             local['preparedProof'] = proof['preparedProof']
             success = readers.apply(local, daily, policy)
             if success['configurationMode'] != 'readers' or success['paidAiCalls'] != 0:
@@ -166,6 +200,7 @@ def main(request, continuation=None):
                 raise ValueError('Post-check failure did not restore zero')
             upgrade.inspect_owner(config, image)
             result = {'actualReaderTransitionPassed': True, 'successfulPromotion': True,
+                      'expiredPreparationArchivePassed': True,
                       'corruptCandidateEmergencyRestore': True, 'postCheckFailureRollback': True,
                       'fixtureScope': 'isolated-unpaid-files-and-services',
                       'databaseSourceRenderAndProxyDiscoverySubstituted': True,

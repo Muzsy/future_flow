@@ -43,6 +43,10 @@ Részletes eljárás: `../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md`.
 8. worker/paid AI csak külön gate után indul;
 9. post-recovery health/monitor zöld.
 
+## 3/a. Olvasói előkészítés archiválása
+
+Lejárt (több mint 900 s) és soha nem alkalmazott olvasói előkészítés csak explicit `--archive-expired-readers` móddal kerül a védett archívumba; az nem indít, nem állít le és nem állít vissza szolgáltatást, nem ír élő DB-t. Archivált állapot mellett nincs aktív előkészítés, ezért a `disable` a szolgáltatások érintése előtt elutasít, az eredeti nulla owner-állapot marad a serving. Az archívum nem recovery- vagy apply-authority. Megszakadás után az evidence-alapú egyeztetés és az új, 15 percen belüli ciklus sorrendje: `../PERSONAL_BETA_READER_OPERATOR_HU.md`.
+
 ## 4. Supabase scope-határ
 
 Az application backup nem automatikusan teljes hosted Supabase recovery.

@@ -63,8 +63,8 @@ A Personal beta csak a következő sorrenddel aktiválható:
 
 1. konkrét, legfeljebb 10 fős tesztelőlista;
 2. invite és első login;
-3. email ↔ Auth UUID / reader hozzáférés pontos binding;
-4. friss candidate backup és ellenőrzött restore;
+3. email ↔ Auth UUID / reader hozzáférés pontos binding; ha korábbi reader-előkészítés lejárt és nem lett alkalmazva, előbb annak explicit archiválása (`--archive-expired-readers`, `PERSONAL_BETA_READER_OPERATOR_HU.md`). A fejlesztés review-ra kész; az éles használathoz pontos commitra audit, Verify/Container CI, izolált célpróba és a napi eszköz frissítése még szükséges;
+4. friss candidate backup és ellenőrzött restore, az előkészítéstől számított 15 percen belül az apply-jal együtt;
 5. egyszeri 30 napos személyes AI-window aktiválás a jóváhagyott kerettel;
 6. signed-in, valós fizetett AI E2E;
 7. monitor/rollback ellenőrzés;

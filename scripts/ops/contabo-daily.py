@@ -372,6 +372,16 @@ def extended_config_archive(proxy):
 
 READER_ARCHIVE_POLICY_VERSION = 1
 PERSONAL_ARCHIVE_POLICY_VERSION = 1
+# Separate from the two versions above so the funded operator's pinned check is
+# untouched. Version 1 adds the completed/partial expired-preparation archives.
+READER_PREPARATION_ARCHIVE_POLICY_VERSION = 1
+READER_ARCHIVE_ROOT_NAME = 'personal-beta-readers-archive'
+READER_ARCHIVE_LIMIT = 8
+READER_ARCHIVE_ID = re.compile(r'expired-[0-9]{8}T[0-9]{6}Z-[a-f0-9]{16}')
+READER_ARCHIVED_STATE_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.json',
+                               'manifest.json', 'readers.json', 'access.json', 'prepared.json'}
+READER_ARCHIVED_ORIGINAL_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.json',
+                                  'manifest.json', 'stage.json', 'access.json'}
 
 
 def personal_config_paths():
@@ -403,6 +413,61 @@ def personal_config_paths():
 
 
 def reader_config_paths():
+    """Active reader preparation plus every archived (expired, never applied) one."""
+    return sorted(active_reader_config_paths() + reader_archive_config_paths())
+
+
+def private_archive_directory(path):
+    info = path.lstat()
+    if (path.is_symlink() or path.resolve() != path.absolute() or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Original private reader archive directory required')
+
+
+def reader_archive_config_paths():
+    """Exact files of the expired-preparation archives, including interrupted ones.
+
+    Layout per archive id: intent.json, complete.json and the moved, byte-identical
+    preparation under state/ (+ state/original/). Nothing else is ever accepted, so
+    an unknown name, alias, hardlink or public mode fails the whole capture closed.
+    """
+    root = OWNER / READER_ARCHIVE_ROOT_NAME
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > READER_ARCHIVE_LIMIT:
+        raise ValueError('Too many reader preparation archives')
+    files = []
+    for entry in entries:
+        if not READER_ARCHIVE_ID.fullmatch(entry.name):
+            raise ValueError('Unexpected reader archive artifact')
+        private_archive_directory(entry)
+        for item in entry.iterdir():
+            if item.name in ('intent.json', 'complete.json'):
+                regular(item)
+                files.append(item)
+            elif item.name == 'state':
+                private_archive_directory(item)
+                for child in item.iterdir():
+                    if child.name in READER_ARCHIVED_STATE_NAMES:
+                        regular(child)
+                        files.append(child)
+                    elif child.name == 'original':
+                        private_archive_directory(child)
+                        for leaf in child.iterdir():
+                            if leaf.name not in READER_ARCHIVED_ORIGINAL_NAMES:
+                                raise ValueError('Unexpected reader archive artifact')
+                            regular(leaf)
+                            files.append(leaf)
+                    else:
+                        raise ValueError('Unexpected reader archive artifact')
+            else:
+                raise ValueError('Unexpected reader archive artifact')
+    return sorted(files)
+
+
+def active_reader_config_paths():
     """Capture durable reader preparation/rollback files, including partial work.
 
     No generic recursive tree or arbitrary file is added to an encrypted backup.
