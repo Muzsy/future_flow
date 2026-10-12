@@ -19,7 +19,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
+      - name: Show canonical Prettier output for docs checker
+        run: |
+          pnpm exec prettier scripts/verify-docs.ts --write
+          git diff -- scripts/verify-docs.ts
+          exit 1
       - run: pnpm docs:check
       - name: Verify backup and source archive boundaries
         run: |
