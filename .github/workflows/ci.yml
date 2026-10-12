@@ -19,6 +19,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier tests/shared-sponsored-guest.test.ts
       - run: pnpm format:check
       - name: Verify backup and source archive boundaries
         run: |
