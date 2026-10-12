@@ -67,8 +67,9 @@ if (adrFiles.length === 0) fail('no ADR files found');
 
 const adrNumbers = new Map<string, string>();
 for (const name of adrFiles) {
-  const number = name.match(/^ADR-(\d{3})-/)?.[1];
-  if (!number) fail(`invalid ADR filename: ${name}`);
+  const adrMatch = name.match(/^ADR-(\d{3})-/);
+  if (!adrMatch) fail(`invalid ADR filename: ${name}`);
+  const number = adrMatch[1]!;
   const previous = adrNumbers.get(number);
   if (previous) fail(`duplicate ADR number ${number}: ${previous}, ${name}`);
   adrNumbers.set(number, name);
