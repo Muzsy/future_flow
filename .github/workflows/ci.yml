@@ -20,6 +20,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - run: pnpm docs:check
       - name: Verify backup and source archive boundaries
         run: |
           python3 -m unittest discover -s tests/ops -p 'test_*.py'
