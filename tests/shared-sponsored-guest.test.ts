@@ -149,7 +149,7 @@ describe('Shared sponsored guest seats', () => {
     ).rejects.toMatchObject({ code: 'SHARED_CONTEXT_LIMIT' });
 
     await db.query(
-      "UPDATE aw_user_entitlements SET tier='explorer' WHERE user_id=$1",
+      "INSERT INTO aw_user_entitlements(user_id,tier,source) VALUES($1,'explorer','isolated-test')",
       [guest.id],
     );
     const subscriberJoin = await shared.acceptInvite(
