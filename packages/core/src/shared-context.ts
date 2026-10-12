@@ -40,6 +40,10 @@ export const SHARED_TIER_LIMITS: Record<
     ],
   },
 };
+export const SHARED_SPONSORED_GUEST_LIMITS = {
+  activeContexts: 1,
+  types: ['friend_group'] as readonly SharedContextType[],
+};
 export function requireSharedEntitlement(
   tier: SharedTier,
   type: SharedContextType,
@@ -55,6 +59,26 @@ export function requireSharedEntitlement(
   if (
     usedSlots !== undefined &&
     usedSlots >= Math.min(5, limits.activeContexts)
+  )
+    throw new DomainError(
+      'SHARED_CONTEXT_LIMIT',
+      'Shared context limit reached.',
+      409,
+    );
+}
+export function requireSharedSponsoredGuestEntitlement(
+  type: SharedContextType,
+  usedSlots?: number,
+) {
+  if (!SHARED_SPONSORED_GUEST_LIMITS.types.includes(type))
+    throw new DomainError(
+      'SUBSCRIPTION_REQUIRED',
+      'Shared context type requires a different plan.',
+      403,
+    );
+  if (
+    usedSlots !== undefined &&
+    usedSlots >= SHARED_SPONSORED_GUEST_LIMITS.activeContexts
   )
     throw new DomainError(
       'SHARED_CONTEXT_LIMIT',
