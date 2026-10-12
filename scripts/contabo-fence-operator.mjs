@@ -486,12 +486,12 @@ export function assertExactFenceCiJobs(detail, sourceCommit) {
 async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
   if (
-    process.platform !== 'win32' ||
+    !['win32', 'linux'].includes(process.platform) ||
     !['plan', 'drill', 'rehearsal'].includes(mode) ||
     process.argv.length !== 3
   )
     throw Error(
-      'Explicit Windows operator --plan, reviewed --drill or --rehearsal required',
+      'Explicit operator --plan, reviewed --drill or --rehearsal required',
     );
   const sha = (data) => createHash('sha256').update(data).digest('hex');
   const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -522,12 +522,24 @@ async function main() {
     execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()
   )
     throw Error('Exact committed helper and clean checkout required');
+  const platformInfo = lstatSync('scripts/lib/operator-platform.mjs');
+  if (
+    !platformInfo.isFile() ||
+    platformInfo.isSymbolicLink() ||
+    platformInfo.nlink !== 1 ||
+    sha(readFileSync('scripts/lib/operator-platform.mjs')) !==
+      sha(source('scripts/lib/operator-platform.mjs'))
+  )
+    throw Error('Exact committed operator platform helper required');
+  const { operatorSecretsDirectory, assertOperatorLocalInput } =
+    await import('./lib/operator-platform.mjs');
   // Check its bytes before importing executable report/path confinement code.
   const { privateReportDirectory, privateReportFile, privateRequestFile } =
     await import('./lib/private-report.ts');
   const dir = privateReportDirectory('contabo-release');
   function report(name) {
     const path = privateRequestFile(dir, join(dir, name));
+    assertOperatorLocalInput(path);
     if (lstatSync(path).size > 2 * 1024 ** 2)
       throw Error('Bounded original report required');
     return JSON.parse(readFileSync(path, 'utf8'));
@@ -658,7 +670,7 @@ async function main() {
     const data = source(name);
     files[name] = { data: data.toString('base64'), sha256: sha(data) };
   }
-  const secrets = join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  const secrets = operatorSecretsDirectory();
   const key = join(secrets, 'contabo_alterward_ed25519'),
     pin = join(secrets, 'contabo_known_hosts');
   for (const path of [key, pin]) {

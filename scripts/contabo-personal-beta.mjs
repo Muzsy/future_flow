@@ -15,6 +15,7 @@ export function operatorChildEnvironment(environment) {
     'USERPROFILE',
     'APPDATA',
     'LOCALAPPDATA',
+    'ALTERWARD_SSH_SECRETS_DIR',
     'PROGRAMDATA',
     'ALLUSERSPROFILE',
     'TEMP',
@@ -115,7 +116,7 @@ async function main() {
   for (const name of Object.keys(process.env))
     if (!(name in childEnvironment)) delete process.env[name];
   if (
-    process.platform !== 'win32' ||
+    !['win32', 'linux'].includes(process.platform) ||
     ![
       'inspect',
       'fixture',
@@ -131,7 +132,24 @@ async function main() {
   }).trim();
   const source = (path) => execFileSync('git', ['show', `${commit}:${path}`]);
   const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  const platformPath = 'scripts/lib/operator-platform.mjs';
+  const platformInfo = lstatSync(platformPath);
+  if (
+    !platformInfo.isFile() ||
+    platformInfo.isSymbolicLink() ||
+    platformInfo.nlink !== 1 ||
+    digest(readFileSync(platformPath)) !== digest(source(platformPath))
+  )
+    throw Error('Exact committed operator platform helper required');
+  // Validate bytes BEFORE importing code, especially before funded secrets
+  // can be observed by an untrusted helper module.
+  const {
+    operatorSecretsDirectory,
+    assertOperatorLocalInput,
+    assertLinuxPrivatePath,
+  } = await import('./lib/operator-platform.mjs');
   const regular = (path) => {
+    assertOperatorLocalInput(path);
     const stat = lstatSync(path);
     if (
       !stat.isFile() ||
@@ -157,6 +175,7 @@ async function main() {
   for (const path of [
     'scripts/contabo-fence-operator.mjs',
     'scripts/lib/private-report.ts',
+    'scripts/lib/operator-platform.mjs',
     ...(mode === 'disable'
       ? []
       : ['scripts/lib/personal-beta-admission-observation.mjs']),
@@ -289,6 +308,7 @@ async function main() {
       'scripts/lib/personal-beta-admission-observation.mjs',
     ).toString();
   if (mode === 'prepare-personal') {
+    if (process.platform === 'linux') assertLinuxPrivatePath(process.argv[3]);
     const file = privateRequestFile(
       privateReportDirectory('personal-beta-operator'),
       process.argv[3],
@@ -380,7 +400,7 @@ try:
 except BaseException:
  print(json.dumps({'ok':False,'phase':'personal-beta-operator'}));sys.exit(1)
 `;
-  const secrets = join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  const secrets = operatorSecretsDirectory();
   const pin = join(secrets, 'contabo_known_hosts');
   const key = join(secrets, 'contabo_alterward_ed25519');
   const host = regular(pin).toString().trim().split(/\s+/)[0];

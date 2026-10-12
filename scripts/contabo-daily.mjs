@@ -27,9 +27,17 @@ const retention = 7 * 86400000;
 const expiryJournal = '.expiry-journal';
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 const execute = promisify(execFile);
+let assertOperatorLocalInput = () => {};
+let operatorSecretsDirectory;
+function sameOperatorPath(left, right) {
+  return process.platform === 'win32'
+    ? left.toLowerCase() === right.toLowerCase()
+    : left === right;
+}
 let phase = 'local-validation';
 
 function regular(path) {
+  assertOperatorLocalInput(path);
   const value = fs.lstatSync(path);
   if (!value.isFile() || value.isSymbolicLink() || value.nlink !== 1)
     throw Error('Private regular file required');
@@ -43,7 +51,7 @@ function archiveDirectory(root, name) {
   if (
     !value.isDirectory() ||
     value.isSymbolicLink() ||
-    fs.realpathSync(path).toLowerCase() !== path.toLowerCase()
+    !sameOperatorPath(fs.realpathSync(path), path)
   )
     throw Error('Archive directory alias rejected');
   return path;
@@ -54,7 +62,7 @@ function directoryIdentity(path) {
   if (
     !value.isDirectory() ||
     value.isSymbolicLink() ||
-    fs.realpathSync(path).toLowerCase() !== resolve(path).toLowerCase()
+    !sameOperatorPath(fs.realpathSync(path), resolve(path))
   )
     throw Error('Original daily directory required');
   return [value.dev.toString(), value.ino.toString()];
@@ -286,7 +294,7 @@ function cleanPending(root) {
       if (
         !info.isDirectory() ||
         info.isSymbolicLink() ||
-        fs.realpathSync(path).toLowerCase() !== path.toLowerCase()
+        !sameOperatorPath(fs.realpathSync(path), path)
       )
         throw Error('Pending directory alias rejected');
       const files = fs.readdirSync(path);
@@ -413,18 +421,17 @@ function syncDirectory(path) {
 async function runOperator() {
   const action = process.argv[2]?.slice(2);
   if (
-    process.platform !== 'win32' ||
-    !process.env.LOCALAPPDATA ||
+    !['win32', 'linux'].includes(process.platform) ||
     process.argv.length !== 3 ||
     !actions.includes(action)
   )
-    throw Error('Explicit pinned Windows operator action required');
+    throw Error('Explicit pinned operator action required');
   const directory = privateReportDirectory('contabo-daily');
   const archives = join(directory, 'archives');
   if (!fs.existsSync(archives)) fs.mkdirSync(archives, { mode: 0o700 });
   if (
     fs.lstatSync(archives).isSymbolicLink() ||
-    fs.realpathSync(archives).toLowerCase() !== resolve(archives).toLowerCase()
+    !sameOperatorPath(fs.realpathSync(archives), resolve(archives))
   )
     throw Error('Private archive root alias rejected');
   const localExpired = expireLocal(archives);
@@ -437,13 +444,11 @@ async function runOperator() {
     console.log(JSON.stringify({ localExpired, retentionDays: 7 }));
     return;
   }
-  const secrets =
-    process.env.ALTERWARD_SSH_SECRETS_DIR ??
-    join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  const secrets = operatorSecretsDirectory();
   if (
     !fs.lstatSync(secrets).isDirectory() ||
     fs.lstatSync(secrets).isSymbolicLink() ||
-    fs.realpathSync(secrets).toLowerCase() !== resolve(secrets).toLowerCase()
+    !sameOperatorPath(fs.realpathSync(secrets), resolve(secrets))
   )
     throw Error('Exact protected SSH secrets directory required');
   const key = join(secrets, 'contabo_alterward_ed25519');
@@ -453,6 +458,18 @@ async function runOperator() {
   if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host))
     throw Error('Pinned server required');
   const options = [
+    ...(process.platform === 'linux'
+      ? [
+          '-F',
+          'none',
+          '-o',
+          'GlobalKnownHostsFile=none',
+          '-o',
+          'IdentitiesOnly=yes',
+          '-o',
+          'ClearAllForwardings=yes',
+        ]
+      : []),
     '-i',
     key,
     '-o',
@@ -647,6 +664,23 @@ async function runOperator() {
   );
 }
 async function main() {
+  {
+    const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim();
+    for (const file of [
+      'scripts/contabo-daily.mjs',
+      'scripts/lib/private-report.ts',
+      'scripts/lib/operator-platform.mjs',
+    ])
+      if (
+        digest(regular(file)) !==
+        digest(execFileSync('git', ['show', `${commit}:${file}`]))
+      )
+        throw Error('Exact committed operator dependencies required');
+  }
+  ({ assertOperatorLocalInput, operatorSecretsDirectory } =
+    await import('./lib/operator-platform.mjs'));
   const directory = privateReportDirectory('contabo-daily');
   const lock = join(directory, 'job.lock');
   if (fs.existsSync(lock)) {

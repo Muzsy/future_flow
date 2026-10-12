@@ -34,7 +34,7 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | development/setup | `operations/DEVELOPMENT_HU.md` | `SETUP.md` részletes legacy runbook |
 | testing/CI | `operations/TESTING_HU.md` | workflow + targeted test docs |
 | deployment | `operations/DEPLOYMENT_HU.md` | `DEPLOYMENT_HU.md`, aktív Contabo/Cloudflare runbookok |
-| beta | `operations/BETA_HU.md` | personal beta operator/reader/admission docs |
+| beta | `operations/BETA_HU.md` | personal beta operator/reader/admission docs; `operations/LINUX_OPERATOR_HU.md` |
 | backup | `operations/BACKUP_HU.md` | `CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md` és retention runbookok |
 | recovery | `operations/RECOVERY_HU.md` | restore/privacy/writer-fence runbookok |
 | security operations | `operations/SECURITY_OPERATIONS_HU.md` | privacy catalog, writer fence, monitor docs |

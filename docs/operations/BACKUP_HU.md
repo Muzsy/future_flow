@@ -81,3 +81,7 @@ Az apply csak az aktuális candidate hash-eket tartalmazó, izoláltan ellenőrz
 - ismeretlen/symlink/hardlink/device archive entry elfogadása;
 - régi proof új state-re való ráfogása;
 - retention törlés verification nélkül.
+
+## Linux operátori host
+
+A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.
