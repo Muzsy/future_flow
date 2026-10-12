@@ -619,7 +619,7 @@ export class SharedContextRepository {
           userId,
           c.type,
           true,
-          true,
+          invite.target_user_id === userId,
         );
         await this.capacity(tx, c);
         const profile = await this.profile(
