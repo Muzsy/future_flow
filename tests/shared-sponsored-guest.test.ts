@@ -25,7 +25,7 @@ describe('Shared sponsored guest seats', () => {
     await engine?.close();
   });
 
-  it('lets a targeted Free guest participate once while keeping host and AI rights paid', async () => {
+  it('allows one targeted Free guest without host or AI rights', async () => {
     const owner = await sharedParticipant(db, 'explorer', 'Host');
     const guest = await sharedParticipant(db, 'free', 'Guest');
     const created = await shared.create(
