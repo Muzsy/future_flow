@@ -4,26 +4,28 @@ owner: product
 last_reviewed: 2026-10-12
 related:
   - STATUS_HU.md
+  - DEVELOPMENT_PLAN_HU.md
   - product/PRODUCT_HU.md
 ---
 
 # Alterward roadmap
 
-A roadmap jövőbeli prioritásokat és sorrendet rögzít. A jelenlegi állapotot a `STATUS_HU.md` írja le.
+A roadmap jövőbeli prioritásokat és sorrendet rögzít. A jelenlegi állapotot a `STATUS_HU.md`, a részletes végrehajtási állapotot a `DEVELOPMENT_PLAN_HU.md` írja le.
 
-## P0 — Documentation governance és canonicalization
+## P0 — Documentation governance és canonicalization — DONE
 
 Cél: több AI agent párhuzamos munkája determinisztikus source-of-truth mellett.
 
-Definition of Done:
+Elkészült:
 
 - root `AGENTS.md`;
 - docs router és governance;
-- rövid kanonikus STATUS/ROADMAP/PRODUCT/ARCHITECTURE;
+- kanonikus STATUS/ROADMAP/PRODUCT/ARCHITECTURE;
 - Shared + monetization konszolidáció;
 - operations konszolidáció;
 - ADR/archive rendezés;
-- dokumentációs CI.
+- dokumentációs CI;
+- az eredeti P01–P13 + Shared S0–S7 részletes terv kanonikus migrációja `DEVELOPMENT_PLAN_HU.md`-be.
 
 ## P1 — Personal beta activation
 
@@ -40,6 +42,8 @@ Gate-ek:
 
 Shared minden flagje ebben a körben maradjon kikapcsolva.
 
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` P08.
+
 ## P2 — Shared friend beta
 
 Cél: valós kétfős/baráti interakció tesztje, első körben öt baráti pár, legfeljebb 10 személy.
@@ -47,12 +51,14 @@ Cél: valós kétfős/baráti interakció tesztje, első körben öt baráti pá
 Belépési feltételek:
 
 - P1 tapasztalatok értékelve;
-- Shared privacy/personal prose retention szabályok ellenőrizve;
+- Shared privacy/personal impact retention szabályok ellenőrizve;
 - downgrade lifecycle döntés lezárva;
 - sponsored Guest UX és targeted invite E2E ellenőrizve;
 - költség- és rate-limit monitorozás aktív.
 
 A Shared beta első terméktípusa `friend_group`.
+
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest része + D01.
 
 ## P3 — Billing foundation
 
@@ -71,6 +77,8 @@ Scope:
 
 A billing nem módosíthatja csendben a privacy/data-control jogokat.
 
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` B01.
+
 ## P4 — Shared relationship expansion
 
 A friend beta után, mérési adatok alapján:
@@ -81,6 +89,8 @@ A friend beta után, mérési adatok alapján:
 - sports team.
 
 A domainben meglévő típusok release-e külön termékdöntés. A séma létezése nem jelent automatikus termékaktiválást.
+
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` S4–S6.
 
 ## P5 — Community/public release expansion
 
@@ -94,6 +104,10 @@ Fókusz:
 - fork attribution/provenance;
 - public/private állapot egyértelműsége;
 - valós retention és engagement mérés.
+
+A P09–P12 technikai foundation jelentős része már elkészült; a publikus launchot a P13 gate kezeli.
+
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` P09–P13.
 
 ## P6 — Scale és platform expansion
 

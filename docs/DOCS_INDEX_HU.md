@@ -16,7 +16,8 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 1. `../AGENTS.md`
 2. `DOCS_INDEX_HU.md`
 3. `STATUS_HU.md`
-4. a feladathoz tartozó kanonikus forrás
+4. planning/implementation feladatnál a `DEVELOPMENT_PLAN_HU.md` releváns része
+5. a feladathoz tartozó kanonikus forrás
 
 ## Kanonikus authority térkép
 
@@ -24,7 +25,8 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 |---|---|---|
 | dokumentáció | `DOCUMENTATION_GOVERNANCE_HU.md` | `agents/*` |
 | aktuális állapot | `STATUS_HU.md` | kód + aktív runbookok |
-| roadmap | `ROADMAP_HU.md` | Issue/PR backlog |
+| magas szintű roadmap | `ROADMAP_HU.md` | Issue/PR backlog |
+| részletes fejlesztési terv | `DEVELOPMENT_PLAN_HU.md` | Issue/PR backlog, történeti `archive/superseded/NEXT_STEPS.md` |
 | termék | `product/PRODUCT_HU.md` | `V2_SIMULATION_CONTRACT_HU.md` |
 | monetizáció | `product/MONETIZATION_HU.md` | entitlement code/contracts |
 | architektúra | `architecture/ARCHITECTURE_HU.md` | package code/contracts |
@@ -44,7 +46,8 @@ Nem kanonikusak:
 
 - `PRODUCT_PLAN_HU.md`, `PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md` → `product/PRODUCT_HU.md`;
 - `IMPLEMENTATION.md` → `architecture/ARCHITECTURE_HU.md`;
-- `NEXT_STEPS.md` → `ROADMAP_HU.md`;
+- `NEXT_STEPS.md` → `ROADMAP_HU.md` + `DEVELOPMENT_PLAN_HU.md`;
+- a korábbi teljes `REQUIREMENTS_TRACEABILITY_HU.md` mátrix → `archive/superseded/REQUIREMENTS_TRACEABILITY_HU.md`; az aktív fájl csak traceability router;
 - régi Shared terv/S0–S3/sponsored decision → `archive/shared/`;
 - `SETUP.md` és gyökér `DEPLOYMENT_HU.md` részletes supporting/legacy runbook, nem dokumentációs belépési pont;
 - `alter_jovo_docs/*` történeti v0.x anyag, nem authority.
@@ -63,10 +66,10 @@ Nem kanonikusak:
 ## Minimális kontextus
 
 ### Personal simulation / Scenario
-`STATUS_HU.md` → `product/PRODUCT_HU.md` → `V2_SIMULATION_CONTRACT_HU.md` → kód/contract.
+`STATUS_HU.md` → `DEVELOPMENT_PLAN_HU.md` releváns P-pont → `product/PRODUCT_HU.md` → `V2_SIMULATION_CONTRACT_HU.md` → kód/contract.
 
 ### Shared / monetizáció
-`STATUS_HU.md` → `features/shared/SHARED_CONTEXT_HU.md` → `product/MONETIZATION_HU.md` → kód/migration.
+`STATUS_HU.md` → `DEVELOPMENT_PLAN_HU.md` releváns S-pont → `features/shared/SHARED_CONTEXT_HU.md` → `product/MONETIZATION_HU.md` → kód/migration.
 
 ### Development / CI
 `operations/DEVELOPMENT_HU.md` → `operations/TESTING_HU.md` → task-specifikus contract.
@@ -75,7 +78,7 @@ Nem kanonikusak:
 `operations/DEPLOYMENT_HU.md` → konkrét aktív Contabo/Cloudflare runbook.
 
 ### Personal beta
-`operations/BETA_HU.md` → `PERSONAL_BETA_OPERATOR_HU.md` és a konkrét reader/admission runbook.
+`DEVELOPMENT_PLAN_HU.md` P08 → `operations/BETA_HU.md` → `PERSONAL_BETA_OPERATOR_HU.md` és a konkrét reader/admission runbook.
 
 ### Backup/recovery
 `operations/BACKUP_HU.md` → `operations/RECOVERY_HU.md` → konkrét active runbook.

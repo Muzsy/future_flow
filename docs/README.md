@@ -9,12 +9,14 @@ Agent vagy fejlesztő esetén:
 1. [`../AGENTS.md`](../AGENTS.md)
 2. [`DOCS_INDEX_HU.md`](DOCS_INDEX_HU.md)
 3. [`STATUS_HU.md`](STATUS_HU.md)
-4. a Docs Index által megjelölt témaspecifikus forrás
+4. planning/implementation feladatnál [`DEVELOPMENT_PLAN_HU.md`](DEVELOPMENT_PLAN_HU.md)
+5. a Docs Index által megjelölt témaspecifikus forrás
 
 A dokumentációs szabályok: [`DOCUMENTATION_GOVERNANCE_HU.md`](DOCUMENTATION_GOVERNANCE_HU.md).
 
 ## Fő területek
 
+- `DEVELOPMENT_PLAN_HU.md` — az eredeti P01–P13 + Shared S0–S7 kanonikus végrehajtási master planje
 - `product/` — termék, scope, monetizáció
 - `architecture/` — rendszerhatárok, adatfolyamok, AI és security
 - `features/` — feature-specifikációk
@@ -25,8 +27,8 @@ A dokumentációs szabályok: [`DOCUMENTATION_GOVERNANCE_HU.md`](DOCUMENTATION_G
 - `examples/` — példák
 - `archive/` — leváltott és történeti dokumentumok
 
-A docs gyökérben jelenleg még több régi report, checkpoint és implementációs terv található. Ezek konszolidáció alatt állnak. A fájlnév vagy a régi `docs/README.md` tartalma önmagában nem authority; mindig a `DOCS_INDEX_HU.md` besorolása dönt.
+A docs gyökérben maradhatnak régi reportok vagy supporting runbookok, de a fájlnév önmagában nem authority. Mindig a `DOCS_INDEX_HU.md` besorolása dönt.
 
 ## Alapelv
 
-Egy témához lehetőleg egy kanonikus forrás tartozik. Lezárt auditok és reportok bizonyítékok, nem jelenlegi specifikációk.
+Egy témához lehetőleg egy kanonikus forrás tartozik. Lezárt auditok és reportok bizonyítékok, nem jelenlegi specifikációk. A teljes régi checkpoint/backlog történet az archívumban marad; az aktív végrehajtási státusz a `DEVELOPMENT_PLAN_HU.md`-ben él.
