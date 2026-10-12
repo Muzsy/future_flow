@@ -26,26 +26,27 @@ Ez a repository dokumentációs routere. Minden agent innen választja ki a fela
 | aktuális projektállapot | `STATUS_HU.md` | aktív runbookok és kód |
 | jövőbeli prioritások | `ROADMAP_HU.md` | Issue/PR backlog |
 | termékdefiníció | `product/PRODUCT_HU.md` | `V2_SIMULATION_CONTRACT_HU.md` |
+| monetizáció/entitlement | `product/MONETIZATION_HU.md` | Shared contractok és kód |
 | rendszerarchitektúra | `architecture/ARCHITECTURE_HU.md` | contractok, package code |
-| Shared Context | átmenetileg `SHARED_CONTEXT_IMPLEMENTATION_PLAN_HU.md` + kód | sponsored Guest doc, S-riportok; phase 3-ban kanonizálva |
-| monetizáció | átmenetileg entitlement kód + `SHARED_SPONSORED_GUEST_PAYMENT_MODEL_HU.md` | phase 3-ban `product/MONETIZATION_HU.md` |
+| Shared Context | `features/shared/SHARED_CONTEXT_HU.md` | Shared contractok, core/database kód, migration 037 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs |
 | personal beta | `PERSONAL_BETA_ACTIVATION_PLAN_HU.md` + `PERSONAL_BETA_OPERATOR_HU.md` | phase 4-ban operations routerbe konszolidálva |
 | deployment | `DEPLOYMENT_HU.md` | Contabo/Cloudflare aktív runbookok |
 | backup/recovery | aktív backup/recovery runbookok | phase 4-ban operations routerbe konszolidálva |
 | privacy/security | privacy/security guardok + kód | phase 4/5 kanonikus security/ADR réteg |
 
-## Leváltott, de még nem archivált gyökérdokumentumok
+## Leváltott dokumentumok
 
-A következő fájlok már **nem kanonikusak**, akkor sem, ha tartalmuk részben továbbra is hasznos:
+Már nem kanonikusak:
 
-- `PRODUCT_PLAN_HU.md` — leváltotta `product/PRODUCT_HU.md`;
-- `PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md` — leváltotta `product/PRODUCT_HU.md`;
-- `IMPLEMENTATION.md` — leváltotta `architecture/ARCHITECTURE_HU.md`;
-- `NEXT_STEPS.md` — leváltotta `ROADMAP_HU.md`;
-- `alter_jovo_docs/*` — történeti/átmeneti v0.x dokumentáció; nem írhatja felül a fenti kanonikus fájlokat.
+- `PRODUCT_PLAN_HU.md` és `PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md` → `product/PRODUCT_HU.md`;
+- `IMPLEMENTATION.md` → `architecture/ARCHITECTURE_HU.md`;
+- `NEXT_STEPS.md` → `ROADMAP_HU.md`;
+- korábbi Shared terv és S0–S3 riportok → `archive/shared/`, helyettük `features/shared/SHARED_CONTEXT_HU.md`;
+- sponsored Guest döntési dokumentum → `archive/shared/`, tartalma beépítve a Shared és monetization canonicalba;
+- `alter_jovo_docs/*` → történeti/átmeneti v0.x dokumentáció, nem írhatja felül a kanonikus fájlokat.
 
-Ezek fizikailag az archive-rendezési fázisban kerülnek végleges helyre.
+A még gyökérben maradó lezárt reportok/auditok az archive-rendezési fázisig fizikailag a helyükön lehetnek, de authority-jük ettől nem változik.
 
 ## Könyvtárak
 
@@ -59,7 +60,7 @@ Ezek fizikailag az archive-rendezési fázisban kerülnek végleges helyre.
 - `examples/` — példák
 - `archive/` — leváltott/történeti dokumentumok
 
-## Dokumentum-státusz szabály
+## Dokumentum-státuszok
 
 - `canonical` — elsődleges source of truth;
 - `active-supporting` — aktuális részletes kiegészítő/runbook;
@@ -78,12 +79,12 @@ Részletes szabály: `DOCUMENTATION_GOVERNANCE_HU.md`.
 - `V2_SIMULATION_CONTRACT_HU.md`
 - konkrét contract/kód
 
-### Shared / entitlement
+### Shared / entitlement / monetizáció
 
 - `STATUS_HU.md`
-- Shared átmeneti elsődleges források a fenti táblából
-- `packages/core/src/shared-context.ts`
-- érintett database module/migration
+- `features/shared/SHARED_CONTEXT_HU.md`
+- `product/MONETIZATION_HU.md`
+- érintett core/database/contract/migration
 
 ### Deployment / recovery
 
@@ -104,7 +105,7 @@ Alapértelmezésben historical:
 
 - `*_REPORT_HU.md`;
 - dátumozott preflight/checkpoint/closure fájlok;
-- S0/S1/S2/S3 vagy más lezárt fázisriportok;
+- lezárt fázisriportok;
 - audit outputok.
 
 Ezek mérési vagy döntési kontextushoz olvashatók, de nem írhatják felül a kanonikus dokumentációt.
