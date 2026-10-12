@@ -91,7 +91,12 @@ describe('Shared sponsored guest seats', () => {
 
     const detail = await shared.detail(owner.id, created.contextId);
     await expect(
-      shared.enqueue(guest.id, created.contextId, detail.revision, randomUUID()),
+      shared.enqueue(
+        guest.id,
+        created.contextId,
+        detail.revision,
+        randomUUID(),
+      ),
     ).rejects.toMatchObject({ code: 'SUBSCRIPTION_REQUIRED' });
 
     const queued = await shared.enqueue(
