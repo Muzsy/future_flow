@@ -9,8 +9,9 @@ Minden új feladat előtt olvasd el, ebben a sorrendben:
 1. `AGENTS.md`
 2. `docs/DOCS_INDEX_HU.md`
 3. `docs/STATUS_HU.md`
-4. az adott feladathoz a Docs Indexben megjelölt kanonikus specifikációt
-5. csak ezután a szükséges támogató vagy történeti dokumentumokat
+4. planning/implementation feladatnál a `docs/DEVELOPMENT_PLAN_HU.md` releváns részét
+5. az adott feladathoz a Docs Indexben megjelölt kanonikus specifikációt
+6. csak ezután a szükséges támogató vagy történeti dokumentumokat
 
 Nem kell automatikusan az egész `docs/` könyvtárat kontextusba tölteni.
 
@@ -23,7 +24,7 @@ Ellentmondás esetén az elsőbbség:
 3. kanonikus feature/product/architecture dokumentáció;
 4. `docs/STATUS_HU.md`;
 5. `docs/ROADMAP_HU.md`;
-6. aktív implementációs terv;
+6. `docs/DEVELOPMENT_PLAN_HU.md` mint aktív részletes végrehajtási terv;
 7. audit, report, closure vagy checkpoint;
 8. `docs/archive/` és más történeti anyag.
 
@@ -79,7 +80,10 @@ Ugyanabban a PR-ben frissítsd a megfelelő kanonikus dokumentációt, ha válto
 - privacy/security határ;
 - AI routing, budget vagy költségviselés;
 - deployment, backup vagy recovery működés;
-- béta/release gate.
+- béta/release gate;
+- egy `Pxx`, `Sx` vagy új workstream státusza/acceptance gate-je.
+
+Ha egy fejlesztési pont státusza változik, a témaspecifikus kanonikus dokumentum mellett a `docs/DEVELOPMENT_PLAN_HU.md` megfelelő sorát is frissíteni kell.
 
 Lezárt munkáról ne hozz létre újabb státusz-riportot, ha az információ beilleszthető a kanonikus dokumentumba vagy az Issue/PR történetbe.
 

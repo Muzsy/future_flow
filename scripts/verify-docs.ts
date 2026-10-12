@@ -15,6 +15,7 @@ const canonicalDocs = [
   'docs/DOCS_INDEX_HU.md',
   'docs/STATUS_HU.md',
   'docs/ROADMAP_HU.md',
+  'docs/DEVELOPMENT_PLAN_HU.md',
   'docs/product/PRODUCT_HU.md',
   'docs/product/MONETIZATION_HU.md',
   'docs/architecture/ARCHITECTURE_HU.md',

@@ -6,6 +6,7 @@ supersedes:
   - STATUS_HU.md (pre-2026-10-12 checkpoint-log form)
 related:
   - ROADMAP_HU.md
+  - DEVELOPMENT_PLAN_HU.md
   - product/PRODUCT_HU.md
   - architecture/ARCHITECTURE_HU.md
 ---
@@ -27,7 +28,7 @@ Jelenlegi működési keret:
 - Shared nincs bekapcsolva az első személyes béta körben;
 - billing/checkout/webhook nincs éles termékként implementálva.
 
-A béta aktiválási részleteit az operations dokumentáció kezeli.
+A béta aktiválási részleteit az operations dokumentáció és a `DEVELOPMENT_PLAN_HU.md` P08 pontja kezeli.
 
 ## Termékterületek
 
@@ -51,7 +52,7 @@ A béta aktiválási részleteit az operations dokumentáció kezeli.
 - sponsored Guest nem hozhat létre contextet, nem hívhat meg másokat és nem indíthat fizetett Shared AI-t;
 - Shared AI költség az entitled kezdeményező `requested_by_user_id` felhasználóhoz és projektbudgethez tartozik.
 
-Részletes kanonikus Shared dokumentáció a dokumentáció-konszolidáció következő fázisában készül.
+Részletes kanonikus Shared specifikáció: `features/shared/SHARED_CONTEXT_HU.md`.
 
 ## Technikai architektúra
 
@@ -74,14 +75,13 @@ A normál Verify workflow ellenőrzi többek között:
 
 - dependency install/frozen lockfile;
 - formázást;
+- dokumentációs konzisztenciát (`pnpm docs:check`);
 - repository/security boundary-kat;
 - typechecket;
 - teszteket;
 - buildet;
 - schemas generálást/eltérést;
 - container/deployment/TLS határokat.
-
-Az utolsó sponsored Guest PR teljes Verify és container CI-vel került a mainbe.
 
 ## Operations
 
@@ -98,7 +98,7 @@ A részletes végrehajtási eljárásokat nem ez a STATUS, hanem az operations/r
 
 ## Aktív release gate-ek
 
-### P0 — első személyes béta
+### P1 roadmap — első személyes béta
 
 Még szükséges:
 
@@ -109,9 +109,13 @@ Még szükséges:
 5. 30 napos személyes AI-ablak dokumentált aktiválása;
 6. valódi bejelentkezett, fizetett AI E2E indulási próba.
 
-### P1 — Shared friend beta
+Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` P08.
+
+### P2 roadmap — Shared friend beta
 
 Csak a személyes béta után. Tervezett első kör: öt baráti pár / legfeljebb 10 személy, külön aktiválással.
+
+Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest része + D01.
 
 ## Ismert aktív kockázatok / döntési pontok
 
@@ -122,9 +126,11 @@ Csak a személyes béta után. Tervezett első kör: öt baráti pár / legfelje
 
 ## Aktuális fejlesztési fókusz
 
-1. dokumentáció kanonizálása agent-alapú munkához;
-2. személyes béta tényleges aktiválása a meglévő kapuk szerint;
+1. személyes béta tényleges aktiválása a meglévő kapuk szerint;
+2. Shared owner downgrade data-control hardening;
 3. utána Shared friend beta;
-4. billing foundation csak külön, explicit fejlesztési körben.
+4. billing foundation külön fejlesztési körben.
+
+A dokumentációs governance és canonicalization elkészült. A részletes régi P01–P13 / S0–S7 végrehajtási állapotot a `DEVELOPMENT_PLAN_HU.md` tartja karban.
 
 Jövőbeli prioritások: `ROADMAP_HU.md`.
