@@ -221,6 +221,128 @@ export function assertRestoreBindsPrepared({
   return restore.runId;
 }
 
+// Same identity the server derives (Python archive_identity): UTC second of
+// preparedAt plus the first 16 hex of the canonical prepared receipt hash.
+export function readerArchiveIdentity(prepared) {
+  if (!READER_UTC.test(prepared?.preparedAt ?? ''))
+    throw new OperatorGateError('Exact UTC preparation time required');
+  return (
+    'expired-' +
+    prepared.preparedAt.slice(0, 19).replace(/[-:]/g, '') +
+    'Z-' +
+    sha256Hex(canonicalJson(prepared)).slice(0, 16)
+  );
+}
+
+const MAX_LOCAL_RECEIPT_BYTES = 2 * 1024 ** 2;
+const present = (path) => {
+  try {
+    lstatSync(path);
+    return true;
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+};
+// undefined only when the file is absent; any alias, link, oversize or damage is a gate error.
+function boundedLocalJson(path, message) {
+  let info;
+  try {
+    info = lstatSync(path);
+  } catch (error) {
+    if (error.code === 'ENOENT') return undefined;
+    throw new OperatorGateError(message);
+  }
+  if (
+    !info.isFile() ||
+    info.isSymbolicLink() ||
+    info.nlink !== 1 ||
+    info.size > MAX_LOCAL_RECEIPT_BYTES
+  )
+    throw new OperatorGateError(message);
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    throw new OperatorGateError(message);
+  }
+}
+
+// The receipt the archive request is built from. Normally the active prepare
+// receipt. After the local move (interrupted run, lost output) the active file is
+// gone on purpose: only an EXPLICIT archive id, whose archived receipt proves the
+// same identity, completed server archive and owner baseline, may stand in for it.
+// Never "the latest archive", never a copy back into the active path.
+export function resolveArchivePreparedProof({
+  releaseDirectory,
+  archiveBase,
+  archiveId,
+  ownerManifestDigest,
+}) {
+  if (archiveId !== undefined && !READER_ARCHIVE_ID.test(archiveId))
+    throw new OperatorGateError('Exact archive id required');
+  const bound = (preparedProof, source, identity) => {
+    if (
+      ownerManifestDigest !== undefined &&
+      preparedProof.previousManifestSha256 !== ownerManifestDigest
+    )
+      throw new OperatorGateError(
+        'Preparation baseline differs from the active owner receipt',
+      );
+    return { preparedProof, source, archiveId: identity };
+  };
+  const active = boundedLocalJson(
+    join(releaseDirectory, READER_PREPARATION_PROOF),
+    'Local preparation receipt must be a private regular file',
+  );
+  if (active !== undefined) {
+    const identity = readerArchiveIdentity(active.preparedProof);
+    if (archiveId !== undefined && archiveId !== identity)
+      throw new OperatorGateError(
+        'Archive id does not match the local preparation receipt',
+      );
+    if (present(join(archiveBase, identity, 'prepare-proof.json')))
+      throw new OperatorGateError('The archived receipt already exists');
+    return bound(active.preparedProof, 'active', identity);
+  }
+  if (archiveId === undefined)
+    throw new OperatorGateError(
+      'The local preparation receipt is gone; pass the exact archive id to retry',
+    );
+  const directory = join(archiveBase, archiveId);
+  let info;
+  try {
+    info = lstatSync(directory);
+  } catch {
+    throw new OperatorGateError(
+      'No archived local receipt for that archive id',
+    );
+  }
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw new OperatorGateError('Archived local receipt folder is not private');
+  const message = 'Archived local receipt is incomplete or not private';
+  const moved = boundedLocalJson(
+    join(directory, 'prepare-proof.json'),
+    message,
+  );
+  const receipt = boundedLocalJson(
+    join(directory, 'archive-proof.json'),
+    message,
+  );
+  if (moved === undefined || receipt === undefined)
+    throw new OperatorGateError(message);
+  const preparedSha = sha256Hex(canonicalJson(moved.preparedProof));
+  if (
+    readerArchiveIdentity(moved.preparedProof) !== archiveId ||
+    receipt.archived !== true ||
+    receipt.archiveId !== archiveId ||
+    receipt.preparedSha256 !== preparedSha
+  )
+    throw new OperatorGateError(
+      'Archived local receipt does not match the archive id',
+    );
+  return bound(moved.preparedProof, 'archived', archiveId);
+}
+
 // After the server archived the preparation, retire the matching local receipt
 // into a per-archive folder. Idempotent after an interruption; never overwrites.
 export function archiveLocalPreparation({
@@ -247,6 +369,14 @@ export function archiveLocalPreparation({
       );
   } else if (!existsSync(movedPath))
     throw new OperatorGateError('No local preparation receipt to archive');
+  else if (
+    sha256Hex(
+      canonicalJson(JSON.parse(readFileSync(movedPath)).preparedProof),
+    ) !== result.preparedSha256
+  )
+    throw new OperatorGateError(
+      'Archived local receipt differs from the server archive',
+    );
   if (!existsSync(receiptPath)) {
     const fd = openSync(receiptPath, 'wx', 0o600);
     try {

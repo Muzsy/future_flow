@@ -26,7 +26,13 @@ async function main() {
       'archive-expired-readers',
       'disable',
     ].includes(mode) ||
-    process.argv.length !== (mode === 'prepare-readers' ? 4 : 3)
+    // prepare takes the selection file; archive may take the exact archive id
+    // that is required to retry after the local receipt was already retired.
+    process.argv.length >
+      (mode === 'prepare-readers' || mode === 'archive-expired-readers'
+        ? 4
+        : 3) ||
+    process.argv.length < (mode === 'prepare-readers' ? 4 : 3)
   )
     throw Error('Explicit unpaid reader operator mode required');
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -72,6 +78,7 @@ async function main() {
     assertNoPreviousPreparationReceipt,
     assertRestoreBindsPrepared,
     archiveLocalPreparation,
+    resolveArchivePreparedProof,
   } = await import('./contabo-fence-operator.mjs');
   const { privateReportDirectory, privateReportFile, privateRequestFile } =
     await import('./lib/private-report.ts');
@@ -208,10 +215,16 @@ async function main() {
       }
     }
   }
-  if (mode === 'archive-expired-readers')
-    request.preparedProof = report(
-      'personal-beta-readers-prepare-proof.json',
-    ).preparedProof;
+  let archiveBase;
+  if (mode === 'archive-expired-readers') {
+    archiveBase = privateReportDirectory('reader-preparation-archive');
+    request.preparedProof = resolveArchivePreparedProof({
+      releaseDirectory: directory,
+      archiveBase,
+      archiveId: process.argv[3],
+      ownerManifestDigest: request.ownerManifestDigest,
+    }).preparedProof;
+  }
   if (mode === 'apply-readers') {
     request.preparedProof = report(
       'personal-beta-readers-prepare-proof.json',
@@ -316,11 +329,12 @@ except BaseException:
   let archivedTo;
   if (mode === 'archive-expired-readers') {
     // The server move is done and durable. Retire the matching local receipt;
-    // the owner/zero receipts stay untouched. An interruption here is repaired by
-    // running this same mode again (the server answers alreadyArchived).
+    // the owner/zero receipts stay untouched. After an interruption the same mode
+    // finishes this step: with the active receipt still present it needs no
+    // argument, once it was already retired it needs the exact archive id.
     archivedTo = archiveLocalPreparation({
       releaseDirectory: directory,
-      archiveBase: privateReportDirectory('reader-preparation-archive'),
+      archiveBase,
       result: saved,
       nowMs: Date.now(),
     });
