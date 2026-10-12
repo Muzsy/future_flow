@@ -1,0 +1,38 @@
+name: Privacy catalog diagnostic
+
+on:
+  push:
+    branches:
+      - chatgpt/shared-sponsored-seats-pricing
+
+permissions:
+  contents: read
+
+jobs:
+  catalog:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - name: Start PostgreSQL 17
+        run: |
+          docker run -d --name alterward-catalog-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
+          until docker exec alterward-catalog-pg pg_isready -U postgres; do sleep 1; done
+          docker exec alterward-catalog-pg psql -U postgres -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated;'
+      - name: Apply migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: pnpm db:migrate
+      - name: Print reviewed catalog hashes
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: |
+          pnpm exec tsx --tsconfig tsconfig.scripts.json -e "import { connectDatabase } from '@future-flow/database'; import { hash } from '@future-flow/core'; import { privacySecurityCatalogSql } from './scripts/lib/privacy-security-catalog'; const run=async()=>{const db=connectDatabase(process.env.DATABASE_URL!,false); try { const columns=await db.query(\"SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name<>'ff_migrations' ORDER BY table_name,ordinal_position\"); console.log(JSON.stringify({name:'columns',count:columns.length,digest:hash(columns)})); for (const name of ['constraints','indexes','defaults'] as const) { const rows=await db.query(privacySecurityCatalogSql[name]); console.log(JSON.stringify({name,count:rows.length,digest:hash(rows)})); }} finally {await db.close();}}; run();"
