@@ -9,7 +9,7 @@ related:
 
 # Alterward dokumentumtérkép
 
-Ez a repository dokumentációs routere. Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
+Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 
 ## Kötelező alapkontextus
 
@@ -20,92 +20,71 @@ Ez a repository dokumentációs routere. Minden agent innen választja ki a fela
 
 ## Kanonikus authority térkép
 
-| Téma | Kanonikus forrás | Támogató források |
+| Téma | Kanonikus forrás | Aktív supporting |
 |---|---|---|
-| dokumentációs működés | `DOCUMENTATION_GOVERNANCE_HU.md` | `agents/*` |
-| aktuális projektállapot | `STATUS_HU.md` | aktív runbookok és kód |
-| jövőbeli prioritások | `ROADMAP_HU.md` | Issue/PR backlog |
-| termékdefiníció | `product/PRODUCT_HU.md` | `V2_SIMULATION_CONTRACT_HU.md` |
-| monetizáció/entitlement | `product/MONETIZATION_HU.md` | Shared contractok és kód |
-| rendszerarchitektúra | `architecture/ARCHITECTURE_HU.md` | contractok, package code |
-| Shared Context | `features/shared/SHARED_CONTEXT_HU.md` | Shared contractok, core/database kód, migration 037 |
-| AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs |
-| personal beta | `PERSONAL_BETA_ACTIVATION_PLAN_HU.md` + `PERSONAL_BETA_OPERATOR_HU.md` | phase 4-ban operations routerbe konszolidálva |
-| deployment | `DEPLOYMENT_HU.md` | Contabo/Cloudflare aktív runbookok |
-| backup/recovery | aktív backup/recovery runbookok | phase 4-ban operations routerbe konszolidálva |
-| privacy/security | privacy/security guardok + kód | phase 4/5 kanonikus security/ADR réteg |
+| dokumentáció | `DOCUMENTATION_GOVERNANCE_HU.md` | `agents/*` |
+| aktuális állapot | `STATUS_HU.md` | kód + aktív runbookok |
+| roadmap | `ROADMAP_HU.md` | Issue/PR backlog |
+| termék | `product/PRODUCT_HU.md` | `V2_SIMULATION_CONTRACT_HU.md` |
+| monetizáció | `product/MONETIZATION_HU.md` | entitlement code/contracts |
+| architektúra | `architecture/ARCHITECTURE_HU.md` | package code/contracts |
+| Shared | `features/shared/SHARED_CONTEXT_HU.md` | core/database/contracts/migration 037 |
+| development/setup | `operations/DEVELOPMENT_HU.md` | `SETUP.md` részletes legacy runbook |
+| testing/CI | `operations/TESTING_HU.md` | workflow + targeted test docs |
+| deployment | `operations/DEPLOYMENT_HU.md` | `DEPLOYMENT_HU.md`, aktív Contabo/Cloudflare runbookok |
+| beta | `operations/BETA_HU.md` | personal beta operator/reader/admission docs |
+| backup | `operations/BACKUP_HU.md` | `CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md` és retention runbookok |
+| recovery | `operations/RECOVERY_HU.md` | restore/privacy/writer-fence runbookok |
+| security operations | `operations/SECURITY_OPERATIONS_HU.md` | privacy catalog, writer fence, monitor docs |
+| AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
 
-## Leváltott dokumentumok
+## Leváltott fő dokumentumok
 
-Már nem kanonikusak:
+Nem kanonikusak:
 
-- `PRODUCT_PLAN_HU.md` és `PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md` → `product/PRODUCT_HU.md`;
+- `PRODUCT_PLAN_HU.md`, `PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md` → `product/PRODUCT_HU.md`;
 - `IMPLEMENTATION.md` → `architecture/ARCHITECTURE_HU.md`;
 - `NEXT_STEPS.md` → `ROADMAP_HU.md`;
-- korábbi Shared terv és S0–S3 riportok → `archive/shared/`, helyettük `features/shared/SHARED_CONTEXT_HU.md`;
-- sponsored Guest döntési dokumentum → `archive/shared/`, tartalma beépítve a Shared és monetization canonicalba;
-- `alter_jovo_docs/*` → történeti/átmeneti v0.x dokumentáció, nem írhatja felül a kanonikus fájlokat.
-
-A még gyökérben maradó lezárt reportok/auditok az archive-rendezési fázisig fizikailag a helyükön lehetnek, de authority-jük ettől nem változik.
+- régi Shared terv/S0–S3/sponsored decision → `archive/shared/`;
+- `SETUP.md` és gyökér `DEPLOYMENT_HU.md` részletes supporting/legacy runbook, nem dokumentációs belépési pont;
+- `alter_jovo_docs/*` történeti v0.x anyag, nem authority.
 
 ## Könyvtárak
 
-- `product/` — termék, scope, monetizáció
-- `architecture/` — rendszerhatárok, adatfolyamok, AI/security modell
+- `product/` — termék és monetizáció
+- `architecture/` — rendszerhatárok, AI/security modellek
 - `features/` — feature-specifikációk
-- `operations/` — development/testing/deployment/beta/backup/recovery
+- `operations/` — development, testing, deployment, beta, backup, recovery, security operations
 - `decisions/` — ADR-ek
 - `agents/` — task/handoff/review sablonok
 - `contracts/` — részletes contract-anyagok
-- `examples/` — példák
-- `archive/` — leváltott/történeti dokumentumok
+- `archive/` — történeti/leváltott dokumentumok
 
-## Dokumentum-státuszok
-
-- `canonical` — elsődleges source of truth;
-- `active-supporting` — aktuális részletes kiegészítő/runbook;
-- `transitional` — összevonásra vagy archiválásra vár;
-- `historical` — lezárt audit/report/checkpoint;
-- `archived` — csak történeti hivatkozás.
-
-Részletes szabály: `DOCUMENTATION_GOVERNANCE_HU.md`.
-
-## Minimális kontextus feladattípusonként
+## Minimális kontextus
 
 ### Personal simulation / Scenario
+`STATUS_HU.md` → `product/PRODUCT_HU.md` → `V2_SIMULATION_CONTRACT_HU.md` → kód/contract.
 
-- `STATUS_HU.md`
-- `product/PRODUCT_HU.md`
-- `V2_SIMULATION_CONTRACT_HU.md`
-- konkrét contract/kód
+### Shared / monetizáció
+`STATUS_HU.md` → `features/shared/SHARED_CONTEXT_HU.md` → `product/MONETIZATION_HU.md` → kód/migration.
 
-### Shared / entitlement / monetizáció
+### Development / CI
+`operations/DEVELOPMENT_HU.md` → `operations/TESTING_HU.md` → task-specifikus contract.
 
-- `STATUS_HU.md`
-- `features/shared/SHARED_CONTEXT_HU.md`
-- `product/MONETIZATION_HU.md`
-- érintett core/database/contract/migration
+### Deployment
+`operations/DEPLOYMENT_HU.md` → konkrét aktív Contabo/Cloudflare runbook.
 
-### Deployment / recovery
+### Personal beta
+`operations/BETA_HU.md` → `PERSONAL_BETA_OPERATOR_HU.md` és a konkrét reader/admission runbook.
 
-- `STATUS_HU.md`
-- `DEPLOYMENT_HU.md`
-- a konkrét aktív runbook
+### Backup/recovery
+`operations/BACKUP_HU.md` → `operations/RECOVERY_HU.md` → konkrét active runbook.
 
-### Dokumentáció/architektúra
+### Security/privacy
+`operations/SECURITY_OPERATIONS_HU.md` → releváns privacy catalog/writer-fence/recovery document → kód.
 
-- `DOCUMENTATION_GOVERNANCE_HU.md`
-- `STATUS_HU.md`
-- `architecture/ARCHITECTURE_HU.md`
-- érintett ADR/spec
+## Történeti státusz
 
-## Történeti fájlok
+Alapértelmezésben `historical`: `*_REPORT_HU.md`, lezárt audit, checkpoint, closure, phase report. Ezek proofként olvashatók, de kanonikus döntést nem írhatnak felül.
 
-Alapértelmezésben historical:
-
-- `*_REPORT_HU.md`;
-- dátumozott preflight/checkpoint/closure fájlok;
-- lezárt fázisriportok;
-- audit outputok.
-
-Ezek mérési vagy döntési kontextushoz olvashatók, de nem írhatják felül a kanonikus dokumentációt.
+A dokumentum-státusz részletes szabálya: `DOCUMENTATION_GOVERNANCE_HU.md`.
