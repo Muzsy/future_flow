@@ -1,9 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-} from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
 
 const root = process.cwd();
@@ -48,7 +43,9 @@ function frontmatterStatus(text: string): string | null {
 for (const path of canonicalDocs) {
   const status = frontmatterStatus(read(path));
   if (status !== 'canonical') {
-    fail(`${path} must declare frontmatter status: canonical (found ${status ?? 'none'})`);
+    fail(
+      `${path} must declare frontmatter status: canonical (found ${status ?? 'none'})`,
+    );
   }
 }
 
@@ -136,7 +133,9 @@ for (const source of linkChecked) {
       fail(`Markdown link escapes repository in ${source}: ${match[1]}`);
     }
     if (!existsSync(absoluteResolved)) {
-      fail(`broken Markdown link in ${source}: ${match[1]} -> ${posix(resolved)}`);
+      fail(
+        `broken Markdown link in ${source}: ${match[1]} -> ${posix(resolved)}`,
+      );
     }
   }
 }
