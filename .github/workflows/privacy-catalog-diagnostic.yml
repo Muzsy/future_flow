@@ -35,4 +35,31 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
         run: |
-          pnpm exec tsx --tsconfig tsconfig.scripts.json -e "import { connectDatabase } from '@future-flow/database'; import { hash } from '@future-flow/core'; import { privacySecurityCatalogSql } from './scripts/lib/privacy-security-catalog'; const run=async()=>{const db=connectDatabase(process.env.DATABASE_URL!,false); try { const columns=await db.query(\"SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name<>'ff_migrations' ORDER BY table_name,ordinal_position\"); console.log(JSON.stringify({name:'columns',count:columns.length,digest:hash(columns)})); for (const name of ['constraints','indexes','defaults'] as const) { const rows=await db.query(privacySecurityCatalogSql[name]); console.log(JSON.stringify({name,count:rows.length,digest:hash(rows)})); }} finally {await db.close();}}; run();"
+          cat > scripts/.privacy-catalog-diagnostic.ts <<'EOF'
+          import { connectDatabase } from '@future-flow/database';
+          import { hash } from '@future-flow/core';
+          import { privacySecurityCatalogSql } from './lib/privacy-security-catalog';
+
+          async function main() {
+            const db = connectDatabase(process.env.DATABASE_URL ?? '', false);
+            try {
+              const columns = await db.query(
+                "SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name<>'ff_migrations' ORDER BY table_name,ordinal_position",
+              );
+              console.log(JSON.stringify({ name: 'columns', count: columns.length, digest: hash(columns) }));
+              for (const name of ['constraints', 'indexes', 'defaults'] as const) {
+                const rows = await db.query(privacySecurityCatalogSql[name]);
+                console.log(JSON.stringify({ name, count: rows.length, digest: hash(rows) }));
+              }
+            } finally {
+              await db.close();
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          EOF
+          pnpm exec tsx --tsconfig tsconfig.scripts.json scripts/.privacy-catalog-diagnostic.ts
+          rm scripts/.privacy-catalog-diagnostic.ts
