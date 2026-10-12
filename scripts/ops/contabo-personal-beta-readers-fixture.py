@@ -148,8 +148,10 @@ def main(request, continuation=None):
             before_archive = target.existing_state()
             try:
                 readers.archive_expired(archive_request, daily, policy)
-            except ValueError:
-                pass
+            except ValueError as error:
+                # The refusal must be the freshness gate, not an unrelated failure.
+                if 'still fresh' not in str(error):
+                    raise
             else:
                 raise ValueError('A still fresh preparation was archived')
             expired = fixture_daily(readers.READER_PREPARATION_SECONDS + 60)

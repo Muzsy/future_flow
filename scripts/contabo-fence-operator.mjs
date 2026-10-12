@@ -139,7 +139,11 @@ export const sha256Hex = (text) =>
 export function readerPreparationAgeSeconds(prepared, nowMs) {
   if (!READER_UTC.test(prepared?.preparedAt ?? ''))
     throw new OperatorGateError('Exact UTC preparation time required');
-  return (nowMs - Date.parse(prepared.preparedAt)) / 1000;
+  const age = (nowMs - Date.parse(prepared.preparedAt)) / 1000;
+  // Date.parse accepts the format but not an impossible date such as month 13.
+  if (!Number.isFinite(age))
+    throw new OperatorGateError('Exact UTC preparation time required');
+  return age;
 }
 
 // A previous cycle's receipt may not silently become, or be overwritten by, the
@@ -192,6 +196,7 @@ export function assertRestoreBindsPrepared({
   if (
     !isDeepStrictEqual(restore.encryptedFiles, manifest.encryptedFiles) ||
     restore.configFilesRestored !== Object.keys(manifest.configFiles).length ||
+    tables.length === 0 ||
     restore.tablesRestoredAndDataMatched !== tables.length ||
     restore.rowsMatched !== tables.reduce((sum, table) => sum + table.count, 0)
   )
@@ -202,7 +207,11 @@ export function assertRestoreBindsPrepared({
   if (!(backupMs >= preparedMs && restoreMs >= backupMs && restoreMs <= nowMs))
     gate('Backup and restore must follow this preparation');
   const bound = (name, expected) => {
-    if (manifest.configFiles[READER_CONFIG_PREFIX + name] !== expected)
+    // An absent expected hash must never match an absent backup entry.
+    if (
+      !/^[a-f0-9]{64}$/.test(expected ?? '') ||
+      manifest.configFiles[READER_CONFIG_PREFIX + name] !== expected
+    )
       gate('Backup does not contain this preparation: ' + name);
   };
   for (const name of OWNER_FILE_NAMES) {
@@ -359,21 +368,21 @@ export function archiveLocalPreparation({
   const receiptPath = join(target, 'archive-proof.json');
   mkdirSync(archiveBase, { recursive: true, mode: 0o700 });
   if (!existsSync(target)) mkdirSync(target, { mode: 0o700 });
+  // The server answer must describe THIS receipt: same hash and same identity
+  // (so the timestamp part of the archive id is bound locally as well).
+  const describes = (receipt) =>
+    sha256Hex(canonicalJson(receipt.preparedProof)) === result.preparedSha256 &&
+    readerArchiveIdentity(receipt.preparedProof) === result.archiveId;
   if (existsSync(proofPath)) {
     if (existsSync(movedPath))
       throw new OperatorGateError('The archived receipt already exists');
-    const proof = JSON.parse(readFileSync(proofPath));
-    if (sha256Hex(canonicalJson(proof.preparedProof)) !== result.preparedSha256)
+    if (!describes(JSON.parse(readFileSync(proofPath))))
       throw new OperatorGateError(
         'Local preparation receipt differs from the archived one',
       );
   } else if (!existsSync(movedPath))
     throw new OperatorGateError('No local preparation receipt to archive');
-  else if (
-    sha256Hex(
-      canonicalJson(JSON.parse(readFileSync(movedPath)).preparedProof),
-    ) !== result.preparedSha256
-  )
+  else if (!describes(JSON.parse(readFileSync(movedPath))))
     throw new OperatorGateError(
       'Archived local receipt differs from the server archive',
     );

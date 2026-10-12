@@ -221,6 +221,78 @@ test('a stale, foreign or incomplete restore proof is rejected for the exact rea
   );
 });
 
+test('malformed inputs fail closed instead of matching by accident (AUD-04)', () => {
+  const run = (overrides = {}, mutate = () => {}, nowMs = at(600)) => {
+    const { manifest, restore } = backup();
+    mutate(manifest, restore);
+    return () =>
+      assertRestoreBindsPrepared({
+        restore,
+        manifest,
+        prepared: { ...prepared, ...overrides },
+        nowMs,
+      });
+  };
+  // A receipt that lacks an expected hash must not match a backup that lacks the entry.
+  const missing = structuredClone(prepared.candidateFilesSha256);
+  delete missing['server.env'];
+  gate(
+    run({ candidateFilesSha256: missing }, (m, r) => {
+      delete m.configFiles[PREFIX + 'server.env'];
+      r.configFilesRestored = Object.keys(m.configFiles).length;
+      m.configFiles[PREFIX + 'prepared.json'] = sha256Hex(
+        canonicalJson({ ...prepared, candidateFilesSha256: missing }),
+      );
+    }),
+    /server\.env/,
+  );
+  gate(run({ readersSha256: undefined }), /readers\.json|prepared\.json/);
+  // An impossible date passes the textual UTC format but is not a time.
+  gate(run({ preparedAt: '2026-13-45T25:61:61.000000+00:00' }), /UTC/);
+  gate(
+    () =>
+      readerPreparationAgeSeconds(
+        { preparedAt: '2026-13-45T25:61:61+00:00' },
+        0,
+      ),
+    /UTC/,
+  );
+  // A restore proof of nothing is not a restore proof.
+  gate(
+    run({}, (m, r) => {
+      m.expectedTables = [];
+      r.tablesRestoredAndDataMatched = 0;
+      r.rowsMatched = 0;
+    }),
+    /does not match the backup manifest/,
+  );
+});
+
+test('the server answer must describe this receipt: hash and identity (AUD-05)', () => {
+  const { root, releaseDirectory, archiveBase } = release();
+  try {
+    writeFileSync(
+      proofPath(releaseDirectory),
+      JSON.stringify({ preparedProof: prepared }),
+    );
+    gate(
+      () =>
+        archiveLocalPreparation({
+          releaseDirectory,
+          archiveBase,
+          result: result({
+            archiveId: 'expired-20261012T203135Z-ce73a0a4529f9f6e',
+          }),
+          nowMs: 0,
+        }),
+      /differs from the archived one/,
+    );
+    assert.equal(existsSync(proofPath(releaseDirectory)), true);
+  } finally {
+    rmSync(root, { recursive: true });
+  }
+});
+
 function release() {
   const root = mkdtempSync(join(tmpdir(), 'reader-lifecycle-'));
   const releaseDirectory = join(root, 'release');
@@ -229,7 +301,8 @@ function release() {
 }
 const proofPath = (dir) =>
   join(dir, 'personal-beta-readers-prepare-proof.json');
-const ARCHIVE_ID = 'expired-20261012T203134Z-0123456789abcdef';
+// Python archive_identity(prepared): the helper binds the server answer to it.
+const ARCHIVE_ID = 'expired-20261012T203134Z-ce73a0a4529f9f6e';
 const result = (overrides = {}) => ({
   archived: true,
   archiveId: ARCHIVE_ID,

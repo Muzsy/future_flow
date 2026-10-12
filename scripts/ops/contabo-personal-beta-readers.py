@@ -368,6 +368,14 @@ def sync_directory(path):
         os.close(descriptor)
 
 
+def sync_file(path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def file_time(path):
     return path.lstat().st_mtime
 
@@ -583,6 +591,10 @@ def archive_expired(request, daily, policy):
     existing = next((item for item in inventory if item['id'] == identity), None)
     if existing is not None and (existing['complete'] is not None or existing['hasState']):
         raise ValueError('Archived preparation reappeared; explicit inspection required')
+    # The daily capture and every later gate refuse more than ARCHIVE_LIMIT entries,
+    # so this tool must never be the one that creates the entry beyond the limit.
+    if existing is None and len(inventory) >= ARCHIVE_LIMIT:
+        raise ValueError('Reader preparation archive limit reached; review the evidence first')
     if existing is not None and existing['intent'] is not None:
         intent_bytes = existing['intentBytes']
         intent = existing['intent']
@@ -604,6 +616,13 @@ def archive_expired(request, daily, policy):
     if not entry.exists():
         private_directory(entry)
     durable_file(entry / 'intent.json', intent_bytes)
+    # Explicit ordering: the intent file (also when it already existed with equal
+    # bytes after an interrupted run) and the directory entries that name it are
+    # durable BEFORE the preparation moves.
+    sync_file(entry / 'intent.json')
+    sync_directory(entry)
+    sync_directory(root)
+    sync_directory(STATE.parent)
     # From here a half-done move is recoverable only through this explicit mode.
     for number in INTERRUPTION_SIGNALS:
         signal.signal(number, signal.SIG_IGN)

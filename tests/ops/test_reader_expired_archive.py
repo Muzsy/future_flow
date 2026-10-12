@@ -143,6 +143,7 @@ class PortableArchiveTests(unittest.TestCase):
             patch.object(readers, 'private_directory', plain_mkdir),
             patch.object(readers, 'durable_file', plain_durable),
             patch.object(readers, 'sync_directory', lambda path: self.calls.append(('sync', path.name))),
+            patch.object(readers, 'sync_file', lambda path: self.calls.append(('sync', path.name))),
             patch.object(readers, 'file_time', lambda path: self.world.prepared_at.timestamp()),
             patch.object(readers, 'zero_baseline', self.zero_baseline),
             patch.object(readers.upgrade, 'inspect_owner', lambda config, image: self.calls.append(('inspect',))),
@@ -415,6 +416,37 @@ class PortableArchiveTests(unittest.TestCase):
             readers.archive_expired(self.world.request, daily, None)
         with self.assertRaisesRegex(ValueError, 'Incomplete'):
             readers.require_complete_archives()
+
+    def fresh_preparation(self, age):
+        world = World.__new__(World)
+        world.owner, world.state = self.world.owner, self.world.state
+        world.prepared_at = NOW - dt.timedelta(seconds=age)
+        world.write_state()
+        self.world = world
+
+    def test_the_tool_never_creates_an_archive_beyond_the_limit_the_backup_enforces(self):
+        # AUD-01: 8 archives pass the inventory check, a 9th would break daily capture.
+        for index in range(readers.ARCHIVE_LIMIT):
+            if index:
+                self.fresh_preparation(1000 + index * 10)
+            self.archive()
+        self.fresh_preparation(2000)
+        with self.assertRaisesRegex(ValueError, 'limit reached'):
+            self.archive()
+        self.assertTrue(self.world.state.exists())  # nothing moved, nothing written
+        self.assertEqual(len(list(readers.archive_root().iterdir())), readers.ARCHIVE_LIMIT)
+        readers.require_complete_archives()
+        self.assertEqual(readers.archive_summary(), {'valid': True, 'complete': 8, 'incomplete': 0})
+
+    def test_the_intent_and_its_directory_entries_are_synced_before_the_move(self):
+        order = []
+        real_rename = os.rename
+        with patch.object(readers, 'sync_file', lambda path: order.append('file')), \
+             patch.object(readers, 'sync_directory', lambda path: order.append('dir')), \
+             patch.object(readers.os, 'rename', lambda a, b: (order.append('rename'), real_rename(a, b))):
+            self.archive()
+        self.assertLess(order.index('file'), order.index('rename'))
+        self.assertEqual(order[:order.index('rename')].count('dir'), 3)
 
     def test_no_container_command_is_ever_issued_and_signals_are_held_during_the_move(self):
         self.archive()
