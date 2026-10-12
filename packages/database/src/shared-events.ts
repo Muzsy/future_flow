@@ -76,13 +76,7 @@ export class SharedEventRepository extends SharedContextRepository {
         fail('SHARED_REVISION_CONFLICT');
       if (c.type !== 'friend_group')
         fail('SHARED_CONTEXT_TYPE_NOT_ALLOWED', 403);
-      await this.entitlement(
-        tx,
-        userId,
-        c.type,
-        false,
-        m.entitlement_mode,
-      );
+      await this.entitlement(tx, userId, c.type, false, m.entitlement_mode);
       return run(tx, c, m, all);
     });
   }
