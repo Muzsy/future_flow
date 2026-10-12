@@ -41,8 +41,8 @@ Tényleges indulás előtt:
 2. meghívás/első belépés;
 3. email ↔ Auth UUID és reader mapping;
 4. friss held/read-only megfigyelés;
-5. konkrét candidate előkészítése;
-6. candidate utáni titkosított backup és izolált restore proof;
+5. konkrét candidate előkészítése (korábbi lejárt, alkalmazatlan reader-előkészítés esetén előbb annak archiválása);
+6. candidate utáni titkosított backup és izolált restore proof; reader apply esetén a prepare, backup, restore és apply egy 15 percen belüli menet, a restore proof az adott előkészítés hash-eihez kötött;
 7. pontos időablak és budget;
 8. `--apply-personal` egyszeri activation;
 9. első valós signed-in paid AI E2E;

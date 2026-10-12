@@ -31,6 +31,16 @@ jobs:
           node --test tests/ops/personal-beta-monitor.test.mjs
           node --test tests/ops/personal-beta-admission-observation.test.mjs
           node --test tests/ops/personal-beta-operator.test.mjs
+          node --test tests/ops/reader-preparation-lifecycle.test.mjs
+      - name: Verify root-only expired-preparation archive file contracts without services
+        run: |
+          sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
+          import sys, unittest
+          sys.path.insert(0, 'tests/ops')
+          suite = unittest.TestLoader().loadTestsFromName('test_reader_expired_archive.RootArchiveFileTests')
+          result = unittest.TextTestRunner().run(suite)
+          assert result.wasSuccessful() and result.testsRun == 3 and not result.skipped
+          PY
       - name: Verify root-only reader file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'

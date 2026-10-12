@@ -22,7 +22,8 @@ Az Alterward backup rétege az alkalmazási adatok és szükséges konfiguráci�
 - SHA/hash és manifest ellenőrzés;
 - hét napos jóváhagyott napi retention;
 - plaintext scratch és ideiglenes credential takarítás;
-- backup önmagában nem aktivál feature-t vagy paid AI-t.
+- backup önmagában nem aktivál feature-t vagy paid AI-t;
+- az olvasói előkészítés (aktív és archivált, lejárt-alkalmazatlan) kötött fájllistával, root-tulajdonú 0600/0700 elemekkel kerül a titkosított config archívumba; ismeretlen név, alias, hardlink, nyilvános jogosultság vagy a 8 archívumnál több fail-closed hibát ad. Az archívum-szabály verziója külön (`READER_PREPARATION_ARCHIVE_POLICY_VERSION`), a funded operátor verziói változatlanok. Részletek: `../PERSONAL_BETA_READER_OPERATOR_HU.md`.
 
 ## 3. Authority runbook
 
