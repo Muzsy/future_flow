@@ -41,6 +41,10 @@ afterEach(async () => {
     [g.contextId],
   );
   if (owner) {
+    await db.query(
+      "UPDATE aw_user_entitlements SET tier='explorer' WHERE user_id=$1 AND tier='free'",
+      [String(owner.user_id)],
+    );
     const d = await shared.detail(String(owner.user_id), g.contextId);
     if (['active', 'inviting', 'paused'].includes(d.status))
       await shared.lifecycle(
