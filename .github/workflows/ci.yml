@@ -19,7 +19,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsx scripts/diagnose-privacy-schema-digest.mts
       - run: pnpm format:check
       - name: Verify backup and source archive boundaries
         run: |
