@@ -233,6 +233,7 @@ export class SharedContextRepository {
     userId: string,
     type: SharedContextType,
     joining: boolean,
+    mode: 'subscriber' | 'sponsored_guest' = 'subscriber',
     allowSponsoredGuestJoin = false,
   ): Promise<'subscriber' | 'sponsored_guest'> {
     const tier = await this.tier(userId, tx);
@@ -244,15 +245,9 @@ export class SharedContextRepository {
       requireSharedSponsoredGuestEntitlement(type, Number(row!.count));
       return 'sponsored_guest';
     }
-    if (tier === 'free' && !joining) {
-      const [guest] = await tx.query(
-        "SELECT id FROM aw_shared_members WHERE user_id=$1 AND context_type=$2 AND entitlement_mode='sponsored_guest' AND context_live AND status=ANY($3::text[]) LIMIT 1",
-        [userId, type, liveStatuses],
-      );
-      if (guest) {
-        requireSharedSponsoredGuestEntitlement(type);
-        return 'sponsored_guest';
-      }
+    if (!joining && mode === 'sponsored_guest') {
+      requireSharedSponsoredGuestEntitlement(type);
+      return 'sponsored_guest';
     }
     return this.hostEntitlement(tx, userId, type, joining, tier);
   }
@@ -612,13 +607,20 @@ export class SharedContextRepository {
           if (!m.user_id || m.status !== 'active')
             fail('SHARED_MEMBER_INACTIVE', 403);
           await this.blocked(tx, userId, m.user_id);
-          await this.entitlement(tx, m.user_id, c.type, false);
+          await this.entitlement(
+            tx,
+            m.user_id,
+            c.type,
+            false,
+            m.entitlement_mode,
+          );
         }
         const entitlementMode = await this.entitlement(
           tx,
           userId,
           c.type,
           true,
+          'subscriber',
           invite.target_user_id === userId,
         );
         await this.capacity(tx, c);
