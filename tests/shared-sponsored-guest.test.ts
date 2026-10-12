@@ -124,19 +124,50 @@ describe('Shared sponsored guest seats', () => {
       randomUUID(),
     );
     const secondPreview = await shared.previewInvite(guest.id, secondInvite.token);
+    const secondInput = {
+      token: secondInvite.token,
+      branchId: guest.branchId,
+      revision: guest.revision,
+      contextRevision: secondPreview.contextRevision,
+      sharingAcknowledged: true as const,
+    };
     await expect(
       shared.acceptInvite(
         guest.id,
         secondInvite.inviteId,
-        {
-          token: secondInvite.token,
-          branchId: guest.branchId,
-          revision: guest.revision,
-          contextRevision: secondPreview.contextRevision,
-          sharingAcknowledged: true,
-        },
+        secondInput,
         randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'SHARED_CONTEXT_LIMIT' });
+
+    await db.query(
+      "UPDATE aw_user_entitlements SET tier='explorer' WHERE user_id=$1",
+      [guest.id],
+    );
+    const subscriberJoin = await shared.acceptInvite(
+      guest.id,
+      secondInvite.inviteId,
+      secondInput,
+      randomUUID(),
+    );
+    expect(
+      await db.query(
+        'SELECT entitlement_mode FROM aw_shared_members WHERE id=$1',
+        [subscriberJoin.memberId],
+      ),
+    ).toEqual([{ entitlement_mode: 'subscriber' }]);
+
+    await db.query("UPDATE aw_user_entitlements SET tier='free' WHERE user_id=$1", [
+      guest.id,
+    ]);
+    const secondDetail = await shared.detail(secondOwner.id, second.contextId);
+    await expect(
+      shared.enqueue(
+        secondOwner.id,
+        second.contextId,
+        secondDetail.revision,
+        randomUUID(),
+      ),
+    ).rejects.toMatchObject({ code: 'SUBSCRIPTION_REQUIRED' });
   });
 });
