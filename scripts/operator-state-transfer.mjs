@@ -16,7 +16,7 @@ import {
   constants,
 } from 'node:crypto';
 
-const version = 'alterward-operator-transfer-1';
+const version = 'alterward-operator-transfer-2';
 const limit = 32 * 1024 ** 2;
 const groups = [
   'contabo-release',
@@ -62,6 +62,36 @@ function entryExists(path) {
     throw error;
   }
 }
+function privateLinuxAncestors(path) {
+  if (process.platform !== 'linux') return;
+  let current = dirname(resolve(path));
+  while (true) {
+    const info = fs.lstatSync(current);
+    const stickyRoot = info.uid === 0 && (info.mode & 0o1000) !== 0;
+    if (
+      !info.isDirectory() ||
+      info.isSymbolicLink() ||
+      ((info.mode & 0o022) !== 0 && !stickyRoot) ||
+      (info.uid !== 0 && info.uid !== process.getuid())
+    )
+      throw Error('Private Linux migration ancestor required');
+    if (current === dirname(current)) break;
+    current = dirname(current);
+  }
+}
+function privateLinuxBoundary(path, directory = false) {
+  if (process.platform !== 'linux')
+    throw Error('Private Linux migration host required');
+  const info = fs.lstatSync(path);
+  if (
+    info.isSymbolicLink() ||
+    (directory ? !info.isDirectory() : !info.isFile() || info.nlink !== 1) ||
+    info.uid !== process.getuid() ||
+    (info.mode & 0o7777) !== (directory ? 0o700 : 0o600)
+  )
+    throw Error('Private Linux migration input required');
+  privateLinuxAncestors(path);
+}
 function originalDirectory(path) {
   const info = fs.lstatSync(path);
   if (
@@ -86,7 +116,11 @@ function validPath(path) {
       parts.length === 2 &&
       (secrets.includes(parts[1]) || parts[1] === 'github_ci_credential.json')
     );
-  if (path === 'closed-site-operator/operator-config.json') return true;
+  if (
+    path === 'closed-site-operator/operator-config.json' ||
+    path === 'closed-beta-catalog/state.json'
+  )
+    return true;
   return (
     groups.includes(parts[0]) &&
     parts.length >= 2 &&
@@ -128,6 +162,7 @@ export function validateTransfer(payload) {
   });
   for (const required of [
     'closed-site-operator/operator-config.json',
+    'closed-beta-catalog/state.json',
     'contabo-release/owner-stage-proof.json',
     'contabo-release/owner-active-build-proof.json',
     'contabo-release/backup-tool-versions.json',
@@ -235,6 +270,7 @@ export function importTransfer(payload, workspace) {
     throw Error('Migration import requires Linux');
   const files = validateTransfer(payload);
   originalDirectory(workspace);
+  privateLinuxBoundary(workspace, true);
   const destination = join(workspace, '.local');
   if (
     entryExists(destination) ||
@@ -315,6 +351,10 @@ function exportState(publicPath, secretsPath, outputPath) {
   add(
     '.local/closed-site-operator/operator-config.json',
     'closed-site-operator/operator-config.json',
+  );
+  add(
+    '.local/closed-beta-catalog/state.json',
+    'closed-beta-catalog/state.json',
   );
   function scan(path, prefix, depth = 0) {
     if (depth > 3) throw Error('Bounded migration directory depth required');
@@ -403,6 +443,7 @@ function main() {
     process.platform === 'linux'
   ) {
     const dir = resolve(first);
+    privateLinuxAncestors(dir);
     fs.mkdirSync(dir, { mode: 0o700 });
     const pair = generateKeyPairSync('rsa', {
       modulusLength: 3072,
@@ -443,13 +484,7 @@ function main() {
     third &&
     process.argv.length === 6
   ) {
-    const keyInfo = fs.lstatSync(second);
-    if (
-      process.platform !== 'linux' ||
-      keyInfo.uid !== process.getuid() ||
-      (keyInfo.mode & 0o7777) !== 0o600
-    )
-      throw Error('Private Linux recipient key required');
+    privateLinuxBoundary(second);
     const envelope = JSON.parse(boundedFile(first, limit * 2));
     console.log(
       JSON.stringify(

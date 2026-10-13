@@ -18,10 +18,11 @@ const pair = generateKeyPairSync('rsa', {
 });
 function payload() {
   return {
-    schemaVersion: 'alterward-operator-transfer-1',
+    schemaVersion: 'alterward-operator-transfer-2',
     sourceCommit: 'a'.repeat(40),
     files: [
       'closed-site-operator/operator-config.json',
+      'closed-beta-catalog/state.json',
       'contabo-release/owner-stage-proof.json',
       'contabo-release/owner-active-build-proof.json',
       'contabo-release/backup-tool-versions.json',
@@ -30,7 +31,19 @@ function payload() {
       'operator-secrets/contabo_alterward_ed25519',
       'operator-secrets/alterward_backup_identity.txt',
     ].map((path) => {
-      const bytes = Buffer.from('synthetic-original-secret-or-receipt\r\n');
+      const bytes = Buffer.from(
+        path === 'closed-beta-catalog/state.json'
+          ? JSON.stringify({
+              window: {
+                startsAt: '2026-01-01T00:00:00Z',
+                endsAt: '2026-01-31T00:00:00Z',
+              },
+              topics: {
+                demo: { owner: '11111111-1111-4111-8111-111111111111' },
+              },
+            }) + '\r\n'
+          : 'synthetic-original-secret-or-receipt\r\n',
+      );
       return {
         path,
         data: bytes.toString('base64'),
@@ -107,6 +120,17 @@ test(
         assert.equal(fs.statSync(path).mode & 0o777, 0o600);
         assert.equal(fs.statSync(join(root, '.local')).mode & 0o777, 0o700);
       }
+      const seed = JSON.parse(
+        fs.readFileSync(join(root, '.local/closed-beta-catalog/state.json')),
+      );
+      const suffix =
+        'window:' + seed.window.startsAt + ':' + seed.window.endsAt;
+      assert.equal(
+        Object.values(seed.topics).map(
+          (topic) => 'user:' + topic.owner + ':' + suffix,
+        ).length,
+        1,
+      );
       assert.throws(() => importTransfer(input, root), /Empty private/);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
@@ -221,3 +245,94 @@ test('standalone exporter captures original receipts and identity without changi
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('missing original seed state and legacy transfer contract fail closed', () => {
+  const value = payload();
+  value.files = value.files.filter(
+    (x) => x.path !== 'closed-beta-catalog/state.json',
+  );
+  assert.throws(() => validateTransfer(value), /missing/);
+  assert.throws(
+    () =>
+      validateTransfer({
+        ...payload(),
+        schemaVersion: 'alterward-operator-transfer-1',
+      }),
+    /Bounded/,
+  );
+});
+test(
+  'import and recipient creation reject shared ancestors before writing',
+  { skip: process.platform !== 'linux' },
+  () => {
+    const root = fs.mkdtempSync(join(os.tmpdir(), 'alterward-ancestor-'));
+    fs.chmodSync(root, 0o777);
+    const target = join(root, 'private');
+    fs.mkdirSync(target, { mode: 0o700 });
+    try {
+      assert.throws(() => importTransfer(payload(), target), /ancestor/);
+      assert.equal(fs.existsSync(join(target, '.local')), false);
+      const recipient = join(root, 'recipient');
+      assert.throws(() =>
+        execFileSync(
+          process.execPath,
+          [
+            new URL(
+              '../../scripts/operator-state-transfer.mjs',
+              import.meta.url,
+            ).pathname,
+            '--create-recipient',
+            recipient,
+          ],
+          { stdio: 'pipe' },
+        ),
+      );
+      assert.equal(fs.existsSync(recipient), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'CLI decryption rejects a private recipient key under shared ancestors',
+  { skip: process.platform !== 'linux' },
+  () => {
+    const shared = fs.mkdtempSync(join(os.tmpdir(), 'alterward-shared-key-'));
+    fs.chmodSync(shared, 0o777);
+    const safe = fs.mkdtempSync(join(os.tmpdir(), 'alterward-safe-import-'));
+    fs.chmodSync(safe, 0o700);
+    try {
+      const dir = join(shared, 'key');
+      fs.mkdirSync(dir, { mode: 0o700 });
+      const key = join(dir, 'private.pem');
+      fs.writeFileSync(key, pair.privateKey, { mode: 0o600 });
+      const cipher = join(safe, 'transfer.enc.json');
+      fs.writeFileSync(
+        cipher,
+        JSON.stringify(encryptTransfer(payload(), pair.publicKey)),
+        { mode: 0o600 },
+      );
+      assert.throws(() =>
+        execFileSync(
+          process.execPath,
+          [
+            new URL(
+              '../../scripts/operator-state-transfer.mjs',
+              import.meta.url,
+            ).pathname,
+            '--import',
+            cipher,
+            key,
+            safe,
+          ],
+          { stdio: 'pipe' },
+        ),
+      );
+      assert.equal(fs.existsSync(join(safe, '.local')), false);
+    } finally {
+      fs.rmSync(shared, { recursive: true, force: true });
+      fs.rmSync(safe, { recursive: true, force: true });
+    }
+  },
+);

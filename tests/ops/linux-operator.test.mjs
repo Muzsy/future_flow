@@ -212,6 +212,28 @@ test(
         fs.existsSync(join(root, 'untrusted-helper-executed')),
         false,
       );
+      fs.copyFileSync(
+        fileURLToPath(
+          new URL('../../scripts/lib/operator-platform.mjs', import.meta.url),
+        ),
+        join(root, 'scripts/lib/operator-platform.mjs'),
+      );
+      fs.appendFileSync(
+        join(root, 'scripts/lib/private-report.ts'),
+        "\nwriteFileSync('untrusted-report-executed','bad');\n",
+      );
+      assert.throws(() =>
+        execFileSync(
+          process.execPath,
+          ['scripts/contabo-daily.mjs', '--status'],
+          { cwd: root, env, stdio: 'pipe' },
+        ),
+      );
+      assert.equal(
+        fs.existsSync(join(root, 'untrusted-report-executed')),
+        false,
+      );
+      assert.equal(fs.existsSync(join(root, 'captured-transport.json')), false);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

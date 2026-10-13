@@ -4,10 +4,7 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import {
-  privateReportDirectory,
-  privateReportFile,
-} from './lib/private-report.ts';
+let privateReportDirectory, privateReportFile;
 
 const actions = [
   'prepare',
@@ -681,6 +678,8 @@ async function main() {
   }
   ({ assertOperatorLocalInput, operatorSecretsDirectory } =
     await import('./lib/operator-platform.mjs'));
+  ({ privateReportDirectory, privateReportFile } =
+    await import('./lib/private-report.ts'));
   const directory = privateReportDirectory('contabo-daily');
   const lock = join(directory, 'job.lock');
   if (fs.existsSync(lock)) {
