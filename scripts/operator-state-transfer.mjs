@@ -337,6 +337,7 @@ function exportState(publicPath, secretsPath, outputPath) {
   const originals = [];
   let totalBytes = 0;
   function add(path, name) {
+    originalDirectory(resolve(dirname(path)));
     const bytes = boundedFile(path, 2 * 1024 ** 2);
     totalBytes += bytes.length;
     if (files.length >= 512 || totalBytes > limit)

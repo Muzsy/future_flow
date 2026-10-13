@@ -223,6 +223,32 @@ test('standalone exporter captures original receipts and identity without changi
       restored.files.sort((a, b) => a.path.localeCompare(b.path)),
       input.files.sort((a, b) => a.path.localeCompare(b.path)),
     );
+    if (process.platform === 'linux') {
+      const catalog = join(root, '.local/closed-beta-catalog');
+      const outside = join(root, 'outside-catalog');
+      fs.renameSync(catalog, outside);
+      fs.symlinkSync(outside, catalog, 'dir');
+      const rejected = join(root, 'alias-transfer.enc.json');
+      assert.throws(() =>
+        execFileSync(
+          process.execPath,
+          [
+            new URL(
+              '../../scripts/operator-state-transfer.mjs',
+              import.meta.url,
+            ).pathname,
+            '--export',
+            pub,
+            join(root, '.local/operator-secrets'),
+            rejected,
+          ],
+          { cwd: root, stdio: 'pipe' },
+        ),
+      );
+      assert.equal(fs.existsSync(rejected), false);
+      fs.unlinkSync(catalog);
+      fs.renameSync(outside, catalog);
+    }
     for (const original of originals) {
       assert.deepEqual(fs.readFileSync(original.path), original.bytes);
       assert.equal(fs.statSync(original.path).mtimeMs, original.mtime);
