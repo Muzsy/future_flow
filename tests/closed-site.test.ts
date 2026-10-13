@@ -180,6 +180,8 @@ describe('closed-site origin proof', () => {
     expect(publicApiException('DELETE', '/api/v1/me')).toBe(true);
     for (const [method, path] of [
       ['GET', '/api/v1/me'],
+      ['GET', '/api/v1/me/consent'],
+      ['POST', '/api/v1/me/consent'],
       ['POST', '/api/v1/me/export'],
       ['POST', '/api/v1/me'],
       ['GET', '/api/v1/me/export/other'],

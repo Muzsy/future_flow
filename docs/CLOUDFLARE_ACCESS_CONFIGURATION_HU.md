@@ -2,7 +2,7 @@
 
 2026-10-09 (Europe/Budapest) · [Zárt kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Originvédelem](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
-## Ténylegesen elmentett beállítások
+## Eredeti, 2026-10-09-i konfigurációs checkpoint
 
 A Cloudflare-fiókban a felhasználó aktiválta a **Zero Trust Free** csomagot. A feltételek és az ingyenes keret feletti használat számlázásának elfogadását maga végezte el; Codex nem választott fizetős csomagot. A dashboard aktív Free állapotot mutatott. Az emailes **One-time PIN** külön hozzáadva.
 
@@ -54,3 +54,31 @@ Ez konfigurációs bizonyíték. Nem indult signup-kérés, új account, meghív
 - Az izolált célpróba, tényleges owner flag/env/image-őr, részletes Cloud-audit és valódi proxy/alkalmazási rollback lezárult. Retention/törlésvédett restore, automatikus monitor és paid-job kapuk a tesztelői meghívás előtt még szükségesek.
 
 A harmincnapos béta-időszak inaktív, a fizetett tesztelői UUID-lista üres. Az eredeti dashboard-konfigurációs checkpoint nem indított alkalmazást; a későbbi külön jóváhagyott Contabo/domain-aktiválás a domainriportban szerepel. Új fizetett provider-hívás vagy Codex által küldött email nem indult. A privát screenshotok és operátori JSON Gitből és Docker-buildből kizártak; nyers személyes login és token nem része a dokumentációnak.
+
+## Onboarding consent útvonal ütközésének javítása — 2026-10-13
+
+Az első reader E2E során a normál `POST /api/v1/me/consent` kérés általános hibával megállt, és a tesztelőnek nem jött létre acknowledgement rekordja. A `/api/v1/me` rights Bypass destination leszármazottakat is érint, miközben a consent végpont a fő béta-alkalmazás assertionjét igényli. Az útvonalütközés konfigurációból megállapítható; az authenticated kérés tényleges javulását külön böngészős utópróba bizonyítja.
+
+A célkonfiguráció a meglévő **Alterward private beta** alkalmazás négy public destinationje:
+
+- `alterward.com`;
+- `www.alterward.com`;
+- `alterward.com/api/v1/me/consent`;
+- `www.alterward.com/api/v1/me/consent`.
+
+A két specifikusabb consent destination ugyanannak az alkalmazásnak az Allow policyját és AUD-ját használja. Így a consent a szélesebb rights Bypass path elé kerül. Új Access alkalmazás, AUD, policy, felhasználó, nyilvános override vagy OPTIONS bypass nem szükséges. A meghívott reader pontos címe csak a privát operátori konfigurációban szerepel; az owner és az engedélyezett reader listája változatlan.
+
+A rights alkalmazás tizenkét destinationje, az origin pontos export/delete method guardjai és a Supabase ownership/friss-auth követelményei változatlanok. A hozzájárulás kézi adatbázis-beírása tilos. Ez a javítás nem aktivál fizetett AI-ablakot és nem módosít image-et vagy szerverkonfigurációt.
+
+### Végrehajtás és visszaolvasás
+
+1. Friss GET az alkalmazásokról, a fő alkalmazás részleteiről és a reusable Allow policyról; teljes eredeti állapot privát, titokmentesítetlen operátori mentésben, Gitből kizárva.
+2. Az API aktuális írható sémája alapján teljes beállításmegőrző PUT candidate és rollback body. A policy meglévő `id`/`precedence` hivatkozása megmarad; ismeretlen mező esetén nincs vak eldobás.
+3. Célzott origin regresszió és dokumentációellenőrzés, teljes PR CI; a specifikusabb route kiválasztásának izolált ellenőrzése az apex és www consentre, export és delete útvonalak változatlanságával.
+4. Kizárólag a két consent destination hozzáadása, majd új GET. Ellenőrizendő: AUD, attached policy és roster, session/cookie/IdP/CORS beállítások, minden más alkalmazás és a rights app változatlansága. A deprecated `self_hosted_domains` a destinationökből származtatott lista lehet.
+5. Valódi reader belépés, normál acknowledgement beküldés és onboarding továbblépés; saját export friss Auth után. Törlés csak külön jóváhagyott eldobható accounttal, a megtartandó tesztfiók nem törölhető.
+6. Az eredeti NO-GO megfigyelést meg kell őrizni; a pozitív utópróbát külön dátummal kell rögzíteni. Csak utána következhet a külön funded operátori runbook.
+
+Rollback: a mentett eredeti body visszaállítása ugyanazon alkalmazáson, majd teljes visszaolvasás; ez a consentet ismét fail-closed állapotba helyezi. Új policy vagy alternatív AUD létrehozása, az origin gate megkerülése nem rollback.
+
+Hivatalos források: [útvonalak és specifikusabb alkalmazás elsőbbsége](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/), [aktuális alkalmazás update API](https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/methods/update/).
