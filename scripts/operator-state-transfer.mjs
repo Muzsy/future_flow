@@ -296,8 +296,12 @@ function exportState(publicPath, secretsPath, outputPath) {
   originalDirectory(resolve(secretsPath));
   const files = [];
   const originals = [];
+  let totalBytes = 0;
   function add(path, name) {
     const bytes = boundedFile(path, 2 * 1024 ** 2);
+    totalBytes += bytes.length;
+    if (files.length >= 512 || totalBytes > limit)
+      throw Error('Bounded migration export required');
     originals.push({ path, sha256: sha(bytes) });
     files.push({
       path: name,
