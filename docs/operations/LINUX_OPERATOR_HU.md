@@ -40,3 +40,7 @@ Titkot vagy teljes proof-bodyt ne írj konzolba/riportba. A fogadó private kulc
 ## Az első, hiányos v1 átadás kezelése
 
 A v1 csomag nem tartalmazta a funded operátor által olvasott eredeti katalógusállapotot. Ezért nem teljes béta-operátori migráció és a v2 nem fogadja el. Ha v1 már privátan importált, nincs éles aktiválás és nincs overwrite: az eredeti v1 ciphertext/manifest/state megmarad. Új v2 export új ciphertext-fájlnévvel készül, az eredeti `closed-beta-catalog/state.json` byte-jával. A v2 először külön, üres 0700 Linux staging workspace-be importálandó; az eredeti receipt és SSH/recovery fájlok hash-ei összevetendők a v1 manifesttel, GitHub-credential esetleges változása külön ellenőrzendő. A régi privát import őrzött, repositoryn kívüli archívumba helyezése és az új state név szerinti cseréje csak rendezett, operátorfutás nélküli helyi állapotban történhet. A CLI nem olvaszt össze és nem ír felül létező `.local`-t. A forrás-receiptek tartalmi időpontját/sourceCommitját nem módosítjuk; a lejárt reader-előkészítés a szerveren továbbra explicit archiverrel rendezendő.
+
+## Méretkorlátok
+
+A konkrét eredeti `closed-beta-catalog/state.json` 8 MiB-ig vihető át és olvasható a funded CLI-ben; a valódi 3 272 672 bájtos állomány belefér. A többi receipt/secret egyenként továbbra legfeljebb 2 MiB, a plaintext csomag összesen 32 MiB. A katalógus nem darabolandó/csonkítandó és nem kell újragenerálni. A méretellenőrzés az export első és utolsó hash-beolvasásában, a decrypt/validate/import szerződésben és a funded inputon is érvényes.

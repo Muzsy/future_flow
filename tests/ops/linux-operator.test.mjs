@@ -9,6 +9,7 @@ import {
   assertLinuxPrivatePath,
   operatorSecretsDirectory,
   operatorCiReadToken,
+  operatorInputMaximum,
 } from '../../scripts/lib/operator-platform.mjs';
 import { operatorChildEnvironment } from '../../scripts/contabo-personal-beta.mjs';
 
@@ -290,3 +291,15 @@ test(
       }
     }),
 );
+
+test('funded reader uses 8 MiB only for the canonical catalog state path', () => {
+  assert.equal(
+    operatorInputMaximum('.local/closed-beta-catalog/state.json'),
+    8 * 1024 ** 2,
+  );
+  assert.equal(
+    operatorInputMaximum('.local/contabo-release/owner-stage-proof.json'),
+    2 * 1024 ** 2,
+  );
+  assert.equal(operatorInputMaximum('/elsewhere/state.json'), 2 * 1024 ** 2);
+});

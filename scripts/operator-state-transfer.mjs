@@ -18,6 +18,8 @@ import {
 
 const version = 'alterward-operator-transfer-2';
 const limit = 32 * 1024 ** 2;
+const entryLimit = (path) =>
+  path === 'closed-beta-catalog/state.json' ? 8 * 1024 ** 2 : 2 * 1024 ** 2;
 const groups = [
   'contabo-release',
   'contabo-daily',
@@ -143,17 +145,20 @@ export function validateTransfer(payload) {
     if (
       !validPath(entry.path) ||
       names.has(entry.path) ||
-      typeof entry.data !== 'string' ||
-      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-        entry.data,
-      )
+      typeof entry.data !== 'string'
     )
       throw Error('Migration entry path or encoding rejected');
     names.add(entry.path);
+    if (entry.data.length > Math.ceil(entryLimit(entry.path) / 3) * 4)
+      throw Error('Migration entry hash or size rejected');
+    // Canonical round-trip is linear; a repeated-group regex over multi-MiB
+    // Base64 can overflow the JS regexp stack on valid catalog data.
     const bytes = Buffer.from(entry.data, 'base64');
+    if (bytes.toString('base64') !== entry.data)
+      throw Error('Migration entry path or encoding rejected');
     total += bytes.length;
     if (
-      bytes.length > 2 * 1024 ** 2 ||
+      bytes.length > entryLimit(entry.path) ||
       total > limit ||
       sha(bytes) !== entry.sha256
     )
@@ -338,11 +343,11 @@ function exportState(publicPath, secretsPath, outputPath) {
   let totalBytes = 0;
   function add(path, name) {
     originalDirectory(resolve(dirname(path)));
-    const bytes = boundedFile(path, 2 * 1024 ** 2);
+    const bytes = boundedFile(path, entryLimit(name));
     totalBytes += bytes.length;
     if (files.length >= 512 || totalBytes > limit)
       throw Error('Bounded migration export required');
-    originals.push({ path, sha256: sha(bytes) });
+    originals.push({ path, maximum: entryLimit(name), sha256: sha(bytes) });
     files.push({
       path: name,
       data: bytes.toString('base64'),
@@ -419,7 +424,7 @@ function exportState(publicPath, secretsPath, outputPath) {
   };
   const encrypted = encryptTransfer(payload, boundedFile(publicPath, 16384));
   for (const original of originals)
-    if (sha(boundedFile(original.path, 2 * 1024 ** 2)) !== original.sha256)
+    if (sha(boundedFile(original.path, original.maximum)) !== original.sha256)
       throw Error('Migration state changed during export');
   fs.writeFileSync(outputPath, JSON.stringify(encrypted) + '\n', {
     mode: 0o600,

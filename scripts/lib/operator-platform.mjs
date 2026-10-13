@@ -134,3 +134,9 @@ export function operatorCiReadToken() {
   if (!token) throw Error('Existing CI read credential required');
   return token;
 }
+
+export function operatorInputMaximum(path) {
+  return resolve(path) === resolve('.local/closed-beta-catalog/state.json')
+    ? 8 * 1024 ** 2
+    : 2 * 1024 ** 2;
+}

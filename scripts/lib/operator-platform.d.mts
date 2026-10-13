@@ -11,3 +11,5 @@ export function operatorSecretsDirectory(
 ): string;
 
 export function operatorCiReadToken(): string;
+
+export function operatorInputMaximum(path: string): number;

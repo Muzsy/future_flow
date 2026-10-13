@@ -148,6 +148,7 @@ async function main() {
     assertOperatorLocalInput,
     assertLinuxPrivatePath,
     operatorCiReadToken,
+    operatorInputMaximum,
   } = await import('./lib/operator-platform.mjs');
   const regular = (path) => {
     assertOperatorLocalInput(path);
@@ -156,7 +157,7 @@ async function main() {
       !stat.isFile() ||
       stat.isSymbolicLink() ||
       stat.nlink !== 1 ||
-      stat.size > 2 * 1024 ** 2
+      stat.size > operatorInputMaximum(path)
     )
       throw Error('Bounded private regular file required');
     return readFileSync(path);

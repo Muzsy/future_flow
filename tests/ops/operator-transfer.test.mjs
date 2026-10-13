@@ -16,7 +16,7 @@ const pair = generateKeyPairSync('rsa', {
   publicKeyEncoding: { type: 'spki', format: 'pem' },
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
 });
-function payload() {
+function payload(catalogBytes) {
   return {
     schemaVersion: 'alterward-operator-transfer-2',
     sourceCommit: 'a'.repeat(40),
@@ -31,7 +31,7 @@ function payload() {
       'operator-secrets/contabo_alterward_ed25519',
       'operator-secrets/alterward_backup_identity.txt',
     ].map((path) => {
-      const bytes = Buffer.from(
+      let bytes = Buffer.from(
         path === 'closed-beta-catalog/state.json'
           ? JSON.stringify({
               window: {
@@ -44,6 +44,13 @@ function payload() {
             }) + '\r\n'
           : 'synthetic-original-secret-or-receipt\r\n',
       );
+      if (path === 'closed-beta-catalog/state.json' && catalogBytes) {
+        const value = JSON.parse(bytes);
+        value.padding = '';
+        const base = Buffer.byteLength(JSON.stringify(value));
+        value.padding = 'x'.repeat(catalogBytes - base);
+        bytes = Buffer.from(JSON.stringify(value));
+      }
       return {
         path,
         data: bytes.toString('base64'),
@@ -157,7 +164,7 @@ test('standalone exporter captures original receipts and identity without changi
       ],
       { cwd: root, stdio: 'pipe' },
     );
-    const input = payload();
+    const input = payload(3272672);
     const originals = [];
     for (const entry of input.files) {
       const path = join(root, '.local', entry.path);
@@ -362,3 +369,31 @@ test(
     }
   },
 );
+
+test('catalog 8 MiB bound is explicit and does not raise unrelated file limits', () => {
+  assert.equal(
+    validateTransfer(payload(8 * 1024 ** 2)).find(
+      (x) => x.path === 'closed-beta-catalog/state.json',
+    ).bytes.length,
+    8 * 1024 ** 2,
+  );
+  assert.throws(() => validateTransfer(payload(8 * 1024 ** 2 + 1)), /size/);
+  const value = payload(3272672);
+  const catalog = value.files.find(
+    (x) => x.path === 'closed-beta-catalog/state.json',
+  );
+  const ordinary = value.files.find(
+    (x) => x.path === 'contabo-release/owner-stage-proof.json',
+  );
+  ordinary.data = catalog.data;
+  ordinary.sha256 = catalog.sha256;
+  assert.throws(() => validateTransfer(value), /size/);
+});
+
+test('Base64 remains canonical without a recursive large-input regex', () => {
+  for (const data of ['YQ', 'YQ===', 'Y Q==', '!!!!']) {
+    const value = payload();
+    value.files[0].data = data;
+    assert.throws(() => validateTransfer(value), /encoding/);
+  }
+});
