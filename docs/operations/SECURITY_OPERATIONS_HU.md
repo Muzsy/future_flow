@@ -79,3 +79,7 @@ Export, delete, revoke és biztonsági/lifecycle kontrollok nem függhetnek AI e
 ## 8. Történeti security reportok
 
 Audit/report csak azt bizonyítja, hogy egy adott source/state mellett egy adott ellenőrzés sikerült. Új deploy/migration/authority változás után a releváns ellenőrzést meg kell ismételni; régi report nem globális garancia.
+
+## 9. Access rights és onboarding útvonalhatár
+
+A saját export/delete rights edge-kivétel nem fedheti el a védett onboarding hozzájárulást. A `/api/v1/me` public destination leszármazottakat is érinthet; az apex és www `/api/v1/me/consent` útvonalait ugyanazon fő béta-alkalmazás specifikus destinationjeivel kell védeni, megőrizve annak AUD-ját és Allow policyját. Az origin assertion-, method-, ownership- és friss-auth ellenőrzése változatlan. A konkrét konfiguráció, readback, utópróba és rollback: [Cloudflare Access runbook](../CLOUDFLARE_ACCESS_CONFIGURATION_HU.md#onboarding-consent-útvonal-ütközésének-javítása--2026-10-13).
