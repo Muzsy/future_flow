@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { isAbsolute, resolve, dirname, join, relative } from 'node:path';
 
 export function supportedOperatorPlatform(platform = process.platform) {
@@ -90,4 +91,46 @@ export function operatorSecretsDirectory(environment = process.env) {
     assertLinuxPrivatePath(file);
   }
   return path;
+}
+
+// The original Git credential remains the Windows default. A migrated Linux
+// credential is private, repository-bound metadata and is used for CI GETs only.
+export function operatorCiReadToken() {
+  if (process.platform === 'linux') {
+    const path = join(operatorSecretsDirectory(), 'github_ci_credential.json');
+    if (fs.existsSync(path)) {
+      assertLinuxPrivatePath(path);
+      const info = fs.lstatSync(path);
+      if (info.size > 16384)
+        throw Error('Bounded migrated CI credential required');
+      const saved = JSON.parse(fs.readFileSync(path, 'utf8'));
+      if (
+        saved.protocol !== 'https' ||
+        saved.host !== 'github.com' ||
+        saved.path !== 'Muzsy/future_flow.git' ||
+        typeof saved.password !== 'string' ||
+        !/^[\x21-\x7e]{1,4096}$/.test(saved.password)
+      )
+        throw Error('Exact repository CI credential required');
+      return saved.password;
+    }
+  }
+  let raw;
+  try {
+    raw = execFileSync('git', ['credential', 'fill'], {
+      input: 'protocol=https\nhost=github.com\npath=Muzsy/future_flow.git\n\n',
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 15000,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+  } catch {
+    throw Error('Existing CI read credential unavailable');
+  }
+  const token = raw
+    .split(/\r?\n/)
+    .find((line) => line.startsWith('password='))
+    ?.slice(9);
+  if (!token) throw Error('Existing CI read credential required');
+  return token;
 }

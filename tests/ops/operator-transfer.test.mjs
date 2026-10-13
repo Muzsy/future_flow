@@ -147,6 +147,21 @@ test('standalone exporter captures original receipts and identity without changi
         mtime: fs.statSync(path).mtimeMs,
       });
     }
+    const credentialHelper = join(root, 'synthetic-credential-helper.cjs');
+    fs.writeFileSync(
+      credentialHelper,
+      "process.stdout.write('username=synthetic\\npassword=synthetic_ci_not_a_real_token\\n');",
+      { mode: 0o600 },
+    );
+    execFileSync(
+      'git',
+      [
+        'config',
+        'credential.helper',
+        '!' + process.execPath + ' ' + credentialHelper,
+      ],
+      { cwd: root, stdio: 'pipe' },
+    );
     const pub = join(root, 'recipient-public.pem');
     fs.writeFileSync(pub, pair.publicKey, { mode: 0o600 });
     const output = join(root, 'transfer.enc.json');
@@ -163,10 +178,22 @@ test('standalone exporter captures original receipts and identity without changi
       { cwd: root, encoding: 'utf8', stdio: 'pipe' },
     );
     assert.equal(JSON.parse(stdout).originalsUnchanged, true);
+    assert.equal(JSON.parse(stdout).githubCredentialCaptured, true);
+    assert.ok(!stdout.includes('synthetic_ci_not_a_real_token'));
     assert.ok(!stdout.includes('synthetic-original'));
     const restored = decryptTransfer(
       JSON.parse(fs.readFileSync(output)),
       pair.privateKey,
+    );
+    const ciEntry = restored.files.find(
+      (x) => x.path === 'operator-secrets/github_ci_credential.json',
+    );
+    assert.equal(
+      JSON.parse(Buffer.from(ciEntry.data, 'base64').toString()).password,
+      'synthetic_ci_not_a_real_token',
+    );
+    restored.files = restored.files.filter(
+      (x) => x.path !== 'operator-secrets/github_ci_credential.json',
     );
     assert.deepEqual(
       restored.files.sort((a, b) => a.path.localeCompare(b.path)),

@@ -82,7 +82,10 @@ function validPath(path) {
     return false;
   const parts = path.split('/');
   if (parts[0] === 'operator-secrets')
-    return parts.length === 2 && secrets.includes(parts[1]);
+    return (
+      parts.length === 2 &&
+      (secrets.includes(parts[1]) || parts[1] === 'github_ci_credential.json')
+    );
   if (path === 'closed-site-operator/operator-config.json') return true;
   return (
     groups.includes(parts[0]) &&
@@ -329,6 +332,43 @@ function exportState(publicPath, secretsPath, outputPath) {
     if (fs.existsSync('.local/' + name)) scan('.local/' + name, name);
   for (const name of secrets)
     add(join(secretsPath, name), 'operator-secrets/' + name);
+  let githubCredentialCaptured = false;
+  // Retrieve only this repository's existing credential. It is never saved as
+  // plaintext on the share; an unavailable credential is reported, not invented.
+  try {
+    const raw = execFileSync('git', ['credential', 'fill'], {
+      input: 'protocol=https\nhost=github.com\npath=Muzsy/future_flow.git\n\n',
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 15000,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+    const password = raw
+      .split(/\r?\n/)
+      .find((x) => x.startsWith('password='))
+      ?.slice(9);
+    if (password && /^[\x21-\x7e]{1,4096}$/.test(password)) {
+      const bytes = Buffer.from(
+        JSON.stringify({
+          protocol: 'https',
+          host: 'github.com',
+          path: 'Muzsy/future_flow.git',
+          password,
+        }) + '\n',
+      );
+      totalBytes += bytes.length;
+      if (files.length >= 512 || totalBytes > limit)
+        throw Error('Bounded migration export required');
+      files.push({
+        path: 'operator-secrets/github_ci_credential.json',
+        data: bytes.toString('base64'),
+        sha256: sha(bytes),
+      });
+      githubCredentialCaptured = true;
+    }
+  } catch {
+    /* An absent OS credential does not destroy the original state. */
+  }
   const payload = {
     schemaVersion: version,
     sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -350,6 +390,7 @@ function exportState(publicPath, secretsPath, outputPath) {
     recipientSha256: encrypted.recipientSha256,
     ciphertextSha256: sha(boundedFile(outputPath, limit * 2)),
     originalsUnchanged: true,
+    githubCredentialCaptured,
     productionMutations: 0,
   };
 }

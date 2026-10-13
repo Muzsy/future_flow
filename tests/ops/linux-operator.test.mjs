@@ -8,6 +8,7 @@ import {
   sameOperatorPath,
   assertLinuxPrivatePath,
   operatorSecretsDirectory,
+  operatorCiReadToken,
 } from '../../scripts/lib/operator-platform.mjs';
 import { operatorChildEnvironment } from '../../scripts/contabo-personal-beta.mjs';
 
@@ -233,5 +234,37 @@ test(
         operatorSecretsDirectory({ ALTERWARD_SSH_SECRETS_DIR: secrets }),
         secrets,
       );
+    }),
+);
+
+test(
+  'migrated GitHub CI credential is private and bound to the exact repository',
+  { skip: process.platform !== 'linux' },
+  () =>
+    fixture(({ secrets }) => {
+      const old = process.env.ALTERWARD_SSH_SECRETS_DIR;
+      process.env.ALTERWARD_SSH_SECRETS_DIR = secrets;
+      const file = join(secrets, 'github_ci_credential.json');
+      const value = {
+        protocol: 'https',
+        host: 'github.com',
+        path: 'Muzsy/future_flow.git',
+        password: 'synthetic_ci_not_a_real_token',
+      };
+      try {
+        fs.writeFileSync(file, JSON.stringify(value), { mode: 0o600 });
+        assert.equal(operatorCiReadToken(), value.password);
+        fs.writeFileSync(
+          file,
+          JSON.stringify({ ...value, path: 'someone/else.git' }),
+        );
+        assert.throws(() => operatorCiReadToken(), /Exact repository/);
+        fs.writeFileSync(file, JSON.stringify(value));
+        fs.chmodSync(file, 0o644);
+        assert.throws(() => operatorCiReadToken(), /0600/);
+      } finally {
+        if (old === undefined) delete process.env.ALTERWARD_SSH_SECRETS_DIR;
+        else process.env.ALTERWARD_SSH_SECRETS_DIR = old;
+      }
     }),
 );

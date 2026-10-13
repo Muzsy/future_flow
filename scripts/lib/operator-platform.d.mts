@@ -9,3 +9,5 @@ export function assertOperatorLocalInput(path: string): void;
 export function operatorSecretsDirectory(
   environment?: NodeJS.ProcessEnv,
 ): string;
+
+export function operatorCiReadToken(): string;

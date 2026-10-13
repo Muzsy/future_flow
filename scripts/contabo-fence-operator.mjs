@@ -531,8 +531,11 @@ async function main() {
       sha(source('scripts/lib/operator-platform.mjs'))
   )
     throw Error('Exact committed operator platform helper required');
-  const { operatorSecretsDirectory, assertOperatorLocalInput } =
-    await import('./lib/operator-platform.mjs');
+  const {
+    operatorSecretsDirectory,
+    assertOperatorLocalInput,
+    operatorCiReadToken,
+  } = await import('./lib/operator-platform.mjs');
   // Check its bytes before importing executable report/path confinement code.
   const { privateReportDirectory, privateReportFile, privateRequestFile } =
     await import('./lib/private-report.ts');
@@ -588,24 +591,7 @@ async function main() {
     // Verify GitHub's actual workflow and both required jobs, not a local boolean
     // or an arbitrary successful run for this SHA. Reuse only the existing git
     // credential in memory; it is never passed to SSH or written in a report.
-    let rawCredential;
-    try {
-      rawCredential = execFileSync('git', ['credential', 'fill'], {
-        input:
-          'protocol=https\nhost=github.com\npath=Muzsy/future_flow.git\n\n',
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 15000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-      });
-    } catch {
-      throw Error('Existing read-only CI credential unavailable');
-    }
-    const credential = rawCredential
-      .split(/\r?\n/)
-      .find((line) => line.startsWith('password='))
-      ?.slice(9);
-    if (!credential) throw Error('Existing read-only CI credential required');
+    const credential = operatorCiReadToken();
     async function github(path) {
       const response = await fetch(
         'https://api.github.com/repos/Muzsy/future_flow/' + path,

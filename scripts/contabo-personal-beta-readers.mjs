@@ -55,6 +55,7 @@ async function main() {
     operatorSecretsDirectory,
     assertOperatorLocalInput,
     assertLinuxPrivatePath,
+    operatorCiReadToken,
   } = await import('./lib/operator-platform.mjs');
   const regular = (path) => {
     assertOperatorLocalInput(path);
@@ -165,18 +166,7 @@ async function main() {
       throw Error(
         'Exact interpreted audit and actual isolated fixture required',
       );
-    const credential = execFileSync('git', ['credential', 'fill'], {
-      input: 'protocol=https\nhost=github.com\npath=Muzsy/future_flow.git\n\n',
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15000,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-    });
-    const token = credential
-      .split(/\r?\n/)
-      .find((line) => line.startsWith('password='))
-      ?.slice(9);
-    if (!token) throw Error('Existing CI read credential required');
+    const token = operatorCiReadToken();
     const github = async (path) => {
       const response = await fetch(
         'https://api.github.com/repos/Muzsy/future_flow/' + path,
@@ -187,6 +177,7 @@ async function main() {
             'User-Agent': 'Alterward-reader-CI',
           },
           signal: AbortSignal.timeout(15000),
+          redirect: 'error',
         },
       );
       if (!response.ok) throw Error('Exact CI readback unavailable');
