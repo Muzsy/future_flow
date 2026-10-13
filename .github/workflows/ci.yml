@@ -33,6 +33,8 @@ jobs:
           node --test tests/ops/personal-beta-operator.test.mjs
           node --test tests/ops/reader-preparation-lifecycle.test.mjs
           node --test tests/ops/reader-archive-retry.test.mjs
+          node --test tests/ops/linux-operator.test.mjs
+          node --test tests/ops/operator-transfer.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'

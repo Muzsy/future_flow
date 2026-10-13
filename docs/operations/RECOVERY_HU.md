@@ -85,3 +85,7 @@ Nem az számít sikeres recoverynek, hogy a DB elindul, hanem hogy:
 - monitorok egészségesek;
 - paid/shared/public feature-ek csak saját release gate-jük szerint aktívak;
 - bizonyíték/receipt megmarad secret nélkül.
+
+## Linux operátori host
+
+A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.

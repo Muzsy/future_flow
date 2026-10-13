@@ -134,3 +134,7 @@ Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest
 A dokumentációs governance és canonicalization elkészült. A részletes régi P01–P13 / S0–S7 végrehajtási állapotot a `DEVELOPMENT_PLAN_HU.md` tartja karban.
 
 Jövőbeli prioritások: `ROADMAP_HU.md`.
+
+## Operátori host átállás
+
+A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatásának és az eredeti Windows operátori state titkosított migrációjának O01 munkája folyamatban. Ez nem jelenti a Linux operátori kiadás vagy a valódi béta aktiválását. Részletek: `operations/LINUX_OPERATOR_HU.md`.

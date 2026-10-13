@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
 async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
   if (
-    process.platform !== 'win32' ||
+    !['win32', 'linux'].includes(process.platform) ||
     ![
       'inspect',
       'fixture',
@@ -40,7 +40,25 @@ async function main() {
   }).trim();
   const source = (path) => execFileSync('git', ['show', `${commit}:${path}`]);
   const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  const platformPath = 'scripts/lib/operator-platform.mjs';
+  const platformInfo = lstatSync(platformPath);
+  if (
+    !platformInfo.isFile() ||
+    platformInfo.isSymbolicLink() ||
+    platformInfo.nlink !== 1 ||
+    digest(readFileSync(platformPath)) !== digest(source(platformPath))
+  )
+    throw Error('Exact committed operator platform helper required');
+  // Validate bytes BEFORE importing code, especially before funded secrets
+  // can be observed by an untrusted helper module.
+  const {
+    operatorSecretsDirectory,
+    assertOperatorLocalInput,
+    assertLinuxPrivatePath,
+    operatorCiReadToken,
+  } = await import('./lib/operator-platform.mjs');
   const regular = (path) => {
+    assertOperatorLocalInput(path);
     const stat = lstatSync(path);
     if (
       !stat.isFile() ||
@@ -66,6 +84,7 @@ async function main() {
   for (const path of [
     'scripts/contabo-fence-operator.mjs',
     'scripts/lib/private-report.ts',
+    'scripts/lib/operator-platform.mjs',
   ])
     if (digest(regular(path)) !== digest(source(path)))
       throw Error('Exact committed operator dependencies required');
@@ -147,18 +166,7 @@ async function main() {
       throw Error(
         'Exact interpreted audit and actual isolated fixture required',
       );
-    const credential = execFileSync('git', ['credential', 'fill'], {
-      input: 'protocol=https\nhost=github.com\npath=Muzsy/future_flow.git\n\n',
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15000,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-    });
-    const token = credential
-      .split(/\r?\n/)
-      .find((line) => line.startsWith('password='))
-      ?.slice(9);
-    if (!token) throw Error('Existing CI read credential required');
+    const token = operatorCiReadToken();
     const github = async (path) => {
       const response = await fetch(
         'https://api.github.com/repos/Muzsy/future_flow/' + path,
@@ -169,6 +177,7 @@ async function main() {
             'User-Agent': 'Alterward-reader-CI',
           },
           signal: AbortSignal.timeout(15000),
+          redirect: 'error',
         },
       );
       if (!response.ok) throw Error('Exact CI readback unavailable');
@@ -185,6 +194,7 @@ async function main() {
       );
   }
   if (mode === 'prepare-readers') {
+    if (process.platform === 'linux') assertLinuxPrivatePath(process.argv[3]);
     // A new cycle starts only after the previous receipt was archived locally.
     assertNoPreviousPreparationReceipt(directory);
     const privateDirectory = privateReportDirectory('personal-beta-operator');
@@ -286,7 +296,7 @@ try:
 except BaseException:
  print(json.dumps({'ok':False,'phase':'unpaid-reader-operator'}));sys.exit(1)
 `;
-  const secrets = join(process.env.LOCALAPPDATA, 'FutureFlow', 'secrets');
+  const secrets = operatorSecretsDirectory();
   const pin = join(secrets, 'contabo_known_hosts');
   const key = join(secrets, 'contabo_alterward_ed25519');
   const host = regular(pin).toString().trim().split(/\s+/)[0];

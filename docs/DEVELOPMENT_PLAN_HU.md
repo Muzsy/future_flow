@@ -159,3 +159,7 @@ Planning/implementation task esetén minimális sorrend:
 5. a feladathoz tartozó kanonikus product/feature/architecture/operations dokumentum.
 
 Ha a terv és a kód eltér, az `AGENTS.md` konfliktusszabálya érvényes: a tényleges működést a kód mutatja, a kívánt üzleti viselkedést a kanonikus spec/ADR; az eltérést explicit gapként kell kezelni.
+
+### O01 — Linux personal beta operator host — IN PROGRESS
+
+Reader/funded/daily/fence CLI Linux-host támogatás, eredeti privát state egyszeri authentikált-titkosított átvétele, source/CI/audit/fixture/restore kapuk megtartásával. Nem owner deployment vagy scheduler port. Acceptance: security-negative és byte-preservation tesztek, exact-commit Linux entry-point/fixture, CI/review, privát original state import és read-only inspect; éles átállás csak e kapuk után. Kanonikus keret: `operations/BETA_HU.md`, végrehajtási runbook: `operations/LINUX_OPERATOR_HU.md`.
