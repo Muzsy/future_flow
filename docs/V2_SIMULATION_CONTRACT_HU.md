@@ -58,3 +58,7 @@ A Life v2 2.0.0 megmarad; a külön Shared Context 1.0.0 szerződés S0-ban elk�
 ## S3 opcionális személyes Shared-memória — 2026-10-05
 
 LifePeriodInput.memory.sharedEvents opcionális, legfeljebb nyolc own projekció; LifeStateV2/2.0.0 és régi tárolt jobok változatlanok. Eredeti effectiveAt és saját knownAt külön; knownAt nem későbbi a period kezdeténél. Másik tag privát állapota/intentje nem szerepel. Fork csak history-position szerint korábban ismert emléket örököl, live membership nélkül; retry az eredeti snapshotot használja. [Szerződés, időtesztek és valódi AI-bizonyíték](SHARED_CONTEXT_S3_REPORT_HU.md).
+
+## N01 személyes narratív context
+
+Új queue esetén, szerveroldali context móddal és kijelölt saját cohort userId-val opcionális `narrativeContext` envelope készül. A strict Life V2 input/state/candidate/chapter nem bővül. Az envelope history-prefixet, elfogadott saját choices-t, méretkorlátozott prose kivonatot és lefagyasztott prompt policyt tartalmaz. A writer és a fidelity is megkapja. Mező nélküli régi job legacy marad; a jelenlegi 250–600 szavas domainkapu változatlan. Fork csak a saját prefixet látja, Shared privacy withheld esetén nincs eredeti próza vagy choice a narratív memóriában. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`.

@@ -105,7 +105,7 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
 
-N00: determinisztikus, nyolcprofilsoros offline baseline előkészítve. N01–N09: PENDING. A következő feladat a history-prefixhez kötött személyes memória eljuttatása az íróhoz. A teljes narratív pipeline és a production aktiválás még nincs kész; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
+N00: DONE, PR #25, 794 offline teszt és Verify CI sikeres. N01: implementált, ellenőrzés alatt; history-prefixhez kötött személyes memória az író/fidelity bemenetében, default-off context mód és szerveroldali cohort. N02–N09: PENDING. A teljes narratív pipeline és a production aktiválás még nincs kész; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
 
 ### B01 — Billing foundation — PENDING
 

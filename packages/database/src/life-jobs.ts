@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   PeriodCandidateV2,
   PeriodChapterV2,
+  NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
   DomainError,
@@ -20,7 +21,7 @@ export type LifeJob = Record<string, unknown> & {
   life_id: string;
   branch_id: string;
   base_revision: number;
-  payload: LifePeriodInput;
+  payload: NarrativePeriodInput;
   checkpoints: Record<string, unknown>;
   lease_token: string;
   attempt: number;

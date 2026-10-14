@@ -91,6 +91,8 @@ import { DomainError } from '@future-flow/core';
 import {
   Repository,
   LifeRepository,
+  narrativeConfigFromEnv,
+  type NarrativeConfig,
   LifeDeletionRepository,
   PublicDraftRepository,
   PublicReviewRepository,
@@ -475,6 +477,8 @@ class LifeController {
     private readonly publicContentCurationEnabled: boolean,
     @Inject('GENERATION_LIMITS')
     generationLimits: { daily: number; concurrent: number },
+    @Inject('NARRATIVE_CONFIG')
+    narrativeConfig: NarrativeConfig,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.publicContent = new PublicContentRepository(
@@ -485,7 +489,7 @@ class LifeController {
       repo.db,
       publicForkCheckpointsEnabled,
     );
-    this.lives = new LifeRepository(repo.db, generationLimits);
+    this.lives = new LifeRepository(repo.db, generationLimits, narrativeConfig);
     this.scenarios = new ScenarioRepository(
       repo.db,
       scenarioVersionsEnabled,
@@ -978,6 +982,7 @@ export async function createApp(
     daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
     concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
   });
+  const narrativeConfig = narrativeConfigFromEnv();
   const SharedContextController = createSharedContextController(
     AuthGuard,
     REPOSITORY,
@@ -1081,6 +1086,7 @@ export async function createApp(
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
       { provide: 'GENERATION_LIMITS', useValue: generationLimits },
+      { provide: 'NARRATIVE_CONFIG', useValue: narrativeConfig },
       {
         provide: 'CLOSED_BETA_CONFIG',
         useValue: validateClosedBetaConfig(closedBetaConfig),

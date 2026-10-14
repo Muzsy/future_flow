@@ -42,6 +42,7 @@ export * from './shared-contexts';
 export * from './shared-events';
 export * from './shared-jobs';
 export * from './shared-safety';
+export * from './narrative-memory';
 
 export interface Database {
   query<T extends Record<string, unknown> = Record<string, unknown>>(

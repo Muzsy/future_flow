@@ -66,3 +66,5 @@ Contract változásnál a kanonikus dokumentáció ugyanabban a PR-ben frissíte
 ## Személyes narratív baseline
 
 `tests/narrative-baseline.test.ts`: nyolc kitalált profil, rögzített dátumok és stabil UUID-k; a valódi personal worker három feladata és a kanonikus döntés/folytatás három időszakon át, szolgáltatási hívás nélkül. A fixture-próza nem történetminőségi pass bizonyíték. A teljes fejlesztés acceptance és külön paid/humán benchmark gate-je: `../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`.
+
+N01 célzott kör: narrative-memory, narrative-ai-context, life-ai, life-job-recovery, shared-privacy, life-api és life-persistence. A narrative-memory teszt valódi migrációkból épített PGlite adatbázison ellenőrzi a cohort/default-off utat, a megőrzött choice-t, prefix-forkot, withheld SQL olvasást, UTF-8 limitet és context checkpoint újrahasználatot. Szolgáltatási hívás helyett test transport/fixture provider.

@@ -138,3 +138,7 @@ A parancsok API-kreditet használnak. A forrásprofilok hiánya esetén a próba
 ## Új kiegészítés: Claude
 
 A fenti korábbi OpenAI-mérések dátumozott eredményei megmaradnak. Új [Claude-riport](CLAUDE_MODEL_EVALUATION_HU.md): négy modell, külső EN/HU történetaudit, szereppróbák, tényleges token/cache/effort/outputlimit mérés, külön felhasználói 5 USD. A fő OpenAI-minták külső auditja sikeres. Az előzetes kézi EN/HU kaput a későbbi [angol béta-döntés](ENGLISH_RELEASE_PLAN_HU.md) kiadás utáni használói visszajelzésre cserélte. Alkalmazás-default tovább Sol, nincs automatikus szolgáltatócsere.
+
+## Személyes context mód N01
+
+Default-off, szerveroldali cohorthoz kötött context módban a normál három paid task megmarad: life_period, life_chapter, life_fidelity. Writer receipt: `life_chapter.v5.context.en`, fidelity: `life_fidelity.v4.context.en`. A régi jobok és legacy receiptverziók változatlanok. A modellrouting, outputkeret, transport retry, egy globális tartalmi repair és budget guard nem változik. A memory kizárólag múltbeli, untrusted context; a kánon elsőbbséget élvez. Structured Outputs nem bizonyít szemantikai helyességet, ezért a domain és fidelity kapuk megmaradnak ([OpenAI docs](https://developers.openai.com/api/docs/guides/structured-outputs)). N01 még nem irodalmi minőségmérés és nincs éles bekapcsolás.
