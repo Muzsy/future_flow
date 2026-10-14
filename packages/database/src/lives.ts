@@ -284,7 +284,7 @@ export class LifeRepository {
   async detail(userId: string, branchId: string) {
     const branch = await this.branch(userId, branchId);
     const periods = await this.db.query(
-      `SELECT p.*,h.position,p.branch_id<>$1 AS inherited FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
+      `SELECT p.id,p.user_id,p.life_id,p.branch_id,p.period_no,p.base_revision,p.candidate,p.events,p.start_state,p.end_state,p.accepted_before,p.chapter,p.canon_hash,p.created_at,h.position,p.branch_id<>$1 AS inherited FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
       [branchId, userId],
     );
     return {
@@ -302,7 +302,7 @@ export class LifeRepository {
       job:
         (
           await this.db.query(
-            'SELECT id,status,stage,error_code,attempt,checkpoints FROM aw_jobs WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1',
+            'SELECT id,status,stage,error_code,attempt FROM aw_jobs WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1',
             [branchId, userId],
           )
         )[0] ?? null,

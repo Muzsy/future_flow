@@ -59,8 +59,8 @@ const immutable = {
     '6b72fda111964ded453fac450b9f2c5a6ed5708ba2079a2b83c4bf5ccd4e2a3e',
   ],
   defaults: [
-    855,
-    '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
+    856,
+    'b84ad227d4af79bb12d842fa72e172c0372013f1143b18e0babcbcc599c2d06d',
   ],
   functions: [
     27,

@@ -226,3 +226,5 @@ N01 opcionális, queue időben snapshotolt `narrativeContext` envelope-ot ad a s
 ## 15 Narratív terv és provenance
 
 A külön narrative 1.0.0 szerződés és core validátor az eseménykánon után, a szöveg előtt vizsgálja a jelenetsorrendet, a választási következményeket, a fix határidejű szálakat és a kitalált actor_add eredetet. A bounded memória nem helyettesít teljes szerveroldali history reference bizonyítékot. Az editor scores alapján determinisztikus kapu működik; az artifact a végső policy/plan/delta/report és input/output receipt hash-ekhez kötött, legfeljebb 32 KiB. Az új réteg még nem kapott worker/persistence rolloutot; legacy és context utak változatlanul működnek.
+
+N03: a period narrative_artifact belső nullable melléklet, ugyanabban a tranzakcióban mentett a chapter/canon adattal. A saját export verziózottan tartalmazhatja, a period/job web DTO és a public preparation projekció nem adja ki. Új migration/recovery kompatibilitási kapu szükséges; default-off konfiguráció változatlan.
