@@ -26,6 +26,7 @@ export type NarrativeReferences = {
   usedCanonicalIds?: ReadonlySet<string>;
   usedThreadIds: ReadonlySet<string>;
   forbiddenActorIds: ReadonlySet<string>;
+  forbiddenActorLabels?: ReadonlySet<string>;
   fictionalActorOrigins?: ReadonlyMap<string, string>;
 };
 function invalid(message: string): never {
@@ -85,6 +86,7 @@ export function narrativeReferenceSnapshot(
     ].sort(),
     usedThreadIds: [...references.usedThreadIds].sort(),
     forbiddenActorIds: [...references.forbiddenActorIds].sort(),
+    forbiddenActorLabels: [...(references.forbiddenActorLabels ?? [])].sort(),
     fictionalActorOrigins: [
       ...(references.fictionalActorOrigins ?? new Map<string, string>()),
     ]
@@ -110,6 +112,7 @@ export function narrativeReferencesFromSnapshot(
   unique(snapshot.historyEventIds, 'history event');
   unique(snapshot.usedThreadIds, 'used thread');
   unique(snapshot.forbiddenActorIds, 'forbidden actor');
+  unique(snapshot.forbiddenActorLabels, 'forbidden actor label');
   unique(
     snapshot.fictionalActorOrigins.map((actor) => actor.actorId),
     'fictional actor origin',
@@ -128,6 +131,7 @@ export function narrativeReferencesFromSnapshot(
     historyEventIds: new Set(snapshot.historyEventIds),
     usedThreadIds: new Set(snapshot.usedThreadIds),
     forbiddenActorIds: new Set(snapshot.forbiddenActorIds),
+    forbiddenActorLabels: new Set(snapshot.forbiddenActorLabels),
     fictionalActorOrigins: new Map(
       snapshot.fictionalActorOrigins.map((actor) => [
         actor.actorId,
@@ -229,6 +233,7 @@ export function validateNarrativeMemoryDelta(
           invalid('Shared identity cannot become a fictional actor.');
         const label = change.value.label.trim().toLocaleLowerCase('en');
         if (
+          references.forbiddenActorLabels?.has(label) ||
           canon.events[0]!.stateBefore.actors.some(
             (actor) => actor.label.trim().toLocaleLowerCase('en') === label,
           )

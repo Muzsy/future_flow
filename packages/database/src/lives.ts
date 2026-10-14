@@ -22,6 +22,7 @@ import {
   addMonths,
   applyFactChangesV2,
   hash,
+  narrativeReferenceSnapshot,
   validateLifeInputV2,
   type instantiateForkCheckpoint,
 } from '@future-flow/core';
@@ -32,8 +33,10 @@ import {
   personalNarrativeMemory,
   type NarrativeConfig,
 } from './narrative-memory';
+import { ownedNarrativeReferences } from './narrative-artifact';
 import {
   contextNarrativePolicy,
+  narrativeV1Policy,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
@@ -506,19 +509,6 @@ export class LifeRepository {
       Number(counts.concurrent) >= this.limits.concurrent
     )
       throw new DomainError('GENERATION_LIMIT', 'Generation limit.', 429);
-    const history = await tx.query<Row & { events: unknown[] }>(
-      'SELECT p.events FROM aw_history h JOIN aw_periods p ON p.id=h.period_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 2',
-      [branch.id, userId],
-    );
-    const [initialChoiceStorage] = await tx.query(
-      "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
-    );
-    const choices = await tx.query(
-      `SELECT decision_id,payload FROM (SELECT decision_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY created_at DESC LIMIT 10`,
-      initialChoiceStorage?.present
-        ? [branch.id, userId, branch.life_id]
-        : [branch.id, userId],
-    );
     const state = lifeStateV2Schema.parse(branch.state);
     const sharedEvents = await personalSharedMemories(
       tx,
@@ -532,6 +522,21 @@ export class LifeRepository {
       branch.id,
       state.effectiveAt,
     );
+    const history = await tx.query<Row & { events: unknown[] }>(
+      `SELECT ${privacyIds.length ? "COALESCE((SELECT jsonb_agg(jsonb_build_object('id',e->>'id','effectiveAt',e->>'effectiveAt')) FROM jsonb_array_elements(p.events) e),'[]'::jsonb)" : 'p.events'} AS events FROM aw_history h JOIN aw_periods p ON p.id=h.period_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 2`,
+      [branch.id, userId],
+    );
+    const [initialChoiceStorage] = await tx.query(
+      "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
+    );
+    const choices = privacyIds.length
+      ? []
+      : await tx.query(
+          `SELECT decision_id,payload FROM (SELECT decision_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY created_at DESC LIMIT 10`,
+          initialChoiceStorage?.present
+            ? [branch.id, userId, branch.life_id]
+            : [branch.id, userId],
+        );
     const payload: NarrativePeriodInput = {
       input: { ...branch.input, branchId: branch.id },
       state,
@@ -568,21 +573,27 @@ export class LifeRepository {
       },
     };
     if (
-      this.narrative.mode === 'context' &&
+      this.narrative.mode !== 'legacy' &&
       this.narrative.cohortUserIds.includes(userId)
     ) {
-      payload.narrativeContext = {
-        policy: contextNarrativePolicy(),
-        memory: await personalNarrativeMemory(
-          tx,
-          userId,
-          branch.id,
-          branch.revision,
-          branch.accepted_decision_ids,
-          privacyIds.length > 0,
-        ),
-      };
+      const memory = await personalNarrativeMemory(
+        tx,
+        userId,
+        branch.id,
+        branch.revision,
+        branch.accepted_decision_ids,
+        privacyIds.length > 0,
+        this.narrative.mode === 'narrative-v1',
+      );
+      payload.narrativeContext =
+        this.narrative.mode === 'narrative-v1'
+          ? { policy: narrativeV1Policy(), memory }
+          : { policy: contextNarrativePolicy(), memory };
     }
+    if (payload.narrativeContext?.policy.mode === 'narrative-v1')
+      payload.narrativeReferences = narrativeReferenceSnapshot(
+        await ownedNarrativeReferences(tx, userId, branch.id),
+      );
     const jobId = randomUUID();
     const metadata = await privacyJobMetadataPresent(tx);
     await tx.query(

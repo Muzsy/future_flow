@@ -7,6 +7,7 @@ import {
   type NarrativeArtifact,
   type PeriodChapterV2,
   type LifePeriodInput,
+  type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
   hash,
@@ -22,7 +23,7 @@ import {
   narrativeProfiles,
 } from './narrative-fixtures';
 
-export function narrativePlanFixture(source?: LifePeriodInput) {
+export function narrativePlanFixture(source?: NarrativePeriodInput) {
   const input = source ?? narrativeInput(narrativeProfiles[0]),
     candidate = narrativePeriod(input);
   const canon = simulatePeriodV2(
@@ -36,17 +37,19 @@ export function narrativePlanFixture(source?: LifePeriodInput) {
       acceptedDecisionIds: input.acceptedDecisionIds,
     },
   );
-  const memory: NarrativeMemory = {
-    version: '1.0.0',
-    branchId: input.input.branchId,
-    baseRevision: input.revision,
-    history: [],
-    recentChoices: [],
-    openThreads: [],
-    fictionalActors: [],
-    recentDecisionPatterns: [],
-    withheld: false,
-  };
+  const memory: NarrativeMemory = source?.narrativeContext
+    ? structuredClone(source.narrativeContext.memory)
+    : {
+        version: '1.0.0',
+        branchId: input.input.branchId,
+        baseRevision: input.revision,
+        history: [],
+        recentChoices: [],
+        openThreads: [],
+        fictionalActors: [],
+        recentDecisionPatterns: [],
+        withheld: false,
+      };
   const result: NarrativePlanningResult = {
     version: '1.0.0',
     candidate,
@@ -70,7 +73,19 @@ export function narrativePlanFixture(source?: LifePeriodInput) {
         dialogueIntent: null,
       })),
       turningPointEventId: canon.events[1]!.id,
-      choiceConsequences: [],
+      choiceConsequences: memory.recentChoices.length
+        ? [
+            {
+              decisionId: memory.recentChoices.at(-1)!.decisionId,
+              optionId: memory.recentChoices.at(-1)!.optionId,
+              eventIds: [canon.events[0]!.id],
+              disposition: 'advanced',
+              explanation:
+                'The accepted option now leads to a concrete observation in this next recorded trial.',
+              threadId: null,
+            },
+          ]
+        : [],
       decisionStakes: candidate.events[1]!.decision!.options.map((option) => ({
         optionId: option.id,
         eventIds: [canon.events[1]!.id],
@@ -130,9 +145,9 @@ export function narrativeArtifactFixture(
   const input = {
     ...fixture.input,
     narrativeContext: { policy, memory: fixture.memory },
-    narrativeReferences: narrativeReferenceSnapshot(
-      narrativeReferencesFromMemory(fixture.memory),
-    ),
+    narrativeReferences:
+      (fixture.input as NarrativePeriodInput).narrativeReferences ??
+      narrativeReferenceSnapshot(narrativeReferencesFromMemory(fixture.memory)),
   };
   const bindings = narrativeBindings(input, fixture.result, chapter, {
     valid: true,
