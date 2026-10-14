@@ -48,3 +48,5 @@ A v2 rövid időszak/folytatás, alkalmazáskeret, valódi Auth/AI HTTP- és bö
 ## Narratív sémák és minőségi kapu N02
 
 A narrative 1.0.0 structured tervezési/editor szerződések mellett a core kánon-, chronology-, actor-, choice-, thread- és artifact receipt kötéseket vizsgál. Az editor verdict önmagában nem jóváhagyás: öt kritikus dimenzió legalább 4, overall legalább 4.00 és major issue nélkül kell pass. A 650–950 szó puha írói cél; új narrative domainkapu 250–950, legacy 250–600. A mock score teszt nem valódi irodalmi minőségbizonyíték; a paid/humán benchmark és full pipeline még későbbi gate.
+
+N04: a planner candidate+plan és az editor score/issue riport strict Structured Outputs. Az új négy provider taskot mock transport vizsgálja; a közös guard minden fizikai retryját is számolja. A fidelity a fejezet mellett a plan/memoryDelta tényeit is ellenőrzi. Az editor anchored 1–5 skálán pontoz, a minőségi gate továbbra programból számolt. A request explicit projekciója és a withheld régi memória ürítése tesztelt. Valódi történetminőség vagy jobb átlagos költség még nem állítható; N08 benchmark szükséges.

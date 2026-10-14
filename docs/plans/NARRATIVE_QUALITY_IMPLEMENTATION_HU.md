@@ -35,7 +35,7 @@ Nincs migráció, sidecar, editor hívás, modellváltás, éles flagváltoztat�
 
 Issue: https://github.com/Muzsy/future_flow/issues/24
 
-A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 beolvadt PR #26-ban, 802 teszttel és sikeres CI-vel. N02 beolvadt PR #27-ben, 823 offline teszttel és sikeres CI-vel. N03 tárolási és recovery kompatibilitása implementálva, ellenőrzés alatt. N04–N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
+A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 beolvadt PR #26-ban, 802 teszttel és sikeres CI-vel. N02 beolvadt PR #27-ben, 823 offline teszttel és sikeres CI-vel. N03 beolvadt PR #28-ban, 828 offline teszttel és sikeres CI-vel. N04 provider és promptok implementálva, ellenőrzés alatt. N05–N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
 
 Implementáció előtti pontosítás: a core `validatePeriodChapterV2` nemcsak a 500–10000 karakteres sémát, hanem a 250–600 szavas domainkorlátot is érvényesíti. N02-ben külön policyhoz kötött narratív hosszvalidátor szükséges, mind workerben, mind commitkor: a kemény tartomány 250–950 szó, a 650–950 szavas írói cél puha marad; a legacy validátor és régi munkák 250–600 szavas kapuja változatlan marad. Ez explicit fejlesztési követelmény, nem prompt-only módosítás.
 
@@ -368,7 +368,7 @@ A publikáció és nyilvános fork útvonalai explicit tiltsák a melléklet, az
 
 ### 8.3 Privacy recovery baseline
 
-A `scripts/lib/privacy-recovery-schema.ts` most explicit 001–037 baseline-t, oszlopdarabszámot és digestet vár. A JSONB oszlop hozzáadása emiatt valóban baseline-változás. A migráció PR-ja frissítse a reviewed baseline-t, a szükséges darabszámot és digestet, és az ehhez tartozó teszteket.
+A kiinduláskor vizsgált `scripts/lib/privacy-recovery-schema.ts` explicit 001–037 baseline-t, oszlopdarabszámot és digestet vár. A JSONB oszlop hozzáadása emiatt valóban baseline-változás. A migráció PR-ja frissítse a reviewed baseline-t, a szükséges darabszámot és digestet, és az ehhez tartozó teszteket.
 
 Az új értékek kizárólag tiszta, elszigetelt adatbázisban, a repository migrációiból előállított séma alapján számolhatók ki. Az éles adatbázis aktuális alakját nem szabad automatikusan megbízható baseline-nak minősíteni. A foreign key digest várhatóan nem változik, de ezt mérni kell. A `privacy-security-catalog.ts` index-, constraint-, default-, function- és triggerkatalógusát is össze kell hasonlítani. Csak valóban változó érték frissíthető, review-val.
 
@@ -659,7 +659,7 @@ A következő források a vizsgált commitban ellenőrzött implementációs pon
 - `packages/database/src/lives.ts`, queue a 475. sortól, fork a 717. sortól, retry a 797. sortól, aw_history alapú privát branch olvasás a 276. sor körül.
 - `packages/database/src/life-jobs.ts`, claim/heartbeat/checkpoint/complete/fail; a complete szimulációs újraellenőrzése a 181. sor körül.
 - `packages/database/src/life-job-state.ts`, lifeJobReadyToCommit a 3. sortól; catalog operator lease kizárás, legacy fidelity shortcut.
-- `scripts/lib/privacy-recovery-schema.ts`, explicit 001–037 baseline és assertReviewedPrivacyRecoverySchema. `scripts/lib/privacy-security-catalog.ts`, ellenőrzött biztonsági katalógus.
+- `scripts/lib/privacy-recovery-schema.ts`, a kiindulási explicit 001–037 baseline és assertReviewedPrivacyRecoverySchema; N03-ban review után 001–038-ra frissült. `scripts/lib/privacy-security-catalog.ts`, ellenőrzött biztonsági katalógus.
 - `packages/database/src/repository.ts`, saját export; `packages/database/src/life-deletion.ts`, tulajdonolt törlés és Shared invalidálás.
 - `apps/web/components/life-experience.tsx`, fejezet body bekezdésenkénti renderelése; `packages/contracts/src/error-messages.ts`, GENERATION_LIMIT a 325. sor körül.
 - `docs/PERSONAL_BETA_OPERATOR_HU.md`, aktív funded runtime és source/image binding szabályok; `docs/AI_MODEL_ROUTING_HU.md`, `docs/AI_PRODUCTION_BUDGET_HU.md`, kanonikus routing és budget.
@@ -676,3 +676,15 @@ A detail explicit eddigi period-oszlopokat kér le, a job állapotból pedig nem
 A tiszta 001–037 migrációs PGlite és a hozzáadott 038 összehasonlítása: 855→856 oszlop; columns digest 37519bd15ef5d42b9ea1ef6486dc00a3ddf43582c589d718a01355701de1b31c. A külön executable katalógusban kizárólag a defaults/identity/generated oszloplista változott, 856 elemre és b84ad227d4af79bb12d842fa72e172c0372013f1143b18e0babcbcc599c2d06d digestre. A 96 tábla, 219 FK, 712 constraint, 251 index, 27 függvény és 66 trigger változatlan; az összes további katalóguskategória is változatlan. Ez fejlesztési, izolált mérés, nem éles sémaegyezés.
 
 A karanténos restore fixture mentésébe egy később törölt account és egy később törölt life validált narratív periodja kerül. Replay után mindkettő eltűnését külön ellenőrzi. A drift guard továbbra is elutasít további nem review-zott oszlopot és módosult jog/kód katalógust. A régi replay image új sémával nem kompatibilis: rollout előtt külön reviewed recovery release, migration/restore és funded upgrade kapu szükséges. A registry/operator receipt nincs átírva; éles migráció nem futott.
+
+## N04 narratív provider és verziózott promptok
+
+Az OpenAiProvider külön NarrativeAiProvider capabilityt kapott: planNarrative, writeNarrativeChapter, checkNarrativeChapter, editNarrativeChapter. Taskok rendre life_narrative_plan, life_narrative_chapter, life_fidelity, life_narrative_editor; explicit receiptverziók life_narrative_plan.v1.en, life_narrative_chapter.v1.en, life_fidelity.v4.narrative.en és life_narrative_editor.v1.en. A prompt registry a frozen narrativeV1Policy verzióiból származik. A locale változat ugyanazt a szerződést használja; éles rollout továbbra is angol.
+
+A planner a jelenlegi eventModelt, az író storyModelt, a két ellenőr checkModelt vagy ennek hiányában eventModelt használ. Nincs modell-/könyvtár-/SDK- vagy konfigurációváltozás. Minden feladat a meglévő közös generate/parseWithRetries útvonalon fut: store:false, strict Structured Outputs, legfeljebb 6500 life-task output token, a meglévő reserve/settle és számlázott transport retry. Fizikai request admission N05-ben kerül a közös útvonal elé; a N04 nem aktivál queue módot.
+
+A narrative-prompts.ts explicit request builderjei a valódi user request objektre számított receipt hash-ekhez használhatók a későbbi workerben. A builder nem küldi el a server reference inventoryt, véletlen extra top-level mezőt vagy az író önértékelését. A memory/plan strict parse, UTF-8 memórialimit és Shared projection ellenőrzés a request előtt történik. A planner branch/revision, időprefix és accepted ID kötést is ellenőriz. Withheld kontextusban a régi legacy memory recentEvents/choices szövege is ürül; a megengedett Shared projection külön validálva marad. A rendszerutasítás nem interpolál user/history/repair szöveget.
+
+A tervező megfigyelhető cél-előrelépést vagy érdemi következményt kér, a permanens tervezgetést és a visszatérő sematikus óvatos döntést kerüli. A jelenetek cselekvés/ellenállás/változás elven készülnek. Az író második személyben, konkrét jelenetben kezd, nem ad tanácsadási leckét és nem tölt fel üres prózával szótartományt. Az editor a tényleges fejezetet osztályozza nyolc rögzített, 1–5 skálán értelmezett dimenzióban; a hossz vagy a szabályos JSON nem indokol négyes pontot. Egy canonhiányt nem javíthat új tény kitalálásával. A fidelity a plan és a memoryDelta állításait is vizsgálja.
+
+Az új mock transport próbák két locale négy feladatát, input/output hash/registry/model/outputlimit/store:false kötését, hostile text és accidental inventory izolációját, withheld/oversize input korai elutasítását, négy task budget-denialját, minden fizikai transport attempt reserve/settle-jét, incomplete/schema-error számlázását és a szerkesztő bekezdéshivatkozásait vizsgálják. Ezek nem valódi irodalmi minőségbizonyítékok; fizetett próba vagy production változás nincs.
