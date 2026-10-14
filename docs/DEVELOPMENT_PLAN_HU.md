@@ -101,6 +101,12 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 ## 5. Új, az eredeti azonosítókon kívüli workstreamek
 
+### N00–N09 — Personal narrative quality — IN PROGRESS
+
+A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
+
+N00: determinisztikus, nyolcprofilsoros offline baseline előkészítve. N01–N09: PENDING. A következő feladat a history-prefixhez kötött személyes memória eljuttatása az íróhoz. A teljes narratív pipeline és a production aktiválás még nincs kész; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
+
 ### B01 — Billing foundation — PENDING
 
 Az entitlement modell elkészült, de ez nem kész fizetési rendszer.
