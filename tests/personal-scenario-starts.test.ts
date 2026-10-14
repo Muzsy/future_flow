@@ -12,6 +12,7 @@ import {
 import { DomainError, hash } from '@future-flow/core';
 import {
   Repository,
+  ownedNarrativeReferences,
   LifeRepository,
   LifeJobRepository,
   LifeDeletionRepository,
@@ -285,6 +286,14 @@ describe('private starts from explicitly approved personal Scenario previews', (
       ),
       lives = new LifeRepository(db),
       initial = await lives.branch(f.user, receipt.branchId);
+    const narrativeRefs = await ownedNarrativeReferences(
+      db,
+      f.user,
+      receipt.branchId,
+    );
+    expect(narrativeRefs.historyEventIds.size).toBe(0);
+    expect(narrativeRefs.usedThreadIds.size).toBe(0);
+    expect(narrativeRefs.fictionalActorOrigins?.size).toBe(0);
     await new Repository(db).deleteAccountData(f.owner);
     let jobId = receipt.jobId;
     for (let i = 0; i < 3; i++) {

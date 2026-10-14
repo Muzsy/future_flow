@@ -17,6 +17,7 @@ import {
   LifeJobRepository,
   LifeDeletionRepository,
   Repository,
+  ownedNarrativeReferences,
   type Database,
   type LifeJob,
 } from '@future-flow/database';
@@ -232,6 +233,15 @@ describe('independent private starts from reviewed public checkpoints', () => {
     expect(job!.payload.acceptedDecisionIds).toEqual([initial.decision_id]);
     expect(job!.payload.memory.recentEvents).toEqual([]);
     expect(job!.payload.memory).not.toHaveProperty('sharedEvents');
+    const narrativeRefs = await ownedNarrativeReferences(
+      db,
+      job!.user_id,
+      job!.branch_id,
+    );
+    expect(narrativeRefs.historyEventIds.size).toBe(0);
+    expect(narrativeRefs.usedThreadIds.size).toBe(0);
+    expect(narrativeRefs.fictionalActorOrigins?.size).toBe(0);
+    expect(job!.payload).not.toHaveProperty('narrativeArtifact');
     for (const id of [
       f.owner,
       f.created.lifeId,

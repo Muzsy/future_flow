@@ -5,12 +5,15 @@ import {
   NARRATIVE_WITHHELD_SUMMARY,
   periodCandidateV2Schema,
   type NarrativeMemory,
+  narrativeMemoryDeltaSchema,
+  type NarrativeMemoryDelta,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import type { Database } from './index';
+import { ownedNarrativeReferences } from './narrative-artifact';
 
 export type NarrativeConfig = Readonly<{
-  mode: 'legacy' | 'context';
+  mode: 'legacy' | 'context' | 'narrative-v1';
   cohortUserIds: readonly string[];
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
@@ -67,8 +70,20 @@ export function boundNarrativeMemory(raw: NarrativeMemory): NarrativeMemory {
     if (size() <= NARRATIVE_MEMORY_BYTES) break;
     period.excerpt = null;
   }
-  while (size() > NARRATIVE_MEMORY_BYTES && memory.history.length)
-    memory.history.shift();
+  const threadOrigins = new Set(
+    memory.openThreads.map((thread) => thread.originPeriodId),
+  );
+  const latestHistory = memory.history.at(-1)?.periodId;
+  if (latestHistory) threadOrigins.add(latestHistory);
+  while (
+    size() > NARRATIVE_MEMORY_BYTES &&
+    memory.history.some((period) => !threadOrigins.has(period.periodId))
+  ) {
+    const index = memory.history.findIndex(
+      (period) => !threadOrigins.has(period.periodId),
+    );
+    memory.history.splice(index, 1);
+  }
   while (
     size() > NARRATIVE_MEMORY_BYTES &&
     memory.recentDecisionPatterns.length
@@ -78,6 +93,8 @@ export function boundNarrativeMemory(raw: NarrativeMemory): NarrativeMemory {
   // whole units after prose. Nothing is truncated inside a JSON reference.
   while (size() > NARRATIVE_MEMORY_BYTES && memory.recentChoices.length > 1)
     memory.recentChoices.shift();
+  while (size() > NARRATIVE_MEMORY_BYTES && memory.fictionalActors.length)
+    memory.fictionalActors.shift();
   if (size() > NARRATIVE_MEMORY_BYTES)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -93,9 +110,10 @@ export async function personalNarrativeMemory(
   revision: number,
   acceptedDecisionIds: string[],
   withheld: boolean,
+  narrative = false,
 ): Promise<NarrativeMemory> {
   const history = await tx.query<Record<string, unknown> & HistoryRow>(
-    `SELECT h.period_id,h.position,p.candidate->>'startDate' AS start_date,p.candidate->>'endDate' AS end_date,p.events,${withheld ? 'NULL' : 'p.chapter'} AS chapter FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 8`,
+    `SELECT h.period_id,h.position,p.candidate->>'startDate' AS start_date,p.candidate->>'endDate' AS end_date,${withheld ? "'[]'::jsonb" : 'p.events'} AS events,${withheld ? 'NULL' : 'p.chapter'} AS chapter FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 8`,
     [branchId, userId],
   );
   let choices: ChoiceRow[] = [];
@@ -109,17 +127,51 @@ export async function personalNarrativeMemory(
     );
   }
   const chronological = history.reverse();
+  const deltas = new Map<string, NarrativeMemoryDelta>();
+  const threads = new Map<string, NarrativeMemory['openThreads'][number]>();
+  const actors = new Map<string, NarrativeMemory['fictionalActors'][number]>();
+  const patterns: string[] = [];
+  if (narrative && !withheld) {
+    const references = await ownedNarrativeReferences(tx, userId, branchId);
+    const rows = await tx.query<{ period_id: string; delta: unknown }>(
+      "SELECT h.period_id,p.narrative_artifact->'validatedMemoryDelta' AS delta FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact IS NOT NULL ORDER BY h.position",
+      [branchId, userId],
+    );
+    for (const row of rows) {
+      const delta = narrativeMemoryDeltaSchema.parse(row.delta);
+      deltas.set(row.period_id, delta);
+      for (const thread of delta.threadUpdates) {
+        if (thread.status === 'resolved' || thread.status === 'dropped')
+          threads.delete(thread.id);
+        else threads.set(thread.id, thread);
+      }
+      for (const actor of delta.actorUpdates) {
+        if (
+          references.forbiddenActorIds.has(actor.actorId) ||
+          references.fictionalActorOrigins?.get(actor.actorId) !==
+            actor.introducedByEventId
+        )
+          continue;
+        // Delete/reinsert orders profiles by most recent verified appearance.
+        actors.delete(actor.actorId);
+        actors.set(actor.actorId, actor);
+      }
+      patterns.push(delta.decisionPattern);
+    }
+  }
   return boundNarrativeMemory({
     version: '1.0.0',
     branchId,
     baseRevision: revision,
     history: chronological.map((period, index) => {
+      const delta = deltas.get(period.period_id);
       const summary = withheld
         ? NARRATIVE_WITHHELD_SUMMARY
-        : `${period.events.map((event) => `${event.title}: ${event.summary}`).join(' ')} These events are recorded history; the period ends before its unresolved choice.`.slice(
+        : (delta?.periodSummary ??
+          `${period.events.map((event) => `${event.title}: ${event.summary}`).join(' ')} These events are recorded history; the period ends before its unresolved choice.`.slice(
             0,
             500,
-          );
+          ));
       return {
         periodId: period.period_id,
         startDate: period.start_date,
@@ -128,7 +180,8 @@ export async function personalNarrativeMemory(
         summary,
         salientEventIds: withheld
           ? []
-          : period.events.slice(0, 3).map((event) => event.id),
+          : (delta?.salientEventIds ??
+            period.events.slice(0, 3).map((event) => event.id)),
         excerpt:
           !withheld && index >= chronological.length - 2 && period.chapter
             ? period.chapter.body.slice(0, 1200)
@@ -154,9 +207,9 @@ export async function personalNarrativeMemory(
             : `Typed changes: ${option.changes.map((change) => change.type).join(', ')}. Current canonical state is authoritative.`,
       };
     }),
-    openThreads: [],
-    fictionalActors: [],
-    recentDecisionPatterns: [],
+    openThreads: [...threads.values()],
+    fictionalActors: [...actors.values()].slice(-12),
+    recentDecisionPatterns: patterns.slice(-4),
     withheld,
   });
 }

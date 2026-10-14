@@ -32,6 +32,7 @@ import {
   exportSharedAccount,
 } from './shared-contexts';
 import { exportSharedSafety } from './shared-safety';
+import { personalPrivacyEventIds } from './shared-privacy';
 
 type Row = Record<string, unknown>;
 type ProfileRow = Row & {
@@ -609,11 +610,41 @@ export class Repository {
         'aw_publication_drafts',
         'aw_scenario_drafts',
       ];
-      for (const table of tables)
-        result[table] = await tx.query(
-          `SELECT * FROM ${table} WHERE user_id=$1`,
+      const [artifactStorage] = await tx.query(
+        "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='aw_periods' AND column_name='narrative_artifact') AS present",
+      );
+      const hiddenBranches: string[] = [];
+      if (artifactStorage?.present === true) {
+        const branches = await tx.query<{ id: string; effective_at: string }>(
+          "SELECT id,state->>'effectiveAt' AS effective_at FROM aw_branches WHERE user_id=$1",
           [userId],
         );
+        for (const branch of branches)
+          if (
+            (
+              await personalPrivacyEventIds(
+                tx,
+                userId,
+                branch.id,
+                branch.effective_at,
+              )
+            ).length
+          )
+            hiddenBranches.push(branch.id);
+      }
+      for (const table of tables) {
+        if (table === 'aw_periods' && artifactStorage?.present === true) {
+          const rows = await tx.query<{ record: unknown }>(
+            "SELECT (to_jsonb(p)-'narrative_artifact')||jsonb_build_object('narrative_artifact',CASE WHEN EXISTS(SELECT 1 FROM aw_history h WHERE h.period_id=p.id AND h.user_id=$1 AND h.branch_id=ANY($2::uuid[])) THEN NULL ELSE p.narrative_artifact END) AS record FROM aw_periods p WHERE p.user_id=$1",
+            [userId, hiddenBranches],
+          );
+          result[table] = rows.map((row) => row.record);
+        } else
+          result[table] = await tx.query(
+            `SELECT * FROM ${table} WHERE user_id=$1`,
+            [userId],
+          );
+      }
       const [publicReviewStorage] = await tx.query(
         "SELECT to_regclass('public.aw_public_draft_reviews') IS NOT NULL AS present",
       );

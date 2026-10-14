@@ -103,6 +103,7 @@ export const narrativeReferenceSnapshotSchema = z
     usedCanonicalIds: z.array(id).max(25000),
     usedThreadIds: z.array(id).max(6000),
     forbiddenActorIds: z.array(id).max(1000),
+    forbiddenActorLabels: z.array(z.string().min(1).max(160)).max(1000),
     fictionalActorOrigins: z
       .array(z.object({ actorId: id, introducedByEventId: id }).strict())
       .max(1000),
