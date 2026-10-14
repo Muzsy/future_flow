@@ -62,3 +62,7 @@ Tesztet ne lazíts pusztán azért, hogy zöld legyen. Előbb döntsd el, hogy:
 4. környezeti/runner hiba.
 
 Contract változásnál a kanonikus dokumentáció ugyanabban a PR-ben frissítendő.
+
+## Személyes narratív baseline
+
+`tests/narrative-baseline.test.ts`: nyolc kitalált profil, rögzített dátumok és stabil UUID-k; a valódi personal worker három feladata és a kanonikus döntés/folytatás három időszakon át, szolgáltatási hívás nélkül. A fixture-próza nem történetminőségi pass bizonyíték. A teljes fejlesztés acceptance és külön paid/humán benchmark gate-je: `../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`.

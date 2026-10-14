@@ -124,6 +124,10 @@ Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest
 3. **Recovery határ:** teljes hosted Supabase-vesztés esetére elfogadott korlát a zárva maradó, kézi újraépítés; ez nem automatikus disaster-recovery ígéret.
 4. **Publikus/community release:** a meglévő infrastruktúra és staging/curation bizonyíték nem jelent automatikus publikus termékengedélyt.
 
+## Személyes történetminőség fejlesztés
+
+N00–N09 workstream elindult, Issue #24. Első csomag: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
+
 ## Aktuális fejlesztési fókusz
 
 1. személyes béta tényleges aktiválása a meglévő kapuk szerint;
