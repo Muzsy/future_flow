@@ -49,7 +49,12 @@ type Detail = {
   }[];
   branches: { id: string; name: string }[];
   choices: { decision_id: string; payload: { label: string } }[];
-  job: { id: string; status: string; error_code: string | null } | null;
+  job: {
+    id: string;
+    status: string;
+    error_code: string | null;
+    retryAvailable: boolean;
+  } | null;
 };
 const defaultSetup: LifeSetupV2 = {
   locale: 'en',
@@ -1076,7 +1081,7 @@ export function LifeExperience({
             {m.failed}{' '}
             {errorMessage(locale, detail.job?.error_code ?? 'JOB_FAILED')}
           </p>
-          {detail.job && (
+          {detail.job?.retryAvailable === true && (
             <button
               className="secondary"
               disabled={busy}

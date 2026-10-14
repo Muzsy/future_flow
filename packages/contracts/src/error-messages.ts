@@ -1,6 +1,18 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  NARRATIVE_QUALITY_FAILED: [
+    "We couldn't complete this chapter to the required quality. Your previous chapters and choices are saved.",
+    'A fejezet nem érte el az elvárt minőséget. Korábbi fejezeteid és választásaid megmaradtak.',
+  ],
+  NARRATIVE_REQUEST_LIMIT: [
+    'This attempt reached its generation limit. Your previous chapters and choices are saved.',
+    'Ez a próbálkozás elérte a generálási korlátját. Korábbi fejezeteid és választásaid megmaradtak.',
+  ],
+  NARRATIVE_CONTEXT_INVALID: [
+    "We couldn't verify this chapter's story context. Your previous chapters and choices are saved.",
+    'A fejezet történeti előzményeit nem sikerült ellenőrizni. Korábbi fejezeteid és választásaid megmaradtak.',
+  ],
   CLOSED_BETA_INVITE_REQUIRED: [
     'This closed beta is available to invited testers. You can still access and delete your existing data.',
     'This closed beta is available to invited testers. You can still access and delete your existing data.',

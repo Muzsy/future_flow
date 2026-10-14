@@ -94,8 +94,11 @@ describe('queue-bound personal narrative memory', () => {
       narrativeConfigFromEnv({ NARRATIVE_PIPELINE_MODE: 'context' })
         .cohortUserIds,
     ).toEqual([]);
-    expect(() =>
+    expect(
       narrativeConfigFromEnv({ NARRATIVE_PIPELINE_MODE: 'narrative-v1' }),
+    ).toEqual({ mode: 'narrative-v1', cohortUserIds: [] });
+    expect(() =>
+      narrativeConfigFromEnv({ NARRATIVE_PIPELINE_MODE: 'unsupported' }),
     ).toThrow();
     expect(() =>
       narrativeConfigFromEnv({ NARRATIVE_COHORT_USER_IDS: 'not-a-user-id' }),

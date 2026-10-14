@@ -104,3 +104,5 @@ export function connectDatabase(
   };
 }
 export * from './closed-beta';
+
+export * from './life-job-state';

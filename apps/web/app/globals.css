@@ -681,6 +681,9 @@ header {
   line-height: 1.95;
   color: #46534a;
 }
+.chapter .prose p + p {
+  margin-top: 1em;
+}
 .decision {
   background: #eef2e8;
   border-radius: 15px;

@@ -14,7 +14,10 @@ import {
 import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
 import { personalPrivacyEventIds } from './shared-privacy';
-import { lifeJobReadyToCommit } from './life-job-state';
+import {
+  lifeJobReadyToCommit,
+  narrativeProcessingBlock,
+} from './life-job-state';
 import {
   validateNarrativeCommit,
   type NarrativeCommit,
@@ -90,14 +93,22 @@ export class LifeJobRepository {
           ? savedRecoveries + (job.status === 'running' ? 1 : 0)
           : 50;
       const ready = lifeJobReadyToCommit(job.checkpoints, job.payload);
-      if ((job.attempt >= 5 || recoveries >= 50) && !ready) {
+      const narrativeBlock = narrativeProcessingBlock(
+        job.checkpoints,
+        job.payload,
+      );
+      if (
+        narrativeBlock ||
+        ((job.attempt >= 5 || recoveries >= 50) && !ready)
+      ) {
         await tx.query(
           "UPDATE aw_jobs SET status='failed',error_code=$2,lease_token=NULL,lease_until=NULL WHERE id=$1",
           [
             job.id,
-            job.attempt >= 5
-              ? 'JOB_ATTEMPTS_EXHAUSTED'
-              : 'JOB_RECOVERY_EXHAUSTED',
+            narrativeBlock ??
+              (job.attempt >= 5
+                ? 'JOB_ATTEMPTS_EXHAUSTED'
+                : 'JOB_RECOVERY_EXHAUSTED'),
           ],
         );
         await tx.query(

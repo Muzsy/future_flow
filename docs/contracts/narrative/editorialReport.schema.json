@@ -89,6 +89,13 @@
               "major"
             ]
           },
+          "repairScope": {
+            "type": "string",
+            "enum": [
+              "prose",
+              "canon"
+            ]
+          },
           "paragraphIndex": {
             "anyOf": [
               {
@@ -124,6 +131,7 @@
         "required": [
           "dimension",
           "severity",
+          "repairScope",
           "paragraphIndex",
           "eventIds",
           "explanation",

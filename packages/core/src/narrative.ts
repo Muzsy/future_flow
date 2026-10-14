@@ -437,7 +437,9 @@ export function evaluateNarrativeEditorialGate(raw: unknown) {
     passed:
       failedDimensions.length === 0 &&
       overall >= 4 &&
-      !report.issues.some((issue) => issue.severity === 'major'),
+      !report.issues.some(
+        (issue) => issue.severity === 'major' || issue.repairScope === 'canon',
+      ),
   };
 }
 export function validateNarrativeEditorialReport(
