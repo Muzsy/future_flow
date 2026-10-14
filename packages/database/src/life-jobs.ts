@@ -14,6 +14,10 @@ import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
 import { personalPrivacyEventIds } from './shared-privacy';
 import { lifeJobReadyToCommit } from './life-job-state';
+import {
+  validateNarrativeCommit,
+  type NarrativeCommit,
+} from './narrative-artifact';
 
 export type LifeJob = Record<string, unknown> & {
   id: string;
@@ -141,6 +145,7 @@ export class LifeJobRepository {
     candidate: PeriodCandidateV2,
     chapter: PeriodChapterV2,
     receipts: unknown[],
+    narrative?: NarrativeCommit,
   ) {
     return this.db.transaction(async (tx) => {
       const user = (
@@ -157,6 +162,7 @@ export class LifeJobRepository {
         )
       )[0];
       if (!current) lost();
+      if (hash(current.payload) !== hash(job.payload)) lost();
       await this.verifySharedPrivacy(job, tx);
       const repo = new LifeRepository(tx),
         branch = await repo.branch(job.user_id, job.branch_id, tx, true);
@@ -190,7 +196,17 @@ export class LifeJobRepository {
           acceptedDecisionIds: branch.accepted_decision_ids,
         },
       );
-      validatePeriodChapterV2(chapter, canon.events);
+      const narrativeArtifact = await validateNarrativeCommit(
+        tx,
+        job.user_id,
+        branch.id,
+        current.payload,
+        canon,
+        chapter,
+        receipts,
+        narrative,
+      );
+      if (!narrativeArtifact) validatePeriodChapterV2(chapter, canon.events);
       const history = await tx.query<
         Record<string, unknown> & { candidate: PeriodCandidateV2 }
       >(
@@ -223,7 +239,7 @@ export class LifeJobRepository {
         );
       const position = history.length + 1;
       await tx.query(
-        'INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+        'INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
         [
           candidate.periodId,
           job.user_id,
@@ -238,6 +254,7 @@ export class LifeJobRepository {
           JSON.stringify(branch.accepted_decision_ids),
           JSON.stringify(chapter),
           hash(canon),
+          narrativeArtifact ? JSON.stringify(narrativeArtifact) : null,
         ],
       );
       await tx.query(

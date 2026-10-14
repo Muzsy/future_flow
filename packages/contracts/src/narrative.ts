@@ -126,7 +126,7 @@ export const narrativeContextSchema = z
   );
 export type NarrativeContext = z.infer<typeof narrativeContextSchema>;
 export type NarrativePeriodInput = LifePeriodInput & {
-  narrativeContext?: NarrativeContext;
+  narrativeContext?: NarrativeContext | NarrativeV1Context;
 };
 export function contextNarrativePolicy(): NarrativeContext['policy'] {
   return {
@@ -185,6 +185,15 @@ export function narrativeV1Policy(): NarrativeV1Policy {
     targetWords: { min: 650, max: 950 },
   };
 }
+// Storage preparation only: queue configuration still rejects narrative-v1
+// until the provider, worker and privacy-memory integration are complete.
+export const narrativeV1ContextSchema = z
+  .object({
+    policy: narrativeV1PolicySchema,
+    memory: narrativeMemorySchema,
+  })
+  .strict();
+export type NarrativeV1Context = z.infer<typeof narrativeV1ContextSchema>;
 export const narrativeMemoryDeltaSchema = z
   .object({
     periodSummary: text(80, 500),

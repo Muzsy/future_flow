@@ -65,3 +65,5 @@ LifePeriodInput.memory.sharedEvents opcionális, legfeljebb nyolc own projekció
 ## N02 narratív terv és ellenőrzés
 
 A narrative 1.0.0 külön envelope és artifact sémákat kap; Life V2 JSON formája/verziója változatlan. A canonhoz kötött jelenetterv a scene chronology/actor/choice/stakes hivatkozásokat és a thread/NPC eredetet ellenőrzi, nem ír WorldState-et. Folytatásnál teljes owned-history reference snapshot kell a lezárt thread ID-k és régi eredetek igazolásához. A legacy 250–600 szavas fejezetvalidátor változatlan; a későbbi narrative-v1 csak saját 250–950 kemény tartománnyal, puha 650–950 céllal használható. A full narrative flag még nem kapcsolható be.
+
+N03: a 038 nullable period melléklet nem módosítja a Life V2 gépi sémáit. Narrative-v1 complete belső mellékletet, kötött receiptet, újraszimulált canont és minőségi gate-et követel; legacy/context melléklet nélkül működik. A queue új módja még tiltott.

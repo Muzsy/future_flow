@@ -576,6 +576,7 @@ export class Repository {
         exportVersion: CONTRACT_VERSION,
         lifeContractVersion: LIFE_CONTRACT_VERSION,
         publicDraftVersion: PUBLIC_DRAFT_VERSION,
+        narrativeArtifactVersion: '1.0.0',
         exportedAt: new Date().toISOString(),
       };
       const tables = [

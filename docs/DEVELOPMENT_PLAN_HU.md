@@ -105,7 +105,7 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
 
-N00: DONE, PR #25, 794 offline teszt és Verify CI sikeres. N01: DONE, PR #26, 802 offline teszt és Verify CI sikeres; default-off context/cohort. N02: strict narratív sémák és determinisztikus validátorok implementálva, ellenőrzés alatt. N03–N09: PENDING. A teljes narratív pipeline és a production aktiválás még nincs kész; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
+N00: DONE, PR #25, 794 offline teszt és Verify CI sikeres. N01: DONE, PR #26, 802 offline teszt és Verify CI sikeres; default-off context/cohort. N02: DONE, PR #27, 823 offline teszt és Verify CI sikeres. N03: append-only artifact tárolás és recovery/DTO kompatibilitás implementálva, ellenőrzés alatt. N04–N09: PENDING. A teljes narratív pipeline és a production aktiválás még nincs kész; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
 
 ### B01 — Billing foundation — PENDING
 

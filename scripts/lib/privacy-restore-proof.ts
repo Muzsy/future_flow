@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import {
   LifeDeletionRepository,
   LifeRepository,
+  LifeJobRepository,
   PublicationRepository,
   Repository,
   SharedJobRepository,
@@ -25,6 +26,7 @@ import {
   publicationFixture,
 } from '../../tests/publication-fixtures';
 import { setupFixture } from '../../tests/life-fixtures';
+import { prepareNarrativeJobFixture } from '../../tests/narrative-storage-fixtures';
 export const privacyFixtureConfig = {
   enabled: true,
   linkSecret: 'd'.repeat(64),
@@ -127,9 +129,28 @@ export async function preparePrivacyRestoreFixture(
       )
     ).slug;
   const lives = new LifeRepository(db),
-    removed = await lives.create(a, setupFixture(), randomUUID()),
+    narrativeAccountLife = await lives.create(b, setupFixture(), randomUUID());
+  const jobs = new LifeJobRepository(db);
+  async function narrativePeriod(jobId: string) {
+    const job = await jobs.claim();
+    assert(job && job.id === jobId);
+    const prepared = await prepareNarrativeJobFixture(db, job);
+    await jobs.complete(
+      job,
+      prepared.plan.candidate,
+      prepared.chapter,
+      prepared.receipts,
+      prepared.commit,
+    );
+    return prepared.plan.candidate.periodId;
+  }
+  const deletedAccountNarrativePeriod = await narrativePeriod(
+    narrativeAccountLife.jobId,
+  );
+  const removed = await lives.create(a, setupFixture(), randomUUID()),
     deletedLife = removed.lifeId,
     unchangedLife = g.people[0]!.lifeId;
+  const deletedLifeNarrativePeriod = await narrativePeriod(removed.jobId);
   await db.query(
     "INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES('privacy-project',1000000,100)",
   );
@@ -179,6 +200,8 @@ export async function preparePrivacyRestoreFixture(
     b,
     c,
     deletedLife,
+    deletedAccountNarrativePeriod,
+    deletedLifeNarrativePeriod,
     unchangedLife,
     withdrawnToken: published.unlistedToken,
     keptSlug,
@@ -228,6 +251,14 @@ export async function verifyPrivacyRestoreFixture(
   );
   assert.equal(proof.deletedAccounts, 1);
   assert.equal(proof.deletedLives, 1);
+  assert.equal(
+    (
+      await db.query('SELECT id FROM aw_periods WHERE id=ANY($1::uuid[])', [
+        [f.deletedAccountNarrativePeriod, f.deletedLifeNarrativePeriod],
+      ])
+    ).length,
+    0,
+  );
   assert.equal(
     (await db.query('SELECT id FROM ff_users WHERE id=$1', [f.b])).length,
     0,

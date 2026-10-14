@@ -6,6 +6,7 @@ import {
   type NarrativeEditorialReport,
   type NarrativeArtifact,
   type PeriodChapterV2,
+  type LifePeriodInput,
 } from '@future-flow/contracts';
 import { hash, simulatePeriodV2 } from '@future-flow/core';
 import {
@@ -14,8 +15,8 @@ import {
   narrativeProfiles,
 } from './narrative-fixtures';
 
-export function narrativePlanFixture() {
-  const input = narrativeInput(narrativeProfiles[0]),
+export function narrativePlanFixture(source?: LifePeriodInput) {
+  const input = source ?? narrativeInput(narrativeProfiles[0]),
     candidate = narrativePeriod(input);
   const canon = simulatePeriodV2(
     candidate,

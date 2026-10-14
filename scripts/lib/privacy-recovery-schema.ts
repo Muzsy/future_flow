@@ -1,7 +1,7 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 
-// Explicit immutable 001–037 baseline, never derived from the current database
+// Explicit immutable 001–038 baseline, never derived from the current database
 // or automatically extended when a new migration appears. This is a schema
 // drift guard, not proof that every retained text is safe to serve.
 export const reviewedPrivacyRecoveryTables = `
@@ -37,7 +37,7 @@ ff_profile_versions ff_questionnaires ff_users ff_world_versions
   .split(/\s+/)
   .sort();
 const columnsDigest =
-  '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50';
+  '37519bd15ef5d42b9ea1ef6486dc00a3ddf43582c589d718a01355701de1b31c';
 const foreignKeysDigest =
   '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e';
 const columnsSql =
@@ -64,7 +64,7 @@ export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
     "SELECT c.relname::text AS table_name,a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'ff_migrations' AND c.relkind IN('r','p') AND a.attnum>0 AND NOT a.attisdropped ORDER BY c.relname,a.attnum",
   );
   if (
-    columns.length !== 855 ||
+    columns.length !== 856 ||
     hash(catalogColumns) !==
       hash(
         columns.map(({ table_name, column_name, ordinal_position }) => ({
