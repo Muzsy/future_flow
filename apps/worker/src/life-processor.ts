@@ -10,6 +10,8 @@ import {
   periodCandidateV2Schema,
   type PeriodCandidateV2,
   type PeriodChapterV2,
+  narrativeContextSchema,
+  NARRATIVE_MEMORY_BYTES,
 } from '@future-flow/contracts';
 import type { LifeJob, LifeJobRepository } from '@future-flow/database';
 import type {
@@ -33,6 +35,35 @@ export async function processLifeJob(
 ) {
   const input = job.payload;
   await jobs.verifySharedPrivacy(job);
+  const parsedContext = narrativeContextSchema.safeParse(
+    input.narrativeContext,
+  );
+  if (
+    input.narrativeContext !== undefined &&
+    (!parsedContext.success ||
+      parsedContext.data.memory.branchId !== job.branch_id ||
+      parsedContext.data.memory.baseRevision !== job.base_revision ||
+      parsedContext.data.memory.recentChoices.some(
+        (choice) => !input.acceptedDecisionIds.includes(choice.decisionId),
+      ) ||
+      parsedContext.data.memory.history.some(
+        (period) => period.endDate > input.startDate,
+      ) ||
+      ((job.shared_privacy_event_ids?.length ?? 0) > 0 &&
+        !parsedContext.data.memory.withheld) ||
+      Buffer.byteLength(JSON.stringify(parsedContext.data.memory), 'utf8') >
+        NARRATIVE_MEMORY_BYTES)
+  )
+    throw new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Narrative context binding differs.',
+    );
+  const narrativeContext =
+    input.narrativeContext === undefined
+      ? undefined
+      : parsedContext.success
+        ? parsedContext.data
+        : undefined;
   const sharedEvents = validatePersonalSharedMemories(
     input.memory.sharedEvents,
     input.startDate,
@@ -45,6 +76,26 @@ export async function processLifeJob(
     acceptedDecisionIds: input.acceptedDecisionIds,
   };
   let candidate = job.checkpoints.candidate as PeriodCandidateV2 | undefined;
+  if (
+    narrativeContext &&
+    candidate &&
+    job.checkpoints.periodInputHash !==
+      hash({
+        ...input,
+        repair:
+          typeof job.checkpoints.eventRepairReasonCode === 'string'
+            ? eventRepair(job.checkpoints.eventRepairReasonCode)
+            : null,
+      })
+  ) {
+    await jobs.checkpoint(job, 'CANDIDATE_CONTEXT_INVALID', {
+      candidate: null,
+      chapter: null,
+      fidelityResult: null,
+      fidelityPassed: false,
+    });
+    candidate = undefined;
+  }
   if (!candidate) {
     const previousCode =
       job.checkpoints.eventRepairReasonCode ??
@@ -143,8 +194,22 @@ export async function processLifeJob(
     goals: input.input.goals,
     events: canon.events,
     ...(sharedEvents.length ? { sharedEvents } : {}),
+    ...(narrativeContext ? { narrativeContext } : {}),
   };
   let chapter = job.checkpoints.chapter as PeriodChapterV2 | undefined;
+  if (
+    narrativeContext &&
+    chapter &&
+    job.checkpoints.chapterInputHash !==
+      hash({ ...story, repair: job.checkpoints.storyRepairReason ?? null })
+  ) {
+    await jobs.checkpoint(job, 'CHAPTER_CONTEXT_INVALID', {
+      chapter: null,
+      fidelityResult: null,
+      fidelityPassed: false,
+    });
+    chapter = undefined;
+  }
   const cachedFidelity = fidelitySchema.safeParse(
     job.checkpoints.fidelityResult,
   );

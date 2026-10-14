@@ -7,11 +7,21 @@ related:
   - ../architecture/ARCHITECTURE_HU.md
 ---
 
+## N01 konkrét implementáció
+
+A queue opcionális narrativeContext envelope-ot fagyaszt le. Strict context policy, memory version 1.0.0; alapból legacy, üres cohort; egyelőre csak context fogadható el, narrative-v1 konfiguráció tiltott. Az aw_history legfeljebb nyolc időszakos prefixe és az acceptedDecisionIds által megengedett legfeljebb tíz tárolt választás kerül a bemenetbe. Két recent chapter excerpt engedett, a memória UTF-8 limitje 12 KiB. N01-ben openThreads és fictionalActors szigorúan üres: validált melléklet nélküli NPC-belvilág nem állítható elő.
+
+A writer és fidelity ugyanazt az owned historical contextet kapja, új explicit promptverzióval. Legacy envelope hiányában nincs új mező és megmaradnak a régi request/cache hash-ek. Context checkpointok policy/memória-változásánál a candidate/chapter/fidelity cache kötését újra ellenőrzi a worker. Lejárt lease, budget és Shared privacy védelem változatlan.
+
+A withheld memória kizárólag semleges summaryt és null excerptet enged; a SQL ilyenkor nem olvassa a chapter oszlopot, choices nem kerülnek bele. A child fork saját prefixet és saját kiválasztott optiont kap, nem a szülő jövőjét. A memória méretcsökkentése teljes elemeket hagy el; a próza után szükség esetén a régebbi choice rekordokat is elhagyja, a legutóbbit megtartva.
+
+Nincs migráció, sidecar, editor hívás, modellváltás, éles flagváltoztatás vagy fizetett próba. A context mód és allowlist szerveroldali mintakonfigurációja `.env.example`-ben szerepel; valós azonosító nincs commitolva.
+
 ## Végrehajtási állapot
 
 Issue: https://github.com/Muzsy/future_flow/issues/24
 
-A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N01–N09 még nincs implementálva vagy aktiválva ebben a változtatásban. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
+A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 context módja megvalósítva és célzottan ellenőrizve; review/CI és teljes regresszió még szükséges. N02–N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
 
 Implementáció előtti pontosítás: a core `validatePeriodChapterV2` nemcsak a 500–10000 karakteres sémát, hanem a 250–600 szavas domainkorlátot is érvényesíti. N02-ben külön policyhoz kötött narratív hosszvalidátor szükséges a 650–950 szavas módhoz, mind workerben, mind commitkor; a legacy validátor és régi munkák 250–600 szavas kapuja változatlan marad. Ez explicit fejlesztési követelmény, nem prompt-only módosítás.
 

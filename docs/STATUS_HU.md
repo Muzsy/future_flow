@@ -126,7 +126,7 @@ Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest
 
 ## Személyes történetminőség fejlesztés
 
-N00–N09 workstream elindult, Issue #24. Első csomag: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
+N00–N09 workstream elindult, Issue #24. N00 beolvadt PR #25-ben: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. N01 default-off context módja megvalósítva, még review/CI alatt; a production nem használja. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
 
 ## Aktuális fejlesztési fókusz
 

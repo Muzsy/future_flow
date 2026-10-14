@@ -12,6 +12,7 @@ import {
   cleanupExpiredPublicReadings,
   cleanupExpiredLifeAdmissions,
   cleanupExpiredPersonalScenarioPreviews,
+  narrativeConfigFromEnv,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -26,6 +27,7 @@ import { processPublicReviewJob } from './public-review-processor';
 import { processPublicContentReviewJob } from './public-content-review-processor';
 
 async function main() {
+  narrativeConfigFromEnv();
   const db = connectDatabase(
     process.env.DATABASE_URL ?? '',
     process.env.DATABASE_SSL === 'true',

@@ -28,6 +28,15 @@ import {
 import type { Database } from './index';
 import { activitySession } from './beta';
 import {
+  legacyNarrativeConfig,
+  personalNarrativeMemory,
+  type NarrativeConfig,
+} from './narrative-memory';
+import {
+  contextNarrativePolicy,
+  type NarrativePeriodInput,
+} from '@future-flow/contracts';
+import {
   inheritSharedMemories,
   materializeSharedMemories,
   personalSharedMemories,
@@ -172,6 +181,7 @@ export class LifeRepository {
   constructor(
     public readonly db: Database,
     private readonly limits = { daily: 10, concurrent: 2 },
+    private readonly narrative: NarrativeConfig = legacyNarrativeConfig,
   ) {
     if (
       ![limits.daily, limits.concurrent].every(
@@ -522,7 +532,7 @@ export class LifeRepository {
       branch.id,
       state.effectiveAt,
     );
-    const payload: LifePeriodInput = {
+    const payload: NarrativePeriodInput = {
       input: { ...branch.input, branchId: branch.id },
       state,
       revision: branch.revision,
@@ -557,6 +567,22 @@ export class LifeRepository {
         ...(sharedEvents.length ? { sharedEvents } : {}),
       },
     };
+    if (
+      this.narrative.mode === 'context' &&
+      this.narrative.cohortUserIds.includes(userId)
+    ) {
+      payload.narrativeContext = {
+        policy: contextNarrativePolicy(),
+        memory: await personalNarrativeMemory(
+          tx,
+          userId,
+          branch.id,
+          branch.revision,
+          branch.accepted_decision_ids,
+          privacyIds.length > 0,
+        ),
+      };
+    }
     const jobId = randomUUID();
     const metadata = await privacyJobMetadataPresent(tx);
     await tx.query(

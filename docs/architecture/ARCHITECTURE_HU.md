@@ -218,3 +218,7 @@ Nem szükséges a jelenlegi méretnél:
 - event streaming platform egyszerű DB/job flow helyett.
 
 A modular monorepo marad az elsődleges architekturális forma, amíg konkrét skálázási adat más irányt nem indokol.
+
+## 14 Személyes történeti context
+
+N01 opcionális, queue időben snapshotolt `narrativeContext` envelope-ot ad a személyes workerhez. A context memóriája aw_history saját prefixből és elfogadott saját option rekordokból épül, 12 KiB UTF-8 korláttal. Default legacy; külön szerveroldali cohort allowlist. Az író és fidelity kapja, a jelenlegi háromhívásos lánc és kánonvédelmek megmaradnak. Nyitott szál/NPC melléklet még nincs. Mező nélküli legacy job request shape és hash nem változik. Az új context nem kerül web/public DTO-ba. A teljes narratív pipeline és rollout külön fejlesztési/operátori gate.
