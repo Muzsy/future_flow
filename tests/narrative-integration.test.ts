@@ -482,7 +482,29 @@ describe('owned multi-period narrative memory integration', () => {
       );
     }
     await chooseAndContinue(a.id, lives, a.branchId);
+    const fictionalId = randomUUID();
+    let priorProfile!: FictionalActorMemory;
     const completed = await finish((plan, job) => {
+      plan.candidate.events[0]!.changes.push({
+        type: 'actor_add',
+        value: {
+          id: fictionalId,
+          label: 'A fictional workshop colleague',
+          relationship: 'colleague',
+        },
+      });
+      priorProfile = {
+        actorId: fictionalId,
+        introducedByEventId: plan.candidate.events[0]!.id,
+        role: 'A fictional colleague introduced during this recorded trial.',
+        desire: 'Wants concrete evidence before proposing a follow-up trial.',
+        resistance:
+          'Resists treating limited observations as a guaranteed result.',
+        voiceCue:
+          'PRIVATE_PROFILE_CUE: short questions about the observed evidence.',
+        lastSeenPeriodId: plan.candidate.periodId,
+      };
+      plan.result.plan.memoryDelta.actorUpdates = [priorProfile];
       const bad = structuredClone(plan.result);
       bad.candidate.events[0]!.changes.push({
         type: 'actor_add',
@@ -531,6 +553,12 @@ describe('owned multi-period narrative memory integration', () => {
       expect(prompt.memory.recentEvents).toEqual([]);
       expect(prompt.memory.choices).toEqual([]);
       expect(JSON.stringify(prompt)).not.toContain('Test Casey');
+      expect(JSON.stringify(prompt)).not.toContain('PRIVATE_PROFILE_CUE');
+      const leaked = structuredClone(_plan.result);
+      leaked.plan.memoryDelta.actorUpdates = [
+        { ...priorProfile, lastSeenPeriodId: _plan.candidate.periodId },
+      ];
+      expect(() => narrativeCanon(job.payload, leaked)).toThrow('Withheld');
     });
   });
   it('keeps supplied people out of fictional profiles even when their IDs or labels are reused', async () => {
