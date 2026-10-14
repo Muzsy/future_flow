@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { LifePeriodInput } from './life-v2';
+import { periodCandidateV2Schema, type LifePeriodInput } from './life-v2';
 
 export const NARRATIVE_CONTEXT_VERSION = '1.0.0';
 export const NARRATIVE_MEMORY_BYTES = 12 * 1024;
@@ -7,6 +7,33 @@ export const NARRATIVE_WITHHELD_SUMMARY =
   'Recorded personal history. Narrative details are withheld; the current personal state remains authoritative and no past choice is inferred.';
 const id = z.uuid();
 const short = z.string().trim().min(1).max(80);
+const text = (min: number, max: number) => z.string().trim().min(min).max(max);
+export const narrativeThreadSchema = z
+  .object({
+    id,
+    originPeriodId: id,
+    originEventId: id,
+    kind: z.enum(['goal', 'relationship', 'opportunity', 'conflict', 'motif']),
+    summary: text(40, 300),
+    status: z.enum(['open', 'progressed', 'resolved', 'dropped']),
+    dueByPeriodOffset: z.union([z.literal(1), z.literal(2)]),
+    lastTouchedPeriodId: id,
+    eventRefs: z.array(id).min(1).max(4),
+  })
+  .strict();
+export const fictionalActorMemorySchema = z
+  .object({
+    actorId: id,
+    introducedByEventId: id,
+    role: text(20, 120),
+    desire: text(20, 200),
+    resistance: text(20, 200),
+    voiceCue: text(20, 120),
+    lastSeenPeriodId: id,
+  })
+  .strict();
+export type NarrativeThread = z.infer<typeof narrativeThreadSchema>;
+export type FictionalActorMemory = z.infer<typeof fictionalActorMemorySchema>;
 export const narrativeMemorySchema = z
   .object({
     version: z.literal(NARRATIVE_CONTEXT_VERSION),
@@ -40,10 +67,8 @@ export const narrativeMemorySchema = z
           .strict(),
       )
       .max(10),
-    // Context mode has no persisted narrative artifacts yet. Later narrative
-    // contracts introduce validated thread/NPC records, never untyped objects.
-    openThreads: z.array(z.never()).length(0),
-    fictionalActors: z.array(z.never()).length(0),
+    openThreads: z.array(narrativeThreadSchema).max(6),
+    fictionalActors: z.array(fictionalActorMemorySchema).max(12),
     recentDecisionPatterns: z.array(short).max(4),
     withheld: z.boolean(),
   })
@@ -52,6 +77,8 @@ export const narrativeMemorySchema = z
     (memory) =>
       !memory.withheld ||
       (memory.recentChoices.length === 0 &&
+        memory.openThreads.length === 0 &&
+        memory.fictionalActors.length === 0 &&
         memory.recentDecisionPatterns.length === 0 &&
         memory.history.every(
           (period) =>
@@ -85,9 +112,18 @@ export const narrativeContextSchema = z
           .strict(),
       })
       .strict(),
-    memory: narrativeMemorySchema,
+    memory: narrativeMemorySchema.safeExtend({
+      openThreads: z.array(narrativeThreadSchema).length(0),
+      fictionalActors: z.array(fictionalActorMemorySchema).length(0),
+    }),
   })
-  .strict();
+  .strict()
+  .refine(
+    (context) =>
+      context.memory.openThreads.length === 0 &&
+      context.memory.fictionalActors.length === 0,
+    'Context mode has no narrative actor or thread artifacts.',
+  );
 export type NarrativeContext = z.infer<typeof narrativeContextSchema>;
 export type NarrativePeriodInput = LifePeriodInput & {
   narrativeContext?: NarrativeContext;
@@ -109,3 +145,214 @@ export function contextNarrativePolicy(): NarrativeContext['policy'] {
     targetWords: { min: 250, max: 600 },
   };
 }
+
+export const narrativeV1PolicySchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    mode: z.literal('narrative-v1'),
+    promptVersions: z
+      .object({
+        planner: z.literal('life_narrative_plan.v1'),
+        writer: z.literal('life_narrative_chapter.v1'),
+        fidelity: z.literal('life_fidelity.v4.narrative'),
+        editor: z.literal('life_narrative_editor.v1'),
+      })
+      .strict(),
+    memoryVersion: z.literal('1.0.0'),
+    qualityPolicyVersion: z.literal('1.0.0'),
+    maxPhysicalRequests: z.literal(7),
+    maxContentRepairs: z.literal(1),
+    targetWords: z
+      .object({ min: z.literal(650), max: z.literal(950) })
+      .strict(),
+  })
+  .strict();
+export type NarrativeV1Policy = z.infer<typeof narrativeV1PolicySchema>;
+export function narrativeV1Policy(): NarrativeV1Policy {
+  return {
+    version: '1.0.0',
+    mode: 'narrative-v1',
+    promptVersions: {
+      planner: 'life_narrative_plan.v1',
+      writer: 'life_narrative_chapter.v1',
+      fidelity: 'life_fidelity.v4.narrative',
+      editor: 'life_narrative_editor.v1',
+    },
+    memoryVersion: '1.0.0',
+    qualityPolicyVersion: '1.0.0',
+    maxPhysicalRequests: 7,
+    maxContentRepairs: 1,
+    targetWords: { min: 650, max: 950 },
+  };
+}
+export const narrativeMemoryDeltaSchema = z
+  .object({
+    periodSummary: text(80, 500),
+    salientEventIds: z.array(id).min(1).max(3),
+    threadUpdates: z.array(narrativeThreadSchema).max(6),
+    actorUpdates: z.array(fictionalActorMemorySchema).max(2),
+    decisionPattern: short,
+  })
+  .strict();
+export type NarrativeMemoryDelta = z.infer<typeof narrativeMemoryDeltaSchema>;
+export const narrativeSceneSchema = z
+  .object({
+    sceneId: id,
+    eventIds: z.array(id).min(1).max(3),
+    purpose: z.enum(['setup', 'pressure', 'payoff', 'turning_point']),
+    locationRef: text(1, 200).nullable(),
+    actorIds: z.array(id).max(4),
+    visibleAction: text(40, 300),
+    obstacle: text(40, 300),
+    shift: text(40, 300),
+    dialogueIntent: text(1, 200).nullable(),
+  })
+  .strict();
+export const narrativePlanSchema = z
+  .object({
+    premise: text(80, 400),
+    centralTension: text(80, 400),
+    scenes: z.array(narrativeSceneSchema).min(2).max(3),
+    turningPointEventId: id,
+    choiceConsequences: z
+      .array(
+        z
+          .object({
+            decisionId: id,
+            optionId: id,
+            eventIds: z.array(id).min(1).max(3),
+            disposition: z.enum(['paid_off', 'advanced', 'delayed']),
+            explanation: text(40, 300),
+            threadId: id.nullable(),
+          })
+          .strict(),
+      )
+      .max(3),
+    decisionStakes: z
+      .array(
+        z
+          .object({
+            optionId: id,
+            eventIds: z.array(id).min(1).max(3),
+            cost: text(20, 200),
+            possibleGain: text(20, 200),
+            uncertainty: text(20, 200),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(4),
+    decisionPattern: short,
+    memoryDelta: narrativeMemoryDeltaSchema,
+  })
+  .strict();
+export type NarrativePlan = z.infer<typeof narrativePlanSchema>;
+export const narrativePlanningResultSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    candidate: periodCandidateV2Schema,
+    plan: narrativePlanSchema,
+  })
+  .strict();
+export type NarrativePlanningResult = z.infer<
+  typeof narrativePlanningResultSchema
+>;
+export const narrativeDimensions = [
+  'causality',
+  'momentum',
+  'sceneCraft',
+  'character',
+  'personalization',
+  'choiceStakes',
+  'novelty',
+  'prose',
+] as const;
+export type NarrativeDimension = (typeof narrativeDimensions)[number];
+const grade = z.number().int().min(1).max(5);
+export const narrativeEditorialReportSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    scores: z
+      .object({
+        causality: grade,
+        momentum: grade,
+        sceneCraft: grade,
+        character: grade,
+        personalization: grade,
+        choiceStakes: grade,
+        novelty: grade,
+        prose: grade,
+      })
+      .strict(),
+    issues: z
+      .array(
+        z
+          .object({
+            dimension: z.enum(narrativeDimensions),
+            severity: z.enum(['minor', 'major']),
+            paragraphIndex: z.number().int().positive().nullable(),
+            eventIds: z.array(id).max(3),
+            explanation: text(30, 350),
+            suggestedFix: text(30, 350),
+          })
+          .strict(),
+      )
+      .max(8),
+    verdict: z.enum(['pass', 'revise']),
+  })
+  .strict();
+export type NarrativeEditorialReport = z.infer<
+  typeof narrativeEditorialReportSchema
+>;
+const digest = z.string().regex(/^[a-f0-9]{64}$/);
+export const narrativeArtifactSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    pipelineVersion: z.literal('narrative-v1'),
+    policy: narrativeV1PolicySchema,
+    validatedPlan: narrativePlanSchema,
+    validatedMemoryDelta: narrativeMemoryDeltaSchema,
+    editorialReport: narrativeEditorialReportSchema,
+    bindings: z
+      .object({
+        policyHash: digest,
+        memoryHash: digest,
+        candidateHash: digest,
+        canonHash: digest,
+        planHash: digest,
+        planningOutputHash: digest,
+        storyInputHash: digest,
+        chapterHash: digest,
+        fidelityInputHash: digest,
+        fidelityOutputHash: digest,
+        editorialInputHash: digest,
+      })
+      .strict(),
+    provenance: z
+      .object({
+        promptVersions: narrativeV1PolicySchema.shape.promptVersions,
+        receiptRefs: z
+          .array(
+            z
+              .object({
+                task: z.enum([
+                  'life_narrative_plan',
+                  'life_narrative_chapter',
+                  'life_fidelity',
+                  'life_narrative_editor',
+                ]),
+                ordinal: z.number().int().min(0).max(6),
+                inputHash: digest,
+                outputHash: digest,
+                model: text(1, 200),
+              })
+              .strict(),
+          )
+          .min(4)
+          .max(7),
+      })
+      .strict(),
+  })
+  .strict();
+export type NarrativeArtifact = z.infer<typeof narrativeArtifactSchema>;
+export const NARRATIVE_ARTIFACT_BYTES = 32 * 1024;

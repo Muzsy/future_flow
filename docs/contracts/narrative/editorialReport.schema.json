@@ -1,0 +1,150 @@
+{
+  "$id": "urn:alterward:narrative:editorialReport:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "scores": {
+      "type": "object",
+      "properties": {
+        "causality": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "momentum": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "sceneCraft": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "character": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "personalization": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "choiceStakes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "novelty": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "prose": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      },
+      "required": [
+        "causality",
+        "momentum",
+        "sceneCraft",
+        "character",
+        "personalization",
+        "choiceStakes",
+        "novelty",
+        "prose"
+      ],
+      "additionalProperties": false
+    },
+    "issues": {
+      "maxItems": 8,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "causality",
+              "momentum",
+              "sceneCraft",
+              "character",
+              "personalization",
+              "choiceStakes",
+              "novelty",
+              "prose"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "minor",
+              "major"
+            ]
+          },
+          "paragraphIndex": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eventIds": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 350
+          },
+          "suggestedFix": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 350
+          }
+        },
+        "required": [
+          "dimension",
+          "severity",
+          "paragraphIndex",
+          "eventIds",
+          "explanation",
+          "suggestedFix"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "revise"
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "scores",
+    "issues",
+    "verdict"
+  ],
+  "additionalProperties": false
+}

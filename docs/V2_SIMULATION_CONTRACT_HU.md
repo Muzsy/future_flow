@@ -54,7 +54,6 @@ A Life v2 2.0.0 megmarad; a külön Shared Context 1.0.0 szerződés S0-ban elk�
 
 [S1 megvalósítás és korlátok](SHARED_CONTEXT_S1_REPORT_HU.md). A külön Shared szerződés hat új server/intent/resolution/memoryImpact sémával bővült, a Life v2 input/state és régi 29 séma változatlan. S1 nem ír személyes branchet és nem materializál: a pending canon memória saját period-inputba emelése S3.
 
-
 ## S3 opcionális személyes Shared-memória — 2026-10-05
 
 LifePeriodInput.memory.sharedEvents opcionális, legfeljebb nyolc own projekció; LifeStateV2/2.0.0 és régi tárolt jobok változatlanok. Eredeti effectiveAt és saját knownAt külön; knownAt nem későbbi a period kezdeténél. Másik tag privát állapota/intentje nem szerepel. Fork csak history-position szerint korábban ismert emléket örököl, live membership nélkül; retry az eredeti snapshotot használja. [Szerződés, időtesztek és valódi AI-bizonyíték](SHARED_CONTEXT_S3_REPORT_HU.md).
@@ -62,3 +61,7 @@ LifePeriodInput.memory.sharedEvents opcionális, legfeljebb nyolc own projekció
 ## N01 személyes narratív context
 
 Új queue esetén, szerveroldali context móddal és kijelölt saját cohort userId-val opcionális `narrativeContext` envelope készül. A strict Life V2 input/state/candidate/chapter nem bővül. Az envelope history-prefixet, elfogadott saját choices-t, méretkorlátozott prose kivonatot és lefagyasztott prompt policyt tartalmaz. A writer és a fidelity is megkapja. Mező nélküli régi job legacy marad; a jelenlegi 250–600 szavas domainkapu változatlan. Fork csak a saját prefixet látja, Shared privacy withheld esetén nincs eredeti próza vagy choice a narratív memóriában. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`.
+
+## N02 narratív terv és ellenőrzés
+
+A narrative 1.0.0 külön envelope és artifact sémákat kap; Life V2 JSON formája/verziója változatlan. A canonhoz kötött jelenetterv a scene chronology/actor/choice/stakes hivatkozásokat és a thread/NPC eredetet ellenőrzi, nem ír WorldState-et. Folytatásnál teljes owned-history reference snapshot kell a lezárt thread ID-k és régi eredetek igazolásához. A legacy 250–600 szavas fejezetvalidátor változatlan; a későbbi narrative-v1 csak saját 250–950 kemény tartománnyal, puha 650–950 céllal használható. A full narrative flag még nem kapcsolható be.

@@ -1,5 +1,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
+  narrativeMemorySchema,
+  narrativeContextSchema,
+  narrativeV1PolicySchema,
+  narrativePlanningResultSchema,
+  narrativeMemoryDeltaSchema,
+  narrativeEditorialReportSchema,
+  narrativeArtifactSchema,
+} from './narrative';
+import {
   PUBLIC_ORIGIN_METRICS_VERSION,
   publicOriginMetricsQuerySchema,
   publicOriginMetricsReportSchema,
@@ -851,6 +860,30 @@ for (const [name, schema] of Object.entries({
     JSON.stringify(
       {
         $id: `urn:alterward:shared:${name}:${SHARED_CONTEXT_CONTRACT_VERSION}`,
+        ...z.toJSONSchema(schema),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+
+const narrativeDirectory = resolve(directory, 'narrative');
+mkdirSync(narrativeDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  memory: narrativeMemorySchema,
+  context: narrativeContextSchema,
+  policy: narrativeV1PolicySchema,
+  planningResult: narrativePlanningResultSchema,
+  memoryDelta: narrativeMemoryDeltaSchema,
+  editorialReport: narrativeEditorialReportSchema,
+  artifact: narrativeArtifactSchema,
+})) {
+  writeFileSync(
+    resolve(narrativeDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      {
+        $id: `urn:alterward:narrative:${name}:1.0.0`,
         ...z.toJSONSchema(schema),
       },
       null,

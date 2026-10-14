@@ -1,0 +1,88 @@
+{
+  "$id": "urn:alterward:narrative:policy:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "mode": {
+      "type": "string",
+      "const": "narrative-v1"
+    },
+    "promptVersions": {
+      "type": "object",
+      "properties": {
+        "planner": {
+          "type": "string",
+          "const": "life_narrative_plan.v1"
+        },
+        "writer": {
+          "type": "string",
+          "const": "life_narrative_chapter.v1"
+        },
+        "fidelity": {
+          "type": "string",
+          "const": "life_fidelity.v4.narrative"
+        },
+        "editor": {
+          "type": "string",
+          "const": "life_narrative_editor.v1"
+        }
+      },
+      "required": [
+        "planner",
+        "writer",
+        "fidelity",
+        "editor"
+      ],
+      "additionalProperties": false
+    },
+    "memoryVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "qualityPolicyVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "maxPhysicalRequests": {
+      "type": "number",
+      "const": 7
+    },
+    "maxContentRepairs": {
+      "type": "number",
+      "const": 1
+    },
+    "targetWords": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "const": 650
+        },
+        "max": {
+          "type": "number",
+          "const": 950
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "mode",
+    "promptVersions",
+    "memoryVersion",
+    "qualityPolicyVersion",
+    "maxPhysicalRequests",
+    "maxContentRepairs",
+    "targetWords"
+  ],
+  "additionalProperties": false
+}

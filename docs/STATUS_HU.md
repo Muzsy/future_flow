@@ -32,16 +32,16 @@ A béta aktiválási részleteit az operations dokumentáció és a `DEVELOPMENT
 
 ## Termékterületek
 
-| Terület | Állapot | Megjegyzés |
-|---|---|---|
-| Private Personal Simulation | implemented | profil → world state → generálás → döntés → következmény → folytatás/fork |
-| Official Lives | implemented/catalogued | angol Official életutak és kiadási pipeline létezik; első személyes béta scope-jától elkülönítve |
-| Scenario | implemented/catalogued | Official és személyes Scenario útvonalak léteznek |
+| Terület                         | Állapot                                         | Megjegyzés                                                                                                        |
+| ------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Private Personal Simulation     | implemented                                     | profil → world state → generálás → döntés → következmény → folytatás/fork                                         |
+| Official Lives                  | implemented/catalogued                          | angol Official életutak és kiadási pipeline létezik; első személyes béta scope-jától elkülönítve                  |
+| Scenario                        | implemented/catalogued                          | Official és személyes Scenario útvonalak léteznek                                                                 |
 | Public/Community infrastruktúra | implemented in substantial parts, release-gated | publication/discovery/fork/moderation/curation kód és operátori eszközök vannak; ez nem jelent nyilvános launchot |
-| Shared Context | implemented, release-disabled | friend alap és Shared AI/personal impact infrastruktúra létezik; első személyes béta alatt kikapcsolva |
-| Sponsored Guest seat | implemented | targeted Free friend Guest modell a main része |
-| Paid subscription billing | not implemented | entitlement modell létezik, payment provider/checkout/webhook nincs kész |
-| Hungarian release | deferred | induló termék és AI-történetek angolul |
+| Shared Context                  | implemented, release-disabled                   | friend alap és Shared AI/personal impact infrastruktúra létezik; első személyes béta alatt kikapcsolva            |
+| Sponsored Guest seat            | implemented                                     | targeted Free friend Guest modell a main része                                                                    |
+| Paid subscription billing       | not implemented                                 | entitlement modell létezik, payment provider/checkout/webhook nincs kész                                          |
+| Hungarian release               | deferred                                        | induló termék és AI-történetek angolul                                                                            |
 
 ## Shared entitlement — jelenlegi kódállapot
 
@@ -126,7 +126,7 @@ Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest
 
 ## Személyes történetminőség fejlesztés
 
-N00–N09 workstream elindult, Issue #24. N00 beolvadt PR #25-ben: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. N01 default-off context módja megvalósítva, még review/CI alatt; a production nem használja. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
+N00–N09 workstream elindult, Issue #24. N00 beolvadt PR #25-ben: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. N01 beolvadt PR #26-ban, 802 sikeres offline teszttel és CI-vel; a production nem használja. N02 új narratív sémák/validátorok ellenőrzés alatt, teljes pipeline és rollout még nincs. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
 
 ## Aktuális fejlesztési fókusz
 

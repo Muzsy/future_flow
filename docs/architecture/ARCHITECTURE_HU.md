@@ -222,3 +222,7 @@ A modular monorepo marad az elsődleges architekturális forma, amíg konkrét s
 ## 14 Személyes történeti context
 
 N01 opcionális, queue időben snapshotolt `narrativeContext` envelope-ot ad a személyes workerhez. A context memóriája aw_history saját prefixből és elfogadott saját option rekordokból épül, 12 KiB UTF-8 korláttal. Default legacy; külön szerveroldali cohort allowlist. Az író és fidelity kapja, a jelenlegi háromhívásos lánc és kánonvédelmek megmaradnak. Nyitott szál/NPC melléklet még nincs. Mező nélküli legacy job request shape és hash nem változik. Az új context nem kerül web/public DTO-ba. A teljes narratív pipeline és rollout külön fejlesztési/operátori gate.
+
+## 15 Narratív terv és provenance
+
+A külön narrative 1.0.0 szerződés és core validátor az eseménykánon után, a szöveg előtt vizsgálja a jelenetsorrendet, a választási következményeket, a fix határidejű szálakat és a kitalált actor_add eredetet. A bounded memória nem helyettesít teljes szerveroldali history reference bizonyítékot. Az editor scores alapján determinisztikus kapu működik; az artifact a végső policy/plan/delta/report és input/output receipt hash-ekhez kötött, legfeljebb 32 KiB. Az új réteg még nem kapott worker/persistence rolloutot; legacy és context utak változatlanul működnek.
