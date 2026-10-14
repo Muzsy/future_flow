@@ -244,6 +244,8 @@ export function validateNarrativeMemoryDelta(
   if (introduced.size > 1)
     invalid('Only one new recurring actor may be introduced.');
   for (const actor of delta.actorUpdates) {
+    if (memory.withheld && !introduced.has(actor.actorId))
+      invalid('Withheld history cannot establish a fictional actor profile.');
     if (
       actor.lastSeenPeriodId !== canon.period.periodId ||
       references.forbiddenActorIds.has(actor.actorId)

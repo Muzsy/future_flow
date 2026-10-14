@@ -389,4 +389,88 @@ describe('strict narrative plan contracts', () => {
       }).success,
     ).toBe(false);
   });
+  it('does not use historical fictional provenance to reconstruct traits while history is withheld', () => {
+    const f = narrativePlanFixture(),
+      actorId = randomUUID(),
+      originEventId = randomUUID(),
+      originPeriodId = randomUUID();
+    f.input.state = structuredClone(f.input.state);
+    f.input.state.actors.push({
+      id: actorId,
+      label: 'A previously introduced fictional colleague',
+      relationship: 'colleague',
+    });
+    f.memory.withheld = true;
+    f.result.plan.memoryDelta.actorUpdates = [
+      {
+        actorId,
+        introducedByEventId: originEventId,
+        role: 'A reconstructed fictional role from unavailable history.',
+        desire: 'An invented historical desire that the context has withheld.',
+        resistance:
+          'An invented historical resistance that must not be recovered.',
+        voiceCue: 'A recovered manner of speaking from an unavailable profile.',
+        lastSeenPeriodId: f.candidate.periodId,
+      },
+    ];
+    const canon = simulatePeriodV2(
+      f.candidate,
+      f.input.state,
+      f.input.input.constraints,
+      {
+        lifeId: f.input.input.lifeId,
+        branchId: f.input.input.branchId,
+        revision: 0,
+        acceptedDecisionIds: [],
+      },
+    );
+    const refs = {
+      ...narrativeReferencesFromMemory(f.memory),
+      periodPositions: new Map([[originPeriodId, 1]]),
+      historyEventIds: new Set([originEventId]),
+      fictionalActorOrigins: new Map([[actorId, originEventId]]),
+    };
+    expect(() =>
+      validateNarrativePlan(f.result, canon, f.memory, refs),
+    ).toThrow('Withheld');
+    const fresh = narrativePlanFixture(),
+      freshId = randomUUID();
+    fresh.memory.withheld = true;
+    fresh.candidate.events[0]!.changes.push({
+      type: 'actor_add',
+      value: {
+        id: freshId,
+        label: 'A newly introduced fictional colleague',
+        relationship: 'colleague',
+      },
+    });
+    fresh.result.plan.memoryDelta.actorUpdates = [
+      {
+        ...f.result.plan.memoryDelta.actorUpdates[0]!,
+        actorId: freshId,
+        introducedByEventId: fresh.candidate.events[0]!.id,
+        lastSeenPeriodId: fresh.candidate.periodId,
+        role: 'A fictional colleague introduced in the present event.',
+        desire: 'Wants a usable observation from the current bounded trial.',
+        resistance:
+          'Resists treating this current observation as a final answer.',
+        voiceCue:
+          'Uses brief questions about the newly recorded current result.',
+      },
+    ];
+    const freshCanon = simulatePeriodV2(
+      fresh.candidate,
+      fresh.input.state,
+      fresh.input.input.constraints,
+      {
+        lifeId: fresh.input.input.lifeId,
+        branchId: fresh.input.input.branchId,
+        revision: 0,
+        acceptedDecisionIds: [],
+      },
+    );
+    expect(() =>
+      validateNarrativePlan(fresh.result, freshCanon, fresh.memory),
+    ).not.toThrow();
+  });
 });
