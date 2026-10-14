@@ -393,12 +393,31 @@ export function validatePeriodChapterV2(
   raw: unknown,
   events: readonly CanonEventV2[],
 ): PeriodChapterV2 {
+  return validateChapterWithWordRange(raw, events, 250, 600);
+}
+
+// The narrative pipeline allows longer prose after its own quality gates.
+// Its 650–950-word writing target is not a forced minimum or quality proof.
+// Legacy callers and stored jobs keep the existing validator above.
+export function validateNarrativeChapterV1(
+  raw: unknown,
+  events: readonly CanonEventV2[],
+): PeriodChapterV2 {
+  return validateChapterWithWordRange(raw, events, 250, 950);
+}
+
+function validateChapterWithWordRange(
+  raw: unknown,
+  events: readonly CanonEventV2[],
+  minWords: number,
+  maxWords: number,
+): PeriodChapterV2 {
   const chapter = periodChapterV2Schema.parse(raw);
   const words = chapter.body.split(/\s+/u).filter(Boolean).length;
   const ids = events.map((event) => event.id);
   if (
-    words < 250 ||
-    words > 600 ||
+    words < minWords ||
+    words > maxWords ||
     new Set(chapter.eventIds).size !== ids.length ||
     chapter.eventIds.length !== ids.length ||
     chapter.eventIds.some((id) => !ids.includes(id)) ||

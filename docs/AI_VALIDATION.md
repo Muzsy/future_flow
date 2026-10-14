@@ -6,12 +6,12 @@ Három kitalált magyar profilból három alaptörténet és három döntési é
 
 Ez a lezárt próba a v1 tízéves generálását és új ágba elágazását ellenőrizte. Az [aktív termékterv](PRODUCT_PLAN_HU.md) rövid időszakokra és ugyanazon életág folytatására tér át. A fenti siker nem igazolja ezt a még fejlesztendő hurkot, a felhasználói folytatási szándékot vagy a későbbi visszatérést; ehhez külön ellenőrzés és emberi pilot szükséges.
 
-| Profil | Alapesemény | Új ágesemény | Örökölt esemény | Fejezet összesen | AI-hívás | Becsült költség |
-|---|---:|---:|---:|---:|---:|---:|
-| Családos műszaki alkalmazott, érdekesebb munkát keres | 9 | 8 | 3 | 6 | 6 | 0,2041 USD |
-| Grafikai tervezést tanuló, közeli kapcsolatok nélkül, portfóliócéllal | 9 | 8 | 3 | 6 | 6 | 0,2059 USD |
-| 55–64 éves adminisztratív alkalmazott, helyben maradással és nagy biztonságigénnyel | 9 | 9 | 3 | 6 | 6 | 0,2199 USD |
-| **Összesen** | **27** | **25** | **9** | **18** | **18** | **0,6300 USD** |
+| Profil                                                                              | Alapesemény | Új ágesemény | Örökölt esemény | Fejezet összesen | AI-hívás | Becsült költség |
+| ----------------------------------------------------------------------------------- | ----------: | -----------: | --------------: | ---------------: | -------: | --------------: |
+| Családos műszaki alkalmazott, érdekesebb munkát keres                               |           9 |            8 |               3 |                6 |        6 |      0,2041 USD |
+| Grafikai tervezést tanuló, közeli kapcsolatok nélkül, portfóliócéllal               |           9 |            8 |               3 |                6 |        6 |      0,2059 USD |
+| 55–64 éves adminisztratív alkalmazott, helyben maradással és nagy biztonságigénnyel |           9 |            9 |               3 |                6 |        6 |      0,2199 USD |
+| **Összesen**                                                                        |      **27** |       **25** |           **9** |           **18** |   **18** |  **0,6300 USD** |
 
 A költség a szolgáltatói válaszok tényleges tokenhasználatából és az ellenőrzés napján érvényes standard árakból számolt becslés. A cache-olvasás és cache-írás külön szerepel, a gondolkodási token a kimenet része. Nincs ismeretlen fogyasztású kérés, hibás válasz vagy automatikus generálási újrapróbálás ebben a sorozatban. A belső próbalimit 1 USD volt a felhasználó által biztosított 5 USD-ből; közvetlenül a sorozat után körülbelül 4,37 USD számított maradvány volt. A későbbi próbákkal frissített keret a közös státuszban van.
 
@@ -44,3 +44,7 @@ A mérés akkori kódellenőrzése: 59 automatizált teszt sikeres; formázás, 
 ## Későbbi állapot — 2026-10-04
 
 A v2 rövid időszak/folytatás, alkalmazáskeret, valódi Auth/AI HTTP- és böngészős próba, export/törlés és kontrollált recovery azóta elkészült; az admin kulcs rendelkezésre áll. Az indulás kizárólag angol, előzetes kézi EN/HU gate helyett kiadás utáni használói mérés. [Aktuális béta-bizonyíték és határok](BETA_IMPLEMENTATION_REPORT_HU.md), [közös státusz/keret](STATUS_HU.md). A fenti 18 hívás, költség és történetek változatlan történeti eredmények.
+
+## Narratív sémák és minőségi kapu N02
+
+A narrative 1.0.0 structured tervezési/editor szerződések mellett a core kánon-, chronology-, actor-, choice-, thread- és artifact receipt kötéseket vizsgál. Az editor verdict önmagában nem jóváhagyás: öt kritikus dimenzió legalább 4, overall legalább 4.00 és major issue nélkül kell pass. A 650–950 szó puha írói cél; új narrative domainkapu 250–950, legacy 250–600. A mock score teszt nem valódi irodalmi minőségbizonyíték; a paid/humán benchmark és full pipeline még későbbi gate.

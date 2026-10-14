@@ -7,6 +7,20 @@ related:
   - ../architecture/ARCHITECTURE_HU.md
 ---
 
+## N02 konkrét implementáció
+
+A narrative szerződések és JSON-sémák 1.0.0 verzióval készülnek; a Life V2 JSON-sémák változatlanok. A scene/choice/thread/NPC/delta/editor/artifact strict objektumok nem tartalmazhatnak szabad state patch-et. A context mód JSON-sémája és runtime validátora továbbra is üres thread/NPC tömböt követel. A narrative-v1 futási flag még tiltott.
+
+A jelenetterv kánonhashhez, branchhez és revízióhoz kötött. Első verzióban a jelenetek nem osztoznak eventId-n: a chronology nem kereszteződhet. A szereplőnek az adott első scene event állapotában léteznie és a hivatkozott eseményekben részt vennie kell. A stakes pontosan fedi az utolsó decision opcióit; az utolsó elfogadott choice következménye kötelező, késleltetéshez nyitott, fix határidejű szál kell.
+
+Folytatáshoz explicit, szerver által előállított owned-history reference snapshot kötelező. Ez tartalmazza a teljes prefix periodPositions/historyEventIds/usedThreadIds/forbiddenActorIds halmazait; a bounded model memory önmagában nem bizonyítja a lezárt thread ID-k hiányát. A későbbi queue/commit integráció plain JSON tömbökből építse a Map/Set objektumokat, mert a core hash nem Map/Set szerializáló. A referencia-snapshot nem modell által adott authority és nem engedély a privát múlt AI-nak küldésére.
+
+A thread eredete és deadline-ja immutable; a lejárt szál rendezést vagy indokolt lezárást igényel. Új kitalált szereplő csak actor_add útján kaphat provenance-t, időszakonként legfeljebb egy; supplied identity címkéjét nem klónozhatja, a Shared tiltott identitásait nem használhatja. A validated actor/thread delta továbbra sem írhat közvetlen WorldState-et.
+
+A validateNarrativeChapterV1 kemény szótartománya 250–950, míg a régi validatePeriodChapterV2 250–600 marad. Ez követi a terv puha 650–950 szavas írói célját: egy erős 550 szavas fejezet nem bukik pusztán a hosszon. A teljes narrative-v1 integráció ezt az új validátort kizárólag a megfelelő job policy alatt használhatja.
+
+A program nyolc editor pontból számol gate-et; pass verdict nem ment meg gyenge kritikus score-t vagy major issue-t. A bekezdés- és event hivatkozások valóban létezzenek. A 32 KiB artifact a policy/plan/delta/editor/hash és receipt provenance konzisztenciáját követeli. Az input hash-ek mellett planningOutputHash és fidelityOutputHash is rögzül, és az utolsó planner/writer/fidelity/editor receiptnek a végső eredményhez kell kötődnie. Az artifactot később a worker szerkeszti össze, nem a modell állítja elő authorityként.
+
 ## N01 konkrét implementáció
 
 A queue opcionális narrativeContext envelope-ot fagyaszt le. Strict context policy, memory version 1.0.0; alapból legacy, üres cohort; egyelőre csak context fogadható el, narrative-v1 konfiguráció tiltott. Az aw_history legfeljebb nyolc időszakos prefixe és az acceptedDecisionIds által megengedett legfeljebb tíz tárolt választás kerül a bemenetbe. Két recent chapter excerpt engedett, a memória UTF-8 limitje 12 KiB. N01-ben openThreads és fictionalActors szigorúan üres: validált melléklet nélküli NPC-belvilág nem állítható elő.
@@ -21,9 +35,9 @@ Nincs migráció, sidecar, editor hívás, modellváltás, éles flagváltoztat�
 
 Issue: https://github.com/Muzsy/future_flow/issues/24
 
-A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 context módja megvalósítva és célzottan ellenőrizve; review/CI és teljes regresszió még szükséges. N02–N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
+A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 beolvadt PR #26-ban, 802 teszttel és sikeres CI-vel. N02 sémái és determinisztikus validátorai megvalósítva; teljes regresszió/CI még szükséges. N03–N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
 
-Implementáció előtti pontosítás: a core `validatePeriodChapterV2` nemcsak a 500–10000 karakteres sémát, hanem a 250–600 szavas domainkorlátot is érvényesíti. N02-ben külön policyhoz kötött narratív hosszvalidátor szükséges a 650–950 szavas módhoz, mind workerben, mind commitkor; a legacy validátor és régi munkák 250–600 szavas kapuja változatlan marad. Ez explicit fejlesztési követelmény, nem prompt-only módosítás.
+Implementáció előtti pontosítás: a core `validatePeriodChapterV2` nemcsak a 500–10000 karakteres sémát, hanem a 250–600 szavas domainkorlátot is érvényesíti. N02-ben külön policyhoz kötött narratív hosszvalidátor szükséges, mind workerben, mind commitkor: a kemény tartomány 250–950 szó, a 650–950 szavas írói cél puha marad; a legacy validátor és régi munkák 250–600 szavas kapuja változatlan marad. Ez explicit fejlesztési követelmény, nem prompt-only módosítás.
 
 A forrás-HEAD ellenőrizve: a165f974; eltérés nincs. A kanonikus STATUS és O01/P08 szövege korábbi operatív állapotot őriz; ez a munka nem állítja vissza a futó konfigurációt és nem nyit új AI-ablakot.
 
@@ -61,16 +75,16 @@ Az értékelésben a személyre szabás és kánonkövetés erős volt, a jelene
 
 ### 2.2 A jelenlegi folyamat pontos gyenge pontjai
 
-| Terület | Ellenőrzött jelenlegi működés | Fejlesztési következmény |
-| --- | --- | --- |
-| Eseménytervezés | A provider 2–5 eseményt és végső döntést kér; reflexiós, állapotot nem módosító esemény megengedett | A valid kánon önmagában nem garantál történeti előrelépést |
-| Memória | A queue két korábbi időszak eseményeit és legfeljebb tíz döntést adja az eseménytervezőnek | Több fejezeten átívelő szálak és visszatérő motívumok elveszhetnek |
-| Író bemenete | PeriodStoryInput: locale, identity, goals, events és opcionális sharedEvents | A személyes múlt és elfogadott döntések nem jutnak el közvetlenül az íróhoz |
-| Prózafeladat | 250–600 szó, második személy, 1–2 konkrét pillanat | Nem kötelező a teljes jelenet, fordulópont vagy korábbi döntés kifizetése |
-| Ellenőrzés | A life_fidelity nyelvet, kánont és biztonságot vizsgál | Jóváhagyhat helyes, de ismétlődő vagy eseménytelen fejezetet |
-| Javítás | Egy közös tartalmi javítás van eseményre vagy történetre | Az új szerkesztő nem kaphat korlátlan újrapróbálkozást |
-| Commit kész állapot | lifeJobReadyToCommit jelenleg a candidate, chapter és fidelity alapján dönt | Az új módban szerkesztői igazolás és hashkötés is szükséges |
-| Olvasási DTO | A privát branch lekérdezés p.* oszlopokat olvas | Új belső JSON oszlopot explicit el kell választani a megjelenítési DTO-tól |
+| Terület             | Ellenőrzött jelenlegi működés                                                                       | Fejlesztési következmény                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Eseménytervezés     | A provider 2–5 eseményt és végső döntést kér; reflexiós, állapotot nem módosító esemény megengedett | A valid kánon önmagában nem garantál történeti előrelépést                  |
+| Memória             | A queue két korábbi időszak eseményeit és legfeljebb tíz döntést adja az eseménytervezőnek          | Több fejezeten átívelő szálak és visszatérő motívumok elveszhetnek          |
+| Író bemenete        | PeriodStoryInput: locale, identity, goals, events és opcionális sharedEvents                        | A személyes múlt és elfogadott döntések nem jutnak el közvetlenül az íróhoz |
+| Prózafeladat        | 250–600 szó, második személy, 1–2 konkrét pillanat                                                  | Nem kötelező a teljes jelenet, fordulópont vagy korábbi döntés kifizetése   |
+| Ellenőrzés          | A life_fidelity nyelvet, kánont és biztonságot vizsgál                                              | Jóváhagyhat helyes, de ismétlődő vagy eseménytelen fejezetet                |
+| Javítás             | Egy közös tartalmi javítás van eseményre vagy történetre                                            | Az új szerkesztő nem kaphat korlátlan újrapróbálkozást                      |
+| Commit kész állapot | lifeJobReadyToCommit jelenleg a candidate, chapter és fidelity alapján dönt                         | Az új módban szerkesztői igazolás és hashkötés is szükséges                 |
+| Olvasási DTO        | A privát branch lekérdezés p.* oszlopokat olvas                                                     | Új belső JSON oszlopot explicit el kell választani a megjelenítési DTO-tól  |
 
 ### 2.3 A fő fájlok és felelősségek
 
@@ -506,44 +520,44 @@ Egy elfogadható kitalált irány: kis pilotot engednek, de a felelős csak szű
 
 Az alábbi esetek követelmények. A meglévő tesztekhez illeszkedő fixture-ök és új fájlok használhatók; nem szükséges minden sornak külön fájl. Szövegminőséget ne teszteljen pusztán egy kívánt mondat substringjével. A mock teszt a folyamatot és az invariánst bizonyítja, az irodalmi minőséget a benchmark.
 
-| ID | Eset | Kötelező eredmény |
-| --- | --- | --- |
-| T01 | Régi policy nélküli job | Eddigi háromhívásos út és cache működik |
-| T02 | Context job és személyes choice | Az író megkapja a választást, nincs editor hívás |
-| T03 | Új plan idegen eventId | Validáció megáll, nincs chapter commit |
-| T04 | Nem elfogadott choice consequence | Elutasítás, nincs kitalált korábbi döntés |
-| T05 | Hiányzó vagy extra stake option | Elutasítás |
-| T06 | Actor az actor_add időpontja előtt | Elutasítás |
-| T07 | Valós személynek fiktív provenance | Elutasítás |
-| T08 | Thread két folytatás után változatlan | Tervhiba vagy szabályos lezárás szükséges |
-| T09 | Memória 12 KiB felett | Determinisztikus whole-item csökkentés |
-| T10 | Prefixből fork, másik választás | Szülő jövője nem kerül a promptba |
-| T11 | Shared privacy withheld | Summary excerpt traits és choice nem szivárog |
-| T12 | Privacyváltozás írás közben | Régi eredmény nem commitolható |
-| T13 | Strict séma extra mezővel | Parse hiba |
-| T14 | Editor pass de gyenge kritikus score | Programozott gate elutasít |
-| T15 | Editor jó, fidelity hibás | Nincs commit |
-| T16 | Delta nem kánon szerinti tényt állít | Fidelity elutasít vagy szabályos repair |
-| T17 | Egy repair után jó fejezet | Új fidelity/editor után egy commit |
-| T18 | Második tartalmi javítás igénye | Megállás, nincs további hívás |
-| T19 | Hét fizikai request elhasználva | Nyolcadik request nem indul |
-| T20 | Transport retry | Új slot és budget elszámolás |
-| T21 | Budget tiltás | Nincs tényleges szolgáltatási kérés |
-| T22 | Crash minden fizetett lépés után | Igazolt cache újrahasználat, helyes count |
-| T23 | Chapter vagy memory hash módosítva | Fidelity/editor cache invalidálódik |
-| T24 | Hamis fidelityPassed/editorialPassed | Nem válik commitkésszé |
-| T25 | Attempt plafon, kész checkpoint | Nulla új AI hívással commitol |
-| T26 | Lease elvesztése két worker között | Nincs duplikált commit vagy count lost update |
-| T27 | Új JSONB és immutable trigger | Egy INSERT, utólagos period UPDATE tiltott |
-| T28 | Régi/null period olvasása | Story timeline és export működik |
-| T29 | Web és public DTO | Belső melléklet és actor traits hiányzik |
-| T30 | Saját export és idegen user | Csak saját adatok, kulcs nélkül |
-| T31 | Life/account törlés és restore prune | Melléklet sem marad szolgálható |
-| T32 | Reviewed schema plusz idegen oszlop | Recovery guard elutasítja a driftet |
-| T33 | Public fork és scenario regresszió | Régi szerződések, privát memória nélkül |
-| T34 | Daily UTC quota és concurrency | Jelenlegi admission változatlan |
-| T35 | Hosszabb body mobilon és desktopon | Olvasható bekezdések és elérhető döntés |
-| T36 | Stale tab és eltérő aktuális revision | Nincs felülírás vagy idegenág-commit |
+| ID  | Eset                                  | Kötelező eredmény                                |
+| --- | ------------------------------------- | ------------------------------------------------ |
+| T01 | Régi policy nélküli job               | Eddigi háromhívásos út és cache működik          |
+| T02 | Context job és személyes choice       | Az író megkapja a választást, nincs editor hívás |
+| T03 | Új plan idegen eventId                | Validáció megáll, nincs chapter commit           |
+| T04 | Nem elfogadott choice consequence     | Elutasítás, nincs kitalált korábbi döntés        |
+| T05 | Hiányzó vagy extra stake option       | Elutasítás                                       |
+| T06 | Actor az actor_add időpontja előtt    | Elutasítás                                       |
+| T07 | Valós személynek fiktív provenance    | Elutasítás                                       |
+| T08 | Thread két folytatás után változatlan | Tervhiba vagy szabályos lezárás szükséges        |
+| T09 | Memória 12 KiB felett                 | Determinisztikus whole-item csökkentés           |
+| T10 | Prefixből fork, másik választás       | Szülő jövője nem kerül a promptba                |
+| T11 | Shared privacy withheld               | Summary excerpt traits és choice nem szivárog    |
+| T12 | Privacyváltozás írás közben           | Régi eredmény nem commitolható                   |
+| T13 | Strict séma extra mezővel             | Parse hiba                                       |
+| T14 | Editor pass de gyenge kritikus score  | Programozott gate elutasít                       |
+| T15 | Editor jó, fidelity hibás             | Nincs commit                                     |
+| T16 | Delta nem kánon szerinti tényt állít  | Fidelity elutasít vagy szabályos repair          |
+| T17 | Egy repair után jó fejezet            | Új fidelity/editor után egy commit               |
+| T18 | Második tartalmi javítás igénye       | Megállás, nincs további hívás                    |
+| T19 | Hét fizikai request elhasználva       | Nyolcadik request nem indul                      |
+| T20 | Transport retry                       | Új slot és budget elszámolás                     |
+| T21 | Budget tiltás                         | Nincs tényleges szolgáltatási kérés              |
+| T22 | Crash minden fizetett lépés után      | Igazolt cache újrahasználat, helyes count        |
+| T23 | Chapter vagy memory hash módosítva    | Fidelity/editor cache invalidálódik              |
+| T24 | Hamis fidelityPassed/editorialPassed  | Nem válik commitkésszé                           |
+| T25 | Attempt plafon, kész checkpoint       | Nulla új AI hívással commitol                    |
+| T26 | Lease elvesztése két worker között    | Nincs duplikált commit vagy count lost update    |
+| T27 | Új JSONB és immutable trigger         | Egy INSERT, utólagos period UPDATE tiltott       |
+| T28 | Régi/null period olvasása             | Story timeline és export működik                 |
+| T29 | Web és public DTO                     | Belső melléklet és actor traits hiányzik         |
+| T30 | Saját export és idegen user           | Csak saját adatok, kulcs nélkül                  |
+| T31 | Life/account törlés és restore prune  | Melléklet sem marad szolgálható                  |
+| T32 | Reviewed schema plusz idegen oszlop   | Recovery guard elutasítja a driftet              |
+| T33 | Public fork és scenario regresszió    | Régi szerződések, privát memória nélkül          |
+| T34 | Daily UTC quota és concurrency        | Jelenlegi admission változatlan                  |
+| T35 | Hosszabb body mobilon és desktopon    | Olvasható bekezdések és elérhető döntés          |
+| T36 | Stale tab és eltérő aktuális revision | Nincs felülírás vagy idegenág-commit             |
 
 A meglévő kiemelt suite-ok: `life-ai`, `life-v2`, `life-persistence`, `life-job-recovery`, `life-api`, `life-deletion`, `shared-privacy`, `shared-personal`, `shared-ai`, `ai-budget-window`, `experiment-budget`, `privacy-recovery-schema`, `privacy-security-catalog`, `privacy-restore`, `verified-privacy-authority`, public fork és public draft tesztek. Ezekből a releváns célzott kör és a teljes suite is fusson a végső PR-on.
 
@@ -636,7 +650,7 @@ Az alábbi szöveg a fejlesztést elindító ügynöknek adható át a dokumentu
 
 ## 16 Forráshivatkozások és bizonyítékjegyzék
 
-A következő források a vizsgált commitban ellenőrzött implementációs pontok. A sorszámok a megadott commitra vonatkoznak; refaktorálás után a függvény/szimbólum alapján keressen. Repository alaplink: https://github.com/Muzsy/future_flow/tree/a165f974ae7fb8c7830d7ac0ddf5684cd2843d4b. 
+A következő források a vizsgált commitban ellenőrzött implementációs pontok. A sorszámok a megadott commitra vonatkoznak; refaktorálás után a függvény/szimbólum alapján keressen. Repository alaplink: https://github.com/Muzsy/future_flow/tree/a165f974ae7fb8c7830d7ac0ddf5684cd2843d4b.
 
 - `packages/ai/src/index.ts`, PeriodStoryInput a 54. sortól; LifeAiProvider, periodRules; period a 497. sortól, periodChapter az 521. sortól, checkPeriodChapter az 535. sortól; parseWithRetries és generate közös request/receipt út.
 - `packages/contracts/src/life-v2.ts`, Actor az 48. sor körül, PeriodCandidateV2 a 167. sortól, PeriodChapterV2 a 316. sortól, LifePeriodInput a 325. sortól.
@@ -650,4 +664,3 @@ A következő források a vizsgált commitban ellenőrzött implementációs pon
 - `apps/web/components/life-experience.tsx`, fejezet body bekezdésenkénti renderelése; `packages/contracts/src/error-messages.ts`, GENERATION_LIMIT a 325. sor körül.
 - `docs/PERSONAL_BETA_OPERATOR_HU.md`, aktív funded runtime és source/image binding szabályok; `docs/AI_MODEL_ROUTING_HU.md`, `docs/AI_PRODUCTION_BUDGET_HU.md`, kanonikus routing és budget.
 - Korábbi operatív tesztjelentés: a beszélgetés kimenetei között `pre-beta-e2e/2026-10-14_0010/FINAL_REPORT.md`. A narratív baseline egyetlen konzervatív profil három fejezete; a teljes termékre vonatkozó általánosítás nem ebből következik.
-
