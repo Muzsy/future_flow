@@ -145,3 +145,6 @@ Default-off, szerveroldali cohorthoz kötött context módban a normál három p
 
 N04 külön narratív capability: life_narrative_plan→eventModel, life_narrative_chapter→storyModel, life_fidelity és life_narrative_editor→checkModel (hiányában eventModel). Explicit 1.0.0 registry: life_narrative_plan.v1, life_narrative_chapter.v1, life_fidelity.v4.narrative, life_narrative_editor.v1, locale suffixszel. Közös generate/store:false/Structured Outputs és legfeljebb 6500 output token, azonos reserve/settle/retry. A legacy/context/Public/Shared taskok változatlanok, nincs modellcsere. A konfiguráció még nem enged narrative-v1 queue-t; N05 fizikai request admission és pipeline, később külön paid/humán benchmark és rollout gate szükséges.
 
+
+
+N05 narrative job: beforePhysicalRequest → lease/privacy/branch és atomikus maximum hét request-slot → közös budget reserve → tényleges transport → usage settle/receipt → checkpoint. Transport retry új slot, budget denial után nincs refund. Modell és output cap változatlan; a hét logical call editorial repair csak transport többlet nélkül fér biztosan a fizikai plafonba. A worker pending eredményt nem nevez ingyenesnek. Request builder core-közös, AI export kompatibilis; N06–N07 előtt az új queue mode továbbra nem választható.

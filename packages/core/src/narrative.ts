@@ -5,6 +5,8 @@ import {
   narrativeEditorialReportSchema,
   narrativeArtifactSchema,
   narrativeDimensions,
+  narrativeReferenceSnapshotSchema,
+  type NarrativeReferenceSnapshot,
   NARRATIVE_ARTIFACT_BYTES,
   type NarrativeMemory,
   type NarrativeEditorialReport,
@@ -21,8 +23,10 @@ export type NarrativeReferences = {
   // Constructed from owned history by the server, never AI-supplied authority.
   periodPositions: ReadonlyMap<string, number>;
   historyEventIds: ReadonlySet<string>;
+  usedCanonicalIds?: ReadonlySet<string>;
   usedThreadIds: ReadonlySet<string>;
   forbiddenActorIds: ReadonlySet<string>;
+  fictionalActorOrigins?: ReadonlyMap<string, string>;
 };
 function invalid(message: string): never {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
@@ -48,8 +52,89 @@ export function narrativeReferencesFromMemory(
     historyEventIds: new Set(
       memory.history.flatMap((period) => period.salientEventIds),
     ),
+    usedCanonicalIds: new Set([
+      ...memory.history.flatMap((period) => period.salientEventIds),
+      ...memory.recentChoices.flatMap((choice) => [
+        choice.decisionId,
+        choice.optionId,
+      ]),
+    ]),
     usedThreadIds: new Set(memory.openThreads.map((thread) => thread.id)),
     forbiddenActorIds: new Set(),
+    fictionalActorOrigins: new Map(
+      memory.fictionalActors.map((actor) => [
+        actor.actorId,
+        actor.introducedByEventId,
+      ]),
+    ),
+  };
+}
+export function narrativeReferenceSnapshot(
+  references: NarrativeReferences,
+): NarrativeReferenceSnapshot {
+  return narrativeReferenceSnapshotSchema.parse({
+    periodPositions: [...references.periodPositions]
+      .map(([periodId, position]) => ({ periodId, position }))
+      .sort(
+        (a, b) =>
+          a.position - b.position || a.periodId.localeCompare(b.periodId),
+      ),
+    historyEventIds: [...references.historyEventIds].sort(),
+    usedCanonicalIds: [
+      ...(references.usedCanonicalIds ?? references.historyEventIds),
+    ].sort(),
+    usedThreadIds: [...references.usedThreadIds].sort(),
+    forbiddenActorIds: [...references.forbiddenActorIds].sort(),
+    fictionalActorOrigins: [
+      ...(references.fictionalActorOrigins ?? new Map<string, string>()),
+    ]
+      .map(([actorId, introducedByEventId]) => ({
+        actorId,
+        introducedByEventId,
+      }))
+      .sort((a, b) => a.actorId.localeCompare(b.actorId)),
+  });
+}
+export function narrativeReferencesFromSnapshot(
+  raw: unknown,
+): NarrativeReferences {
+  const snapshot = narrativeReferenceSnapshotSchema.parse(raw);
+  unique(
+    snapshot.periodPositions.map((p) => p.periodId),
+    'history period',
+  );
+  unique(
+    snapshot.periodPositions.map((p) => String(p.position)),
+    'history position',
+  );
+  unique(snapshot.historyEventIds, 'history event');
+  unique(snapshot.usedThreadIds, 'used thread');
+  unique(snapshot.forbiddenActorIds, 'forbidden actor');
+  unique(
+    snapshot.fictionalActorOrigins.map((actor) => actor.actorId),
+    'fictional actor origin',
+  );
+  unique(snapshot.usedCanonicalIds, 'used canonical id');
+  if (
+    snapshot.fictionalActorOrigins.some(
+      (actor) => !snapshot.historyEventIds.includes(actor.introducedByEventId),
+    )
+  )
+    invalid('Fictional actor origin lacks owned history evidence.');
+  return {
+    periodPositions: new Map(
+      snapshot.periodPositions.map((p) => [p.periodId, p.position]),
+    ),
+    historyEventIds: new Set(snapshot.historyEventIds),
+    usedThreadIds: new Set(snapshot.usedThreadIds),
+    forbiddenActorIds: new Set(snapshot.forbiddenActorIds),
+    fictionalActorOrigins: new Map(
+      snapshot.fictionalActorOrigins.map((actor) => [
+        actor.actorId,
+        actor.introducedByEventId,
+      ]),
+    ),
+    usedCanonicalIds: new Set(snapshot.usedCanonicalIds),
   };
 }
 
@@ -163,7 +248,9 @@ export function validateNarrativeMemoryDelta(
     if (
       previous
         ? actor.introducedByEventId !== previous.introducedByEventId
-        : introduced.get(actor.actorId) !== actor.introducedByEventId
+        : (introduced.get(actor.actorId) ??
+            references.fictionalActorOrigins?.get(actor.actorId)) !==
+          actor.introducedByEventId
     )
       invalid('Actor has no verified fictional provenance.');
     if (
@@ -192,6 +279,24 @@ export function validateNarrativePlan(
   )
     invalid('Continuation needs an explicit owned history reference snapshot.');
   const ownedReferences = references ?? narrativeReferencesFromMemory(memory);
+  const canonicalIds = result.candidate.events.flatMap((event) => [
+    event.id,
+    ...(event.decision
+      ? [
+          event.decision.id,
+          ...event.decision.options.map((option) => option.id),
+        ]
+      : []),
+  ]);
+  unique(canonicalIds, 'canonical id');
+  if (
+    canonicalIds.some((id) =>
+      (ownedReferences.usedCanonicalIds ?? ownedReferences.historyEventIds).has(
+        id,
+      ),
+    )
+  )
+    invalid('Canonical event or decision ID reused.');
   if (canon.period.durationMonths !== 6)
     invalid('Narrative plans require a six-month personal period.');
   if (hash(result.candidate) !== hash(canon.period))

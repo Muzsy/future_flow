@@ -8,7 +8,14 @@ import {
   type PeriodChapterV2,
   type LifePeriodInput,
 } from '@future-flow/contracts';
-import { hash, simulatePeriodV2 } from '@future-flow/core';
+import {
+  hash,
+  simulatePeriodV2,
+  narrativeReferenceSnapshot,
+  narrativeReferencesFromMemory,
+  narrativeBindings,
+  narrativePlannerRequest,
+} from '@future-flow/core';
 import {
   narrativeInput,
   narrativePeriod,
@@ -120,19 +127,17 @@ export function narrativeArtifactFixture(
   const policy = narrativeV1Policy(),
     report = narrativeEditorialFixture(),
     chapter = longNarrativeChapterFixture(fixture);
-  const bindings = {
-    policyHash: hash(policy),
-    memoryHash: hash(fixture.memory),
-    candidateHash: hash(fixture.candidate),
-    canonHash: hash(fixture.canon.events),
-    planHash: hash(fixture.result.plan),
-    planningOutputHash: hash(fixture.result),
-    storyInputHash: hash('synthetic story input'),
-    chapterHash: hash(chapter),
-    fidelityInputHash: hash('synthetic fidelity input'),
-    fidelityOutputHash: hash({ valid: true, issues: [] }),
-    editorialInputHash: hash('synthetic editor input'),
+  const input = {
+    ...fixture.input,
+    narrativeContext: { policy, memory: fixture.memory },
+    narrativeReferences: narrativeReferenceSnapshot(
+      narrativeReferencesFromMemory(fixture.memory),
+    ),
   };
+  const bindings = narrativeBindings(input, fixture.result, chapter, {
+    valid: true,
+    issues: [],
+  });
   return {
     version: '1.0.0',
     pipelineVersion: 'narrative-v1',
@@ -147,7 +152,7 @@ export function narrativeArtifactFixture(
         {
           task: 'life_narrative_plan',
           ordinal: 0,
-          inputHash: hash(fixture.input),
+          inputHash: hash(narrativePlannerRequest(input)),
           outputHash: bindings.planningOutputHash,
           model: 'offline-fixture',
         },

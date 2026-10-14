@@ -845,6 +845,10 @@
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
+        "referenceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "candidateHash": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
@@ -885,6 +889,7 @@
       "required": [
         "policyHash",
         "memoryHash",
+        "referenceHash",
         "candidateHash",
         "canonHash",
         "planHash",

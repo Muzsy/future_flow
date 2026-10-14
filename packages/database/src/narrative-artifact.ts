@@ -12,6 +12,7 @@ import {
   validateNarrativePlan,
   validateNarrativeEditorialReport,
   validateNarrativeChapterV1,
+  narrativeReferenceSnapshot,
   type NarrativeReferences,
   type simulatePeriodV2,
 } from '@future-flow/core';
@@ -31,7 +32,11 @@ export async function ownedNarrativeReferences(
   const history = await tx.query<{
     id: string;
     position: number;
-    events: { id: string }[];
+    events: {
+      id: string;
+      decision?: { id: string; options: { id: string }[] } | null;
+      changes: { type: string; value: { id?: string } }[];
+    }[];
     narrative_artifact: NarrativeArtifact | null;
   }>(
     'SELECT p.id,h.position,p.events,p.narrative_artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position',
@@ -42,6 +47,19 @@ export async function ownedNarrativeReferences(
     historyEventIds: new Set(
       history.flatMap((p) => p.events.map((event) => event.id)),
     ),
+    usedCanonicalIds: new Set(
+      history.flatMap((p) =>
+        p.events.flatMap((event) => [
+          event.id,
+          ...(event.decision
+            ? [
+                event.decision.id,
+                ...event.decision.options.map((option) => option.id),
+              ]
+            : []),
+        ]),
+      ),
+    ),
     usedThreadIds: new Set(
       history.flatMap(
         (p) =>
@@ -51,6 +69,19 @@ export async function ownedNarrativeReferences(
       ),
     ),
     forbiddenActorIds: new Set(),
+    fictionalActorOrigins: new Map(
+      history.flatMap((p) =>
+        p.events.flatMap((event) =>
+          event.changes
+            .filter(
+              (change) =>
+                change.type === 'actor_add' &&
+                typeof change.value.id === 'string',
+            )
+            .map((change) => [change.value.id!, event.id] as const),
+        ),
+      ),
+    ),
   };
 }
 export async function validateNarrativeCommit(
@@ -98,6 +129,11 @@ export async function validateNarrativeCommit(
     ...commit.expectedBindings,
     policyHash: hash(context.policy),
     memoryHash: hash(context.memory),
+    referenceHash: hash(
+      narrativeReferenceSnapshot(
+        await ownedNarrativeReferences(tx, userId, branchId),
+      ),
+    ),
     candidateHash: hash(canon.period),
     canonHash: hash(canon.events),
     planHash: hash(commit.artifact.validatedPlan),

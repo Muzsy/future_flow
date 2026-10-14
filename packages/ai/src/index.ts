@@ -248,6 +248,7 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       timeoutMs: number;
       maxOutputTokens: number;
       guard?: AiRequestGuard;
+      beforePhysicalRequest?: () => Promise<void>;
     },
     client?: OpenAI,
   ) {
@@ -276,6 +277,8 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
     retry = true,
   ) {
     for (let attempt = 0; ; attempt++) {
+      if (this.config.beforePhysicalRequest)
+        await this.config.beforePhysicalRequest();
       const reservation = await this.config.guard?.reserve(parameters);
       try {
         const response = await this.client.responses.parse(parameters);

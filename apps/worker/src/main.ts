@@ -186,7 +186,20 @@ async function main() {
               budget,
             )
           : budget;
-        const ai = new OpenAiProvider({ ...aiConfig, guard });
+        const ai = new OpenAiProvider({
+          ...aiConfig,
+          guard,
+          ...(v2 &&
+          (job as import('@future-flow/database').LifeJob).payload
+            .narrativeContext?.policy.mode === 'narrative-v1'
+            ? {
+                beforePhysicalRequest: () =>
+                  lifeJobs.admitNarrativeRequest(
+                    job as import('@future-flow/database').LifeJob,
+                  ),
+              }
+            : {}),
+        });
         if (contentReview)
           await processPublicContentReviewJob(
             job as import('@future-flow/database').PublicContentReviewJob,
