@@ -19,6 +19,8 @@ import type {
   LifeAiProvider,
   PeriodStoryInput,
 } from '@future-flow/ai';
+import type { NarrativeAiProvider } from '@future-flow/ai';
+import { processNarrativeLifeJob } from './narrative-processor';
 
 function eventRepair(code: string) {
   let repair = `Correct the previous event proposal. Validation code: ${code}. Rebuild from the same starting state and request; do not change IDs supplied by the server.`;
@@ -34,6 +36,30 @@ export async function processLifeJob(
   ai: LifeAiProvider,
 ) {
   const input = job.payload;
+  if (input.narrativeContext?.policy.mode === 'narrative-v1') {
+    const provider = ai as LifeAiProvider & Partial<NarrativeAiProvider>;
+    if (
+      ![
+        'planNarrative',
+        'writeNarrativeChapter',
+        'checkNarrativeChapter',
+        'editNarrativeChapter',
+      ].every(
+        (method) =>
+          typeof provider[method as keyof NarrativeAiProvider] === 'function',
+      )
+    )
+      throw new DomainError(
+        'AI_NOT_CONFIGURED',
+        'Narrative generation is not configured.',
+        503,
+      );
+    return processNarrativeLifeJob(
+      job,
+      jobs,
+      provider as LifeAiProvider & NarrativeAiProvider,
+    );
+  }
   await jobs.verifySharedPrivacy(job);
   const parsedContext = narrativeContextSchema.safeParse(
     input.narrativeContext,

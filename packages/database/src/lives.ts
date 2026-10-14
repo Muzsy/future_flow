@@ -834,10 +834,11 @@ export class LifeRepository {
               status: string;
               attempt: number;
               checkpoints: Record<string, unknown>;
+              payload: NarrativePeriodInput;
               error_code: string | null;
             }
           >(
-            'SELECT branch_id,status,attempt,checkpoints,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
+            'SELECT branch_id,status,attempt,checkpoints,payload,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
             [jobId, userId],
           ),
         );
@@ -854,7 +855,8 @@ export class LifeRepository {
         if (
           job.status !== 'failed' ||
           branch.status !== 'failed' ||
-          (job.attempt >= 5 && !lifeJobReadyToCommit(job.checkpoints))
+          (job.attempt >= 5 &&
+            !lifeJobReadyToCommit(job.checkpoints, job.payload))
         )
           throw new DomainError(
             'LIFE_RETRY_UNAVAILABLE',

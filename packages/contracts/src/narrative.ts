@@ -89,6 +89,28 @@ export const narrativeMemorySchema = z
     'Withheld narrative memory contains private text.',
   );
 export type NarrativeMemory = z.infer<typeof narrativeMemorySchema>;
+// Owned server reference inventory, persisted as plain JSON and never sent to AI.
+export const narrativeReferenceSnapshotSchema = z
+  .object({
+    periodPositions: z
+      .array(
+        z
+          .object({ periodId: id, position: z.number().int().positive() })
+          .strict(),
+      )
+      .max(1000),
+    historyEventIds: z.array(id).max(5000),
+    usedCanonicalIds: z.array(id).max(25000),
+    usedThreadIds: z.array(id).max(6000),
+    forbiddenActorIds: z.array(id).max(1000),
+    fictionalActorOrigins: z
+      .array(z.object({ actorId: id, introducedByEventId: id }).strict())
+      .max(1000),
+  })
+  .strict();
+export type NarrativeReferenceSnapshot = z.infer<
+  typeof narrativeReferenceSnapshotSchema
+>;
 export const narrativeContextSchema = z
   .object({
     policy: z
@@ -127,6 +149,7 @@ export const narrativeContextSchema = z
 export type NarrativeContext = z.infer<typeof narrativeContextSchema>;
 export type NarrativePeriodInput = LifePeriodInput & {
   narrativeContext?: NarrativeContext | NarrativeV1Context;
+  narrativeReferences?: NarrativeReferenceSnapshot;
 };
 export function contextNarrativePolicy(): NarrativeContext['policy'] {
   return {
@@ -326,6 +349,7 @@ export const narrativeArtifactSchema = z
       .object({
         policyHash: digest,
         memoryHash: digest,
+        referenceHash: digest,
         candidateHash: digest,
         canonHash: digest,
         planHash: digest,

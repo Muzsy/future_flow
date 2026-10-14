@@ -9,6 +9,7 @@ import {
   hash,
   simulatePeriodV2,
   validatePeriodChapterV2,
+  validatedNarrativeCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
@@ -88,7 +89,7 @@ export class LifeJobRepository {
         savedRecoveries >= 0
           ? savedRecoveries + (job.status === 'running' ? 1 : 0)
           : 50;
-      const ready = lifeJobReadyToCommit(job.checkpoints);
+      const ready = lifeJobReadyToCommit(job.checkpoints, job.payload);
       if ((job.attempt >= 5 || recoveries >= 50) && !ready) {
         await tx.query(
           "UPDATE aw_jobs SET status='failed',error_code=$2,lease_token=NULL,lease_until=NULL WHERE id=$1",
@@ -123,6 +124,80 @@ export class LifeJobRepository {
       ).length
     )
       lost();
+  }
+  async admitNarrativeRequest(job: LifeJob) {
+    const count = await this.db.transaction(async (tx) => {
+      if (
+        !(
+          await tx.query(
+            "SELECT id FROM ff_users WHERE id=$1 AND status='active' FOR UPDATE",
+            [job.user_id],
+          )
+        ).length
+      )
+        lost();
+      const current = (
+        await tx.query<LifeJob>(
+          "SELECT * FROM aw_jobs WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() FOR UPDATE",
+          [job.id, job.user_id, job.lease_token],
+        )
+      )[0];
+      if (!current || hash(current.payload) !== hash(job.payload)) lost();
+      if (
+        current.checkpoints.catalogOperatorLease ||
+        current.payload.narrativeContext?.policy.mode !== 'narrative-v1'
+      )
+        throw new DomainError(
+          'NARRATIVE_CONTEXT_INVALID',
+          'Narrative admission needs an ordinary narrative job.',
+        );
+      await this.verifySharedPrivacy(job, tx);
+      const branch = await new LifeRepository(tx).branch(
+        job.user_id,
+        job.branch_id,
+        tx,
+        true,
+      );
+      if (
+        branch.revision !== job.base_revision ||
+        branch.status !== 'generating' ||
+        branch.pending_decision ||
+        hash(branch.state) !== hash(current.payload.state)
+      )
+        throw new DomainError(
+          'LIFE_REVISION_CONFLICT',
+          'The life has changed.',
+          409,
+        );
+      const used =
+        current.checkpoints.providerRequestCount === undefined
+          ? 0
+          : current.checkpoints.providerRequestCount;
+      if (
+        typeof used !== 'number' ||
+        !Number.isSafeInteger(used) ||
+        used < 0 ||
+        used > 7
+      )
+        throw new DomainError(
+          'NARRATIVE_CONTEXT_INVALID',
+          'Narrative request count is invalid.',
+        );
+      if (used >= 7)
+        throw new DomainError(
+          'NARRATIVE_REQUEST_LIMIT',
+          'Narrative request limit reached.',
+        );
+      const row = (
+        await tx.query<{ count: number }>(
+          "UPDATE aw_jobs SET checkpoints=checkpoints||jsonb_build_object('providerRequestCount',COALESCE((checkpoints->>'providerRequestCount')::int,0)+1) WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() AND COALESCE((checkpoints->>'providerRequestCount')::int,0)<7 RETURNING (checkpoints->>'providerRequestCount')::int AS count",
+          [job.id, job.user_id, job.lease_token],
+        )
+      )[0];
+      if (!row) lost();
+      return row.count;
+    });
+    job.checkpoints.providerRequestCount = count;
   }
   async checkpoint(
     job: LifeJob,
@@ -207,6 +282,20 @@ export class LifeJobRepository {
         narrative,
       );
       if (!narrativeArtifact) validatePeriodChapterV2(chapter, canon.events);
+      else {
+        const saved = validatedNarrativeCheckpoint(
+          current.checkpoints,
+          current.payload,
+        );
+        if (
+          hash(saved.artifact) !== hash(narrativeArtifact) ||
+          hash(saved.receipts) !== hash(receipts)
+        )
+          throw new DomainError(
+            'NARRATIVE_CONTEXT_INVALID',
+            'Narrative final checkpoint differs.',
+          );
+      }
       const history = await tx.query<
         Record<string, unknown> & { candidate: PeriodCandidateV2 }
       >(
@@ -294,6 +383,18 @@ export class LifeJobRepository {
             repairKind: job.checkpoints.repairKind ?? null,
             repairReasonCode: job.checkpoints.repairReasonCode ?? null,
             receiptOrder: receipts.map(hash),
+            ...(narrativeArtifact
+              ? {
+                  narrativeGenerationBinding: {
+                    pipelineVersion: narrativeArtifact.pipelineVersion,
+                    sourceHash: hash(current.payload),
+                    artifactHash: hash(narrativeArtifact),
+                    ...narrativeArtifact.bindings,
+                  },
+                  providerRequestCount:
+                    current.checkpoints.providerRequestCount,
+                }
+              : {}),
             ...(job.checkpoints.periodInputHash &&
             job.checkpoints.chapterInputHash &&
             job.checkpoints.fidelityInputHash

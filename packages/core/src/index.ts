@@ -21,6 +21,8 @@ export { DomainError } from './errors';
 export { addMonths } from './dates';
 export * from './life-v2';
 export * from './narrative';
+export * from './narrative-requests';
+export * from './narrative-runtime';
 export function hash(value: unknown): string {
   const normalize = (item: unknown): unknown => {
     if (Array.isArray(item)) return item.map(normalize);
