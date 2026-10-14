@@ -148,3 +148,5 @@ N04 külön narratív capability: life_narrative_plan→eventModel, life_narrati
 
 
 N05 narrative job: beforePhysicalRequest → lease/privacy/branch és atomikus maximum hét request-slot → közös budget reserve → tényleges transport → usage settle/receipt → checkpoint. Transport retry új slot, budget denial után nincs refund. Modell és output cap változatlan; a hét logical call editorial repair csak transport többlet nélkül fér biztosan a fizikai plafonba. A worker pending eredményt nem nevez ingyenesnek. Request builder core-közös, AI export kompatibilis; N06–N07 előtt az új queue mode továbbra nem választható.
+
+N07: narrative-v1 immár explicit szerver-config módként előkészíthető, default továbbra legacy és cohort üres. Négy alap paid task, egy global content repair és hét physical slot marad. Canon-dependent editorial issue nem kérhet új kánont vagy prose-fabrication repairt; a gate terminal. Budget denial után csak megmaradt slot/funded keret mellett kérhető retry. Sem éles beállítás, sem modell/budget/window nem változott; benchmark és kanonikus release külön gate.

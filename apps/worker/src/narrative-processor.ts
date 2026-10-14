@@ -362,7 +362,13 @@ export async function processNarrativeLifeJob(
       }
       const report = narrativeEditorialReportSchema.parse(editorial);
       validateNarrativeEditorialReport(report, chapter, run.canon);
-      if (!evaluateNarrativeEditorialGate(report).passed) {
+      if (report.issues.some((issue) => issue.repairScope === 'canon'))
+        throw new DomainError(
+          'NARRATIVE_QUALITY_FAILED',
+          'The chapter cannot be repaired without changing its validated canon.',
+        );
+      const quality = evaluateNarrativeEditorialGate(report);
+      if (!quality.passed) {
         await repair(
           'narrative_editor',
           new DomainError(
@@ -371,8 +377,7 @@ export async function processNarrativeLifeJob(
           ),
           {
             kind: 'editorial',
-            message:
-              'Address these scoped editorial issues in prose only; keep canon and the validated plan unchanged.',
+            message: `Address these scoped editorial issues in prose only. Strengthen ${quality.failedDimensions.join(', ') || 'the overall quality and reported issue areas'}; overall grade ${quality.overall}. Keep canon and the validated plan unchanged.`,
             issues: report.issues,
           },
         );

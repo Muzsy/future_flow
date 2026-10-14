@@ -323,6 +323,7 @@ export const narrativeEditorialReportSchema = z
           .object({
             dimension: z.enum(narrativeDimensions),
             severity: z.enum(['minor', 'major']),
+            repairScope: z.enum(['prose', 'canon']),
             paragraphIndex: z.number().int().positive().nullable(),
             eventIds: z.array(id).max(3),
             explanation: text(30, 350),

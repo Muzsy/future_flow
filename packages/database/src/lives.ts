@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { lifeJobReadyToCommit } from './life-job-state';
+import { lifeJobRetryAvailable } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
@@ -290,6 +290,18 @@ export class LifeRepository {
       `SELECT p.id,p.user_id,p.life_id,p.branch_id,p.period_no,p.base_revision,p.candidate,p.events,p.start_state,p.end_state,p.accepted_before,p.chapter,p.canon_hash,p.created_at,h.position,p.branch_id<>$1 AS inherited FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
       [branchId, userId],
     );
+    const [latestJob] = await this.db.query<{
+      id: string;
+      status: string;
+      stage: string;
+      error_code: string | null;
+      attempt: number;
+      checkpoints: Record<string, unknown>;
+      payload: NarrativePeriodInput;
+    }>(
+      'SELECT id,status,stage,error_code,attempt,checkpoints,payload FROM aw_jobs WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1',
+      [branchId, userId],
+    );
     return {
       branch,
       initialChoice: await this.initialChoice(userId, branch.life_id),
@@ -302,13 +314,16 @@ export class LifeRepository {
         'SELECT decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at',
         [branchId, userId],
       ),
-      job:
-        (
-          await this.db.query(
-            'SELECT id,status,stage,error_code,attempt FROM aw_jobs WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 1',
-            [branchId, userId],
-          )
-        )[0] ?? null,
+      job: latestJob
+        ? {
+            id: latestJob.id,
+            status: latestJob.status,
+            stage: latestJob.stage,
+            error_code: latestJob.error_code,
+            attempt: latestJob.attempt,
+            retryAvailable: lifeJobRetryAvailable(latestJob, branch.status),
+          }
+        : null,
     };
   }
   async draft(userId: string) {
@@ -855,6 +870,12 @@ export class LifeRepository {
         );
         const branch = await this.branch(userId, job.branch_id, tx, true);
         this.revision(branch, revision);
+        if (!lifeJobRetryAvailable(job, branch.status))
+          throw new DomainError(
+            'LIFE_RETRY_UNAVAILABLE',
+            'Retry not available.',
+            409,
+          );
         if (
           branch.status === 'failed' &&
           ['failed', 'cancelled'].includes(job.status) &&
@@ -863,17 +884,6 @@ export class LifeRepository {
           await materializeSharedMemories(tx, branch);
           return this.queue(tx, userId, branch);
         }
-        if (
-          job.status !== 'failed' ||
-          branch.status !== 'failed' ||
-          (job.attempt >= 5 &&
-            !lifeJobReadyToCommit(job.checkpoints, job.payload))
-        )
-          throw new DomainError(
-            'LIFE_RETRY_UNAVAILABLE',
-            'Retry not available.',
-            409,
-          );
         const [active] = await tx.query<{ count: number }>(
           "SELECT count(*)::int AS count FROM (SELECT status FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status FROM aw_jobs WHERE user_id=$1) q WHERE status IN ('queued','running','validating')",
           [userId],

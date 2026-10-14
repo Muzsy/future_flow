@@ -43,6 +43,7 @@ describe('deterministic narrative quality approval', () => {
       {
         dimension: 'momentum',
         severity: 'major',
+        repairScope: 'prose',
         paragraphIndex: 1,
         eventIds: [f.canon.events[0]!.id],
         explanation:
@@ -59,6 +60,11 @@ describe('deterministic narrative quality approval', () => {
       ),
     ).toEqual(report);
     expect(evaluateNarrativeEditorialGate(report).passed).toBe(false);
+    report.issues[0]!.severity = 'minor';
+    report.issues[0]!.repairScope = 'canon';
+    expect(evaluateNarrativeEditorialGate(report).passed).toBe(false);
+    report.issues[0]!.repairScope = 'prose';
+    expect(evaluateNarrativeEditorialGate(report).passed).toBe(true);
     report.issues[0]!.paragraphIndex = 2;
     expect(() =>
       validateNarrativeEditorialReport(

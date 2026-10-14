@@ -20,7 +20,11 @@ import {
   type Database,
   type LifeJob,
 } from '@future-flow/database';
-import { hash, validatedNarrativeCheckpoint } from '@future-flow/core';
+import {
+  DomainError,
+  hash,
+  validatedNarrativeCheckpoint,
+} from '@future-flow/core';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
@@ -455,5 +459,151 @@ describe('durable narrative pipeline and physical request admission', () => {
       processLifeJob(other.job, jobs, blocked.ai),
     ).rejects.toMatchObject({ code: 'NARRATIVE_CONTEXT_INVALID' });
     expect(blocked.parse).not.toHaveBeenCalled();
+  });
+  it('stops a canon-dependent editorial failure without a prose repair and preserves the prior chapter and choice', async () => {
+    const first = await fixture();
+    await processLifeJob(first.job, jobs, provider(first).ai);
+    const selected = new LifeRepository(
+      db,
+      { daily: 100, concurrent: 10 },
+      { mode: 'narrative-v1', cohortUserIds: [first.owner] },
+    );
+    const detail = await selected.detail(first.owner, first.job.branch_id),
+      decision = detail.branch.pending_decision!;
+    await selected.choose(
+      first.owner,
+      first.job.branch_id,
+      detail.branch.revision,
+      decision.id,
+      decision.options[0]!.id,
+      randomUUID(),
+    );
+    const branch = await selected.branch(first.owner, first.job.branch_id);
+    await selected.continue(
+      first.owner,
+      branch.id,
+      branch.revision,
+      randomUUID(),
+    );
+    const job = (await jobs.claim())!,
+      f = {
+        ...first,
+        job,
+        ...(await prepareNarrativeJobFixture(db, job, false)),
+      };
+    const p = provider(f, job, (task) => {
+      if (task === 'life_narrative_editor') {
+        const report = narrativeEditorialFixture();
+        report.issues = [
+          {
+            dimension: 'momentum',
+            severity: 'minor',
+            repairScope: 'canon',
+            paragraphIndex: 1,
+            eventIds: [f.plan.candidate.events[0]!.id],
+            explanation:
+              'A different canonical outcome is required to create this stronger story beat.',
+            suggestedFix:
+              'Record a different event; prose alone must not fabricate this outcome.',
+          },
+        ];
+        return report;
+      }
+      return defaultOutput(f, task);
+    });
+    await expect(processLifeJob(job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(p.parse).toHaveBeenCalledTimes(4);
+    expect((await saved(job)).checkpoints.repairUsed).not.toBe(true);
+    await jobs.fail(
+      job,
+      new DomainError('NARRATIVE_QUALITY_FAILED', 'Canon limitation'),
+    );
+    const after = await selected.detail(first.owner, branch.id);
+    expect(after.periods).toHaveLength(1);
+    expect(after.choices).toHaveLength(1);
+    expect(after.periods[0]!.chapter).toEqual(first.chapter);
+    expect(after.job!.retryAvailable).toBe(false);
+    expect(after.job).not.toHaveProperty('checkpoints');
+    expect(after.job).not.toHaveProperty('payload');
+    await expect(
+      selected.retry(first.owner, job.id, after.branch.revision, randomUUID()),
+    ).rejects.toMatchObject({ code: 'LIFE_RETRY_UNAVAILABLE' });
+    expect((await saved(job)).checkpoints.providerRequestCount).toBe(4);
+  });
+  it('offers a bounded retry after budget denial while retaining the already admitted request slot', async () => {
+    const f = await fixture(),
+      p = provider(f, f.job, undefined, 0);
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'AI_BUDGET_EXCEEDED',
+    });
+    await jobs.fail(
+      f.job,
+      new DomainError('AI_BUDGET_EXCEEDED', 'Budget unavailable'),
+    );
+    const detail = await lives.detail(f.owner, f.job.branch_id);
+    expect(detail.job!.retryAvailable).toBe(true);
+    await lives.retry(f.owner, f.job.id, detail.branch.revision, randomUUID());
+    const retried = (await jobs.claim())!;
+    expect(retried.id).toBe(f.job.id);
+    expect(retried.checkpoints.providerRequestCount).toBe(1);
+    await processLifeJob(retried, jobs, provider(f, retried).ai);
+    expect((await saved(retried)).checkpoints.providerRequestCount).toBe(5);
+  });
+  it('closes an exhausted partial job at claim without a provider request or a misleading retry', async () => {
+    const f = await fixture();
+    await db.query(
+      "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,checkpoints=checkpoints||$2::jsonb WHERE id=$1",
+      [f.job.id, JSON.stringify({ providerRequestCount: 7 })],
+    );
+    expect(await jobs.claim()).toBeNull();
+    const current = await saved(f.job);
+    expect(current.status).toBe('failed');
+    expect(current.error_code).toBe('NARRATIVE_REQUEST_LIMIT');
+    const detail = await lives.detail(f.owner, f.job.branch_id);
+    expect(detail.job!.retryAvailable).toBe(false);
+    await expect(
+      lives.retry(f.owner, f.job.id, detail.branch.revision, randomUUID()),
+    ).rejects.toMatchObject({ code: 'LIFE_RETRY_UNAVAILABLE' });
+    expect(
+      await db.query('SELECT id FROM aw_budget_reservations WHERE job_id=$1', [
+        f.job.id,
+      ]),
+    ).toEqual([]);
+  });
+  it('still offers and commits a fully bound result at both ceilings without any new paid work', async () => {
+    const f = await fixture();
+    await prepareNarrativeJobFixture(db, f.job);
+    await db.query(
+      'UPDATE aw_jobs SET attempt=5,checkpoints=checkpoints||$2::jsonb WHERE id=$1',
+      [f.job.id, JSON.stringify({ providerRequestCount: 7 })],
+    );
+    await jobs.fail(f.job, new Error('Interrupted before complete'));
+    const detail = await lives.detail(f.owner, f.job.branch_id);
+    expect(detail.job!.retryAvailable).toBe(true);
+    await lives.retry(f.owner, f.job.id, detail.branch.revision, randomUUID());
+    const ready = (await jobs.claim())!,
+      p = provider(f, ready);
+    await processLifeJob(ready, jobs, p.ai);
+    expect(p.parse).not.toHaveBeenCalled();
+    expect((await saved(ready)).status).toBe('completed');
+    expect(
+      await db.query('SELECT id FROM aw_budget_reservations WHERE job_id=$1', [
+        f.job.id,
+      ]),
+    ).toEqual([]);
+  });
+  it('refuses a malformed persisted physical-request count at claim and in retry availability', async () => {
+    const f = await fixture();
+    await db.query(
+      "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,checkpoints=checkpoints||$2::jsonb WHERE id=$1",
+      [f.job.id, JSON.stringify({ providerRequestCount: null })],
+    );
+    expect(await jobs.claim()).toBeNull();
+    expect((await saved(f.job)).error_code).toBe('NARRATIVE_CONTEXT_INVALID');
+    expect(
+      (await lives.detail(f.owner, f.job.branch_id)).job!.retryAvailable,
+    ).toBe(false);
   });
 });

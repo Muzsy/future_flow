@@ -24,7 +24,7 @@ export function narrativeConfigFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): NarrativeConfig {
   const mode = env.NARRATIVE_PIPELINE_MODE ?? 'legacy';
-  if (mode !== 'legacy' && mode !== 'context')
+  if (mode !== 'legacy' && mode !== 'context' && mode !== 'narrative-v1')
     throw new DomainError(
       'NARRATIVE_CONFIG_INVALID',
       'Unsupported narrative pipeline mode.',
