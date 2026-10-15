@@ -52,6 +52,7 @@ import {
   narrativePlanFixture,
   longNarrativeChapterFixture,
   narrativeEditorialFixture,
+  narrativePlanReviewFixture,
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
 import { fixedNarrativeFixture } from './narrative-evaluation-fixtures';
@@ -278,17 +279,19 @@ function clientFor(
       events: canon.events,
     };
     const output =
-      task === 'life_period'
-        ? candidate
-        : task === 'life_narrative_plan'
-          ? f.result
-          : task === 'life_chapter'
-            ? narrativeChapter(story)
-            : task === 'life_narrative_chapter'
-              ? longNarrativeChapterFixture(f)
-              : task === 'life_fidelity'
-                ? { valid: true, issues: [] }
-                : narrativeEditorialFixture();
+      task === 'life_narrative_plan_review'
+        ? narrativePlanReviewFixture()
+        : task === 'life_period'
+          ? candidate
+          : task === 'life_narrative_plan'
+            ? f.result
+            : task === 'life_chapter'
+              ? narrativeChapter(story)
+              : task === 'life_narrative_chapter'
+                ? longNarrativeChapterFixture(f)
+                : task === 'life_fidelity'
+                  ? { valid: true, issues: [] }
+                  : narrativeEditorialFixture();
     transports.push({ caseId, task, latencyMs: Date.now() - start });
     await save(join(options.out, 'transport-records.json'), transports);
     return {
@@ -337,7 +340,16 @@ async function fixedCanonComparison(
   });
   const payload: NarrativePeriodInput = {
     ...input,
-    narrativeContext: { policy: narrativeV1Policy(), memory: fixture.memory },
+    narrativeContext: {
+      policy: {
+        ...narrativeV1Policy(),
+        promptVersions: {
+          ...narrativeV1Policy().promptVersions,
+          writer: 'life_narrative_chapter.v3',
+        },
+      },
+      memory: fixture.memory,
+    },
     narrativeReferences: narrativeReferenceSnapshot(
       narrativeReferencesFromMemory(fixture.memory),
     ),

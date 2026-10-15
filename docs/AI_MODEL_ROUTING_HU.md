@@ -150,3 +150,10 @@ N04 külön narratív capability: life_narrative_plan→eventModel, life_narrati
 N05 narrative job: beforePhysicalRequest → lease/privacy/branch és atomikus maximum hét request-slot → közös budget reserve → tényleges transport → usage settle/receipt → checkpoint. Transport retry új slot, budget denial után nincs refund. Modell és output cap változatlan; a hét logical call editorial repair csak transport többlet nélkül fér biztosan a fizikai plafonba. A worker pending eredményt nem nevez ingyenesnek. Request builder core-közös, AI export kompatibilis; N06–N07 előtt az új queue mode továbbra nem választható.
 
 N07: narrative-v1 immár explicit szerver-config módként előkészíthető, default továbbra legacy és cohort üres. Négy alap paid task, egy global content repair és hét physical slot marad. Canon-dependent editorial issue nem kérhet új kánont vagy prose-fabrication repairt; a gate terminal. Budget denial után csak megmaradt slot/funded keret mellett kérhető retry. Sem éles beállítás, sem modell/budget/window nem változott; benchmark és kanonikus release külön gate.
+
+
+## N08 minőségelső, tervellenőrzött személyes folyamat
+
+A selected új narrative queue külön `life_narrative_plan_review` feladatot kap a planner és a writer között. A checkModelt használja, annak hiányában az eseménymodellt; nem váltunk olcsóbb modellre a minőség bizonyítása előtt. Normál öt logikai hívás, max8 fizikai kérés és egy globális tartalmi javítás; korábbi frozen négyhívásos/hétkéréses policy változatlan. A pénzügyi quota és a külön fejlesztési engedélyezett 5 USD keret nem emelkedik.
+
+A dramaturgiai tervellenőr az okságot, a főszereplő cselekvését, a korábbi teljes tradeoff megismétlését és a prospective alternatívák tétjét ellenőrzi. A writer v3 csak új frozen prompt marker alatt használható; a v1/v2 szövegek és receipt verziók változatlanok. A továbbra külön fidelity/editor lépés és a független humán benchmark szükséges. A gazdaságosságot az elfogadott kimenet teljes költségén mérjük, a hibák/javítások árát is beleszámítva; a technikai vagy modellkapu nem human minőségbizonyíték.

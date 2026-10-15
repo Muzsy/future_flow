@@ -45,6 +45,7 @@ import {
   narrativePlanFixture,
   longNarrativeChapterFixture,
   narrativeEditorialFixture,
+  narrativePlanReviewFixture,
 } from './narrative-plan-fixtures';
 
 let engine: PGlite, db: Database, repo: Repository, jobs: LifeJobRepository;
@@ -114,13 +115,15 @@ async function finish(mutate?: (f: Fixture, job: LifeJob) => void) {
       model: 'gpt-6.1-sol',
       usage: { input_tokens: 10, output_tokens: 20 },
       output_parsed:
-        request.text.format.name === 'life_narrative_plan'
-          ? f.result
-          : request.text.format.name === 'life_narrative_chapter'
-            ? chapter
-            : request.text.format.name === 'life_fidelity'
-              ? { valid: true, issues: [] }
-              : narrativeEditorialFixture(),
+        request.text.format.name === 'life_narrative_plan_review'
+          ? narrativePlanReviewFixture()
+          : request.text.format.name === 'life_narrative_plan'
+            ? f.result
+            : request.text.format.name === 'life_narrative_chapter'
+              ? chapter
+              : request.text.format.name === 'life_fidelity'
+                ? { valid: true, issues: [] }
+                : narrativeEditorialFixture(),
     }),
   );
   const ai = new OpenAiProvider(
@@ -143,7 +146,7 @@ async function finish(mutate?: (f: Fixture, job: LifeJob) => void) {
     { responses: { parse } } as unknown as OpenAIClient,
   );
   await processLifeJob(job, jobs, ai);
-  expect(parse).toHaveBeenCalledTimes(4);
+  expect(parse).toHaveBeenCalledTimes(5);
   return { job, f, parse };
 }
 async function chooseAndContinue(

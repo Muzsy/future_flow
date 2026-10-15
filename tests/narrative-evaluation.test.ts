@@ -499,7 +499,7 @@ describe('real worker evaluation corpus without paid transport', () => {
       expect(run.choiceReviewRequests).toEqual([]);
       expect(run.complete).toBe(true);
       expect(run.mock).toBe(true);
-      expect(run.samples.reduce((n, s) => n + s.transportCalls, 0)).toBe(222);
+      expect(run.samples.reduce((n, s) => n + s.transportCalls, 0)).toBe(248);
       expect(
         run.samples.every((s) => s.requestCount === s.transportCalls),
       ).toBe(true);
@@ -516,8 +516,8 @@ describe('real worker evaluation corpus without paid transport', () => {
         expect(fixed[0].canon).toEqual(fixed[1].canon);
       }
       const summary = await writeEvaluationArtifacts(run, options);
-      expect(summary.transportCalls).toBe(222);
-      expect(summary.completedSampleAdmittedRequests).toBe(222);
+      expect(summary.transportCalls).toBe(248);
+      expect(summary.completedSampleAdmittedRequests).toBe(248);
       expect(summary.qualityRelease).toBe(false);
       expect(summary.p95GenerationMs).toBeNull();
       const text = await readFile(join(out, 'report.json'), 'utf8');
@@ -528,7 +528,7 @@ describe('real worker evaluation corpus without paid transport', () => {
       expect(resumed.complete).toBe(true);
       expect(
         JSON.parse(await readFile(join(out, 'transport-records.json'), 'utf8')),
-      ).toHaveLength(222);
+      ).toHaveLength(248);
       const sample = run.samples.find(
         (s) => s.kind === 'full' && s.periodIndex === 1,
       )!;
@@ -567,7 +567,7 @@ describe('real worker evaluation corpus without paid transport', () => {
       ).toBe(true);
       expect(
         JSON.parse(await readFile(join(out, 'transport-records.json'), 'utf8')),
-      ).toHaveLength(222);
+      ).toHaveLength(248);
       const badReview = JSON.parse(await readFile(reviewPath, 'utf8'));
       badReview[0].optionId = '00000000-0000-4000-8000-000000000099';
       await writeFile(reviewPath, JSON.stringify(badReview));

@@ -2,10 +2,12 @@ import {
   localeSchema,
   narrativeV1ContextSchema,
   narrativePlanSchema,
+  narrativePlanningResultSchema,
   NARRATIVE_MEMORY_BYTES,
   type NarrativeV1Context,
   type NarrativePlan,
   type NarrativeEditorialReport,
+  type NarrativePlanningResult,
   type LifePeriodInput,
   type PeriodChapterV2,
   type Locale,
@@ -86,6 +88,16 @@ export function narrativePlannerRequest(
     },
     narrativeContext,
     repair: repair ?? null,
+  };
+}
+export function narrativePlanReviewRequest(
+  input: NarrativePlanningInput,
+  result: NarrativePlanningResult,
+) {
+  const { repair: _repair, ...projected } = narrativePlannerRequest(input);
+  return {
+    ...projected,
+    proposed: narrativePlanningResultSchema.parse(result),
   };
 }
 function story(input: NarrativeStoryInput) {

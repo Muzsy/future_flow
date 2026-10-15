@@ -3,6 +3,8 @@ import {
   narrativeMemorySchema,
   narrativeMemoryDeltaSchema,
   narrativeEditorialReportSchema,
+  narrativePlanReviewSchema,
+  narrativePlanReviewDimensions,
   narrativeArtifactSchema,
   narrativeDimensions,
   narrativeReferenceSnapshotSchema,
@@ -461,6 +463,25 @@ export function validateNarrativeEditorialReport(
   }
   return report;
 }
+export function evaluateNarrativePlanReview(raw: unknown) {
+  const report = narrativePlanReviewSchema.parse(raw);
+  return {
+    passed:
+      narrativePlanReviewDimensions.every(
+        (dimension) => report.scores[dimension] >= 4,
+      ) && !report.issues.some((issue) => issue.severity === 'major'),
+  };
+}
+export function validateNarrativePlanReview(
+  raw: unknown,
+  result: ReturnType<typeof narrativePlanningResultSchema.parse>,
+) {
+  const report = narrativePlanReviewSchema.parse(raw),
+    allowed = new Set(result.candidate.events.map((event) => event.id));
+  for (const issue of report.issues)
+    known(issue.eventIds, allowed, 'planning review event');
+  return report;
+}
 export function validateNarrativeArtifact(
   raw: unknown,
   expectedBindings: NarrativeArtifact['bindings'],
@@ -495,6 +516,9 @@ export function validateNarrativeArtifact(
   )
     invalid('Receipt references are not in their recorded order.');
   const required = [
+    ...(artifact.policy.promptVersions.planReviewer
+      ? ['life_narrative_plan_review']
+      : []),
     'life_narrative_plan',
     'life_narrative_chapter',
     'life_fidelity',
@@ -529,6 +553,23 @@ export function validateNarrativeArtifact(
     editor.outputHash !== hash(artifact.editorialReport)
   )
     invalid('Receipt does not bind the final validated result.');
+  const reviewReceipt = artifact.provenance.receiptRefs
+    .filter((r) => r.task === 'life_narrative_plan_review')
+    .at(-1);
+  if (artifact.policy.promptVersions.planReviewer) {
+    if (
+      !artifact.planningReview ||
+      !evaluateNarrativePlanReview(artifact.planningReview).passed ||
+      !reviewReceipt ||
+      reviewReceipt.inputHash !== expectedBindings.planningReviewInputHash ||
+      reviewReceipt.outputHash !== expectedBindings.planningReviewOutputHash ||
+      reviewReceipt.outputHash !== hash(artifact.planningReview) ||
+      reviewReceipt.ordinal <= planner.ordinal ||
+      reviewReceipt.ordinal >= writer.ordinal
+    )
+      invalid('Planning review does not bind a passed result before drafting.');
+  } else if (reviewReceipt)
+    invalid('An old policy cannot contain a planning-review receipt.');
   if (!evaluateNarrativeEditorialGate(artifact.editorialReport).passed)
     throw new DomainError(
       'NARRATIVE_QUALITY_FAILED',

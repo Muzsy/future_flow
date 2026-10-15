@@ -1,6 +1,9 @@
 // A cached, accepted chapter can be committed after the funded-attempt ceiling
 // without authorizing another provider call. Operator catalog leases stay fenced.
-import type { NarrativePeriodInput } from '@future-flow/contracts';
+import {
+  narrativeV1PolicySchema,
+  type NarrativePeriodInput,
+} from '@future-flow/contracts';
 import { validatedNarrativeCheckpoint } from '@future-flow/core';
 export function lifeJobReadyToCommit(
   checkpoints: Record<string, unknown>,
@@ -42,6 +45,11 @@ export function narrativeProcessingBlock(
 ): 'NARRATIVE_CONTEXT_INVALID' | 'NARRATIVE_REQUEST_LIMIT' | null {
   if (input.narrativeContext?.policy.mode !== 'narrative-v1') return null;
   if (lifeJobReadyToCommit(checkpoints, input)) return null;
+  const policy = narrativeV1PolicySchema.safeParse(
+    input.narrativeContext.policy,
+  );
+  if (!policy.success) return 'NARRATIVE_CONTEXT_INVALID';
+  const limit = policy.data.maxPhysicalRequests;
   const count =
     checkpoints.providerRequestCount === undefined
       ? 0
@@ -50,10 +58,10 @@ export function narrativeProcessingBlock(
     typeof count !== 'number' ||
     !Number.isSafeInteger(count) ||
     count < 0 ||
-    count > 7
+    count > limit
   )
     return 'NARRATIVE_CONTEXT_INVALID';
-  return count >= 7 ? 'NARRATIVE_REQUEST_LIMIT' : null;
+  return count >= limit ? 'NARRATIVE_REQUEST_LIMIT' : null;
 }
 
 export function lifeJobRetryAvailable(

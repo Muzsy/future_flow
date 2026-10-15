@@ -2,6 +2,7 @@ import {
   narrativeV1ContextSchema,
   narrativePlanningResultSchema,
   narrativeEditorialReportSchema,
+  type NarrativePlanReview,
   fidelitySchema,
   type NarrativePeriodInput,
   type NarrativeArtifact,
@@ -18,9 +19,12 @@ import {
   validateNarrativePlan,
   validateNarrativeArtifact,
   validateNarrativeEditorialReport,
+  validateNarrativePlanReview,
+  evaluateNarrativePlanReview,
 } from './narrative';
 import {
   narrativePlannerRequest,
+  narrativePlanReviewRequest,
   narrativeWriterRequest,
   narrativeFidelityRequest,
   narrativeEditorialRequest,
@@ -97,9 +101,31 @@ export function narrativeBindings(
   chapter: PeriodChapterV2,
   fidelity: unknown,
   repair?: NarrativeRepairFeedback,
+  planningReview?: NarrativePlanReview,
 ): NarrativeArtifact['bindings'] {
   const run = narrativeCanon(input, result);
+  const required = !!run.context.policy.promptVersions.planReviewer;
+  if (required) {
+    validateNarrativePlanReview(planningReview, run.result);
+    if (!evaluateNarrativePlanReview(planningReview).passed)
+      throw new DomainError(
+        'NARRATIVE_QUALITY_FAILED',
+        'The proposed story has not passed planning review.',
+      );
+  } else if (planningReview !== undefined)
+    throw new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Unexpected planning review for an old policy.',
+    );
   return {
+    ...(required
+      ? {
+          planningReviewInputHash: hash(
+            narrativePlanReviewRequest(run.planningInput, run.result),
+          ),
+          planningReviewOutputHash: hash(planningReview),
+        }
+      : {}),
     policyHash: hash(run.context.policy),
     memoryHash: hash(run.context.memory),
     referenceHash: hash(narrativeReferenceSnapshot(run.references)),
@@ -122,7 +148,7 @@ type Receipt = {
   outputHash: string;
 };
 export function narrativeReceipts(raw: unknown): Receipt[] {
-  if (!Array.isArray(raw) || raw.length > 7)
+  if (!Array.isArray(raw) || raw.length > 8)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
       'Narrative receipt list is invalid.',
@@ -144,6 +170,7 @@ export function narrativeReceipts(raw: unknown): Receipt[] {
       (item) =>
         ![
           'life_narrative_plan',
+          'life_narrative_plan_review',
           'life_narrative_chapter',
           'life_fidelity',
           'life_narrative_editor',
@@ -166,9 +193,17 @@ export function buildNarrativeArtifact(
   report: NarrativeEditorialReport,
   receipts: unknown[],
   repair?: NarrativeRepairFeedback,
+  planningReview?: NarrativePlanReview,
 ): NarrativeArtifact {
   const run = narrativeCanon(input, result),
-    bindings = narrativeBindings(input, result, chapter, fidelity, repair);
+    bindings = narrativeBindings(
+      input,
+      result,
+      chapter,
+      fidelity,
+      repair,
+      planningReview,
+    );
   const valid = fidelitySchema.parse(fidelity);
   if (!valid.valid || valid.issues.length)
     throw new DomainError(
@@ -185,6 +220,7 @@ export function buildNarrativeArtifact(
     validatedPlan: run.result.plan,
     validatedMemoryDelta: run.result.plan.memoryDelta,
     editorialReport: report,
+    ...(planningReview ? { planningReview } : {}),
     bindings,
     provenance: {
       promptVersions: run.context.policy.promptVersions,
@@ -199,15 +235,17 @@ export function buildNarrativeArtifact(
   };
   for (const receipt of recorded) {
     const key =
-      receipt.task === 'life_narrative_plan'
-        ? 'planner'
-        : receipt.task === 'life_narrative_chapter'
-          ? 'writer'
-          : receipt.task === 'life_fidelity'
-            ? 'fidelity'
-            : receipt.task === 'life_narrative_editor'
-              ? 'editor'
-              : null;
+      receipt.task === 'life_narrative_plan_review'
+        ? 'planReviewer'
+        : receipt.task === 'life_narrative_plan'
+          ? 'planner'
+          : receipt.task === 'life_narrative_chapter'
+            ? 'writer'
+            : receipt.task === 'life_fidelity'
+              ? 'fidelity'
+              : receipt.task === 'life_narrative_editor'
+                ? 'editor'
+                : null;
     if (
       !key ||
       receipt.promptVersion !==
@@ -247,8 +285,12 @@ export function validatedNarrativeCheckpoint(
     chapter,
     fidelity,
     repair,
+    checkpoints.planningReview as NarrativePlanReview | undefined,
   );
   if (
+    checkpoints.planningReviewInputHash !== bindings.planningReviewInputHash ||
+    checkpoints.planningReviewOutputHash !==
+      bindings.planningReviewOutputHash ||
     checkpoints.policyHash !== bindings.policyHash ||
     hash(checkpoints.policy) !== bindings.policyHash ||
     checkpoints.memoryHash !== bindings.memoryHash ||
@@ -282,6 +324,7 @@ export function validatedNarrativeCheckpoint(
     report,
     narrativeReceipts(checkpoints.receipts),
     repair,
+    checkpoints.planningReview as NarrativePlanReview | undefined,
   );
   if (hash(artifact) !== hash(checkpoints.narrativeArtifact))
     throw new DomainError(
@@ -301,7 +344,7 @@ export function validatedNarrativeCheckpoint(
     typeof count !== 'number' ||
     !Number.isSafeInteger(count) ||
     count < artifact.provenance.receiptRefs.length ||
-    count > 7
+    count > run.context.policy.maxPhysicalRequests
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',

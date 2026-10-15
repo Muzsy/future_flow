@@ -8,6 +8,7 @@ import {
   narrativePlanningResultSchema,
   narrativeMemoryDeltaSchema,
   narrativeEditorialReportSchema,
+  narrativePlanReviewSchema,
   narrativeArtifactSchema,
 } from './narrative';
 import {
@@ -881,6 +882,7 @@ for (const [name, schema] of Object.entries({
   planningResult: narrativePlanningResultSchema,
   memoryDelta: narrativeMemoryDeltaSchema,
   editorialReport: narrativeEditorialReportSchema,
+  planningReview: narrativePlanReviewSchema,
   artifact: narrativeArtifactSchema,
 })) {
   writeFileSync(

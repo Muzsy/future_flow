@@ -36,7 +36,7 @@ import {
 import { ownedNarrativeReferences } from './narrative-artifact';
 import {
   contextNarrativePolicy,
-  narrativeV1Policy,
+  reviewedNarrativePolicy,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
@@ -602,7 +602,7 @@ export class LifeRepository {
       );
       payload.narrativeContext =
         this.narrative.mode === 'narrative-v1'
-          ? { policy: narrativeV1Policy(), memory }
+          ? { policy: reviewedNarrativePolicy(), memory }
           : { policy: contextNarrativePolicy(), memory };
     }
     if (payload.narrativeContext?.policy.mode === 'narrative-v1')

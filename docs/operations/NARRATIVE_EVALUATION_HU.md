@@ -80,3 +80,12 @@ A v2 paid folytatás kánonszintű ismétlődést talált megfelelő múltbemene
 A summary `narrativeYield` mezője kizárólag az aktuális forrás teljes narrative folytatási próbáit méri: attemptedChapters, gateAcceptedChapters, acceptanceRate, accountedUsd, unacceptedAttemptAccountedUsd és accountedUsdPerGateAcceptedChapter. Az utolsó hányados számlálójában az elutasított próbák és valamennyi javítás is szerepel; fixed-canon, fork és régi fejlesztési források külön számolandók. Nulla elfogadott fejezet vagy hiányzó kötés esetén null, ismeretlen usage mellett nincs usage-alapú egységár. Ez mérési hozam, nem független emberi minőségértékelés és nem számla. Az assessment költségmutatója ugyanezt a teljes költséget használja; a hard-failure kapu továbbra zárva tart sikertelen mérésnél.
 
 Gazdaságossági számítás csak megfelelő szövegminőség után: a szükséges nettó bevételnek a mért fejezetköltséget, az infrastruktúrát, fizetési költséget és a kívánt fedezetet is el kell bírnia. Árat vagy üzleti limitet a harness nem állapít meg. A mostani kicsi diagnosztikai mintából nem becsülhető megbízható termékszintű sikerarány; a fejlesztési próbálkozások összege sem azonos a későbbi üzemi fejezetárral.
+
+
+## Tervellenőrzött folyamat mérése
+
+Az új selected narrative queue review markerrel öt normál feladatot futtat; a régi snapshot továbbra négyet. A max8 új limit csak kötelező tervellenőrrel valid, a régi max7 változatlan. Az egy globális javítás vagy tervjavítás+újraellenőrzés, vagy az eddigi prose/fidelity/editor javítás lehet. A közös experiment ledger, project/user guard és a legfeljebb összesen 5 USD engedély nem változik.
+
+Az offline teljes korpusz 68 fejezet / 34 pár / 248 transport: a 24 teljes és két narrative fork fejezet külön tervellenőri hívást is tartalmaz. A fix-kánon íróteszt authored tervből, planner/tervellenőr receipt gyártása és alkalmazási commit nélkül fut, writer v3-mal a narrative oldalon. A fixture központi feszültsége az unselected opciók költségét feltételesen írja le. A fidelity a tervet is ellenőrzi; annak hibája nem irodalmi pass/fail.
+
+A valódi mérésben külön kell feltüntetni: strukturális tervhiba, tervellenőri elutasítás és javítása, prose/fidelity/editor hiba, feltételes kánonhiba a mérőanyagban, humán értékelés. A külön tervellenőr modellvélemény, nem emberi függetlenség. A narrativeYield az új többlethívást és minden elutasított próbát is tartalmazza; csak teljes paid+human corpus, változatlan minőségi gate és tulajdonosi ár/idő plafon engedhet rolloutot.
