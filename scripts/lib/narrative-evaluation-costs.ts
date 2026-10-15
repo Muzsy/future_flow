@@ -66,3 +66,64 @@ export function evaluationCostReport(
     note: 'Usage-priced estimates are not an invoice. Budget accounting includes conservative input rates and retains the full reservation when usage is unknown; it is never reset on a retry or new output folder.',
   };
 }
+
+// Engineering yield, not independent human quality proof. All current-source
+// full narrative attempts count, including those without an accepted manuscript.
+export function evaluationNarrativeYield(
+  accounting: ReturnType<typeof evaluationCostReport> | null | undefined,
+  samples: {
+    fixtureId: string;
+    mode: string;
+    kind: string;
+    periodIndex: number;
+  }[],
+) {
+  if (!accounting) return null;
+  const rows = accounting.perCase.filter((c) =>
+    /^[^:]+:narrative-v1:[0-2]$/.test(c.caseId),
+  );
+  const accepted = samples.filter(
+    (s) => s.mode === 'narrative-v1' && s.kind === 'full',
+  );
+  const acceptedIds = new Set(
+    accepted.map((s) => `${s.fixtureId}:${s.mode}:${s.periodIndex}`),
+  );
+  const covered = [...acceptedIds].every((id) =>
+    rows.some((c) => c.caseId === id),
+  );
+  const accountedUsd = rows.reduce((sum, c) => sum + c.accountedUsd, 0);
+  const usageEstimatedUsd = rows.reduce(
+    (sum, c) => sum + c.usageEstimatedUsd,
+    0,
+  );
+  const unknownUsageCalls = rows.reduce(
+    (sum, c) => sum + c.unknownUsageCalls,
+    0,
+  );
+  const acceptedCost = rows
+    .filter((c) => acceptedIds.has(c.caseId))
+    .reduce((sum, c) => sum + c.accountedUsd, 0);
+  return {
+    attemptedChapters: rows.length,
+    gateAcceptedChapters: acceptedIds.size,
+    acceptedCostCoverage: covered,
+    acceptanceRate:
+      rows.length && covered ? acceptedIds.size / rows.length : null,
+    accountedUsd,
+    usageEstimatedUsd,
+    unacceptedAttemptAccountedUsd: accountedUsd - acceptedCost,
+    accountedUsdPerGateAcceptedChapter:
+      acceptedIds.size && covered && accounting.unassignedReservations === 0
+        ? accountedUsd / acceptedIds.size
+        : null,
+    usageEstimatedUsdPerGateAcceptedChapter:
+      acceptedIds.size &&
+      covered &&
+      accounting.unassignedReservations === 0 &&
+      unknownUsageCalls === 0
+        ? usageEstimatedUsd / acceptedIds.size
+        : null,
+    unknownUsageCalls,
+    note: 'Current-source full narrative attempts only; rejected attempts and repairs are included. Fixed-canon/fork comparisons and prior development sources remain separately accounted. A gate-accepted chapter is not independent human quality approval. No accepted chapter means no finite unit-cost estimate.',
+  };
+}

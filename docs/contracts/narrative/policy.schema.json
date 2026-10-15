@@ -18,7 +18,8 @@
           "type": "string",
           "enum": [
             "life_narrative_plan.v1",
-            "life_narrative_plan.v2"
+            "life_narrative_plan.v2",
+            "life_narrative_plan.v3"
           ]
         },
         "writer": {

@@ -102,7 +102,7 @@ describe('narrative provider uses the common guarded transport', () => {
         narrativeEditorialRequest(f.story, f.chapter),
       ];
       const versions = [
-        'life_narrative_plan.v2',
+        'life_narrative_plan.v3',
         'life_narrative_chapter.v2',
         'life_fidelity.v4.narrative',
         'life_narrative_editor.v1',
@@ -198,6 +198,45 @@ describe('narrative provider uses the common guarded transport', () => {
     expect(q.parse.mock.calls[1]![0].input[0].content).toContain(
       'Do not merely rephrase or expand the rejected draft',
     );
+  });
+  it('preserves queued v2 prompts and receipts when new plans use the continuation policy', async () => {
+    const { narrativePrompts } =
+      await import('../packages/ai/src/narrative-prompts');
+    const frozen = {
+      en: '4a02bbe2bd98c13f23b61344cb899bc8a10f06d37950a61d0e868580a19790ff',
+      hu: '763c829b474e95cd522f3bcca3cb93203ac4b44b09c7982867509c8278917a41',
+    };
+    for (const locale of ['en', 'hu'] as const) {
+      const f = fixture(locale),
+        p = provider();
+      f.input.narrativeContext.policy.promptVersions.planner =
+        'life_narrative_plan.v2';
+      expect(
+        hash(
+          narrativePrompts(
+            locale,
+            f.input.narrativeContext.policy.promptVersions,
+          ),
+        ),
+      ).toBe(frozen[locale]);
+      p.parse.mockResolvedValueOnce(success(f.result));
+      const result = await p.ai.planNarrative(f.input);
+      expect(result.receipt.promptVersion).toBe(
+        `life_narrative_plan.v2.${locale}`,
+      );
+      expect(
+        p.parse.mock.calls[0]![0].input[0].content.endsWith(
+          narrativePrompts(
+            locale,
+            f.input.narrativeContext.policy.promptVersions,
+          ).planner,
+        ),
+      ).toBe(true);
+      expect(narrativePrompts(locale).writer).toBe(
+        narrativePrompts(locale, f.input.narrativeContext.policy.promptVersions)
+          .writer,
+      );
+    }
   });
   it('keeps hostile text in user data and strips server inventories and accidental fields', async () => {
     const f = fixture(),
