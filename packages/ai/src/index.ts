@@ -4,7 +4,6 @@ export * from './claude';
 export * from './narrative-prompts';
 import {
   narrativePrompts,
-  narrativePromptVersions,
   narrativePlannerRequest,
   narrativeWriterRequest,
   narrativeFidelityRequest,
@@ -566,10 +565,10 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       narrativePlanningResultSchema,
       'life_narrative_plan',
       this.config.eventModel,
-      `${periodRules(locale)} ${narrativePrompts(locale).planner}`,
+      `${periodRules(locale)} ${narrativePrompts(locale, input.narrativeContext.policy.promptVersions).planner}`,
       narrativePlannerRequest(input, repair),
       locale,
-      `${narrativePromptVersions.planner}.${locale}`,
+      `${input.narrativeContext.policy.promptVersions.planner}.${locale}`,
     );
   }
   writeNarrativeChapter(
@@ -581,10 +580,10 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       periodChapterV2Schema,
       'life_narrative_chapter',
       this.config.storyModel,
-      `${periodRules(locale)} ${narrativePrompts(locale).writer}`,
+      `${periodRules(locale)} ${narrativePrompts(locale, input.narrativeContext.policy.promptVersions).writer}`,
       narrativeWriterRequest(input, repair),
       locale,
-      `${narrativePromptVersions.writer}.${locale}`,
+      `${input.narrativeContext.policy.promptVersions.writer}.${locale}`,
     );
   }
   checkNarrativeChapter(input: NarrativeStoryInput, chapter: PeriodChapterV2) {
@@ -593,10 +592,10 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       fidelitySchema,
       'life_fidelity',
       this.config.checkModel ?? this.config.eventModel,
-      `${periodRules(locale)} ${narrativePrompts(locale).fidelity}`,
+      `${periodRules(locale)} ${narrativePrompts(locale, input.narrativeContext.policy.promptVersions).fidelity}`,
       narrativeFidelityRequest(input, chapter),
       locale,
-      `${narrativePromptVersions.fidelity}.${locale}`,
+      `${input.narrativeContext.policy.promptVersions.fidelity}.${locale}`,
     );
   }
   editNarrativeChapter(input: NarrativeStoryInput, chapter: PeriodChapterV2) {
@@ -605,10 +604,10 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       narrativeEditorialReportSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
-      `${periodRules(locale)} ${narrativePrompts(locale).editor}`,
+      `${periodRules(locale)} ${narrativePrompts(locale, input.narrativeContext.policy.promptVersions).editor}`,
       narrativeEditorialRequest(input, chapter),
       locale,
-      `${narrativePromptVersions.editor}.${locale}`,
+      `${input.narrativeContext.policy.promptVersions.editor}.${locale}`,
     );
   }
   periodChapter(input: PeriodStoryInput, repair?: string) {

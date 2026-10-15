@@ -176,8 +176,11 @@ export const narrativeV1PolicySchema = z
     mode: z.literal('narrative-v1'),
     promptVersions: z
       .object({
-        planner: z.literal('life_narrative_plan.v1'),
-        writer: z.literal('life_narrative_chapter.v1'),
+        planner: z.enum(['life_narrative_plan.v1', 'life_narrative_plan.v2']),
+        writer: z.enum([
+          'life_narrative_chapter.v1',
+          'life_narrative_chapter.v2',
+        ]),
         fidelity: z.literal('life_fidelity.v4.narrative'),
         editor: z.literal('life_narrative_editor.v1'),
       })
@@ -197,8 +200,8 @@ export function narrativeV1Policy(): NarrativeV1Policy {
     version: '1.0.0',
     mode: 'narrative-v1',
     promptVersions: {
-      planner: 'life_narrative_plan.v1',
-      writer: 'life_narrative_chapter.v1',
+      planner: 'life_narrative_plan.v2',
+      writer: 'life_narrative_chapter.v2',
       fidelity: 'life_fidelity.v4.narrative',
       editor: 'life_narrative_editor.v1',
     },

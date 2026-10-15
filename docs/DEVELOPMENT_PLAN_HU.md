@@ -169,3 +169,5 @@ Ha a terv és a kód eltér, az `AGENTS.md` konfliktusszabálya érvényes: a t�
 ### O01 — Linux personal beta operator host — IN PROGRESS
 
 Reader/funded/daily/fence CLI Linux-host támogatás, eredeti privát state egyszeri authentikált-titkosított átvétele, source/CI/audit/fixture/restore kapuk megtartásával. Nem owner deployment vagy scheduler port. Acceptance: security-negative és byte-preservation tesztek, exact-commit Linux entry-point/fixture, CI/review, privát original state import és read-only inspect; éles átállás csak e kapuk után. Kanonikus keret: `operations/BETA_HU.md`, végrehajtási runbook: `operations/LINUX_OPERATOR_HU.md`.
+
+N08 paid checkpoint: első egyprofilos mérés 7bd6df1 forráson, 15 transport, 0.296595 USD accounted; az új fejezet minőségi kapun elutasítva, nem benchmark PASS. Planner/writer v2 és konkrét fix-kánon mérőanyag korrekció fejlesztés alatt; régi v1 queue támogatása és az eredeti összesített 5 USD ledger megőrzendő. Részletek a narrative implementation tervben.
