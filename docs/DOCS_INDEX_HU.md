@@ -23,7 +23,7 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 
 | Téma | Kanonikus forrás | Aktív supporting |
 |---|---|---|
-| dokumentáció | `DOCUMENTATION_GOVERNANCE_HU.md` | `agents/*` |
+| dokumentáció | `DOCUMENTATION_GOVERNANCE_HU.md` | `agents/*`, `codex-prompts/*` |
 | aktuális állapot | `STATUS_HU.md` | kód + aktív runbookok |
 | magas szintű roadmap | `ROADMAP_HU.md` | Issue/PR backlog |
 | részletes fejlesztési terv | `DEVELOPMENT_PLAN_HU.md` | Issue/PR backlog, történeti `archive/superseded/NEXT_STEPS.md` |
@@ -61,6 +61,7 @@ Nem kanonikusak:
 - `operations/` — development, testing, deployment, beta, backup, recovery, security operations
 - `decisions/` — ADR-ek
 - `agents/` — task/handoff/review sablonok
+- `codex-prompts/` — konkrét Codex work package promptok; active-supporting, nem kanonikus authority
 - `contracts/` — részletes contract-anyagok
 - `archive/` — történeti/leváltott dokumentumok
 
@@ -86,6 +87,9 @@ Nem kanonikusak:
 
 ### Security/privacy
 `operations/SECURITY_OPERATIONS_HU.md` → releváns privacy catalog/writer-fence/recovery document → kód.
+
+### Codex implementation task
+`AGENTS.md` → `DOCS_INDEX_HU.md` → `STATUS_HU.md` → releváns `DEVELOPMENT_PLAN_HU.md` rész + kanonikus spec → `codex-prompts/active/<task>.md` → tényleges kód/contract/tesztek.
 
 ## Történeti státusz
 

@@ -105,6 +105,8 @@ Ha létezik `pnpm docs:check`, dokumentációt érintő PR-ben az is kötelező.
 
 Új vagy nagyobb Issue strukturálásához: `docs/agents/TASK_TEMPLATE.md`.
 
+Konkrét Codex végrehajtási work package-hez: `docs/codex-prompts/README.md` és `docs/codex-prompts/TEMPLATE.md`. Az aktív promptok a `docs/codex-prompts/active/`, a lezárt, traceability célú példányok a `docs/codex-prompts/completed/` alatt vannak. Ezek active-supporting végrehajtási utasítások, nem kanonikus source of truth-ok.
+
 Félbehagyott vagy más agentnek átadott munkához: `docs/agents/HANDOFF_TEMPLATE.md`.
 
 Review-hoz: `docs/agents/REVIEW_TEMPLATE.md`.
