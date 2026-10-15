@@ -64,3 +64,10 @@ pnpm evaluate:narrative --mode assess --out <CORPUS> --ratings-file <HUMAN_JSON>
 A két pozitív költség/idő plafont a tulajdonos állítja be; program nem talál ki termékszabályt. Assessment újraolvassa a globális költségledgert és ellenőrzi a teljes narrative fejezetenkénti költséglefedettséget. A szigorú release kapu feltételei együtt: teljes paid corpus; mind a 34 pár hash-bound emberi értékelése; a 24 full párból legalább húsz nem tie; ezek legalább 70%-ában narrative preferencia; öt kritikus dimenzió átlagban legalább négy; nulla hard failure/unknown financial usage/unassigned reservation/privacy probe failure; minden elfogadott választás reviewed; költség és p95 a külön megadott plafonon belül. Wilson 95% intervallum tájékoztató, nem automatikus felmentés.
 
 Rövid profilrészhalmaz, offline mock, hiányzó pontozás, csupán editor pass vagy hiányzó üzemeltetési plafon mindig zárt release kapu. A negatív vagy hiányos eredmény is megmarad; forrásjavítás után új source-bound corpus és új értékelés szükséges.
+
+
+## Első paid mérésből származó korrekció
+
+A 7bd6df1 forrás első egyprofilos, 15-hívásos próbája 0.296595 USD accounted / 0.2907117 USD usage-becslés mellett nem ment át: az új fejezet az egyszeri javítás után is ismétlődő és túlmagyarázó maradt. Teljes corpus és emberi pontozás nem történt. Az eredeti eredmény változatlanul megmarad a globális ledgerben és a régi source-hoz kötött könyvtárban.
+
+Az új planner/writer v2 a konkrét kanonikus jelenetanyagot és az anyaghoz igazított tömörséget erősíti; a 650–950 puha cél és 250–950 kemény tartomány nem változik. A fagyasztott v1 prompt tovább támogatott. A fix-kánon fixture külön, szerző által írt, profilhoz illő, konkrét cselekvést–akadályt–választ–eredményt ad mindkét writernek; a régi, csupán szerkezeti baseline-fixture változatlan. A módosított benchmark új source/out kötést igényel, ugyanazon checkout globális költségledgerével: az első 0.296595 USD továbbra az engedélyezett összesen 5 USD része.

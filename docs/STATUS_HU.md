@@ -142,3 +142,5 @@ Jövőbeli prioritások: `ROADMAP_HU.md`.
 ## Operátori host átállás
 
 A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatásának és az eredeti Windows operátori state titkosított migrációjának O01 munkája folyamatban. Ez nem jelenti a Linux operátori kiadás vagy a valódi béta aktiválását. Részletek: `operations/LINUX_OPERATOR_HU.md`.
+
+N08 paid checkpoint: első egyprofilos mérés 7bd6df1 forráson, 15 transport, 0.296595 USD accounted; az új fejezet minőségi kapun elutasítva, nem benchmark PASS. Planner/writer v2 és konkrét fix-kánon mérőanyag korrekció fejlesztés alatt; régi v1 queue támogatása és az eredeti összesített 5 USD ledger megőrzendő. Részletek a narrative implementation tervben.

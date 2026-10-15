@@ -54,6 +54,7 @@ import {
   narrativeEditorialFixture,
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
+import { fixedNarrativeFixture } from './narrative-evaluation-fixtures';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
@@ -151,11 +152,17 @@ function sourceIdentity() {
     dirty,
     sourceHash: hash({
       commit,
-      harness: ['contract', 'options', 'runner', 'artifacts', 'costs'].map(
-        (name) =>
-          hash(
-            readFileSync(`scripts/lib/narrative-evaluation-${name}.ts`, 'utf8'),
-          ),
+      harness: [
+        'contract',
+        'options',
+        'runner',
+        'artifacts',
+        'costs',
+        'fixtures',
+      ].map((name) =>
+        hash(
+          readFileSync(`scripts/lib/narrative-evaluation-${name}.ts`, 'utf8'),
+        ),
       ),
       version: evaluationVersion,
       migrations: readdirSync('database/migrations')
@@ -320,7 +327,7 @@ async function fixedCanonComparison(
 ) {
   const profile = narrativeProfiles.find((p) => p.id === fixtureId)!,
     input = narrativeInput(profile),
-    fixture = narrativePlanFixture(input);
+    fixture = fixedNarrativeFixture(fixtureId);
   // This is an authored fixed plan, not a fresh planner result. Keep its IDs
   // stable across process restarts so cached writer receipts remain reusable.
   fixture.result.plan.scenes.forEach((scene, index) => {

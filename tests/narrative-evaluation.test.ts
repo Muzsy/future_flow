@@ -529,3 +529,33 @@ it('requires coverage of fixed-canon and fork pairs as well as full pairs', () =
       .passed,
   ).toBe(false);
 });
+
+it('authors observable fixed-canon actions without changing source profile constraints or inventing money', async () => {
+  const { fixedNarrativeFixture } =
+    await import('../scripts/lib/narrative-evaluation-fixtures');
+  const {
+    narrativeCanon,
+    narrativeReferenceSnapshot,
+    narrativeReferencesFromMemory,
+  } = await import('@future-flow/core');
+  const { narrativeV1Policy } = await import('@future-flow/contracts');
+  for (const profile of narrativeProfiles) {
+    const f = fixedNarrativeFixture(profile.id);
+    const run = narrativeCanon(
+      {
+        ...f.input,
+        narrativeContext: { policy: narrativeV1Policy(), memory: f.memory },
+        narrativeReferences: narrativeReferenceSnapshot(
+          narrativeReferencesFromMemory(f.memory),
+        ),
+      },
+      f.result,
+    );
+    expect(run.canon.events[0].summary).not.toBe(
+      'A bounded trial produces a first concrete observation.',
+    );
+    expect(run.canon.events[0].stateAfter.finance.monthlyIncome).toBeNull();
+    expect(run.canon.events[0].stateAfter.finance.liquidFunds).toBeNull();
+    expect(fixedNarrativeFixture(profile.id).result).toEqual(f.result);
+  }
+});

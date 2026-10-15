@@ -16,11 +16,17 @@
       "properties": {
         "planner": {
           "type": "string",
-          "const": "life_narrative_plan.v1"
+          "enum": [
+            "life_narrative_plan.v1",
+            "life_narrative_plan.v2"
+          ]
         },
         "writer": {
           "type": "string",
-          "const": "life_narrative_chapter.v1"
+          "enum": [
+            "life_narrative_chapter.v1",
+            "life_narrative_chapter.v2"
+          ]
         },
         "fidelity": {
           "type": "string",

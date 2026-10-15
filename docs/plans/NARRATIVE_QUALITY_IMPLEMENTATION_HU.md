@@ -739,3 +739,18 @@ A hash-bound szemantikai choice review megállítja a többértelmű párosítá
 Futtatás/folytatás/pontozás: [NARRATIVE_EVALUATION_HU.md](../operations/NARRATIVE_EVALUATION_HU.md). Konkrét schema/image/backup/replay/drain/rollback manifest és Linux támogatási rés: [NARRATIVE_RELEASE_HU.md](../operations/NARRATIVE_RELEASE_HU.md). A kanonikus Linux reader/funded/daily port nem owner-runtime upgrader. Aktív funded állapotban schema+image+cohort csere előtt külön reviewed Linux funded-upgrade implementáció és fixture kell (Issue #34); original-zero/Windows upgrader nem játszható újra és a meglévő window/ledger nem változtatható. Paid/human és target/apply továbbra külön engedélyezési kapu; éles módosítás nem történt.
 
 N08 helyi ellenőrzés: 86 tesztfájl, 884 sikeres offline teszt; külön célzott corpus/resume regresszió, teljes build, typecheck, format, schemas, docs és whitespace check. A generált V2/narrative contract fájlok nem változtak. Provider-költés és éles módosítás nulla. A fizetett/emberi benchmark eredményét ez nem helyettesíti.
+
+
+## Első engedélyezett paid N08 próba és v2 korrekció
+
+A 7bd6df1 main forráson egyetlen kitalált bounded-career profil indult külön fejlesztési projektből, a tulajdonos által jóváhagyott összesített 5 USD kerettel. Tizenöt tényleges transporthívás, 0.296595 USD konzervatív elszámolás és 0.2907117 USD usage-alapú becslés; nulla ismeretlen usage és nulla hozzárendelés nélküli reservation. Ez nem számla és nem teljes corpus.
+
+A legacy első fejezet elkészült. A narrative-v1 első fejezet hét fizikai kérés és egy prózajavítás után quality_failed maradt: az editor sceneCraft/prose/character=3 értéket adott; a megengedett költség és kapu helyesen állította meg. A fix-kánon új írói próba szintén minőségi stop lett. A visszautasított szövegek és receiptek a helyi, source-bound eredményben megmaradnak. A rendszer nem kapott minőségi pass-t és nem kapcsolódott be productionben.
+
+Az első narratív fejezet valódi előrelépése egy tulajdonos nélküli adminisztratív handoff felismerése és az alapfeladat átvételének elutasítása. A próza viszont több bekezdésben ugyanazt értelmezi újra: tisztán követhető lépések még nem jelentik az akadály megoldását. A javítás újrafogalmazott, de nem tömörített eléggé. Ez konkrét minőségi hiány, nem ok az editor pontjainak vagy a kapunak a csökkentésére.
+
+A planner/writer v2 ezért kanonikus eseményben rögzített konkrét cselekvést–ellenállást–választ–eredményt követel, és explicit kimondja a már létező 250–950 kemény tartományt. A 650–950 továbbra puha cél, kevés anyagnál 300–600 szó indokolt lehet; nincs új minimum vagy alacsonyabb minőségkapu. Javításkor a gyenge jelenet újraépítendő és az ismétlés kihagyandó, a kánon változatlan.
+
+A policy ismert planner/writer v1 és v2 verziót fogad, új queue alapértelmezése v2. A provider minden stage promptját a fagyasztott policyból választja: régi v1 job ugyanazt a régi szöveget/verziót kapja, új job az új változatot. Fidelity/editor, modell, hét kérés, egy javítás és a minőségi threshold változatlan. Nincs migráció vagy live config változtatás.
+
+A fix-kánon eredeti contract-fixture csak egy meg nem nevezett „konkrét megfigyelést” mondott ki. Ebből az író új kánon kitalálása nélkül nem építhet megfigyelhető jelenetet. A benchmark külön, determinisztikus, nyolcprofilos, szerző által írt eseményanyagot kap: egy konkrét akadály és cselekvés mindkét writernek pontosan ugyanaz. A történeti N00 baseline-fixture nem változik, az eredeti sikertelen fizetett mérés sem törlődik. Ez a bemeneti mérőanyag korrekciója, nem visszamenőleges sikerigazolás.

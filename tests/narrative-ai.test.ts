@@ -102,8 +102,8 @@ describe('narrative provider uses the common guarded transport', () => {
         narrativeEditorialRequest(f.story, f.chapter),
       ];
       const versions = [
-        'life_narrative_plan.v1',
-        'life_narrative_chapter.v1',
+        'life_narrative_plan.v2',
+        'life_narrative_chapter.v2',
         'life_fidelity.v4.narrative',
         'life_narrative_editor.v1',
       ];
@@ -145,6 +145,60 @@ describe('narrative provider uses the common guarded transport', () => {
       );
     },
   );
+  it('keeps queued v1 prompts byte-stable while new jobs use concrete scenes and earned length', async () => {
+    const f = fixture(),
+      p = provider();
+    f.input.narrativeContext.policy.promptVersions.planner =
+      'life_narrative_plan.v1';
+    f.input.narrativeContext.policy.promptVersions.writer =
+      'life_narrative_chapter.v1';
+    p.parse
+      .mockResolvedValueOnce(success(f.result))
+      .mockResolvedValueOnce(success(f.chapter));
+    const oldPlan = await p.ai.planNarrative(f.input);
+    const oldChapter = await p.ai.writeNarrativeChapter(f.story);
+    const { narrativePrompts } =
+      await import('../packages/ai/src/narrative-prompts');
+    const frozenHashes = {
+      en: '98becf31e4258e4f0fa9f2c1ac5b6bbb4f74810edc2db10c96c7194b3ae55895',
+      hu: 'd6015c80dd01a18c141847f4300937ea94b9abfb6ec7c8d570e5a92c18952b3b',
+    };
+    for (const locale of ['en', 'hu'] as const)
+      expect(
+        hash(
+          narrativePrompts(
+            locale,
+            f.input.narrativeContext.policy.promptVersions,
+          ),
+        ),
+      ).toBe(frozenHashes[locale]);
+    expect(oldPlan.receipt.promptVersion).toBe('life_narrative_plan.v1.en');
+    expect(oldChapter.receipt.promptVersion).toBe(
+      'life_narrative_chapter.v1.en',
+    );
+    expect(p.parse.mock.calls[0]![0].input[0].content).not.toContain(
+      'SCENE MATERIAL CHECK',
+    );
+    expect(p.parse.mock.calls[1]![0].input[0].content).not.toContain(
+      'COMPRESSION PASS',
+    );
+    const newer = fixture(),
+      q = provider();
+    q.parse
+      .mockResolvedValueOnce(success(newer.result))
+      .mockResolvedValueOnce(success(newer.chapter));
+    await q.ai.planNarrative(newer.input);
+    await q.ai.writeNarrativeChapter(newer.story);
+    expect(q.parse.mock.calls[0]![0].input[0].content).toContain(
+      'Never leave the writer to invent the missing action',
+    );
+    expect(q.parse.mock.calls[1]![0].input[0].content).toContain(
+      'hard acceptance range is 250–950',
+    );
+    expect(q.parse.mock.calls[1]![0].input[0].content).toContain(
+      'Do not merely rephrase or expand the rejected draft',
+    );
+  });
   it('keeps hostile text in user data and strips server inventories and accidental fields', async () => {
     const f = fixture(),
       p = provider();
