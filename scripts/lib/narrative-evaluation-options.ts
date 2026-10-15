@@ -1,0 +1,208 @@
+import { resolve } from 'node:path';
+import { DomainError } from '@future-flow/core';
+import { narrativeProfiles } from '../../tests/narrative-fixtures';
+
+export const evaluationPrices = {
+  'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
+  'gpt-6-luna': {
+    input: 0.1,
+    cachedInput: 0.01,
+    inputCeiling: 0.125,
+    output: 0.5,
+  },
+};
+export const evaluationPriceEvidence = {
+  checkedOn: '2026-10-15',
+  tier: 'default',
+  context: 'short',
+  source: 'https://developers.openai.com/api/docs/pricing',
+};
+export type EvaluationOptions = {
+  kind: 'offline' | 'paid' | 'assess';
+  out: string;
+  fixtureIds: string[];
+  periods: number;
+  seed: string;
+  budgetUsd: number | null;
+  approvalId: string | null;
+  allowPaid: boolean;
+  ratingsFile: string | null;
+  choicesFile: string | null;
+  models: { event: string; story: string; check: string };
+  maxMeanCostUsd: number | null;
+  maxP95Ms: number | null;
+};
+function invalid(message: string): never {
+  throw new DomainError('EVAL_CONFIG_INVALID', message);
+}
+export function parseEvaluationOptions(
+  argv: string[],
+  env: Record<string, string | undefined> = {},
+): EvaluationOptions {
+  const values = new Map<string, string>(),
+    boolean = new Set<string>();
+  const flags = new Set([
+    '--mode',
+    '--out',
+    '--fixtures',
+    '--periods',
+    '--seed',
+    '--budget-usd',
+    '--approval-id',
+    '--ratings-file',
+    '--choices-file',
+    '--event-model',
+    '--story-model',
+    '--check-model',
+    '--max-mean-cost-usd',
+    '--max-p95-ms',
+  ]);
+  for (let i = 0; i < argv.length; i++) {
+    const key = argv[i]!;
+    if (key === '--allow-paid') {
+      if (boolean.has(key)) invalid('Duplicate flag.');
+      boolean.add(key);
+      continue;
+    }
+    if (
+      !flags.has(key) ||
+      values.has(key) ||
+      !argv[i + 1] ||
+      argv[i + 1]!.startsWith('--')
+    )
+      invalid('Unknown, duplicate or incomplete evaluation option.');
+    values.set(key, argv[++i]!);
+  }
+  const kind = values.get('--mode') ?? 'offline';
+  if (!['offline', 'paid', 'assess'].includes(kind))
+    invalid('Unsupported evaluation mode.');
+  const fixtureIds =
+    (values.get('--fixtures') ?? 'all') === 'all'
+      ? narrativeProfiles.map((p) => p.id)
+      : (values.get('--fixtures') ?? '').split(',');
+  if (
+    !fixtureIds.length ||
+    new Set(fixtureIds).size !== fixtureIds.length ||
+    fixtureIds.some((id) => !narrativeProfiles.some((p) => p.id === id))
+  )
+    invalid('Only the checked synthetic fixtures are allowed.');
+  const periods = Number(values.get('--periods') ?? 3);
+  if (!Number.isInteger(periods) || periods < 1 || periods > 3)
+    invalid('Evaluation requires one to three periods.');
+  const models = {
+    event: values.get('--event-model') ?? 'gpt-6.1-sol',
+    story: values.get('--story-model') ?? 'gpt-6.1-sol',
+    check: values.get('--check-model') ?? 'gpt-6.1-sol',
+  };
+  if (
+    Object.values(models).some(
+      (model) => !Object.hasOwn(evaluationPrices, model),
+    )
+  )
+    invalid(
+      'The experiment must use a currently reviewed short-context model price.',
+    );
+  const allowPaid = boolean.has('--allow-paid'),
+    budgetUsd = values.has('--budget-usd')
+      ? Number(values.get('--budget-usd'))
+      : null,
+    approvalId = values.get('--approval-id') ?? null;
+  if (
+    kind !== 'paid' &&
+    (allowPaid || budgetUsd !== null || approvalId !== null)
+  )
+    invalid('Paid options require the explicit paid mode.');
+  if (kind === 'paid') {
+    if (
+      !allowPaid ||
+      budgetUsd === null ||
+      !Number.isFinite(budgetUsd) ||
+      budgetUsd <= 0 ||
+      budgetUsd > 5 ||
+      !approvalId ||
+      approvalId.length > 160 ||
+      !values.has('--out')
+    )
+      invalid(
+        'Paid runs require explicit approval, output directory and a positive budget at most five USD.',
+      );
+    if (
+      !/^sk-(proj-|svcacct-)[A-Za-z0-9_-]{20,}$/.test(
+        env.NARRATIVE_EVAL_API_KEY ?? '',
+      ) ||
+      !/^proj_[A-Za-z0-9_-]+$/.test(env.NARRATIVE_EVAL_PROJECT_ID ?? '') ||
+      env.NARRATIVE_EVAL_PROJECT_CONFIRMATION !== 'dedicated-development'
+    )
+      invalid(
+        'A separately approved development project and its evaluation key are required. The application key is never reused.',
+      );
+    const age =
+      Date.now() - Date.parse(evaluationPriceEvidence.checkedOn + 'T00:00:00Z');
+    if (age > 7 * 86400000 || age < -86400000)
+      invalid(
+        'Recheck the official experiment model prices before paid execution.',
+      );
+  }
+  const number = (flag: string) => {
+    if (!values.has(flag)) return null;
+    const value = Number(values.get(flag));
+    if (!Number.isFinite(value) || value <= 0)
+      invalid('Operational limits must be positive.');
+    return value;
+  };
+  if (kind === 'assess' && !values.has('--ratings-file'))
+    invalid('Assessment requires human ratings.');
+  return {
+    kind: kind as EvaluationOptions['kind'],
+    out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
+    fixtureIds,
+    periods,
+    seed: values.get('--seed') ?? 'alterward-narrative-evaluation-v1',
+    models,
+    budgetUsd,
+    approvalId,
+    allowPaid,
+    ratingsFile: values.get('--ratings-file') ?? null,
+    choicesFile: values.get('--choices-file') ?? null,
+    maxMeanCostUsd: number('--max-mean-cost-usd'),
+    maxP95Ms: number('--max-p95-ms'),
+  };
+}
+
+// The exported runner repeats CLI authorization checks; callers cannot bypass
+// payment gates by constructing an options object directly.
+export function verifyEvaluationAuthorization(
+  options: EvaluationOptions,
+  env: Record<string, string | undefined>,
+) {
+  const args = [
+    '--mode',
+    options.kind,
+    '--out',
+    options.out,
+    '--fixtures',
+    options.fixtureIds.join(','),
+    '--periods',
+    String(options.periods),
+    '--seed',
+    options.seed,
+    '--event-model',
+    options.models.event,
+    '--story-model',
+    options.models.story,
+    '--check-model',
+    options.models.check,
+  ];
+  if (options.allowPaid) args.push('--allow-paid');
+  if (options.budgetUsd !== null)
+    args.push('--budget-usd', String(options.budgetUsd));
+  if (options.approvalId !== null)
+    args.push('--approval-id', options.approvalId);
+  if (options.ratingsFile) args.push('--ratings-file', options.ratingsFile);
+  if (options.choicesFile) args.push('--choices-file', options.choicesFile);
+  if (options.maxMeanCostUsd !== null)
+    args.push('--max-mean-cost-usd', String(options.maxMeanCostUsd));
+  if (options.maxP95Ms !== null)
+    args.push('--max-p95-ms', String(options.maxP95Ms));
+  parseEvaluationOptions(args, env);
+}
