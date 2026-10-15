@@ -184,20 +184,33 @@ export const narrativeV1PolicySchema = z
         writer: z.enum([
           'life_narrative_chapter.v1',
           'life_narrative_chapter.v2',
+          'life_narrative_chapter.v3',
         ]),
+        planReviewer: z.literal('life_narrative_plan_review.v1').optional(),
         fidelity: z.literal('life_fidelity.v4.narrative'),
         editor: z.literal('life_narrative_editor.v1'),
       })
       .strict(),
     memoryVersion: z.literal('1.0.0'),
     qualityPolicyVersion: z.literal('1.0.0'),
-    maxPhysicalRequests: z.literal(7),
+    maxPhysicalRequests: z.union([z.literal(7), z.literal(8)]),
     maxContentRepairs: z.literal(1),
     targetWords: z
       .object({ min: z.literal(650), max: z.literal(950) })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((policy, context) => {
+    if (
+      policy.maxPhysicalRequests !==
+      (policy.promptVersions.planReviewer ? 8 : 7)
+    )
+      context.addIssue({
+        code: 'custom',
+        message:
+          'The request ceiling must match the frozen planning-review policy.',
+      });
+  });
 export type NarrativeV1Policy = z.infer<typeof narrativeV1PolicySchema>;
 export function narrativeV1Policy(): NarrativeV1Policy {
   return {
@@ -214,6 +227,19 @@ export function narrativeV1Policy(): NarrativeV1Policy {
     maxPhysicalRequests: 7,
     maxContentRepairs: 1,
     targetWords: { min: 650, max: 950 },
+  };
+}
+// New queue policy; the original factory remains byte-compatible for old jobs.
+export function reviewedNarrativePolicy(): NarrativeV1Policy {
+  const previous = narrativeV1Policy();
+  return {
+    ...previous,
+    promptVersions: {
+      ...previous.promptVersions,
+      writer: 'life_narrative_chapter.v3',
+      planReviewer: 'life_narrative_plan_review.v1',
+    },
+    maxPhysicalRequests: 8,
   };
 }
 // Storage preparation only: queue configuration still rejects narrative-v1
@@ -345,6 +371,40 @@ export const narrativeEditorialReportSchema = z
 export type NarrativeEditorialReport = z.infer<
   typeof narrativeEditorialReportSchema
 >;
+export const narrativePlanReviewDimensions = [
+  'causality',
+  'agency',
+  'novelty',
+  'choiceStakes',
+] as const;
+export const narrativePlanReviewSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    scores: z
+      .object({
+        causality: grade,
+        agency: grade,
+        novelty: grade,
+        choiceStakes: grade,
+      })
+      .strict(),
+    issues: z
+      .array(
+        z
+          .object({
+            dimension: z.enum(narrativePlanReviewDimensions),
+            severity: z.enum(['minor', 'major']),
+            eventIds: z.array(id).max(3),
+            explanation: text(30, 350),
+            suggestedFix: text(30, 350),
+          })
+          .strict(),
+      )
+      .max(6),
+    verdict: z.enum(['pass', 'revise']),
+  })
+  .strict();
+export type NarrativePlanReview = z.infer<typeof narrativePlanReviewSchema>;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 export const narrativeArtifactSchema = z
   .object({
@@ -354,6 +414,7 @@ export const narrativeArtifactSchema = z
     validatedPlan: narrativePlanSchema,
     validatedMemoryDelta: narrativeMemoryDeltaSchema,
     editorialReport: narrativeEditorialReportSchema,
+    planningReview: narrativePlanReviewSchema.optional(),
     bindings: z
       .object({
         policyHash: digest,
@@ -368,6 +429,8 @@ export const narrativeArtifactSchema = z
         fidelityInputHash: digest,
         fidelityOutputHash: digest,
         editorialInputHash: digest,
+        planningReviewInputHash: digest.optional(),
+        planningReviewOutputHash: digest.optional(),
       })
       .strict(),
     provenance: z
@@ -379,11 +442,12 @@ export const narrativeArtifactSchema = z
               .object({
                 task: z.enum([
                   'life_narrative_plan',
+                  'life_narrative_plan_review',
                   'life_narrative_chapter',
                   'life_fidelity',
                   'life_narrative_editor',
                 ]),
-                ordinal: z.number().int().min(0).max(6),
+                ordinal: z.number().int().min(0).max(7),
                 inputHash: digest,
                 outputHash: digest,
                 model: text(1, 200),
@@ -391,10 +455,32 @@ export const narrativeArtifactSchema = z
               .strict(),
           )
           .min(4)
-          .max(7),
+          .max(8),
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((artifact, context) => {
+    const required = !!artifact.policy.promptVersions.planReviewer;
+    const supplied = [
+      artifact.planningReview,
+      artifact.bindings.planningReviewInputHash,
+      artifact.bindings.planningReviewOutputHash,
+    ];
+    if (supplied.some((value) => (value !== undefined) !== required))
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Planning review and both bindings must match the frozen policy.',
+      });
+    if (
+      artifact.provenance.receiptRefs.length >
+      artifact.policy.maxPhysicalRequests
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Receipt count exceeds its frozen ceiling.',
+      });
+  });
 export type NarrativeArtifact = z.infer<typeof narrativeArtifactSchema>;
 export const NARRATIVE_ARTIFACT_BYTES = 32 * 1024;

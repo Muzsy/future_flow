@@ -29,7 +29,12 @@ import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
 import { prepareNarrativeJobFixture } from './narrative-storage-fixtures';
-import { narrativeEditorialFixture } from './narrative-plan-fixtures';
+import {
+  narrativeEditorialFixture,
+  narrativePlanReviewFixture,
+} from './narrative-plan-fixtures';
+import { reviewedNarrativePolicy } from '@future-flow/contracts';
+import { lifeJobReadyToCommit } from '@future-flow/database';
 
 const SDK = createRequire(
   new URL('../packages/ai/package.json', import.meta.url),
@@ -92,13 +97,15 @@ function provider(
         ).length;
       const output = respond
         ? respond(task, ordinal)
-        : task === 'life_narrative_plan'
-          ? f.plan.result
-          : task === 'life_narrative_chapter'
-            ? f.chapter
-            : task === 'life_fidelity'
-              ? { valid: true, issues: [] }
-              : narrativeEditorialFixture();
+        : task === 'life_narrative_plan_review'
+          ? narrativePlanReviewFixture()
+          : task === 'life_narrative_plan'
+            ? f.plan.result
+            : task === 'life_narrative_chapter'
+              ? f.chapter
+              : task === 'life_fidelity'
+                ? { valid: true, issues: [] }
+                : narrativeEditorialFixture();
       return {
         status: 'completed',
         output_parsed: output,
@@ -605,5 +612,254 @@ describe('durable narrative pipeline and physical request admission', () => {
     expect(
       (await lives.detail(f.owner, f.job.branch_id)).job!.retryAvailable,
     ).toBe(false);
+  });
+});
+
+async function reviewedFixture() {
+  const f = await fixture();
+  f.job.payload.narrativeContext!.policy = reviewedNarrativePolicy();
+  await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
+    f.job.id,
+    JSON.stringify(f.job.payload),
+  ]);
+  return f;
+}
+describe('reviewed story plans before drafting', () => {
+  it('makes five guarded calls and binds the passed plan review into the committed artifact', async () => {
+    const f = await reviewedFixture(),
+      p = provider(f);
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    const ready = validatedNarrativeCheckpoint(
+      f.job.checkpoints,
+      f.job.payload,
+    );
+    expect(ready.artifact.planningReview).toEqual(narrativePlanReviewFixture());
+    expect(ready.artifact.provenance.receiptRefs).toHaveLength(5);
+    expect(f.job.checkpoints.providerRequestCount).toBe(5);
+    expect(ready.artifact.policy.maxPhysicalRequests).toBe(8);
+  });
+  it('replans after a failed computed review before paying for any prose', async () => {
+    const f = await reviewedFixture();
+    const p = provider(f, f.job, (task, ordinal) =>
+      task === 'life_narrative_plan_review'
+        ? ordinal === 1
+          ? {
+              ...narrativePlanReviewFixture(),
+              scores: { ...narrativePlanReviewFixture().scores, novelty: 3 },
+            }
+          : narrativePlanReviewFixture()
+        : task === 'life_narrative_plan'
+          ? f.plan.result
+          : task === 'life_narrative_chapter'
+            ? f.chapter
+            : task === 'life_fidelity'
+              ? { valid: true, issues: [] }
+              : narrativeEditorialFixture(),
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    expect(f.job.checkpoints.repairUsed).toBe(true);
+    expect(f.job.checkpoints.providerRequestCount).toBe(7);
+  });
+  it('stops a twice-failed plan review without a writer call or a committed period', async () => {
+    const f = await reviewedFixture(),
+      p = provider(f, f.job, (task) =>
+        task === 'life_narrative_plan'
+          ? f.plan.result
+          : task === 'life_narrative_plan_review'
+            ? {
+                ...narrativePlanReviewFixture(),
+                scores: { ...narrativePlanReviewFixture().scores, agency: 3 },
+              }
+            : f.chapter,
+      );
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(p.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+    ]);
+    expect(
+      (await lives.detail(f.owner, f.created.branchId)).periods,
+    ).toHaveLength(0);
+  });
+  it('rejects missing or forged review proof even at the request ceiling', async () => {
+    const f = await reviewedFixture(),
+      p = provider(f);
+    await processLifeJob(f.job, jobs, p.ai);
+    const valid = structuredClone(f.job.checkpoints);
+    valid.providerRequestCount = 8;
+    expect(lifeJobReadyToCommit(valid, f.job.payload)).toBe(true);
+    for (const patch of [
+      { planningReview: null },
+      { planningReviewInputHash: hash('forged') },
+      { planningReviewOutputHash: hash('forged') },
+      {
+        planningReview: {
+          ...narrativePlanReviewFixture(),
+          scores: { ...narrativePlanReviewFixture().scores, novelty: 3 },
+        },
+      },
+    ]) {
+      expect(
+        lifeJobReadyToCommit(
+          { ...valid, ...patch, planningReviewPassed: true },
+          f.job.payload,
+        ),
+      ).toBe(false);
+    }
+  });
+  it('reserves the eighth physical slot once and denies the ninth without changing old ceilings', async () => {
+    const f = await reviewedFixture();
+    f.job.checkpoints.providerRequestCount = 7;
+    await db.query('UPDATE aw_jobs SET checkpoints=$2 WHERE id=$1', [
+      f.job.id,
+      JSON.stringify(f.job.checkpoints),
+    ]);
+    await jobs.admitNarrativeRequest(f.job);
+    expect(f.job.checkpoints.providerRequestCount).toBe(8);
+    await expect(jobs.admitNarrativeRequest(f.job)).rejects.toMatchObject({
+      code: 'NARRATIVE_REQUEST_LIMIT',
+    });
+  });
+});
+
+describe('planning-review recovery and physical ceilings', () => {
+  it('recovers a saved passed review without repeating either planning call', async () => {
+    const f = await reviewedFixture(),
+      first = provider(f),
+      original = jobs.checkpoint.bind(jobs);
+    const checkpoint = vi
+      .spyOn(jobs, 'checkpoint')
+      .mockImplementation(async (job, stage, patch) => {
+        await original(job, stage, patch);
+        if (stage === 'NARRATIVE_PLAN_REVIEW_RESULT')
+          throw new Error('Injected review crash');
+      });
+    await expect(processLifeJob(f.job, jobs, first.ai)).rejects.toThrow(
+      'Injected review crash',
+    );
+    checkpoint.mockRestore();
+    await expire(f.job);
+    const recovered = (await jobs.claim())!,
+      next = provider(f, recovered);
+    await processLifeJob(recovered, jobs, next.ai);
+    expect(first.parse.mock.calls.length + next.parse.mock.calls.length).toBe(
+      5,
+    );
+    expect(next.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+  });
+  it('fits one prose repair into eight calls while preserving the already passed plan review', async () => {
+    const f = await reviewedFixture();
+    const p = provider(f, f.job, (task, ordinal) =>
+      task === 'life_narrative_plan_review'
+        ? narrativePlanReviewFixture()
+        : task === 'life_narrative_editor' && ordinal === 1
+          ? {
+              ...narrativeEditorialFixture(),
+              scores: { ...narrativeEditorialFixture().scores, character: 3 },
+            }
+          : defaultOutput(f, task),
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(8);
+    expect(
+      p.parse.mock.calls.filter(
+        ([r]) => r.text.format.name === 'life_narrative_plan_review',
+      ),
+    ).toHaveLength(1);
+    expect(f.job.checkpoints.providerRequestCount).toBe(8);
+  });
+});
+
+describe('planning-review integrity at recovery boundaries', () => {
+  it('requires review capability before the first paid slot of a reviewed-policy job', async () => {
+    const f = await reviewedFixture(),
+      p = provider(f);
+    p.ai.reviewNarrativePlan = undefined as never;
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'AI_NOT_CONFIGURED',
+    });
+    expect(p.parse).not.toHaveBeenCalled();
+    expect(f.job.checkpoints.providerRequestCount).toBeUndefined();
+  });
+  it('rechecks a stale saved review while retaining the valid original proposal', async () => {
+    const f = await reviewedFixture(),
+      first = provider(f),
+      original = jobs.checkpoint.bind(jobs);
+    const checkpoint = vi
+      .spyOn(jobs, 'checkpoint')
+      .mockImplementation(async (job, stage, patch) => {
+        await original(job, stage, patch);
+        if (stage === 'NARRATIVE_PLAN_REVIEW_RESULT')
+          throw new Error('Injected review crash');
+      });
+    await expect(processLifeJob(f.job, jobs, first.ai)).rejects.toThrow(
+      'Injected review crash',
+    );
+    checkpoint.mockRestore();
+    await expire(f.job);
+    await db.query(
+      'UPDATE aw_jobs SET checkpoints=checkpoints||$2::jsonb WHERE id=$1',
+      [f.job.id, JSON.stringify({ planningReviewOutputHash: hash('stale') })],
+    );
+    const recovered = (await jobs.claim())!,
+      next = provider(f, recovered);
+    await processLifeJob(recovered, jobs, next.ai);
+    expect(next.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_plan_review',
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    expect(recovered.checkpoints.providerRequestCount).toBe(6);
+  });
+  it('commits a fully bound reviewed result at both ceilings without a provider repeat', async () => {
+    const f = await reviewedFixture(),
+      first = provider(f),
+      original = jobs.checkpoint.bind(jobs);
+    const checkpoint = vi
+      .spyOn(jobs, 'checkpoint')
+      .mockImplementation(async (job, stage, patch) => {
+        await original(job, stage, patch);
+        if (stage === 'NARRATIVE_READY_TO_COMMIT')
+          throw new Error('Injected ready crash');
+      });
+    await expect(processLifeJob(f.job, jobs, first.ai)).rejects.toThrow(
+      'Injected ready crash',
+    );
+    checkpoint.mockRestore();
+    await expire(f.job);
+    await db.query(
+      'UPDATE aw_jobs SET attempt=5,checkpoints=checkpoints||\'{"providerRequestCount":8}\'::jsonb WHERE id=$1',
+      [f.job.id],
+    );
+    const recovered = (await jobs.claim())!,
+      next = provider(f, recovered);
+    await processLifeJob(recovered, jobs, next.ai);
+    expect(next.parse).not.toHaveBeenCalled();
+    expect((await saved(recovered)).status).toBe('completed');
   });
 });

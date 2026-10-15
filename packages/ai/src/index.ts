@@ -4,6 +4,8 @@ export * from './claude';
 export * from './narrative-prompts';
 import {
   narrativePrompts,
+  narrativePlanReviewPrompt,
+  narrativePlanReviewRequest,
   narrativePlannerRequest,
   narrativeWriterRequest,
   narrativeFidelityRequest,
@@ -33,6 +35,8 @@ import {
   type PeriodChapterV2,
   narrativeContextSchema,
   narrativePlanningResultSchema,
+  narrativePlanReviewSchema,
+  type NarrativePlanReview,
   narrativeEditorialReportSchema,
   type NarrativePlanningResult,
   type NarrativeEditorialReport,
@@ -90,6 +94,10 @@ export interface LifeAiProvider {
   ): Promise<AiResult<z.infer<typeof fidelitySchema>>>;
 }
 export interface NarrativeAiProvider {
+  reviewNarrativePlan?(
+    input: NarrativePlanningInput,
+    result: NarrativePlanningResult,
+  ): Promise<AiResult<NarrativePlanReview>>;
   planNarrative(
     input: NarrativePlanningInput,
     repair?: string,
@@ -569,6 +577,27 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
       narrativePlannerRequest(input, repair),
       locale,
       `${input.narrativeContext.policy.promptVersions.planner}.${locale}`,
+    );
+  }
+  reviewNarrativePlan(
+    input: NarrativePlanningInput,
+    result: NarrativePlanningResult,
+  ) {
+    const version = input.narrativeContext.policy.promptVersions.planReviewer;
+    if (!version)
+      throw new DomainError(
+        'AI_NOT_CONFIGURED',
+        'Planning review is not enabled by this frozen policy.',
+      );
+    const locale = localeSchema.parse(input.input.locale);
+    return this.generate(
+      narrativePlanReviewSchema,
+      'life_narrative_plan_review',
+      this.config.checkModel ?? this.config.eventModel,
+      `${periodRules(locale)} ${narrativePlanReviewPrompt(locale)}`,
+      narrativePlanReviewRequest(input, result),
+      locale,
+      `${version}.${locale}`,
     );
   }
   writeNarrativeChapter(

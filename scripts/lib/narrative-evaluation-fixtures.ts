@@ -321,7 +321,7 @@ export function fixedNarrativeFixture(fixtureId: string) {
   });
   f.candidate.events = [first, middle, final];
   f.result.plan.premise = `${profile.goal} An initial attempt produces a specific difficulty; testing it changes the next decision.`;
-  f.result.plan.centralTension = `${next.costs[0]} ${next.costs[1]}`;
+  f.result.plan.centralTension = `If the first route is chosen: ${next.costs[0]} If the alternative is chosen: ${next.costs[1]}`;
   const scene = f.result.plan.scenes[0]!;
   f.result.plan.scenes = [
     {

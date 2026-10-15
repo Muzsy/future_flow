@@ -108,6 +108,14 @@ export function narrativePlanFixture(source?: NarrativePeriodInput) {
   };
   return { input, candidate, canon, memory, result };
 }
+export function narrativePlanReviewFixture() {
+  return {
+    version: '1.0.0' as const,
+    scores: { causality: 4, agency: 4, novelty: 4, choiceStakes: 4 },
+    issues: [],
+    verdict: 'pass' as const,
+  };
+}
 export function narrativeEditorialFixture(): NarrativeEditorialReport {
   return {
     version: '1.0.0',

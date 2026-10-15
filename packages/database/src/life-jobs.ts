@@ -1,3 +1,4 @@
+import { narrativeV1PolicySchema } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
   PeriodCandidateV2,
@@ -180,6 +181,15 @@ export class LifeJobRepository {
           'The life has changed.',
           409,
         );
+      const policy = narrativeV1PolicySchema.safeParse(
+        current.payload.narrativeContext?.policy,
+      );
+      if (!policy.success)
+        throw new DomainError(
+          'NARRATIVE_CONTEXT_INVALID',
+          'Narrative request policy is invalid.',
+        );
+      const limit = policy.data.maxPhysicalRequests;
       const used =
         current.checkpoints.providerRequestCount === undefined
           ? 0
@@ -188,21 +198,21 @@ export class LifeJobRepository {
         typeof used !== 'number' ||
         !Number.isSafeInteger(used) ||
         used < 0 ||
-        used > 7
+        used > limit
       )
         throw new DomainError(
           'NARRATIVE_CONTEXT_INVALID',
           'Narrative request count is invalid.',
         );
-      if (used >= 7)
+      if (used >= limit)
         throw new DomainError(
           'NARRATIVE_REQUEST_LIMIT',
           'Narrative request limit reached.',
         );
       const row = (
         await tx.query<{ count: number }>(
-          "UPDATE aw_jobs SET checkpoints=checkpoints||jsonb_build_object('providerRequestCount',COALESCE((checkpoints->>'providerRequestCount')::int,0)+1) WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() AND COALESCE((checkpoints->>'providerRequestCount')::int,0)<7 RETURNING (checkpoints->>'providerRequestCount')::int AS count",
-          [job.id, job.user_id, job.lease_token],
+          "UPDATE aw_jobs SET checkpoints=checkpoints||jsonb_build_object('providerRequestCount',COALESCE((checkpoints->>'providerRequestCount')::int,0)+1) WHERE id=$1 AND user_id=$2 AND lease_token=$3 AND status='running' AND lease_until>clock_timestamp() AND COALESCE((checkpoints->>'providerRequestCount')::int,0)<$4 RETURNING (checkpoints->>'providerRequestCount')::int AS count",
+          [job.id, job.user_id, job.lease_token, limit],
         )
       )[0];
       if (!row) lost();

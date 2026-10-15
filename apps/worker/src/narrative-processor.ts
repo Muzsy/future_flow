@@ -6,6 +6,9 @@ import {
   narrativeReferenceSnapshot,
   narrativeReceipts,
   narrativePlannerRequest,
+  narrativePlanReviewRequest,
+  validateNarrativePlanReview,
+  evaluateNarrativePlanReview,
   narrativeWriterRequest,
   narrativeFidelityRequest,
   narrativeEditorialRequest,
@@ -20,6 +23,7 @@ import {
   fidelitySchema,
   narrativeEditorialReportSchema,
   type NarrativePlanningResult,
+  type NarrativePlanReview,
   type PeriodChapterV2,
 } from '@future-flow/contracts';
 import {
@@ -64,6 +68,14 @@ export async function processNarrativeLifeJob(
       'Operator jobs cannot use narrative generation.',
     );
   const scope = narrativeScope(input);
+  const needsReview = !!scope.context.policy.promptVersions.planReviewer,
+    limit = scope.context.policy.maxPhysicalRequests;
+  if (needsReview && typeof ai.reviewNarrativePlan !== 'function')
+    throw new DomainError(
+      'AI_NOT_CONFIGURED',
+      'Planning review is not configured.',
+      503,
+    );
   if (
     input.input.lifeId !== job.life_id ||
     input.input.branchId !== job.branch_id ||
@@ -128,6 +140,13 @@ export async function processNarrativeLifeJob(
       ...(stage === 'planner'
         ? {
             planningResult: null,
+            ...(needsReview
+              ? {
+                  planningReview: null,
+                  planningReviewInputHash: null,
+                  planningReviewOutputHash: null,
+                }
+              : {}),
             candidate: null,
             candidateHash: null,
             canonHash: null,
@@ -167,13 +186,13 @@ export async function processNarrativeLifeJob(
       typeof count !== 'number' ||
       !Number.isSafeInteger(count) ||
       count < 0 ||
-      count > 7
+      count > limit
     )
       throw new DomainError(
         'NARRATIVE_CONTEXT_INVALID',
         'Narrative request count differs.',
       );
-    if (count >= 7)
+    if (count >= limit)
       throw new DomainError(
         'NARRATIVE_REQUEST_LIMIT',
         'Narrative request limit reached.',
@@ -270,6 +289,56 @@ export async function processNarrativeLifeJob(
       if (!contentError(error)) throw error;
       await repair('narrative_plan', error);
       continue;
+    }
+    if (needsReview) {
+      const reviewHash = hash(
+        narrativePlanReviewRequest(run.planningInput, run.result),
+      );
+      let review = cp.planningReview as NarrativePlanReview | undefined;
+      if (
+        review &&
+        (cp.planningReviewInputHash !== reviewHash ||
+          cp.planningReviewOutputHash !== hash(review) ||
+          !lastMatches('life_narrative_plan_review', reviewHash, review))
+      ) {
+        await clear('writer');
+        await save('NARRATIVE_PLAN_REVIEW_INVALID', {
+          planningReview: null,
+          planningReviewInputHash: null,
+          planningReviewOutputHash: null,
+        });
+        review = undefined;
+      }
+      try {
+        if (!review) {
+          await allowed();
+          const response = await ai.reviewNarrativePlan!(
+            run.planningInput,
+            run.result,
+          );
+          review = response.output;
+          await record('NARRATIVE_PLAN_REVIEW_RESULT', response, {
+            planningReview: review,
+            planningReviewInputHash: reviewHash,
+            planningReviewOutputHash: hash(review),
+          });
+        }
+        const report = validateNarrativePlanReview(review, run.result);
+        if (!evaluateNarrativePlanReview(report).passed) {
+          await repair(
+            'narrative_plan',
+            new DomainError(
+              'NARRATIVE_PLAN_INVALID',
+              `Revise the proposed story before drafting. Scores ${JSON.stringify(report.scores)}. ${report.issues.map((issue) => `${issue.explanation} ${issue.suggestedFix}`).join(' ')}`,
+            ),
+          );
+          continue;
+        }
+      } catch (error) {
+        if (!contentError(error)) throw error;
+        await repair('narrative_plan', error);
+        continue;
+      }
     }
     const feedback = cp.narrativeRepairFeedback as
       NarrativeRepairFeedback | undefined;
@@ -391,6 +460,7 @@ export async function processNarrativeLifeJob(
         report,
         receipts,
         feedback,
+        needsReview ? (cp.planningReview as NarrativePlanReview) : undefined,
       );
       await save('NARRATIVE_READY_TO_COMMIT', {
         narrativeArtifact: artifact,

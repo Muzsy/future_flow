@@ -44,6 +44,9 @@ export async function processLifeJob(
         'writeNarrativeChapter',
         'checkNarrativeChapter',
         'editNarrativeChapter',
+        ...(input.narrativeContext.policy.promptVersions.planReviewer
+          ? ['reviewNarrativePlan']
+          : []),
       ].every(
         (method) =>
           typeof provider[method as keyof NarrativeAiProvider] === 'function',

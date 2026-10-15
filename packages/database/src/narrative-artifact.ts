@@ -13,6 +13,8 @@ import {
   validateNarrativeEditorialReport,
   validateNarrativeChapterV1,
   narrativeReferenceSnapshot,
+  narrativePlanReviewRequest,
+  validateNarrativePlanReview,
   type NarrativeReferences,
   type simulatePeriodV2,
 } from '@future-flow/core';
@@ -159,8 +161,24 @@ export async function validateNarrativeCommit(
       'NARRATIVE_CONTEXT_INVALID',
       'Narrative memory belongs to another revision.',
     );
+  const proposed = {
+    version: '1.0.0' as const,
+    candidate: canon.period,
+    plan: commit.artifact.validatedPlan,
+  };
   const expected = {
     ...commit.expectedBindings,
+    ...(context.policy.promptVersions.planReviewer
+      ? {
+          planningReviewInputHash: hash(
+            narrativePlanReviewRequest(
+              { ...input, narrativeContext: context },
+              proposed,
+            ),
+          ),
+          planningReviewOutputHash: hash(commit.artifact.planningReview),
+        }
+      : {}),
     policyHash: hash(context.policy),
     memoryHash: hash(context.memory),
     referenceHash: hash(
@@ -188,6 +206,8 @@ export async function validateNarrativeCommit(
     await ownedNarrativeReferences(tx, userId, branchId),
   );
   validateNarrativeEditorialReport(artifact.editorialReport, chapter, canon);
+  if (context.policy.promptVersions.planReviewer)
+    validateNarrativePlanReview(artifact.planningReview, proposed);
   for (const reference of artifact.provenance.receiptRefs) {
     const receipt = receipts[reference.ordinal] as
       Record<string, unknown> | undefined;
@@ -198,7 +218,7 @@ export async function validateNarrativeCommit(
       receipt.outputHash !== reference.outputHash ||
       receipt.model !== reference.model ||
       receipt.promptVersion !==
-        `${artifact.policy.promptVersions[reference.task === 'life_narrative_plan' ? 'planner' : reference.task === 'life_narrative_chapter' ? 'writer' : reference.task === 'life_fidelity' ? 'fidelity' : 'editor']}.${input.input.locale}`
+        `${artifact.policy.promptVersions[reference.task === 'life_narrative_plan_review' ? 'planReviewer' : reference.task === 'life_narrative_plan' ? 'planner' : reference.task === 'life_narrative_chapter' ? 'writer' : reference.task === 'life_fidelity' ? 'fidelity' : 'editor']}.${input.input.locale}`
     )
       throw new DomainError(
         'NARRATIVE_CONTEXT_INVALID',
