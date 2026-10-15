@@ -15,7 +15,10 @@ import {
   type BlindPair,
   type HumanRating,
 } from '../scripts/lib/narrative-evaluation-contract';
-import { evaluationCostReport } from '../scripts/lib/narrative-evaluation-costs';
+import {
+  evaluationCostReport,
+  evaluationNarrativeYield,
+} from '../scripts/lib/narrative-evaluation-costs';
 import {
   narrativePeriod,
   narrativeInput,
@@ -336,6 +339,74 @@ describe('bounded and independently assessed narrative experiment', () => {
   });
 });
 
+it('charges failed full narrative attempts to accepted output without mixing comparison costs or hiding zero yield', () => {
+  const calls = ['accepted', 'rejected', 'fixed', 'fork', 'prior'].map(
+    (id, i) => ({
+      id,
+      accountedUsd: [0.2, 0.3, 0.4, 0.5, 0.6][i]!,
+      estimatedUsd: 0.1,
+      reservedUsd: 0.7,
+      status: 'completed',
+      usage: { input_tokens: 1, output_tokens: 1 },
+    }),
+  );
+  const accounting = evaluationCostReport(
+    calls,
+    {
+      accepted: {
+        sourceHash: 'current',
+        caseId: 'bounded-career:narrative-v1:0',
+      },
+      rejected: {
+        sourceHash: 'current',
+        caseId: 'bounded-career:narrative-v1:1',
+      },
+      fixed: {
+        sourceHash: 'current',
+        caseId: 'fixed:bounded-career:narrative-v1:0',
+      },
+      fork: {
+        sourceHash: 'current',
+        caseId: 'fork:bounded-career:narrative-v1:2',
+      },
+      prior: { sourceHash: 'prior', caseId: 'bounded-career:narrative-v1:0' },
+    },
+    'current',
+  );
+  const samples = [
+    {
+      fixtureId: 'bounded-career',
+      mode: 'narrative-v1',
+      kind: 'full',
+      periodIndex: 0,
+    },
+  ];
+  const result = evaluationNarrativeYield(accounting, samples)!;
+  expect(result.attemptedChapters).toBe(2);
+  expect(result.gateAcceptedChapters).toBe(1);
+  expect(result.acceptanceRate).toBe(0.5);
+  expect(result.accountedUsdPerGateAcceptedChapter).toBeCloseTo(0.5);
+  expect(result.unacceptedAttemptAccountedUsd).toBeCloseTo(0.3);
+  expect(
+    evaluationNarrativeYield(accounting, [])!
+      .accountedUsdPerGateAcceptedChapter,
+  ).toBeNull();
+  expect(
+    evaluationNarrativeYield(
+      { ...accounting, unassignedReservations: 1 },
+      samples,
+    )!.accountedUsdPerGateAcceptedChapter,
+  ).toBeNull();
+  expect(
+    evaluationNarrativeYield({ ...accounting, perCase: [] }, samples)!
+      .acceptedCostCoverage,
+  ).toBe(false);
+  expect(
+    evaluationNarrativeYield({ ...accounting, perCase: [] }, samples)!
+      .accountedUsdPerGateAcceptedChapter,
+  ).toBeNull();
+});
+
 describe('real worker evaluation corpus without paid transport', () => {
   it('runs all chains, fixed-canon writers and owned forks, then resumes without another request', async () => {
     const { mkdtemp, readFile, writeFile, rm, mkdir } =
@@ -556,6 +627,19 @@ it('authors observable fixed-canon actions without changing source profile const
     );
     expect(run.canon.events[0].stateAfter.finance.monthlyIncome).toBeNull();
     expect(run.canon.events[0].stateAfter.finance.liquidFunds).toBeNull();
+    expect(run.canon.events).toHaveLength(3);
+    expect(f.result.plan.turningPointEventId).toBe(run.canon.events[1].id);
+    expect(f.result.plan.scenes[1]!.eventIds).toEqual([run.canon.events[1].id]);
+    expect(run.canon.events[1].stateAfter.resources).toEqual(
+      f.input.state.resources,
+    );
+    const decision = f.candidate.events.at(-1)!.decision!;
+    expect(
+      decision.options.every((o) =>
+        o.changes.every((c) => c.type === 'goal_progress_set'),
+      ),
+    ).toBe(true);
+    expect(new Set(decision.options.map((o) => o.description)).size).toBe(2);
     expect(fixedNarrativeFixture(profile.id).result).toEqual(f.result);
   }
 });

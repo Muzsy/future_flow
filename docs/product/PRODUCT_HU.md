@@ -169,3 +169,10 @@ A béta során elsősorban:
 - AI-költség/user és hibaarány tartható-e.
 
 A hosszú távú monetizációt és retentiont valós használatból kell kalibrálni, nem előzetes feltételezésekből.
+
+
+## Történetminőség és gazdaságos működés
+
+A személyes történet minősége elsődleges termékkövetelmény. A történet legyen több időszakon át élvezetes, sajátos, okszerű és a tényleges választásoktól függő; a schema/domain megfelelés és a modell saját editor pontja önmagában nem elég. A működési költséget az ezt elérő változatok között kell optimalizálni. Gyenge szöveg nem elfogadható kizárólag azért, mert olcsóbb.
+
+A gazdaságosság egysége egy ténylegesen elfogadott fejezet teljes előállítási költsége: az elutasított próbák és javítások költsége is számít. A mérés külön mutassa az automatikus kapun átment és a független ember által értékelt eredményt. A technikai pass nem emberi minőségigazolás. Árazás/használati keret csak a mért költség, sikerarány és várakozási idő alapján dönthető el; ebből nem következik automatikus production budgetemelés vagy új billing-szabály.

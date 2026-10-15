@@ -15,6 +15,7 @@ import type {
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 import {
   evaluationCostReport,
+  evaluationNarrativeYield,
   type ExperimentalCall,
   type EvaluationBudgetBinding,
 } from './narrative-evaluation-costs';
@@ -168,6 +169,9 @@ export async function writeEvaluationArtifacts(
           run.samples.filter((s) => s.kind === 'full').map((s) => s.elapsedMs),
         ),
     accounting: run.accounting,
+    narrativeYield: run.mock
+      ? null
+      : evaluationNarrativeYield(run.accounting, run.samples),
     qualityRelease: false,
     reason:
       'Independent human grades, semantic choice review, complete paid samples and owner-set cost/time limits are required.',
@@ -214,16 +218,8 @@ export async function assessEvaluationArtifacts(options: EvaluationOptions) {
       run.sourceHash,
     );
   }
-  const costs = run.accounting?.perCase.filter((c) =>
-    narrativeSamples.some(
-      (s) => c.caseId === `${s.fixtureId}:${s.mode}:${s.periodIndex}`,
-    ),
-  );
-  const meanCostUsd =
-    costs && narrativeSamples.length && costs.length === narrativeSamples.length
-      ? costs.reduce((sum, c) => sum + c.accountedUsd, 0) /
-        narrativeSamples.length
-      : NaN;
+  const yieldReport = evaluationNarrativeYield(run.accounting, run.samples);
+  const meanCostUsd = yieldReport?.accountedUsdPerGateAcceptedChapter ?? NaN;
   const p95Ms = percentile95(narrativeSamples.map((s) => s.elapsedMs)) ?? NaN;
   const allChoiceMappingsReviewed = run.samples.every((s) =>
     s.choiceMappings.every(

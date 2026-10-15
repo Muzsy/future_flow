@@ -266,7 +266,9 @@ function clientFor(
       );
     const start = Date.now(),
       task = parameters.text.format.name,
-      f = narrativePlanFixture(job.payload),
+      f = caseId.startsWith('fixed:')
+        ? fixedNarrativeFixture(caseId.split(':')[1]!)
+        : narrativePlanFixture(job.payload),
       candidate = narrativePeriod(job.payload);
     const canon = f.canon;
     const story = {
