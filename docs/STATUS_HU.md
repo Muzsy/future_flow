@@ -1,9 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-12
-supersedes:
-  - STATUS_HU.md (pre-2026-10-12 checkpoint-log form)
+last_reviewed: 2026-10-15
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -13,137 +11,61 @@ related:
 
 # Alterward — aktuális projektállapot
 
-Ez a dokumentum kizárólag a jelenlegi állapotot tartalmazza. Korábbi checkpointok, auditok és release-bizonyítékok történeti anyagok.
+Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operatív eredményt külön kezeli. A dokumentációfrissítés nem production deployment és nem friss élő health-ellenőrzés.
 
-## Release posture
+## Kiadási és bétaállapot
 
-**A személyes béta műszaki előkészítése lezárt, de a béta nincs aktiválva.**
+Az első személyes tesztelő reader-hozzáférése, első belépése és a 30 napos funded ablak kanonikus Linux-operátori aktiválása megtörtént. Az alkalmazott UTC ablak **2026-10-13T22:11:21Z–2026-11-12T22:11:21Z**, a projektmaximum 2 USD, a felhasználói maximum 0,50 USD. Nincs automatikus hosszabbítás vagy újraindított költségkeret.
 
-Jelenlegi működési keret:
+Az utolsó igazolt böngészős E2E (2026-10-14) három valódi fejezetet, két folytatási ciklust, mentett választásokat, újranyitást, visszabelépést és friss hitelesítés utáni exportot ellenőrzött. A kilenc provider-task elszámolt összege 0,188585 USD; ez a béta adatbázis-elszámolása, nem szolgáltatói számla. A következő generálást a 3/UTC-nap, 1 párhuzamos kérés korlát megállította. A későbbi új-munkamenetes sikeres folytatás nem igazolt. A megtartott fiók destruktív törlése nem volt része a próbának.
 
-- az alkalmazás Contabón, tulajdonosi hozzáféréssel fut;
-- Cloudflare Access zárja a webhelyet;
-- a konkrét személyes béta tesztelői kör nincs aktiválva;
-- a személyes AI 30 napos bétaablaka nincs elindítva;
-- Shared nincs bekapcsolva az első személyes béta körben;
-- billing/checkout/webhook nincs éles termékként implementálva.
-
-A béta aktiválási részleteit az operations dokumentáció és a `DEVELOPMENT_PLAN_HU.md` P08 pontja kezeli.
+A webhely továbbra zárt személyes béta; Shared és nyilvános/community launch nincs engedélyezve. A főág új narratív kódja még nem került productionbe: a default legacy/üres narrative cohort megmarad. A régi operátori kiadást dokumentációfrissítés vagy új fejlesztési commit nem cseréli le.
 
 ## Termékterületek
 
-| Terület                         | Állapot                                         | Megjegyzés                                                                                                        |
-| ------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Private Personal Simulation     | implemented                                     | profil → world state → generálás → döntés → következmény → folytatás/fork                                         |
-| Official Lives                  | implemented/catalogued                          | angol Official életutak és kiadási pipeline létezik; első személyes béta scope-jától elkülönítve                  |
-| Scenario                        | implemented/catalogued                          | Official és személyes Scenario útvonalak léteznek                                                                 |
-| Public/Community infrastruktúra | implemented in substantial parts, release-gated | publication/discovery/fork/moderation/curation kód és operátori eszközök vannak; ez nem jelent nyilvános launchot |
-| Shared Context                  | implemented, release-disabled                   | friend alap és Shared AI/personal impact infrastruktúra létezik; első személyes béta alatt kikapcsolva            |
-| Sponsored Guest seat            | implemented                                     | targeted Free friend Guest modell a main része                                                                    |
-| Paid subscription billing       | not implemented                                 | entitlement modell létezik, payment provider/checkout/webhook nincs kész                                          |
-| Hungarian release               | deferred                                        | induló termék és AI-történetek angolul                                                                            |
+| Terület | Állapot | Következő határ |
+|---|---|---|
+| Private Personal Simulation | implementált és egy tesztelővel valódi E2E-ben ellenőrzött | irodalmi minőség, későbbi visszatérés és szélesebb pilot |
+| Új személyes narratív pipeline | N00–N07 kész; N08/N09 nyitott | teljes paid/human benchmark és külön operátori rollout |
+| Official Lives / Scenario | technikai alap és angol katalógus létezik | nem általános publikus launch-engedély |
+| Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
+| Shared Context | foundation kész, első személyes körben OFF | owner downgrade kontroll és kétfős friend beta |
+| Sponsored Guest | targeted friend részvétel implementált | host/participant és privacy feltételek megtartása |
+| Előfizetés / billing | nincs kész fizetési rendszer | B01: provider, lifecycle és szerveres entitlement |
+| Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
-## Shared entitlement — jelenlegi kódállapot
+## Történetminőség – jelenlegi fejlesztési eredmény
 
-- Free: saját Shared context nélkül egy targeted `friend_group` sponsored Guest részvétel;
-- Explorer: 1 saját friend context;
-- Connected: legfeljebb 3 saját context; friend/romantic/work/hobby;
-- World: legfeljebb 5 saját context; sports team is elérhető;
-- sponsored Guest nem hozhat létre contextet, nem hívhat meg másokat és nem indíthat fizetett Shared AI-t;
-- Shared AI költség az entitled kezdeményező `requested_by_user_id` felhasználóhoz és projektbudgethez tartozik.
+Az N00–N07 implementáció (PR #25–#33) és a PR #35–#38 beolvadt. A legutóbbi narratív kód a `fd10b856` merge-ben van; PR #38 pontos forrásán 87 fájl / **906 offline teszt**, Verify és container CI sikeres. A teljes offline korpusz 68 fejezet / 34 pár / 248 mock transport; a mock nem irodalmi minőségbizonyíték.
 
-Részletes kanonikus Shared specifikáció: `features/shared/SHARED_CONTEXT_HU.md`.
+Az új selected narrative policy planner v3, külön tervellenőr v1 és writer v3 útvonalat használ. Öt normál feladat, legfeljebb nyolc fizikai kérés és egy globális tartalmi javítás engedett; a régi befagyasztott policy négy/max7 viselkedése megmarad. A tervellenőrzés valódi receipthez és a pontos bemenet/kimenet hashéhez kötött. Monetary budget, lease, privacy, recovery és a 32 KiB artifact-határ változatlan.
 
-## Technikai architektúra
+A legutóbbi kétprofilos, egyidőszakos valódi diagnózis két új első fejezete átment, öt-öt hívással, javítás nélkül; teljes ilyen költségük 0,2674625 USD, egy modellkapun átment fejezetre **0,13373125 USD**. Mindkét külön fix-kánon íróteszt editor-elutasítás lett, momentum 2/5. A tervellenőr befejezetlen mezővégeket is jelzett. Ezek nyitott minőségi problémák; két első fejezet nem igazol többidőszakos vagy független emberi minőséget.
 
-Monorepo:
+Az összes külön fejlesztési mérés **101 hívás / 2,158755 USD konzervatív elszámolás**, 1,9980987 USD usage-alapú árbecslés, minden használat ismert és nulla hozzárendeletlen foglalás. Az eredeti összesített 5 USD keretből 2,841245 USD maradt. Ez a fejlesztési projekt ledgere, nem a bétaablak költése; új változat vagy outputkönyvtár nem nullázza.
 
-- `apps/web` — web kliens;
-- `apps/api` — HTTP/API réteg;
-- `apps/worker` — aszinkron AI/background feldolgozás;
-- `packages/access` — hozzáférési/auth helper réteg;
-- `packages/contracts` — sémák és külső/belső contractok;
-- `packages/core` — domain logika és invariánsok;
-- `packages/database` — perzisztencia és repository réteg;
-- `packages/ai` — AI/provider integráció.
+Részletes authority: [narratív implementáció](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md), [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md), [Issue #24](https://github.com/Muzsy/future_flow/issues/24).
 
-Adatbázis-migrációk, contractok és recovery/schema guardok a runtime-kód részei; migrációs változtatásnál együtt kell őket frissíteni.
+## Gazdaságosság és termékdöntés
 
-## CI és quality gate
+A történetminőség elsődleges. A havi 8 fejezet, opcionális 4-es kiegészítő, egyszeri 3-as próba, rollover, 0,70 USD teljes fejezetköltség és 18 USD megtartott havi bevétel **modellezési javaslat**, nem elfogadott ár vagy implementált csomag. Alacsonyabb, tartósan igazolt költségnél 12–24 fejezetes változat is vizsgálandó.
 
-A normál Verify workflow ellenőrzi többek között:
+A teljes, valós kódra és mérésekre épített [gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) a kanonikus [monetizációs modell](product/MONETIZATION_HU.md) supporting anyaga. Billing, személyes fejezetszámláló vagy új éles allowance nincs aktiválva. A Shared Free/Explorer/Connected/World slotok és sponsored Guest szabályok változatlanok.
 
-- dependency install/frozen lockfile;
-- formázást;
-- dokumentációs konzisztenciát (`pnpm docs:check`);
-- repository/security boundary-kat;
-- typechecket;
-- teszteket;
-- buildet;
-- schemas generálást/eltérést;
-- container/deployment/TLS határokat.
+## Operátori host és működés
 
-## Operations
+A normál reader/funded és kézi daily backup/sync/restore/monitor Linuxra átvétele PR #21-ben elkészült, az eredeti privát state ellenőrzött átvételével és valódi operátori alkalmazással. Ezekhez Windows-agent nem szükséges. A korábbi Windows scheduler és owner-image deployment nem része ennek az átállásnak.
 
-Aktív infrastruktúra-elemek a jelenlegi operátori dokumentáció alapján:
+A már funded futó alkalmazás új narratív runtime-ra frissítésének külön Linux operátori támogatása még hiányzik: [Issue #34](https://github.com/Muzsy/future_flow/issues/34). Ez nem az eredeti adatátvétel hiánya, és nem indok az ablak vagy ledger visszaállítására. A narratív rollout előtt exact-source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile, target/apply és utólagos readback kell.
 
-- Contabo deployment;
-- titkosított napi backup;
-- offsite/local backup másolat;
-- restore/recovery ellenőrzések;
-- külső health/availability monitorozás;
-- Supabase Auth/DB privacy és writer-fence védelmek.
+A Contabo/Cloudflare, backup/TLS/privacy/writer-fence védelmek és a supporting runbookok megmaradnak. Privát credential, résztvevői email/UUID és teljes operátori proof nem része ennek a dokumentációnak.
 
-A részletes végrehajtási eljárásokat nem ez a STATUS, hanem az operations/runbook dokumentáció tartalmazza.
+## Aktív prioritások és nyitott kapuk
 
-## Aktív release gate-ek
+1. **N08:** többfejezetes és alternatív ágas minőség, fix-kánon mérőanyag elégtelen előrehaladása, befejezetlen tervmezők vizsgálata, valódi vak emberi értékelés és külön tulajdonosi ár/idő plafon. Emberi döntéspárosítást nem pótolunk kitalált jóváhagyással.
+2. **N09 / Issue #34:** támogatott Linux funded-upgrade és teljes release/recovery proof, majd külön kontrollált rollout. A főág nem azonos a productionnel.
+3. **P08:** meglévő béta visszatérési/folytatási és feedback-mérése, megmaradt E2E korlátok ellenőrzése; további résztvevő csak saját admission kapuval. A már alkalmazott első meghívást és ablakot nem kell újrakezdeni.
+4. **Gazdaságossági pilot / B01:** a minőség, fejezetköltség, tartalommennyiség és fizetési hajlandóság alapján külön csomag/ár döntés, utána billing implementáció.
+5. **Shared:** owner downgrade után end/archive/revoke adatkontroll rendezése és targeted Guest kétfős E2E; friend beta csak a personal eredmények után. Public/community és további nyelvek külön későbbi kiadás.
 
-### P1 roadmap — első személyes béta
-
-Még szükséges:
-
-1. a konkrét, legfeljebb 10 fős tesztelőlista;
-2. meghívás és első belépés;
-3. email ↔ Auth UUID / reader hozzáférés pontos operátori beállítása;
-4. candidate backup/restore és indulás előtti egyszeri ellenőrzés;
-5. 30 napos személyes AI-ablak dokumentált aktiválása;
-6. valódi bejelentkezett, fizetett AI E2E indulási próba.
-
-Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` P08.
-
-### P2 roadmap — Shared friend beta
-
-Csak a személyes béta után. Tervezett első kör: öt baráti pár / legfeljebb 10 személy, külön aktiválással.
-
-Részletes végrehajtási pont: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest része + D01.
-
-## Ismert aktív kockázatok / döntési pontok
-
-1. **Shared downgrade lifecycle:** a jelenlegi kód owner `end`, `archive` és pending invite `revoke` műveletnél is aktív host entitlementet kér. Emiatt egy Free-re visszaminősített korábbi tulajdonos nem tudja ezeket a kontrollműveleteket elvégezni. Ezt a Shared release előtt explicit termékdöntéssel rendezni kell.
-2. **Billing hiány:** a tier/entitlement modell nem azonos kész fizetési rendszerrel. Provider, checkout, webhook és számlázási lifecycle külön fejlesztési fázis.
-3. **Recovery határ:** teljes hosted Supabase-vesztés esetére elfogadott korlát a zárva maradó, kézi újraépítés; ez nem automatikus disaster-recovery ígéret.
-4. **Publikus/community release:** a meglévő infrastruktúra és staging/curation bizonyíték nem jelent automatikus publikus termékengedélyt.
-
-## Személyes történetminőség fejlesztés
-
-N00–N09 workstream elindult, Issue #24. N00 beolvadt PR #25-ben: nyolc kitalált, determinisztikus tesztprofil és a legacy generálási út háromidőszakos offline baseline-ja. N01 beolvadt PR #26-ban, 802 sikeres offline teszttel és CI-vel; a production nem használja. N02 beolvadt PR #27-ben, 823 sikeres offline teszttel és CI-vel. N03 beolvadt PR #28-ban, 828 offline teszttel és CI-vel; nullable melléklet és recovery/DTO kompatibilitás kész a fejlesztési főágon. N04 beolvadt PR #29-ben, 841 offline teszttel és CI-vel. N05 beolvadt PR #30-ban, 859 offline teszttel és sikeres CI-vel. N06 beolvadt PR #31-ben, 865 offline teszttel és sikeres CI-vel. N07 beolvadt PR #32-ben, 870 offline teszttel és sikeres CI-vel; a withheld actor guard follow-up PR #33-ban beolvadt, 871 offline teszt és CI sikeres. N08 harness offline ellenőrzött (86 fájl, 884 teszt); N09 kiadási csomag előkészítve; paid/human, Linux funded-upgrade és target/apply kapuk nyitottak; a konfiguráció explicit narrative-v1/cohort előkészítést enged, alapértéke legacy/üres cohort, rollout még nincs. Ez nem valódi provider vagy emberi minőségi benchmark, és nem production rollout. Részletek: `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md` és `DEVELOPMENT_PLAN_HU.md`.
-
-## Aktuális fejlesztési fókusz
-
-1. személyes béta tényleges aktiválása a meglévő kapuk szerint;
-2. Shared owner downgrade data-control hardening;
-3. utána Shared friend beta;
-4. billing foundation külön fejlesztési körben.
-
-A dokumentációs governance és canonicalization elkészült. A részletes régi P01–P13 / S0–S7 végrehajtási állapotot a `DEVELOPMENT_PLAN_HU.md` tartja karban.
-
-Jövőbeli prioritások: `ROADMAP_HU.md`.
-
-## Operátori host átállás
-
-A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatásának és az eredeti Windows operátori state titkosított migrációjának O01 munkája folyamatban. Ez nem jelenti a Linux operátori kiadás vagy a valódi béta aktiválását. Részletek: `operations/LINUX_OPERATOR_HU.md`.
-
-N08 paid checkpoint: PR #36 beolvadt, 886 offline teszt és CI sikeres. A két forrás összesen 40 valódi hívása 0.868235 USD accounted / 0.814835 USD usage-becslés; az első v2 fejezet átment, a második kánonszintű ismétlődésen elbukott, a fix-kánon próba továbbra hiányos anyagot jelzett. Nem teljes benchmark vagy emberi PASS. Planner v3 folytatási korrekció, pontosabb fix-kánon következményanyag és az elutasításokat is számoló egységköltség fejlesztés alatt; v1/v2 queue promptok és az eredeti összesített 5 USD ledger megőrzendők. A termékprioritás a történetminőség; gazdaságossági döntés a megfelelő minőség mérése után.
-
-
-N08 további paid diagnózis: PR #37 beolvadt, 888 offline teszt és CI sikeres; új kétprofilos próba után összesen 75 hívás / 1.632 USD accounted, a három teljes új próbából egy modellkapu-pass, többfejezetes quality release nincs. Új tervellenőrzési lépés és writer v3 fejlesztés/ellenőrzés alatt: selected új policy öt normál/max8 fizikai hívás, a korábbi frozen policy négy/max7 marad; globális tartalmi javítás továbbra egy. Az eredeti 5 USD fejlesztési limit, production default-off és humán/operátori gate változatlan. Részletek a narrative implementation tervben.
+A részletes státuszok a [fejlesztési tervben](DEVELOPMENT_PLAN_HU.md), a jövőbeli sorrend a [roadmapben](ROADMAP_HU.md) találhatók. Ez a frissítés nem végzett éles műveletet vagy új fizetett AI-hívást.

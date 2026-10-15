@@ -1,13 +1,26 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-14
+last_reviewed: 2026-10-15
 related:
   - ../DEVELOPMENT_PLAN_HU.md
   - ../architecture/ARCHITECTURE_HU.md
 ---
 
-## N02 konkrét implementáció
+## Aktuális implementáció és mérési állapot (2026-10-15)
+
+Az N00–N07 implementáció (PR #25–#33) és a PR #35–#38 beolvadt; az új narratív kód legutóbbi merge-je `fd10b856`. N00–N07 kész. N08 mérőeszköz implementált; 87 fájl / 906 offline teszt és Verify/container CI sikeres, teljes mock korpusz 68 fejezet / 34 pár / 248 transport. A review markerrel új queue öt normál/max8 fizikai kérést használ, régi frozen policy négy/max7; egy globális tartalmi javítás, eredeti monetary/privacy/recovery kapuk megmaradnak. Planner v3, külön tervellenőr v1 és writer v3 csak a megfelelő befagyasztott policy szerint fut. Az eredeti munkacsomag-specifikációk és az alábbi korábbi részállapotok nem jelentik a már elkészült lépések újrakezdését; eltérésnél ez az aktuális összefoglaló és az utolsó tervmódosítás érvényes.
+
+A kétprofilos, egyidőszakos paid diagnózisban mindkét első teljes új fejezet átment öt-öt hívással, javítás nélkül. Összes ilyen költség 0,2674625 USD; 0,13373125 USD/modellkapun átment fejezet. A két külön fix-kánon íróteszt fidelityn átment, editor momentum 2/5 miatt elutasított. A tervellenőr befejezetlen mezővégeket is jelzett. Két első fejezet nem többfejezetes/alternatív ágas vagy független emberi minőségbizonyíték: complete=false, qualityRelease=false.
+
+Összes külön fejlesztési költés 101 hívás / 2,158755 USD accounted / 1,9980987 USD usage-becslés; minden használat ismert, hozzárendeletlen foglalás nincs. Maradék 2,841245 USD ugyanabból az összesített 5 USD-ból. A korábbi források hibái és a ledger megmaradnak. A fejlesztési számla nem a termék fejezetára, és nem a production béta költése.
+
+N08 következő feladatai: befejezetlen tervmezők forrásának vizsgálata; fix-kánon anyag hat hónapra elégtelen előrehaladása; valódi többidőszakos és fork mérés, hash-bound szemantikai döntésreview és vak emberi értékelés. Nem jóváhagyott párosításhoz reviewed=true nem írható. Az előzetes [gazdaságossági javaslat](PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) nem módosít árat, csomagot vagy minőségkaput.
+
+N09 kiadási előkészítés részleges: az eredeti normál Linux-operátori migráció megtörtént, de a már funded runtime új narrative forrásra frissítésének támogatása külön Issue #34. Pontos forrás/audit/CI, schema és tárolt prompt-policy kompatibilis recovery, drain/fence/reconcile és target/apply/readback marad kötelező. Új narrative production rollout nincs; a béta korábbi aktiválását nem ismételjük és a window/ledger nem nullázható.
+
+
+## N02 konkrét implementáció – a munkacsomag eredeti részállapota
 
 A narrative szerződések és JSON-sémák 1.0.0 verzióval készülnek; a Life V2 JSON-sémák változatlanok. A scene/choice/thread/NPC/delta/editor/artifact strict objektumok nem tartalmazhatnak szabad state patch-et. A context mód JSON-sémája és runtime validátora továbbra is üres thread/NPC tömböt követel. A narrative-v1 futási flag még tiltott.
 
@@ -35,11 +48,11 @@ Nincs migráció, sidecar, editor hívás, modellváltás, éles flagváltoztat�
 
 Issue: https://github.com/Muzsy/future_flow/issues/24
 
-A jóváhagyott terv implementációja elindult. N00 baseline: nyolc kitalált, determinisztikus profil és a jelenlegi worker háromhívásos útját fejenként három időszakon át lefuttató offline teszt. A fixture-próza tesztadat, nem irodalmi minőségbizonyíték. N00 beolvadt PR #25-ben, 794 offline teszttel és sikeres CI-vel. N01 beolvadt PR #26-ban, 802 teszttel és sikeres CI-vel. N02 beolvadt PR #27-ben, 823 offline teszttel és sikeres CI-vel. N03 beolvadt PR #28-ban, 828 offline teszttel és sikeres CI-vel. N04 beolvadt PR #29-ben, 841 offline teszttel és sikeres CI-vel. N05 beolvadt PR #30-ban, 859 offline teszttel és sikeres CI-vel. N06 beolvadt PR #31-ben, 865 offline teszttel és sikeres CI-vel. N07 beolvadt PR #32-ben, 870 offline teszttel és sikeres CI-vel. N08 offline/human benchmark eszközei fejlesztés alatt, N09 PENDING; új működés élesen nincs aktiválva. Az alábbi kiadási és paid benchmark kapuk változatlanul érvényesek.
+Az eredeti N00–N07 implementáció PR #25–#33-ban elkészült; N08 és N09 jelenlegi állapotát a dokumentum eleje rögzíti. Az alábbi specifikáció és korábbi mérési szakaszok az előzményeket és az invariánsokat őrzik; nem bizonyítanak önmagukban aktuális paid/human vagy production PASS-t.
 
 Implementáció előtti pontosítás: a core `validatePeriodChapterV2` nemcsak a 500–10000 karakteres sémát, hanem a 250–600 szavas domainkorlátot is érvényesíti. N02-ben külön policyhoz kötött narratív hosszvalidátor szükséges, mind workerben, mind commitkor: a kemény tartomány 250–950 szó, a 650–950 szavas írói cél puha marad; a legacy validátor és régi munkák 250–600 szavas kapuja változatlan marad. Ez explicit fejlesztési követelmény, nem prompt-only módosítás.
 
-A forrás-HEAD ellenőrizve: a165f974; eltérés nincs. A kanonikus STATUS és O01/P08 szövege korábbi operatív állapotot őriz; ez a munka nem állítja vissza a futó konfigurációt és nem nyit új AI-ablakot.
+Az eredeti terv kódalapja a165f974 volt. A jelenlegi kód és O01/P08 állapot a dokumentum elején és a kanonikus STATUS/DEVELOPMENT_PLAN fájlban szerepel; a dokumentáció nem állítja vissza a futó konfigurációt és nem nyit új AI-ablakot.
 
 # Alterward történetmesélési fejlesztési terv
 
@@ -732,13 +745,13 @@ A N08 előkészítő source review konkrét guard-hiányt talált: a prompt mém
 
 ## N08 összehasonlító harness és N09 előkészítés
 
-A scripts/evaluate-narrative.ts explicit offline/paid/assess belépőt ad, automatikus .env vagy production kulcsfallback nélkül. A külön fejlesztési projekt, reviewed árlista, tiszta source és legfeljebb 5 USD összesített ExperimentAiBudget szükséges paid módban; új out nem nullázza a globális ledgert. A teljes szintetikus próba 68 fejezetet, 34 vak párt és 222 mock transportot ellenőriz: 8×3×2 valódi worker commit, nyolc azonos fixture-kánon writer pár, két owned-history fork pár. Resume nem ismétel completed munkát. Ez nem irodalmi minőségbizonyíték.
+A scripts/evaluate-narrative.ts explicit offline/paid/assess belépőt ad, automatikus .env vagy production kulcsfallback nélkül. A külön fejlesztési projekt, reviewed árlista, tiszta source és legfeljebb 5 USD összesített ExperimentAiBudget szükséges paid módban; új out nem nullázza a globális ledgert. A PR #35 eredeti szintetikus próbája 68 fejezetet, 34 vak párt és 222 mock transportot ellenőrzött (a mai reviewed változat 248 hívás): 8×3×2 valódi worker commit, nyolc azonos fixture-kánon writer pár, két owned-history fork pár. Resume nem ismétel completed munkát. Ez nem irodalmi minőségbizonyíték.
 
 A hash-bound szemantikai choice review megállítja a többértelmű párosítást; későbbi review már elfogadott optiont nem cserélhet. A vak HTML és üres pontozási sablon különválik a mode keytől/modelpontoktól. A release csak teljes paid corpus, minden párra emberi pontozás, legalább 20 nem tie full pár, legalább 70% narrative preferencia, öt kritikus dimenzió legalább négyes átlaga, nulla hard/financial/privacy hiba, review-zott choices és tulajdonosi cost/p95 plafon mellett nyílhat. Az értékelés a tartós globális költségledgert újraolvassa; hiányzó per-chapter költséglefedettség fail-closed.
 
 Futtatás/folytatás/pontozás: [NARRATIVE_EVALUATION_HU.md](../operations/NARRATIVE_EVALUATION_HU.md). Konkrét schema/image/backup/replay/drain/rollback manifest és Linux támogatási rés: [NARRATIVE_RELEASE_HU.md](../operations/NARRATIVE_RELEASE_HU.md). A kanonikus Linux reader/funded/daily port nem owner-runtime upgrader. Aktív funded állapotban schema+image+cohort csere előtt külön reviewed Linux funded-upgrade implementáció és fixture kell (Issue #34); original-zero/Windows upgrader nem játszható újra és a meglévő window/ledger nem változtatható. Paid/human és target/apply továbbra külön engedélyezési kapu; éles módosítás nem történt.
 
-N08 helyi ellenőrzés: 86 tesztfájl, 884 sikeres offline teszt; külön célzott corpus/resume regresszió, teljes build, typecheck, format, schemas, docs és whitespace check. A generált V2/narrative contract fájlok nem változtak. Provider-költés és éles módosítás nulla. A fizetett/emberi benchmark eredményét ez nem helyettesíti.
+A PR #35 eredeti helyi ellenőrzése: 86 tesztfájl, 884 sikeres offline teszt; külön célzott corpus/resume regresszió, teljes build, typecheck, format, schemas, docs és whitespace check. A generált V2/narrative contract fájlok nem változtak. Provider-költés és éles módosítás nulla. A fizetett/emberi benchmark eredményét ez nem helyettesíti.
 
 
 ## Első engedélyezett paid N08 próba és v2 korrekció
@@ -760,7 +773,7 @@ A fix-kánon eredeti contract-fixture csak egy meg nem nevezett „konkrét megf
 
 PR #36 a fejlesztési főág része, 886 offline teszt és CI sikeres. A v2 első fejezete hét kérésből, egy javítás után átment (671 szó, mind a nyolc modell-editor pont 4). A jóváhagyott ismételt élő próba folytatása viszont négy kérés után terminal quality fail: megismételte a hat kérés / öt lezárás / egy függő ügy és újabb korlátozott ajánlat mintáját. A memória tartalmazta az eredményt, az elfogadott választást és a kitalált szereplő hangját; nem emlékezethiány volt. Az editor kánonszintű újszerűségi hibájára helyesen nem indult prózajavítás. A fix-kánon minta második konkrét következménye és megnevezett alternatívája is elégtelen maradt. N08/N09 nyitott, nincs teljes/human PASS.
 
-Az első két forrás közös költsége 40 hívás, 0.868235 USD accounted / 0.814835 USD usage-becslés, minden usage ismert. A következő, ellenőrzés alatt álló fejlesztés új planner v3 promptot fagyaszt. A v1 és v2 teljes prompt/receipt viselkedése megmarad; writer v2, fidelity és editor változatlan. Az új tervező a közelmúlt eredményét és záró dilemmáját együtt hasonlítja össze; a szándékosan megismételt cselekvést új következményig viszi, és nem indítja újra hallgatólagosan a már elért feltárási célt. Nem kötelez sikerre vagy látványos konfliktusra, nem írhat felül elfogadott választást vagy privacy-határt. A valódi szövegmérés fogja eldönteni, hogy ez elég-e.
+Az első két forrás közös költsége 40 hívás, 0.868235 USD accounted / 0.814835 USD usage-becslés, minden usage ismert. A később PR #37-ben beolvadt korrekció új planner v3 promptot fagyasztott. A v1 és v2 teljes prompt/receipt viselkedése megmarad; writer v2, fidelity és editor változatlan. Az új tervező a közelmúlt eredményét és záró dilemmáját együtt hasonlítja össze; a szándékosan megismételt cselekvést új következményig viszi, és nem indítja újra hallgatólagosan a már elért feltárási célt. Nem kötelez sikerre vagy látványos konfliktusra, nem írhat felül elfogadott választást vagy privacy-határt. A valódi szövegmérés fogja eldönteni, hogy ez elég-e.
 
 A külön szerzői fix-kánon három eseményt ad mindkét írónak: első kísérlet, annak ellenőrzéséből eredő konkrét következmény, név szerint megadott két következő cselekvés. A döntés nem ad előre képességet vagy mesterségesen csökkentett heti órakeretet. Ez a kézzel szerkesztett mérőanyag javítása, nem az alkalmazás plannerének irodalmi bizonyítása.
 

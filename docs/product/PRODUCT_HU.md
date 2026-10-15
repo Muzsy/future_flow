@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md
@@ -176,3 +176,6 @@ A hosszú távú monetizációt és retentiont valós használatból kell kalibr
 A személyes történet minősége elsődleges termékkövetelmény. A történet legyen több időszakon át élvezetes, sajátos, okszerű és a tényleges választásoktól függő; a schema/domain megfelelés és a modell saját editor pontja önmagában nem elég. A működési költséget az ezt elérő változatok között kell optimalizálni. Gyenge szöveg nem elfogadható kizárólag azért, mert olcsóbb.
 
 A gazdaságosság egysége egy ténylegesen elfogadott fejezet teljes előállítási költsége: az elutasított próbák és javítások költsége is számít. A mérés külön mutassa az automatikus kapun átment és a független ember által értékelt eredményt. A technikai pass nem emberi minőségigazolás. Árazás/használati keret csak a mért költség, sikerarány és várakozási idő alapján dönthető el; ebből nem következik automatikus production budgetemelés vagy új billing-szabály.
+
+
+A személyes történetek gyakoriságának és fenntartható tartalommennyiségének [konkrét gazdaságossági javaslata](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült. A havi fejezetkeret és az árazás még nem termékszabály. A minőség és a tényleges tovább olvasási kedv előfeltétel; nem daraboljuk mesterségesen a történetet több fizetős egységre, és nem adunk gyengébb alapcsomagos prózát pusztán költségcsökkentésért.

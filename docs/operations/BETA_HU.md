@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 related:
   - ../PERSONAL_BETA_ACTIVATION_PLAN_HU.md
   - ../PERSONAL_BETA_OPERATOR_HU.md
@@ -33,9 +33,9 @@ Csak a personal beta tapasztalatainak értékelése után:
 
 ## 2. Personal beta előfeltételek
 
-A technikai preparation lezárt, de az aktiválás nincs megtörténve.
+Az első tesztelő aktiválása és valódi háromfejezetes E2E megtörtént. Az utolsó igazolt E2E 2026-10-14-i; ez a dokumentációfrissítés nem új élő health-ellenőrzés. Reader/login, friss candidate backup/izolált restore és kanonikus Linux apply/inspect sikeres. Az alkalmazott UTC ablak 2026-10-13T22:11:21Z–2026-11-12T22:11:21Z, 2 USD projekt / 0,50 USD user. Nem indul új 30 nap és nem nullázható a költés.
 
-Tényleges indulás előtt:
+Új résztvevő vagy külön kiadás előtt megőrzendő sorrend:
 
 1. végleges participant lista;
 2. meghívás/első belépés;
@@ -44,7 +44,7 @@ Tényleges indulás előtt:
 5. konkrét candidate előkészítése (korábbi lejárt, alkalmazatlan reader-előkészítés esetén előbb annak archiválása);
 6. candidate utáni titkosított backup és izolált restore proof; reader apply esetén a prepare, backup, restore és apply egy 15 percen belüli menet, a restore proof az adott előkészítés hash-eihez kötött;
 7. pontos időablak és budget;
-8. `--apply-personal` egyszeri activation;
+8. a konkrét változtatáshoz tartozó kanonikus művelet; az első egyszeri `--apply-personal` már megtörtént, nem ismételhető új ablak nyitására;
 9. első valós signed-in paid AI E2E;
 10. monitor és emergency-disable ellenőrzése.
 
@@ -119,3 +119,10 @@ Nem számít betaindításnak:
 ## Linux operátori host
 
 A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.
+
+
+## 10. Igazolt E2E és jelenlegi nyitott határ
+
+Egy tesztelővel három paid fejezet, két continuation ciklus, mentett választások, lista/újranyitás/logout-login és friss hitelesítés utáni export ellenőrzött. Kilenc task 0,188585 USD adatbázis-elszámolással, nem provider-számlaegyeztetéssel. A következő generálást a szándékos 3/UTC-nap, 1 párhuzamos kérés limit megállította; későbbi sessionből sikeres új generálás és a megtartott fiók destruktív törlése nincs igazolva. Ez nem széles kohorsz-, Shared-, public vagy új narrative release.
+
+A normál reader/funded/daily/fence munka Linuxon elvégezhető; O01/PR #21 átadás lezárt. Az új narratív runtime már funded környezetre frissítése külön támogatási és recovery-kapu (Issue #34, N09). A fejlesztési benchmark külön projektje/összesített 5 USD ledgere nem a fenti bétaablak része. Árjavaslat vagy docs-merge nem módosíthatja a live admissiont, költséget vagy időablakot.
