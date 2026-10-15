@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 supersedes:
   - ../SHARED_SPONSORED_GUEST_PAYMENT_MODEL_HU.md
 related:
@@ -168,3 +168,12 @@ Bizonyíték nélkül ne kezeljük tényként:
 - végleges havi ár.
 
 Ezeket valós termékhasználatból kell mérni.
+
+
+## 15. Személyes történetgazdaságosság – döntésre előkészített javaslat
+
+A [részletes személyes fejezetmodell](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült a 2026-10-15-i valós mérések alapján. Státusza **nem elfogadott üzleti szabály**: havi 8 fejezet, 4-es kiegészítő, egyszeri 3-as próba és rollover vizsgálandó hipotézis. A 0,70 USD teljes fejezetköltség / 18 USD megtartott havi bevétel óvatos tervezési forgatókönyv; egyik sem végleges ár vagy garantált költség. A 12/24 fejezetes változat tartósan igazolt kisebb egységköltség és olvasói érdeklődés mellett vizsgálandó.
+
+Egy jóváhagyandó személyes termékegység egy új, mentett fejezet lenne. A belső javítás/elutasítás költsége az üzemeltetőnél maradna; újraolvasás, ágöröklés és adatkontroll nem lenne új fejezet. A termékegyenleg és az USD AI-budget külön főkönyv; ilyen személyes számlázási egyenleg ma nincs implementálva. A javaslat nem változtatja meg a meglévő Shared tier/slot/Guest contractokat vagy a béta keretét.
+
+A legutóbbi két első fejezet automatikus kapun átment költségátlaga 0,13373125 USD, de két első időszak nem teljes minőség- vagy üzemi egységárbizonyíték. A korábbi elutasítások, külön fix-kánon hibák és kutatási költségek megmaradnak; mérési authority: [NARRATIVE_EVALUATION_HU.md](../operations/NARRATIVE_EVALUATION_HU.md). Árazás előtt többfejezetes/humán minőség, teljes kihasználás melletti költség, próbából konverzió, retention, adó/fizetési levonások és nem-AI működési költség szükséges.

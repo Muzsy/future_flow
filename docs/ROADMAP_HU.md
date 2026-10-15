@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 related:
   - STATUS_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -27,18 +27,17 @@ Elkészült:
 - dokumentációs CI;
 - az eredeti P01–P13 + Shared S0–S7 részletes terv kanonikus migrációja `DEVELOPMENT_PLAN_HU.md`-be.
 
-## P1 — Personal beta activation
+## P1 — Personal beta értékelés és történetminőség
 
-Cél: a már előkészített személyes angol béta tényleges elindítása legfeljebb 10 résztvevővel.
+Az első személyes tesztelő aktiválása, a 30 napos ablak és háromfejezetes paid E2E megtörtént. Következő prioritás az N08 többfejezetes/humán történetminőség, a valódi folytatási/retention mérés és a gazdaságos tartalommennyiség vizsgálata. A legfeljebb 10 fős korlát megmarad; bővítés nem automatikus.
 
-Gate-ek:
+Nyitott kapuk:
 
-- végleges tesztelőlista;
-- meghívás és Auth/reader mapping;
-- candidate backup + ellenőrzött restore;
-- személyes AI budget/window egyszeri aktiválása;
-- bejelentkezett valós AI E2E;
-- monitorozás és operátori rollback kész.
+- N08 teljes paid/human benchmark, érdemi döntéskövetkezmény és alternatív ág;
+- N09 Linux funded-runtime upgrade (Issue #34), audit/CI/recovery és kontrollált target/apply;
+- későbbi sessionből sikeres folytatás, olvasói feedback és retention;
+- további résztvevő pontos Auth/reader admissionje, új candidate-hoz kötött backup/restore;
+- eredeti budget/window és monitor/rollback megőrzése; nincs újraaktiválás vagy ledger-reset.
 
 Shared minden flagje ebben a körben maradjon kikapcsolva.
 
@@ -75,7 +74,7 @@ Scope:
 - invoice/tax/legal integrációs határok;
 - billing és AI költségtelemetria.
 
-A billing nem módosíthatja csendben a privacy/data-control jogokat.
+A billing nem módosíthatja csendben a privacy/data-control jogokat. A [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült; fejezetmennyiségei/árai még nem elfogadott szabályok. Előbb minőség és használat/költség/fizetési hajlandóság mérendő, utána külön csomagdöntés és termékegyenleg/billing fejlesztés. Shared tier enum és slot nem személyes havi fejezetkvóta.
 
 Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` B01.
 

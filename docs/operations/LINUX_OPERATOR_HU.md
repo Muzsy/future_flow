@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-13
+last_reviewed: 2026-10-15
 related:
   - BETA_HU.md
   - BACKUP_HU.md
@@ -11,6 +11,12 @@ related:
 ---
 
 # Linux személyes béta operátor és egyszeri állapotátadás
+
+## Végrehajtott állapot és fennmaradó határ
+
+PR #21 (`0b57f7f`) beolvadt; az eredeti v2 state átvétele, hostpin/backup/GitHub hitelesítés ellenőrzése és a normál reader/funded/daily Linux-végrehajtás megtörtént. A tényleges reader-aktiválás, candidate-hoz kötött backup/restore, funded apply/inspect és későbbi signed-in paid E2E igazolt; a normál műveletekhez nem kell Windows-agent. A pontos résztvevői mapping és teljes proof privát marad. Ez a dokumentációfrissítés nem futtatott új operátori ellenőrzést.
+
+A már funded futó alkalmazás új narratív forrásra frissítése külön hiányzó képesség, Issue #34 / N09. Az alábbi migrációs és kiadási eljárás nem jogosítja fel a régi owner-upgrade megkerülésére, új window nyitására vagy ledger-resetre. Owner-image deployment és a régi Windows scheduler nem része O01-nek.
 
 ## Scope és kiadási kapu
 

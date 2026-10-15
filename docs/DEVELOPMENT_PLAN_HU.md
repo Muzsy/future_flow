@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 supersedes:
   - archive/superseded/NEXT_STEPS.md
 related:
@@ -30,7 +30,7 @@ A `DONE` nem jelent automatikus production release-t. Release-flag, béta, billi
 
 ## 2. Aktuális végrehajtási sorrend
 
-1. **Personal beta activation** — P08 fennmaradó valós kohorsz- és operátori kapui.
+1. **Történetminőség és fenntartható használat** — N08 többfejezetes/humán mérés, N09 Linux funded-upgrade; a már elindított P08 béta feedback/retention és fennmaradó E2E kapui.
 2. **Shared friend beta hardening** — S3 release-gate-ek, owner downgrade kontroll, sponsored Guest E2E.
 3. **Shared friend beta** — legfeljebb öt baráti pár / 10 személy, `friend_group` only.
 4. **Billing foundation** — új B01 workstream; payment provider, checkout, webhook és subscription lifecycle.
@@ -50,22 +50,24 @@ A `DONE` nem jelent automatikus production release-t. Release-flag, béta, billi
 | P05 | DONE    | Canon/memória input, célzott repair, project/user budget és költségőr.                                                                                 | `architecture/ARCHITECTURE_HU.md`, `AI_MODEL_ROUTING_HU.md`                                                             | Production/béta allowance aktiválás P08/B01 release-szabály szerint.                                                                                                                                                                    |
 | P06 | DONE    | Valódi Auth/DB/browser flow, ownership, export/delete és recovery/backup technikai felkészítés.                                                        | `operations/BETA_HU.md`, `operations/BACKUP_HU.md`, `operations/RECOVERY_HU.md`, `operations/SECURITY_OPERATIONS_HU.md` | A konkrét tesztelői admission és indulás előtti candidate restore P08 feladata.                                                                                                                                                         |
 | P07 | DONE    | Technikai, angol AI- és szerkesztői pre-beta minőségkapu; determinisztikus és valódi AI minták.                                                        | `operations/TESTING_HU.md`, `AI_MODEL_ROUTING_HU.md`                                                                    | A valódi használói minőség nem tekinthető bizonyítottnak; P08 méri.                                                                                                                                                                     |
-| P08 | PARTIAL | Korlátozott angol személyes béta és continuation/retention mérés. Technikai mérés/feedback alap elkészült, valós meghívott kohorsz nincs aktiválva.    | `operations/BETA_HU.md`, `STATUS_HU.md`                                                                                 | Max. 10 első tesztelő; invite/login; email↔UUID/reader mapping; candidate backup+restore; 30 napos AI-window; signed-in paid AI E2E; utána valós feedback. Az eredeti 20–50 fős első kohorsz célját a max. 10 fős első kör felülírta.   |
+| P08 | PARTIAL | Korlátozott angol személyes béta és continuation/retention mérés. Az első tesztelő aktiválva, valódi háromfejezetes E2E kész; szélesebb kohorsz és retention még nyitott.    | `operations/BETA_HU.md`, `STATUS_HU.md`                                                                                 | Első reader/login/backup+restore/30 napos window/paid E2E megtörtént; további meghívottnál saját admission. Későbbi sessionből sikeres folytatás és valós feedback/retention nyitott. A legfeljebb 10 fős első kör változatlan.   |
 | P09 | DONE    | Publication/PublicSnapshot/ScenarioVersion/Official foundation, privacy/review/curation és angol seed-katalógus.                                       | `product/PRODUCT_HU.md`, `STATUS_HU.md`                                                                                 | A technikai foundation nem public release; P13 dönt a launchról.                                                                                                                                                                        |
 | P10 | DONE    | Discovery/read-only public surface, category/search/curation, Save/Share/OG/Report és moderation foundation.                                           | `product/PRODUCT_HU.md`, `STATUS_HU.md`                                                                                 | Valós public release, ranking/engagement minőség és kohorsz P13-ban.                                                                                                                                                                    |
 | P11 | DONE    | Community publication lifecycle, private/unlisted/public, preview/Confirm, revoke/unpublish/delete/cache/permission alap.                              | `product/PRODUCT_HU.md`, `operations/SECURITY_OPERATIONS_HU.md`                                                         | Production public enablement csak P13 release-gate után.                                                                                                                                                                                |
 | P12 | DONE    | Public life/decision fork, private restart, Scenario personalization, attribution/consent alap.                                                        | `product/PRODUCT_HU.md`, `STATUS_HU.md`                                                                                 | Valós használói konverzió és public release P13 alatt.                                                                                                                                                                                  |
 | P13 | PARTIAL | Nyilvános indulási kapu, public/community mérés és release governance. Az infrastruktúra jelentős része elkészült, publikus launch nincs engedélyezve. | `ROADMAP_HU.md`, `STATUS_HU.md`, `product/PRODUCT_HU.md`                                                                | Privacy/permission/moderation/fork/retention végső release review; valós public cohort; költség- és üzemeltetési felelősség; explicit launch döntés. Jelenlegi roadmap szerint ez csak a korábbi béta- és Shared-fázisok után aktuális. |
 
-### P08 — következő végrehajtható gate
+### P08 — végrehajtott első aktiválás és fennmaradó gate
 
-A Personal beta csak a következő sorrenddel aktiválható:
+Az első tesztelő alábbi aktiválási lánca megtörtént: reader/login, candidate backup/izolált restore, egyszeri funded ablak és háromfejezetes signed-in paid E2E. Az eredeti ablak 2026-10-13T22:11:21Z–2026-11-12T22:11:21Z, 2 USD projekt / 0,50 USD user; újraaktiválás vagy ledger-reset nem következik ebből a tervből. Későbbi sessionből sikeres új generálás és szélesebb feedback/retention továbbra mérendő.
+
+További résztvevő vagy külön kiadás esetén a kanonikus sorrend és az eredeti ablak megmarad:
 
 1. konkrét, legfeljebb 10 fős tesztelőlista;
 2. invite és első login;
-3. email ↔ Auth UUID / reader hozzáférés pontos binding; ha korábbi reader-előkészítés lejárt és nem lett alkalmazva, előbb annak explicit archiválása (`--archive-expired-readers`, `PERSONAL_BETA_READER_OPERATOR_HU.md`). A fejlesztés review-ra kész; az éles használathoz pontos commitra audit, Verify/Container CI, izolált célpróba és a napi eszköz frissítése még szükséges;
+3. email ↔ Auth UUID / reader hozzáférés pontos binding; ha korábbi reader-előkészítés lejárt és nem lett alkalmazva, előbb annak explicit archiválása (`--archive-expired-readers`, `PERSONAL_BETA_READER_OPERATOR_HU.md`). Az első végrehajtás pontos forrás/audit/CI/fixture és friss napi eszköz kapui teljesültek; új kiadásnál új, pontos forráshoz kötött bizonyíték kell;
 4. friss candidate backup és ellenőrzött restore, az előkészítéstől számított 15 percen belül az apply-jal együtt;
-5. egyszeri 30 napos személyes AI-window aktiválás a jóváhagyott kerettel;
+5. a jóváhagyott eredeti window/budget megőrzése; az egyszeri első `--apply-personal` már megtörtént, további reader nem indít új 30 napot;
 6. signed-in, valós fizetett AI E2E;
 7. monitor/rollback ellenőrzés;
 8. első kohorsz indítása és feedback/continuation mérés.
@@ -105,7 +107,13 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
 
-N00: DONE, PR #25, 794 offline teszt és Verify CI sikeres. N01: DONE, PR #26, 802 offline teszt és Verify CI sikeres; default-off context/cohort. N02: DONE, PR #27, 823 offline teszt és Verify CI sikeres. N03: DONE, PR #28, 828 offline teszt és Verify CI sikeres. N04: DONE, PR #29, 841 offline teszt és Verify CI sikeres. N05: DONE, PR #30, 859 offline teszt és Verify CI sikeres. N06: DONE, PR #31, 865 offline teszt és Verify CI sikeres. N07: DONE, PR #32, 870 offline teszt és Verify CI sikeres. N06 follow-up: DONE, PR #33, 871 offline teszt és Verify CI sikeres. N08: szintetikus benchmark harness implementált és offline ellenőrzött; fizetett és független emberi mérés PENDING. N09: kiadási előkészítés és a Linux funded-upgrade hiányzó támogatási határa dokumentált, target/apply proof PENDING. A narratív pipeline fejlesztési főágon kész, production aktiválás még nincs; fizetett minőségi benchmark és éles rollout külön gate. A korábbi P02/P05/P07 technikai alap állapota nem változik.
+N00–N07: DONE, PR #25–#33. N08 harness és a planner v3 / külön tervellenőr v1 / writer v3 korrekció a főág része, PR #35–#38. Legutóbbi implementáció: `fd10b856`; 87 fájl / 906 offline teszt, Verify és container CI sikeres. Új frozen policy öt normál/max8 fizikai kérés, régi policy négy/max7; egy globális javítás és a monetary/privacy/recovery védelmek változatlanok.
+
+**N08: PARTIAL.** Teljes offline korpusz 68 fejezet / 34 pár / 248 mock transport. A legutóbbi két új első fejezet paid kapun átment öt-öt hívással, javítás nélkül, átlag 0,13373125 USD konzervatív költséggel. Mindkét külön fix-kánon writer momentum 2/5 miatt elutasított; befejezetlen tervmezők is vizsgálandók. Az összes fejlesztési ledger 101 hívás / 2,158755 USD accounted / 1,9980987 USD usage-becslés, minden használat ismert; az eredeti 5 USD keret megmarad. A teljes háromidőszakos/alternatív ágas paid corpus, hash-bound döntési review, független vak emberi értékelés és tulajdonosi költség/idő plafon még hiányzik. A két első fejezet nem qualityRelease.
+
+**N09: PARTIAL.** Kiadási csomag előkészített, production narrative aktiválás nincs. A már funded runtime Linux-upgrade támogatása külön Issue #34; source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile és target/apply/readback proof szükséges. A normál Linux-operátori adatátvétel elkészült O01-ben; ez nem pótolja az új runtime kiadási kapuit.
+
+Következő sorrend: tervmező-vágások és fix-kánon előrehaladás vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
 
 ### B01 — Billing foundation — PENDING
 
@@ -120,7 +128,9 @@ Kell:
 - upgrade/downgrade/cancel/grace;
 - retry/idempotency;
 - invoice/tax/legal integrációs határ;
-- billing + AI cost telemetry.
+- billing + AI cost telemetry;
+- a személyes fejezetmodell külön jóváhagyása a mért minőség/használat/költség alapján;
+- csak jóváhagyás után külön termékegyenleg, idempotens foglalás/fogyasztás/visszaadás, az USD-budget ledger változtatása nélkül.
 
 Kanonikus forrás: `product/MONETIZATION_HU.md`.
 
@@ -166,11 +176,6 @@ Planning/implementation task esetén minimális sorrend:
 
 Ha a terv és a kód eltér, az `AGENTS.md` konfliktusszabálya érvényes: a tényleges működést a kód mutatja, a kívánt üzleti viselkedést a kanonikus spec/ADR; az eltérést explicit gapként kell kezelni.
 
-### O01 — Linux personal beta operator host — IN PROGRESS
+### O01 — Linux personal beta operator host — DONE (normál operátori scope)
 
-Reader/funded/daily/fence CLI Linux-host támogatás, eredeti privát state egyszeri authentikált-titkosított átvétele, source/CI/audit/fixture/restore kapuk megtartásával. Nem owner deployment vagy scheduler port. Acceptance: security-negative és byte-preservation tesztek, exact-commit Linux entry-point/fixture, CI/review, privát original state import és read-only inspect; éles átállás csak e kapuk után. Kanonikus keret: `operations/BETA_HU.md`, végrehajtási runbook: `operations/LINUX_OPERATOR_HU.md`.
-
-N08 paid checkpoint: PR #36 beolvadt, 886 offline teszt és CI sikeres. A két forrás összesen 40 valódi hívása 0.868235 USD accounted / 0.814835 USD usage-becslés; az első v2 fejezet átment, a második kánonszintű ismétlődésen elbukott, a fix-kánon próba továbbra hiányos anyagot jelzett. Nem teljes benchmark vagy emberi PASS. Planner v3 folytatási korrekció, pontosabb fix-kánon következményanyag és az elutasításokat is számoló egységköltség fejlesztés alatt; v1/v2 queue promptok és az eredeti összesített 5 USD ledger megőrzendők. A termékprioritás a történetminőség; gazdaságossági döntés a megfelelő minőség mérése után.
-
-
-N08 további paid diagnózis: PR #37 beolvadt, 888 offline teszt és CI sikeres; új kétprofilos próba után összesen 75 hívás / 1.632 USD accounted, a három teljes új próbából egy modellkapu-pass, többfejezetes quality release nincs. Új tervellenőrzési lépés és writer v3 fejlesztés/ellenőrzés alatt: selected új policy öt normál/max8 fizikai hívás, a korábbi frozen policy négy/max7 marad; globális tartalmi javítás továbbra egy. Az eredeti 5 USD fejlesztési limit, production default-off és humán/operátori gate változatlan. Részletek a narrative implementation tervben.
+Reader/funded/daily/fence CLI Linux-host támogatás és az eredeti privát operátori state ellenőrzött átvétele elkészült PR #21-ben (`0b57f7f`). Exact-source CI/audit/root fixture és valódi reader/funded/backup/sync/restore/monitor végrehajtás sikeres; a normál munkához Windows-agent nem szükséges. Az owner-image deployment és a régi Windows scheduler nem került át. A már funded alkalmazás narratív runtime-upgrade támogatása külön nyitott Issue #34 / N09, nem O01 adatátvételi hiány. Kanonikus keret: `operations/BETA_HU.md`; runbook: `operations/LINUX_OPERATOR_HU.md`.

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-15
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -28,7 +28,7 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | magas szintű roadmap | `ROADMAP_HU.md` | Issue/PR backlog |
 | részletes fejlesztési terv | `DEVELOPMENT_PLAN_HU.md` | Issue/PR backlog, történeti `archive/superseded/NEXT_STEPS.md` |
 | termék | `product/PRODUCT_HU.md` | `V2_SIMULATION_CONTRACT_HU.md` |
-| monetizáció | `product/MONETIZATION_HU.md` | entitlement code/contracts |
+| monetizáció | `product/MONETIZATION_HU.md` | entitlement code/contracts; `plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md` (nem aktivált javaslat) |
 | architektúra | `architecture/ARCHITECTURE_HU.md` | package code/contracts |
 | Shared | `features/shared/SHARED_CONTEXT_HU.md` | core/database/contracts/migration 037 |
 | development/setup | `operations/DEVELOPMENT_HU.md` | `SETUP.md` részletes legacy runbook |

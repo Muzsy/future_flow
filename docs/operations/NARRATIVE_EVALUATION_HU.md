@@ -19,7 +19,7 @@ Három külön vizsgálat készül:
 - Azonos kánon: nyolc fixture-authored, domain-validált eseménysor és jelenetterv, két writer út, 16 fejezet és nyolc pár. A tervhez nincs hamis planner receipt; ez nem alkalmazási period commit. Első draftokat hasonlít, nincs javítás.
 - Alternatív ág: az első két profil második döntésénél ellenkező, előre rögzített szemantikai irány, négy fejezet és két pár. Valódi saját-history fork, a szülő harmadik fejezete nem kerül a child memóriába.
 
-Összesen 68 fejezet és 34 vak pár. A normál offline út 222 mock transporthívás; valódi hiba/javítás több kísérletet igényelhet. Ez **működési bizonyíték, nem irodalmi minőség**. Az editor modell pontjai diagnosztikai adatok, nem független értékelés.
+Összesen 68 fejezet és 34 vak pár. A jelenlegi tervellenőrzött normál offline út 248 mock transporthívás; valódi hiba/javítás több kísérletet igényelhet. Ez **működési bizonyíték, nem irodalmi minőség**. Az editor modell pontjai diagnosztikai adatok, nem független értékelés.
 
 ## Offline futtatás és folytatás
 
@@ -49,7 +49,7 @@ Csak explicit átadott `NARRATIVE_EVAL_API_KEY`, `NARRATIVE_EVAL_PROJECT_ID`, `N
 pnpm evaluate:narrative --mode paid --allow-paid --budget-usd <APPROVED_TOTAL_USD> --approval-id <APPROVAL_ID> --out .local/narrative-evaluation/paid-reviewed-source
 ```
 
-Tiszta committed forrás kell. Az SDK explicit OpenAI végpontot, megadott projectet, default service tier-t, store=false-t és nulla SDK retryt használ. A közös provider parser retry minden fizikai kísérlete valódi admission/reservation előtt ellenőrzött; narrative period legfeljebb hét slot, egy globális tartalmi javítás. Fix-canon pár legfeljebb hét összesített slot. Nem ismert usage után teljes reservation marad elszámolt; budget denial sem adja vissza a már elfoglalt slotot.
+Tiszta committed forrás kell. Az SDK explicit OpenAI végpontot, megadott projectet, default service tier-t, store=false-t és nulla SDK retryt használ. A közös provider parser retry minden fizikai kísérlete valódi admission/reservation előtt ellenőrzött; az új reviewed narrative policy legfeljebb nyolc slot, a régi policy hét slot, mindkettőben egy globális tartalmi javítás. Fix-canon pár legfeljebb hét összesített slot. Nem ismert usage után teljes reservation marad elszámolt; budget denial sem adja vissza a már elfoglalt slotot.
 
 A `.local/narrative-evaluation/paid-usage.json` globális ExperimentAiBudget ledger és `budget-bindings.json` source/case binding minden új out könyvtár mellett is megmarad. Új out/approval nem nullázza. Minden fizetett futás ugyanabból a kijelölt mérőcheckoutból történjen; másik worktree/checkout nem jelent új engedélyezett keretet. Átköltözéskor a ledger/binding eredeti byte-jainak ellenőrzött megőrzése külön kötelező, üres ledgerrel nem folytatható az engedély. Költség: tényleges usage-alapú becslés, konzervatív accounted összeg, ismeretlen usage és peak reservation külön. Ez nem számla. Az árlista 2026-10-15-i hivatalos default/short-context listához kötött; hét nap után új ellenőrzés nélkül nincs paid futás. Modellt/árat csak új review-zott source-ban lehet változtatni. A hard cap kimerülése incomplete mérés, nem ok a keret önálló emelésére.
 
@@ -89,3 +89,24 @@ Az új selected narrative queue review markerrel öt normál feladatot futtat; a
 Az offline teljes korpusz 68 fejezet / 34 pár / 248 transport: a 24 teljes és két narrative fork fejezet külön tervellenőri hívást is tartalmaz. A fix-kánon íróteszt authored tervből, planner/tervellenőr receipt gyártása és alkalmazási commit nélkül fut, writer v3-mal a narrative oldalon. A fixture központi feszültsége az unselected opciók költségét feltételesen írja le. A fidelity a tervet is ellenőrzi; annak hibája nem irodalmi pass/fail.
 
 A valódi mérésben külön kell feltüntetni: strukturális tervhiba, tervellenőri elutasítás és javítása, prose/fidelity/editor hiba, feltételes kánonhiba a mérőanyagban, humán értékelés. A külön tervellenőr modellvélemény, nem emberi függetlenség. A narrativeYield az új többlethívást és minden elutasított próbát is tartalmazza; csak teljes paid+human corpus, változatlan minőségi gate és tulajdonosi ár/idő plafon engedhet rolloutot.
+
+
+## Legutóbbi tényleges diagnózis és következő kapu (2026-10-15)
+
+Forrás `fd10b856`, PR #38; 87 fájl / 906 offline teszt és Verify/container CI sikeres. Két kitalált profil, egy-egy első időszak és külön authored fix-kánon összehasonlítás: ez részhalmaz, nem a 34 páros teljes benchmark.
+
+| Tétel | Eredmény |
+|---|---|
+| Teljes új első fejezetek | 2/2 modellkapu-pass; öt-öt hívás, javítás nélkül |
+| Két teljes narratív próba költsége | 0,2674625 USD accounted, 0,2481107 USD usage-becslés |
+| Költség/kapun átment új fejezet | 0,13373125 USD accounted; nem emberi minőség vagy üzemi árígéret |
+| Fix-kánon új writer | mindkettő fidelity-pass után editor-fail; momentum 2/5, kevés fejlemény hat hónaphoz |
+| Új diagnózis összesen | 26 hívás / 0,526755 USD accounted; legacy/fix-canon is benne |
+| Összes fejlesztési ledger | 101 hívás / 2,158755 USD accounted / 1,9980987 USD usage-becslés |
+| Pénzügyi bizonytalanság | minden usage ismert, nulla unassigned reservation; becslés, nem számla |
+| Engedélyezett keret | változatlan összesített 5 USD, maradék 2,841245 USD |
+| Release | complete=false, qualityRelease=false; teljes paid/human/fork gate nyitott |
+
+A két új első fejezet tényleges cselekvést és visszaható következményt mutat; a narrátor még túlmagyarázhatja a már bemutatott eredményt. A külön tervellenőr mindkét tervben befejezetlen mezővégeket jelzett kisebb hibaként: a kapun átment review nem kifogástalansági igazolás. Ezt és a fix-kánon alapanyag elégtelen időszaki előrehaladását következő célzott vizsgálatként kell kezelni. Az eredeti rossz kimeneteket nem írjuk át sikeressé.
+
+A következő méréshez a forrás/case/ledger kötés és a még hiányzó szemantikai jóváhagyás megmarad; nincs automatikusan kitöltött emberi pontszám. A [személyes történetgazdaságossági javaslat](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) érzékenységi modell, nem új harness költségplafon, billing vagy béta budget. A 0,70 USD tervezési egységár és a 8/12/24 fejezet nem módosítja a szigorú minőségi assessmentet.
