@@ -66,15 +66,16 @@ export function boundFictionContext(
       .filter(
         (f) =>
           f.relevance === 'continuity' &&
-          (f.kind === 'promise' ||
-            memory.openThreads.some((t) =>
-              t.eventRefs.includes(f.introducedByEventId),
-            ) ||
+          (memory.openThreads.some((t) =>
+            t.eventRefs.includes(f.introducedByEventId),
+          ) ||
             latestActorFacts.has(f.id)),
       )
       .map((f) => f.id),
   );
-  // Never silently omit an active promise solely because it is older than 24.
+  // Pin unresolved thread evidence, not every historical fact labelled promise.
+  // Completed allocations can also be recorded as promises; keeping all of them
+  // forever would exhaust context despite their full durable archive.
   for (const f of allFacts)
     if (mandatory.has(f.id) && !facts.some((a) => a.id === f.id))
       facts.unshift(f);

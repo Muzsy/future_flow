@@ -260,6 +260,20 @@ describe('creative fiction contracts, final authority and bounded continuity', (
       assertion: 'An established specific artistic detail. '.repeat(6),
       kind: i === 0 ? 'promise' : 'artifact',
     }));
+    f.memory.openThreads = [
+      {
+        id: randomUUID(),
+        originPeriodId: f.authored.candidate.periodId,
+        originEventId: facts[0]!.introducedByEventId,
+        kind: 'opportunity',
+        summary:
+          'An unresolved fictional promise is still due in the next period.',
+        status: 'open',
+        dueByPeriodOffset: 2,
+        lastTouchedPeriodId: f.authored.candidate.periodId,
+        eventRefs: [facts[0]!.introducedByEventId],
+      },
+    ];
     const c = boundFictionContext(f.memory, facts);
     expect(c.storyFacts.some((a) => a.id === facts[0]!.id)).toBe(true);
     expect(
@@ -355,5 +369,17 @@ describe('creative fiction contracts, final authority and bounded continuity', (
       },
     ];
     expect(() => validateFictionAuthor(f.input, f.authored)).toThrow();
+  });
+  it('does not treat completed historical allocations labelled promise as forever-pending work', () => {
+    const f = fictionFixture();
+    const facts: StoryFact[] = Array.from({ length: 40 }, () => ({
+      ...f.authored.storyFacts[0]!,
+      id: randomUUID(),
+      kind: 'promise',
+      assertion:
+        'The completed eight-week assignment used two reassigned weekday hours.',
+    }));
+    expect(boundFictionContext(f.memory, facts).storyFacts).toHaveLength(24);
+    expect(facts).toHaveLength(40);
   });
 });
