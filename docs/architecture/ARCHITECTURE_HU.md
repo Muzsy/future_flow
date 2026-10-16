@@ -256,3 +256,12 @@ A `storyFacts` a typed state-en kívüli, konkrét történeti részletek tartó
 
 
 A StoryFact `kind=promise` címkéje önmagában nem „örökké függő” státusz: egy már lezárt nyolchetes feladat vállalási feltétele is ilyen történeti adat lehet. A promptba kötelezően a még nyitott, fix határidejű szálak bizonyítékai és actoronként a legutóbbi releváns tény kerülnek; a többi tényt aktualitás szerint választjuk. A teljes tartós archívum megmarad. A valóban késleltetett következmény a meglévő bounded-thread szerződés szerint követendő; szöveges ténycímke nem helyettesíti ezt az életciklust.
+
+
+Creative szekvenciális policy: új jobok planner/author/reviewer v3 + editor v2, qualityPolicy 2.1.0. A report 1.1.0 külön sequenceReview mezővel, inputhoz/hashhez és exact owned összehasonlítási ID-khoz kötött. Mind a nyolc score >=4, pass verdict, négy igaz sequence-jelzés és major/canon issue hiánya kell; régi 1.0.0 report az új policyhoz nem fogadható el. Az új sequenceHistory utolsó három owned creative period scene action/obstacle/shift részletét és nyitó/záró szövegét adja a meglévő összesített 12 KiB keretben. Withheld esetben üres, fork csak örökölt prefix; a régi policy snapshotok értelmezése nem változik.
+
+
+Az accepted-choice promptmemória és detail sorrendjének authorityja az owned `aw_history.position`, nem a másolt `aw_choices.created_at` vagy UUID. Az initial választások a periodok elé kerülnek. Új fork megőrzi az örökölt choice időbélyegét; régi azonos időbélyegek esetén a history-sorrend továbbra helyes. A latest-choice consequence guard változatlan, korábbi queued payloadot nem írunk át.
+
+
+A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/creative történeteken át. Artifact nélküli legacy periodnál a kanonikus eseménycím/összefoglaló a scene-mechanizmus fallbackje; a mentett fejezeteleje és vége ugyanúgy rendelkezésre áll. Ebből nem készül utólagos StoryFact, a withheld korai visszatérés változatlan.

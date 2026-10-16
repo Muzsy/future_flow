@@ -93,7 +93,7 @@ describe('bounded and independently assessed narrative experiment', () => {
     expect(options.periods).toBe(3);
     expect(JSON.stringify(options)).not.toContain('application-secret');
   });
-  it('requires explicit payment scope, a dedicated development project and a cap at most five USD', () => {
+  it('requires explicit payment scope, a dedicated development project and a cap at most ten USD', () => {
     expect(() =>
       parseEvaluationOptions(
         paid.filter((v) => v !== '--allow-paid'),
@@ -107,7 +107,7 @@ describe('bounded and independently assessed narrative experiment', () => {
     ).toThrow();
     expect(() =>
       parseEvaluationOptions(
-        [...paid.slice(0, 4), '6', ...paid.slice(5)],
+        [...paid.slice(0, 4), '10.01', ...paid.slice(5)],
         development,
       ),
     ).toThrow();

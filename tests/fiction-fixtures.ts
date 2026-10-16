@@ -26,11 +26,18 @@ import {
 
 export function fictionFixture(source?: NarrativePeriodInput) {
   const f = narrativePlanFixture(source);
+  const sourceContext =
+    source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+      ? fictionContextSchema.parse(source.narrativeContext)
+      : null;
   const input: NarrativePeriodInput = {
     ...f.input,
     narrativeContext: {
       policy: fictionPolicy(),
       memory: f.memory,
+      ...(sourceContext?.sequenceHistory
+        ? { sequenceHistory: sourceContext.sequenceHistory }
+        : {}),
       storyFacts:
         source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
           ? fictionContextSchema.parse(source.narrativeContext).storyFacts
@@ -74,7 +81,21 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       { version: '1.1.0' }
     >,
     fidelity: { valid: true, issues: [] },
-    editor: narrativeEditorialFixture(),
+    editor: {
+      ...narrativeEditorialFixture(),
+      version: '1.1.0' as const,
+      sequenceReview: {
+        comparedPeriodIds: (sourceContext?.sequenceHistory ?? []).map(
+          (p) => p.periodId,
+        ),
+        distinctDramaticStructure: true,
+        distinctEnding: true,
+        independentProgression: true,
+        characterAgency: true,
+        evidence:
+          'A concrete misunderstanding leads to a changed response with independent protagonist action.',
+      },
+    },
   };
 }
 export function fictionReceipt(

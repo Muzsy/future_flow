@@ -1,6 +1,8 @@
 import { fictionPrompts } from './fiction-prompts';
 import {
   fictionAuthorResultSchema,
+  fictionSequenceEditorialSchema,
+  type FictionEditorialReport,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
   type FictionAuthorResult,
@@ -132,7 +134,7 @@ export interface FictionAiProvider {
   editFiction(
     input: NarrativePeriodInput,
     authored: FictionAuthorResult,
-  ): Promise<AiResult<NarrativeEditorialReport>>;
+  ): Promise<AiResult<FictionEditorialReport>>;
 }
 export interface NarrativeAiProvider {
   reviewNarrativePlan?(
@@ -629,7 +631,7 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      context.policy.promptVersions.planner === 'life_fiction_plan.v2'
+      context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
         ? fictionCompactDraftSchema
         : narrativePlanningResultSchema,
       'life_narrative_plan',
@@ -648,7 +650,7 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      context.policy.promptVersions.writer === 'life_fiction_author.v2'
+      context.policy.promptVersions.writer !== 'life_fiction_author.v1'
         ? fictionCompactAuthorSchema
         : fictionAuthorResultSchema,
       'life_narrative_chapter',
@@ -688,8 +690,10 @@ export class OpenAiProvider
   editFiction(input: NarrativePeriodInput, authored: FictionAuthorResult) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
-    return this.generate(
-      narrativeEditorialReportSchema,
+    return this.generate<FictionEditorialReport>(
+      context.policy.promptVersions.editor === 'life_fiction_editor.v2'
+        ? fictionSequenceEditorialSchema
+        : narrativeEditorialReportSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).editor,

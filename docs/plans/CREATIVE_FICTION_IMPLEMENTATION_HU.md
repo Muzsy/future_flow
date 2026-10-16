@@ -11,7 +11,9 @@ Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifik
 
 ## Végrehajtási állapot — 2026-10-16
 
-Issue #45 / PR #46; a kanonikus STATUS és DEVELOPMENT_PLAN tartalmazza a legfrissebb készültséget. F00–F04 implementált. A végső 8847d2b kódforrás CI-je 90 fájl / 958 teszt, Verify és Container sikeres. A kompakt planner/author/reviewer v2 ugyanazzal a modellel a korábbi 5f8ffbd forráson négy teljes fejezetet igazolt automatikus kapun (három munkahelyi időszak, egy alkotói), öt-öt hívással, javítás nélkül, minden editor-dimenzió 4. A fork a literary editor előtt pénzügyi előfoglalási korlátba ütközött; két alkotói folytatás nem futott. Aktuális globális ledger 190 hívás / 4,81984 USD, 0,18016 USD maradékkal. F05/F06 teljes human/quality/rollout kapui még nyitottak. A creative-only diagnózis indexválasztása nem emberi review. A végső kód regressziójavításait CI ellenőrizte, új fizetett mérés még nem.
+Issue #45, PR #46 és #47. F00–F04 implementált; az aktuális e5e7ed2 kód teljes CI-je 90 fájl / 966 teszt, Verify/Container sikeres. Az új selected planner/author/reviewer v3, editor v2, qualityPolicy 2.1.0 minden dimenzióban >=4-et és külön szekvenciális kapukat követel, owned régi/új scene/nyitó/záró kontextussal. A fork choice-idősorrend javítva; a következményguard változatlan. A 04cee85 forrás két profiljának három-három fejezete és az e5e7ed2 külön prefix-provenance-ú forkja öt-öt hívással, javítás nélkül átment. A korábbi ismétlődő negatív kontroll elutasítva. Ez nem független emberi benchmark vagy teljes végső-forrású release-proof. Globális ledger 229 hívás / 6,79395 USD; az engedélyezett összesen 10 USD-ból 3,20605 USD maradt. F05/F06 emberi/gazdaságossági/rollout feltételei nyitottak.
+
+Az alábbi eredeti induló marker/policy példákat a fenti végrehajtási állapot, az ADR-008 sequence-módosítása és a kanonikus STATUS pontosítja. Az artifact 2.0.0 tárolási verziója megmarad; az új minőségpolicy 2.1.0 és editor report 1.1.0 külön snapshotot kap. A régi promptok/reportok továbbra olvashatók.
 
 ## 1. Feladat, termékdöntés és a dokumentum határa
 
@@ -622,6 +624,6 @@ Ez mérnöki becslés, nem garantált naptári határidő. Az emberi értékelé
 
 ## 17. Az implementáló agent első konkrét feladata
 
-**Az F05 fennmaradó minőségmérésének lezárása**, a jelenlegi cumulative ledger megtartásával és további fizetett munka előtt explicit keretengedéllyel. Szükséges a végső forráson az alkotói folytatások és fork, többprofilos hosszabb próba, valamint valódi olvasói értékelés. Ezután gazdaságossági/időkorlát-döntés, majd F06 pontos target/recovery proof és külön operátori éles apply. F00–F04 újrakezdése nem szükséges; a kész technikai ellenőrzőpontok fent jelölve vannak.
+**Az F05 fennmaradó minőségmérésének lezárása**, a jelenlegi cumulative ledger és az engedélyezett összesen 10 USD maximum megtartásával. Szükséges a végső forráson az alkotói folytatások és fork, többprofilos hosszabb próba, valamint valódi olvasói értékelés. Ezután gazdaságossági/időkorlát-döntés, majd F06 pontos target/recovery proof és külön operátori éles apply. F00–F04 újrakezdése nem szükséges; a kész technikai ellenőrzőpontok fent jelölve vannak.
 
 A végrehajtó ne álljon meg az engedékenyebb promptnál. A fejlesztés akkor teljesíti a célt, ha az író által kitalált, elfogadott történés a következő fejezetben is ugyanannak a személyes, fiktív életútnak a része.

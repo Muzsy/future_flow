@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
-import { fictionV1Policy } from '@future-flow/contracts';
+import { fictionV1Policy, fictionV2Policy } from '@future-flow/contracts';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   fictionPolicySchema,
   fictionContextSchema,
@@ -16,9 +16,13 @@ import {
   validatedFictionCheckpoint,
   satisfiesFactV2,
   hash,
+  evaluateFictionEditorialGate,
+  validateFictionEditorialReport,
 } from '@future-flow/core';
 import {
   boundFictionContext,
+  personalFictionContext,
+  type Database,
   narrativeConfigFromEnv,
   lifeJobReadyToCommit,
   narrativeProcessingBlock,
@@ -26,6 +30,68 @@ import {
 import { fictionFixture, fictionProof } from './fiction-fixtures';
 
 describe('creative fiction contracts, final authority and bounded continuity', () => {
+  it('rejects weak novelty or character even if other scores compensate and the editor says pass', () => {
+    for (const dimension of [
+      'novelty',
+      'character',
+      'personalization',
+    ] as const) {
+      const f = fictionFixture();
+      for (const key of Object.keys(
+        f.editor.scores,
+      ) as (keyof typeof f.editor.scores)[])
+        f.editor.scores[key] = 5;
+      f.editor.scores[dimension] = 3;
+      expect(evaluateFictionEditorialGate(f.input, f.editor).passed).toBe(
+        false,
+      );
+    }
+  });
+  it('rejects repeated structure or ending even with all scores five and no reported issue', () => {
+    for (const flag of [
+      'distinctDramaticStructure',
+      'distinctEnding',
+      'independentProgression',
+      'characterAgency',
+    ] as const) {
+      const f = fictionFixture();
+      f.editor.sequenceReview[flag] = false;
+      expect(evaluateFictionEditorialGate(f.input, f.editor).passed).toBe(
+        false,
+      );
+      expect(() =>
+        buildFictionArtifact(
+          f.input,
+          f.draft,
+          f.authored,
+          f.review,
+          f.fidelity,
+          f.editor,
+          fictionProof(f),
+        ),
+      ).toThrow();
+    }
+  });
+  it('binds sequence comparison coverage and report version to the queued policy', () => {
+    const f = fictionFixture();
+    f.editor.sequenceReview.comparedPeriodIds = [randomUUID()];
+    expect(() =>
+      validateFictionEditorialReport(f.input, f.authored, f.editor),
+    ).toThrow();
+    const g = fictionFixture();
+    expect(() =>
+      validateFictionEditorialReport(g.input, g.authored, {
+        ...g.editor,
+        version: '1.0.0',
+      }),
+    ).toThrow();
+    const h = fictionFixture();
+    if (h.input.narrativeContext?.policy.mode !== FICTION_MODE) throw Error();
+    h.input.narrativeContext.sequenceHistory = [
+      { periodId: randomUUID(), scenes: [], opening: '', ending: '' },
+    ];
+    expect(() => fictionPlannerRequest(h.input)).toThrow();
+  });
   it('accepts invented outcomes absent from the planner draft and uses the final candidate', () => {
     const f = fictionFixture(),
       run = validateFictionAuthor(f.input, f.authored);
@@ -350,6 +416,73 @@ describe('creative fiction contracts, final authority and bounded continuity', (
         },
       }).success,
     ).toBe(false);
+  });
+  it('keeps legacy owned endings visible to the sequence editor without inventing historical StoryFacts', async () => {
+    const f = fictionFixture(),
+      periodId = randomUUID();
+    const query = vi.fn(async () => [
+      {
+        period_id: periodId,
+        artifact: null,
+        events: [
+          {
+            title: 'A completed old encounter',
+            summary:
+              'The earlier conflict ended through a mentor assigning another trial.',
+          },
+        ],
+        chapter: {
+          body:
+            'A concrete earlier opening. '.repeat(25) +
+            'The mentor leaves a pen beside the blank reply.',
+        },
+      },
+    ]);
+    const result = await personalFictionContext(
+      { query } as unknown as Database,
+      randomUUID(),
+      f.input.input.branchId,
+      f.memory,
+    );
+    expect(result.storyFacts).toEqual([]);
+    expect(result.sequenceHistory).toHaveLength(1);
+    expect(result.sequenceHistory![0]!.ending).toContain(
+      'leaves a pen beside the blank reply',
+    );
+    expect(result.sequenceHistory![0]!.scenes[0]).toContain(
+      'mentor assigning another trial',
+    );
+  });
+  it('keeps the measured compact-v2 prompts frozen and accepts its stored report policy', () => {
+    const prompts = fictionPrompts('en', fictionV2Policy().promptVersions);
+    expect(
+      Object.fromEntries(
+        Object.entries(prompts).map(([k, v]) => [
+          k,
+          createHash('sha256').update(v).digest('hex'),
+        ]),
+      ),
+    ).toEqual({
+      planner:
+        '8fb8c09a89095129d5dfd702443816ca43460011a3cfc3510154cd55b5261955',
+      author:
+        'c4ac54cd1a0fd9a8a0d8271d60b6bc3dea253f45f998d303a7c4ec1a29fedfb3',
+      review:
+        '0de08447948f808a7923ed135d3a74b9a5390e5ce0b259d7959a5dc6e3bae145',
+      fidelity:
+        '0af915d7eceacd19283e6b0300e85cf014861fc57028a6f7395b0f6f651ee25b',
+      editor:
+        '620604cf2ffa68b699ff4abe9cfa4a8444db13a9848c6a80525a9adef82e38cc',
+    });
+    const f = fictionFixture();
+    if (f.input.narrativeContext?.policy.mode !== FICTION_MODE) throw Error();
+    f.input.narrativeContext.policy = fictionV2Policy();
+    const { sequenceReview: _sequence, ...old } = f.editor;
+    const report = { ...old, version: '1.0.0' as const };
+    expect(
+      validateFictionEditorialReport(f.input, f.authored, report).version,
+    ).toBe('1.0.0');
+    expect(evaluateFictionEditorialGate(f.input, report).passed).toBe(true);
   });
   it('keeps new thread and story fact identities distinct', () => {
     const f = fictionFixture(),

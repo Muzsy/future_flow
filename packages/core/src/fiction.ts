@@ -7,7 +7,7 @@ import {
   fictionArtifactSchema,
   narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
-  narrativeEditorialReportSchema,
+  fictionEditorialReportSchema,
   fidelitySchema,
   FICTION_FACT_BYTES,
   NARRATIVE_MEMORY_BYTES,
@@ -17,7 +17,7 @@ import {
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
-  type NarrativeEditorialReport,
+  type FictionEditorialReport,
 } from '@future-flow/contracts';
 import { hash } from './index';
 import { DomainError } from './errors';
@@ -48,7 +48,13 @@ export function fictionScope(input: NarrativePeriodInput) {
       (c) => !input.acceptedDecisionIds.includes(c.decisionId),
     ) ||
     Buffer.byteLength(
-      JSON.stringify({ memory, storyFacts: context.storyFacts }),
+      JSON.stringify({
+        memory,
+        storyFacts: context.storyFacts,
+        ...(context.sequenceHistory
+          ? { sequenceHistory: context.sequenceHistory }
+          : {}),
+      }),
       'utf8',
     ) > NARRATIVE_MEMORY_BYTES
   )
@@ -56,6 +62,12 @@ export function fictionScope(input: NarrativePeriodInput) {
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction memory differs from the owned period or exceeds its byte bound.',
     );
+  const sequenceIds = (context.sequenceHistory ?? []).map((p) => p.periodId);
+  if (
+    new Set(sequenceIds).size !== sequenceIds.length ||
+    sequenceIds.some((id) => !references.periodPositions.has(id))
+  )
+    fail('Sequence context contains non-owned or duplicate periods.');
   const ids = facts.facts.map((f) => f.id);
   if (
     new Set(ids).size !== ids.length ||
@@ -144,10 +156,69 @@ export function fictionEditorialRequest(
       .map((text, index) => ({ index: index + 1, text })),
   };
 }
+export function validateFictionEditorialReport(
+  input: NarrativePeriodInput,
+  authored: FictionAuthorResult,
+  raw: unknown,
+) {
+  const { context } = fictionScope(input);
+  const report = fictionEditorialReportSchema.parse(raw);
+  const sequence = context.policy.qualityPolicyVersion === '2.1.0';
+  if ((report.version === '1.1.0') !== sequence)
+    fail('Fiction editorial report differs from the frozen quality policy.');
+  const { version: _version, ...fields } = report;
+  const { sequenceReview: _sequence, ...legacy } = fields as typeof fields & {
+    sequenceReview?: unknown;
+  };
+  validateNarrativeEditorialReport(
+    { ...legacy, version: '1.0.0' },
+    authored.chapter,
+    validateFictionAuthor(input, authored).canon,
+  );
+  if (report.version === '1.1.0') {
+    const expected = (context.sequenceHistory ?? [])
+      .map((p) => p.periodId)
+      .sort();
+    if (
+      hash([...report.sequenceReview.comparedPeriodIds].sort()) !==
+      hash(expected)
+    )
+      fail(
+        'Sequence review must cover exactly the supplied owned history, without duplicates.',
+      );
+  }
+  return report;
+}
+export function evaluateFictionEditorialGate(
+  input: NarrativePeriodInput,
+  raw: unknown,
+) {
+  const report = fictionEditorialReportSchema.parse(raw);
+  if (fictionScope(input).context.policy.qualityPolicyVersion !== '2.1.0')
+    return {
+      passed:
+        report.version === '1.0.0' &&
+        evaluateNarrativeEditorialGate(report).passed,
+    };
+  if (report.version !== '1.1.0') return { passed: false };
+  const r = report.sequenceReview;
+  return {
+    passed:
+      report.verdict === 'pass' &&
+      Object.values(report.scores).every((s) => s >= 4) &&
+      r.distinctDramaticStructure &&
+      r.distinctEnding &&
+      r.independentProgression &&
+      r.characterAgency &&
+      !report.issues.some(
+        (i) => i.severity === 'major' || i.repairScope === 'canon',
+      ),
+  };
+}
 export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
   const scope = fictionScope(input),
     result = (
-      scope.context.policy.promptVersions.planner === 'life_fiction_plan.v2'
+      scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
         ? fictionCompactDraftSchema
         : narrativePlanningResultSchema
     ).parse(raw);
@@ -175,8 +246,8 @@ export function validateFictionAuthor(
   raw: unknown,
 ) {
   const authored = (
-    fictionScope(input).context.policy.promptVersions.writer ===
-    'life_fiction_author.v2'
+    fictionScope(input).context.policy.promptVersions.writer !==
+    'life_fiction_author.v1'
       ? fictionCompactAuthorSchema
       : fictionAuthorResultSchema
   ).parse(raw);
@@ -293,7 +364,7 @@ export function fictionBindings(
   authored: FictionAuthorResult,
   review: NarrativePlanReview,
   fidelity: unknown,
-  editor: NarrativeEditorialReport,
+  editor: FictionEditorialReport,
   planningRepair?: string,
   repair?: FictionRepair,
 ): FictionArtifact['bindings'] {
@@ -326,7 +397,7 @@ export function buildFictionArtifact(
   authored: FictionAuthorResult,
   review: NarrativePlanReview,
   fidelity: unknown,
-  editor: NarrativeEditorialReport,
+  editor: FictionEditorialReport,
   rawReceipts: unknown,
   planningRepair?: string,
   repair?: FictionRepair,
@@ -335,11 +406,11 @@ export function buildFictionArtifact(
   const run = validateFictionAuthor(input, authored);
   const r = narrativePlanReviewV2Schema.parse(review);
   validateNarrativePlanReview(r, run.result, 'life_narrative_plan_review.v2');
-  validateNarrativeEditorialReport(editor, authored.chapter, run.canon);
+  validateFictionEditorialReport(input, authored, editor);
   const f = fidelitySchema.parse(fidelity);
   if (
     !evaluateNarrativePlanReview(r).passed ||
-    !evaluateNarrativeEditorialGate(editor).passed ||
+    !evaluateFictionEditorialGate(input, editor).passed ||
     !f.valid ||
     f.issues.length
   )
@@ -441,7 +512,7 @@ export function buildFictionArtifact(
     validatedMemoryDelta: authored.plan.memoryDelta,
     storyFacts: authored.storyFacts,
     planningReview: r,
-    editorialReport: narrativeEditorialReportSchema.parse(editor),
+    editorialReport: fictionEditorialReportSchema.parse(editor),
     bindings,
     provenance: {
       receiptRefs: receipts.map((receipt, ordinal) => ({
@@ -482,7 +553,7 @@ export function validatedFictionCheckpoint(
     authored,
     cp.planningReview as NarrativePlanReview,
     cp.fidelityResult,
-    cp.editorialReport as NarrativeEditorialReport,
+    cp.editorialReport as FictionEditorialReport,
     cp.receipts,
     typeof cp.planningRepair === 'string' ? cp.planningRepair : undefined,
     cp.fictionRepair as FictionRepair | undefined,

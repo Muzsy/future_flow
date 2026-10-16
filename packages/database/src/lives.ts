@@ -315,7 +315,7 @@ export class LifeRepository {
         [branch.life_id, userId],
       ),
       choices: await this.db.query(
-        'SELECT decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at',
+        'SELECT c.decision_id,c.option_id,c.payload,c.state_after FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ORDER BY h.position,c.created_at,c.decision_id',
         [branchId, userId],
       ),
       job: latestJob
@@ -551,7 +551,7 @@ export class LifeRepository {
     const choices = privacyIds.length
       ? []
       : await tx.query(
-          `SELECT decision_id,payload FROM (SELECT decision_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY created_at DESC LIMIT 10`,
+          `SELECT decision_id,payload FROM (SELECT c.decision_id,c.payload,c.created_at,h.position AS decision_position FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at,-1 AS decision_position FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY decision_position DESC,created_at DESC,decision_id DESC LIMIT 10`,
           initialChoiceStorage?.present
             ? [branch.id, userId, branch.life_id]
             : [branch.id, userId],
@@ -861,7 +861,7 @@ export class LifeRepository {
           p.end_state.effectiveAt,
         );
         await tx.query(
-          'INSERT INTO aw_choices(id,user_id,life_id,branch_id,period_id,decision_id,option_id,payload,state_after) SELECT gen_random_uuid(),user_id,life_id,$3,period_id,decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 AND decision_id IN (SELECT jsonb_array_elements_text($4::jsonb)::uuid)',
+          'INSERT INTO aw_choices(id,user_id,life_id,branch_id,period_id,decision_id,option_id,payload,state_after,created_at) SELECT gen_random_uuid(),user_id,life_id,$3,period_id,decision_id,option_id,payload,state_after,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 AND decision_id IN (SELECT jsonb_array_elements_text($4::jsonb)::uuid)',
           [branchId, userId, newId, JSON.stringify(p.accepted_before)],
         );
         await this.accept(

@@ -41,7 +41,7 @@ A `--choices-file <JSON>` tömb minden eleme: fixtureId, mode (`legacy` vagy `na
 
 ## Külön engedélyezett fizetett futás
 
-Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, legfeljebb 5 USD **összesített fejlesztési keret**, valamint külön fejlesztési OpenAI project és project/service-account kulcs. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
+Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, az engedélyezett **összesített fejlesztési keret** (jelenleg 10 USD a 2026-10-16-i explicit bővítéssel), valamint külön fejlesztési OpenAI project és project/service-account kulcs. A bővítés az eredeti 5 USD keret teljes addigi költését is magában foglalja. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
 
 Csak explicit átadott `NARRATIVE_EVAL_API_KEY`, `NARRATIVE_EVAL_PROJECT_ID`, `NARRATIVE_EVAL_PROJECT_CONFIRMATION=dedicated-development` olvasható; általános OPENAI_API_KEY fallback nincs. Az environment marker a kezelő nyilatkozata, nem OpenAI project-ownership API-bizonyíték; a külön fejlesztési projektet az operátornak ellenőriznie kell. Titokfájl a repo/image/report része nem lehet.
 
@@ -156,3 +156,18 @@ A paid v1 első próbája két végső tervellenőrzésnél csonka, 80 karaktere
 
 
 A 32 KiB artifact túllépése strukturális csomagtömörítést igényelhet akkor is, ha a próza már átment. Ilyenkor az egyetlen javítás `author_package`, nem változatlan kánonhoz kötött `prose_only`; a domain és mindhárom végső ellenőr újra fut, max9-en belül. Az összes egyedi mezőben érvényes, de együtt túl nagy artifact regressziója ezt valós worker/DB útvonalon ellenőrzi. A byte-limitet nem növeltük és nem csonkítunk csendben.
+
+
+## 2026-10-16-i explicit keretbővítés és szekvenciális próba
+
+A tulajdonos a cumulative development maximumot 5-ről **10 USD-ra** engedélyezte. Az értékelő CLI ennyit fogad el; az ExperimentAiBudget alapértelmezett ceilingje továbbra 5, a narratív értékelő külön explicit 10-es maximumot ad át. Más smoke és production guard nem változik. Új approval ID: `user-2026-10-16-fiction-quality-10usd`. Ugyanaz a canonical ledger/bindings és dedicated development projekt marad; 190 korábbi hívás / 4,81984 USD sem törölhető. Régi source-bound run nem írható át új source identityra.
+
+A qualityPolicy 2.1.0 kalibrációjában először a korábbi ismétlődő fejezetet kell a saját korábbi jeleneteivel és lezárásaival újraértékelni. Az új pontszám önmagában nem bizonyít javulást: az ismétlődő negatív kontrollt el kell utasítania. Ezután új többprofilos creative-only folytatások és fork, naplózott szintetikus választásokkal; nem vak emberi benchmark. A tényleges szövegeket külön is el kell olvasni. Ismételt kapuhiba után a költést meg kell állítani és az okot elemezni; nem szabad a küszöböt lejjebb vinni.
+
+
+Az örökölt választások azonos időbélyeges sorrendhibájának javítását új forrású, friss fork-próbával kell igazolni. A korábbi sikeres kétperiodos prefix átvehető szintetikus regressziós kiindulásnak, de az eredeti forrás/fejezet/kanonikus hash és az új forrás/script/payload kötését együtt rögzíteni kell. Új fork és normál guarded worker szükséges; az eredeti failed job/payload, receipt és költség nem írható át. Ez célzott kétforrású continuity regresszió, nem a teljes benchmark új forrásra átnevezése.
+
+
+## Legutóbbi lezárt diagnózis
+
+A 04cee85 új szekvenciális policyja két profil három-három teljes fejezetét fogadta el, mind öt hívás/javítás nélkül, minden score >=4. Célzott editor-kalibrációban a régi pozitív kontroll átment, az ismétlődő harmadik negatív kontroll elutasítva (novelty 3, három sequence flag false). Az első fork két plannerrel hibás latest-choice sorrend miatt megállt; az e5e7ed2 új forrású, explicit régi prefixet öröklő friss forkja öt hívással átment. Az eredeti failed job és díja megmaradt, a két forrás bizonyítéka külön van. Global ledger 229 hívás / 6,79395 USD accounted, 6,3036081 USD usage-becslés, nulla ismeretlen/hozzárendeletlen foglalás, maradék 3,20605 USD a 10-ből. Részletes eredmények és korlátok: [STATUS](../STATUS_HU.md). A complete/qualityRelease flag false; a kód CI-je és a kis mintás modellkapu nem független emberi benchmark.

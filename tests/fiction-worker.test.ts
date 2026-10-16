@@ -28,7 +28,11 @@ import {
   preparePublicEditorSource,
   type SnapshotSourcePeriod,
 } from '@future-flow/core';
-import { FICTION_MODE, type FictionAuthorResult } from '@future-flow/contracts';
+import {
+  fictionContextSchema,
+  FICTION_MODE,
+  type FictionAuthorResult,
+} from '@future-flow/contracts';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
@@ -225,6 +229,28 @@ describe('creative final author package through real guarded provider and databa
       ),
     ).toHaveLength(2);
   });
+  it('routes structural repetition to package repair even with a misleading perfect score and empty issues', async () => {
+    const f = await fixture(),
+      p = provider(f, (task, n, output) => {
+        if (task === 'life_narrative_editor' && n === 1)
+          return {
+            ...f.f.editor,
+            sequenceReview: {
+              ...f.f.editor.sequenceReview,
+              distinctDramaticStructure: false,
+            },
+          };
+        return output;
+      });
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(9);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_plan_review',
+      ),
+    ).toHaveLength(2);
+    expect((await saved(f.job)).status).toBe('completed');
+  });
   it('stops after a second quality failure without a partial period', async () => {
     const f = await fixture(),
       p = provider(f, (task, _n, output) =>
@@ -331,6 +357,19 @@ describe('creative final author package through real guarded provider and databa
     expect(next.payload.narrativeContext?.policy.mode).toBe(FICTION_MODE);
     if (next.payload.narrativeContext?.policy.mode !== FICTION_MODE)
       throw Error();
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext).sequenceHistory,
+    ).toMatchObject([
+      {
+        periodId: f.job.payload.periodId,
+        opening: f.f.authored.chapter.body.slice(0, 400),
+        ending: f.f.authored.chapter.body.slice(-500),
+      },
+    ]);
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext)
+        .sequenceHistory?.[0]?.scenes[0],
+    ).toContain(f.f.authored.plan.scenes[0]!.shift.slice(0, 90));
     expect(next.payload.narrativeContext.storyFacts).toEqual(
       f.f.authored.storyFacts,
     );
@@ -412,6 +451,75 @@ describe('creative final author package through real guarded provider and databa
     const childFixture = { ...f, job: child, f: fictionFixture(child.payload) };
     await processLifeJob(child, jobs, provider(childFixture).ai);
     expect((await f.lives.detail(f.owner, b.id)).periods).toHaveLength(2);
+  });
+  it('preserves acceptance chronology and timestamps across a two-choice fork', async () => {
+    const f = await fixture();
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    const first = await f.lives.detail(f.owner, f.job.branch_id),
+      d0 = first.branch.pending_decision!;
+    await f.lives.choose(
+      f.owner,
+      first.branch.id,
+      first.branch.revision,
+      d0.id,
+      d0.options[0]!.id,
+      randomUUID(),
+    );
+    const parentReady = await f.lives.branch(f.owner, first.branch.id);
+    await f.lives.continue(
+      f.owner,
+      parentReady.id,
+      parentReady.revision,
+      randomUUID(),
+    );
+    const secondJob = (await jobs.claim())!,
+      second = { ...f, job: secondJob, f: fictionFixture(secondJob.payload) };
+    await processLifeJob(secondJob, jobs, provider(second).ai);
+    const parent = await f.lives.detail(f.owner, first.branch.id),
+      d1 = parent.branch.pending_decision!;
+    const fork = await f.lives.fork(
+      f.owner,
+      parent.branch.id,
+      secondJob.payload.periodId,
+      parent.branch.revision,
+      d1.options[1]!.id,
+      randomUUID(),
+    );
+    const child = (await jobs.claim())!;
+    const [timestamps] = await db.query<{ original: Date; inherited: Date }>(
+      'SELECT a.created_at AS original,b.created_at AS inherited FROM aw_choices a JOIN aw_choices b ON b.decision_id=a.decision_id WHERE a.branch_id=$1 AND b.branch_id=$2 AND a.decision_id=$3',
+      [parent.branch.id, fork.branchId, d0.id],
+    );
+    expect(new Date(timestamps!.inherited).toISOString()).toBe(
+      new Date(timestamps!.original).toISOString(),
+    );
+    expect(
+      fictionContextSchema
+        .parse(child.payload.narrativeContext)
+        .memory.recentChoices.at(-1)?.decisionId,
+    ).toBe(d1.id);
+    expect(child.payload.memory.choices.at(-1)).toMatchObject({
+      decision_id: d1.id,
+    });
+    const branch = await f.lives.branch(f.owner, fork.branchId);
+    const memory = await personalNarrativeMemory(
+      db,
+      f.owner,
+      fork.branchId,
+      branch.revision,
+      branch.accepted_decision_ids,
+      false,
+      true,
+    );
+    expect(memory.recentChoices.map((c) => c.decisionId)).toEqual([
+      d0.id,
+      d1.id,
+    ]);
+    expect(
+      (await f.lives.detail(f.owner, fork.branchId)).choices.map(
+        (c) => c.decision_id,
+      ),
+    ).toEqual([d0.id, d1.id]);
   });
   it('keeps fictional NPC provenance and voice across a subsequent queued period', async () => {
     const f = await fixture(),

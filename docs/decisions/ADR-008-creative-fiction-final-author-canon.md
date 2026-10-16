@@ -45,3 +45,8 @@ Freeze five normal/max-nine physical requests and one global content repair in t
 - [Creative implementation plan](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md)
 - [AI output is not authoritative](ADR-003-ai-output-not-authoritative.md)
 - `packages/contracts/src/fiction.ts`, `packages/core/src/fiction.ts`
+
+
+## Sequence quality amendment — 2026-10-16
+
+Direct reading found repeated scene-resolution and ending patterns despite novelty=4. New qualityPolicy 2.1.0 freezes planner/author/reviewer v3 and editor v2/report 1.1.0, retains all previous policies, and includes owned bounded scene/opening/ending sequence evidence. Every editorial dimension must reach 4 and verdict must pass; four explicit sequence flags and exact comparison coverage are mandatory. Structural repetition requires package repair. A recurring character or motif can earn its place through changed causality; novelty does not require spectacle. No new routine call or additional repair is introduced. Automatic scores remain insufficient for human quality acceptance.

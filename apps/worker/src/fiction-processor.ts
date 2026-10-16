@@ -15,14 +15,14 @@ import {
   narrativeReferenceSnapshot,
   evaluateNarrativePlanReview,
   validateNarrativePlanReview,
-  evaluateNarrativeEditorialGate,
-  validateNarrativeEditorialReport,
+  evaluateFictionEditorialGate,
+  validateFictionEditorialReport,
   type FictionRepair,
 } from '@future-flow/core';
 import {
   fidelitySchema,
   narrativePlanReviewV2Schema,
-  narrativeEditorialReportSchema,
+  fictionEditorialReportSchema,
   type NarrativePlanningResult,
   type FictionAuthorResult,
   type NarrativePlanReview,
@@ -385,10 +385,15 @@ export async function processFictionLifeJob(
           editorialReport: editorial,
         });
       }
-      const report = narrativeEditorialReportSchema.parse(editorial);
-      validateNarrativeEditorialReport(report, authored.chapter, run.canon);
-      proseOnly = !report.issues.some((i) => i.repairScope === 'canon');
-      if (!evaluateNarrativeEditorialGate(report).passed)
+      const report = fictionEditorialReportSchema.parse(editorial);
+      validateFictionEditorialReport(input, authored, report);
+      proseOnly =
+        !report.issues.some((i) => i.repairScope === 'canon') &&
+        (report.version === '1.0.0' ||
+          (report.sequenceReview.distinctDramaticStructure &&
+            report.sequenceReview.independentProgression &&
+            report.sequenceReview.characterAgency));
+      if (!evaluateFictionEditorialGate(input, report).passed)
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',
           `Rewrite the weak story rather than paraphrasing it: ${JSON.stringify(report)}`,

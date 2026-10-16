@@ -310,25 +310,28 @@ function clientFor(
         ? cf!.draft
         : creative && task === 'life_narrative_chapter'
           ? cf!.authored
-          : creative && task === 'life_narrative_plan_review'
-            ? narrativePlanReadinessFixture()
-            : task === 'life_narrative_plan_review'
-              ? job.payload.narrativeContext?.policy.mode === 'narrative-v1' &&
-                job.payload.narrativeContext.policy.promptVersions
-                  .planReviewer === 'life_narrative_plan_review.v2'
-                ? narrativePlanReadinessFixture()
-                : narrativePlanReviewFixture()
-              : task === 'life_period'
-                ? candidate
-                : task === 'life_narrative_plan'
-                  ? f.result
-                  : task === 'life_chapter'
-                    ? narrativeChapter(story)
-                    : task === 'life_narrative_chapter'
-                      ? longNarrativeChapterFixture(f)
-                      : task === 'life_fidelity'
-                        ? { valid: true, issues: [] }
-                        : narrativeEditorialFixture();
+          : creative && task === 'life_narrative_editor'
+            ? cf!.editor
+            : creative && task === 'life_narrative_plan_review'
+              ? narrativePlanReadinessFixture()
+              : task === 'life_narrative_plan_review'
+                ? job.payload.narrativeContext?.policy.mode ===
+                    'narrative-v1' &&
+                  job.payload.narrativeContext.policy.promptVersions
+                    .planReviewer === 'life_narrative_plan_review.v2'
+                  ? narrativePlanReadinessFixture()
+                  : narrativePlanReviewFixture()
+                : task === 'life_period'
+                  ? candidate
+                  : task === 'life_narrative_plan'
+                    ? f.result
+                    : task === 'life_chapter'
+                      ? narrativeChapter(story)
+                      : task === 'life_narrative_chapter'
+                        ? longNarrativeChapterFixture(f)
+                        : task === 'life_fidelity'
+                          ? { valid: true, issues: [] }
+                          : narrativeEditorialFixture();
     transports.push({ caseId, task, latencyMs: Date.now() - start });
     await save(join(options.out, 'transport-records.json'), transports);
     return {
@@ -898,6 +901,7 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
+          10,
         )
       : undefined;
   try {

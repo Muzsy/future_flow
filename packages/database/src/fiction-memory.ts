@@ -1,9 +1,11 @@
 import {
   fictionArtifactSchema,
+  narrativeArtifactSchema,
   fictionContextSchema,
   fictionPolicy,
   NARRATIVE_MEMORY_BYTES,
   type NarrativeMemory,
+  type FictionSequenceEntry,
   type StoryFact,
   type FictionReferences,
   type FictionArtifact,
@@ -42,6 +44,7 @@ export async function ownedFictionReferences(
 export function boundFictionContext(
   rawMemory: NarrativeMemory,
   allFacts: StoryFact[],
+  sequenceHistory?: FictionSequenceEntry[],
 ) {
   const memory = structuredClone(rawMemory);
   let facts = memory.withheld
@@ -80,7 +83,14 @@ export function boundFictionContext(
     if (mandatory.has(f.id) && !facts.some((a) => a.id === f.id))
       facts.unshift(f);
   const size = () =>
-    Buffer.byteLength(JSON.stringify({ memory, storyFacts: facts }), 'utf8');
+    Buffer.byteLength(
+      JSON.stringify({
+        memory,
+        storyFacts: facts,
+        ...(sequenceHistory ? { sequenceHistory } : {}),
+      }),
+      'utf8',
+    );
   for (const p of memory.history) {
     if (size() <= NARRATIVE_MEMORY_BYTES) break;
     p.excerpt = null;
@@ -121,6 +131,7 @@ export function boundFictionContext(
     policy: fictionPolicy(),
     memory,
     storyFacts: facts,
+    ...(sequenceHistory ? { sequenceHistory } : {}),
   });
 }
 export async function personalFictionContext(
@@ -130,20 +141,48 @@ export async function personalFictionContext(
   memory: NarrativeMemory,
 ) {
   if (memory.withheld) return boundFictionContext(memory, []);
-  const rows = await tx.query<{ artifact: unknown }>(
-    `SELECT p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
-      WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact->>'version'='2.0.0' ORDER BY h.position`,
+  const rows = await tx.query<{
+    artifact: unknown;
+    period_id: string;
+    chapter: { body: string };
+    events: { title: string; summary: string }[];
+  }>(
+    `SELECT h.period_id, p.chapter, p.events, p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
+      WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
     [branchId, userId],
   );
   const active = new Map<string, StoryFact>();
   for (const row of rows) {
+    if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0')
+      continue;
     const artifact = fictionArtifactSchema.parse(row.artifact);
     for (const fact of artifact.storyFacts) {
       if (fact.supersedesFactId) active.delete(fact.supersedesFactId);
       active.set(fact.id, fact);
     }
   }
-  return boundFictionContext(memory, [...active.values()]);
+  const sequenceHistory = rows.slice(-3).map((row) => {
+    const plan = row.artifact
+      ? ((row.artifact as { version?: unknown }).version === '2.0.0'
+          ? fictionArtifactSchema.parse(row.artifact)
+          : narrativeArtifactSchema.parse(row.artifact)
+        ).validatedPlan
+      : null;
+    return {
+      periodId: row.period_id,
+      scenes: plan
+        ? plan.scenes.map(
+            (scene) =>
+              `${scene.visibleAction.slice(0, 90)} | ${scene.obstacle.slice(0, 90)} | ${scene.shift.slice(0, 90)}`,
+          )
+        : row.events
+            .slice(0, 3)
+            .map((event) => `${event.title}: ${event.summary}`.slice(0, 300)),
+      opening: row.chapter.body.slice(0, 400),
+      ending: row.chapter.body.slice(-500),
+    };
+  });
+  return boundFictionContext(memory, [...active.values()], sequenceHistory);
 }
 
 export type FictionCommit = {

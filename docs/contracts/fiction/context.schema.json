@@ -21,21 +21,24 @@
               "type": "string",
               "enum": [
                 "life_fiction_plan.v1",
-                "life_fiction_plan.v2"
+                "life_fiction_plan.v2",
+                "life_fiction_plan.v3"
               ]
             },
             "writer": {
               "type": "string",
               "enum": [
                 "life_fiction_author.v1",
-                "life_fiction_author.v2"
+                "life_fiction_author.v2",
+                "life_fiction_author.v3"
               ]
             },
             "planReviewer": {
               "type": "string",
               "enum": [
                 "life_fiction_plan_review.v1",
-                "life_fiction_plan_review.v2"
+                "life_fiction_plan_review.v2",
+                "life_fiction_plan_review.v3"
               ]
             },
             "fidelity": {
@@ -44,7 +47,10 @@
             },
             "editor": {
               "type": "string",
-              "const": "life_fiction_editor.v1"
+              "enum": [
+                "life_fiction_editor.v1",
+                "life_fiction_editor.v2"
+              ]
             }
           },
           "required": [
@@ -62,7 +68,10 @@
         },
         "qualityPolicyVersion": {
           "type": "string",
-          "const": "2.0.0"
+          "enum": [
+            "2.0.0",
+            "2.1.0"
+          ]
         },
         "maxPhysicalRequests": {
           "type": "number",
@@ -462,6 +471,43 @@
           "assertion",
           "supersedesFactId",
           "relevance"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sequenceHistory": {
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "periodId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "scenes": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            }
+          },
+          "opening": {
+            "type": "string",
+            "maxLength": 400
+          },
+          "ending": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "periodId",
+          "scenes",
+          "opening",
+          "ending"
         ],
         "additionalProperties": false
       }

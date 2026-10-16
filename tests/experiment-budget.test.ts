@@ -16,6 +16,36 @@ const request = {
   input: 'Synthetic test data.',
 };
 describe('shared paid experiment ledger', () => {
+  it('extends the cumulative ledger only under an explicit larger ceiling, without discarding prior calls', async () => {
+    const ledger = path();
+    const first = new ExperimentAiBudget(ledger, 5, 'original');
+    const id = await first.reserve(request);
+    await first.settle(id, { input_tokens: 100, output_tokens: 20 });
+    first.close();
+    const original = JSON.parse(readFileSync(ledger, 'utf8'));
+    expect(() => new ExperimentAiBudget(ledger, 10, 'not-explicit')).toThrow();
+    expect(
+      () => new ExperimentAiBudget(ledger, 10.01, 'over-cap', undefined, 10),
+    ).toThrow();
+    const extended = new ExperimentAiBudget(
+      ledger,
+      10,
+      'explicit-extension',
+      undefined,
+      10,
+    );
+    try {
+      const next = await extended.reserve(request);
+      await extended.settle(next, { input_tokens: 100, output_tokens: 20 });
+      const saved = JSON.parse(readFileSync(ledger, 'utf8'));
+      expect(saved.calls).toHaveLength(2);
+      expect(saved.calls[0]).toEqual(original.calls[0]);
+      expect(saved.accountedUsd).toBeCloseTo(original.accountedUsd * 2);
+      expect(saved.budgetUsd).toBe(10);
+    } finally {
+      extended.close();
+    }
+  });
   it('excludes concurrent paid processes, retains unknown reservations and resumes the same allowance', async () => {
     const ledger = path(),
       guard = new ExperimentAiBudget(ledger, 0.03, 'test-only');
