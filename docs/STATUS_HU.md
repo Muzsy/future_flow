@@ -56,7 +56,7 @@ A teljes, valós kódra és mérésekre épített [gazdaságossági javaslat](pl
 
 A normál reader/funded és kézi daily backup/sync/restore/monitor Linuxra átvétele PR #21-ben elkészült, az eredeti privát state ellenőrzött átvételével és valódi operátori alkalmazással. Ezekhez Windows-agent nem szükséges. A korábbi Windows scheduler és owner-image deployment nem része ennek az átállásnak.
 
-A már funded futó alkalmazás új narratív runtime-ra frissítésének külön Linux operátori támogatása még hiányzik: [Issue #34](https://github.com/Muzsy/future_flow/issues/34). Ez nem az eredeti adatátvétel hiánya, és nem indok az ablak vagy ledger visszaállítására. A narratív rollout előtt exact-source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile, target/apply és utólagos readback kell.
+A már funded futó alkalmazás új narratív runtime-ra frissítésének dedikált Linux operátori implementációs jelöltje elkészült ([runbook](operations/FUNDED_RUNTIME_UPGRADE_HU.md)); review/audit és tényleges release-proof még szükséges: [Issue #34](https://github.com/Muzsy/future_flow/issues/34). Ez nem az eredeti adatátvétel hiánya, és nem indok az ablak vagy ledger visszaállítására. A narratív rollout előtt exact-source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile, target/apply és utólagos readback kell.
 
 A Contabo/Cloudflare, backup/TLS/privacy/writer-fence védelmek és a supporting runbookok megmaradnak. Privát credential, résztvevői email/UUID és teljes operátori proof nem része ennek a dokumentációnak.
 
