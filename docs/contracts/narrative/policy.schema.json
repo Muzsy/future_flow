@@ -19,7 +19,8 @@
           "enum": [
             "life_narrative_plan.v1",
             "life_narrative_plan.v2",
-            "life_narrative_plan.v3"
+            "life_narrative_plan.v3",
+            "life_narrative_plan.v4"
           ]
         },
         "writer": {
@@ -32,7 +33,10 @@
         },
         "planReviewer": {
           "type": "string",
-          "const": "life_narrative_plan_review.v1"
+          "enum": [
+            "life_narrative_plan_review.v1",
+            "life_narrative_plan_review.v2"
+          ]
         },
         "fidelity": {
           "type": "string",
