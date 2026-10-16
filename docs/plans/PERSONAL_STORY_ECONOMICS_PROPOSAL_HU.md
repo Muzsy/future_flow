@@ -229,3 +229,12 @@ A 5f8ffbd forrás négy teljes, automatikusan elfogadott fejezete összesen 0,89
 A teljes fejlesztési ledger **190 hívás / 4,81984 USD accounted / 4,476067 USD usage-becslés**, maradék 0,18016 USD az eredeti 5-ből. Nincs ismeretlen usage vagy hozzárendeletlen foglalás. A régi kutatási és összehasonlítási költés nem keveredik automatikusan a mostani fejezetegységárba, de a ledgerben megmarad.
 
 A 0,70 USD-s óvatos tervezési forgatókönyvet ezért továbbra megtartjuk; a négy jó automatikus eredmény alapján nem véglegesítünk csomagárat vagy mennyiséget. A következő mérésben a sikertelen generálás, javítás, fork és várakozás teljes költségét is számolni kell. Az olvasói kedv és a várakozási idő elfogadhatósága külön döntési adat.
+
+
+## 14. Szekvenciális minőségjavítás — 2026-10-16
+
+A szigorúbb 04cee85 folyamat két profil hat teljes új fejezetét fogadta el öt-öt hívással, javítás nélkül. Accounted összköltség 1,4672925 USD, átlag **0,24454875 USD/fejezet**, usage-becslés összesen 1,3610067 USD; p95 generálási idő **295560 ms** (kb. 4,9 perc). A végső e5e7ed2 forrás külön, dokumentált régi prefixből induló ordering-forkja 0,288855 USD, öt hívás/javítás nélkül. A hét elfogadott új fejezet többforrású kis mintás átlaga 0,2508782 USD; az eredeti technikai fork-hiba két planner-hívását is számolva 0,2723329 USD. Az editor-kalibráció külön kutatási költség, nem generált új fejezet. A kontroll felismerése és ügynöki olvasás mellett is hiányzik a független emberi elfogadás.
+
+A tulajdonos az összesített dedicated development keretet **10 USD-ra** bővítette, az addigi hívások és költés megőrzésével. Aktuális ledger **229 hívás / 6,79395 USD accounted / 6,3036081 USD usage-becslés**, maradék **3,20605 USD**; nulla ismeretlen usage/hozzárendeletlen foglalás. A 39 új hívás teljes kutatási költsége 1,97411 USD. A standard short-context árakat 2026-10-16-án a [hivatalos árlistán](https://developers.openai.com/api/docs/pricing) visszaellenőriztük; a konfigurált árak nem változtak.
+
+A 0,70 USD-s óvatos üzemi forgatókönyv megmarad. Sem a mért alacsonyabb átlag, sem a keretbővítés nem döntés a havi csomagról, az árról, a várakozási idő elfogadhatóságáról vagy az éles funded ablakról. A további mérésben a javításokat, sikertelen kézbesítéseket és valódi olvasói elfogadást is figyelembe kell venni; a modell marad.

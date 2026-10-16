@@ -41,7 +41,7 @@ A `--choices-file <JSON>` tömb minden eleme: fixtureId, mode (`legacy` vagy `na
 
 ## Külön engedélyezett fizetett futás
 
-Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, legfeljebb 5 USD **összesített fejlesztési keret**, valamint külön fejlesztési OpenAI project és project/service-account kulcs. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
+Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, az engedélyezett **összesített fejlesztési keret** (jelenleg 10 USD a 2026-10-16-i explicit bővítéssel), valamint külön fejlesztési OpenAI project és project/service-account kulcs. A bővítés az eredeti 5 USD keret teljes addigi költését is magában foglalja. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
 
 Csak explicit átadott `NARRATIVE_EVAL_API_KEY`, `NARRATIVE_EVAL_PROJECT_ID`, `NARRATIVE_EVAL_PROJECT_CONFIRMATION=dedicated-development` olvasható; általános OPENAI_API_KEY fallback nincs. Az environment marker a kezelő nyilatkozata, nem OpenAI project-ownership API-bizonyíték; a külön fejlesztési projektet az operátornak ellenőriznie kell. Titokfájl a repo/image/report része nem lehet.
 
@@ -166,3 +166,8 @@ A qualityPolicy 2.1.0 kalibrációjában először a korábbi ismétlődő fejez
 
 
 Az örökölt választások azonos időbélyeges sorrendhibájának javítását új forrású, friss fork-próbával kell igazolni. A korábbi sikeres kétperiodos prefix átvehető szintetikus regressziós kiindulásnak, de az eredeti forrás/fejezet/kanonikus hash és az új forrás/script/payload kötését együtt rögzíteni kell. Új fork és normál guarded worker szükséges; az eredeti failed job/payload, receipt és költség nem írható át. Ez célzott kétforrású continuity regresszió, nem a teljes benchmark új forrásra átnevezése.
+
+
+## Legutóbbi lezárt diagnózis
+
+A 04cee85 új szekvenciális policyja két profil három-három teljes fejezetét fogadta el, mind öt hívás/javítás nélkül, minden score >=4. Célzott editor-kalibrációban a régi pozitív kontroll átment, az ismétlődő harmadik negatív kontroll elutasítva (novelty 3, három sequence flag false). Az első fork két plannerrel hibás latest-choice sorrend miatt megállt; az e5e7ed2 új forrású, explicit régi prefixet öröklő friss forkja öt hívással átment. Az eredeti failed job és díja megmaradt, a két forrás bizonyítéka külön van. Global ledger 229 hívás / 6,79395 USD accounted, 6,3036081 USD usage-becslés, nulla ismeretlen/hozzárendeletlen foglalás, maradék 3,20605 USD a 10-ből. Részletes eredmények és korlátok: [STATUS](../STATUS_HU.md). A complete/qualityRelease flag false; a kód CI-je és a kis mintás modellkapu nem független emberi benchmark.

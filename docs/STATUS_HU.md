@@ -44,7 +44,7 @@ Az Issue #43 célzott fejlesztési jelöltje külön megőrzi a két gyenge fix-
 
 A 2026-10-15-i kétprofilos, egyidőszakos valódi diagnózis két új első fejezete átment, öt-öt hívással, javítás nélkül; teljes ilyen költségük 0,2674625 USD, egy modellkapun átment fejezetre **0,13373125 USD**. Mindkét külön fix-kánon íróteszt editor-elutasítás lett, momentum 2/5. A tervellenőr befejezetlen mezővégeket is jelzett. Ezek nyitott minőségi problémák; két első fejezet nem igazol többidőszakos vagy független emberi minőséget.
 
-Az összes külön fejlesztési mérés aktuális, visszaolvasott ledgere **190 hívás / 4,81984 USD konzervatív elszámolás**, 4,476067 USD usage-alapú árbecslés. Nulla ismeretlen használat és nulla hozzárendeletlen foglalás. Az eredeti összesített 5 USD keretből **0,18016 USD** maradt; ez már nem fedezi a következő kérés teljes előfoglalását. A fejlesztési ledger különbözik a bétaablak költésétől, új forrás vagy outputkönyvtár nem nullázza. Az alábbi korábbi összegek időpont szerinti történeti részállapotok.
+Az összes külön fejlesztési mérés aktuális, visszaolvasott ledgere **229 hívás / 6,79395 USD konzervatív elszámolás**, 6,3036081 USD usage-alapú árbecslés. Nulla ismeretlen használat és nulla hozzárendeletlen foglalás. A tulajdonos az összesített development keretet 10 USD-ra bővítette; **3,20605 USD maradt**. Ez különbözik a bétaablak költésétől; új forrás vagy outputkönyvtár nem nullázza. Az alábbi korábbi összegek dátum szerinti történeti részállapotok.
 
 Részletes authority: [narratív implementáció](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md), [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md), [Issue #24](https://github.com/Muzsy/future_flow/issues/24).
 
@@ -54,7 +54,7 @@ Az ad6aaa7 readiness-v2 / writer-v3 forrás két új teljes első fejezete átme
 
 A két új mérés együtt 39 hívás / 0,82722 USD accounted. Az összesített 140 hívás / 2,985975 USD után 2,014025 USD maradt az eredeti 5 USD-ből; nincs ismeretlen usage vagy hozzárendeletlen foglalás. További többfejezetes és független emberi értékelés szükséges. A green CI nem irodalmi PASS, és éles bekapcsolás nem történt. Részletek: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md).
 
-## Új alkotói működés — implementált, teljes kiadási validáció még nyitott
+## Korábbi creative v1/v2 diagnózis — történeti mérés
 
 Issue #45 / [PR #46](https://github.com/Muzsy/future_flow/pull/46), PR #44 függőséggel készített implementáció. Az író végső candidate/plan/StoryFact/chapter csomagot alkothat; utólagos domain/terv/fidelity/editor ellenőrzés és atomikus mentés, prefix-only fork és withheld/export/delete/recovery védelem készült. Változatlan modell, öt normál/max9 fizikai hívás, egy tartalmi javítás. Új jobok planner/author/reviewer v2 kompakt címkékkel; a ténylegesen mért v1 promptok és régi parser megmaradnak. A memóriában egy visszatérő actor legutóbbi releváns ténye rögzített, nem a teljes korábbi életrajza. Az új struktúra külön 180 másodperces provider-határidőt kap; régi módok határideje változatlan.
 
@@ -68,28 +68,38 @@ A végső **8847d2b** kódforrás Verify és Container CI-je (#311) sikeres, **9
 
 Az új `--creative-only` szintetikus olvasói diagnózis elhagyja az ismételt legacy/fixed költséget, választásai naplózott indexválasztások (`reviewed=false`); `complete=false`, `qualityRelease=false`. Az emberi olvasói értékelés, teljes többprofilos folytatás/fork, gazdaságossági és időkorlát-döntés, valamint a pontos target/recovery Linux-rollout proof nyitott. Éles aktiválás, új ablak, modellváltás nincs. [Terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md).
 
-### A szövegek közvetlen olvasásának megállapítása
+### A korábbi szövegek ügynöki olvasásának megállapítása
 
-A négy elfogadott fejezetet külön is végigolvastuk. Erősségük a konkrét tárgyakra épülő jelenetezés, a párbeszéd és a döntés következménye: a munkahelyi szerep ténylegesen változik három fejezeten át, az alkotói profilban pedig egy hibásan olvasott képsorozat átrendezése vezet új lehetőséghez. Ugyanakkor a munkahelyi sorozat rendre hasonló ritmust használ: munkalap/értekezlet → kollégai ellenvetés → Rowan prioritásdöntése → új feladatelosztás → toll és üres válaszhely. Ez tudatosan ellenőrizendő szerkezeti ismétlődés, az automatikus novelty=4 ellenére. A folytatási kedv, szereplők önálló élete és a történet világának szélesedése még valódi olvasói bizonyítékot igényel; a négy kapu-PASS nem jelenti a maximális történetélmény igazolását.
-
-
-### Szekvenciális minőségkapu — 2026-10-16
-
-A közvetlen olvasás az automatikus novelty=4 ellenére ismétlődő értekezlet/ellenvetés/vezetői feloldás/új feladatelosztás/üres válaszhely szerkezetet talált. Két kódbeli ok: a korábbi excerpt csak a fejezet első 1200 karaktere volt, a jelenetterv/lezárás nem jutott külön a következő ellenőrzésbe; a régi irodalmi kapu pedig novelty/character/personalization <4 pontját magasabb más ponttal átlagolhatta. A régi editor-verdict önmagában sem volt kizáró feltétel.
-
-Az új queue planner/author/planReviewer v3, editor v2 és qualityPolicy 2.1.0 snapshotot kap. Az editor report 1.1.0 minden nyolc dimenzióban >=4-et, pass verdictet és négy külön igaz szekvenciális jelzést követel: eltérő drámai szerkezet, eltérő lezárás, valódi továbblépés, önálló szereplői cselekvés. A supplied history minden period ID-ját pontosan le kell fednie; hamis jelzés magas pontok/üres issue-lista mellett is kizáró. Szerkezeti ismétlődés teljes package repairt igényel, nem szinonimás prózajavítást. A régi policy/report/prompt változatlanul olvasható és hash-pinnelt.
-
-A server csak az owned ág utolsó három creative fejezetének jelenetmechanizmus-részleteit, 400 karakteres elejét és 500 karakteres végét adja sequenceHistoryként. Ez a meglévő 12 KiB közös promptmemória-keret része; fork prefix-only, withheld esetén nincs történeti betöltés. Az ismétlődő szereplő/motívum/helyszín önmagában nem hiba; a változatlan oksági feloldást és döntési mechanizmust kell elutasítani. Modell és öt normál/max9 hívás, egy javítás változatlan.
-
-A tulajdonos az összesített fejlesztési keretet 10 USD-ra emelte. A korábbi 190 hívás / 4,81984 USD megmarad, a bővítés előtti maradék 5,18016 USD. A külön development projekt és ledger változatlan, bétaablakhoz nem nyúlunk. Az új kapu tényleges negatív kontrollja és új többfejezetes próba még ellenőrizendő; ebből a kódmódosításból nem következik irodalmi PASS vagy éles aktiválás.
+Az ügynök a négy elfogadott fejezetet külön is végigolvasta. Erősségük a konkrét tárgyakra épülő jelenetezés, a párbeszéd és a döntés következménye: a munkahelyi szerep ténylegesen változik három fejezeten át, az alkotói profilban pedig egy hibásan olvasott képsorozat átrendezése vezet új lehetőséghez. Ugyanakkor a munkahelyi sorozat rendre hasonló ritmust használ: munkalap/értekezlet → kollégai ellenvetés → Rowan prioritásdöntése → új feladatelosztás → toll és üres válaszhely. Ez tudatosan ellenőrizendő szerkezeti ismétlődés, az automatikus novelty=4 ellenére. A folytatási kedv, szereplők önálló élete és a történet világának szélesedése még valódi olvasói bizonyítékot igényel; a négy kapu-PASS nem jelenti a maximális történetélmény igazolását.
 
 
-Az új 04cee85 forrás CI-je (#316 / 38962899425) Verify és Container sikeres, **90 fájl / 964 teszt**. Külön valódi editor-kalibrációban a korábbi első munkahelyi fejezet átment (minden pont 4), a korábbi harmadik fejezet elutasítva: novelty=3, distinctDramaticStructure=false, distinctEnding=false, independentProgression=false. A modell két előzményében is azonosította az értekezlet/ellenvetés/vezetői feloldás/új feladatelosztás mechanizmust. Mindkét előre megadott kontrollvárakozás teljesült. Ez az ismert hiba célzott kalibrációja, nem független általános minőségbizonyíték. Új háromidőszakos kétprofilos próba ugyanazon forráson és cumulative ledgerrel folyamatban.
+## Szekvenciális minőségjavítás — aktuális implementáció és bizonyíték
 
+[PR #47](https://github.com/Muzsy/future_flow/pull/47), Issue #45. A végső kód **e5e7ed2** Verify/Container CI-je (#318 / 38967483299) sikeres, **90 fájl / 966 teszt**. A későbbi dokumentációs commit nem változtatja meg a mért kódot. Production aktiválás nem történt.
 
-A 04cee85 elágazási próba a planner után két alkalommal megállt: „The latest accepted choice has no consequence.” A mentett tervezet valójában a helyes alternatívát („Contribute the written case”) vitte tovább. A fork mindkét örökölt választását azonos created_at időre másolta; az UUID-s tiebreaker így az előző koordinációs döntést tette a memória végére. Ez adatbázis-időrendezési hiba, nem editor- vagy történeti elutasítás. A friss memória most az owned aw_history.position alapján rendez, az initial választások a periodok elé kerülnek; raw promptmemória és detail DTO ugyanezt a sorrendet használja. Új fork megőrzi az eredeti választások created_at értékét. A korábbi jobok/payloadok és a hibás paid próbák változatlan bizonyítékként megmaradnak, nincs guardlazítás vagy ledger-reset.
+A közvetlen olvasás és a valódi próba négy javítandó pontot azonosított:
 
-A korábbi két egyenlő időbélyeges rekord változtatás nélküli másolatán az új kód már a helyes írásos választást azonosította legfrissebbként; az eredeti terv következmény-hivatkozása ezzel egyezik. Külön kétválasztásos fork-regresszió ellenőrzi az időbélyeg-megőrzést és a memória/detail sorrendjét. Az új forráshoz kötött friss fork-próba még szükséges; a 04cee85 kétprofilos mérésének többi része közben változatlan forráson fut.
+- a korábbi excerpt csak a fejezet elejét mutatta, a jelenetmechanizmus és lezárás rejtve maradt;
+- a novelty/character/personalization gyenge pontját más dimenzió kompenzálhatta, az editor-verdict önmagában sem zárt;
+- a fork az örökölt choice időbélyegeit azonosra cserélte, így az UUID-s rendezés rossz legfrissebb döntést adhatott;
+- a módváltáskor a legacy/narrative előzmények vége nem jutott be a creative szekvenciális összevetésbe.
 
+Az új queue planner/author/planReviewer v3, editor v2 és qualityPolicy 2.1.0 snapshotot kap. Report 1.1.0: mind a nyolc score >=4, pass verdict és négy igaz sequenceReview-jelzés szükséges (eltérő drámai szerkezet, eltérő lezárás, érdemi továbblépés, szereplői önállóság), az összehasonlítás pontos owned period-ID lefedésével. Hamis jelzés magas pontok és üres issue-lista mellett is kizáró. Szerkezeti hiba teljes package repairt igényel. Modell, öt normál/max9 fizikai hívás, egy javítás és minden pénzügyi/privacy/fence védelem változatlan. A régi v1/v2 promptok hash-pinnelve és régi reportok olvashatóan maradnak.
 
-A szekvenciális context az owned utolsó három periodot a régi legacy/narrative módból is figyelembe veszi: ha van validatedPlan, annak jelenetmechanizmusa, egyébként a kanonikus esemény-összefoglaló kerül mellé, a mentett nyitó/záró szöveggel. StoryFactot régi prózából nem gyárt, withheld továbbra teljesen zár. Ez a módváltás első új fejezeténél is megszünteti a lezárások vakfoltját. Külön legacy-projekciós regresszió készült.
+A sequenceHistory az utolsó három owned period scene-mechanizmusát és 400/500 karakteres nyitó/záró részletét adja a meglévő összesített 12 KiB keretben. Legacy artifact nélkül a kanonikus eseménycím/összefoglaló a fallback; régi prózából nem gyárt StoryFactot. Withheld esetben történeti betöltés nincs, fork csak prefixet kap. A choice-memória/raw prompt/detail sorrendje az owned aw_history.positiont követi; új fork megőrzi az eredeti elfogadási időbélyeget. Régi job/payload és canonical rekord nem lett átírva, a latest-choice consequence guard nem lazult.
+
+### Tényleges minőségi eredmény
+
+A 04cee85 forráshoz kötött editor-kalibráció elfogadta a korábbi jó első fejezetet, és elutasította a korábban átengedett ismétlődő harmadikat: novelty=3, distinctDramaticStructure/distinctEnding/independentProgression=false. Ez célzott pozitív/negatív kontroll, nem független általános minőségbizonyíték.
+
+Ugyanezen forrás friss creative-only diagnózisa **hat teljes fejezetet** fogadott el: két profil, három-három egymást követő időszak. Mind öt hívás, tartalmi javítás nélkül; minden dimenzió >=4, az alkotói harmadik fejezet prózája 5. A főági fejezetek accounted összköltsége **1,4672925 USD**, átlaga **0,24454875 USD**; usage-becslésük 1,3610067 USD. A p95 generálási idő 295560 ms. A hétköznapi esetek e mérése nem bizonyít általános elfogadási arányt.
+
+Az első fork két planner-hívás után a choice-sorrend hibája miatt megállt (0,1501825 USD), noha a tervezet helyesen az írásos alternatívát vitte tovább. A változatlan eredeti adatok másolatán az új memória már ezt a döntést azonosította legfrissebbként. Az **e5e7ed2** forrás külön friss forkja a két elfogadott korábbi fejezetet explicit forrás/hash-provenance mellett örökölte; a szülő későbbi harmadik részét kizárta. Az új folytatás öt hívással, javítás nélkül, minden pont 4 mellett átment: **0,288855 USD accounted**, 0,2681595 USD usage-becslés. Ez célzott kétforrású continuity regresszió, nem a teljes 04cee85 benchmark új forrásra átnevezése. Az eredeti failed ág és költés megmaradt.
+
+Az ügynöki végigolvasás szerint az új ívek változatosabb oksági helyzeteket adnak. Az alkotói történet a képsorozattól egy másik szerző önálló értelmezésén át anyaggal/fénnyel való kísérletig jut; a munkahelyi főág a korábbi döntés árát viselő ember saját tervéhez, az alternatíva versengő értelmezések és szerepcsere konfliktusához vezet. Ez ügynöki olvasás, nem rögzített független emberi értékelés. Kisebb jelenetezési tömörítésekre az editor továbbra minor megjegyzést tett; a mérésből nem következik hibátlan vagy minden profilra garantált próza.
+
+A mostani munkaszakasz **39 hívás / 1,97411 USD accounted**: 2 kalibráció, 32 teljes diagnosztikai hívás (a két hibás fork-plannerrel), 5 javított fork-hívás. A globális ledger 229 / 6,79395 USD, minden usage ismert és minden foglalás hozzárendelt. A hét elfogadott új fejezet puszta költsége 1,7561475 USD, átlaga 0,2508782 USD; a technikai fork-hibát is ráosztva 0,2723329 USD. Ezek kis mintás, többforrású diagnosztikai számok, nem üzemi árígéretek.
+
+### Nyitott kiadási feltételek
+
+A creative-only választások naplózott indexválasztások, reviewed=false; complete=false és qualityRelease=false megmarad. Független olvasói benchmark, tulajdonosi egységköltség/időkorlát-döntés és pontos target/recovery Linux-rollout proof szükséges. A végső forrás teljes többprofilos release-benchmarkját nem helyettesíti a célzott regresszió. Az éles default legacy/üres cohort, funded ablak és béta-keret változatlan.
