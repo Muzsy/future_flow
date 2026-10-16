@@ -11,7 +11,7 @@ Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifik
 
 ## Végrehajtási állapot — 2026-10-16
 
-Issue #45 / PR #46; a kanonikus STATUS és DEVELOPMENT_PLAN tartalmazza a legfrissebb készültséget. F00–F04 kódja implementált jelölt. A 9ae6311 első commit 90 fájl / 951 tesztes CI-je és Container ellenőrzése sikeres. A tényleges v1 próba egy új alkotói fejezetet igazolt automatikus kapun, egy munkahelyi próbát belső címkecsonkulás állított meg. Ezért új, külön befagyasztott planner/author/reviewer v2 és kompakt címkeséma készült, változatlan modellel és minőségküszöbökkel. Régi v1 eredmény és prompt megmarad. F05/F06 teljes human/quality/rollout kapui még nyitottak. A creative-only diagnózis indexválasztása nem emberi review.
+Issue #45 / PR #46; a kanonikus STATUS és DEVELOPMENT_PLAN tartalmazza a legfrissebb készültséget. F00–F04 implementált. A végső 8847d2b kódforrás CI-je 90 fájl / 958 teszt, Verify és Container sikeres. A kompakt planner/author/reviewer v2 ugyanazzal a modellel a korábbi 5f8ffbd forráson négy teljes fejezetet igazolt automatikus kapun (három munkahelyi időszak, egy alkotói), öt-öt hívással, javítás nélkül, minden editor-dimenzió 4. A fork a literary editor előtt pénzügyi előfoglalási korlátba ütközött; két alkotói folytatás nem futott. Aktuális globális ledger 190 hívás / 4,81984 USD, 0,18016 USD maradékkal. F05/F06 teljes human/quality/rollout kapui még nyitottak. A creative-only diagnózis indexválasztása nem emberi review. A végső kód regressziójavításait CI ellenőrizte, új fizetett mérés még nem.
 
 ## 1. Feladat, termékdöntés és a dokumentum határa
 
