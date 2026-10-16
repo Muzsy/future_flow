@@ -39,7 +39,8 @@
               "enum": [
                 "life_narrative_chapter.v1",
                 "life_narrative_chapter.v2",
-                "life_narrative_chapter.v3"
+                "life_narrative_chapter.v3",
+                "life_narrative_chapter.v4"
               ]
             },
             "planReviewer": {
@@ -1201,7 +1202,8 @@
               "enum": [
                 "life_narrative_chapter.v1",
                 "life_narrative_chapter.v2",
-                "life_narrative_chapter.v3"
+                "life_narrative_chapter.v3",
+                "life_narrative_chapter.v4"
               ]
             },
             "planReviewer": {

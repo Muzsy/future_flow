@@ -115,7 +115,9 @@ N00–N07: DONE, PR #25–#33. N08 harness és a planner v3 / külön tervellen�
 
 Issue #43: a két bukott fix-kánon feltárása elkészült; az eredeti negatív kontrollokat megőrző developed-v2 anyag és planner v4 / reviewer v2 readiness-kapu fejlesztési jelölt. Writer v3 és a kiadási küszöb változatlan; nincs új paid/human PASS.
 
-Következő sorrend: a célzott kontroll/readiness-javítás review-ja → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
+A PR #44 ad6aaa7 paid részdiagnózisa: két teljes első fejezet PASS, két fix kontroll FAIL (munkahelyi kánon, alkotói próza). Ledger 127 hívás / 2,72376 USD accounted, maradék 2,27624 USD. Következő jelölt writer v4, változatlan creative kontroll mellett; nincs humán vagy release PASS.
+
+Következő sorrend: a writer v4 célzott ellenőrzése és a munkahelyi kánon külön javítása → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
 
 ### B01 — Billing foundation — PENDING
 

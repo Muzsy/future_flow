@@ -12,7 +12,12 @@ import {
   type NarrativeStoryInput,
   type AiRequestGuard,
 } from '@future-flow/ai';
-import { narrativeV1Policy, type Locale } from '@future-flow/contracts';
+import {
+  narrativeV1Policy,
+  readyNarrativePolicy,
+  sceneNarrativePolicy,
+  type Locale,
+} from '@future-flow/contracts';
 import { DomainError, hash } from '@future-flow/core';
 import {
   narrativePlanFixture,
@@ -406,4 +411,46 @@ describe('narrative provider uses the common guarded transport', () => {
     expect(request).not.toHaveProperty('repair');
     expect(request.qualityPolicyVersion).toBe('1.0.0');
   });
+});
+
+it('freezes writer3 and routes scene-execution writer4 without changing canon, checks or call limits', async () => {
+  const { narrativePrompts } =
+    await import('../packages/ai/src/narrative-prompts');
+  const expected = {
+    en: '9d4cbf6327ba696abc03a713252ee5e4e6db1f1d99fc290b0846d55cccdbad8c',
+    hu: '68c394eb6ac8e50bce58df423400b5e4556b60146f9ab9cddce762a5818704b4',
+  };
+  for (const locale of ['en', 'hu'] as const) {
+    const previous = narrativePrompts(
+      locale,
+      readyNarrativePolicy().promptVersions,
+    );
+    const next = narrativePrompts(
+      locale,
+      sceneNarrativePolicy().promptVersions,
+    );
+    expect(hash(previous)).toBe(expected[locale]);
+    expect(next.planner).toBe(previous.planner);
+    expect(next.fidelity).toBe(previous.fidelity);
+    expect(next.editor).toBe(previous.editor);
+    expect(next.writer).toContain(previous.writer);
+    expect(next.writer).toContain('TURNING-POINT SCENE');
+    expect(next.writer).toContain('do not invent artwork subjects');
+    const f = fixture(locale),
+      p = provider();
+    const before = hash({ events: f.story.events, plan: f.story.plan });
+    f.story.narrativeContext.policy = sceneNarrativePolicy();
+    p.parse.mockResolvedValueOnce(success(f.chapter));
+    const response = await p.ai.writeNarrativeChapter(f.story);
+    expect(response.receipt.promptVersion).toBe(
+      `life_narrative_chapter.v4.${locale}`,
+    );
+    expect(response.receipt.inputHash).toBe(
+      hash(narrativeWriterRequest(f.story)),
+    );
+    expect(hash({ events: f.story.events, plan: f.story.plan })).toBe(before);
+    expect(p.parse).toHaveBeenCalledTimes(1);
+  }
+  expect(sceneNarrativePolicy().maxPhysicalRequests).toBe(8);
+  expect(sceneNarrativePolicy().maxContentRepairs).toBe(1);
 });

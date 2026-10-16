@@ -91,7 +91,7 @@ Az offline teljes korpusz 68 fejezet / 34 pár / 248 transport: a 24 teljes és 
 A valódi mérésben külön kell feltüntetni: strukturális tervhiba, tervellenőri elutasítás és javítása, prose/fidelity/editor hiba, feltételes kánonhiba a mérőanyagban, humán értékelés. A külön tervellenőr modellvélemény, nem emberi függetlenség. A narrativeYield az új többlethívást és minden elutasított próbát is tartalmazza; csak teljes paid+human corpus, változatlan minőségi gate és tulajdonosi ár/idő plafon engedhet rolloutot.
 
 
-## Legutóbbi tényleges diagnózis és következő kapu (2026-10-15)
+## 2026-10-15-i tényleges diagnózis és akkori kapu
 
 Forrás `fd10b856`, PR #38; 87 fájl / 906 offline teszt és Verify/container CI sikeres. Két kitalált profil, egy-egy első időszak és külön authored fix-kánon összehasonlítás: ez részhalmaz, nem a 34 páros teljes benchmark.
 
@@ -122,4 +122,17 @@ Az új queue `readyNarrativePolicy` factoryja planner v4 / tervellenőr v2 / vá
 
 A félmondat felismerése továbbra modellfeladat, nem determinisztikus nyelvtani garancia. A mező hossza és a pont hiánya önmagában nem elutasítási ok. A prompt teljes, tömör állításokat és rövid konfliktuscímkét kér a meglévő 800/80 karakteres keretben; nem vágunk szöveget, nem emelünk schemahatárt. A kapu a közölt readiness jelzést kötelezően érvényesíti. A provider egyetlen konkrét object sémát kap verziónként; a történeti report union csak belső feldolgozásra/tárolásra szolgál ([OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)).
 
-Ebben a csomagban nincs writer-váltás, új fizetett mérés vagy rollout. Az offline teszt az azonos bemenetet, régi esetek fingerprintjét, verziókötést, repair/stop/commit útvonalat igazolja; nem a félmondatok modell általi felismerési arányát és nem az irodalmi javulást. Következő mérés: új kontrollon a jelenlegi writer, majd külön writer-változtatás azonos kánonon, folytatások és vak emberi értékelés. A teljes paid/human kiadási kapu változatlanul nyitott; az 5 USD összesített engedély nem nullázódik.
+Az első, ad6aaa7 implementációs lépésben nem volt writer-váltás vagy rollout; az azt követő tényleges mérés eredménye alább szerepel. Az offline teszt az azonos bemenetet, régi esetek fingerprintjét, verziókötést, repair/stop/commit útvonalat igazolja; nem a félmondatok modell általi felismerési arányát és nem az irodalmi javulást. Következő mérés: új kontrollon a jelenlegi writer, majd külön writer-változtatás azonos kánonon, folytatások és vak emberi értékelés. A teljes paid/human kiadási kapu változatlanul nyitott; az 5 USD összesített engedély nem nullázódik.
+
+
+## PR #44: valódi részdiagnózis és külön írói korrekció (2026-10-16)
+
+Az `ad6aaa7` forráson a két profil első fejezete és a két developed-v2 kontroll futott: 26 hívás, 0,565005 USD accounted / 0,525726 USD usage-becslés. A két teljes új fejezet javítás nélkül átment öt-öt hívással; költségük együtt 0,28037 USD, átlag 0,140185 USD/modellkapun átment fejezet. Mindkét readiness-jelentés három true mezőt adott; a megvizsgált összefoglalók és konfliktuscímkék teljesek voltak. Ez két konkrét siker, nem általános felismerési garancia. A részhalmaz p95 ideje 146948 ms; kis minta, nincs még tulajdonosi várakozási plafon.
+
+A fix-kánon munkahelyi eset továbbra elutasított: momentum 3, sceneCraft 4, novelty 3; a hozzáadott szimuláció nem változtatta meg eléggé a korábbi döntési villát. Ez kánonhiba, prózával nem fedhető el. Az alkotói eset momentum 4, sceneCraft 3, character/personalization 3: az előrehaladás most elégséges, de a kész képsor és a rough sheet összevetése összefoglalás maradt. Mindkettő EVAL_FIXED_QUALITY_FAILED; nincs teljes paid/human/fork PASS.
+
+Az akkori összesített ledger 127 hívás / 2,72376 USD accounted / 2,5238247 USD usage-becslés, nulla ismeretlen használat és nulla hozzárendeletlen foglalás; az eredeti 5 USD-ből 2,27624 USD maradt. Az összesített összeg nem fejezetenkénti üzemi ár és nem számla.
+
+Az ebből következő writer v4 jelölt a terv fordulópontjához rendeli a jelenet központi figyelmét: a rögzített összehasonlítás sorrendben történik meg, az eredmény értelmezése utána következik, a kérdések megfogalmazása cselekvés, a záró opciók nem három ismétlődő magyarázat. Nincs új kánontény, szótartomány, modell, editor vagy fidelity-küszöb. A readyNarrativePolicy writer v3 változata változatlan baseline; új queue-ban sceneNarrativePolicy jelöli a v4 írót, változatlan planner v4/reviewer v2 mellett. A fix összevetésben csak a writer marker/prompt változik; az authored policy többi része és a developed-v2 kánon/terv változatlan. A creative kontroll fingerprintje külön rögzített, ezért a bemeneti javulás nem írható az új író javára. A munkahelyi kontroll ismert kánonhibája megmarad.
+
+A v4 író valódi hatása új source-bound mérést és később vak emberi értékelést igényel. A régi hibákat nem töröljük, a minőségi kaput nem lazítjuk, a globális költségledgert nem indítjuk újra.

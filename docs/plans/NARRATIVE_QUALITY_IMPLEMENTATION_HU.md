@@ -801,3 +801,10 @@ Az ellenőrzés exact projected request/candidate/plan/memory/policy hash-hez, v
 Az artifact opcionális planningReview és két review hash mezőt kap; az új policyban mindhárom kötelező, a régiben tiltott. A task/ordinal/provenance lista kezeli az új lépést, de a régi hétkéréses artifact nem válik nyolckérésessé. A DB commit újraépíti a review input hash-t és a receipt verzióját a tényleges current kánonból; a web/public DTO változatlanul nem kap artifactot. Nincs SQL-migráció és a 32 KiB artifact limit sem változik.
 
 A writer v3 a rögzített célból és cselekvésből építi a sajátos főszereplői reakciót, és elhagyja a kompetencialeltárt/túlmagyarázott döntésmenüt. Nem tulajdoníthat ismeretlen eredetű hibát, beleegyezést vagy magánéleti motivációt a szereplőnek. Az eredeti writer v1/v2 és planner v1/v2/v3 prompt byte-kompatibilis marad; a külön új promptok csak a frozen marker szerint futnak. Az új referenciafolyamat offline 248 transportot használ 68 fejezethez / 34 párhoz; ez folyamatbizonyíték, nem valódi minőségmérés. N08 és N09 nyitott az új paid/human ellenőrzésig.
+
+
+## N08 PR #44 paid diagnózis után: külön writer v4 jelölt
+
+Az ad6aaa7 mérés két első teljes fejezete átment, a két developed-v2 fix kontroll nem: munkahelyi kánon továbbra ismétlődő dilemma, alkotói kánon már megfelelő előrehaladású, de prózájában sceneCraft 3. A két okot külön kezeljük. A creative kontroll kánonja/terve fingerprint-pinnelt, nem kap utólag új eseményt az író összehasonlításához.
+
+A writer v4 a rögzített turningPointEventId jelenetének megvalósítását, összehasonlításnál a megfigyelés sorrendjét, a sajátos főszereplői cselekvést és az egyszeri értelmezést erősíti. A korábbi writer v1–v3 változatlan; a readyNarrativePolicy továbbra v3 baseline, sceneNarrativePolicy az új v4 queue. Planner/reviewer/fidelity/editor/modellek, max8, egy javítás és minden pénzügyi/privacy korlát változatlan. Valódi v4 mérés és humán értékelés még szükséges. A 26 új hívás az eredeti 5 USD összesített engedély része, nem új keret.

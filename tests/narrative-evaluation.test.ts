@@ -665,6 +665,10 @@ it('preserves the two measured thin-canon failures and selects distinct develope
     expect(hash(original.result)).toBe(fingerprint);
     expect(original.materialVersion).toBe('original-v1');
     expect(developed.materialVersion).toBe('developed-v2');
+    if (id === 'creative-portfolio')
+      expect(hash(developed.result)).toBe(
+        '36a296c1754004ff55dde486c95f8ce042f06a34fb2230e2a5bc21de87750e90',
+      );
     expect(developed.input).toEqual(original.input);
     const run = narrativeCanon(
       {

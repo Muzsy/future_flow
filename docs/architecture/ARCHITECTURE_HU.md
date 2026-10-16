@@ -246,3 +246,6 @@ Az immutable JSONB artifact új mezői opcionálisak a kompatibilis parserben, d
 
 
 N08 readiness-korrekció (Issue #43): új queue policy planner v4 és planReviewer v2 markert párosít, writer v3 változatlan. A reviewer 1.1.0 objektum kötelező summariesComplete/decisionPatternComplete/periodDevelopmentSufficient jelzései bármely false esetén blokkolnak, pontszámtól és severitytől függetlenül. A jelentés verziója a frozen policyhoz kötött provider/worker/checkpoint/commit/artifact oldalon. A régi report 1.0.0 és promptok tovább olvashatók, az új szabály régi jobra nem írható rá. Nincs DB-migráció, limitnövelés vagy production rollout; a szemantikai felismerés továbbra modellvélemény és külön paid/human mérésre vár.
+
+
+A PR #44 első paid diagnózisa után a külön sceneNarrativePolicy writer v4-et választ új jobokra; readyNarrativePolicy writer v3 baseline és annak promptja változatlan. A v4 csak prózautasítás, nem írhat új kánont vagy csökkentett ellenőrzést. A konkrét authored writer-kontrollban a kánon/terv és a policy többi része változatlan, így a writer hatása külön vizsgálható. Kiadáskor a target/recovery az új writer markert is értelmezze; éles rollout nincs.
