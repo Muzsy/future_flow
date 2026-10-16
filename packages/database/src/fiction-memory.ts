@@ -1,5 +1,6 @@
 import {
   fictionArtifactSchema,
+  narrativeArtifactSchema,
   fictionContextSchema,
   fictionPolicy,
   NARRATIVE_MEMORY_BYTES,
@@ -144,13 +145,16 @@ export async function personalFictionContext(
     artifact: unknown;
     period_id: string;
     chapter: { body: string };
+    events: { title: string; summary: string }[];
   }>(
-    `SELECT h.period_id, p.chapter, p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
-      WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact->>'version'='2.0.0' ORDER BY h.position`,
+    `SELECT h.period_id, p.chapter, p.events, p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
+      WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
     [branchId, userId],
   );
   const active = new Map<string, StoryFact>();
   for (const row of rows) {
+    if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0')
+      continue;
     const artifact = fictionArtifactSchema.parse(row.artifact);
     for (const fact of artifact.storyFacts) {
       if (fact.supersedesFactId) active.delete(fact.supersedesFactId);
@@ -158,13 +162,22 @@ export async function personalFictionContext(
     }
   }
   const sequenceHistory = rows.slice(-3).map((row) => {
-    const artifact = fictionArtifactSchema.parse(row.artifact);
+    const plan = row.artifact
+      ? ((row.artifact as { version?: unknown }).version === '2.0.0'
+          ? fictionArtifactSchema.parse(row.artifact)
+          : narrativeArtifactSchema.parse(row.artifact)
+        ).validatedPlan
+      : null;
     return {
       periodId: row.period_id,
-      scenes: artifact.validatedPlan.scenes.map(
-        (scene) =>
-          `${scene.visibleAction.slice(0, 90)} | ${scene.obstacle.slice(0, 90)} | ${scene.shift.slice(0, 90)}`,
-      ),
+      scenes: plan
+        ? plan.scenes.map(
+            (scene) =>
+              `${scene.visibleAction.slice(0, 90)} | ${scene.obstacle.slice(0, 90)} | ${scene.shift.slice(0, 90)}`,
+          )
+        : row.events
+            .slice(0, 3)
+            .map((event) => `${event.title}: ${event.summary}`.slice(0, 300)),
       opening: row.chapter.body.slice(0, 400),
       ending: row.chapter.body.slice(-500),
     };

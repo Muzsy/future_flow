@@ -262,3 +262,6 @@ Creative szekvenciális policy: új jobok planner/author/reviewer v3 + editor v2
 
 
 Az accepted-choice promptmemória és detail sorrendjének authorityja az owned `aw_history.position`, nem a másolt `aw_choices.created_at` vagy UUID. Az initial választások a periodok elé kerülnek. Új fork megőrzi az örökölt choice időbélyegét; régi azonos időbélyegek esetén a history-sorrend továbbra helyes. A latest-choice consequence guard változatlan, korábbi queued payloadot nem írunk át.
+
+
+A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/creative történeteken át. Artifact nélküli legacy periodnál a kanonikus eseménycím/összefoglaló a scene-mechanizmus fallbackje; a mentett fejezeteleje és vége ugyanúgy rendelkezésre áll. Ebből nem készül utólagos StoryFact, a withheld korai visszatérés változatlan.

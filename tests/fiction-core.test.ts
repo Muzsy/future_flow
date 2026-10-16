@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { fictionV1Policy, fictionV2Policy } from '@future-flow/contracts';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   fictionPolicySchema,
   fictionContextSchema,
@@ -21,6 +21,8 @@ import {
 } from '@future-flow/core';
 import {
   boundFictionContext,
+  personalFictionContext,
+  type Database,
   narrativeConfigFromEnv,
   lifeJobReadyToCommit,
   narrativeProcessingBlock,
@@ -414,6 +416,42 @@ describe('creative fiction contracts, final authority and bounded continuity', (
         },
       }).success,
     ).toBe(false);
+  });
+  it('keeps legacy owned endings visible to the sequence editor without inventing historical StoryFacts', async () => {
+    const f = fictionFixture(),
+      periodId = randomUUID();
+    const query = vi.fn(async () => [
+      {
+        period_id: periodId,
+        artifact: null,
+        events: [
+          {
+            title: 'A completed old encounter',
+            summary:
+              'The earlier conflict ended through a mentor assigning another trial.',
+          },
+        ],
+        chapter: {
+          body:
+            'A concrete earlier opening. '.repeat(25) +
+            'The mentor leaves a pen beside the blank reply.',
+        },
+      },
+    ]);
+    const result = await personalFictionContext(
+      { query } as unknown as Database,
+      randomUUID(),
+      f.input.input.branchId,
+      f.memory,
+    );
+    expect(result.storyFacts).toEqual([]);
+    expect(result.sequenceHistory).toHaveLength(1);
+    expect(result.sequenceHistory![0]!.ending).toContain(
+      'leaves a pen beside the blank reply',
+    );
+    expect(result.sequenceHistory![0]!.scenes[0]).toContain(
+      'mentor assigning another trial',
+    );
   });
   it('keeps the measured compact-v2 prompts frozen and accepts its stored report policy', () => {
     const prompts = fictionPrompts('en', fictionV2Policy().promptVersions);
