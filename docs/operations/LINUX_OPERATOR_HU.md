@@ -50,3 +50,7 @@ A v1 csomag nem tartalmazta a funded operátor által olvasott eredeti katalógu
 ## Méretkorlátok
 
 A konkrét eredeti `closed-beta-catalog/state.json` 8 MiB-ig vihető át és olvasható a funded CLI-ben; a valódi 3 272 672 bájtos állomány belefér. A többi receipt/secret egyenként továbbra legfeljebb 2 MiB, a plaintext csomag összesen 32 MiB. A katalógus nem darabolandó/csonkítandó és nem kell újragenerálni. A méretellenőrzés az export első és utolsó hash-beolvasásában, a decrypt/validate/import szerződésben és a funded inputon is érvényes.
+
+## Aktív funded runtime új verziója
+
+A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.

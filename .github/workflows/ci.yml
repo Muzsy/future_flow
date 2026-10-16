@@ -35,6 +35,8 @@ jobs:
           node --test tests/ops/reader-archive-retry.test.mjs
           node --test tests/ops/linux-operator.test.mjs
           node --test tests/ops/operator-transfer.test.mjs
+          node --test tests/ops/funded-upgrade.test.mjs
+          node --test tests/ops/funded-access.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
@@ -49,6 +51,15 @@ jobs:
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
           import unittest
           suite = unittest.TestLoader().discover('tests/ops', pattern='test_reader_private_files.py')
+          result = unittest.TextTestRunner().run(suite)
+          assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
+          PY
+      - name: Verify root-only funded journal file contracts
+        run: |
+          sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
+          import sys, unittest
+          sys.path.insert(0, 'tests/ops')
+          suite = unittest.TestLoader().loadTestsFromName('test_funded_upgrade.RootJournalTests')
           result = unittest.TextTestRunner().run(suite)
           assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
           PY
@@ -72,5 +83,14 @@ jobs:
           .
       - name: Verify isolated Contabo deployment and secret boundaries
         run: node scripts/verify-deployment.mjs
+      - name: Install isolated encrypted-restore fixture dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y age
       - name: Verify web, API, worker, migrations and TLS without API spending
         run: node scripts/smoke-deployment.mjs
+      - name: Retain synthetic funded upgrade evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-upgrade-ci-proof
+          path: test-results/funded-upgrade-ci-proof.json
+          if-no-files-found: error
+          retention-days: 7

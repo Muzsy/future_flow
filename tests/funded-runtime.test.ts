@@ -1,0 +1,205 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { PGlite } from '@electric-sql/pglite';
+import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { hash } from '@future-flow/core';
+import { LifeRepository, type Database } from '@future-flow/database';
+import {
+  narrativeV1Policy,
+  reviewedNarrativePolicy,
+  contextNarrativePolicy,
+} from '@future-flow/contracts';
+import { setupFixture } from './life-fixtures';
+import {
+  captureFundedRuntime,
+  migrateFundedRuntime,
+  fundedRuntimeCapabilities,
+} from '../scripts/lib/funded-runtime';
+import { assertReviewedPrivacyRecoverySchema } from '../scripts/lib/privacy-recovery-schema';
+
+let engine: PGlite;
+const user = randomUUID();
+const input = {
+  participants: [{ email: 'funded@example.invalid', userId: user }],
+  connectionHostname: 'synthetic-postgres',
+  databaseIdentitySha256: hash(['synthetic-postgres', 'template1', 'postgres']),
+};
+function adapter(e: Pick<PGlite, 'query'>): Database {
+  const db: Database = {
+    query: async <T extends Record<string, unknown>>(
+      sql: string,
+      values: unknown[] = [],
+    ) => (await e.query<T>(sql, values)).rows,
+    transaction: async (run) => run(db),
+  };
+  return db;
+}
+let db: Database;
+beforeAll(async () => {
+  engine = new PGlite();
+  await engine.waitReady;
+  db = adapter(engine);
+  await engine.exec(
+    'CREATE ROLE anon;CREATE ROLE authenticated;CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());',
+  );
+  for (const name of readdirSync('database/migrations')
+    .filter((n) => n.endsWith('.sql') && !n.startsWith('038_'))
+    .sort()) {
+    const sql = readFileSync('database/migrations/' + name, 'utf8').replace(
+      /\r\n/g,
+      '\n',
+    );
+    await engine.exec(sql);
+    await engine.query(
+      'INSERT INTO ff_migrations(name,checksum) VALUES($1,$2)',
+      [name, hash(sql)],
+    );
+  }
+  await engine.exec(`CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid,email text,aud text,role text,is_anonymous boolean,
+    deleted_at timestamptz,email_confirmed_at timestamptz,last_sign_in_at timestamptz,banned_until timestamptz,email_change text);`);
+  await engine.query('INSERT INTO ff_users(id) VALUES($1)', [user]);
+  await engine.query(
+    "INSERT INTO auth.users VALUES($1,$2,'authenticated','authenticated',false,NULL,now()-interval '1 day',now()-interval '1 hour',NULL,'')",
+    [user, 'funded@example.invalid'],
+  );
+  await engine.query(
+    "INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES('funded-project',NULL,2000000,188585),('funded-user',$1,500000,188585)",
+    [user],
+  );
+}, 60000);
+afterAll(async () => {
+  await engine?.close();
+});
+async function tx<T>(run: (db: Database) => Promise<T>) {
+  return engine.transaction((e) => run(adapter(e)));
+}
+
+describe('funded runtime schema and accounting boundary', () => {
+  it('normal recovery still rejects 037; dedicated preflight accepts the exact 855-column catalog', async () => {
+    await expect(
+      tx((d) => assertReviewedPrivacyRecoverySchema(d)),
+    ).rejects.toThrow(/columns/);
+    const before = await tx((d) => captureFundedRuntime(d, input));
+    expect(before.schema).toBe(37);
+    expect(before.drained).toBe(true);
+  });
+  it('exercises all legacy narrative prompt pairs and the mandatory plan-review ceiling', () => {
+    const c = fundedRuntimeCapabilities();
+    expect(c.policies).toHaveLength(9);
+    expect(c.reviewedPolicy.maxPhysicalRequests).toBe(8);
+  });
+  it('rejects schema drift rather than adjusting expected fingerprints', async () => {
+    await expect(
+      engine.transaction(async (e) => {
+        await e.exec('ALTER TABLE aw_periods ADD COLUMN surprise text');
+        await captureFundedRuntime(adapter(e), input);
+      }),
+    ).rejects.toThrow(/columns/);
+  });
+  it('rejects unmatched Auth binding without producing new authority', async () => {
+    await expect(
+      tx((d) =>
+        captureFundedRuntime(d, {
+          ...input,
+          participants: [{ email: 'other@example.invalid', userId: user }],
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+  it('rejects a reserved or unknown-cost call even when narrative flags would be off', async () => {
+    for (const status of ['reserved', 'unknown'])
+      await expect(
+        engine.transaction(async (e) => {
+          await e.query(
+            `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status)
+       VALUES($1,$2,'funded-project','funded-user',$3,'synthetic-model','synthetic-task',123,123,$4)`,
+            [randomUUID(), user, randomUUID(), status],
+          );
+          await captureFundedRuntime(adapter(e), input);
+        }),
+      ).rejects.toThrow(/not drained/);
+  });
+  it('rejects tampered migration receipts before migration', async () => {
+    await expect(
+      engine.transaction(async (e) => {
+        await e.query(
+          "UPDATE ff_migrations SET checksum='tampered' WHERE name LIKE '037%'",
+        );
+        await captureFundedRuntime(adapter(e), input);
+      }),
+    ).rejects.toThrow(/checksums/);
+  });
+  it('rejects queued and held leases independently; accepts supported stored historical policy markers', async () => {
+    let observed = 0;
+    await expect(
+      engine.transaction(async (e) => {
+        const d = adapter(e);
+        await d.query(
+          "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES(gen_random_uuid(),$1,'alpha-privacy-v1','adult_and_ai_acknowledgement')",
+          [user],
+        );
+        await new LifeRepository(d).create(user, setupFixture(), randomUUID());
+        await expect(captureFundedRuntime(d, input)).rejects.toThrow(
+          /not drained/,
+        );
+        await d.query("UPDATE aw_branches SET status='ready'");
+        await d.query(
+          "UPDATE aw_jobs SET status='completed',lease_token=gen_random_uuid(),lease_until=now()+interval '1 minute'",
+        );
+        await expect(captureFundedRuntime(d, input)).rejects.toThrow(
+          /not drained/,
+        );
+        await d.query('UPDATE aw_jobs SET lease_token=NULL,lease_until=NULL');
+        for (const policy of [
+          contextNarrativePolicy(),
+          narrativeV1Policy(),
+          reviewedNarrativePolicy(),
+        ]) {
+          await d.query(
+            "UPDATE aw_jobs SET payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb)",
+            [JSON.stringify({ policy })],
+          );
+          expect((await captureFundedRuntime(d, input)).drained).toBe(true);
+          observed++;
+        }
+        await d.query(
+          "UPDATE aw_jobs SET payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb)",
+          [
+            JSON.stringify({
+              policy: { ...reviewedNarrativePolicy(), maxPhysicalRequests: 7 },
+            }),
+          ],
+        );
+        await expect(captureFundedRuntime(d, input)).rejects.toThrow();
+        throw Error('rollback synthetic job inventory');
+      }),
+    ).rejects.toThrow('rollback synthetic job inventory');
+    expect(observed).toBe(3);
+  });
+  it('appends only migration 038 and preserves every existing data/accounting row', async () => {
+    const before = await tx((d) => captureFundedRuntime(d, input));
+    const after = await tx((d) => migrateFundedRuntime(d, input, before));
+    expect(after.schema).toBe(38);
+    expect(after.dataSha256).toBe(before.dataSha256);
+    expect(after.artifactSha256).toBe(before.artifactSha256);
+    const accounts = await engine.query(
+      'SELECT limit_micro,accounted_micro FROM aw_budget_accounts ORDER BY id',
+    );
+    expect(accounts.rows).toEqual([
+      { limit_micro: 2000000, accounted_micro: 188585 },
+      { limit_micro: 500000, accounted_micro: 188585 },
+    ]);
+    await tx((d) => assertReviewedPrivacyRecoverySchema(d));
+  });
+  it('does not reset allowance or data to force a saved baseline to match', async () => {
+    const before = await tx((d) => captureFundedRuntime(d, input));
+    await expect(
+      engine.transaction(async (e) => {
+        await e.query(
+          "UPDATE aw_budget_accounts SET accounted_micro=188586 WHERE id='funded-user'",
+        );
+        await migrateFundedRuntime(adapter(e), input, before);
+      }),
+    ).rejects.toThrow(/source drift/);
+  });
+});

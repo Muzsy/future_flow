@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
-import { assertReviewedPrivacyRecoverySchema } from './privacy-recovery-schema';
+import {
+  assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre038Schema,
+} from './privacy-recovery-schema';
 
 // Public application catalog only. The installed PostgreSQL/platform and the
 // owner-held root access remain separate trust boundaries. Catalog definitions
@@ -174,8 +177,24 @@ export async function assertPrivacySecurityCatalog(
   mode: 'source' | 'quarantine' = 'source',
   expected?: PrivacySecurityCatalog,
 ) {
+  return assertCatalog(tx, mode, expected, false);
+}
+
+// No caller-supplied expected hashes or permissive catalog fallback. This is
+// the exact audited 037 baseline, used only before the append-only 038 step.
+export async function assertFundedPre038SecurityCatalog(tx: Database) {
+  return assertCatalog(tx, 'source', undefined, true);
+}
+async function assertCatalog(
+  tx: Database,
+  mode: 'source' | 'quarantine',
+  expected: PrivacySecurityCatalog | undefined,
+  pre038: boolean,
+) {
   z.enum(['source', 'quarantine']).parse(mode);
-  const schema = await assertReviewedPrivacyRecoverySchema(tx);
+  const schema = pre038
+    ? await assertReviewedFundedPre038Schema(tx)
+    : await assertReviewedPrivacyRecoverySchema(tx);
   for (const name of ['constraints', 'indexes', 'defaults'] as const) {
     const sql = privacySecurityCatalogSql[name].replace(
       "c.relname<>'ff_migrations'",
@@ -194,7 +213,13 @@ export async function assertPrivacySecurityCatalog(
       throw Error('Bounded privacy security catalog required');
     summaries[name] = { count: rows.length, digest: hash(rows) };
     if (name in immutable) {
-      const baseline = immutable[name as keyof typeof immutable];
+      const baseline =
+        pre038 && name === 'defaults'
+          ? ([
+              855,
+              '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
+            ] as const)
+          : immutable[name as keyof typeof immutable];
       if (rows.length !== baseline[0] || hash(rows) !== baseline[1])
         throw Error('Unreviewed privacy recovery executable catalog');
     }

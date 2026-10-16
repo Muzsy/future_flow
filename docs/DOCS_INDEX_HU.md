@@ -96,3 +96,5 @@ Nem kanonikusak:
 Alapértelmezésben `historical`: `*_REPORT_HU.md`, lezárt audit, checkpoint, closure, phase report. Ezek proofként olvashatók, de kanonikus döntést nem írhatnak felül.
 
 A dokumentum-státusz részletes szabálya: `DOCUMENTATION_GOVERNANCE_HU.md`.
+
+- [Linux active-funded runtime upgrade](operations/FUNDED_RUNTIME_UPGRADE_HU.md) — active-supporting; Issue #34, N09 implementáció és változatlan release kapuk.
