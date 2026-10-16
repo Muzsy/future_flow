@@ -452,6 +452,75 @@ describe('creative final author package through real guarded provider and databa
     await processLifeJob(child, jobs, provider(childFixture).ai);
     expect((await f.lives.detail(f.owner, b.id)).periods).toHaveLength(2);
   });
+  it('preserves acceptance chronology and timestamps across a two-choice fork', async () => {
+    const f = await fixture();
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    const first = await f.lives.detail(f.owner, f.job.branch_id),
+      d0 = first.branch.pending_decision!;
+    await f.lives.choose(
+      f.owner,
+      first.branch.id,
+      first.branch.revision,
+      d0.id,
+      d0.options[0]!.id,
+      randomUUID(),
+    );
+    const parentReady = await f.lives.branch(f.owner, first.branch.id);
+    await f.lives.continue(
+      f.owner,
+      parentReady.id,
+      parentReady.revision,
+      randomUUID(),
+    );
+    const secondJob = (await jobs.claim())!,
+      second = { ...f, job: secondJob, f: fictionFixture(secondJob.payload) };
+    await processLifeJob(secondJob, jobs, provider(second).ai);
+    const parent = await f.lives.detail(f.owner, first.branch.id),
+      d1 = parent.branch.pending_decision!;
+    const fork = await f.lives.fork(
+      f.owner,
+      parent.branch.id,
+      secondJob.payload.periodId,
+      parent.branch.revision,
+      d1.options[1]!.id,
+      randomUUID(),
+    );
+    const child = (await jobs.claim())!;
+    const [timestamps] = await db.query<{ original: Date; inherited: Date }>(
+      'SELECT a.created_at AS original,b.created_at AS inherited FROM aw_choices a JOIN aw_choices b ON b.decision_id=a.decision_id WHERE a.branch_id=$1 AND b.branch_id=$2 AND a.decision_id=$3',
+      [parent.branch.id, fork.branchId, d0.id],
+    );
+    expect(new Date(timestamps!.inherited).toISOString()).toBe(
+      new Date(timestamps!.original).toISOString(),
+    );
+    expect(
+      fictionContextSchema
+        .parse(child.payload.narrativeContext)
+        .memory.recentChoices.at(-1)?.decisionId,
+    ).toBe(d1.id);
+    expect(child.payload.memory.choices.at(-1)).toMatchObject({
+      decision_id: d1.id,
+    });
+    const branch = await f.lives.branch(f.owner, fork.branchId);
+    const memory = await personalNarrativeMemory(
+      db,
+      f.owner,
+      fork.branchId,
+      branch.revision,
+      branch.accepted_decision_ids,
+      false,
+      true,
+    );
+    expect(memory.recentChoices.map((c) => c.decisionId)).toEqual([
+      d0.id,
+      d1.id,
+    ]);
+    expect(
+      (await f.lives.detail(f.owner, fork.branchId)).choices.map(
+        (c) => c.decision_id,
+      ),
+    ).toEqual([d0.id, d1.id]);
+  });
   it('keeps fictional NPC provenance and voice across a subsequent queued period', async () => {
     const f = await fixture(),
       a = f.f.authored,

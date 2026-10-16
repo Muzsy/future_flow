@@ -163,3 +163,10 @@ N07: narrative-v1 immár explicit szerver-config módként előkészíthető, de
 A selected új narrative queue külön `life_narrative_plan_review` feladatot kap a planner és a writer között. A checkModelt használja, annak hiányában az eseménymodellt; nem váltunk olcsóbb modellre a minőség bizonyítása előtt. Normál öt logikai hívás, max8 fizikai kérés és egy globális tartalmi javítás; korábbi frozen négyhívásos/hétkéréses policy változatlan. A pénzügyi quota és a külön fejlesztési engedélyezett 5 USD keret nem emelkedik.
 
 A dramaturgiai tervellenőr az okságot, a főszereplő cselekvését, a korábbi teljes tradeoff megismétlését és a prospective alternatívák tétjét ellenőrzi. A writer v3 csak új frozen prompt marker alatt használható; a v1/v2 szövegek és receipt verziók változatlanok. A továbbra külön fidelity/editor lépés és a független humán benchmark szükséges. A gazdaságosságot az elfogadott kimenet teljes költségén mérjük, a hibák/javítások árát is beleszámítva; a technikai vagy modellkapu nem human minőségbizonyíték.
+
+
+## Creative v3 / szekvenciális minőség — aktuális jelölt
+
+A `narrative-fiction-v2` új jobjai planner/author/planReviewer v3, fidelity v1, editor v2 és qualityPolicy 2.1.0 snapshotot használnak. A korábbi creative v1/v2 és narrative policyk befagyasztva maradnak. Ugyanaz a gpt-6.1-sol modell minden lépésben; nincs modellteszt vagy olcsóbb fallback. Öt normál hívás, maximum kilenc fizikai kérés és egy content repair; szerkezeti ismétlődés package repair. Author output cap 12000, többi life task 6500 token; creative provider-timeout 180 másodperc, legacy változatlan. Minden irodalmi score >=4, pass verdict és négy igaz sequenceReview-jelzés szükséges, a meglévő fidelity/terv/receipt/privacy/budget kapukkal együtt.
+
+A dedicated development cumulative keret explicit tulajdonosi engedéllyel 10 USD lett, a korábbi 4,81984 USD megtartásával; az előző 5 USD-s bekezdések történeti állapotot írnak le. Az éles béta budget/window/cohort és default legacy mód változatlan.

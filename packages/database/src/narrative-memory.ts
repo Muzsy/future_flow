@@ -127,7 +127,7 @@ export async function personalNarrativeMemory(
       "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
     );
     choices = await tx.query<Record<string, unknown> & ChoiceRow>(
-      `SELECT decision_id,option_id,payload,created_at FROM (SELECT decision_id,option_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initial?.present ? 'UNION ALL SELECT c.decision_id,c.option_id,c.payload,c.created_at FROM aw_initial_choices c JOIN aw_branches b ON b.life_id=c.life_id AND b.user_id=c.user_id WHERE b.id=$1 AND c.user_id=$2' : ''}) q WHERE decision_id=ANY($3::uuid[]) ORDER BY created_at DESC,decision_id DESC LIMIT 10`,
+      `SELECT decision_id,option_id,payload,created_at FROM (SELECT c.decision_id,c.option_id,c.payload,c.created_at,h.position AS decision_position FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ${initial?.present ? 'UNION ALL SELECT c.decision_id,c.option_id,c.payload,c.created_at,-1 AS decision_position FROM aw_initial_choices c JOIN aw_branches b ON b.life_id=c.life_id AND b.user_id=c.user_id WHERE b.id=$1 AND c.user_id=$2' : ''}) q WHERE decision_id=ANY($3::uuid[]) ORDER BY decision_position DESC,created_at DESC,decision_id DESC LIMIT 10`,
       [branchId, userId, acceptedDecisionIds],
     );
   }
