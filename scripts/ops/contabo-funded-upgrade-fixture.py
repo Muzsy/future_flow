@@ -57,14 +57,22 @@ sha, encoded, frozen = activation.sha, activation.encoded, activation.frozen
 
 
 def run(args, data=None, timeout=180):
-    return subprocess.run(
-        args,
-        input=data,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-        timeout=timeout,
-    ).stdout
+    try:
+        return subprocess.run(
+            args,
+            input=data,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            timeout=timeout,
+        ).stdout
+    except subprocess.CalledProcessError as error:
+        print(
+            'Synthetic fixture subprocess: '
+            + error.stderr.decode(errors='replace')[-4000:],
+            file=sys.stderr,
+        )
+        raise
 
 
 def exercise(context):
@@ -127,6 +135,7 @@ def exercise(context):
     created_network = False
     createdTag = False
     createdOldTag = False
+    createdBaseTag = False
     foreign_id = None
     databases = set()
     checks = {}
@@ -330,12 +339,19 @@ def exercise(context):
             'AI_BUDGET_WINDOW_END': terms['endsAt'],
             **{k: 'false' for k in daily.SHARED_FLAGS},
         }
+        baseTag = project + ':base'
+        if run(['docker', 'image', 'ls', '-q', baseTag]).strip():
+            raise ValueError('Fixture base tag already exists')
+        run(['docker', 'tag', context['image'], baseTag])
+        createdBaseTag = True
+        # BuildKit resolves FROM by reference, not the daemon's raw image ID.
+        # A nonce-owned local tag names the already inspected immutable input.
         oldImage = (
             run(
                 ['docker', 'build', '--network', 'none', '-q', '-'],
                 (
                     'FROM '
-                    + context['image']
+                    + baseTag
                     + '\nUSER root\nRUN rm /app/scripts/lib/funded-runtime.ts\nUSER node\nLABEL com.alterward.fixture=legacy-'
                     + nonce
                     + '\n'
@@ -1012,13 +1028,9 @@ def exercise(context):
                     'postgres', 'DROP DATABASE IF EXISTS ' + database + ' WITH (FORCE)'
                 )
             )
-        cleanup(
-            lambda: upgrade.run(
-                upgrade.compose(owner / 'effective-compose.json')
-                + ['down', '--remove-orphans'],
-                timeout=90,
-            )
-        )
+        owned = upgrade.project_ids()
+        if owned:
+            cleanup(lambda: run(['docker', 'rm', '-f', *owned]))
         if foreign_id:
             cleanup(lambda: run(['docker', 'rm', '-f', foreign_id]))
         if created_network:
@@ -1034,6 +1046,8 @@ def exercise(context):
             )
         if oldImage:
             upgrade.docker('image', 'rm', oldImage, check=False)
+        if createdBaseTag:
+            cleanup(lambda: run(['docker', 'image', 'rm', baseTag]))
         for item in patches[::-1]:
             item.stop()
         if upgrade.foreign_state() != all_before:
