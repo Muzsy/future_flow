@@ -603,25 +603,25 @@ Ez mérnöki becslés, nem garantált naptári határidő. Az emberi értékelé
 
 ## 16. Végső elfogadási ellenőrzőlista
 
-- [ ] A modell változatlan; nincs rejtett modellteszt vagy olcsóbb fallback.
-- [ ] A kanonikus termékdokumentáció az új alkotói működést írja le.
-- [ ] Az író új történést és hihető eredményt hozhat létre, nem pusztán a draftot fogalmazza át.
-- [ ] Új fikció önmagában nem fidelity-hiba.
-- [ ] User-fix határ, accepted choice, privacy és state-konfliktus továbbra kizáró hiba.
-- [ ] A végső state/candidate/plan/chapter/facts/delta ugyanarra a szerzői csomagra köt.
-- [ ] Új szereplők és releváns részletek több fejezeten át megmaradnak.
-- [ ] A kezdeti profil változatlan; a fiktív fejlődés külön ágban él.
-- [ ] Saját fork és withheld működés az új tényréteggel is tesztelt.
-- [ ] Régi job/policy/artifact és vegyes history kompatibilis.
-- [ ] A javítás, resume és fizikai kéréslimit nem kerülhető meg.
-- [ ] Teljes CI és schema/docs ellenőrzés zöld.
+- [x] A modell változatlan; nincs rejtett modellteszt vagy olcsóbb fallback.
+- [x] A kanonikus termékdokumentáció az új alkotói működést írja le.
+- [x] Az író új történést és hihető eredményt hozhat létre, nem pusztán a draftot fogalmazza át.
+- [x] Új fikció önmagában nem fidelity-hiba.
+- [x] User-fix határ, accepted choice, privacy és state-konfliktus továbbra kizáró hiba.
+- [x] A végső state/candidate/plan/chapter/facts/delta ugyanarra a szerzői csomagra köt.
+- [x] Új szereplők és releváns részletek több fejezeten át megmaradnak.
+- [x] A kezdeti profil változatlan; a fiktív fejlődés külön ágban él.
+- [x] Saját fork és withheld működés az új tényréteggel is tesztelt.
+- [x] Régi job/policy/artifact és vegyes history kompatibilis.
+- [x] A javítás, resume és fizikai kéréslimit nem kerülhető meg.
+- [x] Teljes CI és schema/docs ellenőrzés zöld.
 - [ ] A szöveget valódi ember is élvezetesnek és folytatásra érdemesnek ítélte; a meglévő release-kapuk teljesülnek.
 - [ ] A sikeres és elutasított próbák teljes költsége, illetve késleltetése ismert és vállalható.
 - [ ] A kiadás és recovery az aktuális kanonikus Linux-runbook szerint ellenőrzött.
-- [ ] Nincs automatikus éles aktiválás, új funded ablak vagy ledger-reset.
+- [x] Nincs automatikus éles aktiválás, új funded ablak vagy ledger-reset.
 
 ## 17. Az implementáló agent első konkrét feladata
 
-**Az F00 és F01 végrehajtása**, a main/PR-függőségek ellenőrzésével, termék- és ADR-döntéssel, majd az új author-result és történeti tény contractjával, pozitív/negatív core-tesztekkel. Az első PR még ne kapcsolja be az új módot és ne indítson paid futást. Utána F02–F04 adja a teljes offline végigfutó kreatív folyamatot; a tényleges prózaminőséget F05-ben kell bizonyítani.
+**Az F05 fennmaradó minőségmérésének lezárása**, a jelenlegi cumulative ledger megtartásával és további fizetett munka előtt explicit keretengedéllyel. Szükséges a végső forráson az alkotói folytatások és fork, többprofilos hosszabb próba, valamint valódi olvasói értékelés. Ezután gazdaságossági/időkorlát-döntés, majd F06 pontos target/recovery proof és külön operátori éles apply. F00–F04 újrakezdése nem szükséges; a kész technikai ellenőrzőpontok fent jelölve vannak.
 
 A végrehajtó ne álljon meg az engedékenyebb promptnál. A fejlesztés akkor teljesíti a célt, ha az író által kitalált, elfogadott történés a következő fejezetben is ugyanannak a személyes, fiktív életútnak a része.
