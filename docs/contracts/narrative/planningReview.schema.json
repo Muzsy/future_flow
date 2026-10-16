@@ -1,109 +1,241 @@
 {
   "$id": "urn:alterward:narrative:planningReview:1.0.0",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0.0"
-    },
-    "scores": {
+  "oneOf": [
+    {
       "type": "object",
       "properties": {
-        "causality": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5
+        "version": {
+          "type": "string",
+          "const": "1.0.0"
         },
-        "agency": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5
+        "scores": {
+          "type": "object",
+          "properties": {
+            "causality": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "agency": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "novelty": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "choiceStakes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          },
+          "required": [
+            "causality",
+            "agency",
+            "novelty",
+            "choiceStakes"
+          ],
+          "additionalProperties": false
         },
-        "novelty": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5
+        "issues": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "causality",
+                  "agency",
+                  "novelty",
+                  "choiceStakes"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "minor",
+                  "major"
+                ]
+              },
+              "eventIds": {
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "explanation": {
+                "type": "string",
+                "minLength": 30,
+                "maxLength": 350
+              },
+              "suggestedFix": {
+                "type": "string",
+                "minLength": 30,
+                "maxLength": 350
+              }
+            },
+            "required": [
+              "dimension",
+              "severity",
+              "eventIds",
+              "explanation",
+              "suggestedFix"
+            ],
+            "additionalProperties": false
+          }
         },
-        "choiceStakes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "revise"
+          ]
         }
       },
       "required": [
-        "causality",
-        "agency",
-        "novelty",
-        "choiceStakes"
+        "version",
+        "scores",
+        "issues",
+        "verdict"
       ],
       "additionalProperties": false
     },
-    "issues": {
-      "maxItems": 6,
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "dimension": {
-            "type": "string",
-            "enum": [
-              "causality",
-              "agency",
-              "novelty",
-              "choiceStakes"
-            ]
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "minor",
-              "major"
-            ]
-          },
-          "eventIds": {
-            "maxItems": 3,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "1.1.0"
+        },
+        "scores": {
+          "type": "object",
+          "properties": {
+            "causality": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "agency": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "novelty": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "choiceStakes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
             }
           },
-          "explanation": {
-            "type": "string",
-            "minLength": 30,
-            "maxLength": 350
-          },
-          "suggestedFix": {
-            "type": "string",
-            "minLength": 30,
-            "maxLength": 350
+          "required": [
+            "causality",
+            "agency",
+            "novelty",
+            "choiceStakes"
+          ],
+          "additionalProperties": false
+        },
+        "issues": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "causality",
+                  "agency",
+                  "novelty",
+                  "choiceStakes"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "minor",
+                  "major"
+                ]
+              },
+              "eventIds": {
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
+              },
+              "explanation": {
+                "type": "string",
+                "minLength": 30,
+                "maxLength": 350
+              },
+              "suggestedFix": {
+                "type": "string",
+                "minLength": 30,
+                "maxLength": 350
+              }
+            },
+            "required": [
+              "dimension",
+              "severity",
+              "eventIds",
+              "explanation",
+              "suggestedFix"
+            ],
+            "additionalProperties": false
           }
         },
-        "required": [
-          "dimension",
-          "severity",
-          "eventIds",
-          "explanation",
-          "suggestedFix"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "verdict": {
-      "type": "string",
-      "enum": [
-        "pass",
-        "revise"
-      ]
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "revise"
+          ]
+        },
+        "readiness": {
+          "type": "object",
+          "properties": {
+            "summariesComplete": {
+              "type": "boolean"
+            },
+            "decisionPatternComplete": {
+              "type": "boolean"
+            },
+            "periodDevelopmentSufficient": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "summariesComplete",
+            "decisionPatternComplete",
+            "periodDevelopmentSufficient"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "scores",
+        "issues",
+        "verdict",
+        "readiness"
+      ],
+      "additionalProperties": false
     }
-  },
-  "required": [
-    "version",
-    "scores",
-    "issues",
-    "verdict"
-  ],
-  "additionalProperties": false
+  ]
 }

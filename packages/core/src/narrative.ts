@@ -10,6 +10,7 @@ import {
   narrativeReferenceSnapshotSchema,
   type NarrativeReferenceSnapshot,
   NARRATIVE_ARTIFACT_BYTES,
+  type NarrativeV1Policy,
   type NarrativeMemory,
   type NarrativeEditorialReport,
   type NarrativeArtifact,
@@ -467,17 +468,30 @@ export function evaluateNarrativePlanReview(raw: unknown) {
   const report = narrativePlanReviewSchema.parse(raw);
   return {
     passed:
+      (report.version === '1.0.0' ||
+        Object.values(report.readiness).every(Boolean)) &&
       narrativePlanReviewDimensions.every(
         (dimension) => report.scores[dimension] >= 4,
-      ) && !report.issues.some((issue) => issue.severity === 'major'),
+      ) &&
+      !report.issues.some((issue) => issue.severity === 'major'),
   };
 }
 export function validateNarrativePlanReview(
   raw: unknown,
   result: ReturnType<typeof narrativePlanningResultSchema.parse>,
+  reviewer?: NarrativeV1Policy['promptVersions']['planReviewer'],
 ) {
   const report = narrativePlanReviewSchema.parse(raw),
     allowed = new Set(result.candidate.events.map((event) => event.id));
+  if (
+    reviewer &&
+    report.version !==
+      (reviewer === 'life_narrative_plan_review.v2' ? '1.1.0' : '1.0.0')
+  )
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'Planning review version differs from its frozen policy.',
+    );
   for (const issue of report.issues)
     known(issue.eventIds, allowed, 'planning review event');
   return report;

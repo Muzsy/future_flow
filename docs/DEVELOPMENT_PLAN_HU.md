@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 supersedes:
   - archive/superseded/NEXT_STEPS.md
 related:
@@ -113,7 +113,11 @@ N00–N07: DONE, PR #25–#33. N08 harness és a planner v3 / külön tervellen�
 
 **N09: PARTIAL.** Kiadási csomag előkészített, production narrative aktiválás nincs. A már funded runtime Linux-upgrade támogatása külön Issue #34; source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile és target/apply/readback proof szükséges. A normál Linux-operátori adatátvétel elkészült O01-ben; ez nem pótolja az új runtime kiadási kapuit.
 
-Következő sorrend: tervmező-vágások és fix-kánon előrehaladás vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
+Issue #43: a két bukott fix-kánon feltárása elkészült; az eredeti negatív kontrollokat megőrző developed-v2 anyag és planner v4 / reviewer v2 readiness-kapu fejlesztési jelölt. Writer v3 és a kiadási küszöb változatlan; nincs új paid/human PASS.
+
+A 2026-10-16-i két paid kísérlet 39 hívás / 0,82722 USD accounted. A readiness-v2 két első fejezete átment, de a fix kontrollok nem; a külön writer-v4 kísérlet sem javította az alkotói kontroll sceneCraft 3 pontját, ezért visszavonva. Aktuális ledger 140 hívás / 2,985975 USD, maradék 2,014025 USD; nincs qualityRelease.
+
+Következő sorrend: az alkalmazási többfejezetes folytatás szemantikai review-ja → a kontrollanyag és írói képesség külön vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
 
 ### B01 — Billing foundation — PENDING
 

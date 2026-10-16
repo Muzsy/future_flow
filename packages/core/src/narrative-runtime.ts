@@ -106,7 +106,11 @@ export function narrativeBindings(
   const run = narrativeCanon(input, result);
   const required = !!run.context.policy.promptVersions.planReviewer;
   if (required) {
-    validateNarrativePlanReview(planningReview, run.result);
+    validateNarrativePlanReview(
+      planningReview,
+      run.result,
+      run.context.policy.promptVersions.planReviewer,
+    );
     if (!evaluateNarrativePlanReview(planningReview).passed)
       throw new DomainError(
         'NARRATIVE_QUALITY_FAILED',

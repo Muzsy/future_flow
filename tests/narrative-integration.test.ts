@@ -45,7 +45,7 @@ import {
   narrativePlanFixture,
   longNarrativeChapterFixture,
   narrativeEditorialFixture,
-  narrativePlanReviewFixture,
+  narrativePlanReadinessFixture,
 } from './narrative-plan-fixtures';
 
 let engine: PGlite, db: Database, repo: Repository, jobs: LifeJobRepository;
@@ -104,6 +104,10 @@ function recanon(f: Fixture) {
 async function finish(mutate?: (f: Fixture, job: LifeJob) => void) {
   const job = (await jobs.claim())!;
   expect(job).toBeTruthy();
+  expect(job.payload.narrativeContext?.policy.mode).toBe('narrative-v1');
+  expect(job.payload.narrativeContext?.policy.promptVersions.planner).toBe(
+    'life_narrative_plan.v4',
+  );
   const f = narrativePlanFixture(job.payload);
   mutate?.(f, job);
   recanon(f);
@@ -116,7 +120,7 @@ async function finish(mutate?: (f: Fixture, job: LifeJob) => void) {
       usage: { input_tokens: 10, output_tokens: 20 },
       output_parsed:
         request.text.format.name === 'life_narrative_plan_review'
-          ? narrativePlanReviewFixture()
+          ? narrativePlanReadinessFixture()
           : request.text.format.name === 'life_narrative_plan'
             ? f.result
             : request.text.format.name === 'life_narrative_chapter'

@@ -643,3 +643,67 @@ it('authors observable fixed-canon actions without changing source profile const
     expect(fixedNarrativeFixture(profile.id).result).toEqual(f.result);
   }
 });
+
+it('preserves the two measured thin-canon failures and selects distinct developed controls', async () => {
+  const { fixedNarrativeFixture, currentFixedNarrativeFixture } =
+    await import('../scripts/lib/narrative-evaluation-fixtures');
+  const {
+    narrativeCanon,
+    narrativeReferenceSnapshot,
+    narrativeReferencesFromMemory,
+  } = await import('@future-flow/core');
+  const { readyNarrativePolicy } = await import('@future-flow/contracts');
+  const originals = {
+    'bounded-career':
+      'feec50e75b7ee495f538cb69b1be71b8663e8105cdd6b1942e0812cb6e71b1ba',
+    'creative-portfolio':
+      '0d9bb870ec120b98fd3c2e23240e9656bd3fefafd9c94d8d1ded3bcac68a1e18',
+  };
+  for (const [id, fingerprint] of Object.entries(originals)) {
+    const original = fixedNarrativeFixture(id),
+      developed = currentFixedNarrativeFixture(id);
+    expect(hash(original.result)).toBe(fingerprint);
+    expect(original.materialVersion).toBe('original-v1');
+    expect(developed.materialVersion).toBe('developed-v2');
+    expect(developed.input).toEqual(original.input);
+    const run = narrativeCanon(
+      {
+        ...developed.input,
+        narrativeContext: {
+          policy: readyNarrativePolicy(),
+          memory: developed.memory,
+        },
+        narrativeReferences: narrativeReferenceSnapshot(
+          narrativeReferencesFromMemory(developed.memory),
+        ),
+      },
+      developed.result,
+    );
+    expect(run.canon.events).toHaveLength(4);
+    expect(run.canon.period.durationMonths).toBe(6);
+    expect(run.result.plan.turningPointEventId).toBe(run.canon.events[2]!.id);
+    expect(run.canon.events[2]!.summary).not.toEqual(
+      run.canon.events[1]!.summary,
+    );
+    expect(run.canon.events.at(-1)!.changes).toEqual([]);
+    expect(run.canon.events.at(-1)!.decision!.options).toHaveLength(2);
+    expect(run.canon.events[2]!.stateAfter.finance).toEqual(
+      original.input.state.finance,
+    );
+    expect(run.canon.events[2]!.stateAfter.resources).toEqual(
+      original.input.state.resources,
+    );
+    expect(run.result.plan.scenes).toHaveLength(3);
+    expect(run.result.plan.memoryDelta.decisionPattern).toBe(
+      run.result.plan.decisionPattern,
+    );
+    expect(hash(developed.result)).not.toBe(fingerprint);
+    expect(currentFixedNarrativeFixture(id).result).toEqual(developed.result);
+  }
+  expect(() => fixedNarrativeFixture('moving', 'developed-v2')).toThrow(
+    'No developed control',
+  );
+  expect(currentFixedNarrativeFixture('moving').materialVersion).toBe(
+    'original-v1',
+  );
+});

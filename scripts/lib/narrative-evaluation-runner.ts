@@ -53,9 +53,10 @@ import {
   longNarrativeChapterFixture,
   narrativeEditorialFixture,
   narrativePlanReviewFixture,
+  narrativePlanReadinessFixture,
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
-import { fixedNarrativeFixture } from './narrative-evaluation-fixtures';
+import { currentFixedNarrativeFixture as fixedNarrativeFixture } from './narrative-evaluation-fixtures';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
@@ -280,7 +281,11 @@ function clientFor(
     };
     const output =
       task === 'life_narrative_plan_review'
-        ? narrativePlanReviewFixture()
+        ? job.payload.narrativeContext?.policy.mode === 'narrative-v1' &&
+          job.payload.narrativeContext.policy.promptVersions.planReviewer ===
+            'life_narrative_plan_review.v2'
+          ? narrativePlanReadinessFixture()
+          : narrativePlanReviewFixture()
         : task === 'life_period'
           ? candidate
           : task === 'life_narrative_plan'
@@ -512,6 +517,7 @@ async function fixedCanonComparison(
       canon: run.canon.events,
       plan: {
         source: 'fixture-authored-fixed-canon',
+        materialVersion: fixture.materialVersion,
         validatedPlan: run.result.plan,
         editorialReport: editor,
       },
