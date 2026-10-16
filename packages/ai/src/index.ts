@@ -1,6 +1,8 @@
 import { fictionPrompts } from './fiction-prompts';
 import {
   fictionAuthorResultSchema,
+  fictionCompactAuthorSchema,
+  fictionCompactDraftSchema,
   type FictionAuthorResult,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
@@ -294,6 +296,7 @@ export class OpenAiProvider
       storyModel: string;
       checkModel?: string;
       timeoutMs: number;
+      fictionTimeoutMs?: number;
       maxOutputTokens: number;
       guard?: AiRequestGuard;
       beforePhysicalRequest?: () => Promise<void>;
@@ -304,7 +307,11 @@ export class OpenAiProvider
       !config.apiKey ||
       !config.eventModel ||
       !config.storyModel ||
-      config.checkModel === ''
+      config.checkModel === '' ||
+      (config.fictionTimeoutMs !== undefined &&
+        (!Number.isSafeInteger(config.fictionTimeoutMs) ||
+          config.fictionTimeoutMs < 1000 ||
+          config.fictionTimeoutMs > 300000))
     )
       throw new DomainError(
         'AI_NOT_CONFIGURED',
@@ -323,13 +330,19 @@ export class OpenAiProvider
   private async parseWithRetries(
     parameters: Parameters<OpenAI['responses']['parse']>[0],
     retry = true,
+    timeoutMs?: number,
   ) {
     for (let attempt = 0; ; attempt++) {
       if (this.config.beforePhysicalRequest)
         await this.config.beforePhysicalRequest();
       const reservation = await this.config.guard?.reserve(parameters);
       try {
-        const response = await this.client.responses.parse(parameters);
+        const response =
+          timeoutMs === undefined
+            ? await this.client.responses.parse(parameters)
+            : await this.client.responses.parse(parameters, {
+                timeout: timeoutMs,
+              });
         if (reservation)
           await this.config.guard!.settle(reservation, response.usage ?? null);
         return response;
@@ -396,6 +409,9 @@ export class OpenAiProvider
         task !== 'public_review' &&
           task !== 'public_content_review' &&
           task !== 'scenario_review',
+        promptVersion?.startsWith('life_fiction_')
+          ? (this.config.fictionTimeoutMs ?? 180000)
+          : undefined,
       );
       if (response.status !== 'completed' || !response.output_parsed)
         throw new DomainError(
@@ -613,10 +629,12 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      narrativePlanningResultSchema,
+      context.policy.promptVersions.planner === 'life_fiction_plan.v2'
+        ? fictionCompactDraftSchema
+        : narrativePlanningResultSchema,
       'life_narrative_plan',
       this.config.eventModel,
-      fictionPrompts(locale).planner,
+      fictionPrompts(locale, context.policy.promptVersions).planner,
       fictionPlannerRequest(input, repair),
       locale,
       `${context.policy.promptVersions.planner}.${locale}`,
@@ -630,10 +648,12 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      fictionAuthorResultSchema,
+      context.policy.promptVersions.writer === 'life_fiction_author.v2'
+        ? fictionCompactAuthorSchema
+        : fictionAuthorResultSchema,
       'life_narrative_chapter',
       this.config.storyModel,
-      fictionPrompts(locale).author,
+      fictionPrompts(locale, context.policy.promptVersions).author,
       fictionAuthorRequest(input, draft, repair),
       locale,
       `${context.policy.promptVersions.writer}.${locale}`,
@@ -646,7 +666,7 @@ export class OpenAiProvider
       narrativePlanReviewV2Schema,
       'life_narrative_plan_review',
       this.config.checkModel ?? this.config.eventModel,
-      fictionPrompts(locale).review,
+      fictionPrompts(locale, context.policy.promptVersions).review,
       fictionReviewRequest(input, authored),
       locale,
       `${context.policy.promptVersions.planReviewer}.${locale}`,
@@ -659,7 +679,7 @@ export class OpenAiProvider
       fidelitySchema,
       'life_fidelity',
       this.config.checkModel ?? this.config.eventModel,
-      fictionPrompts(locale).fidelity,
+      fictionPrompts(locale, context.policy.promptVersions).fidelity,
       fictionFidelityRequest(input, authored),
       locale,
       `${context.policy.promptVersions.fidelity}.${locale}`,
@@ -672,7 +692,7 @@ export class OpenAiProvider
       narrativeEditorialReportSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
-      fictionPrompts(locale).editor,
+      fictionPrompts(locale, context.policy.promptVersions).editor,
       fictionEditorialRequest(input, authored),
       locale,
       `${context.policy.promptVersions.editor}.${locale}`,

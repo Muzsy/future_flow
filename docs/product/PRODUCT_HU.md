@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md

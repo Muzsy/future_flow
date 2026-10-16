@@ -16,15 +16,24 @@
       "properties": {
         "planner": {
           "type": "string",
-          "const": "life_fiction_plan.v1"
+          "enum": [
+            "life_fiction_plan.v1",
+            "life_fiction_plan.v2"
+          ]
         },
         "writer": {
           "type": "string",
-          "const": "life_fiction_author.v1"
+          "enum": [
+            "life_fiction_author.v1",
+            "life_fiction_author.v2"
+          ]
         },
         "planReviewer": {
           "type": "string",
-          "const": "life_fiction_plan_review.v1"
+          "enum": [
+            "life_fiction_plan_review.v1",
+            "life_fiction_plan_review.v2"
+          ]
         },
         "fidelity": {
           "type": "string",

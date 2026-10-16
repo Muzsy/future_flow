@@ -121,9 +121,13 @@ Következő sorrend: az alkalmazási többfejezetes folytatás szemantikai revie
 
 ### F00–F06 — Szabad alkotói személyes fikció — IN PROGRESS
 
-Issue #45. A tulajdonos jóváhagyta a teljes [alkotói fejlesztési terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md) végrehajtását, változatlan modellel. A korábbi két teszttörténet helyett új életutak indulnak az új működéssel; régi döntéspárosításuk nem szükséges. A történeti mérések megmaradnak.
+Issue #45 / [PR #46](https://github.com/Muzsy/future_flow/pull/46), PR #44 függőséggel. [Részletes terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). A két korábbi teszt helyett új creative történetek indulnak; régi döntéspárosításuk nem szükséges, történeti eredményük megmarad.
 
-Új, külön policy: szerzői végső candidate/plan/StoryFact/chapter, utólagos tervellenőrzés, öt normál/max9 fizikai hívás, egy javítás. A contract/core/provider/worker/persistence és memória fejlesztés alatt; offline, paid/human és release-kapuk külön igazolandók. Az integrált PR a PR #44 readiness-jelöltre épül, nem a main része. Részletes döntés: [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). N08/N09 nem válik késznek ettől a termékdöntéstől.
+F00–F04 implementált jelölt: verziózott végső szerzői csomag, utólagos tervellenőrzés, öt normál/max9 fizikai hívás, egy javítás, memória/StoryFact/supersession, prefix-fork, privacy/export/delete és recovery fixture. A nagyobb kimenet külön provider-határidőt kap. A v2 kompakt belső címkét gépi pattern védi, a v1 promptok hash-pinnel megmaradnak. Default legacy/üres cohort változatlan.
+
+F05 PARTIAL: a 9ae6311 pontos forrás CI-je 90 fájl / 951 teszt, Verify és Container sikeres. A 26 hívásos valódi próba új alkotói fejezete 5 hívással átment (causality/sceneCraft 5, többi 4); új karrierfejezete belső, csonka decisionPattern miatt kétszer megállt a tervkapunál. A kompakt v2 és a hosszú memóriát védő fix friss mérésre vár. Külön `--creative-only` diagnózis automatizált indexválasztással, `reviewed=false`; nem teljes benchmark vagy emberi értékelés. Globális ledger 166 hívás / 3,6948975 USD; 1,3051025 USD marad az eredeti 5-ből.
+
+F06 PARTIAL: compatible-mode/fallback védelem és v2 adatot is tartalmazó lokális recovery próba kész. Teljes többidőszakos/humán minőség és konkrét target/recovery Linux-rollout proof továbbra szükséges; production nincs aktiválva. N08/N09 kapuit nem helyettesíti a technikai siker.
 
 ### B01 — Billing foundation — PENDING
 

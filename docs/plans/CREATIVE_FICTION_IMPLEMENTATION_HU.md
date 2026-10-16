@@ -9,6 +9,10 @@ implementation_status: in-progress
 
 Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifikáció.
 
+## Végrehajtási állapot — 2026-10-16
+
+Issue #45 / PR #46; a kanonikus STATUS és DEVELOPMENT_PLAN tartalmazza a legfrissebb készültséget. F00–F04 kódja implementált jelölt. A 9ae6311 első commit 90 fájl / 951 tesztes CI-je és Container ellenőrzése sikeres. A tényleges v1 próba egy új alkotói fejezetet igazolt automatikus kapun, egy munkahelyi próbát belső címkecsonkulás állított meg. Ezért új, külön befagyasztott planner/author/reviewer v2 és kompakt címkeséma készült, változatlan modellel és minőségküszöbökkel. Régi v1 eredmény és prompt megmarad. F05/F06 teljes human/quality/rollout kapui még nyitottak. A creative-only diagnózis indexválasztása nem emberi review.
+
 ## 1. Feladat, termékdöntés és a dokumentum határa
 
 Az Alterward személyes alapokra épülő fikciót ad: azt meséli el, mi bontakozhatna ki a felhasználó kiinduló helyzetéből. Az elsődleges eredmény az olvasói élmény. A történet nem a bemenet átfogalmazása, nem életvezetési beszámoló és nem jövőjóslás.

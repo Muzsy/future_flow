@@ -54,9 +54,13 @@ Az ad6aaa7 readiness-v2 / writer-v3 forrás két új teljes első fejezete átme
 
 A két új mérés együtt 39 hívás / 0,82722 USD accounted. Az összesített 140 hívás / 2,985975 USD után 2,014025 USD maradt az eredeti 5 USD-ből; nincs ismeretlen usage vagy hozzárendeletlen foglalás. További többfejezetes és független emberi értékelés szükséges. A green CI nem irodalmi PASS, és éles bekapcsolás nem történt. Részletek: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md).
 
-## Új alkotói működés — fejlesztés alatt
+## Új alkotói működés — implementált jelölt, minőségmérés folyamatban
 
-A tulajdonos jóváhagyta a teljes [alkotói fejlesztést](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), változatlan modellel. Az író hihető új eseményeket és fordulatokat alkothat, a felhasználói határok és döntések megtartásával; az új történeti tények tartósan mentendők. Az új mód külön `narrative-fiction-v2`, öt normál/max9 fizikai hívással és egy tartalmi javítással. Issue #45 / [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). Ez fejlesztési állapot, nem főágon lévő vagy éles kiadás; új paid/human eredmény még nincs. A régi tesztek és a kumulatív költségledger megmaradnak.
+Issue #45 / [PR #46](https://github.com/Muzsy/future_flow/pull/46), PR #44-re épülő külön ág. Az író végső candidate/plan/StoryFact/chapter csomagot alkothat; utólagos domain/terv/fidelity/editor ellenőrzés és atomikus mentés, prefix-only fork és withheld/export/delete/recovery védelem készült. Változatlan modell, öt normál/max9 fizikai hívás, egy tartalmi javítás. Új jobok planner/author/reviewer v2 kompakt címkékkel; a ténylegesen mért v1 promptok és régi parser megmaradnak. A memóriában egy visszatérő actor legutóbbi releváns ténye rögzített, nem a teljes korábbi életrajza. Az új struktúra külön 180 másodperces provider-határidőt kap; régi módok határideje változatlan.
+
+A 9ae6311 első commit Verify/Container CI-je sikeres: 90 fájl / 951 teszt. A későbbi kompaktcímke/memória/diagnosztikai javítás külön ellenőrzés alatt. A 26 hívásos tényleges v1 próba 0,7089225 USD accounted: az új alkotói „The Bright Rectangle” öt hívásból, javítás nélkül átment (causality/sceneCraft 5, többi 4; 192569 ms). Az új munkahelyi csomagot mindkét tervellenőr csonka 80-karakteres belső decisionPattern miatt állította meg, noha négy tervpontja 4 volt; literary editorig nem jutott. A két régi fixed-canon kontroll továbbra hibás, külön történeti kontroll marad. Ebből nincs teljes minőségi vagy emberi PASS.
+
+Aktuális globális fejlesztési ledger: **166 hívás / 3,6948975 USD accounted**, 3,4185621 USD usage-becslés; nulla ismeretlen usage és hozzárendeletlen foglalás. Az eredeti 5 USD-ből **1,3051025 USD** maradt. Az új `--creative-only` szintetikus olvasói diagnózis elhagyja az ismételt legacy/fixed költséget, választásai naplózott, nem emberi indexválasztások; nem teljes kiadási benchmark. Éles aktiválás, új ablak, modellváltás vagy ledger-reset nincs. [Terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md).
 
 ## Gazdaságosság és termékdöntés
 

@@ -52,4 +52,32 @@ describe('creative corpus uses the same model and durable existing evaluation co
       await rm(out, { recursive: true, force: true });
     }
   }, 60000);
+  it('supports a labelled creative-only diagnosis without repeating historical writers or claiming release completeness', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'alterward-fiction-only-'));
+    try {
+      const o = parseEvaluationOptions([
+        '--creative-only',
+        '--fixtures',
+        'creative-portfolio',
+        '--periods',
+        '2',
+        '--out',
+        out,
+      ]);
+      expect(o.creative).toBe(true);
+      const run = await runNarrativeEvaluation(o);
+      expect(run.diagnosticOnly).toBe(true);
+      expect(run.samples).toHaveLength(2);
+      expect(run.samples[0]!.mode).toBe('narrative-v1');
+      expect(run.samples[0]!.requestCount).toBe(5);
+      expect(run.samples[1]!.choiceMappings[0]).toMatchObject({
+        reviewed: false,
+        selection: 'diagnostic-index',
+      });
+      expect(run.complete).toBe(false);
+      expect(run.failures).toEqual([]);
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  }, 60000);
 });

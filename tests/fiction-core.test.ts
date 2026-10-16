@@ -1,4 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
+import { fictionV1Policy } from '@future-flow/contracts';
+import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 import { describe, expect, it } from 'vitest';
 import {
   fictionPolicySchema,
@@ -266,5 +268,73 @@ describe('creative fiction contracts, final authority and bounded continuity', (
         'utf8',
       ),
     ).toBeLessThanOrEqual(12288);
+  });
+  it('does not pin an entire NPC biography into a bounded prompt over a long history', () => {
+    const f = fictionFixture(),
+      actorId = randomUUID();
+    f.memory.fictionalActors = [
+      {
+        actorId,
+        introducedByEventId: randomUUID(),
+        role: 'A fictional local organiser with a consistent voice.',
+        desire: 'Wants a clear selection of pictures for visitors.',
+        resistance: 'Cannot explain every picture to every visitor.',
+        voiceCue: 'Asks concise concrete visual questions.',
+        lastSeenPeriodId: randomUUID(),
+      },
+    ];
+    const facts: StoryFact[] = Array.from({ length: 40 }, () => ({
+      ...f.authored.storyFacts[0]!,
+      id: randomUUID(),
+      aboutActorIds: [actorId],
+      assertion: 'A particular past detail about this fictional encounter.',
+    }));
+    const c = boundFictionContext(f.memory, facts);
+    expect(c.storyFacts.length).toBeLessThanOrEqual(24);
+    expect(c.storyFacts.some((x) => x.id === facts.at(-1)!.id)).toBe(true);
+    expect(facts).toHaveLength(40);
+  });
+  it('rejects the measured clipped metadata in new jobs while preserving the frozen v1 parser', () => {
+    const f = fictionFixture();
+    const fragment =
+      'After a bounded trial, choose whether to make the tested responsibility a recurr';
+    f.authored.plan.decisionPattern = fragment;
+    f.authored.plan.memoryDelta.decisionPattern = fragment;
+    expect(() => validateFictionAuthor(f.input, f.authored)).toThrow();
+    if (f.input.narrativeContext?.policy.mode !== FICTION_MODE) throw Error();
+    f.input.narrativeContext.policy = fictionV1Policy();
+    expect(() => validateFictionAuthor(f.input, f.authored)).not.toThrow();
+  });
+  it('keeps all actually measured original prompts byte-frozen', () => {
+    const prompts = fictionPrompts('en', fictionV1Policy().promptVersions);
+    const expected = {
+      planner:
+        '78e531080f03e3aa5d9a338e1519fc82f5b63d84063e4211e27f767106f6f2b7',
+      author:
+        '95935f278a21259f3abe024447dad8088c2fb77fbcf9a5535de6a651c117ea55',
+      review:
+        'edcdf6efe6f09b13d2e22911f24702218d4c1ca4ad804ac5020c80a56ae78db6',
+      fidelity:
+        '0af915d7eceacd19283e6b0300e85cf014861fc57028a6f7395b0f6f651ee25b',
+      editor:
+        '620604cf2ffa68b699ff4abe9cfa4a8444db13a9848c6a80525a9adef82e38cc',
+    };
+    expect(
+      Object.fromEntries(
+        Object.entries(prompts).map(([k, v]) => [
+          k,
+          createHash('sha256').update(v).digest('hex'),
+        ]),
+      ),
+    ).toEqual(expected);
+    expect(
+      fictionPolicySchema.safeParse({
+        ...fictionV1Policy(),
+        promptVersions: {
+          ...fictionV1Policy().promptVersions,
+          writer: 'life_fiction_author.v2',
+        },
+      }).success,
+    ).toBe(false);
   });
 });

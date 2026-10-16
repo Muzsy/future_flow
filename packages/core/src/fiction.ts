@@ -2,6 +2,8 @@ import {
   fictionContextSchema,
   fictionReferencesSchema,
   fictionAuthorResultSchema,
+  fictionCompactAuthorSchema,
+  fictionCompactDraftSchema,
   fictionArtifactSchema,
   narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
@@ -144,7 +146,11 @@ export function fictionEditorialRequest(
 }
 export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
   const scope = fictionScope(input),
-    result = narrativePlanningResultSchema.parse(raw);
+    result = (
+      scope.context.policy.promptVersions.planner === 'life_fiction_plan.v2'
+        ? fictionCompactDraftSchema
+        : narrativePlanningResultSchema
+    ).parse(raw);
   const c = result.candidate;
   if (
     c.periodId !== input.periodId ||
@@ -168,7 +174,12 @@ export function validateFictionAuthor(
   input: NarrativePeriodInput,
   raw: unknown,
 ) {
-  const authored = fictionAuthorResultSchema.parse(raw);
+  const authored = (
+    fictionScope(input).context.policy.promptVersions.writer ===
+    'life_fiction_author.v2'
+      ? fictionCompactAuthorSchema
+      : fictionAuthorResultSchema
+  ).parse(raw);
   const run = fictionCanon(input, {
     version: '1.0.0',
     candidate: authored.candidate,

@@ -1,5 +1,7 @@
 import {
   fictionPolicySchema,
+  fictionCompactAuthorSchema,
+  fictionCompactDraftSchema,
   fictionContextSchema,
   fictionAuthorResultSchema,
   fictionReferencesSchema,
@@ -912,6 +914,8 @@ for (const [name, schema] of Object.entries({
   policy: fictionPolicySchema,
   context: fictionContextSchema,
   authorResult: fictionAuthorResultSchema,
+  compactAuthor: fictionCompactAuthorSchema,
+  compactDraft: fictionCompactDraftSchema,
   references: fictionReferencesSchema,
   artifact: fictionArtifactSchema,
   storyFact: storyFactSchema,

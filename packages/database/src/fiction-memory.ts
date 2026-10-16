@@ -47,6 +47,20 @@ export function boundFictionContext(
   let facts = memory.withheld
     ? []
     : allFacts.filter((f) => f.relevance === 'continuity').slice(-24);
+  // An actor's presence must not pin every historical detail forever. The
+  // durable archive keeps all facts; pin only their latest continuity fact.
+  const latestActorFacts = new Set(
+    memory.fictionalActors.flatMap((actor) => {
+      const fact = [...allFacts]
+        .reverse()
+        .find(
+          (f) =>
+            f.relevance === 'continuity' &&
+            f.aboutActorIds.includes(actor.actorId),
+        );
+      return fact ? [fact.id] : [];
+    }),
+  );
   const mandatory = new Set(
     allFacts
       .filter(
@@ -56,9 +70,7 @@ export function boundFictionContext(
             memory.openThreads.some((t) =>
               t.eventRefs.includes(f.introducedByEventId),
             ) ||
-            memory.fictionalActors.some((a) =>
-              f.aboutActorIds.includes(a.actorId),
-            )),
+            latestActorFacts.has(f.id)),
       )
       .map((f) => f.id),
   );

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md

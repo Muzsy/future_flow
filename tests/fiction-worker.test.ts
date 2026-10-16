@@ -82,7 +82,10 @@ function provider(
   budgetUsd = 10,
 ) {
   const parse = vi.fn(
-    async (request: { model: string; text: { format: { name: string } } }) => {
+    async (
+      request: { model: string; text: { format: { name: string } } },
+      _options?: { timeout?: number },
+    ) => {
       const task = request.text.format.name,
         ordinal = parse.mock.calls.filter(
           (c) => c[0].text.format.name === task,
@@ -156,6 +159,24 @@ describe('creative final author package through real guarded provider and databa
       (period!.narrative_artifact as { storyFacts: unknown }).storyFacts,
     ).toEqual(f.f.authored.storyFacts);
     expect((await saved(f.job)).checkpoints.providerRequestCount).toBe(5);
+    const request = p.parse.mock.calls[1]![0] as unknown as {
+      text: {
+        format: {
+          schema: {
+            properties: {
+              plan: { properties: { decisionPattern: { pattern: string } } };
+            };
+          };
+        };
+      };
+    };
+    expect(
+      request.text.format.schema.properties.plan.properties.decisionPattern
+        .pattern,
+    ).toContain('[a-z]');
+    expect(
+      p.parse.mock.calls.every((call) => call[1]?.timeout === 180000),
+    ).toBe(true);
   });
   it('repairs prose once in eight calls and reuses the exact reviewed final material', async () => {
     const f = await fixture(),

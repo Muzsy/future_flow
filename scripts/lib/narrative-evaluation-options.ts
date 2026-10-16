@@ -20,6 +20,7 @@ export const evaluationPriceEvidence = {
 export type EvaluationOptions = {
   kind: 'offline' | 'paid' | 'assess';
   creative?: true;
+  creativeOnly?: true;
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -60,7 +61,11 @@ export function parseEvaluationOptions(
   ]);
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i]!;
-    if (key === '--allow-paid' || key === '--creative') {
+    if (
+      key === '--allow-paid' ||
+      key === '--creative' ||
+      key === '--creative-only'
+    ) {
       if (boolean.has(key)) invalid('Duplicate flag.');
       boolean.add(key);
       continue;
@@ -104,7 +109,7 @@ export function parseEvaluationOptions(
       'The experiment must use a currently reviewed short-context model price.',
     );
   if (
-    boolean.has('--creative') &&
+    (boolean.has('--creative') || boolean.has('--creative-only')) &&
     Object.values(models).some((m) => m !== 'gpt-6.1-sol')
   )
     invalid(
@@ -162,7 +167,10 @@ export function parseEvaluationOptions(
     invalid('Assessment requires human ratings.');
   return {
     kind: kind as EvaluationOptions['kind'],
-    ...(boolean.has('--creative') ? { creative: true as const } : {}),
+    ...(boolean.has('--creative') || boolean.has('--creative-only')
+      ? { creative: true as const }
+      : {}),
+    ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,
@@ -203,7 +211,10 @@ export function verifyEvaluationAuthorization(
     options.models.check,
   ];
   if (options.allowPaid) args.push('--allow-paid');
+  if (options.creativeOnly && !options.creative)
+    invalid('Creative-only diagnostics require the creative policy.');
   if (options.creative) args.push('--creative');
+  if (options.creativeOnly) args.push('--creative-only');
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));
   if (options.approvalId !== null)

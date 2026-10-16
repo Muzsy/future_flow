@@ -3,6 +3,8 @@ import { periodCandidateV2Schema, periodChapterV2Schema } from './life-v2';
 import {
   narrativeMemorySchema,
   narrativePlanSchema,
+  narrativeMemoryDeltaSchema,
+  narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
   narrativeEditorialReportSchema,
 } from './narrative';
@@ -35,9 +37,12 @@ export const fictionPolicySchema = z
     mode: z.literal(FICTION_MODE),
     promptVersions: z
       .object({
-        planner: z.literal('life_fiction_plan.v1'),
-        writer: z.literal('life_fiction_author.v1'),
-        planReviewer: z.literal('life_fiction_plan_review.v1'),
+        planner: z.enum(['life_fiction_plan.v1', 'life_fiction_plan.v2']),
+        writer: z.enum(['life_fiction_author.v1', 'life_fiction_author.v2']),
+        planReviewer: z.enum([
+          'life_fiction_plan_review.v1',
+          'life_fiction_plan_review.v2',
+        ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
         editor: z.literal('life_fiction_editor.v1'),
       })
@@ -50,9 +55,22 @@ export const fictionPolicySchema = z
       .object({ min: z.literal(650), max: z.literal(950) })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((policy, ctx) => {
+    const v2 = policy.promptVersions.writer === 'life_fiction_author.v2';
+    if (
+      (policy.promptVersions.planner === 'life_fiction_plan.v2') !== v2 ||
+      (policy.promptVersions.planReviewer === 'life_fiction_plan_review.v2') !==
+        v2
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Creative compact-label policies must freeze the matching planner/author/reviewer versions.',
+      });
+  });
 export type FictionPolicy = z.infer<typeof fictionPolicySchema>;
-export function fictionPolicy(): FictionPolicy {
+export function fictionV1Policy(): FictionPolicy {
   return {
     version: '2.0.0',
     mode: FICTION_MODE,
@@ -70,6 +88,36 @@ export function fictionPolicy(): FictionPolicy {
     targetWords: { min: 650, max: 950 },
   };
 }
+// Select only for newly queued jobs; v1 remains readable and byte-frozen.
+export function fictionPolicy(): FictionPolicy {
+  const previous = fictionV1Policy();
+  return {
+    ...previous,
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v2',
+      writer: 'life_fiction_author.v2',
+      planReviewer: 'life_fiction_plan_review.v2',
+    },
+  };
+}
+// A technical pattern is a compact semantic label, not a clipped sentence.
+export const fictionDecisionPatternSchema = z
+  .string()
+  .min(3)
+  .max(80)
+  .regex(/^[a-z][a-z0-9]*(?:_[a-z0-9]+){1,9}$/);
+export const fictionCompactPlanSchema = narrativePlanSchema
+  .extend({
+    decisionPattern: fictionDecisionPatternSchema,
+    memoryDelta: narrativeMemoryDeltaSchema
+      .extend({ decisionPattern: fictionDecisionPatternSchema })
+      .strict(),
+  })
+  .strict();
+export const fictionCompactDraftSchema = narrativePlanningResultSchema
+  .extend({ plan: fictionCompactPlanSchema })
+  .strict();
 // The existing bounded memory remains strict and byte-compatible. New facts are
 // a separately versioned projection, included in the SAME total input byte cap.
 export const fictionContextSchema = z
@@ -92,6 +140,9 @@ export const fictionAuthorResultSchema = z
     storyFacts: z.array(storyFactSchema).max(12),
     chapter: periodChapterV2Schema,
   })
+  .strict();
+export const fictionCompactAuthorSchema = fictionAuthorResultSchema
+  .extend({ plan: fictionCompactPlanSchema })
   .strict();
 export type FictionAuthorResult = z.infer<typeof fictionAuthorResultSchema>;
 // Metadata-only, server-owned full-prefix inventory. Never model input.
