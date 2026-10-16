@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 related:
   - ../product/MONETIZATION_HU.md
   - ../product/PRODUCT_HU.md
@@ -218,3 +218,14 @@ A fix-kánon összehasonlításban továbbra is volt minőségi elutasítás; a 
 | 40 | 8,00 USD | 23,75 USD |
 
 Ezek feltételes érzékenységi számok, nem új árígéretek. A havi 8 fejezet ezért induló, óvatos pilot-feltevés. Az érdeklődéshez szükséges mennyiséget a 12-es vagy 24-es változattal is érdemes összevetni, amikor a megfelelő minőség és a teljes egységköltség már igazolt. A jobb technika hasznát nem indokolt automatikusan csak magasabb fedezetté alakítani: több olvasnivaló vagy kedvezőbb ár is szolgálhatja a megtartást.
+
+
+## 13. Alkotói v2 mérés — 2026-10-16
+
+A modell változatlan; jelenleg nincs szerepenkénti olcsóbb modellkísérlet. A korábbi modellválasztási javaslat nem új engedély erre. Az új szerzői folyamat a végső fikció megalkotása után vizsgálja a tervet, hűséget és prózaminőséget.
+
+A 5f8ffbd forrás négy teljes, automatikusan elfogadott fejezete összesen 0,8917025 USD accounted, **0,222925625 USD/fejezet**, javítás nélkül. A három egymást követő munkahelyi és egy alkotói fejezet ideje 213648–237389 ms, körülbelül 3,6–4,0 perc. A részleges, pénzügyileg megállított forkot is tartalmazó diagnózis teljes költsége 1,1249425 USD; ezt a négy elfogadott fejezetre osztva **0,281235625 USD** adódik. Ez utóbbi átlátható mintaterhelés, nem becsült végleges üzemi egységár: a fork befejezetlen, a két alkotói folytatás hiányzik, a választások szintetikusak, emberi elfogadás még nincs.
+
+A teljes fejlesztési ledger **190 hívás / 4,81984 USD accounted / 4,476067 USD usage-becslés**, maradék 0,18016 USD az eredeti 5-ből. Nincs ismeretlen usage vagy hozzárendeletlen foglalás. A régi kutatási és összehasonlítási költés nem keveredik automatikusan a mostani fejezetegységárba, de a ledgerben megmarad.
+
+A 0,70 USD-s óvatos tervezési forgatókönyvet ezért továbbra megtartjuk; a négy jó automatikus eredmény alapján nem véglegesítünk csomagárat vagy mennyiséget. A következő mérésben a sikertelen generálás, javítás, fork és várakozás teljes költségét is számolni kell. Az olvasói kedv és a várakozási idő elfogadhatósága külön döntési adat.

@@ -13,7 +13,7 @@ import type { Database } from './index';
 import { ownedNarrativeReferences } from './narrative-artifact';
 
 export type NarrativeConfig = Readonly<{
-  mode: 'legacy' | 'context' | 'narrative-v1';
+  mode: 'legacy' | 'context' | 'narrative-v1' | 'narrative-fiction-v2';
   cohortUserIds: readonly string[];
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
@@ -24,7 +24,12 @@ export function narrativeConfigFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): NarrativeConfig {
   const mode = env.NARRATIVE_PIPELINE_MODE ?? 'legacy';
-  if (mode !== 'legacy' && mode !== 'context' && mode !== 'narrative-v1')
+  if (
+    mode !== 'legacy' &&
+    mode !== 'context' &&
+    mode !== 'narrative-v1' &&
+    mode !== 'narrative-fiction-v2'
+  )
     throw new DomainError(
       'NARRATIVE_CONFIG_INVALID',
       'Unsupported narrative pipeline mode.',

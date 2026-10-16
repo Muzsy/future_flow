@@ -2,9 +2,13 @@
 // without authorizing another provider call. Operator catalog leases stay fenced.
 import {
   narrativeV1PolicySchema,
+  fictionPolicySchema,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
-import { validatedNarrativeCheckpoint } from '@future-flow/core';
+import {
+  validatedNarrativeCheckpoint,
+  validatedFictionCheckpoint,
+} from '@future-flow/core';
 export function lifeJobReadyToCommit(
   checkpoints: Record<string, unknown>,
   input?: NarrativePeriodInput,
@@ -15,6 +19,21 @@ export function lifeJobReadyToCommit(
     !checkpoints.chapter
   )
     return false;
+  if (
+    input?.narrativeContext?.policy.mode === 'narrative-fiction-v2' ||
+    checkpoints.pipelineVersion === 'narrative-fiction-v2' ||
+    (checkpoints.policy as { mode?: string } | undefined)?.mode ===
+      'narrative-fiction-v2'
+  ) {
+    try {
+      if (input?.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
+        return false;
+      validatedFictionCheckpoint(checkpoints, input);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   if (
     input?.narrativeContext?.policy.mode === 'narrative-v1' ||
     checkpoints.pipelineVersion === 'narrative-v1' ||
@@ -43,11 +62,18 @@ export function narrativeProcessingBlock(
   checkpoints: Record<string, unknown>,
   input: NarrativePeriodInput,
 ): 'NARRATIVE_CONTEXT_INVALID' | 'NARRATIVE_REQUEST_LIMIT' | null {
-  if (input.narrativeContext?.policy.mode !== 'narrative-v1') return null;
+  if (
+    !['narrative-v1', 'narrative-fiction-v2'].includes(
+      input.narrativeContext?.policy.mode ?? '',
+    )
+  )
+    return null;
   if (lifeJobReadyToCommit(checkpoints, input)) return null;
-  const policy = narrativeV1PolicySchema.safeParse(
-    input.narrativeContext.policy,
-  );
+  const policy = (
+    input.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+      ? fictionPolicySchema
+      : narrativeV1PolicySchema
+  ).safeParse(input.narrativeContext?.policy);
   if (!policy.success) return 'NARRATIVE_CONTEXT_INVALID';
   const limit = policy.data.maxPhysicalRequests;
   const count =
@@ -84,7 +110,11 @@ export function lifeJobRetryAvailable(
   if (job.status !== 'failed') return false;
   if (lifeJobReadyToCommit(job.checkpoints, job.payload)) return true;
   if (job.attempt >= 5) return false;
-  if (job.payload.narrativeContext?.policy.mode === 'narrative-v1') {
+  if (
+    ['narrative-v1', 'narrative-fiction-v2'].includes(
+      job.payload.narrativeContext?.policy.mode ?? '',
+    )
+  ) {
     if (
       [
         'NARRATIVE_QUALITY_FAILED',

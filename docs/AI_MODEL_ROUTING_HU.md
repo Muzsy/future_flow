@@ -4,6 +4,12 @@
 
 **Későbbi állapot (2026-10-04):** a teljes v2 Luna→Sol→Sol láncot azóta megmértük: a kis mintában 46–63% kisebb költség, az angolban egy fejezetjavítás; [dátumozott eredmény](AI_V2_ROUTING_REPORT_HU.md). P01–P05 integrált, alkalmazáskeret működik, Sol marad az alap. Indulás csak angol, AI szerkesztői ellenőrzéssel és kiadás utáni használói visszajelzéssel; az alábbi 40%-os újraárazás és következő lépései a 2026-10-02-i mérés történeti állapota.
 
+## Aktuális creative személyes mód (2026-10-16)
+
+Az új `narrative-fiction-v2` a meglévő modellbeállításokat használja: draft az `AI_EVENT_MODEL`, végső author-csomag az `AI_STORY_MODEL`, végső review/fidelity/editor az `AI_CHECK_MODEL` (hiányában event) szerint. Nem történik automatikus modellcsere vagy olcsóbb fallback. A dedikált creative diagnózis mind az öt feladaton `gpt-6.1-sol`, más modellt elutasít.
+
+A végső author-csomag nagyobb a puszta fejezetnél: csak ezen az úton a meglévő konfigurált tokenmaximum legfeljebb 12000, a régi life-task cap 6500 marad. Külön `AI_FICTION_TIMEOUT_MS` alapérték 180000 ms; a régi deadline változatlan. Öt normál/max9 fizikai kérés, egy globális tartalmi javítás, változatlan USD/user/project/window korlát. A tényleges költség és minőség a [STATUS](STATUS_HU.md) creative fejezetében és az [értékelési runbookban](operations/NARRATIVE_EVALUATION_HU.md) található. Az alábbi korábbi modellversenyeztetés történeti adat, nem új feladat vagy a creative írómodell lecserélésének terve.
+
 ## A mérés akkori következtetése
 
 A feladatonkénti modellválasztás megoldható, és jelentős költségcsökkentést adhat. Az első mérendő kombináció: **Luna eseménygenerálás, Sol történetírás, Sol történetellenőrzés**. A korábbi tokenfogyasztást változatlannak feltételezve ez körülbelül **40% megtakarítás**. Ez ármodellből számolt lehetőség, nem már elért alkalmazásszintű eredmény.

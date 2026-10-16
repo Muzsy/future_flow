@@ -1,4 +1,8 @@
-import { narrativeV1PolicySchema } from '@future-flow/contracts';
+import { validateFictionCommit, type FictionCommit } from './fiction-memory';
+import {
+  narrativeV1PolicySchema,
+  fictionPolicySchema,
+} from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
   PeriodCandidateV2,
@@ -11,6 +15,7 @@ import {
   simulatePeriodV2,
   validatePeriodChapterV2,
   validatedNarrativeCheckpoint,
+  validatedFictionCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
@@ -157,7 +162,9 @@ export class LifeJobRepository {
       if (!current || hash(current.payload) !== hash(job.payload)) lost();
       if (
         current.checkpoints.catalogOperatorLease ||
-        current.payload.narrativeContext?.policy.mode !== 'narrative-v1'
+        !['narrative-v1', 'narrative-fiction-v2'].includes(
+          current.payload.narrativeContext?.policy.mode ?? '',
+        )
       )
         throw new DomainError(
           'NARRATIVE_CONTEXT_INVALID',
@@ -181,9 +188,11 @@ export class LifeJobRepository {
           'The life has changed.',
           409,
         );
-      const policy = narrativeV1PolicySchema.safeParse(
-        current.payload.narrativeContext?.policy,
-      );
+      const policy = (
+        current.payload.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+          ? fictionPolicySchema
+          : narrativeV1PolicySchema
+      ).safeParse(current.payload.narrativeContext?.policy);
       if (!policy.success)
         throw new DomainError(
           'NARRATIVE_CONTEXT_INVALID',
@@ -241,7 +250,7 @@ export class LifeJobRepository {
     candidate: PeriodCandidateV2,
     chapter: PeriodChapterV2,
     receipts: unknown[],
-    narrative?: NarrativeCommit,
+    narrative?: NarrativeCommit | FictionCommit,
   ) {
     return this.db.transaction(async (tx) => {
       const user = (
@@ -292,22 +301,37 @@ export class LifeJobRepository {
           acceptedDecisionIds: branch.accepted_decision_ids,
         },
       );
-      const narrativeArtifact = await validateNarrativeCommit(
-        tx,
-        job.user_id,
-        branch.id,
-        current.payload,
-        canon,
-        chapter,
-        receipts,
-        narrative,
-      );
+      const narrativeArtifact =
+        current.payload.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+          ? await validateFictionCommit(
+              tx,
+              job.user_id,
+              branch.id,
+              current.payload,
+              chapter,
+              candidate,
+              receipts,
+              current.checkpoints,
+              narrative as FictionCommit,
+            )
+          : await validateNarrativeCommit(
+              tx,
+              job.user_id,
+              branch.id,
+              current.payload,
+              canon,
+              chapter,
+              receipts,
+              narrative as NarrativeCommit | undefined,
+            );
       if (!narrativeArtifact) validatePeriodChapterV2(chapter, canon.events);
       else {
-        const saved = validatedNarrativeCheckpoint(
-          current.checkpoints,
-          current.payload,
-        );
+        const saved = (
+          current.payload.narrativeContext?.policy.mode ===
+            'narrative-fiction-v2'
+            ? validatedFictionCheckpoint
+            : validatedNarrativeCheckpoint
+        )(current.checkpoints, current.payload);
         if (
           hash(saved.artifact) !== hash(narrativeArtifact) ||
           hash(saved.receipts) !== hash(receipts)

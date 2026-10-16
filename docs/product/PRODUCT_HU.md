@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md
@@ -179,3 +179,12 @@ A gazdaságosság egysége egy ténylegesen elfogadott fejezet teljes előállí
 
 
 A személyes történetek gyakoriságának és fenntartható tartalommennyiségének [konkrét gazdaságossági javaslata](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült. A havi fejezetkeret és az árazás még nem termékszabály. A minőség és a tényleges tovább olvasási kedv előfeltétel; nem daraboljuk mesterségesen a történetet több fizetős egységre, és nem adunk gyengébb alapcsomagos prózát pusztán költségcsökkentésért.
+
+
+## Alkotói szabadság a személyes fikcióban
+
+A tulajdonos 2026-10-16-i döntése szerint az író a megadott helyzetből új szereplőket, találkozásokat, konkrét cselekvéseket, konfliktusokat és eredményeket alkothat. Az elsődleges érték az élvezetes, személyes, hihető történet és a tovább olvasási kedv. A kezdeti állapot nem örök tiltás: az élet a választások és események révén megváltozhat. A kifejezett felhasználói határ és az elfogadott döntés viszont kötelező.
+
+Új fikció nem önmagában hiba. A történet fiktív kánonja elkülönül a valós profiltól, és következetesen továbbél ugyanabban az ágban. A végső nyitott döntés a felhasználónál marad; nem kell minden hétköznapi történéshez külön engedély. A modell változatlan. A minőséget automatikus ellenőrzés és valódi emberi olvasás együtt igazolhatja.
+
+Implementáció: [alkotói fejlesztési terv](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md). A kívánt működés elfogadása nem jelenti automatikus production aktiválását.

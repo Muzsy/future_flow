@@ -1,3 +1,4 @@
+import { prepareFictionJobFixture } from '../../tests/fiction-storage-fixtures';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import {
@@ -131,9 +132,20 @@ export async function preparePrivacyRestoreFixture(
   const lives = new LifeRepository(db),
     narrativeAccountLife = await lives.create(b, setupFixture(), randomUUID());
   const jobs = new LifeJobRepository(db);
-  async function narrativePeriod(jobId: string) {
+  async function narrativePeriod(jobId: string, creative = false) {
     const job = await jobs.claim();
     assert(job && job.id === jobId);
+    if (creative) {
+      const prepared = await prepareFictionJobFixture(db, job);
+      await jobs.complete(
+        job,
+        prepared.candidate,
+        prepared.chapter,
+        prepared.receipts,
+        prepared.commit,
+      );
+      return prepared.candidate.periodId;
+    }
     const prepared = await prepareNarrativeJobFixture(db, job);
     await jobs.complete(
       job,
@@ -150,7 +162,7 @@ export async function preparePrivacyRestoreFixture(
   const removed = await lives.create(a, setupFixture(), randomUUID()),
     deletedLife = removed.lifeId,
     unchangedLife = g.people[0]!.lifeId;
-  const deletedLifeNarrativePeriod = await narrativePeriod(removed.jobId);
+  const deletedLifeNarrativePeriod = await narrativePeriod(removed.jobId, true);
   await db.query(
     "INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES('privacy-project',1000000,100)",
   );

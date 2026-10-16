@@ -138,3 +138,21 @@ A writer v4 prompt/selector és schema-bővítés visszavonva; a kísérleti for
 A két kísérlet után az összesített fejlesztési ledger **140 hívás / 2,985975 USD accounted / 2,7473466 USD usage-becslés**, nulla ismeretlen használat, nulla hozzárendeletlen foglalás. A változatlan 5 USD engedélyből **2,014025 USD** maradt. Ez nem szolgáltatói számla vagy üzemi fejezetár. Valódi háromidőszakos/fork és vak emberi kapu továbbra hiányzik.
 
 Következő prioritás a teljes alkalmazási folyamat többfejezetes folytatása, hash-bound szemantikai döntési review-val. A kontrolloknál külön vizsgálandó a hiányzó konkrét vizuális alapanyag: a teljes fejezetek rögzített képtárgyat és konkrét félreértést kaptak, a fix kontroll csak általános fókusz/vonalvezetés-különbséget. Ez lehetséges magyarázat, nem ellenőrzött oksági eredmény; új kontroll esetén régi és új adatot külön meg kell őrizni. A minőségi küszöb nem csökken.
+
+
+## Creative v2 mérési változat
+
+Az `evaluate:narrative` új `--creative` kapcsolója a teljes narrative oldalt `narrative-fiction-v2` policyval indítja; a legacy kontroll és a történeti fixed-canon kontrollok maradnak. A report `variant` mezője és a manifest kötése különbözteti meg. A vak pair régi `narrative-v1` oldaljelölése összehasonlítási oszlop, nem az alkalmazott creative policy neve; a receiptek tényleges `life_fiction_*` verziót tartalmaznak. A kánon a teljes összehasonlításban szabadon eltérhet; a fixed-canon rész külön történeti kontroll, nem az új szerző korlátozása. Minden stage `gpt-6.1-sol`; a kapcsoló más modellt elutasít.
+
+Példa offline: `pnpm evaluate:narrative --creative --mode offline --fixtures creative-portfolio --periods 2 --out .local/narrative-evaluation/creative-offline`. Paid esetben az összes eddigi dedikált fejlesztési költés és ugyanaz a ledger érvényes; új output nem új keret. Production key fallback nincs. Az új működéshez új source-bound run szükséges; régi történet futása nem alakítható át más policyra. A teljes korpusz és a vak emberi/recovery/ár/idő kapuk változatlanul szükségesek. A modell/editor PASS nem emberi minőségigazolás.
+
+
+A creative szolgáltatói határidő 180 másodperc hívásonként; productionben külön `AI_FICTION_TIMEOUT_MS` (1000–300000 ms) szabályozza. A régi módok `AI_TIMEOUT_MS` határideje megmarad. A nagyobb strukturált author-kimenet miatt a hosszabb határidőt és tényleges össz-latenciát mérni kell; ez nem tesz kötelezővé hosszú választ, nem ad plusz hívást és nem emel USD-keretet.
+
+
+A `--creative-only` külön, szintetikus olvasói diagnózis: csak az új creative út fut, nincs legacy/fixed kontroll ismételt költsége. `diagnosticOnly=true`, `complete=false`, így nem teljes benchmark és nem qualityRelease-bizonyíték. Több időszaknál az első, alternatív forkban a második opciót választja determinisztikusan; `selection=diagnostic-index`, `reviewed=false` és kifejezett nem-emberi indoklás kerül a logba. Ez nem szemantikai párosítás, nem valós user választása, és nem engedi meg a `reviewed=true` kitalálását. A teljes párosított benchmarkban változatlanul a tényleges szemantikai review szükséges. Példa: `pnpm evaluate:narrative --creative-only --mode offline --fixtures bounded-career --periods 3 --out .local/narrative-evaluation/creative-reading-diagnostic`.
+
+A paid v1 első próbája két végső tervellenőrzésnél csonka, 80 karakteres decisionPattern miatt állt meg, noha mind a négy tervpont 4 volt. Új planner/author/reviewer v2 csak az új jobokban rövid snake_case címkét követel gépi patternnel és 80 karakteres határral; a reviewer javaslata is ebbe a mezőbe illeszkedjen. Régi v1 promptok hash-pinnel megmaradnak. Ez nem minőségküszöb-lazítás vagy a sikertelen mérés törlése.
+
+
+A 32 KiB artifact túllépése strukturális csomagtömörítést igényelhet akkor is, ha a próza már átment. Ilyenkor az egyetlen javítás `author_package`, nem változatlan kánonhoz kötött `prose_only`; a domain és mindhárom végső ellenőr újra fut, max9-en belül. Az összes egyedi mezőben érvényes, de együtt túl nagy artifact regressziója ezt valós worker/DB útvonalon ellenőrzi. A byte-limitet nem növeltük és nem csonkítunk csendben.

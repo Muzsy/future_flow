@@ -172,6 +172,8 @@ export async function writeEvaluationArtifacts(
     narrativeYield: run.mock
       ? null
       : evaluationNarrativeYield(run.accounting, run.samples),
+    ...(run.variant ? { variant: run.variant } : {}),
+    ...(run.diagnosticOnly ? { diagnosticOnly: true } : {}),
     qualityRelease: false,
     reason:
       'Independent human grades, semantic choice review, complete paid samples and owner-set cost/time limits are required.',
@@ -244,7 +246,7 @@ export async function assessEvaluationArtifacts(options: EvaluationOptions) {
   const assessment = assessHumanRatings(
     pairs,
     raw,
-    !run.mock && run.complete,
+    !run.mock && run.complete && !run.diagnosticOnly,
     operations,
   );
   await writeFile(

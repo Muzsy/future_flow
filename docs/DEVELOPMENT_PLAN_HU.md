@@ -115,9 +115,19 @@ N00–N07: DONE, PR #25–#33. N08 harness és a planner v3 / külön tervellen�
 
 Issue #43: a két bukott fix-kánon feltárása elkészült; az eredeti negatív kontrollokat megőrző developed-v2 anyag és planner v4 / reviewer v2 readiness-kapu fejlesztési jelölt. Writer v3 és a kiadási küszöb változatlan; nincs új paid/human PASS.
 
-A 2026-10-16-i két paid kísérlet 39 hívás / 0,82722 USD accounted. A readiness-v2 két első fejezete átment, de a fix kontrollok nem; a külön writer-v4 kísérlet sem javította az alkotói kontroll sceneCraft 3 pontját, ezért visszavonva. Aktuális ledger 140 hívás / 2,985975 USD, maradék 2,014025 USD; nincs qualityRelease.
+A 2026-10-16-i két paid kísérlet 39 hívás / 0,82722 USD accounted. A readiness-v2 két első fejezete átment, de a fix kontrollok nem; a külön writer-v4 kísérlet sem javította az alkotói kontroll sceneCraft 3 pontját, ezért visszavonva. Az akkori ledger 140 hívás / 2,985975 USD, maradék 2,014025 USD; nincs qualityRelease.
 
 Következő sorrend: az alkalmazási többfejezetes folytatás szemantikai review-ja → a kontrollanyag és írói képesség külön vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
+
+### F00–F06 — Szabad alkotói személyes fikció — IN PROGRESS
+
+Issue #45 / [PR #46](https://github.com/Muzsy/future_flow/pull/46), PR #44 függőséggel. [Részletes terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). A két korábbi teszt helyett új creative történetek indulnak; régi döntéspárosításuk nem szükséges, történeti eredményük megmarad.
+
+F00–F04 implementált jelölt: verziózott végső szerzői csomag, utólagos tervellenőrzés, öt normál/max9 fizikai hívás, egy javítás, memória/StoryFact/supersession, prefix-fork, privacy/export/delete és recovery fixture. A nagyobb kimenet külön provider-határidőt kap. A v2 kompakt belső címkét gépi pattern védi, a v1 promptok hash-pinnel megmaradnak. Default legacy/üres cohort változatlan.
+
+F05 PARTIAL: a végső 8847d2b forrás Verify/Container CI-je (#311) sikeres, 90 fájl / 958 teszt. A korábbi v1 próba belső címkecsonkulása javítva. A kompakt v2 5f8ffbd diagnózis négy teljes új fejezetet fogadott el (munkahelyi profil három időszak, alkotói profil első fejezet), mind öt hívással, javítás nélkül, minden editor-pont 4. Elfogadott fejezetek accounted átlaga 0,222925625 USD, idejük 213648–237389 ms. A fork az editor előtt költség-előfoglalás miatt megállt, nem elfogadott; két alkotói folytatás nem futott. Globális ledger 190 hívás / 4,81984 USD accounted, 4,476067 USD usage-becslés, maradék 0,18016 USD; nulla ismeretlen használat és hozzárendeletlen foglalás. Új paid futáshoz további explicit keretengedély kell. A végső kód és a mért forrás különböző; az utolsó regressziójavítások teljes CI-je nem helyettesít pontos forrású release-proofot. A `--creative-only` indexválasztása `reviewed=false`, nem teljes benchmark/emberi review; qualityRelease továbbra false.
+
+F06 PARTIAL: compatible-mode/fallback védelem és v2 adatot is tartalmazó lokális recovery próba kész. Teljes többidőszakos/humán minőség és konkrét target/recovery Linux-rollout proof továbbra szükséges; production nincs aktiválva. N08/N09 kapuit nem helyettesíti a technikai siker.
 
 ### B01 — Billing foundation — PENDING
 

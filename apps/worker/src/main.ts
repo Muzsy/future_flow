@@ -38,6 +38,7 @@ async function main() {
     storyModel: process.env.AI_STORY_MODEL ?? '',
     checkModel: process.env.AI_CHECK_MODEL || undefined,
     timeoutMs: Number(process.env.AI_TIMEOUT_MS ?? 90000),
+    fictionTimeoutMs: Number(process.env.AI_FICTION_TIMEOUT_MS ?? 180000),
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 12000),
   };
   // Validate configuration before accepting jobs. Actual calls always reserve
@@ -191,7 +192,11 @@ async function main() {
           guard,
           ...(v2 &&
           (job as import('@future-flow/database').LifeJob).payload
-            .narrativeContext?.policy.mode === 'narrative-v1'
+            .narrativeContext?.policy.mode &&
+          ['narrative-v1', 'narrative-fiction-v2'].includes(
+            (job as import('@future-flow/database').LifeJob).payload
+              .narrativeContext!.policy.mode,
+          )
             ? {
                 beforePhysicalRequest: () =>
                   lifeJobs.admitNarrativeRequest(

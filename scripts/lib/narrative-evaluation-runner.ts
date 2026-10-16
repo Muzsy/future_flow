@@ -1,3 +1,4 @@
+import { fictionFixture } from '../../tests/fiction-fixtures';
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { mkdir, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -99,6 +100,8 @@ export type EvaluationSample = {
 };
 export type EvaluationRun = {
   version: string;
+  variant?: 'narrative-fiction-v2';
+  diagnosticOnly?: true;
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -220,6 +223,26 @@ function safetyProbe() {
   ).includes(marker);
   return { passed: markerExcluded, markerExcluded };
 }
+// Synthetic unpaired diagnostic path only. This is NOT semantic/human review.
+function diagnosticChoice(
+  options: { id: string; label: string; description: string }[],
+  intent: ReturnType<typeof choiceIntent>,
+  alternate = false,
+) {
+  const option = options[alternate ? 1 : 0];
+  if (!option)
+    throw new DomainError(
+      'EVAL_STATE_INVALID',
+      'A diagnostic choice is unavailable.',
+    );
+  return {
+    optionId: option.id,
+    intent,
+    decisionHash: hash(options),
+    selection: 'diagnostic-index' as const,
+    rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
+  };
+}
 type TransportRecord = { caseId: string; task: string; latencyMs: number };
 function clientFor(
   options: EvaluationOptions,
@@ -236,7 +259,7 @@ function clientFor(
       organization: null,
       logLevel: 'off',
       maxRetries: 0,
-      timeout: 120000,
+      timeout: options.creative ? 180000 : 120000,
     });
     const original = sdk.responses.parse.bind(sdk.responses);
     const parse = (async (parameters: Parameters<typeof original>[0]) => {
@@ -279,24 +302,33 @@ function clientFor(
       goals: job.payload.input.goals,
       events: canon.events,
     };
+    const creative =
+      job.payload.narrativeContext?.policy.mode === 'narrative-fiction-v2';
+    const cf = creative ? fictionFixture(job.payload) : null;
     const output =
-      task === 'life_narrative_plan_review'
-        ? job.payload.narrativeContext?.policy.mode === 'narrative-v1' &&
-          job.payload.narrativeContext.policy.promptVersions.planReviewer ===
-            'life_narrative_plan_review.v2'
-          ? narrativePlanReadinessFixture()
-          : narrativePlanReviewFixture()
-        : task === 'life_period'
-          ? candidate
-          : task === 'life_narrative_plan'
-            ? f.result
-            : task === 'life_chapter'
-              ? narrativeChapter(story)
-              : task === 'life_narrative_chapter'
-                ? longNarrativeChapterFixture(f)
-                : task === 'life_fidelity'
-                  ? { valid: true, issues: [] }
-                  : narrativeEditorialFixture();
+      creative && task === 'life_narrative_plan'
+        ? cf!.draft
+        : creative && task === 'life_narrative_chapter'
+          ? cf!.authored
+          : creative && task === 'life_narrative_plan_review'
+            ? narrativePlanReadinessFixture()
+            : task === 'life_narrative_plan_review'
+              ? job.payload.narrativeContext?.policy.mode === 'narrative-v1' &&
+                job.payload.narrativeContext.policy.promptVersions
+                  .planReviewer === 'life_narrative_plan_review.v2'
+                ? narrativePlanReadinessFixture()
+                : narrativePlanReviewFixture()
+              : task === 'life_period'
+                ? candidate
+                : task === 'life_narrative_plan'
+                  ? f.result
+                  : task === 'life_chapter'
+                    ? narrativeChapter(story)
+                    : task === 'life_narrative_chapter'
+                      ? longNarrativeChapterFixture(f)
+                      : task === 'life_fidelity'
+                        ? { valid: true, issues: [] }
+                        : narrativeEditorialFixture();
     transports.push({ caseId, task, latencyMs: Date.now() - start });
     await save(join(options.out, 'transport-records.json'), transports);
     return {
@@ -451,7 +483,7 @@ async function fixedCanonComparison(
         storyModel: options.models.story,
         checkModel: options.models.check,
         timeoutMs: 120000,
-        maxOutputTokens: 6500,
+        maxOutputTokens: options.creative ? 12000 : 6500,
         guard: guardFor(caseId),
         beforePhysicalRequest,
       },
@@ -567,9 +599,13 @@ async function forkComparison(
       o.periodIndex === 1 &&
       o.branchKind === 'fork',
   );
-  let mapping: ReturnType<typeof selectEvaluationChoice>;
+  let mapping:
+    | ReturnType<typeof selectEvaluationChoice>
+    | ReturnType<typeof diagnosticChoice>;
   try {
-    mapping = selectEvaluationChoice(decision.options, intent, override);
+    mapping = options.creativeOnly
+      ? diagnosticChoice(decision.options, intent, true)
+      : selectEvaluationChoice(decision.options, intent, override);
   } catch (error) {
     if (code(error) !== 'EVAL_CHOICE_REVIEW_REQUIRED') throw error;
     report.choiceReviewRequests.push({
@@ -654,7 +690,7 @@ async function forkComparison(
         storyModel: options.models.story,
         checkModel: options.models.check,
         timeoutMs: 120000,
-        maxOutputTokens: 6500,
+        maxOutputTokens: options.creative ? 12000 : 6500,
         guard: combined,
         ...(mode === 'narrative-v1'
           ? { beforePhysicalRequest: () => jobs.admitNarrativeRequest(job) }
@@ -738,7 +774,7 @@ async function forkComparison(
         ...mapping,
         label: chosen.label,
         description: chosen.description,
-        reviewed: !!override,
+        reviewed: !options.creativeOnly && !!override,
       },
     ],
     mock: options.kind !== 'paid',
@@ -775,6 +811,8 @@ async function runEvaluationUnlocked(
     );
   const binding = hash({
     sourceHash: identity.sourceHash,
+    ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
+    ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -814,6 +852,8 @@ async function runEvaluationUnlocked(
     sourceHash: identity.sourceHash,
     mock: options.kind !== 'paid',
     models: options.models,
+    ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
+    ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -885,7 +925,9 @@ async function runEvaluationUnlocked(
         : undefined;
     let stop = false;
     for (const fixtureId of options.fixtureIds)
-      for (const mode of ['legacy', 'narrative-v1'] as const) {
+      for (const mode of options.creativeOnly
+        ? (['narrative-v1'] as const)
+        : (['legacy', 'narrative-v1'] as const)) {
         if (stop) break;
         const profile = narrativeProfiles.find((p) => p.id === fixtureId)!,
           caseId = `${fixtureId}:${mode}`,
@@ -908,7 +950,12 @@ async function runEvaluationUnlocked(
               db,
               { daily: 100, concurrent: 10 },
               {
-                mode: mode === 'legacy' ? 'legacy' : 'narrative-v1',
+                mode:
+                  mode === 'legacy'
+                    ? 'legacy'
+                    : options.creative
+                      ? 'narrative-fiction-v2'
+                      : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
               },
             );
@@ -943,11 +990,13 @@ async function runEvaluationUnlocked(
                       o.branchKind === 'main',
                   );
                 try {
-                  const mapping = selectEvaluationChoice(
-                    decision.options,
-                    intent,
-                    override,
-                  );
+                  const mapping = options.creativeOnly
+                    ? diagnosticChoice(decision.options, intent)
+                    : selectEvaluationChoice(
+                        decision.options,
+                        intent,
+                        override,
+                      );
                   report.choiceReviewRequests =
                     report.choiceReviewRequests.filter((raw) => {
                       const r = raw as Record<string, unknown>;
@@ -970,7 +1019,7 @@ async function runEvaluationUnlocked(
                       mode,
                       periodIndex: periodIndex - 1,
                       branchKind: 'main',
-                      reviewed: !!override,
+                      reviewed: !options.creativeOnly && !!override,
                       label: decision.options.find(
                         (o) => o.id === mapping.optionId,
                       )!.label,
@@ -1069,7 +1118,7 @@ async function runEvaluationUnlocked(
                   storyModel: options.models.story,
                   checkModel: options.models.check,
                   timeoutMs: 120000,
-                  maxOutputTokens: 6500,
+                  maxOutputTokens: options.creative ? 12000 : 6500,
                   guard,
                   ...(mode === 'narrative-v1'
                     ? { beforePhysicalRequest: physical }
@@ -1212,7 +1261,7 @@ async function runEvaluationUnlocked(
         }
         await save(reportPath, report);
       }
-    if (!stop)
+    if (!stop && !options.creativeOnly)
       for (const fixtureId of options.fixtureIds) {
         try {
           await fixedCanonComparison(
@@ -1257,7 +1306,7 @@ async function runEvaluationUnlocked(
             o.periodIndex === periodIndex &&
             o.branchKind === branchKind,
         );
-        if (!override) return stored;
+        if (!override || options.creativeOnly) return stored;
         if (
           override.decisionHash !== stored.decisionHash ||
           override.optionId !== stored.optionId ||
@@ -1272,6 +1321,7 @@ async function runEvaluationUnlocked(
       });
     }
     report.complete =
+      !options.creativeOnly &&
       report.samples.filter((s) => s.kind === 'full').length === 8 * 3 * 2 &&
       report.samples.filter((s) => s.kind === 'fixed-canon').length === 8 * 2 &&
       report.samples.filter((s) => s.kind === 'fork').length === 2 * 2 &&
