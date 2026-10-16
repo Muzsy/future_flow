@@ -74,6 +74,40 @@ async function main() {
         "INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES('funded-project',NULL,2000000,188585),('funded-user',$1,500000,188585)",
         [user],
       );
+      const { LifeRepository, Repository } =
+        await import('@future-flow/database');
+      const { setupFixture } = await import('../../tests/life-fixtures');
+      await new Repository(db).acceptPrivacy(user);
+      const historical = await new LifeRepository(db).create(
+        user,
+        setupFixture(),
+        crypto.randomUUID(),
+      );
+      await db.query("UPDATE aw_branches SET status='ready' WHERE id=$1", [
+        historical.branchId,
+      ]);
+      await db.query(
+        "UPDATE aw_jobs SET status='completed',stage='COMMITTED',completed_at=now(),checkpoints='{\"historicalSynthetic\":true}' WHERE id=$1",
+        [historical.jobId],
+      );
+      await db.query(
+        `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status,input_tokens,output_tokens,settled_at)
+        VALUES(gen_random_uuid(),$1,'funded-project','funded-user',$2,'synthetic-history','synthetic-history',200000,188585,'completed',321,654,now())`,
+        [user, historical.jobId],
+      );
+      await db.query(
+        'INSERT INTO aw_ai_runs(id,user_id,job_id,metadata) VALUES(gen_random_uuid(),$1,$2,$3::jsonb)',
+        [
+          user,
+          historical.jobId,
+          JSON.stringify({
+            historicalSynthetic: true,
+            inputTokens: 321,
+            outputTokens: 654,
+            accountedMicro: 188585,
+          }),
+        ],
+      );
     }
     if (request.mode === 'unsafe') {
       const checks = { reservations: false, leases: false };
@@ -104,7 +138,7 @@ async function main() {
       const { LifeRepository } = await import('@future-flow/database');
       const { setupFixture } = await import('../../tests/life-fixtures');
       await db.query(
-        "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES(gen_random_uuid(),$1,'alpha-privacy-v1','adult_and_ai_acknowledgement')",
+        "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES(gen_random_uuid(),$1,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
         [user],
       );
       const life = await new LifeRepository(db).create(

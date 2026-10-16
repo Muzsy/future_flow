@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { releaseEvidence } from '../../scripts/lib/funded-upgrade.mjs';
+import {
+  releaseEvidence,
+  fundedSourceBundle,
+} from '../../scripts/lib/funded-upgrade.mjs';
 const commit = 'a'.repeat(40),
   bundleSha256 = 'b'.repeat(64),
   image = 'sha256:' + 'c'.repeat(64);
@@ -72,4 +75,25 @@ test('rejects missing audit, foreign source, incomplete fixture and substituted 
     change(p);
     assert.throws(() => releaseEvidence(p));
   }
+});
+
+test('source bundle binds Docker inputs and executable sources while excluding private state', () => {
+  const paths = [
+    'Dockerfile',
+    '.dockerignore',
+    'scripts/test.py',
+    'packages/a/src/test.ts',
+    'env/private.env',
+    '.local/receipt.json',
+    'docs/note.md',
+  ];
+  const bundle = fundedSourceBundle(paths, () =>
+    Buffer.from('synthetic source'),
+  );
+  assert.deepEqual(Object.keys(bundle.sourceHashes), [
+    '.dockerignore',
+    'Dockerfile',
+    'packages/a/src/test.ts',
+    'scripts/test.py',
+  ]);
 });

@@ -107,12 +107,20 @@ export function releaseEvidence({
 // with uncommitted code cannot use these hashes as a committed release proof.
 export function fundedSourceBundle(paths, read) {
   const selected = paths
-    .filter((p) =>
-      /^(scripts\/|tests\/|apps\/|packages\/|database\/migrations\/|deploy\/compose|(?:pnpm-|package|tsconfig))/.test(
-        p,
-      ),
+    .filter(
+      (p) =>
+        p === 'Dockerfile' ||
+        p === '.dockerignore' ||
+        /^(scripts\/|tests\/|apps\/|packages\/|database\/migrations\/|deploy\/compose|(?:pnpm-|package|tsconfig))/.test(
+          p,
+        ),
     )
-    .filter((p) => /\.(?:ts|tsx|mts|mjs|cjs|py|json|yaml|sql|sh|css)$/.test(p))
+    .filter(
+      (p) =>
+        p === 'Dockerfile' ||
+        p === '.dockerignore' ||
+        /\.(?:ts|tsx|mts|mjs|cjs|py|json|yaml|sql|sh|css)$/.test(p),
+    )
     .sort();
   const sourceHashes = Object.fromEntries(
     selected.map((p) => [p, sha(read(p))]),

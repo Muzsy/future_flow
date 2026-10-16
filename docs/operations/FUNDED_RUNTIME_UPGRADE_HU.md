@@ -19,7 +19,7 @@ Változhat az image/source és kizárólag az `ALTERWARD_TAG` env-sor. A teljes 
 
 ## Privilegizált source bundle
 
-A kliens a committed CLI/helper fájlokat import ELŐTT byte szerint ellenőrzi. Linux 0700 checkout, owned 0600 regular input, valós és nem írható idegen ancestor, hardlink/symlink kizárás kötelező. A `fundedSourceBundle` a committed scripts/tests/apps/packages kódot és manifesteket, migrációkat, Compose-forrást és gyökér package/pnpm/tsconfig fájlokat hash-eli. Dokumentum nem helyettesít helper hash-t. A kiválasztott image belsejében ugyanazon fájlok hash-e ellenőrzött, mielőtt annak runtime contractját importáljuk.
+A kliens a committed CLI/helper fájlokat import ELŐTT byte szerint ellenőrzi. Linux 0700 checkout, owned 0600 regular input, valós és nem írható idegen ancestor, hardlink/symlink kizárás kötelező. A `fundedSourceBundle` a committed scripts/tests/apps/packages kódot és manifesteket, migrációkat, Compose-forrást és gyökér package/pnpm/tsconfig, Dockerfile és .dockerignore fájlokat hash-eli. Dokumentum nem helyettesít helper hash-t. A kiválasztott image belsejében ugyanazon fájlok hash-e ellenőrzött, mielőtt annak runtime contractját importáljuk.
 
 A SSH-ra küldött Python-modulok: backup, target, owner, owner-activation, owner-upgrade, writer-fence, personal-beta-readers, personal-beta, funded-watchdog, funded-upgrade. Az utolsó kettő dedikált, az owner-zero útvonal nincs broadenolva. A változó `sourceHashes` csak az ellenőrzött committed bundle-ből származik. GitHub CI friss GET és az eredeti hostpin/key kötelező; nincs SSH-config, új identity, forwarding vagy provider/DB/Auth process-env örökítés.
 

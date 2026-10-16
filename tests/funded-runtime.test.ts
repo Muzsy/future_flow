@@ -66,6 +66,11 @@ beforeAll(async () => {
     "INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES('funded-project',NULL,2000000,188585),('funded-user',$1,500000,188585)",
     [user],
   );
+  await engine.query(
+    `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status,input_tokens,output_tokens,settled_at)
+    VALUES(gen_random_uuid(),$1,'funded-project','funded-user',gen_random_uuid(),'synthetic-history','synthetic-history',200000,188585,'completed',321,654,now())`,
+    [user],
+  );
 }, 60000);
 afterAll(async () => {
   await engine?.close();
@@ -188,6 +193,20 @@ describe('funded runtime schema and accounting boundary', () => {
     expect(accounts.rows).toEqual([
       { limit_micro: 2000000, accounted_micro: 188585 },
       { limit_micro: 500000, accounted_micro: 188585 },
+    ]);
+    expect(
+      (
+        await engine.query(
+          'SELECT accounted_micro,input_tokens,output_tokens,status FROM aw_budget_reservations',
+        )
+      ).rows,
+    ).toEqual([
+      {
+        accounted_micro: 188585,
+        input_tokens: 321,
+        output_tokens: 654,
+        status: 'completed',
+      },
     ]);
     await tx((d) => assertReviewedPrivacyRecoverySchema(d));
   });

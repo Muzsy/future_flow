@@ -330,6 +330,8 @@ class System:
             value['Id'] != tag['Id']
             or value['Id'] != build['imageId']
             or value['Config']['User'] != 'node'
+            or value['Config'].get('WorkingDir') != '/app'
+            or value['Config'].get('Entrypoint') != ['docker-entrypoint.sh']
         ):
             raise ValueError('Immutable cached image digest mismatch')
         source = Path(build['sourceDirectory'])
@@ -890,6 +892,13 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
 
         validate_staged_running(list(roles.values()), cfg, expected)
         for name, item in roles.items():
+            if item['Config'].get('Entrypoint') != ['docker-entrypoint.sh']:
+                raise ValueError('Unexpected runtime entrypoint')
+            actual_env = dict(entry.split('=', 1) for entry in item['Config']['Env'])
+            if name != 'worker' and (
+                actual_env.get('OPENAI_API_KEY') or actual_env.get('ANTHROPIC_API_KEY')
+            ):
+                raise ValueError('Provider credential outside worker')
             if item['Config']['Cmd'] != cfg['services'][name]['command']:
                 raise ValueError('Actual runtime command differs')
         checks = json.loads(
