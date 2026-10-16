@@ -1,3 +1,5 @@
+import { processFictionLifeJob } from './fiction-processor';
+import type { FictionAiProvider } from '@future-flow/ai';
 import {
   DomainError,
   hash,
@@ -36,6 +38,37 @@ export async function processLifeJob(
   ai: LifeAiProvider,
 ) {
   const input = job.payload;
+  const savedMode =
+    (job.checkpoints.policy as { mode?: string } | undefined)?.mode ??
+    job.checkpoints.pipelineVersion;
+  if (
+    savedMode === 'narrative-fiction-v2' &&
+    input.narrativeContext?.policy.mode !== savedMode
+  )
+    throw new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'A creative checkpoint cannot be downgraded into another pipeline.',
+    );
+  if (input.narrativeContext?.policy.mode === 'narrative-fiction-v2') {
+    const provider = ai as LifeAiProvider & Partial<FictionAiProvider>;
+    if (
+      ![
+        'planFiction',
+        'authorFiction',
+        'reviewFiction',
+        'checkFiction',
+        'editFiction',
+      ].every(
+        (key) => typeof provider[key as keyof FictionAiProvider] === 'function',
+      )
+    )
+      throw new DomainError(
+        'AI_NOT_CONFIGURED',
+        'Creative fiction generation is not configured.',
+        503,
+      );
+    return processFictionLifeJob(job, jobs, provider as FictionAiProvider);
+  }
   if (input.narrativeContext?.policy.mode === 'narrative-v1') {
     const provider = ai as LifeAiProvider & Partial<NarrativeAiProvider>;
     if (

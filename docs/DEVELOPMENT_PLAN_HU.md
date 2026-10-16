@@ -119,6 +119,12 @@ A 2026-10-16-i két paid kísérlet 39 hívás / 0,82722 USD accounted. A readin
 
 Következő sorrend: az alkalmazási többfejezetes folytatás szemantikai review-ja → a kontrollanyag és írói képesség külön vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
 
+### F00–F06 — Szabad alkotói személyes fikció — IN PROGRESS
+
+Issue #45. A tulajdonos jóváhagyta a teljes [alkotói fejlesztési terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md) végrehajtását, változatlan modellel. A korábbi két teszttörténet helyett új életutak indulnak az új működéssel; régi döntéspárosításuk nem szükséges. A történeti mérések megmaradnak.
+
+Új, külön policy: szerzői végső candidate/plan/StoryFact/chapter, utólagos tervellenőrzés, öt normál/max9 fizikai hívás, egy javítás. A contract/core/provider/worker/persistence és memória fejlesztés alatt; offline, paid/human és release-kapuk külön igazolandók. Az integrált PR a PR #44 readiness-jelöltre épül, nem a main része. Részletes döntés: [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). N08/N09 nem válik késznek ettől a termékdöntéstől.
+
 ### B01 — Billing foundation — PENDING
 
 Az entitlement modell elkészült, de ez nem kész fizetési rendszer.

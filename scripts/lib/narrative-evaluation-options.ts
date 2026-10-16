@@ -19,6 +19,7 @@ export const evaluationPriceEvidence = {
 };
 export type EvaluationOptions = {
   kind: 'offline' | 'paid' | 'assess';
+  creative?: true;
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -59,7 +60,7 @@ export function parseEvaluationOptions(
   ]);
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i]!;
-    if (key === '--allow-paid') {
+    if (key === '--allow-paid' || key === '--creative') {
       if (boolean.has(key)) invalid('Duplicate flag.');
       boolean.add(key);
       continue;
@@ -101,6 +102,13 @@ export function parseEvaluationOptions(
   )
     invalid(
       'The experiment must use a currently reviewed short-context model price.',
+    );
+  if (
+    boolean.has('--creative') &&
+    Object.values(models).some((m) => m !== 'gpt-6.1-sol')
+  )
+    invalid(
+      'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
     );
   const allowPaid = boolean.has('--allow-paid'),
     budgetUsd = values.has('--budget-usd')
@@ -154,6 +162,7 @@ export function parseEvaluationOptions(
     invalid('Assessment requires human ratings.');
   return {
     kind: kind as EvaluationOptions['kind'],
+    ...(boolean.has('--creative') ? { creative: true as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,
@@ -194,6 +203,7 @@ export function verifyEvaluationAuthorization(
     options.models.check,
   ];
   if (options.allowPaid) args.push('--allow-paid');
+  if (options.creative) args.push('--creative');
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));
   if (options.approvalId !== null)

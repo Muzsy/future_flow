@@ -1,3 +1,7 @@
+import {
+  personalFictionContext,
+  ownedFictionReferences,
+} from './fiction-memory';
 import { randomUUID } from 'node:crypto';
 import { lifeJobRetryAvailable } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
@@ -587,6 +591,24 @@ export class LifeRepository {
         ...(sharedEvents.length ? { sharedEvents } : {}),
       },
     };
+    const [fictionStorage] = await tx.query<{ present: boolean }>(
+      "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='aw_periods' AND column_name='narrative_artifact') AS present",
+    );
+    const [creativeHistory] = fictionStorage?.present
+      ? await tx.query<{ present: boolean }>(
+          "SELECT EXISTS(SELECT 1 FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact->>'pipelineVersion'='narrative-fiction-v2') AS present",
+          [branch.id, userId],
+        )
+      : [];
+    if (
+      creativeHistory?.present &&
+      (this.narrative.mode !== 'narrative-fiction-v2' ||
+        !this.narrative.cohortUserIds.includes(userId))
+    )
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'This fictional history requires the compatible creative continuation policy.',
+      );
     if (
       this.narrative.mode !== 'legacy' &&
       this.narrative.cohortUserIds.includes(userId)
@@ -598,14 +620,26 @@ export class LifeRepository {
         branch.revision,
         branch.accepted_decision_ids,
         privacyIds.length > 0,
-        this.narrative.mode === 'narrative-v1',
+        this.narrative.mode === 'narrative-v1' ||
+          this.narrative.mode === 'narrative-fiction-v2',
       );
       payload.narrativeContext =
-        this.narrative.mode === 'narrative-v1'
-          ? { policy: readyNarrativePolicy(), memory }
-          : { policy: contextNarrativePolicy(), memory };
+        this.narrative.mode === 'narrative-fiction-v2'
+          ? await personalFictionContext(tx, userId, branch.id, memory)
+          : this.narrative.mode === 'narrative-v1'
+            ? { policy: readyNarrativePolicy(), memory }
+            : { policy: contextNarrativePolicy(), memory };
     }
-    if (payload.narrativeContext?.policy.mode === 'narrative-v1')
+    if (payload.narrativeContext?.policy.mode === 'narrative-fiction-v2')
+      payload.fictionReferences = await ownedFictionReferences(
+        tx,
+        userId,
+        branch.id,
+      );
+    if (
+      payload.narrativeContext?.policy.mode === 'narrative-v1' ||
+      payload.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+    )
       payload.narrativeReferences = narrativeReferenceSnapshot(
         await ownedNarrativeReferences(tx, userId, branch.id),
       );

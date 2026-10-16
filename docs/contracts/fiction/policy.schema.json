@@ -1,0 +1,93 @@
+{
+  "$id": "urn:alterward:fiction:policy:2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "mode": {
+      "type": "string",
+      "const": "narrative-fiction-v2"
+    },
+    "promptVersions": {
+      "type": "object",
+      "properties": {
+        "planner": {
+          "type": "string",
+          "const": "life_fiction_plan.v1"
+        },
+        "writer": {
+          "type": "string",
+          "const": "life_fiction_author.v1"
+        },
+        "planReviewer": {
+          "type": "string",
+          "const": "life_fiction_plan_review.v1"
+        },
+        "fidelity": {
+          "type": "string",
+          "const": "life_fiction_fidelity.v1"
+        },
+        "editor": {
+          "type": "string",
+          "const": "life_fiction_editor.v1"
+        }
+      },
+      "required": [
+        "planner",
+        "writer",
+        "planReviewer",
+        "fidelity",
+        "editor"
+      ],
+      "additionalProperties": false
+    },
+    "memoryVersion": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "qualityPolicyVersion": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "maxPhysicalRequests": {
+      "type": "number",
+      "const": 9
+    },
+    "maxContentRepairs": {
+      "type": "number",
+      "const": 1
+    },
+    "targetWords": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "const": 650
+        },
+        "max": {
+          "type": "number",
+          "const": 950
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "mode",
+    "promptVersions",
+    "memoryVersion",
+    "qualityPolicyVersion",
+    "maxPhysicalRequests",
+    "maxContentRepairs",
+    "targetWords"
+  ],
+  "additionalProperties": false
+}

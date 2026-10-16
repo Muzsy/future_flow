@@ -635,6 +635,25 @@
                 "properties": {
                   "type": {
                     "type": "string",
+                    "const": "available_hours_at_most"
+                  },
+                  "hours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 168
+                  }
+                },
+                "required": [
+                  "type",
+                  "hours"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
                     "const": "employment_status_is"
                   },
                   "value": {

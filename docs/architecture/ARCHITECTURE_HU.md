@@ -246,3 +246,10 @@ Az immutable JSONB artifact új mezői opcionálisak a kompatibilis parserben, d
 
 
 N08 readiness-korrekció (Issue #43): új queue policy planner v4 és planReviewer v2 markert párosít, writer v3 változatlan. A reviewer 1.1.0 objektum kötelező summariesComplete/decisionPatternComplete/periodDevelopmentSufficient jelzései bármely false esetén blokkolnak, pontszámtól és severitytől függetlenül. A jelentés verziója a frozen policyhoz kötött provider/worker/checkpoint/commit/artifact oldalon. A régi report 1.0.0 és promptok tovább olvashatók, az új szabály régi jobra nem írható rá. Nincs DB-migráció, limitnövelés vagy production rollout; a szemantikai felismerés továbbra modellvélemény és külön paid/human mérésre vár.
+
+
+## Creative fiction v2 — szerző által véglegesített történet
+
+Az [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md) külön `narrative-fiction-v2` módot vezet be. A planner vázlatot ad, az author a végső candidate/plan/storyFacts/chapter csomagot alkotja meg, majd domain replay, végső tervellenőr, fidelity és editor ellenőrzi azt. Öt normál/max9 fizikai kérés, egy globális tartalmi javítás; a régi policyk sorrendje és plafonja változatlan. A teljes authored output, a végső review-k és a DB-current checkpoint hash/receipt lánca köti az atomikus commitot.
+
+A `storyFacts` a typed state-en kívüli, konkrét történeti részletek tartós rétege a version 2.0.0 period artifactban. Nem írja felül a valós profilt vagy a typed változásokat. Saját history-prefixből foldolódik, a teljes 12 KiB context- és 32 KiB artifact-határ megmarad. Withheld esetben nem töltjük be, forkba csak a prefix öröklődik. Inkompatibilis legacy folytatás v2 historynál blokkolt. Az explicit hard `available_hours_at_most` predikátum támogatott, az aktuális óraszámból nem keletkezik automatikus örök korlát; szabad szöveges user-határokat fidelity ellenőriz. Új provider-output soha nem önmagában authority.

@@ -138,3 +138,10 @@ A writer v4 prompt/selector és schema-bővítés visszavonva; a kísérleti for
 A két kísérlet után az összesített fejlesztési ledger **140 hívás / 2,985975 USD accounted / 2,7473466 USD usage-becslés**, nulla ismeretlen használat, nulla hozzárendeletlen foglalás. A változatlan 5 USD engedélyből **2,014025 USD** maradt. Ez nem szolgáltatói számla vagy üzemi fejezetár. Valódi háromidőszakos/fork és vak emberi kapu továbbra hiányzik.
 
 Következő prioritás a teljes alkalmazási folyamat többfejezetes folytatása, hash-bound szemantikai döntési review-val. A kontrolloknál külön vizsgálandó a hiányzó konkrét vizuális alapanyag: a teljes fejezetek rögzített képtárgyat és konkrét félreértést kaptak, a fix kontroll csak általános fókusz/vonalvezetés-különbséget. Ez lehetséges magyarázat, nem ellenőrzött oksági eredmény; új kontroll esetén régi és új adatot külön meg kell őrizni. A minőségi küszöb nem csökken.
+
+
+## Creative v2 mérési változat
+
+Az `evaluate:narrative` új `--creative` kapcsolója a teljes narrative oldalt `narrative-fiction-v2` policyval indítja; a legacy kontroll és a történeti fixed-canon kontrollok maradnak. A report `variant` mezője és a manifest kötése különbözteti meg. A vak pair régi `narrative-v1` oldaljelölése összehasonlítási oszlop, nem az alkalmazott creative policy neve; a receiptek tényleges `life_fiction_*` verziót tartalmaznak. A kánon a teljes összehasonlításban szabadon eltérhet; a fixed-canon rész külön történeti kontroll, nem az új szerző korlátozása. Minden stage `gpt-6.1-sol`; a kapcsoló más modellt elutasít.
+
+Példa offline: `pnpm evaluate:narrative --creative --mode offline --fixtures creative-portfolio --periods 2 --out .local/narrative-evaluation/creative-offline`. Paid esetben az összes eddigi dedikált fejlesztési költés és ugyanaz a ledger érvényes; új output nem új keret. Production key fallback nincs. Az új működéshez új source-bound run szükséges; régi történet futása nem alakítható át más policyra. A teljes korpusz és a vak emberi/recovery/ár/idő kapuk változatlanul szükségesek. A modell/editor PASS nem emberi minőségigazolás.

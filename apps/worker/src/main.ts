@@ -191,7 +191,11 @@ async function main() {
           guard,
           ...(v2 &&
           (job as import('@future-flow/database').LifeJob).payload
-            .narrativeContext?.policy.mode === 'narrative-v1'
+            .narrativeContext?.policy.mode &&
+          ['narrative-v1', 'narrative-fiction-v2'].includes(
+            (job as import('@future-flow/database').LifeJob).payload
+              .narrativeContext!.policy.mode,
+          )
             ? {
                 beforePhysicalRequest: () =>
                   lifeJobs.admitNarrativeRequest(

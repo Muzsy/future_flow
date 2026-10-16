@@ -57,6 +57,11 @@ export function satisfiesFactV2(
 ): boolean {
   const predicate = factPredicateV2Schema.parse(raw);
   switch (predicate.type) {
+    case 'available_hours_at_most':
+      return (
+        state.resources.availableHoursPerWeek !== null &&
+        state.resources.availableHoursPerWeek <= predicate.hours
+      );
     case 'employment_status_is':
       return state.employment.status === predicate.value;
     case 'country_is':

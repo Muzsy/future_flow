@@ -639,6 +639,16 @@ export class Repository {
             [userId, hiddenBranches],
           );
           result[table] = rows.map((row) => row.record);
+          if (
+            rows.some(
+              (row) =>
+                (row.record as { narrative_artifact?: { version?: string } })
+                  .narrative_artifact?.version === '2.0.0',
+            )
+          ) {
+            result.narrativeArtifactVersion = '2.0.0';
+            result.narrativeArtifactVersions = ['1.0.0', '2.0.0'];
+          }
         } else
           result[table] = await tx.query(
             `SELECT * FROM ${table} WHERE user_id=$1`,

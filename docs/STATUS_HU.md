@@ -54,6 +54,10 @@ Az ad6aaa7 readiness-v2 / writer-v3 forrás két új teljes első fejezete átme
 
 A két új mérés együtt 39 hívás / 0,82722 USD accounted. Az összesített 140 hívás / 2,985975 USD után 2,014025 USD maradt az eredeti 5 USD-ből; nincs ismeretlen usage vagy hozzárendeletlen foglalás. További többfejezetes és független emberi értékelés szükséges. A green CI nem irodalmi PASS, és éles bekapcsolás nem történt. Részletek: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md).
 
+## Új alkotói működés — fejlesztés alatt
+
+A tulajdonos jóváhagyta a teljes [alkotói fejlesztést](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), változatlan modellel. Az író hihető új eseményeket és fordulatokat alkothat, a felhasználói határok és döntések megtartásával; az új történeti tények tartósan mentendők. Az új mód külön `narrative-fiction-v2`, öt normál/max9 fizikai hívással és egy tartalmi javítással. Issue #45 / [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). Ez fejlesztési állapot, nem főágon lévő vagy éles kiadás; új paid/human eredmény még nincs. A régi tesztek és a kumulatív költségledger megmaradnak.
+
 ## Gazdaságosság és termékdöntés
 
 A történetminőség elsődleges. A havi 8 fejezet, opcionális 4-es kiegészítő, egyszeri 3-as próba, rollover, 0,70 USD teljes fejezetköltség és 18 USD megtartott havi bevétel **modellezési javaslat**, nem elfogadott ár vagy implementált csomag. Alacsonyabb, tartósan igazolt költségnél 12–24 fejezetes változat is vizsgálandó.

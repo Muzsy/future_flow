@@ -95,6 +95,12 @@ export type LifeStateV2 = z.infer<typeof lifeStateV2Schema>;
 export const factPredicateV2Schema = z.discriminatedUnion('type', [
   z
     .object({
+      type: z.literal('available_hours_at_most'),
+      hours: z.number().min(0).max(168),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal('employment_status_is'),
       value: employmentV2Schema.shape.status,
     })
