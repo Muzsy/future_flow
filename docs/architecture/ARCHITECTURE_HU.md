@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-16
 supersedes:
   - ../IMPLEMENTATION.md
   - ../alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md
@@ -243,3 +243,6 @@ N08 tervellenőrzési follow-up: az új selected queue `reviewedNarrativePolicy(
 Az új markerhez öt normál és legfeljebb nyolc fizikai kérés tartozik, egy globális tartalmi javítással; marker nélküli régi policy továbbra négy/hét. Strict policy-validáció köti a plusz slotot a kötelező ellenőrhöz. A checkpoint és artifact review/report hash, current plan/memory/policy binding, receipt version és writer előtti sorrend alapján validált, a complete tranzakció újraellenőrzi. Hiányzó vagy hamis passed flag nem elég. A DB fizikai admission a hiteles frozen policy limitjét használja paraméterezett, lease-guardolt atomikus növelésben. Éles quota/window/limit nem változik.
 
 Az immutable JSONB artifact új mezői opcionálisak a kompatibilis parserben, de az új policyban együtt kötelezők, a régi policyban tiltottak. Oszlop/migráció/DTO nem változik, a 32 KiB korlát marad. A recovery image-nek az új marker/report és writer v3 alakját is értenie kell.
+
+
+N08 readiness-korrekció (Issue #43): új queue policy planner v4 és planReviewer v2 markert párosít, writer v3 változatlan. A reviewer 1.1.0 objektum kötelező summariesComplete/decisionPatternComplete/periodDevelopmentSufficient jelzései bármely false esetén blokkolnak, pontszámtól és severitytől függetlenül. A jelentés verziója a frozen policyhoz kötött provider/worker/checkpoint/commit/artifact oldalon. A régi report 1.0.0 és promptok tovább olvashatók, az új szabály régi jobra nem írható rá. Nincs DB-migráció, limitnövelés vagy production rollout; a szemantikai felismerés továbbra modellvélemény és külön paid/human mérésre vár.

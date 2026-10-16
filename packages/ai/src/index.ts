@@ -35,7 +35,8 @@ import {
   type PeriodChapterV2,
   narrativeContextSchema,
   narrativePlanningResultSchema,
-  narrativePlanReviewSchema,
+  narrativePlanReviewV1Schema,
+  narrativePlanReviewV2Schema,
   type NarrativePlanReview,
   narrativeEditorialReportSchema,
   type NarrativePlanningResult,
@@ -590,11 +591,13 @@ export class OpenAiProvider implements AiProvider, NarrativeAiProvider {
         'Planning review is not enabled by this frozen policy.',
       );
     const locale = localeSchema.parse(input.input.locale);
-    return this.generate(
-      narrativePlanReviewSchema,
+    return this.generate<NarrativePlanReview>(
+      version === 'life_narrative_plan_review.v2'
+        ? narrativePlanReviewV2Schema
+        : narrativePlanReviewV1Schema,
       'life_narrative_plan_review',
       this.config.checkModel ?? this.config.eventModel,
-      `${periodRules(locale)} ${narrativePlanReviewPrompt(locale)}`,
+      `${periodRules(locale)} ${narrativePlanReviewPrompt(locale, version)}`,
       narrativePlanReviewRequest(input, result),
       locale,
       `${version}.${locale}`,

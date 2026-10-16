@@ -72,8 +72,13 @@ CLOSE PROTAGONIST: Find what the protagonist wants from this particular encounte
 Dramatize the established attempt to get a result, the resistance, and the protagonist's particular response before explaining the options. Replace inventories of competencies, completed goals and reasonable boundaries with the action that demonstrates them. Do not moralize that every cautious response is admirable. Let an established limit interrupt the attempt rather than reciting it afterward.
 Never assign authorship, fault, consent, an off-screen action or private motive when canon leaves it unknown. A request marked ready is not necessarily the protagonist's mistake. Character must come from their recorded response to that problem, not an invented admission. Do not fabricate a sharper conflict or resolve uncertainty to make the protagonist vivid.
 At the ending, make the cost of each grounded alternative felt once. Trust the scene; cut repeated interpretation, balanced option briefings and the concluding explanation of what the reader should understand.`;
-  if (versions.planner !== 'life_narrative_plan.v3') return concrete;
-  return {
+  if (
+    !['life_narrative_plan.v3', 'life_narrative_plan.v4'].includes(
+      versions.planner,
+    )
+  )
+    return concrete;
+  const reviewed = {
     ...concrete,
     planner: `${concrete.planner}
 CONTINUATION AND CONSEQUENCE CHECK: Before choosing events, compare the available recent period summaries, accepted choices and decision patterns as whole causal arcs: attempt, resistance, result, and final tradeoff. If withheld=true, use only the permitted current facts; never infer the missing arc. Changing a count, date, document name, time allowance or wording is not a new consequence. Do not copy the previous success/unfinished-item pattern or automatically end in another offer to test whether the same work is suitable.
@@ -82,12 +87,28 @@ When an exploration goal is achieved, let the ending concern what its evidence n
 Make the turning point happen in an encounter or attempt: show the protagonist doing something, a particular resistance, their response, and an observable change. An after-the-fact review explaining a lesson is not a substitute. For a verified fictional recurring actor, let their established aim produce resistance or a changed offer, rather than only questions that explain the process. Give the protagonist a particular response grounded in recorded aims and action, without inventing private biography or emotions as lasting facts.
 In periodSummary record the actual result and what changed next. In decisionPattern name the specific conflict or tradeoff, not a generic experiment-then-choice label. These are compact historical facts for the next period, never permission to invent a result or choose the ending for the reader.`,
   };
+  if (versions.planner === 'life_narrative_plan.v4')
+    reviewed.planner += `
+COMPLETE MATERIAL: Write compact, complete canonical statements, leaving room below each schema bound. Never end a summary with an unfinished clause to fit a field. Use a short complete conflict label for decisionPattern (for example live_coordination_vs_checklist_maintenance), not an 80-character sentence fragment. Keep the plan and memoryDelta labels identical. If space is tight, rewrite the whole statement more concisely; do not clip its ending.
+PERIOD DEVELOPMENT: Match the six-month span to the stated goal and time/energy constraints. A first observation followed only by a second description of the same obstacle and a decision to investigate again is insufficient. Record a consequential milestone and its observed result before the final decision. A completed attempt can fail or rule out a route; success, a new actor and dramatic conflict are not mandatory. Do not insert empty months or turn the final event into a recap of an earlier result. The final alternatives arise from what changed, remain unresolved and require no unrecorded permission or assumed response.`;
+  return reviewed;
 }
 
-export function narrativePlanReviewPrompt(locale: Locale) {
-  return `${narrativeBoundary(locale)}
+export function narrativePlanReviewPrompt(
+  locale: Locale,
+  version: NonNullable<
+    NarrativeV1Policy['promptVersions']['planReviewer']
+  > = 'life_narrative_plan_review.v1',
+) {
+  const original = `${narrativeBoundary(locale)}
 You are the story-plan editor BEFORE prose is commissioned. Evaluate the exact proposed candidate and plan against the permitted owned history and latest accepted choice. Do not write a chapter or grade nonexistent prose. Compare whole recent arcs: action, resistance, result and final dilemma. Renamed objects, a new venue, another time allocation or a different count do not alone make a new dilemma. A chosen repeated attempt is legitimate, but its consequence must create a distinct prospective problem.
 Score causality, agency, novelty and choiceStakes from 1 to 5: 1 broken/absent; 2 weak/generic; 3 coherent but materially repetitive or passive; 4 strong, specific and usable with only minor weaknesses; 5 exceptional. Agency means the protagonist pursues the stated aim through a consequential action and particular response, not merely accepting a mentor's interpretation. Do not require reckless action, invented biography or success. A specific refusal or abandoned route can advance the story.
 Check that the decisive turn can happen in a scene, that the final alternatives arise from this period's result, and that a completed exploration is not restarted. All unselected option costs remain conditional; a planned exclusion, submission, responsibility or acquired skill is not already real. Identify a missing canonical fact rather than asking the writer to invent it.
 Return version 1.0.0, four integer scores, at most six precise issues with current candidate eventIds only (or an empty array for a whole-plan issue), severity minor/major, explanation and a concrete suggestedFix. Every issue concerns the plan, not an unmade draft. verdict pass requires all four scores at least 4 and no major issue; the server computes this independently. Do not inflate scores because revision costs money, and do not choose the final option for the reader.`;
+  if (version === 'life_narrative_plan_review.v1') return original;
+  return `${original.replace('Return version 1.0.0,', 'Return version 1.1.0,')}
+READINESS CONTRACT: Return version 1.1.0 and a readiness object with three independent booleans: summariesComplete, decisionPatternComplete, periodDevelopmentSufficient. All must be true before prose may be commissioned. Scores and minor severity cannot override a false readiness flag.
+Read every event summary and memoryDelta.periodSummary for complete meaning: summariesComplete=false if a dangling clause leaves an action, result or consequence unfinished, even when surrounding text lets you guess the ending. decisionPatternComplete=false if either decisionPattern field is an unfinished conflict description. A concise label needs no terminal punctuation. A field at its length bound can be perfectly complete; length alone is not evidence of failure.
+Set periodDevelopmentSufficient=false when six months merely produce a small observation, a recheck of the same gap and another plan to investigate, without enough consequential development toward the stated goal. Judge actual action and results, not event count or positive goal status. Quiet progress or a specific failed attempt can suffice. Do not demand risk, success, another person or completed final options.
+For every false flag explain the precise missing material and a bounded repair in a major issue using current event IDs where applicable. Repair the source plan before writing; never ask the writer to invent missing facts. Rewrite long statements compactly rather than increasing schema bounds or shortening the canonical period.`;
 }

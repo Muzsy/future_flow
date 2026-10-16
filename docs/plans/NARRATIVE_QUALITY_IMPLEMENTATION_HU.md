@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 related:
   - ../DEVELOPMENT_PLAN_HU.md
   - ../architecture/ARCHITECTURE_HU.md
@@ -19,6 +19,12 @@ N08 következő feladatai: befejezetlen tervmezők forrásának vizsgálata; fix
 
 N09 kiadási előkészítés részleges: az eredeti normál Linux-operátori migráció megtörtént, de a már funded runtime új narrative forrásra frissítésének támogatása külön Issue #34. Pontos forrás/audit/CI, schema és tárolt prompt-policy kompatibilis recovery, drain/fence/reconcile és target/apply/readback marad kötelező. Új narrative production rollout nincs; a béta korábbi aktiválását nem ismételjük és a window/ledger nem nullázható.
 
+
+## N08 következő célzott implementáció (Issue #43, 2026-10-16)
+
+Az új queue-jelölt planner v4 / reviewer v2 / writer v3 változatot választ. A tervellenőr 1.1.0 readiness mezői külön vizsgálják a teljes összefoglalókat, teljes decisionPattern jelentést és az időszakhoz elegendő előrehaladást; bármely false programozottan zárja a próza útját. A frozen régi planner/reviewer/writer promptok és reportok megmaradnak; schema-verzió downgrade nem pótolja a readiness bizonyítékot. Öt normál feladat, max8 és egy javítás, budget/privacy/lease/artifact korlát változatlan.
+
+A két bukott fix-kánon eredeti anyaga változatlan negatív kontroll. Külön developed-v2 bemenet kerül a két érintett profil összehasonlításába, 5. hónapi mérföldkővel és forráshoz kötött materialVersion jelöléssel. A writer v3 egyelőre változatlan, hogy jobb bemenet és jobb írás hatása külön mérhető legyen. Részletek: [mérési runbook](../operations/NARRATIVE_EVALUATION_HU.md). Ez offline implementációs jelölt, nem új paid/human vagy production PASS; N08/N09 PARTIAL marad.
 
 ## N02 konkrét implementáció – a munkacsomag eredeti részállapota
 

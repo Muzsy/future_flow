@@ -207,7 +207,11 @@ export async function validateNarrativeCommit(
   );
   validateNarrativeEditorialReport(artifact.editorialReport, chapter, canon);
   if (context.policy.promptVersions.planReviewer)
-    validateNarrativePlanReview(artifact.planningReview, proposed);
+    validateNarrativePlanReview(
+      artifact.planningReview,
+      proposed,
+      context.policy.promptVersions.planReviewer,
+    );
   for (const reference of artifact.provenance.receiptRefs) {
     const receipt = receipts[reference.ordinal] as
       Record<string, unknown> | undefined;

@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 related:
   - ../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md
   - NARRATIVE_RELEASE_HU.md
@@ -110,3 +110,16 @@ Forrás `fd10b856`, PR #38; 87 fájl / 906 offline teszt és Verify/container CI
 A két új első fejezet tényleges cselekvést és visszaható következményt mutat; a narrátor még túlmagyarázhatja a már bemutatott eredményt. A külön tervellenőr mindkét tervben befejezetlen mezővégeket jelzett kisebb hibaként: a kapun átment review nem kifogástalansági igazolás. Ezt és a fix-kánon alapanyag elégtelen időszaki előrehaladását következő célzott vizsgálatként kell kezelni. Az eredeti rossz kimeneteket nem írjuk át sikeressé.
 
 A következő méréshez a forrás/case/ledger kötés és a még hiányzó szemantikai jóváhagyás megmarad; nincs automatikusan kitöltött emberi pontszám. A [személyes történetgazdaságossági javaslat](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) érzékenységi modell, nem új harness költségplafon, billing vagy béta budget. A 0,70 USD tervezési egységár és a 8/12/24 fejezet nem módosítja a szigorú minőségi assessmentet.
+
+
+## N08 célzott javítás: teljes terv és külön eseményanyag-kontroll (Issue #43)
+
+A két sikertelen `fd10b856` fix-kánon eset eseményanyagát is megvizsgáltuk: mindkettő két kis próbát és a 6. hónapban új esemény nélküli mérlegelést adott az írónak. A próza emellett túlmagyarázott, a fordulópont inkább beszámoló lett. Ez nem kizárólag writer-hiba, és a régi út mentett mintája sem azonos kapuval igazolt irodalmi PASS (csak az új fix-writer kap szerkesztői ellenőrzést).
+
+A `fixedNarrativeFixture(id)` változatlan `original-v1` anyaga és a régi paid eredmények megmaradnak negatív kontrollként. A `currentFixedNarrativeFixture` a bounded-career és creative-portfolio profilokon külön `developed-v2` anyagot választ: 5. hónapi befejezett kísérlet/megfigyelhető eredmény, összesen négy esemény és három jelenet. Munkahelyi esetben szimulált függőségi nyomkövetés, alkotói esetben befejezett háromképes jelölt és el nem küldött kritikakérés ad új döntési alapot. Nem feltételezünk munkahelyi jóváhagyást, külső választ vagy elfogadott végső opciót. A többi hat profil nem változott; azok minősége sem igazolt. A két írónak azonos kánon jut; `plan.materialVersion` jelöli az anyagot a riportban. Új source/out kötés szükséges, a globális pénzügyi ledger változatlan. Az új anyag egyelőre authored kontroll, nem emberi vagy modell által igazolt jó történet.
+
+Az új queue `readyNarrativePolicy` factoryja planner v4 / tervellenőr v2 / változatlan writer v3. A reviewer 1.1.0 jelentésében három kötelező readiness mező van: summariesComplete, decisionPatternComplete, periodDevelopmentSufficient. Bármely false érték blokkolja az írót magas pontok, minor issue és pass verdict mellett is. Az egyszeri meglévő tervjavítás után új review kell; ismételt hiba megáll. A v2 policyhoz v1 report nem használható sem checkpointban, sem artifactban. Régi policy/report továbbra saját verziója szerint olvasható.
+
+A félmondat felismerése továbbra modellfeladat, nem determinisztikus nyelvtani garancia. A mező hossza és a pont hiánya önmagában nem elutasítási ok. A prompt teljes, tömör állításokat és rövid konfliktuscímkét kér a meglévő 800/80 karakteres keretben; nem vágunk szöveget, nem emelünk schemahatárt. A kapu a közölt readiness jelzést kötelezően érvényesíti. A provider egyetlen konkrét object sémát kap verziónként; a történeti report union csak belső feldolgozásra/tárolásra szolgál ([OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)).
+
+Ebben a csomagban nincs writer-váltás, új fizetett mérés vagy rollout. Az offline teszt az azonos bemenetet, régi esetek fingerprintjét, verziókötést, repair/stop/commit útvonalat igazolja; nem a félmondatok modell általi felismerési arányát és nem az irodalmi javulást. Következő mérés: új kontrollon a jelenlegi writer, majd külön writer-változtatás azonos kánonon, folytatások és vak emberi értékelés. A teljes paid/human kiadási kapu változatlanul nyitott; az 5 USD összesített engedély nem nullázódik.

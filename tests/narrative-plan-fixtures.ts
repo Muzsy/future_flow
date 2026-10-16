@@ -116,6 +116,17 @@ export function narrativePlanReviewFixture() {
     verdict: 'pass' as const,
   };
 }
+export function narrativePlanReadinessFixture() {
+  return {
+    ...narrativePlanReviewFixture(),
+    version: '1.1.0' as const,
+    readiness: {
+      summariesComplete: true,
+      decisionPatternComplete: true,
+      periodDevelopmentSufficient: true,
+    },
+  };
+}
 export function narrativeEditorialFixture(): NarrativeEditorialReport {
   return {
     version: '1.0.0',
