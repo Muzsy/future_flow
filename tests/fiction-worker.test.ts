@@ -28,7 +28,11 @@ import {
   preparePublicEditorSource,
   type SnapshotSourcePeriod,
 } from '@future-flow/core';
-import { FICTION_MODE, type FictionAuthorResult } from '@future-flow/contracts';
+import {
+  fictionContextSchema,
+  FICTION_MODE,
+  type FictionAuthorResult,
+} from '@future-flow/contracts';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
@@ -225,6 +229,28 @@ describe('creative final author package through real guarded provider and databa
       ),
     ).toHaveLength(2);
   });
+  it('routes structural repetition to package repair even with a misleading perfect score and empty issues', async () => {
+    const f = await fixture(),
+      p = provider(f, (task, n, output) => {
+        if (task === 'life_narrative_editor' && n === 1)
+          return {
+            ...f.f.editor,
+            sequenceReview: {
+              ...f.f.editor.sequenceReview,
+              distinctDramaticStructure: false,
+            },
+          };
+        return output;
+      });
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(9);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_plan_review',
+      ),
+    ).toHaveLength(2);
+    expect((await saved(f.job)).status).toBe('completed');
+  });
   it('stops after a second quality failure without a partial period', async () => {
     const f = await fixture(),
       p = provider(f, (task, _n, output) =>
@@ -331,6 +357,19 @@ describe('creative final author package through real guarded provider and databa
     expect(next.payload.narrativeContext?.policy.mode).toBe(FICTION_MODE);
     if (next.payload.narrativeContext?.policy.mode !== FICTION_MODE)
       throw Error();
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext).sequenceHistory,
+    ).toMatchObject([
+      {
+        periodId: f.job.payload.periodId,
+        opening: f.f.authored.chapter.body.slice(0, 400),
+        ending: f.f.authored.chapter.body.slice(-500),
+      },
+    ]);
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext)
+        .sequenceHistory?.[0]?.scenes[0],
+    ).toContain(f.f.authored.plan.scenes[0]!.shift.slice(0, 90));
     expect(next.payload.narrativeContext.storyFacts).toEqual(
       f.f.authored.storyFacts,
     );

@@ -37,18 +37,27 @@ export const fictionPolicySchema = z
     mode: z.literal(FICTION_MODE),
     promptVersions: z
       .object({
-        planner: z.enum(['life_fiction_plan.v1', 'life_fiction_plan.v2']),
-        writer: z.enum(['life_fiction_author.v1', 'life_fiction_author.v2']),
+        planner: z.enum([
+          'life_fiction_plan.v1',
+          'life_fiction_plan.v2',
+          'life_fiction_plan.v3',
+        ]),
+        writer: z.enum([
+          'life_fiction_author.v1',
+          'life_fiction_author.v2',
+          'life_fiction_author.v3',
+        ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
           'life_fiction_plan_review.v2',
+          'life_fiction_plan_review.v3',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
-        editor: z.literal('life_fiction_editor.v1'),
+        editor: z.enum(['life_fiction_editor.v1', 'life_fiction_editor.v2']),
       })
       .strict(),
     memoryVersion: z.literal('2.0.0'),
-    qualityPolicyVersion: z.literal('2.0.0'),
+    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0']),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
     targetWords: z
@@ -57,16 +66,18 @@ export const fictionPolicySchema = z
   })
   .strict()
   .superRefine((policy, ctx) => {
-    const v2 = policy.promptVersions.writer === 'life_fiction_author.v2';
+    const v = policy.promptVersions.writer.split('.').at(-1);
     if (
-      (policy.promptVersions.planner === 'life_fiction_plan.v2') !== v2 ||
-      (policy.promptVersions.planReviewer === 'life_fiction_plan_review.v2') !==
-        v2
+      policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
+      policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
+      policy.promptVersions.editor !==
+        (v === 'v3' ? 'life_fiction_editor.v2' : 'life_fiction_editor.v1') ||
+      policy.qualityPolicyVersion !== (v === 'v3' ? '2.1.0' : '2.0.0')
     )
       ctx.addIssue({
         code: 'custom',
         message:
-          'Creative compact-label policies must freeze the matching planner/author/reviewer versions.',
+          'Creative policies must freeze matching generation, review and quality versions.',
       });
   });
 export type FictionPolicy = z.infer<typeof fictionPolicySchema>;
@@ -89,7 +100,7 @@ export function fictionV1Policy(): FictionPolicy {
   };
 }
 // Select only for newly queued jobs; v1 remains readable and byte-frozen.
-export function fictionPolicy(): FictionPolicy {
+export function fictionV2Policy(): FictionPolicy {
   const previous = fictionV1Policy();
   return {
     ...previous,
@@ -101,6 +112,52 @@ export function fictionPolicy(): FictionPolicy {
     },
   };
 }
+// New sequence-aware policy never rewrites a queued v1/v2 snapshot.
+export function fictionPolicy(): FictionPolicy {
+  const previous = fictionV2Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.1.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v3',
+      writer: 'life_fiction_author.v3',
+      planReviewer: 'life_fiction_plan_review.v3',
+      editor: 'life_fiction_editor.v2',
+    },
+  };
+}
+export const fictionSequenceEntrySchema = z
+  .object({
+    periodId: z.uuid(),
+    scenes: z.array(z.string().max(300)).max(3),
+    opening: z.string().max(400),
+    ending: z.string().max(500),
+  })
+  .strict();
+export type FictionSequenceEntry = z.infer<typeof fictionSequenceEntrySchema>;
+export const fictionSequenceEditorialSchema = narrativeEditorialReportSchema
+  .extend({
+    version: z.literal('1.1.0'),
+    sequenceReview: z
+      .object({
+        comparedPeriodIds: z.array(z.uuid()).max(3),
+        distinctDramaticStructure: z.boolean(),
+        distinctEnding: z.boolean(),
+        independentProgression: z.boolean(),
+        characterAgency: z.boolean(),
+        evidence: z.string().min(40).max(700),
+      })
+      .strict(),
+  })
+  .strict();
+export const fictionEditorialReportSchema = z.union([
+  narrativeEditorialReportSchema,
+  fictionSequenceEditorialSchema,
+]);
+export type FictionEditorialReport = z.infer<
+  typeof fictionEditorialReportSchema
+>;
 // A technical pattern is a compact semantic label, not a clipped sentence.
 export const fictionDecisionPatternSchema = z
   .string()
@@ -125,10 +182,13 @@ export const fictionContextSchema = z
     policy: fictionPolicySchema,
     memory: narrativeMemorySchema,
     storyFacts: z.array(storyFactSchema).max(24),
+    sequenceHistory: z.array(fictionSequenceEntrySchema).max(3).optional(),
   })
   .strict()
   .refine(
-    (c) => !c.memory.withheld || c.storyFacts.length === 0,
+    (c) =>
+      !c.memory.withheld ||
+      (c.storyFacts.length === 0 && !c.sequenceHistory?.length),
     'Withheld fiction context cannot contain historical facts.',
   );
 export type FictionContext = z.infer<typeof fictionContextSchema>;
@@ -188,7 +248,7 @@ export const fictionArtifactSchema = z
     validatedMemoryDelta: narrativePlanSchema.shape.memoryDelta,
     storyFacts: z.array(storyFactSchema).max(12),
     planningReview: narrativePlanReviewV2Schema,
-    editorialReport: narrativeEditorialReportSchema,
+    editorialReport: fictionEditorialReportSchema,
     bindings: z.object(bindingsShape).strict(),
     provenance: z
       .object({

@@ -1,5 +1,6 @@
 import {
   fictionPolicySchema,
+  fictionSequenceEditorialSchema,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
   fictionContextSchema,
@@ -912,6 +913,7 @@ const fictionDirectory = resolve(directory, 'fiction');
 mkdirSync(fictionDirectory, { recursive: true });
 for (const [name, schema] of Object.entries({
   policy: fictionPolicySchema,
+  sequenceEditorial: fictionSequenceEditorialSchema,
   context: fictionContextSchema,
   authorResult: fictionAuthorResultSchema,
   compactAuthor: fictionCompactAuthorSchema,

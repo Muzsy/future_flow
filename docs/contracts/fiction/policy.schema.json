@@ -18,21 +18,24 @@
           "type": "string",
           "enum": [
             "life_fiction_plan.v1",
-            "life_fiction_plan.v2"
+            "life_fiction_plan.v2",
+            "life_fiction_plan.v3"
           ]
         },
         "writer": {
           "type": "string",
           "enum": [
             "life_fiction_author.v1",
-            "life_fiction_author.v2"
+            "life_fiction_author.v2",
+            "life_fiction_author.v3"
           ]
         },
         "planReviewer": {
           "type": "string",
           "enum": [
             "life_fiction_plan_review.v1",
-            "life_fiction_plan_review.v2"
+            "life_fiction_plan_review.v2",
+            "life_fiction_plan_review.v3"
           ]
         },
         "fidelity": {
@@ -41,7 +44,10 @@
         },
         "editor": {
           "type": "string",
-          "const": "life_fiction_editor.v1"
+          "enum": [
+            "life_fiction_editor.v1",
+            "life_fiction_editor.v2"
+          ]
         }
       },
       "required": [
@@ -59,7 +65,10 @@
     },
     "qualityPolicyVersion": {
       "type": "string",
-      "const": "2.0.0"
+      "enum": [
+        "2.0.0",
+        "2.1.0"
+      ]
     },
     "maxPhysicalRequests": {
       "type": "number",

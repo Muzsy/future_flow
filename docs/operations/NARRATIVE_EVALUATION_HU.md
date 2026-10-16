@@ -156,3 +156,10 @@ A paid v1 első próbája két végső tervellenőrzésnél csonka, 80 karaktere
 
 
 A 32 KiB artifact túllépése strukturális csomagtömörítést igényelhet akkor is, ha a próza már átment. Ilyenkor az egyetlen javítás `author_package`, nem változatlan kánonhoz kötött `prose_only`; a domain és mindhárom végső ellenőr újra fut, max9-en belül. Az összes egyedi mezőben érvényes, de együtt túl nagy artifact regressziója ezt valós worker/DB útvonalon ellenőrzi. A byte-limitet nem növeltük és nem csonkítunk csendben.
+
+
+## 2026-10-16-i explicit keretbővítés és szekvenciális próba
+
+A tulajdonos a cumulative development maximumot 5-ről **10 USD-ra** engedélyezte. Az értékelő CLI ennyit fogad el; az ExperimentAiBudget alapértelmezett ceilingje továbbra 5, a narratív értékelő külön explicit 10-es maximumot ad át. Más smoke és production guard nem változik. Új approval ID: `user-2026-10-16-fiction-quality-10usd`. Ugyanaz a canonical ledger/bindings és dedicated development projekt marad; 190 korábbi hívás / 4,81984 USD sem törölhető. Régi source-bound run nem írható át új source identityra.
+
+A qualityPolicy 2.1.0 kalibrációjában először a korábbi ismétlődő fejezetet kell a saját korábbi jeleneteivel és lezárásaival újraértékelni. Az új pontszám önmagában nem bizonyít javulást: az ismétlődő negatív kontrollt el kell utasítania. Ezután új többprofilos creative-only folytatások és fork, naplózott szintetikus választásokkal; nem vak emberi benchmark. A tényleges szövegeket külön is el kell olvasni. Ismételt kapuhiba után a költést meg kell állítani és az okot elemezni; nem szabad a küszöböt lejjebb vinni.

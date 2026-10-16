@@ -62,3 +62,6 @@ Issue #43 kompatibilitási kiegészítés: ha a kiadott forrás már readiness p
 A `narrative-fiction-v2` új mode/policy öt normál/max9 fizikai hívást, author utáni végső tervellenőrzést, artifact 2.0.0-t, StoryFact-réteget és új receipt/checkpoint kötést használ. A régi v1 parser nem elegendő. Új JSONB-oszlop nem szükséges a 038-on túl, de a target/recovery image-nek az új artifact, context és policy értelmezését, valamint az opcionálisan explicit user-constraintként szereplő `available_hours_at_most` predikátumot is támogatnia kell.
 
 Kikapcsoláskor új creative job nem indul, v2 history legacy folytatása nem engedett; olvasás/export a kompatibilis image-dzsel megmarad. A jelenlegi budget/window/cohort alapértékek változatlanok. Feltétel továbbra a teljes technikai, paid/human és operátori proof; e dokumentum nem rollout-engedély és nem a nyitott Linux-upgrade feladat helyettesítése.
+
+
+A qualityPolicy 2.1.0 kiadásához a target és recovery image-nek a creative planner/author/reviewer v3, editor v2 és report 1.1.0 sequenceReview, valamint az opcionális sequenceHistory context értelmezését is támogatnia kell. A v1/v2 promptok és reportok mellett értendő; a korábbi forrás proofja nem igazolja ezt automatikusan. A további minőségmérés keretengedélye nem éles rollout-engedély.

@@ -131,13 +131,13 @@ export function parseEvaluationOptions(
       budgetUsd === null ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
-      budgetUsd > 5 ||
+      budgetUsd > 10 ||
       !approvalId ||
       approvalId.length > 160 ||
       !values.has('--out')
     )
       invalid(
-        'Paid runs require explicit approval, output directory and a positive budget at most five USD.',
+        'Paid runs require explicit approval, output directory and a positive budget at most ten USD.',
       );
     if (
       !/^sk-(proj-|svcacct-)[A-Za-z0-9_-]{20,}$/.test(

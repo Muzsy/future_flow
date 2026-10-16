@@ -57,8 +57,16 @@ export class ExperimentAiBudget implements AiRequestGuard {
     private readonly budgetUsd: number,
     private readonly caseName: string,
     private readonly modelPrices: ExperimentTokenPrices = prices,
+    approvedMaximumUsd = 5,
   ) {
-    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0 || budgetUsd > 5)
+    if (
+      !Number.isFinite(approvedMaximumUsd) ||
+      approvedMaximumUsd <= 0 ||
+      approvedMaximumUsd > 10 ||
+      !Number.isFinite(budgetUsd) ||
+      budgetUsd <= 0 ||
+      budgetUsd > approvedMaximumUsd
+    )
       throw new DomainError(
         'SMOKE_BUDGET_CONFIG',
         'Invalid experimental budget.',

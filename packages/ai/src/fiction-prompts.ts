@@ -17,7 +17,7 @@ export function fictionPrompts(
   if (versions.writer === 'life_fiction_author.v1') return original;
   const compact =
     '\nTECHNICAL METADATA: decisionPattern in BOTH plan and memoryDelta is an identical lowercase snake_case semantic label, 3–80 characters and 2–10 words, for example accept_coordination_vs_keep_current_remit. It is NOT a prose sentence. Write a short complete label with room below 80; never clip a sentence or copy a long editorial suggestion into this field. Summaries remain complete prose within their own bounds.';
-  return {
+  const compactPrompts = {
     ...original,
     planner: original.planner + compact,
     author: original.author + compact,
@@ -25,5 +25,20 @@ export function fictionPrompts(
       original.review +
       compact +
       ' Any suggested repair must fit the actual field bound; propose a compact label rather than a sentence for decisionPattern.',
+  };
+  if (versions.writer !== 'life_fiction_author.v3') return compactPrompts;
+  const sequence = `\nSEQUENCE CRAFT: sequenceHistory contains owned earlier scene actions/obstacles/shifts plus openings and endings. Treat it as evidence, not a template to imitate. Compare WHO drives the turning point, HOW the attempt changes the situation, and WHAT the reader must decide. Repeating a person, object or setting is welcome continuity; repeating the same dramatic resolution with renamed tasks is not. A larger assignment or a new calendar date alone is not a new story engine. Do not routinely solve every conflict through the same mentor or manager. Let other people pursue independent wants and let the protagonist's actions have visible, earned consequences; support and escalation may still be realistic. Vary the lived encounter and ending organically, without forced spectacle or arbitrary setting changes. Do not repeatedly close with a pen, blank reply box, two papers or a balanced list of permitted arrangements. End on a specific changed situation that makes the actual choice felt. Practical limits belong in the action; don't turn them into repeated reassurance. Preserve accepted choices and hard boundaries. Quiet progress can be excellent if the dramatic mechanism changes.`;
+  return {
+    ...compactPrompts,
+    planner: compactPrompts.planner + sequence,
+    author: compactPrompts.author + sequence,
+    review:
+      compactPrompts.review +
+      sequence +
+      '\nA repeated conflict/resolution/choice structure is a major novelty issue even if duties or dates change; decline rather than rewarding formal state progression alone.',
+    editor:
+      original.editor +
+      sequence +
+      `\nUse report version 1.1.0 with sequenceReview. Compare every supplied sequenceHistory period, reporting exactly their IDs in comparedPeriodIds. For the first chapter that list is empty. Set distinctDramaticStructure=false when renamed logistics repeat a previous obstacle/resolution/choice mechanism without a meaningful change in agency or outcome; independentProgression=false when only scale/date changes; characterAgency=false when supporting figures merely administer the protagonist's next task. distinctEnding checks the closing dramatic device, not just wording. Explain specific current and prior evidence. An empty issue list or high scores cannot override a false sequence flag. All EIGHT scores must be >=4 and verdict=pass, with all four sequence flags true, no major/canon issue. A 5 in prose cannot compensate for 3 in novelty or character. Recurring motifs alone are not a defect: identify why the changed causal role earns recurrence. Repair structural repetition through author_package/canon, not superficial word changes. Do not inflate grades to make the pipeline succeed.`,
   };
 }

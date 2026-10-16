@@ -188,3 +188,6 @@ A tulajdonos 2026-10-16-i döntése szerint az író a megadott helyzetből új 
 Új fikció nem önmagában hiba. A történet fiktív kánonja elkülönül a valós profiltól, és következetesen továbbél ugyanabban az ágban. A végső nyitott döntés a felhasználónál marad; nem kell minden hétköznapi történéshez külön engedély. A modell változatlan. A minőséget automatikus ellenőrzés és valódi emberi olvasás együtt igazolhatja.
 
 Implementáció: [alkotói fejlesztési terv](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md). A kívánt működés elfogadása nem jelenti automatikus production aktiválását.
+
+
+Az új creative qualityPolicy 2.1.0 minden irodalmi dimenzióban legalább 4 pontot követel; más dimenzió nem kompenzálhat gyenge újdonságot vagy karakterábrázolást. A fejezetek közötti szerkezeti/lezárási változatosság, tényleges előrelépés és szereplői önállóság külön kapu. Visszatérő motívum megengedett, azonos konfliktus–feloldás–döntés új címkével nem. A technikai kapu nem helyettesíti a valódi olvasói élmény ellenőrzését.
