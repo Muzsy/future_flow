@@ -410,7 +410,15 @@ export async function processFictionLifeJob(
         editorialPassed: true,
       });
     } catch (error) {
-      await repair(error, authored, proseOnly);
+      await repair(
+        error,
+        authored,
+        proseOnly &&
+          !(
+            error instanceof DomainError &&
+            error.code === 'NARRATIVE_PLAN_INVALID'
+          ),
+      );
       continue;
     }
     const ready = validatedFictionCheckpoint(cp, input);

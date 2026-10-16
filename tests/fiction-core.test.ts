@@ -337,4 +337,23 @@ describe('creative fiction contracts, final authority and bounded continuity', (
       }).success,
     ).toBe(false);
   });
+  it('keeps new thread and story fact identities distinct', () => {
+    const f = fictionFixture(),
+      fact = f.authored.storyFacts[0]!;
+    f.authored.plan.memoryDelta.threadUpdates = [
+      {
+        id: fact.id,
+        originPeriodId: f.authored.candidate.periodId,
+        originEventId: fact.introducedByEventId,
+        kind: 'goal',
+        summary:
+          'A concrete open question from the new encounter remains unresolved.',
+        status: 'open',
+        dueByPeriodOffset: 2,
+        lastTouchedPeriodId: f.authored.candidate.periodId,
+        eventRefs: [fact.introducedByEventId],
+      },
+    ];
+    expect(() => validateFictionAuthor(f.input, f.authored)).toThrow();
+  });
 });

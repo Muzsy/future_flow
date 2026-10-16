@@ -32,7 +32,7 @@ import { FICTION_MODE, type FictionAuthorResult } from '@future-flow/contracts';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
-import { fictionFixture } from './fiction-fixtures';
+import { fictionFixture, bulkyFictionFixture } from './fiction-fixtures';
 
 let engine: PGlite, db: Database, jobs: LifeJobRepository, repo: Repository;
 function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
@@ -496,5 +496,19 @@ describe('creative final author package through real guarded provider and databa
       code: 'NARRATIVE_CONTEXT_INVALID',
     });
     expect(p.parse).not.toHaveBeenCalled();
+  });
+  it('compacts an oversized artifact with a package repair, not an impossible prose-only repair', async () => {
+    const f = await fixture(),
+      bulky = bulkyFictionFixture(f.f);
+    const p = provider(f, (task, n, output) => {
+      if (n !== 1) return output;
+      if (task === 'life_narrative_chapter') return bulky.authored;
+      if (task === 'life_narrative_plan_review') return bulky.review;
+      if (task === 'life_narrative_editor') return bulky.editor;
+      return output;
+    });
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(9);
+    expect((await saved(f.job)).status).toBe('completed');
   });
 });

@@ -207,6 +207,7 @@ export function validateFictionAuthor(
         : []),
     ]),
     ...authored.plan.scenes.map((s) => s.sceneId),
+    ...authored.plan.memoryDelta.threadUpdates.map((t) => t.id),
     ...authored.candidate.events.flatMap((e) =>
       e.changes.flatMap((c) =>
         'value' in c &&

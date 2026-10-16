@@ -4,6 +4,7 @@ import {
   fictionContextSchema,
   type NarrativePeriodInput,
   type FictionAuthorResult,
+  type NarrativePlanReview,
 } from '@future-flow/contracts';
 import {
   narrativeReferenceSnapshot,
@@ -68,7 +69,10 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     input,
     draft: f.result,
     authored,
-    review: narrativePlanReadinessFixture(),
+    review: narrativePlanReadinessFixture() as Extract<
+      NarrativePlanReview,
+      { version: '1.1.0' }
+    >,
     fidelity: { valid: true, issues: [] },
     editor: narrativeEditorialFixture(),
   };
@@ -125,4 +129,60 @@ export function fictionProof(f = fictionFixture(), repair?: FictionRepair) {
       f.editor,
     ),
   ];
+}
+
+// All individual fields fit their contracts; combined persisted metadata is
+// deliberately oversized to exercise package compaction rather than prose repair.
+export function bulkyFictionFixture(f = fictionFixture()) {
+  const b = structuredClone(f),
+    p = b.authored.plan,
+    e = b.authored.candidate.events[0]!.id;
+  p.premise = 'A'.repeat(400);
+  p.centralTension = 'B'.repeat(400);
+  for (const scene of p.scenes) {
+    scene.visibleAction = 'A'.repeat(300);
+    scene.obstacle = 'B'.repeat(300);
+    scene.shift = 'C'.repeat(300);
+    scene.locationRef = 'L'.repeat(200);
+    scene.dialogueIntent = 'D'.repeat(200);
+  }
+  for (const stake of p.decisionStakes) {
+    stake.cost = 'C'.repeat(200);
+    stake.possibleGain = 'G'.repeat(200);
+    stake.uncertainty = 'U'.repeat(200);
+  }
+  p.memoryDelta.periodSummary = 'S'.repeat(500);
+  p.memoryDelta.threadUpdates = Array.from({ length: 6 }, () => ({
+    id: randomUUID(),
+    originPeriodId: b.authored.candidate.periodId,
+    originEventId: e,
+    kind: 'goal' as const,
+    summary: 'T'.repeat(300),
+    status: 'open' as const,
+    dueByPeriodOffset: 2 as const,
+    lastTouchedPeriodId: b.authored.candidate.periodId,
+    eventRefs: [e],
+  }));
+  b.authored.storyFacts = Array.from({ length: 12 }, () => ({
+    ...b.authored.storyFacts[0]!,
+    id: randomUUID(),
+    assertion: 'F'.repeat(300),
+  }));
+  b.review.issues = Array.from({ length: 6 }, () => ({
+    dimension: 'causality' as const,
+    severity: 'minor' as const,
+    eventIds: [e],
+    explanation: 'E'.repeat(350),
+    suggestedFix: 'R'.repeat(350),
+  }));
+  b.editor.issues = Array.from({ length: 8 }, () => ({
+    dimension: 'prose' as const,
+    severity: 'minor' as const,
+    repairScope: 'prose' as const,
+    eventIds: [e],
+    paragraphIndex: null,
+    explanation: 'E'.repeat(350),
+    suggestedFix: 'R'.repeat(350),
+  }));
+  return b;
 }
