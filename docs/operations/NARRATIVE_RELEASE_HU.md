@@ -55,6 +55,3 @@ Az új queue max8 policyja csak a kötelező tervellenőri markerrel és az anna
 
 
 Issue #43 kompatibilitási kiegészítés: ha a kiadott forrás már readiness policyt tartalmaz, a target és recovery image-nek a planner v4 / reviewer v2 markert és az 1.1.0 readiness-reportot is ténylegesen értelmeznie kell, a régi policyk mellett. A csak v1–v3/v1 review-t ismerő korábbi image nem elegendő. A PR #42 más forráshoz kötött fixture/CI bizonyítéka nem igazolja automatikusan ezt az új kombinációt: az egyesített pontos forráson új kompatibilitási fixture és review kell. A meglévő ablak/ledger és minden paid/human/operátori kiadási kapu változatlan.
-
-
-A sceneNarrativePolicyval létrejövő jobok writer v4 markert fagyasztanak; a target/recovery kompatibilitási próba ezt is vizsgálja a korábbi writer v1–v3 mellett. A 2026-10-16-i ad6aaa7 paid mérés két fix-kánon hibát talált, ezért nem nyitott minőségi release kaput; a writer v4 jelölt és a hozzá tartozó offline PASS sem helyettesíti a paid/human bizonyítékot.

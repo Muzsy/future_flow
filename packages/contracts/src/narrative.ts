@@ -186,7 +186,6 @@ export const narrativeV1PolicySchema = z
           'life_narrative_chapter.v1',
           'life_narrative_chapter.v2',
           'life_narrative_chapter.v3',
-          'life_narrative_chapter.v4',
         ]),
         planReviewer: z
           .enum([
@@ -258,7 +257,7 @@ export function reviewedNarrativePolicy(): NarrativeV1Policy {
     maxPhysicalRequests: 8,
   };
 }
-// Readiness-v2 baseline; this factory stays frozen for queued writer-v3 jobs.
+// Selected only for newly queued narrative jobs; prior factories stay frozen.
 export function readyNarrativePolicy(): NarrativeV1Policy {
   const previous = reviewedNarrativePolicy();
   return {
@@ -267,17 +266,6 @@ export function readyNarrativePolicy(): NarrativeV1Policy {
       ...previous.promptVersions,
       planner: 'life_narrative_plan.v4',
       planReviewer: 'life_narrative_plan_review.v2',
-    },
-  };
-}
-// Scene-execution candidate; readiness-v2/writer-v3 remains a frozen baseline.
-export function sceneNarrativePolicy(): NarrativeV1Policy {
-  const previous = readyNarrativePolicy();
-  return {
-    ...previous,
-    promptVersions: {
-      ...previous.promptVersions,
-      writer: 'life_narrative_chapter.v4',
     },
   };
 }

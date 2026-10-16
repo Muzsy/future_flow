@@ -44,15 +44,15 @@ Az Issue #43 célzott fejlesztési jelöltje külön megőrzi a két gyenge fix-
 
 A 2026-10-15-i kétprofilos, egyidőszakos valódi diagnózis két új első fejezete átment, öt-öt hívással, javítás nélkül; teljes ilyen költségük 0,2674625 USD, egy modellkapun átment fejezetre **0,13373125 USD**. Mindkét külön fix-kánon íróteszt editor-elutasítás lett, momentum 2/5. A tervellenőr befejezetlen mezővégeket is jelzett. Ezek nyitott minőségi problémák; két első fejezet nem igazol többidőszakos vagy független emberi minőséget.
 
-Az összes külön fejlesztési mérés **127 hívás / 2,72376 USD konzervatív elszámolás**, 2,5238247 USD usage-alapú árbecslés, minden használat ismert és nulla hozzárendeletlen foglalás. Az eredeti összesített 5 USD keretből 2,27624 USD maradt. Ez a fejlesztési projekt ledgere, nem a bétaablak költése; új változat vagy outputkönyvtár nem nullázza.
+Az összes külön fejlesztési mérés **140 hívás / 2,985975 USD konzervatív elszámolás**, 2,7473466 USD usage-alapú árbecslés, minden használat ismert és nulla hozzárendeletlen foglalás. Az eredeti összesített 5 USD keretből 2,014025 USD maradt. Ez a fejlesztési projekt ledgere, nem a bétaablak költése; új változat vagy outputkönyvtár nem nullázza.
 
 Részletes authority: [narratív implementáció](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md), [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md), [Issue #24](https://github.com/Muzsy/future_flow/issues/24).
 
-### 2026-10-16-i részdiagnózis és writer v4 jelölt
+### 2026-10-16-i tényleges részdiagnózis
 
-Az `ad6aaa7` PR #44 forrás valódi kétprofilos mérése 26 hívás / 0,565005 USD accounted volt. A két új teljes első fejezet átment, összesen 0,28037 USD (átlag 0,140185 USD); a megvizsgált új összefoglalók teljesek. A két fix-kánon teszt továbbra elutasított: munkahelyi momentum 3 / novelty 3 (kánon), alkotói momentum 4 / sceneCraft 3 (próza). Az első javítás ezért nem teljes minőségi megoldás. A ledger ekkor 127 hívás / 2,72376 USD accounted, 2,5238247 USD usage-becslés; nulla ismeretlen használat és hozzárendeletlen foglalás. A változatlan 5 USD keretből 2,27624 USD maradt.
+Az ad6aaa7 readiness-v2 / writer-v3 forrás két új teljes első fejezete átment, a két fix-kánon kontroll nem. A munkahelyi hiba ismétlődő döntési helyzet (momentum 3 / novelty 3), az alkotói hiba jelenetezés (momentum 4 / sceneCraft 3). A külön aef6315 writer-v4 kísérlet azonos alkotói kontrollon ugyanazokat a gyenge pontokat és pontokat adta; a célzott javulás nem igazolt. Ezért az új író alapértelmezetté tétele és kódja visszavonva, a forrás és a negatív mérés megőrizve. A jelenlegi jelölt továbbra writer v3 / planner v4 / reviewer v2.
 
-Következő jelölt: writer v4, változatlan planner v4 / reviewer v2 és változatlan kontrollkánon mellett. A fordulópont megélt jelenetét és az ismételt értelmezés elhagyását célozza; még külön valódi mérésre vár. A régi writer v3 factory és prompt megmarad. N08/N09 nyitott; nincs éles bekapcsolás vagy emberi PASS. Részletek a [mérési runbookban](operations/NARRATIVE_EVALUATION_HU.md).
+A két új mérés együtt 39 hívás / 0,82722 USD accounted. Az összesített 140 hívás / 2,985975 USD után 2,014025 USD maradt az eredeti 5 USD-ből; nincs ismeretlen usage vagy hozzárendeletlen foglalás. További többfejezetes és független emberi értékelés szükséges. A green CI nem irodalmi PASS, és éles bekapcsolás nem történt. Részletek: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md).
 
 ## Gazdaságosság és termékdöntés
 

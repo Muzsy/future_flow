@@ -110,9 +110,6 @@ async function finish(mutate?: (f: Fixture, job: LifeJob) => void) {
   );
   const f = narrativePlanFixture(job.payload);
   mutate?.(f, job);
-  expect(job.payload.narrativeContext?.policy.promptVersions.writer).toBe(
-    'life_narrative_chapter.v4',
-  );
   recanon(f);
   narrativeCanon(job.payload, f.result);
   const chapter = longNarrativeChapterFixture(f);

@@ -350,7 +350,7 @@ async function fixedCanonComparison(
         ...narrativeV1Policy(),
         promptVersions: {
           ...narrativeV1Policy().promptVersions,
-          writer: 'life_narrative_chapter.v4',
+          writer: 'life_narrative_chapter.v3',
         },
       },
       memory: fixture.memory,
