@@ -1834,3 +1834,7 @@ A visszaolvasott globális ledger **255 hívás / 8.204535 USD accounted**, 7.59
 ## Owner extension for work package 045 — 2026-10-17
 
 The owner explicitly approved up to **USD 7 total additional development consumption**, replacing the initially approved new USD 5 for this work. The unchanged opening canonical ledger is 255 calls / USD 8.204535 accounted, so the new cumulative ceiling is USD 15.204535. The prior unused allowance is not separately added. This is measured development expenditure only; no production/merge permission follows. Pre-run purpose/cost notice, post-run consumption and remaining allowance, conservative unknown-usage accounting and early low-budget warning remain required. PR #48 was separately authorized and merged as 058555005e7e85905cf53081bfa18226780cf9ac before 045 implementation.
+
+### 045 tényleges lezárás — 2026-10-17
+
+Technikai implementáció és CI sikeres, valódi kétprofilos korpusz hiányos: 8 elfogadott / 1 elutasított / 5 nem generált cél. Alkotói 6+fork kész; munkahelyi második fejezet binary-option-briefing lezárás miatt kizárva, a megelőző planner javítás után további repair nem engedett. Részletes bizonyíték a 045 tervben; nem quality release vagy emberi PASS. Új fejlesztési fogyasztás 50 hívás / 2,527495 USD accounted, maradék 4,472505 USD az engedélyezett új hétből. Eredeti globális ledger megőrizve: 305 / 10,732030 USD. Nincs további ütemezett fizetett hívás; új teljes mérés előtt új költségbecslés szükséges.

@@ -642,3 +642,5 @@ F05 és F06 továbbra PARTIAL: offline készültségből nem lesz emberi vagy é
 ## F05 follow-up 045 — v4.1/v5 sequence quality
 
 [045](045_fiction_v4_1_real_quality_iteration.md) starts from merged PR #48 (`058555005e7e85905cf53081bfa18226780cf9ac`). It separately versions a v5 candidate against repeated external-opportunity progression and tidy self-correction, preserves measured v1–v4 and adds synthetic-local repair attempt provenance. The target is two profiles × six main periods plus one alternative third per profile (14 final texts), with separate offline, real provider and human evidence. Five normal/max9 physical requests, one repair, unchanged model/context/privacy/production boundaries. Narrator personas and model experiments are out of scope. Status and real evidence belong in STATUS/evaluation runbook; no literary PASS before human reading.
+
+045 implementáció technikailag ellenőrzött, PR #49 draft / CI 326 PASS; a valódi mérés hiányos (8/14 elfogadott cél, egy elutasított előzmény blokkolja a maradék ötöt). F05/F06 és emberi/minőségi release továbbra PARTIAL; részletek a 045 tervben és a STATUS-ban.

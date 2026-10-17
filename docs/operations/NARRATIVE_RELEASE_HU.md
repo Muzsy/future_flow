@@ -78,3 +78,5 @@ A v4 későbbi kiadásához a target és recovery image-nek a befagyasztott v1�
 ## V5 candidate boundary — work package 045
 
 QualityPolicy 2.3.0 selects planner/author/reviewer v5 and editor v4 while retaining report 1.2.0 and signature 1.0.0. Target/recovery compatibility must include all frozen v1–v4 plus v5 tuples before any later separately authorized rollout. Synthetic local rejected-attempt traces are development evidence only, not production retention or reader-visible content. A 14-text real corpus and its model gates still do not imply independent human quality acceptance or production release. Current cohort, funded window and production ledger remain unchanged.
+
+045 tényleges minőségi kimenet: nyolc elfogadott szöveg, egy kizárt munkahelyi második fejezet, öt nem generált cél. A teljes kétprofilos kapu nincs teljesítve. A szigorú retorikai kapu és az egy javítás limit megmarad; a részletes negatív bizonyíték a 045 tervben. Nincs quality release vagy operátori rollout-engedély.

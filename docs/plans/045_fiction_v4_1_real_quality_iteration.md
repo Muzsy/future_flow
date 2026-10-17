@@ -8,7 +8,7 @@ required_predecessor_head_at_creation: 30471490b7a990d916b6cc983209a54e6971b299
 measured_v4_source: 3809c560e4990c8fcc149a4d1af4e38a47c74c1c
 issue: 45
 workstream: F05/F06 quality follow-up
-state: implementation-in-progress
+state: technical-pass-real-corpus-incomplete
 actual_implementation_base: 058555005e7e85905cf53081bfa18226780cf9ac
 paid_provider_calls_authorized_for_quality_validation: true
 budget_cap_change_authorized: true
@@ -940,17 +940,17 @@ Human review remains separate from model-editor scores. Do not invent human grad
 
 ### Real AI evidence
 
-- [ ] real candidate generated after fix.
-- [ ] clean source commit/sourceHash bound.
-- [ ] gpt-6.1-sol used.
-- [ ] dedicated development project used.
-- [ ] every paid call accounted.
-- [ ] no ledger reset.
+- [x] real candidate generated after fix.
+- [x] clean source commit/sourceHash bound.
+- [x] gpt-6.1-sol used.
+- [x] dedicated development project used.
+- [x] every paid call accounted.
+- [x] no ledger reset.
 - [ ] both target profiles have six main chapters.
 - [ ] both profiles have a fork chapter.
-- [ ] repaired samples have first-vs-final diagnostic evidence.
-- [ ] cost/latency reported.
-- [ ] human-readable sequence bundles generated.
+- [x] repaired samples have first-vs-final diagnostic evidence.
+- [x] cost/latency reported.
+- [x] human-readable sequence bundles generated.
 
 ### Literary result
 
@@ -1141,3 +1141,56 @@ A change is not a demonstrated literary improvement merely because mocks, schema
 
 - PR #49 CI run 325: container PASS; verify 1029/1030 PASS, unrelated pre-existing Shared privacy assertion falsely matched private numeric sentinel `4765` inside a random public member UUID. The assertion now rejects private finance keys and complete numeric/string values while avoiding UUID substrings; targeted Shared suite 15/15 PASS. This test-only follow-up does not change the running paid candidate/source binding.
 - Fresh standalone clean-source offline evidence at `34f5586b6afaabf73f8a9a4694636e9bea84f097` / sourceHash `990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc`: 14 samples (12 main + two fork), 70 mock transports, 14 trace files, all trace permissions 0600, no failures. Diagnostic-only `complete=false`, `qualityRelease=false` is intentional.
+
+## Actual real-provider result — 2026-10-17
+
+**TECHNICAL PASS / REAL CORPUS INCOMPLETE / QUALITY RELEASE BLOCKED / HUMAN AUDIT PENDING.** PR #49 remains a draft; no self-merge or production action. Paid source is `34f5586b6afaabf73f8a9a4694636e9bea84f097`, sourceHash `990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc`. The later `f6dee9260be589e89ed5daa1a56f5b88907b80d6` changes only the unrelated CI assertion and documentation; its complete CI run 326 is SUCCESS. Application code and prompts used in the paid run were not changed.
+
+The authorized full target was 14. Actual output is **8 accepted**, one rejected attempted chapter and five ungenerated descendants. Creative portfolio: six main chapters and one fork PASS. Career transition: first chapter PASS, second chapter `NARRATIVE_QUALITY_FAILED`; periods 3–6 and its fork could not be generated from an unaccepted predecessor. The CLI produced a diagnostic report (exit 0), not a quality PASS: `complete=false`, `qualityRelease=false`, no human grades. No retry, replacement corpus or new funding request was used to erase this negative result. The two-profile six-period acceptance checkboxes intentionally remain unchecked.
+
+### Every target
+
+Period indices in the target table are zero-based (0 is the first chapter). Final PASS means model gates only; all seven sequence flags true, all eight editorial scores >=4. Final REJECT means `distinctRhetoricalShape=false` and verdict `revise` despite all eight scores being 4. Full ordered scores, issues, feedback, parsed first/final outputs and per-call latency remain in the original private trace/report.
+
+| Profile / target | Title / status | Calls | Repair and first failing gate | Final editor | Accounted USD | Usage estimate USD | Elapsed s |
+|---|---|---:|---|---|---:|---:|---:|
+| creative-portfolio / 0 | The Chair Left Out — PASS | 6 | planner repair: nonexistent goal; first/final plans retained | 5/4/4/5/4/4/4/4; all true | 0.2532825 | 0.2423559 | 328.046 |
+| creative-portfolio / 1 | The Light on Paper — PASS | 8 | prose_only: first editor revise, prose4, distinctRhetoricalShape=false; two final sentences removed | 4/4/4/4/4/4/4/5; all true | 0.3823500 | 0.3323580 | 345.934 |
+| creative-portfolio / 2 | The Cleared Table — PASS | 5 | none | 4/4/4/5/4/4/4/4; all true | 0.2672800 | 0.2341885 | 279.073 |
+| creative-portfolio / 3 | The Other Side of the Table — PASS | 5 | none | 4/4/5/5/4/4/4/4; all true | 0.2877850 | 0.2546935 | 300.419 |
+| creative-portfolio / 4 | The Last Return — PASS | 5 | none | 4/4/4/4/4/4/4/5; all true | 0.2731450 | 0.2400535 | 276.374 |
+| creative-portfolio / 5 | While Everyone Unpacks — PASS | 5 | none | 4/4/5/5/4/4/4/4; all true | 0.2750450 | 0.2419535 | 292.860 |
+| fork / creative-portfolio / 2 | The Unopened Folder — PASS | 5 | none | 4/4/4/5/4/4/4/4; all true | 0.2721550 | 0.2390635 | 302.155 |
+| career-transition / 0 | The Second Confirmation — PASS | 5 | none | 4/4/4/4/4/4/4/4; all true | 0.2060475 | 0.1729560 | 287.358 |
+| career-transition / 1 | The Order of the Checks — REJECT | 6 | planner repair: Unknown scene actor; later prose failure, repair already spent | 4/4/4/4/4/4/4/4; rhetorical=false | 0.3104050 | 0.2663944 | 388.315 physical-call sum; job elapsed not saved |
+| career-transition / 2 | NOT GENERATED: unaccepted predecessor | 0 | — | — | 0 | 0 | — |
+| career-transition / 3 | NOT GENERATED: unaccepted predecessor | 0 | — | — | 0 | 0 | — |
+| career-transition / 4 | NOT GENERATED: unaccepted predecessor | 0 | — | — | 0 | 0 | — |
+| career-transition / 5 | NOT GENERATED: unaccepted predecessor | 0 | — | — | 0 | 0 | — |
+| fork / career-transition / 2 | NOT GENERATED: unaccepted predecessor | 0 | — | — | 0 | 0 | — |
+
+Score order: causality / momentum / sceneCraft / character / personalization / choiceStakes / novelty / prose. The failed case's latency is explicitly the sum of its recorded transport latencies, not an invented end-to-end job measurement.
+
+### Accounting and repair provenance
+
+- 50 physical calls, all completed with known token usage; 44 belong to accepted texts, six to the rejected text. Nine diagnostic trace files contain all 50 ordered attempts, including rejected planners and the pre-repair prose.
+- New accounted **USD 2.527495**; usage-price estimate **USD 2.2240168**. Opening ledger 255 calls / USD 8.204535; closing ledger **305 calls / USD 10.732030**, global usage estimate USD 9.8234197. No reset, unknown usage or unassigned reservation. Cumulative authorization USD 15.204535; **USD 4.472505 of the additional seven-dollar allowance remains**. These are usage/accounting estimates, not an invoice or provider balance.
+- Entire run cost per accepted text, including rejected work and fork: **USD 0.315936875**. Main-line-only yield is 7 accepted / 8 attempted, USD 2.25534 / 7 = USD 0.32219143 per gate-accepted main chapter, including the USD 0.310405 rejected attempt; fork is separately costed. Do not confuse either denominator with human-approved quality or a complete benchmark.
+- Accepted generation latency p50 **296639.5 ms**, p95 **345934 ms**. Repaired accepted texts 2/8 = 25%; content-repair attempts across all attempted jobs 3/9 = 33.33%, including the rejected career job. Same model, five normal tasks, max9 physical and one global content repair remain unchanged. No request retry or additional repair was added after the terminal rejection.
+- Artistic second chapter: first editor gave all scores >=4 but `revise` / `distinctRhetoricalShape=false`. The accepted repair removes exactly its final two balanced-want sentences; final prose score 5, all flags true. Canon/plan/StoryFacts remain unchanged.
+- Career second chapter: first planner contains a scene-actor inconsistency. Structural repair uses the one global repair; final author later repeats a balanced options briefing. The editor correctly rejects it, but no further prose repair is permitted. Preserve this interaction as an actual yield failure rather than increasing the repair allowance.
+- Career first chapter is accepted with a known minor causality issue: the existing Other category makes its last blocked-request obstacle feel arranged. Both reviewers explicitly note this and still PASS with causality4. Gate acceptance is therefore not a claim of flawless story quality.
+
+### Reading result and remaining limits
+
+Root AI diagnostic reading, **not independent human grading**, found a coherent six-chapter artistic arc: unintended interpretation, paper/light failure, portrait-representation conflict, role reversal, discovering comic timing, then an awkward live telling. NPCs pursue their own print work and attention; the protagonist can persist, overtalk or leave discomfort unresolved. The rejected career ending proves that the binary-briefing habit remains despite already explicit anti-briefing author instructions. The first and final artistic openings also echo “X is wrong”; rooms/chairs, explanatory defensiveness and waiting-for-answer endings can be earned motifs or a recognizable house style. A three-year arc concentrated on a hobby group is a sustained-interest risk; selected bounded test choices also limit its scale.
+
+The rejected career planner reused the artistic NPC name Aoife Nolan with a distinct UUID. The corrected planner and final career output use Niamh instead; this is **rejected-draft naming bias**, not an accepted-corpus name duplicate. Per-profile databases and stateless store=false requests remain isolated. Private voice-recording devices recur across the independent profile drafts, another human-audit question.
+
+The original paid `human-review/sequence-index.html` provides only the complete artistic six-chapter bundle and shared-prefix/two-alternative-third-chapter comparison. The incomplete career profile has no full-sequence/fork bundle. A separate accepted first-chapter preview is supplied in the neutral exported reader package. Rejected prose, trace metadata, scores, version and cost are excluded. Human rating templates remain blank. Original local evidence lives under `.local/narrative-evaluation/v5-two-profile-paid`; canonical cumulative ledger/bindings stay at their existing parent, without copying.
+
+Next corrective scope, before a fresh full measurement: prevent mechanically inconsistent planner references and make first-draft scene endings carry the unresolved consequence without re-narrating the decision interface. Existing prompts already say to cut balanced option briefings; merely asserting that the rule exists or adding a regex is not proof. Keep max9/one repair and strict flags; do not spend a second repair after the planner repair or silently edit rejected prose. Separately calibrate whether a contrived causal obstacle deserves a 4/PASS. A new candidate needs fresh source-bound real evidence, not reusing this directory until green. Current USD 4.472505 headroom is below the original naive USD 4.94 full-run projection, so another full fourteen-text run requires a new cost assessment and, if necessary, separate explicit numeric authority. No additional paid call is scheduled.
+
+F05/F06/N08 remain PARTIAL; H1/H2 independent human reading, editor calibration, owner economics/time ceilings, historical full benchmark and N09 Linux rollout remain open. **No quality release and no production/cohort/beta-window change.**
+
+Final read-back verifies all nine private 0600 traces against source/case/model/project/output hashes, all 50 transport records and 44 accepted receipts; rejected case remains explicit. Accepted-only reader export link targets verified. Post-evidence documentation check PASS.
