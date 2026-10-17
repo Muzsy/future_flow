@@ -270,6 +270,11 @@ describe('v6 labelled quality controls — no mock literary PASS', () => {
     ['arbitrary escalation', 'distinctDramaticStructure', 'canon'],
     ['repeated answer-waiting handoff', 'distinctEnding', 'prose'],
     ['decision-interface handoff', 'systemMechanicsInvisible', 'prose'],
+    [
+      'unmotivated month-by-month metronome',
+      'systemMechanicsInvisible',
+      'prose',
+    ],
   ] as const)(
     'blocks %s despite otherwise perfect scores',
     (_name, flag, scope) => {
