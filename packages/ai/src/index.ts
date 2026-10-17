@@ -2,6 +2,7 @@ import { fictionPrompts } from './fiction-prompts';
 import {
   fictionAuthorResultSchema,
   fictionSequenceEditorialSchema,
+  fictionHumanEditorialSchema,
   type FictionEditorialReport,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
@@ -691,9 +692,11 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
-      context.policy.promptVersions.editor === 'life_fiction_editor.v2'
-        ? fictionSequenceEditorialSchema
-        : narrativeEditorialReportSchema,
+      context.policy.promptVersions.editor === 'life_fiction_editor.v3'
+        ? fictionHumanEditorialSchema
+        : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
+          ? fictionSequenceEditorialSchema
+          : narrativeEditorialReportSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).editor,

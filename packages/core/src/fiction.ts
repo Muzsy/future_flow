@@ -54,6 +54,9 @@ export function fictionScope(input: NarrativePeriodInput) {
         ...(context.sequenceHistory
           ? { sequenceHistory: context.sequenceHistory }
           : {}),
+        ...(context.sequenceSignatureHistory
+          ? { sequenceSignatureHistory: context.sequenceSignatureHistory }
+          : {}),
       }),
       'utf8',
     ) > NARRATIVE_MEMORY_BYTES
@@ -62,12 +65,28 @@ export function fictionScope(input: NarrativePeriodInput) {
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction memory differs from the owned period or exceeds its byte bound.',
     );
-  const sequenceIds = (context.sequenceHistory ?? []).map((p) => p.periodId);
-  if (
-    new Set(sequenceIds).size !== sequenceIds.length ||
-    sequenceIds.some((id) => !references.periodPositions.has(id))
-  )
-    fail('Sequence context contains non-owned or duplicate periods.');
+  for (const layer of [
+    context.sequenceHistory ?? [],
+    context.sequenceSignatureHistory ?? [],
+  ]) {
+    const sequenceIds = layer.map((p) => p.periodId);
+    const positions = sequenceIds.map((id) =>
+      references.periodPositions.get(id),
+    );
+    if (
+      new Set(sequenceIds).size !== sequenceIds.length ||
+      positions.some(
+        (position, index) =>
+          position === undefined ||
+          (context.policy.qualityPolicyVersion === '2.2.0' &&
+            index > 0 &&
+            position <= positions[index - 1]!),
+      )
+    )
+      fail(
+        'Sequence context contains non-owned, unordered or duplicate periods.',
+      );
+  }
   const ids = facts.facts.map((f) => f.id);
   if (
     new Set(ids).size !== ids.length ||
@@ -163,22 +182,37 @@ export function validateFictionEditorialReport(
 ) {
   const { context } = fictionScope(input);
   const report = fictionEditorialReportSchema.parse(raw);
-  const sequence = context.policy.qualityPolicyVersion === '2.1.0';
-  if ((report.version === '1.1.0') !== sequence)
+  const expectedVersion =
+    context.policy.qualityPolicyVersion === '2.2.0'
+      ? '1.2.0'
+      : context.policy.qualityPolicyVersion === '2.1.0'
+        ? '1.1.0'
+        : '1.0.0';
+  if (report.version !== expectedVersion)
     fail('Fiction editorial report differs from the frozen quality policy.');
   const { version: _version, ...fields } = report;
-  const { sequenceReview: _sequence, ...legacy } = fields as typeof fields & {
+  const {
+    sequenceReview: _sequence,
+    sequenceSignature: _signature,
+    ...legacy
+  } = fields as typeof fields & {
     sequenceReview?: unknown;
+    sequenceSignature?: unknown;
   };
   validateNarrativeEditorialReport(
     { ...legacy, version: '1.0.0' },
     authored.chapter,
     validateFictionAuthor(input, authored).canon,
   );
-  if (report.version === '1.1.0') {
-    const expected = (context.sequenceHistory ?? [])
-      .map((p) => p.periodId)
-      .sort();
+  if (report.version !== '1.0.0') {
+    const expected = [
+      ...new Set([
+        ...(context.sequenceHistory ?? []).map((p) => p.periodId),
+        ...(report.version === '1.2.0'
+          ? (context.sequenceSignatureHistory ?? []).map((p) => p.periodId)
+          : []),
+      ]),
+    ].sort();
     if (
       hash([...report.sequenceReview.comparedPeriodIds].sort()) !==
       hash(expected)
@@ -187,20 +221,39 @@ export function validateFictionEditorialReport(
         'Sequence review must cover exactly the supplied owned history, without duplicates.',
       );
   }
+  if (
+    report.version === '1.2.0' &&
+    report.sequenceSignature.periodId !== input.periodId
+  )
+    fail('Current sequence signature differs from the server-owned period.');
   return report;
+}
+export function fictionProseRepairAllowed(report: FictionEditorialReport) {
+  return (
+    !report.issues.some((i) => i.repairScope === 'canon') &&
+    (report.version === '1.0.0' ||
+      (report.sequenceReview.distinctDramaticStructure &&
+        report.sequenceReview.independentProgression &&
+        report.sequenceReview.characterAgency &&
+        (report.version !== '1.2.0' ||
+          report.sequenceReview.behavioralVariety)))
+  );
 }
 export function evaluateFictionEditorialGate(
   input: NarrativePeriodInput,
   raw: unknown,
 ) {
   const report = fictionEditorialReportSchema.parse(raw);
-  if (fictionScope(input).context.policy.qualityPolicyVersion !== '2.1.0')
+  const qualityVersion =
+    fictionScope(input).context.policy.qualityPolicyVersion;
+  if (qualityVersion === '2.0.0')
     return {
       passed:
         report.version === '1.0.0' &&
         evaluateNarrativeEditorialGate(report).passed,
     };
-  if (report.version !== '1.1.0') return { passed: false };
+  if (report.version !== (qualityVersion === '2.2.0' ? '1.2.0' : '1.1.0'))
+    return { passed: false };
   const r = report.sequenceReview;
   return {
     passed:
@@ -210,6 +263,10 @@ export function evaluateFictionEditorialGate(
       r.distinctEnding &&
       r.independentProgression &&
       r.characterAgency &&
+      (report.version !== '1.2.0' ||
+        (report.sequenceReview.distinctRhetoricalShape &&
+          report.sequenceReview.systemMechanicsInvisible &&
+          report.sequenceReview.behavioralVariety)) &&
       !report.issues.some(
         (i) => i.severity === 'major' || i.repairScope === 'canon',
       ),

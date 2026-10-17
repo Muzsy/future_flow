@@ -30,7 +30,8 @@
               "enum": [
                 "life_fiction_plan.v1",
                 "life_fiction_plan.v2",
-                "life_fiction_plan.v3"
+                "life_fiction_plan.v3",
+                "life_fiction_plan.v4"
               ]
             },
             "writer": {
@@ -38,7 +39,8 @@
               "enum": [
                 "life_fiction_author.v1",
                 "life_fiction_author.v2",
-                "life_fiction_author.v3"
+                "life_fiction_author.v3",
+                "life_fiction_author.v4"
               ]
             },
             "planReviewer": {
@@ -46,7 +48,8 @@
               "enum": [
                 "life_fiction_plan_review.v1",
                 "life_fiction_plan_review.v2",
-                "life_fiction_plan_review.v3"
+                "life_fiction_plan_review.v3",
+                "life_fiction_plan_review.v4"
               ]
             },
             "fidelity": {
@@ -57,7 +60,8 @@
               "type": "string",
               "enum": [
                 "life_fiction_editor.v1",
-                "life_fiction_editor.v2"
+                "life_fiction_editor.v2",
+                "life_fiction_editor.v3"
               ]
             }
           },
@@ -78,7 +82,8 @@
           "type": "string",
           "enum": [
             "2.0.0",
-            "2.1.0"
+            "2.1.0",
+            "2.2.0"
           ]
         },
         "maxPhysicalRequests": {
@@ -1263,6 +1268,345 @@
             "issues",
             "verdict",
             "sequenceReview"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "const": "1.2.0"
+            },
+            "scores": {
+              "type": "object",
+              "properties": {
+                "causality": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "momentum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "sceneCraft": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "character": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "personalization": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "choiceStakes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "novelty": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "prose": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                }
+              },
+              "required": [
+                "causality",
+                "momentum",
+                "sceneCraft",
+                "character",
+                "personalization",
+                "choiceStakes",
+                "novelty",
+                "prose"
+              ],
+              "additionalProperties": false
+            },
+            "issues": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "dimension": {
+                    "type": "string",
+                    "enum": [
+                      "causality",
+                      "momentum",
+                      "sceneCraft",
+                      "character",
+                      "personalization",
+                      "choiceStakes",
+                      "novelty",
+                      "prose"
+                    ]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "minor",
+                      "major"
+                    ]
+                  },
+                  "repairScope": {
+                    "type": "string",
+                    "enum": [
+                      "prose",
+                      "canon"
+                    ]
+                  },
+                  "paragraphIndex": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "eventIds": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "explanation": {
+                    "type": "string",
+                    "minLength": 30,
+                    "maxLength": 350
+                  },
+                  "suggestedFix": {
+                    "type": "string",
+                    "minLength": 30,
+                    "maxLength": 350
+                  }
+                },
+                "required": [
+                  "dimension",
+                  "severity",
+                  "repairScope",
+                  "paragraphIndex",
+                  "eventIds",
+                  "explanation",
+                  "suggestedFix"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "pass",
+                "revise"
+              ]
+            },
+            "sequenceReview": {
+              "type": "object",
+              "properties": {
+                "comparedPeriodIds": {
+                  "maxItems": 11,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "distinctDramaticStructure": {
+                  "type": "boolean"
+                },
+                "distinctEnding": {
+                  "type": "boolean"
+                },
+                "independentProgression": {
+                  "type": "boolean"
+                },
+                "characterAgency": {
+                  "type": "boolean"
+                },
+                "evidence": {
+                  "type": "string",
+                  "minLength": 40,
+                  "maxLength": 700
+                },
+                "distinctRhetoricalShape": {
+                  "type": "boolean"
+                },
+                "systemMechanicsInvisible": {
+                  "type": "boolean"
+                },
+                "behavioralVariety": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "comparedPeriodIds",
+                "distinctDramaticStructure",
+                "distinctEnding",
+                "independentProgression",
+                "characterAgency",
+                "evidence",
+                "distinctRhetoricalShape",
+                "systemMechanicsInvisible",
+                "behavioralVariety"
+              ],
+              "additionalProperties": false
+            },
+            "sequenceSignature": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "const": "1.0.0"
+                },
+                "periodId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "dramaticEngine": {
+                  "type": "string",
+                  "enum": [
+                    "discovery",
+                    "negotiation",
+                    "failed_attempt",
+                    "social_friction",
+                    "material_experiment",
+                    "external_opportunity",
+                    "misunderstanding",
+                    "deadline_pressure",
+                    "role_reversal",
+                    "relationship_shift",
+                    "mixed",
+                    "other"
+                  ]
+                },
+                "turningPointDriver": {
+                  "type": "string",
+                  "enum": [
+                    "protagonist",
+                    "npc",
+                    "institution",
+                    "environment",
+                    "artifact",
+                    "chance",
+                    "shared",
+                    "mixed"
+                  ]
+                },
+                "resolutionMode": {
+                  "type": "string",
+                  "enum": [
+                    "partial_resolution",
+                    "unresolved",
+                    "reframe",
+                    "commitment",
+                    "withdrawal",
+                    "experiment",
+                    "external_response",
+                    "consequence",
+                    "mixed"
+                  ]
+                },
+                "endingMode": {
+                  "type": "string",
+                  "enum": [
+                    "open_choice",
+                    "tableau",
+                    "dialogue",
+                    "action_in_progress",
+                    "discovery",
+                    "consequence",
+                    "quiet_observation",
+                    "hard_stop",
+                    "other"
+                  ]
+                },
+                "protagonistResponse": {
+                  "type": "string",
+                  "enum": [
+                    "immediate_self_correction",
+                    "defend_then_change",
+                    "delayed_change",
+                    "persist",
+                    "misunderstand",
+                    "avoid",
+                    "act_without_resolution",
+                    "no_correction_arc",
+                    "mixed"
+                  ]
+                },
+                "rhetoricalFlags": {
+                  "minItems": 1,
+                  "maxItems": 6,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "balanced_antithesis",
+                      "almost_then_stop",
+                      "explicit_moral",
+                      "object_tableau",
+                      "binary_option_briefing",
+                      "none"
+                    ]
+                  }
+                },
+                "systemLeakageFlags": {
+                  "minItems": 1,
+                  "maxItems": 5,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "exact_boundary_date",
+                      "contractual_guardrail",
+                      "exit_clause_reassurance",
+                      "allocation_accounting",
+                      "none"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "version",
+                "periodId",
+                "dramaticEngine",
+                "turningPointDriver",
+                "resolutionMode",
+                "endingMode",
+                "protagonistResponse",
+                "rhetoricalFlags",
+                "systemLeakageFlags"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "version",
+            "scores",
+            "issues",
+            "verdict",
+            "sequenceReview",
+            "sequenceSignature"
           ],
           "additionalProperties": false
         }

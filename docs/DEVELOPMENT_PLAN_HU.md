@@ -202,3 +202,16 @@ A végső e5e7ed2 kód CI-je 90 fájl / 966 teszt, Verify/Container sikeres. Új
 A pozitív kontroll átment, a korábbi ismétlődő negatív kontrollt az új editor elutasította. A 04cee85 kétprofilos diagnózis hat teljes fejezetet adott (három-három periódus), mind öt hívással és javítás nélkül, minden pont >=4. A technikai ordering-hibán megállt fork új e5e7ed2 regressziója explicit régi prefix-provenance mellett öt hívással átment. A két forrás mérései külön maradnak; ez nem a teljes benchmark átnevezése. Független emberi, gazdaságossági/időbeli és target/recovery kapuk nyitottak.
 
 Globális ledger: **229 hívás / 6,79395 USD accounted**, 6,3036081 USD usage-becslés; nulla ismeretlen használat/hozzárendeletlen foglalás. Az engedélyezett összesen 10 USD-ból **3,20605 USD** maradt. A hét új elfogadott fejezet kis mintás accounted átlaga 0,2508782 USD; a hibás forktervezést is számolva 0,2723329 USD. Nincs árazási vagy éles aktiválási döntés.
+
+### HQ1–HQ8 — Emberibb, hosszú távon változatos fikció — IMPLEMENTED CANDIDATE / HUMAN VALIDATION PENDING
+
+Issue #45, PR #47 utáni v4 csomag; [végrehajtási terv](plans/alterward_fiction_human_quality_development_plan_codex.md). V3 freeze, quality 2.2.0/editor v3/report 1.2.0, prose/system szétválasztás, három új sequence kapu, védett három raw előzmény + max8 compact signature, unchanged 12 KiB/max9/egy repair. Creative-only max6 period, külön teljes sequence/fork human-review és H1/H2 diagnosztika, régi benchmark változatlan. Nincs új paid mérés vagy production apply; az offline implementáció nem emberi PASS. A végrehajtás Claude Code/Antigravity elkülönített részfeladataival, közös Codex integrációval történik.
+
+Technikai ellenőrzés: 93 fájl / 998 teszt, format/docs/typecheck/build/schemas PASS. Nyolcprofilos max6 creative-only offline futás: 48 főági + 2 fork minta, 250 mock transport, nulla failure/repair, 10 olvasói bundle. Emberi H1/H2, külön valódi editor-kalibráció és N09 nem zárult le; új paid/production művelet nem történt.
+
+[PR #48](https://github.com/Muzsy/future_flow/pull/48), első implementációs forrás 3147d33: Verify/Container #321 sikeres, 93 fájl / 998 teszt. A végső promptpontosítás 34 célzott teszttel ellenőrzött; végleges HEAD/CI a PR-ben, self-merge nélkül.
+
+
+### Valódi v4 részdiagnózis — 2026-10-17
+
+Külön tulajdonosi utasításra tiszta 3809c56 forrással egy alkotói profil három főági és egy alternatív fejezete ténylegesen elkészült: négy végső kapu-PASS, 26 hívás, két javítás, 1.410585 USD accounted, P95 420594 ms. Az ügynöki olvasás konkrét jeleneteket és érdemben eltérő ágakat talált, de a határidős/órakeretes lehetőségek visszatérése nyitott kockázat. A köztes elutasítások részletes oka completion után nem maradt meg; a következő szintetikus eval előtt ez külön diagnosztikai javítás. F05/F06/N08/N09 továbbra PARTIAL/nyitott: független emberi H1/H2, külön editor-kalibráció és ár/idő/rollout döntések hiányoznak. Globális ledger 255 / 8.204535 USD, maradék 1.795465 USD a 10-ből. Nincs éles módosítás vagy ledger-reset. Részletek: STATUS és a mérési runbook.

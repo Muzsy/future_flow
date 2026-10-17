@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -65,3 +65,11 @@ Kikapcsoláskor új creative job nem indul, v2 history legacy folytatása nem en
 
 
 A qualityPolicy 2.1.0 kiadásához a target és recovery image-nek a creative planner/author/reviewer v3, editor v2 és report 1.1.0 sequenceReview, valamint az opcionális sequenceHistory context értelmezését is támogatnia kell. A v1/v2 promptok és reportok mellett értendő; a korábbi forrás proofja nem igazolja ezt automatikusan. A további minőségmérés keretengedélye nem éles rollout-engedély.
+
+## Human-quality v4 evidence boundary — 2026-10-17
+
+A qualityPolicy 2.2.0 technikai készültsége nem release PASS. Offline negatív editor-fixture csak a szerver elutasítását és javítási útját igazolja. A valódi editor hibafelismerése külön kalibráció, a történetélmény külön vak emberi mérés. H1: két profil legalább három-három fejezete és alternatív fork; H2: két profil hat-hat egymást követő fejezete és fork, a 4–6. részre külön visszajelzéssel. A H1 nem helyettesíti a H2-t, és a hat fejezet sem korlátlan garancia. Az elsődleges mérce az elmerülés, folytatási kedv, szereplőhitelesség és érdemi fejlődés; AI-gyanú másodlagos. Diagnostic-ai értékelés nem emberi bizonyíték.
+
+A creative sequence értékelés kezdetben diagnosztika: nem módosítja a korábbi 34 vak párból álló benchmarkot vagy a release-küszöböket. A reviewer-létszámot és új esetleges release-küszöböt külön owner-döntés rögzíti. Új paid méréshez külön engedély/költségterv kell. A production cohort/default, funded ablak és béta-ledger változatlan; PR #42/N09 exact-target recovery/rollout bizonyítéka továbbra külön feladat.
+
+A v4 későbbi kiadásához a target és recovery image-nek a befagyasztott v1–v3 mellett planner/author/reviewer v4, editor v3/report 1.2.0 és a sequenceSignature/sequenceSignatureHistory mezők értelmezését is támogatnia kell. Egy régi, csak v3-at értő post-038 image nem automatikusan kompatibilis rollback. Az új JSON-mezők nem SQL-migrációt jelentenek; exact-source runtime/recovery bizonyítékuk külön N09 feladat.

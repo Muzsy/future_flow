@@ -13,7 +13,15 @@ import { fictionFixture, fictionProof } from './fiction-fixtures';
 
 // Synthetic storage/restore proof only. No paid request or literary assertion.
 export async function prepareFictionJobFixture(db: Database, job: LifeJob) {
-  const f = fictionFixture(job.payload);
+  const baseline = fictionFixture(job.payload);
+  const f = fictionFixture({
+    ...baseline.input,
+    narrativeContext: {
+      policy: fictionPolicy(),
+      memory: baseline.memory,
+      storyFacts: [],
+    },
+  });
   job.payload.narrativeContext = {
     policy: fictionPolicy(),
     memory: f.memory,

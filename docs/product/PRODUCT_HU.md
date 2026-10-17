@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md
@@ -190,4 +190,6 @@ A tulajdonos 2026-10-16-i döntése szerint az író a megadott helyzetből új 
 Implementáció: [alkotói fejlesztési terv](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md). A kívánt működés elfogadása nem jelenti automatikus production aktiválását.
 
 
-Az új creative qualityPolicy 2.1.0 minden irodalmi dimenzióban legalább 4 pontot követel; más dimenzió nem kompenzálhat gyenge újdonságot vagy karakterábrázolást. A fejezetek közötti szerkezeti/lezárási változatosság, tényleges előrelépés és szereplői önállóság külön kapu. Visszatérő motívum megengedett, azonos konfliktus–feloldás–döntés új címkével nem. A technikai kapu nem helyettesíti a valódi olvasói élmény ellenőrzését.
+A PR #47-ben bevezetett creative qualityPolicy 2.1.0 minden irodalmi dimenzióban legalább 4 pontot követel; más dimenzió nem kompenzálhat gyenge újdonságot vagy karakterábrázolást. A fejezetek közötti szerkezeti/lezárási változatosság, tényleges előrelépés és szereplői önállóság külön kapu. Visszatérő motívum megengedett, azonos konfliktus–feloldás–döntés új címkével nem. A technikai kapu nem helyettesíti a valódi olvasói élmény ellenőrzését.
+
+Az emberibb v4 fejlesztési jelölt a többfejezetes élményt védi: a történet ne ismételje mechanikusan a mentor-korrekciót, az azonnali belátást vagy ugyanazt a retorikai lezárást. A praktikus határok a cselekvést szabják meg, nem ismételt olvasói megnyugtatásként jelennek meg. Hiteles félreértés, későbbi belátás, csendes fejlődés és visszatérő motívum továbbra megengedett. Az elsődleges mérce az elmerülés és a folytatási kedv; az AI-eredet gyanúja másodlagos diagnosztika. Ez még nem igazolt hosszú távú olvasói PASS és nem production aktiválás.

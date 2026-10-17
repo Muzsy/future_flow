@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 implementation_status: in-progress
 ---
 
@@ -9,11 +9,15 @@ implementation_status: in-progress
 
 Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifikáció.
 
-## Végrehajtási állapot — 2026-10-16
+## Aktuális fejlesztési jelölt — 2026-10-17
 
-Issue #45, PR #46 és #47. F00–F04 implementált; az aktuális e5e7ed2 kód teljes CI-je 90 fájl / 966 teszt, Verify/Container sikeres. Az új selected planner/author/reviewer v3, editor v2, qualityPolicy 2.1.0 minden dimenzióban >=4-et és külön szekvenciális kapukat követel, owned régi/új scene/nyitó/záró kontextussal. A fork choice-idősorrend javítva; a következményguard változatlan. A 04cee85 forrás két profiljának három-három fejezete és az e5e7ed2 külön prefix-provenance-ú forkja öt-öt hívással, javítás nélkül átment. A korábbi ismétlődő negatív kontroll elutasítva. Ez nem független emberi benchmark vagy teljes végső-forrású release-proof. Globális ledger 229 hívás / 6,79395 USD; az engedélyezett összesen 10 USD-ból 3,20605 USD maradt. F05/F06 emberi/gazdaságossági/rollout feltételei nyitottak.
+A v4 human-quality csomag implementációja új planner/author/reviewer v4 + editor v3/report 1.2.0, qualityPolicy 2.2.0 snapshotot választ. A v1–v3 változatok megmaradnak. Hosszabb dramaturgiai memória, három új minőségkapu és külön teljes sorozatos olvasói értékelés egészíti ki a PR #47-et. Részletek és elfogadási feltételek: [v4 terv](alterward_fiction_human_quality_development_plan_codex.md). Az alábbi PR #47-mérés történeti bizonyíték, nem az új v4 valódi minőségi mérése. F05/F06 továbbra nyitott.
 
-Az alábbi eredeti induló marker/policy példákat a fenti végrehajtási állapot, az ADR-008 sequence-módosítása és a kanonikus STATUS pontosítja. Az artifact 2.0.0 tárolási verziója megmarad; az új minőségpolicy 2.1.0 és editor report 1.1.0 külön snapshotot kap. A régi promptok/reportok továbbra olvashatók.
+## Korábbi igazolt végrehajtási állapot — 2026-10-16
+
+Issue #45, PR #46 és #47. F00–F04 implementált; az akkor aktuális e5e7ed2 kód teljes CI-je 90 fájl / 966 teszt, Verify/Container sikeres. Az akkori selected planner/author/reviewer v3, editor v2, qualityPolicy 2.1.0 minden dimenzióban >=4-et és külön szekvenciális kapukat követel, owned régi/új scene/nyitó/záró kontextussal. A fork choice-idősorrend javítva; a következményguard változatlan. A 04cee85 forrás két profiljának három-három fejezete és az e5e7ed2 külön prefix-provenance-ú forkja öt-öt hívással, javítás nélkül átment. A korábbi ismétlődő negatív kontroll elutasítva. Ez nem független emberi benchmark vagy teljes végső-forrású release-proof. Globális ledger 229 hívás / 6,79395 USD; az engedélyezett összesen 10 USD-ból 3,20605 USD maradt. F05/F06 emberi/gazdaságossági/rollout feltételei nyitottak.
+
+Az alábbi eredeti induló marker/policy példákat a fenti végrehajtási állapot, az ADR-008 sequence-módosítása és a kanonikus STATUS pontosítja. Az artifact 2.0.0 tárolási verziója megmarad; a korábbi minőségpolicy 2.1.0 és editor report 1.1.0 külön befagyasztott snapshot marad. A régi promptok/reportok továbbra olvashatók.
 
 ## 1. Feladat, termékdöntés és a dokumentum határa
 
@@ -627,3 +631,9 @@ Ez mérnöki becslés, nem garantált naptári határidő. Az emberi értékelé
 **Az F05 fennmaradó minőségmérésének lezárása**, a jelenlegi cumulative ledger és az engedélyezett összesen 10 USD maximum megtartásával. Szükséges a végső forráson az alkotói folytatások és fork, többprofilos hosszabb próba, valamint valódi olvasói értékelés. Ezután gazdaságossági/időkorlát-döntés, majd F06 pontos target/recovery proof és külön operátori éles apply. F00–F04 újrakezdése nem szükséges; a kész technikai ellenőrzőpontok fent jelölve vannak.
 
 A végrehajtó ne álljon meg az engedékenyebb promptnál. A fejlesztés akkor teljesíti a célt, ha az író által kitalált, elfogadott történés a következő fejezetben is ugyanannak a személyes, fiktív életútnak a része.
+
+## Következő quality csomag — emberibb v4, 2026-10-17
+
+A [részletes végrehajtási terv](alterward_fiction_human_quality_development_plan_codex.md) a PR #47 utáni állapotra épül. V3 freeze után új v4 prompt-policy és editor v3/report 1.2.0, három új explicit kapu, nyolcperiodusos kompakt signature és hatperiodusos creative-only offline diagnózis készült. A régi benchmark marad; külön hash-bound teljes sequence/fork olvasói értékelés egészíti ki. A jó jelenetírás/StoryFact/owned-prefix architektúra megmarad.
+
+F05 és F06 továbbra PARTIAL: offline készültségből nem lesz emberi vagy éles PASS. Előbb külön editor-kalibráció és H1/H2 olvasói mérés, utána tulajdonosi gazdaságossági/időkorlát- és exact-target rollout döntés kell. A kétprofilos hat-hat fejezet költsége nem vállalható automatikusan a megmaradt development keretből.

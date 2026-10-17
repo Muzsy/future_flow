@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 supersedes:
   - ../IMPLEMENTATION.md
   - ../alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md
@@ -258,10 +258,18 @@ A `storyFacts` a typed state-en kívüli, konkrét történeti részletek tartó
 A StoryFact `kind=promise` címkéje önmagában nem „örökké függő” státusz: egy már lezárt nyolchetes feladat vállalási feltétele is ilyen történeti adat lehet. A promptba kötelezően a még nyitott, fix határidejű szálak bizonyítékai és actoronként a legutóbbi releváns tény kerülnek; a többi tényt aktualitás szerint választjuk. A teljes tartós archívum megmarad. A valóban késleltetett következmény a meglévő bounded-thread szerződés szerint követendő; szöveges ténycímke nem helyettesíti ezt az életciklust.
 
 
-Creative szekvenciális policy: új jobok planner/author/reviewer v3 + editor v2, qualityPolicy 2.1.0. A report 1.1.0 külön sequenceReview mezővel, inputhoz/hashhez és exact owned összehasonlítási ID-khoz kötött. Mind a nyolc score >=4, pass verdict, négy igaz sequence-jelzés és major/canon issue hiánya kell; régi 1.0.0 report az új policyhoz nem fogadható el. Az új sequenceHistory utolsó három owned creative period scene action/obstacle/shift részletét és nyitó/záró szövegét adja a meglévő összesített 12 KiB keretben. Withheld esetben üres, fork csak örökölt prefix; a régi policy snapshotok értelmezése nem változik.
+A PR #47-ben mért creative szekvenciális policy planner/author/reviewer v3 + editor v2, qualityPolicy 2.1.0; frozen snapshotként megmarad. A report 1.1.0 külön sequenceReview mezővel, inputhoz/hashhez és exact owned összehasonlítási ID-khoz kötött. Mind a nyolc score >=4, pass verdict, négy igaz sequence-jelzés és major/canon issue hiánya kell; régi 1.0.0 report az új policyhoz nem fogadható el. Az új sequenceHistory utolsó három owned creative period scene action/obstacle/shift részletét és nyitó/záró szövegét adja a meglévő összesített 12 KiB keretben. Withheld esetben üres, fork csak örökölt prefix; a régi policy snapshotok értelmezése nem változik.
 
 
 Az accepted-choice promptmemória és detail sorrendjének authorityja az owned `aw_history.position`, nem a másolt `aw_choices.created_at` vagy UUID. Az initial választások a periodok elé kerülnek. Új fork megőrzi az örökölt choice időbélyegét; régi azonos időbélyegek esetén a history-sorrend továbbra helyes. A latest-choice consequence guard változatlan, korábbi queued payloadot nem írunk át.
 
 
 A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/creative történeteken át. Artifact nélküli legacy periodnál a kanonikus eseménycím/összefoglaló a scene-mechanizmus fallbackje; a mentett fejezeteleje és vége ugyanúgy rendelkezésre áll. Ebből nem készül utólagos StoryFact, a withheld korai visszatérés változatlan.
+
+## Emberibb, hosszabb távon változatos fikció — v4 jelölt
+
+Új creative jobok selected policyja planner/author/reviewer v4, editor v3, változatlan fidelity v1, qualityPolicy 2.2.0. A v1–v3 snapshotok és mért promptok változatlanul olvashatók. Az editor report 1.2.0 a négy korábbi jelzés mellé retorikai változatosságot, a rendszermechanika prózai láthatatlanságát és viselkedési változatosságot kér; minden jelzés igaz, minden score >=4 és pass verdict szükséges, major/canon issue nélkül. Hamis jelzéshez javítási bizonyíték kell; szerkezeti/agency/viselkedési ismétlés canon-scoped, package repair. Pusztán retorikai, rendszermechanikai vagy lezárási hiba prose-only javítható, ha a teljes végső kánon változatlan marad.
+
+A report verziózott sequenceSignature-t tárol az aktuális periodhoz kötve. A bemeneti sequenceSignatureHistory legfeljebb nyolc korábbi v4 period kompakt dramaturgiai jellemzőit vetíti ki, csak owned prefixből. A legutóbbi három raw sequence bizonyíték megmarad; az új signature-ök nem szoríthatják ki a védett folytonosságot, és szükség esetén legrégebbtől elhagyhatók. A teljes context továbbra 12 KiB, az artifact 32 KiB. Withheld esetben sem a tények, sem a két történeti réteg nem kerül be. Régi artifactból nem gyártunk visszamenőleges signature-t, és nem írjuk át. A signature a teljes editor-output hash/receipt lánc része; privát artifact, nem új public DTO.
+
+Az author a structured dátumot és hard constraintet betartja, de a prózában csak természetes jelenetbeli indokkal említi. A kompakt kategóriák összehasonlítási metaadatok, nem kötelező fejezetsablonok. Modell, normál öt/max9 hívás, egy javítás és minden pénzügyi/privacy védelem megmarad. [Végrehajtási terv](../plans/alterward_fiction_human_quality_development_plan_codex.md).

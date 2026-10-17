@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
-  fictionPolicy,
+  fictionV3Policy,
+  fictionSequenceSignatureSchema,
+  fictionHumanEditorialSchema,
+  fictionSequenceEditorialSchema,
   fictionContextSchema,
   type NarrativePeriodInput,
   type FictionAuthorResult,
@@ -33,10 +36,13 @@ export function fictionFixture(source?: NarrativePeriodInput) {
   const input: NarrativePeriodInput = {
     ...f.input,
     narrativeContext: {
-      policy: fictionPolicy(),
+      policy: sourceContext?.policy ?? fictionV3Policy(),
       memory: f.memory,
       ...(sourceContext?.sequenceHistory
         ? { sequenceHistory: sourceContext.sequenceHistory }
+        : {}),
+      ...(sourceContext?.sequenceSignatureHistory
+        ? { sequenceSignatureHistory: sourceContext.sequenceSignatureHistory }
         : {}),
       storyFacts:
         source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
@@ -81,13 +87,31 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       { version: '1.1.0' }
     >,
     fidelity: { valid: true, issues: [] },
-    editor: {
+    editor: fictionFixtureEditorial({
       ...narrativeEditorialFixture(),
-      version: '1.1.0' as const,
+      version:
+        sourceContext?.policy.qualityPolicyVersion === '2.2.0'
+          ? ('1.2.0' as const)
+          : ('1.1.0' as const),
+      ...(sourceContext?.policy.qualityPolicyVersion === '2.2.0'
+        ? { sequenceSignature: fictionSignatureFixture(input.periodId) }
+        : {}),
       sequenceReview: {
-        comparedPeriodIds: (sourceContext?.sequenceHistory ?? []).map(
-          (p) => p.periodId,
-        ),
+        comparedPeriodIds: [
+          ...new Set([
+            ...(sourceContext?.sequenceHistory ?? []).map((p) => p.periodId),
+            ...(sourceContext?.sequenceSignatureHistory ?? []).map(
+              (p) => p.periodId,
+            ),
+          ]),
+        ],
+        ...(sourceContext?.policy.qualityPolicyVersion === '2.2.0'
+          ? {
+              distinctRhetoricalShape: true,
+              systemMechanicsInvisible: true,
+              behavioralVariety: true,
+            }
+          : {}),
         distinctDramaticStructure: true,
         distinctEnding: true,
         independentProgression: true,
@@ -95,18 +119,24 @@ export function fictionFixture(source?: NarrativePeriodInput) {
         evidence:
           'A concrete misunderstanding leads to a changed response with independent protagonist action.',
       },
-    },
+    }),
   };
+}
+function fictionFixtureEditorial(raw: unknown) {
+  return (raw as { version: string }).version === '1.2.0'
+    ? fictionHumanEditorialSchema.parse(raw)
+    : fictionSequenceEditorialSchema.parse(raw);
 }
 export function fictionReceipt(
   task: string,
-  key: keyof ReturnType<typeof fictionPolicy>['promptVersions'],
+  key: keyof ReturnType<typeof fictionV3Policy>['promptVersions'],
   input: unknown,
   output: unknown,
+  policy = fictionV3Policy(),
 ) {
   return {
     task,
-    promptVersion: `${fictionPolicy().promptVersions[key]}.en`,
+    promptVersion: `${policy.promptVersions[key]}.en`,
     model: 'gpt-6.1-sol',
     inputHash: hash(input),
     outputHash: hash(output),
@@ -124,30 +154,35 @@ export function fictionProof(f = fictionFixture(), repair?: FictionRepair) {
       'planner',
       fictionPlannerRequest(f.input),
       f.draft,
+      f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
     fictionReceipt(
       'life_narrative_chapter',
       'writer',
       fictionAuthorRequest(f.input, f.draft, repair),
       f.authored,
+      f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
     fictionReceipt(
       'life_narrative_plan_review',
       'planReviewer',
       fictionReviewRequest(f.input, f.authored),
       f.review,
+      f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
     fictionReceipt(
       'life_fidelity',
       'fidelity',
       fictionFidelityRequest(f.input, f.authored),
       f.fidelity,
+      f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
     fictionReceipt(
       'life_narrative_editor',
       'editor',
       fictionEditorialRequest(f.input, f.authored),
       f.editor,
+      f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
   ];
 }
@@ -206,4 +241,18 @@ export function bulkyFictionFixture(f = fictionFixture()) {
     suggestedFix: 'R'.repeat(350),
   }));
   return b;
+}
+
+export function fictionSignatureFixture(periodId: string) {
+  return fictionSequenceSignatureSchema.parse({
+    version: '1.0.0',
+    periodId,
+    dramaticEngine: 'discovery',
+    turningPointDriver: 'protagonist',
+    resolutionMode: 'consequence',
+    endingMode: 'action_in_progress',
+    protagonistResponse: 'no_correction_arc',
+    rhetoricalFlags: ['none'],
+    systemLeakageFlags: ['none'],
+  });
 }
