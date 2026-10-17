@@ -78,7 +78,7 @@ export function fictionScope(input: NarrativePeriodInput) {
       positions.some(
         (position, index) =>
           position === undefined ||
-          (context.policy.qualityPolicyVersion === '2.2.0' &&
+          (['2.2.0', '2.3.0'].includes(context.policy.qualityPolicyVersion) &&
             index > 0 &&
             position <= positions[index - 1]!),
       )
@@ -182,12 +182,13 @@ export function validateFictionEditorialReport(
 ) {
   const { context } = fictionScope(input);
   const report = fictionEditorialReportSchema.parse(raw);
-  const expectedVersion =
-    context.policy.qualityPolicyVersion === '2.2.0'
-      ? '1.2.0'
-      : context.policy.qualityPolicyVersion === '2.1.0'
-        ? '1.1.0'
-        : '1.0.0';
+  const expectedVersion = ['2.2.0', '2.3.0'].includes(
+    context.policy.qualityPolicyVersion,
+  )
+    ? '1.2.0'
+    : context.policy.qualityPolicyVersion === '2.1.0'
+      ? '1.1.0'
+      : '1.0.0';
   if (report.version !== expectedVersion)
     fail('Fiction editorial report differs from the frozen quality policy.');
   const { version: _version, ...fields } = report;
@@ -252,7 +253,10 @@ export function evaluateFictionEditorialGate(
         report.version === '1.0.0' &&
         evaluateNarrativeEditorialGate(report).passed,
     };
-  if (report.version !== (qualityVersion === '2.2.0' ? '1.2.0' : '1.1.0'))
+  if (
+    report.version !==
+    (['2.2.0', '2.3.0'].includes(qualityVersion) ? '1.2.0' : '1.1.0')
+  )
     return { passed: false };
   const r = report.sequenceReview;
   return {

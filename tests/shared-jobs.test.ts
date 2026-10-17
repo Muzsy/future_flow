@@ -215,13 +215,21 @@ describe('Shared queued generation persistence', () => {
     for (const forbidden of [
       'Private goal',
       'Private employer',
-      '2123',
-      '4765',
+      'monthlyIncome',
+      'liquidFunds',
       'user_id',
       'branchId',
       ...g.people.flatMap((p) => [p.id, p.lifeId, p.branchId]),
     ])
       expect(text).not.toContain(forbidden);
+    // Private numeric values must not leak as numbers or complete strings.
+    // Searching four digits anywhere falsely rejects random public member UUIDs.
+    for (const privateValue of [2123, 4765]) {
+      expect(text).not.toContain(JSON.stringify(String(privateValue)));
+      expect(text).not.toMatch(
+        new RegExp(`[:,\\[]\\s*${privateValue}\\s*[,}\\]]`),
+      );
+    }
     expect(
       await db.query(
         'SELECT id,state,revision,status FROM aw_branches WHERE id=ANY($1::uuid[]) ORDER BY id',

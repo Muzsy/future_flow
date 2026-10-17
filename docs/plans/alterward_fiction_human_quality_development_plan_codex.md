@@ -1636,7 +1636,28 @@ Ellenőrzött helyi képességek, 2026-10-17:
 
 - Claude Code: `/home/muszy/.local/bin/claude`; nem interaktív `--print` futtatás működik. A `claude auth status` sikeres Claude-előfizetéses hitelesítést (`loggedIn: true`) jelzett; az izolált próbafeladat eredménye `AGENT_OK` volt.
 - Antigravity CLI: `/home/muszy/.local/bin/agy`; nem interaktív `--print` és JSON-kimenet működik. Az izolált próbafeladat eredménye `AGENT_OK` volt.
+- Owner-kiegészítés, 2026-10-17: az Antigravityben az Argon modell is választható; fejlesztési delegálásnál és kvótaoptimalizálásnál ezzel is számolj. Ez felhasználói közlés, nem új CLI-modellpróba: első használat előtt ellenőrizd a pontos modellazonosítót, az adott felület/CLI támogatását és az aktuális hozzáférést. Az alkalmazás történetmodelljét ez nem módosítja.
 - A hitelesítési és kvótaállapot idővel változhat. A tényleges delegálás előtt ellenőrizd az aktuális elérhetőséget; a korábbi próba nem garantál későbbi kvótát vagy hozzáférést.
+
+Felhasználó által jelzett API-egyenlegek, 2026-10-17 (nem szolgáltatói API-val visszaellenőrzött állapot):
+
+- OpenAI API: a felhasználó 5 USD-t töltött fel. Ez feltöltési összeg; a tényleges aktuális egyenleget és a projekt elérhetőségét használat előtt ellenőrizni kell.
+- Claude API: a felhasználó szerint 2,63 USD rendelkezésre álló keret.
+- A szolgáltatói egyenleg/feltöltés nem azonos egy konkrét feladat költési engedélyével, és önmagában nem emeli a korábban jóváhagyott 10 USD kumulatív történetminőségi mérési plafont. A legutóbbi igazolt mérési ledger 8,204535 USD accounted, maradéka 1,795465 USD; új fejlesztési feladatnál az aktuális ledgert olvasd vissza.
+- A Claude előfizetéses CLI-kvótáját, az Antigravity/Argon hozzáférést és a Claude API-egyenleget külön kezeld. A korábbi tiltás a fizetős API-ra történő csendes fallbackre továbbra érvényes; ez a feljegyzés nem indít új fizetett futást.
+
+### Aktuális fejlesztési API-költési engedély — 2026-10-17
+
+A tulajdonos az 5 USD OpenAI-feltöltésre kifejezetten új fejlesztési költési keretként adott engedélyt. Az előző egyenlegközlés önmagában még nem volt felhatalmazás; ez a későbbi utasítás igen. A fejlesztéshez szükséges valódi AI-hívások e kereten belül külön, ismételt jóváhagyáskérés nélkül elvégezhetők, mérés és előzetes jelzés mellett. A felhasználó jelzi a további befizetéseket; automatikus feltöltés vagy feltételezett új keret nincs.
+
+- Új keret: legfeljebb 5 USD további OpenAI fejlesztési fogyasztás ettől az engedélytől kezdve. A korábbi, még el nem költött 1,795465 USD-t ne add hozzá hallgatólagosan újabb keretként.
+- Nyitó igazolt történetmérési ledger: 255 fizikai hívás / 8,204535 USD konzervatív accounted fogyasztás. Ha ugyanezt a canonical ledgert használja a következő narratív mérés, a kumulatív accounted plafon legfeljebb 13,204535 USD lehet. A régi sorokat és bindingokat őrizd meg; ledger-reset tilos. Más fejlesztési AI-futtatás ugyanennek az új 5 USD keretnek a része, ne kapjon párhuzamos külön 5 USD engedélyt.
+- A jelenlegi értékelő maximum 10 USD-t fogad el. A következő fizetett mérés előtt az új, explicit engedélynek megfelelő konfigurálhatóságot kódban és teszttel kell rendezni; ne kerüld meg a guardot új ledgerrel, symlinkkel vagy átírt korábbi költéssel. Ez a feljegyzés még nem módosítja a futó limitet és nem indít provider-hívást.
+- Minden valódi AI-futtatás előtt röviden jelentsd a célt, a szolgáltatót/modellt, a tervezett mintát és várható költséget vagy annak bizonytalanságát. Nem kell minden belső stage előtt új üzenet, ha a teljes futás hívásai és javítási korlátja előre szerepelnek.
+- Futás után jelentsd a fizikai hívásszámot, a javításokat/elutasításokat is tartalmazó accounted fogyasztást, az új 5 USD-ből felhasznált és maradó összeget. Usage-alapú becslést külön jelölj; ez nem szolgáltatói számla. Ismeretlen usage esetén a teljes foglalás maradjon elszámolva.
+- Folyamatosan kövesd az új keret minden fejlesztési API-költését. Jelezz a tulajdonosnak, amint a maradék a következő szükséges, javítási/foglalási tartalékkal számolt fejlesztési lépést veszélyezteti; ne csak a kimerüléskor. Pusztán a fizetős hívás ténye ne akassza meg az engedélyezett fejlesztést. Az engedélyezett plafont viszont ne lépd túl; közben folytasd a fizetett hívást nem igénylő munkát.
+- A 2,63 USD jelzett Claude API-egyenleg külön szolgáltatói adat, nem hallgatólagosan az OpenAI 5 USD-jéhez hozzáadható vagy ugyanekkora új költési engedély. Előfizetéses fejlesztőügynök-kvóta és API-költés külön nyilvántartás.
+- Ez költési és jelentési felhatalmazás, nem production rollout-, main merge- vagy automatikus minőségi PASS-engedély; a történetmodell változatlan marad.
 
 Javasolt munkamegosztás:
 
@@ -1808,3 +1829,12 @@ A teljes szöveg ügynöki olvasása szerint a művek konkrétak, jó párbeszé
 A completed job takarítása a köztes elutasítások részletes jelentését nem őrizte meg. A receipts/transport alapján a főági harmadik editorial utáni prózajavítása és az alternatíva fidelity utáni csomagjavítása látható, de az első pontos kifogás/pontozás nem rekonstruálható. Ezt nem szabad kitalálni vagy végső hibátlanságként jelenteni. Következő eval előtt a szintetikus, lokális köztes gate-evidence megőrzése külön javítandó, production privacy-retention lazítása nélkül.
 
 A visszaolvasott globális ledger **255 hívás / 8.204535 USD accounted**, 7.5994029 USD usage-becslés; **1.795465 USD maradék** az engedélyezett összesen 10-ből. Nulla ismeretlen usage, aktív vagy hozzárendeletlen foglalás. Az új valódi részdiagnózis nem production apply, main merge, modellváltás, budget/window reset, teljes H2 vagy release-engedély.
+
+
+## Owner extension for work package 045 — 2026-10-17
+
+The owner explicitly approved up to **USD 7 total additional development consumption**, replacing the initially approved new USD 5 for this work. The unchanged opening canonical ledger is 255 calls / USD 8.204535 accounted, so the new cumulative ceiling is USD 15.204535. The prior unused allowance is not separately added. This is measured development expenditure only; no production/merge permission follows. Pre-run purpose/cost notice, post-run consumption and remaining allowance, conservative unknown-usage accounting and early low-budget warning remain required. PR #48 was separately authorized and merged as 058555005e7e85905cf53081bfa18226780cf9ac before 045 implementation.
+
+### 045 tényleges lezárás — 2026-10-17
+
+Technikai implementáció és CI sikeres, valódi kétprofilos korpusz hiányos: 8 elfogadott / 1 elutasított / 5 nem generált cél. Alkotói 6+fork kész; munkahelyi második fejezet binary-option-briefing lezárás miatt kizárva, a megelőző planner javítás után további repair nem engedett. Részletes bizonyíték a 045 tervben; nem quality release vagy emberi PASS. Új fejlesztési fogyasztás 50 hívás / 2,527495 USD accounted, maradék 4,472505 USD az engedélyezett új hétből. Eredeti globális ledger megőrizve: 305 / 10,732030 USD. Nincs további ütemezett fizetett hívás; új teljes mérés előtt új költségbecslés szükséges.

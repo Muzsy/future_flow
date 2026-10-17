@@ -5,6 +5,7 @@ import { hash } from '@future-flow/core';
 import { narrativeDimensions } from '@future-flow/contracts';
 import {
   parseEvaluationOptions,
+  evaluationApprovedCumulativeBudgetUsd,
   verifyEvaluationAuthorization,
 } from '../scripts/lib/narrative-evaluation-options';
 import {
@@ -93,7 +94,7 @@ describe('bounded and independently assessed narrative experiment', () => {
     expect(options.periods).toBe(3);
     expect(JSON.stringify(options)).not.toContain('application-secret');
   });
-  it('requires explicit payment scope, a dedicated development project and a cap at most ten USD', () => {
+  it('requires explicit payment scope, a dedicated development project and the explicit owner-approved cumulative ceiling', () => {
     expect(() =>
       parseEvaluationOptions(
         paid.filter((v) => v !== '--allow-paid'),
@@ -107,7 +108,11 @@ describe('bounded and independently assessed narrative experiment', () => {
     ).toThrow();
     expect(() =>
       parseEvaluationOptions(
-        [...paid.slice(0, 4), '10.01', ...paid.slice(5)],
+        [
+          ...paid.slice(0, 4),
+          String(evaluationApprovedCumulativeBudgetUsd + 0.01),
+          ...paid.slice(5),
+        ],
         development,
       ),
     ).toThrow();
@@ -123,6 +128,17 @@ describe('bounded and independently assessed narrative experiment', () => {
     try {
       const options = parseEvaluationOptions(paid, development);
       expect(options.budgetUsd).toBe(5);
+      expect(
+        parseEvaluationOptions(
+          [
+            ...paid.slice(0, 4),
+            String(evaluationApprovedCumulativeBudgetUsd),
+            ...paid.slice(5),
+          ],
+          development,
+        ).budgetUsd,
+      ).toBe(evaluationApprovedCumulativeBudgetUsd);
+
       expect(JSON.stringify(options)).not.toContain(
         development.NARRATIVE_EVAL_API_KEY,
       );
@@ -706,4 +722,42 @@ it('preserves the two measured thin-canon failures and selects distinct develope
   expect(currentFixedNarrativeFixture('moving').materialVersion).toBe(
     'original-v1',
   );
+});
+
+it('accounts for all six creative periods while excluding fork comparison costs', () => {
+  const calls = Array.from({ length: 7 }, (_, i) => ({
+    id: `six-${i}`,
+    accountedUsd: i === 6 ? 9 : 0.2,
+    estimatedUsd: 0.1,
+    reservedUsd: 0.3,
+    status: 'completed',
+    usage: { input_tokens: 1, output_tokens: 1 },
+  }));
+  const bindings = Object.fromEntries(
+    calls.map((call, i) => [
+      call.id,
+      {
+        sourceHash: 'six-source',
+        caseId:
+          i === 6
+            ? 'fork:creative-portfolio:narrative-v1:2'
+            : `creative-portfolio:narrative-v1:${i}`,
+      },
+    ]),
+  );
+  const accounting = evaluationCostReport(calls, bindings, 'six-source');
+  const samples = Array.from({ length: 6 }, (_, i) => ({
+    fixtureId: 'creative-portfolio',
+    mode: 'narrative-v1',
+    kind: 'full',
+    periodIndex: i,
+  }));
+  const complete = evaluationNarrativeYield(accounting, samples)!;
+  expect(complete.acceptedCostCoverage).toBe(true);
+  expect(complete.attemptedChapters).toBe(6);
+  expect(complete.accountedUsd).toBeCloseTo(1.2);
+  expect(complete.accountedUsdPerGateAcceptedChapter).toBeCloseTo(0.2);
+  const incomplete = evaluationNarrativeYield(accounting, samples.slice(0, 5))!;
+  expect(incomplete.unacceptedAttemptAccountedUsd).toBeCloseTo(0.2);
+  expect(incomplete.accountedUsdPerGateAcceptedChapter).toBeCloseTo(0.24);
 });

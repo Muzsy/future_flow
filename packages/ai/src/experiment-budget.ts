@@ -59,10 +59,12 @@ export class ExperimentAiBudget implements AiRequestGuard {
     private readonly modelPrices: ExperimentTokenPrices = prices,
     approvedMaximumUsd = 5,
   ) {
+    // The reviewed caller supplies any explicit cumulative extension.
+    // Omitting it keeps the original USD 5 ceiling; a provider balance
+    // never grants a larger allowance by itself.
     if (
       !Number.isFinite(approvedMaximumUsd) ||
       approvedMaximumUsd <= 0 ||
-      approvedMaximumUsd > 10 ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
       budgetUsd > approvedMaximumUsd
