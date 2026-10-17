@@ -20,7 +20,8 @@
             "life_fiction_plan.v1",
             "life_fiction_plan.v2",
             "life_fiction_plan.v3",
-            "life_fiction_plan.v4"
+            "life_fiction_plan.v4",
+            "life_fiction_plan.v5"
           ]
         },
         "writer": {
@@ -29,7 +30,8 @@
             "life_fiction_author.v1",
             "life_fiction_author.v2",
             "life_fiction_author.v3",
-            "life_fiction_author.v4"
+            "life_fiction_author.v4",
+            "life_fiction_author.v5"
           ]
         },
         "planReviewer": {
@@ -38,7 +40,8 @@
             "life_fiction_plan_review.v1",
             "life_fiction_plan_review.v2",
             "life_fiction_plan_review.v3",
-            "life_fiction_plan_review.v4"
+            "life_fiction_plan_review.v4",
+            "life_fiction_plan_review.v5"
           ]
         },
         "fidelity": {
@@ -50,7 +53,8 @@
           "enum": [
             "life_fiction_editor.v1",
             "life_fiction_editor.v2",
-            "life_fiction_editor.v3"
+            "life_fiction_editor.v3",
+            "life_fiction_editor.v4"
           ]
         }
       },
@@ -72,7 +76,8 @@
       "enum": [
         "2.0.0",
         "2.1.0",
-        "2.2.0"
+        "2.2.0",
+        "2.3.0"
       ]
     },
     "maxPhysicalRequests": {

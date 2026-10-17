@@ -273,3 +273,10 @@ A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/c
 A report verziózott sequenceSignature-t tárol az aktuális periodhoz kötve. A bemeneti sequenceSignatureHistory legfeljebb nyolc korábbi v4 period kompakt dramaturgiai jellemzőit vetíti ki, csak owned prefixből. A legutóbbi három raw sequence bizonyíték megmarad; az új signature-ök nem szoríthatják ki a védett folytonosságot, és szükség esetén legrégebbtől elhagyhatók. A teljes context továbbra 12 KiB, az artifact 32 KiB. Withheld esetben sem a tények, sem a két történeti réteg nem kerül be. Régi artifactból nem gyártunk visszamenőleges signature-t, és nem írjuk át. A signature a teljes editor-output hash/receipt lánc része; privát artifact, nem új public DTO.
 
 Az author a structured dátumot és hard constraintet betartja, de a prózában csak természetes jelenetbeli indokkal említi. A kompakt kategóriák összehasonlítási metaadatok, nem kötelező fejezetsablonok. Modell, normál öt/max9 hívás, egy javítás és minden pénzügyi/privacy védelem megmarad. [Végrehajtási terv](../plans/alterward_fiction_human_quality_development_plan_codex.md).
+
+
+## V4.1 / v5 célzott történetminőségi iteráció — 045
+
+A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
+
+A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](../plans/045_fiction_v4_1_real_quality_iteration.md).

@@ -174,3 +174,10 @@ A dedicated development cumulative keret explicit tulajdonosi engedéllyel 10 US
 ## Creative human-quality v4 candidate — 2026-10-17
 
 A selected creative policy planner/author/planReviewer v4 + editor v3/report 1.2.0 + fidelity v1, qualityPolicyVersion 2.2.0. A mért v3 policy külön fictionV3Policy helperrel megmarad, a v1/v2/v3 promptok hash-regresszióval védettek. Történetmodell és provider változatlan; öt normál, max9 fizikai request és egy globális content repair marad. A hosszabb sequence metaadat ugyanazon 12 KiB contexten belül működik, új AI-stage nélkül. A fejlesztői Claude Code/Antigravity munkamegosztás nem a termék modellútvonalának megváltoztatása. Új paid történetmérés, beta ledger/window reset és production apply nem része a csomagnak.
+
+
+## V4.1 / v5 célzott történetminőségi iteráció — 045
+
+A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
+
+A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](plans/045_fiction_v4_1_real_quality_iteration.md).

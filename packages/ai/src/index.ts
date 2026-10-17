@@ -692,11 +692,13 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
-      context.policy.promptVersions.editor === 'life_fiction_editor.v3'
-        ? fictionHumanEditorialSchema
+      // Keyed off the oldest two literals so a later editor version (report
+      // 1.2.0 unchanged) keeps routing to the human schema by default.
+      context.policy.promptVersions.editor === 'life_fiction_editor.v1'
+        ? narrativeEditorialReportSchema
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
           ? fictionSequenceEditorialSchema
-          : narrativeEditorialReportSchema,
+          : fictionHumanEditorialSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).editor,

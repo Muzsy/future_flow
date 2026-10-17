@@ -46,6 +46,42 @@ describe('shared paid experiment ledger', () => {
       extended.close();
     }
   });
+  it('keeps the default ceiling at five while honoring a separately explicit cumulative extension', async () => {
+    const ledger = path();
+    expect(
+      () => new ExperimentAiBudget(ledger, 15.204535, 'no-authority'),
+    ).toThrow();
+    expect(
+      () =>
+        new ExperimentAiBudget(
+          ledger,
+          15.204536,
+          'over-approved',
+          undefined,
+          15.204535,
+        ),
+    ).toThrow();
+    const guard = new ExperimentAiBudget(
+      ledger,
+      15.204535,
+      'owner-2026-10-17',
+      undefined,
+      15.204535,
+    );
+    try {
+      const id = await guard.reserve(request);
+      await guard.settle(id, { input_tokens: 100, output_tokens: 20 });
+      expect(JSON.parse(readFileSync(ledger, 'utf8')).budgetUsd).toBe(
+        15.204535,
+      );
+    } finally {
+      guard.close();
+    }
+    for (const ceiling of [NaN, Infinity, -1, 0])
+      expect(
+        () => new ExperimentAiBudget(path(), 1, 'invalid', undefined, ceiling),
+      ).toThrow();
+  });
   it('excludes concurrent paid processes, retains unknown reservations and resumes the same allowance', async () => {
     const ledger = path(),
       guard = new ExperimentAiBudget(ledger, 0.03, 'test-only');

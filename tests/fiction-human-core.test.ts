@@ -6,6 +6,7 @@ import {
   fictionV1Policy,
   fictionV2Policy,
   fictionV3Policy,
+  fictionV4Policy,
   fictionPolicySchema,
   fictionHumanEditorialSchema,
   fictionContextSchema,
@@ -55,12 +56,13 @@ function issue(scope: 'canon' | 'prose') {
   };
 }
 
-describe('human-fiction v4 compatibility and evidence gates', () => {
+describe('human-fiction v4/v5 compatibility and evidence gates', () => {
   it('freezes complete old policy tuples and rejects cross-version combinations', () => {
     for (const policy of [
       fictionV1Policy(),
       fictionV2Policy(),
       fictionV3Policy(),
+      fictionV4Policy(),
       fictionPolicy(),
     ])
       expect(fictionPolicySchema.parse(policy)).toEqual(policy);
@@ -335,8 +337,8 @@ describe('human-fiction v4 compatibility and evidence gates', () => {
     );
     expect(query).not.toHaveBeenCalled();
   });
-  it('projects mixed v2/v3/v4 owned history without rewriting old artifacts or inventing signatures', async () => {
-    const fixtures = Array.from({ length: 3 }, (_, i) => {
+  it('projects mixed v2/v3/v4/v5 owned history without rewriting old artifacts or inventing signatures', async () => {
+    const fixtures = Array.from({ length: 4 }, (_, i) => {
       const input = structuredClone(fictionFixture().input);
       if (input.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
         throw Error();
@@ -351,7 +353,9 @@ describe('human-fiction v4 compatibility and evidence gates', () => {
           ? fictionV2Policy()
           : i === 1
             ? fictionV3Policy()
-            : fictionPolicy();
+            : i === 2
+              ? fictionV4Policy()
+              : fictionPolicy();
       return fictionFixture(input);
     });
     const rows = fixtures.map((f, i) => {
@@ -382,14 +386,14 @@ describe('human-fiction v4 compatibility and evidence gates', () => {
     const c = await personalFictionContext(
       { query } as unknown as Database,
       randomUUID(),
-      fixtures[2]!.input.input.branchId,
-      fixtures[2]!.memory,
+      fixtures[3]!.input.input.branchId,
+      fixtures[3]!.memory,
     );
-    expect(new Set(rows.map((r) => r.period_id)).size).toBe(3);
+    expect(new Set(rows.map((r) => r.period_id)).size).toBe(4);
     expect(c.sequenceHistory!.map((p) => p.periodId)).toEqual(
-      rows.map((r) => r.period_id),
+      rows.slice(-3).map((r) => r.period_id),
     );
-    expect(c.sequenceSignatureHistory).toHaveLength(1);
+    expect(c.sequenceSignatureHistory).toHaveLength(2);
     expect(c.sequenceSignatureHistory![0]!.periodId).toBe(rows[2]!.period_id);
     expect(hash(rows)).toBe(before);
     rows[2]!.artifact.bindings.editorialOutputHash = '0'.repeat(64);
@@ -397,8 +401,8 @@ describe('human-fiction v4 compatibility and evidence gates', () => {
       personalFictionContext(
         { query } as unknown as Database,
         randomUUID(),
-        fixtures[2]!.input.input.branchId,
-        fixtures[2]!.memory,
+        fixtures[3]!.input.input.branchId,
+        fixtures[3]!.memory,
       ),
     ).rejects.toThrow();
   });
