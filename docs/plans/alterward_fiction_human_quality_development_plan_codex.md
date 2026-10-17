@@ -1790,3 +1790,21 @@ Claude Code a prompt/provider részt, Antigravity az evaluation eszközöket ké
 A CLI próba working-tree offline bizonyíték; nem tiszta végső forráshoz kötött paid release-mérés. A történetmodell változatlan, normál öt/max9 fizikai kérés és egy javítás maradt; új AI-stage, SQL-migráció, 12 KiB keretemelés, production mutation, beta-window vagy ledger-reset nem történt. A H1/H2 olvasói validáció és külön fizetett mérés ebben a csomagban nincs elvégezve vagy engedélyezve.
 
 Az első implementációs `3147d33e536ffebd899cfba851c7a22217cde679` forrás GitHub Verify és Container CI-je **#321 / 39001289089: SUCCESS**, 93 fájl / 998 teszt. A záró promptpontosítás a planner/author számára is explicit módon összehasonlítási, nem kötelező archetipus-forgási adatként írja le a compact historyt; a v1–v3 hash-ek változatlanok, 34 célzott prompt/worker teszt PASS. A végleges HEAD és új CI eredménye a [PR #48](https://github.com/Muzsy/future_flow/pull/48) leírásában és ellenőrzéseiben követendő. A PR nyitva marad; nincs self-merge vagy release-engedély.
+
+
+## Utólag külön engedélyezett valódi próba — 2026-10-17
+
+A terv eredeti paid=false határa az offline implementációra vonatkozik. A tulajdonos későbbi „Valódi generalas kell.” utasítása külön engedélyezte a tényleges generálást a meglévő kumulatív 10 USD plafonon belül; nem keretemelés és nem production vagy merge engedély.
+
+
+### 2026-10-17-i külön engedélyezett valódi v4 diagnózis
+
+A tulajdonos „Valódi generalas kell.” utasítása után tiszta `3809c560e4990c8fcc149a4d1af4e38a47c74c1c` forrással tényleges OpenAI-mérés futott, változatlan gpt-6.1-sol modellel, dedicated development projekttel és a korábbi globális ledgerrel. Egy kitalált alkotói profil három főági fejezete és egy alternatív harmadik készült: „The Missing Sleeve”, „Where the Door Opens”, „A Voice for the Kitchen”, „The Pale Centre”. A választások diagnostic-index/reviewed=false státuszúak; ez H1-hosszúságú olvasói anyag, nem emberi H1 PASS vagy teljes H2.
+
+Négy végső kapu-PASS, 26 fizikai hívás; az első két rész öt-öt, a két harmadik nyolc-nyolc hívás, egy-egy javítással. Minden végső score >=4, mind a hét sequence-jelzés igaz. Accounted 1.410585 USD, usage-becslés 1.2957948 USD; javításokkal együtt átlag 0.35264625 USD/elfogadott szöveg. P95 420594 ms. A 50%-os repair és a kb. hétperces P95 kis mintás, de nem elhallgatható költség/idő jelzés.
+
+A teljes szöveg ügynöki olvasása szerint a művek konkrétak, jó párbeszédekkel és eltérő következményekkel: a főág közös könyvhöz/felolvasáshoz, az alternatíva önálló képsorhoz és feltételes vételi ajánlathoz vezet. Az első két lezárás azonban újra órakeretes együttműködést kínál, a harmadik is határidős lehetőségre épül. Ez megmaradt ismétlődési kockázat az automatikus PASS mellett. Független emberi rating nincs; complete=false, qualityRelease=false, sequenceAssessment=null.
+
+A completed job takarítása a köztes elutasítások részletes jelentését nem őrizte meg. A receipts/transport alapján a főági harmadik editorial utáni prózajavítása és az alternatíva fidelity utáni csomagjavítása látható, de az első pontos kifogás/pontozás nem rekonstruálható. Ezt nem szabad kitalálni vagy végső hibátlanságként jelenteni. Következő eval előtt a szintetikus, lokális köztes gate-evidence megőrzése külön javítandó, production privacy-retention lazítása nélkül.
+
+A visszaolvasott globális ledger **255 hívás / 8.204535 USD accounted**, 7.5994029 USD usage-becslés; **1.795465 USD maradék** az engedélyezett összesen 10-ből. Nulla ismeretlen usage, aktív vagy hozzárendeletlen foglalás. Az új valódi részdiagnózis nem production apply, main merge, modellváltás, budget/window reset, teljes H2 vagy release-engedély.
