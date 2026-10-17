@@ -280,3 +280,11 @@ Az author a structured dátumot és hard constraintet betartja, de a prózában 
 A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
 
 A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](../plans/045_fiction_v4_1_real_quality_iteration.md).
+
+## V6 / quality 2.4: kiérdemelt életváltozás
+
+Új frozen snapshot: planner/author/reviewer v6, editor v5, fidelity v1; report 1.2.0 és signature 1.0.0. A v1–v5 promptok és policyk változatlanok; a v5 explicit `fictionV5Policy()` helperrel elérhető. Az öt normál/max9 fizikai kérés, egy globális javítás, hat hónapos strukturált időszak, 12 KiB context és 32 KiB artifact megmarad. A provider meglévő verzióalapú útvonalai kezelik az új tuple-t; nincs új stage vagy SQL.
+
+Csak a v6 kéréshez tartozó, szervertől származó `referenceProjection` sorolja fel a jelenlegi saját állapot cél- és szereplőazonosítóit (legfeljebb 2 KiB); nem új történeti authority. A goal_progress_set meglévő célt módosít, a döntési opcióban is. Új visszatérő szereplő actor_add-dal létezik; a jelenet első hivatkozott eseményénél már léteznie kell. Nincs automatikus ID-helyettesítés vagy lazított validátor. A történeti requestekhez nem adunk új mezőt.
+
+A nagyobb életváltozás kánonból eredő lehetőség, nem fejezetszámhoz vagy kvótához kötött állapotgép. Ajánlat és elfogadott vállalás külön marad; typed state, aktív határ, owned-prefix privacy és végső user döntés változatlan. A hat hónapos időszak prózában akár egy délutánra összpontosíthat. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).

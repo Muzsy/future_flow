@@ -59,7 +59,7 @@ Egy jó visszatérési ciklus az Alterwardban:
 4. Visszatéréskor a már tárolt cél, korábbi választás és rövid összefoglaló segít felvenni a fonalat. Ehhez ne legyen kötelező új AI-hívás.
 5. A következő fejezet megmutatja, mit változtatott a döntés. Ne ugyanazt a próbát vagy engedélykérést nevezze át.
 
-Tervezési ritmusként 3–4 fejezetenként legyen érzékelhető részleges lezárás: megváltozott kapcsolat, teljesített vagy elengedett cél, új helyzet. Ez nem előre megírt történet és nem új szimulációs contract. A történet a rögzített kánonból következik. Ne gyorsítsuk mesterségesen az életkort vagy a drámát a havi keret kedvéért.
+Az érzékelhető részleges lezárás és életváltozás a felhalmozott kánonból következzen, fejezetszámhoz kötött ütemezés nélkül. Kapcsolat, szerep, rutin, célirány vagy élethelyzet is változhat; a helyszín és a szereplők megtartása önmagában nem stagnálás. Nincs 3–4 fejezetes fejlődési kötelezettség vagy csomagonkénti fordulat. Ne gyorsítsuk mesterségesen az életkort vagy a drámát a havi keret kedvéért.
 
 Az alternatív ág értékét a már meghozott, érdemi döntés adja. Példa a nyolc egységre: 6 főági fejezet + 2 alternatív következmény; vagy 8 főági fejezet. Nem szükséges külön olcsóbb, gyengébb minőségű mellékág.
 
@@ -238,3 +238,7 @@ A szigorúbb 04cee85 folyamat két profil hat teljes új fejezetét fogadta el �
 A tulajdonos az összesített dedicated development keretet **10 USD-ra** bővítette, az addigi hívások és költés megőrzésével. Aktuális ledger **229 hívás / 6,79395 USD accounted / 6,3036081 USD usage-becslés**, maradék **3,20605 USD**; nulla ismeretlen usage/hozzárendeletlen foglalás. A 39 új hívás teljes kutatási költsége 1,97411 USD. A standard short-context árakat 2026-10-16-án a [hivatalos árlistán](https://developers.openai.com/api/docs/pricing) visszaellenőriztük; a konfigurált árak nem változtak.
 
 A 0,70 USD-s óvatos üzemi forgatókönyv megmarad. Sem a mért alacsonyabb átlag, sem a keretbővítés nem döntés a havi csomagról, az árról, a várakozási idő elfogadhatóságáról vagy az éles funded ablakról. A további mérésben a javításokat, sikertelen kézbesítéseket és valódi olvasói elfogadást is figyelembe kell venni; a modell marad.
+
+## V6 megtartási vizsgálat
+
+A nyolc főági fejezet azt vizsgálja, hogy a kiinduló életből okságilag hiteles, tovább olvasásra érdemes új helyzet alakult-e. Nem ír elő szereplő-/helyszínkvótát, kötelező nagy változást, ütemezést vagy számszerű release-küszöböt. A fejlődés az alapminőség része; nincs csomagpozíció a modellbemenetben. A mérésbe az elutasítások és javítások költsége is beleszámít. A v5 részleges/negatív bizonyíték megmarad; v6 üzemi egységár és retention csak tényleges mérés/emberi olvasás után állítható. [V6 terv](045_fiction_v6_earned_life_evolution.md).

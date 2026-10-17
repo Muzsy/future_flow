@@ -181,3 +181,7 @@ A selected creative policy planner/author/planReviewer v4 + editor v3/report 1.2
 A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
 
 A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](plans/045_fiction_v4_1_real_quality_iteration.md).
+
+## V6 / quality 2.4 / editor v5
+
+A v6 jelölt planner/author/planReviewer v6 + editor v5 + fidelity v1 tuple-t választ; report 1.2.0/signature 1.0.0 marad. Az explicit fictionV5Policy a mért elődöt őrzi, v1–v5 promptbytes változatlanok. Ugyanaz a gpt-6.1-sol, öt normál/max9 fizikai kérés és egy globális javítás. Nincs modellkísérlet, ensemble, extra stage vagy olcsóbb fallback. A fejlesztői Claude Code/Antigravity segítség nem termékbeli modellváltás. A szerzői szabadságot a kánon oksági lehetőségei adják, nem csomagpozíció; ár/kvóta nem generálási input. [V6 terv](plans/045_fiction_v6_earned_life_evolution.md).

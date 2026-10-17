@@ -196,3 +196,9 @@ Az emberibb v4 fejlesztési jelölt a többfejezetes élményt védi: a történ
 
 
 A 045-ös v5 jelölt a történeti fejlődés forrását és a szereplői reakciókat teszi változatosabbá: nem minden új fejezet külső validálást követő új ajánlat, és nem minden kényelmetlenségből lesz azonnali bölcs belátás. Új lehetőség és józan önkorrekció továbbra megengedett, ha az adott történetben indokolt. Nem vezetünk be mechanikus dramaturgiai rotációt vagy kötelező hibázást. A javulás csak valódi többfejezetes generálás és külön olvasói audit alapján állítható.
+
+## V6: a kánonból kiérdemelt életváltozás
+
+A kezdőállapot kiindulópont, nem élethosszig érvényes plafon. Az elfogadott döntések, kapcsolatok, kudarcok és következmények új tevékenységet, közösséget, irányt vagy nagyobb életváltozást is megalapozhatnak. Minél nagyobb a változás, annál erősebb oksági híd szükséges; az eltelt idő önmagában nem indok. Új lehetőség kitalálható, de jelentős új vállalást a történet nem fogadhat el a felhasználó helyett. A tartós állapotváltozás typed change-et igényel.
+
+Azonos hely és emberek mélyen változó viszonya is értékes fejlődés. Nincs kötelező költözés, új szereplő vagy fejezetszám szerinti fordulat. A nyolcfejezetes ablak termék-/mérési hipotézis, nem történeti óra. A történetmodell nem kap csomagot, fordulónapot, kvótát vagy „7/8. fejezet” pozíciót. Az érdemi életfejlődés az alapélmény része, nem prémium minőség. [V6 végrehajtási terv](../plans/045_fiction_v6_earned_life_evolution.md); valódi és emberi bizonyítás külön szükséges.

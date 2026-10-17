@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-17
+last_reviewed: 2026-10-18
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -145,3 +145,7 @@ Valódi cél 14, eredmény **8 elfogadott / 1 elutasított / 5 nem generált**. 
 50 új valódi hívás / **2,527495 USD accounted**, 2,2240168 USD usage-becslés; végső globális ledger **305 / 10,732030 USD**, ismeretlen használat és nyitott/hozzárendeletlen foglalás nélkül. Az új 7 USD keretből **4,472505 USD maradt**, kumulatív cap 15,204535. Az elutasított kísérlet 0,310405 USD-je is beleszámít. Minden javítás első/végső parsed anyaga megmaradt a csak lokális szintetikus diagnosztikában; olvasói csomag csak elfogadott prózát ad. P50 296639,5 ms, P95 345934 ms az elfogadott szövegekre.
 
 Az ügynöki olvasás ígéretes, változatosabb alkotói történetívet látott, de ez nem független emberi minősítés. **Technikai PASS / valódi korpusz hiányos / minőségi kiadás blokkolva / emberi audit függő.** F05/F06/N08/N09 nyitott; nincs éles módosítás. Részletes célonkénti és javítási bizonyíték: [045 terv](plans/045_fiction_v4_1_real_quality_iteration.md#actual-real-provider-result--2026-10-17).
+
+## Aktuális v6 végrehajtás — 2026-10-18
+
+PR #49 merged (`1e1b4303dd779ad8e8b34970892302583a7f66dd`), a korábbi draft-státuszok történetiek. A [v6 terv](plans/045_fiction_v6_earned_life_evolution.md) végrehajtása folyamatban: külön v6/quality2.4/editorv5, v1–v5 freeze, okságilag kiérdemelt életfejlődés menetrend nélkül, goal/actor regressziók. F05/F06/N08 továbbra PARTIAL; emberi minőség nincs igazolva. Új numerikus owner authority: összesen legfeljebb 8 USD v6, nyitó eredeti ledger 305 / 10.732030 USD, kumulatív ceiling 18.732030 USD; a régi 4.472505 maradék nem adódik hozzá. V6 paid még nem indult. Előbb három munkahelyi főági fejezet fork nélkül, csak elfogadható eredmény után külön 18-célos mérés. Nincs production/billing/béta módosítás vagy v6 merge-engedély.
