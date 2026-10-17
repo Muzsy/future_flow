@@ -31,6 +31,7 @@ import {
 import {
   fictionContextSchema,
   fictionV3Policy,
+  fictionV4Policy,
   FICTION_MODE,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -143,33 +144,40 @@ async function saved(job: LifeJob) {
 }
 
 describe('creative final author package through real guarded provider and database', () => {
-  it('finishes an already queued v3 snapshot without upgrading its prompt/report policy', async () => {
-    const f = await fixture();
-    if (f.job.payload.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
-      throw Error();
-    f.job.payload.narrativeContext.policy = fictionV3Policy();
-    delete f.job.payload.narrativeContext.sequenceSignatureHistory;
-    await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
-      f.job.id,
-      JSON.stringify(f.job.payload),
-    ]);
-    f.f = fictionFixture(f.job.payload);
-    const p = provider(f);
-    await processLifeJob(f.job, jobs, p.ai);
-    const row = await saved(f.job);
-    expect(row.status).toBe('completed');
-    expect(p.parse).toHaveBeenCalledTimes(5);
-    const [period] = await db.query<{
-      narrative_artifact: {
-        policy: unknown;
-        editorialReport: { version: string };
-      };
-    }>('SELECT narrative_artifact FROM aw_periods WHERE id=$1', [
-      f.job.payload.periodId,
-    ]);
-    expect(period!.narrative_artifact.policy).toEqual(fictionV3Policy());
-    expect(period!.narrative_artifact.editorialReport.version).toBe('1.1.0');
-  });
+  it.each([fictionV3Policy(), fictionV4Policy()])(
+    'finishes an already queued $qualityPolicyVersion snapshot without upgrading its prompt/report policy',
+    async (policy) => {
+      const f = await fixture();
+      if (
+        f.job.payload.narrativeContext?.policy.mode !== 'narrative-fiction-v2'
+      )
+        throw Error();
+      f.job.payload.narrativeContext.policy = policy;
+      delete f.job.payload.narrativeContext.sequenceSignatureHistory;
+      await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
+        f.job.id,
+        JSON.stringify(f.job.payload),
+      ]);
+      f.f = fictionFixture(f.job.payload);
+      const p = provider(f);
+      await processLifeJob(f.job, jobs, p.ai);
+      const row = await saved(f.job);
+      expect(row.status).toBe('completed');
+      expect(p.parse).toHaveBeenCalledTimes(5);
+      const [period] = await db.query<{
+        narrative_artifact: {
+          policy: unknown;
+          editorialReport: { version: string };
+        };
+      }>('SELECT narrative_artifact FROM aw_periods WHERE id=$1', [
+        f.job.payload.periodId,
+      ]);
+      expect(period!.narrative_artifact.policy).toEqual(policy);
+      expect(period!.narrative_artifact.editorialReport.version).toBe(
+        policy.qualityPolicyVersion === '2.2.0' ? '1.2.0' : '1.1.0',
+      );
+    },
+  );
   it('makes five calls, reviews AFTER authoring and atomically saves new fictional outcomes', async () => {
     const f = await fixture(),
       p = provider(f);
@@ -285,10 +293,10 @@ describe('creative final author package through real guarded provider and databa
     'distinctEnding',
     'behavioralVariety',
   ] as const)
-    it(`repairs v4 ${flag} with the correct bounded stage sequence`, async () => {
+    it(`repairs v5 ${flag} with the correct bounded stage sequence`, async () => {
       const f = await fixture();
       expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
-        'life_fiction_author.v4',
+        'life_fiction_author.v5',
       );
       const p = provider(f, (task, n, output) => {
         if (task === 'life_narrative_editor' && n === 1)
