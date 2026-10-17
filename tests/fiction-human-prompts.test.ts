@@ -6,6 +6,7 @@ import {
   fictionV1Policy,
   fictionV2Policy,
   fictionV3Policy,
+  fictionV4Policy,
   fictionPolicy,
 } from '@future-flow/contracts';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
@@ -46,7 +47,7 @@ function v4Fixture() {
   const old = fictionFixture();
   if (old.input.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
     throw new Error('Expected a fiction-mode fixture.');
-  old.input.narrativeContext.policy = fictionPolicy();
+  old.input.narrativeContext.policy = fictionV4Policy();
   const f = fictionFixture(old.input);
   return {
     ...f,
@@ -101,7 +102,7 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
       editor:
         '94a9fcf3af049f3fd0d981f7ad18b3f3ef2b7ab66894dc494e078321fe56118b',
     });
-    expect(hashesOf(fictionPolicy().promptVersions)).toEqual({
+    expect(hashesOf(fictionV4Policy().promptVersions)).toEqual({
       planner:
         'ee47f697b3dc410cb4ae8c52c7698f4c6ef0ad76318ab94e75650ad21423c086',
       author:
@@ -114,14 +115,14 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
         'b855d95475b8d1b6fc5c366775567765cd459f048c1cba85a188e2ea49ddec62',
     });
   });
-  it('defaults to the new v4 policy prompts when no explicit version is supplied', () => {
+  it('defaults to the selected v5 policy while preserving an explicit v4 route', () => {
     expect(hashesOf(undefined)).toEqual(
       hashesOf(fictionPolicy().promptVersions),
     );
   });
   it('adds explicit prose/system-separation, behavioral and rhetorical guidance only from v4 onward', () => {
     const v3 = fictionPrompts('en', fictionV3Policy().promptVersions);
-    const v4 = fictionPrompts('en', fictionPolicy().promptVersions);
+    const v4 = fictionPrompts('en', fictionV4Policy().promptVersions);
     for (const needle of [
       'HUMAN-LIKENESS CRAFT',
       'Use sequenceSignatureHistory alongside',
@@ -147,7 +148,7 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
   });
   it('requires report 1.2.0 with the three new sequence flags and a current sequenceSignature only from editor v3', () => {
     const v3 = fictionPrompts('en', fictionV3Policy().promptVersions);
-    const v4 = fictionPrompts('en', fictionPolicy().promptVersions);
+    const v4 = fictionPrompts('en', fictionV4Policy().promptVersions);
     expect(v3.editor).toContain('report version 1.1.0');
     expect(v3.editor).not.toContain('distinctRhetoricalShape');
     expect(v4.editor).toContain('Use report version 1.2.0');

@@ -2,26 +2,11 @@ import { createHash } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 
-// Contracts has not yet published the v5 planner/author/plan-review and the
-// new v4 editor literal (tracked separately, owned by the contracts/core
-// change). fictionPrompts() only consumes this shape as a plain object and
-// never runs zod validation itself, so a cast lets this scoped suite exercise
-// the new prompt layer without depending on that not-yet-landed export.
+import { fictionV4Policy, fictionPolicy } from '@future-flow/contracts';
+
 type Versions = Parameters<typeof fictionPrompts>[1];
-const v4Versions: Versions = {
-  planner: 'life_fiction_plan.v4',
-  writer: 'life_fiction_author.v4',
-  planReviewer: 'life_fiction_plan_review.v4',
-  fidelity: 'life_fiction_fidelity.v1',
-  editor: 'life_fiction_editor.v3',
-};
-const v5Versions = {
-  planner: 'life_fiction_plan.v5',
-  writer: 'life_fiction_author.v5',
-  planReviewer: 'life_fiction_plan_review.v5',
-  fidelity: 'life_fiction_fidelity.v1',
-  editor: 'life_fiction_editor.v4',
-} as unknown as Versions;
+const v4Versions: Versions = fictionV4Policy().promptVersions;
+const v5Versions: Versions = fictionPolicy().promptVersions;
 
 function hashesOf(versions: Versions) {
   const prompts = fictionPrompts('en', versions);
