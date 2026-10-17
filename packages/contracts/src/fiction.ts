@@ -43,6 +43,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v3',
           'life_fiction_plan.v4',
           'life_fiction_plan.v5',
+          'life_fiction_plan.v6',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -50,6 +51,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v3',
           'life_fiction_author.v4',
           'life_fiction_author.v5',
+          'life_fiction_author.v6',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -57,6 +59,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v3',
           'life_fiction_plan_review.v4',
           'life_fiction_plan_review.v5',
+          'life_fiction_plan_review.v6',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
         editor: z.enum([
@@ -64,11 +67,12 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v2',
           'life_fiction_editor.v3',
           'life_fiction_editor.v4',
+          'life_fiction_editor.v5',
         ]),
       })
       .strict(),
     memoryVersion: z.literal('2.0.0'),
-    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0', '2.2.0', '2.3.0']),
+    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0', '2.2.0', '2.3.0', '2.4.0']),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
     targetWords: z
@@ -82,21 +86,25 @@ export const fictionPolicySchema = z
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       policy.promptVersions.editor !==
-        (v === 'v5'
-          ? 'life_fiction_editor.v4'
-          : v === 'v4'
-            ? 'life_fiction_editor.v3'
-            : v === 'v3'
-              ? 'life_fiction_editor.v2'
-              : 'life_fiction_editor.v1') ||
+        (v === 'v6'
+          ? 'life_fiction_editor.v5'
+          : v === 'v5'
+            ? 'life_fiction_editor.v4'
+            : v === 'v4'
+              ? 'life_fiction_editor.v3'
+              : v === 'v3'
+                ? 'life_fiction_editor.v2'
+                : 'life_fiction_editor.v1') ||
       policy.qualityPolicyVersion !==
-        (v === 'v5'
-          ? '2.3.0'
-          : v === 'v4'
-            ? '2.2.0'
-            : v === 'v3'
-              ? '2.1.0'
-              : '2.0.0')
+        (v === 'v6'
+          ? '2.4.0'
+          : v === 'v5'
+            ? '2.3.0'
+            : v === 'v4'
+              ? '2.2.0'
+              : v === 'v3'
+                ? '2.1.0'
+                : '2.0.0')
     )
       ctx.addIssue({
         code: 'custom',
@@ -166,8 +174,8 @@ export function fictionV4Policy(): FictionPolicy {
     },
   };
 }
-// Select v5 only for newly queued jobs; measured v1-v4 snapshots stay frozen.
-export function fictionPolicy(): FictionPolicy {
+// Preserve the measured v5 snapshot independently of the selected default.
+export function fictionV5Policy(): FictionPolicy {
   const previous = fictionV4Policy();
   return {
     ...previous,
@@ -178,6 +186,21 @@ export function fictionPolicy(): FictionPolicy {
       writer: 'life_fiction_author.v5',
       planReviewer: 'life_fiction_plan_review.v5',
       editor: 'life_fiction_editor.v4',
+    },
+  };
+}
+// Only newly queued jobs select v6; all measured v1-v5 snapshots stay frozen.
+export function fictionPolicy(): FictionPolicy {
+  const previous = fictionV5Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.4.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v6',
+      writer: 'life_fiction_author.v6',
+      planReviewer: 'life_fiction_plan_review.v6',
+      editor: 'life_fiction_editor.v5',
     },
   };
 }
@@ -484,7 +507,7 @@ export const fictionArtifactSchema = z
   })
   .strict()
   .superRefine((artifact, ctx) => {
-    const expected = ['2.2.0', '2.3.0'].includes(
+    const expected = ['2.2.0', '2.3.0', '2.4.0'].includes(
       artifact.policy.qualityPolicyVersion,
     )
       ? '1.2.0'

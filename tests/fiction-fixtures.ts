@@ -89,12 +89,12 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     fidelity: { valid: true, issues: [] },
     editor: fictionFixtureEditorial({
       ...narrativeEditorialFixture(),
-      version: ['2.2.0', '2.3.0'].includes(
+      version: ['2.2.0', '2.3.0', '2.4.0'].includes(
         sourceContext?.policy.qualityPolicyVersion ?? '',
       )
         ? ('1.2.0' as const)
         : ('1.1.0' as const),
-      ...(['2.2.0', '2.3.0'].includes(
+      ...(['2.2.0', '2.3.0', '2.4.0'].includes(
         sourceContext?.policy.qualityPolicyVersion ?? '',
       )
         ? { sequenceSignature: fictionSignatureFixture(input.periodId) }
@@ -108,7 +108,7 @@ export function fictionFixture(source?: NarrativePeriodInput) {
             ),
           ]),
         ],
-        ...(['2.2.0', '2.3.0'].includes(
+        ...(['2.2.0', '2.3.0', '2.4.0'].includes(
           sourceContext?.policy.qualityPolicyVersion ?? '',
         )
           ? {

@@ -32,6 +32,7 @@ import {
   fictionContextSchema,
   fictionV3Policy,
   fictionV4Policy,
+  fictionV5Policy,
   FICTION_MODE,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -144,7 +145,7 @@ async function saved(job: LifeJob) {
 }
 
 describe('creative final author package through real guarded provider and database', () => {
-  it.each([fictionV3Policy(), fictionV4Policy()])(
+  it.each([fictionV3Policy(), fictionV4Policy(), fictionV5Policy()])(
     'finishes an already queued $qualityPolicyVersion snapshot without upgrading its prompt/report policy',
     async (policy) => {
       const f = await fixture();
@@ -174,7 +175,9 @@ describe('creative final author package through real guarded provider and databa
       ]);
       expect(period!.narrative_artifact.policy).toEqual(policy);
       expect(period!.narrative_artifact.editorialReport.version).toBe(
-        policy.qualityPolicyVersion === '2.2.0' ? '1.2.0' : '1.1.0',
+        ['2.2.0', '2.3.0'].includes(policy.qualityPolicyVersion)
+          ? '1.2.0'
+          : '1.1.0',
       );
     },
   );
@@ -293,10 +296,10 @@ describe('creative final author package through real guarded provider and databa
     'distinctEnding',
     'behavioralVariety',
   ] as const)
-    it(`repairs v5 ${flag} with the correct bounded stage sequence`, async () => {
+    it(`repairs v6 ${flag} with the correct bounded stage sequence`, async () => {
       const f = await fixture();
       expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
-        'life_fiction_author.v5',
+        'life_fiction_author.v6',
       );
       const p = provider(f, (task, n, output) => {
         if (task === 'life_narrative_editor' && n === 1)

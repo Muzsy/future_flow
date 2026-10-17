@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 
-import { fictionV4Policy, fictionPolicy } from '@future-flow/contracts';
+import { fictionV4Policy, fictionV5Policy } from '@future-flow/contracts';
 
 type Versions = Parameters<typeof fictionPrompts>[1];
 const v4Versions: Versions = fictionV4Policy().promptVersions;
-const v5Versions: Versions = fictionPolicy().promptVersions;
+const v5Versions: Versions = fictionV5Policy().promptVersions;
 
 function hashesOf(versions: Versions) {
   const prompts = fictionPrompts('en', versions);
@@ -20,8 +20,7 @@ function hashesOf(versions: Versions) {
 
 describe('fiction-prompts v5 progression/behavior hardening', () => {
   // P01 — freeze v4: pinned independently of @future-flow/contracts'
-  // fictionPolicy()/fictionV4Policy() default, so this stays true even after
-  // the contracts default changes to select v5.
+  // selected default, so this stays true when newly queued jobs select v6.
   it('keeps the measured v4 prompt bytes frozen under an explicit v4 version object', () => {
     expect(hashesOf(v4Versions)).toEqual({
       planner:

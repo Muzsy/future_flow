@@ -78,7 +78,9 @@ export function fictionScope(input: NarrativePeriodInput) {
       positions.some(
         (position, index) =>
           position === undefined ||
-          (['2.2.0', '2.3.0'].includes(context.policy.qualityPolicyVersion) &&
+          (['2.2.0', '2.3.0', '2.4.0'].includes(
+            context.policy.qualityPolicyVersion,
+          ) &&
             index > 0 &&
             position <= positions[index - 1]!),
       )
@@ -108,6 +110,22 @@ export type FictionRepair = {
   message: string;
   previous: FictionAuthorResult | null;
 };
+function fictionReferenceProjection(input: NarrativePeriodInput) {
+  const projection = {
+    goalIds: input.state.goals.map((goal) => goal.goalId),
+    existingActorIds: input.state.actors.map((actor) => actor.id),
+    sceneActorRule:
+      'Every scene actor must exist by stateAfter of its FIRST referenced event. A new recurring actor requires actor_add; copy that exact ID, and start its scene no earlier than its introducing event. goal_progress_set updates an existing goalId only; it cannot create a new goal, including in decision options.',
+  };
+  // Existing state admits at most five goals and thirty actors. Do not trim
+  // IDs or expand memory limits to make an invalid projection fit.
+  if (Buffer.byteLength(JSON.stringify(projection), 'utf8') > 2048)
+    throw new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Fiction reference projection exceeds its request-local byte bound.',
+    );
+  return projection;
+}
 export function fictionPlannerRequest(
   input: NarrativePeriodInput,
   repair?: string,
@@ -131,6 +149,11 @@ export function fictionPlannerRequest(
         : {}),
     },
     narrativeContext: context,
+    // Advisory copy of already supplied, owned state IDs. It adds no new
+    // reference authority; replay still validates every proposed transition.
+    ...(context.policy.qualityPolicyVersion === '2.4.0'
+      ? { referenceProjection: fictionReferenceProjection(input) }
+      : {}),
     repair: repair ?? null,
   };
 }
@@ -182,7 +205,7 @@ export function validateFictionEditorialReport(
 ) {
   const { context } = fictionScope(input);
   const report = fictionEditorialReportSchema.parse(raw);
-  const expectedVersion = ['2.2.0', '2.3.0'].includes(
+  const expectedVersion = ['2.2.0', '2.3.0', '2.4.0'].includes(
     context.policy.qualityPolicyVersion,
   )
     ? '1.2.0'
@@ -255,7 +278,7 @@ export function evaluateFictionEditorialGate(
     };
   if (
     report.version !==
-    (['2.2.0', '2.3.0'].includes(qualityVersion) ? '1.2.0' : '1.1.0')
+    (['2.2.0', '2.3.0', '2.4.0'].includes(qualityVersion) ? '1.2.0' : '1.1.0')
   )
     return { passed: false };
   const r = report.sequenceReview;

@@ -2,7 +2,7 @@ import { narrativeEditorialFixture } from './narrative-plan-fixtures';
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect, vi } from 'vitest';
 import {
-  fictionPolicy,
+  fictionV5Policy,
   fictionV1Policy,
   fictionV2Policy,
   fictionV3Policy,
@@ -38,7 +38,7 @@ function currentFixture() {
   const old = fictionFixture();
   if (old.input.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
     throw Error();
-  old.input.narrativeContext.policy = fictionPolicy();
+  old.input.narrativeContext.policy = fictionV5Policy();
   const f = fictionFixture(old.input);
   return { ...f, editor: fictionHumanEditorialSchema.parse(f.editor) };
 }
@@ -63,21 +63,21 @@ describe('human-fiction v4/v5 compatibility and evidence gates', () => {
       fictionV2Policy(),
       fictionV3Policy(),
       fictionV4Policy(),
-      fictionPolicy(),
+      fictionV5Policy(),
     ])
       expect(fictionPolicySchema.parse(policy)).toEqual(policy);
     for (const policy of [
       {
-        ...fictionPolicy(),
+        ...fictionV5Policy(),
         promptVersions: {
-          ...fictionPolicy().promptVersions,
+          ...fictionV5Policy().promptVersions,
           editor: 'life_fiction_editor.v2',
         },
       },
       { ...fictionV3Policy(), qualityPolicyVersion: '2.2.0' },
     ])
       expect(fictionPolicySchema.safeParse(policy).success).toBe(false);
-    expect(fictionPolicy()).toMatchObject({
+    expect(fictionV5Policy()).toMatchObject({
       maxPhysicalRequests: 9,
       maxContentRepairs: 1,
     });
@@ -355,7 +355,7 @@ describe('human-fiction v4/v5 compatibility and evidence gates', () => {
             ? fictionV3Policy()
             : i === 2
               ? fictionV4Policy()
-              : fictionPolicy();
+              : fictionV5Policy();
       return fictionFixture(input);
     });
     const rows = fixtures.map((f, i) => {
