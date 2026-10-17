@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: implementation-in-progress
+state: stage-a-accepted-stage-b-pending
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -1074,16 +1074,16 @@ Technical:
 
 Stage A:
 
-- [ ] real career 3-chapter smoke
-- [ ] clean source
-- [ ] no planner reference failure
-- [ ] no terminal binary briefing failure
-- [ ] calls accounted
-- [ ] no production action
+- [x] real career 3-chapter smoke
+- [x] clean source
+- [x] no planner reference failure
+- [x] no terminal binary briefing failure
+- [x] calls accounted
+- [x] no production action
 
 Stage B:
 
-- [ ] numeric authority verified
+- [x] numeric authority verified
 - [ ] creative 8 main
 - [ ] career 8 main
 - [ ] one fork/profile
@@ -1260,3 +1260,23 @@ Tested application/harness commit: `6fca9df174b1fe3f65785413f79ccba0a62d50bd`; o
 A separate Claude Code subscription read-only source audit found no actionable correctness, privacy, authority, provenance or budget-routing regression. It inspected the changed policy/core/memory/prompts/evaluation/tests and acknowledged that unchanged ExperimentAiBudget arithmetic was outside its named-file scope; root inspected that unchanged guard and the existing/new budget tests passed. This is code review, not independent literary approval.
 
 This evidence checkpoint changes documentation only. Before paid launch, verify the clean measured checkout and that application, harness, tests and migrations are byte-identical to the tested commit. The paid SHA/sourceHash is recorded separately because source binding includes HEAD. The original ledger remains 305 / 10.732030 USD with zero unknown usage; no v6 paid call has started at this checkpoint. Both paid stages use **18.732030 USD cumulative ceiling** under the owner's total-new-8-USD authority. The initial 1–1.50 USD Stage A forecast is not an extra authorization requirement or a smaller hard spending cap.
+
+## Stage A actual result — 2026-10-18
+
+Measured clean source `cf000f863479bdb986c305dba743aaa4911db4f0`, sourceHash `5e0603826126ec835b84907e0e05769bd46910aa3f883d5c58f454758b263846`. Its application/harness/tests/migrations are identical to tested `6fca9df`; only the technical-evidence documentation checkpoint differs. PR #50 CI **329 SUCCESS**. Dedicated development project, default tier, store=false, unchanged gpt-6.1-sol; no production action.
+
+| Career main | Physical calls | Repair / first failure | Final editor | Accounted USD | Usage estimate USD | Elapsed ms | Local traceHash |
+|---|---:|---|---|---:|---:|---:|---|
+| 1 — The Fold Underneath | 5 | none / none | pass, minimum score 4, all flags true | 0.213045 | 0.2130375 | 261598 | d98e59e5a1ea865e0acaa87d35443260277cce4287d40dc1466e2ebb401c91ea |
+| 2 — The Part You Can Claim | 5 | none / none | pass, minimum score 4, all flags true | 0.2529275 | 0.2128832 | 256709 | fc32a1533a13dad7cb226bad458d2fe5295d5fdebe7113006879c456fe2f5bcd |
+| 3 — The Old Form | 5 | none / none | pass, all eight scores 4, all flags true | 0.2759725 | 0.2359282 | 270270 | 00187da99139440d7e3164e54f622a0cadf1c4b96ed5b88cd3a012689131da39 |
+
+All initial/final plan reviews pass (all four scores 4, readiness true), fidelity valid with no issues, editorial no issues; no intermediate rejected output or repair. Target **3/3 main accepted**, zero rejected, zero ungenerated descendants; job yield 100%, repair 0%, observed planner-reference failure 0/3. Three 0600 trace files / 15 transport records / 15 accepted receipts verified against exact hashes, project binding and manifest; unknown usage **0**, unassigned reservation **0**. No fork. P50 **261598 ms**, P95 nearest-rank **270270 ms**.
+
+New accounted **0.741945 USD**, usage estimate **0.6618489 USD**, all-work/accepted **0.247315 USD**, rejected-work cost **0**. Original ledger before **305 / 10.732030 USD**, after **320 / 11.473975 USD accounted**; global usage estimate **10.4852686 USD**. Authorized total v6 8 USD, cumulative ceiling 18.732030; **7.258055 USD remains**. No reset or new ledger.
+
+Root's full reading is **diagnostic AI**, not independent human acceptance. The sequence moves from a tangible instruction experiment through a conflict over authorship into real applications, rejection and an ordinary-work documentation problem. Niamh has an independent storage/sewing concern and refuses being absorbed into the protagonist's project; the protagonist remains defensive instead of instantly acquiring a moral lesson. The last chapter's natural colleague question is a concrete problem, not an NPC waiting for the structured decision. Larger professional commitment remains unresolved and no unsupported job success is invented. This is acceptable for proceeding to Stage B.
+
+Watchpoints preserved: two penultimate paragraphs in chapter three compare home/work routes explicitly; a longer run must show this does not become a recurring option briefing. Selected month transitions are natural here but longer cadence remains unproven. The first two private editor-evidence fields end in an incomplete trailing phrase at their bounded length; full chapter reading, rather than that clipped diagnostic explanation, grounds the root assessment. No story prose was clipped or replaced and no gate was waived. Human literary/retention evidence remains pending.
+
+Stage B will start from a **fresh** output/seed after this meaningful documentation checkpoint. Application/harness/test/migration bytes stay identical; the new clean SHA/sourceHash is recorded separately. This also keeps Stage A and Stage B costs distinct in the existing sourceHash+caseId accounting, rather than conflating repeated career case IDs. Both sources remain in the same original cumulative ledger and the same total 8 USD authority.
