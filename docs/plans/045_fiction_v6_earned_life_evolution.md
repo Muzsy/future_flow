@@ -1244,3 +1244,11 @@ The subscription benchmark asks a product question, not a generation rule:
 > After a base-sized reading window, has enough meaningful, earned evolution occurred that the reader wants to continue this life?
 
 That is the retention objective.
+
+## Execution checkpoint — reference investigation
+
+The original v5 synthetic-local attempt traces were read before the fix. In the creative first attempt, event goal updates used the owned goal correctly, but the unresolved decision options used invented goal IDs in `goal_progress_set`. Domain replay validates future option effects too; this is why it raised `LIFE_GOAL_MISSING`. The v6 advice covers option effects as well as current events, without creating goals or rewriting IDs.
+
+In the career second chapter, the new actor UUID was internally consistent and `actor_add` appeared in the second event. The first scene spanned both events and listed that actor. Scene validation intentionally checks the actor against `stateAfter` of the scene's first event, so the actor did not yet exist at the start of that scene. The fix explains this exact chronology rather than substituting an actor or weakening replay. The initial rejected candidate and its spent repair remain in v5 evidence.
+
+The new regression suite includes these two exact failure shapes, maximum-size bounded current-state reference projection, withheld-history isolation, typed unresolved job-change authority, new fictional actor/community details and temporal concentration under six-month canon. Labelled editor reports test deterministic routing/acceptance only; they do not prove that a real model recognizes scope lock, contrivance, repetitive endings or human credibility. That semantic question belongs to paid text evidence and independent reading.

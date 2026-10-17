@@ -1,27 +1,16 @@
 import { createHash } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
+import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 import {
-  fictionPrompts,
-  type FictionPromptVersions,
-} from '../packages/ai/src/fiction-prompts';
-import { fictionV4Policy, fictionPolicy } from '@future-flow/contracts';
+  fictionV4Policy,
+  fictionV5Policy,
+  fictionPolicy,
+} from '@future-flow/contracts';
 
-// @future-flow/contracts has not yet landed the v6 enum/default change (a
-// separate owner task supplies fictionV5Policy()/a v6-selecting
-// fictionPolicy()); until then this file names the v5 and v6 version sets
-// directly with FictionPromptVersions' widened string fields instead of
-// casting a narrower contracts-enum type. fictionPolicy() currently *is* v5
-// -- pinned explicitly here so this file keeps meaning "v5" even after the
-// contracts default moves to v6.
-const v4Versions: FictionPromptVersions = fictionV4Policy().promptVersions;
-const v5Versions: FictionPromptVersions = fictionPolicy().promptVersions;
-const v6Versions: FictionPromptVersions = {
-  planner: 'life_fiction_plan.v6',
-  writer: 'life_fiction_author.v6',
-  planReviewer: 'life_fiction_plan_review.v6',
-  fidelity: 'life_fiction_fidelity.v1',
-  editor: 'life_fiction_editor.v5',
-};
+type FictionPromptVersions = Parameters<typeof fictionPrompts>[1];
+const v4Versions = fictionV4Policy().promptVersions;
+const v5Versions = fictionV5Policy().promptVersions;
+const v6Versions = fictionPolicy().promptVersions;
 
 function hashesOf(versions: FictionPromptVersions) {
   const prompts = fictionPrompts('en', versions);
@@ -51,15 +40,15 @@ describe('fiction-prompts v6 earned-evolution and reference-integrity routing', 
   it('produces a distinct, separately versioned v6 prompt set', () => {
     expect(hashesOf(v6Versions)).toEqual({
       planner:
-        'bd9cab9a28725594bddd4fe3ef2fe5c2f04bcd971eceeff65c849edceedc292a',
+        '8c204824ca100faca7916d5b0d44d8e0faa276cfa4f5b1cd4778d9882e13cd40',
       author:
-        'ca38ba6c6aa1331e0c1c6b6b82c9ca4604dfa52b7d3a100879461b08ad3d309b',
+        'a71e65eb673c4cb28060859ceba484e91a83e4f832d0eee75717d381d56124ca',
       review:
         '3ff9ee34a84842321e22e64700a9eeaa50ae2a77cd02d64dbb56e8a1942ade97',
       fidelity:
         '0af915d7eceacd19283e6b0300e85cf014861fc57028a6f7395b0f6f651ee25b',
       editor:
-        '02aac90888113f6ca02d24aedd08bf04de5dc2ddd40b37d9f1508d5b46c1a2e4',
+        '02ea8f44d1b0d8a321e87b0d8e2cc57663be38a420a7181ebb675371a83bf738',
     });
   });
   it('keeps fidelity v1 byte-identical from v4 through v6', () => {
@@ -69,22 +58,21 @@ describe('fiction-prompts v6 earned-evolution and reference-integrity routing', 
     expect(h5).toBe(h4);
     expect(h6).toBe(h5);
   });
-  // The v5 return above is an explicit conditional, not the terminal
-  // fallthrough; v6 is now that implicit default, exactly like v5 was before
-  // this change. Any writer string outside the explicit v1-v5 literals -- not
-  // only the exact 'life_fiction_author.v6' id -- must reach the same v6 text.
-  it('reaches the v6 prompt set as the implicit default for any writer id outside the explicit v1-v5 literals', () => {
-    const unknownWriterId = fictionPrompts('en', {
-      ...v6Versions,
-      writer: 'life_fiction_author.not-yet-a-real-version',
-    });
-    expect(hashesOf(v6Versions)).toEqual(
-      Object.fromEntries(
-        Object.entries(unknownWriterId).map(([key, value]) => [
-          key,
-          createHash('sha256').update(value).digest('hex'),
-        ]),
-      ),
+  it('defaults to the selected v6 while the measured v5 route stays explicit', () => {
+    expect(fictionPrompts('en')).toEqual(fictionPrompts('en', v6Versions));
+    expect(fictionPrompts('en')).not.toEqual(fictionPrompts('en', v5Versions));
+  });
+  it('states the exact scene-first-event rule and includes future option goal effects', () => {
+    for (const text of [
+      fictionPrompts('en').planner,
+      fictionPrompts('en').author,
+    ]) {
+      expect(text).toContain('FIRST EVENT REFERENCED BY THAT SCENE');
+      expect(text).toContain('every unresolved decision option');
+    }
+    expect(fictionPrompts('en').editor).toContain('set distinctEnding=false');
+    expect(fictionPrompts('en').editor).toContain(
+      'materially unchanged without a deliberate dramatic reason',
     );
   });
   it('adds earned-evolution, reference-integrity, decision-boundary, temporal-focus and contrivance-calibration craft only from v6 onward', () => {

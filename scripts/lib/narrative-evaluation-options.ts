@@ -18,7 +18,7 @@ export const evaluationPrices = {
   },
 };
 export const evaluationPriceEvidence = {
-  checkedOn: '2026-10-15',
+  checkedOn: '2026-10-18',
   tier: 'default',
   context: 'short',
   source: 'https://developers.openai.com/api/docs/pricing',

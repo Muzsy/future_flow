@@ -124,7 +124,7 @@ describe('bounded and independently assessed narrative experiment', () => {
     ).toThrow();
     const clock = vi
       .spyOn(Date, 'now')
-      .mockReturnValue(Date.parse('2026-10-15T12:00:00Z'));
+      .mockReturnValue(Date.parse('2026-10-18T12:00:00Z'));
     try {
       const options = parseEvaluationOptions(paid, development);
       expect(options.budgetUsd).toBe(5);
