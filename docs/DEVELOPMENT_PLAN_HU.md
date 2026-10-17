@@ -215,3 +215,8 @@ Technikai ellenőrzés: 93 fájl / 998 teszt, format/docs/typecheck/build/schema
 ### Valódi v4 részdiagnózis — 2026-10-17
 
 Külön tulajdonosi utasításra tiszta 3809c56 forrással egy alkotói profil három főági és egy alternatív fejezete ténylegesen elkészült: négy végső kapu-PASS, 26 hívás, két javítás, 1.410585 USD accounted, P95 420594 ms. Az ügynöki olvasás konkrét jeleneteket és érdemben eltérő ágakat talált, de a határidős/órakeretes lehetőségek visszatérése nyitott kockázat. A köztes elutasítások részletes oka completion után nem maradt meg; a következő szintetikus eval előtt ez külön diagnosztikai javítás. F05/F06/N08/N09 továbbra PARTIAL/nyitott: független emberi H1/H2, külön editor-kalibráció és ár/idő/rollout döntések hiányoznak. Globális ledger 255 / 8.204535 USD, maradék 1.795465 USD a 10-ből. Nincs éles módosítás vagy ledger-reset. Részletek: STATUS és a mérési runbook.
+
+
+### 045 — v5 progression/behavior + local repair provenance
+
+F05/F06 follow-up IN PROGRESS, merged PR #48 actual base 058555005e7e85905cf53081bfa18226780cf9ac. [045 részletes végrehajtás](plans/045_fiction_v4_1_real_quality_iteration.md). V1–v4 freeze, külön v5/quality2.3/editorv4, report1.2 változatlan; az ajánlatlánc és azonnali önkorrekció visszatérésének célzott javítása, eval-only elutasítás/javítási bizonyíték. Cél: két profil hat-hat főági fejezete és két fork, majd külön emberi audit. Owner numeric authorization: legfeljebb új 7 USD / kumulatív 15.204535 USD, korábbi ledger megőrzésével. Technical/real/human eredmény külön; N09/production nem része.

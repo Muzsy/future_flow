@@ -53,7 +53,7 @@ export type EvaluationAttemptUsage = z.infer<
 export const evaluationAttemptRepairFeedbackSchema = z
   .object({
     mode: z.enum(['prose_only', 'author_package']).optional(),
-    message: z.string().min(1).max(8000),
+    message: z.string().min(1).max(100000),
   })
   .strict();
 export type EvaluationAttemptRepairFeedback = z.infer<
@@ -333,7 +333,7 @@ function sanitizeDiagnosticText(
   for (const secret of secrets) {
     if (secret) cleaned = cleaned.split(secret).join('[REDACTED]');
   }
-  return cleaned.trim().slice(0, 8000);
+  return cleaned;
 }
 
 export function extractAttemptRepairFeedback(
@@ -499,26 +499,27 @@ function normalizeUsage(rawUsage: unknown): EvaluationAttemptUsage | null {
     output_tokens?: unknown;
     input_tokens_details?: { cached_tokens?: unknown } | null;
   };
-  const inputTokens =
-    typeof u.input_tokens === 'number' &&
-    Number.isSafeInteger(u.input_tokens) &&
-    u.input_tokens >= 0
-      ? u.input_tokens
-      : 0;
-  const outputTokens =
-    typeof u.output_tokens === 'number' &&
-    Number.isSafeInteger(u.output_tokens) &&
-    u.output_tokens >= 0
-      ? u.output_tokens
-      : 0;
-  const cachedRaw = u.input_tokens_details?.cached_tokens;
-  const cachedInputTokens =
-    typeof cachedRaw === 'number' &&
-    Number.isSafeInteger(cachedRaw) &&
-    cachedRaw >= 0
-      ? cachedRaw
-      : 0;
-  return { inputTokens, outputTokens, cachedInputTokens };
+  const input = u.input_tokens,
+    output = u.output_tokens;
+  const cached = u.input_tokens_details?.cached_tokens ?? 0;
+  if (
+    typeof input !== 'number' ||
+    !Number.isSafeInteger(input) ||
+    input < 0 ||
+    typeof output !== 'number' ||
+    !Number.isSafeInteger(output) ||
+    output < 0 ||
+    typeof cached !== 'number' ||
+    !Number.isSafeInteger(cached) ||
+    cached < 0 ||
+    cached > input
+  )
+    return null;
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    cachedInputTokens: cached,
+  };
 }
 
 function normalizeRequestId(
@@ -619,10 +620,10 @@ export function verifyAttemptTrace(
         );
     }
     if (attempt.status === 'completed') {
-      if (attempt.errorCode !== null || attempt.usage === null)
+      if (attempt.errorCode !== null)
         throw new DomainError(
           'EVAL_STATE_INVALID',
-          'Completed diagnostic attempt must have usage and no errorCode.',
+          'Completed diagnostic attempt must have no errorCode; missing usage stays unknown.',
         );
     } else if (attempt.errorCode === null) {
       throw new DomainError(
@@ -662,9 +663,14 @@ export function verifyTraceMatchesReceipts(
         candidate.inputHash === receipt.inputHash &&
         candidate.outputHash === receipt.outputHash &&
         candidate.requestId === (receipt.requestId ?? null) &&
-        candidate.usage?.inputTokens === receipt.inputTokens &&
-        candidate.usage?.outputTokens === receipt.outputTokens &&
-        candidate.usage?.cachedInputTokens === (receipt.cachedInputTokens ?? 0)
+        (candidate.usage === null
+          ? receipt.inputTokens === 0 &&
+            receipt.outputTokens === 0 &&
+            (receipt.cachedInputTokens ?? 0) === 0
+          : candidate.usage.inputTokens === receipt.inputTokens &&
+            candidate.usage.outputTokens === receipt.outputTokens &&
+            candidate.usage.cachedInputTokens ===
+              (receipt.cachedInputTokens ?? 0))
       ) {
         matched = true;
         break;
@@ -910,6 +916,39 @@ export function verifyExistingEvaluationAttempts(
   return traces;
 }
 
+// Evaluation only: capture the JSON text before SDK schema parsing can throw
+// away a malformed candidate and its known token usage. Never copy headers or
+// the complete SDK response into diagnostic storage.
+export function evaluationResponseOutput(response: {
+  output?: unknown;
+}): unknown {
+  if (!Array.isArray(response.output)) return null;
+  for (const item of response.output) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      item.type !== 'message' ||
+      !Array.isArray(item.content)
+    )
+      continue;
+    for (const content of item.content) {
+      if (
+        !content ||
+        typeof content !== 'object' ||
+        content.type !== 'output_text' ||
+        typeof content.text !== 'string'
+      )
+        continue;
+      try {
+        return JSON.parse(content.text);
+      } catch {
+        return content.text;
+      }
+    }
+  }
+  return null;
+}
+
 export function wrapEvaluationParse<
   TParams extends { model: string },
   TResponse extends {
@@ -941,110 +980,106 @@ export function wrapEvaluationParse<
       config.env,
     );
     const started = Date.now();
-    try {
-      const response = await config.execute(parameters, ordinal);
-      const latencyMs = Math.max(0, Date.now() - started);
-      const responseModel =
-        typeof response.model === 'string' && response.model.trim()
-          ? response.model
-          : parameters.model;
-      const usage = normalizeUsage(response.usage) ?? {
-        inputTokens: 0,
-        outputTokens: 0,
-        cachedInputTokens: 0,
-      };
-      const requestId = normalizeRequestId(response._request_id, config.env);
-
-      let status: EvaluationAttemptRecord['status'] = 'completed';
-      let errorCode: string | null = null;
-      let output: unknown = null;
-      let outputHash: string | null = null;
-
-      if (
-        response.status !== 'completed' ||
-        response.output_parsed === undefined ||
-        response.output_parsed === null
-      ) {
-        status = 'incomplete';
-        errorCode = 'AI_INCOMPLETE_OR_REFUSED';
-      } else {
-        const rawFormat = (
-          parameters as {
-            text?: { format?: { $parseRaw?: (raw: string) => unknown } };
-          }
-        ).text?.format;
-        const normalized = normalizeParsedProviderOutput(
-          task,
-          response.output_parsed,
-          rawFormat,
-        );
-        output = normalized.output;
-        outputHash = normalized.outputHash;
-        if (normalized.malformed) {
-          status = 'malformed';
-          errorCode = 'AI_INVALID_SCHEMA';
-        }
-      }
-
-      config.transports.push({
-        caseId: config.binding.caseId,
-        task,
-        latencyMs,
-      });
-      await config.saveTransports();
+    const persist = async (
+      record: Omit<EvaluationAttemptRecord, 'caseId' | 'ordinal'>,
+    ) => {
+      // Persistence is outside the upstream try/catch: an I/O failure must not
+      // invent a second transport attempt or discard known response usage.
       await appendEvaluationAttempt(
         config.outDir,
         config.binding,
-        {
-          task,
-          model: responseModel,
-          requestHash,
-          inputHash,
-          outputHash,
-          output,
-          status,
-          errorCode,
-          usage,
-          requestId,
-          latencyMs,
-          repairFeedback,
-        },
+        record,
         config.env,
       );
-      return response;
+      config.transports.push({
+        caseId: config.binding.caseId,
+        task,
+        latencyMs: record.latencyMs,
+      });
+      await config.saveTransports();
+    };
+    let response: TResponse;
+    try {
+      response = await config.execute(parameters, ordinal);
     } catch (error) {
-      const latencyMs = Math.max(0, Date.now() - started);
       const rawReqId =
         error && typeof error === 'object'
           ? ((error as { request_id?: unknown; requestId?: unknown })
               .request_id ?? (error as { requestId?: unknown }).requestId)
           : null;
-      config.transports.push({
-        caseId: config.binding.caseId,
+      await persist({
         task,
-        latencyMs,
+        model: parameters.model,
+        requestHash,
+        inputHash,
+        outputHash: null,
+        output: null,
+        status: 'failed',
+        errorCode: classifyFailedAttemptError(error),
+        usage: null,
+        requestId: normalizeRequestId(rawReqId, config.env),
+        latencyMs: Math.max(0, Date.now() - started),
+        repairFeedback,
       });
-      await config.saveTransports();
-      await appendEvaluationAttempt(
-        config.outDir,
-        config.binding,
-        {
-          task,
-          model: parameters.model,
-          requestHash,
-          inputHash,
-          outputHash: null,
-          output: null,
-          status: 'failed',
-          errorCode: classifyFailedAttemptError(error),
-          usage: null,
-          requestId: normalizeRequestId(rawReqId, config.env),
-          latencyMs,
-          repairFeedback,
-        },
-        config.env,
-      );
       throw error;
     }
+    const latencyMs = Math.max(0, Date.now() - started);
+    const model =
+      typeof response.model === 'string' && response.model.trim()
+        ? response.model
+        : parameters.model;
+    const usage = normalizeUsage(response.usage);
+    const requestId = normalizeRequestId(response._request_id, config.env);
+    let status: EvaluationAttemptRecord['status'] = 'completed';
+    let errorCode: string | null = null;
+    let output: unknown = null;
+    let outputHash: string | null = null;
+    if (
+      response.status !== 'completed' ||
+      response.output_parsed === undefined ||
+      response.output_parsed === null
+    ) {
+      status = 'incomplete';
+      errorCode = 'AI_INCOMPLETE_OR_REFUSED';
+      if (
+        response.output_parsed !== undefined &&
+        response.output_parsed !== null
+      ) {
+        output = JSON.parse(JSON.stringify(response.output_parsed));
+        outputHash = hash(output);
+      }
+    } else {
+      const format = (
+        parameters as {
+          text?: { format?: { $parseRaw?: (raw: string) => unknown } };
+        }
+      ).text?.format;
+      const normalized = normalizeParsedProviderOutput(
+        task,
+        response.output_parsed,
+        format,
+      );
+      output = normalized.output;
+      outputHash = normalized.outputHash;
+      if (normalized.malformed) {
+        status = 'malformed';
+        errorCode = 'AI_INVALID_SCHEMA';
+      }
+    }
+    await persist({
+      task,
+      model,
+      requestHash,
+      inputHash,
+      outputHash,
+      output,
+      status,
+      errorCode,
+      usage,
+      requestId,
+      latencyMs,
+      repairFeedback,
+    });
+    return response;
   };
 }

@@ -128,3 +128,10 @@ A teljes szöveg ügynöki olvasása szerint a művek konkrétak, jó párbeszé
 A completed job takarítása a köztes elutasítások részletes jelentését nem őrizte meg. A receipts/transport alapján a főági harmadik editorial utáni prózajavítása és az alternatíva fidelity utáni csomagjavítása látható, de az első pontos kifogás/pontozás nem rekonstruálható. Ezt nem szabad kitalálni vagy végső hibátlanságként jelenteni. Következő eval előtt a szintetikus, lokális köztes gate-evidence megőrzése külön javítandó, production privacy-retention lazítása nélkül.
 
 A visszaolvasott globális ledger **255 hívás / 8.204535 USD accounted**, 7.5994029 USD usage-becslés; **1.795465 USD maradék** az engedélyezett összesen 10-ből. Nulla ismeretlen usage, aktív vagy hozzárendeletlen foglalás. Az új valódi részdiagnózis nem production apply, main merge, modellváltás, budget/window reset, teljes H2 vagy release-engedély.
+
+
+## 045 — célzott v5 minőségi iteráció folyamatban
+
+PR #48 explicit tulajdonosi engedéllyel beolvadt: `058555005e7e85905cf53081bfa18226780cf9ac`, az új fejlesztés tényleges alapja. [045 terv](plans/045_fiction_v4_1_real_quality_iteration.md): külön v5/quality2.3/editorv4 jelölt a külső ajánlatra épülő történetfejlődés és a rendezett önkorrekció ismétlődése ellen; v1–v4 és a report1.2/limits/privacy megmarad. Szintetikus helyi attempt-provenance és 2×6+2fork valódi mérés készül. A mérési yield összesítő a negyedik–hatodik főági fejezetet is beszámítja; a régi háromperiodusos páros benchmark változatlan.
+
+A tulajdonos az új fejlesztési keretet összesen **7 USD-ra** engedélyezte. Nyitó canonical ledger: 255 hívás / 8.204535 USD accounted; új kumulatív ceiling **15.204535 USD**, új ledger/reset nélkül. Ez engedély, nem szolgáltatói egyenleg vagy elköltött összeg. A további API-fogyasztás céllal/költségbecsléssel előre jelzett és utólag elszámolt lesz; production/model/beta-window változás nincs. A valódi mérés és emberi audit eredménye még nem áll rendelkezésre.

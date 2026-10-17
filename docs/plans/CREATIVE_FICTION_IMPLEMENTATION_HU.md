@@ -637,3 +637,8 @@ A végrehajtó ne álljon meg az engedékenyebb promptnál. A fejlesztés akkor 
 A [részletes végrehajtási terv](alterward_fiction_human_quality_development_plan_codex.md) a PR #47 utáni állapotra épül. V3 freeze után új v4 prompt-policy és editor v3/report 1.2.0, három új explicit kapu, nyolcperiodusos kompakt signature és hatperiodusos creative-only offline diagnózis készült. A régi benchmark marad; külön hash-bound teljes sequence/fork olvasói értékelés egészíti ki. A jó jelenetírás/StoryFact/owned-prefix architektúra megmarad.
 
 F05 és F06 továbbra PARTIAL: offline készültségből nem lesz emberi vagy éles PASS. Előbb külön editor-kalibráció és H1/H2 olvasói mérés, utána tulajdonosi gazdaságossági/időkorlát- és exact-target rollout döntés kell. A kétprofilos hat-hat fejezet költsége nem vállalható automatikusan a megmaradt development keretből.
+
+
+## F05 follow-up 045 — v4.1/v5 sequence quality
+
+[045](045_fiction_v4_1_real_quality_iteration.md) starts from merged PR #48 (`058555005e7e85905cf53081bfa18226780cf9ac`). It separately versions a v5 candidate against repeated external-opportunity progression and tidy self-correction, preserves measured v1–v4 and adds synthetic-local repair attempt provenance. The target is two profiles × six main periods plus one alternative third per profile (14 final texts), with separate offline, real provider and human evidence. Five normal/max9 physical requests, one repair, unchanged model/context/privacy/production boundaries. Narrator personas and model experiments are out of scope. Status and real evidence belong in STATUS/evaluation runbook; no literary PASS before human reading.

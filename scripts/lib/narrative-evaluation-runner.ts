@@ -77,6 +77,7 @@ import {
   evaluationPrices,
   evaluationPriceEvidence,
   verifyEvaluationAuthorization,
+  evaluationApprovedCumulativeBudgetUsd,
   type EvaluationOptions,
 } from './narrative-evaluation-options';
 import {
@@ -85,6 +86,7 @@ import {
 } from './narrative-evaluation-artifacts';
 import {
   wrapEvaluationParse,
+  evaluationResponseOutput,
   verifyExistingEvaluationAttempts,
   verifyTraceCoversCheckpointReceipts,
   type AttemptTraceBinding,
@@ -191,6 +193,21 @@ function read<T>(path: string): T | null {
 }
 function code(error: unknown) {
   return error instanceof DomainError ? error.code : 'EVAL_INTERRUPTED';
+}
+function shouldStopEvaluation(error: unknown, options: EvaluationOptions) {
+  const c = code(error);
+  return (
+    ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(c) ||
+    (options.kind === 'paid' &&
+      [
+        'AI_QUOTA_EXHAUSTED',
+        'AI_AUTH_FAILED',
+        'AI_RATE_LIMIT',
+        'AI_PROVIDER_FAILED',
+        'AI_REQUEST_FAILED',
+        'AI_INCOMPLETE_OR_REFUSED',
+      ].includes(c))
+  );
 }
 function sourceIdentity() {
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -315,16 +332,27 @@ function clientFor(
       maxRetries: 0,
       timeout: options.creative ? 180000 : 120000,
     });
-    const original = sdk.responses.parse.bind(sdk.responses);
+    type ParseParameters = Parameters<typeof sdk.responses.parse>[0];
     const parse = wrapEvaluationParse({
       outDir: options.out,
       binding: caseBinding,
       env,
       transports,
       saveTransports,
-      execute: (parameters: Parameters<typeof original>[0]) =>
-        // Explicit standard tier; do not inherit a project's faster, pricier default.
-        original({ ...parameters, service_tier: 'default' }),
+      execute: async (parameters: ParseParameters) => {
+        // Same API request, tier and store=false. Parse in the provider AFTER
+        // local capture so even a schema-invalid candidate retains evidence.
+        const response = await sdk.responses.create({
+          ...parameters,
+          stream: false,
+          service_tier: 'default',
+        });
+        return {
+          ...response,
+          _request_id: response._request_id,
+          output_parsed: evaluationResponseOutput(response),
+        };
+      },
     }) as typeof sdk.responses.parse;
     return { responses: { parse } } as unknown as OpenAI;
   }
@@ -1074,7 +1102,7 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
-          10,
+          evaluationApprovedCumulativeBudgetUsd,
         )
       : undefined;
   try {
@@ -1352,12 +1380,7 @@ async function runEvaluationUnlocked(
                   chapter: saved?.checkpoints.chapter ?? null,
                   editorialReport: saved?.checkpoints.editorialReport ?? null,
                 });
-                if (
-                  ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-                    code(error),
-                  )
-                )
-                  stop = true;
+                if (shouldStopEvaluation(error, options)) stop = true;
                 break;
               } finally {
                 clearInterval(heartbeat);
@@ -1463,12 +1486,7 @@ async function runEvaluationUnlocked(
                 chapter: null,
                 editorialReport: null,
               });
-              if (
-                ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-                  code(error),
-                )
-              )
-                stop = true;
+              if (shouldStopEvaluation(error, options)) stop = true;
             }
           }
         } finally {
@@ -1502,12 +1520,7 @@ async function runEvaluationUnlocked(
               null,
             editorialReport: state?.responses.editor?.output ?? null,
           });
-          if (
-            ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-              code(error),
-            )
-          )
-            break;
+          if (shouldStopEvaluation(error, options)) break;
         }
       }
     for (const sample of report.samples) {
