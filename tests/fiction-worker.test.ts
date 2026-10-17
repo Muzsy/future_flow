@@ -30,6 +30,7 @@ import {
 } from '@future-flow/core';
 import {
   fictionContextSchema,
+  fictionV3Policy,
   FICTION_MODE,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -142,6 +143,33 @@ async function saved(job: LifeJob) {
 }
 
 describe('creative final author package through real guarded provider and database', () => {
+  it('finishes an already queued v3 snapshot without upgrading its prompt/report policy', async () => {
+    const f = await fixture();
+    if (f.job.payload.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
+      throw Error();
+    f.job.payload.narrativeContext.policy = fictionV3Policy();
+    delete f.job.payload.narrativeContext.sequenceSignatureHistory;
+    await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
+      f.job.id,
+      JSON.stringify(f.job.payload),
+    ]);
+    f.f = fictionFixture(f.job.payload);
+    const p = provider(f);
+    await processLifeJob(f.job, jobs, p.ai);
+    const row = await saved(f.job);
+    expect(row.status).toBe('completed');
+    expect(p.parse).toHaveBeenCalledTimes(5);
+    const [period] = await db.query<{
+      narrative_artifact: {
+        policy: unknown;
+        editorialReport: { version: string };
+      };
+    }>('SELECT narrative_artifact FROM aw_periods WHERE id=$1', [
+      f.job.payload.periodId,
+    ]);
+    expect(period!.narrative_artifact.policy).toEqual(fictionV3Policy());
+    expect(period!.narrative_artifact.editorialReport.version).toBe('1.1.0');
+  });
   it('makes five calls, reviews AFTER authoring and atomically saves new fictional outcomes', async () => {
     const f = await fixture(),
       p = provider(f);
@@ -251,6 +279,50 @@ describe('creative final author package through real guarded provider and databa
     ).toHaveLength(2);
     expect((await saved(f.job)).status).toBe('completed');
   });
+  for (const flag of [
+    'systemMechanicsInvisible',
+    'distinctRhetoricalShape',
+    'distinctEnding',
+    'behavioralVariety',
+  ] as const)
+    it(`repairs v4 ${flag} with the correct bounded stage sequence`, async () => {
+      const f = await fixture();
+      expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
+        'life_fiction_author.v4',
+      );
+      const p = provider(f, (task, n, output) => {
+        if (task === 'life_narrative_editor' && n === 1)
+          return {
+            ...f.f.editor,
+            verdict: 'revise',
+            sequenceReview: { ...f.f.editor.sequenceReview, [flag]: false },
+            issues: [
+              {
+                dimension: 'novelty',
+                severity: 'major',
+                repairScope: flag === 'behavioralVariety' ? 'canon' : 'prose',
+                paragraphIndex: null,
+                eventIds: [],
+                explanation:
+                  'The current chapter repeats a prior sequence mechanism without a meaningful change.',
+                suggestedFix:
+                  'Change the repeated feature while retaining fixed boundaries and valid continuity.',
+              },
+            ],
+          };
+        return output;
+      });
+      await processLifeJob(f.job, jobs, p.ai);
+      expect(p.parse).toHaveBeenCalledTimes(
+        flag === 'behavioralVariety' ? 9 : 8,
+      );
+      expect(
+        p.parse.mock.calls.filter(
+          (c) => c[0].text.format.name === 'life_narrative_plan_review',
+        ),
+      ).toHaveLength(flag === 'behavioralVariety' ? 2 : 1);
+      expect((await saved(f.job)).status).toBe('completed');
+    });
   it('stops after a second quality failure without a partial period', async () => {
     const f = await fixture(),
       p = provider(f, (task, _n, output) =>
@@ -400,6 +472,8 @@ describe('creative final author package through real guarded provider and databa
       memory,
     );
     expect(c.storyFacts).toEqual([]);
+    expect(c.sequenceHistory ?? []).toEqual([]);
+    expect(c.sequenceSignatureHistory ?? []).toEqual([]);
     expect(spy).not.toHaveBeenCalled();
   });
   it('inherits only the owned fork prefix and remembers the alternative accepted option', async () => {
@@ -445,6 +519,16 @@ describe('creative final author package through real guarded provider and databa
     expect(
       child.payload.fictionReferences!.facts.map((x) => x.id),
     ).not.toContain(second.f.authored.storyFacts[0]!.id);
+    const context = fictionContextSchema.parse(child.payload.narrativeContext);
+    expect(context.sequenceHistory!.map((p) => p.periodId)).toEqual([
+      f.job.payload.periodId,
+    ]);
+    expect(context.sequenceSignatureHistory!.map((p) => p.periodId)).toEqual([
+      f.job.payload.periodId,
+    ]);
+    expect(
+      context.sequenceSignatureHistory!.map((p) => p.periodId),
+    ).not.toContain(secondJob.payload.periodId);
     expect(
       child.payload.narrativeContext.memory.recentChoices.at(-1)!.optionId,
     ).toBe(decision.options[1]!.id);

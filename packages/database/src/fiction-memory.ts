@@ -6,6 +6,7 @@ import {
   NARRATIVE_MEMORY_BYTES,
   type NarrativeMemory,
   type FictionSequenceEntry,
+  type FictionSequenceSignature,
   type StoryFact,
   type FictionReferences,
   type FictionArtifact,
@@ -45,7 +46,14 @@ export function boundFictionContext(
   rawMemory: NarrativeMemory,
   allFacts: StoryFact[],
   sequenceHistory?: FictionSequenceEntry[],
+  signatureHistory?: FictionSequenceSignature[],
 ) {
+  // Withholding clears both historical projections even for direct callers.
+  allFacts = rawMemory.withheld ? [] : allFacts;
+  sequenceHistory = rawMemory.withheld ? [] : sequenceHistory;
+  const sequenceSignatureHistory = rawMemory.withheld
+    ? []
+    : structuredClone(signatureHistory ?? []).slice(-8);
   const memory = structuredClone(rawMemory);
   let facts = memory.withheld
     ? []
@@ -79,15 +87,17 @@ export function boundFictionContext(
   // Pin unresolved thread evidence, not every historical fact labelled promise.
   // Completed allocations can also be recorded as promises; keeping all of them
   // forever would exhaust context despite their full durable archive.
-  for (const f of allFacts)
-    if (mandatory.has(f.id) && !facts.some((a) => a.id === f.id))
-      facts.unshift(f);
+  const selectedFacts = new Set(facts.map((f) => f.id));
+  facts = allFacts.filter(
+    (f) => mandatory.has(f.id) || selectedFacts.has(f.id),
+  );
   const size = () =>
     Buffer.byteLength(
       JSON.stringify({
         memory,
         storyFacts: facts,
         ...(sequenceHistory ? { sequenceHistory } : {}),
+        ...(signatureHistory ? { sequenceSignatureHistory } : {}),
       }),
       'utf8',
     );
@@ -122,6 +132,8 @@ export function boundFictionContext(
       facts.findIndex((f) => !mandatory.has(f.id)),
       1,
     );
+  while (size() > NARRATIVE_MEMORY_BYTES && sequenceSignatureHistory.length)
+    sequenceSignatureHistory.shift();
   if (size() > NARRATIVE_MEMORY_BYTES || facts.length > 24)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -132,6 +144,7 @@ export function boundFictionContext(
     memory,
     storyFacts: facts,
     ...(sequenceHistory ? { sequenceHistory } : {}),
+    ...(signatureHistory ? { sequenceSignatureHistory } : {}),
   });
 }
 export async function personalFictionContext(
@@ -152,10 +165,23 @@ export async function personalFictionContext(
     [branchId, userId],
   );
   const active = new Map<string, StoryFact>();
+  const signatures: FictionSequenceSignature[] = [];
   for (const row of rows) {
     if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0')
       continue;
     const artifact = fictionArtifactSchema.parse(row.artifact);
+    if (artifact.editorialReport.version === '1.2.0') {
+      if (
+        artifact.policy.qualityPolicyVersion !== '2.2.0' ||
+        artifact.editorialReport.sequenceSignature.periodId !== row.period_id ||
+        hash(artifact.editorialReport) !== artifact.bindings.editorialOutputHash
+      )
+        throw new DomainError(
+          'NARRATIVE_CONTEXT_INVALID',
+          'Historical sequence signature differs from its owned artifact proof.',
+        );
+      signatures.push(artifact.editorialReport.sequenceSignature);
+    }
     for (const fact of artifact.storyFacts) {
       if (fact.supersedesFactId) active.delete(fact.supersedesFactId);
       active.set(fact.id, fact);
@@ -182,7 +208,12 @@ export async function personalFictionContext(
       ending: row.chapter.body.slice(-500),
     };
   });
-  return boundFictionContext(memory, [...active.values()], sequenceHistory);
+  return boundFictionContext(
+    memory,
+    [...active.values()],
+    sequenceHistory,
+    signatures.slice(-8),
+  );
 }
 
 export type FictionCommit = {

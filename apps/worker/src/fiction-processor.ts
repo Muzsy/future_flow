@@ -16,6 +16,7 @@ import {
   evaluateNarrativePlanReview,
   validateNarrativePlanReview,
   evaluateFictionEditorialGate,
+  fictionProseRepairAllowed,
   validateFictionEditorialReport,
   type FictionRepair,
 } from '@future-flow/core';
@@ -387,12 +388,7 @@ export async function processFictionLifeJob(
       }
       const report = fictionEditorialReportSchema.parse(editorial);
       validateFictionEditorialReport(input, authored, report);
-      proseOnly =
-        !report.issues.some((i) => i.repairScope === 'canon') &&
-        (report.version === '1.0.0' ||
-          (report.sequenceReview.distinctDramaticStructure &&
-            report.sequenceReview.independentProgression &&
-            report.sequenceReview.characterAgency));
+      proseOnly = fictionProseRepairAllowed(report);
       if (!evaluateFictionEditorialGate(input, report).passed)
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',

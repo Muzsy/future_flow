@@ -29,6 +29,7 @@ export type EvaluationOptions = {
   approvalId: string | null;
   allowPaid: boolean;
   ratingsFile: string | null;
+  sequenceRatingsFile?: string | null;
   choicesFile: string | null;
   models: { event: string; story: string; check: string };
   maxMeanCostUsd: number | null;
@@ -52,6 +53,8 @@ export function parseEvaluationOptions(
     '--budget-usd',
     '--approval-id',
     '--ratings-file',
+    '--sequence-ratings',
+    '--sequence-ratings-file',
     '--choices-file',
     '--event-model',
     '--story-model',
@@ -79,6 +82,8 @@ export function parseEvaluationOptions(
       invalid('Unknown, duplicate or incomplete evaluation option.');
     values.set(key, argv[++i]!);
   }
+  if (values.has('--sequence-ratings') && values.has('--sequence-ratings-file'))
+    invalid('Duplicate sequence ratings option.');
   const kind = values.get('--mode') ?? 'offline';
   if (!['offline', 'paid', 'assess'].includes(kind))
     invalid('Unsupported evaluation mode.');
@@ -93,8 +98,13 @@ export function parseEvaluationOptions(
   )
     invalid('Only the checked synthetic fixtures are allowed.');
   const periods = Number(values.get('--periods') ?? 3);
-  if (!Number.isInteger(periods) || periods < 1 || periods > 3)
-    invalid('Evaluation requires one to three periods.');
+  const maxPeriods = boolean.has('--creative-only') ? 6 : 3;
+  if (!Number.isInteger(periods) || periods < 1 || periods > maxPeriods)
+    invalid(
+      boolean.has('--creative-only')
+        ? 'Creative-only evaluation requires one to six periods.'
+        : 'Evaluation requires one to three periods.',
+    );
   const models = {
     event: values.get('--event-model') ?? 'gpt-6.1-sol',
     story: values.get('--story-model') ?? 'gpt-6.1-sol',
@@ -163,7 +173,15 @@ export function parseEvaluationOptions(
       invalid('Operational limits must be positive.');
     return value;
   };
-  if (kind === 'assess' && !values.has('--ratings-file'))
+  const sequenceRatingsFile =
+    values.get('--sequence-ratings') ??
+    values.get('--sequence-ratings-file') ??
+    null;
+  if (
+    kind === 'assess' &&
+    !values.has('--ratings-file') &&
+    !sequenceRatingsFile
+  )
     invalid('Assessment requires human ratings.');
   return {
     kind: kind as EvaluationOptions['kind'],
@@ -180,6 +198,7 @@ export function parseEvaluationOptions(
     approvalId,
     allowPaid,
     ratingsFile: values.get('--ratings-file') ?? null,
+    ...(sequenceRatingsFile ? { sequenceRatingsFile } : {}),
     choicesFile: values.get('--choices-file') ?? null,
     maxMeanCostUsd: number('--max-mean-cost-usd'),
     maxP95Ms: number('--max-p95-ms'),
@@ -220,6 +239,8 @@ export function verifyEvaluationAuthorization(
   if (options.approvalId !== null)
     args.push('--approval-id', options.approvalId);
   if (options.ratingsFile) args.push('--ratings-file', options.ratingsFile);
+  if (options.sequenceRatingsFile)
+    args.push('--sequence-ratings', options.sequenceRatingsFile);
   if (options.choicesFile) args.push('--choices-file', options.choicesFile);
   if (options.maxMeanCostUsd !== null)
     args.push('--max-mean-cost-usd', String(options.maxMeanCostUsd));

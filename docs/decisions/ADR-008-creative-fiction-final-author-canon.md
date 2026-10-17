@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 ---
 
 # ADR-008 — Creative fiction closes canon after authoring
@@ -50,3 +50,9 @@ Freeze five normal/max-nine physical requests and one global content repair in t
 ## Sequence quality amendment — 2026-10-16
 
 Direct reading found repeated scene-resolution and ending patterns despite novelty=4. New qualityPolicy 2.1.0 freezes planner/author/reviewer v3 and editor v2/report 1.1.0, retains all previous policies, and includes owned bounded scene/opening/ending sequence evidence. Every editorial dimension must reach 4 and verdict must pass; four explicit sequence flags and exact comparison coverage are mandatory. Structural repetition requires package repair. A recurring character or motif can earn its place through changed causality; novelty does not require spectacle. No new routine call or additional repair is introduced. Automatic scores remain insufficient for human quality acceptance.
+
+## Human-quality amendment — 2026-10-17
+
+The v4 candidate freezes measured v1–v3 behavior and selects planner/author/reviewer v4, editor v3/report 1.2.0 and qualityPolicy 2.2.0 for new jobs only. Three additional flags check rhetorical shape, invisible system mechanics and behavioral variety. Compact versioned signatures compare up to eight owned historical periods alongside the protected latest three raw scene/opening/ending entries within the same 12 KiB bound. Optional signatures cannot displace required continuity; withholding clears both layers. Historical artifacts remain unchanged. Behavioral/structural failures require canon-scoped repair evidence; surface-only failures may preserve the exact reviewed package. No additional normal request, repair or model change.
+
+The primary quality target is immersion, credible characters, meaningful development and continuation desire. AI suspicion is secondary diagnostic feedback. Offline fixture tests prove gate routing and lifecycle behavior, not model recognition or literary quality. Separate human H1 (three chapters) and H2 (two profiles, six chapters each plus an alternative fork) remain unmeasured; their thresholds require an owner decision before measurement. Existing release and production gates remain unchanged.

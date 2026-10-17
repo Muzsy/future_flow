@@ -171,3 +171,23 @@ Az örökölt választások azonos időbélyeges sorrendhibájának javítását
 ## Legutóbbi lezárt diagnózis
 
 A 04cee85 új szekvenciális policyja két profil három-három teljes fejezetét fogadta el, mind öt hívás/javítás nélkül, minden score >=4. Célzott editor-kalibrációban a régi pozitív kontroll átment, az ismétlődő harmadik negatív kontroll elutasítva (novelty 3, három sequence flag false). Az első fork két plannerrel hibás latest-choice sorrend miatt megállt; az e5e7ed2 új forrású, explicit régi prefixet öröklő friss forkja öt hívással átment. Az eredeti failed job és díja megmaradt, a két forrás bizonyítéka külön van. Global ledger 229 hívás / 6,79395 USD accounted, 6,3036081 USD usage-becslés, nulla ismeretlen/hozzárendeletlen foglalás, maradék 3,20605 USD a 10-ből. Részletes eredmények és korlátok: [STATUS](../STATUS_HU.md). A complete/qualityRelease flag false; a kód CI-je és a kis mintás modellkapu nem független emberi benchmark.
+
+## Creative v4: külön sorozatértékelés és bizonyítéktípusok
+
+A [végrehajtási terv](../plans/alterward_fiction_human_quality_development_plan_codex.md) a régi vak fejezetpáros benchmark mellé teljes sorozatokat és közös prefixű alternatív ágakat vizsgáló, hash-bound olvasói anyagot ad. Creative-only diagnosztikában legfeljebb hat period kérhető; a régi legacy/narrative páros és fixed-canon utak maximuma három marad. A fejezetpontok és policy/model címkék ne szerepeljenek az olvasói kéziratban. A feltöltött értékelés kizárólag a hozzá tartozó változatlan snapshotra, ismert sample-re és érvényes bekezdésszámra hivatkozhat; reviewer/sequence duplikáció hibás.
+
+Az elsődleges eredmények az elmerülés, folytatási kedv, szereplői hitelesség és folytonosság. AI-gyanú másodlagos; új automatikus humán release-küszöb nincs. A diagnostic-ai csoport eredménye külön összesül, emberi bizonyítékot nem ad. H1 korai visszajelzéshez háromfejezetes, H2 tartós változatossághoz kétprofilos hat-hat fejezetes olvasás és legalább egy alternatív fork szükséges; a 4–6. fejezetekre külön visszajelzéssel. A szükséges reviewer-létszám és a későbbi kiadási küszöb külön owner-döntés.
+
+Offline fixture és hatperiodusos mock futás technikai bizonyíték. Valódi editor-hibafelismeréshez külön, címkéket elrejtő pozitív/negatív kontrollkalibráció kell; friss, promptfinomításhoz nem használt szövegeken emberi olvasás szükséges. Ez összhangban áll az [OpenAI értékelési útmutatójával](https://developers.openai.com/api/docs/guides/evaluation-best-practices): az automatikus mérést emberi ítélettel kell összevetni és kalibrálni.
+
+Az öt normál/max9 kérés és egy repair változatlan, de a hosszabb prompt és metadata költség- vagy időtöbbletét ez nem zárja ki. Új valódi mérés nélkül nincs új egységköltség- vagy latency-ígéret. A korábbi cumulative ledger marad; ez a fejlesztés nem engedélyez paid corpusfuttatást vagy keretemelést.
+
+Offline használat (friss, titkokat nem tartalmazó helyi outputkönyvtár):
+
+```bash
+pnpm evaluate:narrative --mode offline --creative-only --periods 6 --out .local/narrative-evaluation/offline-human-v4
+```
+
+Az olvasói anyag: `human-review/sequence-index.html`, `sequence-bundles.json`, `sequence-ratings-template.json`; az unblinded kulcs az output gyökerében marad. Külön értékelés: `--mode assess --creative-only --periods 6 --out <same-output> --sequence-ratings <ratings.json>`. Ez a parancs nem generál provider-munkát. A folytatott futás a mentett rating inputokat az aktuális bundle-hashhez újraellenőrzi; eltérő snapshothoz tartozó cache nem kapcsolódhat az új riporthoz.
+
+2026-10-17-i technikai próba: nyolc profil × hat főági period + két alternatív fork, 50 mock minta / 250 transport, nulla failure/repair, 8 main + 2 branch bundle; 93 tesztfájl / 998 teszt. Valódi editor-kalibráció és emberi H1/H2 eredmény továbbra nincs.

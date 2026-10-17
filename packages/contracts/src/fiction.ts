@@ -41,23 +41,30 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v1',
           'life_fiction_plan.v2',
           'life_fiction_plan.v3',
+          'life_fiction_plan.v4',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
           'life_fiction_author.v2',
           'life_fiction_author.v3',
+          'life_fiction_author.v4',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
           'life_fiction_plan_review.v2',
           'life_fiction_plan_review.v3',
+          'life_fiction_plan_review.v4',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
-        editor: z.enum(['life_fiction_editor.v1', 'life_fiction_editor.v2']),
+        editor: z.enum([
+          'life_fiction_editor.v1',
+          'life_fiction_editor.v2',
+          'life_fiction_editor.v3',
+        ]),
       })
       .strict(),
     memoryVersion: z.literal('2.0.0'),
-    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0']),
+    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0', '2.2.0']),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
     targetWords: z
@@ -71,8 +78,13 @@ export const fictionPolicySchema = z
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       policy.promptVersions.editor !==
-        (v === 'v3' ? 'life_fiction_editor.v2' : 'life_fiction_editor.v1') ||
-      policy.qualityPolicyVersion !== (v === 'v3' ? '2.1.0' : '2.0.0')
+        (v === 'v4'
+          ? 'life_fiction_editor.v3'
+          : v === 'v3'
+            ? 'life_fiction_editor.v2'
+            : 'life_fiction_editor.v1') ||
+      policy.qualityPolicyVersion !==
+        (v === 'v4' ? '2.2.0' : v === 'v3' ? '2.1.0' : '2.0.0')
     )
       ctx.addIssue({
         code: 'custom',
@@ -113,7 +125,7 @@ export function fictionV2Policy(): FictionPolicy {
   };
 }
 // New sequence-aware policy never rewrites a queued v1/v2 snapshot.
-export function fictionPolicy(): FictionPolicy {
+export function fictionV3Policy(): FictionPolicy {
   const previous = fictionV2Policy();
   return {
     ...previous,
@@ -127,6 +139,127 @@ export function fictionPolicy(): FictionPolicy {
     },
   };
 }
+// Select v4 only for newly queued jobs. Historical snapshots are immutable.
+export function fictionPolicy(): FictionPolicy {
+  const previous = fictionV3Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.2.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v4',
+      writer: 'life_fiction_author.v4',
+      planReviewer: 'life_fiction_plan_review.v4',
+      editor: 'life_fiction_editor.v3',
+    },
+  };
+}
+export const fictionSequenceSignatureSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    periodId: z.uuid(),
+    dramaticEngine: z.enum([
+      'discovery',
+      'negotiation',
+      'failed_attempt',
+      'social_friction',
+      'material_experiment',
+      'external_opportunity',
+      'misunderstanding',
+      'deadline_pressure',
+      'role_reversal',
+      'relationship_shift',
+      'mixed',
+      'other',
+    ]),
+    turningPointDriver: z.enum([
+      'protagonist',
+      'npc',
+      'institution',
+      'environment',
+      'artifact',
+      'chance',
+      'shared',
+      'mixed',
+    ]),
+    resolutionMode: z.enum([
+      'partial_resolution',
+      'unresolved',
+      'reframe',
+      'commitment',
+      'withdrawal',
+      'experiment',
+      'external_response',
+      'consequence',
+      'mixed',
+    ]),
+    endingMode: z.enum([
+      'open_choice',
+      'tableau',
+      'dialogue',
+      'action_in_progress',
+      'discovery',
+      'consequence',
+      'quiet_observation',
+      'hard_stop',
+      'other',
+    ]),
+    protagonistResponse: z.enum([
+      'immediate_self_correction',
+      'defend_then_change',
+      'delayed_change',
+      'persist',
+      'misunderstand',
+      'avoid',
+      'act_without_resolution',
+      'no_correction_arc',
+      'mixed',
+    ]),
+    rhetoricalFlags: z
+      .array(
+        z.enum([
+          'balanced_antithesis',
+          'almost_then_stop',
+          'explicit_moral',
+          'object_tableau',
+          'binary_option_briefing',
+          'none',
+        ]),
+      )
+      .min(1)
+      .max(6),
+    systemLeakageFlags: z
+      .array(
+        z.enum([
+          'exact_boundary_date',
+          'contractual_guardrail',
+          'exit_clause_reassurance',
+          'allocation_accounting',
+          'none',
+        ]),
+      )
+      .min(1)
+      .max(5),
+  })
+  .strict()
+  .superRefine((s, ctx) => {
+    for (const key of ['rhetoricalFlags', 'systemLeakageFlags'] as const) {
+      const values = s[key];
+      if (
+        new Set(values).size !== values.length ||
+        (values.includes('none') && values.length !== 1)
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message:
+            'Flags must be unique; none cannot coexist with another flag.',
+        });
+    }
+  });
+export type FictionSequenceSignature = z.infer<
+  typeof fictionSequenceSignatureSchema
+>;
 export const fictionSequenceEntrySchema = z
   .object({
     periodId: z.uuid(),
@@ -151,9 +284,50 @@ export const fictionSequenceEditorialSchema = narrativeEditorialReportSchema
       .strict(),
   })
   .strict();
+export const fictionHumanEditorialSchema = fictionSequenceEditorialSchema
+  .extend({
+    version: z.literal('1.2.0'),
+    sequenceReview: fictionSequenceEditorialSchema.shape.sequenceReview
+      .extend({
+        comparedPeriodIds: z.array(z.uuid()).max(11),
+        distinctRhetoricalShape: z.boolean(),
+        systemMechanicsInvisible: z.boolean(),
+        behavioralVariety: z.boolean(),
+      })
+      .strict(),
+    sequenceSignature: fictionSequenceSignatureSchema,
+  })
+  .strict()
+  .superRefine((report, ctx) => {
+    const r = report.sequenceReview;
+    const structural =
+      !r.distinctDramaticStructure ||
+      !r.independentProgression ||
+      !r.characterAgency ||
+      !r.behavioralVariety;
+    const anyFailure =
+      structural ||
+      !r.distinctEnding ||
+      !r.distinctRhetoricalShape ||
+      !r.systemMechanicsInvisible;
+    if (anyFailure && !report.issues.length)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['issues'],
+        message: 'False sequence flags require repair evidence.',
+      });
+    if (structural && !report.issues.some((i) => i.repairScope === 'canon'))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['issues'],
+        message:
+          'Structural, agency and behavioral repetition require canon-scoped repair evidence.',
+      });
+  });
 export const fictionEditorialReportSchema = z.union([
   narrativeEditorialReportSchema,
   fictionSequenceEditorialSchema,
+  fictionHumanEditorialSchema,
 ]);
 export type FictionEditorialReport = z.infer<
   typeof fictionEditorialReportSchema
@@ -183,12 +357,18 @@ export const fictionContextSchema = z
     memory: narrativeMemorySchema,
     storyFacts: z.array(storyFactSchema).max(24),
     sequenceHistory: z.array(fictionSequenceEntrySchema).max(3).optional(),
+    sequenceSignatureHistory: z
+      .array(fictionSequenceSignatureSchema)
+      .max(8)
+      .optional(),
   })
   .strict()
   .refine(
     (c) =>
       !c.memory.withheld ||
-      (c.storyFacts.length === 0 && !c.sequenceHistory?.length),
+      (c.storyFacts.length === 0 &&
+        !c.sequenceHistory?.length &&
+        !c.sequenceSignatureHistory?.length),
     'Withheld fiction context cannot contain historical facts.',
   );
 export type FictionContext = z.infer<typeof fictionContextSchema>;
@@ -275,5 +455,19 @@ export const fictionArtifactSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((artifact, ctx) => {
+    const expected =
+      artifact.policy.qualityPolicyVersion === '2.2.0'
+        ? '1.2.0'
+        : artifact.policy.qualityPolicyVersion === '2.1.0'
+          ? '1.1.0'
+          : '1.0.0';
+    if (artifact.editorialReport.version !== expected)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['editorialReport', 'version'],
+        message: 'Artifact report version must match its frozen policy.',
+      });
+  });
 export type FictionArtifact = z.infer<typeof fictionArtifactSchema>;

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-17
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -103,3 +103,13 @@ A mostani munkaszakasz **39 hívás / 1,97411 USD accounted**: 2 kalibráció, 3
 ### Nyitott kiadási feltételek
 
 A creative-only választások naplózott indexválasztások, reviewed=false; complete=false és qualityRelease=false megmarad. Független olvasói benchmark, tulajdonosi egységköltség/időkorlát-döntés és pontos target/recovery Linux-rollout proof szükséges. A végső forrás teljes többprofilos release-benchmarkját nem helyettesíti a célzott regresszió. Az éles default legacy/üres cohort, funded ablak és béta-keret változatlan.
+
+## Emberibb történetsorozatok — v4 fejlesztési jelölt, 2026-10-17
+
+Issue #45 új, PR #47 utáni csomagja a [részletes terv](plans/alterward_fiction_human_quality_development_plan_codex.md) szerint implementált offline jelölt. Külön v4 policy, editor v3/report 1.2.0, quality 2.2.0: rendszermechanika prózai láthatatlansága, retorikai és viselkedési változatosság explicit kapukkal. A legutóbbi három raw előzmény mellett legfeljebb nyolc owned compact signature fér ugyanabba a 12 KiB contextbe. A mért v1–v3 működés megmarad.
+
+A fejlesztés offline és szintetikus; új paid történetmérés vagy production mutation nincs. A korábbi 229 hívás / 6,79395 USD ledger nem nullázódik. Az új jelölt emberi minősége még nem mért: H1 háromfejezetes és H2 kétprofilos hatfejezetes olvasói vizsgálat, továbbá editor-kalibráció külön szükséges. Az elsődleges mérce az olvasási élmény és folytatási kedv. F05/F06, a gazdaságossági/időkorlát-döntés és N09 továbbra nyitott.
+
+Helyi technikai ellenőrzés: **93 tesztfájl / 998 teszt PASS**, format/docs/typecheck/build/schemas és diff-check sikeres. A teljes creative-only offline CLI nyolc profil hat-hat főági fejezetét és két alternatív folytatását készítette el: 50 szintetikus minta / 250 mock transport, nulla hiba és nulla repair, 8 main + 2 branch olvasói bundle. Minden minta öt kérést használt, minden creative-only választás reviewed=false; complete=false és qualityRelease=false megmaradt. Ez nem valódi modell- vagy emberi minőségmérés.
+
+Claude Code a prompt/provider részt, Antigravity az evaluation eszközöket készítette; a közös integráció külön ellenőrzött. A csak olvasó Claude kódaudit két észrevétele javítva és regresszióval védett: régi kötelező StoryFactok kronologikus sorrendje, valamint valóban külön periodokat használó vegyes v2/v3/v4 history-teszt. Új emberi release-pontküszöb nincs; a mentett sorozatértékelés újraellenőrzött rating inputhoz és a teljes bundle snapshothoz kötött.

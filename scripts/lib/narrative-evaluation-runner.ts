@@ -70,6 +70,8 @@ import {
   selectEvaluationChoice,
   type EvaluationMode,
   type ChoiceOverride,
+  type CreativeSequenceBundle,
+  type CreativeSequenceAssessment,
 } from './narrative-evaluation-contract';
 import {
   evaluationPrices,
@@ -77,6 +79,10 @@ import {
   verifyEvaluationAuthorization,
   type EvaluationOptions,
 } from './narrative-evaluation-options';
+import {
+  writeCreativeSequenceArtifacts,
+  type CreativeSequenceBundleFiles,
+} from './narrative-evaluation-artifacts';
 
 export type EvaluationSample = {
   id: string;
@@ -118,6 +124,9 @@ export type EvaluationRun = {
   safetyProbe: { passed: boolean; markerExcluded: boolean };
   complete: boolean;
   accounting: ReturnType<typeof evaluationCostReport> | null;
+  sequenceBundles?: CreativeSequenceBundle[];
+  sequenceBundleFiles?: CreativeSequenceBundleFiles | null;
+  sequenceAssessment?: CreativeSequenceAssessment | null;
 };
 function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
   return {
@@ -664,9 +673,10 @@ async function forkComparison(
         'EVAL_STATE_INVALID',
         'The fork job belongs to another fixture.',
       );
+    const laterParentIds = new Set(parent.periods.slice(2).map((p) => p.id));
     if (
-      job.payload.narrativeContext?.memory.history.some(
-        (p) => p.periodId === parent.periods[2]!.id,
+      job.payload.narrativeContext?.memory.history.some((p) =>
+        laterParentIds.has(p.periodId),
       )
     )
       throw new DomainError(
@@ -1226,8 +1236,9 @@ async function runEvaluationUnlocked(
           }
           if (
             !stop &&
-            options.periods === 3 &&
-            ['bounded-career', 'career-transition'].includes(fixtureId)
+            options.periods >= 3 &&
+            (['bounded-career', 'career-transition'].includes(fixtureId) ||
+              (options.creativeOnly && options.fixtureIds[0] === fixtureId))
           ) {
             try {
               await forkComparison(
@@ -1343,6 +1354,12 @@ async function runEvaluationUnlocked(
         budgetBindings,
         identity.sourceHash,
       );
+    }
+    const sequenceOut = await writeCreativeSequenceArtifacts(report, options);
+    if (sequenceOut) {
+      report.sequenceBundles = sequenceOut.bundles;
+      report.sequenceBundleFiles = sequenceOut.files;
+      report.sequenceAssessment = sequenceOut.assessment;
     }
     await save(reportPath, report);
     return report;
