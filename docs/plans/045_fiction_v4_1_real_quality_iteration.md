@@ -935,7 +935,7 @@ Human review remains separate from model-editor scores. Do not invent human grad
 - [x] old artifact/job compatibility preserved.
 - [x] repair provenance only in synthetic local eval.
 - [x] old benchmark unchanged.
-- [ ] 2×6 + 2-fork offline corpus passes.
+- [x] 2×6 + 2-fork offline corpus passes.
 - [x] full repository checks pass.
 
 ### Real AI evidence
@@ -1138,3 +1138,6 @@ A change is not a demonstrated literary improvement merely because mocks, schema
 - Antigravity Argon implemented the isolated trace integration; root review added missing-usage, malformed/partial raw-output capture, persistence-failure and long-feedback tests. CLI usage estimates are retained separately from actual development API ledger accounting; they are not asserted as wallet charges.
 
 - Final pre-paid required checks all PASS: `pnpm format:check`, `pnpm docs:check`, `pnpm typecheck`, `pnpm test --maxWorkers=2` (97/1030), `pnpm build`, `pnpm schemas`, `git diff --check`. Generated schemas match the committed v5 contracts.
+
+- PR #49 CI run 325: container PASS; verify 1029/1030 PASS, unrelated pre-existing Shared privacy assertion falsely matched private numeric sentinel `4765` inside a random public member UUID. The assertion now rejects private finance keys and complete numeric/string values while avoiding UUID substrings; targeted Shared suite 15/15 PASS. This test-only follow-up does not change the running paid candidate/source binding.
+- Fresh standalone clean-source offline evidence at `34f5586b6afaabf73f8a9a4694636e9bea84f097` / sourceHash `990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc`: 14 samples (12 main + two fork), 70 mock transports, 14 trace files, all trace permissions 0600, no failures. Diagnostic-only `complete=false`, `qualityRelease=false` is intentional.
