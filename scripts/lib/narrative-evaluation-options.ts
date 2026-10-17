@@ -2,6 +2,11 @@ import { resolve } from 'node:path';
 import { DomainError } from '@future-flow/core';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
+// Owner authorization on 2026-10-17: USD 7 additional development spend
+// from the unchanged canonical ledger baseline USD 8.204535. This is a
+// cumulative accounting ceiling, not a provider balance or a ledger reset.
+export const evaluationApprovedCumulativeBudgetUsd = 15.204535;
+
 export const evaluationPrices = {
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
   'gpt-6-luna': {
@@ -141,13 +146,13 @@ export function parseEvaluationOptions(
       budgetUsd === null ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
-      budgetUsd > 10 ||
+      budgetUsd > evaluationApprovedCumulativeBudgetUsd ||
       !approvalId ||
       approvalId.length > 160 ||
       !values.has('--out')
     )
       invalid(
-        'Paid runs require explicit approval, output directory and a positive budget at most ten USD.',
+        'Paid runs require explicit approval, output directory and a positive budget within the owner-approved cumulative ceiling.',
       );
     if (
       !/^sk-(proj-|svcacct-)[A-Za-z0-9_-]{20,}$/.test(
