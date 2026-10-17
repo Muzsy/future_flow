@@ -11,6 +11,7 @@ repository: Muzsy/future_flow
 base_branch: main
 base_commit: 2da2e8c569e926ffe4b831aaf7af67caa75c9d13
 issue: 45
+pull_request: https://github.com/Muzsy/future_flow/pull/48
 workstream: F05/F06 follow-up
 production_authorized: false
 paid_provider_calls_authorized: false
@@ -1492,7 +1493,7 @@ A kódcsomag csak akkor kész:
 - [x] nincs paid provider call.
 - [x] nincs beta ledger/window reset.
 - [x] canonical docs frissítve.
-- [ ] teljes CI zöld (a PR aktuális ellenőrzései és pontos forrása alapján zárandó).
+- [x] teljes CI zöld az első implementációs forráson (#321, 3147d33); a végleges HEAD ellenőrzései a PR-ben követendők.
 
 ---
 
@@ -1787,3 +1788,5 @@ Helyi technikai ellenőrzés: **93 tesztfájl / 998 teszt PASS**, format/docs/ty
 Claude Code a prompt/provider részt, Antigravity az evaluation eszközöket készítette; a közös integráció külön ellenőrzött. A csak olvasó Claude kódaudit két észrevétele javítva és regresszióval védett: régi kötelező StoryFactok kronologikus sorrendje, valamint valóban külön periodokat használó vegyes v2/v3/v4 history-teszt. Új emberi release-pontküszöb nincs; a mentett sorozatértékelés újraellenőrzött rating inputhoz és a teljes bundle snapshothoz kötött.
 
 A CLI próba working-tree offline bizonyíték; nem tiszta végső forráshoz kötött paid release-mérés. A történetmodell változatlan, normál öt/max9 fizikai kérés és egy javítás maradt; új AI-stage, SQL-migráció, 12 KiB keretemelés, production mutation, beta-window vagy ledger-reset nem történt. A H1/H2 olvasói validáció és külön fizetett mérés ebben a csomagban nincs elvégezve vagy engedélyezve.
+
+Az első implementációs `3147d33e536ffebd899cfba851c7a22217cde679` forrás GitHub Verify és Container CI-je **#321 / 39001289089: SUCCESS**, 93 fájl / 998 teszt. A záró promptpontosítás a planner/author számára is explicit módon összehasonlítási, nem kötelező archetipus-forgási adatként írja le a compact historyt; a v1–v3 hash-ek változatlanok, 34 célzott prompt/worker teszt PASS. A végleges HEAD és új CI eredménye a [PR #48](https://github.com/Muzsy/future_flow/pull/48) leírásában és ellenőrzéseiben követendő. A PR nyitva marad; nincs self-merge vagy release-engedély.

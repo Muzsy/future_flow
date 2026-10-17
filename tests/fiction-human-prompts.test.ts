@@ -103,11 +103,11 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
     });
     expect(hashesOf(fictionPolicy().promptVersions)).toEqual({
       planner:
-        '89fce11f1f6a3a4370439ebe184dd20afde2d1e2af27ebd95102c1debae84379',
+        'ee47f697b3dc410cb4ae8c52c7698f4c6ef0ad76318ab94e75650ad21423c086',
       author:
-        '073268949055bf57604e95b404760ab2a7863e65fbc2d45a433a4ccd5f9fde01',
+        '784cfea666acb3753d2eeb9e82fb0c7f849c26e257eca6306e72e380018cf10e',
       review:
-        '99213d1dd1c936b94682a06b6e0ccc94840499b3317d7c4f6ea1d6dbed3335be',
+        '06214125b78af9248687a25155a4e08163e5fc185889f9ac1da3843c4a9760ad',
       fidelity:
         '0af915d7eceacd19283e6b0300e85cf014861fc57028a6f7395b0f6f651ee25b',
       editor:
@@ -124,6 +124,8 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
     const v4 = fictionPrompts('en', fictionPolicy().promptVersions);
     for (const needle of [
       'HUMAN-LIKENESS CRAFT',
+      'Use sequenceSignatureHistory alongside',
+      'not a plot outline or a rotation schedule',
       'period-boundary date in prose merely because an event falls on it',
       'overflow returns to a manager',
       'optimizing learner',
