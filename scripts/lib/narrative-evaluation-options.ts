@@ -2,10 +2,11 @@ import { resolve } from 'node:path';
 import { DomainError } from '@future-flow/core';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
-// Owner authorization on 2026-10-17: USD 7 additional development spend
-// from the unchanged canonical ledger baseline USD 8.204535. This is a
+// Owner authorization on 2026-10-18: USD 8 total v6 development spend
+// from the unchanged canonical ledger baseline USD 10.732030 (305 calls;
+// prior unused v5 headroom USD 4.472505 is not added again). This is a
 // cumulative accounting ceiling, not a provider balance or a ledger reset.
-export const evaluationApprovedCumulativeBudgetUsd = 15.204535;
+export const evaluationApprovedCumulativeBudgetUsd = 18.73203;
 
 export const evaluationPrices = {
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
@@ -26,6 +27,7 @@ export type EvaluationOptions = {
   kind: 'offline' | 'paid' | 'assess';
   creative?: true;
   creativeOnly?: true;
+  noForks?: true;
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -72,7 +74,9 @@ export function parseEvaluationOptions(
     if (
       key === '--allow-paid' ||
       key === '--creative' ||
-      key === '--creative-only'
+      key === '--creative-only' ||
+      key === '--no-forks' ||
+      key === '--no-fork'
     ) {
       if (boolean.has(key)) invalid('Duplicate flag.');
       boolean.add(key);
@@ -87,6 +91,8 @@ export function parseEvaluationOptions(
       invalid('Unknown, duplicate or incomplete evaluation option.');
     values.set(key, argv[++i]!);
   }
+  if (boolean.has('--no-forks') && boolean.has('--no-fork'))
+    invalid('Duplicate flag.');
   if (values.has('--sequence-ratings') && values.has('--sequence-ratings-file'))
     invalid('Duplicate sequence ratings option.');
   const kind = values.get('--mode') ?? 'offline';
@@ -103,12 +109,23 @@ export function parseEvaluationOptions(
   )
     invalid('Only the checked synthetic fixtures are allowed.');
   const periods = Number(values.get('--periods') ?? 3);
-  const maxPeriods = boolean.has('--creative-only') ? 6 : 3;
+  const maxPeriods = boolean.has('--creative-only') ? 8 : 3;
   if (!Number.isInteger(periods) || periods < 1 || periods > maxPeriods)
     invalid(
       boolean.has('--creative-only')
-        ? 'Creative-only evaluation requires one to six periods.'
+        ? 'Creative-only evaluation requires one to eight periods.'
         : 'Evaluation requires one to three periods.',
+    );
+  const noForks = boolean.has('--no-forks') || boolean.has('--no-fork');
+  if (
+    noForks &&
+    (!boolean.has('--creative-only') ||
+      periods !== 3 ||
+      fixtureIds.length !== 1 ||
+      fixtureIds[0] !== 'career-transition')
+  )
+    invalid(
+      'The --no-forks option is reserved for the three-period career-transition creative-only smoke run.',
     );
   const models = {
     event: values.get('--event-model') ?? 'gpt-6.1-sol',
@@ -194,6 +211,7 @@ export function parseEvaluationOptions(
       ? { creative: true as const }
       : {}),
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
+    ...(noForks ? { noForks: true as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,
@@ -239,6 +257,7 @@ export function verifyEvaluationAuthorization(
     invalid('Creative-only diagnostics require the creative policy.');
   if (options.creative) args.push('--creative');
   if (options.creativeOnly) args.push('--creative-only');
+  if (options.noForks) args.push('--no-forks');
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));
   if (options.approvalId !== null)

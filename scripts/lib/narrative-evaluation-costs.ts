@@ -80,7 +80,7 @@ export function evaluationNarrativeYield(
 ) {
   if (!accounting) return null;
   const rows = accounting.perCase.filter((c) =>
-    /^[^:]+:narrative-v1:[0-5]$/.test(c.caseId),
+    /^[^:]+:narrative-v1:[0-7]$/.test(c.caseId),
   );
   const accepted = samples.filter(
     (s) => s.mode === 'narrative-v1' && s.kind === 'full',

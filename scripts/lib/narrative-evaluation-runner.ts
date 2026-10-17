@@ -149,6 +149,7 @@ export type EvaluationRun = {
   version: string;
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
+  noForks?: true;
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -1010,6 +1011,7 @@ async function runEvaluationUnlocked(
     sourceHash: identity.sourceHash,
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
+    ...(options.noForks ? { noForks: true } : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -1028,6 +1030,7 @@ async function runEvaluationUnlocked(
       sourceCommit: identity.commit,
       sourceHash: identity.sourceHash,
       mock: options.kind !== 'paid',
+      ...(options.noForks ? { noForks: true } : {}),
       models: options.models,
       priceEvidence: evaluationPriceEvidence,
     });
@@ -1036,7 +1039,8 @@ async function runEvaluationUnlocked(
   if (
     prior &&
     (prior.sourceHash !== identity.sourceHash ||
-      prior.mock !== (options.kind !== 'paid'))
+      prior.mock !== (options.kind !== 'paid') ||
+      Boolean(prior.noForks) !== Boolean(options.noForks))
   )
     throw new DomainError(
       'EVAL_STATE_INVALID',
@@ -1050,6 +1054,7 @@ async function runEvaluationUnlocked(
     models: options.models,
     ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
+    ...(options.noForks ? { noForks: true as const } : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -1457,9 +1462,13 @@ async function runEvaluationUnlocked(
           }
           if (
             !stop &&
+            !options.noForks &&
             options.periods >= 3 &&
             (['bounded-career', 'career-transition'].includes(fixtureId) ||
-              (options.creativeOnly && options.fixtureIds[0] === fixtureId))
+              (options.creativeOnly &&
+                (options.fixtureIds[0] === fixtureId ||
+                  (options.fixtureIds.length <= 2 &&
+                    fixtureId === 'creative-portfolio'))))
           ) {
             try {
               await forkComparison(
