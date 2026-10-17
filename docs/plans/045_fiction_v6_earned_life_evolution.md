@@ -19,7 +19,7 @@ production_authorized: false
 
 ## 2026-10-18 execution authority
 
-PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f66dd`; this is the actual v6 base. The creation-time SHAs/status below remain historical. The owner explicitly authorized the merge and **at most 8 USD total new v6 development consumption** on 2026-10-18. Opening original cumulative ledger: **305 calls / 10.732030 USD accounted**; cumulative ceiling **18.732030 USD**. The previous unused 4.472505 USD is included, not added. Stage A has an initial internal 1.50 USD allocation (ceiling 12.232030), within the same total authority. Read the original ledger and current authorization before each paid stage; no reset, copied ledger or added budget. Stage B starts fresh only if the three-main/no-fork Stage A is acceptable. No production or v6 self-merge authorization.
+PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f66dd`; this is the actual v6 base. The creation-time SHAs/status below remain historical. The owner explicitly authorized the merge and **at most 8 USD total new v6 development consumption** on 2026-10-18. Opening original cumulative ledger: **305 calls / 10.732030 USD accounted**; cumulative ceiling **18.732030 USD**. The previous unused 4.472505 USD is included, not added. Stage A has an initial cost forecast of about 1–1.50 USD, not a separate hard cap. Both stages use the same owner-authorized cumulative ceiling 18.732030; the forecast cannot create an artificial budget failure in the smoke. Read the original ledger and current authorization before each paid stage; no reset, copied ledger or added budget. Stage B starts fresh only if the three-main/no-fork Stage A is acceptable. No production or v6 self-merge authorization.
 
 ## Role
 
@@ -1051,26 +1051,26 @@ Rejected prose stays developer-only.
 
 Technical:
 
-- [ ] PR #49 merged first
-- [ ] actual main base recorded
-- [ ] v1–v5 frozen
-- [ ] explicit v5 helper
-- [ ] v6 separately versioned
-- [ ] no new AI stage
-- [ ] model unchanged
-- [ ] max9 unchanged
-- [ ] max1 repair unchanged
-- [ ] six-month structured period unchanged
-- [ ] no billing data in generation
-- [ ] no graph quota/timetable
-- [ ] planner-reference tests pass
-- [ ] ending tests pass
-- [ ] causal-change controls pass
-- [ ] temporal controls pass
-- [ ] privacy compatibility passes
-- [ ] historical benchmark unchanged
-- [ ] provenance preserved
-- [ ] repo checks green
+- [x] PR #49 merged first
+- [x] actual main base recorded
+- [x] v1–v5 frozen
+- [x] explicit v5 helper
+- [x] v6 separately versioned
+- [x] no new AI stage
+- [x] model unchanged
+- [x] max9 unchanged
+- [x] max1 repair unchanged
+- [x] six-month structured period unchanged
+- [x] no billing data in generation
+- [x] no graph quota/timetable
+- [x] planner-reference tests pass
+- [x] ending tests pass
+- [x] causal-change controls pass
+- [x] temporal controls pass
+- [x] privacy compatibility passes
+- [x] historical benchmark unchanged
+- [x] provenance preserved
+- [x] repo checks green
 
 Stage A:
 
@@ -1252,3 +1252,11 @@ The original v5 synthetic-local attempt traces were read before the fix. In the 
 In the career second chapter, the new actor UUID was internally consistent and `actor_add` appeared in the second event. The first scene spanned both events and listed that actor. Scene validation intentionally checks the actor against `stateAfter` of the scene's first event, so the actor did not yet exist at the start of that scene. The fix explains this exact chronology rather than substituting an actor or weakening replay. The initial rejected candidate and its spent repair remain in v5 evidence.
 
 The new regression suite includes these two exact failure shapes, maximum-size bounded current-state reference projection, withheld-history isolation, typed unresolved job-change authority, new fictional actor/community details and temporal concentration under six-month canon. Labelled editor reports test deterministic routing/acceptance only; they do not prove that a real model recognizes scope lock, contrivance, repetitive endings or human credibility. That semantic question belongs to paid text evidence and independent reading.
+
+## Pre-paid technical evidence — 2026-10-18
+
+Tested application/harness commit: `6fca9df174b1fe3f65785413f79ccba0a62d50bd`; offline sourceHash `719086aa8d19f80dbf386383f77f99a7edaf127abb906d78f27c5061ce4297ec`. All required checks passed: format, docs, typecheck, **100 test files / 1068 tests**, application build, schema generation with no drift and diff check. Separate CLI offline Stage A produced 3/3 main samples, 15 transports, zero failures/repairs; Stage B produced 16 main + 2 forks, 90 transports, zero failures/repairs, two main and two branch B8 reader bundles. Creative-only `complete=false` and `qualityRelease=false` remain intentional historical-benchmark/release markers, not a missing requested mock sample.
+
+A separate Claude Code subscription read-only source audit found no actionable correctness, privacy, authority, provenance or budget-routing regression. It inspected the changed policy/core/memory/prompts/evaluation/tests and acknowledged that unchanged ExperimentAiBudget arithmetic was outside its named-file scope; root inspected that unchanged guard and the existing/new budget tests passed. This is code review, not independent literary approval.
+
+This evidence checkpoint changes documentation only. Before paid launch, verify the clean measured checkout and that application, harness, tests and migrations are byte-identical to the tested commit. The paid SHA/sourceHash is recorded separately because source binding includes HEAD. The original ledger remains 305 / 10.732030 USD with zero unknown usage; no v6 paid call has started at this checkpoint. Both paid stages use **18.732030 USD cumulative ceiling** under the owner's total-new-8-USD authority. The initial 1–1.50 USD Stage A forecast is not an extra authorization requirement or a smaller hard spending cap.
