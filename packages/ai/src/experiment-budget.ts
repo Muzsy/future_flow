@@ -44,6 +44,9 @@ const prices: ExperimentTokenPrices = {
     output: 0.5,
   },
 };
+export const EXPERIMENT_REQUEST_BYTE_BUFFER = 4096;
+export const EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES = 100000;
+export const EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES = 196608;
 // Optional local guard shares the experimental allowance with smoke runs.
 // Production uses the transactional database budget without a local ledger.
 export class ExperimentAiBudget implements AiRequestGuard {
@@ -58,16 +61,21 @@ export class ExperimentAiBudget implements AiRequestGuard {
     private readonly caseName: string,
     private readonly modelPrices: ExperimentTokenPrices = prices,
     approvedMaximumUsd = 5,
+    private readonly maxRequestBytes = EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
   ) {
-    // The reviewed caller supplies any explicit cumulative extension.
-    // Omitting it keeps the original USD 5 ceiling; a provider balance
-    // never grants a larger allowance by itself.
+    // The reviewed caller supplies any explicit cumulative extension or
+    // serialized transport envelope ceiling. Omitting them keeps the original
+    // USD 5 and 100,000-byte defaults; a provider balance never grants a
+    // larger allowance by itself.
     if (
       !Number.isFinite(approvedMaximumUsd) ||
       approvedMaximumUsd <= 0 ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
-      budgetUsd > approvedMaximumUsd
+      budgetUsd > approvedMaximumUsd ||
+      !Number.isSafeInteger(maxRequestBytes) ||
+      maxRequestBytes < EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES ||
+      maxRequestBytes > EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES
     )
       throw new DomainError(
         'SMOKE_BUDGET_CONFIG',
@@ -136,12 +144,14 @@ export class ExperimentAiBudget implements AiRequestGuard {
         text?: { format?: { name?: string } };
       },
       rate = this.modelPrices[p.model];
-    const bytes = Buffer.byteLength(JSON.stringify(raw), 'utf8') + 4096;
+    const bytes =
+      Buffer.byteLength(JSON.stringify(raw), 'utf8') +
+      EXPERIMENT_REQUEST_BYTE_BUFFER;
     if (
       !rate ||
       !Object.values(rate).every((n) => Number.isFinite(n) && n >= 0) ||
       rate.inputCeiling < rate.input ||
-      bytes > 100000 ||
+      bytes > this.maxRequestBytes ||
       !Number.isInteger(p.max_output_tokens) ||
       p.max_output_tokens < 1 ||
       p.max_output_tokens > 12000

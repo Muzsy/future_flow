@@ -78,6 +78,7 @@ import {
   evaluationPriceEvidence,
   verifyEvaluationAuthorization,
   evaluationApprovedCumulativeBudgetUsd,
+  evaluationMaxRequestBytes,
   type EvaluationOptions,
 } from './narrative-evaluation-options';
 import {
@@ -1108,6 +1109,7 @@ async function runEvaluationUnlocked(
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
           evaluationApprovedCumulativeBudgetUsd,
+          evaluationMaxRequestBytes(options),
         )
       : undefined;
   try {

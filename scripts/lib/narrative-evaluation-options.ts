@@ -1,4 +1,8 @@
 import { resolve } from 'node:path';
+import {
+  EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES,
+  EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
+} from '@future-flow/ai';
 import { DomainError } from '@future-flow/core';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
@@ -7,6 +11,18 @@ import { narrativeProfiles } from '../../tests/narrative-fixtures';
 // prior unused v5 headroom USD 4.472505 is not added again). This is a
 // cumulative accounting ceiling, not a provider balance or a ledger reset.
 export const evaluationApprovedCumulativeBudgetUsd = 18.73203;
+export const evaluationDefaultMaxRequestBytes =
+  EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
+export const evaluationCreativeMaxRequestBytes =
+  EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES;
+
+export function evaluationMaxRequestBytes(
+  options: Pick<EvaluationOptions, 'creative'>,
+) {
+  return options.creative
+    ? evaluationCreativeMaxRequestBytes
+    : evaluationDefaultMaxRequestBytes;
+}
 
 export const evaluationPrices = {
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
