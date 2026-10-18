@@ -19,6 +19,7 @@ import {
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
   EXPERIMENT_REQUEST_BYTE_BUFFER,
   ExperimentAiBudget,
+  combineAiGuards,
   OpenAiProvider,
   type AiRequestGuard,
 } from '@future-flow/ai';
@@ -43,6 +44,7 @@ import {
   type FictionRepair,
 } from '@future-flow/core';
 import {
+  DatabaseAiBudget,
   LifeJobRepository,
   LifeRepository,
   Repository,
@@ -700,6 +702,59 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     }
   });
 
+  it('keeps the transactional default bounded and prices the explicit dev envelope without weakening USD limits', async () => {
+    const owner = randomUUID();
+    await new Repository(db).ensureUser(owner);
+    const raw = syntheticRequestWithGuardedBytes(108751);
+    const config = { projectUsd: 1, userUsd: 1 };
+    await expect(
+      new DatabaseAiBudget(db, owner, randomUUID(), config).reserve(raw),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+    for (const invalid of [99999, 196609, 108751.5, NaN, Infinity]) {
+      expect(
+        () =>
+          new DatabaseAiBudget(
+            db,
+            owner,
+            randomUUID(),
+            config,
+            undefined,
+            invalid,
+          ),
+      ).toThrowError(expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }));
+    }
+    const allowed = new DatabaseAiBudget(
+      db,
+      owner,
+      randomUUID(),
+      config,
+      undefined,
+      196608,
+    );
+    await expect(
+      allowed.reserve(syntheticRequestWithGuardedBytes(196609)),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+    const id = await allowed.reserve(raw);
+    const [reservation] = await db.query<{ reserved_micro: number }>(
+      'SELECT reserved_micro FROM aw_budget_reservations WHERE id=$1',
+      [id],
+    );
+    expect(Number(reservation!.reserved_micro)).toBe(
+      Math.ceil(108751 * 2.5 + 12000 * 10),
+    );
+    await allowed.settle(id, { input_tokens: 100, output_tokens: 50 });
+    await expect(
+      new DatabaseAiBudget(
+        db,
+        owner,
+        randomUUID(),
+        { projectUsd: 0.1, userUsd: 0.1 },
+        undefined,
+        196608,
+      ).reserve(raw),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+  });
+
   it('captures actual offline provider normal (86,889B) and prose_only repair (108,751B) parameters through processLifeJob without mutating request hashes or inputs', async () => {
     // 1. Default 100,000-byte guard admits the 86,889-byte normal author call,
     // rejects the repeated ending in editor, and fails on the 108,751-byte prose_only repair call
@@ -876,7 +931,20 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
           maxOutputTokens: 12000,
           beforePhysicalRequest: () =>
             jobs.admitNarrativeRequest(passFixture.job),
-          guard: tracingGuard,
+          guard: combineAiGuards(
+            tracingGuard,
+            new DatabaseAiBudget(
+              db,
+              passFixture.job.user_id,
+              passFixture.job.id,
+              {
+                projectUsd: evaluationApprovedCumulativeBudgetUsd,
+                userUsd: evaluationApprovedCumulativeBudgetUsd,
+              },
+              passFixture.job.lease_token,
+              evaluationCreativeMaxRequestBytes,
+            ),
+          ),
         },
         passClient,
       );

@@ -84,3 +84,8 @@ QualityPolicy 2.3.0 selects planner/author/reviewer v5 and editor v4 while retai
 ## V6 candidate boundary
 
 V6 target/recovery support must recognize planner/author/reviewer v6, editor v5, quality 2.4.0 alongside frozen v1–v5; report 1.2.0 and signature 1.0.0 remain unchanged. There is no new SQL, routine stage, repair allowance or production retention of rejected prose. Implementation and paid model-gate success are not independent human quality approval. The original v5 negative evidence remains valid. Eight main chapters form an evaluation window only, without a story schedule or a newly invented release threshold. This task authorizes no production/cohort/window/billing change, deployment or v6 self-merge. [V6 plan](../plans/045_fiction_v6_earned_life_evolution.md).
+
+
+### V6 kiadási kapu — Stage B részleges
+
+A v6 18-célos valódi próba 11 elfogadott, 2 elutasított, 5 nem generált szöveggel zárult; mindkét ismétlődő lezárás editor-elutasítása után a javító transportot a lokális méretkorlát blokkolta. A fejlesztési envelope-korrekció offline igazolása nem új paid vagy human PASS. Nincs teljes B8 olvasói anyag vagy retention bizonyíték. A production DatabaseAiBudget alapértelmezése továbbra 100000 bájt, így annak v6 repair-határát rollout előtt külön kell kezelni/igazolni. PR #50 draft, F05/F06/N08 PARTIAL; nincs merge vagy élesítés ebből. Esetenkénti bizonyíték a [v6 tervben](../plans/045_fiction_v6_earned_life_evolution.md#stage-b-actual-result--2026-10-18-partial-not-release-evidence).

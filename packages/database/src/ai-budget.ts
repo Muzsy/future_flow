@@ -136,7 +136,16 @@ export class DatabaseAiBudget {
     private readonly jobId: string,
     config: ApplicationAiBudgetConfig,
     private readonly lifeJobLeaseToken?: string,
+    // Explicit reviewed dev callers may admit a larger fully priced envelope.
+    // Runtime/env callers retain the 100,000-byte default.
+    private readonly maxRequestBytes = 100000,
   ) {
+    if (
+      !Number.isSafeInteger(maxRequestBytes) ||
+      maxRequestBytes < 100000 ||
+      maxRequestBytes > 196608
+    )
+      invalidBudgetConfig();
     this.config = { ...config, window: budgetWindow(config.window) };
     if (config.closedBetaUserIds !== undefined) {
       this.config.closedBetaUserIds = validateClosedBetaConfig({
@@ -213,7 +222,7 @@ export class DatabaseAiBudget {
       !rates ||
       (p.model.startsWith('claude-') ? 'anthropic' : 'openai') !==
         (this.config.provider ?? 'openai') ||
-      inputBound > 100000 ||
+      inputBound > this.maxRequestBytes ||
       !Number.isInteger(p.max_output_tokens) ||
       p.max_output_tokens < 1 ||
       p.max_output_tokens > 12000

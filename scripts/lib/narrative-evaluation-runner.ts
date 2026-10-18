@@ -857,6 +857,7 @@ async function forkComparison(
       job.id,
       { projectUsd: options.budgetUsd ?? 5, userUsd: options.budgetUsd ?? 5 },
       job.lease_token,
+      evaluationMaxRequestBytes(options),
     );
     const combined = guard ? combineAiGuards(guard, localBudget) : localBudget;
     const ai = new OpenAiProvider(
@@ -1337,6 +1338,7 @@ async function runEvaluationUnlocked(
                   userUsd: options.budgetUsd ?? 5,
                 },
                 job.lease_token,
+                evaluationMaxRequestBytes(options),
               );
               const guard = experiment
                 ? combineAiGuards(

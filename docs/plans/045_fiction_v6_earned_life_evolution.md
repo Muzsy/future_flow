@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: stage-a-accepted-stage-b-pending
+state: stage-b-partial-request-envelope-fix-validation-pending
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -1086,10 +1086,10 @@ Stage B:
 - [x] numeric authority verified
 - [ ] creative 8 main
 - [ ] career 8 main
-- [ ] one fork/profile
+- [x] one fork/profile (alternative third only; both accepted)
 - [ ] 18 accepted target
-- [ ] accounting complete
-- [ ] blinded bundles generated
+- [x] accounting complete (all work in the partial run, including failures)
+- [ ] complete eight-main blinded bundles generated (partial accepted-only bundles exist)
 
 Literary PASS remains human-dependent.
 
@@ -1280,3 +1280,55 @@ Root's full reading is **diagnostic AI**, not independent human acceptance. The 
 Watchpoints preserved: two penultimate paragraphs in chapter three compare home/work routes explicitly; a longer run must show this does not become a recurring option briefing. Selected month transitions are natural here but longer cadence remains unproven. The first two private editor-evidence fields end in an incomplete trailing phrase at their bounded length; full chapter reading, rather than that clipped diagnostic explanation, grounds the root assessment. No story prose was clipped or replaced and no gate was waived. Human literary/retention evidence remains pending.
 
 Stage B will start from a **fresh** output/seed after this meaningful documentation checkpoint. Application/harness/test/migration bytes stay identical; the new clean SHA/sourceHash is recorded separately. This also keeps Stage A and Stage B costs distinct in the existing sourceHash+caseId accounting, rather than conflating repeated career case IDs. Both sources remain in the same original cumulative ledger and the same total 8 USD authority.
+
+
+## Stage B actual result — 2026-10-18: partial, not release evidence
+
+Measured clean source `2e1a1277d52c484aa83cb748398c89f3cf6ac7e9`, sourceHash `713be4849c941ad7d8e03c604b0aa333420cc6bf00e3658c4def0b5ba4a11c5b`; PR #50 CI 330 SUCCESS. Application/harness/tests/migrations matched Stage A. Fresh output/seed, same dedicated development project/model and original cumulative ledger. This run is finished; no paid call is active.
+
+Target **18**; actual **11 accepted / 2 rejected attempts / 5 ungenerated descendants**. Creative main 1–4 and alternative third accepted; creative fifth blocked, main 6–8 not generated. Career main 1–5 and alternative third accepted; career sixth blocked, main 7–8 not generated. Neither eight-main window completed. No B8 retention acceptance, independent human PASS or qualityRelease follows. Both fork prefixes exclude later parent chapters. Reader bundles contain accepted prose only.
+
+| Case / title | Result | Physical calls | Accounted USD | Usage estimate USD | Elapsed ms | Local traceHash |
+|---|---|---:|---:|---:|---:|---|
+| career-transition:narrative-v1:0 — Three Thursdays | accepted | 5 | 0.2004500 | 0.1604057 | 235530 | `bb026a75e35062ac21ce20c212205244034a2c7c08d7e14b878946d1943a765b` |
+| career-transition:narrative-v1:1 — Who Sends the Next Message | accepted | 5 | 0.2461900 | 0.2061457 | 244102 | `9c8c2109a99c57a2f4b6e8471d396ea8de8482de69e8c0626df01e89142ce371` |
+| career-transition:narrative-v1:2 — The Requests Already Waiting | accepted | 5 | 0.2833475 | 0.2433032 | 269306 | `93e7760db56eab907078cadaf8d97e04528e3c472e5dcd8e9ae27d92365a72d0` |
+| career-transition:narrative-v1:3 — The Second Answer | accepted | 5 | 0.2940150 | 0.2539707 | 281501 | `323e584402749bfa93de38b3daacaba10604f3edf2a62d676496c778eb893730` |
+| career-transition:narrative-v1:4 — Two Saturdays | accepted | 5 | 0.2974650 | 0.2574207 | 281989 | `7d2c6a6b3d5067b65f035a8628b826f9ed2e5c984d3623d0c5498c236c6ada68` |
+| career-transition:narrative-v1:5 — The Unbooked Saturday (rejected) | blocked repair | 5 | 0.3000600 | 0.2600157 | not completed | `72b54e88cabb2c6310e3e64c676fe2ec0e55a6f58125bb0e3f8b870cd3ea04fb` |
+| creative-portfolio:narrative-v1:0 — Room for the Gesture | accepted | 5 | 0.2094375 | 0.1693932 | 261718 | `7e1ca05c062597d34bc52d0434121e1ba1df20dacaf2fd8c5fb752f75c85b409` |
+| creative-portfolio:narrative-v1:1 — The Spare Print | accepted | 5 | 0.2597500 | 0.2197057 | 289852 | `bdd55a55cca2ae90d1ab365bc55be1cad105c64e401550adbf09e7193759fa88` |
+| creative-portfolio:narrative-v1:2 — After the Bus | accepted | 5 | 0.2746675 | 0.2346232 | 282840 | `f189ff8fb31f93a1be2d59293fb1665cb125178aac30b95e4f23f5dfd935f46d` |
+| creative-portfolio:narrative-v1:3 — Under the Washing | accepted | 5 | 0.2688925 | 0.2288482 | 262101 | `5cebce2dc13ddf57c594407ea3b94449133eea0227a533b28a5d260b2a7156f1` |
+| creative-portfolio:narrative-v1:4 — The Corner Between Streets (rejected) | blocked repair | 5 | 0.3038650 | 0.2638207 | not completed | `73485d678076bc19a597322f151bb65e588c888e5b08921c051c683899520f7c` |
+| fork:career-transition:narrative-v1:2 — The Part You Leave Out | accepted | 5 | 0.2681300 | 0.2280857 | 259275 | `77aaf221cfcb8e5d415c63296bd9deecf1ef464ed163050ec86a8b485c49ee67` |
+| fork:creative-portfolio:narrative-v1:2 — Before You Sit Down | accepted | 5 | 0.2663750 | 0.2263307 | 261895 | `7ed341e19a42c20274dd8ddb65fc71678aa61ca636a5a5b37f72f0d109f92137` |
+
+All 11 accepted jobs used five transports and no repair; all final editor scores >=4, all sequence flags true. Both rejected initial drafts also scored four in every dimension, but `distinctEnding=false` (and creative `distinctRhetoricalShape=false`) correctly prevented acceptance. In creative chapter five, moving a bag/seat to close an unresolved encounter echoed chapter two. In career chapter six, Eoin returns to competent ordinary work on an incoming call while the protagonist remains unsettled, echoing chapter four. A high score cannot override a false sequence flag. Both editors requested a prose-only repair; neither repair reached transport. These are genuine negative attempts, not repaired successes.
+
+**65 physical calls / 13 private attempt traces / 55 accepted receipts**, exact source/manifest/project/transport/receipt hashes read back. No planner-reference failure observed; this small corpus is not a general failure-rate guarantee. Accepted job yield **11/13**, attempted repair use **2/13**, accepted repair use **0/11**. Rejected work **0.603925 USD accounted**, accepted work 2.868720 USD; total **3.472645 USD accounted**, **2.9520691 USD usage estimate**. All-work/accepted **0.315695 USD** includes both failed attempts, unlike accepted-only 0.260793 USD. Accepted P50 **262101 ms**, nearest-rank P95 **289852 ms**; blocked repair time is not hidden in these successful-job latency statistics.
+
+Stage A+B: **80 new physical calls / 14 accepted texts / 4.214590 USD accounted / 3.6139180 USD usage estimate**. Original ledger closes **385 calls / 14.946620 USD accounted**, zero unknown usage, zero active/unassigned reservations. The unchanged cumulative ceiling 18.732030 leaves **3.785410 USD** of the owner's total v6 8 USD. This is remaining authorization, not a verified provider-wallet balance. No reset, source-hash adoption, copied ledger or automatic retry of the negative corpus.
+
+### Exact cause and bounded development fix
+
+The serialized OpenAI request includes system instructions, strict output schema, owned context, original draft, the previous authored package and repair feedback. Artifact/memory limits do not bound this combined transport to 100,000 bytes. Read-only capture of the failed jobs, with a mock provider and zero network calls, measured:
+
+| Initial/repair envelope (UTF-8 request + 4096-byte protocol margin) | Creative fifth | Career sixth |
+|---|---:|---:|
+| Initial author | 86889 | 88818 |
+| Prose-only repair | 108751 | 111155 |
+
+`ExperimentAiBudget.reserve` rejected the repair before transport with `SMOKE_BUDGET_CONFIG`; the worker admission checkpoint is six, but physical calls are five. The one repair was marked used, then its financial/request guard failed. The second transactional `DatabaseAiBudget` guard also had a 100,000-byte bound. Raising only the first would simply move the same failure to the second.
+
+The correction gives **explicit creative evaluation callers** a bounded **196608-byte (192 KiB)** request envelope in both guards. Generic/default and environment-driven runtime callers remain **100000 bytes**; no arbitrary env override. Constructor values outside [100000,196608] or non-integers fail before reservations. Both guards still conservatively reserve **every guarded UTF-8 byte plus maximum output** at existing short-context prices. The upper byte bound is itself below the short-context token threshold under the conservative byte-per-token bound; no long-context price assumption is introduced. USD ceilings, original costs, request hashes, full authored data, 12 KiB memory, 32 KiB artifact, max9 requests and one repair remain unchanged. This addresses a valid transport envelope, without relaxing a literary acceptance gate or discarding input.
+
+The regression exercises the real worker/provider with mocked responses and both guards: the initial repeated ending is rejected, the unchanged repair request is admitted, fidelity/editor rerun and eight transports/one repair complete. Default rejection, upper bound, full conservative reserve and exhausted USD allowance remain negative controls. Offline completion is technical evidence only. The old paid corpus stays bound to its original source and negative result. The development fix is **not paid-validated** and does **not** enable larger production envelopes; production rollout remains blocked until that runtime boundary is separately reviewed and tested. Do not silently infer production readiness from a successful dev benchmark.
+
+### Diagnostic reading and remaining gates
+
+Root read all accepted chapters and both rejected drafts, labelled **diagnostic AI**, not independent human ratings. The career main moves from an invented booking prototype to a case study, actual applications/interview/assessment, an unresolved job offer, user-authorized change of employment, new colleague relationships and a live capacity/commitment dilemma. This is earned life evolution, not merely changing rooms. Protagonist pride, explaining too much and enjoying indispensability persist imperfectly; Eoin and Maeve have their own work and demands. The alternative third pursues a writing sample instead of the same professional move. Career six's retrospective questions attribution and uncertainty rather than providing an easy success, but its final device repeats and remains rejected.
+
+The creative main moves from a static image through a socially unwelcome portrait into visual sequence and a small book. The rejected fifth opens a plausible collaborator role with Niamh's independent street drawing. A stable group/place is not itself a failure, yet the recurring home/group/critique/self-explanation mechanism and regular selected-month cadence remain watchpoints. Its alternative third follows self-portrait/preparing a table instead of the main missed-bus woman's story. Neither partial run proves eight-chapter renewal interest or freedom from formula. Reused independently invented names across profiles are a repertoire concern, not evidence of shared private canon.
+
+Remaining: final code/CI review of the admission fix; adequate reservation headroom and explicit numeric authority before any extra spending; fresh source-bound real validation rather than resuming/relabeling the terminal failed run; full eight-main windows and forks; independent hash-bound human literary/retention assessment; cost/latency decision; separately authorized runtime/rollout work. Technical checks, paid acceptance and human acceptance remain distinct. PR #50 stays draft; no v6 self-merge, production, beta, billing or entitlement action.

@@ -242,3 +242,8 @@ A 0,70 USD-s óvatos üzemi forgatókönyv megmarad. Sem a mért alacsonyabb át
 ## V6 megtartási vizsgálat
 
 A nyolc főági fejezet azt vizsgálja, hogy a kiinduló életből okságilag hiteles, tovább olvasásra érdemes új helyzet alakult-e. Nem ír elő szereplő-/helyszínkvótát, kötelező nagy változást, ütemezést vagy számszerű release-küszöböt. A fejlődés az alapminőség része; nincs csomagpozíció a modellbemenetben. A mérésbe az elutasítások és javítások költsége is beleszámít. A v5 részleges/negatív bizonyíték megmarad; v6 üzemi egységár és retention csak tényleges mérés/emberi olvasás után állítható. [V6 terv](045_fiction_v6_earned_life_evolution.md).
+
+
+### V6 Stage B tényleges részleges költség — 2026-10-18
+
+A 18 célból 11 elfogadott szöveg, két elutasított próbálkozás és öt nem generált folytatás lett. Összes munka 3.472645 USD accounted, ebből elutasított munka 0.603925 USD; **0.315695 USD/elfogadott** a hibás munka költségét is tartalmazza. Usage-becslés 2.9520691 USD; sikeres generálás P50 262101 / P95 289852 ms. Ez részleges fejlesztési minta, nem havi fedezetgarancia. Mindkét repair a transport byte guardon állt meg, ezért a mért 0/11 elfogadott repair nem javításmentes általános működést jelent; 2/13 próbálkozás javítást igényelt. A 8 fejezetes megtartási hipotézis nincs igazolva, árazás/billing nem aktivált. A+B együtt 4.214590 USD a jóváhagyott v6 8-ból; maradék 3.785410 USD. Részletes mérés és további kapuk: [v6 terv](045_fiction_v6_earned_life_evolution.md#stage-b-actual-result--2026-10-18-partial-not-release-evidence).
