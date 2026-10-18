@@ -79,6 +79,7 @@ import {
   verifyEvaluationAuthorization,
   evaluationApprovedCumulativeBudgetUsd,
   evaluationMaxRequestBytes,
+  evaluationTimeouts,
   type EvaluationOptions,
 } from './narrative-evaluation-options';
 import {
@@ -332,6 +333,7 @@ function clientFor(
       organization: null,
       logLevel: 'off',
       maxRetries: 0,
+      // Keep the SDK fallback unchanged; only fiction calls override it below.
       timeout: options.creative ? 180000 : 120000,
     });
     type ParseParameters = Parameters<typeof sdk.responses.parse>[0];
@@ -341,14 +343,21 @@ function clientFor(
       env,
       transports,
       saveTransports,
-      execute: async (parameters: ParseParameters) => {
+      execute: async (
+        parameters: ParseParameters,
+        _ordinal,
+        requestOptions,
+      ) => {
         // Same API request, tier and store=false. Parse in the provider AFTER
         // local capture so even a schema-invalid candidate retains evidence.
-        const response = await sdk.responses.create({
-          ...parameters,
-          stream: false,
-          service_tier: 'default',
-        });
+        const response = await sdk.responses.create(
+          {
+            ...parameters,
+            stream: false,
+            service_tier: 'default',
+          },
+          requestOptions,
+        );
         return {
           ...response,
           _request_id: response._request_id,
@@ -623,7 +632,7 @@ async function fixedCanonComparison(
         eventModel: options.models.event,
         storyModel: options.models.story,
         checkModel: options.models.check,
-        timeoutMs: 120000,
+        ...evaluationTimeouts(options),
         maxOutputTokens: options.creative ? 12000 : 6500,
         guard: guardFor(caseId),
         beforePhysicalRequest,
@@ -869,7 +878,7 @@ async function forkComparison(
         eventModel: options.models.event,
         storyModel: options.models.story,
         checkModel: options.models.check,
-        timeoutMs: 120000,
+        ...evaluationTimeouts(options),
         maxOutputTokens: options.creative ? 12000 : 6500,
         guard: combined,
         ...(mode === 'narrative-v1'
@@ -1355,7 +1364,7 @@ async function runEvaluationUnlocked(
                   eventModel: options.models.event,
                   storyModel: options.models.story,
                   checkModel: options.models.check,
-                  timeoutMs: 120000,
+                  ...evaluationTimeouts(options),
                   maxOutputTokens: options.creative ? 12000 : 6500,
                   guard,
                   ...(mode === 'narrative-v1'

@@ -255,3 +255,8 @@ A tulajdonos a részleges Stage B és a konkrét javítás után **összesen leg
 
 
 Javított forrás friss Stage A: 3 elfogadott /18 hívás /1 typed-state repair; **0.9418175 USD**, javítással együtt **0.31393917 USD/elfogadott**. P95 331250 ms. Ez kis munkahelyi előpróba, nem 8-fejezetes fogyasztási/fedezeti garancia. A teljes v6 most 5.1564075 USD a 12-ből; fennmaradó authority 6.8435925 USD. A korábbi negatív költség változatlanul szerepel.
+
+
+### Javított v6 Stage B lezárása — 2026-10-18, technikai részleges eredmény
+
+Javított B:6 elfogadott/1 technikai failure/11 hiányzó,40 transport,4.0581025 USD accounted. Minden próbát és hét timeout teljes2.2399275 USD foglalását tartalmazó költség0.67635042 USD/elfogadott; az ismert usage1.5116671 USD nem teljes költségbecslés. P50 324373.5/P95 613812ms. Ebből fenntartható havi árat vagy jó latencyt nem állíthatunk. Teljes v6 elszámolás9.214510 USD, maradék2.785490 USD a jóváhagyott12-ből; nincs ledger-reset, ár/billing-változás vagy retention bizonyíték. A következő offline technikai fix300s development-fiction deadline; új teljes paid méréshez további headroom szükséges. Részletes forrás/költség/eset/olvasási bizonyíték a [v6 tervben](045_fiction_v6_earned_life_evolution.md).

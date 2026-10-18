@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: repaired-stage-a-accepted-fresh-stage-b-ready
+state: repaired-stage-b-partial-deadline-fix-verified-awaiting-paid-authority
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -23,7 +23,7 @@ PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f
 
 ## Latest numeric extension — 2026-10-18
 
-After the partial Stage B and concrete request-envelope correction, the owner explicitly approved **at most 12 USD TOTAL v6 consumption**, extending the initial 8 by 4 USD. Original v6 baseline stays 305 calls / 10.732030 USD. New cumulative ceiling **22.732030 USD**; current unchanged ledger 385 / 14.946620 leaves **7.785410 USD**, including all original failures. The initial eight-dollar authority and 3.785410 remainder below are historical, not added again. No new paid transport until checks on clean repaired source succeed. Fresh three-career-main/no-fork smoke first; only if acceptable, fresh 18-target benchmark. No budget reset/source adoption or production authority.
+After the partial Stage B and concrete request-envelope correction, the owner explicitly approved **at most 12 USD TOTAL v6 consumption**, extending the initial 8 by 4 USD. Original v6 baseline stays 305 calls / 10.732030 USD. New cumulative ceiling **22.732030 USD**; extension-time ledger 385 / 14.946620 left **7.785410 USD**, including all original failures. After repaired Stage A+B the current original ledger is **443 /19.946540**, leaving **2.785490 USD** of the same TOTAL12 authority; detailed closure below. The initial eight-dollar authority and 3.785410 remainder below are historical, not added again. No new paid transport until checks on clean repaired source succeed. Fresh three-career-main/no-fork smoke first; only if acceptable, fresh 18-target benchmark. No budget reset/source adoption or production authority.
 
 ## Role
 
@@ -1382,3 +1382,52 @@ The additional Claude Code **diagnostic AI** reader returned “acceptable for a
 Root reconciled the critique with the actual selected choices: continued dialogue editing was chosen after chapter one, so the ambient cupboard project is not evidence of an unexplained lost mandatory plot. A completed **one-off** brief with no second commission is not itself a dropped relationship or defect, and the text contains a sustained Niamh scene as well as the library scenes. Those reader impressions are useful longer-window risks, not new quotas or machine invariants. No prompt, model, threshold or code was changed in response.
 
 Final root Stage A decision: **acceptable to proceed to the fresh18-target diagnostic**, retaining all watchpoints and costs. Not a human PASS. Three-main smoke failure would have stopped paid work; it has not been rerolled. The forthcoming Stage B documentation source differs from490db03, but app/harness/tests/migrations are byte-identical to its successful full local/CI332 checks, and the new documentation passes docs:check. Its exact paid SHA/sourceHash must be recorded separately; original ledger remains403/15.8884375 and TOTAL12 cumulative22.732030. Old partial Stage B remains negative evidence, not adopted source material.
+
+
+## Repaired Stage B actual closure — 2026-10-18
+
+
+A friss `196a36f0bad7229a20caf718685c3147d7420e34` / sourceHash `9ffe83eaaf0994a116d289a0dd6f479f9b32e9a6b554ba110aa22ff6aeb06b51` mérés **6 elfogadott / 1 technikailag sikertelen / 11 nem generált** mintával zárult a 18 célból. Alkotói főág 1–6 elkészült; a hetedik author mindhárom 180 másodperces transportja timeout lett. A paid runner `AI_PROVIDER_FAILED` esetén helyesen az egész mérést megállítja: ezért nincs nyolcadik rész, fork vagy munkahelyi minta ebből a futásból. Nem irodalmi elutasítás a hetedik: nincs visszakapott próza. A negyedik rész kezdeti ismétlődő szerkezetét a reviewer elutasította; egy author-package repair után fogadta el. Nincs teljes B8 bizonyíték vagy human PASS.
+
+A friss B **40 hívás / 4.0581025 USD accounted**, ismert usage becslés 1.5116671 USD; **7 unknown-usage timeout**, teljesen megtartott foglalásuk **2.2399275 USD**. A usage-becslés nem teljes tényleges költség és nem számla. Elfogadott fejezetenként minden kísérletet beleszámítva 0.67635042 USD accounted; P50 324373.5 / P95 613812 ms. Eredeti ledger **443 / 19.946540 USD accounted**, aktív vagy hozzárendeletlen foglalás 0. Teljes v6 **138 hívás / 9.214510 USD**, ebből ismert válaszok konzervatív elszámolása 6.9745825 USD, unknown teljes foglalása 2.2399275 USD; a jóváhagyott összesen 12 USD-ből **2.785490 USD** authority maradt, nem igazolt wallet-egyenleg. A korábbi költségek nem nullázódtak.
+
+Következő technikai korrekció: kizárólag a fejlesztési creative mérés fix, forráshoz kötött fiction határideje 300000 ms; a capture-wrapper továbbadja a provider kérési határidejét a valódi SDK create-nak. A normál/runtime 180000-es fiction default, normál 120000-es eval default, modell, promptok, küszöbök, SDK maxRetries=0, legfeljebb három provider-próba, globális max9/egy repair és pénzügyi kapuk változatlanok. Az emelés nem bizonyítja a hálózati/szolgáltatói okot vagy a következő hívás sikerét. Új offline ellenőrzés és külön audit szükséges; új fizetős futás nem indult. Az eredeti terminális mérés nem folytatható átnevezett forrással vagy másolt ledgerrel. Teljes új Stage A+B várható költsége nem fér biztonságosan a maradékba; további numerikus authority nélkül nem indul ilyen csomag.
+
+F05/F06/N08 PARTIAL, N09 nyitott; PR #50 draft, nincs v6 merge, production, béta-, billing- vagy entitlement-módosítás. Az automatikus kapupontok nem helyettesítik a teljes nyolcas ablak és a független emberi olvasás eredményét.
+
+### Accepted and failed case evidence
+
+All seven attempt traces, source/manifest/project bindings, transport counts, accepted receipt hashes and original ledger reservations verified after process exit0. No active database was opened; no ledger/source state was rewritten. The successful process exit is a report-writing success, not benchmark acceptance. Accepted-only reader artifacts contain six main chapters, not a full eight-main package. Final Verify+Container CI334 on the measured source was successful; the new deadline correction has no paid proof yet.
+
+| Creative main | Title / result | Physical calls | Accounted USD | Trace SHA256 |
+|---|---|---:|---:|---|
+| 1 | Before Anyone Arrives | 7 | 0.7666825 | a82a17d42abbd8c8ce273e86704cf3bf5d1afad11cb121cf80b8da054cfac723 |
+| 2 | The Second Favour | 5 | 0.2626150 | ceaafb6d46947e20dfb0469fc1cfede1f2336986583048adeea53a97a785df9c |
+| 3 | The Spare Coffee | 5 | 0.2850125 | 1e5f357df4cfb9e07095833f0a8fd75c65f7b03825d504670d152710b982c15c |
+| 4 | The Green Beneath the Paint, one content repair | 7 | 0.4210850 | 99902c6cce196c21b9729dea2fc43ff324a29e1e23f7493f0e0b7177b66bd513 |
+| 5 | The Other Side of the Table | 7 | 0.9563050 | 05a22de765dd9486f76e83a44a368a424e22aa108f3ce537a03ed11139b8e034 |
+| 6 | The Raised Shoulder | 5 | 0.2784750 | 91db09a74bbd3b7dfd2e2a7863eb2dc778cf69cbdd390d3fee51fa7115ee041d |
+| 7 | No returned author body; three timeouts | 4 | 1.0879275 | 0d3cc941b875da4a711cf04da8755e9fa9cfa72b5623ca9042bdf86abd434664 |
+
+Unknown use: two author timeouts in main1 retain0.561465 USD, two in main5 retain0.666855 USD, three in attempted main7 retain1.0116075 USD. They remain fully charged in conservative accounting. No provider invoice reconciliation or refund is claimed.
+
+### Direct diagnostic AI reading, not independent human acceptance
+
+The six accepted texts were read in full, including the initial rejected fourth package and its final repair. The first three develop actual completed original work: a six-image portfolio with external feedback, two new narrative pictures and an eight-page comic. The fourth initially repeated the earlier observation → unintended implication → fix loses appeal → new story mechanism; the review caught novelty3 and repair replaced it with a different painting/material consequence. That repair is substantive evidence of the existing gate functioning, not proof every repeated mechanism is caught.
+
+The fifth changes home from a private work surface to a shared work session: excessive hosting costs a painting, then concentration costs listening to a friend. In the sixth the monthly routine becomes meaningful enough to miss; Niamh finishes her own comic, wants weekends back and declines assumed future meetings. Her life is autonomous rather than a permanent mentor service. The same location therefore gains a new role through earned interaction; no relocation or new-actor quota is required.
+
+Remaining concrete concerns: over-explanation/self-undercutting recurs in odd chapters1/3/5; the sixth penultimate paragraph explicitly weighs asking Niamh to sit against inventing a person, closely echoing the two structured decision options despite the editor accepting all flags. This is a possible decision-interface leak needing literary calibration, not a declared perfect ending. Calendar bridging still compresses thin intervening periods. After three fictional years the named world is still mainly one friend and one home table. Relationship depth is visible; broader-world renewal and desire to keep reading are unproven. These risks must survive into human review and later corrections, rather than be erased by automated scores4/5.
+
+No numerical human ratings or seventeen-question B8 acceptance is fabricated. The six-chapter fragment may be read as partial evidence but cannot be substituted for the planned complete windows/forks. Missing samples remain missing. No extra model, repair allowance, billing plan or release threshold was introduced.
+
+
+### Deadline correction — final offline verification
+
+The fixed300000ms timeout is only the development creative `fictionTimeoutMs`. The SDK fallback stays exactly180000 for creative /120000 ordinary, preserving legacy tasks in mixed-mode diagnostics; ordinary/runtime provider defaults are untouched. Capture now forwards the per-call timeout to actual SDK `responses.create`, fixing its previous silent discard. A regression captures300000/180000/absent overrides and verifies identical request hashes/retained response evidence. A separate config regression limits the override to creative evaluation. The existing local provider configuration maximum is300000; no OpenAI platform maximum is claimed.
+
+**101 files /1078 tests PASS**, including actual18-sample/90-mock-transport main+fork integration, clean resume, privacy/provenance and source-tamper negatives. Format/docs/typecheck/build/schemas-without-drift/diff PASS. Tests ran with2 workers, unchanged test timeouts and no edits/commits during source-bound tests. No test case was skipped. No new real API call was made after the terminal B failure.
+
+Separate read-only Claude Code subscription audit reviewed timeout propagation, all three runner constructors, retry count, source binding and unknown-response capture. The initial8-turn attempt produced no final verdict; its resumed verdict identified the SDK-wide scope leak in the earlier read. That fallback had already been corrected before full verification. A subsequent actual file read confirmed the correction and no remaining actionable incremental finding. The review did not independently re-audit monetary arithmetic/max9/repair1 (unchanged and covered by preceding audit/full tests), prove provider reliability or give literary approval. Preserve that distinction rather than reporting the exhausted first audit as PASS.
+
+Next paid decision: a fresh three-main/no-fork smoke, then only if acceptable a fresh18-target measurement. Known-response conservative costs suggest roughly6–7 USD total for that package, with uncertainty from retries; current2.785490 authority is insufficient. Additional numeric authorization is required before that package starts, followed by a source-bound cap update and checks/CI. No source-hash adoption, ledger copy/reset, terminal-run resume or unapproved spending. Existing allowance remains12 until the owner actually approves a change. PR#50 stays draft; no merge/production action.

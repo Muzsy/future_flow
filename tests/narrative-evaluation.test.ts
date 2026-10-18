@@ -5,6 +5,7 @@ import { hash } from '@future-flow/core';
 import { narrativeDimensions } from '@future-flow/contracts';
 import {
   parseEvaluationOptions,
+  evaluationTimeouts,
   evaluationApprovedCumulativeBudgetUsd,
   verifyEvaluationAuthorization,
 } from '../scripts/lib/narrative-evaluation-options';
@@ -84,6 +85,14 @@ const operations = {
   allChoiceMappingsReviewed: true,
 };
 describe('bounded and independently assessed narrative experiment', () => {
+  it('bounds only creative evaluation fiction calls at five minutes and leaves ordinary defaults intact', () => {
+    expect(evaluationTimeouts({ creative: true })).toEqual({
+      timeoutMs: 120000,
+      fictionTimeoutMs: 300000,
+    });
+    expect(evaluationTimeouts({})).toEqual({ timeoutMs: 120000 });
+  });
+
   it('defaults to eight fictional offline profiles and never adopts the application credential', () => {
     const options = parseEvaluationOptions([], {
       OPENAI_API_KEY: 'application-secret-must-not-be-used',

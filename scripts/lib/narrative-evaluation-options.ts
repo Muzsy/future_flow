@@ -25,6 +25,17 @@ export function evaluationMaxRequestBytes(
     : evaluationDefaultMaxRequestBytes;
 }
 
+// Development-only creative calibration after seven 180s transport timeouts.
+// Fixed, source-bound ceiling; runtime defaults and retry/request budgets stay put.
+export function evaluationTimeouts(
+  options: Pick<EvaluationOptions, 'creative'>,
+) {
+  return {
+    timeoutMs: 120000,
+    ...(options.creative ? { fictionTimeoutMs: 300000 } : {}),
+  };
+}
+
 export const evaluationPrices = {
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
   'gpt-6-luna': {

@@ -244,3 +244,8 @@ A javított `490db03` / sourceHash `814d73905850b0036aed691d3d7c8ae5d9782f41cc65
 
 
 A külön Claude Code diagnosztikai AI-olvasás a friss háromrészes nyitást megfelelőnek találta a hosszabb próbára, a megismételt túlmagyarázás/önirónia, montázsritmus és halk lezárások watchpointjaival. Root a tényleges választásokkal összevetette a kritikát: végső Stage A döntés **a friss 18-célos B mérés indítható**. Nincs human PASS vagy prompt/kód/kapulazítás; a benchmark ellenőrzi a hosszabb változatosságot. Alkalmazáskód változatlan a CI332 sikeres490db03 forráshoz képest, a dokumentáció külön checkpointot ad az új paid source/cost groupnak.
+
+
+### Javított v6 Stage B lezárása — 2026-10-18, technikai részleges eredmény
+
+F05/F06/N08 PARTIAL, N09 nyitott. Javított friss B:6 elfogadott/1 timeout miatt sikertelen/11 nem generált a18-ból; a hetedik három180s author-timeoutja megállította a további profil/fork költést. B40 hívás/4.0581025 USD; teljes v6 138hívás/9.214510 USD a12-ből, maradék2.785490 USD. Hét unknown teljes foglalása2.2399275 USD benne marad. Következő offline technikai munka: fix300s csak development-fiction és provider-timeout továbbítása, runtime/prompt/modell/max9/egy-repair változatlan. Teljes új Stage A+B nem fér biztonságosan a maradékba; ilyen fizetős csomag további numerikus authority nélkül nem indul. A terminális korpusz és ledger változatlan, nincs source-adoption vagy human minősítés. Részletes forrás/költség/eset/olvasási bizonyíték a [v6 tervben](plans/045_fiction_v6_earned_life_evolution.md).
