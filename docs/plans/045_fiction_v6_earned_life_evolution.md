@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: repaired-stage-a-accepted-stage-b-decision-pending
+state: repaired-stage-a-accepted-fresh-stage-b-ready
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -1373,3 +1373,12 @@ Root's full reading is diagnostic AI, not human acceptance. A private dialogue e
 Root considers this **provisionally acceptable for a longer diagnostic**, with explicit watchpoints: the first two episodes repeat excessive cutting → listener objection → long explanation; the third changes that machinery into autonomous practice/preference. The first ending briefly frames two open projects, while later endings concern material comprehension/CV wording rather than an NPC waiting for a binary choice. Selected month markers and explanatory-defensiveness remain repertoire risks. Three quiet chapters do not prove eight-chapter retention or lasting whole-life evolution.
 
 A separate Claude Code subscription **diagnostic AI reader** is reviewing only these three accepted synthetic texts and minimal fictional profile, without model versions/scores/costs/traces/secrets. It is an additional development reading, not a new product pipeline stage, model experiment, independent human grade or application API charge. Stage B decision waits for the comparison with that critique; if unacceptable, paid work stops. This documentation checkpoint leaves application/harness/test/migration bytes unchanged and gives any approved fresh Stage B a distinct sourceHash/cost group. Stage B will still be fresh 18-target, never a reroll of the terminal old corpus. Human literary/retention acceptance remains pending; PR #50 stays draft.
+
+
+### Repaired Stage A reading decision — proceed to fresh Stage B
+
+The additional Claude Code **diagnostic AI** reader returned “acceptable for a longer diagnostic test, with watchpoints.” It independently identified the same nearly repeated over-explaining/self-undercutting sentence device in chapters one and two. It found causal progression from audible editing to information/context and then self-directed transcript work, autonomous NPC needs and appropriate quiet endings. Watchpoints also include summary-heavy pacing, the relatively lightly embodied protagonist and repeated quiet cessation of assignments. This is no human rating or guaranteed subscription retention.
+
+Root reconciled the critique with the actual selected choices: continued dialogue editing was chosen after chapter one, so the ambient cupboard project is not evidence of an unexplained lost mandatory plot. A completed **one-off** brief with no second commission is not itself a dropped relationship or defect, and the text contains a sustained Niamh scene as well as the library scenes. Those reader impressions are useful longer-window risks, not new quotas or machine invariants. No prompt, model, threshold or code was changed in response.
+
+Final root Stage A decision: **acceptable to proceed to the fresh18-target diagnostic**, retaining all watchpoints and costs. Not a human PASS. Three-main smoke failure would have stopped paid work; it has not been rerolled. The forthcoming Stage B documentation source differs from490db03, but app/harness/tests/migrations are byte-identical to its successful full local/CI332 checks, and the new documentation passes docs:check. Its exact paid SHA/sourceHash must be recorded separately; original ledger remains403/15.8884375 and TOTAL12 cumulative22.732030. Old partial Stage B remains negative evidence, not adopted source material.
