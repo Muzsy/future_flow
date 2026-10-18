@@ -242,14 +242,14 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
     ).toThrow();
   });
 
-  it('sets reviewed cumulative ceiling to 22.732030 (baseline 10.732030 + 12.000000 without re-adding old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(22.73203, 6);
+  it('sets reviewed cumulative ceiling to 27.732030 (baseline 10.732030 + 17.000000 without re-adding old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(27.73203, 6);
     expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(
-      10.73203 + 12.0,
+      10.73203 + 17.0,
       6,
     );
     expect(evaluationApprovedCumulativeBudgetUsd).not.toBeCloseTo(
-      15.204535 + 12.0,
+      15.204535 + 17.0,
       6,
     );
 
@@ -291,7 +291,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
           '--periods',
           '8',
           '--budget-usd',
-          '22.73203',
+          '27.73203',
           '--approval-id',
           'v6-stage-b-window',
           '--out',
@@ -299,7 +299,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
         ],
         developmentEnv,
       );
-      expect(stageBPaid.budgetUsd).toBeCloseTo(22.73203, 6);
+      expect(stageBPaid.budgetUsd).toBeCloseTo(27.73203, 6);
 
       expect(() =>
         parseEvaluationOptions(
@@ -313,7 +313,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
             '--periods',
             '8',
             '--budget-usd',
-            '22.732031',
+            '27.732031',
             '--approval-id',
             'over-ceiling',
             '--out',
@@ -388,7 +388,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
 
       const stageBGuard = new ExperimentAiBudget(
         ledgerPath,
-        22.73203,
+        27.73203,
         'narrative-evaluation:v6-stage-b',
         undefined,
         evaluationApprovedCumulativeBudgetUsd,
@@ -412,7 +412,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
       expect(afterStageB.accountedUsd).toBeGreaterThan(
         afterStageA.accountedUsd,
       );
-      expect(afterStageB.budgetUsd).toBeCloseTo(22.73203, 6);
+      expect(afterStageB.budgetUsd).toBeCloseTo(27.73203, 6);
     } finally {
       clock.mockRestore();
       await rm(dir, { recursive: true, force: true });
@@ -897,7 +897,7 @@ describe('v6 offline evaluation integration: Stage A 3-period no-fork smoke and 
         expect(serializedInput).not.toContain('rolloverBalance');
         expect(serializedInput).not.toContain('personalTier');
         expect(serializedInput).not.toContain('budgetUsd');
-        expect(serializedInput).not.toContain('22.73203');
+        expect(serializedInput).not.toContain('27.73203');
       }
 
       // Verify private trace integrity (18 cases, 0700 dir, 0600 files)

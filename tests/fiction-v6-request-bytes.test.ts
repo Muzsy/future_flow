@@ -351,7 +351,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     expect(evaluationCreativeMaxRequestBytes).toBe(196608);
     expect(evaluationCreativeMaxRequestBytes).toBe(192 * 1024);
     expect(evaluationCreativeMaxRequestBytes).toBeLessThan(272000);
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(22.73203, 6);
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(27.73203, 6);
 
     const legacyDefault = parseEvaluationOptions([]);
     expect(legacyDefault.creative).toBeUndefined();
@@ -514,7 +514,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
 
   it('enforces the owner USD ceiling and preserves all prior cumulative ledger calls without clipping, deduplication, retagging or source adoption', async () => {
     const ledgerPath = await tempLedgerPath();
-    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 22.732030
+    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 27.732030
     expect(
       () =>
         new ExperimentAiBudget(
@@ -654,12 +654,13 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     // When remaining cumulative headroom is smaller than the 0.3918775 USD worst-case
     // reservation of the 108,751-byte repair request, reserve rejects with SMOKE_BUDGET_EXCEEDED
     const tightLedgerPath = await tempLedgerPath();
+    const tightPriorSpend = evaluationApprovedCumulativeBudgetUsd - 0.38;
     await writeFile(
       tightLedgerPath,
       JSON.stringify(
         {
           budgetUsd: evaluationApprovedCumulativeBudgetUsd,
-          accountedUsd: 22.35,
+          accountedUsd: tightPriorSpend,
           estimatedUsd: 21.0,
           unknownUsageCalls: 0,
           calls: [
@@ -669,8 +670,8 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
               model: 'gpt-6.1-sol',
               task: 'life_narrative_chapter',
               startedAt: '2026-10-18T00:50:00.000Z',
-              reservedUsd: 22.35,
-              accountedUsd: 22.35,
+              reservedUsd: tightPriorSpend,
+              accountedUsd: tightPriorSpend,
               estimatedUsd: 21.0,
               status: 'completed',
               usage: { input_tokens: 1000, output_tokens: 1000 },

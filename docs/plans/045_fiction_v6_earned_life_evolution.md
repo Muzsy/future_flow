@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: repaired-stage-b-partial-deadline-fix-verified-awaiting-paid-authority
+state: deadline-fix-verified-total17-authorized-checking-fresh-smoke
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -1431,3 +1431,10 @@ The fixed300000ms timeout is only the development creative `fictionTimeoutMs`. T
 Separate read-only Claude Code subscription audit reviewed timeout propagation, all three runner constructors, retry count, source binding and unknown-response capture. The initial8-turn attempt produced no final verdict; its resumed verdict identified the SDK-wide scope leak in the earlier read. That fallback had already been corrected before full verification. A subsequent actual file read confirmed the correction and no remaining actionable incremental finding. The review did not independently re-audit monetary arithmetic/max9/repair1 (unchanged and covered by preceding audit/full tests), prove provider reliability or give literary approval. Preserve that distinction rather than reporting the exhausted first audit as PASS.
 
 Next paid decision: a fresh three-main/no-fork smoke, then only if acceptable a fresh18-target measurement. Known-response conservative costs suggest roughly6–7 USD total for that package, with uncertainty from retries; current2.785490 authority is insufficient. Additional numeric authorization is required before that package starts, followed by a source-bound cap update and checks/CI. No source-hash adoption, ledger copy/reset, terminal-run resume or unapproved spending. Existing allowance remains12 until the owner actually approves a change. PR#50 stays draft; no merge/production action.
+
+
+### Új numerikus v6 authority — összesen17 USD, 2026-10-18
+
+A tulajdonos a konkrét deadline-javítás és a részleges mérés megismerése után további legfeljebb5 USD-t engedélyezett: **összesen17 USD v6**, nem újraindított keret. Változatlan nyitó305/10.732030 USD, új kumulatív plafon **27.732030 USD**. Aktuális eredeti ledger443/19.946540 USD, eddigi v6 **9.214510 USD**, rendelkezésre álló authority **7.785490 USD**. A hét unknown teljes2.2399275 USD foglalása továbbra benne marad; sem a régi maradékot, sem a régi elutasításokat nem nullázzuk/adjunk hozzá újra. Új cap és negatív pénzügyi ellenőrzések után sikeres exact-source CI szükséges. Ezután friss három career-main/no-fork előpróba, és csak elfogadható eredménye után külön friss18-célos mérés. Várható összköltség6–7 USD, nem garantált szolgáltatói siker. Nincs modell-, minőségkapu-, repair-, runtime-, production- vagy merge-engedély. A korábbi12 USD-re vonatkozó mondatok és keretfüggő leállás történeti állapotok; a már lefutott mérések eredménye/forrása változatlan.
+
+A17 USD-s authority-korrekció célzott ellenőrzése3 fájl/22 teszt PASS: baseline+17, régi headroom újrahozzáadásának tiltása, plafon+0.000001 elutasítása, mindkét pénzügyi guard, unknown/prior ledger megtartása, valódi workerrel18 offline minta és source-bound resume. Az első célzott futásban a régi22.35-ös tesztledger az új plafon alatt helyesen már megengedte a foglalást; a negatív teszt adatát cap−0.38-ra tettük, ezért a0.3918775-ös teljes következő foglalás továbbra elutasított. Sem a guardot, sem a foglalást nem lazítottuk. Format/docs/diff PASS; a1078-as teljes suite/build/typecheck/schemas a változatlan deadline-kód előző commitján futott, az új cap pontos commitján a teljes CI szükséges a fizetős induláshoz.
