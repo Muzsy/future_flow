@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: quality25-smoke-complete-long-diagnostic-checkpoint
+state: quality25-long-diagnostic-budget-stopped-partial
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -24,6 +24,10 @@ PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f
 ## Latest numeric extension — 2026-10-18
 
 The owner approved **23 USD TOTAL v6** (8,12,17, then23), including all earlier failures and unknown-use full reservations. Baseline remains305 calls /10.732030 USD; cumulative ceiling33.732030 USD. Original ledger before new calls:536 /25.542640 USD; TOTAL v6 consumption14.810610 USD, remaining authority8.189390 USD. Nine settled unknowns stay fully accounted; active/unassigned0. Quality2.5 c2ac1cb passed full Verify+Container CI338 with101 files/1091 tests. The numerical cap follow-up needs targeted checks and exact-source CI before fresh three-career-main/no-fork A; only an acceptable A permits separate fresh18-target B. Forecast6–7 USD for both, not a guarantee or reset. No self-merge or production permission. Earlier17-dollar ceilings and additional-authority requests below are historical.
+
+## Latest measured result — 2026-10-18
+
+Quality2.5 B closed at15/18 accepted targets: creative8+fork, career6. The next author was refused before API by the original full-reservation budget guard; no literary rejection in this run. TOTAL v6 accounted22.7396675 USD of23, remaining0.2603325 USD. No active paid job or new paid authority; complete two-profile base-window, human benchmark and N09 remain open. Detailed measured-source accounting, repair evidence and reading below. Earlier prospective stage instructions remain historical checkpoints.
 
 ## Role
 
@@ -1541,3 +1545,66 @@ A második lezárás párhuzamos, esettanulmány/jelentkezés–újabb gyakorlat
 |1|What the Button Promised|5|0.2122050|58256ab2fd27546a024dfc374f067633109057c5bb44cf435f9fada6e47fdb4a|
 |2|The Work in the Appendix|5|0.2540100|2dabec2cdd15a49ccc384d87955b8cb864ce5f9af8407cfc46537ca636f223b5|
 |3|The Unfinished Edit|7|0.9674625|4815b8cff00d00a2585d13b3628b1eb852cf63f5cd008ec96e24fbe0b958fe6c|
+
+
+### Quality2.5 hosszú mérés lezárása — 2026-10-18, részleges
+
+Friss forrás `cb8b539d11d8d364cee1798aa6fe5164d6c9f681`, sourceHash `d05fb027bf589169b19fa16c51ae1e6a63480d83844c16e310f89d914cd36512`, előzetes Verify+Container CI340 SUCCESS. **15 elfogadott / 0 irodalmilag elutasított / 3 hiányzó** a18 célból: alkotói8 főági+alternatív3 kész; munkahelyi6 főági kész, főági7–8 és alternatív3 hiányzik. A munkahelyi7 planner-kérése elkészült, de az author teljes előfoglalását `SMOKE_BUDGET_EXCEEDED` még API előtt megtagadta. Ez egy pénzügyi failure, nem elutasított történet, provider-timeout vagy kész fejezet. A terminális mérést nem folytatjuk új címkével, source-adoptionnel vagy ledger-resettel. A teljes kétprofilos B8 nincs igazolva.
+
+**99 valódi transport,16 trace,94 elfogadott receipt,5 egyszeri package repair**; completion után minden trace/receipt/manifest/source/project kötés visszaellenőrzött. B accounted **6.495380 USD**, ismert usage-becslés4.3305782 USD; négy válasz nélküli author-kérés teljes **1.3534425 USD** foglalása megtartva. Az accounted az ismert kérések konzervatív elszámolását is tartalmazza, nem csupán usage+unknown összeadás és nem szolgáltatói számla. P50 **361067ms**, P95 **852171ms** az elfogadott fejezetekre. Aktív/hozzárendeletlen foglalás0; nincs futó fizetős mérés.
+
+Eredeti globális ledger **652 hívás /33.4716975 USD**; a változatlan305/10.732030 baseline óta v6 **347 hívás /22.7396675 USD**, remaining **0.2603325 USD** a jóváhagyott összesen23-ból. Globálisan15 lezárt unknown teljes foglalása megmarad. A maradék nem fedezte a következő teljes kérést; további fizetős hívás nem indul. Ár/billing, provider-wallet egyenleg vagy új költségengedély ebből nem következik.
+
+Root mind a15 elfogadott fejezetet és az eltérő köztes prózát végigolvasta, a végső body-hasheket a jegyzetekkel egyeztette. Az alkotói ív a portfólió olvashatóságától saját képregényen és kézi példányokon át a barátság/portré eltérő elvárásaiig jut; az utolsó közös séta más zárófunkciót ad. A munkahelyi ívben elfogadott rövid fizetett megbízás, befejezés, jelentkezés, majd külön strukturált döntésválasztással elfogadott junior szerkesztői állás és egy folyamatváltással feleslegessé váló saját útmutató következik. Ez konkrét oksági életfejlődés; nem kötelező előléptetési menetrend. A fork új boltmegfigyelő történetet ír, nem örökli a későbbi főági képi munkákat. A kitalált diagnosztikai profiloknál a harness determinisztikus első opciót választ; ez nem tényleges humán tesztválasz vagy szemantikai megfeleltetési jóváhagyás.
+
+**Nyitott irodalmi kockázat:** több részben a főszereplő túlmagyaráz, miközben más szereplő egy hétköznapi tárgyat/munkát intéz; több penultima közvetlenül felidézi a következő választási útvonalakat. Van jelentésbeli változás, ezért az ismétlődő motívum önmagában nem automatikus hiba. Az elfogadott editorok minden score-ja>=4 és mind a7 flag igaz, de ez nem zárja le a teljes ív vagy a humán érdeklődés kérdését. Külön accepted-only, nyolc alkotói és hat munkahelyi részt olvasó AI-kritika lezárult (részletek alább); ez sem emberi H1/H2 vagy retention PASS. F05/F06/N08 PARTIAL, N09 nyitott; PR#50 draft, nincs merge/production/béta/billing/entitlement módosítás.
+
+
+#### Package repair és a következő korrekció bizonyítéka
+
+Mind az5 javítást fidelity indította: alkotói3 visszatérő névtelen szereplő regisztrációja; alkotói4 befejezett vállalás opportunity-lezárása; alkotói8 ajándékba adott portré typed asset-je; munkahelyi3 a korábbi dokumentumjavítási tapasztalat storyFact-je; munkahelyi4 a teljesített megbízás opportunity-lezárása. Az alkotói3 upstream author-retry után csak4 javítási slot maradt, ezért a dokumentált fidelity-first fallback működött. A másik4 esetben a quality2.5 a meglévő editort a javítás ELŐTT is összegyűjtötte, max9 transporttal. Ezek a korai editorok mind PASS-t adtak; a valós kettős fidelity+editor hiba közös javításának előnyét ez a minta nem bizonyítja. A dual-feedback technikai regresszió eredménye külön bizonyíték marad.
+
+Az alkotói4 és8 végső fejezetobjektuma byte-azonos a javítás előttivel; a javítás a typed csomagot rendezte. Munkahelyi3 body-azonos, storyFact-kiegészítés. Munkahelyi4 a payment-mondatot is tisztázta. Alkotói3 a visszatérő névtelen alkotó második jelenetét új első látogatóra írta át, és frissítette a kapcsolt esemény/plan/memory/storyFact adatokat; nem pusztán ID-javítás történt.
+
+A változatlan `packages/ai/src/fiction-prompts.ts` mechanics szöveg legfeljebb egy új recurring actor_add-ot enged periódusonként; a contracts/core ezzel szemben teljes actors.max(30)-at és eseményidőben érvényes actor_add-ot ellenőriz, külön periódusonkénti1-es domainkorlát nélkül. A v6 reference-integrity minden visszatérő szereplőt regisztráltat. Ez dokumentált prompt/domain feszültség: az alkotói3-nál az új Aoife mellett második visszatérő szereplő regisztrálása ütközhetett az örökölt promptkorláttal. A modell belső okát nem bizonyítjuk. Aktív/lezárt mérési forrást nem írtunk át; új promptverzió, guard-lazítás vagy új actor-kvóta nincs.
+
+Következő, új fizetős mérés ELŐTT elvégezhető sorrend:
+
+1. Teljes elfogadott korpusz kiegészítő AI-kritikáját és független emberi17-kérdéses olvasását szétválasztva értékelni; konkrét fejezetpárokkal különíteni a karakterfolytonosságot a visszatérő dramaturgiai automatizmustól. Az AI nem töltheti ki az emberi válaszokat.
+2. Az örökölt actor-korlátot a v6 céljához/domainhoz rendező külön, verziózott korrekciót készíteni, ha indokolt; régi prompt snapshot változatlan, actor-chronology/ID/privacy/bytes/memory/request/budget/repair guardok megmaradnak. Két organikusan indokolt visszatérő új szereplő és egyszeri névtelen résztvevő külön célzott fixture; ez nem új szereplőkvóta.
+3. A teljesített opportunity és valóban tartós ajándék-asset regisztrációjának első draft konzisztenciáját meglévő típusokkal javítani, ha a forrásvizsgálat igazolja a hiányos útmutatást; ne oldjuk meg fidelity-kikapcsolással vagy minden kis tárgy kötelező leltározásával. A négy9-hívásos tisztán technikai javítás költségkockázat, nem bizonyított új dramaturgiai haszon.
+4. Konkrét korrekció, változatlan régi snapshotok, célzott negatív regressziók, teljes szükséges ellenőrzések, külön audit és exact-source CI után készüljön új Stage A/B ajánlat. A lezárt15/18 korpusz nem egészíthető ki utólag új forrással. A0.2603325 USD maradékból teljes friss mérés nem indulhat; az új forrásra szükséges kerethez külön számszerű tulajdonosi authority kell.
+
+A döntés most: részleges diagnosztikai eredmény megőrzése, új fizetős hívás nélkül. Nincs teljes v6 minőségi vagy gazdaságossági jóváhagyás.
+
+#### Esetenkénti B elszámolás
+
+| Eset (0-alapú index) | Cím | Transport | Repair | Accounted USD |
+| --- | --- | ---: | --- | ---: |
+| career-transition:narrative-v1:0 | Where the Boxes Go | 5 | nem | 0.2012850 |
+| career-transition:narrative-v1:1 | The Before Picture | 5 | nem | 0.2536650 |
+| career-transition:narrative-v1:2 | The Cancellation Rule | 9 | igen | 0.5265175 |
+| career-transition:narrative-v1:3 | The Smaller Batch | 9 | igen | 0.5109475 |
+| career-transition:narrative-v1:4 | The Carry-Forward | 6 | nem | 0.6368750 |
+| career-transition:narrative-v1:5 | The Missing Middle | 7 | nem | 0.9962700 |
+| career-transition:narrative-v1:6 | Csak planner; author budget refusal | 1 | nem | 0.0786975 |
+| creative-portfolio:narrative-v1:0 | The Missing Passenger | 5 | nem | 0.2050400 |
+| creative-portfolio:narrative-v1:1 | The Space Between Pictures | 5 | nem | 0.2239375 |
+| creative-portfolio:narrative-v1:2 | A Place for the Versions | 9 | igen | 0.7786400 |
+| creative-portfolio:narrative-v1:3 | The Second Kitchenette | 9 | igen | 0.4732625 |
+| creative-portfolio:narrative-v1:4 | The Chair Outside | 5 | nem | 0.2728500 |
+| creative-portfolio:narrative-v1:5 | The Copy in Her Bag | 5 | nem | 0.2891900 |
+| creative-portfolio:narrative-v1:6 | Across the Join | 5 | nem | 0.2708750 |
+| creative-portfolio:narrative-v1:7 | The Moving Subject | 9 | igen | 0.5140075 |
+| fork:creative-portfolio:narrative-v1:2 | The Missing Letters | 5 | nem | 0.2633200 |
+
+
+#### Teljes elkészült ívek kiegészítő AI-kritikája
+
+Külön, csak az elfogadott nyolc alkotói és hat munkahelyi teljes főági prózát olvasó Claude Code előfizetéses kritika lezárult; a korábbi root-pontszámokat/jegyzeteket, titkokat és ledgert nem kapta meg. A kezdeti4-turn vizsgálat, majd egy1-turn kontextuspontosító addendum sikeres. Ez claude.ai Pro használat, nem Anthropic API-wallet költés vagy a23 USD v6 keret emelése.
+
+A kritikus mindkét szálat tovább olvasná, konkrét oksági törést nem talált; az alkotói8 barátság/portré jelenete és a munkahelyi6 fölöslegessé váló útmutatója szerinte ténylegesen megváltoztatja a korábbi motívumok funkcióját. Ugyanakkor az elfoglalt beszélgetőtárs/túlmagyarázás ismétlődése az alkotói6–7 táján fárasztóvá válhat; mindkét profil hasonló szerzői kontrolltémát, azonos keresztnevű fő mellékszereplőt és ismétlődő hónapváltási prezentációt használ. Ezek megkülönböztetett, részben vitatható olvasói kockázatok, nem új szó-, név-, helyszín- vagy cselekménykvóták.
+
+A root a kritika alkalmazási kontextus nélkül túlzó részeit visszaellenőrizte. A kritikus az addendumban visszavonta, hogy az azonos hat hónapos hossz generátori hiba lenne: ez domain-előírás, csak a hónapok hasonló prózai elhelyezése marad stiláris kérdés. Visszavonta az állás elfogadásának hiányzó agency-jét is: az a tényleges strukturált választásban megtörtént, a body-only olvasmány azt nem mutatta. Pontosította, hogy Niamh saját rajzi hozzájárulását kapja vissza, nem jogosulatlanul sajátítja ki a főszereplő munkáját. Az Aoife-jelenet romantikus értelmezése lehetséges olvasat, nem megállapított kánon. A kritikát ezekkel a korrekciókkal őrizzük meg; hibás részeit nem emeljük termékszabállyá.
+
+Root következtetés: ez a korpusz tartalmaz jó, továbbvihető történeti eredményeket, de nem igazolt a minden mintán stabil kiváló minőség vagy a megújítási hajlandóság. Az emberi17-kérdéses értékelés nincs kitöltve, a második nyolcas ablak/fork hiányzik; a fenti konkrét első-draft konzisztencia és ismétlődési vizsgálat marad a következő előkészítés. Új paid futás nem indul.

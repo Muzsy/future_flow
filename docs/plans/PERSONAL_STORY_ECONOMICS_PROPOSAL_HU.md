@@ -287,3 +287,8 @@ A keretkorrekció célzott tesztjei és exact-source CI után friss tiszta forr�
 ### Quality2.5 friss előpróba — gazdasági korlát
 
 3 elfogadott/17 hívás,1.4336775 USD accounted, **0.4778925 USD/elfogadott** minden kísérlettel. Két unknown teljes0.668350 USD foglalása benne marad; ismert usage0.6629858 USD nem számla. P50 413464/P95 856182ms; a háromminta és a hosszú újrapróbák nem igazolnak havi fedezetet vagy termék-SLA-t. Teljes v6 16.2442875 USD a23-ból, remaining6.7557125 USD. Root+diagnosztikus AI-olvasás alapján friss18-célos B következhet5–6 USD becsléssel, új source/checkpoint CI és teljes előfoglalás után; automatikus költés csak a jóváhagyott plafonig. Ár/billing, humán retention és N09 változatlanul nyitott. [Részletek](045_fiction_v6_earned_life_evolution.md).
+
+
+### Quality2.5 hosszú mérés — még nem árazási alap
+
+B15 elfogadott/99 transport/5 repair/6.495380 USD accounted, **0.43302533 USD/elfogadott** minden kísérlettel és a következő, csak plannerig jutó eset költségével. Ismert usage4.3305782 USD; négy unknown teljes1.3534425 USD foglalása megtartva. P50 361067/P95 852171ms. A mérés a következő teljes előfoglalás elégtelensége miatt15/18-nál lezárult, nincs teljes kétprofilos bizonyíték. A quality2.5 A+B7.9290575 USD lett az előzetes6–7 USD becsléssel szemben; ez előrejelzési eltérés, nem a23 USD összesített keret túllépése. Teljes v6 **22.7396675 USD**, maradék0.2603325 USD; nincs aktív paid hívás. Nem számla, wallet-egyenleg, havi fedezet vagy SLA. A négy korai editor-PASS után is teljes package újragenerálás történt; technikai metadata-konzisztencia és provider-timeout költsége külön javítási cél, irodalmi küszöböt nem csökkentünk. [Részletes eredmény és következő lépések](045_fiction_v6_earned_life_evolution.md).
