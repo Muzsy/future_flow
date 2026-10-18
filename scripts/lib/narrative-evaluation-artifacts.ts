@@ -10,6 +10,7 @@ import {
   buildCreativeSequenceBundles,
   assessCreativeSequenceRatings,
   creativeSequenceDimensions,
+  creativeBaseWindowHumanQuestions,
   type BlindPair,
   type CreativeSequenceBundle,
   type CreativeSequenceAssessment,
@@ -209,12 +210,20 @@ export async function writeCreativeSequenceArtifacts(
               );
             }),
           ].join('');
+    const baseWindowQuestionsHtml =
+      bundle.horizon === 'B8'
+        ? `<section><h2>Base-window human evolution and renewal questions</h2><ol>${creativeBaseWindowHumanQuestions.map((q) => `<li>${escape(q)}</li>`).join('')}</ol></section>`
+        : '';
     const horizonGuidance =
       bundle.kind === 'branch'
-        ? '<p>Read the shared prefix and both alternative continuations. This branch comparison accompanies the parent sequence audit; it is not itself a six-chapter continuation.</p>'
-        : bundle.horizon === 'H2'
-          ? '<p><strong>H2 six-chapter long-horizon audit:</strong> Evaluate whether reader immersion, continuation desire, dramatic variety, and character credibility hold up across chapters 4 to 6, and cite any repetitive or weak passages with chapter reference ID and paragraph number.</p>'
-          : '<p><strong>H1 three-chapter sequence audit:</strong> Read the complete sequence in order before scoring. Early three-chapter evidence does not by itself prove six-chapter long-horizon variety.</p>';
+        ? bundle.horizon === 'B8'
+          ? `<p>Read the shared prefix and both alternative continuations. This branch comparison accompanies the parent eight-chapter base-window audit.</p>${baseWindowQuestionsHtml}`
+          : '<p>Read the shared prefix and both alternative continuations. This branch comparison accompanies the parent sequence audit; it is not itself a six-chapter continuation.</p>'
+        : bundle.horizon === 'B8'
+          ? `<p><strong>B8 eight-chapter base-window audit:</strong> Evaluate whether this alternative life has evolved meaningfully and credibly across chapters 1 to 8 so that a reader would want to continue following it, and cite specific passages with chapter reference ID and paragraph number.</p>${baseWindowQuestionsHtml}`
+          : bundle.horizon === 'H2'
+            ? '<p><strong>H2 six-chapter long-horizon audit:</strong> Evaluate whether reader immersion, continuation desire, dramatic variety, and character credibility hold up across chapters 4 to 6, and cite any repetitive or weak passages with chapter reference ID and paragraph number.</p>'
+            : '<p><strong>H1 three-chapter sequence audit:</strong> Read the complete sequence in order before scoring. Early three-chapter evidence does not by itself prove six-chapter long-horizon variety.</p>';
     const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blind sequence review</title><style>body{max-width:900px;margin:30px auto;padding:0 22px;color:#203328;background:#fafaf6;font:18px/1.7 Georgia,serif}section{margin:40px 0;border-top:1px solid #bcc9bf}p{margin:1em 0}.number{color:#63756b;font:12px sans-serif;margin-right:14px}code{overflow-wrap:anywhere}</style><h1>Would you keep reading this story sequence?</h1><p>${run.mock ? 'Technical mock manuscripts: these cannot prove literary quality.' : 'Independent human sequence evaluation: modes, models, policies and automated grades are hidden.'}</p><p><strong>Primary product goals:</strong> Rate immersion, continuation desire, protagonist humanity, NPC autonomy, continuity, human prose, structural variety, emotional range, and system invisibility from 1 to 5${bundle.kind === 'branch' ? ', plus branching value (1 to 5) and preferred branch (A, B, or tie)' : ''}. Cite at least one specific numbered paragraph and chapter reference ID.</p>${horizonGuidance}<p><strong>Secondary diagnostic question:</strong> Record AI suspicion (unlikely, possible, likely) and any observed pattern flags. AI suspicion is a secondary diagnostic signal and not a release pass criterion.</p><p>Fictional goal: ${escape(profile.goal)}. Initial weekly time boundary: ${profile.hours} hours. Financial figures remain unknown.</p><p>Sequence: ${escape(bundle.sequenceId)} · Stage: ${escape(bundle.horizonLabel)} · Snapshot: <code>${bundle.sequenceHash}</code></p>${sections}</html>`;
     await writeFile(filePath, page);
   }
@@ -231,6 +240,9 @@ export async function writeCreativeSequenceArtifacts(
     horizon: b.horizon,
     horizonLabel: b.horizonLabel,
     chapterCount: b.chapterCount,
+    ...(b.horizon === 'B8'
+      ? { humanQuestions: [...creativeBaseWindowHumanQuestions] }
+      : {}),
     chapters: b.chapters.map((ch) => ({
       sampleId: ch.blindedSampleId,
       periodIndex: ch.periodIndex,
@@ -263,7 +275,17 @@ export async function writeCreativeSequenceArtifacts(
     ],
     overall: null,
     ...(b.kind === 'branch' ? { preferredBranch: null } : {}),
-    ...(b.horizon === 'H2' ? { lateHorizonNote: null } : {}),
+    ...(b.horizon === 'H2' || b.horizon === 'B8'
+      ? { lateHorizonNote: null }
+      : {}),
+    ...(b.horizon === 'B8'
+      ? {
+          humanQuestions: [...creativeBaseWindowHumanQuestions],
+          questionResponses: Object.fromEntries(
+            creativeBaseWindowHumanQuestions.map((q) => [q, null]),
+          ),
+        }
+      : {}),
   }));
   await writeFile(
     ratingsTemplateJson,
@@ -415,6 +437,7 @@ export async function writeEvaluationArtifacts(
       : evaluationNarrativeYield(run.accounting, run.samples),
     ...(run.variant ? { variant: run.variant } : {}),
     ...(run.diagnosticOnly ? { diagnosticOnly: true } : {}),
+    ...(run.noForks ? { noForks: true } : {}),
     ...(sequenceOut
       ? {
           sequenceBundles: sequenceOut.bundles.length,
@@ -424,9 +447,11 @@ export async function writeEvaluationArtifacts(
           sequenceBranchBundles: sequenceOut.bundles.filter(
             (b) => b.kind === 'branch',
           ).length,
-          sequenceHorizon: sequenceOut.bundles.some((b) => b.horizon === 'H2')
-            ? ('H2' as const)
-            : ('H1' as const),
+          sequenceHorizon: sequenceOut.bundles.some((b) => b.horizon === 'B8')
+            ? ('B8' as const)
+            : sequenceOut.bundles.some((b) => b.horizon === 'H2')
+              ? ('H2' as const)
+              : ('H1' as const),
           sequenceBundleFiles: sequenceOut.files,
           sequenceAssessment: sequenceOut.assessment,
         }

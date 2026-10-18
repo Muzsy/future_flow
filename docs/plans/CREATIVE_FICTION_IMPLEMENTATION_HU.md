@@ -644,3 +644,9 @@ F05 és F06 továbbra PARTIAL: offline készültségből nem lesz emberi vagy é
 [045](045_fiction_v4_1_real_quality_iteration.md) starts from merged PR #48 (`058555005e7e85905cf53081bfa18226780cf9ac`). It separately versions a v5 candidate against repeated external-opportunity progression and tidy self-correction, preserves measured v1–v4 and adds synthetic-local repair attempt provenance. The target is two profiles × six main periods plus one alternative third per profile (14 final texts), with separate offline, real provider and human evidence. Five normal/max9 physical requests, one repair, unchanged model/context/privacy/production boundaries. Narrator personas and model experiments are out of scope. Status and real evidence belong in STATUS/evaluation runbook; no literary PASS before human reading.
 
 045 implementáció technikailag ellenőrzött, PR #49 draft / CI 326 PASS; a valódi mérés hiányos (8/14 elfogadott cél, egy elutasított előzmény blokkolja a maradék ötöt). F05/F06 és emberi/minőségi release továbbra PARTIAL; részletek a 045 tervben és a STATUS-ban.
+
+## F05/F06 v6 follow-up — earned life evolution
+
+[V6 terv](045_fiction_v6_earned_life_evolution.md), tényleges base `1e1b4303dd779ad8e8b34970892302583a7f66dd` (PR #49 merge). Új v6/quality2.4/editorv5, explicit frozen v5; az induló élet nem plafon, nagyobb változás erősebb okságot igényel. Nincs fejezetszám szerinti menetrend vagy billing-aware generálás. A v5 goal/actor hibák pontos regressziói és bounded saját-ID projection készülnek, változatlan authority mellett.
+
+Előbb valódi három főági munkahelyi fejezet fork nélkül; hiba esetén fizetett stop, nem újragenerálás zöldre. Csak elfogadható Stage A után külön friss kétprofilos 8+fork (18 szöveg) mérés. Összesen legfeljebb új 8 USD, ugyanazon kumulatív ledgeren. Offline teszt, modellkapu, ügynöki olvasás és független emberi elfogadás külön bizonyíték. F05/F06/N08 PARTIAL; N09/production változatlanul nyitott.

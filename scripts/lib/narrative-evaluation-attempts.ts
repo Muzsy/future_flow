@@ -964,9 +964,16 @@ export function wrapEvaluationParse<
   env: Record<string, string | undefined>;
   transports: AttemptTransportSummary[];
   saveTransports: () => Promise<void>;
-  execute: (parameters: TParams, ordinal: number) => Promise<TResponse>;
+  execute: (
+    parameters: TParams,
+    ordinal: number,
+    requestOptions?: { timeout?: number },
+  ) => Promise<TResponse>;
 }) {
-  return async (parameters: TParams): Promise<TResponse> => {
+  return async (
+    parameters: TParams,
+    requestOptions?: { timeout?: number },
+  ): Promise<TResponse> => {
     const existing = readAttemptTrace(
       config.outDir,
       config.binding,
@@ -1000,7 +1007,7 @@ export function wrapEvaluationParse<
     };
     let response: TResponse;
     try {
-      response = await config.execute(parameters, ordinal);
+      response = await config.execute(parameters, ordinal, requestOptions);
     } catch (error) {
       const rawReqId =
         error && typeof error === 'object'

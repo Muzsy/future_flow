@@ -63,3 +63,9 @@ The primary quality target is immersion, credible characters, meaningful develop
 The separately versioned v5 candidate preserves measured v1–v4 prompt bytes and keeps report 1.2.0/signature 1.0.0. New jobs select planner/author/reviewer v5, editor v4 and qualityPolicy 2.3.0. Existing flags now explicitly compare repeated outside-validation-to-opportunity progression and repeated tidy self-correction, without banning earned offers, quiet chapters or persistent disagreement. Review remains after authoring; no extra normal call/repair/context capacity is added. Historical policies, receipts and owned-prefix privacy remain authoritative.
 
 Rejected-attempt diagnostics belong only to the synthetic local evaluator, never production persistence or human reader bundles. Capturing them must not weaken production checkpoint cleanup or deletion. Model recognition and human literary quality remain separate from mock gate-routing proof.
+
+## V6 clarification: earned life evolution
+
+The initial profile is an origin, not a permanent ceiling. Owned canon can make new activities, communities, roles and larger changes plausible, without a chapter-index permission table. Larger change requires stronger causal support, not a later chapter. A fictional opportunity may be invented; a major new commitment remains unresolved unless already entailed by an accepted choice. Required typed mutations cannot be replaced by StoryFacts. Stable places/people remain valid when dramatic meaning changes.
+
+V6 keeps five normal/max9 physical calls, one global repair, unchanged model/fidelity/report/signature and privacy boundaries. A bounded v6-only request projection exposes already-owned current goal/actor IDs as advice, preserving exact replay and first-scene-event chronology; no guessed IDs or new authority. V1–v5 remain frozen. Billing and the eight-main evaluation window never schedule fiction. No production rollout follows from implementation or model ratings.

@@ -24,6 +24,7 @@ import {
 import {
   DomainError,
   fictionAuthorRequest,
+  validateFictionAuthor,
   hash,
   preparePublicEditorSource,
   type SnapshotSourcePeriod,
@@ -32,6 +33,8 @@ import {
   fictionContextSchema,
   fictionV3Policy,
   fictionV4Policy,
+  fictionV5Policy,
+  fictionV6Policy,
   FICTION_MODE,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -144,7 +147,7 @@ async function saved(job: LifeJob) {
 }
 
 describe('creative final author package through real guarded provider and database', () => {
-  it.each([fictionV3Policy(), fictionV4Policy()])(
+  it.each([fictionV3Policy(), fictionV4Policy(), fictionV5Policy()])(
     'finishes an already queued $qualityPolicyVersion snapshot without upgrading its prompt/report policy',
     async (policy) => {
       const f = await fixture();
@@ -174,7 +177,9 @@ describe('creative final author package through real guarded provider and databa
       ]);
       expect(period!.narrative_artifact.policy).toEqual(policy);
       expect(period!.narrative_artifact.editorialReport.version).toBe(
-        policy.qualityPolicyVersion === '2.2.0' ? '1.2.0' : '1.1.0',
+        ['2.2.0', '2.3.0'].includes(policy.qualityPolicyVersion)
+          ? '1.2.0'
+          : '1.1.0',
       );
     },
   );
@@ -293,10 +298,10 @@ describe('creative final author package through real guarded provider and databa
     'distinctEnding',
     'behavioralVariety',
   ] as const)
-    it(`repairs v5 ${flag} with the correct bounded stage sequence`, async () => {
+    it(`repairs v6 ${flag} with the correct bounded stage sequence`, async () => {
       const f = await fixture();
       expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
-        'life_fiction_author.v5',
+        'life_fiction_author.v6',
       );
       const p = provider(f, (task, n, output) => {
         if (task === 'life_narrative_editor' && n === 1)
@@ -331,6 +336,336 @@ describe('creative final author package through real guarded provider and databa
       ).toHaveLength(flag === 'behavioralVariety' ? 2 : 1);
       expect((await saved(f.job)).status).toBe('completed');
     });
+  function repeatedEnding(f: Fixture) {
+    return {
+      ...f.f.editor,
+      verdict: 'revise' as const,
+      sequenceReview: {
+        ...f.f.editor.sequenceReview,
+        distinctEnding: false,
+        distinctRhetoricalShape: false,
+      },
+      issues: [
+        {
+          dimension: 'prose',
+          severity: 'minor',
+          repairScope: 'prose',
+          paragraphIndex: 1,
+          eventIds: [],
+          explanation:
+            'The ending repeats a public-space interruption of an unresolved artistic thought.',
+          suggestedFix:
+            'END_DIFFERENTLY: retain the changed sightline rather than another visitor needing space.',
+        },
+      ],
+    };
+  }
+  function repairMessage(p: ReturnType<typeof provider>) {
+    const raw = p.parse.mock.calls.at(-1)![0] as unknown as {
+      input: { role: string; content: string }[];
+    };
+    return JSON.parse(raw.input.find((i) => i.role === 'user')!.content)
+      .authorRepair;
+  }
+  it('coordinates fidelity and repeated-ending feedback in one nine-call full-package repair', async () => {
+    const f = await fixture(),
+      actor = randomUUID();
+    let fixedEnding = false;
+    f.f.authored.chapter.body +=
+      '\n\nThe attendant opens the door. Later the attendant returns. You clear the chair for another visitor.';
+    const a = structuredClone(f.f.authored);
+    a.candidate.events[0]!.changes.push({
+      type: 'actor_add',
+      value: {
+        id: actor,
+        label: 'Laundrette attendant',
+        relationship: 'other',
+      },
+    });
+    a.candidate.events[0]!.actorIds.push(actor);
+    a.plan.scenes[0]!.actorIds.push(actor);
+    a.chapter.body = a.chapter.body.replace(
+      'You clear the chair for another visitor.',
+      'The new sightline ends at your own shoulder.',
+    );
+
+    validateFictionAuthor(f.job.payload, a);
+    const p = provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1)
+        return {
+          valid: false,
+          issues: [
+            {
+              chapterNo: 1,
+              reason:
+                'REGISTER_ATTENDANT: a recurring unnamed actor needs actor_add in the first event.',
+            },
+          ],
+        };
+      if (task === 'life_narrative_editor')
+        return fixedEnding ? output : repeatedEnding(f);
+      if (task === 'life_narrative_chapter' && n === 2) {
+        const feedback = repairMessage(p);
+        expect(feedback.mode).toBe('author_package');
+        expect(feedback.message).toContain('REGISTER_ATTENDANT');
+        expect(feedback.message).toContain('END_DIFFERENTLY');
+        expect(feedback.message.length).toBeLessThanOrEqual(1800);
+        fixedEnding = true;
+        return a;
+      }
+      return output;
+    });
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse.mock.calls.map((c) => c[0].text.format.name)).toEqual([
+      'life_narrative_plan',
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_fidelity',
+      'life_narrative_editor',
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.providerRequestCount).toBe(9);
+    expect(done.checkpoints.repairUsed).toBe(true);
+    const [period] = await db.query<{
+      candidate: FictionAuthorResult['candidate'];
+      chapter: FictionAuthorResult['chapter'];
+    }>('SELECT candidate,chapter FROM aw_periods WHERE id=$1', [
+      f.job.payload.periodId,
+    ]);
+    expect(period!.candidate.events[0]!.changes).toContainEqual({
+      type: 'actor_add',
+      value: {
+        id: actor,
+        label: 'Laundrette attendant',
+        relationship: 'other',
+      },
+    });
+    expect(period!.chapter.body).toContain('new sightline');
+  });
+  it('keeps the measured quality2.4 fidelity-first failure reproducible', async () => {
+    const f = await fixture();
+    f.job.payload.narrativeContext!.policy = fictionV6Policy();
+    await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
+      f.job.id,
+      JSON.stringify(f.job.payload),
+    ]);
+    f.f = fictionFixture(f.job.payload);
+    const p = provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1)
+        return {
+          valid: false,
+          issues: [
+            { chapterNo: 1, reason: 'Register the recurring attendant.' },
+          ],
+        };
+      if (task === 'life_narrative_editor') return repeatedEnding(f);
+      return output;
+    });
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(p.parse).toHaveBeenCalledTimes(8);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_editor',
+      ),
+    ).toHaveLength(1);
+    expect(
+      await db.query('SELECT id FROM aw_periods WHERE id=$1', [
+        f.job.payload.periodId,
+      ]),
+    ).toHaveLength(0);
+  });
+  it.each([
+    'FICTION_FIDELITY_RESULT',
+    'FICTION_EDITOR_RESULT',
+    'FICTION_REPAIR_STARTED',
+  ] as const)(
+    'resumes coordinated checks after %s without duplicated work or another repair',
+    async (crashStage) => {
+      const f = await fixture();
+      const p = provider(f, (task, n, output) => {
+        if (task === 'life_fidelity' && n === 1)
+          return {
+            valid: false,
+            issues: [
+              { chapterNo: 1, reason: 'Correct the recurring-actor state.' },
+            ],
+          };
+        if (task === 'life_narrative_editor' && n === 1)
+          return repeatedEnding(f);
+        return output;
+      });
+      const original = jobs.checkpoint.bind(jobs);
+      let crashed = false;
+      const checkpoint = vi
+        .spyOn(jobs, 'checkpoint')
+        .mockImplementation(async (job, stage, patch) => {
+          await original(job, stage, patch);
+          if (!crashed && stage === crashStage) {
+            crashed = true;
+            throw new Error('Simulated combined-check crash');
+          }
+        });
+      await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toThrow(
+        'Simulated combined-check crash',
+      );
+      expect(p.parse).toHaveBeenCalledTimes(
+        crashStage === 'FICTION_FIDELITY_RESULT' ? 4 : 5,
+      );
+      if (crashStage === 'FICTION_REPAIR_STARTED')
+        expect((await saved(f.job)).checkpoints.repairUsed).toBe(true);
+      else expect((await saved(f.job)).checkpoints.repairUsed).not.toBe(true);
+      checkpoint.mockRestore();
+      f.job = await saved(f.job);
+      await processLifeJob(f.job, jobs, p.ai);
+      expect(p.parse).toHaveBeenCalledTimes(9);
+      expect(
+        p.parse.mock.calls.filter(
+          (c) => c[0].text.format.name === 'life_narrative_editor',
+        ),
+      ).toHaveLength(2);
+      expect((await saved(f.job)).status).toBe('completed');
+    },
+  );
+  it('preserves four repair slots instead of speculating after an earlier admission', async () => {
+    const f = await fixture();
+    await jobs.checkpoint(f.job, 'EARLIER_ADMISSION', {
+      providerRequestCount: 1,
+    });
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n === 1
+        ? {
+            valid: false,
+            issues: [{ chapterNo: 1, reason: 'Correct a calendar word.' }],
+          }
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(8);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_editor',
+      ),
+    ).toHaveLength(1);
+    expect((await saved(f.job)).checkpoints.providerRequestCount).toBe(9);
+  });
+  it('does not buy a partial package repair when fewer than four calls remain', async () => {
+    const f = await fixture();
+    await jobs.checkpoint(f.job, 'EARLIER_ADMISSIONS', {
+      providerRequestCount: 2,
+    });
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n === 1
+        ? {
+            valid: false,
+            issues: [{ chapterNo: 1, reason: 'Correct a calendar word.' }],
+          }
+        : output,
+    );
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_REQUEST_LIMIT',
+    });
+    expect(p.parse).toHaveBeenCalledTimes(4);
+    expect((await saved(f.job)).checkpoints.repairUsed).not.toBe(true);
+    expect(
+      await db.query('SELECT id FROM aw_periods WHERE id=$1', [
+        f.job.payload.periodId,
+      ]),
+    ).toHaveLength(0);
+  });
+  it.each([
+    'AI_PROVIDER_FAILED',
+    'AI_AUTH_FAILED',
+    'AI_BUDGET_EXCEEDED',
+    'LIFE_REVISION_CONFLICT',
+  ] as const)(
+    'never hides %s from speculative editing as a content repair',
+    async (errorCode) => {
+      const f = await fixture();
+      const p = provider(f, (task, n, output) => {
+        if (task === 'life_fidelity' && n === 1)
+          return {
+            valid: false,
+            issues: [{ chapterNo: 1, reason: 'Correct an actor.' }],
+          };
+        if (task === 'life_narrative_editor')
+          throw new DomainError(errorCode, 'Synthetic boundary rejection');
+        return output;
+      });
+      await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+        code: errorCode,
+      });
+      expect(p.parse).toHaveBeenCalledTimes(5);
+      expect((await saved(f.job)).checkpoints.repairUsed).not.toBe(true);
+      expect(
+        await db.query('SELECT id FROM aw_periods WHERE id=$1', [
+          f.job.payload.periodId,
+        ]),
+      ).toHaveLength(0);
+    },
+  );
+  it('does not let a repeated final failure through after one coordinated repair', async () => {
+    const f = await fixture();
+    const p = provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1)
+        return {
+          valid: false,
+          issues: [{ chapterNo: 1, reason: 'Register a returning actor.' }],
+        };
+      return task === 'life_narrative_editor' ? repeatedEnding(f) : output;
+    });
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(p.parse).toHaveBeenCalledTimes(9);
+    expect(
+      await db.query('SELECT id FROM aw_periods WHERE id=$1', [
+        f.job.payload.periodId,
+      ]),
+    ).toHaveLength(0);
+  });
+  it('keeps both checkers visible within the existing 1800-character feedback bound', async () => {
+    const f = await fixture();
+    let messageSeen = '';
+    const p = provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1)
+        return {
+          valid: false,
+          issues: Array.from({ length: 4 }, () => ({
+            chapterNo: 1,
+            reason: 'REGISTER_ACTOR ' + 'x'.repeat(275),
+          })),
+        };
+      if (task === 'life_narrative_editor' && n === 1) {
+        const bad = repeatedEnding(f);
+        return {
+          ...bad,
+          issues: Array.from({ length: 4 }, () => ({
+            ...bad.issues[0],
+            explanation: 'ENDING_REPEAT ' + 'y'.repeat(270),
+          })),
+        };
+      }
+      if (task === 'life_narrative_chapter' && n === 2)
+        messageSeen = repairMessage(p).message;
+      return output;
+    });
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(messageSeen.length).toBeLessThanOrEqual(1800);
+    expect(messageSeen).toContain('Fidelity:');
+    expect(messageSeen).toContain('REGISTER_ACTOR');
+    expect(messageSeen).toContain('Editor:');
+    expect(messageSeen).toContain('distinctEnding');
+    expect(messageSeen).toContain('ENDING_REPEAT');
+    expect(messageSeen).toContain('[clipped]');
+    expect(p.parse).toHaveBeenCalledTimes(9);
+  });
   it('stops after a second quality failure without a partial period', async () => {
     const f = await fixture(),
       p = provider(f, (task, _n, output) =>

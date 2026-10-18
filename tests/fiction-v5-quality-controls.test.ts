@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  fictionPolicy,
+  fictionV5Policy,
   fictionV1Policy,
   fictionV2Policy,
   fictionV3Policy,
@@ -19,7 +19,7 @@ function fixture() {
   const input = fictionFixture().input;
   if (input.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
     throw Error();
-  input.narrativeContext.policy = fictionPolicy();
+  input.narrativeContext.policy = fictionV5Policy();
   const f = fictionFixture(input);
   return { ...f, editor: fictionHumanEditorialSchema.parse(f.editor) };
 }
@@ -33,7 +33,7 @@ describe('v5 policy and labelled literary gate controls', () => {
       fictionV2Policy(),
       fictionV3Policy(),
       fictionV4Policy(),
-      fictionPolicy(),
+      fictionV5Policy(),
     ];
     for (const p of policies) {
       expect(fictionPolicySchema.parse(p)).toEqual(p);
@@ -51,7 +51,7 @@ describe('v5 policy and labelled literary gate controls', () => {
         ).toBe(false);
     }
     expect(fictionV4Policy().qualityPolicyVersion).toBe('2.2.0');
-    expect(fictionPolicy()).toMatchObject({
+    expect(fictionV5Policy()).toMatchObject({
       qualityPolicyVersion: '2.3.0',
       maxPhysicalRequests: 9,
       maxContentRepairs: 1,

@@ -369,6 +369,54 @@ const creativeSequenceScoreShape = Object.fromEntries(
   creativeSequenceDimensions.map((d) => [d, z.number().int().min(1).max(5)]),
 ) as Record<CreativeSequenceDimension, z.ZodNumber>;
 
+export const creativeBaseWindowHumanQuestions = [
+  'Does life feel meaningfully different at end vs beginning?',
+  'What is the largest perceived change?',
+  'What causal chain made it believable?',
+  'Did any major change feel arbitrary/premature?',
+  'Did any stretch feel stagnant too long?',
+  'Did the story remain trapped in one micro-setting?',
+  'Did recurring places/people feel like continuity or confinement?',
+  'Did the world widen organically?',
+  'Did six-month cadence become visible?',
+  'Did endings reveal the decision interface?',
+  'Did NPCs retain own lives?',
+  'Did accepted choices materially alter later chapters?',
+  'Did fork produce a genuinely different life?',
+  'Would you read the next chapter?',
+  'Would you renew to continue this life?',
+  'Which scene most increased renewal desire?',
+  'Which scene most reduced it?',
+] as const;
+
+export const creativeEvolutionAssessmentSchema = z
+  .object({
+    meaningfulLifeEvolution: z.enum(['clear', 'partial', 'not_felt']),
+    changeFeltEarned: z.enum(['yes', 'mixed', 'no']),
+    continuity: z.enum(['strong', 'mixed', 'broken']),
+    scopeLock: z.enum(['none', 'noticeable', 'dominant']),
+    temporalMetronome: z.enum(['none', 'noticeable', 'dominant']),
+    decisionBoundaryLeakage: z.enum(['none', 'noticeable', 'dominant']),
+    renewalDesire: z.number().int().min(1).max(5),
+    evidence: z
+      .array(
+        z
+          .object({
+            sampleId: z.string().min(1).max(160),
+            paragraphIndex: z.number().int().positive(),
+            reason: z.string().trim().min(15).max(600),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(12)
+      .optional(),
+  })
+  .strict();
+export type CreativeEvolutionAssessment = z.infer<
+  typeof creativeEvolutionAssessmentSchema
+>;
+
 export const creativeSequenceHumanRatingSchema = z
   .object({
     sequenceId: z.string().min(1).max(160),
@@ -404,6 +452,14 @@ export const creativeSequenceHumanRatingSchema = z
     overall: z.enum(creativeSequenceOverallValues),
     preferredBranch: z.enum(['A', 'B', 'tie']).nullable().optional(),
     lateHorizonNote: z.string().trim().min(10).max(1000).nullable().optional(),
+    evolutionAssessment: creativeEvolutionAssessmentSchema
+      .nullable()
+      .optional(),
+    humanQuestions: z.array(z.string().min(1).max(300)).max(30).optional(),
+    questionResponses: z
+      .record(z.string().min(1).max(300), z.string().max(2000).nullable())
+      .nullable()
+      .optional(),
   })
   .strict();
 export type CreativeSequenceHumanRating = z.infer<
@@ -421,17 +477,23 @@ export type CreativeSequenceChapterRef = {
   editorGatePassed: boolean;
 };
 
+export type CreativeSequenceHorizon = 'H1' | 'H2' | 'B8';
+export type CreativeSequenceHorizonLabel =
+  | 'H1-three-chapter-sequence-audit'
+  | 'H2-six-chapter-long-horizon-audit'
+  | 'B8-eight-chapter-base-window-audit';
+
 export type CreativeSequenceBundle = {
   sequenceId: string;
   sequenceHash: string;
   fixtureId: string;
   kind: 'main' | 'branch';
-  horizon: 'H1' | 'H2';
-  horizonLabel:
-    'H1-three-chapter-sequence-audit' | 'H2-six-chapter-long-horizon-audit';
+  horizon: CreativeSequenceHorizon;
+  horizonLabel: CreativeSequenceHorizonLabel;
   chapterCount: number;
   chapters: CreativeSequenceChapterRef[];
   branchOrder?: readonly ['main' | 'fork', 'main' | 'fork'];
+  humanQuestions?: readonly string[];
 };
 
 export type CreativeSequenceSampleInput = {
@@ -499,11 +561,14 @@ export function buildCreativeSequenceBundles(
       contiguous.push(sample);
     }
     if (contiguous.length < 3) continue;
-    const horizon: 'H1' | 'H2' = contiguous.length >= 6 ? 'H2' : 'H1';
-    const horizonLabel =
-      horizon === 'H2'
-        ? ('H2-six-chapter-long-horizon-audit' as const)
-        : ('H1-three-chapter-sequence-audit' as const);
+    const horizon: CreativeSequenceHorizon =
+      contiguous.length >= 8 ? 'B8' : contiguous.length >= 6 ? 'H2' : 'H1';
+    const horizonLabel: CreativeSequenceHorizonLabel =
+      horizon === 'B8'
+        ? 'B8-eight-chapter-base-window-audit'
+        : horizon === 'H2'
+          ? 'H2-six-chapter-long-horizon-audit'
+          : 'H1-three-chapter-sequence-audit';
     const mainSequenceId = `sequence:${fixtureId}:main:${contiguous.length}`;
     const mainChapters: CreativeSequenceChapterRef[] = contiguous.map((s) => ({
       sampleId: s.id,
@@ -538,6 +603,9 @@ export function buildCreativeSequenceBundles(
       horizonLabel,
       chapterCount: contiguous.length,
       chapters: mainChapters,
+      ...(horizon === 'B8'
+        ? { humanQuestions: [...creativeBaseWindowHumanQuestions] }
+        : {}),
     });
 
     const forkSample = samples.find(
@@ -637,6 +705,9 @@ export function buildCreativeSequenceBundles(
         chapterCount: branchChapters.length,
         chapters: branchChapters,
         branchOrder,
+        ...(horizon === 'B8'
+          ? { humanQuestions: [...creativeBaseWindowHumanQuestions] }
+          : {}),
       });
     }
   }
@@ -699,10 +770,9 @@ export type CreativeSequenceGroupSummary = {
 };
 
 export type CreativeSequenceHorizonSummary = {
-  horizon: 'H1' | 'H2';
-  label:
-    'H1-three-chapter-sequence-audit' | 'H2-six-chapter-long-horizon-audit';
-  requiredPeriods: 3 | 6;
+  horizon: CreativeSequenceHorizon;
+  label: CreativeSequenceHorizonLabel;
+  requiredPeriods: 3 | 6 | 8;
   mainBundlesTotal: number;
   branchBundlesTotal: number;
   humanReviewedMainProfiles: number;
@@ -912,7 +982,10 @@ export function assessCreativeSequenceRatings(
         'EVAL_RATING_INVALID',
         'Branch sequence ratings require a branchingValue score.',
       );
-    for (const ev of rating.evidence) {
+    for (const ev of [
+      ...rating.evidence,
+      ...(rating.evolutionAssessment?.evidence ?? []),
+    ]) {
       const chapter = bundle.chapters.find(
         (c) => c.sampleId === ev.sampleId || c.blindedSampleId === ev.sampleId,
       );
@@ -935,18 +1008,22 @@ export function assessCreativeSequenceRatings(
   const aiSummary = summarizeRatingGroup(aiList, known);
 
   const summarizeHorizon = (
-    horizon: 'H1' | 'H2',
+    horizon: CreativeSequenceHorizon,
   ): CreativeSequenceHorizonSummary => {
-    const requiredPeriods = horizon === 'H2' ? 6 : 3;
-    const label =
-      horizon === 'H2'
-        ? ('H2-six-chapter-long-horizon-audit' as const)
-        : ('H1-three-chapter-sequence-audit' as const);
+    const requiredPeriods = horizon === 'B8' ? 8 : horizon === 'H2' ? 6 : 3;
+    const label: CreativeSequenceHorizonLabel =
+      horizon === 'B8'
+        ? 'B8-eight-chapter-base-window-audit'
+        : horizon === 'H2'
+          ? 'H2-six-chapter-long-horizon-audit'
+          : 'H1-three-chapter-sequence-audit';
     const horizonBundles = bundles.filter((b) =>
       b.kind === 'main'
-        ? horizon === 'H2'
-          ? b.chapterCount >= 6
-          : b.chapterCount >= 3 && b.chapterCount < 6
+        ? horizon === 'B8'
+          ? b.chapterCount >= 8
+          : horizon === 'H2'
+            ? b.chapterCount >= 6 && b.chapterCount < 8
+            : b.chapterCount >= 3 && b.chapterCount < 6
         : b.horizon === horizon,
     );
     const horizonBundleIds = new Set(horizonBundles.map((b) => b.sequenceId));
@@ -992,7 +1069,7 @@ export function assessCreativeSequenceRatings(
     const minimumCoverageMet =
       humanReviewedMainProfiles >= 2 &&
       humanReviewedBranchBundles >= 1 &&
-      (horizon !== 'H2' || mainWithLate.size >= humanReviewedMainProfiles);
+      (horizon === 'H1' || mainWithLate.size >= humanReviewedMainProfiles);
     return {
       horizon,
       label,
@@ -1012,14 +1089,18 @@ export function assessCreativeSequenceRatings(
 
   const h1 = summarizeHorizon('H1');
   const h2 = summarizeHorizon('H2');
-  const evidenceStage: 'H2' | 'H1' | 'diagnostic-ai-only' | 'incomplete' =
-    h2.minimumCoverageMet
-      ? 'H2'
-      : h1.minimumCoverageMet
-        ? 'H1'
-        : humanList.length === 0 && aiList.length > 0
-          ? 'diagnostic-ai-only'
-          : 'incomplete';
+  const b8 = summarizeHorizon('B8');
+  const evidenceStage:
+    'B8' | 'H2' | 'H1' | 'diagnostic-ai-only' | 'incomplete' =
+    b8.minimumCoverageMet
+      ? 'B8'
+      : h2.minimumCoverageMet
+        ? 'H2'
+        : h1.minimumCoverageMet
+          ? 'H1'
+          : humanList.length === 0 && aiList.length > 0
+            ? 'diagnostic-ai-only'
+            : 'incomplete';
 
   return {
     ratings: ratings.length,
@@ -1033,9 +1114,10 @@ export function assessCreativeSequenceRatings(
     aiSuspicionIsPassCriterion: false as const,
     humanReleaseThreshold: null,
     ownerThresholdDecisionRequired: true as const,
-    horizons: { H1: h1, H2: h2 },
+    horizons: { H1: h1, H2: h2, B8: b8 },
     h1,
     h2,
+    b8,
     human: humanSummary,
     diagnosticAi: aiSummary,
     means: humanSummary.means,
@@ -1049,7 +1131,7 @@ export function assessCreativeSequenceRatings(
     qualityRelease: false as const,
     passed: false as const,
     limitation:
-      'Creative sequence assessment is candidate quality evidence; diagnostic-ai ratings never count as human evidence, AI suspicion is a secondary diagnostic signal rather than a pass criterion, H1 three-chapter evidence never satisfies H2 six-chapter validation, and canonical release gates remain unchanged.',
+      'Creative sequence assessment is candidate quality evidence; diagnostic-ai ratings never count as human evidence, AI suspicion is a secondary diagnostic signal rather than a pass criterion, H1 three-chapter evidence never satisfies H2 six-chapter validation, B8 eight-chapter base-window validation remains descriptive without inventing a release threshold, and canonical release gates remain unchanged.',
   };
 }
 export type CreativeSequenceAssessment = ReturnType<

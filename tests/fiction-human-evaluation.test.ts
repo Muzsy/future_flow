@@ -110,7 +110,7 @@ function baseScores(
 }
 
 describe('creative fiction long-horizon and human sequence evaluation (HQ7/HQ8)', () => {
-  it('allows up to six periods only in creative-only mode and keeps all legacy/paired contracts at most three', () => {
+  it('allows up to eight periods only in creative-only mode and keeps all legacy/paired contracts at most three', () => {
     expect(() => parseEvaluationOptions(['--periods', '4'])).toThrow(
       'one to three periods',
     );
@@ -125,10 +125,10 @@ describe('creative fiction long-horizon and human sequence evaluation (HQ7/HQ8)'
     ).toThrow('one to three periods');
     expect(() =>
       parseEvaluationOptions(['--creative-only', '--periods', '0']),
-    ).toThrow('one to six periods');
+    ).toThrow('one to eight periods');
     expect(() =>
-      parseEvaluationOptions(['--creative-only', '--periods', '7']),
-    ).toThrow('one to six periods');
+      parseEvaluationOptions(['--creative-only', '--periods', '9']),
+    ).toThrow('one to eight periods');
 
     const creativeSix = parseEvaluationOptions([
       '--creative-only',

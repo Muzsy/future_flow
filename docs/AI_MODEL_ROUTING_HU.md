@@ -1,14 +1,16 @@
 # AI-modellválasztás és költségoptimalizálás
 
-2026-10-02 UTC · Lezárt mérés az akkor ellenőrzött hivatalos OpenAI-árak, kódvizsgálat, 18 korábbi és 14 új valódi hívás alapján. 2026-10-03-i dokumentációfrissítés: a történeti mérési számok/árak megmaradnak, a jelenlegi nyelvi/scope állapot pontosítva. [Aktuális összes keret/státusz](STATUS_HU.md) · [Dokumentáció](README.md). Kapcsolódó terv: [folytatható alternatív élet](PRODUCT_PLAN_HU.md).
+2026-10-02 UTC · Lezárt mérés az akkor ellenőrzött hivatalos OpenAI-árak, kódvizsgálat, 18 korábbi és 14 új valódi hívás alapján. 2026-10-03-i dokumentációfrissítés: a történeti mérési számok/árak megmaradnak, a jelenlegi nyelvi/scope állapot pontosítva. [Aktuális összes keret/státusz](STATUS_HU.md) · [Dokumentáció](README.md). Kapcsolódó terv: [termékdefiníció](product/PRODUCT_HU.md).
 
 **Későbbi állapot (2026-10-04):** a teljes v2 Luna→Sol→Sol láncot azóta megmértük: a kis mintában 46–63% kisebb költség, az angolban egy fejezetjavítás; [dátumozott eredmény](AI_V2_ROUTING_REPORT_HU.md). P01–P05 integrált, alkalmazáskeret működik, Sol marad az alap. Indulás csak angol, AI szerkesztői ellenőrzéssel és kiadás utáni használói visszajelzéssel; az alábbi 40%-os újraárazás és következő lépései a 2026-10-02-i mérés történeti állapota.
 
-## Aktuális creative személyes mód (2026-10-16)
+## Aktuális creative személyes jelölt (2026-10-18)
 
 Az új `narrative-fiction-v2` a meglévő modellbeállításokat használja: draft az `AI_EVENT_MODEL`, végső author-csomag az `AI_STORY_MODEL`, végső review/fidelity/editor az `AI_CHECK_MODEL` (hiányában event) szerint. Nem történik automatikus modellcsere vagy olcsóbb fallback. A dedikált creative diagnózis mind az öt feladaton `gpt-6.1-sol`, más modellt elutasít.
 
-A végső author-csomag nagyobb a puszta fejezetnél: csak ezen az úton a meglévő konfigurált tokenmaximum legfeljebb 12000, a régi life-task cap 6500 marad. Külön `AI_FICTION_TIMEOUT_MS` alapérték 180000 ms; a régi deadline változatlan. Öt normál/max9 fizikai kérés, egy globális tartalmi javítás, változatlan USD/user/project/window korlát. A tényleges költség és minőség a [STATUS](STATUS_HU.md) creative fejezetében és az [értékelési runbookban](operations/NARRATIVE_EVALUATION_HU.md) található. Az alábbi korábbi modellversenyeztetés történeti adat, nem új feladat vagy a creative írómodell lecserélésének terve.
+A végső author-csomag nagyobb a puszta fejezetnél: csak ezen az úton a meglévő konfigurált tokenmaximum legfeljebb 12000, a régi life-task cap 6500 marad. A worker `AI_FICTION_TIMEOUT_MS` változója a provider `fictionTimeoutMs` konfigurációját állítja, alapértéke180000ms; a creative-only fejlesztési mérő explicit300000ms-ot ad át, és a capture-wrapper továbbítja ezt. Ez nem production timeout-emelés. Öt normál/max9 fizikai kérés, egy globális tartalmi javítás, változatlan USD/user/project/window korlát. A tényleges költség és minőség a [STATUS](STATUS_HU.md) creative fejezetében és az [értékelési runbookban](operations/NARRATIVE_EVALUATION_HU.md) található. Az alábbi korábbi modellversenyeztetés és annak „következő” feladatai történeti adatok, nem új feladatok vagy a creative írómodell lecserélésének terve.
+
+A PR #50 draft új creative jobjai quality2.5 / planner-author-reviewer v6 / editor v5 / fidelity v1 snapshotot kapnak. A fejlesztési192KiB envelope minden bájtja előfoglalt, a generic/runtime100000bájtos default megmarad. A legutóbbi valódi15/18 eredmény és22.7396675/23 USD v6 elszámolás részleges; a0.2603325 USD maradék nem fedezte a következő author-kérést. Nincs új paid futás vagy modellversenyeztetés. [Aktuális státusz](STATUS_HU.md), [v6 terv](plans/045_fiction_v6_earned_life_evolution.md).
 
 ## A mérés akkori következtetése
 
@@ -124,9 +126,9 @@ Ez most nem automatikusan aktivált alapbeállítás. A következő rövid idős
 - **Batch/Flex:** későbbi, ráérő szintetikus értékeléshez további 50% díjcsökkentés elérhető lehet. A Batch akár 24 órás feldolgozási ablaka, illetve a Flex lassabb és időnként nem elérhető működése miatt az első interaktív történethez Standard marad. A mostani próba nem Batch/Flex volt. [Batch](https://developers.openai.com/api/docs/guides/batch), [Flex](https://developers.openai.com/api/docs/guides/flex-processing).
 - **Checkpoint és célzott javítás:** a már elfogadott eseményeket nem generáljuk újra narratívahiba miatt. Ez a meglévő tartós feladatkezelésre épülő P05 feladat.
 
-## 7. Következő döntési kapu és reprodukció
+## 7. Az akkori következő döntési kapu és reprodukció — történeti
 
-Az [aktuális backlog](NEXT_STEPS.md) P01–P03 szeletei maradnak elöl. P02-ben a rövid eseménygenerálást feladatonként mérjük, P05-ben a routing, javítás és alkalmazásszintű keret készül el. A következő összehasonlítás a teljes **Luna-esemény → Sol-történet → Sol-ellenőrzés** láncot méri a Sol-kontrollhoz képest, legalább három egymást követő időszakon, majd a P07 különböző esetein.
+Az [akkori backlog](archive/superseded/NEXT_STEPS.md) P01–P03 szeletei maradnak elöl. P02-ben a rövid eseménygenerálást feladatonként mérjük, P05-ben a routing, javítás és alkalmazásszintű keret készül el. A következő összehasonlítás a teljes **Luna-esemény → Sol-történet → Sol-ellenőrzés** láncot méri a Sol-kontrollhoz képest, legalább három egymást követő időszakon, majd a P07 különböző esetein.
 
 Mérendő: költség/elfogadott időszak, schema/domain siker, tény- és időrendi hiba, checker téves elfogadás/téves riasztás, javítás/fallback arány, generálási idő, angol és magyar szövegminőség és folytatási szándék. A korábbi modellpróba magyar v1/prompton futott; az új locale-promptok és v2 period együtt még nem minősítettek Luna-routingen. A 20 eset nem írja felül az engedélyezett pénzügyi keretet; a fizetett próbákat fokozatosan futtatjuk.
 
@@ -181,3 +183,10 @@ A selected creative policy planner/author/planReviewer v4 + editor v3/report 1.2
 A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
 
 A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](plans/045_fiction_v4_1_real_quality_iteration.md).
+
+## V6 / quality 2.4 / editor v5
+
+A v6 jelölt planner/author/planReviewer v6 + editor v5 + fidelity v1 tuple-t választ; report 1.2.0/signature 1.0.0 marad. Az explicit fictionV5Policy a mért elődöt őrzi, v1–v5 promptbytes változatlanok. Ugyanaz a gpt-6.1-sol, öt normál/max9 fizikai kérés és egy globális javítás. Nincs modellkísérlet, ensemble, extra stage vagy olcsóbb fallback. A fejlesztői Claude Code/Antigravity segítség nem termékbeli modellváltás. A szerzői szabadságot a kánon oksági lehetőségei adják, nem csomagpozíció; ár/kvóta nem generálási input. [V6 terv](plans/045_fiction_v6_earned_life_evolution.md).
+
+
+V6 Stage B feltárt egy fejlesztői transport-envelope ütközést: a prose-only repair teljes, sémát/promptot/korábbi csomagot tartalmazó kérése >100000 bájt volt. Az explicit creative-eval caller mind a globális ExperimentAiBudget, mind a lokális DatabaseAiBudget constructorában 196608 bájtos felső határt választ; a generic/default és env-alapú runtime továbbra 100000. A teljes guarded UTF-8 méret és maximum output változatlanul konzervatívan előfoglalt, nincs USD-emelés, olcsóbb becslés, inputeldobás vagy plusz repair. Ez dev harness korrekció; a production v6 repair-envelope és paid/human minőség továbbra külön release-kapu. [Részletes negatív mérés](plans/045_fiction_v6_earned_life_evolution.md#stage-b-actual-result--2026-10-18-partial-not-release-evidence).

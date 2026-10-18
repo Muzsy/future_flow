@@ -44,6 +44,37 @@ function response(usage?: unknown) {
   };
 }
 describe('evaluation attempt evidence edge cases', () => {
+  it('preserves the provider deadline through raw-response capture without changing request evidence', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'aw-deadline-'));
+    try {
+      const execute = vi.fn(async () =>
+        response({ input_tokens: 12, output_tokens: 8 }),
+      );
+      const parse = wrapEvaluationParse({
+        outDir,
+        binding,
+        env: {},
+        transports: [],
+        saveTransports: async () => {},
+        execute,
+      });
+      const parameters = request();
+      await parse(parameters, { timeout: 300000 });
+      await parse(parameters, { timeout: 180000 });
+      await parse(parameters);
+      expect(execute.mock.calls).toEqual([
+        [parameters, 0, { timeout: 300000 }],
+        [parameters, 1, { timeout: 180000 }],
+        [parameters, 2, undefined],
+      ]);
+      const trace = readAttemptTrace(outDir, binding)!;
+      expect(new Set(trace.attempts.map((a) => a.requestHash)).size).toBe(1);
+      expect(trace.attempts.every((a) => a.status === 'completed')).toBe(true);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
   it('retains a complete but schema-invalid raw response and its known usage before provider validation', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'aw-malformed-'));
     try {

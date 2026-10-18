@@ -115,7 +115,7 @@ describe('fiction-prompts v4 human-likeness hardening', () => {
         'b855d95475b8d1b6fc5c366775567765cd459f048c1cba85a188e2ea49ddec62',
     });
   });
-  it('defaults to the selected v5 policy while preserving an explicit v4 route', () => {
+  it('defaults to the selected policy while preserving an explicit v4 route', () => {
     expect(hashesOf(undefined)).toEqual(
       hashesOf(fictionPolicy().promptVersions),
     );
