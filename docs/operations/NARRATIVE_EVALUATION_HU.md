@@ -265,3 +265,8 @@ A tulajdonos a részleges Stage B és a konkrét javítás után **összesen leg
 
 
 A javított transport/price guard és a 12 USD authority közös, stabil forrásellenőrzése kész: **101 fájl / 1076 teszt PASS**, format/docs/typecheck/build/schemas/diff rendben, schema drift nincs. Külön Claude Code read-only follow-up audit: nincs actionable finding. Új paid eredmény még nincs a javításon; következő a tiszta commit/CI utáni friss háromfejezetes előpróba.
+
+
+### Javított forrás valódi Stage A — 2026-10-18
+
+A javított `490db03` / sourceHash `814d73905850b0036aed691d3d7c8ae5d9782f41cc65f094620da1df08a869e5` friss munkahelyi előpróbája **3/3 elfogadott**, 18 valódi hívás, egy author-package repair. A harmadikban a lezárt vállalás typed opportunity státuszát kellett javítani; az eredeti próza teljesen megmaradt, a valódi javító transport most lefutott. Végső fidelity/editor PASS, reference error/unknown/open/unassigned 0. **0.9418175 USD accounted**, 0.8404001 usage estimate, P50 260135/P95 331250 ms. Eredeti ledger **403 /15.8884375 USD**, teljes v6 fogyasztás **5.1564075 USD**, maradék **6.8435925 USD** a 12-ből. CI332 Verify+Container SUCCESS, 101 fájl/1076 helyi teszt. Root végigolvasás szerint feltételesen alkalmas a hosszabb diagnózisra, de az első két rész cutting/critique/overexplaining mechanizmusa és a hónapritmus továbbra watchpoint. Külön, csak elfogadott szintetikus prózát olvasó Claude Code AI-kritika folyamatban; Stage B döntés ezt is mérlegeli. Ez nem human PASS, teljes B8 bizonyítás vagy production aktiválás.

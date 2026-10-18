@@ -252,3 +252,6 @@ A 18 célból 11 elfogadott szöveg, két elutasított próbálkozás és öt ne
 ### Aktuális v6 keretbővítés — 2026-10-18
 
 A tulajdonos a részleges Stage B és a konkrét javítás után **összesen legfeljebb 12 USD v6 fogyasztást** engedélyezett (az eredeti 8 + további 4; nem újraindított keret). A nyitó eredeti 305 / 10.732030 USD ledgerhez tartozó új kumulatív plafon **22.732030 USD**. Jelenleg változatlanul 385 hívás / 14.946620 USD accounted, új v6 fogyasztás 4.214590 USD; fennmaradó authority **7.785410 USD**. A korábbi 3.785410 USD maradék az emelés előtti állapot; a v5 régi maradékát nem adjuk hozzá. Új hívás csak a javított tiszta forrás ellenőrzése után: friss három munkahelyi főági/no-fork előpróba, és csak elfogadható eredménye után külön friss 18-célos mérés. Az eredeti negatív korpusz és költsége megmarad; nincs source-adoption, automatikus reroll, modellváltás vagy production engedély.
+
+
+Javított forrás friss Stage A: 3 elfogadott /18 hívás /1 typed-state repair; **0.9418175 USD**, javítással együtt **0.31393917 USD/elfogadott**. P95 331250 ms. Ez kis munkahelyi előpróba, nem 8-fejezetes fogyasztási/fedezeti garancia. A teljes v6 most 5.1564075 USD a 12-ből; fennmaradó authority 6.8435925 USD. A korábbi negatív költség változatlanul szerepel.
