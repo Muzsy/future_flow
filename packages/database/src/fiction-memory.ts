@@ -172,7 +172,7 @@ export async function personalFictionContext(
     const artifact = fictionArtifactSchema.parse(row.artifact);
     if (artifact.editorialReport.version === '1.2.0') {
       if (
-        !['2.2.0', '2.3.0', '2.4.0'].includes(
+        !['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
           artifact.policy.qualityPolicyVersion,
         ) ||
         artifact.editorialReport.sequenceSignature.periodId !== row.period_id ||

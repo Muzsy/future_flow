@@ -72,7 +72,14 @@ export const fictionPolicySchema = z
       })
       .strict(),
     memoryVersion: z.literal('2.0.0'),
-    qualityPolicyVersion: z.enum(['2.0.0', '2.1.0', '2.2.0', '2.3.0', '2.4.0']),
+    qualityPolicyVersion: z.enum([
+      '2.0.0',
+      '2.1.0',
+      '2.2.0',
+      '2.3.0',
+      '2.4.0',
+      '2.5.0',
+    ]),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
     targetWords: z
@@ -95,16 +102,17 @@ export const fictionPolicySchema = z
               : v === 'v3'
                 ? 'life_fiction_editor.v2'
                 : 'life_fiction_editor.v1') ||
-      policy.qualityPolicyVersion !==
-        (v === 'v6'
-          ? '2.4.0'
-          : v === 'v5'
-            ? '2.3.0'
-            : v === 'v4'
-              ? '2.2.0'
-              : v === 'v3'
-                ? '2.1.0'
-                : '2.0.0')
+      (!(v === 'v6' && policy.qualityPolicyVersion === '2.5.0') &&
+        policy.qualityPolicyVersion !==
+          (v === 'v6'
+            ? '2.4.0'
+            : v === 'v5'
+              ? '2.3.0'
+              : v === 'v4'
+                ? '2.2.0'
+                : v === 'v3'
+                  ? '2.1.0'
+                  : '2.0.0'))
     )
       ctx.addIssue({
         code: 'custom',
@@ -189,8 +197,8 @@ export function fictionV5Policy(): FictionPolicy {
     },
   };
 }
-// Only newly queued jobs select v6; all measured v1-v5 snapshots stay frozen.
-export function fictionPolicy(): FictionPolicy {
+// Measured v6/quality2.4 retains sequential validation/repair behavior.
+export function fictionV6Policy(): FictionPolicy {
   const previous = fictionV5Policy();
   return {
     ...previous,
@@ -203,6 +211,10 @@ export function fictionPolicy(): FictionPolicy {
       editor: 'life_fiction_editor.v5',
     },
   };
+}
+// Newly queued jobs coordinate final-check feedback; all prompt bytes stay frozen.
+export function fictionPolicy(): FictionPolicy {
+  return { ...fictionV6Policy(), qualityPolicyVersion: '2.5.0' };
 }
 export const fictionSequenceSignatureSchema = z
   .object({
@@ -507,7 +519,7 @@ export const fictionArtifactSchema = z
   })
   .strict()
   .superRefine((artifact, ctx) => {
-    const expected = ['2.2.0', '2.3.0', '2.4.0'].includes(
+    const expected = ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
       artifact.policy.qualityPolicyVersion,
     )
       ? '1.2.0'

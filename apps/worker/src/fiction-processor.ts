@@ -26,6 +26,7 @@ import {
   fictionEditorialReportSchema,
   type NarrativePlanningResult,
   type FictionAuthorResult,
+  type FictionEditorialReport,
   type NarrativePlanReview,
 } from '@future-flow/contracts';
 import {
@@ -60,6 +61,37 @@ const message = (error: unknown) =>
   error instanceof Error
     ? error.message.slice(0, 1800)
     : 'Invalid creative output.';
+
+// Keep both checker messages visible within the existing 1800-character repair
+// budget. Raw, complete checker outputs remain bound in their own checkpoints.
+function combinedValidationError(
+  fidelityError: unknown,
+  editorialError: unknown,
+  report?: FictionEditorialReport,
+) {
+  const editor = report
+    ? [
+        `Failing flags: ${
+          report.version === '1.0.0'
+            ? ''
+            : Object.entries(report.sequenceReview)
+                .filter(([, value]) => value === false)
+                .map(([key]) => key)
+                .join(', ')
+        }`,
+        ...report.issues.map(
+          (issue) =>
+            `${issue.dimension}/${issue.severity}/${issue.repairScope}, paragraph ${issue.paragraphIndex}: ${issue.explanation} Fix: ${issue.suggestedFix}`,
+        ),
+      ].join('\n')
+    : message(editorialError);
+  const clip = (text: string, limit: number) =>
+    text.length <= limit ? text : text.slice(0, limit - 12) + ' [clipped]';
+  return new DomainError(
+    'NARRATIVE_QUALITY_FAILED',
+    `Fix BOTH final checks in one full-package repair.\nFidelity: ${clip(message(fidelityError), 800)}\nEditor: ${clip(editor, 850)}`,
+  );
+}
 
 export async function processFictionLifeJob(
   job: LifeJob,
@@ -178,6 +210,34 @@ export async function processFictionLifeJob(
       editorialPassed: false,
       narrativeArtifact: null,
     });
+  }
+  async function readEditorial(authored: FictionAuthorResult) {
+    let editorial = cp.editorialReport;
+    if (
+      editorial &&
+      !matches(
+        'life_narrative_editor',
+        fictionEditorialRequest(input, authored),
+        editorial,
+      )
+    ) {
+      await save('FICTION_EDITOR_INVALID', {
+        editorialReport: null,
+        narrativeArtifact: null,
+      });
+      editorial = undefined;
+    }
+    if (!editorial) {
+      await allowed();
+      const response = await ai.editFiction(input, authored);
+      editorial = response.output;
+      await record('FICTION_EDITOR_RESULT', response, {
+        editorialReport: editorial,
+      });
+    }
+    const report = fictionEditorialReportSchema.parse(editorial);
+    validateFictionEditorialReport(input, authored, report);
+    return report;
   }
   async function repair(
     error: unknown,
@@ -358,36 +418,73 @@ export async function processFictionLifeJob(
           `Correct the final package/prose discrepancy: ${checked.issues.map((i) => i.reason).join(' ')}`,
         );
     } catch (error) {
+      // Frozen policies retain their original immediate fidelity-repair path.
+      const checked = fidelitySchema.safeParse(fidelity);
+      if (
+        scope.context.policy.qualityPolicyVersion === '2.5.0' &&
+        !cp.repairUsed &&
+        error instanceof DomainError &&
+        error.code === 'NARRATIVE_QUALITY_FAILED' &&
+        checked.success &&
+        (!checked.data.valid || checked.data.issues.length > 0)
+      ) {
+        const remaining =
+          scope.context.policy.maxPhysicalRequests -
+          Number(cp.providerRequestCount ?? 0);
+        if (remaining < 4)
+          throw new DomainError(
+            'NARRATIVE_REQUEST_LIMIT',
+            'Too few requests remain for a complete final-package repair.',
+          );
+        const cachedEditor =
+          cp.editorialReport &&
+          matches(
+            'life_narrative_editor',
+            fictionEditorialRequest(input, authored),
+            cp.editorialReport,
+          );
+        // An earlier transport retry may leave only the four required repair
+        // calls. Preserve that route instead of spending its last spare slot.
+        if (remaining >= 4 + (cachedEditor ? 0 : 1)) {
+          let report: FictionEditorialReport | undefined;
+          let editorialError: unknown;
+          try {
+            report = await readEditorial(authored);
+            if (!evaluateFictionEditorialGate(input, report).passed)
+              editorialError = new DomainError(
+                'NARRATIVE_QUALITY_FAILED',
+                'The existing literary check also requires a repair.',
+              );
+          } catch (checkError) {
+            // Transport/auth/budget/lease/privacy failures are never converted
+            // into feedback or hidden behind a content repair.
+            if (!repairable(checkError)) throw checkError;
+            editorialError = checkError;
+          }
+          if (
+            scope.context.policy.maxPhysicalRequests -
+              Number(cp.providerRequestCount ?? 0) <
+            4
+          )
+            throw new DomainError(
+              'NARRATIVE_REQUEST_LIMIT',
+              'Too few requests remain after final-check collection for a complete repair.',
+            );
+          await repair(
+            editorialError
+              ? combinedValidationError(error, editorialError, report)
+              : error,
+            authored,
+          );
+          continue;
+        }
+      }
       await repair(error, authored);
       continue;
     }
-    let editorial = cp.editorialReport;
-    if (
-      editorial &&
-      !matches(
-        'life_narrative_editor',
-        fictionEditorialRequest(input, authored),
-        editorial,
-      )
-    ) {
-      await save('FICTION_EDITOR_INVALID', {
-        editorialReport: null,
-        narrativeArtifact: null,
-      });
-      editorial = undefined;
-    }
     let proseOnly = false;
     try {
-      if (!editorial) {
-        await allowed();
-        const response = await ai.editFiction(input, authored);
-        editorial = response.output;
-        await record('FICTION_EDITOR_RESULT', response, {
-          editorialReport: editorial,
-        });
-      }
-      const report = fictionEditorialReportSchema.parse(editorial);
-      validateFictionEditorialReport(input, authored, report);
+      const report = await readEditorial(authored);
       proseOnly = fictionProseRepairAllowed(report);
       if (!evaluateFictionEditorialGate(input, report).passed)
         throw new DomainError(

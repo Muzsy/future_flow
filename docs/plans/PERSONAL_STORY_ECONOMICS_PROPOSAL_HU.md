@@ -270,3 +270,8 @@ A tulajdonos a konkrét deadline-javítás és a részleges mérés megismerése
 ### Deadline-javított friss Stage A lezárása — 2026-10-18
 
 Friss deadline-javított Stage A:3 elfogadott/16 transport/0 repair/egy timeout. Összes1.1314275 USD accounted, **0.3771425 USD/elfogadott**, amely a teljes0.341715 USD unknown foglalást is tartalmazza. Az ismert usage0.6855516 USD nem teljes tényleges díj; P50 249397/P95 562920ms. Teljes v6 10.3459375 USD a17-ből, maradék6.6540625 USD. A kis előpróba, az egy ismételt kérés és a9 perces harmadik fejezet nem igazol havi fedezetet vagy elfogadott termék-latencyt. Az árazás/billing és emberi retention döntés változatlanul nyitott. Részletes bizonyíték: [v6 terv](045_fiction_v6_earned_life_evolution.md).
+
+
+### Deadline-javított B tényleges gazdasági eredménye — 2026-10-18
+
+Részleges13 elfogadott/1 elutasított/4 hiányzó,77 hívás, **4.4646725 USD accounted**, minden próbát és egy unknown teljes0.332285 USD foglalását beszámítva **0.34343635 USD/elfogadott**. Ismert usage3.4975311 USD nem teljes számla; P50 270752/P95 510934ms nem elfogadott termék-SLA. Munkahelyi8+fork kész, alkotói4 quality reject megállítja a teljes korpuszt. A quality2.5 offline korrekció fidelity+editor visszajelzést közösen használhat egy javításhoz; normál5/max9/repair1 megmarad, fidelity-only hiba8 helyett9 hívásba kerülhet. Várható megtakarítást valódi mérés nélkül nem állítunk. Teljes v6 **14.810610 USD**, maradék **2.189390 USD** a17-ből; új teljes6–7 USD-s csomaghoz új numerikus authority szükséges. Ár/billing/entitlement és production nem változik, retention/humán minőség továbbra nyitott. [Részletes v6 bizonyíték](045_fiction_v6_earned_life_evolution.md).

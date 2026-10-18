@@ -7,11 +7,13 @@ import {
   fictionV3Policy,
   fictionV4Policy,
   fictionV5Policy,
+  fictionV6Policy,
   fictionPolicySchema,
   fictionHumanEditorialSchema,
 } from '@future-flow/contracts';
 import {
   fictionPlannerRequest,
+  hash,
   fictionAuthorRequest,
   fictionCanon,
   validateFictionAuthor,
@@ -32,13 +34,14 @@ function fixture() {
 }
 
 describe('v6 owned references, typed evolution and frozen policy compatibility', () => {
-  it('accepts all six policies, preserving v5 and rejecting cross-generation pairs', () => {
+  it('accepts frozen v1–v6 plus coordinated validation,  preserving v5 and rejecting cross-generation pairs', () => {
     const policies = [
       fictionV1Policy(),
       fictionV2Policy(),
       fictionV3Policy(),
       fictionV4Policy(),
       fictionV5Policy(),
+      fictionV6Policy(),
       fictionPolicy(),
     ];
     for (const policy of policies) {
@@ -65,8 +68,21 @@ describe('v6 owned references, typed evolution and frozen policy compatibility',
         editor: 'life_fiction_editor.v4',
       },
     });
+    expect(fictionV6Policy().qualityPolicyVersion).toBe('2.4.0');
+    expect(hash(fictionV6Policy())).toBe(
+      'cdbeb6c936e833c932d612b3eeac49cd2ce2412c75e946a2a11d7c602642d211',
+    );
+    expect(
+      fictionPolicySchema.safeParse({
+        ...fictionV5Policy(),
+        qualityPolicyVersion: '2.5.0',
+      }).success,
+    ).toBe(false);
+    expect(fictionPolicy().promptVersions).toEqual(
+      fictionV6Policy().promptVersions,
+    );
     expect(fictionPolicy()).toMatchObject({
-      qualityPolicyVersion: '2.4.0',
+      qualityPolicyVersion: '2.5.0',
       maxPhysicalRequests: 9,
       maxContentRepairs: 1,
       promptVersions: { fidelity: 'life_fiction_fidelity.v1' },

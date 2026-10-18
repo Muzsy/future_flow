@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: deadline-smoke-complete-long-diagnostic-decision-pending
+state: deadline-long-diagnostic-partial-quality25-offline-correction
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -23,7 +23,7 @@ PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f
 
 ## Latest numeric extension — 2026-10-18
 
-After the partial Stage B and concrete request-envelope correction, the owner explicitly approved **at most 12 USD TOTAL v6 consumption**, extending the initial 8 by 4 USD. Original v6 baseline stays 305 calls / 10.732030 USD. New cumulative ceiling **22.732030 USD**; extension-time ledger 385 / 14.946620 left **7.785410 USD**, including all original failures. After repaired Stage A+B the current original ledger is **443 /19.946540**, leaving **2.785490 USD** of the same TOTAL12 authority; detailed closure below. The initial eight-dollar authority and 3.785410 remainder below are historical, not added again. No new paid transport until checks on clean repaired source succeed. Fresh three-career-main/no-fork smoke first; only if acceptable, fresh 18-target benchmark. No budget reset/source adoption or production authority.
+The owner approved **17 USD TOTAL v6** (8, then12, then17), including every earlier failure and unknown-use full reservation. Baseline remains305 calls /10.732030 USD; cumulative ceiling27.732030 USD. After deadline-fixed A+B the original ledger is536 calls /25.542640 USD, TOTAL v6 consumption14.810610 USD, remaining authority2.189390 USD. Nine settled unknowns remain fully accounted; active/unassigned0. No further increase is approved. The quality2.5 correction is under offline checks; a fresh source-bound A+B package forecast6–7 USD requires additional explicit numeric authority. No source adoption, reset, self-merge or production permission. Earlier12-dollar/other remainder statements below are historical.
 
 ## Role
 
@@ -1463,3 +1463,54 @@ The third actually performs the selected application round. A confusingly framed
 Additional accepted-only AI critique of the preceding six-chapter creative fragment wanted chapter7 and praised craft/NPC autonomy, but identified thin whole-life texture and repeated private friction. Root corrects its one-year estimate (actually3 years), its all-six-same-engine claim (hosting/attention and losing a routine differ) and its never-raised-friction claim (chapter4 apologizes). These useful risks remain; no artificial actor/location/confrontation quota is introduced. This reader evidence is diagnostic AI, not human acceptance.
 
 This documentation checkpoint changes no application, harness, tests or migrations from successful CI336. It separates any subsequent fresh B's sourceHash/cost group from this smoke. Do not resume or adopt the terminal old B; no ledger copy/reset. Current source checks and the additional reading precede the next paid decision. There is no qualityRelease, merge or production permission.
+
+
+### Deadline-javított Stage B lezárása és összehangolt javítás — 2026-10-18
+
+A friss `efa882313a84af8ff76ed7d3f401db1383abf087` / sourceHash `32ae8e247148c07a2e3156db98cd0a575cd59b41abe4df25f4358d21b0b5fd50` mérés lezárult: **13 elfogadott / 1 elutasított / 4 nem generált** a18 célból. Munkahelyi főág1–8 és alternatív3 elkészült; alkotói főág1–3 és alternatív3 elkészült, főág4 irodalmi elutasítása után5–8 hiányzik. Ez részleges eredmény, nem teljes kétprofilos B8 vagy human PASS. A77 valódi transport/14 trace/68 elfogadott receipt eredeti projekt/source/manifest/hash kötése completion után visszaellenőrzött, hozzárendeletlen vagy aktív foglalás0.
+
+B költség **4.4646725 USD accounted**, ismert usage-becslés3.4975311 USD; egy eredmény nélkül maradt provider-kérés teljes0.332285 USD foglalása benne marad. P50 270752/P95 510934ms az elfogadott fejezetekre; minden kísérlet és elutasítás költségével0.34343635 USD/elfogadott. Ez nem számla, garantált késleltetés vagy árazási döntés. Globális eredeti ledger **536 hívás /25.542640 USD**, teljes v6 **231 hívás /14.810610 USD**, maradék **2.189390 USD** a jóváhagyott összesen17-ből. Kilenc lezárt unknown teljes foglalása megmarad; nincs új fizetős hívás vagy keretemelés.
+
+Root végigolvasta az összes elfogadott szöveget és az elutasított kezdeti/javított alkotói negyediket is. A munkahelyi ív tényleges adminisztráció→tanulás→álláspróba→user által elfogadott fizetett junior tesztelői szerződés→önállóan használt tesztcsomag→meg nem hosszabbított szerződés és álláskeresés változást mutat. A szereplő tényleges hibája más kolléga elveszett vizsgálati állapotát okozza; a technikai korrekció nem állítja vissza a bizonyítékot vagy rendezi azonnal a konfliktust. Ez kiérdemelt életfejlődés, nem kötelező siker/promotion menetrend. A főág nyolcadik fejezetének állapota valóban seeking_work. A fork kizárólag az első két rész prefixét használja, nem örökli a későbbi állásváltást.
+
+Az alkotói negyedik új laundrette/látvány-önkép konfliktusa mellett a zárás funkcionálisan megismételte az előző rész közterületi udvariassági megszakítását: ott másnak kellett a padhely, itt a következő ügyfélnek kellett a tér. A fidelity először a visszatérő névtelen dolgozó hiányzó actor_add-ját kérte; az egyszeri package repair csak ezt javította, a próza teljesen azonos maradt. Az editor ezután distinctEnding=false és distinctRhetoricalShape=false miatt helyesen elutasított, bár minden numerikus score4 volt. A kétprofilos teljes ablak nem helyettesíthető a részleges jó eredménnyel. A kompetenciapróba/korrekció gyakorisága, az alternatívákat összegző penultimák és a karrieren kívüli élet vékonyabb jelenléte további olvasói kockázatok; automatikus pontok nem igazolnak maximális történetélményt.
+
+A konkrét offline korrekció új **qualityPolicy2.5.0**, változatlan planner/author/reviewer v6, editor v5, fidelity v1. A mért quality2.4 snapshot `fictionV6Policy()` alatt változatlanul megmarad; régi queue/policy nem frissül át. Amennyiben a végső fidelity tényleges tartalmi hibát jelez, a repair még nem fogyott el és van elegendő fizikai híváshely, a meglévő editort még az egyetlen full-package repair előtt olvassuk. Így a kánonhiba és a prózahiba ugyanabban az egyszeri javításban kezelhető. Mindkét végső kapunak utána is át kell mennie; nincs küszöblazítás, új normál stage, új modell, második javítás vagy max9-emelés. Normál jó fejezet5 hívás marad; két hibás ellenőrzés közös package repairje legfeljebb9. Fidelity-only hiba editor-előolvasással az eddigi8 helyett9 hívásba kerülhet; ez valós költségcsere, nem ingyenes javulás.
+
+Korábbi transport-újrapróbálás után csak a négy kötelező package-repair híváshely maradhat: ilyenkor a korábbi fidelity-first útvonal marad, nem költjük el a repair utolsó helyét előolvasásra. Négynél kevesebb szabad helynél teljes javítást nem kezdünk. Cache/resume ugyanahhoz az input/output hashhez kötött; az előolvasás utáni keretet újraellenőrizzük, a provider/auth/budget/lease/privacy hibát nem alakítjuk tartalmi visszajelzéssé. Mindkét feedback a meglévő1800 karakteres keretben megmarad, hosszú szövegnél jelölt vágással; a teljes reportok hashkötött checkpointban megőrződnek. Artifact/report verzió, SQL, privacy, pénzügyi és runtime byte/deadline határok változatlanok.
+
+A quality2.5 javítás még nem valódi szolgáltatói/minőségi bizonyíték. Új forráshoz kötött előpróba és hosszú mérés szükséges, a régi korpusz/receipt/ledger adoptálása nélkül. A teljes friss csomag várható6–7 USD-je nem fér a maradék2.189390 USD-be; ezt a csomagot további számszerű authority nélkül nem indítjuk. F05/F06/N08 PARTIAL, N09 és humán/retention/ár-döntések nyitottak; PR#50 draft, nincs merge vagy production módosítás.
+
+
+The deadline-fixed B includes successful author responses beyond the previous180s cutoff (creative main2:298003ms; initial/repaired rejected main4:287465/219102ms). Thus actual response evidence now shows a narrow benefit of the development300s allowance; the rejected main4 still fails literary quality. One B response was unavailable with AI_UPSTREAM_ERROR; its246362ms elapsed time does not establish a timeout cause. No general provider reliability, runtime deadline change or product-latency acceptance follows.
+
+
+### Deadline-fixed B case evidence (original quality2.4 source)
+
+| Case | Accepted | Calls | Accounted USD | Trace SHA256 |
+|---|---|---:|---:|---|
+|career-transition:narrative-v1:0|yes|8|0.3364600|0b13bd3e277a2d99bab164637a700abcd7227a8d1a5b147794ee26bb39d427c8|
+|career-transition:narrative-v1:1|yes|5|0.2728775|5ea4fb3172fdfc086845c9d56944d1e09c73048c7b7a2bd2ed9cbf19def116da|
+|career-transition:narrative-v1:2|yes|5|0.2792900|751e6298dd980d63b479556ed12911617ff1f20c98feeefc1411fe19bebed59d|
+|career-transition:narrative-v1:3|yes|6|0.6021350|23a2a597f74276d5d5fb5c103821c05ba2459d3ed800785b77f2b6868b74e879|
+|career-transition:narrative-v1:4|yes|5|0.2894825|768497a40a6ec1579a46713c531c0a2a0dfb05beb1161abe4b2d5cb62c27a51f|
+|career-transition:narrative-v1:5|yes|5|0.2940600|f5db1092293d194b883db577d87989eb33a707eb4ac21d884d4acdffa72fe13e|
+|career-transition:narrative-v1:6|yes|5|0.3161425|b205f2a1d0e86c59e832dd65b1e74774a28e196a60e39bf1d4b7c9983bac034a|
+|career-transition:narrative-v1:7|yes|5|0.2985375|a7daf064fbb7945ba74ca0d64311346ea471e5e69c9df9697e02e42b13d22bec|
+|creative-portfolio:narrative-v1:0|yes|5|0.2121925|a20ca7098288cd78efeb2077591d657d7932b988bc148260f76c297eb1ecc4f4|
+|creative-portfolio:narrative-v1:1|yes|5|0.2544825|0f097b0bf54bed0148e6c178c57de83d1471ae9b2396654efbba748fe09c8ea9|
+|creative-portfolio:narrative-v1:2|yes|5|0.2929850|c01eb08199c584dd3014cce8e2eb7222c51695101a5e23f9b23a17f28af5c51e|
+|creative-portfolio:narrative-v1:3|no|8|0.4431025|2edbd0d2038857cdf0aef68cc71a0b022d033dfcf7f80b24e498e4d1ae45a476|
+|fork:career-transition:narrative-v1:2|yes|5|0.2837250|029c7c9ff69cb13874a322abe8b04bf5658ab9a529adff121efe2c6e0fe945d4|
+|fork:creative-portfolio:narrative-v1:2|yes|5|0.2892000|852c0d42f0d70959ca51df3dfebf5f09918f86051d0dbcacbb25a4cfe929c976|
+
+
+### Quality2.5 static audit and regression evidence
+
+A read-only Claude Code subscription audit of the seven initial implementation/test files found no blocking control-flow, slot-accounting, error-propagation or snapshot defect. The first turn-limited run did not deliver a verdict and is not PASS; the resumed explicit verdict is conditional static code approval only, with no test execution or literary acceptance. Root independently checked the real DB admission transaction increments both the persisted and in-memory physical count before each request, the test provider uses that admission plus DatabaseAiBudget, all version-gating sites in fiction-memory, and the old clean checkout policy against the new frozen helper: identical serialized object/hash cdbeb6c936e833c932d612b3eeac49cd2ce2412c75e946a2a11d7c602642d211.
+
+The new early refusal with fewer than four final-package repair slots is deliberate for quality2.5 only. It prevents buying an incomplete repair at this fidelity-failure site; it does not claim to replace every legacy failure site's depletion behavior. Tight-slot and cache/crash/resume tests retain this distinction.
+
+Targeted79 tests and typecheck passed before the full suite. The full101-file run produced1090 passes and one obsolete P10 expectation: fidelity-only repair expected8 calls instead of the now documented9. Its seven-test provenance file was corrected to assert the initial editor read, its output hash/no repair feedback, the exact9-call sequence and new repaired-author/fidelity indices; all7 then passed, including the14-sample offline main/fork provenance run. No runtime or validator was weakened for this test. The other100 files passed; exact final CI must still confirm the complete source. Schema export changes only the2.5 enum in artifact/context/policy JSON; no migration or prompt change.
+
+Final local typecheck, full build, format/docs/diff checks PASS. Regenerated schemas reproduce identical JSON (no drift). Exact final commit CI is still required; no new paid2.5 call is authorized by these offline results.

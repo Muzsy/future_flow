@@ -192,7 +192,7 @@ describe('synthetic local evaluation attempt provenance (P09-P14, P16-P17)', () 
     }
   });
 
-  it('P10: captures 8-call fidelity -> author_package repair provenance with initial fidelity issues', async () => {
+  it('P10: captures 9-call fidelity/editor -> author_package repair provenance with both final-check reads', async () => {
     const out = tempOutDir('alterward-p10-');
     try {
       const options = parseEvaluationOptions([
@@ -232,8 +232,8 @@ describe('synthetic local evaluation attempt provenance (P09-P14, P16-P17)', () 
       expect(run.samples).toHaveLength(1);
       const sample = run.samples[0]!;
       expect(sample.repairUsed).toBe(true);
-      expect(sample.requestCount).toBe(8);
-      expect(sample.transportCalls).toBe(8);
+      expect(sample.requestCount).toBe(9);
+      expect(sample.transportCalls).toBe(9);
 
       const trace = JSON.parse(
         readFileSync(
@@ -242,12 +242,13 @@ describe('synthetic local evaluation attempt provenance (P09-P14, P16-P17)', () 
         ),
       ) as EvaluationAttemptTrace;
 
-      expect(trace.attempts).toHaveLength(8);
+      expect(trace.attempts).toHaveLength(9);
       expect(trace.attempts.map((a) => a.task)).toEqual([
         'life_narrative_plan',
         'life_narrative_chapter',
         'life_narrative_plan_review',
         'life_fidelity',
+        'life_narrative_editor',
         'life_narrative_chapter',
         'life_narrative_plan_review',
         'life_fidelity',
@@ -266,7 +267,12 @@ describe('synthetic local evaluation attempt provenance (P09-P14, P16-P17)', () 
         ],
       });
 
-      const repairedAuthor = trace.attempts[4]!;
+      const initialEditor = trace.attempts[4]!;
+      expect(initialEditor.status).toBe('completed');
+      expect(initialEditor.repairFeedback).toBeNull();
+      expect(initialEditor.outputHash).toBe(hash(initialEditor.output));
+
+      const repairedAuthor = trace.attempts[5]!;
       expect(repairedAuthor.repairFeedback).toEqual({
         mode: 'author_package',
         message: expect.stringContaining(
@@ -274,7 +280,7 @@ describe('synthetic local evaluation attempt provenance (P09-P14, P16-P17)', () 
         ),
       });
 
-      const secondFidelity = trace.attempts[6]!;
+      const secondFidelity = trace.attempts[7]!;
       expect(secondFidelity.output).toEqual({ valid: true, issues: [] });
     } finally {
       rmSync(out, { recursive: true, force: true });

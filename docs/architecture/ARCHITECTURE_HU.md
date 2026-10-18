@@ -291,3 +291,8 @@ A nagyobb életváltozás kánonból eredő lehetőség, nem fejezetszámhoz vag
 
 
 A v6 fejlesztési mérés két egymás utáni pénzügyi guardot használ: eredeti globális fájlledger és lokális, tranzakciós DB budget. A creative-eval explicit 192 KiB transport-envelope mindkettőben egyező; generic/éles default 100000 bájt. A transport a promptot, output sémát és repair előző csomagját is tartalmazza, ezért nem azonos a 12 KiB memóriával vagy 32 KiB mentett artifacttal. A nagyobb dev envelope minden bájtja teljes előfoglalást kap, a typed állapot, authorInputHash és kilenc kérés/egy javítás korlát változatlan. Az éles envelope átállítása és valódi v6 rollout nincs elvégezve.
+
+
+### Összehangolt végső visszajelzés — quality2.5
+
+Az új selected quality2.5 ugyanazokat a v6 planner/author/reviewer, v5 editor és v1 fidelity promptokat használja. A2.4 frozen `fictionV6Policy()` marad. Tényleges végső fidelity-tartalmi hibánál, egy még szabad repair és elegendő max9 hely esetén a meglévő editort a repair előtt olvassuk; két hiba egy full-package javításban kezelhető. Utána mindkét kapu újbóli PASS kell. Normál5, legfeljebb9 fizikai hívás/egy globális repair marad; nincs új stage, SQL vagy lazább küszöb. A négy kötelező repair-hívás helyét nem költjük el előolvasásra, a cache/input-hash/resume és nem javítható provider/auth/budget/privacy hibák korábbi védelme megmarad. Fidelity-only javítás az extra meglévő editor-olvasással8 helyett9 hívás lehet. A teljes működési/elszámolási feltételeket a [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md) tartalmazza; valódi2.5 minőségi bizonyíték még nincs.

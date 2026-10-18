@@ -78,7 +78,7 @@ export function fictionScope(input: NarrativePeriodInput) {
       positions.some(
         (position, index) =>
           position === undefined ||
-          (['2.2.0', '2.3.0', '2.4.0'].includes(
+          (['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
             context.policy.qualityPolicyVersion,
           ) &&
             index > 0 &&
@@ -151,7 +151,7 @@ export function fictionPlannerRequest(
     narrativeContext: context,
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(context.policy.qualityPolicyVersion === '2.4.0'
+    ...(['2.4.0', '2.5.0'].includes(context.policy.qualityPolicyVersion)
       ? { referenceProjection: fictionReferenceProjection(input) }
       : {}),
     repair: repair ?? null,
@@ -205,7 +205,7 @@ export function validateFictionEditorialReport(
 ) {
   const { context } = fictionScope(input);
   const report = fictionEditorialReportSchema.parse(raw);
-  const expectedVersion = ['2.2.0', '2.3.0', '2.4.0'].includes(
+  const expectedVersion = ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
     context.policy.qualityPolicyVersion,
   )
     ? '1.2.0'
@@ -278,7 +278,9 @@ export function evaluateFictionEditorialGate(
     };
   if (
     report.version !==
-    (['2.2.0', '2.3.0', '2.4.0'].includes(qualityVersion) ? '1.2.0' : '1.1.0')
+    (['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(qualityVersion)
+      ? '1.2.0'
+      : '1.1.0')
   )
     return { passed: false };
   const r = report.sequenceReview;
