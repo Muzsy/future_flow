@@ -351,7 +351,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     expect(evaluationCreativeMaxRequestBytes).toBe(196608);
     expect(evaluationCreativeMaxRequestBytes).toBe(192 * 1024);
     expect(evaluationCreativeMaxRequestBytes).toBeLessThan(272000);
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(27.73203, 6);
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(33.73203, 6);
 
     const legacyDefault = parseEvaluationOptions([]);
     expect(legacyDefault.creative).toBeUndefined();
@@ -514,7 +514,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
 
   it('enforces the owner USD ceiling and preserves all prior cumulative ledger calls without clipping, deduplication, retagging or source adoption', async () => {
     const ledgerPath = await tempLedgerPath();
-    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 27.732030
+    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 33.732030
     expect(
       () =>
         new ExperimentAiBudget(
