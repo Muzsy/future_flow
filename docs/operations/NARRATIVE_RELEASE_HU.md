@@ -99,3 +99,8 @@ A javított friss B is részleges:6 elfogadott/1 technikai failure/11 nem gener�
 ### Új numerikus v6 authority — összesen17 USD, 2026-10-18
 
 A tulajdonos a konkrét deadline-javítás és a részleges mérés megismerése után további legfeljebb5 USD-t engedélyezett: **összesen17 USD v6**, nem újraindított keret. Változatlan nyitó305/10.732030 USD, új kumulatív plafon **27.732030 USD**. Aktuális eredeti ledger443/19.946540 USD, eddigi v6 **9.214510 USD**, rendelkezésre álló authority **7.785490 USD**. A hét unknown teljes2.2399275 USD foglalása továbbra benne marad; sem a régi maradékot, sem a régi elutasításokat nem nullázzuk/adjunk hozzá újra. Új cap és negatív pénzügyi ellenőrzések után sikeres exact-source CI szükséges. Ezután friss három career-main/no-fork előpróba, és csak elfogadható eredménye után külön friss18-célos mérés. Várható összköltség6–7 USD, nem garantált szolgáltatói siker. Nincs modell-, minőségkapu-, repair-, runtime-, production- vagy merge-engedély. A korábbi12 USD-re vonatkozó mondatok és keretfüggő leállás történeti állapotok; a már lefutott mérések eredménye/forrása változatlan.
+
+
+### Deadline-javított friss Stage A lezárása — 2026-10-18
+
+A deadline-javított friss háromfejezetes előpróba3/3 kapu-PASS,16 transport/egy300s timeout. Root olvasása hosszabb diagnózisra alkalmas, a második lezárás konkrét kockázatával; ez nem teljes nyolcas ablak vagy emberi minőségi bizonyíték. A hosszabb development timeout nem bizonyított runtime megbízhatóság/latency elfogadás. N08/N09/production kapuk változatlanul nyitottak, PR#50 draft. Részletes bizonyíték: [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).

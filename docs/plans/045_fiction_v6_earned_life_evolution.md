@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: deadline-fix-verified-total17-authorized-checking-fresh-smoke
+state: deadline-smoke-complete-long-diagnostic-decision-pending
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -1438,3 +1438,28 @@ Next paid decision: a fresh three-main/no-fork smoke, then only if acceptable a 
 A tulajdonos a konkrét deadline-javítás és a részleges mérés megismerése után további legfeljebb5 USD-t engedélyezett: **összesen17 USD v6**, nem újraindított keret. Változatlan nyitó305/10.732030 USD, új kumulatív plafon **27.732030 USD**. Aktuális eredeti ledger443/19.946540 USD, eddigi v6 **9.214510 USD**, rendelkezésre álló authority **7.785490 USD**. A hét unknown teljes2.2399275 USD foglalása továbbra benne marad; sem a régi maradékot, sem a régi elutasításokat nem nullázzuk/adjunk hozzá újra. Új cap és negatív pénzügyi ellenőrzések után sikeres exact-source CI szükséges. Ezután friss három career-main/no-fork előpróba, és csak elfogadható eredménye után külön friss18-célos mérés. Várható összköltség6–7 USD, nem garantált szolgáltatói siker. Nincs modell-, minőségkapu-, repair-, runtime-, production- vagy merge-engedély. A korábbi12 USD-re vonatkozó mondatok és keretfüggő leállás történeti állapotok; a már lefutott mérések eredménye/forrása változatlan.
 
 A17 USD-s authority-korrekció célzott ellenőrzése3 fájl/22 teszt PASS: baseline+17, régi headroom újrahozzáadásának tiltása, plafon+0.000001 elutasítása, mindkét pénzügyi guard, unknown/prior ledger megtartása, valódi workerrel18 offline minta és source-bound resume. Az első célzott futásban a régi22.35-ös tesztledger az új plafon alatt helyesen már megengedte a foglalást; a negatív teszt adatát cap−0.38-ra tettük, ezért a0.3918775-ös teljes következő foglalás továbbra elutasított. Sem a guardot, sem a foglalást nem lazítottuk. Format/docs/diff PASS; a1078-as teljes suite/build/typecheck/schemas a változatlan deadline-kód előző commitján futott, az új cap pontos commitján a teljes CI szükséges a fizetős induláshoz.
+
+
+### Deadline-javított friss Stage A lezárása — 2026-10-18
+
+Az exact `a6e2787f338fb40b5eff1706c33c8224e7f0941f` Verify+Container CI336 sikeres. A friss career/no-fork előpróba **3/3 elfogadott,16 valódi transport,0 tartalmi javítás**; sourceHash `cdf9379ba7548e97406bee4cf5f0d978288302f3f77dab7da0730f12026b5493`. A harmadik author első kérése300007ms után eredmény nélkül leállt, a korlátozott második114260ms alatt sikerült. Nincs bizonyíték arra, hogy pusztán az ötperces emelés megbízható szolgáltatói működést adott; egy sikeres hívás sem lépte át180s-ot. Az előpróba összege **1.1314275 USD accounted**, ismert usage becslés0.6855516 USD, egy unknown teljes foglalása0.341715 USD benne marad. P50 249397/P95 562920ms. Globális ledger459/21.0779675 USD, teljes v6 **10.3459375 USD**, maradék **6.6540625 USD** a17-ből;8 lezárt unknown,0 aktív/hozzárendeletlen.
+
+Root mindhárom szöveget végigolvasta: használható útmutató→őszinte portfólió és írás helyett vonzó fejlesztés→valódi jelentkezések/interjú/elutasítás. Az utolsó részben az érintett ténylegesen túlmagyaráz és nem jut azonnal bölcs önkorrekcióra; a varrási visszautalás megváltozott szerepben zár. A második rész alternatívákat összefoglaló penultimája továbbra menu-leak watchpoint, az automatikus4-es pontoktól függetlenül. Root szerint elfogadható hosszabb diagnózishoz, nem human PASS. Külön, csak elfogadott szintetikus szöveget olvasó Claude Code előfizetéses AI-kritika folyamatban. A friss18-célos B indulási döntése annak mérlegelése és az ellenőrzött külön dokumentációs checkpoint után következik; nincs új prompt, modell, kvóta, javítás vagy production.
+
+### Exact smoke case evidence
+
+All3 traces/16 physical attempts/15 accepted receipts and original project/source/manifest bindings verified after exit0. One unknown-use transport remains fully accounted, never zeroed. Accepted-only reader pages contain only the three final chapters.
+
+| Main | Title | Calls | Repair | Accounted USD | Trace SHA256 |
+|---|---|---:|---|---:|---|
+|1|The Missing Movement|5|none|0.2208525|f5da930efa38f79e5da0b793d2e32e7da66c52f9848e8f005ccd86f77424e6ad|
+|2|Before the First Step|5|none|0.2635375|35706c3f56bbfe99615cc6d49083976cf98fdfa264db8d6c4fffc59c6272cdbf|
+|3|The Missing Condition|6|none|0.6470375|932220204501eeb65b250eec2641914e3e111965b62e0a152050d6462494e1f1|
+
+The first two scenes/ending mechanisms differ: novice testing causes corrected instructions and live help costs the protagonist's own sewing; the second project changes the conflict to the pleasure of making a utility work displacing documentation. Its missing-prerequisite motif recurs, but the development/writing preference and final unfinished self-test are new consequences. The second penultimate paragraph explicitly weighs applying with the existing case study versus completing software instructions, echoing the structured options. This is retained as a possible prose/decision-interface defect despite all editor flags passing, not dismissed as guaranteed natural prose.
+
+The third actually performs the selected application round. A confusingly framed interview exposes different needs between documentation and support, then a rejection. Maeve admits the exercise could have been clearer; the protagonist still explains defensively. Niamh has heard it repeatedly and wants to return to sewing, rather than being an infallible career mentor. The final message about both trouser legs echoes an earlier personal cost without a balanced alternatives handoff. A stable job is causally legitimate after four applications; no promotion or employment change is owed by chapter3. Whole-life/retention success still requires the complete window and humans.
+
+Additional accepted-only AI critique of the preceding six-chapter creative fragment wanted chapter7 and praised craft/NPC autonomy, but identified thin whole-life texture and repeated private friction. Root corrects its one-year estimate (actually3 years), its all-six-same-engine claim (hosting/attention and losing a routine differ) and its never-raised-friction claim (chapter4 apologizes). These useful risks remain; no artificial actor/location/confrontation quota is introduced. This reader evidence is diagnostic AI, not human acceptance.
+
+This documentation checkpoint changes no application, harness, tests or migrations from successful CI336. It separates any subsequent fresh B's sourceHash/cost group from this smoke. Do not resume or adopt the terminal old B; no ledger copy/reset. Current source checks and the additional reading precede the next paid decision. There is no qualityRelease, merge or production permission.
