@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-10-17
+last_reviewed: 2026-10-18
 supersedes:
   - ../IMPLEMENTATION.md
   - ../alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md
@@ -11,6 +11,12 @@ related:
 ---
 
 # Alterward — rendszerarchitektúra
+
+## Aktuális narratív jelölt és snapshot-határ
+
+A v6 PR #50 draft, a production legacy/üres narrative cohort változatlan. Új creative jobok selected policyja2.5.0: planner/author/reviewer v6, editor v5, fidelity v1; report1.2.0, signature1.0.0. Az alábbi v1–v5/quality2.4 leírások megőrzött kompatibilitási snapshotok, nem párhuzamos aktuális alapértelmezések. Normál5/max9 fizikai kérés, egy repair,12KiB context/32KiB artifact. Pontos minőségi/költségállapot: [STATUS](../STATUS_HU.md), [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+
+A v6 örökölt mechanics promptja periódusonként legfeljebb egy új visszatérő actor_add-ot enged; a domain teljes actors.max(30)-at és eseményidőbeli regisztrációt ellenőriz. Ez feljegyzett prompt/domain feszültség, nem új domainkvóta és nem javított viselkedés. A kívánt alkotói szabadság nem jogosít fel a regisztráció/privacy/ID guard megkerülésére.
 
 ## 1. Architektúra célja
 
@@ -268,7 +274,7 @@ A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/c
 
 ## Emberibb, hosszabb távon változatos fikció — v4 jelölt
 
-Új creative jobok selected policyja planner/author/reviewer v4, editor v3, változatlan fidelity v1, qualityPolicy 2.2.0. A v1–v3 snapshotok és mért promptok változatlanul olvashatók. Az editor report 1.2.0 a négy korábbi jelzés mellé retorikai változatosságot, a rendszermechanika prózai láthatatlanságát és viselkedési változatosságot kér; minden jelzés igaz, minden score >=4 és pass verdict szükséges, major/canon issue nélkül. Hamis jelzéshez javítási bizonyíték kell; szerkezeti/agency/viselkedési ismétlés canon-scoped, package repair. Pusztán retorikai, rendszermechanikai vagy lezárási hiba prose-only javítható, ha a teljes végső kánon változatlan marad.
+A megőrzött v4 snapshot selected policyja planner/author/reviewer v4, editor v3, változatlan fidelity v1, qualityPolicy 2.2.0. A v1–v3 snapshotok és mért promptok változatlanul olvashatók. Az editor report 1.2.0 a négy korábbi jelzés mellé retorikai változatosságot, a rendszermechanika prózai láthatatlanságát és viselkedési változatosságot kér; minden jelzés igaz, minden score >=4 és pass verdict szükséges, major/canon issue nélkül. Hamis jelzéshez javítási bizonyíték kell; szerkezeti/agency/viselkedési ismétlés canon-scoped, package repair. Pusztán retorikai, rendszermechanikai vagy lezárási hiba prose-only javítható, ha a teljes végső kánon változatlan marad.
 
 A report verziózott sequenceSignature-t tárol az aktuális periodhoz kötve. A bemeneti sequenceSignatureHistory legfeljebb nyolc korábbi v4 period kompakt dramaturgiai jellemzőit vetíti ki, csak owned prefixből. A legutóbbi három raw sequence bizonyíték megmarad; az új signature-ök nem szoríthatják ki a védett folytonosságot, és szükség esetén legrégebbtől elhagyhatók. A teljes context továbbra 12 KiB, az artifact 32 KiB. Withheld esetben sem a tények, sem a két történeti réteg nem kerül be. Régi artifactból nem gyártunk visszamenőleges signature-t, és nem írjuk át. A signature a teljes editor-output hash/receipt lánc része; privát artifact, nem új public DTO.
 
@@ -295,4 +301,4 @@ A v6 fejlesztési mérés két egymás utáni pénzügyi guardot használ: erede
 
 ### Összehangolt végső visszajelzés — quality2.5
 
-Az új selected quality2.5 ugyanazokat a v6 planner/author/reviewer, v5 editor és v1 fidelity promptokat használja. A2.4 frozen `fictionV6Policy()` marad. Tényleges végső fidelity-tartalmi hibánál, egy még szabad repair és elegendő max9 hely esetén a meglévő editort a repair előtt olvassuk; két hiba egy full-package javításban kezelhető. Utána mindkét kapu újbóli PASS kell. Normál5, legfeljebb9 fizikai hívás/egy globális repair marad; nincs új stage, SQL vagy lazább küszöb. A négy kötelező repair-hívás helyét nem költjük el előolvasásra, a cache/input-hash/resume és nem javítható provider/auth/budget/privacy hibák korábbi védelme megmarad. Fidelity-only javítás az extra meglévő editor-olvasással8 helyett9 hívás lehet. A teljes működési/elszámolási feltételeket a [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md) tartalmazza; valódi2.5 minőségi bizonyíték még nincs.
+Az új selected quality2.5 ugyanazokat a v6 planner/author/reviewer, v5 editor és v1 fidelity promptokat használja. A2.4 frozen `fictionV6Policy()` marad. Tényleges végső fidelity-tartalmi hibánál, egy még szabad repair és elegendő max9 hely esetén a meglévő editort a repair előtt olvassuk; két hiba egy full-package javításban kezelhető. Utána mindkét kapu újbóli PASS kell. Normál5, legfeljebb9 fizikai hívás/egy globális repair marad; nincs új stage, SQL vagy lazább küszöb. A négy kötelező repair-hívás helyét nem költjük el előolvasásra, a cache/input-hash/resume és nem javítható provider/auth/budget/privacy hibák korábbi védelme megmarad. Fidelity-only javítás az extra meglévő editor-olvasással8 helyett9 hívás lehet. A teljes működési/elszámolási feltételeket a [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md) tartalmazza; a valódi2.5 mérés részleges:15/18 elfogadott, teljes kétprofilos/humán minőség még nincs igazolva. Négy valós fidelity-hibánál a korai editor-gyűjtés lefutott, mind PASS; a kettős hibát javító mechanizmusra nem állítunk valódi bizonyítékot.

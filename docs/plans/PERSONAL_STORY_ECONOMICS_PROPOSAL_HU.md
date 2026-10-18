@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: product
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-18
 related:
   - ../product/MONETIZATION_HU.md
   - ../product/PRODUCT_HU.md
@@ -12,7 +12,9 @@ related:
 
 2026. október 15. | Konkrét termékjavaslat és végrehajtási terv
 
-**Státusz: döntésre előkészített javaslat. A dokumentum nem kapcsol be árazást, előfizetést, új limitet vagy éles költést.** A fejlesztési mérés külön, összesített 5 USD keretből történik. A személyes béta operátori kerete ettől független.
+**Státusz: döntésre előkészített javaslat. A dokumentum nem kapcsol be árazást, előfizetést, új limitet vagy éles költést.** A fejlesztési mérés eredeti5 USD-s induló kerete történeti; az aktuális v6 authority összesen23 USD, ebből22.7396675 USD accounted és0.2603325 USD maradék. Az eredeti globális ledger652/33.4716975 USD, nincs aktív fizetős kérés. A személyes béta operátori kerete ettől független.
+
+**Legutóbbi valódi mérési alap:** quality2.5 B15/18 elfogadott,6.495380 USD accounted; minden kísérlettel0.43302533 USD/elfogadott, P50 361067/P95 852171ms. A korpusz hiányos, emberi elfogadás nincs; ez nem üzemi ár vagy SLA. Az alábbi korábbi mérések/forgatókönyvek nem írják felül az [aktuális státuszt](../STATUS_HU.md). A havi8+4 javaslat továbbra nem elfogadott termékszabály.
 
 ## 1. A javasolt induló modell
 

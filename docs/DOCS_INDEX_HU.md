@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-18
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -40,6 +40,10 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | security operations | `operations/SECURITY_OPERATIONS_HU.md` | privacy catalog, writer fence, monitor docs |
 | személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
+
+## Aktív történetminőségi munka
+
+A jelenlegi végrehajtási terv a [045 v6](plans/045_fiction_v6_earned_life_evolution.md), jelöltje draft PR#50/quality2.5. A hasonló045-ös nevű [v5 terv](plans/045_fiction_v4_1_real_quality_iteration.md) korábbi mérési bizonyíték; nem a mostani feladat vagy költségengedély. Állapot és maradék: [STATUS](STATUS_HU.md); futtatás és emberi audit: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md); kiadás: [release runbook](operations/NARRATIVE_RELEASE_HU.md).
 
 ## Leváltott fő dokumentumok
 

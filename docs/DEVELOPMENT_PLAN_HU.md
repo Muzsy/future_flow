@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-18
 supersedes:
   - archive/superseded/NEXT_STEPS.md
 related:
@@ -107,27 +107,21 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
 
-N00–N07: DONE, PR #25–#33. N08 harness és a planner v3 / külön tervellenőr v1 / writer v3 korrekció a főág része, PR #35–#38. Legutóbbi implementáció: `fd10b856`; 87 fájl / 906 offline teszt, Verify és container CI sikeres. Új frozen policy öt normál/max8 fizikai kérés, régi policy négy/max7; egy globális javítás és a monetary/privacy/recovery védelmek változatlanok.
+N00–N07: DONE, PR #25–#33. A főág v5 előfeltétele PR #49-ben beolvadt; a jelenlegi v6 fejlesztési jelölt PR #50-ben draft. Selected tuple: planner/author/reviewer v6, editor v5, fidelity v1, qualityPolicy2.5.0; régi snapshotok változatlanok. Normál öt/max9 fizikai kérés és egy globális javítás; monetary/privacy/recovery védelmek megmaradnak.
 
-**N08: PARTIAL.** Teljes offline korpusz 68 fejezet / 34 pár / 248 mock transport. A legutóbbi két új első fejezet paid kapun átment öt-öt hívással, javítás nélkül, átlag 0,13373125 USD konzervatív költséggel. Mindkét külön fix-kánon writer momentum 2/5 miatt elutasított; befejezetlen tervmezők is vizsgálandók. Az összes fejlesztési ledger 101 hívás / 2,158755 USD accounted / 1,9980987 USD usage-becslés, minden használat ismert; az eredeti 5 USD keret megmarad. A teljes háromidőszakos/alternatív ágas paid corpus, hash-bound döntési review, független vak emberi értékelés és tulajdonosi költség/idő plafon még hiányzik. A két első fejezet nem qualityRelease.
+**N08: PARTIAL.** A legutóbbi friss quality2.5 hosszú mérés15/18 elfogadott: alkotói8+fork, munkahelyi6; munkahelyi7–8 és fork hiányzik. A következő author teljes előfoglalását a budget guard API előtt megtagadta. Nincs irodalmi elutasítás ebben a futásban, de teljes kétprofilos ablak vagy emberi minőségi PASS sincs. V6 összesen22.7396675 USD a23-ból, maradék0.2603325 USD; globális ledger652/33.4716975 USD, aktív/hozzárendeletlen0. További paid futás nem indul. Független emberi17-kérdéses értékelés, teljes friss korpusz és külön editor-kalibráció továbbra szükséges.
 
-**N09: PARTIAL.** Kiadási csomag előkészített, production narrative aktiválás nincs. A már funded runtime Linux-upgrade támogatása külön Issue #34; source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile és target/apply/readback proof szükséges. A normál Linux-operátori adatátvétel elkészült O01-ben; ez nem pótolja az új runtime kiadási kapuit.
+**N09: PARTIAL.** Production narrative aktiválás nincs. Linux funded-runtime upgrade Issue #34: source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile és exact-target apply/readback proof szükséges. A fejlesztési192KiB/300s határ nem azonos a runtime100000bájt/180s defaulttal. A normál Linux-operátori adatátvétel O01-ben elkészült; Windows a szokásos reader/funded/napi feladatokhoz nem szükséges.
 
-Issue #43: a két bukott fix-kánon feltárása elkészült; az eredeti negatív kontrollokat megőrző developed-v2 anyag és planner v4 / reviewer v2 readiness-kapu fejlesztési jelölt. Writer v3 és a kiadási küszöb változatlan; nincs új paid/human PASS.
-
-A 2026-10-16-i két paid kísérlet 39 hívás / 0,82722 USD accounted. A readiness-v2 két első fejezete átment, de a fix kontrollok nem; a külön writer-v4 kísérlet sem javította az alkotói kontroll sceneCraft 3 pontját, ezért visszavonva. Az akkori ledger 140 hívás / 2,985975 USD, maradék 2,014025 USD; nincs qualityRelease.
-
-Következő sorrend: az alkalmazási többfejezetes folytatás szemantikai review-ja → a kontrollanyag és írói képesség külön vizsgálata → új forráson tényleges többfejezetes mérés ugyanazon költségledgerrel → emberi benchmark → külön N09 kiadás. A minőség elsődleges; a [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) még nem ár/keret döntés.
+Következő: ismétlődési és első-draft konzisztencia-korrekció → célzott regresszió/audit/exact-source CI → külön számszerű authority mellett friss előpróba és teljes kétprofilos mérés → emberi benchmark → N09 kiadás. Modellváltás, minőségkapu-lazítás, ledger-reset vagy automatikus rollout nincs. [Aktív v6 terv](plans/045_fiction_v6_earned_life_evolution.md); [aktuális státusz](STATUS_HU.md).
 
 ### F00–F06 — Szabad alkotói személyes fikció — IN PROGRESS
 
-Issue #45 / [PR #46](https://github.com/Muzsy/future_flow/pull/46), PR #44 függőséggel. [Részletes terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). A két korábbi teszt helyett új creative történetek indulnak; régi döntéspárosításuk nem szükséges, történeti eredményük megmarad.
+Issue #45; alap: [creative terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](decisions/ADR-008-creative-fiction-final-author-canon.md). F00–F04 technikai alap implementált: szerző által véglegesített candidate/plan/StoryFact/chapter csomag, author utáni ellenőrzés, prefix-fork, privacy/export/delete és recovery fixture. A régi prompt/policy snapshotok megmaradnak, default legacy/üres production cohort változatlan.
 
-F00–F04 implementált jelölt: verziózott végső szerzői csomag, utólagos tervellenőrzés, öt normál/max9 fizikai hívás, egy javítás, memória/StoryFact/supersession, prefix-fork, privacy/export/delete és recovery fixture. A nagyobb kimenet külön provider-határidőt kap. A v2 kompakt belső címkét gépi pattern védi, a v1 promptok hash-pinnel megmaradnak. Default legacy/üres cohort változatlan.
+**F05 PARTIAL:** a v6/quality2.5 implementáció és regressziók ellenőrzöttek; alkalmazáskód CI338:101 fájl/1091 teszt, mért forrás CI340 és későbbi dokumentációs lezárás CI341 Verify+Container SUCCESS. A15 elfogadott szöveg teljes ügynöki olvasása és külön nyolc+hat részes AI-kritikája elkészült, konkrét fejlődéssel és ismétlődési fenntartásokkal. Ez nem emberi élmény/retention bizonyíték. A quality2.5 korai editor-gyűjtése négy valós fidelity-javításnál működött, de mind a négy editor PASS volt: kettős literary+fidelity hiba kijavítására továbbra csak technikai regresszió ad bizonyítékot.
 
-F05 PARTIAL: a szekvenciális kapu és context javítása implementált (PR #47), végső e5e7ed2 kód CI-je 90 fájl / 966 teszt. A korábbi ismétlődő negatív kontrollt elutasítja. Két profil hat új főági fejezete (04cee85) és egy javított ordering-fork (e5e7ed2, explicit átvett prefix-provenance) átment, mind öt hívással/javítás nélkül, minden dimenzió >=4. Az eredeti két hibás fork-planner és költsége megmarad. A végső forrás teljes többprofilos release-benchmarkja és független emberi olvasói mérce továbbra szükséges. Creative-only reviewed=false / qualityRelease=false. Globális ledger 229 hívás / 6,79395 USD accounted, 3,20605 USD maradék az engedélyezett összesen 10-ből. Részletek a STATUS és a lenti aktuális kiegészítésben.
-
-F06 PARTIAL: compatible-mode/fallback védelem és v2 adatot is tartalmazó lokális recovery próba kész. Teljes többidőszakos/humán minőség és konkrét target/recovery Linux-rollout proof továbbra szükséges; production nincs aktiválva. N08/N09 kapuit nem helyettesíti a technikai siker.
+**F06 PARTIAL:** compatible-mode/fallback védelem és v2 adatot tartalmazó lokális recovery próba kész. Teljes minőségi bizonyítás és konkrét target/recovery Linux-rollout szükséges; production nincs aktiválva. A részletes korábbi mérések alább történeti checkpointok, nem az aktuális selected policy vagy maradék keret.
 
 ### B01 — Billing foundation — PENDING
 
@@ -195,7 +189,11 @@ Ha a terv és a kód eltér, az `AGENTS.md` konfliktusszabálya érvényes: a t�
 Reader/funded/daily/fence CLI Linux-host támogatás és az eredeti privát operátori state ellenőrzött átvétele elkészült PR #21-ben (`0b57f7f`). Exact-source CI/audit/root fixture és valódi reader/funded/backup/sync/restore/monitor végrehajtás sikeres; a normál munkához Windows-agent nem szükséges. Az owner-image deployment és a régi Windows scheduler nem került át. A már funded alkalmazás narratív runtime-upgrade támogatása külön nyitott Issue #34 / N09, nem O01 adatátvételi hiány. Kanonikus keret: `operations/BETA_HU.md`; runbook: `operations/LINUX_OPERATOR_HU.md`.
 
 
-### Szekvenciális minőség — PR #47, aktuális kiegészítés
+## 9. Történeti minőségi és költségcheckpointok
+
+Az alábbi szakaszok az adott korábbi forráshoz és időponthoz tartoznak. Aktuális authority/selected policy: az N08/F05 összefoglaló és STATUS; a régi „következő”, „aktuális” és keretértékek nem új végrehajtási engedélyek.
+
+### Szekvenciális minőség — PR #47, korábbi kiegészítés
 
 A végső e5e7ed2 kód CI-je 90 fájl / 966 teszt, Verify/Container sikeres. Új planner/author/reviewer v3, editor v2 és qualityPolicy 2.1.0; minden dimenzió >=4, pass verdict és négy igaz sequenceReview-jelzés kötelező, exact owned lefedéssel. Utolsó három owned legacy/narrative/creative fejezet scene/nyitó/záró bizonyítéka a közös 12 KiB keretben, withheld/prefix privacy megtartva. Choice-sorrend authorityja a history.position; örökölt timestamp megmarad. Régi job/payload és ledger nem íródott át.
 
@@ -223,14 +221,14 @@ F05/F06 follow-up IN PROGRESS, merged PR #48 actual base 058555005e7e85905cf5308
 
 045 technikai implementáció kész, PR #49 draft / CI 326 SUCCESS; részletes 14-célos offline próba PASS. Valódi eredmény 8 elfogadott, 1 elutasított, 5 nem generált: alkotói 6+fork kész; munkahelyi második fejezet ismétlődő lezárás miatt elutasított, a planner repair már elfogyott. Nincs teljes kétprofilos bizonyítás vagy quality release. Új 50 hívás / 2,527495 USD, kumulatív 305 / 10,732030 USD, maradék 4,472505 USD az új 7-ből. F05/F06/N08 PARTIAL, N09 nyitott. A következő korrekció a first-draft hivatkozási konzisztenciát és a döntésfelület prózába ismétlését kezeli; nem növeli a javítási limitet. Részletek: STATUS és 045 terv.
 
-## Aktuális v6 végrehajtás — 2026-10-18
+### V6 kezdeti végrehajtási checkpoint — 2026-10-18
 
 PR #49 merged (`1e1b4303dd779ad8e8b34970892302583a7f66dd`), a korábbi draft-státuszok történetiek. A [v6 terv](plans/045_fiction_v6_earned_life_evolution.md) végrehajtása folyamatban: külön v6/quality2.4/editorv5, v1–v5 freeze, okságilag kiérdemelt életfejlődés menetrend nélkül, goal/actor regressziók. F05/F06/N08 továbbra PARTIAL; emberi minőség nincs igazolva. Új numerikus owner authority: összesen legfeljebb 8 USD v6, nyitó eredeti ledger 305 / 10.732030 USD, kumulatív ceiling 18.732030 USD; a régi 4.472505 maradék nem adódik hozzá. Stage A 3/3, 15 hívás, 0.741945 USD; eredménye megőrizve.
 
 Stage B lezárult, **11 elfogadott / 2 elutasított / 5 nem generált** a 18 célból: alkotói 4 főági + fork, munkahelyi 5 főági + fork. Mindkét editor ismétlődő lezárást állított meg; a prose-only repair 108751/111155 bájtos kérését a 100000-es transport guard még API előtt blokkolta. A negatív forrás `2e1a127` / sourceHash `713be4849c941ad7d8e03c604b0aa333420cc6bf00e3658c4def0b5ba4a11c5b`, nem átnevezett vagy újrapróbált siker. B: 65 hívás / 3.472645 USD; A+B: 80 hívás / **4.214590 USD accounted**, maradék **3.785410 USD** a jóváhagyott 8-ból. Eredeti ledger **385 / 14.946620 USD**, unknown/open/unassigned 0. A konkrét fejlesztői javítás mindkét guardban explicit creative-eval 192 KiB envelope, minden bájt teljes konzervatív előfoglalásával; generic/runtime default 100000, USD/memory/artifact/max9/one-repair változatlan. A javítás valódi újramérése és a nyolcas ablak/független humán mérés még hiányzik; a munkahelyi történetben már van kiérdemelt, döntéssel elfogadott munkakörváltás, de ez ügynöki olvasás, nem human PASS. F05/F06/N08 PARTIAL, N09 és rollout nyitott. Részletes esetenkénti költség/trace/hiba: [v6 terv](plans/045_fiction_v6_earned_life_evolution.md#stage-b-actual-result--2026-10-18-partial-not-release-evidence).
 
 
-### Aktuális v6 keretbővítés — 2026-10-18
+### Korábbi v6 keretbővítés — 2026-10-18
 
 A tulajdonos a részleges Stage B és a konkrét javítás után **összesen legfeljebb 12 USD v6 fogyasztást** engedélyezett (az eredeti 8 + további 4; nem újraindított keret). A nyitó eredeti 305 / 10.732030 USD ledgerhez tartozó új kumulatív plafon **22.732030 USD**. Jelenleg változatlanul 385 hívás / 14.946620 USD accounted, új v6 fogyasztás 4.214590 USD; fennmaradó authority **7.785410 USD**. A korábbi 3.785410 USD maradék az emelés előtti állapot; a v5 régi maradékát nem adjuk hozzá. Új hívás csak a javított tiszta forrás ellenőrzése után: friss három munkahelyi főági/no-fork előpróba, és csak elfogadható eredménye után külön friss 18-célos mérés. Az eredeti negatív korpusz és költsége megmarad; nincs source-adoption, automatikus reroll, modellváltás vagy production engedély.
 

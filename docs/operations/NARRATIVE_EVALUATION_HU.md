@@ -1,13 +1,17 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-16
+last_reviewed: 2026-10-18
 related:
   - ../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md
   - NARRATIVE_RELEASE_HU.md
 ---
 
 # Személyes történetminőség: reprodukálható összehasonlítás
+
+## Aktuális v6 bizonyíték és költési határ — 2026-10-18
+
+PR #50 draft / selected quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
 ## Bizonyítékok és korlátok
 
@@ -19,7 +23,7 @@ Három külön vizsgálat készül:
 - Azonos kánon: nyolc fixture-authored, domain-validált eseménysor és jelenetterv, két writer út, 16 fejezet és nyolc pár. A tervhez nincs hamis planner receipt; ez nem alkalmazási period commit. Első draftokat hasonlít, nincs javítás.
 - Alternatív ág: az első két profil második döntésénél ellenkező, előre rögzített szemantikai irány, négy fejezet és két pár. Valódi saját-history fork, a szülő harmadik fejezete nem kerül a child memóriába.
 
-Összesen 68 fejezet és 34 vak pár. A jelenlegi tervellenőrzött normál offline út 248 mock transporthívás; valódi hiba/javítás több kísérletet igényelhet. Ez **működési bizonyíték, nem irodalmi minőség**. Az editor modell pontjai diagnosztikai adatok, nem független értékelés.
+Ez az eredeti legacy/narrative összehasonlító benchmark összesen68 fejezete és34 vak párja. Az akkori tervellenőrzött normál offline út248 mock transporthívás; a mostani creative-only v6 mérés ettől külön célkészlet. valódi hiba/javítás több kísérletet igényelhet. Ez **működési bizonyíték, nem irodalmi minőség**. Az editor modell pontjai diagnosztikai adatok, nem független értékelés.
 
 ## Offline futtatás és folytatás
 
@@ -41,7 +45,7 @@ A `--choices-file <JSON>` tömb minden eleme: fixtureId, mode (`legacy` vagy `na
 
 ## Külön engedélyezett fizetett futás
 
-Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, az engedélyezett **összesített fejlesztési keret** (jelenleg 10 USD a 2026-10-16-i explicit bővítéssel), valamint külön fejlesztési OpenAI project és project/service-account kulcs. A bővítés az eredeti 5 USD keret teljes addigi költését is magában foglalja. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
+Az elfogadott fejlesztési terv külön emberi engedélyt kér a fizetett benchmarkhoz. Szükséges a konkrét approval azonosító, az engedélyezett **összesített fejlesztési keret** (az aktuális23 USD TOTAL v6 /33.732030 USD kumulatív plafont és annak maradékát a fenti összefoglaló rögzíti), valamint külön fejlesztési OpenAI project és project/service-account kulcs. A korábbi5/10 USD és későbbi v5/v6 bővítések nem összeadható új keretek; az eredeti ledger és a rögzített baseline változatlan. A személyes béta éles kulcsát/windowját/ledgerét nem használjuk. A fájlban tárolt kulcs útvonalát kell az operátornak átadni, a kulcsot nem chatben.
 
 Csak explicit átadott `NARRATIVE_EVAL_API_KEY`, `NARRATIVE_EVAL_PROJECT_ID`, `NARRATIVE_EVAL_PROJECT_CONFIRMATION=dedicated-development` olvasható; általános OPENAI_API_KEY fallback nincs. Az environment marker a kezelő nyilatkozata, nem OpenAI project-ownership API-bizonyíték; a külön fejlesztési projektet az operátornak ellenőriznie kell. Titokfájl a repo/image/report része nem lehet.
 
@@ -49,7 +53,7 @@ Csak explicit átadott `NARRATIVE_EVAL_API_KEY`, `NARRATIVE_EVAL_PROJECT_ID`, `N
 pnpm evaluate:narrative --mode paid --allow-paid --budget-usd <APPROVED_TOTAL_USD> --approval-id <APPROVAL_ID> --out .local/narrative-evaluation/paid-reviewed-source
 ```
 
-Tiszta committed forrás kell. Az SDK explicit OpenAI végpontot, megadott projectet, default service tier-t, store=false-t és nulla SDK retryt használ. A közös provider parser retry minden fizikai kísérlete valódi admission/reservation előtt ellenőrzött; az új reviewed narrative policy legfeljebb nyolc slot, a régi policy hét slot, mindkettőben egy globális tartalmi javítás. Fix-canon pár legfeljebb hét összesített slot. Nem ismert usage után teljes reservation marad elszámolt; budget denial sem adja vissza a már elfoglalt slotot.
+Tiszta committed forrás kell. Az SDK explicit OpenAI végpontot, megadott projectet, default service tier-t, store=false-t és nulla SDK retryt használ. A közös provider parser retry minden fizikai kísérlete valódi admission/reservation előtt ellenőrzött; a megőrzött narrative-v1 reviewed policy legfeljebb8 slot, régi snapshotja7 slot, a creative v6/quality2.5 legfeljebb9 slot; mindegyikben egy globális tartalmi javítás. Fix-canon pár legfeljebb hét összesített slot. Nem ismert usage után teljes reservation marad elszámolt; budget denial sem adja vissza a már elfoglalt slotot.
 
 A `.local/narrative-evaluation/paid-usage.json` globális ExperimentAiBudget ledger és `budget-bindings.json` source/case binding minden új out könyvtár mellett is megmarad. Új out/approval nem nullázza. Minden fizetett futás ugyanabból a kijelölt mérőcheckoutból történjen; másik worktree/checkout nem jelent új engedélyezett keretet. Átköltözéskor a ledger/binding eredeti byte-jainak ellenőrzött megőrzése külön kötelező, üres ledgerrel nem folytatható az engedély. Költség: tényleges usage-alapú becslés, konzervatív accounted összeg, ismeretlen usage és peak reservation külön. Ez nem számla. Az árlista 2026-10-15-i hivatalos default/short-context listához kötött; hét nap után új ellenőrzés nélkül nincs paid futás. Modellt/árat csak új review-zott source-ban lehet változtatni. A hard cap kimerülése incomplete mérés, nem ok a keret önálló emelésére.
 
@@ -147,7 +151,7 @@ Az `evaluate:narrative` új `--creative` kapcsolója a teljes narrative oldalt `
 Példa offline: `pnpm evaluate:narrative --creative --mode offline --fixtures creative-portfolio --periods 2 --out .local/narrative-evaluation/creative-offline`. Paid esetben az összes eddigi dedikált fejlesztési költés és ugyanaz a ledger érvényes; új output nem új keret. Production key fallback nincs. Az új működéshez új source-bound run szükséges; régi történet futása nem alakítható át más policyra. A teljes korpusz és a vak emberi/recovery/ár/idő kapuk változatlanul szükségesek. A modell/editor PASS nem emberi minőségigazolás.
 
 
-A creative szolgáltatói határidő 180 másodperc hívásonként; productionben külön `AI_FICTION_TIMEOUT_MS` (1000–300000 ms) szabályozza. A régi módok `AI_TIMEOUT_MS` határideje megmarad. A nagyobb strukturált author-kimenet miatt a hosszabb határidőt és tényleges össz-latenciát mérni kell; ez nem tesz kötelezővé hosszú választ, nem ad plusz hívást és nem emel USD-keretet.
+A creative worker alapértelmezett szolgáltatói határideje180 másodperc hívásonként; productionben külön `AI_FICTION_TIMEOUT_MS` (1000–300000 ms) szabályozza. A jelenlegi creative fejlesztési mérő ettől külön, explicit300000ms provider-konfigurációt használ. A régi módok `AI_TIMEOUT_MS` határideje megmarad. A nagyobb strukturált author-kimenet miatt a hosszabb határidőt és tényleges össz-latenciát mérni kell; ez nem tesz kötelezővé hosszú választ, nem ad plusz hívást és nem emel USD-keretet.
 
 
 A `--creative-only` külön, szintetikus olvasói diagnózis: csak az új creative út fut, nincs legacy/fixed kontroll ismételt költsége. `diagnosticOnly=true`, `complete=false`, így nem teljes benchmark és nem qualityRelease-bizonyíték. Több időszaknál az első, alternatív forkban a második opciót választja determinisztikusan; `selection=diagnostic-index`, `reviewed=false` és kifejezett nem-emberi indoklás kerül a logba. Ez nem szemantikai párosítás, nem valós user választása, és nem engedi meg a `reviewed=true` kitalálását. A teljes párosított benchmarkban változatlanul a tényleges szemantikai review szükséges. Példa: `pnpm evaluate:narrative --creative-only --mode offline --fixtures bounded-career --periods 3 --out .local/narrative-evaluation/creative-reading-diagnostic`.
@@ -168,7 +172,7 @@ A qualityPolicy 2.1.0 kalibrációjában először a korábbi ismétlődő fejez
 Az örökölt választások azonos időbélyeges sorrendhibájának javítását új forrású, friss fork-próbával kell igazolni. A korábbi sikeres kétperiodos prefix átvehető szintetikus regressziós kiindulásnak, de az eredeti forrás/fejezet/kanonikus hash és az új forrás/script/payload kötését együtt rögzíteni kell. Új fork és normál guarded worker szükséges; az eredeti failed job/payload, receipt és költség nem írható át. Ez célzott kétforrású continuity regresszió, nem a teljes benchmark új forrásra átnevezése.
 
 
-## Legutóbbi lezárt diagnózis
+## Korábbi lezárt szekvenciális diagnózis
 
 A 04cee85 új szekvenciális policyja két profil három-három teljes fejezetét fogadta el, mind öt hívás/javítás nélkül, minden score >=4. Célzott editor-kalibrációban a régi pozitív kontroll átment, az ismétlődő harmadik negatív kontroll elutasítva (novelty 3, három sequence flag false). Az első fork két plannerrel hibás latest-choice sorrend miatt megállt; az e5e7ed2 új forrású, explicit régi prefixet öröklő friss forkja öt hívással átment. Az eredeti failed job és díja megmaradt, a két forrás bizonyítéka külön van. Global ledger 229 hívás / 6,79395 USD accounted, 6,3036081 USD usage-becslés, nulla ismeretlen/hozzárendeletlen foglalás, maradék 3,20605 USD a 10-ből. Részletes eredmények és korlátok: [STATUS](../STATUS_HU.md). A complete/qualityRelease flag false; a kód CI-je és a kis mintás modellkapu nem független emberi benchmark.
 
@@ -343,7 +347,7 @@ Friss forrás `cb8b539d11d8d364cee1798aa6fe5164d6c9f681`, sourceHash `d05fb027bf
 
 Eredeti globális ledger **652 hívás /33.4716975 USD**; a változatlan305/10.732030 baseline óta v6 **347 hívás /22.7396675 USD**, remaining **0.2603325 USD** a jóváhagyott összesen23-ból. Globálisan15 lezárt unknown teljes foglalása megmarad. A maradék nem fedezte a következő teljes kérést; további fizetős hívás nem indul. Ár/billing, provider-wallet egyenleg vagy új költségengedély ebből nem következik.
 
-Root mind a15 elfogadott fejezetet és az eltérő köztes prózát végigolvasta, a végső body-hasheket a jegyzetekkel egyeztette. Az alkotói ív a portfólió olvashatóságától saját képregényen és kézi példányokon át a barátság/portré eltérő elvárásaiig jut; az utolsó közös séta más zárófunkciót ad. A munkahelyi ívben elfogadott rövid fizetett megbízás, befejezés, jelentkezés, majd külön strukturált döntésválasztással elfogadott junior szerkesztői állás és egy folyamatváltással feleslegessé váló saját útmutató következik. Ez konkrét oksági életfejlődés; nem kötelező előléptetési menetrend. A fork új boltmegfigyelő történetet ír, nem örökli a későbbi főági képi munkákat. A kitalált diagnosztikai profiloknál a harness determinisztikus első opciót választ; ez nem tényleges humán tesztválasz vagy szemantikai megfeleltetési jóváhagyás.
+Root mind a15 elfogadott fejezetet és az eltérő köztes prózát végigolvasta, a végső body-hasheket a jegyzetekkel egyeztette. Az alkotói ív a portfólió olvashatóságától saját képregényen és kézi példányokon át a barátság/portré eltérő elvárásaiig jut; az utolsó közös séta más zárófunkciót ad. A munkahelyi ívben elfogadott rövid fizetett megbízás, befejezés, jelentkezés, majd külön strukturált döntésválasztással elfogadott junior szerkesztői állás és egy folyamatváltással feleslegessé váló saját útmutató következik. Ez konkrét oksági életfejlődés; nem kötelező előléptetési menetrend. A fork új boltmegfigyelő történetet ír, nem örökli a későbbi főági képi munkákat. A kitalált diagnosztikai főágon a harness determinisztikus első opciót választ, a fork eltérő opcióval indul; ez nem tényleges humán tesztválasz vagy szemantikai megfeleltetési jóváhagyás.
 
 **Nyitott irodalmi kockázat:** több részben a főszereplő túlmagyaráz, miközben más szereplő egy hétköznapi tárgyat/munkát intéz; több penultima közvetlenül felidézi a következő választási útvonalakat. Van jelentésbeli változás, ezért az ismétlődő motívum önmagában nem automatikus hiba. Az elfogadott editorok minden score-ja>=4 és mind a7 flag igaz, de ez nem zárja le a teljes ív vagy a humán érdeklődés kérdését. Külön accepted-only, nyolc alkotói és hat munkahelyi részt olvasó AI-kritika lezárult (részletek alább); ez sem emberi H1/H2 vagy retention PASS. F05/F06/N08 PARTIAL, N09 nyitott; PR#50 draft, nincs merge/production/béta/billing/entitlement módosítás.
 
