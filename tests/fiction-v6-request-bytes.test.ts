@@ -351,7 +351,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     expect(evaluationCreativeMaxRequestBytes).toBe(196608);
     expect(evaluationCreativeMaxRequestBytes).toBe(192 * 1024);
     expect(evaluationCreativeMaxRequestBytes).toBeLessThan(272000);
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(18.73203, 6);
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(22.73203, 6);
 
     const legacyDefault = parseEvaluationOptions([]);
     expect(legacyDefault.creative).toBeUndefined();
@@ -514,7 +514,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
 
   it('enforces the owner USD ceiling and preserves all prior cumulative ledger calls without clipping, deduplication, retagging or source adoption', async () => {
     const ledgerPath = await tempLedgerPath();
-    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 18.732030
+    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 22.732030
     expect(
       () =>
         new ExperimentAiBudget(
@@ -659,8 +659,8 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
       JSON.stringify(
         {
           budgetUsd: evaluationApprovedCumulativeBudgetUsd,
-          accountedUsd: 18.35,
-          estimatedUsd: 17.0,
+          accountedUsd: 22.35,
+          estimatedUsd: 21.0,
           unknownUsageCalls: 0,
           calls: [
             {
@@ -669,9 +669,9 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
               model: 'gpt-6.1-sol',
               task: 'life_narrative_chapter',
               startedAt: '2026-10-18T00:50:00.000Z',
-              reservedUsd: 18.35,
-              accountedUsd: 18.35,
-              estimatedUsd: 17.0,
+              reservedUsd: 22.35,
+              accountedUsd: 22.35,
+              estimatedUsd: 21.0,
               status: 'completed',
               usage: { input_tokens: 1000, output_tokens: 1000 },
             },
@@ -753,6 +753,86 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
         196608,
       ).reserve(raw),
     ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+  });
+
+  it('rejects inherited model names and incomplete rates before corrupting the original cumulative ledger', async () => {
+    const path = await tempLedgerPath();
+    const guard = new ExperimentAiBudget(path, 5, 'invalid-model-controls');
+    try {
+      for (const model of [
+        'constructor',
+        '__proto__',
+        'toString',
+        'hasOwnProperty',
+        null,
+        {},
+        42,
+      ]) {
+        await expect(
+          guard.reserve({ model, max_output_tokens: 12000 }),
+        ).rejects.toMatchObject({ code: 'SMOKE_BUDGET_CONFIG' });
+      }
+      expect(existsSync(path)).toBe(false);
+      const id = await guard.reserve(syntheticRequestWithGuardedBytes(86889));
+      await guard.settle(id, { input_tokens: 100, output_tokens: 50 });
+      const saved = JSON.parse(readFileSync(path, 'utf8'));
+      expect(saved.calls).toHaveLength(1);
+      expect(Number.isFinite(saved.accountedUsd)).toBe(true);
+    } finally {
+      guard.close();
+    }
+    const incomplete = new ExperimentAiBudget(
+      await tempLedgerPath(),
+      5,
+      'invalid-rate-control',
+      {
+        'gpt-6.1-sol': { input: 2, cachedInput: 0.1, output: 10 },
+      } as unknown as typeof evaluationPrices,
+    );
+    try {
+      await expect(
+        incomplete.reserve(syntheticRequestWithGuardedBytes(86889)),
+      ).rejects.toMatchObject({ code: 'SMOKE_BUDGET_CONFIG' });
+    } finally {
+      incomplete.close();
+    }
+  });
+
+  it('releases the real experimental reservation when the real default transactional envelope rejects it', async () => {
+    const owner = randomUUID();
+    await new Repository(db).ensureUser(owner);
+    const path = await tempLedgerPath();
+    const first = new ExperimentAiBudget(
+      path,
+      5,
+      'paired-byte-negative-control',
+      evaluationPrices,
+      5,
+      196608,
+    );
+    const second = new DatabaseAiBudget(db, owner, randomUUID(), {
+      projectUsd: 5,
+      userUsd: 5,
+    });
+    try {
+      await expect(
+        combineAiGuards(first, second).reserve(
+          syntheticRequestWithGuardedBytes(108751),
+        ),
+      ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+      const saved = JSON.parse(readFileSync(path, 'utf8'));
+      expect(saved.calls).toHaveLength(1);
+      expect(saved.calls[0].status).toBe('completed');
+      expect(saved.calls[0].accountedUsd).toBe(0);
+      expect(saved.accountedUsd).toBe(0);
+      const reservations = await db.query(
+        'SELECT id FROM aw_budget_reservations WHERE user_id=$1',
+        [owner],
+      );
+      expect(reservations).toEqual([]);
+    } finally {
+      first.close();
+    }
   });
 
   it('captures actual offline provider normal (86,889B) and prose_only repair (108,751B) parameters through processLifeJob without mutating request hashes or inputs', async () => {

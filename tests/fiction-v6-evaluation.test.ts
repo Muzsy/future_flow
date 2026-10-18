@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { ExperimentAiBudget } from '@future-flow/ai';
+import { DatabaseAiBudget } from '@future-flow/database';
 import { narrativeDimensions } from '@future-flow/contracts';
 import { hash } from '@future-flow/core';
 import {
@@ -241,14 +242,14 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
     ).toThrow();
   });
 
-  it('sets reviewed cumulative ceiling to 18.732030 (baseline 10.732030 + 8.000000 without re-adding old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(18.73203, 6);
+  it('sets reviewed cumulative ceiling to 22.732030 (baseline 10.732030 + 12.000000 without re-adding old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(22.73203, 6);
     expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(
-      10.73203 + 8.0,
+      10.73203 + 12.0,
       6,
     );
     expect(evaluationApprovedCumulativeBudgetUsd).not.toBeCloseTo(
-      15.204535 + 8.0,
+      15.204535 + 12.0,
       6,
     );
 
@@ -290,7 +291,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
           '--periods',
           '8',
           '--budget-usd',
-          '18.73203',
+          '22.73203',
           '--approval-id',
           'v6-stage-b-window',
           '--out',
@@ -298,7 +299,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
         ],
         developmentEnv,
       );
-      expect(stageBPaid.budgetUsd).toBeCloseTo(18.73203, 6);
+      expect(stageBPaid.budgetUsd).toBeCloseTo(22.73203, 6);
 
       expect(() =>
         parseEvaluationOptions(
@@ -312,7 +313,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
             '--periods',
             '8',
             '--budget-usd',
-            '18.732031',
+            '22.732031',
             '--approval-id',
             'over-ceiling',
             '--out',
@@ -387,7 +388,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
 
       const stageBGuard = new ExperimentAiBudget(
         ledgerPath,
-        18.73203,
+        22.73203,
         'narrative-evaluation:v6-stage-b',
         undefined,
         evaluationApprovedCumulativeBudgetUsd,
@@ -411,7 +412,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
       expect(afterStageB.accountedUsd).toBeGreaterThan(
         afterStageA.accountedUsd,
       );
-      expect(afterStageB.budgetUsd).toBeCloseTo(18.73203, 6);
+      expect(afterStageB.budgetUsd).toBeCloseTo(22.73203, 6);
     } finally {
       clock.mockRestore();
       await rm(dir, { recursive: true, force: true });
@@ -806,6 +807,16 @@ describe('v6 offline evaluation integration: Stage A 3-period no-fork smoke and 
 
   it('runs Stage B two-profile 8-period + fork corpus (18 samples / 90 transports), isolates model inputs from billing/8-chapter metadata, includes blinded reader questions, and resumes cleanly', async () => {
     const outStageB = await mkdtemp(join(tmpdir(), 'alterward-v6-stage-b-'));
+    const observedCaps: number[] = [];
+    const originalReserve = DatabaseAiBudget.prototype.reserve;
+    const capSpy = vi
+      .spyOn(DatabaseAiBudget.prototype, 'reserve')
+      .mockImplementation(function (this: DatabaseAiBudget, raw) {
+        observedCaps.push(
+          (this as unknown as { maxRequestBytes: number }).maxRequestBytes,
+        );
+        return originalReserve.call(this, raw);
+      });
     try {
       const options = parseEvaluationOptions([
         '--mode',
@@ -839,6 +850,10 @@ describe('v6 offline evaluation integration: Stage A 3-period no-fork smoke and 
         },
       );
 
+      // Every real main AND fork runner reservation must select the reviewed envelope.
+      // The separate byte-boundary tests exercise actual admission, not this observation.
+      expect(observedCaps).toHaveLength(90);
+      expect(new Set(observedCaps)).toEqual(new Set([196608]));
       expect(run.mock).toBe(true);
       expect(run.diagnosticOnly).toBe(true);
       expect(run.complete).toBe(false);
@@ -882,7 +897,7 @@ describe('v6 offline evaluation integration: Stage A 3-period no-fork smoke and 
         expect(serializedInput).not.toContain('rolloverBalance');
         expect(serializedInput).not.toContain('personalTier');
         expect(serializedInput).not.toContain('budgetUsd');
-        expect(serializedInput).not.toContain('18.73203');
+        expect(serializedInput).not.toContain('22.73203');
       }
 
       // Verify private trace integrity (18 cases, 0700 dir, 0600 files)
@@ -1016,6 +1031,7 @@ describe('v6 offline evaluation integration: Stage A 3-period no-fork smoke and 
       expect(assessed.qualityRelease).toBe(false);
       expect(assessed.passed).toBe(false);
     } finally {
+      capSpy.mockRestore();
       await rm(outStageB, { recursive: true, force: true });
     }
   }, 240000);

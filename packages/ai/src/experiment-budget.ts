@@ -143,13 +143,18 @@ export class ExperimentAiBudget implements AiRequestGuard {
         max_output_tokens: number;
         text?: { format?: { name?: string } };
       },
-      rate = this.modelPrices[p.model];
+      rate =
+        typeof p.model === 'string' && Object.hasOwn(this.modelPrices, p.model)
+          ? this.modelPrices[p.model]
+          : undefined;
     const bytes =
       Buffer.byteLength(JSON.stringify(raw), 'utf8') +
       EXPERIMENT_REQUEST_BYTE_BUFFER;
     if (
       !rate ||
-      !Object.values(rate).every((n) => Number.isFinite(n) && n >= 0) ||
+      ![rate.input, rate.cachedInput, rate.inputCeiling, rate.output].every(
+        (n) => Number.isFinite(n) && n >= 0,
+      ) ||
       rate.inputCeiling < rate.input ||
       bytes > this.maxRequestBytes ||
       !Number.isInteger(p.max_output_tokens) ||

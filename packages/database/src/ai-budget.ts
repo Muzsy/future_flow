@@ -212,9 +212,11 @@ export class DatabaseAiBudget {
       max_output_tokens: number;
       text?: { format?: { name?: string } };
     };
-    const rates = Object.hasOwn(applicationModelPrices, p.model)
-      ? applicationModelPrices[p.model]
-      : undefined;
+    const rates =
+      typeof p.model === 'string' &&
+      Object.hasOwn(applicationModelPrices, p.model)
+        ? applicationModelPrices[p.model]
+        : undefined;
     // Byte count is a conservative bound for this JSON text request, including
     // schemas and an additional protocol margin. Long-context pricing is rejected.
     const inputBound = Buffer.byteLength(JSON.stringify(raw), 'utf8') + 4096;

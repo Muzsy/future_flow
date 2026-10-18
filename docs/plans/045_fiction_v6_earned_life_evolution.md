@@ -9,7 +9,7 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: stage-b-partial-request-envelope-fix-validation-pending
+state: repair-technical-pass-fresh-paid-validation-pending
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
@@ -20,6 +20,10 @@ production_authorized: false
 ## 2026-10-18 execution authority
 
 PR #49 was merged before implementation at `1e1b4303dd779ad8e8b34970892302583a7f66dd`; this is the actual v6 base. The creation-time SHAs/status below remain historical. The owner explicitly authorized the merge and **at most 8 USD total new v6 development consumption** on 2026-10-18. Opening original cumulative ledger: **305 calls / 10.732030 USD accounted**; cumulative ceiling **18.732030 USD**. The previous unused 4.472505 USD is included, not added. Stage A has an initial cost forecast of about 1–1.50 USD, not a separate hard cap. Both stages use the same owner-authorized cumulative ceiling 18.732030; the forecast cannot create an artificial budget failure in the smoke. Read the original ledger and current authorization before each paid stage; no reset, copied ledger or added budget. Stage B starts fresh only if the three-main/no-fork Stage A is acceptable. No production or v6 self-merge authorization.
+
+## Latest numeric extension — 2026-10-18
+
+After the partial Stage B and concrete request-envelope correction, the owner explicitly approved **at most 12 USD TOTAL v6 consumption**, extending the initial 8 by 4 USD. Original v6 baseline stays 305 calls / 10.732030 USD. New cumulative ceiling **22.732030 USD**; current unchanged ledger 385 / 14.946620 leaves **7.785410 USD**, including all original failures. The initial eight-dollar authority and 3.785410 remainder below are historical, not added again. No new paid transport until checks on clean repaired source succeed. Fresh three-career-main/no-fork smoke first; only if acceptable, fresh 18-target benchmark. No budget reset/source adoption or production authority.
 
 ## Role
 
@@ -1332,3 +1336,17 @@ Root read all accepted chapters and both rejected drafts, labelled **diagnostic 
 The creative main moves from a static image through a socially unwelcome portrait into visual sequence and a small book. The rejected fifth opens a plausible collaborator role with Niamh's independent street drawing. A stable group/place is not itself a failure, yet the recurring home/group/critique/self-explanation mechanism and regular selected-month cadence remain watchpoints. Its alternative third follows self-portrait/preparing a table instead of the main missed-bus woman's story. Neither partial run proves eight-chapter renewal interest or freedom from formula. Reused independently invented names across profiles are a repertoire concern, not evidence of shared private canon.
 
 Remaining: final code/CI review of the admission fix; adequate reservation headroom and explicit numeric authority before any extra spending; fresh source-bound real validation rather than resuming/relabeling the terminal failed run; full eight-main windows and forks; independent hash-bound human literary/retention assessment; cost/latency decision; separately authorized runtime/rollout work. Technical checks, paid acceptance and human acceptance remain distinct. PR #50 stays draft; no v6 self-merge, production, beta, billing or entitlement action.
+
+
+### Independent admission review and follow-up correction
+
+A separate read-only Claude Code subscription audit reviewed both request guards, CLI authorization and main/fork runner wiring. It confirmed matching explicit 192 KiB envelopes, default 100000 and full conservative financial reservation. It found a latent shared-guard prototype lookup defect: inherited names such as `constructor` could resolve to non-price objects and produce NaN. The fix requires a string and own price key, and explicitly validates all four price fields before computing a reservation. Negative inherited/non-string/incomplete-price controls prove no ledger corruption; valid names still work. The transactional guard also explicitly requires a string. A paired real-guard mismatch test proves pre-transport rejection releases the first reservation to zero. The existing real 18-sample offline runner test now observes every actual main/fork transactional guard selecting 192 KiB, so omitting either caller's argument is caught. Neither these regressions nor the source audit are model/human literary evidence.
+
+Local validation history is retained: the first 11-worker full run overloaded the machine and timed out provenance tests; at 2 workers those tests passed. A commit during a resume test correctly triggered its source binding, and one worker had cached the old guard while its new negative test was written. Both affected files subsequently passed on stable rebuilt source. The final check below must run without source edits/commits during bound resume tests; no timeout increase or skipped case is permitted. No code behavior was weakened to address local scheduling.
+
+
+### Repaired-source technical closure — 2026-10-18
+
+The request-envelope fix, prototype-key correction and explicit TOTAL12/USD22.732030 cumulative authority were checked together on a stable source tree: **101 test files /1076 tests PASS**, unchanged20-second default timeout,2 workers; format, docs, typecheck, full application build, schema generation without drift and diff check PASS. A separate read-only Claude Code follow-up audit found **no actionable findings**, including own-key/string price lookup, four finite price fields, paired-guard release, all90 main/fork runner reservations selecting the reviewed192KiB limit and baseline+12 budget arithmetic. Auth was verified as claude.ai Pro subscription; its code review is not an application-model API experiment or a literary grade.
+
+The full final run supersedes the interrupted/interfered local attempts above; no case was skipped, no timeout extended and no source changed during its bound resume tests. The real18-sample offline integration proves mechanics only. No new real transport or paid literary acceptance is claimed for this fix yet. Next: clean committed source/CI, read back the unchanged original385-call ledger and project binding, then separately announced fresh three-main/no-fork career smoke under TOTAL12 authority. If acceptable, a meaningful documentation checkpoint separates its sourceHash/cost group from the fresh18-target Stage B; no terminal failed run is adopted or resumed.

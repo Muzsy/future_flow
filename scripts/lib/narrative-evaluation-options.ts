@@ -6,11 +6,12 @@ import {
 import { DomainError } from '@future-flow/core';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
-// Owner authorization on 2026-10-18: USD 8 total v6 development spend
+// Owner authorization on 2026-10-18: USD 12 total v6 development spend
+// (initial USD 8, explicitly extended by USD 4 after the partial Stage B).
 // from the unchanged canonical ledger baseline USD 10.732030 (305 calls;
 // prior unused v5 headroom USD 4.472505 is not added again). This is a
 // cumulative accounting ceiling, not a provider balance or a ledger reset.
-export const evaluationApprovedCumulativeBudgetUsd = 18.73203;
+export const evaluationApprovedCumulativeBudgetUsd = 22.73203;
 export const evaluationDefaultMaxRequestBytes =
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
 export const evaluationCreativeMaxRequestBytes =
