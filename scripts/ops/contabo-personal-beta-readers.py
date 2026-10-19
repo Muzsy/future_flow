@@ -291,6 +291,11 @@ def quiet(path):
 
 
 def restore_zero(request):
+    # A newer funded schema/runtime has separate recovery authority. Emergency
+    # disable still stops first, but must never restart an original pre-038 image.
+    upgraded = DIRECTORY / 'funded-runtime-upgrade'
+    if upgraded.exists() or upgraded.is_symlink():
+        raise ValueError('Funded runtime evidence present; original-zero restart refused, keep held')
     data, _, _, _ = zero_baseline(request)
     for name, value in data.items():
         upgrade.atomic_private(DIRECTORY / name, value)

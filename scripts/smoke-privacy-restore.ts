@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { connectDatabase, type Database } from '@future-flow/database';
+import {
+  LifeRepository,
+  connectDatabase,
+  type Database,
+} from '@future-flow/database';
 import { hash } from '@future-flow/core';
 import { applyMigrations } from './lib/migrations';
 import {
@@ -59,8 +63,12 @@ async function main() {
     sourceCreated = true;
     source = connection(sourceName);
     await applyMigrations({ exec: (sql) => facade.query(sql) });
+    let artifactSnapshot: unknown;
     const f = await preparePrivacyRestoreFixture(facade, async () => {
       assert(source);
+      artifactSnapshot = await source.query(
+        'SELECT id,narrative_artifact FROM aw_periods ORDER BY id',
+      );
       await source.close();
       source = undefined;
       // Actual PostgreSQL physical database copy after all transactions close.
@@ -70,6 +78,20 @@ async function main() {
       source = connection(sourceName);
     });
     target = connection(targetName);
+    const restoredArtifacts = await target.query(
+      'SELECT id,narrative_artifact FROM aw_periods ORDER BY id',
+    );
+    assert.deepEqual(restoredArtifacts, artifactSnapshot);
+    assert(restoredArtifacts.some((p) => p.narrative_artifact !== null));
+    assert(restoredArtifacts.some((p) => p.narrative_artifact === null));
+    const [restoredBranch] = await target.query<{ id: string }>(
+      'SELECT id FROM aw_branches WHERE life_id=$1',
+      [f.deletedLife],
+    );
+    assert(restoredBranch);
+    const dto = await new LifeRepository(target).detail(f.a, restoredBranch.id);
+    assert(dto.periods.every((p) => !('narrative_artifact' in p)));
+
     await source!.query("SET TIME ZONE 'Asia/Tokyo'");
     f.authority = await capturePrivacyRestoreAuthority(source!, {
       projectBinding: f.projectBinding,
@@ -160,6 +182,9 @@ async function main() {
     return {
       ...proof,
       physicalOldSnapshot: true,
+      narrativeArtifactsSurvivedPhysicalRestore: true,
+      legacyNullArtifactsReadable: true,
+      privateArtifactExcludedFromLifeDto: true,
       actualDatabaseNameGuard: true,
       missingOrMismatchedAuthorityRejected: true,
       interruptedReplayRolledBack: true,
