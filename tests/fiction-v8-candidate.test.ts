@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
@@ -534,6 +541,35 @@ fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, 
       rmSync(dir, { recursive: true, force: true });
     }
   });
+  it('runs end to end into an empty output directory and labels it afterwards', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'codex-run-'));
+    rmSync(out, { recursive: true, force: true });
+    try {
+      await evaluateNarrativeWithCodex(
+        [
+          '--creative-only',
+          '--fixtures',
+          'career-transition',
+          '--periods',
+          '1',
+          '--out',
+          out,
+        ],
+        {},
+        ({ defaultOutput }) => defaultOutput(),
+      );
+      const marker = JSON.parse(
+        readFileSync(join(out, 'codex-local.json'), 'utf8'),
+      );
+      expect(marker).toMatchObject({
+        transport: 'codex-local',
+        comparableWithPaid: false,
+      });
+      expect(existsSync(join(out, 'report.json'))).toBe(true);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  }, 60000);
   it('refuses paid options', async () => {
     await expect(
       evaluateNarrativeWithCodex(['--mode', 'paid'], {}),

@@ -1,9 +1,12 @@
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { DomainError } from '@future-flow/core';
 import { parseEvaluationOptions } from './lib/narrative-evaluation-options';
-import { runNarrativeEvaluation } from './lib/narrative-evaluation-runner';
+import {
+  runNarrativeEvaluation,
+  type OfflineMockResponder,
+} from './lib/narrative-evaluation-runner';
 import { writeEvaluationArtifacts } from './lib/narrative-evaluation-artifacts';
 import { codexLocalResponder } from './lib/narrative-evaluation-codex';
 
@@ -13,6 +16,7 @@ import { codexLocalResponder } from './lib/narrative-evaluation-codex';
 export async function evaluateNarrativeWithCodex(
   argv: string[],
   env: Record<string, string | undefined> = process.env,
+  responder?: OfflineMockResponder,
 ) {
   if (
     argv.some((a) =>
@@ -35,7 +39,14 @@ export async function evaluateNarrativeWithCodex(
     reasoningEffort: env.ALTERWARD_CODEX_EFFORT ?? 'low',
     timeoutMs: 600000,
   };
-  await mkdir(options.out, { recursive: true });
+  const run = await runNarrativeEvaluation(
+    options,
+    {},
+    responder ?? codexLocalResponder(codex),
+  );
+  const result = await writeEvaluationArtifacts(run, options);
+  // Written after the run: the runner only accepts an empty directory or
+  // one it created itself.
   await writeFile(
     join(options.out, 'codex-local.json'),
     JSON.stringify(
@@ -50,12 +61,7 @@ export async function evaluateNarrativeWithCodex(
       2,
     ) + '\n',
   );
-  const run = await runNarrativeEvaluation(
-    options,
-    {},
-    codexLocalResponder(codex),
-  );
-  return writeEvaluationArtifacts(run, options);
+  return result;
 }
 if (
   process.argv[1] &&
