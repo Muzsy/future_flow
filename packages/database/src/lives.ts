@@ -1,3 +1,7 @@
+import {
+  personalFictionContext,
+  ownedFictionReferences,
+} from './fiction-memory';
 import { randomUUID } from 'node:crypto';
 import { lifeJobRetryAvailable } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
@@ -36,7 +40,7 @@ import {
 import { ownedNarrativeReferences } from './narrative-artifact';
 import {
   contextNarrativePolicy,
-  reviewedNarrativePolicy,
+  readyNarrativePolicy,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
@@ -311,7 +315,7 @@ export class LifeRepository {
         [branch.life_id, userId],
       ),
       choices: await this.db.query(
-        'SELECT decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ORDER BY created_at',
+        'SELECT c.decision_id,c.option_id,c.payload,c.state_after FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ORDER BY h.position,c.created_at,c.decision_id',
         [branchId, userId],
       ),
       job: latestJob
@@ -547,7 +551,7 @@ export class LifeRepository {
     const choices = privacyIds.length
       ? []
       : await tx.query(
-          `SELECT decision_id,payload FROM (SELECT decision_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY created_at DESC LIMIT 10`,
+          `SELECT decision_id,payload FROM (SELECT c.decision_id,c.payload,c.created_at,h.position AS decision_position FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ${initialChoiceStorage?.present ? 'UNION ALL SELECT decision_id,payload,created_at,-1 AS decision_position FROM aw_initial_choices WHERE life_id=$3 AND user_id=$2' : ''}) q ORDER BY decision_position DESC,created_at DESC,decision_id DESC LIMIT 10`,
           initialChoiceStorage?.present
             ? [branch.id, userId, branch.life_id]
             : [branch.id, userId],
@@ -587,6 +591,24 @@ export class LifeRepository {
         ...(sharedEvents.length ? { sharedEvents } : {}),
       },
     };
+    const [fictionStorage] = await tx.query<{ present: boolean }>(
+      "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='aw_periods' AND column_name='narrative_artifact') AS present",
+    );
+    const [creativeHistory] = fictionStorage?.present
+      ? await tx.query<{ present: boolean }>(
+          "SELECT EXISTS(SELECT 1 FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact->>'pipelineVersion'='narrative-fiction-v2') AS present",
+          [branch.id, userId],
+        )
+      : [];
+    if (
+      creativeHistory?.present &&
+      (this.narrative.mode !== 'narrative-fiction-v2' ||
+        !this.narrative.cohortUserIds.includes(userId))
+    )
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'This fictional history requires the compatible creative continuation policy.',
+      );
     if (
       this.narrative.mode !== 'legacy' &&
       this.narrative.cohortUserIds.includes(userId)
@@ -598,14 +620,26 @@ export class LifeRepository {
         branch.revision,
         branch.accepted_decision_ids,
         privacyIds.length > 0,
-        this.narrative.mode === 'narrative-v1',
+        this.narrative.mode === 'narrative-v1' ||
+          this.narrative.mode === 'narrative-fiction-v2',
       );
       payload.narrativeContext =
-        this.narrative.mode === 'narrative-v1'
-          ? { policy: reviewedNarrativePolicy(), memory }
-          : { policy: contextNarrativePolicy(), memory };
+        this.narrative.mode === 'narrative-fiction-v2'
+          ? await personalFictionContext(tx, userId, branch.id, memory)
+          : this.narrative.mode === 'narrative-v1'
+            ? { policy: readyNarrativePolicy(), memory }
+            : { policy: contextNarrativePolicy(), memory };
     }
-    if (payload.narrativeContext?.policy.mode === 'narrative-v1')
+    if (payload.narrativeContext?.policy.mode === 'narrative-fiction-v2')
+      payload.fictionReferences = await ownedFictionReferences(
+        tx,
+        userId,
+        branch.id,
+      );
+    if (
+      payload.narrativeContext?.policy.mode === 'narrative-v1' ||
+      payload.narrativeContext?.policy.mode === 'narrative-fiction-v2'
+    )
       payload.narrativeReferences = narrativeReferenceSnapshot(
         await ownedNarrativeReferences(tx, userId, branch.id),
       );
@@ -827,7 +861,7 @@ export class LifeRepository {
           p.end_state.effectiveAt,
         );
         await tx.query(
-          'INSERT INTO aw_choices(id,user_id,life_id,branch_id,period_id,decision_id,option_id,payload,state_after) SELECT gen_random_uuid(),user_id,life_id,$3,period_id,decision_id,option_id,payload,state_after FROM aw_choices WHERE branch_id=$1 AND user_id=$2 AND decision_id IN (SELECT jsonb_array_elements_text($4::jsonb)::uuid)',
+          'INSERT INTO aw_choices(id,user_id,life_id,branch_id,period_id,decision_id,option_id,payload,state_after,created_at) SELECT gen_random_uuid(),user_id,life_id,$3,period_id,decision_id,option_id,payload,state_after,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 AND decision_id IN (SELECT jsonb_array_elements_text($4::jsonb)::uuid)',
           [branchId, userId, newId, JSON.stringify(p.accepted_before)],
         );
         await this.accept(

@@ -163,8 +163,9 @@ def candidate(config, access, flags, request, *, now, prior_window_count):
     if (not isinstance(key, str) or not re.fullmatch(r'[A-Za-z0-9_\-]{16,4096}', key) or
             key == SENTINEL):
         raise ValueError('Bounded worker-only provider input required')
-    project = positive_budget(request['projectUsd'], '2')
-    user_budget = positive_budget(request['userUsd'], '0.5')
+    # Owner decision 2026-10-19: 10 USD project allowance for three testers.
+    project = positive_budget(request['projectUsd'], '10')
+    user_budget = positive_budget(request['userUsd'], '3.34')
     if Decimal(user_budget) > Decimal(project):
         raise ValueError('Personal allowance cannot exceed the project allowance')
     start, end = utc(request['startsAt']), utc(request['endsAt'])

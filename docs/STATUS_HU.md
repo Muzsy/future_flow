@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-19
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -34,38 +34,61 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Előfizetés / billing | nincs kész fizetési rendszer | B01: provider, lifecycle és szerveres entitlement |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
-## Történetminőség – jelenlegi fejlesztési eredmény
+## Történetminőség — aktuális fejlesztési jelölt
 
-Az N00–N07 implementáció (PR #25–#33) és a PR #35–#38 beolvadt. A legutóbbi narratív kód a `fd10b856` merge-ben van; PR #38 pontos forrásán 87 fájl / **906 offline teszt**, Verify és container CI sikeres. A teljes offline korpusz 68 fejezet / 34 pár / 248 mock transport; a mock nem irodalmi minőségbizonyíték.
+A főág és a fejlesztési jelölt külön állapot: a v5 előfeltétel PR #49 beolvadt (`1e1b4303dd779ad8e8b34970892302583a7f66dd`); a v6 **[PR #50](https://github.com/Muzsy/future_flow/pull/50) mért checkpointként 2026-10-18-án beolvadt** (`f755a57aca37ee6a2e995400c76fc0394f1cdc88`, a tulajdonos kifejezett engedélyével). Ez fejlesztési főág-állapot, nem production aktiválás: a default legacy/üres narrative cohort változatlan. A beolvadt v6 snapshot planner/author/reviewer v6, editor v5, fidelity v1 és **qualityPolicy 2.5.0** (`fictionV6Quality25Policy()`). Az új fejlesztési jelölt a [046 v7 terv](plans/046_fiction_v7_narrative_economy.md): új creative jobok planner/author/reviewer v7, editor v6, fidelity v1, **qualityPolicy 2.6.0**, report 1.3.0/signature 1.1.0 snapshotot kapnak; 2026-10-19-i valódi mérése részleges: Stage A 3/3, Stage B 15/18 (1 elutasított, 2 hiányzó), 6,61496 USD, eredeti ledger 765 / 40,08666 USD; human PASS nincs. A régi policyk és prompt-bájtok megmaradnak; normál öt, legfeljebb kilenc fizikai kérés és egy globális tartalmi javítás engedett. A quality2.5 az editor visszajelzését elegendő szabad kéréshely esetén a fidelity-hibát javító egyetlen package repair előtt is összegyűjti; a végső kapuk nem lazultak.
 
-Az új selected narrative policy planner v3, külön tervellenőr v1 és writer v3 útvonalat használ. Öt normál feladat, legfeljebb nyolc fizikai kérés és egy globális tartalmi javítás engedett; a régi befagyasztott policy négy/max7 viselkedése megmarad. A tervellenőrzés valódi receipthez és a pontos bemenet/kimenet hashéhez kötött. Monetary budget, lease, privacy, recovery és a 32 KiB artifact-határ változatlan.
+### Legutóbbi valódi mérés
 
-A legutóbbi kétprofilos, egyidőszakos valódi diagnózis két új első fejezete átment, öt-öt hívással, javítás nélkül; teljes ilyen költségük 0,2674625 USD, egy modellkapun átment fejezetre **0,13373125 USD**. Mindkét külön fix-kánon íróteszt editor-elutasítás lett, momentum 2/5. A tervellenőr befejezetlen mezővégeket is jelzett. Ezek nyitott minőségi problémák; két első fejezet nem igazol többidőszakos vagy független emberi minőséget.
+A külön háromfejezetes quality2.5 előpróba 3/3 elfogadott szöveget adott. Az utána külön indított, friss hosszú mérés eredménye **15 elfogadott / 0 irodalmilag elutasított / 3 hiányzó** a 18 célból:
 
-Az összes külön fejlesztési mérés **101 hívás / 2,158755 USD konzervatív elszámolás**, 1,9980987 USD usage-alapú árbecslés, minden használat ismert és nulla hozzárendeletlen foglalás. Az eredeti összesített 5 USD keretből 2,841245 USD maradt. Ez a fejlesztési projekt ledgere, nem a bétaablak költése; új változat vagy outputkönyvtár nem nullázza.
+| Profil | Elfogadott főági fejezet | Alternatív harmadik fejezet | Hiányzik |
+| --- | ---: | --- | --- |
+| Alkotói | 8 | elkészült | nincs |
+| Munkahelyi | 6 | nem készült el | főági 7–8 és alternatív 3 |
 
-Részletes authority: [narratív implementáció](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md), [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md), [Issue #24](https://github.com/Muzsy/future_flow/issues/24).
+A munkahelyi hetedik planner-kérése elkészült, de a következő author teljes előfoglalását a pénzügyi guard még API előtt megtagadta (`SMOKE_BUDGET_EXCEEDED`). Ez nem visszakapott gyenge történet vagy teljes mérési siker. A különböző forrású korábbi részleges korpuszokat nem adjuk össze új teljes mérésként.
 
-## Gazdaságosság és termékdöntés
+A mért forrás `cb8b539d11d8d364cee1798aa6fe5164d6c9f681`, sourceHash `d05fb027bf589169b19fa16c51ae1e6a63480d83844c16e310f89d914cd36512`; a mérés előtt Verify+Container CI340 SUCCESS. A futás 99 valódi transportot, 16 trace-t, 94 elfogadott receiptet és öt egyszeri package repairt tartalmaz. A source/project/manifest/trace kötéseket lezárás után visszaellenőriztük. A későbbi, kizárólag dokumentációs `56062a8` lezárás Verify+Container CI341 eredménye SUCCESS; ez nem új paid forrás vagy generálás. Az alkalmazáskód teljes CI338 ellenőrzése 101 fájl / 1091 teszt volt.
 
-A történetminőség elsődleges. A havi 8 fejezet, opcionális 4-es kiegészítő, egyszeri 3-as próba, rollover, 0,70 USD teljes fejezetköltség és 18 USD megtartott havi bevétel **modellezési javaslat**, nem elfogadott ár vagy implementált csomag. Alacsonyabb, tartósan igazolt költségnél 12–24 fejezetes változat is vizsgálandó.
+### Irodalmi megállapítás és korlát
 
-A teljes, valós kódra és mérésekre épített [gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) a kanonikus [monetizációs modell](product/MONETIZATION_HU.md) supporting anyaga. Billing, személyes fejezetszámláló vagy új éles allowance nincs aktiválva. A Shared Free/Explorer/Connected/World slotok és sponsored Guest szabályok változatlanok.
+Mind a 15 elfogadott végső szöveg és az eltérő köztes próza teljes ügynöki olvasása megtörtént, a végső body-hashek egyeztetve. Az alkotói történet a portfóliótól saját munkákon át egy barátság és közös portrérajzolás eltérő elvárásaiig jut. A munkahelyi történetben valódi fizetett megbízás és később elfogadott állásváltás történik; a következő fejezetben egy folyamatváltozás feleslegessé teszi a főszereplő útmutatóját. A kitalált diagnosztikai főágon a harness az első opciót választja; a fork eltérő választással indul. Ez nem valódi emberi tesztválasz vagy szemantikai párosítási jóváhagyás.
 
-## Operátori host és működés
+Külön Claude Code előfizetéses AI-kritika mind a nyolc alkotói és hat munkahelyi főági fejezetet végigolvasta, mindkét szálat tovább olvasná, konkrét oksági törést nem talált. A body-only olvasásból eredő téves agency-kifogást és a kötelező hat hónapos hossz hibaként kezelését külön addendum helyesbítette. Ez nem független emberi bizonyíték.
 
-A normál reader/funded és kézi daily backup/sync/restore/monitor Linuxra átvétele PR #21-ben elkészült, az eredeti privát state ellenőrzött átvételével és valódi operátori alkalmazással. Ezekhez Windows-agent nem szükséges. A korábbi Windows scheduler és owner-image deployment nem része ennek az átállásnak.
+Nyitott kockázat az ismételt túlmagyarázás/elfoglalt mellékszereplő mechanizmusa, néhány választási útvonalat túl közvetlenül felidéző bekezdés és a hónapváltások hasonló prózai ritmusa. A motívumok néha érdemben más szerepet kapnak; nincs új név-, szereplő-, helyszín- vagy fordulatkvóta. Minden végső gépi score legalább 4, mind a hét flag igaz, de **stabil kiváló minőség és emberi megújítási hajlandóság még nincs igazolva**.
 
-A már funded futó alkalmazás új narratív runtime-ra frissítésének dedikált Linux operátori implementációs jelöltje elkészült ([runbook](operations/FUNDED_RUNTIME_UPGRADE_HU.md)); review/audit és tényleges release-proof még szükséges: [Issue #34](https://github.com/Muzsy/future_flow/issues/34). Ez nem az eredeti adatátvétel hiánya, és nem indok az ablak vagy ledger visszaállítására. A narratív rollout előtt exact-source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile, target/apply és utólagos readback kell.
+### Költség és futási állapot
 
-A Contabo/Cloudflare, backup/TLS/privacy/writer-fence védelmek és a supporting runbookok megmaradnak. Privát credential, résztvevői email/UUID és teljes operátori proof nem része ennek a dokumentációnak.
+| Mutató | Visszaellenőrzött érték |
+| --- | ---: |
+| Eredeti globális ledger | 652 kérés / 33.4716975 USD accounted |
+| V6 változatlan nyitó baseline | 305 kérés / 10.732030 USD |
+| V6 összesített elszámolás | 347 kérés / 22.7396675 USD |
+| Jóváhagyott összes v6 keret | 23 USD |
+| Fennmaradó v6 authority | 0.2603325 USD |
+| Legutóbbi hosszú mérés | 6.495380 USD accounted |
+| Aktív / hozzárendeletlen foglalás | 0 / 0 |
 
-## Aktív prioritások és nyitott kapuk
+Mind a 15 globálisan lezárt, ismeretlen használatú kérés teljes konzervatív foglalása megmaradt; nincs ledger-reset vagy új fizetős futás. Az accounted nem számla vagy provider-wallet egyenleg. A hosszú mérés elfogadott fejezeteinek P50 ideje 361067 ms, P95 ideje 852171 ms; ez nem elfogadott termék-SLA. A maradék nem fedezte a következő teljes előfoglalást.
 
-1. **N08:** többfejezetes és alternatív ágas minőség, fix-kánon mérőanyag elégtelen előrehaladása, befejezetlen tervmezők vizsgálata, valódi vak emberi értékelés és külön tulajdonosi ár/idő plafon. Emberi döntéspárosítást nem pótolunk kitalált jóváhagyással.
-2. **N09 / Issue #34:** támogatott Linux funded-upgrade és teljes release/recovery proof, majd külön kontrollált rollout. A főág nem azonos a productionnel.
-3. **P08:** meglévő béta visszatérési/folytatási és feedback-mérése, megmaradt E2E korlátok ellenőrzése; további résztvevő csak saját admission kapuval. A már alkalmazott első meghívást és ablakot nem kell újrakezdeni.
-4. **Gazdaságossági pilot / B01:** a minőség, fejezetköltség, tartalommennyiség és fizetési hajlandóság alapján külön csomag/ár döntés, utána billing implementáció.
-5. **Shared:** owner downgrade után end/archive/revoke adatkontroll rendezése és targeted Guest kétfős E2E; friend beta csak a personal eredmények után. Public/community és további nyelvek külön későbbi kiadás.
+## Következő fejlesztési és kiadási kapuk
 
-A részletes státuszok a [fejlesztési tervben](DEVELOPMENT_PLAN_HU.md), a jövőbeli sorrend a [roadmapben](ROADMAP_HU.md) találhatók. Ez a frissítés nem végzett éles műveletet vagy új fizetett AI-hívást.
+F05/F06/N08 **PARTIAL**, N09 **PARTIAL/nyitott**. Következő sorrend:
+
+1. Az ismétlődő jelenetmechanizmusok és az első draft kánon-/állapotkonzisztenciájának célzott korrekciója: **offline implementálva a v7 jelöltben** ([046](plans/046_fiction_v7_narrative_economy.md)). A periódusonkénti egy új visszatérő szereplős korlát a v7-ben narratív ökonómiai elvre cserélődött; a lezáró szakasz egésze nem építheti újra a döntési ágakat; a túlmagyarázás sorozatszintű mintajelzés (nincs kvóta); a mérési profilok 1–2 magánéleti alapkapcsolatot kaptak. Automatikus kánon-normalizálás nincs (ADR-008). A v7 mérés (15/18) és független olvasás után a sorozatszintű ismétlés (nyitások, lezárások, ütem, névkészlet, eltűnő magánélet, álló cél) kódszintű kezelése a **v8 jelöltben offline kész** ([047](plans/047_fiction_v8_series_evidence.md)); ellenőrzése fizetős hívás nélkül: tesztek, CI és `pnpm narrative:audit` a meglévő v6/v7 korpuszon.
+2. Verziózott javítás, regressziók, külön audit és exact-source CI után friss valódi előpróba, majd csak elfogadható eredménynél teljes kétprofilos nyolcfejezetes mérés és két alternatív ág. Az új teljes méréshez további számszerű költségengedély kell; a terminális korpusz nem címkézhető át.
+3. Független emberi, 17 kérdéses sorozatértékelés és folytatási/megújítási visszajelzés. Az AI nem töltheti ki az emberi értékelést. Zárt narratív bétában ezt és a teljes kétprofilos mérést a 2026-10-19-i tulajdonosi döntés szerint a tesztelők visszajelzése helyettesíti (első kör: 10 USD, 3 tesztelő, v7); nyilvános vagy fizetős kiadáshoz továbbra is kötelező. [Kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19).
+4. Külön N09 target/recovery, migráció-, envelope-, timeout- és kontrollált Linux funded-runtime rollout bizonyíték, majd explicit éles apply engedély. Issue #34: dedikált Linux operátori implementációs jelölt elkészült ([runbook](operations/FUNDED_RUNTIME_UPGRADE_HU.md)), exact-source audit, célgépes proof és éles apply még hiányzik. A fejlesztési 192 KiB/300 s nem automatikus production konfiguráció; a runtime default 100000 bájt/180 s határa külön nyitott.
+
+Az árazás, havi fejezetmennyiség, billing és szélesebb pilot továbbra külön döntés; a minőségi küszöböt költség miatt nem csökkentjük. Shared és nyilvános launch nincs engedélyezve.
+
+## Részletes források és történeti bizonyíték
+
+- [Aktív v6 végrehajtási terv](plans/045_fiction_v6_earned_life_evolution.md): pontos mérési források, az összes korábbi negatív eredmény, javítás és költség.
+- [Mérési runbook](operations/NARRATIVE_EVALUATION_HU.md): reprodukció, bizonyítéktípusok és emberi értékelés.
+- [Kiadási kapuk](operations/NARRATIVE_RELEASE_HU.md), [architektúra](architecture/ARCHITECTURE_HU.md), [AI routing](AI_MODEL_ROUTING_HU.md).
+- [Fejlesztési sorrend](DEVELOPMENT_PLAN_HU.md), [gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md), [Linux-operátor](operations/LINUX_OPERATOR_HU.md).
+
+A korábbi v1–v5 és v6 részdiagnózisok a részletes tervek/runbook történeti fejezeteiben megmaradnak. Nem írják felül e jelenlegi állapotot, és nem pótolják a hiányzó minőségi kapukat.

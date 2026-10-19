@@ -57,6 +57,11 @@ export function satisfiesFactV2(
 ): boolean {
   const predicate = factPredicateV2Schema.parse(raw);
   switch (predicate.type) {
+    case 'available_hours_at_most':
+      return (
+        state.resources.availableHoursPerWeek !== null &&
+        state.resources.availableHoursPerWeek <= predicate.hours
+      );
     case 'employment_status_is':
       return state.employment.status === predicate.value;
     case 'country_is':
@@ -192,17 +197,19 @@ export function applyFactChangesV2(
     const target =
       'assetId' in change
         ? `asset:${change.assetId}`
-        : change.type === 'asset_add'
-          ? `asset:${change.value.id}`
-          : change.type === 'actor_add'
-            ? `actor:${change.value.id}`
-            : change.type === 'goal_progress_set'
-              ? `goal:${change.value.goalId}`
-              : change.type === 'opportunity_set'
-                ? `opportunity:${change.value.id}`
-                : change.type === 'skill_add'
-                  ? `skill:${change.value}`
-                  : change.type;
+        : 'actorId' in change
+          ? `actor:${change.actorId}`
+          : change.type === 'asset_add'
+            ? `asset:${change.value.id}`
+            : change.type === 'actor_add'
+              ? `actor:${change.value.id}`
+              : change.type === 'goal_progress_set'
+                ? `goal:${change.value.goalId}`
+                : change.type === 'opportunity_set'
+                  ? `opportunity:${change.value.id}`
+                  : change.type === 'skill_add'
+                    ? `skill:${change.value}`
+                    : change.type;
     if (targets.has(target))
       throw new DomainError(
         'LIFE_DUPLICATE_CHANGE',
@@ -242,6 +249,16 @@ export function applyFactChangesV2(
         break;
       case 'actor_add':
         next.actors.push(change.value);
+        break;
+      case 'actor_remove':
+        if (!next.actors.some((actor) => actor.id === change.actorId))
+          throw new DomainError(
+            'LIFE_UNKNOWN_ACTOR',
+            'Nem létező szereplő nem távozhat.',
+          );
+        next.actors = next.actors.filter(
+          (actor) => actor.id !== change.actorId,
+        );
         break;
       case 'skill_add':
         next.skills.push(change.value);
@@ -354,11 +371,14 @@ export function simulatePeriodV2(
       constraints,
       scope,
     );
-    if (
-      event.actorIds.some(
-        (actorId) => !result.state.actors.some((actor) => actor.id === actorId),
-      )
-    )
+    // A person who leaves in this event may still take part in it.
+    const present = new Set([
+      ...result.state.actors.map((actor) => actor.id),
+      ...event.changes.flatMap((c) =>
+        c.type === 'actor_remove' ? [c.actorId] : [],
+      ),
+    ]);
+    if (event.actorIds.some((actorId) => !present.has(actorId)))
       throw new DomainError(
         'LIFE_UNKNOWN_ACTOR',
         'Az esemény nem létező szereplőre hivatkozik.',

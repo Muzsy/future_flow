@@ -5,11 +5,14 @@ import {
   OpenAiProvider,
   narrativePrompts,
   narrativePlanReviewRequest,
+  narrativePlanReviewPrompt,
 } from '@future-flow/ai';
 import {
   narrativeV1Policy,
   narrativeV1PolicySchema,
   reviewedNarrativePolicy,
+  readyNarrativePolicy,
+  narrativePlanReviewV2Schema,
   narrativeArtifactSchema,
 } from '@future-flow/contracts';
 import {
@@ -21,6 +24,7 @@ import {
 import {
   narrativePlanFixture,
   narrativePlanReviewFixture,
+  narrativePlanReadinessFixture,
   narrativeArtifactFixture,
 } from './narrative-plan-fixtures';
 function fixture() {
@@ -220,5 +224,141 @@ describe('frozen story-plan review contract and guarded provider', () => {
       p.ai.reviewNarrativePlan(f.input, f.result),
     ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
     expect(p.parse).not.toHaveBeenCalled();
+  });
+});
+
+describe('explicit readiness gate for newly selected plans', () => {
+  it('keeps queued reviewer-v1 and planner3/writer3 prompt bytes frozen', () => {
+    const expected = {
+      en: [
+        '83618f212b744eb27741a4a88d903cc1efcd7f92051ac1788fbfaba974793c2f',
+        '0dd2c99fc3cffe8afd41a8e6327a82f07e8d110ced5956d147504284eb7b1fec',
+      ],
+      hu: [
+        '73e7ee60066d60cfa566f00ea5a232aa84a6f5dc4ba5ce5d7a1946c1d65ae900',
+        '0e20b5ba3e6a356e2d00045f6ff2267d2237931df2cbfe202098bf0ea884c5ca',
+      ],
+    };
+    for (const locale of ['en', 'hu'] as const) {
+      expect(hash(narrativePlanReviewPrompt(locale))).toBe(expected[locale][0]);
+      expect(
+        hash(
+          narrativePrompts(locale, reviewedNarrativePolicy().promptVersions),
+        ),
+      ).toBe(expected[locale][1]);
+    }
+  });
+
+  it.each([
+    'summariesComplete',
+    'decisionPatternComplete',
+    'periodDevelopmentSufficient',
+  ] as const)(
+    'blocks %s=false even with high scores, a minor finding and verdict pass',
+    (flag) => {
+      const report = narrativePlanReadinessFixture();
+      report.readiness[flag] = false;
+      const diagnostic = {
+        ...report,
+        issues: [
+          {
+            dimension: 'causality',
+            severity: 'minor',
+            eventIds: [],
+            explanation:
+              'The proposed material leaves an important statement or consequence unfinished.',
+            suggestedFix:
+              'Complete the recorded action and outcome before commissioning prose for this plan.',
+          },
+        ],
+      };
+      expect(evaluateNarrativePlanReview(diagnostic).passed).toBe(false);
+      expect(
+        evaluateNarrativePlanReview({ ...report, issues: [] }).passed,
+      ).toBe(false);
+    },
+  );
+  it('requires every readiness field and the exact review version for the frozen policy', () => {
+    const f = fixture(),
+      v2 = readyNarrativePolicy().promptVersions.planReviewer;
+    expect(
+      evaluateNarrativePlanReview(narrativePlanReadinessFixture()).passed,
+    ).toBe(true);
+    expect(() =>
+      validateNarrativePlanReview(narrativePlanReviewFixture(), f.result, v2),
+    ).toThrow('version');
+    expect(() =>
+      validateNarrativePlanReview(
+        narrativePlanReadinessFixture(),
+        f.result,
+        'life_narrative_plan_review.v1',
+      ),
+    ).toThrow('version');
+    expect(
+      narrativePlanReviewV2Schema.safeParse({
+        ...narrativePlanReadinessFixture(),
+        readiness: { summariesComplete: true },
+      }).success,
+    ).toBe(false);
+    expect(
+      narrativeV1PolicySchema.safeParse({
+        ...readyNarrativePolicy(),
+        promptVersions: {
+          ...readyNarrativePolicy().promptVersions,
+          planReviewer: 'life_narrative_plan_review.v1',
+        },
+      }).success,
+    ).toBe(false);
+  });
+  it('versions plan/review changes while keeping writer3 and every old prompt unchanged', () => {
+    for (const locale of ['en', 'hu'] as const) {
+      const old = narrativePrompts(
+        locale,
+        reviewedNarrativePolicy().promptVersions,
+      );
+      const next = narrativePrompts(
+        locale,
+        readyNarrativePolicy().promptVersions,
+      );
+      expect(next.writer).toBe(old.writer);
+      expect(next.fidelity).toBe(old.fidelity);
+      expect(next.editor).toBe(old.editor);
+      expect(next.planner).toContain(old.planner);
+      expect(next.planner).toContain('COMPLETE MATERIAL');
+      expect(
+        narrativePlanReviewPrompt(locale, 'life_narrative_plan_review.v2'),
+      ).toContain(
+        narrativePlanReviewPrompt(locale).replace(
+          'Return version 1.0.0,',
+          'Return version 1.1.0,',
+        ),
+      );
+      expect(narrativePlanReviewPrompt(locale)).not.toContain(
+        'READINESS CONTRACT',
+      );
+    }
+    expect(readyNarrativePolicy().maxPhysicalRequests).toBe(8);
+    expect(readyNarrativePolicy().maxContentRepairs).toBe(1);
+  });
+  it('sends a single strict v2 object schema, not a storage union, to the provider', async () => {
+    const f = fixture(),
+      p = provider();
+    f.input.narrativeContext.policy = readyNarrativePolicy();
+    p.parse.mockResolvedValue({
+      status: 'completed',
+      model: 'critic-model',
+      output_parsed: narrativePlanReadinessFixture(),
+      usage: { input_tokens: 10, output_tokens: 20 },
+    });
+    const result = await p.ai.reviewNarrativePlan(f.input, f.result);
+    const request = p.parse.mock.calls[0]![0];
+    expect(request.text.format.schema.type).toBe('object');
+    expect(request.text.format.schema).not.toHaveProperty('anyOf');
+    expect(request.text.format.schema.required).toContain('readiness');
+    expect(result.receipt.promptVersion).toBe(
+      'life_narrative_plan_review.v2.en',
+    );
+    expect(result.output).toEqual(narrativePlanReadinessFixture());
+    expect(p.guard.reserve).toHaveBeenCalledTimes(1);
   });
 });

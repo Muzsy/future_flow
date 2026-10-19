@@ -368,6 +368,8 @@ export function changeDescription(
       return `Add ${referenceName(checkpoint.referenceCatalog.assetKeys, change.value.key, 'asset', change.value.label)}; kind: ${text(change.value.kind)}; ownership: ${change.value.sharePercent}%`;
     case 'asset_remove':
       return `Give up ownership: ${checkpointLabels(checkpoint).assets.get(change.assetKey) ?? 'An asset'}`;
+    case 'actor_remove':
+      return `Leaves the story: ${checkpointLabels(checkpoint).actors.get(change.actorKey) ?? 'A person'}`;
     case 'actor_add':
       return `Add ${referenceName(checkpoint.referenceCatalog.actorKeys, change.value.key, 'person', change.value.label)}; relationship: ${text(change.value.relationship)}`;
     case 'skill_add':

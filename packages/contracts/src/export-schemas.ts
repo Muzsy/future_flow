@@ -1,3 +1,18 @@
+import {
+  fictionPolicySchema,
+  fictionSequenceEditorialSchema,
+  fictionHumanEditorialSchema,
+  fictionHumanEditorialV13Schema,
+  fictionSequenceSignatureSchema,
+  fictionSequenceSignatureV11Schema,
+  fictionCompactAuthorSchema,
+  fictionCompactDraftSchema,
+  fictionContextSchema,
+  fictionAuthorResultSchema,
+  fictionReferencesSchema,
+  fictionArtifactSchema,
+  storyFactSchema,
+} from './fiction';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import {
   narrativeMemorySchema,
@@ -892,6 +907,33 @@ for (const [name, schema] of Object.entries({
         $id: `urn:alterward:narrative:${name}:1.0.0`,
         ...z.toJSONSchema(schema),
       },
+      null,
+      2,
+    ) + '\n',
+  );
+}
+
+const fictionDirectory = resolve(directory, 'fiction');
+mkdirSync(fictionDirectory, { recursive: true });
+for (const [name, schema] of Object.entries({
+  policy: fictionPolicySchema,
+  sequenceEditorial: fictionSequenceEditorialSchema,
+  humanEditorial: fictionHumanEditorialSchema,
+  humanEditorialV13: fictionHumanEditorialV13Schema,
+  sequenceSignature: fictionSequenceSignatureSchema,
+  sequenceSignatureV11: fictionSequenceSignatureV11Schema,
+  context: fictionContextSchema,
+  authorResult: fictionAuthorResultSchema,
+  compactAuthor: fictionCompactAuthorSchema,
+  compactDraft: fictionCompactDraftSchema,
+  references: fictionReferencesSchema,
+  artifact: fictionArtifactSchema,
+  storyFact: storyFactSchema,
+})) {
+  writeFileSync(
+    resolve(fictionDirectory, `${name}.schema.json`),
+    JSON.stringify(
+      { $id: `urn:alterward:fiction:${name}:2.0.0`, ...z.toJSONSchema(schema) },
       null,
       2,
     ) + '\n',

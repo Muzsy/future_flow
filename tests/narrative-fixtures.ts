@@ -20,6 +20,10 @@ export const narrativeProfiles = [
     hours: 6,
     energy: 65,
     tradeoff: 'Working on protected weekends or leaving current employment.',
+    relationships: [
+      { label: 'Fictional partner Rory', relationship: 'partner' },
+      { label: 'Fictional father Brendan', relationship: 'family' },
+    ],
   },
   {
     id: 'career-transition',
@@ -28,6 +32,10 @@ export const narrativeProfiles = [
     hours: 12,
     energy: 80,
     tradeoff: 'Treating a reversible experiment as a guaranteed new job.',
+    relationships: [
+      { label: 'Fictional older sister Clodagh', relationship: 'family' },
+      { label: 'Fictional flatmate Tunde', relationship: 'friend' },
+    ],
   },
   {
     id: 'creative-portfolio',
@@ -36,6 +44,10 @@ export const narrativeProfiles = [
     hours: 8,
     energy: 70,
     tradeoff: 'Accepting commitments that eliminate time for original work.',
+    relationships: [
+      { label: 'Fictional mother Bernadette', relationship: 'family' },
+      { label: 'Fictional school friend Nessa', relationship: 'friend' },
+    ],
   },
   {
     id: 'learning-exam',
@@ -44,6 +56,9 @@ export const narrativeProfiles = [
     hours: 5,
     energy: 60,
     tradeoff: 'Committing unknown funds or removing recovery time.',
+    relationships: [
+      { label: 'Fictional younger brother Oisín', relationship: 'family' },
+    ],
   },
   {
     id: 'moving',
@@ -52,6 +67,10 @@ export const narrativeProfiles = [
     hours: 4,
     energy: 55,
     tradeoff: 'Assuming available funds or a signed housing agreement.',
+    relationships: [
+      { label: 'Fictional partner Kasia', relationship: 'partner' },
+      { label: 'Fictional aunt Philomena', relationship: 'family' },
+    ],
   },
   {
     id: 'community-project',
@@ -60,6 +79,9 @@ export const narrativeProfiles = [
     hours: 7,
     energy: 75,
     tradeoff: 'Committing to permanent organisation before a bounded trial.',
+    relationships: [
+      { label: 'Fictional neighbour Femi', relationship: 'friend' },
+    ],
   },
   {
     id: 'fictional-friend',
@@ -69,6 +91,10 @@ export const narrativeProfiles = [
     energy: 70,
     tradeoff:
       'Ignoring different availability or assuming another person agreed.',
+    relationships: [
+      { label: 'Fictional companion Lorcan', relationship: 'friend' },
+      { label: 'Fictional cousin Treasa', relationship: 'family' },
+    ],
   },
   {
     id: 'limited-energy',
@@ -77,6 +103,9 @@ export const narrativeProfiles = [
     hours: 2,
     energy: 30,
     tradeoff: 'Inventing financial facts or demanding a large outcome.',
+    relationships: [
+      { label: 'Fictional grandmother Nora', relationship: 'family' },
+    ],
   },
 ] as const;
 export type NarrativeProfile = (typeof narrativeProfiles)[number];
@@ -104,10 +133,11 @@ export function narrativeSetup(profile: NarrativeProfile): LifeSetupV2 {
       workDomain: 'administration',
     },
     finance: { currency: 'EUR', monthlyIncome: null, liquidFunds: null },
-    relationships:
-      profile.id === 'fictional-friend'
-        ? [{ label: 'Fictional companion', relationship: 'friend' }]
-        : [],
+    // Owner decision 2026-10-18: every measurement profile has one or two
+    // baseline private-life relationships, so the author can show ordinary life.
+    // 047: each carries a fictional given name; v7 left the friend unnamed and
+    // the sister absent, partly because a bare role label gives nothing to write.
+    relationships: profile.relationships.map((r) => ({ ...r })),
     resources: { energy: profile.energy, availableHoursPerWeek: profile.hours },
     goal: {
       category: profile.category,

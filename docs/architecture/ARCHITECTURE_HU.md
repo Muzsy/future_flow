@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-18
 supersedes:
   - ../IMPLEMENTATION.md
   - ../alter_jovo_docs/08_SYSTEM_ARCHITECTURE.md
@@ -11,6 +11,12 @@ related:
 ---
 
 # Alterward — rendszerarchitektúra
+
+## Aktuális narratív jelölt és snapshot-határ
+
+A v6 PR #50 mért checkpointként beolvadt (`f755a57`), a production legacy/üres narrative cohort változatlan. Új creative jobok selected policyja2.6.0 (v7 jelölt): planner/author/reviewer v7, editor v6, fidelity v1; report1.3.0, signature1.1.0. A beolvadt v6/quality2.5 (`fictionV6Quality25Policy()`): planner/author/reviewer v6, editor v5, report1.2.0, signature1.0.0. Az alábbi v1–v6 leírások megőrzött kompatibilitási snapshotok, nem párhuzamos aktuális alapértelmezések. Normál5/max9 fizikai kérés, egy repair,12KiB context/32KiB artifact. Pontos minőségi/költségállapot: [STATUS](../STATUS_HU.md), [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+
+A v6 örökölt mechanics promptja periódusonként legfeljebb egy új visszatérő actor_add-ot enged; a domain teljes actors.max(30)-at és eseményidőbeli regisztrációt ellenőriz. A v7 prompt kvóta nélkül fogalmazott, a domain-validátor viszont egyet engedett; ez buktatta a v8 Codex-próbát. Tulajdonosi döntés (2026-10-19): quality 2.6/2.7 alatt periódusonként legfeljebb 3 új visszatérő szereplő; quality 2.7 (v8) alatt kitalált, igazolt fikciós eredetű szereplő `actor_remove`-val távozhat, megadott (felhasználói) személy vagy Shared identitás soha. A korábbi policyk továbbra is egyet engednek, távozás nélkül. A kívánt alkotói szabadság nem jogosít fel a regisztráció/privacy/ID guard megkerülésére.
 
 ## 1. Architektúra célja
 
@@ -243,3 +249,64 @@ N08 tervellenőrzési follow-up: az új selected queue `reviewedNarrativePolicy(
 Az új markerhez öt normál és legfeljebb nyolc fizikai kérés tartozik, egy globális tartalmi javítással; marker nélküli régi policy továbbra négy/hét. Strict policy-validáció köti a plusz slotot a kötelező ellenőrhöz. A checkpoint és artifact review/report hash, current plan/memory/policy binding, receipt version és writer előtti sorrend alapján validált, a complete tranzakció újraellenőrzi. Hiányzó vagy hamis passed flag nem elég. A DB fizikai admission a hiteles frozen policy limitjét használja paraméterezett, lease-guardolt atomikus növelésben. Éles quota/window/limit nem változik.
 
 Az immutable JSONB artifact új mezői opcionálisak a kompatibilis parserben, de az új policyban együtt kötelezők, a régi policyban tiltottak. Oszlop/migráció/DTO nem változik, a 32 KiB korlát marad. A recovery image-nek az új marker/report és writer v3 alakját is értenie kell.
+
+
+N08 readiness-korrekció (Issue #43): új queue policy planner v4 és planReviewer v2 markert párosít, writer v3 változatlan. A reviewer 1.1.0 objektum kötelező summariesComplete/decisionPatternComplete/periodDevelopmentSufficient jelzései bármely false esetén blokkolnak, pontszámtól és severitytől függetlenül. A jelentés verziója a frozen policyhoz kötött provider/worker/checkpoint/commit/artifact oldalon. A régi report 1.0.0 és promptok tovább olvashatók, az új szabály régi jobra nem írható rá. Nincs DB-migráció, limitnövelés vagy production rollout; a szemantikai felismerés továbbra modellvélemény és külön paid/human mérésre vár.
+
+
+## Creative fiction v2 — szerző által véglegesített történet
+
+Az [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md) külön `narrative-fiction-v2` módot vezet be. A planner vázlatot ad, az author a végső candidate/plan/storyFacts/chapter csomagot alkotja meg, majd domain replay, végső tervellenőr, fidelity és editor ellenőrzi azt. Öt normál/max9 fizikai kérés, egy globális tartalmi javítás; a régi policyk sorrendje és plafonja változatlan. A teljes authored output, a végső review-k és a DB-current checkpoint hash/receipt lánca köti az atomikus commitot.
+
+A `storyFacts` a typed state-en kívüli, konkrét történeti részletek tartós rétege a version 2.0.0 period artifactban. Nem írja felül a valós profilt vagy a typed változásokat. Saját history-prefixből foldolódik, a teljes 12 KiB context- és 32 KiB artifact-határ megmarad. Withheld esetben nem töltjük be, forkba csak a prefix öröklődik. Inkompatibilis legacy folytatás v2 historynál blokkolt. Az explicit hard `available_hours_at_most` predikátum támogatott, az aktuális óraszámból nem keletkezik automatikus örök korlát; szabad szöveges user-határokat fidelity ellenőriz. Új provider-output soha nem önmagában authority.
+
+
+A StoryFact `kind=promise` címkéje önmagában nem „örökké függő” státusz: egy már lezárt nyolchetes feladat vállalási feltétele is ilyen történeti adat lehet. A promptba kötelezően a még nyitott, fix határidejű szálak bizonyítékai és actoronként a legutóbbi releváns tény kerülnek; a többi tényt aktualitás szerint választjuk. A teljes tartós archívum megmarad. A valóban késleltetett következmény a meglévő bounded-thread szerződés szerint követendő; szöveges ténycímke nem helyettesíti ezt az életciklust.
+
+
+A PR #47-ben mért creative szekvenciális policy planner/author/reviewer v3 + editor v2, qualityPolicy 2.1.0; frozen snapshotként megmarad. A report 1.1.0 külön sequenceReview mezővel, inputhoz/hashhez és exact owned összehasonlítási ID-khoz kötött. Mind a nyolc score >=4, pass verdict, négy igaz sequence-jelzés és major/canon issue hiánya kell; régi 1.0.0 report az új policyhoz nem fogadható el. Az új sequenceHistory utolsó három owned creative period scene action/obstacle/shift részletét és nyitó/záró szövegét adja a meglévő összesített 12 KiB keretben. Withheld esetben üres, fork csak örökölt prefix; a régi policy snapshotok értelmezése nem változik.
+
+
+Az accepted-choice promptmemória és detail sorrendjének authorityja az owned `aw_history.position`, nem a másolt `aw_choices.created_at` vagy UUID. Az initial választások a periodok elé kerülnek. Új fork megőrzi az örökölt choice időbélyegét; régi azonos időbélyegek esetén a history-sorrend továbbra helyes. A latest-choice consequence guard változatlan, korábbi queued payloadot nem írunk át.
+
+
+A sequenceHistory a legutóbbi három owned periodot veszi, a legacy/narrative/creative történeteken át. Artifact nélküli legacy periodnál a kanonikus eseménycím/összefoglaló a scene-mechanizmus fallbackje; a mentett fejezeteleje és vége ugyanúgy rendelkezésre áll. Ebből nem készül utólagos StoryFact, a withheld korai visszatérés változatlan.
+
+## Emberibb, hosszabb távon változatos fikció — v4 jelölt
+
+A megőrzött v4 snapshot selected policyja planner/author/reviewer v4, editor v3, változatlan fidelity v1, qualityPolicy 2.2.0. A v1–v3 snapshotok és mért promptok változatlanul olvashatók. Az editor report 1.2.0 a négy korábbi jelzés mellé retorikai változatosságot, a rendszermechanika prózai láthatatlanságát és viselkedési változatosságot kér; minden jelzés igaz, minden score >=4 és pass verdict szükséges, major/canon issue nélkül. Hamis jelzéshez javítási bizonyíték kell; szerkezeti/agency/viselkedési ismétlés canon-scoped, package repair. Pusztán retorikai, rendszermechanikai vagy lezárási hiba prose-only javítható, ha a teljes végső kánon változatlan marad.
+
+A report verziózott sequenceSignature-t tárol az aktuális periodhoz kötve. A bemeneti sequenceSignatureHistory legfeljebb nyolc korábbi v4 period kompakt dramaturgiai jellemzőit vetíti ki, csak owned prefixből. A legutóbbi három raw sequence bizonyíték megmarad; az új signature-ök nem szoríthatják ki a védett folytonosságot, és szükség esetén legrégebbtől elhagyhatók. A teljes context továbbra 12 KiB, az artifact 32 KiB. Withheld esetben sem a tények, sem a két történeti réteg nem kerül be. Régi artifactból nem gyártunk visszamenőleges signature-t, és nem írjuk át. A signature a teljes editor-output hash/receipt lánc része; privát artifact, nem új public DTO.
+
+Az author a structured dátumot és hard constraintet betartja, de a prózában csak természetes jelenetbeli indokkal említi. A kompakt kategóriák összehasonlítási metaadatok, nem kötelező fejezetsablonok. Modell, normál öt/max9 hívás, egy javítás és minden pénzügyi/privacy védelem megmarad. [Végrehajtási terv](../plans/alterward_fiction_human_quality_development_plan_codex.md).
+
+
+## V4.1 / v5 célzott történetminőségi iteráció — 045
+
+A PR #48 utáni jelölt megőrzi a mért v1–v4 promptokat és policykat; új jobokra planner/author/planReviewer v5, editor v4, qualityPolicy 2.3.0 kerül. A report továbbra 1.2.0, a sequenceSignature 1.0.0. A cél a visszatérő külső ajánlatra épülő fejlődési mechanizmus és az azonnali, rendezett főszereplői önkorrekció csökkentése, nem a külső lehetőségek tiltása vagy kötelező archetípusváltás. Hihető nézetkülönbség, későbbi belátás, önálló próbálkozás és csendes eredmény megengedett. A végső nyitott döntés kötelező marad.
+
+A végső tervellenőr az author UTÁN marad. Öt normál/max9 fizikai hívás, egy javítás, változatlan gpt-6.1-sol, 12 KiB context és 32 KiB artifact; új SQL-migráció vagy production aktiválás nincs. A régi queue-snapshotok nem alakulnak v5-té. Terv: [045](../plans/045_fiction_v4_1_real_quality_iteration.md).
+
+## V6 / quality 2.4: kiérdemelt életváltozás
+
+Új frozen snapshot: planner/author/reviewer v6, editor v5, fidelity v1; report 1.2.0 és signature 1.0.0. A v1–v5 promptok és policyk változatlanok; a v5 explicit `fictionV5Policy()` helperrel elérhető. Az öt normál/max9 fizikai kérés, egy globális javítás, hat hónapos strukturált időszak, 12 KiB context és 32 KiB artifact megmarad. A provider meglévő verzióalapú útvonalai kezelik az új tuple-t; nincs új stage vagy SQL.
+
+Csak a v6 kéréshez tartozó, szervertől származó `referenceProjection` sorolja fel a jelenlegi saját állapot cél- és szereplőazonosítóit (legfeljebb 2 KiB); nem új történeti authority. A goal_progress_set meglévő célt módosít, a döntési opcióban is. Új visszatérő szereplő actor_add-dal létezik; a jelenet első hivatkozott eseményénél már léteznie kell. Nincs automatikus ID-helyettesítés vagy lazított validátor. A történeti requestekhez nem adunk új mezőt.
+
+A nagyobb életváltozás kánonból eredő lehetőség, nem fejezetszámhoz vagy kvótához kötött állapotgép. Ajánlat és elfogadott vállalás külön marad; typed state, aktív határ, owned-prefix privacy és végső user döntés változatlan. A hat hónapos időszak prózában akár egy délutánra összpontosíthat. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+
+
+A v6 fejlesztési mérés két egymás utáni pénzügyi guardot használ: eredeti globális fájlledger és lokális, tranzakciós DB budget. A creative-eval explicit 192 KiB transport-envelope mindkettőben egyező; generic/éles default 100000 bájt. A transport a promptot, output sémát és repair előző csomagját is tartalmazza, ezért nem azonos a 12 KiB memóriával vagy 32 KiB mentett artifacttal. A nagyobb dev envelope minden bájtja teljes előfoglalást kap, a typed állapot, authorInputHash és kilenc kérés/egy javítás korlát változatlan. Az éles envelope átállítása és valódi v6 rollout nincs elvégezve.
+
+
+### Összehangolt végső visszajelzés — quality2.5
+
+Az új selected quality2.5 ugyanazokat a v6 planner/author/reviewer, v5 editor és v1 fidelity promptokat használja. A2.4 frozen `fictionV6Policy()` marad. Tényleges végső fidelity-tartalmi hibánál, egy még szabad repair és elegendő max9 hely esetén a meglévő editort a repair előtt olvassuk; két hiba egy full-package javításban kezelhető. Utána mindkét kapu újbóli PASS kell. Normál5, legfeljebb9 fizikai hívás/egy globális repair marad; nincs új stage, SQL vagy lazább küszöb. A négy kötelező repair-hívás helyét nem költjük el előolvasásra, a cache/input-hash/resume és nem javítható provider/auth/budget/privacy hibák korábbi védelme megmarad. Fidelity-only javítás az extra meglévő editor-olvasással8 helyett9 hívás lehet. A teljes működési/elszámolási feltételeket a [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md) tartalmazza; a valódi2.5 mérés részleges:15/18 elfogadott, teljes kétprofilos/humán minőség még nincs igazolva. Négy valós fidelity-hibánál a korai editor-gyűjtés lefutott, mind PASS; a kettős hibát javító mechanizmusra nem állítunk valódi bizonyítékot.
+
+### V7 / quality 2.6 / editor v6 — jelölt (frozen)
+
+A `fictionPolicy()` új creative jobokra a `fictionV7Policy()`-t választja: planner/author/reviewer v7, editor v6, fidelity v1, qualityPolicy 2.6.0. A 2.6.0 a 2.5.0 összehangolt fidelity+editor javítási útját örökli (`fictionCoordinatedQualityVersions`). Az editor v6 report 1.3.0-t ad, amely csak abban tér el az 1.2.0-tól, hogy a sequenceSignature 1.1.0, egy új `overexplain_while_other_busy` rhetoricalFlags értékkel. A 1.0.0 signature és 1.2.0 report sémája bájtra változatlan, ezért a v3–v5 editorok provider felé küldött output-sémája sem változik. A fiction context signature-előzménye 1.0.0 és 1.1.0 elemeket is tartalmazhat, de 1.1.0 elemet csak quality2.6 context fogad el. A v7 a közös mechanics szöveg saját másolatában cseréli le a periódusonkénti egy új visszatérő szereplős korlátot narratív ökonómiai elvre; a régi promptok bájtjai változatlanok. Modell, request-szám, repair, küszöb, byte- és budget-guard nem változott. Részletek: [046 v7 terv](../plans/046_fiction_v7_narrative_economy.md).
+### V8 / quality 2.7 / editor v7 — jelölt
+
+A `fictionPolicy()` új creative jobokra a `fictionV8Policy()`-t választja: planner/author/reviewer v8, editor v7, fidelity v1, qualityPolicy 2.7.0, report 1.3.0 / signature 1.1.0 (séma változatlan). A v7 prompt-bájtok befagyasztva. A `personalFictionContext` a branch saját fejezeteiből determinisztikus `seriesLedger` 1.0.0-t számol (`packages/core/src/fiction-series.ts`): visszatérő nyitások/fordulatok, utolsó hat záró mondat, a megadott pár/család/barát szereplők eseményszintű jelenléte és célonként a typed goal-változás óta eltelt fejezetek. A napló csak quality2.7 contextben megengedett, saját 3 KiB határa van, és withheld memóriánál kimarad; a 12 KiB memória-határt nem terheli. A planner kérés per-élet seedelt `castingProjection` névpalettát kap (tárolás nélkül, `fiction-casting.ts`), az editor kérés `seriesEchoFindings` listát arról, hol használja újra az új fejezet a már visszatérő megfogalmazást. Kapu, repair-útvonal, kéréskeret és modell változatlan. Terv: [047](../plans/047_fiction_v8_series_evidence.md).
+

@@ -323,13 +323,17 @@ export async function processNarrativeLifeJob(
             planningReviewOutputHash: hash(review),
           });
         }
-        const report = validateNarrativePlanReview(review, run.result);
+        const report = validateNarrativePlanReview(
+          review,
+          run.result,
+          scope.context.policy.promptVersions.planReviewer,
+        );
         if (!evaluateNarrativePlanReview(report).passed) {
           await repair(
             'narrative_plan',
             new DomainError(
               'NARRATIVE_PLAN_INVALID',
-              `Revise the proposed story before drafting. Scores ${JSON.stringify(report.scores)}. ${report.issues.map((issue) => `${issue.explanation} ${issue.suggestedFix}`).join(' ')}`,
+              `Revise the proposed story before drafting. ${report.version === '1.1.0' ? `Readiness ${JSON.stringify(report.readiness)}. ` : ''}Scores ${JSON.stringify(report.scores)}. ${report.issues.map((issue) => `${issue.explanation} ${issue.suggestedFix}`).join(' ')}`,
             ),
           );
           continue;

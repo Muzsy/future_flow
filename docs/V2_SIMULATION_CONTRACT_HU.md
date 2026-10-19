@@ -20,7 +20,7 @@ Cél: kategória, leírás, elsődleges/másodlagos prioritás, hónapos horizon
 
 Állapot: munkahely/foglalkoztatás, ország/régió/lakhatás, pénznem/pénzügy, valódi tulajdonlista, tartós szereplők, készségek, célállapot, lehetőségek és energia/idő. Ismeretlen opcionális érték `null`, nulla nem hiányzó érték. Nincs kötelező két kapcsolat vagy teljes trait-skála. Fő identitás a bemenetben; `actors` a további szereplők listája.
 
-ID-k egyediek/stabilak. Új szereplő explicit actor_add változással kerül be, utána esemény hivatkozhat rá. Privát címkék/adatok külön sanitized projekció nélkül nem adhatók ki nyilvánosan.
+ID-k egyediek/stabilak. Új szereplő explicit actor_add változással kerül be, utána esemény hivatkozhat rá. Szereplő `actor_remove` változással távozhat (elköltözik, véget ér a szerepe, eltávolodnak): a jelenlegi állapotból kikerül, így az `actors.max(30)` hely felszabadul; a távozást hordozó esemény még hivatkozhat rá, későbbi esemény nem. A korábbi események saját állapot-snapshotja változatlan. A publikus fork `actor_remove` + `actorKey` formában vetíti. Privát címkék/adatok külön sanitized projekció nélkül nem adhatók ki nyilvánosan.
 
 ## Tényváltozás és korlát
 

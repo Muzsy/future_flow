@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-18
 related:
   - ../product/MONETIZATION_HU.md
   - ../product/PRODUCT_HU.md
@@ -12,7 +12,9 @@ related:
 
 2026. október 15. | Konkrét termékjavaslat és végrehajtási terv
 
-**Státusz: döntésre előkészített javaslat. A dokumentum nem kapcsol be árazást, előfizetést, új limitet vagy éles költést.** A fejlesztési mérés külön, összesített 5 USD keretből történik. A személyes béta operátori kerete ettől független.
+**Státusz: döntésre előkészített javaslat. A dokumentum nem kapcsol be árazást, előfizetést, új limitet vagy éles költést.** A fejlesztési mérés eredeti5 USD-s induló kerete történeti; az aktuális v6 authority összesen23 USD, ebből22.7396675 USD accounted és0.2603325 USD maradék. Az eredeti globális ledger652/33.4716975 USD, nincs aktív fizetős kérés. A személyes béta operátori kerete ettől független.
+
+**Legutóbbi valódi mérési alap:** quality2.5 B15/18 elfogadott,6.495380 USD accounted; minden kísérlettel0.43302533 USD/elfogadott, P50 361067/P95 852171ms. A korpusz hiányos, emberi elfogadás nincs; ez nem üzemi ár vagy SLA. Az alábbi korábbi mérések/forgatókönyvek nem írják felül az [aktuális státuszt](../STATUS_HU.md). A havi8+4 javaslat továbbra nem elfogadott termékszabály.
 
 ## 1. A javasolt induló modell
 
@@ -59,7 +61,7 @@ Egy jó visszatérési ciklus az Alterwardban:
 4. Visszatéréskor a már tárolt cél, korábbi választás és rövid összefoglaló segít felvenni a fonalat. Ehhez ne legyen kötelező új AI-hívás.
 5. A következő fejezet megmutatja, mit változtatott a döntés. Ne ugyanazt a próbát vagy engedélykérést nevezze át.
 
-Tervezési ritmusként 3–4 fejezetenként legyen érzékelhető részleges lezárás: megváltozott kapcsolat, teljesített vagy elengedett cél, új helyzet. Ez nem előre megírt történet és nem új szimulációs contract. A történet a rögzített kánonból következik. Ne gyorsítsuk mesterségesen az életkort vagy a drámát a havi keret kedvéért.
+Az érzékelhető részleges lezárás és életváltozás a felhalmozott kánonból következzen, fejezetszámhoz kötött ütemezés nélkül. Kapcsolat, szerep, rutin, célirány vagy élethelyzet is változhat; a helyszín és a szereplők megtartása önmagában nem stagnálás. Nincs 3–4 fejezetes fejlődési kötelezettség vagy csomagonkénti fordulat. Ne gyorsítsuk mesterségesen az életkort vagy a drámát a havi keret kedvéért.
 
 Az alternatív ág értékét a már meghozott, érdemi döntés adja. Példa a nyolc egységre: 6 főági fejezet + 2 alternatív következmény; vagy 8 főági fejezet. Nem szükséges külön olcsóbb, gyengébb minőségű mellékág.
 
@@ -218,3 +220,77 @@ A fix-kánon összehasonlításban továbbra is volt minőségi elutasítás; a 
 | 40 | 8,00 USD | 23,75 USD |
 
 Ezek feltételes érzékenységi számok, nem új árígéretek. A havi 8 fejezet ezért induló, óvatos pilot-feltevés. Az érdeklődéshez szükséges mennyiséget a 12-es vagy 24-es változattal is érdemes összevetni, amikor a megfelelő minőség és a teljes egységköltség már igazolt. A jobb technika hasznát nem indokolt automatikusan csak magasabb fedezetté alakítani: több olvasnivaló vagy kedvezőbb ár is szolgálhatja a megtartást.
+
+
+## 13. Alkotói v2 mérés — 2026-10-16
+
+A modell változatlan; jelenleg nincs szerepenkénti olcsóbb modellkísérlet. A korábbi modellválasztási javaslat nem új engedély erre. Az új szerzői folyamat a végső fikció megalkotása után vizsgálja a tervet, hűséget és prózaminőséget.
+
+A 5f8ffbd forrás négy teljes, automatikusan elfogadott fejezete összesen 0,8917025 USD accounted, **0,222925625 USD/fejezet**, javítás nélkül. A három egymást követő munkahelyi és egy alkotói fejezet ideje 213648–237389 ms, körülbelül 3,6–4,0 perc. A részleges, pénzügyileg megállított forkot is tartalmazó diagnózis teljes költsége 1,1249425 USD; ezt a négy elfogadott fejezetre osztva **0,281235625 USD** adódik. Ez utóbbi átlátható mintaterhelés, nem becsült végleges üzemi egységár: a fork befejezetlen, a két alkotói folytatás hiányzik, a választások szintetikusak, emberi elfogadás még nincs.
+
+A teljes fejlesztési ledger **190 hívás / 4,81984 USD accounted / 4,476067 USD usage-becslés**, maradék 0,18016 USD az eredeti 5-ből. Nincs ismeretlen usage vagy hozzárendeletlen foglalás. A régi kutatási és összehasonlítási költés nem keveredik automatikusan a mostani fejezetegységárba, de a ledgerben megmarad.
+
+A 0,70 USD-s óvatos tervezési forgatókönyvet ezért továbbra megtartjuk; a négy jó automatikus eredmény alapján nem véglegesítünk csomagárat vagy mennyiséget. A következő mérésben a sikertelen generálás, javítás, fork és várakozás teljes költségét is számolni kell. Az olvasói kedv és a várakozási idő elfogadhatósága külön döntési adat.
+
+
+## 14. Szekvenciális minőségjavítás — 2026-10-16
+
+A szigorúbb 04cee85 folyamat két profil hat teljes új fejezetét fogadta el öt-öt hívással, javítás nélkül. Accounted összköltség 1,4672925 USD, átlag **0,24454875 USD/fejezet**, usage-becslés összesen 1,3610067 USD; p95 generálási idő **295560 ms** (kb. 4,9 perc). A végső e5e7ed2 forrás külön, dokumentált régi prefixből induló ordering-forkja 0,288855 USD, öt hívás/javítás nélkül. A hét elfogadott új fejezet többforrású kis mintás átlaga 0,2508782 USD; az eredeti technikai fork-hiba két planner-hívását is számolva 0,2723329 USD. Az editor-kalibráció külön kutatási költség, nem generált új fejezet. A kontroll felismerése és ügynöki olvasás mellett is hiányzik a független emberi elfogadás.
+
+A tulajdonos az összesített dedicated development keretet **10 USD-ra** bővítette, az addigi hívások és költés megőrzésével. Aktuális ledger **229 hívás / 6,79395 USD accounted / 6,3036081 USD usage-becslés**, maradék **3,20605 USD**; nulla ismeretlen usage/hozzárendeletlen foglalás. A 39 új hívás teljes kutatási költsége 1,97411 USD. A standard short-context árakat 2026-10-16-án a [hivatalos árlistán](https://developers.openai.com/api/docs/pricing) visszaellenőriztük; a konfigurált árak nem változtak.
+
+A 0,70 USD-s óvatos üzemi forgatókönyv megmarad. Sem a mért alacsonyabb átlag, sem a keretbővítés nem döntés a havi csomagról, az árról, a várakozási idő elfogadhatóságáról vagy az éles funded ablakról. A további mérésben a javításokat, sikertelen kézbesítéseket és valódi olvasói elfogadást is figyelembe kell venni; a modell marad.
+
+## V6 megtartási vizsgálat
+
+A nyolc főági fejezet azt vizsgálja, hogy a kiinduló életből okságilag hiteles, tovább olvasásra érdemes új helyzet alakult-e. Nem ír elő szereplő-/helyszínkvótát, kötelező nagy változást, ütemezést vagy számszerű release-küszöböt. A fejlődés az alapminőség része; nincs csomagpozíció a modellbemenetben. A mérésbe az elutasítások és javítások költsége is beleszámít. A v5 részleges/negatív bizonyíték megmarad; v6 üzemi egységár és retention csak tényleges mérés/emberi olvasás után állítható. [V6 terv](045_fiction_v6_earned_life_evolution.md).
+
+
+### V6 Stage B tényleges részleges költség — 2026-10-18
+
+A 18 célból 11 elfogadott szöveg, két elutasított próbálkozás és öt nem generált folytatás lett. Összes munka 3.472645 USD accounted, ebből elutasított munka 0.603925 USD; **0.315695 USD/elfogadott** a hibás munka költségét is tartalmazza. Usage-becslés 2.9520691 USD; sikeres generálás P50 262101 / P95 289852 ms. Ez részleges fejlesztési minta, nem havi fedezetgarancia. Mindkét repair a transport byte guardon állt meg, ezért a mért 0/11 elfogadott repair nem javításmentes általános működést jelent; 2/13 próbálkozás javítást igényelt. A 8 fejezetes megtartási hipotézis nincs igazolva, árazás/billing nem aktivált. A+B együtt 4.214590 USD a jóváhagyott v6 8-ból; maradék 3.785410 USD. Részletes mérés és további kapuk: [v6 terv](045_fiction_v6_earned_life_evolution.md#stage-b-actual-result--2026-10-18-partial-not-release-evidence).
+
+
+### Aktuális v6 keretbővítés — 2026-10-18
+
+A tulajdonos a részleges Stage B és a konkrét javítás után **összesen legfeljebb 12 USD v6 fogyasztást** engedélyezett (az eredeti 8 + további 4; nem újraindított keret). A nyitó eredeti 305 / 10.732030 USD ledgerhez tartozó új kumulatív plafon **22.732030 USD**. Jelenleg változatlanul 385 hívás / 14.946620 USD accounted, új v6 fogyasztás 4.214590 USD; fennmaradó authority **7.785410 USD**. A korábbi 3.785410 USD maradék az emelés előtti állapot; a v5 régi maradékát nem adjuk hozzá. Új hívás csak a javított tiszta forrás ellenőrzése után: friss három munkahelyi főági/no-fork előpróba, és csak elfogadható eredménye után külön friss 18-célos mérés. Az eredeti negatív korpusz és költsége megmarad; nincs source-adoption, automatikus reroll, modellváltás vagy production engedély.
+
+
+Javított forrás friss Stage A: 3 elfogadott /18 hívás /1 typed-state repair; **0.9418175 USD**, javítással együtt **0.31393917 USD/elfogadott**. P95 331250 ms. Ez kis munkahelyi előpróba, nem 8-fejezetes fogyasztási/fedezeti garancia. A teljes v6 most 5.1564075 USD a 12-ből; fennmaradó authority 6.8435925 USD. A korábbi negatív költség változatlanul szerepel.
+
+
+### Javított v6 Stage B lezárása — 2026-10-18, technikai részleges eredmény
+
+Javított B:6 elfogadott/1 technikai failure/11 hiányzó,40 transport,4.0581025 USD accounted. Minden próbát és hét timeout teljes2.2399275 USD foglalását tartalmazó költség0.67635042 USD/elfogadott; az ismert usage1.5116671 USD nem teljes költségbecslés. P50 324373.5/P95 613812ms. Ebből fenntartható havi árat vagy jó latencyt nem állíthatunk. Teljes v6 elszámolás9.214510 USD, maradék2.785490 USD a jóváhagyott12-ből; nincs ledger-reset, ár/billing-változás vagy retention bizonyíték. A következő offline technikai fix300s development-fiction deadline; új teljes paid méréshez további headroom szükséges. Részletes forrás/költség/eset/olvasási bizonyíték a [v6 tervben](045_fiction_v6_earned_life_evolution.md).
+
+
+### Új numerikus v6 authority — összesen17 USD, 2026-10-18
+
+A tulajdonos a konkrét deadline-javítás és a részleges mérés megismerése után további legfeljebb5 USD-t engedélyezett: **összesen17 USD v6**, nem újraindított keret. Változatlan nyitó305/10.732030 USD, új kumulatív plafon **27.732030 USD**. Aktuális eredeti ledger443/19.946540 USD, eddigi v6 **9.214510 USD**, rendelkezésre álló authority **7.785490 USD**. A hét unknown teljes2.2399275 USD foglalása továbbra benne marad; sem a régi maradékot, sem a régi elutasításokat nem nullázzuk/adjunk hozzá újra. Új cap és negatív pénzügyi ellenőrzések után sikeres exact-source CI szükséges. Ezután friss három career-main/no-fork előpróba, és csak elfogadható eredménye után külön friss18-célos mérés. Várható összköltség6–7 USD, nem garantált szolgáltatói siker. Nincs modell-, minőségkapu-, repair-, runtime-, production- vagy merge-engedély. A korábbi12 USD-re vonatkozó mondatok és keretfüggő leállás történeti állapotok; a már lefutott mérések eredménye/forrása változatlan.
+
+
+### Deadline-javított friss Stage A lezárása — 2026-10-18
+
+Friss deadline-javított Stage A:3 elfogadott/16 transport/0 repair/egy timeout. Összes1.1314275 USD accounted, **0.3771425 USD/elfogadott**, amely a teljes0.341715 USD unknown foglalást is tartalmazza. Az ismert usage0.6855516 USD nem teljes tényleges díj; P50 249397/P95 562920ms. Teljes v6 10.3459375 USD a17-ből, maradék6.6540625 USD. A kis előpróba, az egy ismételt kérés és a9 perces harmadik fejezet nem igazol havi fedezetet vagy elfogadott termék-latencyt. Az árazás/billing és emberi retention döntés változatlanul nyitott. Részletes bizonyíték: [v6 terv](045_fiction_v6_earned_life_evolution.md).
+
+
+### Deadline-javított B tényleges gazdasági eredménye — 2026-10-18
+
+Részleges13 elfogadott/1 elutasított/4 hiányzó,77 hívás, **4.4646725 USD accounted**, minden próbát és egy unknown teljes0.332285 USD foglalását beszámítva **0.34343635 USD/elfogadott**. Ismert usage3.4975311 USD nem teljes számla; P50 270752/P95 510934ms nem elfogadott termék-SLA. Munkahelyi8+fork kész, alkotói4 quality reject megállítja a teljes korpuszt. A quality2.5 offline korrekció fidelity+editor visszajelzést közösen használhat egy javításhoz; normál5/max9/repair1 megmarad, fidelity-only hiba8 helyett9 hívásba kerülhet. Várható megtakarítást valódi mérés nélkül nem állítunk. Teljes v6 **14.810610 USD**, maradék **2.189390 USD** a17-ből; új teljes6–7 USD-s csomaghoz új numerikus authority szükséges. Ár/billing/entitlement és production nem változik, retention/humán minőség továbbra nyitott. [Részletes v6 bizonyíték](045_fiction_v6_earned_life_evolution.md).
+
+
+### Új numerikus authority — összesen23 USD v6, 2026-10-18
+
+A tulajdonos a quality2.5 javítás és a teljes sikeres CI338 (c2ac1cb,101 fájl/1091 teszt, Verify+Container SUCCESS) után további legfeljebb6 USD-t engedélyezett, vagyis **összesen legfeljebb23 USD v6 fogyasztást**. A változatlan eredeti baseline305 hívás/10.732030 USD; új kumulatív ceiling **33.732030 USD**. Indulás előtt az eredeti ledger536 hívás/25.542640 USD, teljes v6 **14.810610 USD**, fennmaradó authority **8.189390 USD**. Minden korábbi hiba és kilenc lezárt unknown teljes foglalása benne marad; nincs reset, másolt ledger vagy hozzáadott régi headroom. Ez nem igazolt provider-wallet egyenleg.
+
+A keretkorrekció célzott tesztjei és exact-source CI után friss tiszta forrásból három career-main/no-fork valódi előpróba indulhat; csak elfogadható eredménynél külön friss kétprofilos18-célos mérés. Becsült új összköltség6–7 USD, az eltérésre előfoglalási tartalék marad. Korábbi terminális korpusz/receipt nem adoptálható új forráshoz. Modell/prompt/max9/repair1 és minőségi küszöb változatlan, quality2.5 technikailag ellenőrzött, valódi irodalmi eredménye még nincs. F05/F06/N08 PARTIAL, N09/human/retention/production továbbra nyitott; PR#50 draft, nincs self-merge. A korábbi17 USD-s korlátra és hiányzó további authority-re vonatkozó mondatok történeti checkpointok.
+
+
+### Quality2.5 friss előpróba — gazdasági korlát
+
+3 elfogadott/17 hívás,1.4336775 USD accounted, **0.4778925 USD/elfogadott** minden kísérlettel. Két unknown teljes0.668350 USD foglalása benne marad; ismert usage0.6629858 USD nem számla. P50 413464/P95 856182ms; a háromminta és a hosszú újrapróbák nem igazolnak havi fedezetet vagy termék-SLA-t. Teljes v6 16.2442875 USD a23-ból, remaining6.7557125 USD. Root+diagnosztikus AI-olvasás alapján friss18-célos B következhet5–6 USD becsléssel, új source/checkpoint CI és teljes előfoglalás után; automatikus költés csak a jóváhagyott plafonig. Ár/billing, humán retention és N09 változatlanul nyitott. [Részletek](045_fiction_v6_earned_life_evolution.md).
+
+
+### Quality2.5 hosszú mérés — még nem árazási alap
+
+B15 elfogadott/99 transport/5 repair/6.495380 USD accounted, **0.43302533 USD/elfogadott** minden kísérlettel és a következő, csak plannerig jutó eset költségével. Ismert usage4.3305782 USD; négy unknown teljes1.3534425 USD foglalása megtartva. P50 361067/P95 852171ms. A mérés a következő teljes előfoglalás elégtelensége miatt15/18-nál lezárult, nincs teljes kétprofilos bizonyíték. A quality2.5 A+B7.9290575 USD lett az előzetes6–7 USD becsléssel szemben; ez előrejelzési eltérés, nem a23 USD összesített keret túllépése. Teljes v6 **22.7396675 USD**, maradék0.2603325 USD; nincs aktív paid hívás. Nem számla, wallet-egyenleg, havi fedezet vagy SLA. A négy korai editor-PASS után is teljes package újragenerálás történt; technikai metadata-konzisztencia és provider-timeout költsége külön javítási cél, irodalmi küszöböt nem csökkentünk. [Részletes eredmény és következő lépések](045_fiction_v6_earned_life_evolution.md).

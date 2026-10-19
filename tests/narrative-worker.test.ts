@@ -32,8 +32,12 @@ import { prepareNarrativeJobFixture } from './narrative-storage-fixtures';
 import {
   narrativeEditorialFixture,
   narrativePlanReviewFixture,
+  narrativePlanReadinessFixture,
 } from './narrative-plan-fixtures';
-import { reviewedNarrativePolicy } from '@future-flow/contracts';
+import {
+  readyNarrativePolicy,
+  reviewedNarrativePolicy,
+} from '@future-flow/contracts';
 import { lifeJobReadyToCommit } from '@future-flow/database';
 
 const SDK = createRequire(
@@ -861,5 +865,96 @@ describe('planning-review integrity at recovery boundaries', () => {
     await processLifeJob(recovered, jobs, next.ai);
     expect(next.parse).not.toHaveBeenCalled();
     expect((await saved(recovered)).status).toBe('completed');
+  });
+});
+
+describe('readiness failures before a paid writer slot', () => {
+  async function readyFixture() {
+    const f = await reviewedFixture();
+    f.job.payload.narrativeContext!.policy = readyNarrativePolicy();
+    await db.query('UPDATE aw_jobs SET payload=$2 WHERE id=$1', [
+      f.job.id,
+      JSON.stringify(f.job.payload),
+    ]);
+    return f;
+  }
+  it.each([
+    'summariesComplete',
+    'decisionPatternComplete',
+    'periodDevelopmentSufficient',
+  ] as const)(
+    'never drafts or commits a plan with %s=false, even after its one repair',
+    async (flag) => {
+      const f = await readyFixture();
+      const report = narrativePlanReadinessFixture();
+      report.readiness[flag] = false;
+      const p = provider(f, f.job, (task) =>
+        task === 'life_narrative_plan'
+          ? f.plan.result
+          : task === 'life_narrative_plan_review'
+            ? report
+            : f.chapter,
+      );
+      await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+        code: 'NARRATIVE_QUALITY_FAILED',
+      });
+      expect(p.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+        'life_narrative_plan',
+        'life_narrative_plan_review',
+        'life_narrative_plan',
+        'life_narrative_plan_review',
+      ]);
+      expect(f.job.checkpoints.repairUsed).toBe(true);
+      expect(f.job.checkpoints.providerRequestCount).toBe(4);
+      expect(
+        (await lives.detail(f.owner, f.created.branchId)).periods,
+      ).toHaveLength(0);
+    },
+  );
+  it('rechecks a repaired plan and commits only after readiness passes, without changing limits', async () => {
+    const f = await readyFixture();
+    const p = provider(f, f.job, (task, ordinal) =>
+      task === 'life_narrative_plan'
+        ? f.plan.result
+        : task === 'life_narrative_plan_review'
+          ? {
+              ...narrativePlanReadinessFixture(),
+              readiness: {
+                ...narrativePlanReadinessFixture().readiness,
+                summariesComplete: ordinal > 1,
+              },
+            }
+          : task === 'life_narrative_chapter'
+            ? f.chapter
+            : task === 'life_fidelity'
+              ? { valid: true, issues: [] }
+              : narrativeEditorialFixture(),
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse.mock.calls.map(([r]) => r.text.format.name)).toEqual([
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_plan',
+      'life_narrative_plan_review',
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    const ready = validatedNarrativeCheckpoint(
+      f.job.checkpoints,
+      f.job.payload,
+    );
+    expect(ready.artifact.planningReview).toEqual(
+      narrativePlanReadinessFixture(),
+    );
+    expect(f.job.checkpoints.providerRequestCount).toBe(7);
+    expect(ready.artifact.policy.maxPhysicalRequests).toBe(8);
+    expect(ready.artifact.policy.maxContentRepairs).toBe(1);
+    const badArtifact = {
+      ...ready.artifact,
+      planningReview: narrativePlanReviewFixture(),
+    };
+    const { narrativeArtifactSchema } = await import('@future-flow/contracts');
+    expect(narrativeArtifactSchema.safeParse(badArtifact).success).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-17
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md
@@ -179,3 +179,26 @@ A gazdaságosság egysége egy ténylegesen elfogadott fejezet teljes előállí
 
 
 A személyes történetek gyakoriságának és fenntartható tartalommennyiségének [konkrét gazdaságossági javaslata](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült. A havi fejezetkeret és az árazás még nem termékszabály. A minőség és a tényleges tovább olvasási kedv előfeltétel; nem daraboljuk mesterségesen a történetet több fizetős egységre, és nem adunk gyengébb alapcsomagos prózát pusztán költségcsökkentésért.
+
+
+## Alkotói szabadság a személyes fikcióban
+
+A tulajdonos 2026-10-16-i döntése szerint az író a megadott helyzetből új szereplőket, találkozásokat, konkrét cselekvéseket, konfliktusokat és eredményeket alkothat. Az elsődleges érték az élvezetes, személyes, hihető történet és a tovább olvasási kedv. A kezdeti állapot nem örök tiltás: az élet a választások és események révén megváltozhat. A kifejezett felhasználói határ és az elfogadott döntés viszont kötelező.
+
+Új fikció nem önmagában hiba. A történet fiktív kánonja elkülönül a valós profiltól, és következetesen továbbél ugyanabban az ágban. A végső nyitott döntés a felhasználónál marad; nem kell minden hétköznapi történéshez külön engedély. A modell változatlan. A minőséget automatikus ellenőrzés és valódi emberi olvasás együtt igazolhatja.
+
+Implementáció: [alkotói fejlesztési terv](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [ADR-008](../decisions/ADR-008-creative-fiction-final-author-canon.md). A kívánt működés elfogadása nem jelenti automatikus production aktiválását.
+
+
+A PR #47-ben bevezetett creative qualityPolicy 2.1.0 minden irodalmi dimenzióban legalább 4 pontot követel; más dimenzió nem kompenzálhat gyenge újdonságot vagy karakterábrázolást. A fejezetek közötti szerkezeti/lezárási változatosság, tényleges előrelépés és szereplői önállóság külön kapu. Visszatérő motívum megengedett, azonos konfliktus–feloldás–döntés új címkével nem. A technikai kapu nem helyettesíti a valódi olvasói élmény ellenőrzését.
+
+Az emberibb v4 fejlesztési jelölt a többfejezetes élményt védi: a történet ne ismételje mechanikusan a mentor-korrekciót, az azonnali belátást vagy ugyanazt a retorikai lezárást. A praktikus határok a cselekvést szabják meg, nem ismételt olvasói megnyugtatásként jelennek meg. Hiteles félreértés, későbbi belátás, csendes fejlődés és visszatérő motívum továbbra megengedett. Az elsődleges mérce az elmerülés és a folytatási kedv; az AI-eredet gyanúja másodlagos diagnosztika. Ez még nem igazolt hosszú távú olvasói PASS és nem production aktiválás.
+
+
+A 045-ös v5 jelölt a történeti fejlődés forrását és a szereplői reakciókat teszi változatosabbá: nem minden új fejezet külső validálást követő új ajánlat, és nem minden kényelmetlenségből lesz azonnali bölcs belátás. Új lehetőség és józan önkorrekció továbbra megengedett, ha az adott történetben indokolt. Nem vezetünk be mechanikus dramaturgiai rotációt vagy kötelező hibázást. A javulás csak valódi többfejezetes generálás és külön olvasói audit alapján állítható.
+
+## V6: a kánonból kiérdemelt életváltozás
+
+A kezdőállapot kiindulópont, nem élethosszig érvényes plafon. Az elfogadott döntések, kapcsolatok, kudarcok és következmények új tevékenységet, közösséget, irányt vagy nagyobb életváltozást is megalapozhatnak. Minél nagyobb a változás, annál erősebb oksági híd szükséges; az eltelt idő önmagában nem indok. Új lehetőség kitalálható, de jelentős új vállalást a történet nem fogadhat el a felhasználó helyett. A tartós állapotváltozás typed change-et igényel.
+
+Azonos hely és emberek mélyen változó viszonya is értékes fejlődés. Nincs kötelező költözés, új szereplő vagy fejezetszám szerinti fordulat. A nyolcfejezetes ablak termék-/mérési hipotézis, nem történeti óra. A történetmodell nem kap csomagot, fordulónapot, kvótát vagy „7/8. fejezet” pozíciót. Az érdemi életfejlődés az alapélmény része, nem prémium minőség. [V6 végrehajtási terv](../plans/045_fiction_v6_earned_life_evolution.md); valódi és emberi bizonyítás külön szükséges.

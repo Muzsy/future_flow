@@ -149,7 +149,9 @@ export const narrativeContextSchema = z
   );
 export type NarrativeContext = z.infer<typeof narrativeContextSchema>;
 export type NarrativePeriodInput = LifePeriodInput & {
-  narrativeContext?: NarrativeContext | NarrativeV1Context;
+  narrativeContext?:
+    NarrativeContext | NarrativeV1Context | import('./fiction').FictionContext;
+  fictionReferences?: import('./fiction').FictionReferences;
   narrativeReferences?: NarrativeReferenceSnapshot;
 };
 export function contextNarrativePolicy(): NarrativeContext['policy'] {
@@ -180,13 +182,19 @@ export const narrativeV1PolicySchema = z
           'life_narrative_plan.v1',
           'life_narrative_plan.v2',
           'life_narrative_plan.v3',
+          'life_narrative_plan.v4',
         ]),
         writer: z.enum([
           'life_narrative_chapter.v1',
           'life_narrative_chapter.v2',
           'life_narrative_chapter.v3',
         ]),
-        planReviewer: z.literal('life_narrative_plan_review.v1').optional(),
+        planReviewer: z
+          .enum([
+            'life_narrative_plan_review.v1',
+            'life_narrative_plan_review.v2',
+          ])
+          .optional(),
         fidelity: z.literal('life_fidelity.v4.narrative'),
         editor: z.literal('life_narrative_editor.v1'),
       })
@@ -201,6 +209,15 @@ export const narrativeV1PolicySchema = z
   })
   .strict()
   .superRefine((policy, context) => {
+    if (
+      (policy.promptVersions.planner === 'life_narrative_plan.v4') !==
+      (policy.promptVersions.planReviewer === 'life_narrative_plan_review.v2')
+    )
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Planner v4 requires the frozen readiness review v2, and vice versa.',
+      });
     if (
       policy.maxPhysicalRequests !==
       (policy.promptVersions.planReviewer ? 8 : 7)
@@ -240,6 +257,18 @@ export function reviewedNarrativePolicy(): NarrativeV1Policy {
       planReviewer: 'life_narrative_plan_review.v1',
     },
     maxPhysicalRequests: 8,
+  };
+}
+// Selected only for newly queued narrative jobs; prior factories stay frozen.
+export function readyNarrativePolicy(): NarrativeV1Policy {
+  const previous = reviewedNarrativePolicy();
+  return {
+    ...previous,
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_narrative_plan.v4',
+      planReviewer: 'life_narrative_plan_review.v2',
+    },
   };
 }
 // Storage preparation only: queue configuration still rejects narrative-v1
@@ -377,7 +406,7 @@ export const narrativePlanReviewDimensions = [
   'novelty',
   'choiceStakes',
 ] as const;
-export const narrativePlanReviewSchema = z
+export const narrativePlanReviewV1Schema = z
   .object({
     version: z.literal('1.0.0'),
     scores: z
@@ -404,6 +433,24 @@ export const narrativePlanReviewSchema = z
     verdict: z.enum(['pass', 'revise']),
   })
   .strict();
+export const narrativePlanReadinessSchema = z
+  .object({
+    summariesComplete: z.boolean(),
+    decisionPatternComplete: z.boolean(),
+    periodDevelopmentSufficient: z.boolean(),
+  })
+  .strict();
+export const narrativePlanReviewV2Schema = narrativePlanReviewV1Schema
+  .extend({
+    version: z.literal('1.1.0'),
+    readiness: narrativePlanReadinessSchema,
+  })
+  .strict();
+// Storage accepts history; the provider chooses one exact object schema.
+export const narrativePlanReviewSchema = z.discriminatedUnion('version', [
+  narrativePlanReviewV1Schema,
+  narrativePlanReviewV2Schema,
+]);
 export type NarrativePlanReview = z.infer<typeof narrativePlanReviewSchema>;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 export const narrativeArtifactSchema = z
@@ -472,6 +519,18 @@ export const narrativeArtifactSchema = z
         code: 'custom',
         message:
           'Planning review and both bindings must match the frozen policy.',
+      });
+    if (
+      required &&
+      artifact.planningReview?.version !==
+        (artifact.policy.promptVersions.planReviewer ===
+        'life_narrative_plan_review.v2'
+          ? '1.1.0'
+          : '1.0.0')
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Planning review version differs from its frozen policy.',
       });
     if (
       artifact.provenance.receiptRefs.length >

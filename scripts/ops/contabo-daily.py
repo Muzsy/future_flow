@@ -254,9 +254,9 @@ def personal_runtime_policy(environments, now):
     users = worker.get('CLOSED_BETA_USER_IDS', '').split(',') if worker.get('CLOSED_BETA_USER_IDS') else []
     if len(users) > 10 or len(set(users)) != len(users) or any(not ADMISSION_UUID.fullmatch(u) for u in users):
         raise ValueError('At most ten exact account UUIDs required')
-    oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 2)
+    oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 10)
     claude = bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 1)
-    user = bounded_budget(worker, 'AI_USER_BUDGET_USD', .5)
+    user = bounded_budget(worker, 'AI_USER_BUDGET_USD', 3.34)
     bounded_budget(worker, 'AI_PROJECT_INITIAL_SPENT_USD', 0)
     if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
         raise ValueError('Fixed spending period required')

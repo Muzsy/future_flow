@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-16
 related:
   - ../DEVELOPMENT_PLAN_HU.md
   - ../architecture/ARCHITECTURE_HU.md
@@ -19,6 +19,12 @@ N08 következő feladatai: befejezetlen tervmezők forrásának vizsgálata; fix
 
 N09 kiadási előkészítés részleges: az eredeti normál Linux-operátori migráció megtörtént, de a már funded runtime új narrative forrásra frissítésének támogatása külön Issue #34. Pontos forrás/audit/CI, schema és tárolt prompt-policy kompatibilis recovery, drain/fence/reconcile és target/apply/readback marad kötelező. Új narrative production rollout nincs; a béta korábbi aktiválását nem ismételjük és a window/ledger nem nullázható.
 
+
+## N08 következő célzott implementáció (Issue #43, 2026-10-16)
+
+Az új queue-jelölt planner v4 / reviewer v2 / writer v3 változatot választ. A tervellenőr 1.1.0 readiness mezői külön vizsgálják a teljes összefoglalókat, teljes decisionPattern jelentést és az időszakhoz elegendő előrehaladást; bármely false programozottan zárja a próza útját. A frozen régi planner/reviewer/writer promptok és reportok megmaradnak; schema-verzió downgrade nem pótolja a readiness bizonyítékot. Öt normál feladat, max8 és egy javítás, budget/privacy/lease/artifact korlát változatlan.
+
+A két bukott fix-kánon eredeti anyaga változatlan negatív kontroll. Külön developed-v2 bemenet kerül a két érintett profil összehasonlításába, 5. hónapi mérföldkővel és forráshoz kötött materialVersion jelöléssel. A writer v3 egyelőre változatlan, hogy jobb bemenet és jobb írás hatása külön mérhető legyen. Részletek: [mérési runbook](../operations/NARRATIVE_EVALUATION_HU.md). Ez offline implementációs jelölt, nem új paid/human vagy production PASS; N08/N09 PARTIAL marad.
 
 ## N02 konkrét implementáció – a munkacsomag eredeti részállapota
 
@@ -795,3 +801,10 @@ Az ellenőrzés exact projected request/candidate/plan/memory/policy hash-hez, v
 Az artifact opcionális planningReview és két review hash mezőt kap; az új policyban mindhárom kötelező, a régiben tiltott. A task/ordinal/provenance lista kezeli az új lépést, de a régi hétkéréses artifact nem válik nyolckérésessé. A DB commit újraépíti a review input hash-t és a receipt verzióját a tényleges current kánonból; a web/public DTO változatlanul nem kap artifactot. Nincs SQL-migráció és a 32 KiB artifact limit sem változik.
 
 A writer v3 a rögzített célból és cselekvésből építi a sajátos főszereplői reakciót, és elhagyja a kompetencialeltárt/túlmagyarázott döntésmenüt. Nem tulajdoníthat ismeretlen eredetű hibát, beleegyezést vagy magánéleti motivációt a szereplőnek. Az eredeti writer v1/v2 és planner v1/v2/v3 prompt byte-kompatibilis marad; a külön új promptok csak a frozen marker szerint futnak. Az új referenciafolyamat offline 248 transportot használ 68 fejezethez / 34 párhoz; ez folyamatbizonyíték, nem valódi minőségmérés. N08 és N09 nyitott az új paid/human ellenőrzésig.
+
+
+## N08: valódi kísérlet után elutasított writer v4 (2026-10-16)
+
+Az ad6aaa7 readiness-jelölt két első teljes fejezete átment, de a két developed-v2 írókontroll nem. A külön aef6315 writer v4 változat azonos creative kontrollal, ellenőrzött korábbi input receipttel sem javította a sceneCraft 3 / character 3 / personalization 3 eredményt. A writer v4 kódja/selector/schema ezért visszavonva; a commit és privát mérés megmarad. Az aktuális jelölt planner v4 / reviewer v2 / writer v3. Nem növeltük a gate toleranciáját és nem tüntettük el a negatív eredményt.
+
+A két új próba 39 hívás / 0,82722 USD accounted; a globális ledger 140 hívás / 2,985975 USD, 2,014025 USD maradék, nulla ismeretlen használat és hozzárendeletlen foglalás. További paid munka ugyanennek az eredeti 5 USD-nek a része. A teljes többidőszakos és vak emberi mérés továbbra nyitott. A vizuális kánon konkrétságának szerepe külön hipotézis, nem bizonyított ok.

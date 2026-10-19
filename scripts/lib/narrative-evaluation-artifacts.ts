@@ -1,12 +1,19 @@
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { hash } from '@future-flow/core';
+import { DomainError, hash } from '@future-flow/core';
 import { narrativeDimensions } from '@future-flow/contracts';
 import {
   blindOrder,
   assessHumanRatings,
   percentile95,
+  buildCreativeSequenceBundles,
+  assessCreativeSequenceRatings,
+  creativeSequenceDimensions,
+  creativeBaseWindowHumanQuestions,
   type BlindPair,
+  type CreativeSequenceBundle,
+  type CreativeSequenceAssessment,
 } from './narrative-evaluation-contract';
 import type {
   EvaluationRun,
@@ -74,6 +81,30 @@ export function evaluationPairs(run: EvaluationRun, seed: string) {
   }
   return pairs;
 }
+
+function isCreativeRun(run: EvaluationRun, options?: EvaluationOptions) {
+  return (
+    run.variant === 'narrative-fiction-v2' ||
+    run.diagnosticOnly === true ||
+    options?.creative === true ||
+    options?.creativeOnly === true ||
+    run.samples.some(
+      (s) =>
+        s.receipts.some((r) => r.promptVersion.startsWith('life_fiction_')) ||
+        (s.plan as { pipelineVersion?: string } | null)?.pipelineVersion ===
+          'narrative-fiction-v2',
+    )
+  );
+}
+
+export function evaluationSequenceBundles(
+  run: EvaluationRun,
+  seed: string,
+): CreativeSequenceBundle[] {
+  if (!isCreativeRun(run)) return [];
+  return buildCreativeSequenceBundles(run.samples, run.sourceHash, seed);
+}
+
 function manuscript(side: 'A' | 'B', sample: EvaluationSample) {
   const prefix = sample.prefix
     .map(
@@ -91,6 +122,237 @@ function manuscript(side: 'A' | 'B', sample: EvaluationSample) {
     .map((p, i) => `<p><span class="number">${i + 1}</span>${escape(p)}</p>`)
     .join('')}</section>`;
 }
+
+function sequenceChapterSection(
+  heading: string,
+  blindedSampleId: string,
+  sample: EvaluationSample,
+  acceptedChoice: { label: string; description: string } | null,
+) {
+  return `<section><h2>${escape(heading)}</h2><p><small>Reference ID: <code>${escape(blindedSampleId)}</code></small></p>${acceptedChoice ? `<p><strong>Previously accepted choice:</strong> ${escape(acceptedChoice.label)}. ${escape(acceptedChoice.description)}</p>` : ''}<h3>${escape(sample.chapter.title)}</h3>${paragraphs(
+    sample.chapter.body,
+  )
+    .map((p, i) => `<p><span class="number">${i + 1}</span>${escape(p)}</p>`)
+    .join('')}</section>`;
+}
+
+export type CreativeSequenceBundleFiles = {
+  indexHtml: string;
+  bundlesJson: string;
+  blindKeyJson: string;
+  ratingsTemplateJson: string;
+  pages: string[];
+  assessmentJson: string | null;
+};
+
+export async function writeCreativeSequenceArtifacts(
+  run: EvaluationRun,
+  options: EvaluationOptions,
+): Promise<{
+  bundles: CreativeSequenceBundle[];
+  files: CreativeSequenceBundleFiles;
+  assessment: CreativeSequenceAssessment | null;
+} | null> {
+  if (!isCreativeRun(run, options)) return null;
+  const bundles = buildCreativeSequenceBundles(
+    run.samples,
+    run.sourceHash,
+    options.seed,
+  );
+  if (!bundles.length) return null;
+  const directory = join(options.out, 'human-review');
+  await mkdir(directory, { recursive: true });
+  const samplesById = new Map(run.samples.map((s) => [s.id, s]));
+  const pages: string[] = [];
+  const links: string[] = [];
+  for (const bundle of bundles) {
+    const filename = `sequence-${hash(bundle.sequenceId).slice(0, 20)}.html`;
+    const filePath = join(directory, filename);
+    pages.push(filePath);
+    links.push(
+      `<li><a href="${filename}">${escape(bundle.sequenceId)} (${escape(bundle.horizonLabel)})</a></li>`,
+    );
+    const profile = narrativeProfiles.find((p) => p.id === bundle.fixtureId)!;
+    const sections =
+      bundle.kind === 'main'
+        ? bundle.chapters
+            .map((ch, idx) =>
+              sequenceChapterSection(
+                `Chapter ${idx + 1}`,
+                ch.blindedSampleId,
+                samplesById.get(ch.sampleId)!,
+                ch.acceptedChoice,
+              ),
+            )
+            .join('')
+        : [
+            ...bundle.chapters
+              .filter((ch) => ch.role === 'prefix')
+              .map((ch, idx) =>
+                sequenceChapterSection(
+                  `Shared Prefix — Chapter ${idx + 1}`,
+                  ch.blindedSampleId,
+                  samplesById.get(ch.sampleId)!,
+                  ch.acceptedChoice,
+                ),
+              ),
+            ...(['branch-A', 'branch-B'] as const).map((role) => {
+              const ch = bundle.chapters.find((c) => c.role === role)!;
+              const label =
+                role === 'branch-A'
+                  ? 'Alternative Continuation — Branch A'
+                  : 'Alternative Continuation — Branch B';
+              return sequenceChapterSection(
+                label,
+                ch.blindedSampleId,
+                samplesById.get(ch.sampleId)!,
+                ch.acceptedChoice,
+              );
+            }),
+          ].join('');
+    const baseWindowQuestionsHtml =
+      bundle.horizon === 'B8'
+        ? `<section><h2>Base-window human evolution and renewal questions</h2><ol>${creativeBaseWindowHumanQuestions.map((q) => `<li>${escape(q)}</li>`).join('')}</ol></section>`
+        : '';
+    const horizonGuidance =
+      bundle.kind === 'branch'
+        ? bundle.horizon === 'B8'
+          ? `<p>Read the shared prefix and both alternative continuations. This branch comparison accompanies the parent eight-chapter base-window audit.</p>${baseWindowQuestionsHtml}`
+          : '<p>Read the shared prefix and both alternative continuations. This branch comparison accompanies the parent sequence audit; it is not itself a six-chapter continuation.</p>'
+        : bundle.horizon === 'B8'
+          ? `<p><strong>B8 eight-chapter base-window audit:</strong> Evaluate whether this alternative life has evolved meaningfully and credibly across chapters 1 to 8 so that a reader would want to continue following it, and cite specific passages with chapter reference ID and paragraph number.</p>${baseWindowQuestionsHtml}`
+          : bundle.horizon === 'H2'
+            ? '<p><strong>H2 six-chapter long-horizon audit:</strong> Evaluate whether reader immersion, continuation desire, dramatic variety, and character credibility hold up across chapters 4 to 6, and cite any repetitive or weak passages with chapter reference ID and paragraph number.</p>'
+            : '<p><strong>H1 three-chapter sequence audit:</strong> Read the complete sequence in order before scoring. Early three-chapter evidence does not by itself prove six-chapter long-horizon variety.</p>';
+    const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blind sequence review</title><style>body{max-width:900px;margin:30px auto;padding:0 22px;color:#203328;background:#fafaf6;font:18px/1.7 Georgia,serif}section{margin:40px 0;border-top:1px solid #bcc9bf}p{margin:1em 0}.number{color:#63756b;font:12px sans-serif;margin-right:14px}code{overflow-wrap:anywhere}</style><h1>Would you keep reading this story sequence?</h1><p>${run.mock ? 'Technical mock manuscripts: these cannot prove literary quality.' : 'Independent human sequence evaluation: modes, models, policies and automated grades are hidden.'}</p><p><strong>Primary product goals:</strong> Rate immersion, continuation desire, protagonist humanity, NPC autonomy, continuity, human prose, structural variety, emotional range, and system invisibility from 1 to 5${bundle.kind === 'branch' ? ', plus branching value (1 to 5) and preferred branch (A, B, or tie)' : ''}. Cite at least one specific numbered paragraph and chapter reference ID.</p>${horizonGuidance}<p><strong>Secondary diagnostic question:</strong> Record AI suspicion (unlikely, possible, likely) and any observed pattern flags. AI suspicion is a secondary diagnostic signal and not a release pass criterion.</p><p>Fictional goal: ${escape(profile.goal)}. Initial weekly time boundary: ${profile.hours} hours. Financial figures remain unknown.</p><p>Sequence: ${escape(bundle.sequenceId)} · Stage: ${escape(bundle.horizonLabel)} · Snapshot: <code>${bundle.sequenceHash}</code></p>${sections}</html>`;
+    await writeFile(filePath, page);
+  }
+  const indexHtml = join(directory, 'sequence-index.html');
+  await writeFile(
+    indexHtml,
+    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alterward sequence review</title><h1>Sequence review corpus</h1><p>${run.mock ? 'Offline structural sequence samples, not literary evidence.' : 'Read each full sequence and shared-prefix branch comparison before grading.'}</p><ul>${links.join('')}</ul></html>`,
+  );
+  const blindedBundles = bundles.map((b) => ({
+    sequenceId: b.sequenceId,
+    sequenceHash: b.sequenceHash,
+    fixtureId: b.fixtureId,
+    kind: b.kind,
+    horizon: b.horizon,
+    horizonLabel: b.horizonLabel,
+    chapterCount: b.chapterCount,
+    ...(b.horizon === 'B8'
+      ? { humanQuestions: [...creativeBaseWindowHumanQuestions] }
+      : {}),
+    chapters: b.chapters.map((ch) => ({
+      sampleId: ch.blindedSampleId,
+      periodIndex: ch.periodIndex,
+      role: ch.role,
+      title: ch.title,
+      paragraphs: ch.paragraphs,
+      acceptedChoice: ch.acceptedChoice,
+    })),
+  }));
+  const bundlesJson = join(directory, 'sequence-bundles.json');
+  await writeFile(bundlesJson, JSON.stringify(blindedBundles, null, 2) + '\n');
+  const ratingsTemplateJson = join(directory, 'sequence-ratings-template.json');
+  const template = bundles.map((b) => ({
+    sequenceId: b.sequenceId,
+    sequenceHash: b.sequenceHash,
+    reviewerId: '',
+    reviewerKind: 'human',
+    scores: {
+      ...Object.fromEntries(creativeSequenceDimensions.map((d) => [d, null])),
+      ...(b.kind === 'branch' ? { branchingValue: null } : {}),
+    },
+    aiSuspicion: null,
+    flags: [],
+    evidence: [
+      {
+        sampleId: b.chapters[0]!.blindedSampleId,
+        paragraphIndex: null,
+        reason: '',
+      },
+    ],
+    overall: null,
+    ...(b.kind === 'branch' ? { preferredBranch: null } : {}),
+    ...(b.horizon === 'H2' || b.horizon === 'B8'
+      ? { lateHorizonNote: null }
+      : {}),
+    ...(b.horizon === 'B8'
+      ? {
+          humanQuestions: [...creativeBaseWindowHumanQuestions],
+          questionResponses: Object.fromEntries(
+            creativeBaseWindowHumanQuestions.map((q) => [q, null]),
+          ),
+        }
+      : {}),
+  }));
+  await writeFile(
+    ratingsTemplateJson,
+    JSON.stringify(template, null, 2) + '\n',
+  );
+  const blindKeyJson = join(options.out, 'sequence-blind-key.json');
+  await writeFile(blindKeyJson, JSON.stringify(bundles, null, 2) + '\n', {
+    mode: 0o600,
+  });
+
+  let assessment: CreativeSequenceAssessment | null = null;
+  let assessmentJson: string | null = null;
+  const ratingsPath =
+    options.sequenceRatingsFile ??
+    (run.diagnosticOnly ? options.ratingsFile : null);
+  const savedAssessmentPath = join(
+    options.out,
+    'sequence-human-assessment.json',
+  );
+  if (ratingsPath) {
+    const raw = JSON.parse(await readFile(resolve(ratingsPath), 'utf8'));
+    assessment = assessCreativeSequenceRatings(bundles, raw);
+    assessmentJson = savedAssessmentPath;
+    await writeFile(
+      savedAssessmentPath,
+      JSON.stringify(
+        { ...assessment, bundleSetHash: hash(bundles), ratingInputs: raw },
+        null,
+        2,
+      ) + '\n',
+    );
+    if (run.diagnosticOnly) {
+      await writeFile(
+        join(options.out, 'human-assessment.json'),
+        JSON.stringify(assessment, null, 2) + '\n',
+      );
+    }
+  } else if (existsSync(savedAssessmentPath)) {
+    const saved = JSON.parse(await readFile(savedAssessmentPath, 'utf8')) as {
+      bundleSetHash?: string;
+      ratingInputs?: unknown;
+    };
+    // A resumed/extended corpus must not inherit grades for a different snapshot.
+    // Keep the previous file as evidence, but do not attach stale grades to this run.
+    if (
+      saved.bundleSetHash === hash(bundles) &&
+      Array.isArray(saved.ratingInputs)
+    ) {
+      assessment = assessCreativeSequenceRatings(bundles, saved.ratingInputs);
+      assessmentJson = savedAssessmentPath;
+    }
+  }
+
+  return {
+    bundles,
+    files: {
+      indexHtml,
+      bundlesJson,
+      blindKeyJson,
+      ratingsTemplateJson,
+      pages,
+      assessmentJson,
+    },
+    assessment,
+  };
+}
+
 export async function writeEvaluationArtifacts(
   run: EvaluationRun,
   options: EvaluationOptions,
@@ -136,6 +398,7 @@ export async function writeEvaluationArtifacts(
     join(options.out, 'choice-review-requests.json'),
     JSON.stringify(run.choiceReviewRequests, null, 2) + '\n',
   );
+  const sequenceOut = await writeCreativeSequenceArtifacts(run, options);
   const actualTransports = JSON.parse(
     await readFile(join(options.out, 'transport-records.json'), 'utf8'),
   ) as unknown[];
@@ -172,6 +435,27 @@ export async function writeEvaluationArtifacts(
     narrativeYield: run.mock
       ? null
       : evaluationNarrativeYield(run.accounting, run.samples),
+    ...(run.variant ? { variant: run.variant } : {}),
+    ...(run.diagnosticOnly ? { diagnosticOnly: true } : {}),
+    ...(run.noForks ? { noForks: true } : {}),
+    ...(sequenceOut
+      ? {
+          sequenceBundles: sequenceOut.bundles.length,
+          sequenceMainBundles: sequenceOut.bundles.filter(
+            (b) => b.kind === 'main',
+          ).length,
+          sequenceBranchBundles: sequenceOut.bundles.filter(
+            (b) => b.kind === 'branch',
+          ).length,
+          sequenceHorizon: sequenceOut.bundles.some((b) => b.horizon === 'B8')
+            ? ('B8' as const)
+            : sequenceOut.bundles.some((b) => b.horizon === 'H2')
+              ? ('H2' as const)
+              : ('H1' as const),
+          sequenceBundleFiles: sequenceOut.files,
+          sequenceAssessment: sequenceOut.assessment,
+        }
+      : {}),
     qualityRelease: false,
     reason:
       'Independent human grades, semantic choice review, complete paid samples and owner-set cost/time limits are required.',
@@ -186,6 +470,50 @@ export async function assessEvaluationArtifacts(options: EvaluationOptions) {
   const run = JSON.parse(
     await readFile(join(options.out, 'report.json'), 'utf8'),
   ) as EvaluationRun;
+  const sequenceFile =
+    options.sequenceRatingsFile ??
+    (run.diagnosticOnly ? options.ratingsFile : null);
+  let sequenceAssessment: CreativeSequenceAssessment | null = null;
+  if (sequenceFile) {
+    const expectedBundles = evaluationSequenceBundles(run, options.seed);
+    const blindKeyPath = join(options.out, 'sequence-blind-key.json');
+    const savedBundles = existsSync(blindKeyPath)
+      ? (JSON.parse(
+          await readFile(blindKeyPath, 'utf8'),
+        ) as CreativeSequenceBundle[])
+      : expectedBundles;
+    if (hash(expectedBundles) !== hash(savedBundles))
+      throw new DomainError(
+        'EVAL_STATE_INVALID',
+        'The creative sequence corpus no longer matches its saved manuscript snapshots.',
+      );
+    const rawSequence = JSON.parse(
+      await readFile(resolve(sequenceFile), 'utf8'),
+    );
+    sequenceAssessment = assessCreativeSequenceRatings(
+      savedBundles,
+      rawSequence,
+    );
+    await writeFile(
+      join(options.out, 'sequence-human-assessment.json'),
+      JSON.stringify(
+        {
+          ...sequenceAssessment,
+          bundleSetHash: hash(savedBundles),
+          ratingInputs: rawSequence,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+    if (!options.ratingsFile || run.diagnosticOnly) {
+      await writeFile(
+        join(options.out, 'human-assessment.json'),
+        JSON.stringify(sequenceAssessment, null, 2) + '\n',
+      );
+      return sequenceAssessment;
+    }
+  }
   const pairs = JSON.parse(
     await readFile(join(options.out, 'blind-key.json'), 'utf8'),
   ) as BlindPair[];
@@ -244,12 +572,15 @@ export async function assessEvaluationArtifacts(options: EvaluationOptions) {
   const assessment = assessHumanRatings(
     pairs,
     raw,
-    !run.mock && run.complete,
+    !run.mock && run.complete && !run.diagnosticOnly,
     operations,
   );
+  const combined = sequenceAssessment
+    ? { ...assessment, sequenceAssessment }
+    : assessment;
   await writeFile(
     join(options.out, 'human-assessment.json'),
-    JSON.stringify(assessment, null, 2) + '\n',
+    JSON.stringify(combined, null, 2) + '\n',
   );
-  return assessment;
+  return combined;
 }

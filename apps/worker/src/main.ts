@@ -13,6 +13,7 @@ import {
   cleanupExpiredLifeAdmissions,
   cleanupExpiredPersonalScenarioPreviews,
   narrativeConfigFromEnv,
+  fictionMaxRequestBytesFromEnv,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -38,12 +39,14 @@ async function main() {
     storyModel: process.env.AI_STORY_MODEL ?? '',
     checkModel: process.env.AI_CHECK_MODEL || undefined,
     timeoutMs: Number(process.env.AI_TIMEOUT_MS ?? 90000),
+    fictionTimeoutMs: Number(process.env.AI_FICTION_TIMEOUT_MS ?? 180000),
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 12000),
   };
   // Validate configuration before accepting jobs. Actual calls always reserve
   // the shared application budget, including legacy generation and SDK retries.
   new OpenAiProvider(aiConfig);
   const budgetConfig = applicationAiBudgetConfigFromEnv();
+  const fictionMaxRequestBytes = fictionMaxRequestBytesFromEnv();
   const leaseSeconds = Number(process.env.JOB_LEASE_SECONDS ?? 180);
   if (!Number.isFinite(leaseSeconds) || leaseSeconds < 60)
     throw new Error('JOB_LEASE_SECONDS must be at least 60');
@@ -149,6 +152,12 @@ async function main() {
                 : jobs.heartbeat(
                     claimed as import('@future-flow/database').Job,
                   );
+      const narrative =
+        v2 &&
+        ['narrative-v1', 'narrative-fiction-v2'].includes(
+          (job as import('@future-flow/database').LifeJob).payload
+            .narrativeContext?.policy.mode ?? '',
+        );
       const budget = new DatabaseAiBudget(
         db,
         shared
@@ -164,6 +173,7 @@ async function main() {
         v2
           ? (job as import('@future-flow/database').LifeJob).lease_token
           : undefined,
+        narrative ? fictionMaxRequestBytes : undefined,
       );
       let experiment: ExperimentAiBudget | undefined;
       const heartbeat = setInterval(
@@ -189,9 +199,7 @@ async function main() {
         const ai = new OpenAiProvider({
           ...aiConfig,
           guard,
-          ...(v2 &&
-          (job as import('@future-flow/database').LifeJob).payload
-            .narrativeContext?.policy.mode === 'narrative-v1'
+          ...(narrative
             ? {
                 beforePhysicalRequest: () =>
                   lifeJobs.admitNarrativeRequest(

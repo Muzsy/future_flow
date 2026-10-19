@@ -1,3 +1,4 @@
+import { fictionFixture } from '../../tests/fiction-fixtures';
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { mkdir, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -53,9 +54,10 @@ import {
   longNarrativeChapterFixture,
   narrativeEditorialFixture,
   narrativePlanReviewFixture,
+  narrativePlanReadinessFixture,
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
-import { fixedNarrativeFixture } from './narrative-evaluation-fixtures';
+import { currentFixedNarrativeFixture as fixedNarrativeFixture } from './narrative-evaluation-fixtures';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
@@ -68,13 +70,62 @@ import {
   selectEvaluationChoice,
   type EvaluationMode,
   type ChoiceOverride,
+  type CreativeSequenceBundle,
+  type CreativeSequenceAssessment,
 } from './narrative-evaluation-contract';
 import {
   evaluationPrices,
   evaluationPriceEvidence,
   verifyEvaluationAuthorization,
+  evaluationApprovedCumulativeBudgetUsd,
+  evaluationMaxRequestBytes,
+  evaluationTimeouts,
   type EvaluationOptions,
 } from './narrative-evaluation-options';
+import {
+  writeCreativeSequenceArtifacts,
+  type CreativeSequenceBundleFiles,
+} from './narrative-evaluation-artifacts';
+import {
+  wrapEvaluationParse,
+  evaluationResponseOutput,
+  verifyExistingEvaluationAttempts,
+  verifyTraceCoversCheckpointReceipts,
+  type AttemptTraceBinding,
+} from './narrative-evaluation-attempts';
+
+export type OfflineMockResponseOverride = {
+  __rawResponse: {
+    status?: string;
+    model?: string;
+    output_parsed?: unknown;
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+      input_tokens_details?: {
+        cached_tokens?: number;
+        cache_write_tokens?: number;
+      };
+    } | null;
+    _request_id?: string | null;
+  };
+};
+export type OfflineMockResponder = (context: {
+  caseId: string;
+  task: string;
+  model: string;
+  ordinal: number;
+  parameters: {
+    model: string;
+    input?: unknown;
+    text: { format: { name: string; $parseRaw?: (raw: string) => unknown } };
+  };
+  job: LifeJob;
+  defaultOutput: () => unknown;
+}) =>
+  | unknown
+  | OfflineMockResponseOverride
+  | Promise<unknown | OfflineMockResponseOverride>;
 
 export type EvaluationSample = {
   id: string;
@@ -98,6 +149,9 @@ export type EvaluationSample = {
 };
 export type EvaluationRun = {
   version: string;
+  variant?: 'narrative-fiction-v2';
+  diagnosticOnly?: true;
+  noForks?: true;
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -114,6 +168,9 @@ export type EvaluationRun = {
   safetyProbe: { passed: boolean; markerExcluded: boolean };
   complete: boolean;
   accounting: ReturnType<typeof evaluationCostReport> | null;
+  sequenceBundles?: CreativeSequenceBundle[];
+  sequenceBundleFiles?: CreativeSequenceBundleFiles | null;
+  sequenceAssessment?: CreativeSequenceAssessment | null;
 };
 function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
   return {
@@ -140,6 +197,21 @@ function read<T>(path: string): T | null {
 function code(error: unknown) {
   return error instanceof DomainError ? error.code : 'EVAL_INTERRUPTED';
 }
+function shouldStopEvaluation(error: unknown, options: EvaluationOptions) {
+  const c = code(error);
+  return (
+    ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(c) ||
+    (options.kind === 'paid' &&
+      [
+        'AI_QUOTA_EXHAUSTED',
+        'AI_AUTH_FAILED',
+        'AI_RATE_LIMIT',
+        'AI_PROVIDER_FAILED',
+        'AI_REQUEST_FAILED',
+        'AI_INCOMPLETE_OR_REFUSED',
+      ].includes(c))
+  );
+}
 function sourceIdentity() {
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
@@ -157,6 +229,7 @@ function sourceIdentity() {
         'contract',
         'options',
         'runner',
+        'attempts',
         'artifacts',
         'costs',
         'fixtures',
@@ -219,6 +292,26 @@ function safetyProbe() {
   ).includes(marker);
   return { passed: markerExcluded, markerExcluded };
 }
+// Synthetic unpaired diagnostic path only. This is NOT semantic/human review.
+function diagnosticChoice(
+  options: { id: string; label: string; description: string }[],
+  intent: ReturnType<typeof choiceIntent>,
+  alternate = false,
+) {
+  const option = options[alternate ? 1 : 0];
+  if (!option)
+    throw new DomainError(
+      'EVAL_STATE_INVALID',
+      'A diagnostic choice is unavailable.',
+    );
+  return {
+    optionId: option.id,
+    intent,
+    decisionHash: hash(options),
+    selection: 'diagnostic-index' as const,
+    rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
+  };
+}
 type TransportRecord = { caseId: string; task: string; latencyMs: number };
 function clientFor(
   options: EvaluationOptions,
@@ -226,7 +319,12 @@ function clientFor(
   job: LifeJob | undefined,
   caseId: string,
   transports: TransportRecord[],
+  traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
+  mockResponder?: OfflineMockResponder,
 ) {
+  const caseBinding: AttemptTraceBinding = { ...traceBinding, caseId };
+  const saveTransports = () =>
+    save(join(options.out, 'transport-records.json'), transports);
   if (options.kind === 'paid') {
     const sdk = new OpenAI({
       apiKey: env.NARRATIVE_EVAL_API_KEY!,
@@ -235,72 +333,147 @@ function clientFor(
       organization: null,
       logLevel: 'off',
       maxRetries: 0,
-      timeout: 120000,
+      // Keep the SDK fallback unchanged; only fiction calls override it below.
+      timeout: options.creative ? 180000 : 120000,
     });
-    const original = sdk.responses.parse.bind(sdk.responses);
-    const parse = (async (parameters: Parameters<typeof original>[0]) => {
-      const started = Date.now();
-      try {
-        // Explicit standard tier; do not inherit a project's faster, pricier default.
-        return await original({ ...parameters, service_tier: 'default' });
-      } finally {
-        transports.push({
-          caseId,
-          task:
-            (parameters.text?.format as { name?: string } | undefined)?.name ??
-            'unknown',
-          latencyMs: Date.now() - started,
-        });
-        await save(join(options.out, 'transport-records.json'), transports);
-      }
+    type ParseParameters = Parameters<typeof sdk.responses.parse>[0];
+    const parse = wrapEvaluationParse({
+      outDir: options.out,
+      binding: caseBinding,
+      env,
+      transports,
+      saveTransports,
+      execute: async (
+        parameters: ParseParameters,
+        _ordinal,
+        requestOptions,
+      ) => {
+        // Same API request, tier and store=false. Parse in the provider AFTER
+        // local capture so even a schema-invalid candidate retains evidence.
+        const response = await sdk.responses.create(
+          {
+            ...parameters,
+            stream: false,
+            service_tier: 'default',
+          },
+          requestOptions,
+        );
+        return {
+          ...response,
+          _request_id: response._request_id,
+          output_parsed: evaluationResponseOutput(response),
+        };
+      },
     }) as typeof sdk.responses.parse;
     return { responses: { parse } } as unknown as OpenAI;
   }
-  const parse = async (parameters: {
-    model: string;
-    text: { format: { name: string } };
-  }) => {
-    if (!job)
-      throw new DomainError(
-        'EVAL_CONFIG_INVALID',
-        'A mock generation needs its frozen fixture job.',
-      );
-    const start = Date.now(),
-      task = parameters.text.format.name,
-      f = caseId.startsWith('fixed:')
-        ? fixedNarrativeFixture(caseId.split(':')[1]!)
-        : narrativePlanFixture(job.payload),
-      candidate = narrativePeriod(job.payload);
-    const canon = f.canon;
-    const story = {
-      locale: job.payload.input.locale,
-      identity: job.payload.input.identity,
-      goals: job.payload.input.goals,
-      events: canon.events,
-    };
-    const output =
-      task === 'life_narrative_plan_review'
-        ? narrativePlanReviewFixture()
-        : task === 'life_period'
-          ? candidate
-          : task === 'life_narrative_plan'
-            ? f.result
-            : task === 'life_chapter'
-              ? narrativeChapter(story)
-              : task === 'life_narrative_chapter'
-                ? longNarrativeChapterFixture(f)
-                : task === 'life_fidelity'
-                  ? { valid: true, issues: [] }
-                  : narrativeEditorialFixture();
-    transports.push({ caseId, task, latencyMs: Date.now() - start });
-    await save(join(options.out, 'transport-records.json'), transports);
-    return {
-      status: 'completed',
-      model: parameters.model,
-      output_parsed: output,
-      usage: { input_tokens: 0, output_tokens: 0 },
-    };
-  };
+  const parse = wrapEvaluationParse({
+    outDir: options.out,
+    binding: caseBinding,
+    env,
+    transports,
+    saveTransports,
+    execute: async (
+      parameters: {
+        model: string;
+        input?: unknown;
+        text: {
+          format: { name: string; $parseRaw?: (raw: string) => unknown };
+        };
+      },
+      ordinal: number,
+    ) => {
+      if (!job)
+        throw new DomainError(
+          'EVAL_CONFIG_INVALID',
+          'A mock generation needs its frozen fixture job.',
+        );
+      const task = parameters.text.format.name;
+      const defaultOutput = () => {
+        const f = caseId.startsWith('fixed:')
+            ? fixedNarrativeFixture(caseId.split(':')[1]!)
+            : narrativePlanFixture(job.payload),
+          candidate = narrativePeriod(job.payload);
+        const canon = f.canon;
+        const story = {
+          locale: job.payload.input.locale,
+          identity: job.payload.input.identity,
+          goals: job.payload.input.goals,
+          events: canon.events,
+        };
+        const creative =
+          job.payload.narrativeContext?.policy.mode === 'narrative-fiction-v2';
+        const cf = creative ? fictionFixture(job.payload) : null;
+        return creative && task === 'life_narrative_plan'
+          ? cf!.draft
+          : creative && task === 'life_narrative_chapter'
+            ? cf!.authored
+            : creative && task === 'life_narrative_editor'
+              ? cf!.editor
+              : creative && task === 'life_narrative_plan_review'
+                ? narrativePlanReadinessFixture()
+                : task === 'life_narrative_plan_review'
+                  ? job.payload.narrativeContext?.policy.mode ===
+                      'narrative-v1' &&
+                    job.payload.narrativeContext.policy.promptVersions
+                      .planReviewer === 'life_narrative_plan_review.v2'
+                    ? narrativePlanReadinessFixture()
+                    : narrativePlanReviewFixture()
+                  : task === 'life_period'
+                    ? candidate
+                    : task === 'life_narrative_plan'
+                      ? f.result
+                      : task === 'life_chapter'
+                        ? narrativeChapter(story)
+                        : task === 'life_narrative_chapter'
+                          ? longNarrativeChapterFixture(f)
+                          : task === 'life_fidelity'
+                            ? { valid: true, issues: [] }
+                            : narrativeEditorialFixture();
+      };
+      if (mockResponder) {
+        const custom = await mockResponder({
+          caseId,
+          task,
+          model: parameters.model,
+          ordinal,
+          parameters,
+          job,
+          defaultOutput,
+        });
+        if (
+          custom &&
+          typeof custom === 'object' &&
+          '__rawResponse' in (custom as Record<string, unknown>)
+        ) {
+          const raw = (custom as OfflineMockResponseOverride).__rawResponse;
+          return {
+            status: raw.status ?? 'completed',
+            model: raw.model ?? parameters.model,
+            output_parsed: raw.output_parsed,
+            usage: raw.usage ?? { input_tokens: 0, output_tokens: 0 },
+            ...(raw._request_id !== undefined
+              ? { _request_id: raw._request_id }
+              : {}),
+          };
+        }
+        if (custom !== undefined) {
+          return {
+            status: 'completed',
+            model: parameters.model,
+            output_parsed: custom,
+            usage: { input_tokens: 0, output_tokens: 0 },
+          };
+        }
+      }
+      return {
+        status: 'completed',
+        model: parameters.model,
+        output_parsed: defaultOutput(),
+        usage: { input_tokens: 0, output_tokens: 0 },
+      };
+    },
+  });
   return { responses: { parse } } as unknown as OpenAI;
 }
 function receiptsInOrder(
@@ -329,6 +502,8 @@ async function fixedCanonComparison(
   report: EvaluationRun,
   transports: TransportRecord[],
   guardFor: (caseId: string) => AiRequestGuard | undefined,
+  traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
+  mockResponder?: OfflineMockResponder,
 ) {
   const profile = narrativeProfiles.find((p) => p.id === fixtureId)!,
     input = narrativeInput(profile),
@@ -436,6 +611,18 @@ async function fixedCanonComparison(
     const caseId = `fixed:${fixtureId}:${mode}:0`,
       sampleId = `fixed-canon:${fixtureId}:${mode}:0`;
     if (report.samples.some((s) => s.id === sampleId)) continue;
+    const cachedReceipts = [
+      state.responses[`${mode}:chapter`]?.receipt,
+      state.responses[`${mode}:fidelity`]?.receipt,
+      ...(mode === 'narrative-v1' ? [state.responses.editor?.receipt] : []),
+    ].filter((r): r is AiReceipt => Boolean(r));
+    if (cachedReceipts.length)
+      verifyTraceCoversCheckpointReceipts(
+        options.out,
+        { ...traceBinding, caseId },
+        cachedReceipts,
+        env,
+      );
     const ai = new OpenAiProvider(
       {
         apiKey:
@@ -445,12 +632,20 @@ async function fixedCanonComparison(
         eventModel: options.models.event,
         storyModel: options.models.story,
         checkModel: options.models.check,
-        timeoutMs: 120000,
-        maxOutputTokens: 6500,
+        ...evaluationTimeouts(options),
+        maxOutputTokens: options.creative ? 12000 : 6500,
         guard: guardFor(caseId),
         beforePhysicalRequest,
       },
-      clientFor(options, env, frozenJob, caseId, transports),
+      clientFor(
+        options,
+        env,
+        frozenJob,
+        caseId,
+        transports,
+        traceBinding,
+        mockResponder,
+      ),
     );
     const chapterResult =
       mode === 'legacy'
@@ -500,6 +695,12 @@ async function fixedCanonComparison(
           'Fixed-canon editorial gate failed.',
         );
     }
+    verifyTraceCoversCheckpointReceipts(
+      options.out,
+      { ...traceBinding, caseId },
+      receipts,
+      env,
+    );
     const calls = transports.filter((t) => t.caseId === caseId);
     report.samples.push({
       id: sampleId,
@@ -512,6 +713,7 @@ async function fixedCanonComparison(
       canon: run.canon.events,
       plan: {
         source: 'fixture-authored-fixed-canon',
+        materialVersion: fixture.materialVersion,
         validatedPlan: run.result.plan,
         editorialReport: editor,
       },
@@ -527,6 +729,9 @@ async function fixedCanonComparison(
     });
     await save(join(options.out, 'report.json'), report);
   }
+  report.failures = report.failures.filter(
+    (f) => f.caseId !== `fixed:${fixtureId}`,
+  );
 }
 
 async function forkComparison(
@@ -543,6 +748,8 @@ async function forkComparison(
   overrides: ChoiceOverride[],
   transports: TransportRecord[],
   guardFor: (caseId: string) => AiRequestGuard | undefined,
+  traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
+  mockResponder?: OfflineMockResponder,
 ) {
   const sampleId = `fork:${fixtureId}:${mode}:2`;
   if (report.samples.some((s) => s.id === sampleId)) return;
@@ -561,9 +768,13 @@ async function forkComparison(
       o.periodIndex === 1 &&
       o.branchKind === 'fork',
   );
-  let mapping: ReturnType<typeof selectEvaluationChoice>;
+  let mapping:
+    | ReturnType<typeof selectEvaluationChoice>
+    | ReturnType<typeof diagnosticChoice>;
   try {
-    mapping = selectEvaluationChoice(decision.options, intent, override);
+    mapping = options.creativeOnly
+      ? diagnosticChoice(decision.options, intent, true)
+      : selectEvaluationChoice(decision.options, intent, override);
   } catch (error) {
     if (code(error) !== 'EVAL_CHOICE_REVIEW_REQUIRED') throw error;
     report.choiceReviewRequests.push({
@@ -603,7 +814,18 @@ async function forkComparison(
     ).branchId;
   let child = await lives.detail(owner, childId);
   if (child.periods.length < 3) {
-    if (child.branch.status === 'failed' && child.job?.retryAvailable)
+    if (child.branch.status === 'failed' && child.job?.retryAvailable) {
+      const [priorForkJob] = await db.query<LifeJob>(
+        'SELECT * FROM aw_jobs WHERE id=$1 AND user_id=$2',
+        [child.job.id, owner],
+      );
+      if (priorForkJob)
+        verifyTraceCoversCheckpointReceipts(
+          options.out,
+          { ...traceBinding, caseId: `fork:${fixtureId}:${mode}:2` },
+          priorForkJob.checkpoints.receipts,
+          env,
+        );
       await lives.retry(
         owner,
         child.job.id,
@@ -612,6 +834,7 @@ async function forkComparison(
           `${fixtureId}:${mode}:fork-retry:${child.job.attempt}`,
         ),
       );
+    }
     const job = await jobs.claim();
     if (!job) return;
     if (job.user_id !== owner || job.branch_id !== childId)
@@ -619,9 +842,10 @@ async function forkComparison(
         'EVAL_STATE_INVALID',
         'The fork job belongs to another fixture.',
       );
+    const laterParentIds = new Set(parent.periods.slice(2).map((p) => p.id));
     if (
-      job.payload.narrativeContext?.memory.history.some(
-        (p) => p.periodId === parent.periods[2]!.id,
+      job.payload.narrativeContext?.memory.history.some((p) =>
+        laterParentIds.has(p.periodId),
       )
     )
       throw new DomainError(
@@ -630,12 +854,19 @@ async function forkComparison(
       );
     const caseId = `fork:${fixtureId}:${mode}:2`,
       guard = guardFor(caseId);
+    verifyTraceCoversCheckpointReceipts(
+      options.out,
+      { ...traceBinding, caseId },
+      job.checkpoints.receipts,
+      env,
+    );
     const localBudget = new DatabaseAiBudget(
       db,
       owner,
       job.id,
       { projectUsd: options.budgetUsd ?? 5, userUsd: options.budgetUsd ?? 5 },
       job.lease_token,
+      evaluationMaxRequestBytes(options),
     );
     const combined = guard ? combineAiGuards(guard, localBudget) : localBudget;
     const ai = new OpenAiProvider(
@@ -647,14 +878,22 @@ async function forkComparison(
         eventModel: options.models.event,
         storyModel: options.models.story,
         checkModel: options.models.check,
-        timeoutMs: 120000,
-        maxOutputTokens: 6500,
+        ...evaluationTimeouts(options),
+        maxOutputTokens: options.creative ? 12000 : 6500,
         guard: combined,
         ...(mode === 'narrative-v1'
           ? { beforePhysicalRequest: () => jobs.admitNarrativeRequest(job) }
           : {}),
       },
-      clientFor(options, env, job, caseId, transports),
+      clientFor(
+        options,
+        env,
+        job,
+        caseId,
+        transports,
+        traceBinding,
+        mockResponder,
+      ),
     );
     const heartbeat = setInterval(() => {
       void jobs.heartbeat(job).catch(() => {});
@@ -690,6 +929,12 @@ async function forkComparison(
     calls = transports.filter(
       (t) => t.caseId === `fork:${fixtureId}:${mode}:2`,
     );
+  verifyTraceCoversCheckpointReceipts(
+    options.out,
+    { ...traceBinding, caseId: `fork:${fixtureId}:${mode}:2` },
+    receipts,
+    env,
+  );
   const [artifact] = await db.query(
     'SELECT narrative_artifact FROM aw_periods WHERE id=$1 AND user_id=$2',
     [result.id, owner],
@@ -703,6 +948,9 @@ async function forkComparison(
       r.branchKind === 'fork'
     );
   });
+  report.failures = report.failures.filter(
+    (f) => f.caseId !== `fork:${fixtureId}:${mode}`,
+  );
   report.samples.push({
     id: sampleId,
     fixtureId,
@@ -732,7 +980,7 @@ async function forkComparison(
         ...mapping,
         label: chosen.label,
         description: chosen.description,
-        reviewed: !!override,
+        reviewed: !options.creativeOnly && !!override,
       },
     ],
     mock: options.kind !== 'paid',
@@ -742,6 +990,7 @@ async function forkComparison(
 async function runEvaluationUnlocked(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
+  mockResponder?: OfflineMockResponder,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
   if (options.kind === 'assess')
@@ -767,13 +1016,17 @@ async function runEvaluationUnlocked(
       'EVAL_OUTPUT_INVALID',
       'The output must be an empty or existing evaluation directory.',
     );
+  const projectHash =
+    options.kind === 'paid' ? hash(env.NARRATIVE_EVAL_PROJECT_ID) : null;
   const binding = hash({
     sourceHash: identity.sourceHash,
+    ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
+    ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
+    ...(options.noForks ? { noForks: true } : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
-    project:
-      options.kind === 'paid' ? hash(env.NARRATIVE_EVAL_PROJECT_ID) : null,
+    project: projectHash,
   });
   if (previous && previous.binding !== binding)
     throw new DomainError(
@@ -788,6 +1041,7 @@ async function runEvaluationUnlocked(
       sourceCommit: identity.commit,
       sourceHash: identity.sourceHash,
       mock: options.kind !== 'paid',
+      ...(options.noForks ? { noForks: true } : {}),
       models: options.models,
       priceEvidence: evaluationPriceEvidence,
     });
@@ -796,7 +1050,8 @@ async function runEvaluationUnlocked(
   if (
     prior &&
     (prior.sourceHash !== identity.sourceHash ||
-      prior.mock !== (options.kind !== 'paid'))
+      prior.mock !== (options.kind !== 'paid') ||
+      Boolean(prior.noForks) !== Boolean(options.noForks))
   )
     throw new DomainError(
       'EVAL_STATE_INVALID',
@@ -808,6 +1063,9 @@ async function runEvaluationUnlocked(
     sourceHash: identity.sourceHash,
     mock: options.kind !== 'paid',
     models: options.models,
+    ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
+    ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
+    ...(options.noForks ? { noForks: true as const } : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -815,6 +1073,14 @@ async function runEvaluationUnlocked(
     safetyProbe: safetyProbe(),
     complete: false,
     accounting: null,
+  };
+  const traceBinding: Omit<AttemptTraceBinding, 'caseId'> = {
+    sourceCommit: identity.commit,
+    sourceHash: identity.sourceHash,
+    manifestBinding: binding,
+    mock: options.kind !== 'paid',
+    models: options.models,
+    projectHash,
   };
   const overrides = options.choicesFile
     ? choiceOverrideSchema
@@ -852,6 +1118,8 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
+          evaluationApprovedCumulativeBudgetUsd,
+          evaluationMaxRequestBytes(options),
         )
       : undefined;
   try {
@@ -862,6 +1130,13 @@ async function runEvaluationUnlocked(
     const transports: TransportRecord[] =
       read<TransportRecord[]>(join(options.out, 'transport-records.json')) ??
       [];
+    verifyExistingEvaluationAttempts(
+      options.out,
+      traceBinding,
+      transports,
+      report.samples,
+      env,
+    );
     const caseGuard = (caseId: string) =>
       experiment
         ? {
@@ -879,7 +1154,9 @@ async function runEvaluationUnlocked(
         : undefined;
     let stop = false;
     for (const fixtureId of options.fixtureIds)
-      for (const mode of ['legacy', 'narrative-v1'] as const) {
+      for (const mode of options.creativeOnly
+        ? (['narrative-v1'] as const)
+        : (['legacy', 'narrative-v1'] as const)) {
         if (stop) break;
         const profile = narrativeProfiles.find((p) => p.id === fixtureId)!,
           caseId = `${fixtureId}:${mode}`,
@@ -902,7 +1179,12 @@ async function runEvaluationUnlocked(
               db,
               { daily: 100, concurrent: 10 },
               {
-                mode: mode === 'legacy' ? 'legacy' : 'narrative-v1',
+                mode:
+                  mode === 'legacy'
+                    ? 'legacy'
+                    : options.creative
+                      ? 'narrative-fiction-v2'
+                      : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
               },
             );
@@ -937,11 +1219,13 @@ async function runEvaluationUnlocked(
                       o.branchKind === 'main',
                   );
                 try {
-                  const mapping = selectEvaluationChoice(
-                    decision.options,
-                    intent,
-                    override,
-                  );
+                  const mapping = options.creativeOnly
+                    ? diagnosticChoice(decision.options, intent)
+                    : selectEvaluationChoice(
+                        decision.options,
+                        intent,
+                        override,
+                      );
                   report.choiceReviewRequests =
                     report.choiceReviewRequests.filter((raw) => {
                       const r = raw as Record<string, unknown>;
@@ -964,7 +1248,7 @@ async function runEvaluationUnlocked(
                       mode,
                       periodIndex: periodIndex - 1,
                       branchKind: 'main',
-                      reviewed: !!override,
+                      reviewed: !options.creativeOnly && !!override,
                       label: decision.options.find(
                         (o) => o.id === mapping.optionId,
                       )!.label,
@@ -1020,6 +1304,17 @@ async function runEvaluationUnlocked(
                 before.branch.status === 'failed' &&
                 before.job?.retryAvailable
               ) {
+                const [priorJob] = await db.query<LifeJob>(
+                  'SELECT * FROM aw_jobs WHERE id=$1 AND user_id=$2',
+                  [before.job.id, owner],
+                );
+                if (priorJob)
+                  verifyTraceCoversCheckpointReceipts(
+                    options.out,
+                    { ...traceBinding, caseId: `${caseId}:${periodIndex}` },
+                    priorJob.checkpoints.receipts,
+                    env,
+                  );
                 await lives.retry(
                   owner,
                   before.job.id,
@@ -1036,6 +1331,12 @@ async function runEvaluationUnlocked(
                   'EVAL_STATE_INVALID',
                   'The claimed job differs from the selected fixture.',
                 );
+              verifyTraceCoversCheckpointReceipts(
+                options.out,
+                { ...traceBinding, caseId: `${caseId}:${periodIndex}` },
+                job.checkpoints.receipts,
+                env,
+              );
               const physical = () => jobs.admitNarrativeRequest(job);
               const localBudget = new DatabaseAiBudget(
                 db,
@@ -1046,6 +1347,7 @@ async function runEvaluationUnlocked(
                   userUsd: options.budgetUsd ?? 5,
                 },
                 job.lease_token,
+                evaluationMaxRequestBytes(options),
               );
               const guard = experiment
                 ? combineAiGuards(
@@ -1062,8 +1364,8 @@ async function runEvaluationUnlocked(
                   eventModel: options.models.event,
                   storyModel: options.models.story,
                   checkModel: options.models.check,
-                  timeoutMs: 120000,
-                  maxOutputTokens: 6500,
+                  ...evaluationTimeouts(options),
+                  maxOutputTokens: options.creative ? 12000 : 6500,
                   guard,
                   ...(mode === 'narrative-v1'
                     ? { beforePhysicalRequest: physical }
@@ -1075,6 +1377,8 @@ async function runEvaluationUnlocked(
                   job,
                   `${caseId}:${periodIndex}`,
                   transports,
+                  traceBinding,
+                  mockResponder,
                 ),
               );
               const heartbeat = setInterval(() => {
@@ -1094,12 +1398,7 @@ async function runEvaluationUnlocked(
                   chapter: saved?.checkpoints.chapter ?? null,
                   editorialReport: saved?.checkpoints.editorialReport ?? null,
                 });
-                if (
-                  ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-                    code(error),
-                  )
-                )
-                  stop = true;
+                if (shouldStopEvaluation(error, options)) stop = true;
                 break;
               } finally {
                 clearInterval(heartbeat);
@@ -1127,12 +1426,21 @@ async function runEvaluationUnlocked(
               ),
               completed.checkpoints.receiptOrder,
             );
+            verifyTraceCoversCheckpointReceipts(
+              options.out,
+              { ...traceBinding, caseId: `${caseId}:${periodIndex}` },
+              receipts,
+              env,
+            );
             const [artifact] = await db.query(
               'SELECT narrative_artifact FROM aw_periods WHERE id=$1 AND user_id=$2',
               [period.id, owner],
             );
             const caseTransports = transports.filter(
               (t) => t.caseId === `${caseId}:${periodIndex}`,
+            );
+            report.failures = report.failures.filter(
+              (f) => f.caseId !== `${caseId}:${periodIndex}`,
             );
             report.samples.push({
               id: sampleId,
@@ -1167,8 +1475,13 @@ async function runEvaluationUnlocked(
           }
           if (
             !stop &&
-            options.periods === 3 &&
-            ['bounded-career', 'career-transition'].includes(fixtureId)
+            !options.noForks &&
+            options.periods >= 3 &&
+            (['bounded-career', 'career-transition'].includes(fixtureId) ||
+              (options.creativeOnly &&
+                (options.fixtureIds[0] === fixtureId ||
+                  (options.fixtureIds.length <= 2 &&
+                    fixtureId === 'creative-portfolio'))))
           ) {
             try {
               await forkComparison(
@@ -1185,6 +1498,8 @@ async function runEvaluationUnlocked(
                 overrides,
                 transports,
                 caseGuard,
+                traceBinding,
+                mockResponder,
               );
             } catch (error) {
               report.failures.push({
@@ -1193,12 +1508,7 @@ async function runEvaluationUnlocked(
                 chapter: null,
                 editorialReport: null,
               });
-              if (
-                ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-                  code(error),
-                )
-              )
-                stop = true;
+              if (shouldStopEvaluation(error, options)) stop = true;
             }
           }
         } finally {
@@ -1206,7 +1516,7 @@ async function runEvaluationUnlocked(
         }
         await save(reportPath, report);
       }
-    if (!stop)
+    if (!stop && !options.creativeOnly)
       for (const fixtureId of options.fixtureIds) {
         try {
           await fixedCanonComparison(
@@ -1216,6 +1526,8 @@ async function runEvaluationUnlocked(
             report,
             transports,
             caseGuard,
+            traceBinding,
+            mockResponder,
           );
         } catch (error) {
           const state = read<{ responses: Record<string, AiResult<unknown>> }>(
@@ -1230,12 +1542,7 @@ async function runEvaluationUnlocked(
               null,
             editorialReport: state?.responses.editor?.output ?? null,
           });
-          if (
-            ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(
-              code(error),
-            )
-          )
-            break;
+          if (shouldStopEvaluation(error, options)) break;
         }
       }
     for (const sample of report.samples) {
@@ -1251,7 +1558,7 @@ async function runEvaluationUnlocked(
             o.periodIndex === periodIndex &&
             o.branchKind === branchKind,
         );
-        if (!override) return stored;
+        if (!override || options.creativeOnly) return stored;
         if (
           override.decisionHash !== stored.decisionHash ||
           override.optionId !== stored.optionId ||
@@ -1266,6 +1573,7 @@ async function runEvaluationUnlocked(
       });
     }
     report.complete =
+      !options.creativeOnly &&
       report.samples.filter((s) => s.kind === 'full').length === 8 * 3 * 2 &&
       report.samples.filter((s) => s.kind === 'fixed-canon').length === 8 * 2 &&
       report.samples.filter((s) => s.kind === 'fork').length === 2 * 2 &&
@@ -1284,6 +1592,19 @@ async function runEvaluationUnlocked(
         identity.sourceHash,
       );
     }
+    verifyExistingEvaluationAttempts(
+      options.out,
+      traceBinding,
+      transports,
+      report.samples,
+      env,
+    );
+    const sequenceOut = await writeCreativeSequenceArtifacts(report, options);
+    if (sequenceOut) {
+      report.sequenceBundles = sequenceOut.bundles;
+      report.sequenceBundleFiles = sequenceOut.files;
+      report.sequenceAssessment = sequenceOut.assessment;
+    }
     await save(reportPath, report);
     return report;
   } finally {
@@ -1296,6 +1617,7 @@ async function runEvaluationUnlocked(
 export async function runNarrativeEvaluation(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
+  mockResponder?: OfflineMockResponder,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
   if (existsSync(options.out) && lstatSync(options.out).isSymbolicLink())
@@ -1330,7 +1652,7 @@ export async function runNarrativeEvaluation(
       );
       await handle.close();
     }
-    return await runEvaluationUnlocked(options, env);
+    return await runEvaluationUnlocked(options, env, mockResponder);
   } finally {
     for (const path of acquired.reverse()) await unlink(path);
   }

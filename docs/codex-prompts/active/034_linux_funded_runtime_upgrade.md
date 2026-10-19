@@ -190,6 +190,16 @@ Inspect at minimum, if still present on current `main`:
 - prompt-policy revision compatibility for stored/frozen narrative jobs
 - recovery readers/replayers of narrative artifacts and queue snapshots
 
+### Narrative runtime configuration added after prompt creation (2026-10-19)
+
+`deploy/compose.yaml` now forwards `NARRATIVE_PIPELINE_MODE` (default `legacy`) and `NARRATIVE_COHORT_USER_IDS` (default empty) to api/worker, and `AI_FICTION_TIMEOUT_MS` (default 180000) plus `AI_FICTION_MAX_REQUEST_BYTES` (default 100000, bound 100000–196608, narrative jobs only) to the worker. Consequences for this task:
+
+- the rendered compose of the candidate differs from the active funded render by these added keys, so the upgrade is not image-only; accept exactly these keys and only at their defaults, with every funded environment byte otherwise unchanged;
+- enabling a cohort or raising the deadline/envelope is a later, separately authorized configuration step with its own prepare/apply/readback, not part of the image/schema upgrade;
+- `validate_owner_configuration` refuses a non-legacy mode or non-empty cohort for owner-only renders.
+
+See `docs/operations/NARRATIVE_RELEASE_HU.md` (Narratív runtime konfiguráció).
+
 ### Tests
 
 Inspect existing operator, fixture, recovery, backup, writer-fence and narrative-recovery tests and extend the existing test architecture rather than creating an unrelated parallel test framework.

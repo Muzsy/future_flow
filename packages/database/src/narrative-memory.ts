@@ -13,7 +13,7 @@ import type { Database } from './index';
 import { ownedNarrativeReferences } from './narrative-artifact';
 
 export type NarrativeConfig = Readonly<{
-  mode: 'legacy' | 'context' | 'narrative-v1';
+  mode: 'legacy' | 'context' | 'narrative-v1' | 'narrative-fiction-v2';
   cohortUserIds: readonly string[];
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
@@ -24,7 +24,12 @@ export function narrativeConfigFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): NarrativeConfig {
   const mode = env.NARRATIVE_PIPELINE_MODE ?? 'legacy';
-  if (mode !== 'legacy' && mode !== 'context' && mode !== 'narrative-v1')
+  if (
+    mode !== 'legacy' &&
+    mode !== 'context' &&
+    mode !== 'narrative-v1' &&
+    mode !== 'narrative-fiction-v2'
+  )
     throw new DomainError(
       'NARRATIVE_CONFIG_INVALID',
       'Unsupported narrative pipeline mode.',
@@ -122,7 +127,7 @@ export async function personalNarrativeMemory(
       "SELECT to_regclass('public.aw_initial_choices') IS NOT NULL AS present",
     );
     choices = await tx.query<Record<string, unknown> & ChoiceRow>(
-      `SELECT decision_id,option_id,payload,created_at FROM (SELECT decision_id,option_id,payload,created_at FROM aw_choices WHERE branch_id=$1 AND user_id=$2 ${initial?.present ? 'UNION ALL SELECT c.decision_id,c.option_id,c.payload,c.created_at FROM aw_initial_choices c JOIN aw_branches b ON b.life_id=c.life_id AND b.user_id=c.user_id WHERE b.id=$1 AND c.user_id=$2' : ''}) q WHERE decision_id=ANY($3::uuid[]) ORDER BY created_at DESC,decision_id DESC LIMIT 10`,
+      `SELECT decision_id,option_id,payload,created_at FROM (SELECT c.decision_id,c.option_id,c.payload,c.created_at,h.position AS decision_position FROM aw_choices c JOIN aw_history h ON h.branch_id=c.branch_id AND h.user_id=c.user_id AND h.period_id=c.period_id WHERE c.branch_id=$1 AND c.user_id=$2 ${initial?.present ? 'UNION ALL SELECT c.decision_id,c.option_id,c.payload,c.created_at,-1 AS decision_position FROM aw_initial_choices c JOIN aw_branches b ON b.life_id=c.life_id AND b.user_id=c.user_id WHERE b.id=$1 AND c.user_id=$2' : ''}) q WHERE decision_id=ANY($3::uuid[]) ORDER BY decision_position DESC,created_at DESC,decision_id DESC LIMIT 10`,
       [branchId, userId, acceptedDecisionIds],
     );
   }
@@ -131,6 +136,18 @@ export async function personalNarrativeMemory(
   const threads = new Map<string, NarrativeMemory['openThreads'][number]>();
   const actors = new Map<string, NarrativeMemory['fictionalActors'][number]>();
   const patterns: string[] = [];
+  // Invented actors who left the story (actor_remove) no longer occupy memory.
+  let presentActorIds: Set<string> | null = null;
+  if (narrative && !withheld) {
+    const [latest] = await tx.query<{
+      end_state: { actors?: { id: string }[] } | null;
+    }>(
+      'SELECT p.end_state FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 1',
+      [branchId, userId],
+    );
+    if (latest?.end_state?.actors)
+      presentActorIds = new Set(latest.end_state.actors.map((a) => a.id));
+  }
   if (narrative && !withheld) {
     const references = await ownedNarrativeReferences(tx, userId, branchId);
     const rows = await tx.query<{ period_id: string; delta: unknown }>(
@@ -208,7 +225,9 @@ export async function personalNarrativeMemory(
       };
     }),
     openThreads: [...threads.values()],
-    fictionalActors: [...actors.values()].slice(-12),
+    fictionalActors: [...actors.values()]
+      .filter((actor) => !presentActorIds || presentActorIds.has(actor.actorId))
+      .slice(-12),
     recentDecisionPatterns: patterns.slice(-4),
     withheld,
   });

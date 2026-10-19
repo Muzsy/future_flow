@@ -1,0 +1,137 @@
+{
+  "$id": "urn:alterward:fiction:policy:2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "mode": {
+      "type": "string",
+      "const": "narrative-fiction-v2"
+    },
+    "promptVersions": {
+      "type": "object",
+      "properties": {
+        "planner": {
+          "type": "string",
+          "enum": [
+            "life_fiction_plan.v1",
+            "life_fiction_plan.v2",
+            "life_fiction_plan.v3",
+            "life_fiction_plan.v4",
+            "life_fiction_plan.v5",
+            "life_fiction_plan.v6",
+            "life_fiction_plan.v7",
+            "life_fiction_plan.v8"
+          ]
+        },
+        "writer": {
+          "type": "string",
+          "enum": [
+            "life_fiction_author.v1",
+            "life_fiction_author.v2",
+            "life_fiction_author.v3",
+            "life_fiction_author.v4",
+            "life_fiction_author.v5",
+            "life_fiction_author.v6",
+            "life_fiction_author.v7",
+            "life_fiction_author.v8"
+          ]
+        },
+        "planReviewer": {
+          "type": "string",
+          "enum": [
+            "life_fiction_plan_review.v1",
+            "life_fiction_plan_review.v2",
+            "life_fiction_plan_review.v3",
+            "life_fiction_plan_review.v4",
+            "life_fiction_plan_review.v5",
+            "life_fiction_plan_review.v6",
+            "life_fiction_plan_review.v7",
+            "life_fiction_plan_review.v8"
+          ]
+        },
+        "fidelity": {
+          "type": "string",
+          "const": "life_fiction_fidelity.v1"
+        },
+        "editor": {
+          "type": "string",
+          "enum": [
+            "life_fiction_editor.v1",
+            "life_fiction_editor.v2",
+            "life_fiction_editor.v3",
+            "life_fiction_editor.v4",
+            "life_fiction_editor.v5",
+            "life_fiction_editor.v6",
+            "life_fiction_editor.v7"
+          ]
+        }
+      },
+      "required": [
+        "planner",
+        "writer",
+        "planReviewer",
+        "fidelity",
+        "editor"
+      ],
+      "additionalProperties": false
+    },
+    "memoryVersion": {
+      "type": "string",
+      "const": "2.0.0"
+    },
+    "qualityPolicyVersion": {
+      "type": "string",
+      "enum": [
+        "2.0.0",
+        "2.1.0",
+        "2.2.0",
+        "2.3.0",
+        "2.4.0",
+        "2.5.0",
+        "2.6.0",
+        "2.7.0"
+      ]
+    },
+    "maxPhysicalRequests": {
+      "type": "number",
+      "const": 9
+    },
+    "maxContentRepairs": {
+      "type": "number",
+      "const": 1
+    },
+    "targetWords": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number",
+          "const": 650
+        },
+        "max": {
+          "type": "number",
+          "const": 950
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "mode",
+    "promptVersions",
+    "memoryVersion",
+    "qualityPolicyVersion",
+    "maxPhysicalRequests",
+    "maxContentRepairs",
+    "targetWords"
+  ],
+  "additionalProperties": false
+}

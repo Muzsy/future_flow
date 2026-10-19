@@ -23,6 +23,8 @@ export * from './life-v2';
 export * from './narrative';
 export * from './narrative-requests';
 export * from './narrative-runtime';
+export * from './fiction-series';
+export * from './fiction-casting';
 export function hash(value: unknown): string {
   const normalize = (item: unknown): unknown => {
     if (Array.isArray(item)) return item.map(normalize);
@@ -273,3 +275,5 @@ export * from './shared-ai';
 export * from './shared-personal';
 export * from './publication';
 export * from './official-publication';
+
+export * from './fiction';

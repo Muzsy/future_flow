@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-18
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -38,8 +38,12 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | backup | `operations/BACKUP_HU.md` | `CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md` és retention runbookok |
 | recovery | `operations/RECOVERY_HU.md` | restore/privacy/writer-fence runbookok |
 | security operations | `operations/SECURITY_OPERATIONS_HU.md` | privacy catalog, writer fence, monitor docs |
-| személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
+| személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `plans/046_fiction_v7_narrative_economy.md`; `plans/047_fiction_v8_series_evidence.md`; `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
+
+## Aktív történetminőségi munka
+
+A jelenlegi végrehajtási terv a [045 v6](plans/045_fiction_v6_earned_life_evolution.md), a PR #50/quality2.5 mért checkpointként beolvadt (`f755a57`); a következő, verziózott jelölt a [046 v7](plans/046_fiction_v7_narrative_economy.md) (quality2.6, offline ellenőrzött, valódi mérés nélkül). A hasonló045-ös nevű [v5 terv](plans/045_fiction_v4_1_real_quality_iteration.md) korábbi mérési bizonyíték; nem a mostani feladat vagy költségengedély. Állapot és maradék: [STATUS](STATUS_HU.md); futtatás és emberi audit: [mérési runbook](operations/NARRATIVE_EVALUATION_HU.md); kiadás: [release runbook](operations/NARRATIVE_RELEASE_HU.md). A v7 mérése utáni, költségmentesen ellenőrzött v8 jelölt (quality2.7, determinisztikus sorozatnapló és névpaletta): [047](plans/047_fiction_v8_series_evidence.md).
 
 ## Leváltott fő dokumentumok
 
