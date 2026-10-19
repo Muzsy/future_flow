@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   fictionPolicy,
@@ -17,6 +20,7 @@ import {
   fictionSeriesLedgerFrom,
   seriesClosingSentence,
   seriesEchoFindings,
+  seriesEchoFlags,
   seriesNameCandidates,
   seriesRepeatedOpenings,
   seriesRepeatedPhrases,
@@ -28,6 +32,11 @@ import {
   auditSequences,
   narrativeSeriesAudit,
 } from '../scripts/lib/narrative-series-audit';
+import {
+  codexChildEnv,
+  codexLocalResponder,
+} from '../scripts/lib/narrative-evaluation-codex';
+import { evaluateNarrativeWithCodex } from '../scripts/evaluate-narrative-codex';
 import { fictionFixture } from './fiction-fixtures';
 
 const sha = (v: string) => createHash('sha256').update(v).digest('hex');
@@ -155,6 +164,45 @@ describe('deterministic series evidence', () => {
         ledger,
       ),
     ).toEqual([]);
+  });
+  it('counts clause openings after a dash, colon or quote and flags within-chapter tics', () => {
+    const body =
+      'You wait — neither of you moves. She says: "Neither of you planned this." ' +
+      'Neither of you speaks again.';
+    const findings = seriesEchoFindings(body, {
+      repeatedOpenings: [],
+      repeatedPhrases: [],
+    });
+    expect(findings).toEqual([
+      {
+        kind: 'within',
+        text: 'neither of you',
+        priorChapters: 0,
+        occurrences: 3,
+      },
+    ]);
+    expect(seriesEchoFlags(findings)).toBe(true);
+  });
+  it('flags reuse by the same rule the v8 editor is given', () => {
+    const one = (priorChapters: number, occurrences: number) => ({
+      kind: 'opening' as const,
+      text: 'there is no',
+      priorChapters,
+      occurrences,
+    });
+    expect(seriesEchoFlags([])).toBe(false);
+    expect(seriesEchoFlags([one(2, 1)])).toBe(false);
+    expect(seriesEchoFlags([one(3, 1)])).toBe(true);
+    expect(seriesEchoFlags([one(2, 2)])).toBe(true);
+    expect(
+      seriesEchoFlags([one(2, 1), { ...one(2, 1), text: 'you read the' }]),
+    ).toBe(true);
+  });
+  it('drops interface labels and words that also occur in lowercase', () => {
+    const names = seriesNameCandidates(
+      'You click "Cancel" and then "Delete". Orla laughs. You should go, and you fold the page while Orla Kavanagh waits. "Should we?" asks Declan.',
+    );
+    expect(names).toEqual(['Orla Kavanagh', 'Declan']);
   });
   it('extracts closing sentences and person-like names deterministically', () => {
     expect(seriesClosingSentence(v7Like(1))).toBe(
@@ -388,8 +436,7 @@ describe('offline series audit over stored runs', () => {
     expect(audit.chaptersFlaggedByEcho).toBeGreaterThanOrEqual(2);
     expect(audit.names[0]).toEqual({ name: 'Niamh Byrne', chapters: 4 });
     expect(
-      audit.privateLife.find((p) => p.label.includes('sister'))!
-        .chaptersMentioned,
+      audit.privateLife.find((p) => p.label.includes('sister'))!.chaptersByRole,
     ).toBe(0);
   });
   it('detects cross-run name and phrase convergence', () => {
@@ -401,5 +448,98 @@ describe('offline series audit over stored runs', () => {
     expect(cross.sharedRecurringPhrases.length).toBeGreaterThan(0);
     expect(cross.sameProfileOverlap.length).toBe(3);
     expect(narrativeSeriesAudit(runs).version).toBe('1.0.0');
+  });
+});
+
+describe('local Codex development transport', () => {
+  it('never hands an API key or ledger credential to the Codex child', () => {
+    const env = codexChildEnv({
+      PATH: '/usr/bin',
+      HOME: '/home/x',
+      OPENAI_API_KEY: 'secret',
+      OPENAI_PROJECT: 'p',
+      CODEX_API_KEY: 'secret',
+      NARRATIVE_EVAL_API_KEY: 'secret',
+      NARRATIVE_EVAL_PROJECT_ID: 'p',
+    });
+    expect(env).toEqual({ PATH: '/usr/bin', HOME: '/home/x' });
+  });
+  it('passes the exact system prompt, request and strict schema to codex exec', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'fake-codex-'));
+    const bin = join(dir, 'codex');
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const out = args[args.indexOf('--output-last-message') + 1];
+const schema = fs.readFileSync(args[args.indexOf('--output-schema') + 1], 'utf8');
+const stdin = fs.readFileSync(0, 'utf8');
+fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, cwd: process.cwd(), key: process.env.OPENAI_API_KEY ?? null }));
+`,
+    );
+    chmodSync(bin, 0o755);
+    const previous = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = 'must-not-leak';
+    try {
+      const respond = codexLocalResponder({
+        bin,
+        model: 'gpt-6.1-sol',
+        reasoningEffort: 'low',
+        timeoutMs: 20000,
+      });
+      const result = (await respond({
+        caseId: 'c',
+        task: 'life_narrative_editor',
+        model: 'gpt-6.1-sol',
+        ordinal: 0,
+        parameters: {
+          model: 'gpt-6.1-sol',
+          input: [
+            { role: 'system', content: 'SYSTEM TEXT' },
+            { role: 'user', content: '{"a":1}' },
+          ],
+          text: {
+            format: { name: 'x', schema: { type: 'object' } } as never,
+          },
+        },
+        job: {} as never,
+        defaultOutput: () => null,
+      })) as {
+        args: string[];
+        schema: unknown;
+        stdin: string;
+        cwd: string;
+        key: string | null;
+      };
+      expect(result.key).toBeNull();
+      expect(result.schema).toEqual({ type: 'object' });
+      expect(result.stdin).toContain('SYSTEM TEXT');
+      expect(result.stdin).toContain('{"a":1}');
+      expect(result.args).toEqual(
+        expect.arrayContaining([
+          'exec',
+          '--ephemeral',
+          '--sandbox',
+          'read-only',
+          '--model',
+          'gpt-6.1-sol',
+          'model_reasoning_effort="low"',
+        ]),
+      );
+      expect(result.cwd).toContain('alterward-codex-');
+    } finally {
+      if (previous === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previous;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  it('refuses paid options', async () => {
+    await expect(
+      evaluateNarrativeWithCodex(['--mode', 'paid'], {}),
+    ).rejects.toThrow();
+    await expect(
+      evaluateNarrativeWithCodex(['--allow-paid', '--creative-only'], {}),
+    ).rejects.toThrow();
   });
 });

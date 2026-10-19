@@ -36,6 +36,21 @@ export function seriesOpeningStem(sentence: string, size = 3) {
   return words.length > size ? words.slice(0, size).join(' ') : null;
 }
 
+// Clause starts count as openings too: v7's "Neither of you…" often followed
+// a dash, colon or an opening quote rather than a full stop.
+export function seriesClauses(sentence: string) {
+  return sentence
+    .split(/\s*[;:—–]\s+|\s+[—–]\s*|\s+(?=["“‘«]\p{Lu})/u)
+    .map((c) => c.replace(/^["“‘«(]+/u, '').trim())
+    .filter(Boolean);
+}
+
+function openingStems(body: string) {
+  return seriesSentences(body).flatMap((s) =>
+    seriesClauses(s).flatMap((c) => seriesOpeningStem(c) ?? []),
+  );
+}
+
 function ngrams(words: string[], size: number) {
   const out: string[] = [];
   for (let i = 0; i + size <= words.length; i++)
@@ -69,19 +84,14 @@ function tally(chapters: string[][]) {
   }));
 }
 
-// Sentence-initial three-word stems that recur across chapters, e.g. the
-// v7 "Neither of you…" tic. Counting is evidence, never a quota.
+// Sentence- and clause-initial three-word stems that recur across chapters,
+// e.g. the v7 "Neither of you…" tic. Counting is evidence, never a quota.
 export function seriesRepeatedOpenings(
   chapters: SeriesChapter[],
   limit = 6,
 ): SeriesEcho[] {
-  const minChapters = 2;
-  return tally(
-    chapters.map((c) =>
-      seriesSentences(c.body).flatMap((s) => seriesOpeningStem(s) ?? []),
-    ),
-  )
-    .filter((e) => e.chapters >= minChapters && e.count >= 3)
+  return tally(chapters.map((c) => openingStems(c.body)))
+    .filter((e) => e.chapters >= 2 && e.count >= 2)
     .sort(rank)
     .slice(0, limit);
 }
@@ -128,19 +138,20 @@ export function seriesClosingSentence(body: string, max = 200) {
 }
 
 export type SeriesEchoFinding = {
-  kind: 'opening' | 'phrase';
+  kind: 'opening' | 'phrase' | 'within';
   text: string;
   priorChapters: number;
   occurrences: number;
 };
 
-// Which already-recurring wording does THIS chapter reuse again?
+// Which already-recurring wording does THIS chapter reuse again, and which
+// opening does it repeat three or more times on its own?
 export function seriesEchoFindings(
   body: string,
   ledger: { repeatedOpenings: SeriesEcho[]; repeatedPhrases: SeriesEcho[] },
 ): SeriesEchoFinding[] {
   const sentences = seriesSentences(body);
-  const stems = sentences.flatMap((s) => seriesOpeningStem(s) ?? []);
+  const stems = openingStems(body);
   const text = ` ${sentences.map((s) => seriesWords(s).join(' ')).join(' | ')} `;
   const findings: SeriesEchoFinding[] = [];
   for (const e of ledger.repeatedOpenings) {
@@ -163,7 +174,29 @@ export function seriesEchoFindings(
         occurrences,
       });
   }
-  return findings;
+  const known = new Set(findings.map((f) => f.text));
+  for (const e of tally([stems]))
+    if (e.count >= 3 && !known.has(e.text))
+      findings.push({
+        kind: 'within',
+        text: e.text,
+        priorChapters: 0,
+        occurrences: e.count,
+      });
+  return findings.slice(0, 12);
+}
+
+// The quality2.7 editor rule, also used by the offline audit: a chapter is
+// flagged when it reuses wording already seen in three or more earlier
+// chapters, reuses any recurring wording twice, reuses two different ones,
+// or repeats one opening three times within itself.
+export function seriesEchoFlags(findings: readonly SeriesEchoFinding[]) {
+  const reused = findings.filter((f) => f.kind !== 'within');
+  return (
+    reused.some((f) => f.priorChapters >= 3 || f.occurrences >= 2) ||
+    reused.length >= 2 ||
+    findings.some((f) => f.kind === 'within')
+  );
 }
 
 const nonNames = new Set(
@@ -177,24 +210,36 @@ const nonNames = new Set(
 );
 
 // Heuristic person-like names for the OFFLINE audit only: capitalized words
-// that are not sentence-initial, joined into two-word names where adjacent.
+// that are not clause-initial and never occur in lowercase in the same text,
+// joined into two-word names where adjacent. Quoted UI labels are dropped.
 export function seriesNameCandidates(body: string) {
+  const lower = new Set(
+    (body.match(/[\p{Ll}][\p{L}'’-]*/gu) ?? []).map((w) => w.toLowerCase()),
+  );
+  const unquoted = body.replace(/["“'‘][^"”'’\n]{1,30}["”'’]/gu, ' ');
   const names: string[] = [];
-  for (const sentence of seriesSentences(body)) {
-    const tokens = sentence.match(/[\p{L}][\p{L}'’-]*/gu) ?? [];
-    let run: string[] = [];
-    const flush = () => {
-      if (run.length) names.push(run.slice(0, 2).join(' '));
-      run = [];
-    };
-    tokens.forEach((token, index) => {
-      const capital = /^\p{Lu}\p{Ll}/u.test(token);
-      if (index > 0 && capital && !nonNames.has(token.toLocaleLowerCase('en')))
-        run.push(token.replace(/['’]s$/, ''));
-      else flush();
-    });
-    flush();
-  }
+  for (const sentence of seriesSentences(unquoted))
+    for (const clause of seriesClauses(sentence)) {
+      const tokens = clause.match(/[\p{L}][\p{L}'’-]*/gu) ?? [];
+      let run: string[] = [];
+      const flush = () => {
+        if (run.length) names.push(run.slice(0, 2).join(' '));
+        run = [];
+      };
+      tokens.forEach((token, index) => {
+        const bare = token.replace(/['’]s$/, '');
+        const key = bare.toLocaleLowerCase('en');
+        if (
+          index > 0 &&
+          /^\p{Lu}\p{Ll}/u.test(bare) &&
+          !nonNames.has(key) &&
+          !lower.has(key)
+        )
+          run.push(bare);
+        else flush();
+      });
+      flush();
+    }
   return names;
 }
 

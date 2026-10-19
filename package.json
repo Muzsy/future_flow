@@ -44,6 +44,7 @@
     "smoke:shared:auth": "pnpm build:packages && pnpm --filter @future-flow/api build && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-shared-authenticated.ts",
     "evaluate:claude": "tsx --env-file-if-exists=.env scripts/evaluate-claude.ts",
     "narrative:audit": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-series-audit.ts",
+    "narrative:codex": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/evaluate-narrative-codex.ts",
     "docs:check": "tsx --tsconfig tsconfig.scripts.json scripts/verify-docs.ts",
     "schemas": "pnpm --filter @future-flow/contracts schemas",
     "format": "prettier --write apps packages scripts tests deploy \"*.json\" \"*.ts\" \"*.yaml\" .github",

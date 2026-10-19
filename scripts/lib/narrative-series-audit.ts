@@ -1,6 +1,7 @@
 import {
   seriesClosingSentence,
   seriesEchoFindings,
+  seriesEchoFlags,
   seriesLexicalOverlap,
   seriesNameCandidates,
   seriesRepeatedOpenings,
@@ -59,19 +60,38 @@ export function auditSequences(runs: AuditRun[]): AuditSequence[] {
 }
 
 const roleNoise = new Set(['fictional', 'older', 'younger', 'school']);
+const roleWords = new Set([
+  'partner',
+  'father',
+  'mother',
+  'sister',
+  'brother',
+  'flatmate',
+  'friend',
+  'aunt',
+  'neighbour',
+  'companion',
+  'cousin',
+  'grandmother',
+]);
 // Role words and given names from the profile labels; heuristic, prose-only.
+// A bare role word ("your friend") is counted apart from the person's name.
 export function privateLifeKeywords(fixtureId: string) {
   const profile = narrativeProfiles.find((p) => p.id === fixtureId);
-  return (profile?.relationships ?? []).map((r) => ({
-    label: r.label,
-    keywords: seriesWords(r.label).filter((w) => !roleNoise.has(w)),
-  }));
+  return (profile?.relationships ?? []).map((r) => {
+    const words = seriesWords(r.label).filter((w) => !roleNoise.has(w));
+    return {
+      label: r.label,
+      roles: words.filter((w) => roleWords.has(w)),
+      names: words.filter((w) => !roleWords.has(w)),
+    };
+  });
 }
 
 export function auditSequence(sequence: AuditSequence) {
   const chapters: SeriesChapter[] = sequence.chapters;
   // What a quality2.7 editor would have been shown: each chapter against the
-  // ledger of the chapters before it.
+  // ledger of the chapters before it, judged by the same flag rule.
   const perChapterEchoes = sequence.chapters.map((chapter, index) => {
     const prior = chapters.slice(0, index);
     const findings = seriesEchoFindings(chapter.body, {
@@ -80,18 +100,23 @@ export function auditSequence(sequence: AuditSequence) {
     });
     return {
       periodIndex: chapter.periodIndex,
-      findings: findings.length,
-      wouldFlag:
-        findings.some((f) => f.occurrences >= 2) || findings.length >= 2,
+      findings,
+      wouldFlag: seriesEchoFlags(findings),
     };
   });
   const names = new Map<string, Set<number>>();
-  sequence.chapters.forEach((c) =>
-    seriesNameCandidates(c.body).forEach((n) =>
-      names.set(n, (names.get(n) ?? new Set()).add(c.periodIndex)),
-    ),
-  );
+  const counts = new Map<string, number>();
+  for (const c of sequence.chapters)
+    for (const n of seriesNameCandidates(c.body)) {
+      names.set(n, (names.get(n) ?? new Set()).add(c.periodIndex));
+      counts.set(n, (counts.get(n) ?? 0) + 1);
+    }
   const closings = sequence.chapters.map((c) => seriesClosingSentence(c.body));
+  const chaptersWith = (keys: string[]) =>
+    sequence.chapters.filter((c) => {
+      const words = new Set(seriesWords(c.body));
+      return keys.some((k) => words.has(k));
+    }).length;
   return {
     id: sequence.id,
     chapters: sequence.chapters.length,
@@ -106,16 +131,16 @@ export function auditSequence(sequence: AuditSequence) {
           Math.max(1, closings.length)) *
           10,
       ) / 10,
+    // A name counts once it occurs at least twice in the sequence.
     names: [...names.entries()]
+      .filter(([name]) => (counts.get(name) ?? 0) >= 2)
       .map(([name, set]) => ({ name, chapters: set.size }))
       .sort((a, b) => b.chapters - a.chapters || a.name.localeCompare(b.name))
       .slice(0, 15),
     privateLife: privateLifeKeywords(sequence.fixtureId).map((r) => ({
       label: r.label,
-      chaptersMentioned: sequence.chapters.filter((c) => {
-        const words = new Set(seriesWords(c.body));
-        return r.keywords.some((k) => words.has(k));
-      }).length,
+      chaptersByName: chaptersWith(r.names),
+      chaptersByRole: chaptersWith(r.roles),
     })),
     sentencesPerChapter:
       Math.round(
@@ -197,12 +222,12 @@ export function auditMarkdown(audit: ReturnType<typeof narrativeSeriesAudit>) {
   for (const s of audit.sequences) {
     lines.push('', `## ${s.id} (${s.chapters} chapters)`, '');
     lines.push(
-      `- Echo-flagged chapters (v8 editor evidence): ${s.chaptersFlaggedByEcho}/${s.chapters}`,
+      `- Echo-flagged chapters (v8 editor rule): ${s.chaptersFlaggedByEcho}/${s.chapters} (${s.perChapterEchoes.map((e) => `ch${e.periodIndex + 1}: ${e.findings.map((f) => `${f.kind} "${f.text}" ×${f.occurrences}`).join('; ') || '-'}`).join(' | ')})`,
       `- Mean closing sentence words: ${s.meanClosingWords}`,
       `- Repeated openings: ${s.repeatedOpenings.map((e) => `"${e.text}" ×${e.count}/${e.chapters}ch`).join(', ') || 'none'}`,
       `- Repeated phrases: ${s.repeatedPhrases.map((e) => `"${e.text}" ×${e.count}/${e.chapters}ch`).join(', ') || 'none'}`,
       `- Names (chapters): ${s.names.map((n) => `${n.name} (${n.chapters})`).join(', ') || 'none'}`,
-      `- Private life (chapters mentioned): ${s.privateLife.map((p) => `${p.label}: ${p.chaptersMentioned}`).join(', ') || 'none'}`,
+      `- Private life (chapters by name / by role word): ${s.privateLife.map((p) => `${p.label}: ${p.chaptersByName}/${p.chaptersByRole}`).join(', ') || 'none'}`,
     );
   }
   lines.push('', '## Cross-run', '');
