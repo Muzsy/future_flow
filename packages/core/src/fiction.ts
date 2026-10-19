@@ -10,6 +10,7 @@ import {
   fictionEditorialReportSchema,
   fictionEditorialVersionFor,
   fictionHumanQualityVersions,
+  fictionSeriesQualityVersions,
   fidelitySchema,
   FICTION_FACT_BYTES,
   NARRATIVE_MEMORY_BYTES,
@@ -33,13 +34,26 @@ import {
   evaluateNarrativeEditorialGate,
 } from './narrative';
 import { validatePersonalSharedMemories } from './shared-personal';
+import { fictionCastingProjection } from './fiction-casting';
+import { seriesEchoFindings, seriesFrictionMarkers } from './fiction-series';
 
 const fail = (message: string): never => {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
 };
 export function fictionScope(input: NarrativePeriodInput) {
   const context = fictionContextSchema.parse(input.narrativeContext);
-  const references = narrativeReferencesFromSnapshot(input.narrativeReferences);
+  const quality = context.policy.qualityPolicyVersion;
+  const references = {
+    ...narrativeReferencesFromSnapshot(input.narrativeReferences),
+    // Owner decision 2026-10-19: v7/v8 allow up to three new recurring
+    // actors per period; v8 also lets invented actors leave the story.
+    ...(quality === '2.6.0' || quality === '2.7.0'
+      ? { maxIntroducedActors: 3 }
+      : {}),
+    ...(fictionSeriesQualityVersions.includes(quality)
+      ? { allowFictionalActorRemoval: true }
+      : {}),
+  };
   const facts = fictionReferencesSchema.parse(input.fictionReferences);
   const memory = context.memory;
   if (
@@ -117,7 +131,12 @@ function fictionReferenceProjection(input: NarrativePeriodInput) {
     goalIds: input.state.goals.map((goal) => goal.goalId),
     existingActorIds: input.state.actors.map((actor) => actor.id),
     sceneActorRule:
-      'Every scene actor must exist by stateAfter of its FIRST referenced event. A new recurring actor requires actor_add; copy that exact ID, and start its scene no earlier than its introducing event. goal_progress_set updates an existing goalId only; it cannot create a new goal, including in decision options.',
+      'Every scene actor must exist by stateAfter of its FIRST referenced event. A new recurring actor requires actor_add; copy that exact ID, and start its scene no earlier than its introducing event. goal_progress_set updates an existing goalId only; it cannot create a new goal, including in decision options.' +
+      (fictionSeriesQualityVersions.includes(
+        fictionScope(input).context.policy.qualityPolicyVersion,
+      )
+        ? ' An unnamed one-off participant mentioned only in passing is not a scene actor and needs no actor_add; at most three actor_add per period. An invented actor may leave through actor_remove; it may take part in that event but in no later event or scene.'
+        : ''),
   };
   // Existing state admits at most five goals and thirty actors. Do not trim
   // IDs or expand memory limits to make an invalid projection fit.
@@ -153,10 +172,23 @@ export function fictionPlannerRequest(
     narrativeContext: context,
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0'].includes(
+    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0'].includes(
       context.policy.qualityPolicyVersion,
     )
       ? { referenceProjection: fictionReferenceProjection(input) }
+      : {}),
+    // Seeded per life; withheld history does not affect it (labels are state).
+    ...(fictionSeriesQualityVersions.includes(
+      context.policy.qualityPolicyVersion,
+    )
+      ? {
+          castingProjection: fictionCastingProjection({
+            lifeId: input.input.lifeId,
+            country: input.state.location.country,
+            locale: input.input.locale,
+            usedLabels: input.state.actors.map((a) => a.label),
+          }),
+        }
       : {}),
     repair: repair ?? null,
   };
@@ -194,8 +226,22 @@ export function fictionEditorialRequest(
   input: NarrativePeriodInput,
   authored: FictionAuthorResult,
 ) {
+  const { context } = fictionScope(input);
   return {
     ...fictionFidelityRequest(input, authored),
+    // Deterministic reuse of already-recurring wording; editor evidence only.
+    ...(context.seriesLedger
+      ? {
+          seriesEchoFindings: seriesEchoFindings(
+            authored.chapter.body,
+            context.seriesLedger,
+          ),
+          frictionFinding: {
+            markers: seriesFrictionMarkers(authored.chapter.body).slice(0, 12),
+            priorRun: context.seriesLedger.frictionBeat.recentRun,
+          },
+        }
+      : {}),
     paragraphs: authored.chapter.body
       .split(/\n\s*\n/)
       .filter((p) => p.trim())

@@ -64,6 +64,8 @@ function change(raw: ForkFactChange, keys: Keys): FactChangeV2 {
   switch (raw.type) {
     case 'asset_remove':
       return { type: raw.type, assetId: required(keys.assets, raw.assetKey) };
+    case 'actor_remove':
+      return { type: raw.type, actorId: required(keys.actors, raw.actorKey) };
     case 'asset_add': {
       const { key, ...value } = raw.value;
       return {
@@ -393,6 +395,11 @@ function projectSource(source: ForkCheckpointSource): ForkCheckpoint {
         };
       case 'actor_add':
         return { type: c.type, value: actor(c.value) };
+      case 'actor_remove':
+        return {
+          type: c.type,
+          actorKey: register(keys.actors, c.actorId, 'actor'),
+        };
       case 'opportunity_set':
         return { type: c.type, value: opportunity(c.value) };
       case 'goal_progress_set':

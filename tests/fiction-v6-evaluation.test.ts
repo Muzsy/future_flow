@@ -242,11 +242,15 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
     ).toThrow();
   });
 
-  it('sets reviewed cumulative ceiling to 40.8616975 (closed v6 ledger 33.4716975 + owner v7 7.39, without re-adding the unused v6 0.2603325 or old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(40.8616975, 7);
+  it('sets reviewed cumulative ceiling to 52.93296 (closed v8 Stage B ledger 46.69296 + owner 6.24; earlier: v7 ledger 33.4716975 + 6.61496 + owner v8 8, without re-adding the unused v7 0.775, v6 0.2603325 or old 4.472505 headroom) while keeping generic ExperimentAiBudget default at 5', async () => {
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(52.93296, 7);
     expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(
-      33.4716975 + 7.39,
+      46.69296 + 6.24,
       7,
+    );
+    expect(evaluationApprovedCumulativeBudgetUsd).not.toBeCloseTo(
+      40.8616975 + 8,
+      6,
     );
     expect(evaluationApprovedCumulativeBudgetUsd).not.toBeCloseTo(
       33.73203 + 7.39,
@@ -313,7 +317,7 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
             '--periods',
             '8',
             '--budget-usd',
-            '40.861698',
+            '52.932961',
             '--approval-id',
             'over-ceiling',
             '--out',

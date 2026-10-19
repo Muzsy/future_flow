@@ -369,3 +369,14 @@ A [046 v7 terv](../plans/046_fiction_v7_narrative_economy.md) quality2.6 jelölt
 ### V7 valódi mérés — 2026-10-19, részleges
 
 Forrás `fb2ceb1`, tulajdonosi keret 7,39 USD (plafon 40,8616975). Stage A munkahelyi 3/3 elfogadott, 15 hívás, 0 repair, 0,76589 USD. Stage B **15 elfogadott / 1 elutasított / 2 hiányzó** a 18 célból (alkotói 9/9; munkahelyi főági 1–5 + fork, a 6. ismétlődés miatt elutasítva), 98 hívás, 6 sikeres repair, 0 unknown, 5,8490725 USD. Eredeti ledger **765 hívás / 40,08666 USD**, 0 nyitott, maradék 0,775 USD. Ügynöki olvasás: a döntési ágak szó szerint nem épülnek újra, de visszatérő ütem, azonos alakú lezárások, futások közti cselekményismétlés és szűk névkészlet maradt; az `overexplain_while_other_busy` jelzés nem jelent meg. Nincs human PASS vagy teljes B8. Részletek: [046 v7 terv](../plans/046_fiction_v7_narrative_economy.md#valódi-mérés--2026-10-19-részleges).
+
+## V8 jelölt — költségmentes sorozat-audit, 2026-10-19
+
+A [047 v8 terv](../plans/047_fiction_v8_series_evidence.md) jelöltje offline ellenőrzött. A már legenerált futások sorozatszintű ismétlése modellhívás és ledger-írás nélkül mérhető:
+
+```bash
+pnpm narrative:audit --out <kimeneti-mappa> <run-mappa> [<run-mappa> ...]
+```
+
+Minden run-mappában a runner által írt `report.json` kell. A kimenet `series-audit.json` és `series-audit.md`: ismétlődő mondatnyitások és fordulatok, fejezetenként a v8 editor-bizonyíték jelzése, záró mondatok, névgyakoriság, a profil alapkapcsolatainak említése, futások közti közös teljes nevek és fordulatok, azonos profil azonos fejezetének lexikai átfedése. Heurisztika, nem irodalmi pontszám és nem release gate; a humán olvasás mellé ad összehasonlítható számokat. A v6/v7 baseline és a következő mérés küszöbei a 047 tervben vannak.
+

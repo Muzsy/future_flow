@@ -47,6 +47,9 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       ...(sourceContext?.sequenceSignatureHistory
         ? { sequenceSignatureHistory: sourceContext.sequenceSignatureHistory }
         : {}),
+      ...(sourceContext?.seriesLedger
+        ? { seriesLedger: sourceContext.seriesLedger }
+        : {}),
       storyFacts:
         source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
           ? fictionContextSchema.parse(source.narrativeContext).storyFacts

@@ -280,6 +280,32 @@ describe('v2 period and persistent facts', () => {
       'ismétlődő',
     );
   });
+  it('lets a person leave the story and rejects an unknown departure', () => {
+    const actor = {
+      id: randomUUID(),
+      label: 'Fictional colleague',
+      relationship: 'colleague' as const,
+    };
+    const next = applyFactChangesV2(
+      { ...state(), actors: [actor] },
+      [{ type: 'actor_remove', actorId: actor.id }],
+      '2026-11-03',
+      [],
+      [],
+      scope,
+    ).state;
+    expect(next.actors).toEqual([]);
+    expect(() =>
+      applyFactChangesV2(
+        next,
+        [{ type: 'actor_remove', actorId: actor.id }],
+        '2026-11-03',
+        [],
+        [],
+        scope,
+      ),
+    ).toThrow('Nem létező szereplő');
+  });
   it('rejects a second sale and impossible preconditions', () => {
     const afterSale = { ...state(), ownedAssets: [] };
     expect(() =>
