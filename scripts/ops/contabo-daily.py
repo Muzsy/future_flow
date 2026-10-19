@@ -420,7 +420,7 @@ FUNDED_UPGRADE_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.js
                         'target-capability.json', 'recovery-capability.json', 'held-observation.json',
                         'schema-observation.json', 'applied.json', 'failure.json'}
 FUNDED_UPGRADE_RUNTIME_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json'}
-FUNDED_UPGRADE_ATTEMPT_LIMIT = 32
+FUNDED_UPGRADE_ATTEMPT_LIMIT = 256
 
 
 def funded_upgrade_config_paths():

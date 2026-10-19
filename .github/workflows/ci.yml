@@ -60,7 +60,7 @@ jobs:
           sys.path.insert(0, 'tests/ops')
           suite = unittest.TestLoader().loadTestsFromName('test_funded_upgrade_operator.RootFundedUpgradeFixtureTests')
           result = unittest.TextTestRunner().run(suite)
-          assert result.wasSuccessful() and result.testsRun == 16 and not result.skipped
+          assert result.wasSuccessful() and result.testsRun == 18 and not result.skipped
           PY
       - run: pnpm typecheck
       - run: pnpm test

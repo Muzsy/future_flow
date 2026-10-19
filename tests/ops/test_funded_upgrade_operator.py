@@ -394,6 +394,31 @@ class RootFundedUpgradeFixtureTests(unittest.TestCase):
         result = funded.recover(request, Daily())
         self.assertEqual((result['state'], self.world.image), ('restored-previous', OLD))
 
+    def interrupted_before_schema(self):
+        request, _ = self.prepare()
+        with patch.object(policy, 'fail_closed', side_effect=lambda **_: None):
+            self.world.fail.add('capability:' + NEW[-4:])
+            with self.assertRaises(RuntimeError):
+                funded.apply(request, Daily())
+        attempt = self.owner / 'funded-upgrade' / request['attempt']
+        live = self.owner
+        changed = [n for n in activation.FILES
+                   if activation.read_private(attempt / n) != activation.read_private(live / n)]
+        self.assertTrue(changed)
+        return request, attempt, live, changed[0]
+
+    def test_a_half_promoted_file_set_is_still_recoverable(self):
+        request, attempt, live, name = self.interrupted_before_schema()
+        funded.upgrade.atomic_private(live / name, activation.read_private(attempt / name))
+        result = funded.recover(request, Daily())
+        self.assertEqual((result['state'], self.world.image), ('restored-previous', OLD))
+
+    def test_foreign_bytes_in_the_live_set_are_never_overwritten(self):
+        request, _, live, name = self.interrupted_before_schema()
+        funded.upgrade.atomic_private(live / name, b'revoked-by-operator\n')
+        with self.assertRaises(policy.UpgradeRefused):
+            funded.recover(request, Daily())
+
     def test_stale_or_altered_preparation_is_refused_before_any_stop(self):
         request, _ = self.prepare()
         later = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=policy.PREPARATION_SECONDS + 5)

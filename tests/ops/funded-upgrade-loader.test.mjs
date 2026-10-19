@@ -72,6 +72,18 @@ test('active manifest digest equals the root encoding of manifest.json', () => {
     ),
     expected,
   );
+  // A new image is not in its own commit's registry: apply receipts are
+  // structural, while every other mode still demands the registry listing.
+  const unlisted = { ...manifest, imageId: 'sha256:' + 'c'.repeat(64) };
+  const receipt = {
+    configurationMode: 'funded-upgrade',
+    paidAiCalls: 0,
+    manifest: unlisted,
+  };
+  assert.doesNotThrow(() => activeManifestDigest(receipt, registry, () => {}));
+  assert.throws(() =>
+    activeManifestDigest(receipt, registry, reviewedRecoveryRelease),
+  );
   for (const stage of [
     { ...manifest, configurationMode: 'readers', paidAiCalls: 0 },
     { ...manifest, paidAiCalls: 0 },

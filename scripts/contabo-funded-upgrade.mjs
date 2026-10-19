@@ -313,7 +313,14 @@ except BaseException:
     (mode === 'apply-funded-upgrade' || mode === 'readback-funded-upgrade') &&
     saved.configurationMode === 'funded-upgrade'
   ) {
-    activeManifestDigest(saved, registry, reviewedRecoveryRelease);
+    // A freshly built image cannot be listed in the registry of its own
+    // commit: the apply receipt is structural, and every later mode (readback
+    // included) requires the registry listing.
+    activeManifestDigest(
+      saved,
+      registry,
+      mode === 'apply-funded-upgrade' ? () => {} : reviewedRecoveryRelease,
+    );
     privateReportFile(directory, 'owner-stage-proof.json', saved);
   }
   console.log(

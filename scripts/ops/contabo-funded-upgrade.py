@@ -598,9 +598,11 @@ def recover(request, daily):
         raise policy.UpgradeRefused('Access changed; do not restore previous rights')
     # The live files must be the previous, target or recovery bytes; anything
     # else may be a revocation that we must never overwrite.
+    # promote() writes the files one by one, so an interruption may leave a
+    # per-file mix of these byte sets; any other byte is refused.
     live = {n: sha(v) for n, v in readers.files(DIRECTORY).items()}
-    allowed = [value['activeFilesSha256'], value['targetFilesSha256'], value.get('recoveryFilesSha256')]
-    if live not in allowed:
+    sets = [s for s in (value['activeFilesSha256'], value['targetFilesSha256'], value.get('recoveryFilesSha256')) if s]
+    if set(live) != set(value['activeFilesSha256']) or any(h not in {s.get(n) for s in sets} for n, h in live.items()):
         raise policy.UpgradeRefused('Live runtime drift; refusing to restore previous rights')
     foreign = upgrade.foreign_state()
     recovery_dir = path / 'recovery' if value['recoveryImageId'] != value['targetImageId'] else None
