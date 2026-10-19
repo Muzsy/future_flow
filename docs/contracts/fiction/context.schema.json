@@ -877,6 +877,36 @@
             "additionalProperties": false
           }
         },
+        "frictionBeat": {
+          "type": "object",
+          "properties": {
+            "chaptersWithMarkers": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "recentRun": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "recentMarkers": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            }
+          },
+          "required": [
+            "chaptersWithMarkers",
+            "recentRun",
+            "recentMarkers"
+          ],
+          "additionalProperties": false
+        },
         "recentClosings": {
           "maxItems": 6,
           "type": "array",
@@ -983,6 +1013,7 @@
         "ownedChapters",
         "repeatedOpenings",
         "repeatedPhrases",
+        "frictionBeat",
         "recentClosings",
         "privateLife",
         "goalActivity"

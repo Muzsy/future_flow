@@ -199,6 +199,30 @@ export function seriesEchoFlags(findings: readonly SeriesEchoFinding[]) {
   );
 }
 
+// Narrated small-friction vocabulary: the protagonist's private flash of
+// irritation that v7 and the first v8 Codex smoke put in every chapter in
+// different words. Lexical evidence only; it cannot tell an earned quarrel
+// from a reflex, which is why it is shown to author and editor as a count.
+const frictionPattern =
+  /\b(?:irritat\w*|annoy\w*|exasperat\w*|resent\w*|dislik\w*|bristl\w*|impatien\w*|grudg\w*|huff\w*|peev\w*|testy|tetchy|curt(?:ly)?|snap(?:s|ped|ping)?|unhelpful|too sharply|sharper than)\b/giu;
+
+export function seriesFrictionMarkers(body: string) {
+  const narration = body.replace(/["“][^"”]*["”]/gu, ' ');
+  return [...narration.matchAll(frictionPattern)].map((m) =>
+    m[0].toLocaleLowerCase('en'),
+  );
+}
+
+// How many of the most recent owned chapters in a row carry friction markers.
+export function seriesFrictionRun(chapters: readonly SeriesChapter[]) {
+  let run = 0;
+  for (let i = chapters.length - 1; i >= 0; i--) {
+    if (!seriesFrictionMarkers(chapters[i]!.body).length) break;
+    run++;
+  }
+  return run;
+}
+
 const nonNames = new Set(
   (
     'you your yours i we he she they it the a an and but or so then when while if as at in on of to for with from by ' +
@@ -284,6 +308,19 @@ export function fictionSeriesLedgerFrom(
     ownedChapters: n,
     repeatedOpenings: seriesRepeatedOpenings([...periods]).map(echo),
     repeatedPhrases: seriesRepeatedPhrases([...periods]).map(echo),
+    frictionBeat: {
+      chaptersWithMarkers: periods.filter(
+        (p) => seriesFrictionMarkers(p.body).length,
+      ).length,
+      recentRun: seriesFrictionRun(periods),
+      recentMarkers: [
+        ...new Set(
+          periods.slice(-3).flatMap((p) => seriesFrictionMarkers(p.body)),
+        ),
+      ]
+        .slice(0, 8)
+        .map((m) => m.slice(0, 40)),
+    },
     recentClosings: periods.slice(-6).map((p) => ({
       periodId: p.periodId,
       sentence: seriesClosingSentence(p.body),

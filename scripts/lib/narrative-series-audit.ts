@@ -2,6 +2,7 @@ import {
   seriesClosingSentence,
   seriesEchoFindings,
   seriesEchoFlags,
+  seriesFrictionMarkers,
   seriesLexicalOverlap,
   seriesNameCandidates,
   seriesRepeatedOpenings,
@@ -123,6 +124,11 @@ export function auditSequence(sequence: AuditSequence) {
     repeatedOpenings: seriesRepeatedOpenings(chapters, 10),
     repeatedPhrases: seriesRepeatedPhrases(chapters, 10),
     chaptersFlaggedByEcho: perChapterEchoes.filter((e) => e.wouldFlag).length,
+    // Narrated small-friction words per chapter (quality2.7 frictionBeat).
+    frictionByChapter: sequence.chapters.map((c) => ({
+      periodIndex: c.periodIndex,
+      markers: seriesFrictionMarkers(c.body),
+    })),
     perChapterEchoes,
     closings,
     meanClosingWords:
@@ -224,6 +230,7 @@ export function auditMarkdown(audit: ReturnType<typeof narrativeSeriesAudit>) {
     lines.push(
       `- Echo-flagged chapters (v8 editor rule): ${s.chaptersFlaggedByEcho}/${s.chapters} (${s.perChapterEchoes.map((e) => `ch${e.periodIndex + 1}: ${e.findings.map((f) => `${f.kind} "${f.text}" ×${f.occurrences}`).join('; ') || '-'}`).join(' | ')})`,
       `- Mean closing sentence words: ${s.meanClosingWords}`,
+      `- Friction markers: ${s.frictionByChapter.filter((f) => f.markers.length).length}/${s.chapters} chapters (${s.frictionByChapter.map((f) => `ch${f.periodIndex + 1}: ${f.markers.join(', ') || '-'}`).join(' | ')})`,
       `- Repeated openings: ${s.repeatedOpenings.map((e) => `"${e.text}" ×${e.count}/${e.chapters}ch`).join(', ') || 'none'}`,
       `- Repeated phrases: ${s.repeatedPhrases.map((e) => `"${e.text}" ×${e.count}/${e.chapters}ch`).join(', ') || 'none'}`,
       `- Names (chapters): ${s.names.map((n) => `${n.name} (${n.chapters})`).join(', ') || 'none'}`,

@@ -564,6 +564,13 @@ export const fictionSeriesLedgerSchema = z
     ownedChapters: z.number().int().min(0).max(1000),
     repeatedOpenings: z.array(seriesEchoSchema).max(6),
     repeatedPhrases: z.array(seriesEchoSchema).max(6),
+    frictionBeat: z
+      .object({
+        chaptersWithMarkers: z.number().int().min(0).max(1000),
+        recentRun: z.number().int().min(0).max(1000),
+        recentMarkers: z.array(z.string().min(1).max(40)).max(8),
+      })
+      .strict(),
     recentClosings: z
       .array(
         z

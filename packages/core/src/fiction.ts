@@ -35,7 +35,7 @@ import {
 } from './narrative';
 import { validatePersonalSharedMemories } from './shared-personal';
 import { fictionCastingProjection } from './fiction-casting';
-import { seriesEchoFindings } from './fiction-series';
+import { seriesEchoFindings, seriesFrictionMarkers } from './fiction-series';
 
 const fail = (message: string): never => {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
@@ -220,6 +220,10 @@ export function fictionEditorialRequest(
             authored.chapter.body,
             context.seriesLedger,
           ),
+          frictionFinding: {
+            markers: seriesFrictionMarkers(authored.chapter.body).slice(0, 12),
+            priorRun: context.seriesLedger.frictionBeat.recentRun,
+          },
         }
       : {}),
     paragraphs: authored.chapter.body

@@ -28,6 +28,8 @@ import {
   seriesClosingSentence,
   seriesEchoFindings,
   seriesEchoFlags,
+  seriesFrictionMarkers,
+  seriesFrictionRun,
   seriesNameCandidates,
   seriesRepeatedOpenings,
   seriesRepeatedPhrases,
@@ -112,6 +114,8 @@ describe('v8 candidate policy selection and frozen predecessors', () => {
     expect(sha(v8.fidelity)).toBe(sha(v7.fidelity));
     expect(v8.author).toContain('SERIES-LEDGER CRAFT');
     expect(v8.author).toContain('CASTING CRAFT');
+    expect(v8.author).toContain('FRICTION-BEAT CRAFT');
+    expect(v8.editor).toContain('frictionFinding');
     expect(v8.editor).toContain('seriesEchoFindings');
   });
   it('introduces no chapter schedule, billing or quota language', () => {
@@ -204,6 +208,20 @@ describe('deterministic series evidence', () => {
     expect(
       seriesEchoFlags([one(2, 1), { ...one(2, 1), text: 'you read the' }]),
     ).toBe(true);
+  });
+  it('counts narrated small-friction words, not dialogue, and their recent run', () => {
+    expect(
+      seriesFrictionMarkers(
+        'Her neatness is disproportionately irritating. You dislike her a little and close the laptop too sharply. "I am not annoyed," Tunde says.',
+      ),
+    ).toEqual(['irritating', 'dislike', 'too sharply']);
+    expect(seriesFrictionMarkers('You laugh, surprised, and say yes.')).toEqual(
+      [],
+    );
+    const calm = { body: 'You walk with Clodagh to the pier.' };
+    const sharp = { body: 'Fiona annoys you more than she should.' };
+    expect(seriesFrictionRun([sharp, calm, sharp, sharp])).toBe(2);
+    expect(seriesFrictionRun([sharp, calm])).toBe(0);
   });
   it('drops interface labels and words that also occur in lowercase', () => {
     const names = seriesNameCandidates(
