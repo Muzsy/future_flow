@@ -652,6 +652,23 @@ def reconcile_archive(request, daily, inventory, stable, foreign):
     return archive_result(identity, item['intent'], item['intentBytes'], repeated)
 
 
+def funded_upgrade_blocks_zero():
+    """After a funded upgrade may have applied 038, the pre-038 original zero
+    image must never serve again. Unknown or unreadable evidence also blocks."""
+    root = DIRECTORY / 'funded-upgrade'
+    if not root.exists() and not root.is_symlink():
+        return False
+    try:
+        for attempt in root.iterdir():
+            journal = attempt / 'journal.json'
+            if journal.exists() or journal.is_symlink():
+                if json.loads(fence.original(journal)).get('state') != 'restored-previous':
+                    return True
+    except BaseException:
+        return True
+    return False
+
+
 def disable(request):
     # A preparation that never saved its original receipt has no reader state
     # to revoke. Refuse before touching the already-zero owner services. If the
@@ -671,6 +688,8 @@ def disable(request):
     try:
         if foreign is None:
             raise ValueError('No verified foreign runtime baseline; keep writers stopped')
+        if funded_upgrade_blocks_zero():
+            raise ValueError('Post-upgrade schema: original zero restore forbidden; writers stay stopped')
         restore_zero(request)
         stage = verify_zero(request, foreign)
         update_durable(STATE / 'journal.json', encoded({'state': 'disabled',

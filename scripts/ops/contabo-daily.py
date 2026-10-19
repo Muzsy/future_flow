@@ -352,6 +352,7 @@ def extended_config_archive(proxy):
     paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
     paths += reader_config_paths()
     paths += personal_config_paths()
+    paths += funded_upgrade_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -409,6 +410,57 @@ def personal_config_paths():
             interrupted += 1
         regular(item)
         files.append(item)
+    return sorted(files)
+
+
+FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 1
+FUNDED_UPGRADE_ATTEMPT = re.compile(r'[a-f0-9]{12}-[0-9]{8}T[0-9]{6}Z')
+FUNDED_UPGRADE_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json',
+                        'prepared.json', 'journal.json', 'baseline-observation.json',
+                        'target-capability.json', 'recovery-capability.json', 'held-observation.json',
+                        'schema-observation.json', 'applied.json', 'failure.json'}
+FUNDED_UPGRADE_RUNTIME_NAMES = {'server.env', 'pinned-image.json', 'effective-compose.json', 'manifest.json'}
+FUNDED_UPGRADE_ATTEMPT_LIMIT = 32
+
+
+def funded_upgrade_config_paths():
+    """Every funded-upgrade preparation, journal and archived previous runtime.
+
+    Evidence is never deleted to permit a retry, so the encrypted daily
+    archive must carry all of it, including interrupted atomic-write leftovers.
+    """
+    root = OWNER / 'funded-upgrade'
+    if not root.exists() and not root.is_symlink():
+        return []
+    def private(path):
+        info = path.lstat()
+        if (path.resolve() != path.absolute() or not stat.S_ISDIR(info.st_mode) or
+                info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+            raise ValueError('Original private funded upgrade directory required')
+    def leftover(name):
+        return re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', name) is not None
+    private(root)
+    files = []
+    attempts = sorted(root.iterdir())
+    if len(attempts) > FUNDED_UPGRADE_ATTEMPT_LIMIT:
+        raise ValueError('Too many funded upgrade attempts')
+    for attempt in attempts:
+        if not FUNDED_UPGRADE_ATTEMPT.fullmatch(attempt.name):
+            raise ValueError('Unexpected funded upgrade artifact')
+        private(attempt)
+        for item in attempt.iterdir():
+            if item.name in {'previous', 'recovery'}:
+                private(item)
+                for child in item.iterdir():
+                    if child.name not in FUNDED_UPGRADE_RUNTIME_NAMES and not leftover(child.name):
+                        raise ValueError('Unexpected funded upgrade artifact')
+                    regular(child)
+                    files.append(child)
+                continue
+            if item.name not in FUNDED_UPGRADE_NAMES and not leftover(item.name):
+                raise ValueError('Unexpected funded upgrade artifact')
+            regular(item)
+            files.append(item)
     return sorted(files)
 
 

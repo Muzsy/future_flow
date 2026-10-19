@@ -117,11 +117,23 @@ class ReaderTransactionTests(unittest.TestCase):
              patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
              patch.object(readers, 'restore_zero', side_effect=lambda req: events.append('restore')), \
              patch.object(readers, 'verify_zero', side_effect=lambda req, other: {'paidAiCalls': 0}), \
+             patch.object(readers, 'funded_upgrade_blocks_zero', return_value=False), \
              patch.object(readers, 'update_durable'):
             result = readers.disable({'ownerAccess': 'original receipt only'})
         self.assertEqual(events, ['stop', 'restore'])
         self.assertTrue(result['zeroBaselineRestored'])
         self.assertTrue(result['requiresExternalAccessReview'])
+
+    def test_disable_after_a_funded_upgrade_stops_but_never_restores_pre_038_zero(self):
+        events = []
+        with patch.object(readers.upgrade, 'foreign_state', return_value={}), \
+             patch.object(Path, 'exists', return_value=True), \
+             patch.object(readers, 'stop_project', side_effect=lambda: events.append('stop')), \
+             patch.object(readers, 'restore_zero', side_effect=lambda req: events.append('restore')), \
+             patch.object(readers, 'funded_upgrade_blocks_zero', return_value=True):
+            with self.assertRaises(ValueError):
+                readers.disable({'ownerAccess': 'original receipt only'})
+        self.assertEqual(events, ['stop', 'stop'])
 
     def test_disable_keeps_project_stopped_if_original_validation_fails(self):
         events = []

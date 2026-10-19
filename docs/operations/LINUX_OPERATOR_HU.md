@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-19
 related:
   - BETA_HU.md
   - BACKUP_HU.md
@@ -16,7 +16,7 @@ related:
 
 PR #21 (`0b57f7f`) beolvadt; az eredeti v2 state átvétele, hostpin/backup/GitHub hitelesítés ellenőrzése és a normál reader/funded/daily Linux-végrehajtás megtörtént. A tényleges reader-aktiválás, candidate-hoz kötött backup/restore, funded apply/inspect és későbbi signed-in paid E2E igazolt; a normál műveletekhez nem kell Windows-agent. A pontos résztvevői mapping és teljes proof privát marad. Ez a dokumentációfrissítés nem futtatott új operátori ellenőrzést.
 
-A már funded futó alkalmazás új narratív forrásra frissítése külön hiányzó képesség, Issue #34 / N09. Az alábbi migrációs és kiadási eljárás nem jogosítja fel a régi owner-upgrade megkerülésére, új window nyitására vagy ledger-resetre. Owner-image deployment és a régi Windows scheduler nem része O01-nek.
+A már funded futó alkalmazás új narratív forrásra frissítésének kódja és izolált fixture-jei elkészültek (Issue #34 / N09, [lent](#funded-runtime-upgrade-n09-issue-34)); élesben még nem futott, és a kiadási kapui nyitottak. Az eljárás nem jogosít fel a régi owner-upgrade megkerülésére, új window nyitására vagy ledger-resetre. Owner-image deployment és a régi Windows scheduler nem része O01-nek.
 
 ## Scope és kiadási kapu
 
@@ -50,3 +50,27 @@ A v1 csomag nem tartalmazta a funded operátor által olvasott eredeti katalógu
 ## Méretkorlátok
 
 A konkrét eredeti `closed-beta-catalog/state.json` 8 MiB-ig vihető át és olvasható a funded CLI-ben; a valódi 3 272 672 bájtos állomány belefér. A többi receipt/secret egyenként továbbra legfeljebb 2 MiB, a plaintext csomag összesen 32 MiB. A katalógus nem darabolandó/csonkítandó és nem kell újragenerálni. A méretellenőrzés az export első és utolsó hash-beolvasásában, a decrypt/validate/import szerződésben és a funded inputon is érvényes.
+
+## Funded-runtime upgrade (N09, Issue #34)
+
+Állapot 2026-10-19: kód, root fájl/állapot fixture, valódi PostgreSQL fixture és CI-lépések kész, draft PR-ben. **Éles prepare/apply, migráció, deploy és fizetett hívás nem történt.** A lenti kiadási kapuk lezárásáig az apply nem futtatható.
+
+Belépési pont: `node scripts/contabo-funded-upgrade.mjs --<mód>` (csak Linux, clean committed main). Módok: `inspect`, `prepare-funded-upgrade`, `apply-funded-upgrade`, `recover-funded-upgrade`, `readback-funded-upgrade`. A root végrehajtó `scripts/ops/contabo-funded-upgrade.py`, a tiszta szabályréteg és állapotgép `scripts/ops/contabo-funded-upgrade-policy.py`, a read-only DB-állapotfelvétel és image-képességpróba `scripts/lib/funded-upgrade-observation.mjs`. A privilegizált csomag (hash-elve, a loader `BUNDLE` listája): backup, target, owner, activation, upgrade, writer-fence, readers, personal-observation, funded-policy, funded-upgrade modul, plusz a megfigyelő JS forrás. Az auditnak pontosan ezt a forráskészletet kell lefednie.
+
+**Kiindulópont.** Csak az alkalmazott, `exposure-committed` személyes béta aktiváció (vagy annak egy korábbi journalozott funded upgrade-je) lehet authority. Owner-zero, image-only owner-upgrade vagy kézzel szerkesztett receipt nem; a live bájtoknak egy journalozott műveletből kell származniuk. Az aktiváció fájljai olvasottak, soha nem íródnak újra.
+
+**Mi változhat.** Csak a `server.env` `ALTERWARD_TAG` sora, a pinned image és a négy PR #53-kulcs, kizárólag defaulton (`legacy`, üres cohort, 180000 ms, 100000 bájt), valamint a séma a target image saját migrációival (most 038). Window kezdete/vége, project/user keret, résztvevők, Access-e-mailek, napi/concurrent limitek, providerkulcs és minden más env-bájt változatlan; a candidate render ettől eltérve elutasított. Cohort bekapcsolása, hosszabb deadline vagy nagyobb envelope külön, későbbi konfigurációs lépés.
+
+**Prepare** (nem mutál, 900 s): pontos target és recovery build proof (a target ez a reviewed source vagy registry-image), a futó api-n át read-only állapotfelvétel, mindkét image képességpróbája `--network none --read-only` konténerben, a candidate fájlok, az előző live fájlok archív másolata, és a candidate a következőkhöz kötve: source/helper/megfigyelő hash, CI run-ok, audit, aktív manifest és fájlhash-ek, aktivációs journal, funded projekció, védett env, ledger, policy-leltár, proxy, Access, CA, idegen konténerek.
+
+**Apply sorrend** (`transition`): durable intent → a projekt három szolgáltatásának scoped stopja → held fence: friss állapotfelvétel a leállított writerek mellett, drain, friss képességpróba mindkét image-re a friss leltárral, idegen konténerek → 038 a reviewed `pnpm db:migrate` futóval a target image-ben → séma = target image migrációi és ledger/fiókok/policyk/artifactok bájtra azonosak → fájlpromóció → web+api → origin probe → worker (az egyetlen fizetős folyamat) utoljára → teljes post-check → `applied` journal. Az apply előtt friss (≤ 3600 s), a prepare után készült, valódi offsite restore szükséges, amelynek archívuma tartalmazza ezt az előkészítést (`FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 1` a telepített daily-ben).
+
+**Drain.** A queue-flag nem drain. Blokkol: queued/running/validating job bármely queue-táblában, élő lease, `generating` branch, nyitott (`reserved`) budget-foglalás, nem terminális befagyasztott narratív job. Az `unknown` és `completed` foglalások megmaradnak, nem nullázzuk őket. A kézi canon/checkpoint/admission átírás tiltott; ilyenkor az apply a 038 előtt áll meg és az előző funded runtime tér vissza.
+
+**Recovery szabály.** Hibánál a **DB** dönti el, megtörtént-e a 038 (bizonytalan eredmény = megtörtént). 038 előtt: az előző funded fájlok és image vissza, ellenőrzés, `restored-previous`. 038 után: pre-038 image soha nem szolgálhat; csak a prepare-ben igazolt, a target sémáját és minden tárolt policyt értő reviewed recovery image indulhat (web+api, ellenőrzés, majd worker), különben minden leállítva marad, `closed-recovery-required`. Megszakadás után nincs vak újrafuttatás: `recover-funded-upgrade` ugyanezt a döntést hozza, előre nem lép; a terminális vagy zárt journal új prepare-t is blokkol. Bizonyíték nem törölhető; a daily archívum minden kísérletet visz.
+
+**Vészleállítás változása.** Ha bármely funded-upgrade journal létezik (kivéve `restored-previous`), a meglévő reader/personal `disable` leállít, de az eredeti pre-038 owner-zero image-et már nem indítja vissza; a writerek leállítva maradnak.
+
+**Ellenőrizve a PR-ben:** 25 tiszta policy/állapotgép teszt, 16 root fájl/állapot fixture (siker, hibás post-check kompatibilis recoveryvel és anélkül, 038 előtti hiba, reservation/lease, újonnan befagyasztott olvashatatlan policy, migráció alatti ledgerváltozás, megszakítás 038 előtt és után, lejárt/módosított prepare, idegen/Access/forrás drift, pre-038 és policy-vak recovery, owner-zero authority, journal nélküli live bájtok, lockverseny), 3 archívumteszt, valódi PostgreSQL fixture (001–037, valódi `migrate.ts` 038, ledger/fiók/policy/artifact megőrzés, flag-off ≠ drain, pre-038 és csak-v1 recovery elutasítás, pg_dump/pg_restore artifact-megőrzés, törlés-replay), és CI-ban képességpróba a ténylegesen buildelt image-ben.
+
+**Nyitott kiadási kapuk** (egyik sem helyettesíthető szöveggel): független, commithoz kötött source audit erre a csomagra; Verify/Container CI a kiadási main commiton; target és recovery build proof immutable digesttel; post-038 replay/recovery image felvétele a `deploy/reviewed-recovery-images.json`-ba és a 9eb-hez kötött replay-ellenőrzés (`assertReplayInputsUnchanged`) új, reviewed replay-kiadása; a telepített daily frissítése az új archívum-policyval; tényleges Linux/root target fixture a valódi szerver Docker-környezetében (`funded-upgrade-fixture-proof.json`); candidate-hoz kötött titkosított backup/offsite/izolált restore/privacy replay; kifejezett tulajdonosi éles apply engedély. A béta budget (10 USD / 3 tesztelő) új 30 napos ablaka nem ennek az útvonalnak a része: ez a meglévő ablakot változatlanul viszi tovább.

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-19
 related:
   - BACKUP_HU.md
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
@@ -46,6 +46,10 @@ Részletes eljárás: `../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md`.
 ## 3/a. Olvasói előkészítés archiválása
 
 Lejárt (több mint 900 s) és soha nem alkalmazott olvasói előkészítés csak explicit `--archive-expired-readers` móddal kerül a védett archívumba; az nem indít, nem állít le és nem állít vissza szolgáltatást, nem ír élő DB-t. Archivált állapot mellett nincs aktív előkészítés, ezért a `disable` a szolgáltatások érintése előtt elutasít, az eredeti nulla owner-állapot marad a serving. Az archívum nem recovery- vagy apply-authority. Megszakadás után az evidence-alapú egyeztetés és az új, 15 percen belüli ciklus sorrendje: `../PERSONAL_BETA_READER_OPERATOR_HU.md`.
+
+## 3/b. Funded-runtime upgrade és a 038 utáni rollback
+
+Az aktív funded béta frissítésénél (N09, Issue #34) a rollback nem a pre-038 image vagy egy régi DB-snapshot visszaállítása. Hiba esetén a DB-ben ellenőrzött migrációs állapot dönt: 038 előtt az előző funded runtime tér vissza, utána csak a target sémáját és minden tárolt, befagyasztott narratív policyt (planner/writer/planReviewer/editor generációk) igazoltan értő reviewed recovery image szolgálhat; ha ilyen nincs, minden szolgáltatás leállítva marad. A 038 oszlop és a tárolt artifactok nem törölhetők, a window/ledger nem nullázódik, a vészleállító `disable` ilyenkor nem indít pre-038 owner-zero image-et. Eljárás és kapuk: [Linux funded-runtime upgrade](LINUX_OPERATOR_HU.md#funded-runtime-upgrade-n09-issue-34).
 
 ## 4. Supabase scope-határ
 

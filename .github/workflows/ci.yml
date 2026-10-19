@@ -35,6 +35,7 @@ jobs:
           node --test tests/ops/reader-archive-retry.test.mjs
           node --test tests/ops/linux-operator.test.mjs
           node --test tests/ops/operator-transfer.test.mjs
+          node --test tests/ops/funded-upgrade-loader.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
@@ -52,8 +53,21 @@ jobs:
           result = unittest.TextTestRunner().run(suite)
           assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
           PY
+      - name: Verify root-only funded-upgrade file/state fixture without services
+        run: |
+          sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
+          import sys, unittest
+          sys.path.insert(0, 'tests/ops')
+          suite = unittest.TestLoader().loadTestsFromName('test_funded_upgrade_operator.RootFundedUpgradeFixtureTests')
+          result = unittest.TextTestRunner().run(suite)
+          assert result.wasSuccessful() and result.testsRun == 16 and not result.skipped
+          PY
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Verify funded state across 038, restore and deletion replay in real PostgreSQL
+        env:
+          FUNDED_FIXTURE_REQUIRED: '1'
+        run: node --test tests/ops/funded-upgrade-database.test.mjs
       - run: pnpm build
       - name: Verify closed-site production web without live credentials
         run: node scripts/smoke-closed-site.mjs
@@ -70,6 +84,8 @@ jobs:
           --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
           --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_unused
           .
+      - name: Verify stored-policy and 038 capability inside the built image
+        run: python3 tests/ops/funded_upgrade_image_capability.py alterward:ci
       - name: Verify isolated Contabo deployment and secret boundaries
         run: node scripts/verify-deployment.mjs
       - name: Verify web, API, worker, migrations and TLS without API spending
