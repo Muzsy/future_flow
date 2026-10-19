@@ -19,7 +19,7 @@ related:
 
 ## Állapot — 2026-10-19
 
-A v7 (PR #51, draft) mérése és két független olvasat után ez a terv rögzíti, mit javítunk a v8-ban, és hogyan ellenőrizzük **fizetős modellhívás nélkül**. A v8 a v7 ágából indul, mert a PR #51 merge-éről a tulajdonos még nem döntött. A jelölt offline implementált; valódi mérés nem futott (a v7 keretből 0,775 USD maradt, új futás csak új számszerű engedéllyel). Production, cohort, billing és entitlement nem változik.
+A v7 (PR #51, 2026-10-19-én mérési checkpointként merge-elve, `466ed29`, production nélkül) mérése és két független olvasat után ez a terv rögzíti, mit javítunk a v8-ban, és hogyan ellenőrizzük **fizetős modellhívás nélkül**. A v8 a v7 ágából indult; a PR #51 merge-e után a PR #52 célága a `main`. A jelölt offline implementált; valódi mérés nem futott (a v7 keretből 0,775 USD maradt, új futás csak új számszerű engedéllyel). Production, cohort, billing és entitlement nem változik.
 
 ## Diagnózis: mi maradt a v7 után
 
