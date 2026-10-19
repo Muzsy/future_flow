@@ -69,6 +69,11 @@ class SourceArchiveSafetyTests(unittest.TestCase):
             'worker': {'environment': {**flags, **paid, 'AI_BUDGET_WINDOW_REQUIRED': 'true',
                        'AI_BUDGET_WINDOW_START': '', 'AI_BUDGET_WINDOW_END': ''}}}}
         target.validate_owner_configuration(config, access, flags)
+        defaults = deepcopy(config)
+        for service in ['api', 'worker']:
+            defaults['services'][service]['environment'].update(
+                NARRATIVE_PIPELINE_MODE='legacy', NARRATIVE_COHORT_USER_IDS='')
+        target.validate_owner_configuration(defaults, access, flags)
         for service, key, value in [('web', 'CLOSED_SITE_ENABLED', 'false'),
                                     ('api', 'CLOSED_SITE_ENABLED', None),
                                     ('api', 'CLOUDFLARE_ACCESS_AUD', 'b' * 64),
@@ -80,7 +85,10 @@ class SourceArchiveSafetyTests(unittest.TestCase):
                                     ('api', 'SHARED_FRIEND_ENABLED', 'true'),
                                     ('worker', 'PUBLIC_REVIEW_JOBS_ENABLED', 'true'),
                                     ('api', 'PUBLIC_FORK_STARTS_ENABLED', None),
-                                    ('web', 'PUBLIC_EXTERNAL_EXPOSURE_ENABLED', 'true')]:
+                                    ('web', 'PUBLIC_EXTERNAL_EXPOSURE_ENABLED', 'true'),
+                                    ('api', 'NARRATIVE_PIPELINE_MODE', 'narrative-fiction-v2'),
+                                    ('worker', 'NARRATIVE_PIPELINE_MODE', 'context'),
+                                    ('worker', 'NARRATIVE_COHORT_USER_IDS', 'reader-id')]:
             with self.subTest(service=service, key=key):
                 changed = deepcopy(config)
                 changed['services'][service]['environment'][key] = value

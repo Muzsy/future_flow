@@ -70,6 +70,17 @@ function budgetWindow(window: ApplicationAiBudgetConfig['window']) {
     return invalidBudgetConfig();
   return { startsAt, endsAt };
 }
+// Creative narrative jobs may need the reviewed larger envelope. The runtime
+// default stays 100,000 bytes; a server value outside the bound is refused.
+export function fictionMaxRequestBytesFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  const raw = env.AI_FICTION_MAX_REQUEST_BYTES ?? '100000';
+  const value = /^[0-9]+$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isSafeInteger(value) || value < 100000 || value > 196608)
+    return invalidBudgetConfig();
+  return value;
+}
 export function applicationAiBudgetConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env,
   provider: 'openai' | 'anthropic' = 'openai',
