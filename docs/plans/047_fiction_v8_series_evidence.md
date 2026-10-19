@@ -106,6 +106,10 @@ Ugyanaz a háromfejezetes kör `948e72a` alapon, egy helyi, nem commitolt prompt
 
 `b332a22`, tiszta forrás, ugyanaz a profil és seed: **1/3**, 16 hívás. Az 1. fejezet egy javítással ment át (choiceStakes 3), súrlódásszó 0. A 2. fejezet a javítás után is `distinctEnding=false` lett, mert a zárás az 1. fejezet fogását ismételte (hétköznapi háttérzaj szakítja meg a tovább folyó tevékenységet: busz → vízforraló), és több javítás nem fér bele, így `NARRATIVE_QUALITY_FAILED`; a 3. fejezet nem futott. A súrlódás-szabály működött; a bukás oka a zárásfajta ismétlése, a kapu helyesen fogta meg. Válasz: a v8 planner/author `ENDING-KIND CRAFT` blokkot kap, amely a zárások _fajtáját_ nevezi meg (felfüggesztett tevékenység háttérzajjal), és ilyenkor más zárásfajtát kér. A kaput nem lazítjuk. A Codex-oldali variancia nagy (3/3 → 1/3 ugyanazzal a seeddel).
 
+### Negyedik Codex-kör és szereplőváltozás — 2026-10-19
+
+`101c899`: 0/3. Az 1. fejezet irodalmilag átment (editor pass, a zárás új fajta: kimondott mondat), de a fidelity a névtelen tesztelőket regisztrálatlan jelenetszereplőnek vette, a javítás két `actor_add`-ot adott, és a domain-validátor („Only one new recurring actor may be introduced”) determinisztikusan elutasította. Gyökérok: a v7 prompt kvóta nélküli szereplőfelvételt kért, a validátor egyet engedett. Tulajdonosi döntés: quality 2.6/2.7 alatt legfeljebb 3 új visszatérő szereplő periódusonként, és szereplők távozhatnak a történetből. Megvalósítás: Life V2 `actor_remove` (publikus forkban `actorKey`), a távozó a saját eseményében még szerepelhet; v8 alatt csak kitalált szereplő távozhat; v8 `CAST-CHANGE CRAFT` és bővített `sceneActorRule` (névtelen egyszeri szereplő nem jelenetszereplő). Ismert hiány: a diagnosztika nem tárolja a validátor kivételét, és a fidelity indoklása a javítási utasítás közepén csonkul.
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.

@@ -33,6 +33,7 @@ import {
   seriesNameCandidates,
   seriesRepeatedOpenings,
   seriesRepeatedPhrases,
+  validateFictionAuthor,
 } from '@future-flow/core';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 import {
@@ -596,5 +597,68 @@ fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, 
     await expect(
       evaluateNarrativeWithCodex(['--allow-paid', '--creative-only'], {}),
     ).rejects.toThrow();
+  });
+});
+
+describe('v8 cast changes: up to three new actors and invented departures', () => {
+  const add = (n: number) => ({
+    type: 'actor_add' as const,
+    value: {
+      id: id(900 + n),
+      label: `Fictional tester ${n}`,
+      relationship: 'other' as const,
+    },
+  });
+  it('accepts three new recurring actors under v8 and rejects a fourth or a second under v3', () => {
+    const f = fixtureFor(fictionV8Policy());
+    f.authored.candidate.events[0]!.changes.push(add(1), add(2), add(3));
+    expect(() => validateFictionAuthor(f.input, f.authored)).not.toThrow();
+    const g = fixtureFor(fictionV8Policy());
+    g.authored.candidate.events[0]!.changes.push(
+      add(1),
+      add(2),
+      add(3),
+      add(4),
+    );
+    expect(() => validateFictionAuthor(g.input, g.authored)).toThrow(
+      'At most 3 new recurring actors',
+    );
+    const h = fictionFixture();
+    h.authored.candidate.events[0]!.changes.push(add(1), add(2));
+    expect(() => validateFictionAuthor(h.input, h.authored)).toThrow(
+      'Only one new recurring actor',
+    );
+  });
+  it('lets an invented actor leave, but never a supplied person', () => {
+    const f = fixtureFor(fictionV8Policy());
+    const events = f.authored.candidate.events;
+    expect(events.length).toBeGreaterThan(1);
+    events[0]!.changes.push(add(1));
+    events[1]!.changes.push({ type: 'actor_remove', actorId: id(901) });
+    events[1]!.actorIds = [id(901)];
+    expect(() => validateFictionAuthor(f.input, f.authored)).not.toThrow();
+    const supplied = {
+      id: id(950),
+      label: 'Fictional older sister',
+      relationship: 'family' as const,
+    };
+    const g = fixtureFor(fictionV8Policy());
+    g.input.state.actors.push(supplied);
+    g.authored.candidate.events[1]!.changes.push({
+      type: 'actor_remove',
+      actorId: supplied.id,
+    });
+    expect(() => validateFictionAuthor(g.input, g.authored)).toThrow(
+      'Only an invented fictional actor may leave',
+    );
+    const v7 = fixtureFor(fictionV7Policy());
+    v7.authored.candidate.events[0]!.changes.push(add(1));
+    v7.authored.candidate.events[1]!.changes.push({
+      type: 'actor_remove',
+      actorId: id(901),
+    });
+    expect(() => validateFictionAuthor(v7.input, v7.authored)).toThrow(
+      'Only an invented fictional actor may leave',
+    );
   });
 });

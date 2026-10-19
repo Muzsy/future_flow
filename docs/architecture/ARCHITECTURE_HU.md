@@ -16,7 +16,7 @@ related:
 
 A v6 PR #50 mért checkpointként beolvadt (`f755a57`), a production legacy/üres narrative cohort változatlan. Új creative jobok selected policyja2.6.0 (v7 jelölt): planner/author/reviewer v7, editor v6, fidelity v1; report1.3.0, signature1.1.0. A beolvadt v6/quality2.5 (`fictionV6Quality25Policy()`): planner/author/reviewer v6, editor v5, report1.2.0, signature1.0.0. Az alábbi v1–v6 leírások megőrzött kompatibilitási snapshotok, nem párhuzamos aktuális alapértelmezések. Normál5/max9 fizikai kérés, egy repair,12KiB context/32KiB artifact. Pontos minőségi/költségállapot: [STATUS](../STATUS_HU.md), [v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
-A v6 örökölt mechanics promptja periódusonként legfeljebb egy új visszatérő actor_add-ot enged; a domain teljes actors.max(30)-at és eseményidőbeli regisztrációt ellenőriz. Ez feljegyzett prompt/domain feszültség, nem új domainkvóta és nem javított viselkedés. A kívánt alkotói szabadság nem jogosít fel a regisztráció/privacy/ID guard megkerülésére.
+A v6 örökölt mechanics promptja periódusonként legfeljebb egy új visszatérő actor_add-ot enged; a domain teljes actors.max(30)-at és eseményidőbeli regisztrációt ellenőriz. A v7 prompt kvóta nélkül fogalmazott, a domain-validátor viszont egyet engedett; ez buktatta a v8 Codex-próbát. Tulajdonosi döntés (2026-10-19): quality 2.6/2.7 alatt periódusonként legfeljebb 3 új visszatérő szereplő; quality 2.7 (v8) alatt kitalált, igazolt fikciós eredetű szereplő `actor_remove`-val távozhat, megadott (felhasználói) személy vagy Shared identitás soha. A korábbi policyk továbbra is egyet engednek, távozás nélkül. A kívánt alkotói szabadság nem jogosít fel a regisztráció/privacy/ID guard megkerülésére.
 
 ## 1. Architektúra célja
 

@@ -164,6 +164,7 @@ export function fictionPrompts(
   const casting = `\nCASTING CRAFT: castingProjection, when present, offers a per-life palette of locale-plausible given and family names. When this period introduces a NEW invented person, prefer a fresh combination from it over habitual default names; never give a new person a given or family name that another person in this life already carries, and never rename a supplied or existing person. Any other ordinary locale-plausible name is still allowed.`;
   const recurringBeat = `\nRECURRING-BEAT CRAFT: across owned periods, do not default to the same exchange shape in which another person proposes a change, the protagonist resists with irritation, and then half-yields within the same scene; and do not make every period's plot the same skeleton of application, practical test, short offer and a call. When sequenceHistory or sequenceSignatureHistory show that shape, let this period turn on something else the protagonist does, fails at or refuses, while keeping the same people and setting if they still matter.`;
   const frictionBeat = `\nFRICTION-BEAT CRAFT: seriesLedger.frictionBeat counts owned chapters whose narration names the protagonist's small private friction (irritation, annoyance, dislike, impatience, a door or laptop closed too sharply, saying something unhelpful); recentRun is how many of the latest chapters in a row did so and recentMarkers are their words. This is not a ban on conflict. But a passing flash of irritation that changes nothing is a reflex, not character: when recentRun is 1 or more, do not give this chapter another such flash under different wording. Let the protagonist meet other people's wants with another real response this period, such as curiosity, embarrassment, generosity, envy, fear, delight, being wrong and admitting it, or an open disagreement that is said aloud and has a consequence in what someone does next. If friction is the earned centre of this period, make it an event with stakes, not a mood in the narration.`;
+  const castChange = `\nCAST-CHANGE CRAFT: a period may introduce at most three new recurring people through actor_add; the server rejects a fourth. A one-off participant who never returns stays unnamed and in passing, never a scene actor and never the acting party of a visibleAction. An invented recurring person (never a supplied partner, family member, friend or Shared identity) may also leave the story through an actor_remove change on the event where this period's own causality makes it happen: they move away, a job or role ends, a friendship drifts or a relationship ends. Never remove someone as housekeeping or to avoid a conflict. A person who leaves may take part in that event, but not in any later event or scene; afterwards they may only be remembered or mentioned. Current state holds at most thirty people, so when it is crowded a departure the story has earned is better than yet another new person.`;
   const endingKind = `\nENDING-KIND CRAFT: before writing the last paragraph, read seriesLedger.recentClosings and name to yourself the KIND of ending each one uses, not just its words. A common hidden repeat is the suspended-activity ending: the protagonist keeps doing, leaves running, closes or walks on with something while an ordinary background sound or another person's small act interrupts and nothing is said. If any recent closing is of that kind, this chapter must end on a different kind, for example a line of dialogue that changes the situation, a decision taken aloud, a new fact arriving, or a cut in the middle of an action with stakes.`;
   return {
     ...v7Prompts,
@@ -173,20 +174,23 @@ export function fictionPrompts(
       casting +
       recurringBeat +
       frictionBeat +
-      endingKind,
+      endingKind +
+      castChange,
     author:
       v7Prompts.author +
       seriesLedger +
       casting +
       recurringBeat +
       frictionBeat +
-      endingKind,
+      endingKind +
+      castChange,
     review:
       v7Prompts.review +
       seriesLedger +
       casting +
       recurringBeat +
       frictionBeat +
+      castChange +
       '\nWhen judging novelty under these additions, a plan that again reaches its turning point through the same proposal-resistance-half-yield exchange or the same application-test-offer-call skeleton as recent owned periods is a repeated causal shape.',
     editor:
       v7Prompts.editor +

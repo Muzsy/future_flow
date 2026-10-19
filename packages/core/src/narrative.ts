@@ -31,6 +31,10 @@ export type NarrativeReferences = {
   forbiddenActorIds: ReadonlySet<string>;
   forbiddenActorLabels?: ReadonlySet<string>;
   fictionalActorOrigins?: ReadonlyMap<string, string>;
+  // Policy-owned, never AI-supplied: quality2.6+ fiction may introduce up to
+  // three recurring actors per period and let invented actors leave.
+  maxIntroducedActors?: number;
+  allowFictionalActorRemoval?: boolean;
 };
 function invalid(message: string): never {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
@@ -243,9 +247,25 @@ export function validateNarrativeMemoryDelta(
         )
           invalid('New actor duplicates a supplied identity.');
         introduced.set(change.value.id, event.id);
+      } else if (change.type === 'actor_remove') {
+        // Only an invented person with verified fictional provenance may
+        // leave; supplied people from the user's own life never do.
+        if (
+          !references.allowFictionalActorRemoval ||
+          !(
+            introduced.has(change.actorId) ||
+            references.fictionalActorOrigins?.has(change.actorId)
+          )
+        )
+          invalid('Only an invented fictional actor may leave the story.');
       }
-  if (introduced.size > 1)
-    invalid('Only one new recurring actor may be introduced.');
+  const maxIntroduced = references.maxIntroducedActors ?? 1;
+  if (introduced.size > maxIntroduced)
+    invalid(
+      maxIntroduced === 1
+        ? 'Only one new recurring actor may be introduced.'
+        : `At most ${maxIntroduced} new recurring actors may be introduced.`,
+    );
   for (const actor of delta.actorUpdates) {
     if (memory.withheld && !introduced.has(actor.actorId))
       invalid('Withheld history cannot establish a fictional actor profile.');
