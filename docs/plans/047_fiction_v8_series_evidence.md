@@ -23,14 +23,14 @@ A v7 (PR #51, draft) mérése és két független olvasat után ez a terv rögz�
 
 ## Diagnózis: mi maradt a v7 után
 
-| Tünet (v7 olvasat) | Ok | Miért nem elég egy újabb promptszabály |
-| --- | --- | --- |
-| „Neither of you…” 7×, azonos alakú csendes lezárások | az editor csak a legutóbbi 3 fejezet nyitó/záró részletét és kategória-címkéket lát | a szerkesztő a saját címkéit megbízhatatlanul adja (az `overexplain_while_other_busy` egyszer sem szólalt meg, minden flag igaz), tehát az ismétlés mérése nem bízható rá |
-| visszatérő ütem: a másik javasol → a hős bosszúsan ellenáll → félig enged | ugyanaz a modell-alapértelmezés minden fejezetben | az ütem neve eddig nem szerepelt a promptban; ez az egy pont kap célzott, rövid szöveget |
-| Niamh Byrne minden futásban, Kavanagh/Doyle/Orla/Maeve több szereplőn | a modell kedvenc ír nevei; minden profil `IE`; nincs per-élet változatosság | a „használj változatos nevet” szabály nem hat, ha a modell mindig ugyanabból a szűk eloszlásból választ |
-| a nővér sosem jelenik meg, az anya egyszer, a barát névtelen | a profilokban csak szerepcímke volt („Fictional older sister”), és senki nem számolta, ki tűnt el | a v7 private-life szabály nem tudja, hogy egy személy hány fejezete hiányzik |
-| az alkotói szál az 5. fejezettől topog, nem jut el külső olvasóig | a goal typed állapota fejezeteken át nem változik, és ezt senki nem jelzi | az earned-evolution szöveg megvan; hiányzik a tény, hogy a cél hány fejezete áll |
-| a három munkahelyi szöveg cselekményváza azonos | futások közti modell-prior; egy életen belül csak a 3 fejezetes ablak látszik | futások közti ismétlést egy élet promptja nem láthat; ezt mérni kell, és a névpaletta/ledger csökkenti |
+| Tünet (v7 olvasat)                                                        | Ok                                                                                                | Miért nem elég egy újabb promptszabály                                                                                                                                    |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| „Neither of you…” 7×, azonos alakú csendes lezárások                      | az editor csak a legutóbbi 3 fejezet nyitó/záró részletét és kategória-címkéket lát               | a szerkesztő a saját címkéit megbízhatatlanul adja (az `overexplain_while_other_busy` egyszer sem szólalt meg, minden flag igaz), tehát az ismétlés mérése nem bízható rá |
+| visszatérő ütem: a másik javasol → a hős bosszúsan ellenáll → félig enged | ugyanaz a modell-alapértelmezés minden fejezetben                                                 | az ütem neve eddig nem szerepelt a promptban; ez az egy pont kap célzott, rövid szöveget                                                                                  |
+| Niamh Byrne minden futásban, Kavanagh/Doyle/Orla/Maeve több szereplőn     | a modell kedvenc ír nevei; minden profil `IE`; nincs per-élet változatosság                       | a „használj változatos nevet” szabály nem hat, ha a modell mindig ugyanabból a szűk eloszlásból választ                                                                   |
+| a nővér sosem jelenik meg, az anya egyszer, a barát névtelen              | a profilokban csak szerepcímke volt („Fictional older sister”), és senki nem számolta, ki tűnt el | a v7 private-life szabály nem tudja, hogy egy személy hány fejezete hiányzik                                                                                              |
+| az alkotói szál az 5. fejezettől topog, nem jut el külső olvasóig         | a goal typed állapota fejezeteken át nem változik, és ezt senki nem jelzi                         | az earned-evolution szöveg megvan; hiányzik a tény, hogy a cél hány fejezete áll                                                                                          |
+| a három munkahelyi szöveg cselekményváza azonos                           | futások közti modell-prior; egy életen belül csak a 3 fejezetes ablak látszik                     | futások közti ismétlést egy élet promptja nem láthat; ezt mérni kell, és a névpaletta/ledger csökkenti                                                                    |
 
 ## Döntések és megvalósítás (v8 / quality2.7)
 
@@ -61,13 +61,13 @@ A tulajdonos javaslata (2026-10-19): a gépén telepített Codex CLI ugyanazzal 
 
 2026-10-19, a tulajdonos gépén, a `811515d` forráson, modellhívás nélkül; bemenet a `v6-quality25-base-window-paid`, `v7-quality26-long-paid` és `v7-quality26-career-smoke-paid` `report.json`-ja. Csak főági szekvenciák (a forkok egyfejezetesek):
 
-| Szekvencia | Fejezet | v8 szabály szerint jelölt | Legerősebb ismétlődő nyitás | Magánélet név / szerepszó szerint |
-| --- | --- | --- | --- | --- |
-| v6 munkahelyi | 6 | 2 | „there is no” 6× / 4 fejezet | nővér 0/0, lakótárs 0/0 |
-| v6 alkotói | 8 | 1 | 6 nyitás egyenként 3× / 3 fejezet | anya 0/0, barát 0/0 |
-| v7 munkahelyi | 5 | 2 | „there is no”, „you read the” 5× / 4 | nővér 0/0, lakótárs 0/1 |
-| v7 alkotói | 8 | 1 | „neither of you”, „you leave it”, „you leave the”, „you put the” 4× / 4 | anya 0/1, barát 0/8 (csak „your friend”) |
-| v7 előpróba | 3 | 0 | „you have been” 3× / 3 | nővér 0/0, lakótárs 0/0 |
+| Szekvencia    | Fejezet | v8 szabály szerint jelölt | Legerősebb ismétlődő nyitás                                             | Magánélet név / szerepszó szerint        |
+| ------------- | ------- | ------------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
+| v6 munkahelyi | 6       | 2                         | „there is no” 6× / 4 fejezet                                            | nővér 0/0, lakótárs 0/0                  |
+| v6 alkotói    | 8       | 1                         | 6 nyitás egyenként 3× / 3 fejezet                                       | anya 0/0, barát 0/0                      |
+| v7 munkahelyi | 5       | 2                         | „there is no”, „you read the” 5× / 4                                    | nővér 0/0, lakótárs 0/1                  |
+| v7 alkotói    | 8       | 1                         | „neither of you”, „you leave it”, „you leave the”, „you put the” 4× / 4 | anya 0/1, barát 0/8 (csak „your friend”) |
+| v7 előpróba   | 3       | 0                         | „you have been” 3× / 3                                                  | nővér 0/0, lakótárs 0/0                  |
 
 Futások közt: a „Niamh Byrne” teljes név két független szekvenciában; a v6 alkotói sorozatban Aoife 5, Niamh 4 fejezetben. Azonos profil azonos fejezetének lexikai átfedése 0,11–0,23 (a durva mérőszám a cselekményváz-egyezést nem fogja meg; azt továbbra is olvasás dönti el).
 
@@ -79,9 +79,24 @@ Mit mutat: az olvasat fő állításai gépileg is látszanak (nyitás-tikk, a n
 
 Tények a tulajdonos gépén, modellhívás nélkül: `codex-cli 0.159.1`, **ChatGPT-fiókkal** belépve; `OPENAI_API_KEY` és `CODEX_API_KEY` nincs beállítva; a config alapmodellje `gpt-6.1-sol` (a modell-cache szerint elérhető, `supported_in_api=true`); a `codex exec` ismeri a `--output-schema`, `--model`, `--config`, `--ephemeral` és `--sandbox read-only` opciókat.
 
-Megvalósítva, de **nem futtatva**: `pnpm narrative:codex` (`scripts/evaluate-narrative-codex.ts`, `scripts/lib/narrative-evaluation-codex.ts`). Mindig offline módban fut, a pipeline minden kérését `codex exec`-kel teljesíti egy üres ideiglenes mappában, a szerver ugyanazt a validációt, javítási utat és artefaktumot használja. A gyermekfolyamat semmilyen `OPENAI_*`, `CODEX_API_KEY` vagy `NARRATIVE_EVAL_*` változót nem kap, a paid opciókat elutasítja, ledgert és budget-guardot nem érint; a kimenet mellé `codex-local.json` kerül `comparableWithPaid: false` jelöléssel.
+Megvalósítva: `pnpm narrative:codex` (`scripts/evaluate-narrative-codex.ts`, `scripts/lib/narrative-evaluation-codex.ts`). Mindig offline módban fut, a pipeline minden kérését `codex exec`-kel teljesíti egy üres ideiglenes mappában, a szerver ugyanazt a validációt, javítási utat és artefaktumot használja. A gyermekfolyamat semmilyen `OPENAI_*`, `CODEX_API_KEY` vagy `NARRATIVE_EVAL_*` változót nem kap, a paid opciókat elutasítja, ledgert és budget-guardot nem érint; a kimenet mellé `codex-local.json` kerül `comparableWithPaid: false` jelöléssel.
 
 Mire elég: gyors, dollárköltség nélküli iterációra (például hogy a v8 napló csökkenti-e az ismétlődő nyitásokat az auditban), séma- és pipeline-hibák keresésére valódi modellválaszokkal, és olvasási korpusz előállítására. Mire nem: a hivatalos mérés helyettesítésére. Eltérések: a Codex saját ügynöki utasításai a mi rendszerpromptunk elé kerülnek; a reasoning effort és a mintavétel nem azonos a termék Responses API-hívásával (a futtató `low` effortot állít be, `ALTERWARD_CODEX_EFFORT`-tal változtatható); nincs token- és költségadat; a strukturált kimenetet a Codex kényszeríti ki. Az előfizetés kvótáját fogyasztja (a v7 háromfejezetes előpróbája 15 hívás volt, javítással több). Futtatás csak a tulajdonos kifejezett engedélyével.
+
+## Codex előpróba — 2026-10-19
+
+A tulajdonos engedélyével (a szálban, 11:46) a `7196e6c` forráson, a gépén, ChatGPT-előfizetéssel, `gpt-6.1-sol` `low` efforttal: háromfejezetes munkahelyi előpróba, kilépési kód 0, **3/3 elfogadva**, 15 Codex-hívás (5/fejezet), 0 javítás, kb. 3,5 perc/fejezet, API-költség és ledger-írás nincs. Fejezetek: „The Room Beyond Reception” (749 szó), „The Missing Middle” (779), „At Actual Size” (798). A kimenet csak a gépen van (`/tmp/ff-v8-codex-out/v8-codex-smoke-2`).
+
+| Mutató (`pnpm narrative:audit`)       | v7 fizetős előpróba | v8 Codex előpróba  |
+| ------------------------------------- | ------------------- | ------------------ |
+| Ismétlődő nyitások                    | 7                   | 3 (mind 2×)        |
+| Visszhang miatt jelölt fejezet        | —                   | 0/3                |
+| Záró mondat átlagos hossza (szó)      | 16,7                | 9                  |
+| Alapkapcsolatok név szerint (fejezet) | nővér 0, barát 0    | Clodagh 1, Tunde 2 |
+| Futások közti közös teljes név        | Niamh Byrne         | nincs              |
+| Azonos profil szóátfedése             | —                   | 0,136–0,18         |
+
+Olvasás: a palettáról jöttek az új nevek (Fiona Hegarty, Nuala Cullen); a cselekményváz már nem pályázat → próbafeladat → ajánlat → hívás, hanem saját térképprojekt, kudarc, visszajelzés, önkísérlet, portfólió; a rokonok saját szándékkal lépnek be, a nézeteltérések nyitva maradnak. Megmaradt: minden fejezetben visszatér egy ingerültség-ütem (más szavakkal), a csendes megfigyelő zárások egymáshoz hasonlók, a 3. fejezet befelé forduló, kevés szereplővel és tételmondatszerű zárással, a pályaváltási cél lassan halad. Irányjelzés, nem összevethető a fizetős méréssel.
 
 ## Következő lépés
 
