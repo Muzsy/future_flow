@@ -102,6 +102,10 @@ Olvasás: a palettáról jöttek az új nevek (Fiona Hegarty, Nuala Cullen); a c
 
 Ugyanaz a háromfejezetes kör `948e72a` alapon, egy helyi, nem commitolt promptváltozattal (a szereplő ingerült reflexe legfeljebb egyszer fejezetenként, egymást követő fejezetekben nem; az editor ilyenkor `behavioralVariety=false`). 3/3 elfogadva, 19 hívás, a 3. fejezet egy javítással ment át, mert az editor az 1. fejezet motorjának ismétlését találta (novelty 3). Narrált súrlódásszavak fejezetenként: előző v8 kör 3/3/3, v7 1/3/2, új kör 0/0/0; kézi olvasás szerint maga a gesztus is eltűnt, a súrlódás a mellékszereplőktől jön és nyitva marad. Ismétlődő nyitás 1 („for a moment” 2×); Clodagh 2, Tunde 3 fejezetben név szerint. Maradt: új apró tikk („You had hoped… / You had expected… Instead”), a Clodagh-séta mindkét Codex-körben visszatér. A commitolt változat (`83c76b7`) ezt determinisztikus `frictionBeat` naplóval és editor-bizonyítékkal valósítja meg, és még nem futott Codexen. Irányjelzés, nem összevethető a fizetős méréssel.
 
+### Harmadik Codex-kör: commitolt változat — 2026-10-19
+
+`b332a22`, tiszta forrás, ugyanaz a profil és seed: **1/3**, 16 hívás. Az 1. fejezet egy javítással ment át (choiceStakes 3), súrlódásszó 0. A 2. fejezet a javítás után is `distinctEnding=false` lett, mert a zárás az 1. fejezet fogását ismételte (hétköznapi háttérzaj szakítja meg a tovább folyó tevékenységet: busz → vízforraló), és több javítás nem fér bele, így `NARRATIVE_QUALITY_FAILED`; a 3. fejezet nem futott. A súrlódás-szabály működött; a bukás oka a zárásfajta ismétlése, a kapu helyesen fogta meg. Válasz: a v8 planner/author `ENDING-KIND CRAFT` blokkot kap, amely a zárások _fajtáját_ nevezi meg (felfüggesztett tevékenység háttérzajjal), és ilyenkor más zárásfajtát kér. A kaput nem lazítjuk. A Codex-oldali variancia nagy (3/3 → 1/3 ugyanazzal a seeddel).
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.

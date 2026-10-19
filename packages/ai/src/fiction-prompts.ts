@@ -164,12 +164,23 @@ export function fictionPrompts(
   const casting = `\nCASTING CRAFT: castingProjection, when present, offers a per-life palette of locale-plausible given and family names. When this period introduces a NEW invented person, prefer a fresh combination from it over habitual default names; never give a new person a given or family name that another person in this life already carries, and never rename a supplied or existing person. Any other ordinary locale-plausible name is still allowed.`;
   const recurringBeat = `\nRECURRING-BEAT CRAFT: across owned periods, do not default to the same exchange shape in which another person proposes a change, the protagonist resists with irritation, and then half-yields within the same scene; and do not make every period's plot the same skeleton of application, practical test, short offer and a call. When sequenceHistory or sequenceSignatureHistory show that shape, let this period turn on something else the protagonist does, fails at or refuses, while keeping the same people and setting if they still matter.`;
   const frictionBeat = `\nFRICTION-BEAT CRAFT: seriesLedger.frictionBeat counts owned chapters whose narration names the protagonist's small private friction (irritation, annoyance, dislike, impatience, a door or laptop closed too sharply, saying something unhelpful); recentRun is how many of the latest chapters in a row did so and recentMarkers are their words. This is not a ban on conflict. But a passing flash of irritation that changes nothing is a reflex, not character: when recentRun is 1 or more, do not give this chapter another such flash under different wording. Let the protagonist meet other people's wants with another real response this period, such as curiosity, embarrassment, generosity, envy, fear, delight, being wrong and admitting it, or an open disagreement that is said aloud and has a consequence in what someone does next. If friction is the earned centre of this period, make it an event with stakes, not a mood in the narration.`;
+  const endingKind = `\nENDING-KIND CRAFT: before writing the last paragraph, read seriesLedger.recentClosings and name to yourself the KIND of ending each one uses, not just its words. A common hidden repeat is the suspended-activity ending: the protagonist keeps doing, leaves running, closes or walks on with something while an ordinary background sound or another person's small act interrupts and nothing is said. If any recent closing is of that kind, this chapter must end on a different kind, for example a line of dialogue that changes the situation, a decision taken aloud, a new fact arriving, or a cut in the middle of an action with stakes.`;
   return {
     ...v7Prompts,
     planner:
-      v7Prompts.planner + seriesLedger + casting + recurringBeat + frictionBeat,
+      v7Prompts.planner +
+      seriesLedger +
+      casting +
+      recurringBeat +
+      frictionBeat +
+      endingKind,
     author:
-      v7Prompts.author + seriesLedger + casting + recurringBeat + frictionBeat,
+      v7Prompts.author +
+      seriesLedger +
+      casting +
+      recurringBeat +
+      frictionBeat +
+      endingKind,
     review:
       v7Prompts.review +
       seriesLedger +

@@ -115,6 +115,7 @@ describe('v8 candidate policy selection and frozen predecessors', () => {
     expect(v8.author).toContain('SERIES-LEDGER CRAFT');
     expect(v8.author).toContain('CASTING CRAFT');
     expect(v8.author).toContain('FRICTION-BEAT CRAFT');
+    expect(v8.author).toContain('ENDING-KIND CRAFT');
     expect(v8.editor).toContain('frictionFinding');
     expect(v8.editor).toContain('seriesEchoFindings');
   });
