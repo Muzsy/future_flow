@@ -144,6 +144,16 @@ export function boundFictionContext(
     );
   while (size() > NARRATIVE_MEMORY_BYTES && sequenceSignatureHistory.length)
     sequenceSignatureHistory.shift();
+  // Raw sequence excerpts are repetition evidence, not continuity: drop the
+  // oldest first and keep the nearest period. The series ledger travels
+  // outside this bound, so repeated openings and closings stay visible.
+  if (sequenceHistory) sequenceHistory = sequenceHistory.slice();
+  while (
+    size() > NARRATIVE_MEMORY_BYTES &&
+    sequenceHistory &&
+    sequenceHistory.length > 1
+  )
+    sequenceHistory.shift();
   if (size() > NARRATIVE_MEMORY_BYTES || facts.length > 24)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',

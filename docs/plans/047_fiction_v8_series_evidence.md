@@ -136,6 +136,10 @@ Időigény (medián / P95 / max, s): plan 116/132/175 (v7: 151/176/178); author 
 
 A leállás valószínű oka (nem bizonyított, a CLI csak a kódot írja ki): `packages/database/src/fiction-memory.ts` „Required fiction continuity cannot fit its context bound” (12 KB-os memóriakeret / legfeljebb 24 kötelező tény; a `sequenceHistory`-t a vágás soha nem csökkenti, a career szálban 4 új szereplő rögzített ténye marad), másodlagos jelölt a `fictionReferenceProjection` 2048 bájtos korlátja. Modellhívás nélküli visszajátszással igazolható; a javítás külön döntés.
 
+### Kontextushiba okának megerősítése és javítása — 2026-10-19
+
+Ingyenes, modellhívás nélküli visszajátszás a Stage B futás saját adatbázisának másolatán (7. karrierfejezet utáni állapot): ugyanaz a kivétel, `NARRATIVE_CONTEXT_INVALID`, a méretági. A vágások után a kontextus **12 332 bájt** a 12 288-as korlát ellen (44 bájt túllépés); a kötelező tények száma 6 (a 24-es ág nem érintett). Bontás: `sequenceHistory` 5 546 B (a vágási lánc nem csökkentette), kötelező tények 2 458 B, `fictionalActors` 2 349 B (4 szereplő), a többi a minimumon. Javítás (`boundFictionContext`): a szignatúra-előzmények kiürítése után a nyers `sequenceHistory` a legrégebbi bejegyzéstől vágódik, legalább a legközelebbi periódus megmarad; a hívó tömbje nem módosul. A kötelező tények, nyitott szálak, szereplőprofilok és a 12 KB-os korlát változatlan; a seriesLedger a korláton kívül utazik, így az ismétlés-jelzés megmarad. Regressziós teszt: `tests/fiction-human-core.test.ts`. Nyitott, külön lépés: a távozott szereplők profiljai ne foglalják a memóriát (`fictionalActors` sem vágódik).
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.
