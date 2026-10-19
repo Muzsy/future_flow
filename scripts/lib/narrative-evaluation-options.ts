@@ -14,7 +14,10 @@ import { narrativeProfiles } from '../../tests/narrative-fixtures';
 // Owner authorization on 2026-10-19: USD 7.39 v7/quality2.6 development
 // spend on top of the closed v6 ledger total USD 33.4716975 (652 calls); the
 // unused v6 remainder USD 0.2603325 is not added again.
-export const evaluationApprovedCumulativeBudgetUsd = 40.8616975;
+// Owner authorization on 2026-10-19 15:29: USD 8 v8/quality2.7 measurement
+// spend on top of the closed v7 ledger total USD 40.0866575 (765 calls; v7
+// spent 6.61496); the unused v7 remainder USD 0.775 is not added again.
+export const evaluationApprovedCumulativeBudgetUsd = 48.0866575;
 export const evaluationDefaultMaxRequestBytes =
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
 export const evaluationCreativeMaxRequestBytes =

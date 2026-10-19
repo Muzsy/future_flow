@@ -114,6 +114,10 @@ Ugyanaz a háromfejezetes kör `948e72a` alapon, egy helyi, nem commitolt prompt
 
 `37f9b00`, tiszta forrás, ugyanaz a profil és seed: **3/3 elfogadva**, 22 hívás, 2 javítás (ch1: fidelity, regisztrálatlan tény és februárnál korábbi múlt; ch2: editor, choiceStakes 3), ch3 elsőre átment. Szereplőváltozás: ch1 egy `actor_add` (Fiona Carroll), később se új szereplő, se `actor_remove`; a 3-as keret és a távozás három periódusban nem került próbára. Súrlódásszó 1/3 (egy téves találat: „dislike” egy dokumentumrészre); visszhang miatt jelölt fejezet 0/3; zárások: kimondott mondat, felismerés, reprodukálhatatlan kép, egyik sem felfüggesztett tevékenység. Visszatérő motívum maradt: a „longer route” séta és a vacsorával félbeszakított munka. A ch3 valódi külső kudarcot hoz (elutasítás az interjú után), és a pályaváltási cél végre a külvilágba ér. Egy Codex-hiba: a fidelity indoklásába kínai írásjelek kerültek, és szó szerint bementek a javítási üzenetbe. Irányjelzés, nem összevethető a fizetős méréssel.
 
+### Fizetős mérési keret — 2026-10-19
+
+Tulajdonosi döntés (15:29, a szálban): **8 USD** a v8/quality2.7 mérésre. Kumulatív plafon `48.0866575` = lezárt v7 ledger `40.0866575` (765 hívás; v7 6,61496) + 8; a fel nem használt v7 maradék (0,775) nem adódik hozzá, a ledger nem nullázódik. Menet: Stage A háromfejezetes career-transition előpróba fork nélkül, `--budget-usd 41.5866575` (legfeljebb 1,50 USD); csak elfogadható eredmény után Stage B kétprofilos mérés a v7-long felépítésével, `--budget-usd 48.0866575`. A béta 10 USD-s kerete külön van, ezt a ledgert nem terheli.
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.
