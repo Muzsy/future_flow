@@ -8,7 +8,9 @@ import { createHash } from 'node:crypto';
 // N09 / Issue #34: git-bound Linux loader for the funded-runtime upgrade of
 // an already active personal beta. It never starts a window, changes a
 // budget, edits Access, rotates a key or calls a provider; the root executor
-// (scripts/ops/contabo-funded-upgrade.py) re-verifies every binding.
+// (scripts/ops/contabo-funded-upgrade.py) re-verifies the live state, the
+// preparation bindings and the image proofs. CI run ids, the audit hash and
+// the helper hashes are checked by this loader and carried, not re-derived.
 
 export const MODES = [
   'inspect',

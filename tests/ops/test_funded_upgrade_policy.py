@@ -223,6 +223,11 @@ class SchemaAndRecoveryTests(unittest.TestCase):
         with self.assertRaises(policy.UpgradeRefused):
             policy.expected_schema_transition(observation(), capability(NEW, migrations=changed))
 
+    def test_a_target_with_any_other_pending_migration_is_refused(self):
+        extra = MIGRATIONS + [{'name': '039_unreviewed.sql', 'checksum': '8' * 64}]
+        with self.assertRaises(policy.UpgradeRefused):
+            policy.expected_schema_transition(observation(), capability(NEW, migrations=extra))
+
     def test_applied_schema_must_equal_target_image(self):
         after = observation(**{'schema.migrations': MIGRATIONS, 'schema.narrativeArtifactColumn': True})
         self.assertTrue(policy.require_schema(after, capability(NEW)))

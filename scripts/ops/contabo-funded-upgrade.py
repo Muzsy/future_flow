@@ -369,7 +369,7 @@ def prepared(request):
 
 
 def require_restored_upgrade(daily, prepared_at, path):
-    """A fresh, real offsite restore whose archive holds THIS preparation."""
+    """A fresh, real offsite restore whose archive holds THIS preparation, including its rollback bytes."""
     if getattr(daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 1:
         raise policy.UpgradeRefused('Installed daily must archive funded upgrade evidence')
     installed = daily.config()
@@ -395,8 +395,11 @@ def require_restored_upgrade(daily, prepared_at, path):
             proof.get('tablesRestoredAndDataMatched') != len(manifest['expectedTables']) or
             proof.get('rowsMatched') != sum(t['count'] for t in manifest['expectedTables'])):
         raise policy.UpgradeRefused('Restore is not bound to the current complete archive')
-    required = [path / 'prepared.json', path / 'manifest.json', path / 'server.env',
-                PERSONAL / 'journal.json', DIRECTORY / 'manifest.json', DIRECTORY / 'server.env']
+    # Everything prepare wrote (previous/ and recovery/ bytes included); the
+    # journal and applied receipt change after the restore proof.
+    required = [item for item in sorted(path.rglob('*'))
+                if item.is_file() and item.name not in {'journal.json', 'applied.json'}]
+    required += [PERSONAL / 'journal.json', DIRECTORY / 'manifest.json', DIRECTORY / 'server.env']
     for item in required:
         if manifest['configFiles'].get(str(item).lstrip('/')) != sha(fence.original(item)):
             raise policy.UpgradeRefused('Restored archive lacks the current funded preparation')
@@ -642,6 +645,7 @@ def recover(request, daily):
         if upgrade.foreign_state() != foreign:
             raise policy.UpgradeRefused('Foreign runtime changed')
 
+    policy.ignore_interrupts()
     state = policy.fail_closed(record=record, stop=readers.stop_project, schema_applied=schema_applied,
                                restore_previous=restore_previous, verify_previous=verify_previous,
                                start_recovery=start_recovery if recovery_dir else None,

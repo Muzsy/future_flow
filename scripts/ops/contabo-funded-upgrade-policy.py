@@ -301,8 +301,10 @@ def expected_schema_transition(before, capability):
         raise UpgradeRefused('Applied migration history differs from the target image')
     if NARRATIVE_MIGRATION not in [m['name'] for m in target]:
         raise UpgradeRefused('Target image lacks the narrative artifact migration')
-    return {'appliedCount': len(applied), 'targetCount': len(target),
-            'pending': [m['name'] for m in target[len(applied):]]}
+    pending = [m['name'] for m in target[len(applied):]]
+    if pending not in ([NARRATIVE_MIGRATION], []):
+        raise UpgradeRefused('Only the narrative artifact migration may be pending')
+    return {'appliedCount': len(applied), 'targetCount': len(target), 'pending': pending}
 
 
 def require_schema(after, capability):
@@ -376,7 +378,9 @@ def transition(*, record, stop, held, migrate, verify_schema, promote, start_ori
 
     Durable intent precedes the first stop. Schema mutation happens only after
     the fresh held observation and the compatible recovery proof. The worker
-    (the only paid-provider process) starts last, after full verification.
+    (the only paid-provider process) starts last, after the origin is
+    verified; verify_runtime then proves the whole stack and any failure
+    stops it again.
     On failure the DATABASE, not the journal, decides whether 038 exists:
     before it, the previous funded files/image return; after it, only the
     reviewed compatible recovery target may serve, otherwise all stay stopped.
@@ -400,12 +404,16 @@ def transition(*, record, stop, held, migrate, verify_schema, promote, start_ori
         verify_runtime()
         record('applied')
     except BaseException:
-        for number in [getattr(signal, n) for n in ('SIGHUP', 'SIGTERM', 'SIGINT') if hasattr(signal, n)]:
-            signal.signal(number, signal.SIG_IGN)
+        ignore_interrupts()
         fail_closed(record=record, stop=stop, schema_applied=schema_applied,
                     restore_previous=restore_previous, verify_previous=verify_previous,
                     start_recovery=start_recovery, verify_recovery=verify_recovery)
         raise
+
+
+def ignore_interrupts():
+    for number in [getattr(signal, n) for n in ('SIGHUP', 'SIGTERM', 'SIGINT') if hasattr(signal, n)]:
+        signal.signal(number, signal.SIG_IGN)
 
 
 def fail_closed(*, record, stop, schema_applied, restore_previous, verify_previous,
