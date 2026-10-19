@@ -50,7 +50,8 @@ Három szint, egyik sem hív fizetős modellt és nem ír a ledgerbe:
 
 1. **Determinisztikus egység- és integrációs tesztek** (`tests/fiction-v8-candidate.test.ts`, `tests/fiction-worker.test.ts`): a ledger, a visszhang-találatok, a névpaletta és a context-határok szintetikus „v7-szerű” prózán; a következő job contextjében valódi adatbázison át megjelenik a napló; a v7 prompt-hash-ek változatlanok. CI-ben fut.
 2. **Offline sorozat-audit a már legenerált fejezeteken:** `pnpm narrative:audit --out <dir> <run-dir>...` a tárolt `report.json`-okból számol: ismétlődő nyitások/fordulatok, fejezetenként mit jelzett volna a v8 editor-bizonyíték, záró mondatok, névgyakoriság, magánéleti szereplők említése, futások közti közös teljes nevek és fordulatok, azonos profil azonos fejezetének lexikai átfedése. Ez a v6/v7 baseline; a következő mérés ugyanezzel a paranccsal hasonlítható. Eredmény: lásd [Baseline](#baseline--v6v7-audit).
-3. **Elfogadási küszöbök a következő engedélyezett méréshez** (ugyanazzal az audittal, humán olvasás mellett, nem helyette): egyetlen nyitás sem jelenik meg egy szekvenciában 4-nél többször; a futások közti közös teljes nevek száma 0; minden megadott alapkapcsolat legalább egyszer szerepel 8 fejezetben; az editor-bizonyíték által jelzett fejezetek aránya a v7 baseline alatt marad. A küszöb nem release gate; a tulajdonos és a független olvasás dönt.
+3. **Elfogadási küszöbök a következő engedélyezett méréshez**, ugyanazzal az audittal, a humán olvasás mellett: lásd a [Baseline](#baseline--v6v7-audit) szakaszt. A tulajdonos és a független olvasás dönt.
+4. **Helyi Codex-futtatás** (opcionális, előfizetésből): lásd [Codex vizsgálat](#codex-vizsgálat--2026-10-19).
 
 ### Helyi Codex mint ingyenes futtató
 
@@ -58,11 +59,29 @@ A tulajdonos javaslata (2026-10-19): a gépén telepített Codex CLI ugyanazzal 
 
 ## Baseline — v6/v7 audit
 
-Kitöltendő a tulajdonos gépén futtatott `pnpm narrative:audit` eredményével.
+2026-10-19, a tulajdonos gépén, a `811515d` forráson, modellhívás nélkül; bemenet a `v6-quality25-base-window-paid`, `v7-quality26-long-paid` és `v7-quality26-career-smoke-paid` `report.json`-ja. Csak főági szekvenciák (a forkok egyfejezetesek):
+
+| Szekvencia | Fejezet | v8 szabály szerint jelölt | Legerősebb ismétlődő nyitás | Magánélet név / szerepszó szerint |
+| --- | --- | --- | --- | --- |
+| v6 munkahelyi | 6 | 2 | „there is no” 6× / 4 fejezet | nővér 0/0, lakótárs 0/0 |
+| v6 alkotói | 8 | 1 | 6 nyitás egyenként 3× / 3 fejezet | anya 0/0, barát 0/0 |
+| v7 munkahelyi | 5 | 2 | „there is no”, „you read the” 5× / 4 | nővér 0/0, lakótárs 0/1 |
+| v7 alkotói | 8 | 1 | „neither of you”, „you leave it”, „you leave the”, „you put the” 4× / 4 | anya 0/1, barát 0/8 (csak „your friend”) |
+| v7 előpróba | 3 | 0 | „you have been” 3× / 3 | nővér 0/0, lakótárs 0/0 |
+
+Futások közt: a „Niamh Byrne” teljes név két független szekvenciában; a v6 alkotói sorozatban Aoife 5, Niamh 4 fejezetben. Azonos profil azonos fejezetének lexikai átfedése 0,11–0,23 (a durva mérőszám a cselekményváz-egyezést nem fogja meg; azt továbbra is olvasás dönti el).
+
+Mit mutat: az olvasat fő állításai gépileg is látszanak (nyitás-tikk, a nővér és a barát neve sosem jelenik meg, Niamh Byrne futások között), tehát a v8 napló a valódi hibát kapja. Az editor-szabály szándékosan mérsékelt: egyetlen visszatérés egy 2 fejezetben már szereplő nyitásra még nem jelöl, mert a jelölés elutasítást és újabb kérést okoz; a szerző viszont az összes ismétlődő nyitást „kerülendő” listaként kapja. Ha a következő mérés szerint a szerzői oldal nem elég, a szigorítás egy küszöbcsere a `seriesEchoFlags`-ben. Ismert zaj: helynevek (pl. „Ireland”) névként jelenhetnek meg az auditban.
+
+**Elfogadási küszöbök a következő engedélyezett méréshez** (a fenti baseline-hoz képest): egyik nyitás sem fordul elő 3-nál több fejezetben; a futások közti közös teljes nevek száma 0; minden alapkapcsolat név szerint legalább egy fejezetben megjelenik; a jelölt fejezetek aránya nem nő. Ezek fejlesztési jelzések, nem release gate.
 
 ## Codex vizsgálat — 2026-10-19
 
-Kitöltendő.
+Tények a tulajdonos gépén, modellhívás nélkül: `codex-cli 0.159.1`, **ChatGPT-fiókkal** belépve; `OPENAI_API_KEY` és `CODEX_API_KEY` nincs beállítva; a config alapmodellje `gpt-6.1-sol` (a modell-cache szerint elérhető, `supported_in_api=true`); a `codex exec` ismeri a `--output-schema`, `--model`, `--config`, `--ephemeral` és `--sandbox read-only` opciókat.
+
+Megvalósítva, de **nem futtatva**: `pnpm narrative:codex` (`scripts/evaluate-narrative-codex.ts`, `scripts/lib/narrative-evaluation-codex.ts`). Mindig offline módban fut, a pipeline minden kérését `codex exec`-kel teljesíti egy üres ideiglenes mappában, a szerver ugyanazt a validációt, javítási utat és artefaktumot használja. A gyermekfolyamat semmilyen `OPENAI_*`, `CODEX_API_KEY` vagy `NARRATIVE_EVAL_*` változót nem kap, a paid opciókat elutasítja, ledgert és budget-guardot nem érint; a kimenet mellé `codex-local.json` kerül `comparableWithPaid: false` jelöléssel.
+
+Mire elég: gyors, dollárköltség nélküli iterációra (például hogy a v8 napló csökkenti-e az ismétlődő nyitásokat az auditban), séma- és pipeline-hibák keresésére valódi modellválaszokkal, és olvasási korpusz előállítására. Mire nem: a hivatalos mérés helyettesítésére. Eltérések: a Codex saját ügynöki utasításai a mi rendszerpromptunk elé kerülnek; a reasoning effort és a mintavétel nem azonos a termék Responses API-hívásával (a futtató `low` effortot állít be, `ALTERWARD_CODEX_EFFORT`-tal változtatható); nincs token- és költségadat; a strukturált kimenetet a Codex kényszeríti ki. Az előfizetés kvótáját fogyasztja (a v7 háromfejezetes előpróbája 15 hívás volt, javítással több). Futtatás csak a tulajdonos kifejezett engedélyével.
 
 ## Következő lépés
 
