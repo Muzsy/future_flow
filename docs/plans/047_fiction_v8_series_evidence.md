@@ -144,6 +144,10 @@ Ingyenes, modellhívás nélküli visszajátszás a Stage B futás saját adatb�
 
 `9e4d18b`, Codex CLI (ChatGPT-fiók, API-kulcs és ledger nélkül), career-transition, 8 periódus + fork, a Stage B seeddel; a konstans csak ideiglenes worktree-kben volt átírva. Irányjelző, a szórás nagy. **12 KiB: 9/9 kész**, 49 hívás, 1 javítás, nincs hiba; a korábban leállító 8. fejezet kontextusa 10 483 B (2 nyers sequenceHistory-bejegyzés marad), a 9. bemenete 12 023 B. **16 KiB** (2 próba) és **24 KiB** (2 próba) 0–2 kész fejezetnél leállt, amikor a memória még szinte üres: bejegyzetlen előtörténet (fidelity), csak minor issue-kra „revise” az editortól, egyszer `AI_PROVIDER_FAILED` (három párhuzamos futás). Következtetés: a keretméretről ebből a körből nem dönthető; context-bound dobás egyik futásban sem volt. A 12 KiB-nál a régi periódus-összefoglalók (memory.history) már kiesnek, csak a legutolsó marad. Falióra (12 KiB) fejezetenként 168–274 s, medián 190 s. Audit (12 KiB, 8 fejezet): súrlódásszó 1/8, visszhang 1/8, ismétlődő nyitások maradtak (×3), Clodagh és Tunde 5/8 fejezetben; `actor_add` három fejezetben, `actor_remove` nem fordult elő. Visszatérő kapuhatások, amelyek több fejezetet visznek el, mint bármi más: (a) bejegyzetlen előtörténet az 1. fejezetben (a mai körökben 4. alkalom); (b) javítás után csak minor issue-k miatti elutasítás. Keretemelés csak ezek kezelése után, 1–2 párhuzamos futással mérhető.
 
+### Aktuális keret — 2026-10-19
+
+Tulajdonosi közlés (18:59, a szálban): a jelenlegi keret **6,24 USD**. Ez a rendelkezésre álló összeg; a mérőkönyv kumulatív plafonja (`48.0866575`, ebből 1,39 USD maradt a Stage B után) külön szám, és nem változott. Új fizetős futáshoz továbbra is külön számszerű jóváhagyás és a plafon tudatos módosítása kell.
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.
