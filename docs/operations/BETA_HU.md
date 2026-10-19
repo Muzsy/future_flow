@@ -61,10 +61,10 @@ Ezek aktív supporting runbookok. A closure/audit reportok csak bizonyítékok.
 
 ## 4. Budget/window
 
-A personal beta operátor jelenlegi elfogadott kerete:
+A personal beta operátor elfogadott kerete. Tulajdonosi döntés, 2026-10-19: a narratív zárt béta első köre **10 USD OpenAI-keret 3 tesztelőre** (tervezett beállítás 10 USD projekt / 3,33 USD felhasználó). A kód és az operátori ellenőrzések plafonja ehhez 10 USD projekt és 3,34 USD felhasználó. A már futó, 2026-11-12-ig tartó első ablak 2/0,50 USD-s értékei változatlanok; az új keret csak új, külön jóváhagyott 30 napos ablakkal, az N09 frissítés után indulhat.
 
-- maximum 2 USD OpenAI runtime;
-- maximum 0,50 USD/user;
+- maximum 10 USD OpenAI runtime (az első ablakban 2 USD);
+- maximum 3,34 USD/user (az első ablakban 0,50 USD);
 - pontosan 30 nap;
 - külön Claude audit tartalék legfeljebb 1 USD;
 - nincs automatikus keret-átcsoportosítás;

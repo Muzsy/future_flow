@@ -86,9 +86,9 @@ export function personalRuntimeManifest(
     ) ||
     !(
       Number(stage.projectUsd) > 0 &&
-      Number(stage.projectUsd) <= 2 &&
+      Number(stage.projectUsd) <= 10 &&
       Number(stage.userUsd) > 0 &&
-      Number(stage.userUsd) <= 0.5 &&
+      Number(stage.userUsd) <= 3.34 &&
       Number(stage.userUsd) <= Number(stage.projectUsd)
     ) ||
     keys
