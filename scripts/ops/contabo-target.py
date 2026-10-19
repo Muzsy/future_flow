@@ -190,6 +190,12 @@ def validate_owner_configuration(config, access, flags):
             'AI_BUDGET_WINDOW_REQUIRED': 'true',
             'AI_BUDGET_WINDOW_START': '', 'AI_BUDGET_WINDOW_END': ''}.items()):
         raise ValueError('Owner deployment could start a paid window')
+    for service in ['api', 'worker']:
+        environment = config['services'][service]['environment']
+        # Older renders lack these keys; a present value must stay default-off.
+        if (environment.get('NARRATIVE_PIPELINE_MODE', 'legacy') != 'legacy' or
+                environment.get('NARRATIVE_COHORT_USER_IDS', '') != ''):
+            raise ValueError('Owner deployment could enable a narrative cohort')
     for key in ['OFFICIAL_PUBLICATIONS_ENABLED', 'DISCOVERY_ENABLED',
                 'PUBLIC_COLLECTIONS_ENABLED', 'PUBLIC_SCENARIOS_ENABLED']:
         if config['services']['api']['environment'].get(key) != 'true':

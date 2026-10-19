@@ -142,12 +142,19 @@ describe('explicitly limited closed beta configuration', () => {
         AI_BUDGET_WINDOW_END: window.endsAt,
       };
     expect(applicationAiBudgetConfigFromEnv(env).projectUsd).toBe(2);
+    expect(
+      applicationAiBudgetConfigFromEnv({
+        ...env,
+        AI_PROJECT_BUDGET_USD: '10',
+        AI_USER_BUDGET_USD: '3.34',
+      }),
+    ).toMatchObject({ projectUsd: 10, userUsd: 3.34 });
     expect(applicationAiBudgetConfigFromEnv(env, 'anthropic').projectUsd).toBe(
       1,
     );
     for (const change of [
-      { AI_PROJECT_BUDGET_USD: '6' },
-      { AI_USER_BUDGET_USD: '0.51' },
+      { AI_PROJECT_BUDGET_USD: '10.01' },
+      { AI_USER_BUDGET_USD: '3.35' },
       {
         AI_BUDGET_WINDOW_END: new Date(
           Date.parse(window.endsAt) + 1,
@@ -194,7 +201,7 @@ describe('explicitly limited closed beta configuration', () => {
     expect(
       () =>
         new DatabaseAiBudget(forbidden, owner, randomUUID(), {
-          projectUsd: 6,
+          projectUsd: 10.01,
           userUsd: 0.5,
           window: period(),
           closedBetaUserIds: [owner],

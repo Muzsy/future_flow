@@ -5,6 +5,7 @@ import {
   DatabaseAiBudget,
   Repository,
   applicationAiBudgetConfigFromEnv,
+  fictionMaxRequestBytesFromEnv,
   type ApplicationAiBudgetConfig,
   type Database,
 } from '@future-flow/database';
@@ -83,6 +84,16 @@ async function ledger() {
 }
 
 describe('fixed approved AI spending period', () => {
+  it('keeps the runtime fiction envelope at 100000 bytes unless a reviewed bound is configured', () => {
+    expect(fictionMaxRequestBytesFromEnv({})).toBe(100000);
+    expect(
+      fictionMaxRequestBytesFromEnv({ AI_FICTION_MAX_REQUEST_BYTES: '196608' }),
+    ).toBe(196608);
+    for (const value of ['99999', '196609', '', '1e5', '150000.5', ' 150000'])
+      expect(() =>
+        fictionMaxRequestBytesFromEnv({ AI_FICTION_MAX_REQUEST_BYTES: value }),
+      ).toThrow();
+  });
   it('keeps legacy totals by default and requires dates for a positive production allowance', () => {
     expect(applicationAiBudgetConfigFromEnv({})).toEqual({
       projectUsd: 0,

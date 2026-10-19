@@ -70,6 +70,28 @@ function budgetWindow(window: ApplicationAiBudgetConfig['window']) {
     return invalidBudgetConfig();
   return { startsAt, endsAt };
 }
+// Owner decision 2026-10-19: closed narrative beta of three testers within a
+// 10 USD project allowance. Claude audit allowances keep their 1/0.5 USD caps.
+export const CLOSED_BETA_MAX_PROJECT_USD = 10;
+export const CLOSED_BETA_MAX_USER_USD = 3.34;
+const closedBetaCaps = (provider: 'openai' | 'anthropic') =>
+  provider === 'anthropic'
+    ? { projectUsd: 1, userUsd: 0.5 }
+    : {
+        projectUsd: CLOSED_BETA_MAX_PROJECT_USD,
+        userUsd: CLOSED_BETA_MAX_USER_USD,
+      };
+// Creative narrative jobs may need the reviewed larger envelope. The runtime
+// default stays 100,000 bytes; a server value outside the bound is refused.
+export function fictionMaxRequestBytesFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  const raw = env.AI_FICTION_MAX_REQUEST_BYTES ?? '100000';
+  const value = /^[0-9]+$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isSafeInteger(value) || value < 100000 || value > 196608)
+    return invalidBudgetConfig();
+  return value;
+}
 export function applicationAiBudgetConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env,
   provider: 'openai' | 'anthropic' = 'openai',
@@ -111,8 +133,8 @@ export function applicationAiBudgetConfigFromEnv(
   if (beta.enabled) {
     config.closedBetaUserIds = beta.userIds;
     if (
-      config.projectUsd > (provider === 'anthropic' ? 1 : 2) ||
-      config.userUsd > 0.5
+      config.projectUsd > closedBetaCaps(provider).projectUsd ||
+      config.userUsd > closedBetaCaps(provider).userUsd
     )
       return invalidBudgetConfig();
     if (
@@ -154,8 +176,8 @@ export class DatabaseAiBudget {
       }).userIds;
       if (
         config.projectUsd >
-          ((config.provider ?? 'openai') === 'anthropic' ? 1 : 2) ||
-        config.userUsd > 0.5 ||
+          closedBetaCaps(config.provider ?? 'openai').projectUsd ||
+        config.userUsd > closedBetaCaps(config.provider ?? 'openai').userUsd ||
         (this.config.window
           ? Date.parse(this.config.window.endsAt) -
               Date.parse(this.config.window.startsAt) !==

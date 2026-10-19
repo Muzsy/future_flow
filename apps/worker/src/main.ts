@@ -13,6 +13,7 @@ import {
   cleanupExpiredLifeAdmissions,
   cleanupExpiredPersonalScenarioPreviews,
   narrativeConfigFromEnv,
+  fictionMaxRequestBytesFromEnv,
 } from '@future-flow/database';
 import {
   OpenAiProvider,
@@ -45,6 +46,7 @@ async function main() {
   // the shared application budget, including legacy generation and SDK retries.
   new OpenAiProvider(aiConfig);
   const budgetConfig = applicationAiBudgetConfigFromEnv();
+  const fictionMaxRequestBytes = fictionMaxRequestBytesFromEnv();
   const leaseSeconds = Number(process.env.JOB_LEASE_SECONDS ?? 180);
   if (!Number.isFinite(leaseSeconds) || leaseSeconds < 60)
     throw new Error('JOB_LEASE_SECONDS must be at least 60');
@@ -150,6 +152,12 @@ async function main() {
                 : jobs.heartbeat(
                     claimed as import('@future-flow/database').Job,
                   );
+      const narrative =
+        v2 &&
+        ['narrative-v1', 'narrative-fiction-v2'].includes(
+          (job as import('@future-flow/database').LifeJob).payload
+            .narrativeContext?.policy.mode ?? '',
+        );
       const budget = new DatabaseAiBudget(
         db,
         shared
@@ -165,6 +173,7 @@ async function main() {
         v2
           ? (job as import('@future-flow/database').LifeJob).lease_token
           : undefined,
+        narrative ? fictionMaxRequestBytes : undefined,
       );
       let experiment: ExperimentAiBudget | undefined;
       const heartbeat = setInterval(
@@ -190,13 +199,7 @@ async function main() {
         const ai = new OpenAiProvider({
           ...aiConfig,
           guard,
-          ...(v2 &&
-          (job as import('@future-flow/database').LifeJob).payload
-            .narrativeContext?.policy.mode &&
-          ['narrative-v1', 'narrative-fiction-v2'].includes(
-            (job as import('@future-flow/database').LifeJob).payload
-              .narrativeContext!.policy.mode,
-          )
+          ...(narrative
             ? {
                 beforePhysicalRequest: () =>
                   lifeJobs.admitNarrativeRequest(

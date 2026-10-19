@@ -47,6 +47,10 @@ x-review: &review
   PUBLIC_REVIEW_DAILY_LIMIT: ${PUBLIC_REVIEW_DAILY_LIMIT:-5}
   AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
   AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
+x-narrative:
+  &narrative # Default-off: only an explicit server cohort may use the narrative pipeline.
+  NARRATIVE_PIPELINE_MODE: ${NARRATIVE_PIPELINE_MODE:-legacy}
+  NARRATIVE_COHORT_USER_IDS: ${NARRATIVE_COHORT_USER_IDS:-}
 services:
   web:
     <<: *runtime
@@ -88,7 +92,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
-      <<: [*database, *shared, *review, *access]
+      <<: [*database, *shared, *review, *access, *narrative]
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
@@ -120,7 +124,7 @@ services:
     # Deliver SIGTERM directly to the worker so it can finish and close the DB.
     command: [node, apps/worker/dist/main.js]
     environment:
-      <<: [*database, *shared, *review]
+      <<: [*database, *shared, *review, *narrative]
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
       AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
       AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}
@@ -130,6 +134,8 @@ services:
       AI_BUDGET_WINDOW_REQUIRED: ${AI_BUDGET_WINDOW_REQUIRED:-true}
       AI_BUDGET_WINDOW_START: ${AI_BUDGET_WINDOW_START:-}
       AI_BUDGET_WINDOW_END: ${AI_BUDGET_WINDOW_END:-}
+      AI_FICTION_TIMEOUT_MS: ${AI_FICTION_TIMEOUT_MS:-180000}
+      AI_FICTION_MAX_REQUEST_BYTES: ${AI_FICTION_MAX_REQUEST_BYTES:-100000}
       AI_EXPERIMENT_LEDGER_PATH: ''
       JOB_LEASE_SECONDS: '180'
     volumes:

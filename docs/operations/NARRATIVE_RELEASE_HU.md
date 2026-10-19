@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-18
+last_reviewed: 2026-10-19
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -16,6 +16,57 @@ Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00�
 ## Aktuális v6 bizonyíték és költési határ — 2026-10-18
 
 PR #50 mért checkpointként beolvadt (`f755a57`, production nélkül) / quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+
+## Zárt narratív béta: javasolt kapurend — vázlat, 2026-10-19
+
+**Státusz: javaslat, tulajdonosi jóváhagyásra vár.** Amíg a tulajdonos nem fogadja el, az alábbi staging-sorrend 1. pontja (teljes paid+human N08 PASS) érvényes. A javaslat nem rollout-engedély, nem módosít ablakot, keretet, cohortot vagy production állapotot.
+
+Kérdés: kiadható-e az új narratív pipeline egy kis, zárt tesztelői körnek úgy, hogy az irodalmi minőség még nem végleges, és a valódi használat adja a béta-visszajelzést.
+
+**Visszajelzéssel nem helyettesíthető kapuk** (változatlanok): Linux funded-runtime upgrade (Issue #34); 038 migráció kompatibilis alkalmazás- és recovery image-dzsel, titkosított backup, izolált restore és privacy replay; a runtime határidő és request-envelope kifejezett beállítása; drain és legacy visszaállás; explicit cohort és költségkeret; éles post-check és külön apply engedély. Ezek adat-, költség- és működési biztonságot védenek, nem irodalmi minőséget.
+
+**Zárt bétában helyettesíthető kapuk** (javaslat):
+
+- A teljes kétprofilos, 18 célos paid benchmark helyett a már mért, forráshoz kötött checkpoint (v6 vagy a később kiválasztott jelölt Stage A+B eredménye) és a minden fejezetre futó szerveres gépi minőségkapuk. A kapuk küszöbei nem lazulnak; elutasított fejezet nem jut el az olvasóhoz.
+- A független emberi sorozatértékelés helyett a tesztelők saját, valódi életének értékelése: fejezetenkénti alkalmazáson belüli visszajelzés és egy rövid kérdőív a 3. és a 6. fejezet után (lent). Ez valódi emberi bizonyíték, de nem vak összehasonlítás, ezért nyilvános vagy fizetős kiadásra nem elegendő.
+- Árazás, csomag, billing és latency-SLA nem feltétele a zárt, előre keretezett bétának; a mért latency és fejezetköltség a béta eredménye.
+
+**Javasolt kiadandó verzió:** a v7, amely mért checkpointként, élesítés nélkül beolvadt a mainbe (PR #51, `466ed29`); ha a v8 jelölt a N09 munka lezárásáig fizetősen mért és jobb, kiadás előtt arra váltunk. A verzióválasztás az N09 folyamatát nem változtatja meg.
+
+**Költségkeret — tulajdonosi döntés, 2026-10-19:** első körben 10 USD OpenAI-keret 3 tesztelőre (tervezett 10 USD projekt / 3,33 USD felhasználó). Kb. 0,40–0,43 USD-s elfogadott fejezetenkénti költséggel ez tesztelőnként kb. 7–8 fejezet, tehát a 6. fejezet utáni kérdőív elérhető. A plafon a `DatabaseAiBudget`-ben, a személyes policyban, a napi monitor `personal_runtime_policy` ellenőrzésében és a Linux operátori receipt-ellenőrzésben 10 / 3,34 USD; a Claude audit plafonja változatlan. A napi monitor a szerverre telepített példányból fut, ezért az új plafon csak a reviewed újratelepítés után él. A keret a visszajelzések után módosulhat; minden módosítás újabb tulajdonosi döntés. A worker egyszerre egy jobot dolgoz fel (kódból kiolvasva, élesben nem mérve), így egyidejű kérésnél a tesztelők sorban várnak.
+
+### Tesztelői visszajelzés
+
+Csatornák: az alkalmazás meglévő fejezetenkénti visszajelzése (`POST /api/v2/feedback`: kategória, folytatná-e, rövid megjegyzés; összesítés `pnpm feedback:report`) és egy rövid, alkalmazáson kívüli kérdőív a 3. és a 6. elfogadott fejezet után. A kérdőív a [mérési runbook](NARRATIVE_EVALUATION_HU.md) sorozatkérdéseinek tesztelői változata; a választ AI nem töltheti ki és nem egészítheti ki.
+
+1. Elolvasnád a következő fejezetet? (igen / talán / nem)
+2. Ha ez fizetős lenne, folytatnád ezt az életet? (igen / talán / nem)
+3. Melyik jelenet növelte a legjobban a kedvedet a folytatáshoz?
+4. Melyik jelenet csökkentette a legjobban?
+5. Úgy érzed, a korábbi döntéseid érdemben megváltoztatták a későbbi fejezeteket? (1–5)
+6. Mennyire érzed magadénak a főszereplőt? (1–5)
+7. Vannak a mellékszereplőknek saját életük, vagy csak a főszereplőt szolgálják? (1–5)
+8. Ismétlődött valami zavaróan (jelenet, mondat, fordulat, név)? Mi?
+9. Volt olyan változás, ami indokolatlanul vagy túl korán történt? Melyik?
+10. Volt olyan szakasz, ahol túl sokáig nem történt semmi? Hol?
+11. Elárulta-e egy fejezet vége túl nyíltan a következő döntés lehetőségeit? (igen / néha / nem)
+12. Mennyire volt zavaró a fejezet elkészülésére várás? (1–5)
+13. Egyéb megjegyzés
+
+Mérendő a bétából: elfogadott/elutasított fejezetek aránya, fejezetenkénti accounted költség a béta ledgeréből, P50/P95 elkészülési idő, visszatérés és folytatás aránya. Ezek a későbbi árazási és kiadási döntés bemenetei.
+
+## Narratív runtime konfiguráció — 2026-10-19
+
+A deploy compose a következő kulcsokat adja át; mind default-off vagy a meglévő runtime értéken marad, így a meglévő szerver-env módosítása nélkül a viselkedés változatlan:
+
+| Kulcs | Szolgáltatás | Default | Megengedett |
+|---|---|---|---|
+| `NARRATIVE_PIPELINE_MODE` | api, worker | `legacy` | `legacy`, `context`, `narrative-v1`, `narrative-fiction-v2` |
+| `NARRATIVE_COHORT_USER_IDS` | api, worker | üres | legfeljebb 100 egyedi Auth UUID |
+| `AI_FICTION_TIMEOUT_MS` | worker | 180000 | 1000–300000 |
+| `AI_FICTION_MAX_REQUEST_BYTES` | worker | 100000 | 100000–196608, csak `narrative-v1`/`narrative-fiction-v2` jobokra |
+
+A korábbi compose ezeket nem adta át, ezért a cohort productionben nem volt bekapcsolható, és a narratív jobok a 100000 bájtos envelope-pal futottak volna. A tulajdonosi owner-konfiguráció ellenőrzése (`validate_owner_configuration`) nem-legacy módot vagy nem üres cohortot elutasít. A compose változása miatt a következő éles frissítés már nem tisztán image-only: az N09 funded-runtime upgrade-nek ezeket a kulcsokat a fenti defaultokkal kell elfogadnia, minden más funded env-bájt változatlansága mellett. Konkrét éles értéket csak a külön jóváhagyott N09 apply állíthat be.
 
 ## Kiadási manifest, csak igazolt értékekkel
 

@@ -71,7 +71,7 @@ class PersonalCandidateTests(unittest.TestCase):
     def test_bound_identity_list_and_exact_request_reject_bad_inputs(self):
         cases = []
         for patch in ({'participants': []}, {'participants': self.request['participants'] * 11},
-                      {'projectUsd': '2.000001'}, {'userUsd': '0.500001'}, {'projectUsd': 'NaN'},
+                      {'projectUsd': '10.000001'}, {'userUsd': '3.340001'}, {'projectUsd': 'NaN'},
                       {'projectUsd': 2}, {'projectUsd': '0'}, {'openaiKey': policy.SENTINEL},
                       {'openaiKey': 'key\nwith_newline'}, {'extra': True},
                       {'endsAt': '2026-11-11T12:00:00Z'}, {'startsAt': '2026-10-11T12:16:00Z'},
@@ -104,6 +104,9 @@ class PersonalCandidateTests(unittest.TestCase):
         value, _ = self.candidate(request={**self.request, 'projectUsd': '2.000000', 'userUsd': '0.500000'})
         self.assertEqual(value['services']['worker']['environment']['AI_PROJECT_BUDGET_USD'], '2')
         self.assertEqual(value['services']['worker']['environment']['AI_USER_BUDGET_USD'], '0.5')
+        value, _ = self.candidate(request={**self.request, 'projectUsd': '10', 'userUsd': '3.34'})
+        self.assertEqual(value['services']['worker']['environment']['AI_PROJECT_BUDGET_USD'], '10')
+        self.assertEqual(value['services']['worker']['environment']['AI_USER_BUDGET_USD'], '3.34')
 
     def test_ten_identities_plus_owner_and_owner_as_participant_are_bounded(self):
         request = {**self.request, 'participants': [

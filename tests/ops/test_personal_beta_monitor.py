@@ -34,10 +34,20 @@ class PersonalBetaPolicyTests(unittest.TestCase):
                          {'mode': 'personal-beta', 'queueAllowed': True, 'userIds': [USER]})
         self.assertFalse(daily.personal_runtime_policy(self.beta(), NOW + dt.timedelta(days=30))['queueAllowed'])
         self.assertFalse(daily.personal_runtime_policy(self.beta(), NOW - dt.timedelta(seconds=1))['queueAllowed'])
+        raised = self.beta()
+        for service in ('api', 'worker'):
+            raised[service].update(AI_PROJECT_BUDGET_USD='10', AI_USER_BUDGET_USD='3.34')
+        self.assertTrue(daily.personal_runtime_policy(raised, NOW)['queueAllowed'])
+        for key, value in (('AI_PROJECT_BUDGET_USD', '10.01'), ('AI_USER_BUDGET_USD', '3.35')):
+            over = self.beta()
+            for service in ('api', 'worker'):
+                over[service][key] = value
+            with self.assertRaises(ValueError):
+                daily.personal_runtime_policy(over, NOW)
 
     def test_caps_shared_invalid_admission_and_provider_placement_refuse(self):
         cases = [('api', 'OPENAI_API_KEY', 'synthetic_unused'), ('web', 'ANTHROPIC_API_KEY', 'synthetic_unused'),
-                 ('worker', 'AI_PROJECT_BUDGET_USD', '2.01'), ('worker', 'AI_USER_BUDGET_USD', '0.51'),
+                 ('worker', 'AI_PROJECT_BUDGET_USD', '10.01'), ('worker', 'AI_USER_BUDGET_USD', '3.35'),
                  ('worker', 'CLOSED_BETA_USER_IDS', USER + ',' + USER), ('worker', 'SHARED_CONTEXTS_ENABLED', 'true'),
                  ('worker', 'AI_BUDGET_WINDOW_END', (NOW + dt.timedelta(days=31)).isoformat().replace('+00:00', 'Z')),
                  ('worker', 'AI_PROJECT_BUDGET_USD', 'NaN'), ('worker', 'AI_PROJECT_INITIAL_SPENT_USD', '1'),
