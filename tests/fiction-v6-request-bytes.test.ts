@@ -355,7 +355,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     expect(evaluationCreativeMaxRequestBytes).toBe(196608);
     expect(evaluationCreativeMaxRequestBytes).toBe(192 * 1024);
     expect(evaluationCreativeMaxRequestBytes).toBeLessThan(272000);
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(48.0866575, 7);
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(52.93296, 7);
 
     const legacyDefault = parseEvaluationOptions([]);
     expect(legacyDefault.creative).toBeUndefined();

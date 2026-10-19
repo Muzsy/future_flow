@@ -17,7 +17,10 @@ import { narrativeProfiles } from '../../tests/narrative-fixtures';
 // Owner authorization on 2026-10-19 15:29: USD 8 v8/quality2.7 measurement
 // spend on top of the closed v7 ledger total USD 40.0866575 (765 calls; v7
 // spent 6.61496); the unused v7 remainder USD 0.775 is not added again.
-export const evaluationApprovedCumulativeBudgetUsd = 48.0866575;
+// Owner authorization on 2026-10-19 19:00: the current budget is USD 6.24 on
+// top of the closed v8 Stage B ledger total USD 46.69296 (875 calls), to make
+// up the two missing Stage B samples; the unused 1.39 is folded into it.
+export const evaluationApprovedCumulativeBudgetUsd = 52.93296;
 export const evaluationDefaultMaxRequestBytes =
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
 export const evaluationCreativeMaxRequestBytes =

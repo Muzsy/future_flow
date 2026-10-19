@@ -146,7 +146,7 @@ Ingyenes, modellhívás nélküli visszajátszás a Stage B futás saját adatb�
 
 ### Aktuális keret — 2026-10-19
 
-Tulajdonosi közlés (18:59, a szálban): a jelenlegi keret **6,24 USD**. Ez a rendelkezésre álló összeg; a mérőkönyv kumulatív plafonja (`48.0866575`, ebből 1,39 USD maradt a Stage B után) külön szám, és nem változott. Új fizetős futáshoz továbbra is külön számszerű jóváhagyás és a plafon tudatos módosítása kell.
+Tulajdonosi közlés (18:59, a szálban): a jelenlegi keret **6,24 USD**. Ez a rendelkezésre álló összeg; a mérőkönyv kumulatív plafonja a hiányzó Stage B minták pótlásához `52.93296` (= lezárt ledger `46.69296` + 6,24; a fel nem használt 1,39 ebbe beleolvad). A régi `b9f3195` forráson a career 8. fejezet a kontextushiba miatt újra elszállna, és a javított forrás más forrás-hash, ezért a meglévő Stage B futás nem folytatható; a pótlás egy új, teljes career-transition sorozat (8 periódus + fork) a javított forráson, külön kimeneti mappába. Becsült költség 3,0–3,5 USD. Indítás csak a tulajdonos szálbeli jóváhagyásával.
 
 ## Következő lépés
 
