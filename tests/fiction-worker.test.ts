@@ -27,6 +27,7 @@ import {
   validateFictionAuthor,
   hash,
   preparePublicEditorSource,
+  seriesClosingSentence,
   type SnapshotSourcePeriod,
 } from '@future-flow/core';
 import {
@@ -307,10 +308,10 @@ describe('creative final author package through real guarded provider and databa
     'distinctEnding',
     'behavioralVariety',
   ] as const)
-    it(`repairs default v7 ${flag} with the correct bounded stage sequence`, async () => {
+    it(`repairs default v8 ${flag} with the correct bounded stage sequence`, async () => {
       const f = await fixture();
       expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
-        'life_fiction_author.v7',
+        'life_fiction_author.v8',
       );
       const p = provider(f, (task, n, output) => {
         if (task === 'life_narrative_editor' && n === 1)
@@ -797,7 +798,19 @@ describe('creative final author package through real guarded provider and databa
     expect(next.payload.narrativeContext.storyFacts).toEqual(
       f.f.authored.storyFacts,
     );
-    // The default v7 chapter stores report 1.3.0; its 1.1.0 signature is the
+    // quality2.7: the committed chapter feeds the deterministic series ledger.
+    const ledger = fictionContextSchema.parse(
+      next.payload.narrativeContext,
+    ).seriesLedger;
+    expect(ledger).toMatchObject({ version: '1.0.0', ownedChapters: 1 });
+    expect(ledger?.recentClosings).toEqual([
+      {
+        periodId: f.job.payload.periodId,
+        sentence: seriesClosingSentence(f.f.authored.chapter.body),
+      },
+    ]);
+    expect(ledger?.goalActivity.length).toBeGreaterThan(0);
+    // The default chapter stores report 1.3.0; its 1.1.0 signature is the
     // next chapter's series-level pattern history.
     expect(
       fictionContextSchema.parse(next.payload.narrativeContext)

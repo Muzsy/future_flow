@@ -149,6 +149,9 @@ export const factChangeV2Schema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('asset_add'), value: assetSchema }).strict(),
   z.object({ type: z.literal('asset_remove'), assetId: id }).strict(),
   z.object({ type: z.literal('actor_add'), value: actorSchema }).strict(),
+  // A person leaves the story (moves away, drifts apart, a role ends). The
+  // actor leaves current state; earlier events keep their own snapshots.
+  z.object({ type: z.literal('actor_remove'), actorId: id }).strict(),
   z.object({ type: z.literal('skill_add'), value: label }).strict(),
   z
     .object({ type: z.literal('goal_progress_set'), value: goalProgressSchema })

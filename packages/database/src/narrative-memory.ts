@@ -136,6 +136,18 @@ export async function personalNarrativeMemory(
   const threads = new Map<string, NarrativeMemory['openThreads'][number]>();
   const actors = new Map<string, NarrativeMemory['fictionalActors'][number]>();
   const patterns: string[] = [];
+  // Invented actors who left the story (actor_remove) no longer occupy memory.
+  let presentActorIds: Set<string> | null = null;
+  if (narrative && !withheld) {
+    const [latest] = await tx.query<{
+      end_state: { actors?: { id: string }[] } | null;
+    }>(
+      'SELECT p.end_state FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position DESC LIMIT 1',
+      [branchId, userId],
+    );
+    if (latest?.end_state?.actors)
+      presentActorIds = new Set(latest.end_state.actors.map((a) => a.id));
+  }
   if (narrative && !withheld) {
     const references = await ownedNarrativeReferences(tx, userId, branchId);
     const rows = await tx.query<{ period_id: string; delta: unknown }>(
@@ -213,7 +225,9 @@ export async function personalNarrativeMemory(
       };
     }),
     openThreads: [...threads.values()],
-    fictionalActors: [...actors.values()].slice(-12),
+    fictionalActors: [...actors.values()]
+      .filter((actor) => !presentActorIds || presentActorIds.has(actor.actorId))
+      .slice(-12),
     recentDecisionPatterns: patterns.slice(-4),
     withheld,
   });

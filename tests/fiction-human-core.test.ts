@@ -285,6 +285,32 @@ describe('human-fiction v4/v5 compatibility and evidence gates', () => {
       'Required fiction continuity',
     );
   });
+  it('trims the oldest raw sequence entries only after optional signatures, never the nearest period', () => {
+    const f = currentFixture();
+    const raw = Array.from({ length: 3 }, () => ({
+      periodId: randomUUID(),
+      scenes: Array(3).fill('x'.repeat(270)),
+      opening: 'x'.repeat(400),
+      ending: 'x'.repeat(500),
+    }));
+    f.memory.fictionalActors = Array.from({ length: 10 }, () => ({
+      actorId: randomUUID(),
+      introducedByEventId: randomUUID(),
+      role: 'x'.repeat(100),
+      desire: 'x'.repeat(160),
+      resistance: 'x'.repeat(160),
+      voiceCue: 'x'.repeat(100),
+      lastSeenPeriodId: randomUUID(),
+    }));
+    const input = raw.slice();
+    const c = boundFictionContext(f.memory, [], input, []);
+    expect(input).toHaveLength(3);
+    expect(c.sequenceHistory!.length).toBeLessThan(3);
+    expect(c.sequenceHistory!.length).toBeGreaterThanOrEqual(1);
+    expect(c.sequenceHistory!.at(-1)).toEqual(raw.at(-1));
+    const { policy: _, ...rest } = c;
+    expect(Buffer.byteLength(JSON.stringify(rest))).toBeLessThanOrEqual(12288);
+  });
   it('keeps pinned older facts in chronological order ahead of the retained recent window', () => {
     const f = currentFixture();
     const early = Array.from({ length: 3 }, () => ({

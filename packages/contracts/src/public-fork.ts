@@ -23,6 +23,9 @@ export const forkFactChangeSchema = z.discriminatedUnion('type', [
     .object({ type: z.literal('actor_add'), value: state.actors.element })
     .strict(),
   z
+    .object({ type: z.literal('actor_remove'), actorKey: key('actor') })
+    .strict(),
+  z
     .object({
       type: z.literal('skill_add'),
       value: z.string().trim().min(1).max(160),

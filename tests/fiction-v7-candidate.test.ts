@@ -61,8 +61,9 @@ function provider(response: unknown) {
 }
 
 describe('v7 candidate policy selection and frozen predecessors', () => {
-  it('selects v7/quality2.6/editor v6 for new jobs and keeps v6 explicit', () => {
-    expect(fictionPolicy()).toEqual(fictionV7Policy());
+  it('keeps v7/quality2.6/editor v6 explicit next to v6', () => {
+    // 047: new jobs select v8 (tests/fiction-v8-candidate.test.ts).
+    expect(fictionPolicy()).not.toEqual(fictionV7Policy());
     expect(fictionV7Policy()).toMatchObject({
       qualityPolicyVersion: '2.6.0',
       maxPhysicalRequests: 9,
@@ -363,14 +364,14 @@ describe('measurement profiles with an ordinary private life', () => {
         narrativeProfiles.find((p) => p.id === id)!,
       ).relationships.map((r) => r.label);
     expect(labels('career-transition')).toEqual([
-      'Fictional older sister',
-      'Fictional flatmate',
+      'Fictional older sister Clodagh',
+      'Fictional flatmate Tunde',
     ]);
     expect(labels('creative-portfolio')).toEqual([
-      'Fictional mother',
-      'Fictional school friend',
+      'Fictional mother Bernadette',
+      'Fictional school friend Nessa',
     ]);
-    expect(labels('fictional-friend')).toContain('Fictional companion');
+    expect(labels('fictional-friend')).toContain('Fictional companion Lorcan');
   });
 });
 

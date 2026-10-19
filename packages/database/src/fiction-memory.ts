@@ -4,7 +4,10 @@ import {
   fictionContextSchema,
   fictionEditorialVersionFor,
   fictionPolicy,
+  fictionSeriesLedgerSchema,
+  fictionSeriesQualityVersions,
   NARRATIVE_MEMORY_BYTES,
+  type FictionSeriesLedger,
   type NarrativeMemory,
   type FictionSequenceEntry,
   type FictionSequenceSignature,
@@ -17,7 +20,10 @@ import {
 import {
   DomainError,
   hash,
+  fictionSeriesLedgerFrom,
   narrativeReferenceSnapshot,
+  type SeriesLedgerPeriod,
+  type SeriesLedgerState,
   validatedFictionCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
@@ -48,7 +54,10 @@ export function boundFictionContext(
   allFacts: StoryFact[],
   sequenceHistory?: FictionSequenceEntry[],
   signatureHistory?: FictionSequenceSignature[],
+  seriesLedger?: FictionSeriesLedger,
 ) {
+  // The ledger quotes owned prose, so withholding drops it like other history.
+  seriesLedger = rawMemory.withheld ? undefined : seriesLedger;
   // Withholding clears both historical projections even for direct callers.
   allFacts = rawMemory.withheld ? [] : allFacts;
   sequenceHistory = rawMemory.withheld ? [] : sequenceHistory;
@@ -135,6 +144,16 @@ export function boundFictionContext(
     );
   while (size() > NARRATIVE_MEMORY_BYTES && sequenceSignatureHistory.length)
     sequenceSignatureHistory.shift();
+  // Raw sequence excerpts are repetition evidence, not continuity: drop the
+  // oldest first and keep the nearest period. The series ledger travels
+  // outside this bound, so repeated openings and closings stay visible.
+  if (sequenceHistory) sequenceHistory = sequenceHistory.slice();
+  while (
+    size() > NARRATIVE_MEMORY_BYTES &&
+    sequenceHistory &&
+    sequenceHistory.length > 1
+  )
+    sequenceHistory.shift();
   if (size() > NARRATIVE_MEMORY_BYTES || facts.length > 24)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -146,6 +165,7 @@ export function boundFictionContext(
     storyFacts: facts,
     ...(sequenceHistory ? { sequenceHistory } : {}),
     ...(signatureHistory ? { sequenceSignatureHistory } : {}),
+    ...(seriesLedger ? { seriesLedger } : {}),
   });
 }
 export async function personalFictionContext(
@@ -159,9 +179,13 @@ export async function personalFictionContext(
     artifact: unknown;
     period_id: string;
     chapter: { body: string };
-    events: { title: string; summary: string }[];
+    events: (SeriesLedgerPeriod['events'][number] & {
+      title: string;
+      summary: string;
+    })[];
+    end_state: SeriesLedgerState | null;
   }>(
-    `SELECT h.period_id, p.chapter, p.events, p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
+    `SELECT h.period_id, p.chapter, p.events, p.end_state, p.narrative_artifact AS artifact FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id
       WHERE h.branch_id=$1 AND h.user_id=$2 ORDER BY h.position`,
     [branchId, userId],
   );
@@ -213,11 +237,28 @@ export async function personalFictionContext(
       ending: row.chapter.body.slice(-500),
     };
   });
+  const last = rows.at(-1);
+  const seriesLedger =
+    last &&
+    fictionSeriesQualityVersions.includes(fictionPolicy().qualityPolicyVersion)
+      ? fictionSeriesLedgerSchema.parse(
+          fictionSeriesLedgerFrom(
+            rows.map((row) => ({
+              periodId: row.period_id,
+              body: row.chapter.body,
+              events: row.events,
+            })),
+            // Legacy rows without a stored end state contribute no people.
+            last.end_state ?? { actors: [], goals: [] },
+          ),
+        )
+      : undefined;
   return boundFictionContext(
     memory,
     [...active.values()],
     sequenceHistory,
     signatures.slice(-8),
+    seriesLedger,
   );
 }
 
