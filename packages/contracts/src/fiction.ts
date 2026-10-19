@@ -45,6 +45,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v5',
           'life_fiction_plan.v6',
           'life_fiction_plan.v7',
+          'life_fiction_plan.v8',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -54,6 +55,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v5',
           'life_fiction_author.v6',
           'life_fiction_author.v7',
+          'life_fiction_author.v8',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -63,6 +65,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v5',
           'life_fiction_plan_review.v6',
           'life_fiction_plan_review.v7',
+          'life_fiction_plan_review.v8',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
         editor: z.enum([
@@ -72,6 +75,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v4',
           'life_fiction_editor.v5',
           'life_fiction_editor.v6',
+          'life_fiction_editor.v7',
         ]),
       })
       .strict(),
@@ -84,6 +88,7 @@ export const fictionPolicySchema = z
       '2.4.0',
       '2.5.0',
       '2.6.0',
+      '2.7.0',
     ]),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
@@ -98,30 +103,34 @@ export const fictionPolicySchema = z
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       policy.promptVersions.editor !==
-        (v === 'v7'
-          ? 'life_fiction_editor.v6'
-          : v === 'v6'
-            ? 'life_fiction_editor.v5'
-            : v === 'v5'
-              ? 'life_fiction_editor.v4'
-              : v === 'v4'
-                ? 'life_fiction_editor.v3'
-                : v === 'v3'
-                  ? 'life_fiction_editor.v2'
-                  : 'life_fiction_editor.v1') ||
+        (v === 'v8'
+          ? 'life_fiction_editor.v7'
+          : v === 'v7'
+            ? 'life_fiction_editor.v6'
+            : v === 'v6'
+              ? 'life_fiction_editor.v5'
+              : v === 'v5'
+                ? 'life_fiction_editor.v4'
+                : v === 'v4'
+                  ? 'life_fiction_editor.v3'
+                  : v === 'v3'
+                    ? 'life_fiction_editor.v2'
+                    : 'life_fiction_editor.v1') ||
       (!(v === 'v6' && policy.qualityPolicyVersion === '2.5.0') &&
         policy.qualityPolicyVersion !==
-          (v === 'v7'
-            ? '2.6.0'
-            : v === 'v6'
-              ? '2.4.0'
-              : v === 'v5'
-                ? '2.3.0'
-                : v === 'v4'
-                  ? '2.2.0'
-                  : v === 'v3'
-                    ? '2.1.0'
-                    : '2.0.0'))
+          (v === 'v8'
+            ? '2.7.0'
+            : v === 'v7'
+              ? '2.6.0'
+              : v === 'v6'
+                ? '2.4.0'
+                : v === 'v5'
+                  ? '2.3.0'
+                  : v === 'v4'
+                    ? '2.2.0'
+                    : v === 'v3'
+                      ? '2.1.0'
+                      : '2.0.0'))
     )
       ctx.addIssue({
         code: 'custom',
@@ -241,14 +250,33 @@ export function fictionV7Policy(): FictionPolicy {
     },
   };
 }
-// Newly queued jobs select v7; every older snapshot stays byte-frozen.
-export function fictionPolicy(): FictionPolicy {
-  return fictionV7Policy();
+// v8/quality2.7 adds deterministic series evidence (ledger, echo findings,
+// casting palette); report 1.3.0, gates and repair budget stay unchanged.
+export function fictionV8Policy(): FictionPolicy {
+  const previous = fictionV7Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.7.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v8',
+      writer: 'life_fiction_author.v8',
+      planReviewer: 'life_fiction_plan_review.v8',
+      editor: 'life_fiction_editor.v7',
+    },
+  };
 }
+// Newly queued jobs select v8; every older snapshot stays byte-frozen.
+export function fictionPolicy(): FictionPolicy {
+  return fictionV8Policy();
+}
+// Quality policies that receive the deterministic series ledger.
+export const fictionSeriesQualityVersions: readonly string[] = ['2.7.0'];
 // Quality policies that coordinate fidelity and editor feedback before repair.
 export const fictionCoordinatedQualityVersions: readonly string[] = [
   '2.5.0',
   '2.6.0',
+  '2.7.0',
 ];
 // Quality policies whose editor emits a human-likeness report (1.2.0+).
 export const fictionHumanQualityVersions: readonly string[] = [
@@ -257,9 +285,10 @@ export const fictionHumanQualityVersions: readonly string[] = [
   '2.4.0',
   '2.5.0',
   '2.6.0',
+  '2.7.0',
 ];
 export function fictionEditorialVersionFor(qualityPolicyVersion: string) {
-  return qualityPolicyVersion === '2.6.0'
+  return qualityPolicyVersion === '2.6.0' || qualityPolicyVersion === '2.7.0'
     ? '1.3.0'
     : fictionHumanQualityVersions.includes(qualityPolicyVersion)
       ? '1.2.0'
@@ -519,6 +548,65 @@ export const fictionCompactPlanSchema = narrativePlanSchema
 export const fictionCompactDraftSchema = narrativePlanningResultSchema
   .extend({ plan: fictionCompactPlanSchema })
   .strict();
+// Deterministic, server-computed evidence over this life's owned chapters
+// (quality2.7). Counts are evidence, never quotas; see core fiction-series.
+export const FICTION_SERIES_LEDGER_BYTES = 3 * 1024;
+const seriesEchoSchema = z
+  .object({
+    text: z.string().min(1).max(80),
+    count: z.number().int().min(1).max(100000),
+    chapters: z.number().int().min(1).max(1000),
+  })
+  .strict();
+export const fictionSeriesLedgerSchema = z
+  .object({
+    version: z.literal('1.0.0'),
+    ownedChapters: z.number().int().min(0).max(1000),
+    repeatedOpenings: z.array(seriesEchoSchema).max(6),
+    repeatedPhrases: z.array(seriesEchoSchema).max(6),
+    recentClosings: z
+      .array(
+        z
+          .object({ periodId: z.uuid(), sentence: z.string().max(200) })
+          .strict(),
+      )
+      .max(6),
+    privateLife: z
+      .array(
+        z
+          .object({
+            actorId: z.uuid(),
+            relationship: z.enum(['partner', 'family', 'friend']),
+            chaptersPresent: z.number().int().min(0).max(1000),
+            chaptersSinceLast: z.number().int().min(0).max(1000).nullable(),
+          })
+          .strict(),
+      )
+      .max(12),
+    goalActivity: z
+      .array(
+        z
+          .object({
+            goalId: z.uuid(),
+            chaptersSinceProgressChange: z
+              .number()
+              .int()
+              .min(0)
+              .max(1000)
+              .nullable(),
+          })
+          .strict(),
+      )
+      .max(5),
+  })
+  .strict()
+  .refine(
+    (l) =>
+      new TextEncoder().encode(JSON.stringify(l)).length <=
+      FICTION_SERIES_LEDGER_BYTES,
+    'Series ledger exceeds its byte bound.',
+  );
+export type FictionSeriesLedger = z.infer<typeof fictionSeriesLedgerSchema>;
 // The existing bounded memory remains strict and byte-compatible. New facts are
 // a separately versioned projection, included in the SAME total input byte cap.
 export const fictionContextSchema = z
@@ -531,20 +619,29 @@ export const fictionContextSchema = z
       .array(fictionAnySequenceSignatureSchema)
       .max(8)
       .optional(),
+    seriesLedger: fictionSeriesLedgerSchema.optional(),
   })
   .strict()
   .refine(
     (c) =>
       c.policy.qualityPolicyVersion === '2.6.0' ||
+      c.policy.qualityPolicyVersion === '2.7.0' ||
       !c.sequenceSignatureHistory?.some((s) => s.version !== '1.0.0'),
-    'Only quality2.6 fiction context may carry signature 1.1.0 history.',
+    'Only quality2.6+ fiction context may carry signature 1.1.0 history.',
+  )
+  .refine(
+    (c) =>
+      !c.seriesLedger ||
+      fictionSeriesQualityVersions.includes(c.policy.qualityPolicyVersion),
+    'Only quality2.7 fiction context may carry a series ledger.',
   )
   .refine(
     (c) =>
       !c.memory.withheld ||
       (c.storyFacts.length === 0 &&
         !c.sequenceHistory?.length &&
-        !c.sequenceSignatureHistory?.length),
+        !c.sequenceSignatureHistory?.length &&
+        !c.seriesLedger),
     'Withheld fiction context cannot contain historical facts.',
   );
 export type FictionContext = z.infer<typeof fictionContextSchema>;

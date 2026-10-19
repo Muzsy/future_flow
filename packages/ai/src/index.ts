@@ -693,13 +693,14 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
-      // Editors v3-v5 share report 1.2.0; editor v6 alone emits report 1.3.0
+      // Editors v3-v5 share report 1.2.0; editors v6-v7 emit report 1.3.0
       // with signature 1.1.0, so frozen request schemas stay byte-identical.
       context.policy.promptVersions.editor === 'life_fiction_editor.v1'
         ? narrativeEditorialReportSchema
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
           ? fictionSequenceEditorialSchema
-          : context.policy.promptVersions.editor === 'life_fiction_editor.v6'
+          : context.policy.promptVersions.editor === 'life_fiction_editor.v6' ||
+              context.policy.promptVersions.editor === 'life_fiction_editor.v7'
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',
