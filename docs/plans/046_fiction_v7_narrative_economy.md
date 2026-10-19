@@ -6,8 +6,9 @@ base_commit: f755a57aca37ee6a2e995400c76fc0394f1cdc88
 predecessor_pr: 50
 issue: 45
 workstream: F05/F06 quality follow-up
-state: offline-candidate-implemented-no-paid-measurement
-paid_provider_calls_authorized: false
+state: offline-candidate-paid-authority-7.39
+paid_provider_calls_authorized: true
+numeric_authority_usd: 7.39
 production_authorized: false
 related:
   - 045_fiction_v6_earned_life_evolution.md
@@ -72,3 +73,7 @@ A következő engedélyezett méréskor ezekre kell választ keresni. Egyikből 
 Lefutott: `pnpm format:check`, `pnpm docs:check`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm schemas` (a `docs/contracts` diff csak az új 1.1.0/1.3.0 sémákat és a context-séma uniont tartalmazza). Az offline Stage A/B korpusz a v7 defaulttal fut.
 
 Következő: exact-source CI és külön kódátnézés után új, számszerű költségengedéllyel friss háromfejezetes előpróba, majd elfogadható eredménynél teljes kétprofilos mérés két alternatív ággal; ezután a független emberi 17 kérdéses értékelés. A lezárt v6 korpusz nem egészíthető ki v7 forrással.
+
+## Numerikus authority — 2026-10-19
+
+A tulajdonos a v7 valódi mérésére **legfeljebb 7,39 USD** új fejlesztési fogyasztást engedélyezett. Kiinduló eredeti ledger a lezárt v6 után: 652 hívás / 33,4716975 USD accounted; új kumulatív plafon **40,8616975 USD** (`evaluationApprovedCumulativeBudgetUsd`). A v6 fel nem használt 0,2603325 USD maradéka nincs hozzáadva; nincs ledger-reset vagy másolt ledger. A futás előtt a mérőcheckout ledgerét vissza kell olvasni: ha az accounted összeg eltér a 33,4716975 USD-től, a mérés nem indul. Sorrend: friss háromfejezetes munkahelyi előpróba (no-fork), majd csak elfogadható eredménynél friss kétprofilos 18-célos mérés, ameddig a plafon engedi. A plafon kimerülése részleges mérés, nem ok a keret emelésére.
