@@ -148,6 +148,16 @@ Ingyenes, modellhívás nélküli visszajátszás a Stage B futás saját adatb�
 
 Tulajdonosi közlés (18:59, a szálban): a jelenlegi keret **6,24 USD**. Ez a rendelkezésre álló összeg; a mérőkönyv kumulatív plafonja a hiányzó Stage B minták pótlásához `52.93296` (= lezárt ledger `46.69296` + 6,24; a fel nem használt 1,39 ebbe beleolvad). A régi `b9f3195` forráson a career 8. fejezet a kontextushiba miatt újra elszállna, és a javított forrás más forrás-hash, ezért a meglévő Stage B futás nem folytatható; a pótlás egy új, teljes career-transition sorozat (8 periódus + fork) a javított forráson, külön kimeneti mappába. Becsült költség 3,0–3,5 USD. Indítás csak a tulajdonos szálbeli jóváhagyásával.
 
+### Fizetős pótló karrier-sorozat — 2026-10-19
+
+`8bc2d36`, tiszta forrás (a vágási javításokkal), career-transition, 8 periódus + fork, a Stage B seeddel, új kimeneti mappa (`v8-quality27-career-repair-paid`), approval `v8-stage-b-career-repair`, `--budget-usd 52.93296`. **9/9 elfogadva**, 53 hívás, mind completed, hiba nincs, **3,31 USD** (kb. 0,37 USD/fejezet; becslés 3,0–3,5). Ledger: 875 → **928 hívás**, 46,69296 → **50,00253 USD**; a 6,24 USD-os keretből **kb. 2,93 USD** maradt, ennyi a mozgástér a plafon alatt is. Két javítás: ch1 (két előadó jelenetszereplő `actor_add` nélkül; a javítás felvette), ch6 (az editor hiányos választ adott, `AI_INCOMPLETE_OR_REFUSED`, szolgáltatói hiba, nem minőségi). Szereplők: a főszálban 8 `actor_add`, `actor_remove` egyszer sem.
+
+Memória (offline visszajátszás a futás adatbázisából, a 9. fejezet bemenete): főszál **10 491 B** (1 sequenceHistory-bejegyzés a 3-ból, 1 periódus-összefoglaló, 9 kötelező tény, 6 szereplőprofil), a fork ágon 12 114 B (3 bejegyzés). A 8 fejezet és a fork context-bound dobás nélkül elkészült; a 12 KiB-os keret 8 fejezet után tele van (szereplőprofilok 3,1 KB, kötelező tények 3,7 KB), ezért 10+ fejezetes életeknél a 16 KiB mérendő.
+
+Időigény: egyik hívás sem lépte át a 180 s-ot (a leghosszabb a ch8 plan-hívása, 155 s); fejezet falióra medián **293 s** (Stage B: 262 s, v7: 341 s), javított fejezet 393 és 477 s; plan medián 129 s (Stage B 116 s), author 112 s (95 s). Audit: súrlódásszó **0/8** (v8 long career 1–7: 1/7; v7 long: 4/5), visszhang-jelölés 1/8 (0/7; 2/5), Clodagh és Tunde név szerint 3/8–3/8 (3/7–3/7; v7: 0). Maradt: ismétlődő nyitások („there is no” ×4, további ×3). Sorozatok közti névismétlés: „Úna Hegarty” megjelenik a Stage B és a pótló futásban is, tehát ugyanarra a seedre a casting palette ugyanazt a nevet adja.
+
+Összkép: a v8-nak most mindkét profilra teljes 8 fejezet + fork sorozata van (creative: Stage B, career: pótló futás), minőségi bukás nélkül, a v7-nél gyorsabban és olcsóbban.
+
 ## Következő lépés
 
 Exact-source CI és kódátnézés után, új számszerű engedéllyel: friss háromfejezetes munkahelyi előpróba (kb. 0,77 USD a v7 alapján), majd az audit és rövid humán olvasás; csak elfogadható eredménynél teljes kétprofilos mérés. Merge és production csak a tulajdonos kifejezett engedélyével.
