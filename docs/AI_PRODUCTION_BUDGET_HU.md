@@ -2,7 +2,7 @@
 
 2026-10-07 · Jóváhagyott felhasználói döntés · Az éles alkalmazás még nem fut
 
-**Frissítés, 2026-10-19:** a narratív zárt béta első körére a tulajdonos **10 USD OpenAI-keretet szán 3 tesztelőre**. A runtime és az operátori ellenőrzések OpenAI-plafonja ezért 10 USD projekt / 3,34 USD felhasználó; a Claude audit plafonja (1 USD projekt / 0,50 USD felhasználó) változatlan. Ez kódbeli felső korlát, nem bekapcsolt költés: a tényleges értéket csak új, külön jóváhagyott 30 napos ablak állítja be. Az alábbi 2026-10-07-i felosztás az első, még futó ablakra vonatkozik. [Kapurend és indoklás](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-javasolt-kapurend--vázlat-2026-10-19).
+**Frissítés, 2026-10-19:** a narratív zárt béta első körére a tulajdonos **10 USD OpenAI-keretet szán 3 tesztelőre**. A runtime és az operátori ellenőrzések OpenAI-plafonja ezért 10 USD projekt / 3,34 USD felhasználó; a Claude audit plafonja (1 USD projekt / 0,50 USD felhasználó) változatlan. Ez kódbeli felső korlát, nem bekapcsolt költés: a tényleges értéket csak új, külön jóváhagyott 30 napos ablak állítja be. Az alábbi 2026-10-07-i felosztás az első, még futó ablakra vonatkozik. [Kapurend és indoklás](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19).
 
 A legfrissebb felhasználói döntés **10 USD teljes induló keret: 8 USD OpenAI + 2 USD Claude**. Ebből 15 angol Official Life, öt Scenario és legfeljebb 10 fős zárt béta készül. A teljes 50–100 élet/20–30 Scenario kínálat későbbi bővítés; teljes nyilvános indulás külön lépés. Ez **helyettesíti** a korábban jóváhagyott 10 USD OpenAI + 5 USD Claude használati keretet; nem összeadjuk vele. A 35 + 5 USD külön előállítási javaslatot nem fogadta el a felhasználó.
 
