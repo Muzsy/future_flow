@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-18
+last_reviewed: 2026-10-19
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -79,7 +79,7 @@ F05/F06/N08 **PARTIAL**, N09 **PARTIAL/nyitott**. Következő sorrend:
 
 1. Az ismétlődő jelenetmechanizmusok és az első draft kánon-/állapotkonzisztenciájának célzott korrekciója: **offline implementálva a v7 jelöltben** ([046](plans/046_fiction_v7_narrative_economy.md)). A periódusonkénti egy új visszatérő szereplős korlát a v7-ben narratív ökonómiai elvre cserélődött; a lezáró szakasz egésze nem építheti újra a döntési ágakat; a túlmagyarázás sorozatszintű mintajelzés (nincs kvóta); a mérési profilok 1–2 magánéleti alapkapcsolatot kaptak. Automatikus kánon-normalizálás nincs (ADR-008).
 2. Verziózott javítás, regressziók, külön audit és exact-source CI után friss valódi előpróba, majd csak elfogadható eredménynél teljes kétprofilos nyolcfejezetes mérés és két alternatív ág. Az új teljes méréshez további számszerű költségengedély kell; a terminális korpusz nem címkézhető át.
-3. Független emberi, 17 kérdéses sorozatértékelés és folytatási/megújítási visszajelzés. Az AI nem töltheti ki az emberi értékelést.
+3. Független emberi, 17 kérdéses sorozatértékelés és folytatási/megújítási visszajelzés. Az AI nem töltheti ki az emberi értékelést. Zárt narratív bétában ezt és a teljes kétprofilos mérést a 2026-10-19-i tulajdonosi döntés szerint a tesztelők visszajelzése helyettesíti (első kör: 10 USD, 3 tesztelő, v7); nyilvános vagy fizetős kiadáshoz továbbra is kötelező. [Kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19).
 4. Külön N09 target/recovery, migráció-, envelope-, timeout- és kontrollált Linux funded-runtime rollout bizonyíték, majd explicit éles apply engedély. A fejlesztési 192 KiB/300 s nem automatikus production konfiguráció; a runtime default 100000 bájt/180 s határa külön nyitott.
 
 Az árazás, havi fejezetmennyiség, billing és szélesebb pilot továbbra külön döntés; a minőségi küszöböt költség miatt nem csökkentjük. Shared és nyilvános launch nincs engedélyezve.

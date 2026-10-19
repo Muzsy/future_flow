@@ -17,15 +17,15 @@ Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00�
 
 PR #50 mért checkpointként beolvadt (`f755a57`, production nélkül) / quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
-## Zárt narratív béta: javasolt kapurend — vázlat, 2026-10-19
+## Zárt narratív béta: kapurend — tulajdonosi döntés, 2026-10-19
 
-**Státusz: javaslat, tulajdonosi jóváhagyásra vár.** Amíg a tulajdonos nem fogadja el, az alábbi staging-sorrend 1. pontja (teljes paid+human N08 PASS) érvényes. A javaslat nem rollout-engedély, nem módosít ablakot, keretet, cohortot vagy production állapotot.
+**Státusz: a tulajdonos 2026-10-19-én jóváhagyta.** A zárt narratív bétában az alábbi staging-sorrend 1. pontját (teljes paid+human N08 PASS) e szakasz helyettesítő kapui váltják ki. Nyilvános, fizetős vagy szélesebb kiadásra a teljes N08 kapu változatlanul kötelező. A döntés nem rollout-engedély, nem módosít ablakot, keretet, cohortot vagy production állapotot; az éles apply továbbra külön engedélyt kíván.
 
 Kérdés: kiadható-e az új narratív pipeline egy kis, zárt tesztelői körnek úgy, hogy az irodalmi minőség még nem végleges, és a valódi használat adja a béta-visszajelzést.
 
 **Visszajelzéssel nem helyettesíthető kapuk** (változatlanok): Linux funded-runtime upgrade (Issue #34); 038 migráció kompatibilis alkalmazás- és recovery image-dzsel, titkosított backup, izolált restore és privacy replay; a runtime határidő és request-envelope kifejezett beállítása; drain és legacy visszaállás; explicit cohort és költségkeret; éles post-check és külön apply engedély. Ezek adat-, költség- és működési biztonságot védenek, nem irodalmi minőséget.
 
-**Zárt bétában helyettesíthető kapuk** (javaslat):
+**Zárt bétában helyettesített kapuk:**
 
 - A teljes kétprofilos, 18 célos paid benchmark helyett a már mért, forráshoz kötött checkpoint (v6 vagy a később kiválasztott jelölt Stage A+B eredménye) és a minden fejezetre futó szerveres gépi minőségkapuk. A kapuk küszöbei nem lazulnak; elutasított fejezet nem jut el az olvasóhoz.
 - A független emberi sorozatértékelés helyett a tesztelők saját, valódi életének értékelése: fejezetenkénti alkalmazáson belüli visszajelzés és egy rövid kérdőív a 3. és a 6. fejezet után (lent). Ez valódi emberi bizonyíték, de nem vak összehasonlítás, ezért nyilvános vagy fizetős kiadásra nem elegendő.
@@ -86,7 +86,7 @@ Következő külön implementációs csomag szükséges: kanonikus Linux **funde
 
 ## Izolált staging sorrend
 
-1. Teljes N08 paid+human release gate PASS, a költség/idő plafon tulajdonosi döntése rögzített.
+1. Teljes N08 paid+human release gate PASS, a költség/idő plafon tulajdonosi döntése rögzített. Zárt narratív bétában helyette a [2026-10-19-i kapurend](#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19) helyettesítő kapui érvényesek.
 2. Kompatibilis alkalmazás- és recovery image ugyanahhoz a reviewed source-hoz, builder/CI digest readback. Független source audit nem helyettesíthető szerzői összefoglalóval.
 3. Szintetikus staging 001–037 DB-ről 038 apply; old legacy chapter olvasás, új narrative nullable export/DTO és négyhívásos commit, quality stop/retry, fork és privacy withheld regresszió. További, titokmentes staging credential és költés engedélye külön szükséges, ha valódi provider része a próba.
 4. Encrypted backupból izolált 001–038 restore, aktuális deletion/revocation replay, catalog guard és consumer API ellenőrzés; hálózat/publikált port és production AI nélkül. Failed replay esetén kiszolgálás zárt marad.
