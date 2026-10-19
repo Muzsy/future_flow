@@ -383,7 +383,7 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         if (
             capability.get('version') != 'alterward-funded-runtime-1'
             or capability.get('schema') != 38
-            or len(capability.get('policies', [])) != 9
+            or len(capability.get('policies', [])) != 18
             or capability.get('reviewedPolicy', {}).get('maxPhysicalRequests') != 8
         ):
             raise ValueError(
@@ -538,9 +538,11 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         }
         for role in ('target', 'recovery'):
             value['files'][role] = self.build_files(role, release[role], before)
-        readers.durable_file(self.root / 'prepared.json', encoded(value))
+        # Compare BEFORE the candidate becomes durable: a drifting baseline must
+        # not leave a valid-looking prepared.json that blocks every later prepare.
         if self.baseline() != before:
             raise ValueError('Serving baseline changed during preparation')
+        readers.durable_file(self.root / 'prepared.json', encoded(value))
         return {
             'preparedSha256': sha(encoded(value)),
             'expiresAt': value['expiresAt'],
@@ -1032,5 +1034,13 @@ def main(request):
             journal = system.journal(candidate)
             if journal['states'][-1]['state'] in {'applied', 'recovered'}:
                 raise ValueError('Only incomplete exact transition can be recovered')
-            system.stop()
+            for number in upgrade.INTERRUPTION_SIGNALS:
+                signal.signal(number, signal.SIG_IGN)
+            for attempt in range(3):
+                try:
+                    system.stop()
+                    break
+                except ValueError:
+                    if attempt == 2:
+                        raise
         return transition(system, candidate, recovery=mode == 'recover')

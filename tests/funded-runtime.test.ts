@@ -8,6 +8,15 @@ import {
   narrativeV1Policy,
   reviewedNarrativePolicy,
   contextNarrativePolicy,
+  fictionV1Policy,
+  fictionV2Policy,
+  fictionV3Policy,
+  fictionV4Policy,
+  fictionV5Policy,
+  fictionV6Policy,
+  fictionV6Quality25Policy,
+  fictionV7Policy,
+  fictionV8Policy,
 } from '@future-flow/contracts';
 import { setupFixture } from './life-fixtures';
 import {
@@ -90,7 +99,8 @@ describe('funded runtime schema and accounting boundary', () => {
   });
   it('exercises all legacy narrative prompt pairs and the mandatory plan-review ceiling', () => {
     const c = fundedRuntimeCapabilities();
-    expect(c.policies).toHaveLength(9);
+    expect(c.policies).toHaveLength(18);
+    expect(c.policies).toContain('fiction-v8');
     expect(c.reviewedPolicy.maxPhysicalRequests).toBe(8);
   });
   it('rejects schema drift rather than adjusting expected fingerprints', async () => {
@@ -159,6 +169,15 @@ describe('funded runtime schema and accounting boundary', () => {
           contextNarrativePolicy(),
           narrativeV1Policy(),
           reviewedNarrativePolicy(),
+          fictionV1Policy(),
+          fictionV2Policy(),
+          fictionV3Policy(),
+          fictionV4Policy(),
+          fictionV5Policy(),
+          fictionV6Policy(),
+          fictionV6Quality25Policy(),
+          fictionV7Policy(),
+          fictionV8Policy(),
         ]) {
           await d.query(
             "UPDATE aw_jobs SET payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb)",
@@ -176,10 +195,21 @@ describe('funded runtime schema and accounting boundary', () => {
           ],
         );
         await expect(captureFundedRuntime(d, input)).rejects.toThrow();
+        // A checkpoint snapshot the image cannot interpret blocks as well.
+        await d.query(
+          "UPDATE aw_jobs SET payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb),checkpoints=$2::jsonb",
+          [
+            JSON.stringify({ policy: fictionV8Policy() }),
+            JSON.stringify({
+              policy: { ...fictionV8Policy(), mode: 'narrative-fiction-v9' },
+            }),
+          ],
+        );
+        await expect(captureFundedRuntime(d, input)).rejects.toThrow();
         throw Error('rollback synthetic job inventory');
       }),
     ).rejects.toThrow('rollback synthetic job inventory');
-    expect(observed).toBe(3);
+    expect(observed).toBe(12);
   });
   it('appends only migration 038 and preserves every existing data/accounting row', async () => {
     const before = await tx((d) => captureFundedRuntime(d, input));

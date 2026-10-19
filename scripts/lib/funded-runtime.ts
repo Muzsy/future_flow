@@ -1,6 +1,17 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { hash } from '@future-flow/core';
 import {
+  fictionArtifactSchema,
+  fictionPolicySchema,
+  fictionV1Policy,
+  fictionV2Policy,
+  fictionV3Policy,
+  fictionV4Policy,
+  fictionV5Policy,
+  fictionV6Policy,
+  fictionV6Quality25Policy,
+  fictionV7Policy,
+  fictionV8Policy,
   narrativeArtifactSchema,
   narrativeV1Policy,
   narrativeV1PolicySchema,
@@ -47,6 +58,22 @@ export function fundedRuntimeCapabilities() {
       });
       supported.push(`planner${planner}/writer${writer}/max7`);
     }
+  // Every fiction generation that can sit in a frozen job, checkpoint or stored
+  // artifact must be interpreted by the image, not only the narrative-v1 ones.
+  for (const [name, make] of [
+    ['v1', fictionV1Policy],
+    ['v2', fictionV2Policy],
+    ['v3', fictionV3Policy],
+    ['v4', fictionV4Policy],
+    ['v5', fictionV5Policy],
+    ['v6', fictionV6Policy],
+    ['v6q25', fictionV6Quality25Policy],
+    ['v7', fictionV7Policy],
+    ['v8', fictionV8Policy],
+  ] as const) {
+    fictionPolicySchema.parse(make());
+    supported.push(`fiction-${name}`);
+  }
   narrativeV1PolicySchema.parse(reviewedNarrativePolicy());
   if (
     narrativeV1PolicySchema.safeParse({
@@ -70,6 +97,18 @@ export function fundedRuntimeCapabilities() {
     reviewedPolicy: reviewedNarrativePolicy(),
     artifactVersion: '1.0.0',
   };
+}
+
+function assertStoredPolicy(policy: unknown) {
+  const mode =
+    policy && typeof policy === 'object' && 'mode' in policy
+      ? policy.mode
+      : undefined;
+  if (mode === 'context') {
+    if (hash(policy) !== hash(contextNarrativePolicy()))
+      throw Error('Unsupported stored context policy');
+  } else if (mode === 'narrative-fiction-v2') fictionPolicySchema.parse(policy);
+  else narrativeV1PolicySchema.parse(policy);
 }
 
 function migrationPlan() {
@@ -168,23 +207,29 @@ export async function captureFundedRuntime(
     Object.values(other).some((v) => v !== 0)
   )
     throw Error('Funded runtime is not drained; no flags-only shortcut');
-  const policies = await tx.query<{
-    policy: unknown;
-  }>(`SELECT payload->'narrativeContext'->'policy' AS policy FROM public.aw_jobs
-    WHERE payload->'narrativeContext'->'policy' IS NOT NULL ORDER BY id LIMIT 1001`);
-  if (policies.length > 1000)
+  // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
+  // policy snapshots; every one must be interpretable by this image.
+  const inventory = [
+    await tx.query<{
+      policy: unknown;
+    }>(`SELECT payload->'narrativeContext'->'policy' AS policy FROM public.aw_jobs
+    WHERE payload->'narrativeContext'->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
+    await tx.query<{
+      policy: unknown;
+    }>(`SELECT checkpoints->'policy' AS policy FROM public.aw_jobs
+    WHERE checkpoints->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
+    schema === 38
+      ? await tx.query<{
+          policy: unknown;
+        }>(`SELECT narrative_artifact->'policy' AS policy FROM public.aw_periods
+    WHERE narrative_artifact->'policy' IS NOT NULL ORDER BY id LIMIT 1001`)
+      : [],
+  ];
+  // Each source is bounded on its own: a truncated list must never pass.
+  if (inventory.some((rows) => rows.length > 1000))
     throw Error('Bounded stored policy inventory required');
-  for (const { policy } of policies) {
-    if (
-      policy &&
-      typeof policy === 'object' &&
-      'mode' in policy &&
-      policy.mode === 'context'
-    ) {
-      if (hash(policy) !== hash(contextNarrativePolicy()))
-        throw Error('Unsupported stored context policy');
-    } else narrativeV1PolicySchema.parse(policy);
-  }
+  const policies = inventory.flat();
+  for (const { policy } of policies) assertStoredPolicy(policy);
   if (schema === 38) {
     const artifacts = await tx.query<{ artifact: unknown }>(
       'SELECT narrative_artifact AS artifact FROM public.aw_periods WHERE narrative_artifact IS NOT NULL LIMIT 1001',
@@ -192,7 +237,12 @@ export async function captureFundedRuntime(
     if (artifacts.length > 1000)
       throw Error('Bounded stored artifact inventory required');
     for (const { artifact } of artifacts)
-      narrativeArtifactSchema.parse(artifact);
+      (artifact &&
+      typeof artifact === 'object' &&
+      (artifact as { version?: string }).version === '2.0.0'
+        ? fictionArtifactSchema
+        : narrativeArtifactSchema
+      ).parse(artifact);
   }
   // Canonical data, accounting, job snapshots and privacy/control data are all
   // covered. Only the newly nullable column and the append-only migration row
