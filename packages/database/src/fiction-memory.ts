@@ -2,6 +2,7 @@ import {
   fictionArtifactSchema,
   narrativeArtifactSchema,
   fictionContextSchema,
+  fictionEditorialVersionFor,
   fictionPolicy,
   NARRATIVE_MEMORY_BYTES,
   type NarrativeMemory,
@@ -170,11 +171,13 @@ export async function personalFictionContext(
     if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0')
       continue;
     const artifact = fictionArtifactSchema.parse(row.artifact);
-    if (artifact.editorialReport.version === '1.2.0') {
+    if (
+      artifact.editorialReport.version === '1.2.0' ||
+      artifact.editorialReport.version === '1.3.0'
+    ) {
       if (
-        !['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
-          artifact.policy.qualityPolicyVersion,
-        ) ||
+        fictionEditorialVersionFor(artifact.policy.qualityPolicyVersion) !==
+          artifact.editorialReport.version ||
         artifact.editorialReport.sequenceSignature.periodId !== row.period_id ||
         hash(artifact.editorialReport) !== artifact.bindings.editorialOutputHash
       )

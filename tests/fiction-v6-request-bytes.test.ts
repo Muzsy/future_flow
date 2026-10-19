@@ -29,6 +29,7 @@ import {
   NARRATIVE_MEMORY_BYTES,
   fictionHumanEditorialSchema,
   fictionPolicy,
+  fictionV6Quality25Policy,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
 import {
@@ -162,6 +163,9 @@ async function buildChapter5RepairCaptureFixture() {
     throw new Error('Expected creative v6 job payload.');
   }
   expect(job.payload.narrativeContext.policy).toEqual(fictionPolicy());
+  // These byte measurements are v6 evidence; pin the merged v6/quality2.5
+  // snapshot explicitly now that newly queued jobs select v7.
+  job.payload.narrativeContext.policy = fictionV6Quality25Policy();
 
   const normalFixture = fictionFixture(job.payload);
   const baseFixture = bulkyFictionFixture(normalFixture);
@@ -351,7 +355,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
     expect(evaluationCreativeMaxRequestBytes).toBe(196608);
     expect(evaluationCreativeMaxRequestBytes).toBe(192 * 1024);
     expect(evaluationCreativeMaxRequestBytes).toBeLessThan(272000);
-    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(33.73203, 6);
+    expect(evaluationApprovedCumulativeBudgetUsd).toBeCloseTo(40.8616975, 7);
 
     const legacyDefault = parseEvaluationOptions([]);
     expect(legacyDefault.creative).toBeUndefined();
@@ -514,7 +518,7 @@ describe('v6 creative request-byte admission and worst-case financial reservatio
 
   it('enforces the owner USD ceiling and preserves all prior cumulative ledger calls without clipping, deduplication, retagging or source adoption', async () => {
     const ledgerPath = await tempLedgerPath();
-    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or owner-approved 33.732030
+    // Even with creative 196,608 byte cap, USD ceiling cannot exceed default 5 or the owner-approved cumulative ceiling
     expect(
       () =>
         new ExperimentAiBudget(

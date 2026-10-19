@@ -8,6 +8,8 @@ import {
   narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
   fictionEditorialReportSchema,
+  fictionEditorialVersionFor,
+  fictionHumanQualityVersions,
   fidelitySchema,
   FICTION_FACT_BYTES,
   NARRATIVE_MEMORY_BYTES,
@@ -78,7 +80,7 @@ export function fictionScope(input: NarrativePeriodInput) {
       positions.some(
         (position, index) =>
           position === undefined ||
-          (['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
+          (fictionHumanQualityVersions.includes(
             context.policy.qualityPolicyVersion,
           ) &&
             index > 0 &&
@@ -151,7 +153,9 @@ export function fictionPlannerRequest(
     narrativeContext: context,
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0'].includes(context.policy.qualityPolicyVersion)
+    ...(['2.4.0', '2.5.0', '2.6.0'].includes(
+      context.policy.qualityPolicyVersion,
+    )
       ? { referenceProjection: fictionReferenceProjection(input) }
       : {}),
     repair: repair ?? null,
@@ -205,13 +209,9 @@ export function validateFictionEditorialReport(
 ) {
   const { context } = fictionScope(input);
   const report = fictionEditorialReportSchema.parse(raw);
-  const expectedVersion = ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
+  const expectedVersion = fictionEditorialVersionFor(
     context.policy.qualityPolicyVersion,
-  )
-    ? '1.2.0'
-    : context.policy.qualityPolicyVersion === '2.1.0'
-      ? '1.1.0'
-      : '1.0.0';
+  );
   if (report.version !== expectedVersion)
     fail('Fiction editorial report differs from the frozen quality policy.');
   const { version: _version, ...fields } = report;
@@ -232,7 +232,7 @@ export function validateFictionEditorialReport(
     const expected = [
       ...new Set([
         ...(context.sequenceHistory ?? []).map((p) => p.periodId),
-        ...(report.version === '1.2.0'
+        ...(report.version !== '1.1.0'
           ? (context.sequenceSignatureHistory ?? []).map((p) => p.periodId)
           : []),
       ]),
@@ -246,7 +246,7 @@ export function validateFictionEditorialReport(
       );
   }
   if (
-    report.version === '1.2.0' &&
+    (report.version === '1.2.0' || report.version === '1.3.0') &&
     report.sequenceSignature.periodId !== input.periodId
   )
     fail('Current sequence signature differs from the server-owned period.');
@@ -259,7 +259,7 @@ export function fictionProseRepairAllowed(report: FictionEditorialReport) {
       (report.sequenceReview.distinctDramaticStructure &&
         report.sequenceReview.independentProgression &&
         report.sequenceReview.characterAgency &&
-        (report.version !== '1.2.0' ||
+        (report.version === '1.1.0' ||
           report.sequenceReview.behavioralVariety)))
   );
 }
@@ -277,10 +277,8 @@ export function evaluateFictionEditorialGate(
         evaluateNarrativeEditorialGate(report).passed,
     };
   if (
-    report.version !==
-    (['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(qualityVersion)
-      ? '1.2.0'
-      : '1.1.0')
+    report.version === '1.0.0' ||
+    report.version !== fictionEditorialVersionFor(qualityVersion)
   )
     return { passed: false };
   const r = report.sequenceReview;
@@ -292,7 +290,7 @@ export function evaluateFictionEditorialGate(
       r.distinctEnding &&
       r.independentProgression &&
       r.characterAgency &&
-      (report.version !== '1.2.0' ||
+      (report.version === '1.1.0' ||
         (report.sequenceReview.distinctRhetoricalShape &&
           report.sequenceReview.systemMechanicsInvisible &&
           report.sequenceReview.behavioralVariety)) &&

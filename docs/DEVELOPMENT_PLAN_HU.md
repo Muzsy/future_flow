@@ -107,13 +107,13 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).
 
-N00–N07: DONE, PR #25–#33. A főág v5 előfeltétele PR #49-ben beolvadt; a jelenlegi v6 fejlesztési jelölt PR #50-ben draft. Selected tuple: planner/author/reviewer v6, editor v5, fidelity v1, qualityPolicy2.5.0; régi snapshotok változatlanok. Normál öt/max9 fizikai kérés és egy globális javítás; monetary/privacy/recovery védelmek megmaradnak.
+N00–N07: DONE, PR #25–#33. A főág v5 előfeltétele PR #49-ben beolvadt; a v6 mért checkpoint PR #50-ben 2026-10-18-án beolvadt (`f755a57aca37ee6a2e995400c76fc0394f1cdc88`), production aktiválás nélkül. Selected tuple a merge-kor: planner/author/reviewer v6, editor v5, fidelity v1, qualityPolicy2.5.0. Új selected jelölt: [046 v7](plans/046_fiction_v7_narrative_economy.md) — planner/author/reviewer v7, editor v6, fidelity v1, qualityPolicy2.6.0, report1.3.0/signature1.1.0; valódi mérés 2026-10-19 részleges (A 3/3, B 15/18, ledger 765/40.08666 USD), human PASS nélkül. Régi snapshotok változatlanok. Normál öt/max9 fizikai kérés és egy globális javítás; monetary/privacy/recovery védelmek megmaradnak.
 
 **N08: PARTIAL.** A legutóbbi friss quality2.5 hosszú mérés15/18 elfogadott: alkotói8+fork, munkahelyi6; munkahelyi7–8 és fork hiányzik. A következő author teljes előfoglalását a budget guard API előtt megtagadta. Nincs irodalmi elutasítás ebben a futásban, de teljes kétprofilos ablak vagy emberi minőségi PASS sincs. V6 összesen22.7396675 USD a23-ból, maradék0.2603325 USD; globális ledger652/33.4716975 USD, aktív/hozzárendeletlen0. További paid futás nem indul. Független emberi17-kérdéses értékelés, teljes friss korpusz és külön editor-kalibráció továbbra szükséges.
 
 **N09: PARTIAL.** Production narrative aktiválás nincs. Linux funded-runtime upgrade Issue #34: source audit/CI, migráció- és promptkompatibilis recovery, drain/fence/reconcile és exact-target apply/readback proof szükséges. A fejlesztési192KiB/300s határ nem azonos a runtime100000bájt/180s defaulttal. A normál Linux-operátori adatátvétel O01-ben elkészült; Windows a szokásos reader/funded/napi feladatokhoz nem szükséges.
 
-Következő: ismétlődési és első-draft konzisztencia-korrekció → célzott regresszió/audit/exact-source CI → külön számszerű authority mellett friss előpróba és teljes kétprofilos mérés → emberi benchmark → N09 kiadás. Modellváltás, minőségkapu-lazítás, ledger-reset vagy automatikus rollout nincs. [Aktív v6 terv](plans/045_fiction_v6_earned_life_evolution.md); [aktuális státusz](STATUS_HU.md).
+Következő: ismétlődési és első-draft konzisztencia-korrekció (v7 jelöltben kész, részlegesen mérve; sorozatszintű változatosság nyitott) → emberi benchmark → N09 kiadás. Modellváltás, minőségkapu-lazítás, ledger-reset vagy automatikus rollout nincs. [Aktív v6 terv](plans/045_fiction_v6_earned_life_evolution.md); [aktuális státusz](STATUS_HU.md).
 
 ### F00–F06 — Szabad alkotói személyes fikció — IN PROGRESS
 

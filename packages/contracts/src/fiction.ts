@@ -44,6 +44,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v4',
           'life_fiction_plan.v5',
           'life_fiction_plan.v6',
+          'life_fiction_plan.v7',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -52,6 +53,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v4',
           'life_fiction_author.v5',
           'life_fiction_author.v6',
+          'life_fiction_author.v7',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -60,6 +62,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v4',
           'life_fiction_plan_review.v5',
           'life_fiction_plan_review.v6',
+          'life_fiction_plan_review.v7',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
         editor: z.enum([
@@ -68,6 +71,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v3',
           'life_fiction_editor.v4',
           'life_fiction_editor.v5',
+          'life_fiction_editor.v6',
         ]),
       })
       .strict(),
@@ -79,6 +83,7 @@ export const fictionPolicySchema = z
       '2.3.0',
       '2.4.0',
       '2.5.0',
+      '2.6.0',
     ]),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
@@ -93,26 +98,30 @@ export const fictionPolicySchema = z
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       policy.promptVersions.editor !==
-        (v === 'v6'
-          ? 'life_fiction_editor.v5'
-          : v === 'v5'
-            ? 'life_fiction_editor.v4'
-            : v === 'v4'
-              ? 'life_fiction_editor.v3'
-              : v === 'v3'
-                ? 'life_fiction_editor.v2'
-                : 'life_fiction_editor.v1') ||
+        (v === 'v7'
+          ? 'life_fiction_editor.v6'
+          : v === 'v6'
+            ? 'life_fiction_editor.v5'
+            : v === 'v5'
+              ? 'life_fiction_editor.v4'
+              : v === 'v4'
+                ? 'life_fiction_editor.v3'
+                : v === 'v3'
+                  ? 'life_fiction_editor.v2'
+                  : 'life_fiction_editor.v1') ||
       (!(v === 'v6' && policy.qualityPolicyVersion === '2.5.0') &&
         policy.qualityPolicyVersion !==
-          (v === 'v6'
-            ? '2.4.0'
-            : v === 'v5'
-              ? '2.3.0'
-              : v === 'v4'
-                ? '2.2.0'
-                : v === 'v3'
-                  ? '2.1.0'
-                  : '2.0.0'))
+          (v === 'v7'
+            ? '2.6.0'
+            : v === 'v6'
+              ? '2.4.0'
+              : v === 'v5'
+                ? '2.3.0'
+                : v === 'v4'
+                  ? '2.2.0'
+                  : v === 'v3'
+                    ? '2.1.0'
+                    : '2.0.0'))
     )
       ctx.addIssue({
         code: 'custom',
@@ -212,9 +221,51 @@ export function fictionV6Policy(): FictionPolicy {
     },
   };
 }
-// Newly queued jobs coordinate final-check feedback; all prompt bytes stay frozen.
-export function fictionPolicy(): FictionPolicy {
+// Measured v6/quality2.5 coordinates final-check feedback; merged as the
+// PR #50 checkpoint and kept explicit so its snapshot stays reproducible.
+export function fictionV6Quality25Policy(): FictionPolicy {
   return { ...fictionV6Policy(), qualityPolicyVersion: '2.5.0' };
+}
+// v7/quality2.6 keeps the quality2.5 coordination and adds signature 1.1.0.
+export function fictionV7Policy(): FictionPolicy {
+  const previous = fictionV6Quality25Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.6.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v7',
+      writer: 'life_fiction_author.v7',
+      planReviewer: 'life_fiction_plan_review.v7',
+      editor: 'life_fiction_editor.v6',
+    },
+  };
+}
+// Newly queued jobs select v7; every older snapshot stays byte-frozen.
+export function fictionPolicy(): FictionPolicy {
+  return fictionV7Policy();
+}
+// Quality policies that coordinate fidelity and editor feedback before repair.
+export const fictionCoordinatedQualityVersions: readonly string[] = [
+  '2.5.0',
+  '2.6.0',
+];
+// Quality policies whose editor emits a human-likeness report (1.2.0+).
+export const fictionHumanQualityVersions: readonly string[] = [
+  '2.2.0',
+  '2.3.0',
+  '2.4.0',
+  '2.5.0',
+  '2.6.0',
+];
+export function fictionEditorialVersionFor(qualityPolicyVersion: string) {
+  return qualityPolicyVersion === '2.6.0'
+    ? '1.3.0'
+    : fictionHumanQualityVersions.includes(qualityPolicyVersion)
+      ? '1.2.0'
+      : qualityPolicyVersion === '2.1.0'
+        ? '1.1.0'
+        : '1.0.0';
 }
 export const fictionSequenceSignatureSchema = z
   .object({
@@ -304,23 +355,53 @@ export const fictionSequenceSignatureSchema = z
       .max(5),
   })
   .strict()
-  .superRefine((s, ctx) => {
-    for (const key of ['rhetoricalFlags', 'systemLeakageFlags'] as const) {
-      const values = s[key];
-      if (
-        new Set(values).size !== values.length ||
-        (values.includes('none') && values.length !== 1)
+  .superRefine(uniqueSignatureFlags);
+function uniqueSignatureFlags(
+  s: { rhetoricalFlags: string[]; systemLeakageFlags: string[] },
+  ctx: z.RefinementCtx,
+) {
+  for (const key of ['rhetoricalFlags', 'systemLeakageFlags'] as const) {
+    const values = s[key];
+    if (
+      new Set(values).size !== values.length ||
+      (values.includes('none') && values.length !== 1)
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: 'Flags must be unique; none cannot coexist with another flag.',
+      });
+  }
+}
+// Signature 1.1.0 (quality2.6 only) adds one series-level pattern signal.
+// 1.0.0 above stays byte-identical for every frozen editor request schema.
+export const fictionSequenceSignatureV11Schema = z
+  .object({
+    ...fictionSequenceSignatureSchema.shape,
+    version: z.literal('1.1.0'),
+    rhetoricalFlags: z
+      .array(
+        z.enum([
+          'balanced_antithesis',
+          'almost_then_stop',
+          'explicit_moral',
+          'object_tableau',
+          'binary_option_briefing',
+          'overexplain_while_other_busy',
+          'none',
+        ]),
       )
-        ctx.addIssue({
-          code: 'custom',
-          path: [key],
-          message:
-            'Flags must be unique; none cannot coexist with another flag.',
-        });
-    }
-  });
+      .min(1)
+      .max(7),
+  })
+  .strict()
+  .superRefine(uniqueSignatureFlags);
+export const fictionAnySequenceSignatureSchema = z.union([
+  fictionSequenceSignatureSchema,
+  fictionSequenceSignatureV11Schema,
+]);
 export type FictionSequenceSignature = z.infer<
-  typeof fictionSequenceSignatureSchema
+  typeof fictionAnySequenceSignatureSchema
 >;
 export const fictionSequenceEntrySchema = z
   .object({
@@ -360,36 +441,63 @@ export const fictionHumanEditorialSchema = fictionSequenceEditorialSchema
     sequenceSignature: fictionSequenceSignatureSchema,
   })
   .strict()
-  .superRefine((report, ctx) => {
-    const r = report.sequenceReview;
-    const structural =
-      !r.distinctDramaticStructure ||
-      !r.independentProgression ||
-      !r.characterAgency ||
-      !r.behavioralVariety;
-    const anyFailure =
-      structural ||
-      !r.distinctEnding ||
-      !r.distinctRhetoricalShape ||
-      !r.systemMechanicsInvisible;
-    if (anyFailure && !report.issues.length)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['issues'],
-        message: 'False sequence flags require repair evidence.',
-      });
-    if (structural && !report.issues.some((i) => i.repairScope === 'canon'))
-      ctx.addIssue({
-        code: 'custom',
-        path: ['issues'],
-        message:
-          'Structural, agency and behavioral repetition require canon-scoped repair evidence.',
-      });
-  });
+  .superRefine(humanReportEvidence);
+function humanReportEvidence(
+  report: {
+    issues: { repairScope: string }[];
+    sequenceReview: Record<
+      | 'distinctDramaticStructure'
+      | 'independentProgression'
+      | 'characterAgency'
+      | 'behavioralVariety'
+      | 'distinctEnding'
+      | 'distinctRhetoricalShape'
+      | 'systemMechanicsInvisible',
+      boolean
+    >;
+  },
+  ctx: z.RefinementCtx,
+) {
+  const r = report.sequenceReview;
+  const structural =
+    !r.distinctDramaticStructure ||
+    !r.independentProgression ||
+    !r.characterAgency ||
+    !r.behavioralVariety;
+  const anyFailure =
+    structural ||
+    !r.distinctEnding ||
+    !r.distinctRhetoricalShape ||
+    !r.systemMechanicsInvisible;
+  if (anyFailure && !report.issues.length)
+    ctx.addIssue({
+      code: 'custom',
+      path: ['issues'],
+      message: 'False sequence flags require repair evidence.',
+    });
+  if (structural && !report.issues.some((i) => i.repairScope === 'canon'))
+    ctx.addIssue({
+      code: 'custom',
+      path: ['issues'],
+      message:
+        'Structural, agency and behavioral repetition require canon-scoped repair evidence.',
+    });
+}
+// Report 1.3.0 (editor v6 / quality2.6) differs from 1.2.0 only by carrying
+// the 1.1.0 sequence signature; review flags and gates are unchanged.
+export const fictionHumanEditorialV13Schema = z
+  .object({
+    ...fictionHumanEditorialSchema.shape,
+    version: z.literal('1.3.0'),
+    sequenceSignature: fictionSequenceSignatureV11Schema,
+  })
+  .strict()
+  .superRefine(humanReportEvidence);
 export const fictionEditorialReportSchema = z.union([
   narrativeEditorialReportSchema,
   fictionSequenceEditorialSchema,
   fictionHumanEditorialSchema,
+  fictionHumanEditorialV13Schema,
 ]);
 export type FictionEditorialReport = z.infer<
   typeof fictionEditorialReportSchema
@@ -420,11 +528,17 @@ export const fictionContextSchema = z
     storyFacts: z.array(storyFactSchema).max(24),
     sequenceHistory: z.array(fictionSequenceEntrySchema).max(3).optional(),
     sequenceSignatureHistory: z
-      .array(fictionSequenceSignatureSchema)
+      .array(fictionAnySequenceSignatureSchema)
       .max(8)
       .optional(),
   })
   .strict()
+  .refine(
+    (c) =>
+      c.policy.qualityPolicyVersion === '2.6.0' ||
+      !c.sequenceSignatureHistory?.some((s) => s.version !== '1.0.0'),
+    'Only quality2.6 fiction context may carry signature 1.1.0 history.',
+  )
   .refine(
     (c) =>
       !c.memory.withheld ||
@@ -519,13 +633,9 @@ export const fictionArtifactSchema = z
   })
   .strict()
   .superRefine((artifact, ctx) => {
-    const expected = ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
+    const expected = fictionEditorialVersionFor(
       artifact.policy.qualityPolicyVersion,
-    )
-      ? '1.2.0'
-      : artifact.policy.qualityPolicyVersion === '2.1.0'
-        ? '1.1.0'
-        : '1.0.0';
+    );
     if (artifact.editorialReport.version !== expected)
       ctx.addIssue({
         code: 'custom',

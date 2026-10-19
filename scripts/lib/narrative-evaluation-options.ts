@@ -11,7 +11,10 @@ import { narrativeProfiles } from '../../tests/narrative-fixtures';
 // from the unchanged canonical ledger baseline USD 10.732030 (305 calls;
 // prior unused v5 headroom USD 4.472505 is not added again). This is a
 // cumulative accounting ceiling, not a provider balance or a ledger reset.
-export const evaluationApprovedCumulativeBudgetUsd = 33.73203;
+// Owner authorization on 2026-10-19: USD 7.39 v7/quality2.6 development
+// spend on top of the closed v6 ledger total USD 33.4716975 (652 calls); the
+// unused v6 remainder USD 0.2603325 is not added again.
+export const evaluationApprovedCumulativeBudgetUsd = 40.8616975;
 export const evaluationDefaultMaxRequestBytes =
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
 export const evaluationCreativeMaxRequestBytes =
