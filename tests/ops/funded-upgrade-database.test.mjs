@@ -236,6 +236,7 @@ test(
             contracts.fictionV3Policy(),
           ],
           ['failed', contracts.fictionV7Policy(), contracts.fictionV7Policy()],
+          ['failed', contracts.fictionV8Policy(), contracts.fictionV8Policy()],
           ['cancelled', contracts.narrativeV1Policy(), null],
           ['completed', contracts.contextNarrativePolicy(), null],
         ];
@@ -267,7 +268,7 @@ test(
         reservedMicro: '200000',
         accountedMicro: '200000',
       });
-      assert.equal(before.policies.length, 5);
+      assert.equal(before.policies.length, 6);
       assert.equal(before.queue.pendingJobs, 0);
       assert.doesNotMatch(JSON.stringify(before), new RegExp(kept));
 

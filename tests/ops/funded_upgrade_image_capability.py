@@ -27,7 +27,7 @@ GENERATE = """
 import {createRequire} from 'node:module';import {pathToFileURL} from 'node:url';
 const c=await import(pathToFileURL(createRequire('/app/packages/database/package.json').resolve('@future-flow/contracts')).href);
 const p=[c.fictionV1Policy(),c.fictionV2Policy(),c.fictionV3Policy(),c.fictionV4Policy(),c.fictionV5Policy(),
- c.fictionV6Policy(),c.fictionV6Quality25Policy(),c.fictionV7Policy(),c.narrativeV1Policy(),c.reviewedNarrativePolicy(),
+ c.fictionV6Policy(),c.fictionV6Quality25Policy(),c.fictionV7Policy(),c.fictionV8Policy(),c.narrativeV1Policy(),c.reviewedNarrativePolicy(),
  c.readyNarrativePolicy(),c.contextNarrativePolicy()];
 console.log(JSON.stringify(p));
 """
