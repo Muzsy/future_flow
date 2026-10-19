@@ -113,5 +113,49 @@ export function fictionPrompts(
       v5Prompts.editor +
       "\nInterpreting independentProgression, systemMechanicsInvisible and causality under the SAME report version 1.2.0: a stable setting with a deepening relationship, role or meaning still satisfies independentProgression and must not be marked false merely for staying in place; Scope lock can fail novelty and independentProgression when people, place, routine, activity, relationships and goal direction remain materially unchanged without a deliberate dramatic reason. No particular larger change is due: diagnose the actual stagnation rather than requiring a graph mutation or forced expansion. Reject arbitrary escalation under causality; a large change without its own bridge is not quality progression. Extend systemMechanicsInvisible to also cover a chapter that closes on an NPC explicitly waiting for the reader's unresolved decision, or on a balanced recitation of the structured alternatives, when this repeats a prior chapter's functional handoff; set distinctEnding=false as well when that ending function repeats without meaningful change. An isolated natural question or the word \"wait\" is not itself a defect. Extend systemMechanicsInvisible further to a chapter that narrates several owned periods in a row in strict even month-by-month installments when nothing about this period's own causality required that cadence; a genuinely earned concentrated scene, montage or uneven focus is not a defect. When the pivotal obstacle depends on a character ignoring an obvious, already-established solution merely so the final decision can exist, causality may not score >=4 unless the chapter gives that avoidance a credible, specific human reason; name the missing reason as evidence rather than assuming contrivance from mere recurrence.",
   };
-  return v6Prompts;
+  // Freeze the measured v6 text (PR #50 checkpoint); v7 below is the new
+  // implicit default.
+  if (versions.writer === 'life_fiction_author.v6') return v6Prompts;
+  // v7 lifts the inherited per-period recurring-actor limit in its OWN copy of
+  // the shared mechanics text; every frozen version above keeps the old bytes.
+  const actorLimit =
+    'at most one new recurring actor_add per period, distinct from supplied/Shared identities.';
+  const actorEconomy =
+    'every durable new recurring person needs its own actor_add, distinct from supplied/Shared identities, with no per-period count; see NARRATIVE-ECONOMY CRAFT.';
+  const liftActorLimit = (text: string) => {
+    if (text.split(actorLimit).length !== 2)
+      throw new Error('v7 mechanics must replace exactly one actor limit.');
+    return text.replace(actorLimit, actorEconomy);
+  };
+  const narrativeEconomy = `\nNARRATIVE-ECONOMY CRAFT: register every durable new recurring person through its own actor_add, however many this period genuinely needs; there is no per-period quota and no target count. A person is recurring when they return in a later scene or period, hold a relationship, promise, debt or obligation, or when their identity matters to continuity; a one-off anonymous participant who never returns needs no actor. Narrative economy, not a number, decides who enters: introduce a new recurring person when they carry their own want or a causal role nobody already present could plausibly fill, and otherwise let an existing person deepen. Never leave a returning person unregistered to save an actor_add, and never register incidental passers-by merely to look thorough.`;
+  const privateLife = `\nPRIVATE-LIFE CRAFT: supplied family, partner and friend relationships belong to the protagonist's ordinary life, not to decoration or a therapy device. Let them appear when this period's events would naturally touch them, with their own routines, wants and limited availability; they need not appear in every chapter and must not quietly solve the career or creative goal. Supplied people may have clearly fictional in-scene dialogue and reactions, but never invent new durable private facts about them (health, separation, money, work, secrets) or move them outside the current safety scope. The author may sparingly introduce a further wholly fictional private-life person, such as a neighbour, flatmate, cousin or old friend, when the story genuinely needs that person; register them like any recurring actor and give them a locale-plausible ordinary name that is not already used by another important person in this life.`;
+  const closingPassage = `\nCLOSING-PASSAGE CRAFT: the decision boundary covers the whole closing passage, not only its final sentence. In the last three paragraphs, do not rebuild the structured decision's alternatives in prose: no paragraph that lays out what each path would cost or allow, no character listing the options, no protagonist weighing one route against another in parallel clauses, even when the very last sentence is a sensory detail or an ordinary action. The structured options already carry that contract. The closing passage may instead show one concrete pressure, a consequence in progress, a person's own want, or an unresolved tension that makes the choice felt without previewing its branches. Earlier in the chapter a character may naturally voice a single wish, offer or worry.`;
+  const patternSignal = `\nPATTERN-SIGNAL CRAFT: sequenceSignatureHistory may carry the rhetorical flag overexplain_while_other_busy: the protagonist explains, justifies or narrates its reasoning at length while the other person in the scene is occupied with an unrelated ordinary task or object, and that explanation becomes the scene's emotional beat. It is a series-level comparison signal, not a ban or a quota. When recent owned periods already carry it, do not stage this period's emotional beat that way again by default; let it come from an action, a short exchange, a silence, the other person's own want, or a consequence, unless this period's causality genuinely produces that exact shape.`;
+  const firstDraftConsistency = `\nFIRST-DRAFT CONSISTENCY CRAFT: before returning the package, reconcile the prose with the typed state you are proposing, because the final checks reject a package whose prose and typed state disagree. An opportunity that the prose shows as finished, declined or lapsed must not still claim a pending or ongoing arrangement; update it with opportunity_set to the existing status that honestly fits. A durable, consequential possession that changes hands (a finished artwork given away, a bought tool that matters later) needs asset_add or asset_remove; a small gift, consumable or prop does not. An experience or lesson a later chapter will rely on needs a continuity StoryFact. A returning person needs actor_add, as above. Do not inventory every object or sentence.`;
+  const v7Prompts = {
+    ...v6Prompts,
+    planner:
+      liftActorLimit(v6Prompts.planner) +
+      narrativeEconomy +
+      privateLife +
+      closingPassage +
+      patternSignal,
+    author:
+      liftActorLimit(v6Prompts.author) +
+      narrativeEconomy +
+      privateLife +
+      closingPassage +
+      patternSignal +
+      firstDraftConsistency,
+    review:
+      v6Prompts.review +
+      narrativeEconomy +
+      privateLife +
+      closingPassage +
+      '\nWhen judging causality and choice stakes under these additions, do not penalize a plan merely for introducing two or more registered recurring people when each carries a distinct causal role, and do not reward a returning person left unregistered. Flag a planned closing passage that rebuilds the decision options in prose, and a supplied private-life person who suddenly resolves the goal by convenience.',
+    editor:
+      v6Prompts.editor +
+      `\nREPORT 1.3.0: use report version 1.3.0 instead of 1.2.0; every earlier instruction above still applies, and the only schema difference is that sequenceSignature is version 1.1.0. Its rhetoricalFlags may also contain overexplain_while_other_busy: set it whenever the protagonist explains, justifies or narrates its reasoning at length while the other person in the scene is occupied with an unrelated ordinary task or object and that explanation carries the scene's emotional beat. Record it as a series-level signal whenever it occurs; one occurrence is not a defect and there is no quota. Only when sequenceSignatureHistory already shows it in recent owned periods and this chapter uses it again in the same function, treat that as distinctRhetoricalShape and behavioralVariety evidence, citing the prior periods. Extend systemMechanicsInvisible to the whole closing passage: set it false when any of the final three paragraphs, not only the last sentence, restates two or more of the structured decision's alternatives or their tradeoffs in prose, or when a character or the protagonist lays out the paths side by side; name the paragraph index as evidence. A single natural wish, offer or worry is not that defect. Registered recurring people, including more than one new person in a period, are not a defect when each has a distinct causal role; a returning person without actor_add is a fidelity matter, not a style score.`,
+  };
+  return v7Prompts;
 }

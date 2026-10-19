@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import {
-  fictionPolicy,
+  fictionV6Quality25Policy,
   fictionV1Policy,
   fictionV2Policy,
   fictionV3Policy,
@@ -28,7 +28,7 @@ function fixture() {
   const input = fictionFixture().input;
   if (input.narrativeContext?.policy.mode !== 'narrative-fiction-v2')
     throw Error();
-  input.narrativeContext.policy = fictionPolicy();
+  input.narrativeContext.policy = fictionV6Quality25Policy();
   const f = fictionFixture(input);
   return { ...f, editor: fictionHumanEditorialSchema.parse(f.editor) };
 }
@@ -42,7 +42,7 @@ describe('v6 owned references, typed evolution and frozen policy compatibility',
       fictionV4Policy(),
       fictionV5Policy(),
       fictionV6Policy(),
-      fictionPolicy(),
+      fictionV6Quality25Policy(),
     ];
     for (const policy of policies) {
       expect(fictionPolicySchema.parse(policy)).toEqual(policy);
@@ -78,10 +78,10 @@ describe('v6 owned references, typed evolution and frozen policy compatibility',
         qualityPolicyVersion: '2.5.0',
       }).success,
     ).toBe(false);
-    expect(fictionPolicy().promptVersions).toEqual(
+    expect(fictionV6Quality25Policy().promptVersions).toEqual(
       fictionV6Policy().promptVersions,
     );
-    expect(fictionPolicy()).toMatchObject({
+    expect(fictionV6Quality25Policy()).toMatchObject({
       qualityPolicyVersion: '2.5.0',
       maxPhysicalRequests: 9,
       maxContentRepairs: 1,

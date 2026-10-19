@@ -35,6 +35,7 @@ import {
   fictionV4Policy,
   fictionV5Policy,
   fictionV6Policy,
+  fictionV6Quality25Policy,
   FICTION_MODE,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -147,7 +148,13 @@ async function saved(job: LifeJob) {
 }
 
 describe('creative final author package through real guarded provider and database', () => {
-  it.each([fictionV3Policy(), fictionV4Policy(), fictionV5Policy()])(
+  it.each([
+    fictionV3Policy(),
+    fictionV4Policy(),
+    fictionV5Policy(),
+    fictionV6Policy(),
+    fictionV6Quality25Policy(),
+  ])(
     'finishes an already queued $qualityPolicyVersion snapshot without upgrading its prompt/report policy',
     async (policy) => {
       const f = await fixture();
@@ -177,7 +184,9 @@ describe('creative final author package through real guarded provider and databa
       ]);
       expect(period!.narrative_artifact.policy).toEqual(policy);
       expect(period!.narrative_artifact.editorialReport.version).toBe(
-        ['2.2.0', '2.3.0'].includes(policy.qualityPolicyVersion)
+        ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
+          policy.qualityPolicyVersion,
+        )
           ? '1.2.0'
           : '1.1.0',
       );
@@ -298,10 +307,10 @@ describe('creative final author package through real guarded provider and databa
     'distinctEnding',
     'behavioralVariety',
   ] as const)
-    it(`repairs v6 ${flag} with the correct bounded stage sequence`, async () => {
+    it(`repairs default v7 ${flag} with the correct bounded stage sequence`, async () => {
       const f = await fixture();
       expect(f.job.payload.narrativeContext!.policy.promptVersions.writer).toBe(
-        'life_fiction_author.v6',
+        'life_fiction_author.v7',
       );
       const p = provider(f, (task, n, output) => {
         if (task === 'life_narrative_editor' && n === 1)
@@ -788,6 +797,18 @@ describe('creative final author package through real guarded provider and databa
     expect(next.payload.narrativeContext.storyFacts).toEqual(
       f.f.authored.storyFacts,
     );
+    // The default v7 chapter stores report 1.3.0; its 1.1.0 signature is the
+    // next chapter's series-level pattern history.
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext)
+        .sequenceSignatureHistory,
+    ).toEqual([
+      { ...f.f.editor.sequenceSignature, periodId: f.job.payload.periodId },
+    ]);
+    expect(
+      fictionContextSchema.parse(next.payload.narrativeContext)
+        .sequenceSignatureHistory?.[0]?.version,
+    ).toBe('1.1.0');
     expect(
       hash(
         fictionAuthorRequest(next.payload, fictionFixture(next.payload).draft),

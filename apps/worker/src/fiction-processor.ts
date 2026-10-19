@@ -24,6 +24,7 @@ import {
   fidelitySchema,
   narrativePlanReviewV2Schema,
   fictionEditorialReportSchema,
+  fictionCoordinatedQualityVersions,
   type NarrativePlanningResult,
   type FictionAuthorResult,
   type FictionEditorialReport,
@@ -421,7 +422,9 @@ export async function processFictionLifeJob(
       // Frozen policies retain their original immediate fidelity-repair path.
       const checked = fidelitySchema.safeParse(fidelity);
       if (
-        scope.context.policy.qualityPolicyVersion === '2.5.0' &&
+        fictionCoordinatedQualityVersions.includes(
+          scope.context.policy.qualityPolicyVersion,
+        ) &&
         !cp.repairUsed &&
         error instanceof DomainError &&
         error.code === 'NARRATIVE_QUALITY_FAILED' &&

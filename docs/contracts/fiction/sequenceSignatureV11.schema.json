@@ -1,0 +1,132 @@
+{
+  "$id": "urn:alterward:fiction:sequenceSignatureV11:2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.1.0"
+    },
+    "periodId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "dramaticEngine": {
+      "type": "string",
+      "enum": [
+        "discovery",
+        "negotiation",
+        "failed_attempt",
+        "social_friction",
+        "material_experiment",
+        "external_opportunity",
+        "misunderstanding",
+        "deadline_pressure",
+        "role_reversal",
+        "relationship_shift",
+        "mixed",
+        "other"
+      ]
+    },
+    "turningPointDriver": {
+      "type": "string",
+      "enum": [
+        "protagonist",
+        "npc",
+        "institution",
+        "environment",
+        "artifact",
+        "chance",
+        "shared",
+        "mixed"
+      ]
+    },
+    "resolutionMode": {
+      "type": "string",
+      "enum": [
+        "partial_resolution",
+        "unresolved",
+        "reframe",
+        "commitment",
+        "withdrawal",
+        "experiment",
+        "external_response",
+        "consequence",
+        "mixed"
+      ]
+    },
+    "endingMode": {
+      "type": "string",
+      "enum": [
+        "open_choice",
+        "tableau",
+        "dialogue",
+        "action_in_progress",
+        "discovery",
+        "consequence",
+        "quiet_observation",
+        "hard_stop",
+        "other"
+      ]
+    },
+    "protagonistResponse": {
+      "type": "string",
+      "enum": [
+        "immediate_self_correction",
+        "defend_then_change",
+        "delayed_change",
+        "persist",
+        "misunderstand",
+        "avoid",
+        "act_without_resolution",
+        "no_correction_arc",
+        "mixed"
+      ]
+    },
+    "rhetoricalFlags": {
+      "minItems": 1,
+      "maxItems": 7,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "balanced_antithesis",
+          "almost_then_stop",
+          "explicit_moral",
+          "object_tableau",
+          "binary_option_briefing",
+          "overexplain_while_other_busy",
+          "none"
+        ]
+      }
+    },
+    "systemLeakageFlags": {
+      "minItems": 1,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "exact_boundary_date",
+          "contractual_guardrail",
+          "exit_clause_reassurance",
+          "allocation_accounting",
+          "none"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "periodId",
+    "dramaticEngine",
+    "turningPointDriver",
+    "resolutionMode",
+    "endingMode",
+    "protagonistResponse",
+    "rhetoricalFlags",
+    "systemLeakageFlags"
+  ],
+  "additionalProperties": false
+}

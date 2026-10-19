@@ -4,13 +4,13 @@ import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 import {
   fictionV4Policy,
   fictionV5Policy,
-  fictionPolicy,
+  fictionV6Quality25Policy,
 } from '@future-flow/contracts';
 
 type FictionPromptVersions = Parameters<typeof fictionPrompts>[1];
 const v4Versions = fictionV4Policy().promptVersions;
 const v5Versions = fictionV5Policy().promptVersions;
-const v6Versions = fictionPolicy().promptVersions;
+const v6Versions = fictionV6Quality25Policy().promptVersions;
 
 function hashesOf(versions: FictionPromptVersions) {
   const prompts = fictionPrompts('en', versions);
@@ -58,20 +58,24 @@ describe('fiction-prompts v6 earned-evolution and reference-integrity routing', 
     expect(h5).toBe(h4);
     expect(h6).toBe(h5);
   });
-  it('defaults to the selected v6 while the measured v5 route stays explicit', () => {
-    expect(fictionPrompts('en')).toEqual(fictionPrompts('en', v6Versions));
-    expect(fictionPrompts('en')).not.toEqual(fictionPrompts('en', v5Versions));
+  it('routes the merged v6 checkpoint explicitly now that v7 is the default', () => {
+    expect(fictionPrompts('en')).not.toEqual(fictionPrompts('en', v6Versions));
+    expect(fictionPrompts('en', v6Versions)).not.toEqual(
+      fictionPrompts('en', v5Versions),
+    );
   });
   it('states the exact scene-first-event rule and includes future option goal effects', () => {
     for (const text of [
-      fictionPrompts('en').planner,
-      fictionPrompts('en').author,
+      fictionPrompts('en', v6Versions).planner,
+      fictionPrompts('en', v6Versions).author,
     ]) {
       expect(text).toContain('FIRST EVENT REFERENCED BY THAT SCENE');
       expect(text).toContain('every unresolved decision option');
     }
-    expect(fictionPrompts('en').editor).toContain('set distinctEnding=false');
-    expect(fictionPrompts('en').editor).toContain(
+    expect(fictionPrompts('en', v6Versions).editor).toContain(
+      'set distinctEnding=false',
+    );
+    expect(fictionPrompts('en', v6Versions).editor).toContain(
       'materially unchanged without a deliberate dramatic reason',
     );
   });

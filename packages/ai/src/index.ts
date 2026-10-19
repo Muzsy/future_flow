@@ -3,6 +3,7 @@ import {
   fictionAuthorResultSchema,
   fictionSequenceEditorialSchema,
   fictionHumanEditorialSchema,
+  fictionHumanEditorialV13Schema,
   type FictionEditorialReport,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
@@ -692,13 +693,15 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
-      // Keyed off the oldest two literals so a later editor version (report
-      // 1.2.0 unchanged) keeps routing to the human schema by default.
+      // Editors v3-v5 share report 1.2.0; editor v6 alone emits report 1.3.0
+      // with signature 1.1.0, so frozen request schemas stay byte-identical.
       context.policy.promptVersions.editor === 'life_fiction_editor.v1'
         ? narrativeEditorialReportSchema
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
           ? fictionSequenceEditorialSchema
-          : fictionHumanEditorialSchema,
+          : context.policy.promptVersions.editor === 'life_fiction_editor.v6'
+            ? fictionHumanEditorialV13Schema
+            : fictionHumanEditorialSchema,
       'life_narrative_editor',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).editor,

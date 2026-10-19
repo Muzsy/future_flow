@@ -9,13 +9,18 @@ measured_v5_source: 34f5586b6afaabf73f8a9a4694636e9bea84f097
 measured_v5_source_hash: 990cdf900f0305ac7cbfce1c7654410040d6c72d8c0379af961ef42a2087f6cc
 issue: 45
 workstream: F05/F06 quality follow-up
-state: quality25-long-diagnostic-budget-stopped-partial
+state: merged-measured-checkpoint-quality25-partial
+merged_commit: f755a57aca37ee6a2e995400c76fc0394f1cdc88
 paid_provider_calls_authorized_in_principle: true
 new_numeric_budget_authority: true
 production_authorized: false
 ---
 
 # Codex task — v6 earned life evolution, causal freedom, planner yield and base-window retention validation
+
+## Merge checkpoint — 2026-10-18
+
+PR #50 was merged into `main` as the measured v6/quality2.5 checkpoint at `f755a57aca37ee6a2e995400c76fc0394f1cdc88`, with the owner's explicit approval. The merge is not a production, cohort, billing or entitlement activation and adds no budget. Later sections that call PR #50 draft are historical checkpoints. Follow-up fixes go into a separately versioned candidate; the measured v6 prompt/policy snapshots stay frozen.
 
 ## 2026-10-18 execution authority
 

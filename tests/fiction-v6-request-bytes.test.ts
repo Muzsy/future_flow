@@ -29,6 +29,7 @@ import {
   NARRATIVE_MEMORY_BYTES,
   fictionHumanEditorialSchema,
   fictionPolicy,
+  fictionV6Quality25Policy,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
 import {
@@ -162,6 +163,9 @@ async function buildChapter5RepairCaptureFixture() {
     throw new Error('Expected creative v6 job payload.');
   }
   expect(job.payload.narrativeContext.policy).toEqual(fictionPolicy());
+  // These byte measurements are v6 evidence; pin the merged v6/quality2.5
+  // snapshot explicitly now that newly queued jobs select v7.
+  job.payload.narrativeContext.policy = fictionV6Quality25Policy();
 
   const normalFixture = fictionFixture(job.payload);
   const baseFixture = bulkyFictionFixture(normalFixture);

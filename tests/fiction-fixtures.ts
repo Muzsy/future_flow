@@ -2,8 +2,11 @@ import { randomUUID } from 'node:crypto';
 import {
   fictionV3Policy,
   fictionSequenceSignatureSchema,
+  fictionSequenceSignatureV11Schema,
   fictionHumanEditorialSchema,
+  fictionHumanEditorialV13Schema,
   fictionSequenceEditorialSchema,
+  fictionEditorialVersionFor,
   fictionContextSchema,
   type NarrativePeriodInput,
   type FictionAuthorResult,
@@ -72,6 +75,10 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     ],
     chapter: longNarrativeChapterFixture(f),
   };
+  const editorialVersion = fictionEditorialVersionFor(
+    sourceContext?.policy.qualityPolicyVersion ?? '',
+  ) as '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0';
+  const human = editorialVersion === '1.2.0' || editorialVersion === '1.3.0';
   // New author fiction need not occur in the draft.
   authored.candidate.events[0]!.summary =
     'A blue glove beside a parcel makes the drawing look like an unclaimed delivery; a visitor misunderstands the intended direction.';
@@ -89,15 +96,14 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     fidelity: { valid: true, issues: [] },
     editor: fictionFixtureEditorial({
       ...narrativeEditorialFixture(),
-      version: ['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
-        sourceContext?.policy.qualityPolicyVersion ?? '',
-      )
-        ? ('1.2.0' as const)
-        : ('1.1.0' as const),
-      ...(['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
-        sourceContext?.policy.qualityPolicyVersion ?? '',
-      )
-        ? { sequenceSignature: fictionSignatureFixture(input.periodId) }
+      version: human ? editorialVersion : ('1.1.0' as const),
+      ...(human
+        ? {
+            sequenceSignature: fictionSignatureFixture(
+              input.periodId,
+              editorialVersion === '1.3.0' ? '1.1.0' : '1.0.0',
+            ),
+          }
         : {}),
       sequenceReview: {
         comparedPeriodIds: [
@@ -108,9 +114,7 @@ export function fictionFixture(source?: NarrativePeriodInput) {
             ),
           ]),
         ],
-        ...(['2.2.0', '2.3.0', '2.4.0', '2.5.0'].includes(
-          sourceContext?.policy.qualityPolicyVersion ?? '',
-        )
+        ...(human
           ? {
               distinctRhetoricalShape: true,
               systemMechanicsInvisible: true,
@@ -128,9 +132,12 @@ export function fictionFixture(source?: NarrativePeriodInput) {
   };
 }
 function fictionFixtureEditorial(raw: unknown) {
-  return (raw as { version: string }).version === '1.2.0'
-    ? fictionHumanEditorialSchema.parse(raw)
-    : fictionSequenceEditorialSchema.parse(raw);
+  const version = (raw as { version: string }).version;
+  return version === '1.3.0'
+    ? fictionHumanEditorialV13Schema.parse(raw)
+    : version === '1.2.0'
+      ? fictionHumanEditorialSchema.parse(raw)
+      : fictionSequenceEditorialSchema.parse(raw);
 }
 export function fictionReceipt(
   task: string,
@@ -248,9 +255,16 @@ export function bulkyFictionFixture(f = fictionFixture()) {
   return b;
 }
 
-export function fictionSignatureFixture(periodId: string) {
-  return fictionSequenceSignatureSchema.parse({
-    version: '1.0.0',
+export function fictionSignatureFixture(
+  periodId: string,
+  version: '1.0.0' | '1.1.0' = '1.0.0',
+) {
+  return (
+    version === '1.1.0'
+      ? fictionSequenceSignatureV11Schema
+      : fictionSequenceSignatureSchema
+  ).parse({
+    version,
     periodId,
     dramaticEngine: 'discovery',
     turningPointDriver: 'protagonist',
