@@ -2,6 +2,7 @@ import {
   fictionCharacterEnvelopeSchema,
   fictionCharacterQualityVersions,
   fictionContextSchema,
+  FICTION_CHARACTER_STATE_ACTORS,
   FICTION_CHARACTER_VERSION,
   type FictionCharacterEnvelope,
   type FictionalActorMemory,
@@ -149,6 +150,12 @@ export function fictionCharacterEnvelopeFrom(
   fold: Awaited<ReturnType<typeof ownedFictionCharacterFold>>,
   signals: ReturnType<typeof fictionCharacterSignals>,
 ): FictionCharacterEnvelope {
+  // A typed, fail-closed error instead of a raw schema failure at job creation.
+  if (fold.state.actors.length > FICTION_CHARACTER_STATE_ACTORS)
+    throw new DomainError(
+      'FICTION_CHARACTER_STATE_TOO_LARGE',
+      'The character state exceeds its actor bound.',
+    );
   return fictionCharacterEnvelopeSchema.parse({
     version: FICTION_CHARACTER_VERSION,
     state: fold.state,

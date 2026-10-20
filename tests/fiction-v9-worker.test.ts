@@ -448,6 +448,101 @@ describe('living-world generation through the real guarded provider and database
   });
 });
 
+describe('a v8 life continued under v9', () => {
+  it('shows a carried-over person through the recorded legacy view and accepts state for them', async () => {
+    const f = await fixture('v8'),
+      a = f.f.authored,
+      actorId = randomUUID(),
+      event = a.candidate.events[0]!;
+    event.changes.push({
+      type: 'actor_add',
+      value: { id: actorId, label: 'Mara', relationship: 'other' },
+    });
+    event.actorIds.push(actorId);
+    a.plan.scenes[0]!.actorIds.push(actorId);
+    a.plan.memoryDelta.actorUpdates.push({
+      actorId,
+      introducedByEventId: event.id,
+      role: 'A wholly fictional independent gallery organiser.',
+      desire: 'Wants a clear small selection that visitors can read.',
+      resistance: 'Dislikes having to explain every image to visitors.',
+      voiceCue: 'Speaks in short concrete visual questions.',
+      lastSeenPeriodId: a.candidate.periodId,
+    });
+    a.plan.memoryDelta.threadUpdates = [
+      {
+        id: randomUUID(),
+        originPeriodId: a.candidate.periodId,
+        originEventId: event.id,
+        kind: 'goal',
+        summary:
+          'A concrete open question from the new encounter remains unresolved.',
+        status: 'open',
+        dueByPeriodOffset: 2,
+        lastTouchedPeriodId: a.candidate.periodId,
+        eventRefs: [event.id],
+      },
+    ];
+    a.storyFacts[0]!.aboutActorIds = [actorId];
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    const first = await f.lives.detail(f.owner, f.job.branch_id),
+      decision = first.branch.pending_decision!;
+    await f.lives.choose(
+      f.owner,
+      first.branch.id,
+      first.branch.revision,
+      decision.id,
+      decision.options[0]!.id,
+      randomUUID(),
+    );
+    const b = await f.lives.branch(f.owner, first.branch.id);
+    const v9 = new LifeRepository(
+      db,
+      { daily: 100, concurrent: 10 },
+      configFor(f.owner, 'v9'),
+    );
+    await v9.continue(f.owner, b.id, b.revision, randomUUID());
+    const job = (await jobs.claim())!;
+    const entry = envelopeOf(job).state.actors.find(
+      (x) => x.actorId === actorId,
+    )!;
+    expect(entry.legacy?.role).toContain('gallery organiser');
+    expect(entry.profile).toBeNull();
+    // The recorded fields reach the model, and nothing else was invented.
+    const shown = job.payload.narrativeContext!.characterProjection!.actors;
+    expect(shown.map((x) => x.actorId)).toEqual([actorId]);
+    expect(shown[0]).toMatchObject({
+      profile: null,
+      dynamic: null,
+      legacy: { voiceCue: 'Speaks in short concrete visual questions.' },
+    });
+    // The next chapter may record state for them without a profile.
+    const next = fictionFixture(job.payload);
+    const authored = next.authored as Authored;
+    authored.characterDelta = {
+      ...fictionFixtureCharacterDelta(job.payload.periodId, authored),
+      relationshipUpdates: [
+        {
+          actorId,
+          currentDynamic: 'Careful collaboration that still leaves space.',
+          expectation: 'Expects the protagonist to listen to her reading.',
+          unresolvedInteraction: null,
+          provenance: 'interaction_derived',
+        },
+      ],
+    } as FictionCharacterDelta;
+    const second = { ...f, job, f: next };
+    await processLifeJob(job, jobs, provider(second).ai);
+    expect((await saved(job)).status).toBe('completed');
+    const stored = await artifactOf(job.payload.periodId);
+    expect(
+      (stored as unknown as { characterDelta: FictionCharacterDelta })
+        .characterDelta.relationshipUpdates,
+    ).toHaveLength(1);
+  });
+});
+
 describe('fiction generation selection', () => {
   const base = {
     NARRATIVE_PIPELINE_MODE: 'narrative-fiction-v2',

@@ -27,6 +27,9 @@ describe('v9 prompts', () => {
       'enters by actor_add and leaves by actor_remove',
     );
     expect(v9.planner).toContain('Never invent a private aim');
+    // A person carried over from an earlier generation is shown through the
+    // recorded legacy view and gets state, never an invented profile (F3).
+    expect(v9.author).toContain('legacy view and no profile');
   });
   it('keep both languages', () => {
     const hu = fictionPrompts('hu', fictionV9Policy().promptVersions);

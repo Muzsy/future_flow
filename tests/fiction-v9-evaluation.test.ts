@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
-import { runNarrativeEvaluation } from '../scripts/lib/narrative-evaluation-runner';
+import {
+  characterBytes,
+  runNarrativeEvaluation,
+} from '../scripts/lib/narrative-evaluation-runner';
 
 describe('living-world generation in the evaluation runner', () => {
   it('is opt-in, creative only and never paid before its own approval', () => {
@@ -66,6 +69,12 @@ describe('living-world generation in the evaluation runner', () => {
         expect(sample.requestCount).toBe(5);
         expect(sample.character?.projectionBytes).toBeGreaterThan(0);
         expect(sample.character?.deltaBytes).toBeGreaterThan(0);
+        // F4: the author's output tokens are logged per call, one author call
+        // and no repair here, and the repair cause is classified.
+        expect(sample.character?.authorOutputTokens).toHaveLength(1);
+        expect(sample.character?.authorReasoningTokens).toHaveLength(1);
+        expect(sample.character?.repairMessage).toBeNull();
+        expect(sample.character?.characterRepair).toBe(false);
         expect(
           sample.receipts.some((r) =>
             r.promptVersion.startsWith('life_fiction_author.v9'),
@@ -95,4 +104,35 @@ describe('living-world generation in the evaluation runner', () => {
       await rm(out, { recursive: true, force: true });
     }
   }, 120000);
+});
+
+describe('v9 character repair classification (review F4)', () => {
+  const receipt = (outputTokens: number, reasoningTokens?: number) =>
+    ({
+      task: 'life_narrative_chapter',
+      outputTokens,
+      reasoningTokens,
+    }) as never;
+  it('separates a character-state repair from other repairs and logs the author tokens', () => {
+    const delta = characterBytes(
+      {},
+      null,
+      [receipt(4100, 1500), receipt(5200)],
+      {
+        fictionRepair: {
+          message:
+            'A new recurring actor needs a character profile in its period.',
+        },
+      },
+    );
+    expect(delta.characterRepair).toBe(true);
+    expect(delta.authorOutputTokens).toEqual([4100, 5200]);
+    expect(delta.authorReasoningTokens).toEqual([1500, 0]);
+    const other = characterBytes({}, null, [], {
+      fictionRepair: { message: 'The chapter repeats its opening gesture.' },
+    });
+    expect(other.characterRepair).toBe(false);
+    expect(other.repairMessage).toContain('opening gesture');
+    expect(characterBytes({}, null, [], {}).repairMessage).toBeNull();
+  });
 });

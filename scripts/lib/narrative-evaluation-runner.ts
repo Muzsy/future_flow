@@ -156,11 +156,22 @@ export type EvaluationSample = {
     projectionBytes: number;
     deltaBytes: number;
     omittedActors: number;
+    // Output cost of the author call(s), which now also carry the delta, and
+    // whether the single repair was about the character state (review F4).
+    authorOutputTokens: number[];
+    authorReasoningTokens: number[];
+    repairMessage: string | null;
+    characterRepair: boolean;
   };
 };
-function characterBytes(
+// Validator wording of a character-state failure (never model text).
+const CHARACTER_REPAIR_PATTERN =
+  /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
+export function characterBytes(
   payload: unknown,
   artifact: unknown,
+  receipts: readonly AiReceipt[] = [],
+  checkpoints: unknown = null,
 ): NonNullable<EvaluationSample['character']> {
   const projection = (
     payload as {
@@ -173,10 +184,22 @@ function characterBytes(
     ?.characterDelta;
   const bytes = (value: unknown) =>
     value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value), 'utf8');
+  const cp = (checkpoints ?? {}) as {
+    fictionRepair?: { message?: string } | null;
+    planningRepair?: string | null;
+  };
+  const repairMessage = cp.fictionRepair?.message ?? cp.planningRepair ?? null;
+  const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
   return {
     projectionBytes: bytes(projection),
     deltaBytes: bytes(delta),
     omittedActors: projection?.omittedActors ?? 0,
+    authorOutputTokens: author.map((r) => r.outputTokens),
+    authorReasoningTokens: author.map((r) => r.reasoningTokens ?? 0),
+    repairMessage: repairMessage ? repairMessage.slice(0, 160) : null,
+    characterRepair: repairMessage
+      ? CHARACTER_REPAIR_PATTERN.test(repairMessage)
+      : false,
   };
 }
 export type EvaluationRun = {
@@ -1506,6 +1529,8 @@ async function runEvaluationUnlocked(
                     character: characterBytes(
                       completed.payload,
                       artifact?.narrative_artifact ?? null,
+                      receipts,
+                      completed.checkpoints,
                     ),
                   }
                 : {}),
