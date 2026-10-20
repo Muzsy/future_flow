@@ -44,6 +44,7 @@
     "smoke:shared:auth": "pnpm build:packages && pnpm --filter @future-flow/api build && tsx --tsconfig tsconfig.scripts.json --env-file-if-exists=.env scripts/smoke-shared-authenticated.ts",
     "evaluate:claude": "tsx --env-file-if-exists=.env scripts/evaluate-claude.ts",
     "narrative:audit": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-series-audit.ts",
+    "narrative:character-audit": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-character-audit.ts",
     "narrative:codex": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/evaluate-narrative-codex.ts",
     "narrative:agy": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/evaluate-narrative-agy.ts",
     "docs:check": "tsx --tsconfig tsconfig.scripts.json scripts/verify-docs.ts",
