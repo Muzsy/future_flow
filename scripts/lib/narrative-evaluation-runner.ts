@@ -162,6 +162,24 @@ export type EvaluationSample = {
     authorReasoningTokens: number[];
     repairMessage: string | null;
     characterRepair: boolean;
+    // The local Codex/agy transports report no token usage, so the cost gate
+    // cannot be judged from them: only output lengths are recorded (per stage
+    // and for the prose and the delta) with a rough token estimate. The gate
+    // is decided by the paid measurement (appendix D.8).
+    outputSizes: {
+      stages: {
+        task: string;
+        outputChars: number;
+        outputBytes: number;
+        estimatedTokens: number;
+      }[];
+      proseChars: number;
+      proseBytes: number;
+      deltaChars: number;
+      deltaBytes: number;
+      estimatedProseTokens: number;
+      estimatedDeltaTokens: number;
+    };
   };
 };
 // Validator wording of a character-state failure (never model text).
@@ -172,6 +190,8 @@ export function characterBytes(
   artifact: unknown,
   receipts: readonly AiReceipt[] = [],
   checkpoints: unknown = null,
+  transports: readonly TransportRecord[] = [],
+  chapterBody = '',
 ): NonNullable<EvaluationSample['character']> {
   const projection = (
     payload as {
@@ -190,6 +210,9 @@ export function characterBytes(
   };
   const repairMessage = cp.fictionRepair?.message ?? cp.planningRepair ?? null;
   const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
+  // About 3.5 bytes per token (the 047 price estimate); never a measurement.
+  const estimate = (outputBytes: number) => Math.ceil(outputBytes / 3.5);
+  const deltaJson = delta === undefined ? '' : JSON.stringify(delta);
   return {
     projectionBytes: bytes(projection),
     deltaBytes: bytes(delta),
@@ -200,6 +223,26 @@ export function characterBytes(
     characterRepair: repairMessage
       ? CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
+    outputSizes: {
+      stages: transports.flatMap((t) =>
+        t.outputBytes === undefined
+          ? []
+          : [
+              {
+                task: t.task,
+                outputChars: t.outputChars ?? 0,
+                outputBytes: t.outputBytes,
+                estimatedTokens: estimate(t.outputBytes),
+              },
+            ],
+      ),
+      proseChars: [...chapterBody].length,
+      proseBytes: Buffer.byteLength(chapterBody, 'utf8'),
+      deltaChars: [...deltaJson].length,
+      deltaBytes: Buffer.byteLength(deltaJson, 'utf8'),
+      estimatedProseTokens: estimate(Buffer.byteLength(chapterBody, 'utf8')),
+      estimatedDeltaTokens: estimate(Buffer.byteLength(deltaJson, 'utf8')),
+    },
   };
 }
 export type EvaluationRun = {
@@ -368,7 +411,13 @@ function diagnosticChoice(
     rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
   };
 }
-type TransportRecord = { caseId: string; task: string; latencyMs: number };
+type TransportRecord = {
+  caseId: string;
+  task: string;
+  latencyMs: number;
+  outputChars?: number;
+  outputBytes?: number;
+};
 function clientFor(
   options: EvaluationOptions,
   env: Record<string, string | undefined>,
@@ -1531,6 +1580,8 @@ async function runEvaluationUnlocked(
                       artifact?.narrative_artifact ?? null,
                       receipts,
                       completed.checkpoints,
+                      caseTransports,
+                      (period.chapter as PeriodChapterV2).body,
                     ),
                   }
                 : {}),

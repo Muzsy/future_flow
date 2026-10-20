@@ -75,6 +75,23 @@ describe('living-world generation in the evaluation runner', () => {
         expect(sample.character?.authorReasoningTokens).toHaveLength(1);
         expect(sample.character?.repairMessage).toBeNull();
         expect(sample.character?.characterRepair).toBe(false);
+        // N4: the local transports give no tokens, so lengths per stage and
+        // for the prose and the delta are recorded with a rough estimate.
+        const sizes = sample.character!.outputSizes;
+        expect(sizes.stages.map((x) => x.task)).toEqual([
+          'life_narrative_plan',
+          'life_narrative_chapter',
+          'life_narrative_plan_review',
+          'life_fidelity',
+          'life_narrative_editor',
+        ]);
+        for (const stage of sizes.stages) {
+          expect(stage.outputBytes).toBeGreaterThanOrEqual(stage.outputChars);
+          expect(stage.estimatedTokens).toBeGreaterThan(0);
+        }
+        expect(sizes.proseChars).toBeGreaterThan(0);
+        expect(sizes.deltaBytes).toBe(sample.character!.deltaBytes);
+        expect(sizes.estimatedDeltaTokens).toBeGreaterThan(0);
         expect(
           sample.receipts.some((r) =>
             r.promptVersion.startsWith('life_fiction_author.v9'),
@@ -134,5 +151,36 @@ describe('v9 character repair classification (review F4)', () => {
     expect(other.characterRepair).toBe(false);
     expect(other.repairMessage).toContain('opening gesture');
     expect(characterBytes({}, null, [], {}).repairMessage).toBeNull();
+    // Lengths, not usage: characters and bytes differ for multibyte text.
+    const sized = characterBytes(
+      {},
+      { characterDelta: { version: '1.0.0', note: 'ő' } },
+      [],
+      {},
+      [
+        {
+          caseId: 'c',
+          task: 'life_narrative_chapter',
+          latencyMs: 1,
+          outputChars: 7,
+          outputBytes: 70,
+        },
+        { caseId: 'c', task: 'life_fidelity', latencyMs: 1 },
+      ],
+      'Árvíztűrő tükörfúrógép',
+    );
+    expect(sized.outputSizes.stages).toEqual([
+      {
+        task: 'life_narrative_chapter',
+        outputChars: 7,
+        outputBytes: 70,
+        estimatedTokens: 20,
+      },
+    ]);
+    expect(sized.outputSizes.proseChars).toBe(22);
+    expect(sized.outputSizes.proseBytes).toBeGreaterThan(22);
+    expect(sized.outputSizes.deltaChars).toBeLessThan(
+      sized.outputSizes.deltaBytes,
+    );
   });
 });

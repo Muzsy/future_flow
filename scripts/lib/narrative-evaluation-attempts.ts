@@ -120,6 +120,10 @@ export type AttemptTransportSummary = {
   caseId: string;
   task: string;
   latencyMs: number;
+  // Length of the parsed output, for transports that report no token usage
+  // (the local Codex/agy runners): tokens are then only estimated from it.
+  outputChars?: number;
+  outputBytes?: number;
 };
 
 export type AttemptSampleSummary = {
@@ -998,10 +1002,20 @@ export function wrapEvaluationParse<
         record,
         config.env,
       );
+      const serialized =
+        record.output === null || record.output === undefined
+          ? null
+          : JSON.stringify(record.output);
       config.transports.push({
         caseId: config.binding.caseId,
         task,
         latencyMs: record.latencyMs,
+        ...(serialized === null
+          ? {}
+          : {
+              outputChars: [...serialized].length,
+              outputBytes: Buffer.byteLength(serialized, 'utf8'),
+            }),
       });
       await config.saveTransports();
     };
