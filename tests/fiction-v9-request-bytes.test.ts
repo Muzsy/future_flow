@@ -27,6 +27,18 @@ import { fictionFixture } from './fiction-fixtures';
 // Plan section 55: request bytes of the living-world generation, measured per
 // stage with a deterministic cast of 0, 1, 4 and 8 recurring people, typical
 // and maximal field lengths. The bounds are provisional until measured.
+// KNOWN, MARKED STATE, not a tolerance: the production request guard
+// (AI_FICTION_MAX_REQUEST_BYTES, default 100000) is already exceeded by the
+// package-repair request of a real chapter in v8 and in v9. The value the
+// production setting needs is an owner decision that waits for N09 / the
+// release (docs/operations/NARRATIVE_RELEASE_HU.md); 131072 is the smallest
+// round value above the recorded v9 request with room for a longer chapter.
+// Measured on real runs, not computed by this mock.
+const REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER = 131072;
+const RECORDED_REAL_REPAIR_REQUEST_BYTES = {
+  v8: 108751, // 2026-10-19, v8 paid measurement, real repair author request
+  v9: 116336, // 2026-10-20, v9-6b chapter 1, local Codex run, raw request bytes
+} as const;
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const guarded = (request: unknown) =>
@@ -321,14 +333,15 @@ describe('v9 request bytes (plan section 55)', () => {
       // The REAL production transport guard (AI_FICTION_MAX_REQUEST_BYTES,
       // default 100000), not the 192 KiB experiment envelope. These are mock
       // fixture sizes: real chapters measured +20-30 KB larger already in v8.
-      // The package repair is the worst case of this mock (a 1800-character
-      // message and eight people) and sits within 1% of the limit; real v8
-      // (108 751) and v9 (116 336) repair requests already exceed the default,
-      // which is why the production value needs about 131 072.
+      // Every stage but the package repair fits the current production
+      // default. The repair request is the worst case of this mock (a
+      // 1800-character message and eight people) and is held to the cap the
+      // owner still has to set, not to the default it already exceeds (see
+      // the recorded state below).
       for (const stage of STAGES)
         expect(m[stage]).toBeLessThan(
           stage === 'authorRepair'
-            ? EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES * 1.02
+            ? REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER
             : EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
         );
     },
@@ -340,6 +353,24 @@ describe('v9 request bytes (plan section 55)', () => {
     expect(maximal.omittedActors).toBeGreaterThan(0);
     expect(maximal.actors.length).toBeLessThan(
       typical.actors.length + typical.omittedActors,
+    );
+  });
+});
+
+describe('recorded production request-cap state', () => {
+  it('records that the default guard is exceeded by the real v8 and v9 repair requests and the pending value covers them', () => {
+    for (const bytes of Object.values(RECORDED_REAL_REPAIR_REQUEST_BYTES)) {
+      expect(bytes + EXPERIMENT_REQUEST_BYTE_BUFFER).toBeGreaterThan(
+        EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
+      );
+      expect(bytes + EXPERIMENT_REQUEST_BYTE_BUFFER).toBeLessThan(
+        REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER,
+      );
+    }
+    // When the default is raised to the required value this test has to be
+    // revisited together with the release document, not silently kept.
+    expect(EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES).toBeLessThan(
+      REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER,
     );
   });
 });
