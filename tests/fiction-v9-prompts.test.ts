@@ -20,6 +20,12 @@ describe('v9 prompts', () => {
     for (const stage of ['planner', 'author', 'review'] as const)
       expect(v9[stage].length - v8[stage].length).toBeLessThan(2560);
     expect(v9.author).toContain('never user_supplied');
+    // Only the server may label a fact as supplied (review B2) and a person
+    // who joins and leaves in one chapter is archived (review B3).
+    expect(v9.author).toContain('only the server may label');
+    expect(v9.author).toContain(
+      'enters by actor_add and leaves by actor_remove',
+    );
     expect(v9.planner).toContain('Never invent a private aim');
   });
   it('keep both languages', () => {

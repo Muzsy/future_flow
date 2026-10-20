@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type OpenAI from 'openai';
 import {
-  EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES,
+  EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
   EXPERIMENT_REQUEST_BYTE_BUFFER,
   OpenAiProvider,
 } from '@future-flow/ai';
@@ -221,7 +221,25 @@ async function measure(input: NarrativePeriodInput) {
   };
 }
 
+const STAGES = [
+  'planner',
+  'author',
+  'review',
+  'fidelity',
+  'editor',
+  'authorRepair',
+] as const;
+const projectionOf = (input: NarrativePeriodInput) =>
+  (
+    input.narrativeContext as unknown as {
+      characterProjection: { actors: unknown[]; omittedActors: number };
+    }
+  ).characterProjection;
+
 describe('v9 request bytes (plan section 55)', () => {
+  // Review F1/F2: the projection is written from by the planner and the
+  // author only; the check stages carry its hash. Deltas are against a v8
+  // request with the SAME cast, so only what v9 adds is counted.
   it('adds only the projection and a short prompt to the v8 requests', async () => {
     const v8 = await measure(livingInput(0, 'typical', false));
     const empty = await measure(livingInput(0, 'typical'));
@@ -245,45 +263,46 @@ describe('v9 request bytes (plan section 55)', () => {
     async (count, size) => {
       const input = livingInput(count, size);
       const m = await measure(input);
+      const v8 = await measure(livingInput(count, size, false));
       expect(m.projection).toBeLessThanOrEqual(
         FICTION_CHARACTER_PROJECTION_BYTES,
       );
-      const projection =
-        input.narrativeContext!.policy.mode === 'narrative-fiction-v2'
-          ? (
-              input.narrativeContext as unknown as {
-                characterProjection: {
-                  actors: unknown[];
-                  omittedActors: number;
-                };
-              }
-            ).characterProjection
-          : null;
+      const projection = projectionOf(input);
       // Omission is visible, never silent.
-      expect(projection!.actors.length + projection!.omittedActors).toBe(count);
-      for (const stage of [
-        'planner',
-        'author',
-        'review',
-        'fidelity',
-        'editor',
-        'authorRepair',
-      ] as const)
-        expect(m[stage]).toBeLessThan(EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES);
+      expect(projection.actors.length + projection.omittedActors).toBe(count);
+      // Planner and author pay the projection once (plus the fixed prompt and
+      // schema overhead); the three check stages pay almost nothing.
+      const slack = 512;
+      expect(m.planner - v8.planner).toBeLessThan(
+        3 * 1024 + m.projection + slack,
+      );
+      expect(m.author - v8.author).toBeLessThan(
+        8 * 1024 + m.projection + slack,
+      );
+      expect(m.authorRepair - v8.authorRepair).toBeLessThan(
+        8 * 1024 + m.projection + slack,
+      );
+      for (const stage of ['review', 'fidelity', 'editor'] as const)
+        expect(m[stage] - v8[stage]).toBeLessThan(1024);
+      // A package without repair is five calls; the whole increase stays small
+      // against the five v8 requests of the same cast (about +9% measured).
+      const sum = (r: typeof m) =>
+        r.planner + r.author + r.review + r.fidelity + r.editor;
+      expect(sum(m) - sum(v8)).toBeLessThan(0.12 * sum(v8));
+      // The REAL production transport guard (AI_FICTION_MAX_REQUEST_BYTES,
+      // default 100000), not the 192 KiB experiment envelope. These are mock
+      // fixture sizes: real chapters measured +20-30 KB larger already in v8.
+      for (const stage of STAGES)
+        expect(m[stage]).toBeLessThan(EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES);
     },
   );
 
   it('shows the full cast at typical sizes and drops optional people first at maximal sizes', async () => {
-    const typical = livingInput(8, 'typical').narrativeContext as unknown as {
-      characterProjection: { actors: unknown[]; omittedActors: number };
-    };
-    const maximal = livingInput(8, 'max').narrativeContext as unknown as {
-      characterProjection: { actors: unknown[]; omittedActors: number };
-    };
-    expect(maximal.characterProjection.omittedActors).toBeGreaterThan(0);
-    expect(maximal.characterProjection.actors.length).toBeLessThan(
-      typical.characterProjection.actors.length +
-        typical.characterProjection.omittedActors,
+    const typical = projectionOf(livingInput(8, 'typical'));
+    const maximal = projectionOf(livingInput(8, 'max'));
+    expect(maximal.omittedActors).toBeGreaterThan(0);
+    expect(maximal.actors.length).toBeLessThan(
+      typical.actors.length + typical.omittedActors,
     );
   });
 });
