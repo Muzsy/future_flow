@@ -383,3 +383,7 @@ Minden run-mappában a runner által írt `report.json` kell. A kimenet `series-
 ## Helyi ügynökök (Codex, agy) — 2026-10-20
 
 `pnpm narrative:codex` és `pnpm narrative:agy` mindig offline módban fut, API-kulcs, ledger és budget guard nélkül, az előfizetéses kvótát fogyasztja, és csak a tulajdonos engedélyével indítható. A kimenet irányjelző fejlesztési bizonyíték (`comparableWithPaid: false`), nem N08-mérés. A termékhívással egyező beállítások, a kvótakapuk és az agy lépéskorlátozása: [047 terv, Kvótakapuk és az agy futtató](../plans/047_fiction_v8_series_evidence.md#kvótakapuk-és-az-agy-futtató--2026-10-20).
+
+## Élő világ (v9) kiválasztása — 2026-10-20
+
+`--fiction-generation v9` (csak `--creative` / `--creative-only` mellett) a v9 policy-generációval futtat; kapcsoló nélkül vagy `v8` értékkel a futás, a report és a manifest-kötés bájtra a v8-é. A v9 a report `fictionGeneration` mezőjét és mintánként a `character` mezőt (`projectionBytes`, `deltaBytes`, `omittedActors`) adja, hogy az 5. fázis ellenőrizhesse az ideiglenes korlátokat. A v9 **paid** futás a runnerben tiltott (`--mode paid` elutasítva) addig, amíg a 7. fázishoz nincs külön tulajdonosi keret. A helyi Codex/agy runnerek ugyanezt a kapcsolót használják (`pnpm narrative:codex --creative-only --fiction-generation v9 ...`); irányjelző, nem N08-mérés.

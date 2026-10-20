@@ -108,3 +108,4 @@ export * from './closed-beta';
 export * from './life-job-state';
 
 export * from './fiction-memory';
+export * from './fiction-character';

@@ -1,0 +1,98 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it, expect } from 'vitest';
+import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
+import { runNarrativeEvaluation } from '../scripts/lib/narrative-evaluation-runner';
+
+describe('living-world generation in the evaluation runner', () => {
+  it('is opt-in, creative only and never paid before its own approval', () => {
+    expect(parseEvaluationOptions(['--creative'])).not.toHaveProperty(
+      'fictionGeneration',
+    );
+    expect(
+      parseEvaluationOptions(['--creative', '--fiction-generation', 'v8']),
+    ).not.toHaveProperty('fictionGeneration');
+    expect(
+      parseEvaluationOptions(['--creative-only', '--fiction-generation', 'v9'])
+        .fictionGeneration,
+    ).toBe('v9');
+    expect(() =>
+      parseEvaluationOptions(['--fiction-generation', 'v9']),
+    ).toThrow('needs a creative run');
+    expect(() =>
+      parseEvaluationOptions(['--creative', '--fiction-generation', 'v10']),
+    ).toThrow('Unsupported fiction generation');
+    expect(() =>
+      parseEvaluationOptions(
+        [
+          '--creative',
+          '--fiction-generation',
+          'v9',
+          '--mode',
+          'paid',
+          '--allow-paid',
+          '--budget-usd',
+          '1',
+          '--approval-id',
+          'x',
+          '--out',
+          '/tmp/x',
+        ],
+        {},
+      ),
+    ).toThrow('owner-approved budget');
+  });
+
+  it('runs an offline v9 diagnosis and records the character bytes', async () => {
+    const out = await mkdtemp(join(tmpdir(), 'alterward-fiction-v9-'));
+    try {
+      const o = parseEvaluationOptions([
+        '--creative-only',
+        '--fiction-generation',
+        'v9',
+        '--fixtures',
+        'creative-portfolio',
+        '--periods',
+        '2',
+        '--out',
+        out,
+      ]);
+      const run = await runNarrativeEvaluation(o);
+      expect(run.fictionGeneration).toBe('v9');
+      expect(run.failures).toEqual([]);
+      expect(run.samples).toHaveLength(2);
+      for (const sample of run.samples) {
+        expect(sample.requestCount).toBe(5);
+        expect(sample.character?.projectionBytes).toBeGreaterThan(0);
+        expect(sample.character?.deltaBytes).toBeGreaterThan(0);
+        expect(
+          sample.receipts.some((r) =>
+            r.promptVersion.startsWith('life_fiction_author.v9'),
+          ),
+        ).toBe(true);
+      }
+      // A v8 run of the same corpus keeps its identity: no new report field.
+      const v8out = await mkdtemp(join(tmpdir(), 'alterward-fiction-v8-'));
+      try {
+        const v8 = await runNarrativeEvaluation(
+          parseEvaluationOptions([
+            '--creative-only',
+            '--fixtures',
+            'creative-portfolio',
+            '--periods',
+            '1',
+            '--out',
+            v8out,
+          ]),
+        );
+        expect(v8).not.toHaveProperty('fictionGeneration');
+        expect(v8.samples[0]).not.toHaveProperty('character');
+      } finally {
+        await rm(v8out, { recursive: true, force: true });
+      }
+    } finally {
+      await rm(out, { recursive: true, force: true });
+    }
+  }, 120000);
+});

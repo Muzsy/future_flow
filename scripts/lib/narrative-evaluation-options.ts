@@ -65,6 +65,8 @@ export type EvaluationOptions = {
   creative?: true;
   creativeOnly?: true;
   noForks?: true;
+  // Living-world generation; absent means the frozen v8 generation.
+  fictionGeneration?: 'v9';
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -103,6 +105,7 @@ export function parseEvaluationOptions(
     '--event-model',
     '--story-model',
     '--check-model',
+    '--fiction-generation',
     '--max-mean-cost-usd',
     '--max-p95-ms',
   ]);
@@ -184,6 +187,18 @@ export function parseEvaluationOptions(
     invalid(
       'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
     );
+  const generation = values.get('--fiction-generation') ?? 'v8';
+  if (generation !== 'v8' && generation !== 'v9')
+    invalid('Unsupported fiction generation.');
+  if (
+    generation === 'v9' &&
+    !boolean.has('--creative') &&
+    !boolean.has('--creative-only')
+  )
+    invalid('Fiction generation v9 needs a creative run.');
+  // The v9 measurement is a later phase with its own owner-approved budget.
+  if (generation === 'v9' && kind === 'paid')
+    invalid('A paid v9 measurement needs its own owner-approved budget.');
   const allowPaid = boolean.has('--allow-paid'),
     budgetUsd = values.has('--budget-usd')
       ? Number(values.get('--budget-usd'))
@@ -249,6 +264,7 @@ export function parseEvaluationOptions(
       : {}),
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
+    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,

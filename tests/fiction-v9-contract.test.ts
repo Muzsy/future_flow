@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import {
+  FICTION_CHARACTER_DELTA_BYTES,
   FICTION_CHARACTER_VERSION,
   NARRATIVE_ARTIFACT_BYTES,
   fictionArtifactSchema,
@@ -259,6 +260,27 @@ describe('v9 context and artifact gates', () => {
         memory: { ...context.memory, withheld: true },
       }).success,
     ).toBe(false);
+  });
+
+  it('leaves room for the whole delta bound inside the 32 KiB artifact (worst case, plan section 56)', () => {
+    const f = living();
+    const build = () =>
+      buildFictionArtifact(
+        f.input,
+        f.draft,
+        f.authored,
+        f.review,
+        f.fidelity,
+        f.editor,
+        fictionProof(f),
+      );
+    const withDelta = Buffer.byteLength(JSON.stringify(build()));
+    // An empty delta costs a few dozen bytes; the cap is the only growth.
+    const withoutDelta = withDelta - JSON.stringify(emptyDelta()).length;
+    expect(withoutDelta + FICTION_CHARACTER_DELTA_BYTES).toBeLessThanOrEqual(
+      NARRATIVE_ARTIFACT_BYTES,
+    );
+    expect(NARRATIVE_ARTIFACT_BYTES).toBe(32768);
   });
 
   it('builds a v9 artifact with the delta and three bindings, inside the byte bound', () => {

@@ -33,6 +33,7 @@ import {
 import {
   ownedNarrativeReferences,
   ownedFictionReferences,
+  assertFictionCharacterFold,
   type LifeJob,
   type LifeJobRepository,
 } from '@future-flow/database';
@@ -130,6 +131,7 @@ export async function processFictionLifeJob(
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction owned history prefix differs.',
     );
+  await assertFictionCharacterFold(jobs.db, job.user_id, job.branch_id, input);
   if (cp.narrativeArtifact) {
     let ready: ReturnType<typeof validatedFictionCheckpoint> | undefined;
     try {

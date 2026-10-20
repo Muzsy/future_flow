@@ -150,12 +150,41 @@ export type EvaluationSample = {
   errorCode: string | null;
   choiceMappings: unknown[];
   mock: boolean;
+  // Living-world generation only: request and artifact bytes of the character
+  // state, so the phase 5 diagnostics can check the provisional bounds.
+  character?: {
+    projectionBytes: number;
+    deltaBytes: number;
+    omittedActors: number;
+  };
 };
+function characterBytes(
+  payload: unknown,
+  artifact: unknown,
+): NonNullable<EvaluationSample['character']> {
+  const projection = (
+    payload as {
+      narrativeContext?: {
+        characterProjection?: { omittedActors?: number };
+      };
+    }
+  ).narrativeContext?.characterProjection;
+  const delta = (artifact as { characterDelta?: unknown } | null)
+    ?.characterDelta;
+  const bytes = (value: unknown) =>
+    value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value), 'utf8');
+  return {
+    projectionBytes: bytes(projection),
+    deltaBytes: bytes(delta),
+    omittedActors: projection?.omittedActors ?? 0,
+  };
+}
 export type EvaluationRun = {
   version: string;
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
   noForks?: true;
+  fictionGeneration?: 'v9';
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -1032,6 +1061,9 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
     ...(options.noForks ? { noForks: true } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -1075,6 +1107,9 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
     ...(options.noForks ? { noForks: true as const } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -1195,6 +1230,9 @@ async function runEvaluationUnlocked(
                       ? 'narrative-fiction-v2'
                       : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
+                ...(options.fictionGeneration && options.creative
+                  ? { fictionGeneration: options.fictionGeneration }
+                  : {}),
               },
             );
           await repository.ensureUser(owner);
@@ -1463,6 +1501,14 @@ async function runEvaluationUnlocked(
                 .map((p) => p.chapter as { title: string; body: string }),
               canon: period.events,
               plan: artifact?.narrative_artifact ?? null,
+              ...(options.fictionGeneration
+                ? {
+                    character: characterBytes(
+                      completed.payload,
+                      artifact?.narrative_artifact ?? null,
+                    ),
+                  }
+                : {}),
               receipts,
               requestCount:
                 mode === 'narrative-v1'
