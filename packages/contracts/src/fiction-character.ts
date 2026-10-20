@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fictionalActorMemorySchema } from './narrative';
 
 // Recurring-character state of the living-world generation (ADR-009). These
 // contracts are standalone: no fiction policy, artifact or request schema
@@ -12,6 +13,12 @@ export const FICTION_CHARACTER_DELTA_ACTORS = 6;
 // The delta must stay a small share of the 32 KiB artifact bound (plan 17, 56).
 export const FICTION_CHARACTER_DELTA_BYTES = 8 * 1024;
 export const FICTION_CHARACTER_PROJECTION_ACTORS = 8;
+// A removed actor keeps only a stripped tombstone and only the most recent
+// ones are kept, so exits cannot grow the state without bound. With at most 30
+// live actors and 100 supplied people the state cap is not reachable by a
+// valid history; reaching it is a typed, fail-closed error (appendix D.8).
+export const FICTION_CHARACTER_TOMBSTONES = 100;
+export const FICTION_CHARACTER_STATE_ACTORS = 300;
 
 const id = z.uuid();
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
@@ -177,6 +184,11 @@ export const fictionCharacterProjectionActorSchema = z
     relationship: fictionRelationshipStateSchema
       .omit({ actorId: true })
       .nullable(),
+    // Only a person carried over from an older generation who has no profile:
+    // the recorded legacy fields, nothing mined from old prose (ADR-009, 4).
+    legacy: fictionalActorMemorySchema
+      .pick({ role: true, desire: true, resistance: true, voiceCue: true })
+      .optional(),
   })
   .strict();
 export type FictionCharacterProjectionActor = z.infer<

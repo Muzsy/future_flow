@@ -1,5 +1,7 @@
 import {
   FICTION_CHARACTER_PROJECTION_ACTORS,
+  FICTION_CHARACTER_STATE_ACTORS,
+  FICTION_CHARACTER_TOMBSTONES,
   FICTION_CHARACTER_VERSION,
   fictionCharacterDeltaSchema,
   fictionCharacterProjectionSchema,
@@ -188,7 +190,7 @@ export function applyFictionCharacterDelta(
     if (kindOf(dynamic.actorId) !== 'fictional')
       privacy('A supplied person has no invented dynamic state.');
     const entry = live(dynamic.actorId);
-    if (!entry.profile)
+    if (!entry.profile && !entry.legacy)
       invalid('Dynamic state needs an established profile first.');
     if (dynamic.provenance === 'user_supplied')
       privacy('Authored character state is never user supplied.');
@@ -204,7 +206,8 @@ export function applyFictionCharacterDelta(
     if (relationship.provenance === 'user_supplied')
       privacy('Authored character state is never user supplied.');
     if (kind === 'fictional') {
-      if (!live(relationship.actorId).profile)
+      const base = live(relationship.actorId);
+      if (!base.profile && !base.legacy)
         invalid('Relationship state needs an established profile first.');
     } else if (!byId.has(relationship.actorId)) {
       // Supplied people carry only a relationship entry, created on demand.
@@ -230,8 +233,31 @@ export function applyFictionCharacterDelta(
     entry.touchedAtIndex = index;
   }
 
+  // An archived actor keeps a stripped tombstone (it still blocks adding or
+  // updating the same actor again) and only the most recent ones are kept.
+  for (const entry of byId.values())
+    if (entry.removedAtPeriodId) {
+      entry.legacy = null;
+      entry.profile = null;
+      entry.dynamic = null;
+      entry.relationship = null;
+    }
+  const tombstones = [...byId.values()]
+    .filter((e) => e.removedAtPeriodId)
+    .sort(
+      (a, b) =>
+        (b.touchedAtIndex ?? -1) - (a.touchedAtIndex ?? -1) || byActor(a, b),
+    );
+  for (const old of tombstones.slice(FICTION_CHARACTER_TOMBSTONES))
+    byId.delete(old.actorId);
+
   next.ownedPeriods = index + 1;
   next.actors = [...byId.values()].sort(byActor);
+  if (next.actors.length > FICTION_CHARACTER_STATE_ACTORS)
+    throw new DomainError(
+      'FICTION_CHARACTER_STATE_TOO_LARGE',
+      'The character state exceeds its actor bound.',
+    );
   return next;
 }
 
@@ -289,7 +315,13 @@ export function fictionCharacterProjection(
   };
   const ranked = state.actors.flatMap((entry) => {
     if (entry.removedAtPeriodId) return [];
-    if (!entry.profile && !entry.dynamic && !entry.relationship) return [];
+    if (
+      !entry.profile &&
+      !entry.dynamic &&
+      !entry.relationship &&
+      !entry.legacy
+    )
+      return [];
     const reasons = rankOrder.filter((reason) => {
       if (reason === 'unresolved_matter')
         return Boolean(
@@ -341,6 +373,18 @@ export function fictionCharacterProjection(
     relationship: entry.relationship
       ? without(entry.relationship, 'actorId')
       : null,
+    // A person from an older generation without a profile is shown through
+    // the fields recorded for them then, and nothing else.
+    ...(entry.legacy && !entry.profile
+      ? {
+          legacy: {
+            role: entry.legacy.role,
+            desire: entry.legacy.desire,
+            resistance: entry.legacy.resistance,
+            voiceCue: entry.legacy.voiceCue,
+          },
+        }
+      : {}),
   });
   const fits = (actors: FictionCharacterProjectionActor[]) =>
     actors.length <= FICTION_CHARACTER_PROJECTION_ACTORS &&
@@ -354,6 +398,10 @@ export function fictionCharacterProjection(
   let omitted = 0;
   let stopped = false;
   for (const item of ranked) {
+    // NOT REACHABLE FROM THE SERVER PATH: the candidate does not exist before
+    // the planner runs and the request is hash-bound, so the server never sets
+    // `inCandidate` and this stays a no-op there (appendix D.8, review F6).
+    // Kept for callers that already hold a candidate (tests, offline tools).
     const mandatory = item.reasons[0] === 'in_candidate';
     const attempt = [...chosen, view(item)];
     if (!stopped && fits(attempt)) {

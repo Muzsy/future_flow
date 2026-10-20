@@ -3,6 +3,8 @@ import {
   FICTION_CHARACTER_DELTA_ACTORS,
   FICTION_CHARACTER_DELTA_BYTES,
   FICTION_CHARACTER_PROJECTION_BYTES,
+  FICTION_CHARACTER_STATE_ACTORS,
+  FICTION_CHARACTER_TOMBSTONES,
   FICTION_CHARACTER_VERSION,
   NARRATIVE_ARTIFACT_BYTES,
   fictionCharacterDeltaSchema,
@@ -319,7 +321,10 @@ describe('character fold', () => {
     ];
     const state = characterStateFromHistory(history, actors);
     expect(state.actors[0]!.removedAtPeriodId).toBe(P2);
-    expect(state.actors[0]!.profile).not.toBeNull();
+    // The tombstone keeps no character content.
+    expect(state.actors[0]!.profile).toBeNull();
+    expect(state.actors[0]!.dynamic).toBeNull();
+    expect(state.actors[0]!.relationship).toBeNull();
     reject(
       () =>
         applyFictionCharacterDelta(
@@ -410,6 +415,128 @@ describe('character fold', () => {
         ),
       'FICTION_CHARACTER_INVALID',
     );
+  });
+
+  it('shows a carried-over person through the recorded legacy fields and accepts state for them', () => {
+    const legacyActor = {
+      actorId: NESSA,
+      introducedByEventId: origin(NESSA),
+      role: 'Friend who works at the cafe',
+      desire: 'Wants an easy evening after work.',
+      resistance: 'Dislikes being pulled into plans.',
+      voiceCue: 'Dry, brief, deflects with a joke.',
+      lastSeenPeriodId: P1,
+    };
+    const seeded = fictionCharacterSeedFromLegacy([legacyActor]);
+    // Without a relevance signal the person is not shown; with one they are,
+    // from the legacy fields alone and without a profile.
+    expect(fictionCharacterProjection(seeded, {}).actors).toEqual([]);
+    const shown = fictionCharacterProjection(seeded, {
+      openThreadActors: [NESSA],
+    }).actors[0]!;
+    expect(shown).toMatchObject({
+      actorId: NESSA,
+      profile: null,
+      dynamic: null,
+      legacy: {
+        role: legacyActor.role,
+        desire: legacyActor.desire,
+        resistance: legacyActor.resistance,
+        voiceCue: legacyActor.voiceCue,
+      },
+    });
+    expect(JSON.stringify(shown)).not.toContain('introducedByEventId');
+    // State can now be recorded for them without inventing a profile.
+    const next = applyFictionCharacterDelta(
+      seeded,
+      P1,
+      delta({
+        dynamicUpdates: [dynamic(NESSA, P1)],
+        relationshipUpdates: [relationship(NESSA)],
+      }),
+      actors,
+    );
+    expect(next.actors[0]).toMatchObject({ profile: null });
+    expect(next.actors[0]!.dynamic).not.toBeNull();
+    const view = fictionCharacterProjection(next, {}).actors[0]!;
+    expect(view.legacy?.role).toBe(legacyActor.role);
+    expect(view.dynamic).not.toBeNull();
+    // A person who gets a real profile no longer carries the legacy view.
+    const profiled = applyFictionCharacterDelta(
+      seeded,
+      P1,
+      delta({ addedProfiles: [profile(NESSA, P1)] }),
+      actors,
+    );
+    expect(
+      fictionCharacterProjection(profiled, { openThreadActors: [NESSA] })
+        .actors[0]!.legacy,
+    ).toBeUndefined();
+  });
+
+  it('keeps exits bounded: stripped, capped tombstones and a typed state cap', () => {
+    const many = Array.from({ length: 120 }, (_, i) => id(2000 + i));
+    const manyActors: FictionCharacterActors = {
+      fictionalOrigins: new Map(many.map((a) => [a, origin(a)])),
+      suppliedActorIds: new Set(),
+    };
+    const period = (n: number) => id(5000 + n);
+    const history: { periodId: string; delta: unknown }[] = [];
+    for (let i = 0; i < many.length; i += 6)
+      history.push({
+        periodId: period(history.length),
+        delta: delta({
+          addedProfiles: many
+            .slice(i, i + 6)
+            .map((a) => profile(a, period(history.length))),
+          dynamicUpdates: many
+            .slice(i, i + 6)
+            .map((a) => dynamic(a, period(history.length))),
+        }),
+      });
+    for (let i = 0; i < many.length; i += 6)
+      history.push({
+        periodId: period(history.length),
+        delta: delta({ removedActorIds: many.slice(i, i + 6) }),
+      });
+    const state = characterStateFromHistory(history, manyActors);
+    // Nobody exited stays live, and exits are stripped and capped.
+    expect(state.actors.filter((a) => !a.removedAtPeriodId)).toEqual([]);
+    expect(state.actors.length).toBe(FICTION_CHARACTER_TOMBSTONES);
+    for (const entry of state.actors)
+      expect(entry).toMatchObject({
+        legacy: null,
+        profile: null,
+        dynamic: null,
+        relationship: null,
+      });
+    // Past the cap is a typed error, never a raw schema error.
+    const live = Array.from({ length: 306 }, (_, i) => id(8000 + i));
+    const liveActors: FictionCharacterActors = {
+      fictionalOrigins: new Map(live.map((a) => [a, origin(a)])),
+      suppliedActorIds: new Set(),
+    };
+    const grow = live.reduce<{ periodId: string; delta: unknown }[]>(
+      (acc, _a, i) => {
+        if (i % 6) return acc;
+        const periodId = period(acc.length);
+        acc.push({
+          periodId,
+          delta: delta({
+            addedProfiles: live
+              .slice(i, i + 6)
+              .map((a) => profile(a, periodId)),
+          }),
+        });
+        return acc;
+      },
+      [],
+    );
+    reject(
+      () => characterStateFromHistory(grow, liveActors),
+      'FICTION_CHARACTER_STATE_TOO_LARGE',
+    );
+    expect(FICTION_CHARACTER_STATE_ACTORS).toBe(300);
   });
 
   it('archives an actor who joins and leaves in one period, never leaving it live', () => {
@@ -698,10 +825,13 @@ describe('character fold', () => {
       relationship: null,
     });
     expect(seed.actors[0]!.legacy?.role).toBe(legacy.role);
-    // A legacy-only actor has no new state, so it is not projected.
+    // A legacy-only actor is projected through its recorded fields once a
+    // relevance signal names it, and only then.
+    expect(fictionCharacterProjection(seed, {}).actors).toEqual([]);
     expect(
-      fictionCharacterProjection(seed, { inCandidate: [NESSA] }).actors,
-    ).toEqual([]);
+      fictionCharacterProjection(seed, { inCandidate: [NESSA] }).actors[0]!
+        .legacy?.role,
+    ).toBe(legacy.role);
     // The first profile may still be added later; the seed alone does not block it.
     const next = applyFictionCharacterDelta(
       seed,
