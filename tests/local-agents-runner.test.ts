@@ -553,7 +553,9 @@ process.stdout.write(JSON.stringify(${JSON.stringify(answer)}));`,
 });
 
 describe('local runners end to end', () => {
-  const base = (out: string) => [
+  const base = (out: string, label = 'plumbing') => [
+    '--run-label',
+    label,
     '--creative-only',
     '--fixtures',
     'career-transition',
@@ -643,6 +645,47 @@ describe('local runners end to end', () => {
     expect(marker.routing.fallbacks[0].reason).toContain('weekly');
   }, 90000);
 
+  it('keeps every step on Codex in a quality run and requires a valid label', async () => {
+    const out = fresh();
+    const seen: Record<'agy' | 'codex', string[]> = { agy: [], codex: [] };
+    const track =
+      (engine: 'agy' | 'codex'): OfflineMockResponder =>
+      (context) => {
+        seen[engine].push(context.task);
+        return context.defaultOutput();
+      };
+    await evaluateNarrativeWithAgy(
+      base(out, 'quality'),
+      {},
+      {
+        agy: {
+          responder: track('agy'),
+          quota: quotaSource('agy', () => [90, 60]),
+        },
+        codex: {
+          responder: track('codex'),
+          quota: quotaSource('codex', () => [90, 90]),
+        },
+      },
+    );
+    expect(seen.agy).toEqual([]);
+    expect(seen.codex).toEqual(
+      expect.arrayContaining(['life_fidelity', 'life_narrative_plan_review']),
+    );
+    const marker = JSON.parse(
+      readFileSync(join(out, 'agy-local.json'), 'utf8'),
+    );
+    expect(marker).toMatchObject({
+      runLabel: 'quality',
+      purpose: 'quality diagnostic',
+      agy: { used: false },
+    });
+    for (const argv of [base(fresh()).slice(2), base(fresh(), 'production')])
+      await expect(
+        evaluateNarrativeWithAgy(argv, {}, {}),
+      ).rejects.toMatchObject({ code: 'EVAL_CONFIG_INVALID' });
+  }, 90000);
+
   it('stops the run when Codex has no reserve instead of switching models', async () => {
     const out = fresh();
     await expect(
@@ -668,7 +711,7 @@ describe('local runners end to end', () => {
     const out = fresh();
     await expect(
       evaluateNarrativeWithCodex(
-        base(out),
+        base(out).slice(2),
         {},
         fixture,
         quotaSource('codex', () => [90, 10]),
@@ -737,7 +780,7 @@ describe('local runners end to end', () => {
   it('logs the quota of a Codex run in its marker', async () => {
     const out = fresh();
     const result = await evaluateNarrativeWithCodex(
-      base(out),
+      base(out).slice(2),
       {},
       fixture,
       quotaSource('codex', () => [90, 90]),

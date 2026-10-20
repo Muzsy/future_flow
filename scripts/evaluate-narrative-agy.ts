@@ -30,15 +30,20 @@ import {
   type QuotaSource,
 } from './lib/narrative-evaluation-quota';
 
-// Usage: pnpm narrative:agy --creative-only --fixtures career-transition
+// Usage: pnpm narrative:agy --run-label plumbing --creative-only --fixtures career-transition
 //   --periods 3 --no-forks --out .local/narrative-evaluation/<name>
-// Plumbing run: steps where the model type does not matter
-// (AGY_MODEL_INDEPENDENT_TASKS) go to Antigravity, Gemini 3.8 Flash; every
-// other step goes to the Codex runner (gpt-6.1-sol). Always offline: no API
+// The run label is required. In a `plumbing` or `smoke` run the steps where
+// the model type does not matter (AGY_MODEL_INDEPENDENT_TASKS) go to
+// Antigravity, Gemini 3.8 Flash; every other step goes to the Codex runner
+// (gpt-6.1-sol). In a `quality` run (quality diagnostics) every step stays on
+// Codex, because the strictness of the review steps depends on the model. Always offline: no API
 // key, ledger or budget authority is involved. When the Gemini weekly quota
 // reserve is gone those steps move to Codex, but only if Codex still has its
 // reserve; if it has not, the run stops (exit code 3). Every routing decision
 // and fallback is recorded in agy-local.json, nothing switches silently.
+export const AGY_RUN_LABELS = ['plumbing', 'smoke', 'quality'] as const;
+export type AgyRunLabel = (typeof AGY_RUN_LABELS)[number];
+
 export type AgyRunDeps = {
   agy?: { responder: OfflineMockResponder; quota: QuotaSource };
   codex?: { responder: OfflineMockResponder; quota: QuotaSource };
@@ -58,7 +63,22 @@ export async function evaluateNarrativeWithAgy(
       'EVAL_CONFIG_INVALID',
       'The local agy transport is offline-only.',
     );
-  const options = parseEvaluationOptions(['--mode', 'offline', ...argv], {});
+  const labelIndex = argv.indexOf('--run-label');
+  const label = labelIndex >= 0 ? argv[labelIndex + 1] : undefined;
+  if (!AGY_RUN_LABELS.includes(label as AgyRunLabel))
+    throw new DomainError(
+      'EVAL_CONFIG_INVALID',
+      `--run-label must be one of ${AGY_RUN_LABELS.join(', ')}.`,
+    );
+  const useAgy = label !== 'quality';
+  const options = parseEvaluationOptions(
+    [
+      '--mode',
+      'offline',
+      ...argv.filter((_, i) => i !== labelIndex && i !== labelIndex + 1),
+    ],
+    {},
+  );
   if (!options.creative)
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -66,7 +86,7 @@ export async function evaluateNarrativeWithAgy(
     );
   const codexBin = env.ALTERWARD_CODEX_BIN ?? 'codex';
   const agyBin = env.ALTERWARD_AGY_BIN ?? 'agy';
-  const home = deps.agy ? null : createAgyHome();
+  const home = deps.agy || !useAgy ? null : createAgyHome();
   const stats: AgyStats = {
     calls: 0,
     inputTokens: 0,
@@ -75,7 +95,8 @@ export async function evaluateNarrativeWithAgy(
   };
   try {
     const codexQuota = deps.codex?.quota ?? codexQuotaSource(codexBin);
-    const agyQuota = deps.agy?.quota ?? agyQuotaSource(agyBin, home!.home);
+    const agyQuota =
+      deps.agy?.quota ?? agyQuotaSource(agyBin, home?.home ?? '');
     const codexGuard = new LocalQuotaGuard(codexQuota, { sticky: true });
     const agyGuard = new LocalQuotaGuard(agyQuota, { sticky: false });
     const codexResponder = quotaGuarded(
@@ -85,7 +106,7 @@ export async function evaluateNarrativeWithAgy(
     );
     const agyResponder =
       deps.agy?.responder ??
-      agyLocalResponder({ bin: agyBin, home: home!.home }, stats);
+      agyLocalResponder({ bin: agyBin, home: home?.home ?? '' }, stats);
     const routing = {
       agy: 0,
       codex: 0,
@@ -94,7 +115,7 @@ export async function evaluateNarrativeWithAgy(
     // Codex is needed for the model-dependent steps in any case.
     await codexGuard.preflight();
     const router: OfflineMockResponder = async (context) => {
-      if (AGY_MODEL_INDEPENDENT_TASKS.has(context.task)) {
+      if (useAgy && AGY_MODEL_INDEPENDENT_TASKS.has(context.task)) {
         const halt = await agyGuard
           .check(context.caseId)
           .catch(
@@ -139,10 +160,12 @@ export async function evaluateNarrativeWithAgy(
       JSON.stringify(
         {
           transport: 'agy-local+codex-local',
-          purpose: 'plumbing diagnostic',
+          runLabel: label,
+          purpose: useAgy ? 'plumbing diagnostic' : 'quality diagnostic',
           qualityEvidence: false,
           comparableWithPaid: false,
           agy: {
+            used: useAgy,
             model: AGY_MODEL,
             tasks: [...AGY_MODEL_INDEPENDENT_TASKS],
             isolatedHome: true,
