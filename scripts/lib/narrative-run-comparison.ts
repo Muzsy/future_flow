@@ -151,6 +151,18 @@ const kb = (n: number | null | undefined) =>
 
 export function comparisonMarkdown(result: ReturnType<typeof compareRuns>) {
   const lines = ['# Run comparison (generation facts, no model call)', ''];
+  // The short block first, so it survives being pasted into a message.
+  lines.push('## Summary', '');
+  for (const run of result) {
+    const over = run.rows.flatMap((r) =>
+      r.requestsOverGuard.map((task) => `${r.chapter}:${task}`),
+    );
+    const g = run.growth;
+    lines.push(
+      `- ${run.label}: ${run.rows.length} samples, ${run.totalRequests} calls, repair ${run.chaptersWithRepair}, ceiling(9) ${run.chaptersAtCeiling}; calls ${run.rows.map((r) => `${r.chapter}=${r.requestCount ?? '-'}`).join(' ')}; over guard [${over.join(', ')}]; plan ${g.plan ? `${kb(g.plan.first)}->${kb(g.plan.last)}` : '-'} KB, author ${g.author ? `${kb(g.author.first)}->${kb(g.author.last)}` : '-'} KB${run.failures.length ? `; failures ${run.failures.map((f) => `${f.caseId} ${f.code}`).join('; ')}` : ''}`,
+    );
+  }
+  lines.push('');
   for (const run of result) {
     lines.push(
       `## ${run.label}`,

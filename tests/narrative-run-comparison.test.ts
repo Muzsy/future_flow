@@ -110,6 +110,10 @@ describe('run comparison (generation facts)', () => {
       message: 'Rewrite the weak story.',
     });
     const md = comparisonMarkdown([v8!, v9!]);
+    // The short summary comes first.
+    expect(md.indexOf('## Summary')).toBeLessThan(md.indexOf('## v8'));
+    expect(md).toContain('ceiling(9) 2');
+    expect(md).toContain('over guard [ch1:author, fork:author]');
     expect(md).toContain('## v8');
     expect(md).toContain('| ch1 | 9 | yes | 408 |');
     expect(md).toContain('Failure fork:career:narrative-v1');
