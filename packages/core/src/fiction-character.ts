@@ -485,6 +485,12 @@ export function validateFictionCharacterDelta(args: {
       return fail(error.message);
     throw error;
   }
+  // A profile is added only for an actor this period's candidate introduces;
+  // otherwise a pruned tombstone could be revived (review N1). A carried-over
+  // person needs no profile and the prompt forbids one.
+  for (const profile of delta.addedProfiles)
+    if (!added.has(profile.actorId))
+      fail('A profile is added only for an actor introduced in this period.');
   const profiled = new Set(delta.addedProfiles.map((p) => p.actorId));
   for (const id of added.keys())
     if (!profiled.has(id))

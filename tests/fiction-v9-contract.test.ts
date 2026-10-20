@@ -548,6 +548,33 @@ describe('v9 draft intent and author delta validation', () => {
     });
   });
 
+  it('adds a profile only for an actor introduced in this period, so a pruned exit cannot be revived', () => {
+    const f = living(true);
+    // Nessa already exists with a profile: a second profile is rejected.
+    f.authored.characterDelta.addedProfiles = [
+      profile(NESSA, NESSA_ORIGIN, f.input.periodId),
+    ];
+    expect(() => validateFictionAuthor(f.input, f.authored)).toThrow(
+      /adds an actor twice|introduced in this period/,
+    );
+    // A former actor whose tombstone was pruned away is no longer in the
+    // state, but its origin is still recorded: no actor_add, no profile.
+    const g = living(true);
+    g.envelope.state.actors = [];
+    g.input.fictionCharacters = g.envelope;
+    g.authored.characterDelta.addedProfiles = [
+      profile(NESSA, NESSA_ORIGIN, g.input.periodId),
+    ];
+    expect(() =>
+      validateFictionCharacterDelta({
+        periodId: g.input.periodId,
+        envelope: g.envelope,
+        delta: g.authored.characterDelta,
+        events: g.authored.candidate.events,
+      }),
+    ).toThrow('introduced in this period');
+  });
+
   it('fails closed, not repairable, when the state is past its bound', () => {
     const f = living();
     const newActor = id(603);
