@@ -174,6 +174,8 @@ export type EvaluationSample = {
         outputChars: number;
         outputBytes: number;
         estimatedTokens: number;
+        // Raw request bytes of the call; the production guard adds 4096.
+        requestBytes: number | null;
       }[];
       proseChars: number;
       proseBytes: number;
@@ -245,6 +247,7 @@ export function characterBytes(
                 outputChars: t.outputChars ?? 0,
                 outputBytes: t.outputBytes,
                 estimatedTokens: estimate(t.outputBytes),
+                requestBytes: t.requestBytes ?? null,
               },
             ],
       ),
@@ -437,6 +440,7 @@ type TransportRecord = {
   latencyMs: number;
   outputChars?: number;
   outputBytes?: number;
+  requestBytes?: number;
 };
 function clientFor(
   options: EvaluationOptions,

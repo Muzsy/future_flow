@@ -88,6 +88,7 @@ describe('living-world generation in the evaluation runner', () => {
         for (const stage of sizes.stages) {
           expect(stage.outputBytes).toBeGreaterThanOrEqual(stage.outputChars);
           expect(stage.estimatedTokens).toBeGreaterThan(0);
+          expect(stage.requestBytes).toBeGreaterThan(1000);
         }
         expect(sizes.proseChars).toBeGreaterThan(0);
         expect(sizes.deltaBytes).toBe(sample.character!.deltaBytes);
@@ -165,6 +166,7 @@ describe('v9 character repair classification (review F4)', () => {
           latencyMs: 1,
           outputChars: 7,
           outputBytes: 70,
+          requestBytes: 12345,
         },
         { caseId: 'c', task: 'life_fidelity', latencyMs: 1 },
       ],
@@ -176,6 +178,7 @@ describe('v9 character repair classification (review F4)', () => {
         outputChars: 7,
         outputBytes: 70,
         estimatedTokens: 20,
+        requestBytes: 12345,
       },
     ]);
     expect(sized.outputSizes.proseChars).toBe(22);

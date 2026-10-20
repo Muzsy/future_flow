@@ -37,6 +37,35 @@ export type CharacterAuditChapter = {
     deltaBytes: number;
     omittedActors: number;
     omitted?: { actorId: string; reasons: string[] }[];
+    // Runner fields for the cost and repair diagnostics (all optional: older
+    // reports do not carry them).
+    authorOutputTokens?: number[];
+    authorReasoningTokens?: number[];
+    repairMessage?: string | null;
+    characterRepair?: boolean;
+    outputSizes?: {
+      stages: {
+        task: string;
+        outputChars: number;
+        outputBytes: number;
+        estimatedTokens: number;
+        requestBytes?: number | null;
+      }[];
+      proseChars: number;
+      proseBytes: number;
+      deltaChars: number;
+      deltaBytes: number;
+      estimatedProseTokens: number;
+      estimatedDeltaTokens: number;
+    };
+  } | null;
+  // Per-sample run facts, copied from the stored report for the generation
+  // diagnostics (calls, repair, elapsed time).
+  run?: {
+    requestCount: number | null;
+    repairUsed: boolean | null;
+    errorCode: string | null;
+    elapsedMs: number | null;
   } | null;
 };
 export type CharacterAuditSequence = {
@@ -419,6 +448,38 @@ export function auditCharacters(sequence: CharacterAuditSequence) {
       ),
       byReason: omittedByReason,
     },
+    // Generation-side facts the local transports can give: calls, repair and
+    // its cause, and output lengths (no token usage exists there, so the
+    // token numbers are estimates and the cost gate is not decidable from
+    // them).
+    generation: {
+      perChapter: chapters.map((c) => ({
+        periodIndex: c.periodIndex,
+        requestCount: c.run?.requestCount ?? null,
+        repairUsed: c.run?.repairUsed ?? null,
+        errorCode: c.run?.errorCode ?? null,
+        elapsedMs: c.run?.elapsedMs ?? null,
+        characterRepair: c.character?.characterRepair ?? null,
+        repairMessage: c.character?.repairMessage ?? null,
+        authorOutputTokens: c.character?.authorOutputTokens ?? null,
+        authorReasoningTokens: c.character?.authorReasoningTokens ?? null,
+        outputSizes: c.character?.outputSizes ?? null,
+      })),
+      chaptersWithRepair: chapters.filter((c) => c.run?.repairUsed === true)
+        .length,
+      totalRequests: chapters.reduce(
+        (n, c) => n + (c.run?.requestCount ?? 0),
+        0,
+      ),
+      estimatedProseTokens: chapters.reduce(
+        (n, c) => n + (c.character?.outputSizes?.estimatedProseTokens ?? 0),
+        0,
+      ),
+      estimatedDeltaTokens: chapters.reduce(
+        (n, c) => n + (c.character?.outputSizes?.estimatedDeltaTokens ?? 0),
+        0,
+      ),
+    },
   };
 }
 
@@ -436,6 +497,9 @@ type StoredSample = {
   }[];
   plan?: { characterDelta?: CharacterAuditDelta } | null;
   character?: CharacterAuditChapter['character'];
+  requestCount?: number;
+  repairUsed?: boolean;
+  elapsedMs?: number;
 };
 export type CharacterAuditRun = { label: string; samples: StoredSample[] };
 
@@ -481,6 +545,12 @@ export function characterAuditSequences(
             body: s.chapter!.body,
             delta: s.plan?.characterDelta ?? null,
             character: s.character ?? null,
+            run: {
+              requestCount: s.requestCount ?? null,
+              repairUsed: s.repairUsed ?? null,
+              errorCode: s.errorCode ?? null,
+              elapsedMs: s.elapsedMs ?? null,
+            },
           })),
         });
       }
@@ -517,6 +587,9 @@ export function characterAuditMarkdown(
           .map(([r, n]) => `${r} ×${n}`)
           .join(', ') || 'none'
       })`,
+    );
+    lines.push(
+      `- Generation: ${s.generation.totalRequests} requests, repair in ${s.generation.chaptersWithRepair}/${s.chapters} chapters; estimated output tokens prose ${s.generation.estimatedProseTokens}, delta ${s.generation.estimatedDeltaTokens} (estimates, not usage)`,
     );
     for (const a of s.actors)
       lines.push(

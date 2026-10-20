@@ -142,6 +142,61 @@ describe('character audit over stored reports', () => {
       'Narrative character audit',
     );
   });
+  it('carries the runner generation facts, repair cause and output lengths into the audit', () => {
+    const sized = {
+      label: 'run',
+      samples: [0, 1].map((periodIndex) => ({
+        fixtureId: 'creative-portfolio',
+        kind: 'full',
+        periodIndex,
+        chapter: { body: 'Mara met Nessa.' },
+        requestCount: periodIndex === 0 ? 5 : 8,
+        repairUsed: periodIndex === 1,
+        elapsedMs: 1000 * (periodIndex + 1),
+        errorCode: null,
+        character: {
+          projectionBytes: 10,
+          deltaBytes: 5,
+          omittedActors: 0,
+          authorOutputTokens: periodIndex === 0 ? [5800] : [5800, 6100],
+          authorReasoningTokens: [0],
+          repairMessage: periodIndex === 1 ? 'The plan repeats.' : null,
+          characterRepair: false,
+          outputSizes: {
+            stages: [
+              {
+                task: 'life_narrative_chapter',
+                outputChars: 20000,
+                outputBytes: 20100,
+                estimatedTokens: 5743,
+              },
+            ],
+            proseChars: 4100,
+            proseBytes: 4200,
+            deltaChars: 1700,
+            deltaBytes: 1700,
+            estimatedProseTokens: 1200,
+            estimatedDeltaTokens: 486,
+          },
+        },
+      })),
+    };
+    const g = narrativeCharacterAudit([sized]).sequences[0]!.generation;
+    expect(g.totalRequests).toBe(13);
+    expect(g.chaptersWithRepair).toBe(1);
+    expect(g.estimatedProseTokens).toBe(2400);
+    expect(g.estimatedDeltaTokens).toBe(972);
+    expect(g.perChapter[1]).toMatchObject({
+      requestCount: 8,
+      repairUsed: true,
+      repairMessage: 'The plan repeats.',
+      authorOutputTokens: [5800, 6100],
+    });
+    expect(g.perChapter[0]!.outputSizes?.stages[0]!.estimatedTokens).toBe(5743);
+    expect(characterAuditMarkdown(narrativeCharacterAudit([sized]))).toContain(
+      'Generation: 13 requests, repair in 1/2 chapters',
+    );
+  });
   it('is provider-free and leaves the v8 report shape alone', () => {
     const v8 = narrativeCharacterAudit([
       {
@@ -158,5 +213,6 @@ describe('character audit over stored reports', () => {
     ]);
     expect(v8.sequences[0]!.omissions.totalOmitted).toBe(0);
     expect(v8.sequences[0]!.omissions.perChapter[0]!.omittedActors).toBeNull();
+    expect(v8.sequences[0]!.generation.perChapter[0]!.outputSizes).toBeNull();
   });
 });
