@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import {
+  attemptEvidence,
   characterBytes,
   runNarrativeEvaluation,
 } from '../scripts/lib/narrative-evaluation-runner';
@@ -94,6 +95,13 @@ describe('living-world generation in the evaluation runner', () => {
         expect(sizes.deltaBytes).toBe(sample.character!.deltaBytes);
         expect(sizes.estimatedDeltaTokens).toBeGreaterThan(0);
         expect(Array.isArray(sample.character?.omitted)).toBe(true);
+        // The stored draft gives the continuity diagnostics (no decision is
+        // required of the mock cast, and a missing one is never a failure).
+        expect(sample.character?.continuity?.decisions).toEqual({
+          carry: 0,
+          defer: 0,
+          resolve: 0,
+        });
         expect(
           sample.receipts.some((r) =>
             r.promptVersion.startsWith('life_fiction_author.v9'),
@@ -186,5 +194,87 @@ describe('v9 character repair classification (review F4)', () => {
     expect(sized.outputSizes.deltaChars).toBeLessThan(
       sized.outputSizes.deltaBytes,
     );
+  });
+});
+
+describe('v9 planner continuity diagnostics', () => {
+  const actor = (actorId: string, reasons: string[], kind = 'fictional') => ({
+    actorId,
+    kind,
+    reasons,
+  });
+  const payload = {
+    narrativeContext: {
+      characterProjection: {
+        omittedActors: 0,
+        actors: [
+          actor('una', ['unresolved_matter']),
+          actor('fiona', ['open_thread', 'recent_change']),
+          actor('joanne', ['recent_change']),
+          actor('mother', ['open_thread'], 'supplied'),
+        ],
+      },
+    },
+  };
+  it('counts the open matters the draft decided, deferred or left silent, without failing anything', () => {
+    const c = characterBytes(payload, null, [], {
+      fictionDraft: {
+        characterIntent: [{ actorId: 'fiona' }],
+        continuityDecisions: [
+          { actorId: 'fiona', decision: 'carry' },
+          { actorId: 'una', decision: 'resolve' },
+        ],
+      },
+    }).continuity;
+    // Joanne has no open matter; the supplied mother has an open thread.
+    expect(c?.required).toEqual(['una', 'fiona', 'mother']);
+    expect(c?.missing).toEqual(['mother']);
+    // Una is resolved but has no intent; Fiona is carried with one.
+    expect(c?.intentMissing).toEqual(['una']);
+    expect(c?.decisions).toEqual({ carry: 1, defer: 0, resolve: 1 });
+  });
+  it('reports every open matter as missing when the planner ignores the ask', () => {
+    const c = characterBytes(payload, null, [], {
+      fictionDraft: { characterIntent: [], continuityDecisions: [] },
+    }).continuity;
+    expect(c?.missing).toEqual(c?.required);
+    expect(c?.required).toHaveLength(3);
+  });
+  it('reads the draft and the repair wording from the attempt trace of a completed sample', () => {
+    const attempt = (task: string, extra: object) => ({
+      task,
+      status: 'completed',
+      output: null,
+      repairFeedback: null,
+      ...extra,
+    });
+    const evidence = attemptEvidence({
+      attempts: [
+        attempt('life_narrative_plan', {
+          output: { continuityDecisions: [] },
+        }),
+        attempt('life_narrative_plan', {
+          output: {
+            characterIntent: [{ actorId: 'una' }],
+            continuityDecisions: [{ actorId: 'una', decision: 'carry' }],
+          },
+          repairFeedback: { message: 'The plan repeats.' },
+        }),
+        attempt('life_narrative_chapter', { output: { body: 'x' } }),
+      ],
+    } as never);
+    // The last completed plan is the one the package was authored from.
+    const c = characterBytes(payload, null, [], {}, [], '', evidence);
+    expect(c.continuity?.decisions.carry).toBe(1);
+    expect(c.continuity?.missing).toEqual(['fiona', 'mother']);
+    expect(c.repairMessage).toBe('The plan repeats.');
+    expect(attemptEvidence(null)).toBeNull();
+  });
+  it('has no continuity when there is no draft or no projection', () => {
+    expect(characterBytes(payload, null, [], {}).continuity).toBeNull();
+    expect(
+      characterBytes({}, null, [], { fictionDraft: { characterIntent: [] } })
+        .continuity,
+    ).toBeNull();
   });
 });

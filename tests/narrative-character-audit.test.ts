@@ -197,6 +197,67 @@ describe('character audit over stored reports', () => {
       'Generation: 13 requests, repair in 1/2 chapters',
     );
   });
+  it('raises continuityDecisionMissing and counts embodiment per chapter', () => {
+    const sample = (
+      periodIndex: number,
+      body: string,
+      continuity: unknown,
+    ) => ({
+      fixtureId: 'creative-portfolio',
+      kind: 'full',
+      periodIndex,
+      chapter: { body },
+      character: {
+        projectionBytes: 10,
+        deltaBytes: 5,
+        omittedActors: 0,
+        continuity,
+      },
+    });
+    const decided = {
+      required: ['una'],
+      missing: [],
+      intentMissing: [],
+      decisions: { carry: 1, defer: 0, resolve: 0 },
+    };
+    const silent = {
+      required: ['una', 'fiona'],
+      missing: ['una', 'fiona'],
+      intentMissing: [],
+      decisions: { carry: 0, defer: 0, resolve: 0 },
+    };
+    const ok = narrativeCharacterAudit([
+      {
+        label: 'run',
+        samples: [sample(0, 'Mara waited.', decided)],
+      },
+    ]).sequences[0]!;
+    expect(ok.continuity.continuityDecisionMissing).toBe(false);
+    expect(ok.continuity.totalMissing).toBe(0);
+    const audit = narrativeCharacterAudit([
+      {
+        label: 'run',
+        samples: [
+          sample(0, 'Mara waited.', decided),
+          sample(1, 'The rain was cold and she was hungry and tired.', silent),
+        ],
+      },
+    ]);
+    const s = audit.sequences[0]!;
+    expect(s.continuity.continuityDecisionMissing).toBe(true);
+    expect(s.continuity.totalRequired).toBe(3);
+    expect(s.continuity.totalMissing).toBe(2);
+    expect(s.continuity.perChapter[1]).toMatchObject({
+      required: 2,
+      missing: ['una', 'fiona'],
+    });
+    expect(s.sequence.embodimentPerChapter).toHaveLength(2);
+    expect(s.sequence.embodimentPerChapter[0]!.markers).toBe(0);
+    expect(s.sequence.embodimentPerChapter[1]!.markers).toBeGreaterThan(0);
+    expect(characterAuditMarkdown(audit)).toContain(
+      'SIGNAL continuityDecisionMissing',
+    );
+  });
   it('is provider-free and leaves the v8 report shape alone', () => {
     const v8 = narrativeCharacterAudit([
       {
@@ -214,5 +275,8 @@ describe('character audit over stored reports', () => {
     expect(v8.sequences[0]!.omissions.totalOmitted).toBe(0);
     expect(v8.sequences[0]!.omissions.perChapter[0]!.omittedActors).toBeNull();
     expect(v8.sequences[0]!.generation.perChapter[0]!.outputSizes).toBeNull();
+    // No decisions recorded means no signal: v8 and older reports stay quiet.
+    expect(v8.sequences[0]!.continuity.continuityDecisionMissing).toBe(false);
+    expect(v8.sequences[0]!.continuity.perChapter[0]!.required).toBeNull();
   });
 });

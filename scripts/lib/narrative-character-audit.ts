@@ -43,6 +43,14 @@ export type CharacterAuditChapter = {
     authorReasoningTokens?: number[];
     repairMessage?: string | null;
     characterRepair?: boolean;
+    // Planner continuity decisions against the open matters of the people
+    // shown to the planner (diagnostics, never a gate).
+    continuity?: {
+      required: string[];
+      missing: string[];
+      intentMissing: string[];
+      decisions: { carry: number; defer: number; resolve: number };
+    } | null;
     outputSizes?: {
       stages: {
         task: string;
@@ -426,8 +434,40 @@ export function auditCharacters(sequence: CharacterAuditSequence) {
           Math.max(1, allWords)) *
           1000,
       ),
+      // Per chapter, so a thin or forced chapter is visible (the line in the
+      // author prompt asks for it where a scene calls for it, not everywhere).
+      embodimentPerChapter: wordsByChapter.map((w, i) => ({
+        periodIndex: chapters[i]!.periodIndex,
+        markers: count(w, bodyAndSense),
+        per1000Words: round(
+          (count(w, bodyAndSense) / Math.max(1, w.length)) * 1000,
+        ),
+      })),
       melodramaChapters,
       melodramaRisk: melodramaChapters > 0,
+    },
+    // Planner continuity: a person with an open matter or thread should get a
+    // carry, defer or resolve decision. Missing coverage is a signal only; it
+    // is not a hard failure of the generation.
+    continuity: {
+      perChapter: chapters.map((c) => ({
+        periodIndex: c.periodIndex,
+        required: c.character?.continuity?.required.length ?? null,
+        missing: c.character?.continuity?.missing ?? null,
+        intentMissing: c.character?.continuity?.intentMissing ?? null,
+        decisions: c.character?.continuity?.decisions ?? null,
+      })),
+      totalRequired: chapters.reduce(
+        (n, c) => n + (c.character?.continuity?.required.length ?? 0),
+        0,
+      ),
+      totalMissing: chapters.reduce(
+        (n, c) => n + (c.character?.continuity?.missing.length ?? 0),
+        0,
+      ),
+      continuityDecisionMissing: chapters.some(
+        (c) => (c.character?.continuity?.missing.length ?? 0) > 0,
+      ),
     },
     // Request-side visibility: how many relevant people the 8 KiB projection
     // could not show, and why they were relevant.
@@ -587,6 +627,9 @@ export function characterAuditMarkdown(
           .map(([r, n]) => `${r} ×${n}`)
           .join(', ') || 'none'
       })`,
+    );
+    lines.push(
+      `- Continuity decisions: ${s.continuity.totalMissing} missing of ${s.continuity.totalRequired} required${s.continuity.continuityDecisionMissing ? ' [SIGNAL continuityDecisionMissing]' : ''}; embodiment markers per chapter: ${s.sequence.embodimentPerChapter.map((e) => e.markers).join(', ')}`,
     );
     lines.push(
       `- Generation: ${s.generation.totalRequests} requests, repair in ${s.generation.chaptersWithRepair}/${s.chapters} chapters; estimated output tokens prose ${s.generation.estimatedProseTokens}, delta ${s.generation.estimatedDeltaTokens} (estimates, not usage)`,

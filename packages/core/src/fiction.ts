@@ -28,6 +28,7 @@ import {
   type FictionPolicy,
   type FictionCharacterDelta,
   type FictionCharacterIntent,
+  type FictionContinuityDecision,
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
@@ -299,15 +300,37 @@ function checkStageContext(context: FictionContext) {
 export function fictionReviewRequest(
   input: NarrativePeriodInput,
   authored: FictionAuthorResult,
+  draft?: unknown,
 ) {
   const { repair: _repair, ...base } = fictionPlannerRequest(input);
   const { chapter: _chapter, ...proposed } = requestAuthorSchema(
     fictionScope(input).context.policy,
   ).parse(authored);
+  // Only the living-world review sees what the planner decided for the
+  // recurring people, so it can ask whether the final package acted on it.
+  const continuity = fictionScope(input).characters
+    ? (() => {
+        const d = draft as
+          | {
+              characterIntent?: FictionCharacterIntent[];
+              continuityDecisions?: FictionContinuityDecision[];
+            }
+          | undefined;
+        return d?.continuityDecisions?.length
+          ? {
+              continuity: {
+                continuityDecisions: d.continuityDecisions,
+                characterIntent: d.characterIntent ?? [],
+              },
+            }
+          : {};
+      })()
+    : {};
   return {
     ...base,
     narrativeContext: checkStageContext(fictionScope(input).context),
     proposed,
+    ...continuity,
   };
 }
 export function fictionFidelityRequest(
@@ -457,6 +480,7 @@ export function fictionCanon(
           : narrativePlanningResultSchema
     ).parse(raw) as NarrativePlanningResult & {
       characterIntent?: FictionCharacterIntent[];
+      continuityDecisions?: FictionContinuityDecision[];
     };
   const c = result.candidate;
   if (
@@ -476,7 +500,11 @@ export function fictionCanon(
   });
   // The shared plan validator reads the narrative result; the intent is
   // checked here against the character projection instead.
-  const { characterIntent: _intent, ...planResult } = result;
+  const {
+    characterIntent: _intent,
+    continuityDecisions: _continuity,
+    ...planResult
+  } = result;
   validateNarrativePlan(
     planResult,
     canon,
@@ -499,6 +527,15 @@ export function fictionCanon(
     if (result.characterIntent?.some((i) => !known.has(i.actorId)))
       fail(
         'A character intent names a person who is not a fictional recurring actor of this request.',
+      );
+    // A decision is about a person the projection shows; a missing decision is
+    // diagnostics only (fictionContinuityCoverage), never a failure.
+    const shown = new Set(
+      (scope.context.characterProjection?.actors ?? []).map((a) => a.actorId),
+    );
+    if (result.continuityDecisions?.some((d) => !shown.has(d.actorId)))
+      fail(
+        'A continuity decision names a person who is not in the character projection.',
       );
   }
   return { ...scope, result, canon };

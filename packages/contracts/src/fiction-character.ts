@@ -231,6 +231,22 @@ export type FictionCharacterIntent = z.infer<
   typeof fictionCharacterIntentSchema
 >;
 
+// Planner output: what happens to each person whose matter is still open
+// (an unresolved matter or an open thread). Silence is not a decision, but its
+// absence is diagnostics only, never a hard failure (phase 5 round 1: the
+// planner only ever gave an intent to the person it had just introduced).
+export const FICTION_CHARACTER_CONTINUITY = 8;
+export const fictionContinuityDecisionSchema = z
+  .object({
+    actorId: id,
+    decision: z.enum(['carry', 'defer', 'resolve']),
+    reason: text(5, 100),
+  })
+  .strict();
+export type FictionContinuityDecision = z.infer<
+  typeof fictionContinuityDecisionSchema
+>;
+
 // Folded state, server-side only (never model input); the request carries the
 // bounded projection of it. Persisted in the job payload next to the owned
 // reference inventories, and bound into the artifact by hash.

@@ -353,7 +353,7 @@ export async function processFictionLifeJob(
       review &&
       !matches(
         'life_narrative_plan_review',
-        fictionReviewRequest(input, authored),
+        fictionReviewRequest(input, authored, draft),
         review,
       )
     ) {
@@ -368,7 +368,7 @@ export async function processFictionLifeJob(
     try {
       if (!review) {
         await allowed();
-        const response = await ai.reviewFiction(input, authored);
+        const response = await ai.reviewFiction(input, authored, draft);
         review = response.output;
         await record('FICTION_FINAL_REVIEW_RESULT', response, {
           planningReview: review,

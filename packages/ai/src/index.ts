@@ -127,6 +127,7 @@ export interface FictionAiProvider {
   reviewFiction(
     input: NarrativePeriodInput,
     authored: FictionAuthorResult,
+    draft?: unknown,
   ): Promise<AiResult<NarrativePlanReview>>;
   checkFiction(
     input: NarrativePeriodInput,
@@ -658,7 +659,11 @@ export class OpenAiProvider
       `${context.policy.promptVersions.writer}.${locale}`,
     );
   }
-  reviewFiction(input: NarrativePeriodInput, authored: FictionAuthorResult) {
+  reviewFiction(
+    input: NarrativePeriodInput,
+    authored: FictionAuthorResult,
+    draft?: unknown,
+  ) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
@@ -666,7 +671,7 @@ export class OpenAiProvider
       'life_narrative_plan_review',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).review,
-      fictionReviewRequest(input, authored),
+      fictionReviewRequest(input, authored, draft),
       locale,
       `${context.policy.promptVersions.planReviewer}.${locale}`,
     );

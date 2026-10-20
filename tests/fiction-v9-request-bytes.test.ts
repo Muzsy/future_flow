@@ -161,7 +161,28 @@ function livingInput(
 
 // Real provider code path with a recording mock: the guard sees exactly this.
 async function measure(input: NarrativePeriodInput) {
-  const f = fictionFixture(input);
+  const base = fictionFixture(input);
+  // Worst case of the planner's continuity decisions: one maximal decision
+  // for every person the projection shows (v9 only; v8 drafts have none).
+  const shown =
+    (
+      input.narrativeContext as unknown as {
+        characterProjection?: { actors: { actorId: string }[] };
+      }
+    ).characterProjection?.actors ?? [];
+  const f = {
+    ...base,
+    draft: shown.length
+      ? {
+          ...base.draft,
+          continuityDecisions: shown.slice(0, 8).map((a) => ({
+            actorId: a.actorId,
+            decision: 'carry' as const,
+            reason: fill(100, 'reason'),
+          })),
+        }
+      : base.draft,
+  };
   const authored = f.authored as FictionAuthorResult;
   const requests: Record<string, unknown> = {};
   const parse = vi.fn(
@@ -203,7 +224,7 @@ async function measure(input: NarrativePeriodInput) {
   };
   await ai.planFiction(f.input);
   await ai.authorFiction(f.input, f.draft, undefined);
-  await ai.reviewFiction(f.input, authored);
+  await ai.reviewFiction(f.input, authored, f.draft);
   await ai.checkFiction(f.input, authored);
   await ai.editFiction(f.input, authored);
   await ai.authorFiction(f.input, f.draft, repair);
@@ -276,13 +297,18 @@ describe('v9 request bytes (plan section 55)', () => {
       expect(m.planner - v8.planner).toBeLessThan(
         3 * 1024 + m.projection + slack,
       );
+      // The worst-case continuity decisions (up to 8, 100-character reasons,
+      // about 1.2 KiB) ride in the draft the author gets and in the one
+      // `continuity` block of the review; fidelity and editor never see them.
+      const decisions = 1536;
       expect(m.author - v8.author).toBeLessThan(
-        8 * 1024 + m.projection + slack,
+        8 * 1024 + m.projection + decisions + slack,
       );
       expect(m.authorRepair - v8.authorRepair).toBeLessThan(
-        8 * 1024 + m.projection + slack,
+        8 * 1024 + m.projection + decisions + slack,
       );
-      for (const stage of ['review', 'fidelity', 'editor'] as const)
+      expect(m.review - v8.review).toBeLessThan(1024 + decisions);
+      for (const stage of ['fidelity', 'editor'] as const)
         expect(m[stage] - v8[stage]).toBeLessThan(1024);
       // A package without repair is five calls; the whole increase stays small
       // against the five v8 requests of the same cast (about +9% measured).

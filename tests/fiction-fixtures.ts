@@ -101,7 +101,11 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     sourceContext?.policy.qualityPolicyVersion ?? '',
   );
   const draft = living
-    ? { ...f.result, characterIntent: [] as never[] }
+    ? {
+        ...f.result,
+        characterIntent: [] as never[],
+        continuityDecisions: [] as never[],
+      }
     : f.result;
   if (living)
     (

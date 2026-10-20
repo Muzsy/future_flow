@@ -35,11 +35,13 @@ import {
   narrativeFidelityRequest,
   narrativeEditorialRequest,
   fictionCharacterOmitted,
+  fictionContinuityCoverage,
 } from '@future-flow/core';
 import {
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
   type FictionCharacterEnvelope,
+  type FictionCharacterProjection,
   type NarrativePeriodInput,
   type PeriodChapterV2,
 } from '@future-flow/contracts';
@@ -93,6 +95,8 @@ import {
   evaluationResponseOutput,
   verifyExistingEvaluationAttempts,
   verifyTraceCoversCheckpointReceipts,
+  readAttemptTrace,
+  type EvaluationAttemptTrace,
   type AttemptTraceBinding,
 } from './narrative-evaluation-attempts';
 
@@ -186,8 +190,44 @@ export type EvaluationSample = {
     };
     // Relevant people the projection could not show, with their reasons.
     omitted: { actorId: string; reasons: string[] }[];
+    // Planner continuity decisions against the open matters of the projected
+    // people (diagnostics only; null when the draft or projection is absent).
+    continuity: {
+      required: string[];
+      missing: string[];
+      intentMissing: string[];
+      decisions: { carry: number; defer: number; resolve: number };
+    } | null;
   };
 };
+// What the attempt trace adds for a completed sample: the planner draft the
+// package was authored from and the wording of the last repair.
+export type AttemptEvidence = {
+  draft: {
+    characterIntent?: { actorId: string }[];
+    continuityDecisions?: { actorId: string; decision: string }[];
+  } | null;
+  repairMessage: string | null;
+};
+export function attemptEvidence(
+  trace: EvaluationAttemptTrace | null,
+): AttemptEvidence | null {
+  if (!trace) return null;
+  const draft = trace.attempts
+    .filter(
+      (a) =>
+        a.task === 'life_narrative_plan' &&
+        a.status === 'completed' &&
+        a.output,
+    )
+    .at(-1)?.output;
+  const repair = trace.attempts.filter((a) => a.repairFeedback).at(-1)
+    ?.repairFeedback?.message;
+  return {
+    draft: (draft ?? null) as AttemptEvidence['draft'],
+    repairMessage: repair ?? null,
+  };
+}
 // Validator wording of a character-state failure (never model text).
 const CHARACTER_REPAIR_PATTERN =
   /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
@@ -198,6 +238,7 @@ export function characterBytes(
   checkpoints: unknown = null,
   transports: readonly TransportRecord[] = [],
   chapterBody = '',
+  trace: AttemptEvidence | null = null,
 ): NonNullable<EvaluationSample['character']> {
   const context = (
     payload as {
@@ -205,7 +246,7 @@ export function characterBytes(
         characterProjection?: {
           omittedActors?: number;
           actors?: { actorId: string }[];
-        };
+        } & Partial<FictionCharacterProjection>;
         memory?: { withheld?: boolean };
       };
       fictionCharacters?: FictionCharacterEnvelope;
@@ -221,8 +262,19 @@ export function characterBytes(
   const cp = (checkpoints ?? {}) as {
     fictionRepair?: { message?: string } | null;
     planningRepair?: string | null;
+    fictionDraft?: {
+      characterIntent?: { actorId: string }[];
+      continuityDecisions?: { actorId: string; decision: string }[];
+    } | null;
   };
-  const repairMessage = cp.fictionRepair?.message ?? cp.planningRepair ?? null;
+  // A completed job keeps only its binding checkpoints, so the stored draft
+  // and the repair wording come from the attempt trace when it has them.
+  const repairMessage =
+    cp.fictionRepair?.message ??
+    cp.planningRepair ??
+    trace?.repairMessage ??
+    null;
+  const draft = cp.fictionDraft ?? trace?.draft ?? null;
   const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
   // About 3.5 bytes per token (the 047 price estimate); never a measurement.
   const estimate = (outputBytes: number) => Math.ceil(outputBytes / 3.5);
@@ -266,6 +318,13 @@ export function characterBytes(
             (projection?.actors ?? []).map((a) => a.actorId),
           )
         : [],
+    continuity:
+      draft && projection?.actors
+        ? fictionContinuityCoverage(
+            projection as FictionCharacterProjection,
+            draft,
+          )
+        : null,
   };
 }
 export type EvaluationRun = {
@@ -1606,6 +1665,16 @@ async function runEvaluationUnlocked(
                       completed.checkpoints,
                       caseTransports,
                       (period.chapter as PeriodChapterV2).body,
+                      attemptEvidence(
+                        readAttemptTrace(
+                          options.out,
+                          {
+                            ...traceBinding,
+                            caseId: `${caseId}:${periodIndex}`,
+                          },
+                          env,
+                        ),
+                      ),
                     ),
                   }
                 : {}),

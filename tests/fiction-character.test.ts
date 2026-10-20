@@ -20,6 +20,7 @@ import {
   characterStateFromHistory,
   emptyFictionCharacterState,
   fictionCharacterProjection,
+  fictionContinuityCoverage,
   fictionCharacterProjectionHash,
   fictionCharacterSeedFromLegacy,
   fictionCharacterStateHash,
@@ -881,6 +882,36 @@ describe('character projection', () => {
     ).toEqual([TUNDE, NESSA]);
   });
 
+  it('counts a change as recent for exactly the last two written periods (not a stale flag)', () => {
+    const changedAtZero = (later: number) =>
+      characterStateFromHistory(
+        [
+          { periodId: P1, delta: addNessa() },
+          ...Array.from({ length: later }, (_, i) => ({
+            periodId: id(950 + i),
+            delta: null,
+          })),
+        ],
+        actors,
+      );
+    // Nessa's matter is cleared so only recency can select her.
+    const clear = (state: ReturnType<typeof changedAtZero>) => {
+      const next = structuredClone(state);
+      next.actors[0]!.dynamic!.unresolvedMatter = null;
+      next.actors[0]!.relationship!.unresolvedInteraction = null;
+      return next;
+    };
+    const reasons = (later: number) =>
+      fictionCharacterProjection(clear(changedAtZero(later)), {}).actors.map(
+        (a) => a.reasons,
+      );
+    // A change in period 0 is recent while period 1 or period 2 is written
+    // (periods 0 and 1 are then the last two), and no longer for period 3.
+    expect(reasons(0)).toEqual([['recent_change']]);
+    expect(reasons(1)).toEqual([['recent_change']]);
+    expect(reasons(2)).toEqual([]);
+  });
+
   it('orders by reason priority then actor id and is hash-stable', () => {
     const signals = { inCandidate: [TUNDE], openThreadActors: [NESSA] };
     const a = fictionCharacterProjection(state, signals);
@@ -1012,5 +1043,58 @@ describe('character projection', () => {
       () => fictionCharacterProjection(s, { inCandidate: many }),
       'FICTION_CHARACTER_PROJECTION_TOO_LARGE',
     );
+  });
+});
+
+describe('continuity coverage (phase 5 round 1)', () => {
+  const projection = (reasons: Record<string, string[]>) =>
+    ({
+      version: FICTION_CHARACTER_VERSION,
+      omittedActors: 0,
+      actors: Object.entries(reasons).map(([actorId, r]) => ({
+        actorId,
+        kind: actorId === SUPPLIED_FRIEND ? 'supplied' : 'fictional',
+        reasons: r,
+        profile: null,
+        dynamic: null,
+        relationship: null,
+      })),
+    }) as never;
+  it('requires a decision for every person with an open matter or thread, as diagnostics only', () => {
+    const p = projection({
+      [NESSA]: ['unresolved_matter', 'recent_change'],
+      [TUNDE]: ['open_thread'],
+      [CLODAGH]: ['recent_change'],
+    });
+    const none = fictionContinuityCoverage(p, {});
+    expect(none.required).toEqual([NESSA, TUNDE]);
+    expect(none.missing).toEqual([NESSA, TUNDE]);
+    const some = fictionContinuityCoverage(p, {
+      continuityDecisions: [
+        { actorId: NESSA, decision: 'carry' },
+        { actorId: TUNDE, decision: 'defer' },
+      ],
+      characterIntent: [],
+    });
+    expect(some.missing).toEqual([]);
+    // Carry needs an intent for a fictional person; defer does not.
+    expect(some.intentMissing).toEqual([NESSA]);
+    expect(some.decisions).toEqual({ carry: 1, defer: 1, resolve: 0 });
+    const full = fictionContinuityCoverage(p, {
+      continuityDecisions: [
+        { actorId: NESSA, decision: 'resolve' },
+        { actorId: TUNDE, decision: 'defer' },
+      ],
+      characterIntent: [{ actorId: NESSA }],
+    });
+    expect(full.intentMissing).toEqual([]);
+  });
+  it('asks nothing intent-wise for a supplied person', () => {
+    const p = projection({ [SUPPLIED_FRIEND]: ['unresolved_matter'] });
+    const c = fictionContinuityCoverage(p, {
+      continuityDecisions: [{ actorId: SUPPLIED_FRIEND, decision: 'carry' }],
+    });
+    expect(c.missing).toEqual([]);
+    expect(c.intentMissing).toEqual([]);
   });
 });

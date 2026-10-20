@@ -305,6 +305,9 @@ function rankedCharacters(
           entry.dynamic?.unresolvedMatter ||
           entry.relationship?.unresolvedInteraction,
         );
+      // "Recent" means touched in one of the last `recentWindow` owned periods:
+      // with the default 2, a change in period 0 still counts while period 2 is
+      // written (periods 0 and 1 are the last two), so it is not a stale flag.
       if (reason === 'recent_change')
         return (
           entry.touchedAtIndex !== null &&
@@ -538,4 +541,48 @@ export function fictionCharacterOmitted(
   return rankedCharacters(state, signals, recentWindow)
     .filter(({ entry }) => !shown.has(entry.actorId))
     .map(({ entry, reasons }) => ({ actorId: entry.actorId, reasons }));
+}
+
+// Deterministic continuity evidence over one planner draft (phase 5 round 1):
+// every projected person whose matter is still open should have a decision.
+// Diagnostics for the audit, never a gate, so it cannot cost a repair.
+export function fictionContinuityCoverage(
+  projection: FictionCharacterProjection,
+  draft: {
+    characterIntent?: readonly { actorId: string }[];
+    continuityDecisions?: readonly { actorId: string; decision: string }[];
+  },
+) {
+  const required = projection.actors.filter(
+    (a) =>
+      a.reasons.includes('unresolved_matter') ||
+      a.reasons.includes('open_thread'),
+  );
+  const decisions = new Map(
+    (draft.continuityDecisions ?? []).map((d) => [d.actorId, d.decision]),
+  );
+  const intents = new Set((draft.characterIntent ?? []).map((i) => i.actorId));
+  const fictional = new Set(
+    projection.actors
+      .filter((a) => a.kind === 'fictional')
+      .map((a) => a.actorId),
+  );
+  return {
+    required: required.map((a) => a.actorId),
+    missing: required.map((a) => a.actorId).filter((id) => !decisions.has(id)),
+    // A carried or resolved fictional person also needs an intent.
+    intentMissing: [...decisions]
+      .filter(
+        ([id, decision]) =>
+          (decision === 'carry' || decision === 'resolve') &&
+          fictional.has(id) &&
+          !intents.has(id),
+      )
+      .map(([id]) => id),
+    decisions: {
+      carry: [...decisions.values()].filter((d) => d === 'carry').length,
+      defer: [...decisions.values()].filter((d) => d === 'defer').length,
+      resolve: [...decisions.values()].filter((d) => d === 'resolve').length,
+    },
+  };
 }
