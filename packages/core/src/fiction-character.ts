@@ -491,7 +491,7 @@ export function validateFictionCharacterDelta(args: {
   );
   const archived = new Set(delta.removedActorIds);
   for (const id of removed)
-    if (live.has(id) && !archived.has(id))
+    if ((live.has(id) || added.has(id)) && !archived.has(id))
       fail('A removed actor with character state must be archived.');
   for (const id of archived)
     if (!removed.has(id))

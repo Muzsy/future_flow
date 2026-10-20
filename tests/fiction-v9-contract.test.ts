@@ -29,6 +29,7 @@ import {
   narrativeReferenceSnapshot,
   narrativeReferencesFromMemory,
   validateFictionAuthor,
+  validateFictionCharacterDelta,
 } from '@future-flow/core';
 import { fictionFixture, fictionProof } from './fiction-fixtures';
 
@@ -474,6 +475,46 @@ describe('v9 draft intent and author delta validation', () => {
     expect(() => validateFictionAuthor(f.input, stray)).toThrow('actor_remove');
   });
 
+  it('archives an actor who joins and leaves in one chapter, and never leaves it live', () => {
+    const f = living();
+    const newActor = id(602);
+    const event = addActor(f, newActor);
+    for (const candidate of [f.draft.candidate, f.authored.candidate]) {
+      candidate.events[1]!.changes.push({
+        type: 'actor_remove',
+        actorId: newActor,
+      });
+      candidate.events[1]!.actorIds.push(newActor);
+    }
+    // No profile: rejected. Profile without archiving: rejected, so no live
+    // state for an exited actor can be committed.
+    expect(() => validateFictionAuthor(f.input, f.authored)).toThrow(
+      'needs a character profile',
+    );
+    f.authored.characterDelta.addedProfiles = [
+      profile(newActor, event, f.input.periodId),
+    ];
+    expect(() => validateFictionAuthor(f.input, f.authored)).toThrow(
+      'must be archived',
+    );
+    f.authored.characterDelta.removedActorIds = [newActor];
+    expect(() => validateFictionAuthor(f.input, f.authored)).not.toThrow();
+    const state = validateFictionCharacterDelta({
+      periodId: f.input.periodId,
+      envelope: f.envelope,
+      delta: f.authored.characterDelta,
+      events: f.authored.candidate.events,
+    });
+    expect(
+      state.actors.filter(
+        (a) => a.actorId === newActor && !a.removedAtPeriodId,
+      ),
+    ).toEqual([]);
+    expect(state.actors.find((a) => a.actorId === newActor)).toMatchObject({
+      removedAtPeriodId: f.input.periodId,
+    });
+  });
+
   it('never gives a supplied person a profile or an invented state', () => {
     const f = living();
     f.input.state.actors.push({
@@ -501,6 +542,18 @@ describe('v9 draft intent and author delta validation', () => {
     const related = structuredClone(f.authored);
     related.characterDelta.relationshipUpdates = [relationship(SUPPLIED)];
     expect(() => validateFictionAuthor(f.input, related)).not.toThrow();
+    // The model can never label authored text as a user-supplied fact.
+    const labelled = structuredClone(f.authored);
+    labelled.characterDelta.relationshipUpdates = [
+      {
+        ...relationship(SUPPLIED),
+        provenance: 'user_supplied',
+        unresolvedInteraction: 'She secretly fears losing her job.',
+      },
+    ];
+    expect(() => validateFictionAuthor(f.input, labelled)).toThrow(
+      'never user supplied',
+    );
   });
 
   it('keeps a rejected delta from touching the envelope state', () => {
