@@ -700,7 +700,7 @@ export function fictionBindings(
     planHash: hash(authored.plan),
     storyFactsHash: hash(authored.storyFacts),
     chapterHash: hash(authored.chapter),
-    reviewInputHash: hash(fictionReviewRequest(input, authored)),
+    reviewInputHash: hash(fictionReviewRequest(input, authored, draft)),
     reviewOutputHash: hash(review),
     fidelityInputHash: hash(fictionFidelityRequest(input, authored)),
     fidelityOutputHash: hash(fidelitySchema.parse(fidelity)),
@@ -798,7 +798,7 @@ export function buildFictionArtifact(
       task === 'life_narrative_plan_review' &&
       repair?.mode === 'prose_only' &&
       repair.previous &&
-      hash(fictionReviewRequest(input, repair.previous)) ===
+      hash(fictionReviewRequest(input, repair.previous, draft)) ===
         bindings.reviewInputHash;
     if (
       last < 0 ||
@@ -828,7 +828,7 @@ export function buildFictionArtifact(
   if (
     repair?.mode === 'prose_only' &&
     repair.previous &&
-    hash(fictionReviewRequest(input, repair.previous)) !==
+    hash(fictionReviewRequest(input, repair.previous, draft)) !==
       bindings.reviewInputHash
   )
     fail('A prose-only repair changed its reviewed canon.');

@@ -1,4 +1,8 @@
 import { fictionFixture } from '../../tests/fiction-fixtures';
+import {
+  failureDiagnostic,
+  type FailureDiagnostic,
+} from './narrative-failure-diagnostic';
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { mkdir, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -344,6 +348,10 @@ export type EvaluationRun = {
     code: string;
     chapter: unknown;
     editorialReport: unknown;
+    // Evaluation-only: the stage the job stopped at and the validator's own
+    // message and throwing frames (the job record keeps just the error code).
+    stage?: string | null;
+    diagnostic?: FailureDiagnostic;
   }[];
   choiceReviewRequests: unknown[];
   safetyProbe: { passed: boolean; markerExcluded: boolean };
@@ -353,7 +361,9 @@ export type EvaluationRun = {
   sequenceBundleFiles?: CreativeSequenceBundleFiles | null;
   sequenceAssessment?: CreativeSequenceAssessment | null;
 };
-function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
+export function adapter(
+  client: Pick<PGlite, 'query' | 'transaction'>,
+): Database {
   return {
     query: async <T extends Record<string, unknown>>(
       sql: string,
@@ -1599,6 +1609,8 @@ async function runEvaluationUnlocked(
                   code: code(error),
                   chapter: saved?.checkpoints.chapter ?? null,
                   editorialReport: saved?.checkpoints.editorialReport ?? null,
+                  stage: saved?.stage ? String(saved.stage) : null,
+                  diagnostic: failureDiagnostic(error),
                 });
                 if (shouldStopEvaluation(error, options)) stop = true;
                 break;
@@ -1731,6 +1743,7 @@ async function runEvaluationUnlocked(
                 code: code(error),
                 chapter: null,
                 editorialReport: null,
+                diagnostic: failureDiagnostic(error),
               });
               if (shouldStopEvaluation(error, options)) stop = true;
             }
@@ -1765,6 +1778,7 @@ async function runEvaluationUnlocked(
               state?.responses['legacy:chapter']?.output ??
               null,
             editorialReport: state?.responses.editor?.output ?? null,
+            diagnostic: failureDiagnostic(error),
           });
           if (shouldStopEvaluation(error, options)) break;
         }

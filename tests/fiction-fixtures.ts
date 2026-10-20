@@ -205,7 +205,7 @@ export function fictionProof(f = fictionFixture(), repair?: FictionRepair) {
     fictionReceipt(
       'life_narrative_plan_review',
       'planReviewer',
-      fictionReviewRequest(f.input, f.authored),
+      fictionReviewRequest(f.input, f.authored, f.draft),
       f.review,
       f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),

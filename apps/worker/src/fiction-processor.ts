@@ -333,8 +333,8 @@ export async function processFictionLifeJob(
       if (
         feedback?.mode === 'prose_only' &&
         (!feedback.previous ||
-          hash(fictionReviewRequest(input, feedback.previous)) !==
-            hash(fictionReviewRequest(input, authored)))
+          hash(fictionReviewRequest(input, feedback.previous, draft)) !==
+            hash(fictionReviewRequest(input, authored, draft)))
       )
         throw new DomainError(
           'NARRATIVE_PLAN_INVALID',
