@@ -34,10 +34,12 @@ import {
   narrativeWriterRequest,
   narrativeFidelityRequest,
   narrativeEditorialRequest,
+  fictionCharacterOmitted,
 } from '@future-flow/core';
 import {
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
+  type FictionCharacterEnvelope,
   type NarrativePeriodInput,
   type PeriodChapterV2,
 } from '@future-flow/contracts';
@@ -180,6 +182,8 @@ export type EvaluationSample = {
       estimatedProseTokens: number;
       estimatedDeltaTokens: number;
     };
+    // Relevant people the projection could not show, with their reasons.
+    omitted: { actorId: string; reasons: string[] }[];
   };
 };
 // Validator wording of a character-state failure (never model text).
@@ -193,13 +197,21 @@ export function characterBytes(
   transports: readonly TransportRecord[] = [],
   chapterBody = '',
 ): NonNullable<EvaluationSample['character']> {
-  const projection = (
+  const context = (
     payload as {
       narrativeContext?: {
-        characterProjection?: { omittedActors?: number };
+        characterProjection?: {
+          omittedActors?: number;
+          actors?: { actorId: string }[];
+        };
+        memory?: { withheld?: boolean };
       };
+      fictionCharacters?: FictionCharacterEnvelope;
     }
-  ).narrativeContext?.characterProjection;
+  ).narrativeContext;
+  const projection = context?.characterProjection;
+  const envelope = (payload as { fictionCharacters?: FictionCharacterEnvelope })
+    .fictionCharacters;
   const delta = (artifact as { characterDelta?: unknown } | null)
     ?.characterDelta;
   const bytes = (value: unknown) =>
@@ -243,6 +255,14 @@ export function characterBytes(
       estimatedProseTokens: estimate(Buffer.byteLength(chapterBody, 'utf8')),
       estimatedDeltaTokens: estimate(Buffer.byteLength(deltaJson, 'utf8')),
     },
+    omitted:
+      envelope && !context?.memory?.withheld
+        ? fictionCharacterOmitted(
+            envelope.state,
+            envelope.signals,
+            (projection?.actors ?? []).map((a) => a.actorId),
+          )
+        : [],
   };
 }
 export type EvaluationRun = {

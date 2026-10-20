@@ -92,6 +92,7 @@ describe('living-world generation in the evaluation runner', () => {
         expect(sizes.proseChars).toBeGreaterThan(0);
         expect(sizes.deltaBytes).toBe(sample.character!.deltaBytes);
         expect(sizes.estimatedDeltaTokens).toBeGreaterThan(0);
+        expect(Array.isArray(sample.character?.omitted)).toBe(true);
         expect(
           sample.receipts.some((r) =>
             r.promptVersion.startsWith('life_fiction_author.v9'),

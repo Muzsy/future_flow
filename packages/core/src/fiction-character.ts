@@ -273,30 +273,24 @@ const rankOrder: readonly FictionCharacterRelevance[] = [
   'recent_change',
 ];
 
-// The bounded view of the state for one request: the relevant actors only
-// (plan 15.3), in a deterministic order, under the projection byte bound.
-// Candidate actors are mandatory: if they cannot fit, the request is refused
-// instead of silently dropping a person who is on the page. Optional actors
-// are dropped lowest-priority first and counted in `omittedActors`.
-export function fictionCharacterProjection(
+type RankedCharacter = {
+  entry: FictionCharacterEntry;
+  reasons: FictionCharacterRelevance[];
+};
+// Relevant actors of a state, most relevant first (plan 15.3). Shared by the
+// projection and its omission diagnostics so both rank identically.
+function rankedCharacters(
   state: FictionCharacterState,
-  signals: FictionCharacterSignals = {},
-  options: { withheld?: boolean; recentWindow?: number } = {},
-): FictionCharacterProjection {
-  const empty = { version: FICTION_CHARACTER_VERSION, actors: [] } as const;
-  if (options.withheld)
-    return fictionCharacterProjectionSchema.parse({
-      ...empty,
-      omittedActors: 0,
-    });
-  const recentWindow = options.recentWindow ?? 2;
+  signals: FictionCharacterSignals,
+  recentWindow: number,
+): RankedCharacter[] {
   const sets = {
     in_candidate: new Set(signals.inCandidate ?? []),
     open_thread: new Set(signals.openThreadActors ?? []),
     goal_or_opportunity: new Set(signals.goalOrOpportunityActors ?? []),
     overdue_private_life: new Set(signals.overduePrivateLifeActors ?? []),
   };
-  const ranked = state.actors.flatMap((entry) => {
+  const ranked = state.actors.flatMap((entry): RankedCharacter[] => {
     if (entry.removedAtPeriodId) return [];
     if (
       !entry.profile &&
@@ -327,6 +321,26 @@ export function fictionCharacterProjection(
       (b.entry.touchedAtIndex ?? -1) - (a.entry.touchedAtIndex ?? -1) ||
       byActor(a.entry, b.entry),
   );
+  return ranked;
+}
+
+// The bounded view of the state for one request: the relevant actors only
+// (plan 15.3), in a deterministic order, under the projection byte bound.
+// Candidate actors are mandatory: if they cannot fit, the request is refused
+// instead of silently dropping a person who is on the page. Optional actors
+// are dropped lowest-priority first and counted in `omittedActors`.
+export function fictionCharacterProjection(
+  state: FictionCharacterState,
+  signals: FictionCharacterSignals = {},
+  options: { withheld?: boolean; recentWindow?: number } = {},
+): FictionCharacterProjection {
+  const empty = { version: FICTION_CHARACTER_VERSION, actors: [] } as const;
+  if (options.withheld)
+    return fictionCharacterProjectionSchema.parse({
+      ...empty,
+      omittedActors: 0,
+    });
+  const ranked = rankedCharacters(state, signals, options.recentWindow ?? 2);
 
   const without = <T extends object, K extends keyof T>(
     value: T,
@@ -509,4 +523,19 @@ export function validateFictionCharacterDelta(args: {
     if (!removed.has(id))
       fail('A character is archived only by an actor_remove in this period.');
   return next;
+}
+
+// Diagnostics for the evaluation audit (plan 15.3, never a request input):
+// the relevant actors that did not make it into the shown projection, with
+// the relevance reasons that ranked them.
+export function fictionCharacterOmitted(
+  state: FictionCharacterState,
+  signals: FictionCharacterSignals,
+  shownActorIds: readonly string[],
+  recentWindow = 2,
+) {
+  const shown = new Set(shownActorIds);
+  return rankedCharacters(state, signals, recentWindow)
+    .filter(({ entry }) => !shown.has(entry.actorId))
+    .map(({ entry, reasons }) => ({ actorId: entry.actorId, reasons }));
 }
