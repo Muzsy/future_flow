@@ -472,6 +472,12 @@ export function validateFictionCharacterDelta(args: {
       actors,
     );
   } catch (error) {
+    // A state past its bound is not something a repair can fix: fail closed.
+    if (
+      error instanceof DomainError &&
+      error.code === 'FICTION_CHARACTER_STATE_TOO_LARGE'
+    )
+      throw new DomainError('NARRATIVE_CONTEXT_INVALID', error.message);
     if (
       error instanceof DomainError &&
       error.code.startsWith('FICTION_CHARACTER_')

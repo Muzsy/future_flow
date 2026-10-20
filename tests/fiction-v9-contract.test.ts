@@ -548,6 +548,38 @@ describe('v9 draft intent and author delta validation', () => {
     });
   });
 
+  it('fails closed, not repairable, when the state is past its bound', () => {
+    const f = living();
+    const newActor = id(603);
+    const event = addActor(f, newActor);
+    f.authored.characterDelta.addedProfiles = [
+      profile(newActor, event, f.input.periodId),
+    ];
+    f.envelope.state.actors = Array.from({ length: 300 }, (_, i) => ({
+      actorId: id(20000 + i),
+      kind: 'supplied' as const,
+      legacy: null,
+      profile: null,
+      dynamic: null,
+      relationship: null,
+      touchedAtIndex: null,
+      removedAtPeriodId: null,
+    }));
+    try {
+      validateFictionCharacterDelta({
+        periodId: f.input.periodId,
+        envelope: f.envelope,
+        delta: f.authored.characterDelta,
+        events: f.authored.candidate.events,
+      });
+      throw new Error('Expected a DomainError.');
+    } catch (error) {
+      expect((error as { code?: string }).code).toBe(
+        'NARRATIVE_CONTEXT_INVALID',
+      );
+    }
+  });
+
   it('never gives a supplied person a profile or an invented state', () => {
     const f = living();
     f.input.state.actors.push({
