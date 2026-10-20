@@ -1237,6 +1237,38 @@
                     "type": "null"
                   }
                 ]
+              },
+              "legacy": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 120
+                  },
+                  "desire": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "resistance": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "voiceCue": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "role",
+                  "desire",
+                  "resistance",
+                  "voiceCue"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
