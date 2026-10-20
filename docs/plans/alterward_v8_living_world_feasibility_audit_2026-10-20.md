@@ -3119,7 +3119,7 @@ A teljes hash-ek a baseline tesztben vannak; a prompt-bájtok `fictionPrompts(lo
 | Javítást kapott minta |       0 |       6 |     2 |                                 **8 (32,0%)** |
 | Javított arány        |      0% |   37,5% | 22,2% |                                         32,0% |
 
-- Javítási kapu (C/12): a v8 arányából legfeljebb +10 százalékpont engedett. Javasolt viszonyítás a két teljes hosszúságú futás együttes aránya, **32,0%**, azaz a kapu **legfeljebb 42,0%**. A minta kicsi (25), a két futás szórása nagy (22,2–37,5%); a v9 mérést összevethető mintaszámmal kell értékelni. A viszonyítási alap kiválasztását a tulajdonos hagyja jóvá, mielőtt fizetős mérés indul.
+- Javítási kapu (C/12): a v8 arányából legfeljebb +10 százalékpont engedett. Javasolt viszonyítás a két teljes hosszúságú futás együttes aránya, **32,0%**, azaz a kapu **legfeljebb 42,0%**. A minta kicsi (25), a két futás szórása nagy (22,2–37,5%); a v9 mérést összevethető mintaszámmal kell értékelni. **Döntés (koordinátor, Ákos átruházott jogkörében, 2026-10-20): a viszonyítás a 32,0%, a javítási kapu legfeljebb 42,0%.** A kapu paid futás előtt rögzített, utólag nem módosul.
 - A 9 hívásos plafont elérő fejezetek száma **nem származtatható** a 047-ből (az átlag 2,5 plusz hívás javított fejezetenként, de a fejezetenkénti maximum nincs közölve). Forrás: a három futás `report.json`-ja a tulajdonos gépén; a C/12 „egyetlen fejezet sem éri el a plafont" feltétel ellenőrzéséhez ezt a v9 mérés előtt ki kell olvasni.
 - Szolgáltatói hiba: a pótló futás ch6 javítása az editor hiányos válasza (`AI_INCOMPLETE_OR_REFUSED`) miatt volt, nem minőségi elutasítás; a javítási arányba beleszámít, jelölve.
 
@@ -3130,7 +3130,7 @@ A teljes hash-ek a baseline tesztben vannak; a prompt-bájtok `fictionPrompts(lo
 | Elszámolt USD | 0,81911 | 5,78719 |  3,31 |                            9,09719 |
 | USD / minta   |   0,273 |   0,362 | 0,368 |                          **0,364** |
 
-- Költségtolerancia (C/11): fejezetenként legfeljebb +15%, csak a fejlesztési szakaszra. A tulajdonos által megadott kb. 0,43 USD a 0,37-es gazdasági tervből jön (0,37 × 1,15 = 0,4255); a mért 0,364-ből 0,419 USD. A paid futás előtt rögzítendő küszöb: a tulajdonos válasszon a két érték közül (javasolt: 0,43 USD, a gazdasági tervvel egyező).
+- Költségtolerancia (C/11): fejezetenként legfeljebb +15%, csak a fejlesztési szakaszra. A tulajdonos által megadott kb. 0,43 USD a 0,37-es gazdasági tervből jön (0,37 × 1,15 = 0,4255); a mért 0,364-ből 0,419 USD. **Döntés (koordinátor, Ákos átruházott jogkörében, 2026-10-20): a küszöb 0,419 USD/fejezet, azaz a mért baseline +15%** (Ákos a v8-hoz viszonyított 15%-ot hagyta jóvá; a szigorúbb szám jobban illik a 0,37 USD-os gazdasági tervhez). A küszöb paid futás előtt rögzített, utólag nem módosul.
 - A tartós költségkülönbség magyarázata kiadási kritérium marad (C/11).
 - A v9 mérés előtt ledger: 928 hívás, 50,00253 USD; a keret 6,24 USD-ból kb. 2,93 USD maradt (047).
 
@@ -3156,3 +3156,7 @@ Súrlódásszó 0/8 (pótló), 1/8 (Stage B creative), visszhang-jelölés 1/8; 
 - Fejezetenkénti hívás-, javítás- és latency-eloszlás, 9 hívásos plafon: a `report.json`-okból kiolvasandó (a tulajdonos gépén); a 047 összesített mérőszámokat közöl.
 - Tesztszám: a v8 főág teljes tesztfutása a CI-n él; a baseline-hoz külön, determinisztikus teszt készült (`tests/fiction-v8-baseline.test.ts`).
 - A v9 mérés ugyanazokat a mutatókat adja, ugyanebben a bontásban; eltérés csak dokumentált okkal.
+
+## D.8. Átruházott döntések, 2026-10-20
+
+A koordinátor Ákos átruházott jogkörében elfogadta (az eredeti döntések C függelék szerintiek, ezek megvalósítási részletek): megadott személy csak kapcsolati állapotot kaphat (profil és dinamikus állapot nem); a delta bájtkorlátja ideiglenesen 8 KiB (a 3. fázisban mérjük); ha egy kötelező jelöltszereplő nem fér a projectionbe, a projection hibával leáll, nem csonkol; költségkapu 0,419 USD/fejezet; javítási kapu ≤ 42,0%. A fejezetenkénti hívás-eloszlás és a 9 hívásos plafon adatait (`report.json`) a koordinátor a tulajdonos gépén futó szálon keresztül szerzi meg; ezt a D.3 és D.7 szakasz kiegészítése követi.
