@@ -6,7 +6,7 @@ last_reviewed: 2026-10-20
 
 # ADR-009 — Recurring-character state is folded from chapter artifacts
 
-**Status:** Proposed (draft, 2026-10-20). Not accepted until the owner accepts it; no implementation depends on it before then. The frontmatter status is the repository's document status (`docs:check`), not the decision status.
+**Status:** Accepted, 2026-10-20. Accepted by the owner (Ákos) in the project thread on 2026-10-20, on the basis of the "Fold + DB-út" decision of 17:10. The frontmatter status is the repository's document status (`docs:check`), not the decision status.
 
 ## Context
 
