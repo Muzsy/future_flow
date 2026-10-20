@@ -23,6 +23,11 @@ describe('v9 prompts', () => {
     // Only the server may label a fact as supplied (review B2) and a person
     // who joins and leaves in one chapter is archived (review B3).
     expect(v9.author).toContain('only the server may label');
+    // A supplied person: branch_fiction only for the relationship itself (N2).
+    expect(v9.author).toContain(
+      'branch_fiction only for how the relationship itself changed',
+    );
+    expect(v9.author).toContain('never a private real-world fact');
     expect(v9.author).toContain(
       'enters by actor_add and leaves by actor_remove',
     );
