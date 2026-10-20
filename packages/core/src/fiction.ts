@@ -4,6 +4,13 @@ import {
   fictionAuthorResultSchema,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
+  fictionDraftSchemaFor,
+  fictionAuthorSchemaFor,
+  fictionCompactAuthorV9Schema,
+  fictionCompactDraftV9Schema,
+  fictionCharacterQualityVersions,
+  fictionThreeActorQualityVersions,
+  fictionCharacterEnvelopeSchema,
   fictionArtifactSchema,
   narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
@@ -17,6 +24,9 @@ import {
   NARRATIVE_ARTIFACT_BYTES,
   type NarrativePeriodInput,
   type FictionAuthorResult,
+  type FictionPolicy,
+  type FictionCharacterDelta,
+  type FictionCharacterIntent,
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
@@ -36,6 +46,11 @@ import {
 import { validatePersonalSharedMemories } from './shared-personal';
 import { fictionCastingProjection } from './fiction-casting';
 import { seriesEchoFindings, seriesFrictionMarkers } from './fiction-series';
+import {
+  fictionCharacterActorsFromEnvelope,
+  fictionCharacterProjectionFromEnvelope,
+  validateFictionCharacterDelta,
+} from './fiction-character';
 
 const fail = (message: string): never => {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
@@ -47,7 +62,7 @@ export function fictionScope(input: NarrativePeriodInput) {
     ...narrativeReferencesFromSnapshot(input.narrativeReferences),
     // Owner decision 2026-10-19: v7/v8 allow up to three new recurring
     // actors per period; v8 also lets invented actors leave the story.
-    ...(quality === '2.6.0' || quality === '2.7.0'
+    ...(fictionThreeActorQualityVersions.includes(quality)
       ? { maxIntroducedActors: 3 }
       : {}),
     ...(fictionSeriesQualityVersions.includes(quality)
@@ -119,8 +134,74 @@ export function fictionScope(input: NarrativePeriodInput) {
     )
       fail('A remembered story fact has no owned provenance.');
   validatePersonalSharedMemories(input.memory.sharedEvents, input.startDate);
-  return { context, references, facts };
+  const characters = fictionCharacterScope(input, context, references);
+  return { context, references, facts, characters };
 }
+// Living-world generation: the server's character envelope must exist, match
+// the owned reference inventory and reproduce the projection in the request.
+// Older generations never carry an envelope.
+function fictionCharacterScope(
+  input: NarrativePeriodInput,
+  context: ReturnType<typeof fictionContextSchema.parse>,
+  references: ReturnType<typeof narrativeReferencesFromSnapshot>,
+) {
+  const living = fictionCharacterQualityVersions.includes(
+    context.policy.qualityPolicyVersion,
+  );
+  if (!living) {
+    if (input.fictionCharacters !== undefined)
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'Only the living-world policy carries a character envelope.',
+      );
+    return null;
+  }
+  const parsed = fictionCharacterEnvelopeSchema.safeParse(
+    input.fictionCharacters,
+  );
+  const stale = () =>
+    new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Character envelope differs from the owned inventory or the request projection.',
+    );
+  if (!parsed.success) throw stale();
+  const envelope = parsed.data;
+  const actors = fictionCharacterActorsFromEnvelope(envelope);
+  const origins = references.fictionalActorOrigins ?? new Map();
+  const stateActorIds = new Set(input.state.actors.map((a) => a.id));
+  if (
+    hash([...actors.fictionalOrigins].sort()) !== hash([...origins].sort()) ||
+    [...actors.suppliedActorIds].some(
+      (id) => actors.fictionalOrigins.has(id) || !stateActorIds.has(id),
+    ) ||
+    // Every classified entry and every present person is accounted for.
+    envelope.state.actors.some(
+      (a) =>
+        a.kind !==
+          (actors.fictionalOrigins.has(a.actorId) ? 'fictional' : 'supplied') ||
+        (a.kind === 'supplied' && !actors.suppliedActorIds.has(a.actorId)),
+    ) ||
+    hash(context.characterProjection) !==
+      hash(
+        fictionCharacterProjectionFromEnvelope(
+          envelope,
+          context.memory.withheld,
+        ),
+      )
+  )
+    throw stale();
+  return { envelope, actors };
+}
+// Requests and checkpoints keep parsing v1-v8 outputs with the schemas they
+// always used; only the living-world generation reads the v9 shapes.
+const requestDraftSchema = (policy: FictionPolicy) =>
+  fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactDraftV9Schema
+    : narrativePlanningResultSchema;
+const requestAuthorSchema = (policy: FictionPolicy) =>
+  fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactAuthorV9Schema
+    : fictionAuthorResultSchema;
 export type FictionRepair = {
   mode: 'author_package' | 'prose_only';
   message: string;
@@ -172,7 +253,7 @@ export function fictionPlannerRequest(
     narrativeContext: context,
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0'].includes(
+    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0'].includes(
       context.policy.qualityPolicyVersion,
     )
       ? { referenceProjection: fictionReferenceProjection(input) }
@@ -200,7 +281,7 @@ export function fictionAuthorRequest(
 ) {
   return {
     ...fictionPlannerRequest(input),
-    draft: narrativePlanningResultSchema.parse(draft),
+    draft: requestDraftSchema(fictionScope(input).context.policy).parse(draft),
     authorRepair: repair ?? null,
   };
 }
@@ -209,8 +290,9 @@ export function fictionReviewRequest(
   authored: FictionAuthorResult,
 ) {
   const { repair: _repair, ...base } = fictionPlannerRequest(input);
-  const { chapter: _chapter, ...proposed } =
-    fictionAuthorResultSchema.parse(authored);
+  const { chapter: _chapter, ...proposed } = requestAuthorSchema(
+    fictionScope(input).context.policy,
+  ).parse(authored);
   return { ...base, proposed };
 }
 export function fictionFidelityRequest(
@@ -345,13 +427,22 @@ export function evaluateFictionEditorialGate(
       ),
   };
 }
-export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
+// `base` reads the draft part of a final package, which carries no intent.
+export function fictionCanon(
+  input: NarrativePeriodInput,
+  raw: unknown,
+  options: { base?: boolean } = {},
+) {
   const scope = fictionScope(input),
     result = (
-      scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
-        ? fictionCompactDraftSchema
-        : narrativePlanningResultSchema
-    ).parse(raw);
+      scope.characters && !options.base
+        ? fictionCompactDraftV9Schema
+        : scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
+          ? fictionCompactDraftSchema
+          : narrativePlanningResultSchema
+    ).parse(raw) as NarrativePlanningResult & {
+      characterIntent?: FictionCharacterIntent[];
+    };
   const c = result.candidate;
   if (
     c.periodId !== input.periodId ||
@@ -368,24 +459,68 @@ export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
     revision: input.revision,
     acceptedDecisionIds: input.acceptedDecisionIds,
   });
-  validateNarrativePlan(result, canon, scope.context.memory, scope.references);
+  // The shared plan validator reads the narrative result; the intent is
+  // checked here against the character projection instead.
+  const { characterIntent: _intent, ...planResult } = result;
+  validateNarrativePlan(
+    planResult,
+    canon,
+    scope.context.memory,
+    scope.references,
+  );
+  if (scope.characters && !options.base) {
+    // An intent describes a person's own aim: wholly fictional people only,
+    // never an invented private aim for a supplied person.
+    const known = new Set([
+      ...(scope.context.characterProjection?.actors ?? [])
+        .filter((a) => a.kind === 'fictional')
+        .map((a) => a.actorId),
+      ...c.events.flatMap((e) =>
+        e.changes.flatMap((change) =>
+          change.type === 'actor_add' ? [change.value.id] : [],
+        ),
+      ),
+    ]);
+    if (result.characterIntent?.some((i) => !known.has(i.actorId)))
+      fail(
+        'A character intent names a person who is not a fictional recurring actor of this request.',
+      );
+  }
   return { ...scope, result, canon };
 }
 export function validateFictionAuthor(
   input: NarrativePeriodInput,
   raw: unknown,
 ) {
+  const policy = fictionScope(input).context.policy;
   const authored = (
-    fictionScope(input).context.policy.promptVersions.writer !==
-    'life_fiction_author.v1'
-      ? fictionCompactAuthorSchema
-      : fictionAuthorResultSchema
-  ).parse(raw);
-  const run = fictionCanon(input, {
-    version: '1.0.0',
-    candidate: authored.candidate,
-    plan: authored.plan,
-  });
+    fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+      ? fictionCompactAuthorV9Schema
+      : policy.promptVersions.writer !== 'life_fiction_author.v1'
+        ? fictionCompactAuthorSchema
+        : fictionAuthorResultSchema
+  ).parse(raw) as FictionAuthorResult & {
+    characterDelta?: FictionCharacterDelta;
+  };
+  const run = fictionCanon(
+    input,
+    {
+      version: '1.0.0',
+      candidate: authored.candidate,
+      plan: authored.plan,
+    },
+    { base: true },
+  );
+  if (run.characters) {
+    if (!authored.characterDelta)
+      fail('The living-world package needs a character delta.');
+    validateFictionCharacterDelta({
+      periodId: input.periodId,
+      envelope: run.characters.envelope,
+      delta: authored.characterDelta!,
+      events: authored.candidate.events,
+    });
+  }
   validateNarrativeChapterV1(authored.chapter, run.canon.events);
   if (
     Buffer.byteLength(JSON.stringify(authored.storyFacts), 'utf8') >
@@ -519,7 +654,18 @@ export function fictionBindings(
     fidelityOutputHash: hash(fidelitySchema.parse(fidelity)),
     editorialInputHash: hash(fictionEditorialRequest(input, authored)),
     editorialOutputHash: hash(editor),
+    ...(run.characters
+      ? {
+          characterStateHash: hash(run.characters.envelope.state),
+          characterProjectionHash: hash(run.context.characterProjection),
+          characterDeltaHash: hash(authoredCharacterDelta(authored)),
+        }
+      : {}),
   };
+}
+function authoredCharacterDelta(authored: FictionAuthorResult) {
+  return (authored as { characterDelta?: FictionCharacterDelta })
+    .characterDelta;
 }
 export function buildFictionArtifact(
   input: NarrativePeriodInput,
@@ -641,6 +787,9 @@ export function buildFictionArtifact(
     validatedPlan: authored.plan,
     validatedMemoryDelta: authored.plan.memoryDelta,
     storyFacts: authored.storyFacts,
+    ...(run.characters
+      ? { characterDelta: authoredCharacterDelta(authored) }
+      : {}),
     planningReview: r,
     editorialReport: fictionEditorialReportSchema.parse(editor),
     bindings,
@@ -675,8 +824,10 @@ export function validatedFictionCheckpoint(
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction checkpoint policy differs.',
     );
-  const draft = narrativePlanningResultSchema.parse(cp.fictionDraft),
-    authored = fictionAuthorResultSchema.parse(cp.fictionAuthor);
+  const draft = requestDraftSchema(scope.context.policy).parse(cp.fictionDraft),
+    authored = requestAuthorSchema(scope.context.policy).parse(
+      cp.fictionAuthor,
+    );
   const artifact = buildFictionArtifact(
     input,
     draft,
