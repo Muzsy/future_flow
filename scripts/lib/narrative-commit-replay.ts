@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
@@ -31,6 +31,8 @@ export type CommitReplayResult = {
   outcome: 'committed' | 'failed' | 'needs_model_call';
   failure: FailureDiagnostic | null;
   wroteState: boolean;
+  // Where the untouched original went after an in-place write.
+  backup?: string;
 };
 
 const noModel = new Proxy(
@@ -131,15 +133,26 @@ export async function replayFailedCommit(options: {
   const source = resolve(options.stateDir);
   if (!existsSync(source))
     throw new Error(`State directory ${source} does not exist.`);
+  if (options.inPlace && existsSync(`${source}.bak`))
+    throw new Error(
+      `${source}.bak already exists; move it away before an in-place replay.`,
+    );
   const work = mkdtempSync(join(tmpdir(), 'alterward-commit-replay-'));
   try {
     const copy = join(work, 'state');
     cpSync(source, copy, { recursive: true });
     const result = await replayOn(copy, options.jobId);
     if (options.inPlace && result.outcome === 'committed') {
-      rmSync(source, { recursive: true, force: true });
-      cpSync(copy, source, { recursive: true });
-      return { ...result, wroteState: true };
+      // Swap, never overwrite: the replayed state is copied beside the
+      // original, the original is kept as `<state>.bak`, and only then does the
+      // new copy take its place, so a crash leaves one complete state.
+      const staged = `${source}.replayed`;
+      const backup = `${source}.bak`;
+      rmSync(staged, { recursive: true, force: true });
+      cpSync(copy, staged, { recursive: true });
+      renameSync(source, backup);
+      renameSync(staged, source);
+      return { ...result, wroteState: true, backup };
     }
     return result;
   } finally {

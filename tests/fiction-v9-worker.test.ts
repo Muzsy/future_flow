@@ -32,7 +32,13 @@ import {
   type FictionCharacterEnvelope,
 } from '@future-flow/contracts';
 import { applyMigrations } from '../scripts/lib/migrations';
-import { replayJobOn } from '../scripts/lib/narrative-commit-replay';
+import {
+  replayFailedCommit,
+  replayJobOn,
+} from '../scripts/lib/narrative-commit-replay';
+import { mkdtempSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { failureDiagnostic } from '../scripts/lib/narrative-failure-diagnostic';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
@@ -398,6 +404,60 @@ describe('living-world generation through the real guarded provider and database
     });
     expect((await saved(f.job)).status).toBe('completed');
   });
+
+  it('replays a saved state directory on a copy, and swaps it in place only when asked and only if it commits', async () => {
+    const base = mkdtempSync(join(tmpdir(), 'alterward-replay-test-'));
+    const stateDir = join(base, 'state');
+    const mem = { engine, db, jobs, repo };
+    let failedId: string;
+    try {
+      // A real on-disk state with one job that failed after its last checkpoint.
+      engine = new PGlite(stateDir);
+      await engine.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
+      await applyMigrations(engine);
+      db = adapter(engine);
+      jobs = new LifeJobRepository(db);
+      repo = new Repository(db);
+      const f = await fixture();
+      await failAfterLastCheckpoint(f);
+      failedId = f.job.id;
+      await engine.close();
+    } finally {
+      ({ engine, db, jobs, repo } = mem);
+    }
+    const status = async () => {
+      const disk = new PGlite(stateDir);
+      try {
+        const rows = (
+          await disk.query<{ status: string }>(
+            'SELECT status FROM aw_jobs WHERE id=$1',
+            [failedId],
+          )
+        ).rows;
+        return rows[0]!.status;
+      } finally {
+        await disk.close();
+      }
+    };
+    try {
+      // Default: the original directory is left exactly as it was.
+      const dry = await replayFailedCommit({ stateDir });
+      expect(dry).toMatchObject({ outcome: 'committed', wroteState: false });
+      expect(await status()).toBe('failed');
+      // In place: the original is kept as .bak, the new state takes its place.
+      const live = await replayFailedCommit({ stateDir, inPlace: true });
+      expect(live).toMatchObject({ outcome: 'committed', wroteState: true });
+      expect(await status()).toBe('completed');
+      expect(existsSync(`${stateDir}.bak`)).toBe(true);
+      expect(existsSync(`${stateDir}.replayed`)).toBe(false);
+      // A second in-place run refuses to clobber the earlier backup.
+      await expect(
+        replayFailedCommit({ stateDir, inPlace: true, jobId: failedId }),
+      ).rejects.toThrow('already exists');
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  }, 60000);
 
   it('says so when a replay would need a model call, instead of failing as a content error', async () => {
     const f = await fixture();
