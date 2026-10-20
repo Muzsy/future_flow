@@ -23,6 +23,7 @@ import {
   NARRATIVE_MEMORY_BYTES,
   NARRATIVE_ARTIFACT_BYTES,
   type NarrativePeriodInput,
+  type FictionContext,
   type FictionAuthorResult,
   type FictionPolicy,
   type FictionCharacterDelta,
@@ -285,6 +286,16 @@ export function fictionAuthorRequest(
     authorRepair: repair ?? null,
   };
 }
+// The planner and the author use the character projection to write; the check
+// stages judge the finished package, which already carries the intent and the
+// delta, so they receive only the projection's hash. The request stays bound to
+// the same state without paying for the projection in every stage (review F1).
+function checkStageContext(context: FictionContext) {
+  const { characterProjection, ...rest } = context;
+  return characterProjection
+    ? { ...rest, characterProjectionHash: hash(characterProjection) }
+    : context;
+}
 export function fictionReviewRequest(
   input: NarrativePeriodInput,
   authored: FictionAuthorResult,
@@ -293,7 +304,11 @@ export function fictionReviewRequest(
   const { chapter: _chapter, ...proposed } = requestAuthorSchema(
     fictionScope(input).context.policy,
   ).parse(authored);
-  return { ...base, proposed };
+  return {
+    ...base,
+    narrativeContext: checkStageContext(fictionScope(input).context),
+    proposed,
+  };
 }
 export function fictionFidelityRequest(
   input: NarrativePeriodInput,

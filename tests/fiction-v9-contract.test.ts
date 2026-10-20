@@ -22,6 +22,8 @@ import {
   fictionAuthorRequest,
   fictionCanon,
   fictionCharacterProjectionFromEnvelope,
+  fictionEditorialRequest,
+  fictionFidelityRequest,
   fictionPlannerRequest,
   fictionReviewRequest,
   fictionScope,
@@ -394,6 +396,37 @@ describe('v9 scope: the server envelope', () => {
     );
     // The envelope itself is server-owned and never part of a model request.
     expect(JSON.stringify(planner)).not.toContain('fictionCharacters');
+  });
+
+  it('gives the check stages only the projection hash, still bound to the state', () => {
+    const empty = living();
+    const withNessa = living(true);
+    const hashOf = (f: ReturnType<typeof living>) =>
+      hash(
+        (f.input.narrativeContext as { characterProjection: unknown })
+          .characterProjection,
+      );
+    for (const request of [
+      fictionReviewRequest,
+      fictionFidelityRequest,
+      fictionEditorialRequest,
+    ]) {
+      const a = request(withNessa.input, withNessa.authored);
+      const text = JSON.stringify(a);
+      expect(text).not.toContain('characterProjection"');
+      expect(text).not.toContain('Notices practical inconvenience');
+      expect(
+        (a as { narrativeContext: { characterProjectionHash: string } })
+          .narrativeContext.characterProjectionHash,
+      ).toBe(hashOf(withNessa));
+      // The request hash still follows the character state.
+      expect(hash(a)).not.toBe(hash(request(empty.input, empty.authored)));
+    }
+    // v8 check requests are untouched: no hash key, no projection.
+    const v8 = fictionFixture();
+    expect(
+      JSON.stringify(fictionReviewRequest(v8.input, v8.authored)),
+    ).not.toContain('characterProjection');
   });
 });
 
