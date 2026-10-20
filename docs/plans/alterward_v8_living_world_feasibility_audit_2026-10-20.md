@@ -3083,3 +3083,76 @@ Ezeket a következő verzió tervezésénél baseline-ként kell kezelni.
 15. [x] **Karakterállapot forrása és az adatbázis-út.** Az első körben a fejezet-artifactok az igazság forrása, a szereplőállapot fold és projection útján áll elő. Szereplő-adatbázis felé külön, leírt út vezet (materializált nézet, amely az artifactokból visszamenőleg, adatvesztés nélkül felépíthető). A váltás feltételei és a döntés részletei az ADR-ben: [ADR-009](../decisions/ADR-009-character-state-artifact-fold.md).
 
 Kapcsolódó kapuk (§59, §62) változatlanok. Az implementáció sorrendje: 0. fázis (baseline), majd PR A (contractok + fold + projection, viselkedés nélkül); ezek külön feladatleírással indulnak.
+
+# Függelék D — v8 baseline (0. fázis), 2026-10-20
+
+A 0. fázis (§63) kimenete. Új modellhívás és új mérés nélkül készült: a kód a kiinduló SHA-ról, a mérőszámok a [047 terv](047_fiction_v8_series_evidence.md) már rögzített, fizetős v8-mérési szakaszaiból származnak (a fizetős `report.json`-ok a tulajdonos gépén vannak; ezeket itt nem olvastuk). Ez a baseline a v9 összehasonlítási alapja; a v8 policy ettől kezdve befagyott, és a `tests/fiction-v8-baseline.test.ts` őrzi.
+
+## D.1. Kód és policy
+
+| Elem                                               | Érték                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kiinduló SHA                                       | `a666c905ef953cc696d5d8a0faa4f9169ec01824` (a `packages/` és `apps/` ezzel bájtra azonos azon az ágon, amelyen a baseline készült)                                                                                                                                                                            |
+| Policy                                             | `fictionV8Policy()` = planner `life_fiction_plan.v8`, author `life_fiction_author.v8`, plan reviewer `life_fiction_plan_review.v8`, fidelity `life_fiction_fidelity.v1`, editor `life_fiction_editor.v7`, qualityPolicy `2.7.0`, memória `2.0.0`, legfeljebb 9 fizikai kérés, 1 tartalmi javítás, 650–950 szó |
+| Prompt-hash (SHA-256, `en`)                        | planner `414be922…8247`, author `17ada823…b100`, review `d18b0363…90cf`, fidelity `0af915d7…ee25b`, editor `7309abf8…fc6d`                                                                                                                                                                                    |
+| Prompt-hash (SHA-256, `hu`, tárolt/kutatási nyelv) | planner `64848d27…cf03`, author `81fc3166…2930`, review `2fdeeb0c…b6d5`, fidelity `a2b40d16…49ada`, editor `3a785d84…af80`                                                                                                                                                                                    |
+| Request-alak                                       | a planner/author/review/fidelity/editor kérés kulcskészlete a baseline tesztben rögzített; a v9 projection-nek ehhez képest csak policy-kapuval, új kulccsal szabad érkeznie                                                                                                                                  |
+
+A teljes hash-ek a baseline tesztben vannak; a prompt-bájtok `fictionPrompts(locale, fictionV8Policy().promptVersions)` kimenetéből számolódnak.
+
+## D.2. Korpusz és elfogadás
+
+| Futás                | Forrás    |                              Minta | Elfogadva | Megjegyzés                                                   |
+| -------------------- | --------- | ---------------------------------: | --------: | ------------------------------------------------------------ |
+| Stage A előpróba     | `b9f3195` |            3 (career, fork nélkül) |         3 | 0 javítás                                                    |
+| Stage B (részleges)  | `b9f3195` | 16 (creative 8 + fork, career 1–7) |        16 | a career 8. fejezet és a fork a kontextushiba miatt hiányzik |
+| Pótló career-sorozat | `8bc2d36` |      9 (8 + fork, javított forrás) |         9 | a Stage B career-mintái ugyanarra a seedre más forráson      |
+
+Összesen 28 elfogadott minta, 0 irodalmilag elutasított. A Stage B és a pótló futás különböző forrás-hash; a kettő összevonása trendjelző, nem egyetlen mérés.
+
+## D.3. Request-, hívás- és javítási mérőszámok
+
+| Mutató                | Stage A | Stage B | Pótló | Teljes hosszúságú két futás együtt (25 minta) |
+| --------------------- | ------: | ------: | ----: | --------------------------------------------: |
+| Fizikai hívás         |      15 |      95 |    53 |                                           148 |
+| Hívás / minta         |    5,00 |    5,94 |  5,89 |                                          5,92 |
+| Javítást kapott minta |       0 |       6 |     2 |                                 **8 (32,0%)** |
+| Javított arány        |      0% |   37,5% | 22,2% |                                         32,0% |
+
+- Javítási kapu (C/12): a v8 arányából legfeljebb +10 százalékpont engedett. Javasolt viszonyítás a két teljes hosszúságú futás együttes aránya, **32,0%**, azaz a kapu **legfeljebb 42,0%**. A minta kicsi (25), a két futás szórása nagy (22,2–37,5%); a v9 mérést összevethető mintaszámmal kell értékelni. A viszonyítási alap kiválasztását a tulajdonos hagyja jóvá, mielőtt fizetős mérés indul.
+- A 9 hívásos plafont elérő fejezetek száma **nem származtatható** a 047-ből (az átlag 2,5 plusz hívás javított fejezetenként, de a fejezetenkénti maximum nincs közölve). Forrás: a három futás `report.json`-ja a tulajdonos gépén; a C/12 „egyetlen fejezet sem éri el a plafont" feltétel ellenőrzéséhez ezt a v9 mérés előtt ki kell olvasni.
+- Szolgáltatói hiba: a pótló futás ch6 javítása az editor hiányos válasza (`AI_INCOMPLETE_OR_REFUSED`) miatt volt, nem minőségi elutasítás; a javítási arányba beleszámít, jelölve.
+
+## D.4. Költség
+
+| Mutató        | Stage A | Stage B | Pótló | Teljes hosszúságú két futás együtt |
+| ------------- | ------: | ------: | ----: | ---------------------------------: |
+| Elszámolt USD | 0,81911 | 5,78719 |  3,31 |                            9,09719 |
+| USD / minta   |   0,273 |   0,362 | 0,368 |                          **0,364** |
+
+- Költségtolerancia (C/11): fejezetenként legfeljebb +15%, csak a fejlesztési szakaszra. A tulajdonos által megadott kb. 0,43 USD a 0,37-es gazdasági tervből jön (0,37 × 1,15 = 0,4255); a mért 0,364-ből 0,419 USD. A paid futás előtt rögzítendő küszöb: a tulajdonos válasszon a két érték közül (javasolt: 0,43 USD, a gazdasági tervvel egyező).
+- A tartós költségkülönbség magyarázata kiadási kritérium marad (C/11).
+- A v9 mérés előtt ledger: 928 hívás, 50,00253 USD; a keret 6,24 USD-ból kb. 2,93 USD maradt (047).
+
+## D.5. Latency
+
+| Mutató (s, medián / P95 / max) | Stage B         | Pótló                           |
+| ------------------------------ | --------------- | ------------------------------- |
+| plan                           | 116 / 132 / 175 | medián 129                      |
+| author                         | 95 / 106 / 112  | medián 112                      |
+| plan_review                    | 6 / 8 / 14      | —                               |
+| fidelity                       | 5 / 7 / 9       | —                               |
+| editor                         | 22 / 37 / 40    | —                               |
+| fejezet falióra                | 262 / 387 / 401 | medián 293; javított 393 és 477 |
+
+Egyik v8-hívás sem lépte át a 180 s-ot (legnagyobb: Stage B creative fork plan 175 s, pótló ch8 plan 155 s). A Stage A P95 generálási ideje 257,2 s. Javítás nélküli fejezet 206–271 s, javított 335–477 s. Következmény: a termékben háttérgenerálás kell; a v9 request-mérete (projection) a plan/author hívások latency-jét emelheti, ezért a 3. fázisban a plan és author hívás külön mérendő.
+
+## D.6. Minőségi és memória jelzők (audit, nem irodalmi pontszám)
+
+Súrlódásszó 0/8 (pótló), 1/8 (Stage B creative), visszhang-jelölés 1/8; maradék ismétlődő mondatnyitás (×3–×4); magánélet-szálak név szerint jelen vannak (v7: 0). Az `actor_remove` egyszer sem fordult elő. A szereplők száma: a pótló főszálban 8 `actor_add`. A memória a 9. fejezetnél 10 491 B (főszál) / 12 114 B (fork) a 12 KiB-os (12 288 B) keretből; a szereplőprofilok (`fictionalActors`) kb. 3,1 KB-ot visznek el, ez az a keret, amelyet a v9 szereplőállapot-projection nem terhelhet (a projection a memóriakereten kívül, a 8 KiB-os külön korláttal utazik; a teljes bemeneti bájtkorlátba számít, §55).
+
+## D.7. Nem elérhető / következő lépés
+
+- Fejezetenkénti hívás-, javítás- és latency-eloszlás, 9 hívásos plafon: a `report.json`-okból kiolvasandó (a tulajdonos gépén); a 047 összesített mérőszámokat közöl.
+- Tesztszám: a v8 főág teljes tesztfutása a CI-n él; a baseline-hoz külön, determinisztikus teszt készült (`tests/fiction-v8-baseline.test.ts`).
+- A v9 mérés ugyanazokat a mutatókat adja, ugyanebben a bontásban; eltérés csak dokumentált okkal.
