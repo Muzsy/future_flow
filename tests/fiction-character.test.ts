@@ -412,6 +412,54 @@ describe('character fold', () => {
     );
   });
 
+  it('archives an actor who joins and leaves in one period, never leaving it live', () => {
+    const state = characterStateFromHistory([], actors);
+    const joined = applyFictionCharacterDelta(
+      state,
+      P1,
+      delta({
+        addedProfiles: [profile(NESSA, P1)],
+        removedActorIds: [NESSA],
+      }),
+      actors,
+    );
+    expect(joined.actors).toHaveLength(1);
+    expect(joined.actors[0]).toMatchObject({
+      actorId: NESSA,
+      removedAtPeriodId: P1,
+    });
+    // After the fold no exited actor is live.
+    const folded = characterStateFromHistory(
+      [
+        {
+          periodId: P1,
+          delta: delta({
+            addedProfiles: [profile(NESSA, P1)],
+            removedActorIds: [NESSA],
+          }),
+        },
+        { periodId: P2, delta: delta() },
+      ],
+      actors,
+    );
+    expect(folded.actors.filter((a) => !a.removedAtPeriodId)).toEqual([]);
+    // Updates for the leaver in that period are still rejected.
+    reject(
+      () =>
+        applyFictionCharacterDelta(
+          state,
+          P1,
+          delta({
+            addedProfiles: [profile(NESSA, P1)],
+            dynamicUpdates: [dynamic(NESSA, P1)],
+            removedActorIds: [NESSA],
+          }),
+          actors,
+        ),
+      'FICTION_CHARACTER_INVALID',
+    );
+  });
+
   it('validates the actor origin, establishment period and state provenance', () => {
     const empty = emptyFictionCharacterState();
     reject(
@@ -521,8 +569,27 @@ describe('character fold', () => {
         ),
       'FICTION_CHARACTER_PRIVACY',
     );
+    // Only the server could know a user-supplied fact, so authored state for
+    // a real person never carries that label (it would launder invented text).
+    reject(
+      () =>
+        applyFictionCharacterDelta(
+          empty,
+          P1,
+          delta({
+            relationshipUpdates: [
+              relationship(SUPPLIED_FRIEND, {
+                provenance: 'user_supplied',
+                unresolvedInteraction:
+                  'She secretly fears losing her job and hides a debt.',
+              }),
+            ],
+          }),
+          actors,
+        ),
+      'FICTION_CHARACTER_PRIVACY',
+    );
     for (const provenance of [
-      'user_supplied',
       'branch_fiction',
       'interaction_derived',
     ] as const) {
@@ -747,7 +814,7 @@ describe('character projection', () => {
       P1,
       delta({
         relationshipUpdates: [
-          relationship(SUPPLIED_FRIEND, { provenance: 'user_supplied' }),
+          relationship(SUPPLIED_FRIEND, { provenance: 'interaction_derived' }),
         ],
       }),
       actors,
@@ -760,7 +827,7 @@ describe('character projection', () => {
       profile: null,
       dynamic: null,
     });
-    expect(view.relationship?.provenance).toBe('user_supplied');
+    expect(view.relationship?.provenance).toBe('interaction_derived');
   });
 
   it('stays under the byte bound with maximal states, dropping optional actors visibly', () => {

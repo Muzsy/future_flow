@@ -136,9 +136,10 @@ export function applyFictionCharacterDelta(
   };
 
   // A removed actor is archived this period and not updated in the same one.
+  // The one exception is an actor who both joins and leaves in this period: its
+  // profile is established and the actor is archived, never left live.
   const removed = new Set(delta.removedActorIds);
   for (const actorId of [
-    ...delta.addedProfiles.map((p) => p.actorId),
     ...delta.profileUpdates.map((p) => p.actorId),
     ...delta.dynamicUpdates.map((p) => p.actorId),
     ...delta.relationshipUpdates.map((p) => p.actorId),
@@ -190,7 +191,7 @@ export function applyFictionCharacterDelta(
     if (!entry.profile)
       invalid('Dynamic state needs an established profile first.');
     if (dynamic.provenance === 'user_supplied')
-      privacy('A fictional actor state is never user supplied.');
+      privacy('Authored character state is never user supplied.');
     if (dynamic.lastMeaningfulChangePeriodId !== periodId)
       invalid('Dynamic state records the period that changes it.');
     entry.dynamic = dynamic;
@@ -198,11 +199,13 @@ export function applyFictionCharacterDelta(
   }
   for (const relationship of delta.relationshipUpdates) {
     const kind = kindOf(relationship.actorId);
+    // Only the server could know a user-supplied fact; authored text is at
+    // most derived from the interaction or invented for the branch.
+    if (relationship.provenance === 'user_supplied')
+      privacy('Authored character state is never user supplied.');
     if (kind === 'fictional') {
       if (!live(relationship.actorId).profile)
         invalid('Relationship state needs an established profile first.');
-      if (relationship.provenance === 'user_supplied')
-        privacy('A fictional actor state is never user supplied.');
     } else if (!byId.has(relationship.actorId)) {
       // Supplied people carry only a relationship entry, created on demand.
       byId.set(relationship.actorId, {
