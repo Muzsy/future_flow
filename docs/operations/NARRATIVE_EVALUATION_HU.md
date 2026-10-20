@@ -392,3 +392,48 @@ Minden run-mappában a runner által írt `report.json` kell. A kimenet `series-
 
 `pnpm narrative:character-audit [--out <mappa>] <run-mappa> ...` a runner tárolt `report.json`-jain fut, modellhívás és ledger nélkül (`character-audit.json` és `.md`). Diagnosztikai számlálók, **evidence, nem ütemterv és nem kapu** (terv §43): szereplőnként jelenlét, a szereplő saját célja/gondja megjelenik-e, minden rá vonatkozó bekezdés a protagonist projektjéről szól-e (témafegyelem), funkcionális visszajelzés-minta, rövid beszédű profil hosszú monológja, tárolt megoldatlan ügy későbbi eltűnése; sorozatszinten azonnali kibékülés, kényszerített rendetlenség és testi kellemetlenség, melodráma-jelzők, valamint az embodiment-jelzők sűrűsége (küszöb nélkül). A kérésoldali láthatóság: fejezetenként a projection bájtja, a delta bájtja, az `omittedActors` és a nem elférők relevanciajelei (`fictionCharacterOmitted`, additív diagnosztika; a projection kimenete és hash-e változatlan). A küszöbök (jelzés legalább 2 fejezetben és ≥ 75%-ban, 35 szavas beszéd, 3 melodráma-jelző) névvel ellátott, ideiglenes értékek, angol próza heurisztikái. A negatív kontroll korpusz (`tests/narrative-character-controls.ts`: A funkcionális NPC, B tökéletes témafegyelem, C azonnali kibékülés, D figyelmen kívül hagyott személyiség, E kényszerített rendetlenség, F kényszerített testiség, G melodráma, plusz eltűnő megoldatlan ügy és egy jó ellenpélda) a saját jelzését adja, a jó ellenpélda egyiket sem; mutációs ellenpróbával ellenőrizve. Szövegminőségi bizonyíték ez sem: a humán olvasást nem helyettesíti.
 
+
+### 5. fázis: helyi Codex-diagnosztika, v9 és v8 pár (futtatási menet)
+
+Cél: ugyanazon a fixture-ön és ugyanazzal a modellel (Codex, gpt-6.1-sol) a v9 szerződés-, folytonosság- és szereplőállapot-viselkedésének irányjelzője a v8 baseline mellett. Irányjelző (`comparableWithPaid: false`), nem N08-mérés. Nincs fizetős hívás, API-kulcs, ledger, push és merge. A futtatás a tulajdonos gépén történik, a felhő nem futtat Codex-et.
+
+**Ág és kód.** `claude/living-world-impl-w3ihlb-c1` (a #61 ága, a teljes #58–#61 verem). A kód a `0a6aea4` commit tartalmával azonos; az ezt követő commit(ok) csak dokumentációt érintenek. Futtatás külön worktree-ben:
+
+```bash
+git fetch origin claude/living-world-impl-w3ihlb-c1
+git worktree add ../future_flow_phase5 origin/claude/living-world-impl-w3ihlb-c1
+cd ../future_flow_phase5
+pnpm install --frozen-lockfile
+```
+
+**Kvóta.** A runner indulás előtt maga ellenőrzi a kapukat (Codex ≥30% az 5 órás és ≥20% a heti ablakban, fejezethatáron 10% / 5%), és a jelölőfájlba naplózza; kapu nem teljesül → a futás megáll (kilépési kód 3, `EVAL_QUOTA_HALT`). Csendes ügynök- vagy modellváltás nincs; megállás esetén a koordinátort kell értesíteni. A kvótát futásonként előtte és utána rögzíteni kell.
+
+**1. v9, career-transition, 3 periódus.** A `quality` címkében minden lépést a Codex válaszol (az agy ebben a címkében nem kap lépést).
+
+```bash
+pnpm narrative:agy --run-label quality --creative-only --fiction-generation v9 \
+  --fixtures career-transition --periods 3 --no-forks \
+  --out .local/narrative-evaluation/v9-codex-career
+```
+
+**2. v8 baseline** (ugyanaz a fixture és modell, a v9 kapcsoló nélkül). Előbb a v9, utána a v8. Kvótakimerülésnél a futás fejezethatáron áll meg; az újraindítás ugyanazzal a paranccsal és mappával csak a hiányzót generálja.
+
+```bash
+pnpm narrative:agy --run-label quality --creative-only \
+  --fixtures career-transition --periods 3 --no-forks \
+  --out .local/narrative-evaluation/v8-codex-career
+```
+
+**3. Audit** a két mappán (modellhívás nélkül):
+
+```bash
+pnpm narrative:character-audit --out .local/narrative-evaluation/audit-career-3 \
+  .local/narrative-evaluation/v8-codex-career \
+  .local/narrative-evaluation/v9-codex-career
+```
+
+**4. Visszaadandó.** A két kimeneti mappa (`report.json`, jelölő- és kvótanapló, `transport-records.json`, attempts-trace) és az audit kimenete (`character-audit.json`, `character-audit.md`); a tartalom szintetikus fixture, személyes adat nincs. Futásonként: kvóta előtte és utána (5 órás és heti ablak), kilépési kód, esetleges `EVAL_QUOTA_HALT`. A reportból futásonként: `requestCount`, `repairUsed`, `errorCode`, `physicalLatenciesMs`, `character.projectionBytes`, `character.deltaBytes`, `character.omittedActors`, `character.omitted`, `character.authorOutputTokens`, `character.characterRepair`, `character.repairMessage`, `character.outputSizes`. A Codex nem ad token- és költségadatot, ezért a 0,419 USD/fejezet költségkaput ez a futás nem dönti el (lásd fent: csak hossz és becsült token); a kaput a fizetős mérés (7. fázis) dönti el.
+
+**5. Második lépés (csak külön jóváhagyással).** A szereplőállapot hatása több periódus után látszik: egy fixture 6 periódussal v9-cel (ha a kvóta engedi, v8-cal is), forkokkal; a `--no-forks` csak a 3 periódusos career-transition smoke-ra érvényes, itt elhagyandó (`--periods 6`, `--out .local/narrative-evaluation/v9-codex-career-6`). A forkos futás hívásszáma és kvótaigénye nagyobb.
+
+**Feldolgozás (felhős szál).** Az audit és a v8–v9 pár összevetése (javítási arány, hívásszám, bájt, latency irányjelzőként), majd a fejezetek elolvasása a Reddit-kritériumok szerint (alacsony feszültség, „túl tiszta”, testiség hiánya, NPC-k funkcionalitása), kifejezetten modellolvasásként jelölve, nem humán bizonyítékként. Az eredményjegyzet ebbe a szakaszba és a `docs/plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md` v9 szakaszába kerül.
