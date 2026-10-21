@@ -725,3 +725,23 @@ export function attemptOrdinal(value: string) {
     );
   return n;
 }
+
+// The stored chapter `id` (`ch2`, `fork`), failed ones included. When it is not
+// there the error says exactly what is stored: the chapters with their job
+// status and the attempt traces on disk, because a trace without its job row
+// has no payload and cannot be replayed.
+export function findStoredChapter(
+  stored: { chapters: StoredChapter[] },
+  run: string,
+  id: string,
+) {
+  const chapter = stored.chapters.find((c) => c.chapter === id);
+  if (chapter) return chapter;
+  const dir = join(resolve(run), 'diagnostic-attempts');
+  const traces = existsSync(dir)
+    ? readdirSync(dir).filter((n) => n.endsWith('.json'))
+    : [];
+  throw new Error(
+    `${id} is not in ${run}: stored chapters ${stored.chapters.map((c) => `${c.chapter} (${c.jobStatus})`).join(', ') || 'none'}; attempt traces ${traces.join(', ') || 'none'}. A replay needs the job row (payload) and the trace.`,
+  );
+}

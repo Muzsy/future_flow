@@ -1,13 +1,15 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PGlite } from '@electric-sql/pglite';
 import { describe, it, expect } from 'vitest';
 import { fictionV9Policy } from '@future-flow/contracts';
 import { fictionFixture } from './fiction-fixtures';
 import {
   breakdownMarkdown,
   breakdownRun,
+  storedChapters,
 } from '../scripts/lib/narrative-request-breakdown';
 import { runNarrativeProbeEditor } from '../scripts/narrative-probe-editor';
 import { runNarrativeProbeLatency } from '../scripts/narrative-probe-latency';
@@ -240,7 +242,52 @@ describe('living-world generation in the evaluation runner', () => {
           latency.result.summary[1]!.requestBytes!,
         );
         expect(await evidenceFingerprint(out)).toEqual(before);
-        // A v9 run is required for the compact/full comparison.
+        // A chapter that failed its gates keeps its job row and trace and is
+        // replayable too; an absent chapter is reported with what is stored.
+        const failedRun = join(probeOut, 'failed-run');
+        await cp(out, failedRun, { recursive: true });
+        const statePath = join(
+          failedRun,
+          'state',
+          'creative-portfolio-narrative-v1',
+        );
+        await rm(join(statePath, 'postmaster.pid'), { force: true });
+        const engine = new PGlite(statePath);
+        await engine.exec(
+          "UPDATE aw_jobs SET status='failed', error_code='NARRATIVE_QUALITY_FAILED' WHERE id=(SELECT id FROM aw_jobs ORDER BY created_at DESC LIMIT 1)",
+        );
+        await engine.close();
+        const failed = await storedChapters(
+          failedRun,
+          'creative-portfolio-narrative-v1',
+        );
+        expect(
+          failed.chapters.map((c) => `${c.chapter}:${c.jobStatus}`),
+        ).toEqual(['ch0:completed', 'ch1:failed']);
+        const replayed = await runNarrativeProbeEditor(
+          [
+            '--run',
+            failedRun,
+            '--chapter',
+            'ch1',
+            '--runs',
+            '1',
+            '--out',
+            join(probeOut, 'failed-editor'),
+          ],
+          {},
+          async () => storedEditor,
+        );
+        expect(replayed.result.runs[0]!.status).toBe('ok');
+        await expect(
+          runNarrativeProbeEditor(
+            ['--run', out, '--chapter', 'ch7', '--out', join(probeOut, 'x')],
+            {},
+            async () => storedEditor,
+          ),
+        ).rejects.toThrow(
+          /stored chapters ch0 \(completed\), ch1 \(completed\).*attempt traces/,
+        );
       } finally {
         await rm(probeOut, { recursive: true, force: true });
       }

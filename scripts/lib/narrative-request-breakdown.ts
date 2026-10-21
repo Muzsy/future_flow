@@ -96,6 +96,10 @@ export type StoredChapter = {
   // `ch<index>` on the main branch, `fork` for the fork case.
   chapter: string;
   caseId: string;
+  // `failed` for a chapter that did not pass its gates: its job keeps the
+  // payload and its attempt trace keeps every package and verdict, which is
+  // where the failed chapter can be studied.
+  jobStatus: 'completed' | 'failed';
   payload: NarrativePeriodInput;
   attempts: StoredAttempt[];
 };
@@ -105,7 +109,7 @@ export type BreakdownRow = {
   breakdown: AuthorRequestBreakdown;
 };
 
-// The completed chapters of a stored run: the saved job payload and the
+// The completed and failed chapters of a stored run: the saved job payload and the
 // attempt trace of each case. `outDir` is the evaluation output directory,
 // `stateName` the state folder (for example career-transition-narrative-v1).
 // Opening a PGlite directory writes to it (control file, WAL, postmaster.pid
@@ -134,9 +138,10 @@ export async function storedChapters(
     const db = adapter(engine);
     const jobs = await db.query<{
       branch_id: string;
+      status: 'completed' | 'failed';
       payload: NarrativePeriodInput;
     }>(
-      "SELECT branch_id, payload FROM aw_jobs WHERE status='completed' ORDER BY created_at",
+      "SELECT branch_id, status, payload FROM aw_jobs WHERE status IN ('completed','failed') ORDER BY created_at",
     );
     const mainBranch = jobs[0]?.branch_id;
     let periodIndex = 0;
@@ -152,6 +157,7 @@ export async function storedChapters(
       chapters.push({
         chapter,
         caseId,
+        jobStatus: job.status,
         payload: job.payload,
         attempts: (
           JSON.parse(readFileSync(file, 'utf8')) as {

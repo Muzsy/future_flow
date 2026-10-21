@@ -16,6 +16,7 @@ import type { OfflineMockResponder } from './lib/narrative-evaluation-runner';
 import { storedChapters } from './lib/narrative-request-breakdown';
 import {
   PROBE_TIMEOUT_MS,
+  findStoredChapter,
   firstAuthorRequest,
   latencyProbeMarkdown,
   positiveInteger,
@@ -69,11 +70,7 @@ export async function runNarrativeProbeLatency(
   refuseExisting(outDir, ['probe-latency.json', 'probe-latency.md']);
   const pick = async (dir: string, state: string | undefined, id: string) => {
     const stored = await storedChapters(dir, resolveStateName(dir, state));
-    const chapter = stored.chapters.find((c) => c.chapter === id);
-    if (!chapter)
-      throw new Error(
-        `${id} is not in ${dir} (have ${stored.chapters.map((c) => c.chapter).join(', ')}).`,
-      );
+    const chapter = findStoredChapter(stored, dir, id);
     return chapter;
   };
   const target = await pick(run, args.get('--state'), chapterId);

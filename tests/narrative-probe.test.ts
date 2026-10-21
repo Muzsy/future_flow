@@ -301,6 +301,7 @@ describe('stored chapter requests', () => {
   const chapter: StoredChapter = {
     chapter: 'ch2',
     caseId: 'x:narrative-v1:2',
+    jobStatus: 'completed',
     payload: v9,
     attempts,
   };

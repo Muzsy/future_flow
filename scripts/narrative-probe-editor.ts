@@ -22,6 +22,7 @@ import {
   editorProbeMarkdown,
   attemptOrdinal,
   editorRequest,
+  findStoredChapter,
   positiveInteger,
   probeArgs,
   probeOutputDir,
@@ -70,11 +71,7 @@ export async function runNarrativeProbeEditor(
     run,
     resolveStateName(run, args.get('--state')),
   );
-  const chapter = stored.chapters.find((c) => c.chapter === chapterId);
-  if (!chapter)
-    throw new Error(
-      `${chapterId} is not in ${run} (have ${stored.chapters.map((c) => c.chapter).join(', ')}).`,
-    );
+  const chapter = findStoredChapter(stored, run, chapterId);
   const which = args.get('--author') ?? 'last';
   const request = await editorRequest(
     chapter,
