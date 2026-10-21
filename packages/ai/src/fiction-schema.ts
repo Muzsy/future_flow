@@ -1,7 +1,7 @@
 // v9 request-schema compaction (plan: lasting cost root cause, 2026-10-21).
 // zodTextFormat renders every z.uuid() as {"format":"uuid","pattern":"<178 B
-// regex>"}; the v9 author and plan schemas carry 66 and 52 of them, a third of
-// the schema bytes sent on every call. The server never relies on the model's
+// regex>"}; the v9 author and plan schemas carry 55 and 41 of them, about a third
+// of the schema bytes sent on every call. The server never relies on the model's
 // copy of that regex: the provider parses every output with the full zod
 // schema, so a malformed identifier still fails closed there.
 //
