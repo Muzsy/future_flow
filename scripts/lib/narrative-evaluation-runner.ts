@@ -445,6 +445,7 @@ export type EvaluationRun = {
   diagnosticOnly?: true;
   noForks?: true;
   fictionGeneration?: 'v9';
+  choiceMix?: 'rotate';
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -591,12 +592,20 @@ function safetyProbe() {
   ).includes(marker);
   return { passed: markerExcluded, markerExcluded };
 }
+// An option that ends or closes the story rather than continuing it; the
+// rotating mix avoids it when any other option exists (plan D.8 / 9.4).
+const EXIT_OPTION =
+  /\b(end|conclude|stop|close|wrap up|let .{0,30}(stand|be complete)|keep .{0,30}(personal|outside)|retain)\b/i;
 // Synthetic unpaired diagnostic path only. This is NOT semantic/human review.
+// `rotate` (creative-only diagnostic) walks the non-exit options in turn: the
+// main branch takes candidate k mod n at its k-th decision, the fork (k+1) mod n.
 function diagnosticChoice(
   options: { id: string; label: string; description: string }[],
   intent: ReturnType<typeof choiceIntent>,
   alternate = false,
+  rotate?: { k: number },
 ) {
+  if (rotate) return rotatingChoice(options, intent, alternate, rotate.k);
   const option = options[alternate ? 1 : 0];
   if (!option)
     throw new DomainError(
@@ -609,6 +618,38 @@ function diagnosticChoice(
     decisionHash: hash(options),
     selection: 'diagnostic-index' as const,
     rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
+  };
+}
+export function rotatingChoice(
+  options: { id: string; label: string; description: string }[],
+  intent: ReturnType<typeof choiceIntent>,
+  alternate: boolean,
+  k: number,
+) {
+  if (!options.length)
+    throw new DomainError(
+      'EVAL_STATE_INVALID',
+      'A diagnostic choice is unavailable.',
+    );
+  const stay = options.filter(
+    (o) => !EXIT_OPTION.test(`${o.label} ${o.description}`),
+  );
+  const candidates = stay.length ? stay : options;
+  const main = candidates[k % candidates.length]!;
+  // A single candidate cannot give the fork a different direction: widen to
+  // every option and take the first one that is not the main branch's choice.
+  const widened = !alternate || candidates.length > 1 ? null : options;
+  const option = alternate
+    ? widened
+      ? (widened.find((o) => o.id !== main.id) ?? main)
+      : candidates[(k + 1) % candidates.length]!
+    : main;
+  return {
+    optionId: option.id,
+    intent,
+    decisionHash: hash(options),
+    selection: 'diagnostic-rotate' as const,
+    rationale: `UNREVIEWED DIAGNOSTIC: rotating ${alternate ? 'fork' : 'main'} choice, decision ${k}, ${candidates.length} candidate(s) of ${options.length} option(s), exit filter ${stay.length && stay.length < options.length ? 'applied' : 'not applied'}${widened ? ', widened for the fork' : ''}; not a semantic equivalence or human approval.`,
   };
 }
 type TransportRecord = {
@@ -1084,7 +1125,12 @@ async function forkComparison(
     | ReturnType<typeof diagnosticChoice>;
   try {
     mapping = options.creativeOnly
-      ? diagnosticChoice(decision.options, intent, true)
+      ? diagnosticChoice(
+          decision.options,
+          intent,
+          true,
+          options.choiceMix ? { k: 1 } : undefined,
+        )
       : selectEvaluationChoice(decision.options, intent, override);
   } catch (error) {
     if (code(error) !== 'EVAL_CHOICE_REVIEW_REQUIRED') throw error;
@@ -1337,6 +1383,7 @@ async function runEvaluationUnlocked(
     ...(options.fictionGeneration
       ? { fictionGeneration: options.fictionGeneration }
       : {}),
+    ...(options.choiceMix ? { choiceMix: options.choiceMix } : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -1383,6 +1430,7 @@ async function runEvaluationUnlocked(
     ...(options.fictionGeneration
       ? { fictionGeneration: options.fictionGeneration }
       : {}),
+    ...(options.choiceMix ? { choiceMix: options.choiceMix } : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -1540,7 +1588,12 @@ async function runEvaluationUnlocked(
                   );
                 try {
                   const mapping = options.creativeOnly
-                    ? diagnosticChoice(decision.options, intent)
+                    ? diagnosticChoice(
+                        decision.options,
+                        intent,
+                        false,
+                        options.choiceMix ? { k: periodIndex - 1 } : undefined,
+                      )
                     : selectEvaluationChoice(
                         decision.options,
                         intent,
