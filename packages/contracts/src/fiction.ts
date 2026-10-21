@@ -616,30 +616,60 @@ export const fictionCompactPlanSchema = narrativePlanSchema
 export const fictionCompactDraftSchema = narrativePlanningResultSchema
   .extend({ plan: fictionCompactPlanSchema })
   .strict();
-// Living-world draft: what the relevant people do for their own reasons.
-export const fictionCompactDraftV9Schema = fictionCompactDraftSchema
-  .extend({
-    characterIntent: z
-      .array(fictionCharacterIntentSchema)
-      .max(FICTION_CHARACTER_INTENTS),
-    continuityDecisions: z
-      .array(fictionContinuityDecisionSchema)
-      .max(FICTION_CHARACTER_CONTINUITY),
-  })
-  .strict()
-  .refine(
-    (draft) =>
-      new Set(draft.characterIntent.map((i) => i.actorId)).size ===
-      draft.characterIntent.length,
-    'A person has one intent per draft.',
-  )
-  .refine(
-    (draft) =>
-      new Set(draft.continuityDecisions.map((d) => d.actorId)).size ===
-      draft.continuityDecisions.length,
-    'A person has one continuity decision per draft.',
-  );
-export type FictionDraftV9 = z.infer<typeof fictionCompactDraftV9Schema>;
+// The central turn of a period, named by the planner from a fixed catalogue
+// (v9 only). Snake_case labels, no numeric scale; `other` and null never count
+// in the deterministic rotation. A planning note and a diagnostic, never a gate.
+export const FICTION_TURN_TYPES = [
+  'attempt_meets_resistance',
+  'outsider_reads_the_work',
+  'other_persons_aim_crosses',
+  'old_matter_returns',
+  'event_from_outside',
+  'success_with_price',
+  'relationship_shift',
+  'protagonist_refuses_or_withdraws',
+  'delayed_cost_of_earlier_choice',
+  'quiet_persistence',
+  'other',
+] as const;
+export const fictionTurnTypeSchema = z.enum(FICTION_TURN_TYPES);
+export type FictionTurnType = z.infer<typeof fictionTurnTypeSchema>;
+// Living-world draft: what the relevant people do for their own reasons. The
+// provider output schema requires the turnType key (null when not labelled,
+// strict provider schemas have no optional fields). Stored drafts of the first
+// 2.8.0 runs carry no turnType and are still read with the lenient schema.
+function livingDraft<T extends z.ZodType>(turnType: T) {
+  return fictionCompactDraftSchema
+    .extend({
+      characterIntent: z
+        .array(fictionCharacterIntentSchema)
+        .max(FICTION_CHARACTER_INTENTS),
+      continuityDecisions: z
+        .array(fictionContinuityDecisionSchema)
+        .max(FICTION_CHARACTER_CONTINUITY),
+      turnType,
+    })
+    .strict()
+    .refine(
+      (draft) =>
+        new Set(draft.characterIntent.map((i) => i.actorId)).size ===
+        draft.characterIntent.length,
+      'A person has one intent per draft.',
+    )
+    .refine(
+      (draft) =>
+        new Set(draft.continuityDecisions.map((d) => d.actorId)).size ===
+        draft.continuityDecisions.length,
+      'A person has one continuity decision per draft.',
+    );
+}
+export const fictionCompactDraftV9Schema = livingDraft(
+  fictionTurnTypeSchema.nullable(),
+);
+export const fictionStoredDraftV9Schema = livingDraft(
+  fictionTurnTypeSchema.nullable().optional(),
+);
+export type FictionDraftV9 = z.infer<typeof fictionStoredDraftV9Schema>;
 // Deterministic, server-computed evidence over this life's owned chapters
 // (quality2.7). Counts are evidence, never quotas; see core fiction-series.
 export const FICTION_SERIES_LEDGER_BYTES = 3 * 1024;
@@ -650,7 +680,7 @@ const seriesEchoSchema = z
     chapters: z.number().int().min(1).max(1000),
   })
   .strict();
-export const fictionSeriesLedgerSchema = z
+const fictionSeriesLedgerObject = z
   .object({
     version: z.literal('1.0.0'),
     ownedChapters: z.number().int().min(0).max(1000),
@@ -698,14 +728,65 @@ export const fictionSeriesLedgerSchema = z
       )
       .max(5),
   })
+  .strict();
+const ledgerBytes = (l: unknown) =>
+  new TextEncoder().encode(JSON.stringify(l)).length;
+export const fictionSeriesLedgerSchema = fictionSeriesLedgerObject.refine(
+  (l) => ledgerBytes(l) <= FICTION_SERIES_LEDGER_BYTES,
+  'Series ledger exceeds its byte bound.',
+);
+// Living-world generation only (ledger 1.1.0): the same evidence plus the
+// recurring fictional cast and the turn rotation. Still deterministic,
+// server-computed evidence, never a quota. v8 keeps 1.0.0 and its 3 KiB bound.
+export const FICTION_SERIES_LEDGER_V11_BYTES = 4 * 1024;
+export const FICTION_RECURRING_CAST_MAX = 6;
+export const FICTION_RECENT_TURNS_MAX = 6;
+export const FICTION_RESTING_TURNS_MAX = 2;
+// The rotation catalogue: every type except `other`, which never counts.
+const rotatingTurnTypeSchema = fictionTurnTypeSchema.exclude(['other']);
+export const FICTION_ROTATING_TURN_TYPES = rotatingTurnTypeSchema.options;
+export const fictionSeriesLedgerV11Schema = fictionSeriesLedgerObject
+  .extend({
+    version: z.literal('1.1.0'),
+    recurringCast: z
+      .array(
+        z
+          .object({
+            actorId: z.uuid(),
+            chaptersPresent: z.number().int().min(0).max(1000),
+            chaptersSinceLast: z.number().int().min(0).max(1000).nullable(),
+            openMatter: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(FICTION_RECURRING_CAST_MAX),
+    recentTurns: z
+      .array(fictionTurnTypeSchema.nullable())
+      .max(FICTION_RECENT_TURNS_MAX),
+    turnQueue: z
+      .array(rotatingTurnTypeSchema)
+      .max(FICTION_ROTATING_TURN_TYPES.length),
+    restingTurns: z
+      .array(rotatingTurnTypeSchema)
+      .max(FICTION_RESTING_TURNS_MAX),
+  })
   .strict()
   .refine(
-    (l) =>
-      new TextEncoder().encode(JSON.stringify(l)).length <=
-      FICTION_SERIES_LEDGER_BYTES,
+    (l) => ledgerBytes(l) <= FICTION_SERIES_LEDGER_V11_BYTES,
     'Series ledger exceeds its byte bound.',
+  )
+  .refine(
+    (l) => new Set(l.turnQueue).size === l.turnQueue.length,
+    'The turn queue lists a type once.',
   );
-export type FictionSeriesLedger = z.infer<typeof fictionSeriesLedgerSchema>;
+export const fictionAnySeriesLedgerSchema = z.union([
+  fictionSeriesLedgerSchema,
+  fictionSeriesLedgerV11Schema,
+]);
+export type FictionSeriesLedger = z.infer<typeof fictionAnySeriesLedgerSchema>;
+export type FictionSeriesLedgerV11 = z.infer<
+  typeof fictionSeriesLedgerV11Schema
+>;
 // The existing bounded memory remains strict and byte-compatible. New facts are
 // a separately versioned projection, included in the SAME total input byte cap.
 export const fictionContextSchema = z
@@ -718,7 +799,7 @@ export const fictionContextSchema = z
       .array(fictionAnySequenceSignatureSchema)
       .max(8)
       .optional(),
-    seriesLedger: fictionSeriesLedgerSchema.optional(),
+    seriesLedger: fictionAnySeriesLedgerSchema.optional(),
     // Living-world generation only: the bounded, deterministic view of the
     // recurring characters. Part of the request and therefore of its hash.
     characterProjection: fictionCharacterProjectionSchema.optional(),
@@ -735,6 +816,12 @@ export const fictionContextSchema = z
       !c.seriesLedger ||
       fictionSeriesQualityVersions.includes(c.policy.qualityPolicyVersion),
     'Only quality2.7 fiction context may carry a series ledger.',
+  )
+  .refine(
+    (c) =>
+      c.seriesLedger?.version !== '1.1.0' ||
+      fictionCharacterQualityVersions.includes(c.policy.qualityPolicyVersion),
+    'Only quality2.8 fiction context may carry series ledger 1.1.0.',
   )
   .refine(
     (c) =>
@@ -847,6 +934,10 @@ export const fictionArtifactSchema = z
     storyFacts: z.array(storyFactSchema).max(12),
     // Living-world generation only; the fold of these deltas is the state.
     characterDelta: fictionCharacterDeltaSchema.optional(),
+    // Living-world generation only: the planner's label of the central turn,
+    // copied from the draft (diagnostic evidence; stored 2.8.0 artifacts that
+    // predate it carry no key).
+    turnType: fictionTurnTypeSchema.nullable().optional(),
     planningReview: narrativePlanReviewV2Schema,
     editorialReport: fictionEditorialReportSchema,
     bindings: z.object(bindingsShape).strict(),
@@ -900,6 +991,12 @@ export const fictionArtifactSchema = z
         path: ['characterDelta'],
         message:
           'Only the living-world policy carries a character delta and its bindings, and it must.',
+      });
+    if (!living && artifact.turnType !== undefined)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['turnType'],
+        message: 'Only the living-world policy carries a turn type.',
       });
   });
 export type FictionArtifact = z.infer<typeof fictionArtifactSchema>;

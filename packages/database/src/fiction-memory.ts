@@ -6,11 +6,13 @@ import {
   fictionPolicy,
   fictionV9Policy,
   fictionSeriesLedgerSchema,
+  fictionSeriesLedgerV11Schema,
   fictionSeriesQualityVersions,
   NARRATIVE_MEMORY_BYTES,
   type FictionCharacterEnvelope,
   type FictionCharacterProjection,
   type FictionSeriesLedger,
+  type FictionTurnType,
   type NarrativeMemory,
   type FictionSequenceEntry,
   type FictionSequenceSignature,
@@ -25,6 +27,8 @@ import {
   hash,
   fictionCharacterProjectionFromEnvelope,
   fictionSeriesLedgerFrom,
+  fictionRecurringCastCandidates,
+  fictionSeriesLedgerV11From,
   narrativeReferenceSnapshot,
   type SeriesLedgerPeriod,
   type SeriesLedgerState,
@@ -62,6 +66,11 @@ export async function ownedFictionReferences(
       .sort((a, b) => a.id.localeCompare(b.id)),
   };
 }
+
+// Living-world sequence evidence limits and summary protection (plan D.8, A1).
+export const FICTION_LIVING_OPENING_CHARS = 160;
+export const FICTION_LIVING_ENDING_CHARS = 300;
+export const FICTION_LIVING_PROTECTED_SUMMARIES = 3;
 
 export function boundFictionContext(
   rawMemory: NarrativeMemory,
@@ -118,6 +127,15 @@ export function boundFictionContext(
   facts = allFacts.filter(
     (f) => mandatory.has(f.id) || selectedFacts.has(f.id),
   );
+  // Living-world generation: the series ledger already carries repeated
+  // openings and closings, so the raw sequence text is cut first; the chapter
+  // summaries (the planner's causal memory) are what the bound protects.
+  if (characterProjection && sequenceHistory)
+    sequenceHistory = sequenceHistory.map((entry) => ({
+      ...entry,
+      opening: entry.opening.slice(0, FICTION_LIVING_OPENING_CHARS),
+      ending: entry.ending.slice(-FICTION_LIVING_ENDING_CHARS),
+    }));
   const size = () =>
     Buffer.byteLength(
       JSON.stringify({
@@ -132,10 +150,23 @@ export function boundFictionContext(
     if (size() <= NARRATIVE_MEMORY_BYTES) break;
     p.excerpt = null;
   }
+  // v8 protects the latest summary; the living-world generation the latest
+  // FICTION_LIVING_PROTECTED_SUMMARIES, so the planner sees recent causality.
+  const threadOrigins = memory.openThreads.map((t) => t.originPeriodId);
   const protectedPeriods = new Set([
-    memory.history.at(-1)?.periodId,
-    ...memory.openThreads.map((t) => t.originPeriodId),
+    ...memory.history
+      .slice(characterProjection ? -FICTION_LIVING_PROTECTED_SUMMARIES : -1)
+      .map((p) => p.periodId),
+    ...threadOrigins,
   ]);
+  // Raw sequence text goes before any summary is deleted (living world only).
+  while (
+    characterProjection &&
+    size() > NARRATIVE_MEMORY_BYTES &&
+    sequenceHistory &&
+    sequenceHistory.length > 1
+  )
+    sequenceHistory = sequenceHistory.slice(1);
   while (
     size() > NARRATIVE_MEMORY_BYTES &&
     memory.history.some((p) => !protectedPeriods.has(p.periodId))
@@ -171,6 +202,19 @@ export function boundFictionContext(
     sequenceHistory.length > 1
   )
     sequenceHistory.shift();
+  // Last resort before failing the period: only the latest summary stays
+  // protected, the older recent ones go oldest first.
+  if (characterProjection) {
+    const latest = new Set([memory.history.at(-1)?.periodId, ...threadOrigins]);
+    while (
+      size() > NARRATIVE_MEMORY_BYTES &&
+      memory.history.some((p) => !latest.has(p.periodId))
+    )
+      memory.history.splice(
+        memory.history.findIndex((p) => !latest.has(p.periodId)),
+        1,
+      );
+  }
   if (size() > NARRATIVE_MEMORY_BYTES || facts.length > 24)
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -212,20 +256,24 @@ export async function personalFictionPeriod(
 }> {
   const living = options.generation === 'v9';
   const policy = living ? fictionV9Policy() : fictionPolicy();
-  const withLiving = async (
+  // The fold depends on the owned prefix only, so it is derived before the
+  // ledger: the ledger names the recurring cast, the cast comes from the fold.
+  const fold = living
+    ? await ownedFictionCharacterFold(
+        tx,
+        userId,
+        branchId,
+        memory.fictionalActors,
+        options.stateActorIds ?? [],
+      )
+    : undefined;
+  const withLiving = (
     context: (
       projection?: FictionCharacterProjection,
     ) => ReturnType<typeof boundFictionContext>,
     ledger?: FictionSeriesLedger,
   ) => {
-    if (!living) return { context: context() };
-    const fold = await ownedFictionCharacterFold(
-      tx,
-      userId,
-      branchId,
-      memory.fictionalActors,
-      options.stateActorIds ?? [],
-    );
+    if (!fold) return { context: context() };
     const envelope = fictionCharacterEnvelopeFrom(
       fold,
       fictionCharacterSignals(memory, ledger, fold),
@@ -264,10 +312,15 @@ export async function personalFictionPeriod(
   );
   const active = new Map<string, StoryFact>();
   const signatures: FictionSequenceSignature[] = [];
+  // The planner's turn label of each owned period (null: unlabelled or older).
+  const turns: (FictionTurnType | null)[] = [];
   for (const row of rows) {
-    if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0')
+    if ((row.artifact as { version?: unknown } | null)?.version !== '2.0.0') {
+      turns.push(null);
       continue;
+    }
     const artifact = fictionArtifactSchema.parse(row.artifact);
+    turns.push(artifact.turnType ?? null);
     if (
       artifact.editorialReport.version === '1.2.0' ||
       artifact.editorialReport.version === '1.3.0'
@@ -311,19 +364,26 @@ export async function personalFictionPeriod(
     };
   });
   const last = rows.at(-1);
+  const ledgerPeriods = rows.map((row) => ({
+    periodId: row.period_id,
+    body: row.chapter.body,
+    events: row.events,
+  }));
+  // Legacy rows without a stored end state contribute no people.
+  const ledgerState = last?.end_state ?? { actors: [], goals: [] };
   const seriesLedger =
     last && fictionSeriesQualityVersions.includes(policy.qualityPolicyVersion)
-      ? fictionSeriesLedgerSchema.parse(
-          fictionSeriesLedgerFrom(
-            rows.map((row) => ({
-              periodId: row.period_id,
-              body: row.chapter.body,
-              events: row.events,
-            })),
-            // Legacy rows without a stored end state contribute no people.
-            last.end_state ?? { actors: [], goals: [] },
-          ),
-        )
+      ? fold
+        ? fictionSeriesLedgerV11Schema.parse(
+            fictionSeriesLedgerV11From(ledgerPeriods, ledgerState, {
+              branchId,
+              cast: fictionRecurringCastCandidates(fold.state.actors),
+              turns,
+            }),
+          )
+        : fictionSeriesLedgerSchema.parse(
+            fictionSeriesLedgerFrom(ledgerPeriods, ledgerState),
+          )
       : undefined;
   return withLiving(
     (projection) =>

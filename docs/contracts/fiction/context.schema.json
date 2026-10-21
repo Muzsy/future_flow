@@ -812,219 +812,548 @@
       }
     },
     "seriesLedger": {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "string",
-          "const": "1.0.0"
-        },
-        "ownedChapters": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 1000
-        },
-        "repeatedOpenings": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 80
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100000
-              },
-              "chapters": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 1000
-              }
-            },
-            "required": [
-              "text",
-              "count",
-              "chapters"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "repeatedPhrases": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 80
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100000
-              },
-              "chapters": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 1000
-              }
-            },
-            "required": [
-              "text",
-              "count",
-              "chapters"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "frictionBeat": {
+      "anyOf": [
+        {
           "type": "object",
           "properties": {
-            "chaptersWithMarkers": {
+            "version": {
+              "type": "string",
+              "const": "1.0.0"
+            },
+            "ownedChapters": {
               "type": "integer",
               "minimum": 0,
               "maximum": 1000
             },
-            "recentRun": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 1000
-            },
-            "recentMarkers": {
-              "maxItems": 8,
+            "repeatedOpenings": {
+              "maxItems": 6,
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 40
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "repeatedPhrases": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "frictionBeat": {
+              "type": "object",
+              "properties": {
+                "chaptersWithMarkers": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentRun": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentMarkers": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              },
+              "required": [
+                "chaptersWithMarkers",
+                "recentRun",
+                "recentMarkers"
+              ],
+              "additionalProperties": false
+            },
+            "recentClosings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "periodId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "sentence": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "periodId",
+                  "sentence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "privateLife": {
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "partner",
+                      "family",
+                      "friend"
+                    ]
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "relationship",
+                  "chaptersPresent",
+                  "chaptersSinceLast"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "goalActivity": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "goalId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersSinceProgressChange": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goalId",
+                  "chaptersSinceProgressChange"
+                ],
+                "additionalProperties": false
               }
             }
           },
           "required": [
-            "chaptersWithMarkers",
-            "recentRun",
-            "recentMarkers"
+            "version",
+            "ownedChapters",
+            "repeatedOpenings",
+            "repeatedPhrases",
+            "frictionBeat",
+            "recentClosings",
+            "privateLife",
+            "goalActivity"
           ],
           "additionalProperties": false
         },
-        "recentClosings": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "periodId": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "sentence": {
-                "type": "string",
-                "maxLength": 200
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "const": "1.1.0"
+            },
+            "ownedChapters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "repeatedOpenings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
               }
             },
-            "required": [
-              "periodId",
-              "sentence"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "privateLife": {
-          "maxItems": 12,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "actorId": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            "repeatedPhrases": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "frictionBeat": {
+              "type": "object",
+              "properties": {
+                "chaptersWithMarkers": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentRun": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentMarkers": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
               },
-              "relationship": {
+              "required": [
+                "chaptersWithMarkers",
+                "recentRun",
+                "recentMarkers"
+              ],
+              "additionalProperties": false
+            },
+            "recentClosings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "periodId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "sentence": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "periodId",
+                  "sentence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "privateLife": {
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "partner",
+                      "family",
+                      "friend"
+                    ]
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "relationship",
+                  "chaptersPresent",
+                  "chaptersSinceLast"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "goalActivity": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "goalId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersSinceProgressChange": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goalId",
+                  "chaptersSinceProgressChange"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "recurringCast": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "openMatter": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "chaptersPresent",
+                  "chaptersSinceLast",
+                  "openMatter"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "recentTurns": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "attempt_meets_resistance",
+                      "outsider_reads_the_work",
+                      "other_persons_aim_crosses",
+                      "old_matter_returns",
+                      "event_from_outside",
+                      "success_with_price",
+                      "relationship_shift",
+                      "protagonist_refuses_or_withdraws",
+                      "delayed_cost_of_earlier_choice",
+                      "quiet_persistence",
+                      "other"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "turnQueue": {
+              "maxItems": 10,
+              "type": "array",
+              "items": {
                 "type": "string",
                 "enum": [
-                  "partner",
-                  "family",
-                  "friend"
-                ]
-              },
-              "chaptersPresent": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 1000
-              },
-              "chaptersSinceLast": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1000
-                  },
-                  {
-                    "type": "null"
-                  }
+                  "attempt_meets_resistance",
+                  "outsider_reads_the_work",
+                  "other_persons_aim_crosses",
+                  "old_matter_returns",
+                  "event_from_outside",
+                  "success_with_price",
+                  "relationship_shift",
+                  "protagonist_refuses_or_withdraws",
+                  "delayed_cost_of_earlier_choice",
+                  "quiet_persistence"
                 ]
               }
             },
-            "required": [
-              "actorId",
-              "relationship",
-              "chaptersPresent",
-              "chaptersSinceLast"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "goalActivity": {
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "goalId": {
+            "restingTurns": {
+              "maxItems": 2,
+              "type": "array",
+              "items": {
                 "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "chaptersSinceProgressChange": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1000
-                  },
-                  {
-                    "type": "null"
-                  }
+                "enum": [
+                  "attempt_meets_resistance",
+                  "outsider_reads_the_work",
+                  "other_persons_aim_crosses",
+                  "old_matter_returns",
+                  "event_from_outside",
+                  "success_with_price",
+                  "relationship_shift",
+                  "protagonist_refuses_or_withdraws",
+                  "delayed_cost_of_earlier_choice",
+                  "quiet_persistence"
                 ]
               }
-            },
-            "required": [
-              "goalId",
-              "chaptersSinceProgressChange"
-            ],
-            "additionalProperties": false
-          }
+            }
+          },
+          "required": [
+            "version",
+            "ownedChapters",
+            "repeatedOpenings",
+            "repeatedPhrases",
+            "frictionBeat",
+            "recentClosings",
+            "privateLife",
+            "goalActivity",
+            "recurringCast",
+            "recentTurns",
+            "turnQueue",
+            "restingTurns"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "version",
-        "ownedChapters",
-        "repeatedOpenings",
-        "repeatedPhrases",
-        "frictionBeat",
-        "recentClosings",
-        "privateLife",
-        "goalActivity"
-      ],
-      "additionalProperties": false
+      ]
     },
     "characterProjection": {
       "type": "object",

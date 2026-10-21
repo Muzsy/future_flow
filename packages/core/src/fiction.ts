@@ -7,7 +7,7 @@ import {
   fictionDraftSchemaFor,
   fictionAuthorSchemaFor,
   fictionCompactAuthorV9Schema,
-  fictionCompactDraftV9Schema,
+  fictionStoredDraftV9Schema,
   fictionCharacterQualityVersions,
   fictionThreeActorQualityVersions,
   fictionCharacterEnvelopeSchema,
@@ -29,6 +29,7 @@ import {
   type FictionCharacterDelta,
   type FictionCharacterIntent,
   type FictionContinuityDecision,
+  type FictionTurnType,
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
@@ -198,7 +199,7 @@ function fictionCharacterScope(
 // always used; only the living-world generation reads the v9 shapes.
 const requestDraftSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-    ? fictionCompactDraftV9Schema
+    ? fictionStoredDraftV9Schema
     : narrativePlanningResultSchema;
 const requestAuthorSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
@@ -503,13 +504,14 @@ export function fictionCanon(
   const scope = fictionScope(input),
     result = (
       scope.characters && !options.base
-        ? fictionCompactDraftV9Schema
+        ? fictionStoredDraftV9Schema
         : scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
           ? fictionCompactDraftSchema
           : narrativePlanningResultSchema
     ).parse(raw) as NarrativePlanningResult & {
       characterIntent?: FictionCharacterIntent[];
       continuityDecisions?: FictionContinuityDecision[];
+      turnType?: FictionTurnType | null;
     };
   const c = result.candidate;
   if (
@@ -532,6 +534,7 @@ export function fictionCanon(
   const {
     characterIntent: _intent,
     continuityDecisions: _continuity,
+    turnType: _turnType,
     ...planResult
   } = result;
   validateNarrativePlan(
@@ -744,6 +747,9 @@ export function fictionBindings(
       : {}),
   };
 }
+function draftTurnType(draft: unknown) {
+  return (draft as { turnType?: FictionTurnType | null }).turnType;
+}
 function authoredCharacterDelta(authored: FictionAuthorResult) {
   return (authored as { characterDelta?: FictionCharacterDelta })
     .characterDelta;
@@ -870,6 +876,11 @@ export function buildFictionArtifact(
     storyFacts: authored.storyFacts,
     ...(run.characters
       ? { characterDelta: authoredCharacterDelta(authored) }
+      : {}),
+    // Copied from the planner's draft; drafts stored before the label existed
+    // carry none and rebuild byte-identical (checkpoint proof).
+    ...(run.characters && draftTurnType(draft) !== undefined
+      ? { turnType: draftTurnType(draft) }
       : {}),
     planningReview: r,
     editorialReport: fictionEditorialReportSchema.parse(editor),

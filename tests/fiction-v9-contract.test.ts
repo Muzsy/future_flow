@@ -6,7 +6,11 @@ import {
   NARRATIVE_ARTIFACT_BYTES,
   fictionArtifactSchema,
   fictionContextSchema,
+  fictionCompactDraftV9Schema,
   fictionDraftSchemaFor,
+  fictionSeriesLedgerSchema,
+  fictionSeriesLedgerV11Schema,
+  fictionStoredDraftV9Schema,
   fictionEditorialVersionFor,
   fictionPolicy,
   fictionPolicySchema,
@@ -20,6 +24,8 @@ import {
 } from '@future-flow/contracts';
 import {
   buildFictionArtifact,
+  fictionSeriesLedgerFrom,
+  fictionSeriesLedgerV11From,
   characterStateFromHistory,
   emptyFictionCharacterState,
   fictionAuthorRequest,
@@ -844,5 +850,130 @@ describe('v9 draft intent and author delta validation', () => {
     expect(() => validateFictionAuthor(v8.input, v8.authored)).not.toThrow();
     // Sanity for the fixture helpers.
     expect(randomUUID()).toHaveLength(36);
+  });
+});
+
+describe('the planner turn label (v9 only)', () => {
+  const build = (f: ReturnType<typeof living>, draft: unknown) =>
+    buildFictionArtifact(
+      f.input,
+      draft as typeof f.draft,
+      f.authored,
+      f.review,
+      f.fidelity,
+      f.editor,
+      fictionProof({ ...f, draft } as typeof f),
+    );
+  it('is a required, nullable key of the provider draft and an optional one of a stored draft', () => {
+    const living9 = living();
+    const { turnType: _label, ...unlabelledDraft } = living9.draft;
+    const f = { ...living9, draft: unlabelledDraft };
+    const provider = fictionDraftSchemaFor(fictionV9Policy());
+    expect(provider).toBe(fictionCompactDraftV9Schema);
+    expect(provider.safeParse({ ...f.draft, turnType: null }).success).toBe(
+      true,
+    );
+    expect(
+      provider.safeParse({ ...f.draft, turnType: 'old_matter_returns' })
+        .success,
+    ).toBe(true);
+    // Strict provider output: the key must be there, and from the catalogue.
+    expect(provider.safeParse(f.draft).success).toBe(false);
+    expect(
+      provider.safeParse({ ...f.draft, turnType: 'a_new_made_up_type' })
+        .success,
+    ).toBe(false);
+    // The first 2.8.0 runs stored drafts without the key; they stay readable.
+    expect(fictionStoredDraftV9Schema.safeParse(f.draft).success).toBe(true);
+    expect(
+      fictionStoredDraftV9Schema.safeParse({ ...f.draft, turnType: 'x_y' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('is copied from the draft into the artifact, and a stored draft without it rebuilds byte-identical', () => {
+    const living9 = living();
+    const { turnType: _label, ...unlabelledDraft } = living9.draft;
+    const f = { ...living9, draft: unlabelledDraft };
+    const labelled = build(f, { ...f.draft, turnType: 'old_matter_returns' });
+    expect(labelled.turnType).toBe('old_matter_returns');
+    expect(fictionArtifactSchema.safeParse(labelled).success).toBe(true);
+    const unlabelled = build(f, { ...f.draft, turnType: null });
+    expect(unlabelled.turnType).toBeNull();
+    // No key in the stored draft: no key in the artifact, so a checkpoint
+    // proof built before the label existed still hashes the same.
+    const legacy = build(f, f.draft);
+    expect(legacy).not.toHaveProperty('turnType');
+    expect(fictionArtifactSchema.safeParse(legacy).success).toBe(true);
+    expect(
+      fictionArtifactSchema.safeParse({ ...legacy, turnType: 'nonsense' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('is refused on a v8 artifact', () => {
+    const f = fictionFixture();
+    const v8 = structuredClone(f.input);
+    (v8.narrativeContext as { policy: unknown }).policy = fictionV8Policy();
+    const g = fictionFixture(v8);
+    const artifact = buildFictionArtifact(
+      g.input,
+      g.draft,
+      g.authored,
+      g.review,
+      g.fidelity,
+      g.editor,
+      fictionProof(g),
+    );
+    expect(artifact).not.toHaveProperty('turnType');
+    for (const turnType of ['quiet_persistence', null])
+      expect(
+        fictionArtifactSchema.safeParse({ ...artifact, turnType }).success,
+      ).toBe(false);
+  });
+
+  it('puts ledger 1.1.0 in v9 contexts only, and still reads a v9 context with 1.0.0', () => {
+    const f = living();
+    const periods = [1, 2].map((n) => ({
+      periodId: id(300 + n),
+      body: `Chapter ${n} closes on a plain sentence about the harbour.`,
+      events: [{ actorIds: [], changes: [] }],
+    }));
+    const state = { actors: [], goals: [] };
+    const v10 = fictionSeriesLedgerSchema.parse(
+      fictionSeriesLedgerFrom(periods, state),
+    );
+    const v11 = fictionSeriesLedgerV11Schema.parse(
+      fictionSeriesLedgerV11From(periods, state, {
+        branchId: id(1),
+        cast: [],
+        turns: [null, 'quiet_persistence'],
+      }),
+    );
+    const context = f.input.narrativeContext as Record<string, unknown>;
+    expect(
+      fictionContextSchema.safeParse({ ...context, seriesLedger: v11 }).success,
+    ).toBe(true);
+    expect(
+      fictionContextSchema.safeParse({ ...context, seriesLedger: v10 }).success,
+    ).toBe(true);
+    const v8 = fictionFixture().input.narrativeContext as Record<
+      string,
+      unknown
+    >;
+    expect(
+      fictionContextSchema.safeParse({
+        ...v8,
+        policy: fictionV8Policy(),
+        seriesLedger: v11,
+      }).success,
+    ).toBe(false);
+    expect(
+      fictionContextSchema.safeParse({
+        ...v8,
+        policy: fictionV8Policy(),
+        seriesLedger: v10,
+      }).success,
+    ).toBe(true);
   });
 });

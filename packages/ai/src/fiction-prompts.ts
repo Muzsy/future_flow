@@ -227,13 +227,50 @@ export function fictionPrompts(
     oldAcceptance,
     'Acceptance requires all eight scores >=4 and no major or canon issue.',
   );
+  // v9 planner (Ákos's decision of 2026-10-21 23:30 Hungarian time, deviating on
+  // purpose from "v9 keeps every v8 rule"): the planner writes no prose, so the
+  // prose-side craft rules it could not carry out are removed from ITS text (the
+  // author and editor texts keep them), its opening no longer prescribes the
+  // "attempt meets resistance" skeleton, and its closed list of alternative
+  // progression sources becomes the turn-type catalogue. Every replacement is
+  // exactly-once and checked at load, like the v9 editor above.
+  const once = (text: string, from: string, to: string) => {
+    if (text.split(from).length !== 2)
+      throw new Error(
+        `A v9 planner replacement must match exactly once: ${from.slice(0, 48)}`,
+      );
+    return text.replace(from, () => to);
+  };
+  const plannerOpening =
+    'Start from what this protagonist wants, let a specific attempt meet a person or resistance, and allow';
+  const humanRhythm = ` Vary sentence rhythm and the closing device across chapters: do not routinely build a balanced antithesis (for example "You had understood X. She had understood Y." or "You miss X. You do not miss Y."), an "almost say... then stop..." self-correction formula, an explicit spoken moral, or a quiet object tableau ending; an ordinary sentence can close a chapter as well as a polished one, and an incidental detail need not pay off later.`;
+  const returningCast = `\nRETURNING-CAST CRAFT: seriesLedger.recurringCast lists the wholly fictional recurring people with chaptersPresent, chaptersSinceLast and whether their matter is still open. A person with an open matter who has been absent for two or more chapters is a natural source of this period's turn: let the period, or one event of it, begin from something that person wants (a message, a request, a consequence of their own work) instead of introducing a further outsider whose only role is to meet the protagonist's latest work. This is neither a quota nor a rotation: a person may stay offstage when this period's own causality gives a reason, and a defer then names that reason in continuityDecisions. Register every new lasting fact about them in storyFacts as usual.`;
+  // The catalogue lines are the one-sentence descriptions of
+  // FICTION_TURN_TYPES (plan D.8); each value is named exactly once.
+  const turnTypeCraft = `\nTURN-TYPE CRAFT: return turnType: the catalogue value this period's central turn (what changes the situation, not its topic) belongs to, judged by the events, or other, or null. Catalogue: attempt_meets_resistance (the protagonist's own attempt meets resistance and ends partial, changed or abandoned); outsider_reads_the_work (someone outside judges the protagonist's work and finds what the protagonist had not seen; the densest pattern, use it rarely); other_persons_aim_crosses (another person's own plan, independent of the protagonist's project, crosses the protagonist); old_matter_returns (an earlier person, promise, dispute or thread returns and asks something); event_from_outside (a cost, deadline, season, closure, move or news changes the options, independent of the protagonist's project); success_with_price (something works and its price in time, a bond or a lost chance is the chapter's subject); relationship_shift (a bond changes for its own reasons, the work staying in the background); protagonist_refuses_or_withdraws (the protagonist declines, stops or holds a position, and others bear the consequence); delayed_cost_of_earlier_choice (the consequence of an earlier accepted choice or omission arrives now); quiet_persistence (no outside verdict: slow, steady work or a small shift in ordinary life). seriesLedger.turnQueue lists the catalogue from least to most recently used. When several types fit this period equally, prefer the one nearest the front; types in seriesLedger.restingTurns were used in the last two chapters, so choose one of them only when this period's own causality truly asks for it. This is a planning note, neither a quota nor a schedule: never add an event, person or fact only to reach a type, never force spectacle, keep accepted choices, hard boundaries, the safety scope and the supplied-person rules. A type that involves a recurring person uses a wholly fictional one.`;
+  let v9Planner = v8Prompts.planner;
+  v9Planner = once(
+    v9Planner,
+    plannerOpening,
+    'Start from what this protagonist wants and from what the other people in the story are already doing; let their paths cross, and allow',
+  );
+  v9Planner = once(v9Planner, progressionDiversity, turnTypeCraft);
+  v9Planner = once(v9Planner, humanRhythm, '');
+  for (const section of [
+    closingPassage,
+    patternSignal,
+    frictionBeat,
+    endingKind,
+  ])
+    v9Planner = once(v9Planner, section, '');
+  v9Planner = once(v9Planner, seriesLedger, seriesLedger + returningCast);
   return {
     ...v8Prompts,
     editor:
       versions.editor === 'life_fiction_editor.v9'
         ? v9Editor
         : v8Prompts.editor,
-    planner: v8Prompts.planner + characterIntent,
+    planner: v9Planner + characterIntent,
     author: v8Prompts.author + characterState + choiceCraft,
     review:
       v8Prompts.review +
