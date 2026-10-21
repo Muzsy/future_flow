@@ -711,6 +711,281 @@ describe('a v8 life continued under v9', () => {
   });
 });
 
+type ProviderOf = ReturnType<typeof provider>;
+const stageNames = (p: ProviderOf) =>
+  p.parse.mock.calls.map((c) => c[0].text.format.name);
+// The repair message the repairing author was given (the last request).
+function repairMessageOf(p: ProviderOf) {
+  const raw = p.parse.mock.calls.at(-1)![0] as unknown as {
+    input: { role: string; content: string }[];
+  };
+  return JSON.parse(raw.input.find((i) => i.role === 'user')!.content)
+    .authorRepair as { mode: string; message: string; repairRule?: string };
+}
+const failedFidelity = (reason: string) => ({
+  valid: false,
+  issues: [{ chapterNo: 1, reason }],
+});
+function failingEditor(
+  f: Fixture,
+  issues: Partial<
+    Authored['chapter'] & {
+      dimension: string;
+      severity: string;
+      repairScope: string;
+      explanation: string;
+      suggestedFix: string;
+    }
+  >[],
+) {
+  return {
+    ...f.f.editor,
+    verdict: 'revise' as const,
+    sequenceReview: { ...f.f.editor.sequenceReview, distinctEnding: false },
+    issues: issues.map((issue) => ({
+      dimension: 'choiceStakes',
+      severity: 'minor',
+      repairScope: 'prose',
+      paragraphIndex: 1,
+      eventIds: [],
+      explanation: 'The stakes only live in the structured decision.',
+      suggestedFix: 'Show the cost of the commitment inside the scene itself.',
+      ...issue,
+    })),
+  };
+}
+const PLAN_STAGES = [
+  'life_narrative_plan',
+  'life_narrative_chapter',
+  'life_narrative_plan_review',
+  'life_fidelity',
+];
+const rowsOf = (f: Fixture) =>
+  db.query('SELECT id FROM aw_periods WHERE id=$1', [f.job.payload.periodId]);
+
+describe('v9 repairs a fidelity failure before reading the editor', () => {
+  it('makes a fidelity-triggered chapter eight calls with the plain fidelity message', async () => {
+    const f = await fixture();
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n === 1
+        ? failedFidelity('REGISTER_ATTENDANT: register the attendant.')
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(stageNames(p)).toEqual([
+      ...PLAN_STAGES,
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.repairUsed).toBe(true);
+    expect(done.checkpoints.providerRequestCount).toBe(8);
+    const repairs = p.parse.mock.calls
+      .map((c) =>
+        JSON.parse(c[0].input.find((i) => i.role === 'user')!.content),
+      )
+      .filter((m) => m.authorRepair);
+    expect(repairs).toHaveLength(1);
+    const feedback = repairs[0].authorRepair;
+    expect(feedback.mode).toBe('author_package');
+    expect(feedback.message).toBe(
+      'Correct the final package/prose discrepancy: REGISTER_ATTENDANT: register the attendant.',
+    );
+    expect(feedback.message).not.toContain('Fix BOTH');
+    // The editor was called once, on the repaired package.
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_editor',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('judges the repaired package once: an editor revise or a repeated fidelity failure ends the job', async () => {
+    const f = await fixture();
+    const revise = provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1)
+        return failedFidelity('Correct a calendar word.');
+      return task === 'life_narrative_editor' ? failingEditor(f, [{}]) : output;
+    });
+    await expect(processLifeJob(f.job, jobs, revise.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(revise.parse).toHaveBeenCalledTimes(8);
+    expect(await rowsOf(f)).toHaveLength(0);
+    const g = await fixture();
+    const again = provider(g, (task, _n, output) =>
+      task === 'life_fidelity' ? failedFidelity('Still wrong.') : output,
+    );
+    await expect(processLifeJob(g.job, jobs, again.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(stageNames(again)).toEqual([
+      ...PLAN_STAGES,
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_fidelity',
+    ]);
+    expect(await rowsOf(g)).toHaveLength(0);
+  });
+
+  it('fits one transport retry before the repair into the nine-call ceiling and refuses a partial repair', async () => {
+    const f = await fixture();
+    await jobs.checkpoint(f.job, 'EARLIER_ADMISSION', {
+      providerRequestCount: 1,
+    });
+    const fail = (task: string, n: number, output: unknown) =>
+      task === 'life_fidelity' && n === 1
+        ? failedFidelity('Correct a calendar word.')
+        : output;
+    const p = provider(f, fail);
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(8);
+    expect((await saved(f.job)).checkpoints.providerRequestCount).toBe(9);
+    const g = await fixture();
+    await jobs.checkpoint(g.job, 'EARLIER_ADMISSIONS', {
+      providerRequestCount: 2,
+    });
+    const q = provider(g, fail);
+    await expect(processLifeJob(g.job, jobs, q.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_REQUEST_LIMIT',
+    });
+    expect(q.parse).toHaveBeenCalledTimes(4);
+    expect((await saved(g.job)).checkpoints.repairUsed).not.toBe(true);
+    expect(await rowsOf(g)).toHaveLength(0);
+  });
+
+  it('keeps the plan-review failure at seven calls with its own message', async () => {
+    const f = await fixture();
+    const p = provider(f, (task, n, output) =>
+      task === 'life_narrative_plan_review' && n === 1
+        ? {
+            ...(output as typeof f.f.review),
+            scores: { ...f.f.review.scores, causality: 2 },
+          }
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(7);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_fidelity',
+      ),
+    ).toHaveLength(1);
+    const repairs = p.parse.mock.calls
+      .map((c) =>
+        JSON.parse(c[0].input.find((i) => i.role === 'user')!.content),
+      )
+      .filter((m) => m.authorRepair);
+    expect(repairs[0].authorRepair.message).toMatch(
+      /^Improve the final authored story: /,
+    );
+  });
+
+  it('leaves the frozen v8 policy on its nine-call combined repair', async () => {
+    const f = await fixture('v8');
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n === 1
+        ? failedFidelity('Correct a calendar word.')
+        : task === 'life_narrative_editor' && n === 1
+          ? failingEditor(f, [{}])
+          : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(p.parse).toHaveBeenCalledTimes(9);
+    expect(
+      p.parse.mock.calls.filter(
+        (c) => c[0].text.format.name === 'life_narrative_editor',
+      ),
+    ).toHaveLength(2);
+    const repairs = p.parse.mock.calls
+      .map((c) =>
+        JSON.parse(c[0].input.find((i) => i.role === 'user')!.content),
+      )
+      .filter((m) => m.authorRepair);
+    expect(repairs[0].authorRepair.message).toMatch(
+      /^Fix BOTH final checks in one full-package repair\.\nFidelity: /,
+    );
+  });
+});
+
+describe('the v9 editor-triggered repair message', () => {
+  const blocking = (tag: string) => ({
+    severity: 'major',
+    repairScope: 'canon',
+    explanation: `${tag}_EXPLAIN ` + 'e'.repeat(300),
+    suggestedFix: `${tag}_FIX ` + 'f'.repeat(300),
+  });
+  async function messageFor(generation: Generation, issues: object[]) {
+    const f = await fixture(generation);
+    const p = provider(f, (task, n, output) =>
+      task === 'life_narrative_editor' && n === 1
+        ? failingEditor(f, issues)
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    const repairs = p.parse.mock.calls
+      .map((c) =>
+        JSON.parse(c[0].input.find((i) => i.role === 'user')!.content),
+      )
+      .filter((m) => m.authorRepair);
+    return repairs[0].authorRepair.message as string;
+  }
+
+  it('formats flags and issues like the combined message, keeps every blocking fix and no raw JSON', async () => {
+    const message = await messageFor('v9', [
+      blocking('A'),
+      {
+        explanation: 'N_EXPLAIN ' + 'n'.repeat(320),
+        suggestedFix: 'N_FIX ' + 'm'.repeat(320),
+      },
+      blocking('B'),
+      blocking('C'),
+      {
+        explanation: 'M_EXPLAIN ' + 'n'.repeat(320),
+        suggestedFix: 'M_FIX ' + 'm'.repeat(320),
+      },
+    ]);
+    expect(message.length).toBeLessThanOrEqual(1800);
+    expect(message).toMatch(/^Correct the final package's literary issues:\n/);
+    expect(message).toContain('Failing flags: distinctEnding');
+    expect(message).toContain('Scores below 4:');
+    expect(message).toContain(
+      'choiceStakes/major/canon, paragraph 1: A_EXPLAIN',
+    );
+    // Every blocking issue keeps its whole suggestedFix.
+    for (const tag of ['A', 'B', 'C'])
+      expect(message).toContain(`Fix: ${tag}_FIX ${'f'.repeat(300)}`);
+    expect(message).toContain('[clipped]');
+    expect(message).not.toContain('Rewrite the weak story');
+    expect(message).not.toContain('{"');
+    expect(message).not.toContain('"version"');
+  });
+
+  it('stays within the budget even when the blocking fixes alone are too long', async () => {
+    const message = await messageFor(
+      'v9',
+      Array.from({ length: 8 }, (_, i) => ({
+        ...blocking(String(i)),
+        suggestedFix: `${i}_FIX ` + 'f'.repeat(340),
+      })),
+    );
+    expect(message.length).toBeLessThanOrEqual(1800);
+    expect(message).toMatch(/^Correct the final package's literary issues:\n/);
+    expect(message).not.toContain('{"');
+  });
+
+  it('leaves the v8 message byte-for-byte the old wording', async () => {
+    const message = await messageFor('v8', [{}]);
+    expect(message).toMatch(
+      /^Rewrite the weak story rather than paraphrasing it: \{"version":"1\.3\.0"/,
+    );
+    expect(message.length).toBeLessThanOrEqual(1800);
+  });
+});
+
 describe('fiction generation selection', () => {
   const base = {
     NARRATIVE_PIPELINE_MODE: 'narrative-fiction-v2',

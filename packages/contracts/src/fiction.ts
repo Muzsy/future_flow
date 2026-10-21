@@ -88,6 +88,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v6',
           'life_fiction_editor.v7',
           'life_fiction_editor.v8',
+          'life_fiction_editor.v9',
         ]),
       })
       .strict(),
@@ -115,10 +116,14 @@ export const fictionPolicySchema = z
     if (
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
-      policy.promptVersions.editor !==
-        (v === 'v9'
-          ? 'life_fiction_editor.v8'
-          : v === 'v8'
+      !(v === 'v9'
+        ? // A v9 snapshot made before the v9 editor prompt keeps the v8 editor
+          // text and stays readable; new v9 jobs select the v9 editor.
+          ['life_fiction_editor.v8', 'life_fiction_editor.v9'].includes(
+            policy.promptVersions.editor,
+          )
+        : policy.promptVersions.editor ===
+          (v === 'v8'
             ? 'life_fiction_editor.v7'
             : v === 'v7'
               ? 'life_fiction_editor.v6'
@@ -130,7 +135,7 @@ export const fictionPolicySchema = z
                     ? 'life_fiction_editor.v3'
                     : v === 'v3'
                       ? 'life_fiction_editor.v2'
-                      : 'life_fiction_editor.v1') ||
+                      : 'life_fiction_editor.v1')) ||
       (!(v === 'v6' && policy.qualityPolicyVersion === '2.5.0') &&
         policy.qualityPolicyVersion !==
           (v === 'v9'
@@ -297,7 +302,7 @@ export function fictionV9Policy(): FictionPolicy {
       planner: 'life_fiction_plan.v9',
       writer: 'life_fiction_author.v9',
       planReviewer: 'life_fiction_plan_review.v9',
-      editor: 'life_fiction_editor.v8',
+      editor: 'life_fiction_editor.v9',
     },
   };
 }
@@ -313,6 +318,14 @@ export const fictionSeriesQualityVersions: readonly string[] = [
 ];
 // Quality policies that carry the recurring-character state (ADR-009).
 export const fictionCharacterQualityVersions: readonly string[] = ['2.8.0'];
+// Quality policies whose fidelity failure goes straight to the repair, without
+// the editor call that the coordinated policies make first (the editor passed
+// on every measured package that failed fidelity, so that call only cost a
+// request). The policy version stays 2.8.0: v9 is opt-in and not deployed, and
+// the v9-6b to 6g measurements are documented as the earlier behaviour.
+export const fictionFidelityFirstRepairQualityVersions: readonly string[] = [
+  '2.8.0',
+];
 // Quality policies that may introduce up to three recurring actors a period.
 export const fictionThreeActorQualityVersions: readonly string[] = [
   '2.6.0',

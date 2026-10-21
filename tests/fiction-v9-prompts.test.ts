@@ -11,7 +11,47 @@ describe('v9 prompts', () => {
     expect(v9.author.startsWith(v8.author)).toBe(true);
     expect(v9.review.startsWith(v8.review)).toBe(true);
     expect(v9.fidelity).toBe(v8.fidelity);
-    expect(v9.editor).toBe(v8.editor);
+  });
+  const OLD_ACCEPTANCE =
+    'Acceptance requires causality/momentum/sceneCraft/choiceStakes/prose >=4, eight-score mean >=4, no major or canon issue.';
+  const NEW_ACCEPTANCE =
+    'Acceptance requires all eight scores >=4 and no major or canon issue.';
+  it('give the v9 editor the gate-exact acceptance sentence and a choiceStakes calibration, and only that', () => {
+    expect(v8.editor.split(OLD_ACCEPTANCE)).toHaveLength(2);
+    expect(v9.editor.includes(OLD_ACCEPTANCE)).toBe(false);
+    expect(v9.editor.split(NEW_ACCEPTANCE)).toHaveLength(2);
+    const rubric = v9.editor.slice(
+      v9.editor.indexOf('\nCHOICE-STAKES CALIBRATION:'),
+    );
+    expect(
+      rubric.startsWith('\nCHOICE-STAKES CALIBRATION: choiceStakes is 4 when'),
+    ).toBe(true);
+    expect(rubric.length).toBeLessThan(760);
+    // Nothing else differs: the v8 text with that one replacement, then the rubric.
+    expect(v9.editor).toBe(
+      v8.editor.replace(OLD_ACCEPTANCE, NEW_ACCEPTANCE) + rubric,
+    );
+    // The later sentence of the inherited series text stays, so the prompt carries
+    // exactly the rule the gate applies.
+    expect(v9.editor).toContain(
+      'Acceptance still needs all eight scores >=4, verdict=pass, no major/canon issue, and now all seven sequence flags true.',
+    );
+    // The B variant is a Codex arm only, never the default.
+    expect(v9.editor).not.toContain('appears only as the protagonist');
+  });
+  it('keep the v8 and v7 editor text byte for byte, and a stored v9 snapshot with the v8 editor on it', () => {
+    expect(v8.editor.includes(OLD_ACCEPTANCE)).toBe(true);
+    expect(v8.editor.includes('CHOICE-STAKES CALIBRATION')).toBe(false);
+    const stored = fictionPrompts('en', {
+      ...fictionV9Policy().promptVersions,
+      editor: 'life_fiction_editor.v8',
+    });
+    expect(stored.editor).toBe(v8.editor);
+    expect(stored.author).toBe(v9.author);
+    const v7 = fictionPrompts('en', {
+      ...fictionV8Policy().promptVersions,
+    });
+    expect(v7.editor).toBe(v8.editor);
   });
   it('add short, structured-input character rules (plan section 41)', () => {
     expect(v9.planner.slice(v8.planner.length)).toContain('characterIntent');

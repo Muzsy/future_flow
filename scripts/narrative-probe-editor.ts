@@ -21,6 +21,8 @@ import {
   PROBE_TIMEOUT_MS,
   editorProbeMarkdown,
   attemptOrdinal,
+  EDITOR_PROMPT_CHOICES,
+  type EditorPromptChoice,
   editorRequest,
   findStoredChapter,
   positiveInteger,
@@ -35,11 +37,14 @@ import {
 
 // Usage: pnpm narrative:probe-editor --run <run dir> --chapter ch2
 //   [--state <state folder>] [--author last|first|<attempt ordinal>]
-//   [--runs 3] [--model gpt-6.1-sol] --out <dir>
+//   [--editor-prompt stored|v9] [--runs 3] [--model gpt-6.1-sol] --out <dir>
 // Judges one stored chapter (by default its last, repaired author package) with
 // several independent editor calls through the local Codex transport, and
 // applies the product's own editorial gate to each report. Tells a real
 // weakness from score noise: the request bytes are identical in every run.
+// --editor-prompt v9 replaces the editor text of the stored request by the v9
+// editor prompt (offline experiment, any stored generation; schema and user
+// message unchanged); the arm is named `editorPrompt` in the output.
 // Quota guarded, no API key, no ledger; the stored run is only read and --out
 // must be outside it.
 export async function runNarrativeProbeEditor(
@@ -53,6 +58,7 @@ export async function runNarrativeProbeEditor(
     '--state',
     '--chapter',
     '--author',
+    '--editor-prompt',
     '--runs',
     '--model',
     '--timeout-ms',
@@ -73,9 +79,16 @@ export async function runNarrativeProbeEditor(
   );
   const chapter = findStoredChapter(stored, run, chapterId);
   const which = args.get('--author') ?? 'last';
+  const editorPrompt = (args.get('--editor-prompt') ??
+    'stored') as EditorPromptChoice;
+  if (!EDITOR_PROMPT_CHOICES.includes(editorPrompt))
+    throw new Error(
+      `--editor-prompt must be one of ${EDITOR_PROMPT_CHOICES.join(', ')}.`,
+    );
   const request = await editorRequest(
     chapter,
     which === 'last' || which === 'first' ? which : attemptOrdinal(which),
+    editorPrompt,
   );
   const codex = {
     bin: env.ALTERWARD_CODEX_BIN ?? 'codex',
@@ -98,6 +111,7 @@ export async function runNarrativeProbeEditor(
           transport: 'codex-local',
           model: codex.model,
           reasoningEffort: CODEX_REASONING_EFFORT,
+          editorPrompt,
           source: { run, chapter: chapter.caseId },
         },
         null,
