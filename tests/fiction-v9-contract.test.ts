@@ -6,6 +6,7 @@ import {
   NARRATIVE_ARTIFACT_BYTES,
   fictionArtifactSchema,
   fictionContextSchema,
+  fictionDraftSchemaFor,
   fictionEditorialVersionFor,
   fictionPolicy,
   fictionPolicySchema,
@@ -170,7 +171,11 @@ function living(withNessa = false, envelope = emptyEnvelope()) {
   return {
     ...f,
     envelope,
-    draft: { ...f.draft, characterIntent: [] as unknown[] },
+    draft: {
+      ...f.draft,
+      characterIntent: [] as unknown[],
+      continuityDecisions: [] as unknown[],
+    },
     authored: { ...f.authored, characterDelta: emptyDelta() },
   };
 }
@@ -475,6 +480,78 @@ describe('v9 draft intent and author delta validation', () => {
     expect(() =>
       fictionCanon(v8.input, { ...v8.draft, characterIntent: [] }),
     ).toThrow();
+  });
+
+  it('binds continuity decisions to the projection, without failing a draft that gives none', () => {
+    const f = living(true);
+    // None is allowed: missing coverage is a diagnostic, never a failure.
+    expect(f.draft.continuityDecisions).toEqual([]);
+    expect(() => fictionCanon(f.input, f.draft)).not.toThrow();
+    f.draft.continuityDecisions = [
+      { actorId: NESSA, decision: 'defer', reason: 'Her shift stays busy.' },
+    ];
+    expect(() => fictionCanon(f.input, f.draft)).not.toThrow();
+    // A decision for a person the projection does not show is refused.
+    f.draft.continuityDecisions = [
+      { actorId: id(777), decision: 'carry', reason: 'Not in the cast.' },
+    ];
+    expect(() => fictionCanon(f.input, f.draft)).toThrow(
+      'not in the character projection',
+    );
+    // One decision per person, and the reason stays short.
+    const schema = fictionDraftSchemaFor(f.input.narrativeContext!.policy);
+    const twice = {
+      ...f.draft,
+      continuityDecisions: [
+        { actorId: NESSA, decision: 'carry', reason: 'First answer.' },
+        { actorId: NESSA, decision: 'resolve', reason: 'Second answer.' },
+      ],
+    };
+    expect(schema.safeParse(twice).success).toBe(false);
+    expect(
+      schema.safeParse({
+        ...f.draft,
+        continuityDecisions: [
+          { actorId: NESSA, decision: 'carry', reason: 'x'.repeat(101) },
+        ],
+      }).success,
+    ).toBe(false);
+    // A v8 draft is closed to the field.
+    const v8 = fictionFixture();
+    expect(() =>
+      fictionCanon(v8.input, { ...v8.draft, continuityDecisions: [] }),
+    ).toThrow();
+  });
+
+  it('shows the review the decisions only in v9 and only when there are some', () => {
+    const f = living(true);
+    expect(
+      fictionReviewRequest(f.input, f.authored, f.draft),
+    ).not.toHaveProperty('continuity');
+    f.draft.continuityDecisions = [
+      { actorId: NESSA, decision: 'carry', reason: 'Her matter stays live.' },
+    ];
+    const withDecisions = fictionReviewRequest(
+      f.input,
+      f.authored,
+      f.draft,
+    ) as { continuity: { continuityDecisions: unknown[] } };
+    expect(withDecisions.continuity.continuityDecisions).toHaveLength(1);
+    // The request hash follows the decisions; fidelity and editor never get them.
+    expect(hash(withDecisions)).not.toBe(
+      hash(fictionReviewRequest(f.input, f.authored)),
+    );
+    expect(fictionFidelityRequest(f.input, f.authored)).not.toHaveProperty(
+      'continuity',
+    );
+    expect(fictionEditorialRequest(f.input, f.authored)).not.toHaveProperty(
+      'continuity',
+    );
+    // v8 requests are byte-identical, draft or not.
+    const v8 = fictionFixture();
+    expect(hash(fictionReviewRequest(v8.input, v8.authored, v8.draft))).toBe(
+      hash(fictionReviewRequest(v8.input, v8.authored)),
+    );
   });
 
   it('requires a delta in the final package and validates it against the state', () => {

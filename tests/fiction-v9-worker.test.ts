@@ -32,6 +32,14 @@ import {
   type FictionCharacterEnvelope,
 } from '@future-flow/contracts';
 import { applyMigrations } from '../scripts/lib/migrations';
+import {
+  replayFailedCommit,
+  replayJobOn,
+} from '../scripts/lib/narrative-commit-replay';
+import { mkdtempSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { failureDiagnostic } from '../scripts/lib/narrative-failure-diagnostic';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
 import {
@@ -319,6 +327,166 @@ describe('living-world generation through the real guarded provider and database
       'Finding someone to cover the double shift.',
     );
     expect(envelopeOf(child).state.ownedPeriods).toBe(1);
+  });
+
+  it('commits a chapter whose planner gave continuity decisions, bound to the review that saw them', async () => {
+    // The review request carries the decisions, so every place that hashes it
+    // (receipt, binding, resume, prose-only reuse) has to pass the same draft.
+    const f = await fixture(),
+      actorId = randomUUID();
+    introduce(f, actorId);
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    const second = await nextPeriod(f);
+    const draft = second.f.draft as {
+      characterIntent: unknown[];
+      continuityDecisions: unknown[];
+    };
+    draft.continuityDecisions = [
+      {
+        actorId,
+        decision: 'defer',
+        reason: 'The double shift stays offstage.',
+      },
+    ];
+    const p = provider(second);
+    await processLifeJob(second.job, jobs, p.ai);
+    expect((await saved(second.job)).status).toBe('completed');
+    const reviewCall = p.parse.mock.calls
+      .map(
+        (c) => c[0] as { text: { format: { name: string } }; input: unknown },
+      )
+      .find((c) => c.text.format.name === 'life_narrative_plan_review')!;
+    expect(JSON.stringify(reviewCall.input)).toContain('continuityDecisions');
+    const artifact = await artifactOf(second.job.payload.periodId);
+    expect(artifact.bindings.reviewInputHash).toBeTruthy();
+  });
+
+  // A job that stops after its last checkpoint, like the failed live run, and
+  // has used all its physical requests.
+  async function failAfterLastCheckpoint(f: Fixture) {
+    const real = jobs.checkpoint.bind(jobs);
+    vi.spyOn(jobs, 'checkpoint').mockImplementation(
+      async (job, stage, patch) => {
+        if (stage === 'FICTION_READY_TO_COMMIT')
+          throw new DomainError(
+            'NARRATIVE_CONTEXT_INVALID',
+            'Injected failure.',
+          );
+        return real(job, stage, patch);
+      },
+    );
+    const error = await processLifeJob(f.job, jobs, provider(f).ai).catch(
+      (e: unknown) => e,
+    );
+    vi.restoreAllMocks();
+    await jobs.fail(f.job, error);
+    await db.query(
+      'UPDATE aw_jobs SET checkpoints=checkpoints||\'{"providerRequestCount":9}\'::jsonb WHERE id=$1',
+      [f.job.id],
+    );
+  }
+
+  it('replays a job that failed after its last checkpoint without any model call', async () => {
+    const f = await fixture();
+    await failAfterLastCheckpoint(f);
+    const failed = await saved(f.job);
+    expect(failed.status).toBe('failed');
+    expect(failed.error_code).toBe('NARRATIVE_CONTEXT_INVALID');
+    expect(failed.stage).toBe('FICTION_EDITOR_RESULT');
+    // The checkpoints serve every stage, so the replay commits the job even
+    // though it used all its requests (a normal claim would refuse it).
+    const replay = await replayJobOn(db, f.job.id);
+    expect(replay).toMatchObject({
+      outcome: 'committed',
+      stage: 'FICTION_EDITOR_RESULT',
+      providerRequestCount: 9,
+      failure: null,
+    });
+    expect((await saved(f.job)).status).toBe('completed');
+  });
+
+  it('replays a saved state directory on a copy, and swaps it in place only when asked and only if it commits', async () => {
+    const base = mkdtempSync(join(tmpdir(), 'alterward-replay-test-'));
+    const stateDir = join(base, 'state');
+    const mem = { engine, db, jobs, repo };
+    let failedId: string;
+    try {
+      // A real on-disk state with one job that failed after its last checkpoint.
+      engine = new PGlite(stateDir);
+      await engine.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
+      await applyMigrations(engine);
+      db = adapter(engine);
+      jobs = new LifeJobRepository(db);
+      repo = new Repository(db);
+      const f = await fixture();
+      await failAfterLastCheckpoint(f);
+      failedId = f.job.id;
+      await engine.close();
+    } finally {
+      ({ engine, db, jobs, repo } = mem);
+    }
+    const status = async () => {
+      const disk = new PGlite(stateDir);
+      try {
+        const rows = (
+          await disk.query<{ status: string }>(
+            'SELECT status FROM aw_jobs WHERE id=$1',
+            [failedId],
+          )
+        ).rows;
+        return rows[0]!.status;
+      } finally {
+        await disk.close();
+      }
+    };
+    try {
+      // Default: the original directory is left exactly as it was.
+      const dry = await replayFailedCommit({ stateDir });
+      expect(dry).toMatchObject({ outcome: 'committed', wroteState: false });
+      expect(await status()).toBe('failed');
+      // In place: the original is kept as .bak, the new state takes its place.
+      const live = await replayFailedCommit({ stateDir, inPlace: true });
+      expect(live).toMatchObject({ outcome: 'committed', wroteState: true });
+      expect(await status()).toBe('completed');
+      expect(existsSync(`${stateDir}.bak`)).toBe(true);
+      expect(existsSync(`${stateDir}.replayed`)).toBe(false);
+      // A second in-place run refuses to clobber the earlier backup.
+      await expect(
+        replayFailedCommit({ stateDir, inPlace: true, jobId: failedId }),
+      ).rejects.toThrow('already exists');
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  it('says so when a replay would need a model call, instead of failing as a content error', async () => {
+    const f = await fixture();
+    await failAfterLastCheckpoint(f);
+    await db.query(
+      'UPDATE aw_jobs SET checkpoints=checkpoints||\'{"fictionAuthor":null}\'::jsonb WHERE id=$1',
+      [f.job.id],
+    );
+    const replay = await replayJobOn(db, f.job.id);
+    expect(replay.outcome).toBe('needs_model_call');
+    // The job used all its requests, so the ceiling stops the call first.
+    expect(replay.failure?.code).toBe('NARRATIVE_REQUEST_LIMIT');
+  });
+
+  it('keeps the validator message and the throwing frames of a failure', () => {
+    const d = failureDiagnostic(
+      new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'Fiction receipt binding or final-stage order differs.',
+      ),
+    );
+    expect(d.code).toBe('NARRATIVE_CONTEXT_INVALID');
+    expect(d.message).toContain('receipt binding');
+    expect(d.frames.length).toBeGreaterThan(0);
+    expect(d.frames.length).toBeLessThanOrEqual(5);
+    expect(failureDiagnostic(new Error('x'.repeat(900))).message).toHaveLength(
+      400,
+    );
+    expect(failureDiagnostic('plain').code).toBe('JOB_FAILED');
   });
 
   it('refuses a tampered or stale envelope before any call and commits nothing', async () => {

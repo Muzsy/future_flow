@@ -11,6 +11,8 @@ import {
 import {
   fictionCharacterDeltaSchema,
   fictionCharacterIntentSchema,
+  fictionContinuityDecisionSchema,
+  FICTION_CHARACTER_CONTINUITY,
   fictionCharacterProjectionSchema,
   FICTION_CHARACTER_INTENTS,
 } from './fiction-character';
@@ -607,6 +609,9 @@ export const fictionCompactDraftV9Schema = fictionCompactDraftSchema
     characterIntent: z
       .array(fictionCharacterIntentSchema)
       .max(FICTION_CHARACTER_INTENTS),
+    continuityDecisions: z
+      .array(fictionContinuityDecisionSchema)
+      .max(FICTION_CHARACTER_CONTINUITY),
   })
   .strict()
   .refine(
@@ -614,6 +619,12 @@ export const fictionCompactDraftV9Schema = fictionCompactDraftSchema
       new Set(draft.characterIntent.map((i) => i.actorId)).size ===
       draft.characterIntent.length,
     'A person has one intent per draft.',
+  )
+  .refine(
+    (draft) =>
+      new Set(draft.continuityDecisions.map((d) => d.actorId)).size ===
+      draft.continuityDecisions.length,
+    'A person has one continuity decision per draft.',
   );
 export type FictionDraftV9 = z.infer<typeof fictionCompactDraftV9Schema>;
 // Deterministic, server-computed evidence over this life's owned chapters

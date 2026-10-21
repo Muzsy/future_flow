@@ -333,8 +333,8 @@ export async function processFictionLifeJob(
       if (
         feedback?.mode === 'prose_only' &&
         (!feedback.previous ||
-          hash(fictionReviewRequest(input, feedback.previous)) !==
-            hash(fictionReviewRequest(input, authored)))
+          hash(fictionReviewRequest(input, feedback.previous, draft)) !==
+            hash(fictionReviewRequest(input, authored, draft)))
       )
         throw new DomainError(
           'NARRATIVE_PLAN_INVALID',
@@ -353,7 +353,7 @@ export async function processFictionLifeJob(
       review &&
       !matches(
         'life_narrative_plan_review',
-        fictionReviewRequest(input, authored),
+        fictionReviewRequest(input, authored, draft),
         review,
       )
     ) {
@@ -368,7 +368,7 @@ export async function processFictionLifeJob(
     try {
       if (!review) {
         await allowed();
-        const response = await ai.reviewFiction(input, authored);
+        const response = await ai.reviewFiction(input, authored, draft);
         review = response.output;
         await record('FICTION_FINAL_REVIEW_RESULT', response, {
           planningReview: review,

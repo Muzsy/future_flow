@@ -124,6 +124,10 @@ export type AttemptTransportSummary = {
   // (the local Codex/agy runners): tokens are then only estimated from it.
   outputChars?: number;
   outputBytes?: number;
+  // Serialized request parameters in bytes (the production guard adds a
+  // 4096-byte buffer on top), so the real v9 request sizes can be compared
+  // with the transport limit.
+  requestBytes?: number;
 };
 
 export type AttemptSampleSummary = {
@@ -991,6 +995,7 @@ export function wrapEvaluationParse<
       config.env,
     );
     const started = Date.now();
+    const requestBytes = Buffer.byteLength(JSON.stringify(parameters), 'utf8');
     const persist = async (
       record: Omit<EvaluationAttemptRecord, 'caseId' | 'ordinal'>,
     ) => {
@@ -1010,6 +1015,7 @@ export function wrapEvaluationParse<
         caseId: config.binding.caseId,
         task,
         latencyMs: record.latencyMs,
+        requestBytes,
         ...(serialized === null
           ? {}
           : {

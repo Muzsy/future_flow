@@ -16,9 +16,31 @@ describe('v9 prompts', () => {
   it('add short, structured-input character rules (plan section 41)', () => {
     expect(v9.planner.slice(v8.planner.length)).toContain('characterIntent');
     expect(v9.author.slice(v8.author.length)).toContain('characterDelta');
-    // No new rulebook: each addition stays well under 2.5 KiB.
+    // No new rulebook: each addition stays under 3 KiB (the author addition
+    // carries the delta rules, the continuity binding, the cast and repair
+    // rules and the embodiment line, about 2.7 KiB measured).
     for (const stage of ['planner', 'author', 'review'] as const)
-      expect(v9[stage].length - v8[stage].length).toBeLessThan(2560);
+      expect(v9[stage].length - v8[stage].length).toBeLessThan(3072);
+    // New speaking people are registered, a repair adds nothing new, and the
+    // final review asks for the same (the fidelity rule itself is unchanged).
+    expect(v9.author).toContain('actor_add and a profile');
+    // The repair rule itself travels in the repair request, by mode (see
+    // fiction-v9-request-bytes); the prompt only points at it.
+    expect(v9.author).toContain('follow authorRepair.repairRule');
+    expect(v9.author).not.toContain('register or remove');
+    expect(v9.review).toContain('new speaking person has no actor_add');
+    // A continuity reason is a planning note: the planner names only what the
+    // projection shows or the plan will show, the author never lifts it into
+    // an event summary as something that happened (v9 phase-5 chapter 1).
+    expect(v9.planner).toContain('a planning note, never a past event');
+    expect(v9.author).toContain(
+      'a planning note, not a fact: never write it into an event summary',
+    );
+    expect(v8.planner).not.toContain('planning note');
+    expect(v8.author).not.toContain('planning note');
+    // v8 is frozen: none of it leaks into the v8 prompts.
+    expect(v8.author).not.toContain('speaking role');
+    expect(v8.review).not.toContain('speaking person');
     expect(v9.author).toContain('never user_supplied');
     // Only the server may label a fact as supplied (review B2) and a person
     // who joins and leaves in one chapter is archived (review B3).

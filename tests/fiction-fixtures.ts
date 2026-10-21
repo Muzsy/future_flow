@@ -101,7 +101,11 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     sourceContext?.policy.qualityPolicyVersion ?? '',
   );
   const draft = living
-    ? { ...f.result, characterIntent: [] as never[] }
+    ? {
+        ...f.result,
+        characterIntent: [] as never[],
+        continuityDecisions: [] as never[],
+      }
     : f.result;
   if (living)
     (
@@ -201,7 +205,7 @@ export function fictionProof(f = fictionFixture(), repair?: FictionRepair) {
     fictionReceipt(
       'life_narrative_plan_review',
       'planReviewer',
-      fictionReviewRequest(f.input, f.authored),
+      fictionReviewRequest(f.input, f.authored, f.draft),
       f.review,
       f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),

@@ -1,4 +1,8 @@
 import { fictionFixture } from '../../tests/fiction-fixtures';
+import {
+  failureDiagnostic,
+  type FailureDiagnostic,
+} from './narrative-failure-diagnostic';
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { mkdir, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -9,6 +13,7 @@ import {
   OpenAiProvider,
   ExperimentAiBudget,
   combineAiGuards,
+  isMintedUuidProperty,
   type AiReceipt,
   type AiResult,
   type AiRequestGuard,
@@ -34,10 +39,16 @@ import {
   narrativeWriterRequest,
   narrativeFidelityRequest,
   narrativeEditorialRequest,
+  fictionCharacterOmitted,
+  fictionContinuityCoverage,
 } from '@future-flow/core';
 import {
+  fictionAuthorSchemaFor,
+  fictionDraftSchemaFor,
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
+  type FictionCharacterEnvelope,
+  type FictionCharacterProjection,
   type NarrativePeriodInput,
   type PeriodChapterV2,
 } from '@future-flow/contracts';
@@ -91,6 +102,8 @@ import {
   evaluationResponseOutput,
   verifyExistingEvaluationAttempts,
   verifyTraceCoversCheckpointReceipts,
+  readAttemptTrace,
+  type EvaluationAttemptTrace,
   type AttemptTraceBinding,
 } from './narrative-evaluation-attempts';
 
@@ -162,6 +175,17 @@ export type EvaluationSample = {
     authorReasoningTokens: number[];
     repairMessage: string | null;
     characterRepair: boolean;
+    // Provider answers the strict response format let through that the
+    // server schema refused (malformed), of which uuid-shaped refusals, and
+    // requests the API itself rejected (HTTP 400). The v9 request schemas drop
+    // the uuid pattern on copied ids, so this is the check that it costs no
+    // validity (paid and Codex measurements count it v9 against v8).
+    schemaFailures: SchemaFailureCounts;
+    // Output tokens of every answered request by stage (receipts; paid runs).
+    stageTokens: { task: string; outputTokens: number }[];
+    // Wall-clock of every physical call by stage (the fiction deadline is
+    // 180 s); independent of whether the transport reports output sizes.
+    stageLatencies: { task: string; latencyMs: number }[];
     // The local Codex/agy transports report no token usage, so the cost gate
     // cannot be judged from them: only output lengths are recorded (per stage
     // and for the prose and the delta) with a rough token estimate. The gate
@@ -172,6 +196,8 @@ export type EvaluationSample = {
         outputChars: number;
         outputBytes: number;
         estimatedTokens: number;
+        // Raw request bytes of the call; the production guard adds 4096.
+        requestBytes: number | null;
       }[];
       proseChars: number;
       proseBytes: number;
@@ -180,8 +206,114 @@ export type EvaluationSample = {
       estimatedProseTokens: number;
       estimatedDeltaTokens: number;
     };
+    // Relevant people the projection could not show, with their reasons.
+    omitted: { actorId: string; reasons: string[] }[];
+    // Planner continuity decisions against the open matters of the projected
+    // people (diagnostics only; null when the draft or projection is absent).
+    continuity: {
+      required: string[];
+      missing: string[];
+      intentMissing: string[];
+      decisions: { carry: number; defer: number; resolve: number };
+    } | null;
   };
 };
+// What the attempt trace adds for a completed sample: the planner draft the
+// package was authored from and the wording of the last repair.
+export type SchemaFailureCounts = {
+  malformed: number;
+  // Malformed plan/author answers refused because of a uuid (the check
+  // stages' schemas are unchanged, so they are not classified), and of those
+  // the ones on a field whose pattern the v9 request schema drops (anything
+  // but a minted `id` / `sceneId`).
+  uuid: number;
+  uuidOnCompactFields: number;
+  rejected: number;
+};
+export type AttemptEvidence = {
+  draft: {
+    characterIntent?: { actorId: string }[];
+    continuityDecisions?: { actorId: string; decision: string }[];
+  } | null;
+  repairMessage: string | null;
+  schemaFailures: SchemaFailureCounts;
+};
+type EvidencePolicy = Parameters<typeof fictionAuthorSchemaFor>[0];
+// Counts the attempts whose answer the server schema refused (status
+// malformed), whether the refusal was about a uuid, and the requests the API
+// answered with HTTP 400 (a rejected response format).
+export function schemaFailureCounts(
+  trace: EvaluationAttemptTrace,
+  policy?: EvidencePolicy,
+): SchemaFailureCounts {
+  const counts: SchemaFailureCounts = {
+    malformed: 0,
+    uuid: 0,
+    uuidOnCompactFields: 0,
+    rejected: 0,
+  };
+  for (const attempt of trace.attempts) {
+    if (attempt.status === 'failed' && attempt.errorCode === 'AI_HTTP_400')
+      counts.rejected += 1;
+    if (attempt.status !== 'malformed') continue;
+    counts.malformed += 1;
+    const schema = !policy
+      ? null
+      : attempt.task === 'life_narrative_plan'
+        ? fictionDraftSchemaFor(policy)
+        : attempt.task === 'life_narrative_chapter'
+          ? fictionAuthorSchemaFor(policy)
+          : null;
+    const parsed = schema?.safeParse(attempt.output);
+    if (!parsed || parsed.success) continue;
+    const uuidIssues = parsed.error.issues.filter(
+      (issue) =>
+        issue.code === 'invalid_format' &&
+        (issue as { format?: string }).format === 'uuid',
+    );
+    if (!uuidIssues.length) continue;
+    counts.uuid += 1;
+    if (
+      uuidIssues.some(
+        (issue) =>
+          !isMintedUuidProperty(
+            [...issue.path]
+              .reverse()
+              .find(
+                (segment): segment is string => typeof segment === 'string',
+              ),
+          ),
+      )
+    )
+      counts.uuidOnCompactFields += 1;
+  }
+  return counts;
+}
+export function attemptEvidence(
+  trace: EvaluationAttemptTrace | null,
+  policy?: EvidencePolicy,
+): AttemptEvidence | null {
+  if (!trace) return null;
+  const draft = trace.attempts
+    .filter(
+      (a) =>
+        a.task === 'life_narrative_plan' &&
+        a.status === 'completed' &&
+        a.output,
+    )
+    .at(-1)?.output;
+  const repair = trace.attempts.filter((a) => a.repairFeedback).at(-1)
+    ?.repairFeedback?.message;
+  return {
+    draft: (draft ?? null) as AttemptEvidence['draft'],
+    repairMessage: repair ?? null,
+    schemaFailures: schemaFailureCounts(trace, policy),
+  };
+}
+// Messages that carry a checker's (model) feedback, not a validator's wording:
+// they quote scores and reasons that may well contain the word "character".
+const CHECKER_FEEDBACK_PATTERN =
+  /^(?:Correct the final package|Rewrite the weak story|Fix BOTH final checks|The existing literary check)/;
 // Validator wording of a character-state failure (never model text).
 const CHARACTER_REPAIR_PATTERN =
   /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
@@ -192,14 +324,23 @@ export function characterBytes(
   checkpoints: unknown = null,
   transports: readonly TransportRecord[] = [],
   chapterBody = '',
+  trace: AttemptEvidence | null = null,
 ): NonNullable<EvaluationSample['character']> {
-  const projection = (
+  const context = (
     payload as {
       narrativeContext?: {
-        characterProjection?: { omittedActors?: number };
+        characterProjection?: {
+          omittedActors?: number;
+          actors?: { actorId: string }[];
+        } & Partial<FictionCharacterProjection>;
+        memory?: { withheld?: boolean };
       };
+      fictionCharacters?: FictionCharacterEnvelope;
     }
-  ).narrativeContext?.characterProjection;
+  ).narrativeContext;
+  const projection = context?.characterProjection;
+  const envelope = (payload as { fictionCharacters?: FictionCharacterEnvelope })
+    .fictionCharacters;
   const delta = (artifact as { characterDelta?: unknown } | null)
     ?.characterDelta;
   const bytes = (value: unknown) =>
@@ -207,8 +348,19 @@ export function characterBytes(
   const cp = (checkpoints ?? {}) as {
     fictionRepair?: { message?: string } | null;
     planningRepair?: string | null;
+    fictionDraft?: {
+      characterIntent?: { actorId: string }[];
+      continuityDecisions?: { actorId: string; decision: string }[];
+    } | null;
   };
-  const repairMessage = cp.fictionRepair?.message ?? cp.planningRepair ?? null;
+  // A completed job keeps only its binding checkpoints, so the stored draft
+  // and the repair wording come from the attempt trace when it has them.
+  const repairMessage =
+    cp.fictionRepair?.message ??
+    cp.planningRepair ??
+    trace?.repairMessage ??
+    null;
+  const draft = cp.fictionDraft ?? trace?.draft ?? null;
   const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
   // About 3.5 bytes per token (the 047 price estimate); never a measurement.
   const estimate = (outputBytes: number) => Math.ceil(outputBytes / 3.5);
@@ -221,8 +373,23 @@ export function characterBytes(
     authorReasoningTokens: author.map((r) => r.reasoningTokens ?? 0),
     repairMessage: repairMessage ? repairMessage.slice(0, 160) : null,
     characterRepair: repairMessage
-      ? CHARACTER_REPAIR_PATTERN.test(repairMessage)
+      ? !CHECKER_FEEDBACK_PATTERN.test(repairMessage) &&
+        CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
+    schemaFailures: trace?.schemaFailures ?? {
+      malformed: 0,
+      uuid: 0,
+      uuidOnCompactFields: 0,
+      rejected: 0,
+    },
+    stageTokens: receipts.map((r) => ({
+      task: r.task,
+      outputTokens: r.outputTokens,
+    })),
+    stageLatencies: transports.map((t) => ({
+      task: t.task,
+      latencyMs: t.latencyMs,
+    })),
     outputSizes: {
       stages: transports.flatMap((t) =>
         t.outputBytes === undefined
@@ -233,6 +400,7 @@ export function characterBytes(
                 outputChars: t.outputChars ?? 0,
                 outputBytes: t.outputBytes,
                 estimatedTokens: estimate(t.outputBytes),
+                requestBytes: t.requestBytes ?? null,
               },
             ],
       ),
@@ -243,6 +411,21 @@ export function characterBytes(
       estimatedProseTokens: estimate(Buffer.byteLength(chapterBody, 'utf8')),
       estimatedDeltaTokens: estimate(Buffer.byteLength(deltaJson, 'utf8')),
     },
+    omitted:
+      envelope && !context?.memory?.withheld
+        ? fictionCharacterOmitted(
+            envelope.state,
+            envelope.signals,
+            (projection?.actors ?? []).map((a) => a.actorId),
+          )
+        : [],
+    continuity:
+      draft && projection?.actors
+        ? fictionContinuityCoverage(
+            projection as FictionCharacterProjection,
+            draft,
+          )
+        : null,
   };
 }
 export type EvaluationRun = {
@@ -262,6 +445,10 @@ export type EvaluationRun = {
     code: string;
     chapter: unknown;
     editorialReport: unknown;
+    // Evaluation-only: the stage the job stopped at and the validator's own
+    // message and throwing frames (the job record keeps just the error code).
+    stage?: string | null;
+    diagnostic?: FailureDiagnostic;
   }[];
   choiceReviewRequests: unknown[];
   safetyProbe: { passed: boolean; markerExcluded: boolean };
@@ -271,7 +458,9 @@ export type EvaluationRun = {
   sequenceBundleFiles?: CreativeSequenceBundleFiles | null;
   sequenceAssessment?: CreativeSequenceAssessment | null;
 };
-function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
+export function adapter(
+  client: Pick<PGlite, 'query' | 'transaction'>,
+): Database {
   return {
     query: async <T extends Record<string, unknown>>(
       sql: string,
@@ -417,6 +606,7 @@ type TransportRecord = {
   latencyMs: number;
   outputChars?: number;
   outputBytes?: number;
+  requestBytes?: number;
 };
 function clientFor(
   options: EvaluationOptions,
@@ -1516,6 +1706,8 @@ async function runEvaluationUnlocked(
                   code: code(error),
                   chapter: saved?.checkpoints.chapter ?? null,
                   editorialReport: saved?.checkpoints.editorialReport ?? null,
+                  stage: saved?.stage ? String(saved.stage) : null,
+                  diagnostic: failureDiagnostic(error),
                 });
                 if (shouldStopEvaluation(error, options)) stop = true;
                 break;
@@ -1582,6 +1774,21 @@ async function runEvaluationUnlocked(
                       completed.checkpoints,
                       caseTransports,
                       (period.chapter as PeriodChapterV2).body,
+                      attemptEvidence(
+                        readAttemptTrace(
+                          options.out,
+                          {
+                            ...traceBinding,
+                            caseId: `${caseId}:${periodIndex}`,
+                          },
+                          env,
+                        ),
+                        (
+                          completed.payload as {
+                            narrativeContext?: { policy?: EvidencePolicy };
+                          }
+                        ).narrativeContext?.policy,
+                      ),
                     ),
                   }
                 : {}),
@@ -1638,6 +1845,7 @@ async function runEvaluationUnlocked(
                 code: code(error),
                 chapter: null,
                 editorialReport: null,
+                diagnostic: failureDiagnostic(error),
               });
               if (shouldStopEvaluation(error, options)) stop = true;
             }
@@ -1672,6 +1880,7 @@ async function runEvaluationUnlocked(
               state?.responses['legacy:chapter']?.output ??
               null,
             editorialReport: state?.responses.editor?.output ?? null,
+            diagnostic: failureDiagnostic(error),
           });
           if (shouldStopEvaluation(error, options)) break;
         }

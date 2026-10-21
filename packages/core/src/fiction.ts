@@ -28,6 +28,7 @@ import {
   type FictionPolicy,
   type FictionCharacterDelta,
   type FictionCharacterIntent,
+  type FictionContinuityDecision,
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
@@ -275,6 +276,28 @@ export function fictionPlannerRequest(
     repair: repair ?? null,
   };
 }
+// v9 repair rules, one per repair mode, sent inside the repair request so the
+// author sees only the rule that can apply to it. A prose-only repair freezes
+// the registered facts (it cannot register a new one), so telling it to
+// "register or remove" a claim is impossible advice and it must stay on the
+// facts that are already there (v9-6e chapter 1). An author-package repair
+// rebuilds the package and registers what it adds. Surgical editing is the
+// shape of the repairs that passed (v9-6c chapters 1 and 4) and rewriting the
+// shape of those that failed (6b chapter 1, 6e chapter 1). Both modes also end
+// on the same guard: a repair that trades one editorial score for another
+// fails the second editor round (v9-6f chapter 2: novelty 3 to 4, a new
+// choiceStakes 3). The gate itself is unchanged. v8 requests do not carry this
+// key.
+const FICTION_REPAIR_BALANCE =
+  " Fix the named weakness without weakening anything else: the closing keeps the protagonist's own decision at its center, and every other editorial dimension stays at 4 or above.";
+export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
+  author_package:
+    'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.' +
+    FICTION_REPAIR_BALANCE,
+  prose_only:
+    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names.' +
+    FICTION_REPAIR_BALANCE,
+};
 export function fictionAuthorRequest(
   input: NarrativePeriodInput,
   draft: NarrativePlanningResult,
@@ -283,7 +306,14 @@ export function fictionAuthorRequest(
   return {
     ...fictionPlannerRequest(input),
     draft: requestDraftSchema(fictionScope(input).context.policy).parse(draft),
-    authorRepair: repair ?? null,
+    authorRepair: repair
+      ? {
+          ...repair,
+          ...(fictionScope(input).characters
+            ? { repairRule: FICTION_REPAIR_RULES[repair.mode] }
+            : {}),
+        }
+      : null,
   };
 }
 // The planner and the author use the character projection to write; the check
@@ -299,15 +329,37 @@ function checkStageContext(context: FictionContext) {
 export function fictionReviewRequest(
   input: NarrativePeriodInput,
   authored: FictionAuthorResult,
+  draft?: unknown,
 ) {
   const { repair: _repair, ...base } = fictionPlannerRequest(input);
   const { chapter: _chapter, ...proposed } = requestAuthorSchema(
     fictionScope(input).context.policy,
   ).parse(authored);
+  // Only the living-world review sees what the planner decided for the
+  // recurring people, so it can ask whether the final package acted on it.
+  const continuity = fictionScope(input).characters
+    ? (() => {
+        const d = draft as
+          | {
+              characterIntent?: FictionCharacterIntent[];
+              continuityDecisions?: FictionContinuityDecision[];
+            }
+          | undefined;
+        return d?.continuityDecisions?.length
+          ? {
+              continuity: {
+                continuityDecisions: d.continuityDecisions,
+                characterIntent: d.characterIntent ?? [],
+              },
+            }
+          : {};
+      })()
+    : {};
   return {
     ...base,
     narrativeContext: checkStageContext(fictionScope(input).context),
     proposed,
+    ...continuity,
   };
 }
 export function fictionFidelityRequest(
@@ -457,6 +509,7 @@ export function fictionCanon(
           : narrativePlanningResultSchema
     ).parse(raw) as NarrativePlanningResult & {
       characterIntent?: FictionCharacterIntent[];
+      continuityDecisions?: FictionContinuityDecision[];
     };
   const c = result.candidate;
   if (
@@ -476,7 +529,11 @@ export function fictionCanon(
   });
   // The shared plan validator reads the narrative result; the intent is
   // checked here against the character projection instead.
-  const { characterIntent: _intent, ...planResult } = result;
+  const {
+    characterIntent: _intent,
+    continuityDecisions: _continuity,
+    ...planResult
+  } = result;
   validateNarrativePlan(
     planResult,
     canon,
@@ -499,6 +556,15 @@ export function fictionCanon(
     if (result.characterIntent?.some((i) => !known.has(i.actorId)))
       fail(
         'A character intent names a person who is not a fictional recurring actor of this request.',
+      );
+    // A decision is about a person the projection shows; a missing decision is
+    // diagnostics only (fictionContinuityCoverage), never a failure.
+    const shown = new Set(
+      (scope.context.characterProjection?.actors ?? []).map((a) => a.actorId),
+    );
+    if (result.continuityDecisions?.some((d) => !shown.has(d.actorId)))
+      fail(
+        'A continuity decision names a person who is not in the character projection.',
       );
   }
   return { ...scope, result, canon };
@@ -663,7 +729,7 @@ export function fictionBindings(
     planHash: hash(authored.plan),
     storyFactsHash: hash(authored.storyFacts),
     chapterHash: hash(authored.chapter),
-    reviewInputHash: hash(fictionReviewRequest(input, authored)),
+    reviewInputHash: hash(fictionReviewRequest(input, authored, draft)),
     reviewOutputHash: hash(review),
     fidelityInputHash: hash(fictionFidelityRequest(input, authored)),
     fidelityOutputHash: hash(fidelitySchema.parse(fidelity)),
@@ -761,7 +827,7 @@ export function buildFictionArtifact(
       task === 'life_narrative_plan_review' &&
       repair?.mode === 'prose_only' &&
       repair.previous &&
-      hash(fictionReviewRequest(input, repair.previous)) ===
+      hash(fictionReviewRequest(input, repair.previous, draft)) ===
         bindings.reviewInputHash;
     if (
       last < 0 ||
@@ -791,7 +857,7 @@ export function buildFictionArtifact(
   if (
     repair?.mode === 'prose_only' &&
     repair.previous &&
-    hash(fictionReviewRequest(input, repair.previous)) !==
+    hash(fictionReviewRequest(input, repair.previous, draft)) !==
       bindings.reviewInputHash
   )
     fail('A prose-only repair changed its reviewed canon.');
