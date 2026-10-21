@@ -245,6 +245,35 @@ describe('quota mapping and gates', () => {
     ).toBe('plan blocked');
   });
 
+  it('reports the reset of the spent window when the provider blocks usage', () => {
+    const t = CODEX_QUOTA_THRESHOLDS.hard;
+    const blocked = (fiveHour: number, weekly: number) => ({
+      ...snapshot(
+        'codex',
+        fiveHour,
+        weekly,
+        'ordinary Codex usage is not allowed',
+      ),
+    });
+    // only the 5 hour window is spent: its reset, not the later weekly one
+    expect(quotaBlock(blocked(0, 58), t)?.resumeAfter).toBe(
+      '2026-10-20T20:00:00.000Z',
+    );
+    // both spent: the run can only continue after the later reset
+    expect(quotaBlock(blocked(0, 0), t)?.resumeAfter).toBe(
+      '2026-10-24T17:00:00.000Z',
+    );
+    // none spent: the soonest reset is the first moment the state can change
+    expect(quotaBlock(blocked(40, 58), t)?.resumeAfter).toBe(
+      '2026-10-20T20:00:00.000Z',
+    );
+    // a window that falls under its reserve keeps reporting its own reset
+    expect(
+      quotaBlock(snapshot('codex', 90, 19), CODEX_QUOTA_THRESHOLDS.start)
+        ?.resumeAfter,
+    ).toBe('2026-10-24T17:00:00.000Z');
+  });
+
   it('reads the Codex quota from the app server without touching a model', async () => {
     const bin = script(
       'codex',
