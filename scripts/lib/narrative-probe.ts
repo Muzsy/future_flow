@@ -2,9 +2,10 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import type OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
-import { OpenAiProvider } from '@future-flow/ai';
+import { OpenAiProvider, fictionPrompts } from '@future-flow/ai';
 import {
   fictionAuthorSchemaFor,
+  fictionV9Policy,
   type FictionAuthorResult,
   type NarrativePeriodInput,
   type NarrativePlanningResult,
@@ -141,19 +142,54 @@ export function withFullPatternSchema(
   };
 }
 
+// An offline experiment may ask for the v9 editor prompt instead of the text
+// the stored policy selects (the measured v9 runs 6b-6g carry the v8 editor
+// text; the v8 runs the v7 one). Only the system message is replaced: the
+// report schema (1.3.0) and the user message are the stored request's, so the
+// two arms differ by the prompt alone. Works for any stored generation.
+export const EDITOR_PROMPT_CHOICES = ['stored', 'v9'] as const;
+export type EditorPromptChoice = (typeof EDITOR_PROMPT_CHOICES)[number];
+export function withEditorPrompt(
+  parameters: ProviderParameters,
+  input: NarrativePeriodInput,
+  choice: EditorPromptChoice,
+): ProviderParameters {
+  if (choice === 'stored') return parameters;
+  const locale = input.input.locale;
+  const stored = fictionPrompts(
+    locale,
+    fictionScope(input).context.policy.promptVersions,
+  ).editor;
+  const next = fictionPrompts(locale, fictionV9Policy().promptVersions).editor;
+  if (
+    !parameters.input.some((m) => m.role === 'system' && m.content === stored)
+  )
+    throw new Error(
+      'The stored editor request does not carry its editor text.',
+    );
+  return {
+    ...parameters,
+    input: parameters.input.map((m) =>
+      m.role === 'system' && m.content === stored ? { ...m, content: next } : m,
+    ),
+  };
+}
+
 export async function editorRequest(
   chapter: StoredChapter,
   which: 'first' | 'last' | number = 'last',
+  editorPrompt: EditorPromptChoice = 'stored',
 ) {
   const { author } = authorAttemptOf(chapter, which);
+  const stored = await captureProviderRequest(
+    (ai) =>
+      ai.editFiction(chapter.payload, author.output as FictionAuthorResult),
+    { stored: true },
+  );
   return {
     authored: author.output as FictionAuthorResult,
     ordinal: author.ordinal,
-    parameters: await captureProviderRequest(
-      (ai) =>
-        ai.editFiction(chapter.payload, author.output as FictionAuthorResult),
-      { stored: true },
-    ),
+    parameters: withEditorPrompt(stored, chapter.payload, editorPrompt),
   };
 }
 

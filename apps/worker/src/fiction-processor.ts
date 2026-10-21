@@ -25,6 +25,7 @@ import {
   narrativePlanReviewV2Schema,
   fictionEditorialReportSchema,
   fictionCoordinatedQualityVersions,
+  fictionFidelityFirstRepairQualityVersions,
   type NarrativePlanningResult,
   type FictionAuthorResult,
   type FictionEditorialReport,
@@ -64,6 +65,23 @@ const message = (error: unknown) =>
     ? error.message.slice(0, 1800)
     : 'Invalid creative output.';
 
+const clip = (text: string, limit: number) =>
+  text.length <= limit ? text : text.slice(0, limit - 12) + ' [clipped]';
+const failingFlagsLine = (report: FictionEditorialReport) =>
+  `Failing flags: ${
+    report.version === '1.0.0'
+      ? ''
+      : Object.entries(report.sequenceReview)
+          .filter(([, value]) => value === false)
+          .map(([key]) => key)
+          .join(', ')
+  }`;
+type EditorIssue = FictionEditorialReport['issues'][number];
+const issueLead = (issue: EditorIssue) =>
+  `${issue.dimension}/${issue.severity}/${issue.repairScope}, paragraph ${issue.paragraphIndex}:`;
+const issueLine = (issue: EditorIssue) =>
+  `${issueLead(issue)} ${issue.explanation} Fix: ${issue.suggestedFix}`;
+
 // Keep both checker messages visible within the existing 1800-character repair
 // budget. Raw, complete checker outputs remain bound in their own checkpoints.
 function combinedValidationError(
@@ -72,27 +90,66 @@ function combinedValidationError(
   report?: FictionEditorialReport,
 ) {
   const editor = report
-    ? [
-        `Failing flags: ${
-          report.version === '1.0.0'
-            ? ''
-            : Object.entries(report.sequenceReview)
-                .filter(([, value]) => value === false)
-                .map(([key]) => key)
-                .join(', ')
-        }`,
-        ...report.issues.map(
-          (issue) =>
-            `${issue.dimension}/${issue.severity}/${issue.repairScope}, paragraph ${issue.paragraphIndex}: ${issue.explanation} Fix: ${issue.suggestedFix}`,
-        ),
-      ].join('\n')
+    ? [failingFlagsLine(report), ...report.issues.map(issueLine)].join('\n')
     : message(editorialError);
-  const clip = (text: string, limit: number) =>
-    text.length <= limit ? text : text.slice(0, limit - 12) + ' [clipped]';
   return new DomainError(
     'NARRATIVE_QUALITY_FAILED',
     `Fix BOTH final checks in one full-package repair.\nFidelity: ${clip(message(fidelityError), 800)}\nEditor: ${clip(editor, 850)}`,
   );
+}
+
+const EDITOR_FINDINGS_PREFIX = "Correct the final package's literary issues:\n";
+const blockingIssue = (issue: EditorIssue) =>
+  issue.severity === 'major' || issue.repairScope === 'canon';
+const MIN_SECTION = 40;
+
+// The v9 editor-triggered repair message: the same per-issue formatter as the
+// combined message, within the 1800-character repair budget. Blocking issues
+// come first and keep their whole suggestedFix; explanations are clipped first,
+// then non-blocking issues are dropped, and only if the blocking fixes alone do
+// not fit are those clipped evenly.
+function editorFindings(report: FictionEditorialReport, limit: number) {
+  const low = Object.entries(report.scores)
+    .filter(([, value]) => value < 4)
+    .map(([key, value]) => `${key}=${value}`)
+    .join(', ');
+  const header = `Verdict: ${report.verdict}\n${failingFlagsLine(report)}\nScores below 4: ${low || 'none'}`;
+  let issues = [...report.issues].sort(
+    (a, b) => Number(blockingIssue(b)) - Number(blockingIssue(a)),
+  );
+  const render = (explain: number, fix: number) =>
+    [
+      header,
+      ...issues.map(
+        (issue) =>
+          `${issueLead(issue)} ${clip(issue.explanation, explain)} Fix: ${clip(issue.suggestedFix, fix)}`,
+      ),
+    ].join('\n');
+  if (render(Infinity, Infinity).length <= limit)
+    return render(Infinity, Infinity);
+  for (;;) {
+    const fixed =
+      header.length +
+      issues.reduce(
+        (n, issue) => n + 1 + issueLead(issue).length + ' Fix: '.length + 1,
+        0,
+      );
+    const fixes = issues.reduce((n, issue) => n + issue.suggestedFix.length, 0);
+    const explain = Math.floor(
+      (limit - fixed - fixes) / Math.max(issues.length, 1),
+    );
+    if (explain >= MIN_SECTION) return render(Math.min(explain, 350), Infinity);
+    // Blocking issues sort first, so the last issue is the next spare one.
+    const last = issues.at(-1);
+    if (!last || blockingIssue(last) || issues.length === 1) {
+      const share = Math.floor(
+        (limit - fixed - issues.length * MIN_SECTION) /
+          Math.max(issues.length, 1),
+      );
+      return render(MIN_SECTION, Math.max(share, MIN_SECTION)).slice(0, limit);
+    }
+    issues = issues.slice(0, -1);
+  }
 }
 
 export async function processFictionLifeJob(
@@ -441,6 +498,17 @@ export async function processFictionLifeJob(
             'NARRATIVE_REQUEST_LIMIT',
             'Too few requests remain for a complete final-package repair.',
           );
+        // The measured fidelity failures all passed the editor, so v9 repairs
+        // from the fidelity reason alone and lets the editor judge the repaired
+        // package once: 8 requests instead of 9.
+        if (
+          fictionFidelityFirstRepairQualityVersions.includes(
+            scope.context.policy.qualityPolicyVersion,
+          )
+        ) {
+          await repair(error, authored);
+          continue;
+        }
         const cachedEditor =
           cp.editorialReport &&
           matches(
@@ -494,7 +562,12 @@ export async function processFictionLifeJob(
       if (!evaluateFictionEditorialGate(input, report).passed)
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',
-          `Rewrite the weak story rather than paraphrasing it: ${JSON.stringify(report)}`,
+          fictionFidelityFirstRepairQualityVersions.includes(
+            scope.context.policy.qualityPolicyVersion,
+          )
+            ? EDITOR_FINDINGS_PREFIX +
+                editorFindings(report, 1800 - EDITOR_FINDINGS_PREFIX.length)
+            : `Rewrite the weak story rather than paraphrasing it: ${JSON.stringify(report)}`,
         );
       const artifact = buildFictionArtifact(
         input,

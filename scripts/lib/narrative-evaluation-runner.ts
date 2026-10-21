@@ -106,6 +106,10 @@ import {
   type EvaluationAttemptTrace,
   type AttemptTraceBinding,
 } from './narrative-evaluation-attempts';
+import {
+  repairTriggerOf,
+  type RepairTrigger,
+} from './narrative-repair-trigger';
 
 export type OfflineMockResponseOverride = {
   __rawResponse: {
@@ -175,6 +179,9 @@ export type EvaluationSample = {
     authorReasoningTokens: number[];
     repairMessage: string | null;
     characterRepair: boolean;
+    // What made the repair necessary, from the message wording only (the
+    // fidelity-triggered wordings are fixed text, never model text).
+    repairTrigger: RepairTrigger | null;
     // Provider answers the strict response format let through that the
     // server schema refused (malformed), of which uuid-shaped refusals, and
     // requests the API itself rejected (HTTP 400). The v9 request schemas drop
@@ -312,6 +319,9 @@ export function attemptEvidence(
 }
 // Messages that carry a checker's (model) feedback, not a validator's wording:
 // they quote scores and reasons that may well contain the word "character".
+// The v9 editor-triggered wording ("Correct the final package's literary
+// issues:") starts with the first alternative; the older prefixes stay so that
+// the stored runs classify exactly as before.
 const CHECKER_FEEDBACK_PATTERN =
   /^(?:Correct the final package|Rewrite the weak story|Fix BOTH final checks|The existing literary check)/;
 // Validator wording of a character-state failure (never model text).
@@ -376,6 +386,7 @@ export function characterBytes(
       ? !CHECKER_FEEDBACK_PATTERN.test(repairMessage) &&
         CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
+    repairTrigger: repairTriggerOf(repairMessage),
     schemaFailures: trace?.schemaFailures ?? {
       malformed: 0,
       uuid: 0,

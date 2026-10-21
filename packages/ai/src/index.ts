@@ -25,6 +25,7 @@ import {
 import OpenAI, { type APIError } from 'openai';
 export * from './experiment-budget';
 export * from './fiction-schema';
+export { fictionPrompts } from './fiction-prompts';
 export * from './claude';
 export * from './narrative-prompts';
 import {
@@ -711,7 +712,8 @@ export class OpenAiProvider
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
       // Editors v3-v5 share report 1.2.0; editors v6-v7 emit report 1.3.0
-      // with signature 1.1.0, so frozen request schemas stay byte-identical.
+      // with signature 1.1.0 (as do v8 and v9), so frozen request schemas stay
+      // byte-identical.
       context.policy.promptVersions.editor === 'life_fiction_editor.v1'
         ? narrativeEditorialReportSchema
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
@@ -719,7 +721,9 @@ export class OpenAiProvider
           : context.policy.promptVersions.editor === 'life_fiction_editor.v6' ||
               context.policy.promptVersions.editor ===
                 'life_fiction_editor.v7' ||
-              context.policy.promptVersions.editor === 'life_fiction_editor.v8'
+              context.policy.promptVersions.editor ===
+                'life_fiction_editor.v8' ||
+              context.policy.promptVersions.editor === 'life_fiction_editor.v9'
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',

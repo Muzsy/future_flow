@@ -387,6 +387,36 @@ describe('v9 character repair classification (review F4)', () => {
         characterBytes({}, null, [], { fictionRepair: { message } })
           .characterRepair,
       ).toBe(false);
+    // The v9 editor-triggered wording starts with a checker prefix too (it
+    // lists the editor's issues, which name dimensions such as "character"),
+    // and every older prefix is still recognised as before.
+    for (const message of [
+      "Correct the final package's literary issues:\nFailing flags: distinctEnding\nScores below 4: character=3\ncharacter/major/canon, paragraph 2: the profile of the neighbour is vague. Fix: delta it.",
+      'The existing literary check also requires a repair.',
+    ])
+      expect(
+        characterBytes({}, null, [], { fictionRepair: { message } })
+          .characterRepair,
+      ).toBe(false);
+    // Repair triggers, from the fixed wording only; null without a repair.
+    const trigger = (message: string) =>
+      characterBytes({}, null, [], { fictionRepair: { message } })
+        .repairTrigger;
+    expect(trigger('Correct the final package/prose discrepancy: x')).toBe(
+      'fidelity',
+    );
+    expect(
+      trigger('Fix BOTH final checks in one full-package repair.\nFidelity: x'),
+    ).toBe('fidelity');
+    expect(trigger('Improve the final authored story: {}')).toBe('plan_review');
+    expect(
+      trigger('Rewrite the weak story rather than paraphrasing it: {}'),
+    ).toBe('editor');
+    expect(trigger("Correct the final package's literary issues:\nx")).toBe(
+      'editor',
+    );
+    expect(trigger('The actor profile is missing.')).toBe('other');
+    expect(characterBytes({}, null, [], {}).repairTrigger).toBeNull();
     const other = characterBytes({}, null, [], {
       fictionRepair: { message: 'The chapter repeats its opening gesture.' },
     });

@@ -308,6 +308,8 @@ describe('v9 request bytes (plan section 55)', () => {
     expect(empty.author - v8.author).toBeLessThan(8.5 * 1024);
     expect(empty.authorRepair - v8.authorRepair).toBeLessThan(8.5 * 1024);
     // The checks only see the final package, which gained its delta.
+    // The v9 editor prompt is 46 B shorter than the v8 one (the acceptance
+    // sentence), so the editor stage is held to the original bound.
     for (const stage of ['review', 'fidelity', 'editor'] as const)
       expect(empty[stage] - v8[stage]).toBeLessThan(1024);
   });

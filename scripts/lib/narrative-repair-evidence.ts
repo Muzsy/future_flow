@@ -1,5 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import {
+  repairTriggerOf,
+  type RepairTrigger,
+} from './narrative-repair-trigger';
 
 // Read-only evidence of what a repair round did, from the stored files of an
 // evaluation run (transport-records.json and diagnostic-attempts/*.json) and
@@ -37,6 +41,20 @@ export const MATERIAL_EDITOR_DIMENSIONS = [
   'novelty',
   'character',
 ] as const;
+
+// What made the repair necessary. The fidelity result decides first (a message
+// text is never trusted for that), the wording only separates the rest.
+export function repairTrigger(
+  fidelityBefore: { valid?: boolean; issues?: unknown[] } | undefined,
+  message: string,
+): RepairTrigger {
+  if (
+    fidelityBefore &&
+    (fidelityBefore.valid === false || (fidelityBefore.issues ?? []).length)
+  )
+    return 'fidelity';
+  return repairTriggerOf(message) ?? 'other';
+}
 
 const clip = (text: string, limit: number) =>
   text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
@@ -130,6 +148,9 @@ export function repairEvidence(runDir: string) {
     repairMode: string | null;
     materialEditorRepair: boolean;
     callsIfAuthorPackage: number;
+    repairTrigger: RepairTrigger | null;
+    preRepairEditorCalls: number;
+    callsIfEditorSkipped: number;
   }[] = [];
   const repairs = (existsSync(dir) ? readdirSync(dir).sort() : [])
     .filter((file) => file.endsWith('.json'))
@@ -161,9 +182,33 @@ export function repairEvidence(runDir: string) {
             i.dimension,
           ),
         );
+      const fidelityOf = (list: Attempt[]) =>
+        list.filter((a) => a.task === 'life_fidelity' && a.output).at(-1)
+          ?.output as { valid?: boolean; issues?: unknown[] } | undefined;
+      const trigger = repairAttempt
+        ? repairTrigger(
+            fidelityOf(
+              attempts.filter((a) => a.ordinal < repairAttempt.ordinal),
+            ),
+            repairAttempt.repairFeedback?.message ?? '',
+          )
+        : null;
+      // v9 repairs a fidelity failure without reading the editor first: the
+      // editor calls that preceded such a repair are not made.
+      const preRepairEditorCalls =
+        trigger === 'fidelity' && repairAttempt
+          ? attempts.filter(
+              (a) =>
+                a.task === 'life_narrative_editor' &&
+                a.ordinal < repairAttempt.ordinal,
+            ).length
+          : 0;
       chapters.push({
         caseId,
         calls: attempts.length,
+        repairTrigger: trigger,
+        preRepairEditorCalls,
+        callsIfEditorSkipped: attempts.length - preRepairEditorCalls,
         repairMode: mode,
         materialEditorRepair: material,
         // A prose-only repair reuses the plan review; an author-package repair
@@ -295,6 +340,9 @@ export function repairEvidence(runDir: string) {
       now: chapters.filter((c) => at9(c.calls)).length,
       ifAuthorPackage: chapters.filter((c) => at9(c.callsIfAuthorPackage))
         .length,
+      ifEditorSkipped: chapters.filter((c) => at9(c.callsIfEditorSkipped))
+        .length,
+      editorSkipped: chapters.filter((c) => c.preRepairEditorCalls > 0).length,
       cases: chapters.length,
     },
   };
@@ -338,9 +386,10 @@ export function repairEvidenceMarkdown(
       '### Calls per case and the 9-call ceiling',
       '',
       `- Cases at 9 calls now: ${run.ceiling.now}/${run.ceiling.cases}; if every material-dimension prose-only repair became an author-package repair (+1 call): ${run.ceiling.ifAuthorPackage}/${run.ceiling.cases}`,
+      `- Pre-repair editor skipped (v9 fidelity-first repair): ${run.ceiling.editorSkipped} fidelity-triggered repairs go 9 -> 8 calls; cases at 9 calls then: ${run.ceiling.ifEditorSkipped}/${run.ceiling.cases} (now ${run.ceiling.now}/${run.ceiling.cases})`,
       ...run.chapters.map(
         (c) =>
-          `- ${c.caseId}: ${c.calls} calls, repair ${c.repairMode ?? 'none'}${c.materialEditorRepair ? ', material editor dimension -> ' + c.callsIfAuthorPackage + ' calls as author_package' : ''}`,
+          `- ${c.caseId}: ${c.calls} calls, repair ${c.repairMode ?? 'none'}${c.repairTrigger ? ' (trigger ' + c.repairTrigger + ')' : ''}${c.preRepairEditorCalls ? ', pre-repair editor skipped -> ' + c.callsIfEditorSkipped + ' calls' : ''}${c.materialEditorRepair ? ', material editor dimension -> ' + c.callsIfAuthorPackage + ' calls as author_package' : ''}`,
       ),
       '',
       '### Author repairs',

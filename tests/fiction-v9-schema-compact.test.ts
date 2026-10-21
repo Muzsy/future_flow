@@ -139,6 +139,7 @@ describe('v9 request schema compaction', () => {
       'life_fiction_author.v8.en',
       'life_fiction_plan_review.v9.en',
       'life_fiction_editor.v8.en',
+      'life_fiction_editor.v9.en',
       'life_fidelity.v1.en',
     ])
       expect(fictionCompactUuidFor(other)).toBe(false);

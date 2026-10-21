@@ -26,6 +26,7 @@ import {
   probeSchedule,
   runEditorProbe,
   runLatencyProbe,
+  withEditorPrompt,
   withFullPatternSchema,
   type ProbeArm,
   type ProviderParameters,
@@ -332,6 +333,74 @@ describe('stored chapter requests', () => {
     expect(e.ordinal).toBe(3);
     expect(e.parameters.text.format.name).toBe('life_narrative_editor');
     expect(JSON.stringify(e.parameters.input)).toContain('REPAIRED');
+  });
+  it('asks the stored policy for the v8 editor text and --editor-prompt v9 for the v9 one, with the same schema', async () => {
+    // The measured v9 runs (6b-6g) stored the v8 editor text in their policy.
+    const stored = structuredClone(chapter.payload);
+    const policy = fictionV9Policy();
+    stored.narrativeContext!.policy = {
+      ...policy,
+      promptVersions: {
+        ...policy.promptVersions,
+        editor: 'life_fiction_editor.v8',
+      },
+    };
+    const old = { ...chapter, payload: stored };
+    const text = (e: Awaited<ReturnType<typeof editorRequest>>) =>
+      JSON.stringify(e.parameters.input);
+    const before = await editorRequest(old, 'last');
+    const after = await editorRequest(old, 'last', 'v9');
+    expect(text(before)).toContain(
+      'Acceptance requires causality/momentum/sceneCraft',
+    );
+    expect(text(after)).not.toContain('causality/momentum/sceneCraft');
+    expect(text(after)).toContain(
+      'Acceptance requires all eight scores >=4 and no major or canon issue.',
+    );
+    expect(JSON.stringify(after.parameters.text)).toBe(
+      JSON.stringify(before.parameters.text),
+    );
+    expect(after.parameters.max_output_tokens).toBe(
+      before.parameters.max_output_tokens,
+    );
+    // The stored payload itself is not changed by the experiment.
+    expect(stored.narrativeContext!.policy.promptVersions.editor).toBe(
+      'life_fiction_editor.v8',
+    );
+  });
+  it('applies the v9 editor text to a chapter of another generation too, and refuses a request without its editor text', async () => {
+    // A v8 chapter (the C.9 fork case) judged by the v9 editor prompt.
+    const v8 = {
+      ...chapter,
+      payload: f.input,
+      attempts: chapter.attempts.map((a) => ({
+        ...a,
+        output:
+          a.task === 'life_narrative_chapter'
+            ? f.authored
+            : a.task === 'life_narrative_plan'
+              ? f.draft
+              : a.output,
+      })),
+    } as StoredChapter;
+    const before = await editorRequest(v8, 'last');
+    const after = await editorRequest(v8, 'last', 'v9');
+    expect(JSON.stringify(before.parameters.input)).toContain(
+      'causality/momentum/sceneCraft',
+    );
+    expect(JSON.stringify(after.parameters.input)).toContain(
+      'Acceptance requires all eight scores >=4',
+    );
+    expect(JSON.stringify(after.parameters.text)).toBe(
+      JSON.stringify(before.parameters.text),
+    );
+    expect(() =>
+      withEditorPrompt(
+        { ...before.parameters, input: [{ role: 'system', content: 'x' }] },
+        f.input,
+        'v9',
+      ),
+    ).toThrow(/does not carry its editor text/);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   fictionPolicySchema,
   fictionV8Policy,
   fictionV9Policy,
+  fictionFidelityFirstRepairQualityVersions,
   type FictionCharacterDelta,
   type FictionCharacterEnvelope,
   type FictionCharacterProfile,
@@ -202,7 +203,7 @@ describe('v9 policy generation', () => {
       writer: 'life_fiction_author.v9',
       planReviewer: 'life_fiction_plan_review.v9',
       fidelity: 'life_fiction_fidelity.v1',
-      editor: 'life_fiction_editor.v8',
+      editor: 'life_fiction_editor.v9',
     });
     expect(fictionV9Policy().qualityPolicyVersion).toBe('2.8.0');
     expect(fictionV9Policy().maxPhysicalRequests).toBe(9);
@@ -210,6 +211,54 @@ describe('v9 policy generation', () => {
     expect(fictionPolicy()).toEqual(fictionV8Policy());
     expect(fictionPolicySchema.safeParse(fictionV9Policy()).success).toBe(true);
     expect(fictionEditorialVersionFor('2.8.0')).toBe('1.3.0');
+  });
+
+  it('keeps a stored v9 snapshot with the v8 editor readable, and never lets v9 or v8 take the wrong editor', () => {
+    const v9 = fictionV9Policy();
+    // The measured v9-6b..6g payloads carry the v8 editor text.
+    const stored = {
+      ...v9,
+      promptVersions: {
+        ...v9.promptVersions,
+        editor: 'life_fiction_editor.v8',
+      },
+    };
+    expect(fictionPolicySchema.safeParse(stored).success).toBe(true);
+    // v9 accepts exactly these two editors; v8 and everything before stay exact.
+    for (const editor of [
+      'life_fiction_editor.v1',
+      'life_fiction_editor.v6',
+      'life_fiction_editor.v7',
+    ])
+      expect(
+        fictionPolicySchema.safeParse({
+          ...v9,
+          promptVersions: { ...v9.promptVersions, editor },
+        }).success,
+      ).toBe(false);
+    const v8 = fictionV8Policy();
+    for (const editor of ['life_fiction_editor.v8', 'life_fiction_editor.v9'])
+      expect(
+        fictionPolicySchema.safeParse({
+          ...v8,
+          promptVersions: { ...v8.promptVersions, editor },
+        }).success,
+      ).toBe(false);
+    expect(v8.promptVersions.editor).toBe('life_fiction_editor.v7');
+    // A new v9 policy is only ever built with the v9 editor.
+    expect(fictionV9Policy().promptVersions.editor).toBe(
+      'life_fiction_editor.v9',
+    );
+  });
+
+  it('marks only the v9 quality version as fidelity-first', () => {
+    expect(fictionFidelityFirstRepairQualityVersions).toEqual(['2.8.0']);
+    expect(fictionV9Policy().qualityPolicyVersion).toBe('2.8.0');
+    expect(
+      fictionFidelityFirstRepairQualityVersions.includes(
+        fictionV8Policy().qualityPolicyVersion,
+      ),
+    ).toBe(false);
   });
 
   it('refuses mixed generations', () => {
@@ -237,6 +286,34 @@ describe('v9 policy generation', () => {
 });
 
 describe('v9 context and artifact gates', () => {
+  it('parses a stored v9 context that carries the v8 editor, and the v9 editor one', () => {
+    const context = fictionContextSchema.parse(living().input.narrativeContext);
+    expect(context.policy.promptVersions.editor).toBe('life_fiction_editor.v9');
+    const stored = {
+      ...context,
+      policy: {
+        ...context.policy,
+        promptVersions: {
+          ...context.policy.promptVersions,
+          editor: 'life_fiction_editor.v8',
+        },
+      },
+    };
+    expect(fictionContextSchema.safeParse(stored).success).toBe(true);
+    expect(
+      fictionContextSchema.safeParse({
+        ...stored,
+        policy: {
+          ...stored.policy,
+          promptVersions: {
+            ...stored.policy.promptVersions,
+            editor: 'life_fiction_editor.v7',
+          },
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it('requires the projection in v9 and forbids it in v8', () => {
     const f = living();
     const { characterProjection: _p, ...without } = fictionContextSchema.parse(
