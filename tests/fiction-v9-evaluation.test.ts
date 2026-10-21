@@ -2,6 +2,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import {
+  breakdownMarkdown,
+  breakdownRun,
+} from '../scripts/lib/narrative-request-breakdown';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import {
   attemptEvidence,
@@ -108,6 +112,26 @@ describe('living-world generation in the evaluation runner', () => {
           ),
         ).toBe(true);
       }
+      // The stored run gives the author request back, split by bytes, without
+      // a model call (the real provider path from the saved payload and draft).
+      const split = await breakdownRun(out, 'creative-portfolio-narrative-v1');
+      expect(split.rows.map((r) => `${r.chapter}:${r.kind}`)).toEqual([
+        'ch0:author',
+        'ch1:author',
+      ]);
+      for (const row of split.rows) {
+        const b = row.breakdown;
+        expect(b.total).toBeGreaterThan(
+          b.instructions + b.schema + b.user - 2000,
+        );
+        expect(b.instructions).toBeGreaterThan(1000);
+        expect(b.schema).toBeGreaterThan(1000);
+        expect(Object.keys(b.userKeys)).toContain('narrativeContext');
+        expect(Object.keys(b.narrativeContext)).toContain(
+          'characterProjection',
+        );
+      }
+      expect(breakdownMarkdown([split])).toContain('| ch1 | author |');
       // A v8 run of the same corpus keeps its identity: no new report field.
       const v8out = await mkdtemp(join(tmpdir(), 'alterward-fiction-v8-'));
       try {
