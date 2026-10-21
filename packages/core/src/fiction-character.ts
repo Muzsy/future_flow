@@ -5,12 +5,13 @@ import {
   FICTION_CHARACTER_VERSION,
   fictionCharacterDeltaSchema,
   fictionCharacterProjectionSchema,
-  type FictionCharacterDynamicState,
-  type FictionCharacterProfile,
+  type FictionCharacterEntry,
+  type FictionCharacterEnvelope,
+  type FictionCharacterState,
+  type FictionCharacterDelta,
   type FictionCharacterProjection,
   type FictionCharacterProjectionActor,
   type FictionCharacterRelevance,
-  type FictionRelationshipState,
   type FictionalActorMemory,
 } from '@future-flow/contracts';
 import { DomainError } from './errors';
@@ -23,24 +24,6 @@ import { hash } from './index';
 // the same state, a fork shares only its prefix, and a period that does not
 // commit leaves no state behind.
 
-export type FictionCharacterEntry = {
-  actorId: string;
-  kind: 'fictional' | 'supplied';
-  // Pre-v9 recorded fields, kept as a seed; never inferred from older prose.
-  legacy: FictionalActorMemory | null;
-  profile: FictionCharacterProfile | null;
-  dynamic: FictionCharacterDynamicState | null;
-  relationship: FictionRelationshipState | null;
-  // Zero-based index of the last period that changed this actor.
-  touchedAtIndex: number | null;
-  removedAtPeriodId: string | null;
-};
-export type FictionCharacterState = {
-  version: typeof FICTION_CHARACTER_VERSION;
-  ownedPeriods: number;
-  // Sorted by actorId.
-  actors: FictionCharacterEntry[];
-};
 // Server-owned actor classification of the owned prefix. An actor with a
 // recorded origin event is wholly fictional; supplied (real) people are named
 // by the caller. Anything else is unknown and rejected.
@@ -421,4 +404,109 @@ export function fictionCharacterProjection(
     actors: chosen,
     omittedActors: omitted,
   });
+}
+
+export function fictionCharacterActorsFromEnvelope(
+  envelope: FictionCharacterEnvelope,
+): FictionCharacterActors {
+  return {
+    fictionalOrigins: new Map(
+      envelope.fictionalOrigins.map((o) => [o.actorId, o.introducedByEventId]),
+    ),
+    suppliedActorIds: new Set(envelope.suppliedActorIds),
+  };
+}
+
+// The projection the planner request must carry, recomputed from the server's
+// envelope; the request is valid only if it matches (plan section 25).
+export function fictionCharacterProjectionFromEnvelope(
+  envelope: FictionCharacterEnvelope,
+  withheld: boolean,
+) {
+  return fictionCharacterProjection(envelope.state, envelope.signals, {
+    withheld,
+  });
+}
+
+type CandidateEvent = {
+  id: string;
+  changes: { type: string; value?: unknown; actorId?: string }[];
+};
+
+// Checks one authored character delta against the owned state and the final
+// candidate. Everything is fail-closed and nothing is committed here; the
+// repairable code lets the author retry, and a rejected package never reaches
+// the canon history.
+export function validateFictionCharacterDelta(args: {
+  periodId: string;
+  envelope: FictionCharacterEnvelope;
+  delta: FictionCharacterDelta;
+  events: readonly CandidateEvent[];
+}): FictionCharacterState {
+  const fail = (message: string): never => {
+    throw new DomainError('NARRATIVE_PLAN_INVALID', message);
+  };
+  const { envelope, delta } = args;
+  const added = new Map<string, string>();
+  const removed = new Set<string>();
+  for (const event of args.events)
+    for (const change of event.changes) {
+      if (change.type === 'actor_add') {
+        const id = (change.value as { id?: unknown } | undefined)?.id;
+        if (typeof id === 'string') added.set(id, event.id);
+      } else if (change.type === 'actor_remove' && change.actorId)
+        removed.add(change.actorId);
+    }
+  const base = fictionCharacterActorsFromEnvelope(envelope);
+  const actors: FictionCharacterActors = {
+    // A new recurring actor is wholly fictional and starts at its own event.
+    fictionalOrigins: new Map([...base.fictionalOrigins, ...added]),
+    suppliedActorIds: base.suppliedActorIds,
+  };
+  let next: FictionCharacterState;
+  try {
+    next = applyFictionCharacterDelta(
+      envelope.state,
+      args.periodId,
+      delta,
+      actors,
+    );
+  } catch (error) {
+    // A state past its bound is not something a repair can fix: fail closed.
+    if (
+      error instanceof DomainError &&
+      error.code === 'FICTION_CHARACTER_STATE_TOO_LARGE'
+    )
+      throw new DomainError('NARRATIVE_CONTEXT_INVALID', error.message);
+    if (
+      error instanceof DomainError &&
+      error.code.startsWith('FICTION_CHARACTER_')
+    )
+      return fail(error.message);
+    throw error;
+  }
+  // A profile is added only for an actor this period's candidate introduces;
+  // otherwise a pruned tombstone could be revived (review N1). A carried-over
+  // person needs no profile and the prompt forbids one.
+  for (const profile of delta.addedProfiles)
+    if (!added.has(profile.actorId))
+      fail('A profile is added only for an actor introduced in this period.');
+  const profiled = new Set(delta.addedProfiles.map((p) => p.actorId));
+  for (const id of added.keys())
+    if (!profiled.has(id))
+      fail('A new recurring actor needs a character profile in its period.');
+  // Only a fictional actor with a live state entry is archived by the delta.
+  const live = new Set(
+    envelope.state.actors
+      .filter((a) => a.kind === 'fictional' && !a.removedAtPeriodId)
+      .map((a) => a.actorId),
+  );
+  const archived = new Set(delta.removedActorIds);
+  for (const id of removed)
+    if ((live.has(id) || added.has(id)) && !archived.has(id))
+      fail('A removed actor with character state must be archived.');
+  for (const id of archived)
+    if (!removed.has(id))
+      fail('A character is archived only by an actor_remove in this period.');
+  return next;
 }

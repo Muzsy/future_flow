@@ -50,6 +50,9 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       ...(sourceContext?.seriesLedger
         ? { seriesLedger: sourceContext.seriesLedger }
         : {}),
+      ...(sourceContext?.characterProjection
+        ? { characterProjection: sourceContext.characterProjection }
+        : {}),
       storyFacts:
         source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
           ? fictionContextSchema.parse(source.narrativeContext).storyFacts
@@ -59,6 +62,9 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       source?.narrativeReferences ??
       narrativeReferenceSnapshot(narrativeReferencesFromMemory(f.memory)),
     fictionReferences: source?.fictionReferences ?? { facts: [] },
+    ...(source?.fictionCharacters
+      ? { fictionCharacters: source.fictionCharacters }
+      : {}),
   };
   const authored: FictionAuthorResult = {
     version: '2.0.0',

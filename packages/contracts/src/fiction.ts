@@ -8,6 +8,12 @@ import {
   narrativePlanReviewV2Schema,
   narrativeEditorialReportSchema,
 } from './narrative';
+import {
+  fictionCharacterDeltaSchema,
+  fictionCharacterIntentSchema,
+  fictionCharacterProjectionSchema,
+  FICTION_CHARACTER_INTENTS,
+} from './fiction-character';
 
 export const FICTION_MODE = 'narrative-fiction-v2' as const;
 export const FICTION_FACT_BYTES = 6 * 1024;
@@ -46,6 +52,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v6',
           'life_fiction_plan.v7',
           'life_fiction_plan.v8',
+          'life_fiction_plan.v9',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -56,6 +63,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v6',
           'life_fiction_author.v7',
           'life_fiction_author.v8',
+          'life_fiction_author.v9',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -66,6 +74,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v6',
           'life_fiction_plan_review.v7',
           'life_fiction_plan_review.v8',
+          'life_fiction_plan_review.v9',
         ]),
         fidelity: z.literal('life_fiction_fidelity.v1'),
         editor: z.enum([
@@ -76,6 +85,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v5',
           'life_fiction_editor.v6',
           'life_fiction_editor.v7',
+          'life_fiction_editor.v8',
         ]),
       })
       .strict(),
@@ -89,6 +99,7 @@ export const fictionPolicySchema = z
       '2.5.0',
       '2.6.0',
       '2.7.0',
+      '2.8.0',
     ]),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
@@ -103,34 +114,38 @@ export const fictionPolicySchema = z
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       policy.promptVersions.editor !==
-        (v === 'v8'
-          ? 'life_fiction_editor.v7'
-          : v === 'v7'
-            ? 'life_fiction_editor.v6'
-            : v === 'v6'
-              ? 'life_fiction_editor.v5'
-              : v === 'v5'
-                ? 'life_fiction_editor.v4'
-                : v === 'v4'
-                  ? 'life_fiction_editor.v3'
-                  : v === 'v3'
-                    ? 'life_fiction_editor.v2'
-                    : 'life_fiction_editor.v1') ||
+        (v === 'v9'
+          ? 'life_fiction_editor.v8'
+          : v === 'v8'
+            ? 'life_fiction_editor.v7'
+            : v === 'v7'
+              ? 'life_fiction_editor.v6'
+              : v === 'v6'
+                ? 'life_fiction_editor.v5'
+                : v === 'v5'
+                  ? 'life_fiction_editor.v4'
+                  : v === 'v4'
+                    ? 'life_fiction_editor.v3'
+                    : v === 'v3'
+                      ? 'life_fiction_editor.v2'
+                      : 'life_fiction_editor.v1') ||
       (!(v === 'v6' && policy.qualityPolicyVersion === '2.5.0') &&
         policy.qualityPolicyVersion !==
-          (v === 'v8'
-            ? '2.7.0'
-            : v === 'v7'
-              ? '2.6.0'
-              : v === 'v6'
-                ? '2.4.0'
-                : v === 'v5'
-                  ? '2.3.0'
-                  : v === 'v4'
-                    ? '2.2.0'
-                    : v === 'v3'
-                      ? '2.1.0'
-                      : '2.0.0'))
+          (v === 'v9'
+            ? '2.8.0'
+            : v === 'v8'
+              ? '2.7.0'
+              : v === 'v7'
+                ? '2.6.0'
+                : v === 'v6'
+                  ? '2.4.0'
+                  : v === 'v5'
+                    ? '2.3.0'
+                    : v === 'v4'
+                      ? '2.2.0'
+                      : v === 'v3'
+                        ? '2.1.0'
+                        : '2.0.0'))
     )
       ctx.addIssue({
         code: 'custom',
@@ -266,17 +281,54 @@ export function fictionV8Policy(): FictionPolicy {
     },
   };
 }
-// Newly queued jobs select v8; every older snapshot stays byte-frozen.
+// v9/quality2.8 (living world, ADR-009) keeps every v8 mechanism and adds the
+// recurring-character state: a server-built projection in the request and a
+// character delta in the final package. v8 stays frozen; report 1.3.0, the
+// gates, 9 physical requests and the single repair are unchanged.
+export function fictionV9Policy(): FictionPolicy {
+  const previous = fictionV8Policy();
+  return {
+    ...previous,
+    qualityPolicyVersion: '2.8.0',
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v9',
+      writer: 'life_fiction_author.v9',
+      planReviewer: 'life_fiction_plan_review.v9',
+      editor: 'life_fiction_editor.v8',
+    },
+  };
+}
+// Newly queued jobs select v8 unless a generation is chosen explicitly (the
+// living-world generation is opt-in); every older snapshot stays byte-frozen.
 export function fictionPolicy(): FictionPolicy {
   return fictionV8Policy();
 }
 // Quality policies that receive the deterministic series ledger.
-export const fictionSeriesQualityVersions: readonly string[] = ['2.7.0'];
+export const fictionSeriesQualityVersions: readonly string[] = [
+  '2.7.0',
+  '2.8.0',
+];
+// Quality policies that carry the recurring-character state (ADR-009).
+export const fictionCharacterQualityVersions: readonly string[] = ['2.8.0'];
+// Quality policies that may introduce up to three recurring actors a period.
+export const fictionThreeActorQualityVersions: readonly string[] = [
+  '2.6.0',
+  '2.7.0',
+  '2.8.0',
+];
+// Quality policies with editor report 1.3.0 and signature 1.1.0.
+export const fictionReport13QualityVersions: readonly string[] = [
+  '2.6.0',
+  '2.7.0',
+  '2.8.0',
+];
 // Quality policies that coordinate fidelity and editor feedback before repair.
 export const fictionCoordinatedQualityVersions: readonly string[] = [
   '2.5.0',
   '2.6.0',
   '2.7.0',
+  '2.8.0',
 ];
 // Quality policies whose editor emits a human-likeness report (1.2.0+).
 export const fictionHumanQualityVersions: readonly string[] = [
@@ -286,9 +338,10 @@ export const fictionHumanQualityVersions: readonly string[] = [
   '2.5.0',
   '2.6.0',
   '2.7.0',
+  '2.8.0',
 ];
 export function fictionEditorialVersionFor(qualityPolicyVersion: string) {
-  return qualityPolicyVersion === '2.6.0' || qualityPolicyVersion === '2.7.0'
+  return fictionReport13QualityVersions.includes(qualityPolicyVersion)
     ? '1.3.0'
     : fictionHumanQualityVersions.includes(qualityPolicyVersion)
       ? '1.2.0'
@@ -548,6 +601,21 @@ export const fictionCompactPlanSchema = narrativePlanSchema
 export const fictionCompactDraftSchema = narrativePlanningResultSchema
   .extend({ plan: fictionCompactPlanSchema })
   .strict();
+// Living-world draft: what the relevant people do for their own reasons.
+export const fictionCompactDraftV9Schema = fictionCompactDraftSchema
+  .extend({
+    characterIntent: z
+      .array(fictionCharacterIntentSchema)
+      .max(FICTION_CHARACTER_INTENTS),
+  })
+  .strict()
+  .refine(
+    (draft) =>
+      new Set(draft.characterIntent.map((i) => i.actorId)).size ===
+      draft.characterIntent.length,
+    'A person has one intent per draft.',
+  );
+export type FictionDraftV9 = z.infer<typeof fictionCompactDraftV9Schema>;
 // Deterministic, server-computed evidence over this life's owned chapters
 // (quality2.7). Counts are evidence, never quotas; see core fiction-series.
 export const FICTION_SERIES_LEDGER_BYTES = 3 * 1024;
@@ -627,12 +695,14 @@ export const fictionContextSchema = z
       .max(8)
       .optional(),
     seriesLedger: fictionSeriesLedgerSchema.optional(),
+    // Living-world generation only: the bounded, deterministic view of the
+    // recurring characters. Part of the request and therefore of its hash.
+    characterProjection: fictionCharacterProjectionSchema.optional(),
   })
   .strict()
   .refine(
     (c) =>
-      c.policy.qualityPolicyVersion === '2.6.0' ||
-      c.policy.qualityPolicyVersion === '2.7.0' ||
+      fictionReport13QualityVersions.includes(c.policy.qualityPolicyVersion) ||
       !c.sequenceSignatureHistory?.some((s) => s.version !== '1.0.0'),
     'Only quality2.6+ fiction context may carry signature 1.1.0 history.',
   )
@@ -644,11 +714,18 @@ export const fictionContextSchema = z
   )
   .refine(
     (c) =>
+      Boolean(c.characterProjection) ===
+      fictionCharacterQualityVersions.includes(c.policy.qualityPolicyVersion),
+    'Only quality2.8 fiction context carries a character projection, and it must.',
+  )
+  .refine(
+    (c) =>
       !c.memory.withheld ||
       (c.storyFacts.length === 0 &&
         !c.sequenceHistory?.length &&
         !c.sequenceSignatureHistory?.length &&
-        !c.seriesLedger),
+        !c.seriesLedger &&
+        !c.characterProjection?.actors.length),
     'Withheld fiction context cannot contain historical facts.',
   );
 export type FictionContext = z.infer<typeof fictionContextSchema>;
@@ -665,6 +742,29 @@ export const fictionCompactAuthorSchema = fictionAuthorResultSchema
   .extend({ plan: fictionCompactPlanSchema })
   .strict();
 export type FictionAuthorResult = z.infer<typeof fictionAuthorResultSchema>;
+// Living-world final package: the v8 package plus this period's character delta.
+export const fictionCompactAuthorV9Schema = fictionCompactAuthorSchema
+  .extend({ characterDelta: fictionCharacterDeltaSchema })
+  .strict();
+export type FictionAuthorResultV9 = z.infer<
+  typeof fictionCompactAuthorV9Schema
+>;
+// Output schemas are chosen by the frozen policy, never by the payload shape,
+// so a v1-v8 output can never be read with the v9 meaning (plan section 23).
+export function fictionDraftSchemaFor(policy: FictionPolicy) {
+  return fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactDraftV9Schema
+    : policy.promptVersions.planner !== 'life_fiction_plan.v1'
+      ? fictionCompactDraftSchema
+      : narrativePlanningResultSchema;
+}
+export function fictionAuthorSchemaFor(policy: FictionPolicy) {
+  return fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactAuthorV9Schema
+    : policy.promptVersions.writer !== 'life_fiction_author.v1'
+      ? fictionCompactAuthorSchema
+      : fictionAuthorResultSchema;
+}
 // Metadata-only, server-owned full-prefix inventory. Never model input.
 export const fictionReferencesSchema = z
   .object({
@@ -696,9 +796,23 @@ export const fictionBindingKeys = [
   'editorialOutputHash',
 ] as const;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const bindingsShape = Object.fromEntries(
-  fictionBindingKeys.map((key) => [key, digest]),
-) as Record<(typeof fictionBindingKeys)[number], typeof digest>;
+// Present only in the living-world generation (policy-gated below).
+export const fictionCharacterBindingKeys = [
+  'characterStateHash',
+  'characterProjectionHash',
+  'characterDeltaHash',
+] as const;
+const bindingsShape = {
+  ...(Object.fromEntries(
+    fictionBindingKeys.map((key) => [key, digest]),
+  ) as Record<(typeof fictionBindingKeys)[number], typeof digest>),
+  ...(Object.fromEntries(
+    fictionCharacterBindingKeys.map((key) => [key, digest.optional()]),
+  ) as Record<
+    (typeof fictionCharacterBindingKeys)[number],
+    z.ZodOptional<typeof digest>
+  >),
+};
 export const fictionArtifactSchema = z
   .object({
     version: z.literal('2.0.0'),
@@ -707,6 +821,8 @@ export const fictionArtifactSchema = z
     validatedPlan: narrativePlanSchema,
     validatedMemoryDelta: narrativePlanSchema.shape.memoryDelta,
     storyFacts: z.array(storyFactSchema).max(12),
+    // Living-world generation only; the fold of these deltas is the state.
+    characterDelta: fictionCharacterDeltaSchema.optional(),
     planningReview: narrativePlanReviewV2Schema,
     editorialReport: fictionEditorialReportSchema,
     bindings: z.object(bindingsShape).strict(),
@@ -745,6 +861,21 @@ export const fictionArtifactSchema = z
         code: 'custom',
         path: ['editorialReport', 'version'],
         message: 'Artifact report version must match its frozen policy.',
+      });
+    const living = fictionCharacterQualityVersions.includes(
+      artifact.policy.qualityPolicyVersion,
+    );
+    if (
+      living !== Boolean(artifact.characterDelta) ||
+      fictionCharacterBindingKeys.some(
+        (key) => living !== Boolean(artifact.bindings[key]),
+      )
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['characterDelta'],
+        message:
+          'Only the living-world policy carries a character delta and its bindings, and it must.',
       });
   });
 export type FictionArtifact = z.infer<typeof fictionArtifactSchema>;

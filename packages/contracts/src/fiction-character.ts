@@ -213,3 +213,78 @@ export const fictionCharacterProjectionSchema = z
 export type FictionCharacterProjection = z.infer<
   typeof fictionCharacterProjectionSchema
 >;
+
+// Planner output: what each relevant person is doing for their own reasons
+// before the protagonist's story touches them (plan section 20). Advisory;
+// the author may reshape it, and it is not persisted beyond the draft hash.
+export const FICTION_CHARACTER_INTENTS = 6;
+export const fictionCharacterIntentSchema = z
+  .object({
+    actorId: id,
+    ownAim: text(10, 200),
+    attentionOn: text(10, 160),
+    interactionPressure: text(10, 200),
+    protagonistRelevance: text(5, 120).nullable(),
+  })
+  .strict();
+export type FictionCharacterIntent = z.infer<
+  typeof fictionCharacterIntentSchema
+>;
+
+// Folded state, server-side only (never model input); the request carries the
+// bounded projection of it. Persisted in the job payload next to the owned
+// reference inventories, and bound into the artifact by hash.
+export const fictionCharacterEntrySchema = z
+  .object({
+    actorId: id,
+    kind: z.enum(['fictional', 'supplied']),
+    // Pre-v9 recorded fields, kept as a seed; never inferred from older prose.
+    legacy: fictionalActorMemorySchema.nullable(),
+    profile: fictionCharacterProfileSchema.nullable(),
+    dynamic: fictionCharacterDynamicStateSchema.nullable(),
+    relationship: fictionRelationshipStateSchema.nullable(),
+    // Zero-based index of the last period that changed this actor.
+    touchedAtIndex: z.number().int().min(0).max(100000).nullable(),
+    removedAtPeriodId: id.nullable(),
+  })
+  .strict();
+export type FictionCharacterEntry = z.infer<typeof fictionCharacterEntrySchema>;
+export const fictionCharacterStateSchema = z
+  .object({
+    version: z.literal(FICTION_CHARACTER_VERSION),
+    ownedPeriods: z.number().int().min(0).max(100000),
+    // Sorted by actorId.
+    actors: z
+      .array(fictionCharacterEntrySchema)
+      .max(FICTION_CHARACTER_STATE_ACTORS),
+  })
+  .strict();
+export type FictionCharacterState = z.infer<typeof fictionCharacterStateSchema>;
+// Relevance signals that exist before the planner runs (the candidate does
+// not exist yet and the request is hash-bound), computed by the server.
+export const fictionCharacterSignalsSchema = z
+  .object({
+    openThreadActors: z.array(id).max(60),
+    goalOrOpportunityActors: z.array(id).max(60),
+    overduePrivateLifeActors: z.array(id).max(60),
+  })
+  .strict();
+export type FictionCharacterSignalSet = z.infer<
+  typeof fictionCharacterSignalsSchema
+>;
+export const fictionCharacterEnvelopeSchema = z
+  .object({
+    version: z.literal(FICTION_CHARACTER_VERSION),
+    state: fictionCharacterStateSchema,
+    // Wholly fictional actors with their introducing event; every other actor
+    // that appears in a delta must be a supplied person listed here.
+    fictionalOrigins: z
+      .array(z.object({ actorId: id, introducedByEventId: id }).strict())
+      .max(1000),
+    suppliedActorIds: z.array(id).max(100),
+    signals: fictionCharacterSignalsSchema,
+  })
+  .strict();
+export type FictionCharacterEnvelope = z.infer<
+  typeof fictionCharacterEnvelopeSchema
+>;
