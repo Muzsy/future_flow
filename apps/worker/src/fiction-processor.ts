@@ -113,7 +113,7 @@ function editorFindings(report: FictionEditorialReport, limit: number) {
     .filter(([, value]) => value < 4)
     .map(([key, value]) => `${key}=${value}`)
     .join(', ');
-  const header = `${failingFlagsLine(report)}\nScores below 4: ${low || 'none'}`;
+  const header = `Verdict: ${report.verdict}\n${failingFlagsLine(report)}\nScores below 4: ${low || 'none'}`;
   let issues = [...report.issues].sort(
     (a, b) => Number(blockingIssue(b)) - Number(blockingIssue(a)),
   );

@@ -950,7 +950,9 @@ describe('the v9 editor-triggered repair message', () => {
     ]);
     expect(message.length).toBeLessThanOrEqual(1800);
     expect(message).toMatch(/^Correct the final package's literary issues:\n/);
-    expect(message).toContain('Failing flags: distinctEnding');
+    expect(message).toContain(
+      '\nVerdict: revise\nFailing flags: distinctEnding',
+    );
     expect(message).toContain('Scores below 4:');
     expect(message).toContain(
       'choiceStakes/major/canon, paragraph 1: A_EXPLAIN',
