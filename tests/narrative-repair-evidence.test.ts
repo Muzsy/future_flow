@@ -65,6 +65,19 @@ function storedRun() {
             issues: [{ reason: 'unregistered_material_fact: the originals' }],
           },
         }),
+        attempt(5, 'life_narrative_editor', {
+          output: {
+            verdict: 'revise',
+            scores: { novelty: 4, choiceStakes: 3 },
+            issues: [
+              {
+                dimension: 'choiceStakes',
+                severity: 'minor',
+                repairScope: 'prose',
+              },
+            ],
+          },
+        }),
       ],
     }),
   );
@@ -98,6 +111,12 @@ describe('repair evidence (stored files only)', () => {
     // A prose-only repair cannot register facts: the story facts are frozen.
     expect(r.storyFacts).toMatchObject({ before: 1, after: 1, frozen: true });
     expect(r.bodyWords).toEqual({ before: 3, after: 5 });
+    // The editor that ran after the repair: a new dimension, minor.
+    expect(r.editorAfter).toEqual({
+      verdict: 'revise',
+      scores: { novelty: 4, choiceStakes: 3 },
+      issues: ['choiceStakes/minor/prose'],
+    });
     expect(r.fidelityAfter?.valid).toBe(false);
     expect(r.fidelityAfter?.reasons[0]).toContain('unregistered_material_fact');
     const markdown = repairEvidenceMarkdown([evidence]);
@@ -107,20 +126,20 @@ describe('repair evidence (stored files only)', () => {
 
   it('projects the 9-call ceiling of an author-package repair for material editor findings', () => {
     const evidence = repairEvidence(storedRun());
-    // 5 calls, then a prose-only repair (author, fidelity): 6 stored attempts
+    // 6 stored attempts (author, fidelity, editor, repair author, fidelity, editor)
     // here; the editor's choiceStakes finding is a material dimension.
     expect(evidence.chapters).toEqual([
       {
         caseId: 'career:1',
-        calls: 5,
+        calls: 6,
         repairMode: 'prose_only',
         materialEditorRepair: true,
-        callsIfAuthorPackage: 6,
+        callsIfAuthorPackage: 7,
       },
     ]);
     expect(evidence.ceiling).toEqual({ now: 0, ifAuthorPackage: 0, cases: 1 });
     expect(repairEvidenceMarkdown([evidence])).toContain(
-      'material editor dimension -> 6 calls as author_package',
+      'material editor dimension -> 7 calls as author_package',
     );
   });
 
@@ -130,6 +149,9 @@ describe('repair evidence (stored files only)', () => {
       (l) => l.task === 'life_narrative_chapter',
     )!;
     expect(author.calls).toBe(4);
+    expect(author.meanMs).toBe(125000);
+    expect(author.meanOutputBytes).toBe(500);
+    expect(evidence.calls).toHaveLength(4);
     expect(author.over150s).toBe(1);
     expect(author.over180s).toBe(1);
     // Latency here grows with the request bytes and not with the (constant)

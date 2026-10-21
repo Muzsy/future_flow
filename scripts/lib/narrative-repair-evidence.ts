@@ -80,9 +80,14 @@ export function repairEvidence(runDir: string) {
     const withSizes = calls.filter(
       (c) => c.requestBytes !== undefined && c.outputBytes !== undefined,
     );
+    const meanOf = (v: number[]) =>
+      v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
     return {
       task,
       calls: calls.length,
+      meanMs: meanOf(calls.map((c) => c.latencyMs)),
+      meanOutputBytes: meanOf(withSizes.map((c) => c.outputBytes!)),
+      meanRequestBytes: meanOf(withSizes.map((c) => c.requestBytes!)),
       maxMs: Math.max(...calls.map((c) => c.latencyMs)),
       over150s: calls.filter((c) => c.latencyMs > 150_000).length,
       over180s: calls.filter((c) => c.latencyMs > 180_000).length,
@@ -97,6 +102,17 @@ export function repairEvidence(runDir: string) {
       ),
     };
   });
+  const calls = transports
+    .filter((t) =>
+      ['life_narrative_chapter', 'life_narrative_plan'].includes(t.task),
+    )
+    .map((t) => ({
+      caseId: t.caseId,
+      task: t.task,
+      latencyMs: t.latencyMs,
+      requestBytes: t.requestBytes ?? null,
+      outputBytes: t.outputBytes ?? null,
+    }));
   const slowCalls = transports
     .filter((t) => t.latencyMs > 150_000)
     .map((t) => ({
@@ -174,11 +190,23 @@ export function repairEvidence(runDir: string) {
             ?.output as
             | {
                 verdict?: string;
+                scores?: Record<string, number>;
                 issues?: {
                   dimension: string;
                   severity: string;
                   repairScope: string;
                   suggestedFix: string;
+                }[];
+              }
+            | undefined;
+          const editorAfter = lastOf('life_narrative_editor', after)?.output as
+            | {
+                verdict?: string;
+                scores?: Record<string, number>;
+                issues?: {
+                  dimension: string;
+                  severity: string;
+                  repairScope: string;
                 }[];
               }
             | undefined;
@@ -207,6 +235,7 @@ export function repairEvidence(runDir: string) {
             editorBefore: editorBefore
               ? {
                   verdict: editorBefore.verdict ?? null,
+                  scores: editorBefore.scores ?? null,
                   issues: (editorBefore.issues ?? []).map((i) => ({
                     dimension: i.dimension,
                     severity: i.severity,
@@ -234,6 +263,15 @@ export function repairEvidence(runDir: string) {
                   ?.chapter?.body,
               ),
             },
+            editorAfter: editorAfter
+              ? {
+                  verdict: editorAfter.verdict ?? null,
+                  scores: editorAfter.scores ?? null,
+                  issues: (editorAfter.issues ?? []).map(
+                    (i) => `${i.dimension}/${i.severity}/${i.repairScope}`,
+                  ),
+                }
+              : null,
             fidelityAfter: fidelityAfter
               ? {
                   valid: fidelityAfter.valid ?? null,
@@ -249,6 +287,7 @@ export function repairEvidence(runDir: string) {
   return {
     run: basename(root),
     latency,
+    calls,
     slowCalls,
     repairs,
     chapters,
@@ -268,11 +307,23 @@ export function repairEvidenceMarkdown(
   for (const run of runs) {
     lines.push(`## ${run.run}`, '', '### Latency by stage', '');
     lines.push(
-      '| task | calls | max s | >150 s | >180 s | r(latency, request bytes) | r(latency, output bytes) |',
-      '|---|---|---|---|---|---|---|',
-      ...run.latency.map(
-        (l) =>
-          `| ${l.task} | ${l.calls} | ${(l.maxMs / 1000).toFixed(0)} | ${l.over150s} | ${l.over180s} | ${l.rRequestBytes ?? '-'} | ${l.rOutputBytes ?? '-'} |`,
+      '| task | calls | mean s | max s | >150 s | >180 s | mean request KB | mean output KB | s per output KB | r(latency, request bytes) | r(latency, output bytes) |',
+      '|---|---|---|---|---|---|---|---|---|---|---|',
+      ...run.latency.map((l) => {
+        const kb = (n: number | null) =>
+          n === null ? '-' : (n / 1000).toFixed(1);
+        const perKb =
+          l.meanMs !== null && l.meanOutputBytes
+            ? (l.meanMs / l.meanOutputBytes).toFixed(1)
+            : '-';
+        return `| ${l.task} | ${l.calls} | ${l.meanMs === null ? '-' : (l.meanMs / 1000).toFixed(0)} | ${(l.maxMs / 1000).toFixed(0)} | ${l.over150s} | ${l.over180s} | ${kb(l.meanRequestBytes)} | ${kb(l.meanOutputBytes)} | ${perKb} | ${l.rRequestBytes ?? '-'} | ${l.rOutputBytes ?? '-'} |`;
+      }),
+      '',
+      '### Every plan and author call',
+      '',
+      ...run.calls.map(
+        (c) =>
+          `- ${c.caseId} ${c.task}: ${(c.latencyMs / 1000).toFixed(0)} s, request ${c.requestBytes === null ? '-' : (c.requestBytes / 1000).toFixed(1)} KB, output ${c.outputBytes === null ? '-' : (c.outputBytes / 1000).toFixed(1)} KB`,
       ),
       '',
       '### Calls over 150 s',
@@ -303,6 +354,8 @@ export function repairEvidenceMarkdown(
         `- Repair message (head): ${r.message.replace(/\s+/g, ' ')}`,
         `- Fidelity before: ${r.fidelityBefore ? `valid=${r.fidelityBefore.valid}; ${r.fidelityBefore.reasons.join(' | ') || 'no issues'}` : 'none'}`,
         `- Editor before: ${r.editorBefore ? `${r.editorBefore.verdict}; ${r.editorBefore.issues.map((i) => `${i.dimension}/${i.severity}/${i.repairScope}: ${i.suggestedFix}`).join(' | ') || 'no issues'}` : 'none'}`,
+        `- Editor scores before: ${r.editorBefore?.scores ? JSON.stringify(r.editorBefore.scores) : '-'}`,
+        `- Editor after: ${r.editorAfter ? `${r.editorAfter.verdict}; scores ${r.editorAfter.scores ? JSON.stringify(r.editorAfter.scores) : '-'}; issues ${r.editorAfter.issues.join(' | ') || 'none'}` : 'none (not reached)'}`,
         `- Story facts: ${r.storyFacts.before} before, ${r.storyFacts.after} after, ${r.storyFacts.frozen ? 'frozen' : `grown/changed, added: ${r.storyFacts.added.join(' | ') || 'none'}`}`,
         `- Chapter words: ${r.bodyWords.before} before, ${r.bodyWords.after} after`,
         `- Fidelity after: ${r.fidelityAfter ? `valid=${r.fidelityAfter.valid}; ${r.fidelityAfter.reasons.join(' | ') || 'no issues'}` : 'none (the run stopped or the check was not reached)'}`,
