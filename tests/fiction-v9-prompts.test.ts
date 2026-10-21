@@ -26,6 +26,15 @@ describe('v9 prompts', () => {
     expect(v9.author).toContain('actor_add and a profile');
     expect(v9.author).toContain('no new fact, person or speaking role');
     expect(v9.review).toContain('new speaking person has no actor_add');
+    // A continuity reason is a planning note: the planner names only what the
+    // projection shows or the plan will show, the author never lifts it into
+    // an event summary as something that happened (v9 phase-5 chapter 1).
+    expect(v9.planner).toContain('a planning note, never a past event');
+    expect(v9.author).toContain(
+      'a planning note, not a fact: never write it into an event summary',
+    );
+    expect(v8.planner).not.toContain('planning note');
+    expect(v8.author).not.toContain('planning note');
     // v8 is frozen: none of it leaks into the v8 prompts.
     expect(v8.author).not.toContain('speaking role');
     expect(v8.review).not.toContain('speaking person');

@@ -2,6 +2,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { fictionV9Policy } from '@future-flow/contracts';
+import { fictionFixture } from './fiction-fixtures';
 import {
   breakdownMarkdown,
   breakdownRun,
@@ -304,6 +306,83 @@ describe('v9 planner continuity diagnostics', () => {
     expect(c.continuity?.missing).toEqual(['fiona', 'mother']);
     expect(c.repairMessage).toBe('The plan repeats.');
     expect(attemptEvidence(null)).toBeNull();
+  });
+  it('counts schema and uuid failures of the compact v9 request schemas from the attempt trace', () => {
+    const f = fictionFixture();
+    const goodDraft = f.draft as { candidate: { periodId: string } };
+    const badUuid = {
+      ...goodDraft,
+      candidate: { ...goodDraft.candidate, periodId: 'not-a-uuid' },
+    };
+    const attempt = (extra: object) => ({
+      task: 'life_narrative_plan',
+      status: 'completed',
+      errorCode: null,
+      output: null,
+      repairFeedback: null,
+      ...extra,
+    });
+    const trace = {
+      attempts: [
+        attempt({ output: goodDraft }),
+        // Refused by the server schema because of a uuid.
+        attempt({
+          status: 'malformed',
+          errorCode: 'AI_INVALID_SCHEMA',
+          output: badUuid,
+        }),
+        // Refused for another reason (a missing required field).
+        attempt({
+          status: 'malformed',
+          errorCode: 'AI_INVALID_SCHEMA',
+          output: { candidate: goodDraft.candidate },
+        }),
+        // The API rejected the request itself.
+        attempt({ status: 'failed', errorCode: 'AI_HTTP_400' }),
+        attempt({ status: 'failed', errorCode: 'AI_HTTP_429' }),
+      ],
+    } as never;
+    const policy = fictionV9Policy();
+    expect(attemptEvidence(trace, policy)?.schemaFailures).toEqual({
+      malformed: 2,
+      uuid: 1,
+      rejected: 1,
+    });
+    // Without a policy the uuid share cannot be told, the totals still count.
+    expect(attemptEvidence(trace)?.schemaFailures).toEqual({
+      malformed: 2,
+      uuid: 0,
+      rejected: 1,
+    });
+    // The sample carries the counter next to the stage output tokens.
+    const evidence = attemptEvidence(trace, policy);
+    const c = characterBytes(
+      {},
+      null,
+      [{ task: 'life_narrative_chapter', outputTokens: 900 }] as never,
+      {},
+      [
+        {
+          task: 'life_narrative_chapter',
+          latencyMs: 120_000,
+          outputBytes: 10,
+        },
+      ] as never,
+      '',
+      evidence,
+    );
+    expect(c.schemaFailures).toEqual({ malformed: 2, uuid: 1, rejected: 1 });
+    expect(c.stageTokens).toEqual([
+      { task: 'life_narrative_chapter', outputTokens: 900 },
+    ]);
+    expect(c.stageLatencies).toEqual([
+      { task: 'life_narrative_chapter', latencyMs: 120_000 },
+    ]);
+    expect(characterBytes({}, null).schemaFailures).toEqual({
+      malformed: 0,
+      uuid: 0,
+      rejected: 0,
+    });
   });
   it('has no continuity when there is no draft or no projection', () => {
     expect(characterBytes(payload, null, [], {}).continuity).toBeNull();

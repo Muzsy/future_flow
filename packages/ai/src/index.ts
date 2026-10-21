@@ -1,5 +1,9 @@
 import { fictionPrompts } from './fiction-prompts';
 import {
+  fictionCompactUuidFor,
+  stripCopiedUuidPatterns,
+} from './fiction-schema';
+import {
   fictionSequenceEditorialSchema,
   fictionHumanEditorialSchema,
   fictionHumanEditorialV13Schema,
@@ -20,6 +24,7 @@ import {
 } from '@future-flow/core';
 import OpenAI, { type APIError } from 'openai';
 export * from './experiment-budget';
+export * from './fiction-schema';
 export * from './claude';
 export * from './narrative-prompts';
 import {
@@ -378,6 +383,18 @@ export class OpenAiProvider
       }
     }
   }
+  // zodTextFormat's parser (non-enumerable) stays on the object; only the
+  // freshly rendered JSON schema is edited, and only for the v9 fiction stages.
+  private responseFormat<T>(
+    schema: z.ZodType<T>,
+    task: string,
+    promptVersion?: string,
+  ) {
+    const format = zodTextFormat(schema, task);
+    if (fictionCompactUuidFor(promptVersion))
+      stripCopiedUuidPatterns(format.schema);
+    return format;
+  }
   private async generate<T>(
     schema: z.ZodType<T>,
     task: string,
@@ -408,7 +425,7 @@ export class OpenAiProvider
             { role: 'system', content: instructions },
             { role: 'user', content: JSON.stringify(input) },
           ],
-          text: { format: zodTextFormat(schema, task) },
+          text: { format: this.responseFormat(schema, task, promptVersion) },
         },
         task !== 'public_review' &&
           task !== 'public_content_review' &&

@@ -258,6 +258,64 @@ describe('character audit over stored reports', () => {
       'SIGNAL continuityDecisionMissing',
     );
   });
+  it('summarises latency per stage, output tokens and schema/uuid failures for the paid measurement', () => {
+    const sample = (
+      periodIndex: number,
+      latencies: number[],
+      failures?: { malformed: number; uuid: number; rejected: number },
+    ) => ({
+      fixtureId: 'creative-portfolio',
+      kind: 'full',
+      periodIndex,
+      chapter: { body: 'Mara waited.' },
+      character: {
+        projectionBytes: 10,
+        deltaBytes: 5,
+        omittedActors: 0,
+        stageLatencies: latencies.map((latencyMs, i) => ({
+          task: i === 0 ? 'life_narrative_plan' : 'life_narrative_chapter',
+          latencyMs,
+        })),
+        stageTokens: [{ task: 'life_narrative_chapter', outputTokens: 4000 }],
+        ...(failures ? { schemaFailures: failures } : {}),
+      },
+    });
+    const audit = narrativeCharacterAudit([
+      {
+        label: 'run',
+        samples: [
+          sample(0, [90_000, 150_000], { malformed: 1, uuid: 1, rejected: 0 }),
+          sample(1, [100_000, 182_000], { malformed: 0, uuid: 0, rejected: 1 }),
+          sample(2, [110_000]),
+        ],
+      },
+    ]);
+    const m = audit.sequences[0]!.measurement;
+    expect(m.schemaFailures).toEqual({ malformed: 1, uuid: 1, rejected: 1 });
+    expect(m.latencyByStage.life_narrative_chapter).toEqual({
+      calls: 2,
+      p50Ms: 166_000,
+      maxMs: 182_000,
+      over150s: 1,
+      over180s: 1,
+    });
+    expect(m.latencyByStage.life_narrative_plan).toMatchObject({
+      calls: 3,
+      p50Ms: 100_000,
+      maxMs: 110_000,
+      over150s: 0,
+    });
+    expect(m.outputTokensByStage.life_narrative_chapter).toEqual({
+      calls: 3,
+      total: 12000,
+      max: 4000,
+    });
+    const markdown = characterAuditMarkdown(audit);
+    expect(markdown).toContain(
+      '1 malformed answers, 1 of them uuid-shaped, 1 requests rejected',
+    );
+    expect(markdown).toContain('>180 s 1 [SIGNAL deadline]');
+  });
   it('is provider-free and leaves the v8 report shape alone', () => {
     const v8 = narrativeCharacterAudit([
       {

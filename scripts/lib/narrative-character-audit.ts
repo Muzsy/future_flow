@@ -43,6 +43,10 @@ export type CharacterAuditChapter = {
     authorReasoningTokens?: number[];
     repairMessage?: string | null;
     characterRepair?: boolean;
+    // Measurement plan of the v9 request-schema compaction (all optional).
+    schemaFailures?: { malformed: number; uuid: number; rejected: number };
+    stageTokens?: { task: string; outputTokens: number }[];
+    stageLatencies?: { task: string; latencyMs: number }[];
     // Planner continuity decisions against the open matters of the people
     // shown to the planner (diagnostics, never a gate).
     continuity?: {
@@ -209,6 +213,61 @@ const briefCue = /\b(brief|short|avoids?|dry|blunt|few words|little)\b/i;
 const count = (words: string[], set: Set<string>) =>
   words.filter((w) => set.has(w)).length;
 const round = (n: number) => Math.round(n * 100) / 100;
+const percentile50 = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = sorted.length >> 1;
+  return sorted.length % 2
+    ? sorted[mid]!
+    : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+};
+function measurementSection(
+  chapters: { character?: CharacterAuditChapter['character'] }[],
+) {
+  const latencies = new Map<string, number[]>();
+  const tokens = new Map<string, number[]>();
+  const schemaFailures = { malformed: 0, uuid: 0, rejected: 0 };
+  for (const c of chapters) {
+    for (const stage of c.character?.stageLatencies ?? [])
+      latencies.set(stage.task, [
+        ...(latencies.get(stage.task) ?? []),
+        stage.latencyMs,
+      ]);
+    for (const t of c.character?.stageTokens ?? [])
+      tokens.set(t.task, [...(tokens.get(t.task) ?? []), t.outputTokens]);
+    const f = c.character?.schemaFailures;
+    if (f) {
+      schemaFailures.malformed += f.malformed;
+      schemaFailures.uuid += f.uuid;
+      schemaFailures.rejected += f.rejected;
+    }
+  }
+  return {
+    schemaFailures,
+    latencyByStage: Object.fromEntries(
+      [...latencies].map(([task, ms]) => [
+        task,
+        {
+          calls: ms.length,
+          p50Ms: percentile50(ms),
+          maxMs: Math.max(...ms),
+          over150s: ms.filter((m) => m > 150_000).length,
+          over180s: ms.filter((m) => m > 180_000).length,
+        },
+      ]),
+    ),
+    outputTokensByStage: Object.fromEntries(
+      [...tokens].map(([task, t]) => [
+        task,
+        {
+          calls: t.length,
+          total: t.reduce((a, b) => a + b, 0),
+          max: Math.max(...t),
+        },
+      ]),
+    ),
+  };
+}
 const share = (a: number, b: number) => (b ? round(a / b) : 0);
 const recurs = (hit: number, of: number) =>
   hit >= CHARACTER_AUDIT_MIN_CHAPTERS &&
@@ -469,6 +528,10 @@ export function auditCharacters(sequence: CharacterAuditSequence) {
         (c) => (c.character?.continuity?.missing.length ?? 0) > 0,
       ),
     },
+    // Measurement plan (paid run, v9 against v8): latency per stage against
+    // the 150 s and 180 s (fiction deadline) marks, output tokens per stage
+    // and the schema/uuid failures of the compact v9 request schemas.
+    measurement: measurementSection(chapters),
     // Request-side visibility: how many relevant people the 8 KiB projection
     // could not show, and why they were relevant.
     omissions: {
@@ -630,6 +693,17 @@ export function characterAuditMarkdown(
     );
     lines.push(
       `- Continuity decisions: ${s.continuity.totalMissing} missing of ${s.continuity.totalRequired} required${s.continuity.continuityDecisionMissing ? ' [SIGNAL continuityDecisionMissing]' : ''}; embodiment markers per chapter: ${s.sequence.embodimentPerChapter.map((e) => e.markers).join(', ')}`,
+    );
+    lines.push(
+      `- Schema failures (compact v9 request schemas): ${s.measurement.schemaFailures.malformed} malformed answers, ${s.measurement.schemaFailures.uuid} of them uuid-shaped, ${s.measurement.schemaFailures.rejected} requests rejected by the API (HTTP 400)`,
+      ...Object.entries(s.measurement.latencyByStage).map(
+        ([task, l]) =>
+          `- Latency ${task}: ${l.calls} calls, p50 ${l.p50Ms}ms, max ${l.maxMs}ms, >150 s ${l.over150s}, >180 s ${l.over180s}${l.over180s > 0 ? ' [SIGNAL deadline]' : ''}`,
+      ),
+      ...Object.entries(s.measurement.outputTokensByStage).map(
+        ([task, t]) =>
+          `- Output tokens ${task}: ${t.calls} answers, total ${t.total}, max ${t.max}`,
+      ),
     );
     lines.push(
       `- Generation: ${s.generation.totalRequests} requests, repair in ${s.generation.chaptersWithRepair}/${s.chapters} chapters; estimated output tokens prose ${s.generation.estimatedProseTokens}, delta ${s.generation.estimatedDeltaTokens} (estimates, not usage)`,

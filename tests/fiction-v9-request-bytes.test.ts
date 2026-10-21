@@ -6,6 +6,11 @@ import {
   OpenAiProvider,
 } from '@future-flow/ai';
 import {
+  fictionAuthorSchemaFor,
+  fictionDraftSchemaFor,
+  fictionHumanEditorialV13Schema,
+  fidelitySchema,
+  narrativePlanReviewV2Schema,
   FICTION_CHARACTER_PROJECTION_BYTES,
   FICTION_CHARACTER_VERSION,
   fictionV8Policy,
@@ -22,6 +27,7 @@ import {
   narrativeReferencesFromMemory,
   type FictionRepair,
 } from '@future-flow/core';
+import { zodTextFormat } from 'openai/helpers/zod';
 import { fictionFixture } from './fiction-fixtures';
 
 // Plan section 55: request bytes of the living-world generation, measured per
@@ -39,6 +45,13 @@ const RECORDED_REAL_REPAIR_REQUEST_BYTES = {
   v8: 108751, // 2026-10-19, v8 paid measurement, real repair author request
   v9: 116336, // 2026-10-20, v9-6b chapter 1, local Codex run, raw request bytes
 } as const;
+const PINNED_V8_SCHEMA_BYTES = {
+  planner: 25927,
+  author: 28137,
+  review: 1712,
+  fidelity: 526,
+  editor: 4734,
+};
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const guarded = (request: unknown) =>
@@ -248,6 +261,14 @@ async function measure(input: NarrativePeriodInput) {
     fidelity: bytes[3]!,
     editor: bytes[4]!,
     authorRepair: bytes[5]!,
+    // The response format (JSON schema) each stage sent, by stage.
+    formats: {
+      planner: parse.mock.calls[0]![0].text.format,
+      author: parse.mock.calls[1]![0].text.format,
+      review: parse.mock.calls[2]![0].text.format,
+      fidelity: parse.mock.calls[3]![0].text.format,
+      editor: parse.mock.calls[4]![0].text.format,
+    },
     projection: Buffer.byteLength(
       JSON.stringify(f.input.narrativeContext!.characterProjection ?? null),
     ),
@@ -287,6 +308,91 @@ describe('v9 request bytes (plan section 55)', () => {
     // The checks only see the final package, which gained its delta.
     for (const stage of ['review', 'fidelity', 'editor'] as const)
       expect(empty[stage] - v8[stage]).toBeLessThan(1024);
+  });
+
+  // Lasting-cost fix: zod renders every uuid with a 178 B regex, a third of
+  // the v9 author/plan schema bytes. The v9 plan and author requests drop it
+  // where the model copies an identifier (tests/fiction-v9-schema-compact);
+  // v8 and the shared check schemas must stay byte for byte as zod renders
+  // them, so v8 (and its measured baseline) cannot move.
+  it('leaves the v8 and the shared check schemas untouched and shrinks the v9 plan and author schemas', async () => {
+    const v8 = await measure(livingInput(0, 'typical', false));
+    const v9 = await measure(livingInput(0, 'typical'));
+    const wire = (value: unknown) =>
+      JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+    const bytes = (value: unknown) =>
+      Buffer.byteLength(JSON.stringify(value), 'utf8');
+    const v8Policy = fictionV8Policy();
+    const v9Policy = fictionV9Policy();
+    const rendered = {
+      planner: zodTextFormat(
+        fictionDraftSchemaFor(v8Policy),
+        'life_narrative_plan',
+      ),
+      author: zodTextFormat(
+        fictionAuthorSchemaFor(v8Policy),
+        'life_narrative_chapter',
+      ),
+      review: zodTextFormat(
+        narrativePlanReviewV2Schema,
+        'life_narrative_plan_review',
+      ),
+      fidelity: zodTextFormat(fidelitySchema, 'life_fidelity'),
+      editor: zodTextFormat(
+        fictionHumanEditorialV13Schema,
+        'life_narrative_editor',
+      ),
+    };
+    for (const stage of [
+      'planner',
+      'author',
+      'review',
+      'fidelity',
+      'editor',
+    ] as const)
+      expect(wire(v8.formats[stage])).toEqual(wire(rendered[stage]));
+    // Recorded 2026-10-21 before the change; a later contract edit that moves
+    // them must be deliberate.
+    expect(bytes(v8.formats.author)).toBe(PINNED_V8_SCHEMA_BYTES.author);
+    expect(bytes(v8.formats.planner)).toBe(PINNED_V8_SCHEMA_BYTES.planner);
+    expect(bytes(v8.formats.review)).toBe(PINNED_V8_SCHEMA_BYTES.review);
+    expect(bytes(v8.formats.fidelity)).toBe(PINNED_V8_SCHEMA_BYTES.fidelity);
+    expect(bytes(v8.formats.editor)).toBe(PINNED_V8_SCHEMA_BYTES.editor);
+    // v9 shares the check schemas byte for byte.
+    for (const stage of ['review', 'fidelity', 'editor'] as const)
+      expect(wire(v9.formats[stage])).toEqual(wire(v8.formats[stage]));
+    // The v9 plan and author schemas keep every uuid format but lose the
+    // copied-id patterns (measured 2026-10-21: author 33.5 → 25.8 KB, 43 of
+    // 66 patterns; plan 27.2 → 21.8 KB, 30 of 52; the minted ids keep theirs).
+    const full = {
+      planner: zodTextFormat(
+        fictionDraftSchemaFor(v9Policy),
+        'life_narrative_plan',
+      ),
+      author: zodTextFormat(
+        fictionAuthorSchemaFor(v9Policy),
+        'life_narrative_chapter',
+      ),
+    };
+    const count = (value: unknown, needle: string) =>
+      (JSON.stringify(value).match(new RegExp(needle, 'g')) ?? []).length;
+    for (const stage of ['planner', 'author'] as const) {
+      expect(count(v9.formats[stage], '"format":"uuid"')).toBe(
+        count(full[stage], '"format":"uuid"'),
+      );
+      expect(count(v9.formats[stage], '"pattern":"')).toBeLessThan(
+        count(full[stage], '"pattern":"') * 0.6,
+      );
+    }
+    expect(bytes(full.author) - bytes(v9.formats.author)).toBeGreaterThan(
+      7 * 1024,
+    );
+    expect(bytes(full.planner) - bytes(v9.formats.planner)).toBeGreaterThan(
+      5 * 1024,
+    );
+    // The request itself falls by the same bytes: the v9 author is no larger
+    // than the v8 author plus the projection and the delta rules.
+    expect(v9.author - v8.author).toBeLessThan(2 * 1024);
   });
 
   it.each([

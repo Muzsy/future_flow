@@ -42,6 +42,8 @@ import {
   fictionContinuityCoverage,
 } from '@future-flow/core';
 import {
+  fictionAuthorSchemaFor,
+  fictionDraftSchemaFor,
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
   type FictionCharacterEnvelope,
@@ -172,6 +174,17 @@ export type EvaluationSample = {
     authorReasoningTokens: number[];
     repairMessage: string | null;
     characterRepair: boolean;
+    // Provider answers the strict response format let through that the
+    // server schema refused (malformed), of which uuid-shaped refusals, and
+    // requests the API itself rejected (HTTP 400). The v9 request schemas drop
+    // the uuid pattern on copied ids, so this is the check that it costs no
+    // validity (paid and Codex measurements count it v9 against v8).
+    schemaFailures: SchemaFailureCounts;
+    // Output tokens of every answered request by stage (receipts; paid runs).
+    stageTokens: { task: string; outputTokens: number }[];
+    // Wall-clock of every physical call by stage (the fiction deadline is
+    // 180 s); independent of whether the transport reports output sizes.
+    stageLatencies: { task: string; latencyMs: number }[];
     // The local Codex/agy transports report no token usage, so the cost gate
     // cannot be judged from them: only output lengths are recorded (per stage
     // and for the prose and the delta) with a rough token estimate. The gate
@@ -206,15 +219,57 @@ export type EvaluationSample = {
 };
 // What the attempt trace adds for a completed sample: the planner draft the
 // package was authored from and the wording of the last repair.
+export type SchemaFailureCounts = {
+  malformed: number;
+  uuid: number;
+  rejected: number;
+};
 export type AttemptEvidence = {
   draft: {
     characterIntent?: { actorId: string }[];
     continuityDecisions?: { actorId: string; decision: string }[];
   } | null;
   repairMessage: string | null;
+  schemaFailures: SchemaFailureCounts;
 };
+type EvidencePolicy = Parameters<typeof fictionAuthorSchemaFor>[0];
+// Counts the attempts whose answer the server schema refused (status
+// malformed), whether the refusal was about a uuid, and the requests the API
+// answered with HTTP 400 (a rejected response format).
+export function schemaFailureCounts(
+  trace: EvaluationAttemptTrace,
+  policy?: EvidencePolicy,
+): SchemaFailureCounts {
+  const counts: SchemaFailureCounts = { malformed: 0, uuid: 0, rejected: 0 };
+  for (const attempt of trace.attempts) {
+    if (attempt.status === 'failed' && attempt.errorCode === 'AI_HTTP_400')
+      counts.rejected += 1;
+    if (attempt.status !== 'malformed') continue;
+    counts.malformed += 1;
+    const schema = !policy
+      ? null
+      : attempt.task === 'life_narrative_plan'
+        ? fictionDraftSchemaFor(policy)
+        : attempt.task === 'life_narrative_chapter'
+          ? fictionAuthorSchemaFor(policy)
+          : null;
+    const parsed = schema?.safeParse(attempt.output);
+    if (
+      parsed &&
+      !parsed.success &&
+      parsed.error.issues.some(
+        (issue) =>
+          issue.code === 'invalid_format' &&
+          (issue as { format?: string }).format === 'uuid',
+      )
+    )
+      counts.uuid += 1;
+  }
+  return counts;
+}
 export function attemptEvidence(
   trace: EvaluationAttemptTrace | null,
+  policy?: EvidencePolicy,
 ): AttemptEvidence | null {
   if (!trace) return null;
   const draft = trace.attempts
@@ -230,6 +285,7 @@ export function attemptEvidence(
   return {
     draft: (draft ?? null) as AttemptEvidence['draft'],
     repairMessage: repair ?? null,
+    schemaFailures: schemaFailureCounts(trace, policy),
   };
 }
 // Messages that carry a checker's (model) feedback, not a validator's wording:
@@ -298,6 +354,19 @@ export function characterBytes(
       ? !CHECKER_FEEDBACK_PATTERN.test(repairMessage) &&
         CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
+    schemaFailures: trace?.schemaFailures ?? {
+      malformed: 0,
+      uuid: 0,
+      rejected: 0,
+    },
+    stageTokens: receipts.map((r) => ({
+      task: r.task,
+      outputTokens: r.outputTokens,
+    })),
+    stageLatencies: transports.map((t) => ({
+      task: t.task,
+      latencyMs: t.latencyMs,
+    })),
     outputSizes: {
       stages: transports.flatMap((t) =>
         t.outputBytes === undefined
@@ -1691,6 +1760,11 @@ async function runEvaluationUnlocked(
                           },
                           env,
                         ),
+                        (
+                          completed.payload as {
+                            narrativeContext?: { policy?: EvidencePolicy };
+                          }
+                        ).narrativeContext?.policy,
                       ),
                     ),
                   }
