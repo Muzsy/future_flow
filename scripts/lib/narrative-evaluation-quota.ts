@@ -73,7 +73,7 @@ export function quotaBlock(
   if (snapshot.blockedReason)
     return {
       reason: snapshot.blockedReason,
-      resumeAfter: latest(snapshot.windows.map((w) => w.resetsAt)),
+      resumeAfter: blockedResumeAfter(snapshot.windows),
     };
   for (const name of ['five-hour', 'weekly'] as const) {
     const window = snapshot.windows.find((w) => w.name === name);
@@ -87,6 +87,21 @@ export function quotaBlock(
       };
   }
   return null;
+}
+
+// When the provider blocks usage, the run can continue once every spent
+// window has reset: the latest reset among the windows at 0%. A window that
+// still has quota does not hold the run back, so the weekly reset is not
+// reported while only the 5 hour window is spent. If no window is at 0%, the
+// soonest reset is the first moment the state can change.
+function blockedResumeAfter(windows: QuotaWindow[]) {
+  const spent = windows.filter((w) => w.remainingPercent <= 0 && w.resetsAt);
+  if (spent.length) return latest(spent.map((w) => w.resetsAt));
+  const times = windows
+    .map((w) => w.resetsAt)
+    .filter((v): v is string => !!v)
+    .sort();
+  return times[0] ?? null;
 }
 
 function latest(values: (string | null)[]) {
