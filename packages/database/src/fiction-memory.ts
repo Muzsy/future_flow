@@ -27,6 +27,7 @@ import {
   hash,
   fictionCharacterProjectionFromEnvelope,
   fictionSeriesLedgerFrom,
+  fictionRecurringCastCandidates,
   fictionSeriesLedgerV11From,
   narrativeReferenceSnapshot,
   type SeriesLedgerPeriod,
@@ -376,20 +377,7 @@ export async function personalFictionPeriod(
         ? fictionSeriesLedgerV11Schema.parse(
             fictionSeriesLedgerV11From(ledgerPeriods, ledgerState, {
               branchId,
-              cast: fold.state.actors
-                .filter(
-                  (a) =>
-                    a.kind === 'fictional' &&
-                    !a.removedAtPeriodId &&
-                    (a.profile || a.dynamic || a.relationship || a.legacy),
-                )
-                .map((a) => ({
-                  actorId: a.actorId,
-                  openMatter: Boolean(
-                    a.dynamic?.unresolvedMatter ||
-                    a.relationship?.unresolvedInteraction,
-                  ),
-                })),
+              cast: fictionRecurringCastCandidates(fold.state.actors),
               turns,
             }),
           )

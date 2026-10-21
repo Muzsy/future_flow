@@ -11,6 +11,7 @@ import {
   fictionSequenceSignatureSchema,
 } from '@future-flow/contracts';
 import {
+  fictionRecurringCastCandidates,
   fictionRestingTurns,
   fictionSeriesLedgerFrom,
   fictionSeriesLedgerV11From,
@@ -612,5 +613,56 @@ describe('turn diagnostics', () => {
       absent: 1,
       restingChosen: 1,
     });
+  });
+});
+
+describe('the returning-cast filter', () => {
+  const entry = (
+    actorId: string,
+    over: Record<string, unknown> = {},
+  ): Parameters<typeof fictionRecurringCastCandidates>[0][number] => ({
+    actorId,
+    kind: 'fictional',
+    removedAtPeriodId: null,
+    profile: { label: 'x' },
+    dynamic: { unresolvedMatter: 'An open matter.' },
+    relationship: null,
+    legacy: null,
+    ...over,
+  });
+  it('offers a live fictional person and reads her open matter', () => {
+    expect(
+      fictionRecurringCastCandidates([
+        entry(id(10)),
+        entry(id(11), {
+          dynamic: null,
+          relationship: { unresolvedInteraction: null },
+        }),
+      ]),
+    ).toEqual([
+      { actorId: id(10), openMatter: true },
+      { actorId: id(11), openMatter: false },
+    ]);
+  });
+  it('never offers a supplied person, whatever relationship state she has', () => {
+    expect(
+      fictionRecurringCastCandidates([
+        entry(id(12), {
+          kind: 'supplied',
+          profile: null,
+          dynamic: null,
+          relationship: { unresolvedInteraction: 'An unreturned message.' },
+        }),
+        // Even a (forbidden) profile on a supplied entry is not enough.
+        entry(id(13), { kind: 'supplied' }),
+      ]),
+    ).toEqual([]);
+  });
+  it('never offers an archived fictional person, even one with state left on it', () => {
+    expect(
+      fictionRecurringCastCandidates([
+        entry(id(14), { removedAtPeriodId: id(99) }),
+      ]),
+    ).toEqual([]);
   });
 });

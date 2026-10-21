@@ -368,6 +368,36 @@ export function fictionSeriesLedgerFrom(
 // Same deterministic evidence plus the recurring fictional cast and the turn
 // rotation. The 1.0.0 builder above is untouched, so v8 stays byte-identical.
 
+// The returning-cast candidates of a character fold: only wholly fictional,
+// live people that carry some state. A supplied (real) person has at most a
+// relationship entry and is never offered; an archived person is excluded by
+// the archive mark itself, not only because its tombstone is stripped.
+export function fictionRecurringCastCandidates(
+  actors: readonly {
+    actorId: string;
+    kind: string;
+    removedAtPeriodId: string | null;
+    profile: unknown;
+    dynamic: { unresolvedMatter?: string | null } | null;
+    relationship: { unresolvedInteraction?: string | null } | null;
+    legacy: unknown;
+  }[],
+) {
+  return actors
+    .filter(
+      (a) =>
+        a.kind === 'fictional' &&
+        !a.removedAtPeriodId &&
+        (a.profile || a.dynamic || a.relationship || a.legacy),
+    )
+    .map((a) => ({
+      actorId: a.actorId,
+      openMatter: Boolean(
+        a.dynamic?.unresolvedMatter || a.relationship?.unresolvedInteraction,
+      ),
+    }));
+}
+
 export type SeriesLedgerLiving = {
   // Seeds the tie order of types that were never used (reproducible per branch).
   branchId: string;

@@ -1128,10 +1128,27 @@ describe('turn rotation and the returning cast through the owned history', () =>
       (a) => a.relationship === 'friend',
     )!;
     (f.f.authored as Authored).candidate.events[0]!.actorIds.push(friend.id);
+    // ...and the delta gives the supplied person a relationship state, so the
+    // fold really holds a `supplied` entry with a relationship for her.
+    const delta = (f.f.authored as Authored).characterDelta;
+    delta.relationshipUpdates.push({
+      actorId: friend.id,
+      currentDynamic: 'An old friendship, easy and steady.',
+      expectation: 'Expects the protagonist to show up when it matters.',
+      unresolvedInteraction: 'An unreturned message from last week.',
+      provenance: 'interaction_derived',
+    } as never);
     await processLifeJob(f.job, jobs, provider(f).ai);
     expect((await saved(f.job)).status).toBe('completed');
     const second = await nextPeriod(f),
       ledger = ledgerOf(second.job)!;
+    // The fold holds her relationship state (the projection shows it) ...
+    expect(
+      second.job.payload.narrativeContext!.characterProjection!.actors.map(
+        (a) => a.actorId,
+      ),
+    ).toContain(friend.id);
+    // ... and she still never becomes returning-cast material.
     expect(ledger.recurringCast!.map((c) => c.actorId)).toEqual([actorId]);
     expect(ledger.recurringCast!.map((c) => c.actorId)).not.toContain(
       friend.id,
@@ -1142,6 +1159,36 @@ describe('turn rotation and the returning cast through the owned history', () =>
         .map((p) => p.actorId)
         .includes(friend.id),
     ).toBe(true);
+  });
+
+  it('drops a fictional person who was archived from the returning cast', async () => {
+    const f = await fixture(),
+      actorId = randomUUID();
+    introduce(f, actorId);
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    const second = await nextPeriod(f);
+    expect(ledgerOf(second.job)!.recurringCast!.map((c) => c.actorId)).toEqual([
+      actorId,
+    ]);
+    // Chapter two archives her.
+    const authored = second.f.authored as Authored;
+    authored.candidate.events[0]!.changes.push({
+      type: 'actor_remove',
+      actorId,
+    } as never);
+    authored.characterDelta = {
+      ...authored.characterDelta,
+      removedActorIds: [actorId],
+    } as FictionCharacterDelta;
+    await processLifeJob(second.job, jobs, provider(second).ai);
+    expect((await saved(second.job)).status).toBe('completed');
+    const third = await nextPeriod(second),
+      ledger = ledgerOf(third.job)!;
+    expect(ledger.version).toBe('1.1.0');
+    expect((ledger.recurringCast ?? []).map((c) => c.actorId)).not.toContain(
+      actorId,
+    );
   });
 
   it('counts a chapter the planner left unlabelled as no turn at all', async () => {
