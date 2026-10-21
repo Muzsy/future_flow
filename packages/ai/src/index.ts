@@ -1,12 +1,11 @@
 import { fictionPrompts } from './fiction-prompts';
 import {
-  fictionAuthorResultSchema,
   fictionSequenceEditorialSchema,
   fictionHumanEditorialSchema,
   fictionHumanEditorialV13Schema,
   type FictionEditorialReport,
-  fictionCompactAuthorSchema,
-  fictionCompactDraftSchema,
+  fictionAuthorSchemaFor,
+  fictionDraftSchemaFor,
   type FictionAuthorResult,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
@@ -633,9 +632,7 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
-        ? fictionCompactDraftSchema
-        : narrativePlanningResultSchema,
+      fictionDraftSchemaFor(context.policy),
       'life_narrative_plan',
       this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).planner,
@@ -652,9 +649,7 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      context.policy.promptVersions.writer !== 'life_fiction_author.v1'
-        ? fictionCompactAuthorSchema
-        : fictionAuthorResultSchema,
+      fictionAuthorSchemaFor(context.policy),
       'life_narrative_chapter',
       this.config.storyModel,
       fictionPrompts(locale, context.policy.promptVersions).author,
@@ -700,7 +695,9 @@ export class OpenAiProvider
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
           ? fictionSequenceEditorialSchema
           : context.policy.promptVersions.editor === 'life_fiction_editor.v6' ||
-              context.policy.promptVersions.editor === 'life_fiction_editor.v7'
+              context.policy.promptVersions.editor ===
+                'life_fiction_editor.v7' ||
+              context.policy.promptVersions.editor === 'life_fiction_editor.v8'
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',

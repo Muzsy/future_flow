@@ -15,6 +15,8 @@ import { ownedNarrativeReferences } from './narrative-artifact';
 export type NarrativeConfig = Readonly<{
   mode: 'legacy' | 'context' | 'narrative-v1' | 'narrative-fiction-v2';
   cohortUserIds: readonly string[];
+  // Living-world generation selection; absent means v8 (frozen default).
+  fictionGeneration?: 'v9';
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
   mode: 'legacy',
@@ -47,7 +49,23 @@ export function narrativeConfigFromEnv(
       'NARRATIVE_CONFIG_INVALID',
       'Invalid narrative cohort.',
     );
-  return Object.freeze({ mode, cohortUserIds: Object.freeze(ids) });
+  const generation = env.NARRATIVE_FICTION_GENERATION?.trim() || 'v8';
+  if (generation !== 'v8' && generation !== 'v9')
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Unsupported fiction generation.',
+    );
+  // The living world builds on the creative pipeline; anything else is a typo.
+  if (generation === 'v9' && mode !== 'narrative-fiction-v2')
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Fiction generation v9 requires narrative-fiction-v2.',
+    );
+  return Object.freeze({
+    mode,
+    cohortUserIds: Object.freeze(ids),
+    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
+  });
 }
 
 const optionSchema =

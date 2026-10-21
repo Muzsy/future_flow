@@ -4,9 +4,12 @@ import {
   fictionContextSchema,
   fictionEditorialVersionFor,
   fictionPolicy,
+  fictionV9Policy,
   fictionSeriesLedgerSchema,
   fictionSeriesQualityVersions,
   NARRATIVE_MEMORY_BYTES,
+  type FictionCharacterEnvelope,
+  type FictionCharacterProjection,
   type FictionSeriesLedger,
   type NarrativeMemory,
   type FictionSequenceEntry,
@@ -20,6 +23,7 @@ import {
 import {
   DomainError,
   hash,
+  fictionCharacterProjectionFromEnvelope,
   fictionSeriesLedgerFrom,
   narrativeReferenceSnapshot,
   type SeriesLedgerPeriod,
@@ -27,7 +31,17 @@ import {
   validatedFictionCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
+import {
+  assertFictionCharacterFold,
+  fictionCharacterEnvelopeFrom,
+  fictionCharacterSignals,
+  ownedFictionCharacterFold,
+} from './fiction-character';
 import { ownedNarrativeReferences } from './narrative-artifact';
+
+// Which policy generation a new period is generated with. v8 is the default
+// and stays frozen; v9 is the explicit living-world selection.
+export type FictionGeneration = 'v8' | 'v9';
 import { personalPrivacyEventIds } from './shared-privacy';
 
 export async function ownedFictionReferences(
@@ -55,6 +69,9 @@ export function boundFictionContext(
   sequenceHistory?: FictionSequenceEntry[],
   signatureHistory?: FictionSequenceSignature[],
   seriesLedger?: FictionSeriesLedger,
+  // Living-world generation only: the bounded character projection (its own
+  // byte bound, outside the memory bound) selects the v9 policy.
+  characterProjection?: FictionCharacterProjection,
 ) {
   // The ledger quotes owned prose, so withholding drops it like other history.
   seriesLedger = rawMemory.withheld ? undefined : seriesLedger;
@@ -160,21 +177,77 @@ export function boundFictionContext(
       'Required fiction continuity cannot fit its context bound.',
     );
   return fictionContextSchema.parse({
-    policy: fictionPolicy(),
+    policy: characterProjection ? fictionV9Policy() : fictionPolicy(),
     memory,
     storyFacts: facts,
     ...(sequenceHistory ? { sequenceHistory } : {}),
     ...(signatureHistory ? { sequenceSignatureHistory } : {}),
     ...(seriesLedger ? { seriesLedger } : {}),
+    ...(characterProjection ? { characterProjection } : {}),
   });
 }
+// v8 entry point, unchanged for existing callers.
 export async function personalFictionContext(
   tx: Database,
   userId: string,
   branchId: string,
   memory: NarrativeMemory,
 ) {
-  if (memory.withheld) return boundFictionContext(memory, []);
+  return (await personalFictionPeriod(tx, userId, branchId, memory)).context;
+}
+// The period's model context plus, for the living-world generation, the
+// server-only character envelope that reproduces its projection.
+export async function personalFictionPeriod(
+  tx: Database,
+  userId: string,
+  branchId: string,
+  memory: NarrativeMemory,
+  options: {
+    generation?: FictionGeneration;
+    stateActorIds?: readonly string[];
+  } = {},
+): Promise<{
+  context: ReturnType<typeof boundFictionContext>;
+  fictionCharacters?: FictionCharacterEnvelope;
+}> {
+  const living = options.generation === 'v9';
+  const policy = living ? fictionV9Policy() : fictionPolicy();
+  const withLiving = async (
+    context: (
+      projection?: FictionCharacterProjection,
+    ) => ReturnType<typeof boundFictionContext>,
+    ledger?: FictionSeriesLedger,
+  ) => {
+    if (!living) return { context: context() };
+    const fold = await ownedFictionCharacterFold(
+      tx,
+      userId,
+      branchId,
+      memory.fictionalActors,
+      options.stateActorIds ?? [],
+    );
+    const envelope = fictionCharacterEnvelopeFrom(
+      fold,
+      fictionCharacterSignals(memory, ledger, fold),
+    );
+    return {
+      context: context(
+        fictionCharacterProjectionFromEnvelope(envelope, memory.withheld),
+      ),
+      fictionCharacters: envelope,
+    };
+  };
+  if (memory.withheld)
+    return withLiving((projection) =>
+      boundFictionContext(
+        memory,
+        [],
+        undefined,
+        undefined,
+        undefined,
+        projection,
+      ),
+    );
   const rows = await tx.query<{
     artifact: unknown;
     period_id: string;
@@ -239,8 +312,7 @@ export async function personalFictionContext(
   });
   const last = rows.at(-1);
   const seriesLedger =
-    last &&
-    fictionSeriesQualityVersions.includes(fictionPolicy().qualityPolicyVersion)
+    last && fictionSeriesQualityVersions.includes(policy.qualityPolicyVersion)
       ? fictionSeriesLedgerSchema.parse(
           fictionSeriesLedgerFrom(
             rows.map((row) => ({
@@ -253,11 +325,16 @@ export async function personalFictionContext(
           ),
         )
       : undefined;
-  return boundFictionContext(
-    memory,
-    [...active.values()],
-    sequenceHistory,
-    signatures.slice(-8),
+  return withLiving(
+    (projection) =>
+      boundFictionContext(
+        memory,
+        [...active.values()],
+        sequenceHistory,
+        signatures.slice(-8),
+        seriesLedger,
+        projection,
+      ),
     seriesLedger,
   );
 }
@@ -305,5 +382,6 @@ export async function validateFictionCommit(
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction commit differs from its persisted proof or current privacy/history.',
     );
+  await assertFictionCharacterFold(tx, userId, branchId, input);
   return ready.artifact;
 }

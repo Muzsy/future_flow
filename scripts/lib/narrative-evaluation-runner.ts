@@ -150,12 +150,107 @@ export type EvaluationSample = {
   errorCode: string | null;
   choiceMappings: unknown[];
   mock: boolean;
+  // Living-world generation only: request and artifact bytes of the character
+  // state, so the phase 5 diagnostics can check the provisional bounds.
+  character?: {
+    projectionBytes: number;
+    deltaBytes: number;
+    omittedActors: number;
+    // Output cost of the author call(s), which now also carry the delta, and
+    // whether the single repair was about the character state (review F4).
+    authorOutputTokens: number[];
+    authorReasoningTokens: number[];
+    repairMessage: string | null;
+    characterRepair: boolean;
+    // The local Codex/agy transports report no token usage, so the cost gate
+    // cannot be judged from them: only output lengths are recorded (per stage
+    // and for the prose and the delta) with a rough token estimate. The gate
+    // is decided by the paid measurement (appendix D.8).
+    outputSizes: {
+      stages: {
+        task: string;
+        outputChars: number;
+        outputBytes: number;
+        estimatedTokens: number;
+      }[];
+      proseChars: number;
+      proseBytes: number;
+      deltaChars: number;
+      deltaBytes: number;
+      estimatedProseTokens: number;
+      estimatedDeltaTokens: number;
+    };
+  };
 };
+// Validator wording of a character-state failure (never model text).
+const CHARACTER_REPAIR_PATTERN =
+  /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
+export function characterBytes(
+  payload: unknown,
+  artifact: unknown,
+  receipts: readonly AiReceipt[] = [],
+  checkpoints: unknown = null,
+  transports: readonly TransportRecord[] = [],
+  chapterBody = '',
+): NonNullable<EvaluationSample['character']> {
+  const projection = (
+    payload as {
+      narrativeContext?: {
+        characterProjection?: { omittedActors?: number };
+      };
+    }
+  ).narrativeContext?.characterProjection;
+  const delta = (artifact as { characterDelta?: unknown } | null)
+    ?.characterDelta;
+  const bytes = (value: unknown) =>
+    value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value), 'utf8');
+  const cp = (checkpoints ?? {}) as {
+    fictionRepair?: { message?: string } | null;
+    planningRepair?: string | null;
+  };
+  const repairMessage = cp.fictionRepair?.message ?? cp.planningRepair ?? null;
+  const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
+  // About 3.5 bytes per token (the 047 price estimate); never a measurement.
+  const estimate = (outputBytes: number) => Math.ceil(outputBytes / 3.5);
+  const deltaJson = delta === undefined ? '' : JSON.stringify(delta);
+  return {
+    projectionBytes: bytes(projection),
+    deltaBytes: bytes(delta),
+    omittedActors: projection?.omittedActors ?? 0,
+    authorOutputTokens: author.map((r) => r.outputTokens),
+    authorReasoningTokens: author.map((r) => r.reasoningTokens ?? 0),
+    repairMessage: repairMessage ? repairMessage.slice(0, 160) : null,
+    characterRepair: repairMessage
+      ? CHARACTER_REPAIR_PATTERN.test(repairMessage)
+      : false,
+    outputSizes: {
+      stages: transports.flatMap((t) =>
+        t.outputBytes === undefined
+          ? []
+          : [
+              {
+                task: t.task,
+                outputChars: t.outputChars ?? 0,
+                outputBytes: t.outputBytes,
+                estimatedTokens: estimate(t.outputBytes),
+              },
+            ],
+      ),
+      proseChars: [...chapterBody].length,
+      proseBytes: Buffer.byteLength(chapterBody, 'utf8'),
+      deltaChars: [...deltaJson].length,
+      deltaBytes: Buffer.byteLength(deltaJson, 'utf8'),
+      estimatedProseTokens: estimate(Buffer.byteLength(chapterBody, 'utf8')),
+      estimatedDeltaTokens: estimate(Buffer.byteLength(deltaJson, 'utf8')),
+    },
+  };
+}
 export type EvaluationRun = {
   version: string;
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
   noForks?: true;
+  fictionGeneration?: 'v9';
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -316,7 +411,13 @@ function diagnosticChoice(
     rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
   };
 }
-type TransportRecord = { caseId: string; task: string; latencyMs: number };
+type TransportRecord = {
+  caseId: string;
+  task: string;
+  latencyMs: number;
+  outputChars?: number;
+  outputBytes?: number;
+};
 function clientFor(
   options: EvaluationOptions,
   env: Record<string, string | undefined>,
@@ -1032,6 +1133,9 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
     ...(options.noForks ? { noForks: true } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -1075,6 +1179,9 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
     ...(options.noForks ? { noForks: true as const } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -1195,6 +1302,9 @@ async function runEvaluationUnlocked(
                       ? 'narrative-fiction-v2'
                       : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
+                ...(options.fictionGeneration && options.creative
+                  ? { fictionGeneration: options.fictionGeneration }
+                  : {}),
               },
             );
           await repository.ensureUser(owner);
@@ -1463,6 +1573,18 @@ async function runEvaluationUnlocked(
                 .map((p) => p.chapter as { title: string; body: string }),
               canon: period.events,
               plan: artifact?.narrative_artifact ?? null,
+              ...(options.fictionGeneration
+                ? {
+                    character: characterBytes(
+                      completed.payload,
+                      artifact?.narrative_artifact ?? null,
+                      receipts,
+                      completed.checkpoints,
+                      caseTransports,
+                      (period.chapter as PeriodChapterV2).body,
+                    ),
+                  }
+                : {}),
               receipts,
               requestCount:
                 mode === 'narrative-v1'
