@@ -277,3 +277,4 @@ export * from './publication';
 export * from './official-publication';
 
 export * from './fiction';
+export * from './fiction-character';

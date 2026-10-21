@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-19
+last_reviewed: 2026-10-20
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -81,6 +81,8 @@ F05/F06/N08 **PARTIAL**, N09 **PARTIAL/nyitott**. Következő sorrend:
 2. Verziózott javítás, regressziók, külön audit és exact-source CI után friss valódi előpróba, majd csak elfogadható eredménynél teljes kétprofilos nyolcfejezetes mérés és két alternatív ág. Az új teljes méréshez további számszerű költségengedély kell; a terminális korpusz nem címkézhető át.
 3. Független emberi, 17 kérdéses sorozatértékelés és folytatási/megújítási visszajelzés. Az AI nem töltheti ki az emberi értékelést. Zárt narratív bétában ezt és a teljes kétprofilos mérést a 2026-10-19-i tulajdonosi döntés szerint a tesztelők visszajelzése helyettesíti (első kör: 10 USD, 3 tesztelő, v7); nyilvános vagy fizetős kiadáshoz továbbra is kötelező. [Kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19).
 4. Külön N09 target/recovery, migráció-, envelope-, timeout- és kontrollált Linux funded-runtime rollout bizonyíték, majd explicit éles apply engedély. A fejlesztési 192 KiB/300 s nem automatikus production konfiguráció; a runtime default 100000 bájt/180 s határa külön nyitott.
+
+**Prioritás (tulajdonosi döntés, 2026-10-20): az élő világ (v9) a béta elé került.** A zárt béta jelöltje a v9 policy-generáció lesz (planner/author/reviewer v9, editor v8, qualityPolicy 2.8.0), saját fizetős mérésen; a v8 befagyott. Az offline szakasz (0–5. fázis) folyik: a v8 baseline rögzítve ([terv, D függelék](plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md)), a szereplőállapot forrása a fejezet-artifact ([ADR-009](decisions/ADR-009-character-state-artifact-fold.md)). A 6–8. fázis (humán olvasás, fizetős mérés, N09 rollout) új költségengedélyt és tulajdonosi döntést igényel. Ez nem production aktiválás és nem fizetős futás engedélye.
 
 Az árazás, havi fejezetmennyiség, billing és szélesebb pilot továbbra külön döntés; a minőségi küszöböt költség miatt nem csökkentjük. Shared és nyilvános launch nincs engedélyezve.
 
