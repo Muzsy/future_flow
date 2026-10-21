@@ -276,6 +276,21 @@ export function fictionPlannerRequest(
     repair: repair ?? null,
   };
 }
+// v9 repair rules, one per repair mode, sent inside the repair request so the
+// author sees only the rule that can apply to it. A prose-only repair freezes
+// the registered facts (it cannot register a new one), so telling it to
+// "register or remove" a claim is impossible advice and it must stay on the
+// facts that are already there (v9-6e chapter 1). An author-package repair
+// rebuilds the package and registers what it adds. Surgical editing is the
+// shape of the repairs that passed (v9-6c chapters 1 and 4) and rewriting the
+// shape of those that failed (6b chapter 1, 6e chapter 1). v8 requests do not
+// carry this key.
+export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
+  author_package:
+    'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.',
+  prose_only:
+    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names.',
+};
 export function fictionAuthorRequest(
   input: NarrativePeriodInput,
   draft: NarrativePlanningResult,
@@ -284,7 +299,14 @@ export function fictionAuthorRequest(
   return {
     ...fictionPlannerRequest(input),
     draft: requestDraftSchema(fictionScope(input).context.policy).parse(draft),
-    authorRepair: repair ?? null,
+    authorRepair: repair
+      ? {
+          ...repair,
+          ...(fictionScope(input).characters
+            ? { repairRule: FICTION_REPAIR_RULES[repair.mode] }
+            : {}),
+        }
+      : null,
   };
 }
 // The planner and the author use the character projection to write; the check

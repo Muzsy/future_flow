@@ -21,6 +21,8 @@ import {
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
+  FICTION_REPAIR_RULES,
+  fictionAuthorRequest,
   characterStateFromHistory,
   fictionCharacterProjectionFromEnvelope,
   narrativeReferenceSnapshot,
@@ -394,6 +396,60 @@ describe('v9 request bytes (plan section 55)', () => {
     // The request itself falls by the same bytes: the v9 author is no larger
     // than the v8 author plus the projection and the delta rules.
     expect(v9.author - v8.author).toBeLessThan(2 * 1024);
+  });
+
+  // Owner decision 2026-10-21 (v9-6e/6b): a repair carries the rule of ITS
+  // mode. A prose-only repair cannot register a fact, so it never hears
+  // "register"; an author-package repair is told to edit surgically and to
+  // register. v8 requests carry no such key (frozen).
+  it('gives the two repair modes different rules, v9 only', () => {
+    const v9Input = livingInput(0, 'typical');
+    const v8Input = livingInput(0, 'typical', false);
+    const f9 = fictionFixture(v9Input);
+    const f8 = fictionFixture(v8Input);
+    const previous = f9.authored as FictionAuthorResult;
+    const repair = (mode: FictionRepair['mode']): FictionRepair => ({
+      mode,
+      message: 'Fix it.',
+      previous,
+    });
+    const rule = (mode: FictionRepair['mode']) =>
+      (
+        fictionAuthorRequest(v9Input, f9.draft, repair(mode)) as {
+          authorRepair: { repairRule: string };
+        }
+      ).authorRepair.repairRule;
+    expect(rule('prose_only')).toBe(FICTION_REPAIR_RULES.prose_only);
+    expect(rule('author_package')).toBe(FICTION_REPAIR_RULES.author_package);
+    expect(rule('prose_only')).not.toBe(rule('author_package'));
+    // The prose-only rule cannot ask for a registration; the package rule must.
+    expect(rule('prose_only')).toContain('no fact can be registered');
+    expect(rule('prose_only')).not.toMatch(/Register in storyFacts/);
+    expect(rule('prose_only')).toContain('introduce no new cause');
+    expect(rule('author_package')).toContain('Register in storyFacts');
+    expect(rule('author_package')).toContain('copy previous.chapter.body');
+    expect(rule('author_package')).toContain('Never raise the strength');
+    // No repair: no rule. v8: the repair is sent exactly as before.
+    expect(fictionAuthorRequest(v9Input, f9.draft)).toMatchObject({
+      authorRepair: null,
+    });
+    const v8Repair = repair('prose_only');
+    expect(
+      (
+        fictionAuthorRequest(v8Input, f8.draft, v8Repair) as {
+          authorRepair: unknown;
+        }
+      ).authorRepair,
+    ).toEqual(v8Repair);
+    expect(
+      JSON.stringify(
+        (
+          fictionAuthorRequest(v8Input, f8.draft, v8Repair) as {
+            authorRepair: unknown;
+          }
+        ).authorRepair,
+      ),
+    ).not.toContain('repairRule');
   });
 
   it.each([

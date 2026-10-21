@@ -24,7 +24,10 @@ describe('v9 prompts', () => {
     // New speaking people are registered, a repair adds nothing new, and the
     // final review asks for the same (the fidelity rule itself is unchanged).
     expect(v9.author).toContain('actor_add and a profile');
-    expect(v9.author).toContain('no new fact, person or speaking role');
+    // The repair rule itself travels in the repair request, by mode (see
+    // fiction-v9-request-bytes); the prompt only points at it.
+    expect(v9.author).toContain('follow authorRepair.repairRule');
+    expect(v9.author).not.toContain('register or remove');
     expect(v9.review).toContain('new speaking person has no actor_add');
     // A continuity reason is a planning note: the planner names only what the
     // projection shows or the plan will show, the author never lifts it into
