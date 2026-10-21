@@ -232,6 +232,10 @@ export function attemptEvidence(
     repairMessage: repair ?? null,
   };
 }
+// Messages that carry a checker's (model) feedback, not a validator's wording:
+// they quote scores and reasons that may well contain the word "character".
+const CHECKER_FEEDBACK_PATTERN =
+  /^(?:Correct the final package|Rewrite the weak story|Fix BOTH final checks|The existing literary check)/;
 // Validator wording of a character-state failure (never model text).
 const CHARACTER_REPAIR_PATTERN =
   /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
@@ -291,7 +295,8 @@ export function characterBytes(
     authorReasoningTokens: author.map((r) => r.reasoningTokens ?? 0),
     repairMessage: repairMessage ? repairMessage.slice(0, 160) : null,
     characterRepair: repairMessage
-      ? CHARACTER_REPAIR_PATTERN.test(repairMessage)
+      ? !CHECKER_FEEDBACK_PATTERN.test(repairMessage) &&
+        CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
     outputSizes: {
       stages: transports.flatMap((t) =>

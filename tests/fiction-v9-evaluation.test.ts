@@ -179,6 +179,17 @@ describe('v9 character repair classification (review F4)', () => {
     expect(delta.characterRepair).toBe(true);
     expect(delta.authorOutputTokens).toEqual([4100, 5200]);
     expect(delta.authorReasoningTokens).toEqual([1500, 0]);
+    // A checker's feedback quotes scores such as "character" and is no
+    // character-state repair (the v9-6c chapter 5 editor repair was misread).
+    for (const message of [
+      'Rewrite the weak story rather than paraphrasing it: {"scores":{"character":4,"novelty":3}}',
+      'Correct the final package/prose discrepancy: the character Clodagh is given a new history.',
+      'Fix BOTH final checks in one full-package repair.\nFidelity: x\nEditor: character/minor',
+    ])
+      expect(
+        characterBytes({}, null, [], { fictionRepair: { message } })
+          .characterRepair,
+      ).toBe(false);
     const other = characterBytes({}, null, [], {
       fictionRepair: { message: 'The chapter repeats its opening gesture.' },
     });
