@@ -41,7 +41,11 @@ describe('v9 prompts', () => {
     expect(rule).toContain('Do not explain the weighing');
     expect(rule).toContain('You fear X... You also fear Y');
     expect(rule).toContain('storyFacts');
-    expect(rule.length).toBeLessThan(900);
+    expect(rule).toContain('a new person, object, cause or fact');
+    expect(rule).toContain(
+      'In a repair round only authorRepair.message and authorRepair.repairRule apply',
+    );
+    expect(rule.length).toBeLessThan(1100);
     // The rule is the last addition of the author text, only once, v9 only.
     expect(v9.author.split('CHOICE-STAKES CRAFT').length).toBe(2);
     expect(v8.author.includes('CHOICE-STAKES CRAFT')).toBe(false);
