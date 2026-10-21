@@ -9,6 +9,9 @@ import {
   breakdownMarkdown,
   breakdownRun,
 } from '../scripts/lib/narrative-request-breakdown';
+import { runNarrativeProbeEditor } from '../scripts/narrative-probe-editor';
+import { runNarrativeProbeLatency } from '../scripts/narrative-probe-latency';
+import { attemptTracePath } from '../scripts/lib/narrative-evaluation-attempts';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import {
   attemptEvidence,
@@ -161,6 +164,86 @@ describe('living-world generation in the evaluation runner', () => {
         );
       }
       expect(breakdownMarkdown([split])).toContain('| ch1 | author |');
+      // The two local-transport probes replay stored requests: the run is only
+      // read (a probe output inside it is refused) and the answers here come
+      // from a stand-in transport.
+      const probeOut = await mkdtemp(join(tmpdir(), 'alterward-probe-out-'));
+      const trace = JSON.parse(
+        await readFile(
+          attemptTracePath(out, 'creative-portfolio:narrative-v1:1'),
+          'utf8',
+        ),
+      ) as { attempts: { task: string; output: unknown }[] };
+      const storedEditor = trace.attempts.find(
+        (a) => a.task === 'life_narrative_editor',
+      )!.output;
+      try {
+        await expect(
+          runNarrativeProbeEditor(
+            ['--run', out, '--chapter', 'ch1', '--out', join(out, 'probe')],
+            {},
+            async () => storedEditor,
+          ),
+        ).rejects.toThrow(/outside/);
+        const edited = await runNarrativeProbeEditor(
+          [
+            '--run',
+            out,
+            '--chapter',
+            'ch1',
+            '--runs',
+            '2',
+            '--out',
+            join(probeOut, 'editor'),
+          ],
+          {},
+          async () => storedEditor,
+        );
+        expect(edited.result.runs).toHaveLength(2);
+        expect(edited.result.runs.map((r) => r.status)).toEqual(['ok', 'ok']);
+        expect(edited.result.summary.gatePassed).toBe(2);
+        expect(edited.result.stored.length).toBeGreaterThan(0);
+        const requests: string[] = [];
+        const latency = await runNarrativeProbeLatency(
+          [
+            '--run',
+            out,
+            '--chapter',
+            'ch1',
+            '--rounds',
+            '2',
+            '--out',
+            join(probeOut, 'latency'),
+          ],
+          {},
+          async ({ parameters }) => {
+            requests.push(
+              JSON.stringify(
+                (parameters.text.format as { schema?: unknown }).schema,
+              ),
+            );
+            return { ok: true };
+          },
+        );
+        expect(latency.result.calls.map((c) => c.arm)).toEqual([
+          'compact',
+          'full-pattern',
+          'compact',
+          'full-pattern',
+        ]);
+        // Same request, only the schema differs, the full one is larger.
+        const [compactSchema, fullSchema] = requests;
+        expect(fullSchema!.length).toBeGreaterThan(
+          compactSchema!.length + 3000,
+        );
+        expect(latency.result.summary[0]!.requestBytes).toBeLessThan(
+          latency.result.summary[1]!.requestBytes!,
+        );
+        expect(await evidenceFingerprint(out)).toEqual(before);
+        // A v9 run is required for the compact/full comparison.
+      } finally {
+        await rm(probeOut, { recursive: true, force: true });
+      }
       // A v8 run of the same corpus keeps its identity: no new report field.
       const v8out = await mkdtemp(join(tmpdir(), 'alterward-fiction-v8-'));
       try {
@@ -177,6 +260,44 @@ describe('living-world generation in the evaluation runner', () => {
         );
         expect(v8).not.toHaveProperty('fictionGeneration');
         expect(v8.samples[0]).not.toHaveProperty('character');
+        // The probe takes a stored v8 author request as its control arm, and
+        // a v8 run alone cannot be the compact/full comparison.
+        const controlOut = await mkdtemp(join(tmpdir(), 'alterward-probe-c-'));
+        try {
+          const withControl = await runNarrativeProbeLatency(
+            [
+              '--run',
+              out,
+              '--chapter',
+              'ch1',
+              '--control-run',
+              v8out,
+              '--control-chapter',
+              'ch0',
+              '--rounds',
+              '1',
+              '--out',
+              controlOut,
+            ],
+            {},
+            async () => ({ ok: true }),
+          );
+          expect(withControl.result.calls.map((c) => c.arm)).toEqual([
+            'compact',
+            'full-pattern',
+            'v8-control',
+          ]);
+          await expect(
+            runNarrativeProbeLatency(
+              ['--run', v8out, '--chapter', 'ch0', '--out', controlOut + '-x'],
+              {},
+              async () => ({ ok: true }),
+            ),
+          ).rejects.toThrow(/needs a v9 run/);
+        } finally {
+          await rm(controlOut, { recursive: true, force: true });
+          await rm(controlOut + '-x', { recursive: true, force: true });
+        }
       } finally {
         await rm(v8out, { recursive: true, force: true });
       }

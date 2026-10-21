@@ -84,12 +84,20 @@ export async function authorRequestBreakdown(
   };
 }
 
-type Attempt = {
+export type StoredAttempt = {
   ordinal: number;
   task: string;
   status: string;
+  latencyMs?: number;
   output: unknown;
   repairFeedback: { mode?: string; message: string } | null;
+};
+export type StoredChapter = {
+  // `ch<index>` on the main branch, `fork` for the fork case.
+  chapter: string;
+  caseId: string;
+  payload: NarrativePeriodInput;
+  attempts: StoredAttempt[];
 };
 export type BreakdownRow = {
   chapter: string;
@@ -97,18 +105,22 @@ export type BreakdownRow = {
   breakdown: AuthorRequestBreakdown;
 };
 
-// `outDir` is the evaluation output directory, `stateName` the state folder
-// (for example career-transition-narrative-v1).
-export async function breakdownRun(outDir: string, stateName: string) {
+// The completed chapters of a stored run: the saved job payload and the
+// attempt trace of each case. `outDir` is the evaluation output directory,
+// `stateName` the state folder (for example career-transition-narrative-v1).
+// Opening a PGlite directory writes to it (control file, WAL, postmaster.pid
+// and more), even for a read-only query. The evidence directory of a run is
+// only read: the state is opened on a temporary copy, without a stale
+// postmaster.pid, and the copy is removed afterwards.
+export async function storedChapters(
+  outDir: string,
+  stateName: string,
+): Promise<{ label: string; chapters: StoredChapter[] }> {
   const root = resolve(outDir);
   const [fixtureId, mode] = [
     stateName.slice(0, stateName.lastIndexOf('-narrative')),
     stateName.slice(stateName.lastIndexOf('-narrative') + 1),
   ];
-  // Opening a PGlite directory writes to it (control file, WAL, postmaster.pid
-  // and more), even for a read-only query. The evidence directory of a run is
-  // only read: the state is opened on a temporary copy, without a stale
-  // postmaster.pid, and the copy is removed afterwards.
   const source = join(root, 'state', stateName);
   const work = mkdtempSync(join(tmpdir(), 'alterward-request-breakdown-'));
   const copy = join(work, 'state');
@@ -117,7 +129,7 @@ export async function breakdownRun(outDir: string, stateName: string) {
     filter: (file) => basename(file) !== 'postmaster.pid',
   });
   const engine = new PGlite(copy);
-  const rows: BreakdownRow[] = [];
+  const chapters: StoredChapter[] = [];
   try {
     const db = adapter(engine);
     const jobs = await db.query<{
@@ -137,47 +149,16 @@ export async function breakdownRun(outDir: string, stateName: string) {
       if (main) periodIndex++;
       const file = attemptTracePath(root, caseId);
       if (!existsSync(file)) continue;
-      const attempts = (
-        JSON.parse(readFileSync(file, 'utf8')) as { attempts: Attempt[] }
-      ).attempts;
-      const authors = attempts.filter(
-        (a) => a.task === 'life_narrative_chapter' && a.output,
-      );
-      let previous: FictionAuthorResult | undefined;
-      for (const author of authors) {
-        const plan = attempts
-          .filter(
-            (a) =>
-              a.task === 'life_narrative_plan' &&
-              a.status === 'completed' &&
-              a.output &&
-              a.ordinal < author.ordinal,
-          )
-          .at(-1);
-        if (!plan) continue;
-        const repair =
-          author.repairFeedback && previous
-            ? ({
-                mode:
-                  author.repairFeedback.mode === 'prose_only'
-                    ? 'prose_only'
-                    : 'author_package',
-                message: author.repairFeedback.message,
-                previous,
-              } satisfies FictionRepair)
-            : undefined;
-        rows.push({
-          chapter,
-          kind: repair ? 'author-repair' : 'author',
-          breakdown: await authorRequestBreakdown(
-            job.payload,
-            plan.output as NarrativePlanningResult,
-            author.output as FictionAuthorResult,
-            repair,
-          ),
-        });
-        previous = author.output as FictionAuthorResult;
-      }
+      chapters.push({
+        chapter,
+        caseId,
+        payload: job.payload,
+        attempts: (
+          JSON.parse(readFileSync(file, 'utf8')) as {
+            attempts: StoredAttempt[];
+          }
+        ).attempts,
+      });
     }
   } finally {
     await engine.close();
@@ -185,8 +166,54 @@ export async function breakdownRun(outDir: string, stateName: string) {
   }
   return {
     label: basename(dirname(dirname(join(root, 'state', stateName)))),
-    rows,
+    chapters,
   };
+}
+
+export async function breakdownRun(outDir: string, stateName: string) {
+  const stored = await storedChapters(outDir, stateName);
+  const rows: BreakdownRow[] = [];
+  for (const { chapter, payload, attempts } of stored.chapters) {
+    const authors = attempts.filter(
+      (a) => a.task === 'life_narrative_chapter' && a.output,
+    );
+    let previous: FictionAuthorResult | undefined;
+    for (const author of authors) {
+      const plan = attempts
+        .filter(
+          (a) =>
+            a.task === 'life_narrative_plan' &&
+            a.status === 'completed' &&
+            a.output &&
+            a.ordinal < author.ordinal,
+        )
+        .at(-1);
+      if (!plan) continue;
+      const repair =
+        author.repairFeedback && previous
+          ? ({
+              mode:
+                author.repairFeedback.mode === 'prose_only'
+                  ? 'prose_only'
+                  : 'author_package',
+              message: author.repairFeedback.message,
+              previous,
+            } satisfies FictionRepair)
+          : undefined;
+      rows.push({
+        chapter,
+        kind: repair ? 'author-repair' : 'author',
+        breakdown: await authorRequestBreakdown(
+          payload,
+          plan.output as NarrativePlanningResult,
+          author.output as FictionAuthorResult,
+          repair,
+        ),
+      });
+      previous = author.output as FictionAuthorResult;
+    }
+  }
+  return { label: stored.label, rows };
 }
 
 const kb = (n: number | undefined) =>

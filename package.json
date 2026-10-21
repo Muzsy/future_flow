@@ -45,6 +45,8 @@
     "evaluate:claude": "tsx --env-file-if-exists=.env scripts/evaluate-claude.ts",
     "narrative:audit": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-series-audit.ts",
     "narrative:character-audit": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-character-audit.ts",
+    "narrative:probe-latency": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-probe-latency.ts",
+    "narrative:probe-editor": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-probe-editor.ts",
     "narrative:repair-evidence": "tsx --tsconfig tsconfig.scripts.json scripts/narrative-repair-evidence.ts",
     "narrative:request-breakdown": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-request-breakdown.ts",
     "narrative:compare": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-run-comparison.ts",

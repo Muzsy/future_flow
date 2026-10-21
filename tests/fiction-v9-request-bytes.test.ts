@@ -429,6 +429,22 @@ describe('v9 request bytes (plan section 55)', () => {
     expect(rule('author_package')).toContain('Register in storyFacts');
     expect(rule('author_package')).toContain('copy previous.chapter.body');
     expect(rule('author_package')).toContain('Never raise the strength');
+    // Both modes end on the balance guard (v9-6f chapter 2) and it is small.
+    for (const mode of ['prose_only', 'author_package'] as const) {
+      expect(rule(mode)).toContain(
+        'Fix the named weakness without weakening anything else',
+      );
+      expect(rule(mode)).toContain(
+        "the closing keeps the protagonist's own decision at its center",
+      );
+      expect(rule(mode)).toContain(
+        'every other editorial dimension stays at 4 or above',
+      );
+    }
+    expect(
+      FICTION_REPAIR_RULES.prose_only.length +
+        FICTION_REPAIR_RULES.author_package.length,
+    ).toBeLessThan(1400);
     // No repair: no rule. v8: the repair is sent exactly as before.
     expect(fictionAuthorRequest(v9Input, f9.draft)).toMatchObject({
       authorRepair: null,
@@ -450,6 +466,19 @@ describe('v9 request bytes (plan section 55)', () => {
         ).authorRepair,
       ),
     ).not.toContain('repairRule');
+    // v8 repair request: byte for byte the frozen shape (planner request, the
+    // draft, the repair exactly as given), none of the v9 guidance anywhere.
+    const v8Request = JSON.stringify(
+      fictionAuthorRequest(v8Input, f8.draft, v8Repair),
+    );
+    expect(v8Request).not.toContain('repairRule');
+    expect(v8Request).not.toContain('Fix the named weakness');
+    expect(v8Request).toBe(
+      JSON.stringify({
+        ...fictionAuthorRequest(v8Input, f8.draft),
+        authorRepair: v8Repair,
+      }),
+    );
   });
 
   it.each([

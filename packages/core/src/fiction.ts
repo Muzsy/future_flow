@@ -283,13 +283,20 @@ export function fictionPlannerRequest(
 // facts that are already there (v9-6e chapter 1). An author-package repair
 // rebuilds the package and registers what it adds. Surgical editing is the
 // shape of the repairs that passed (v9-6c chapters 1 and 4) and rewriting the
-// shape of those that failed (6b chapter 1, 6e chapter 1). v8 requests do not
-// carry this key.
+// shape of those that failed (6b chapter 1, 6e chapter 1). Both modes also end
+// on the same guard: a repair that trades one editorial score for another
+// fails the second editor round (v9-6f chapter 2: novelty 3 to 4, a new
+// choiceStakes 3). The gate itself is unchanged. v8 requests do not carry this
+// key.
+const FICTION_REPAIR_BALANCE =
+  " Fix the named weakness without weakening anything else: the closing keeps the protagonist's own decision at its center, and every other editorial dimension stays at 4 or above.";
 export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
   author_package:
-    'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.',
+    'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.' +
+    FICTION_REPAIR_BALANCE,
   prose_only:
-    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names.',
+    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names.' +
+    FICTION_REPAIR_BALANCE,
 };
 export function fictionAuthorRequest(
   input: NarrativePeriodInput,
