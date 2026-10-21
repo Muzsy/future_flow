@@ -16,28 +16,42 @@ describe('v9 prompts', () => {
     'Acceptance requires causality/momentum/sceneCraft/choiceStakes/prose >=4, eight-score mean >=4, no major or canon issue.';
   const NEW_ACCEPTANCE =
     'Acceptance requires all eight scores >=4 and no major or canon issue.';
-  it('give the v9 editor the gate-exact acceptance sentence and a choiceStakes calibration, and only that', () => {
+  it('give the v9 editor the gate-exact acceptance sentence and nothing else (the old choiceStakes strictness stays)', () => {
     expect(v8.editor.split(OLD_ACCEPTANCE)).toHaveLength(2);
     expect(v9.editor.includes(OLD_ACCEPTANCE)).toBe(false);
     expect(v9.editor.split(NEW_ACCEPTANCE)).toHaveLength(2);
-    const rubric = v9.editor.slice(
-      v9.editor.indexOf('\nCHOICE-STAKES CALIBRATION:'),
-    );
-    expect(
-      rubric.startsWith('\nCHOICE-STAKES CALIBRATION: choiceStakes is 4 when'),
-    ).toBe(true);
-    expect(rubric.length).toBeLessThan(760);
-    // Nothing else differs: the v8 text with that one replacement, then the rubric.
-    expect(v9.editor).toBe(
-      v8.editor.replace(OLD_ACCEPTANCE, NEW_ACCEPTANCE) + rubric,
-    );
+    // The one replacement is the only difference from the v8 text: no
+    // choiceStakes calibration, no softened rubric of any kind.
+    expect(v9.editor).toBe(v8.editor.replace(OLD_ACCEPTANCE, NEW_ACCEPTANCE));
+    expect(v9.editor.includes('CHOICE-STAKES')).toBe(false);
+    expect(v9.editor.length).toBeLessThan(v8.editor.length);
     // The later sentence of the inherited series text stays, so the prompt carries
     // exactly the rule the gate applies.
     expect(v9.editor).toContain(
       'Acceptance still needs all eight scores >=4, verdict=pass, no major/canon issue, and now all seven sequence flags true.',
     );
-    // The B variant is a Codex arm only, never the default.
-    expect(v9.editor).not.toContain('appears only as the protagonist');
+  });
+  it('ask the v9 author for a concrete pull of every option in the first draft, without explaining the weighing', () => {
+    const rule = v9.author.slice(v9.author.indexOf('\nCHOICE-STAKES CRAFT:'));
+    expect(rule.startsWith('\nCHOICE-STAKES CRAFT: let each option')).toBe(
+      true,
+    );
+    expect(rule).toContain('an object, a sensation or an action');
+    expect(rule).toContain('already in this first draft');
+    expect(rule).toContain('Do not explain the weighing');
+    expect(rule).toContain('You fear X... You also fear Y');
+    expect(rule).toContain('storyFacts');
+    expect(rule.length).toBeLessThan(900);
+    // The rule is the last addition of the author text, only once, v9 only.
+    expect(v9.author.split('CHOICE-STAKES CRAFT').length).toBe(2);
+    expect(v8.author.includes('CHOICE-STAKES CRAFT')).toBe(false);
+    expect(v9.author.endsWith(rule)).toBe(true);
+    // A stored v9 snapshot (writer v9, v8 editor) gets the same author text.
+    const stored = fictionPrompts('en', {
+      ...fictionV9Policy().promptVersions,
+      editor: 'life_fiction_editor.v8',
+    });
+    expect(stored.author).toBe(v9.author);
   });
   it('keep the v8 and v7 editor text byte for byte, and a stored v9 snapshot with the v8 editor on it', () => {
     expect(v8.editor.includes(OLD_ACCEPTANCE)).toBe(true);
@@ -59,8 +73,11 @@ describe('v9 prompts', () => {
     // No new rulebook: each addition stays under 3 KiB (the author addition
     // carries the delta rules, the continuity binding, the cast and repair
     // rules and the embodiment line, about 2.7 KiB measured).
-    for (const stage of ['planner', 'author', 'review'] as const)
+    // The author addition also carries the choice-stakes craft rule (about
+    // 0.8 KiB, 2026-10-21), so its bound is a conscious 3.75 KiB.
+    for (const stage of ['planner', 'review'] as const)
       expect(v9[stage].length - v8[stage].length).toBeLessThan(3072);
+    expect(v9.author.length - v8.author.length).toBeLessThan(3840);
     // New speaking people are registered, a repair adds nothing new, and the
     // final review asks for the same (the fidelity rule itself is unchanged).
     expect(v9.author).toContain('actor_add and a profile');

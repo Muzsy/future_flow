@@ -47,9 +47,6 @@ const RECORDED_REAL_REPAIR_REQUEST_BYTES = {
   v8: 108751, // 2026-10-19, v8 paid measurement, real repair author request
   v9: 116336, // 2026-10-20, v9-6b chapter 1, local Codex run, raw request bytes
 } as const;
-// The v9 editor prompt: the choiceStakes calibration appended to the v8 text
-// (the replaced acceptance sentence is 46 B shorter), rounded up.
-const EDITOR_V9_PROMPT_BYTES = 768;
 const PINNED_V8_SCHEMA_BYTES = {
   planner: 25927,
   author: 28137,
@@ -311,14 +308,10 @@ describe('v9 request bytes (plan section 55)', () => {
     expect(empty.author - v8.author).toBeLessThan(8.5 * 1024);
     expect(empty.authorRepair - v8.authorRepair).toBeLessThan(8.5 * 1024);
     // The checks only see the final package, which gained its delta.
-    for (const stage of ['review', 'fidelity'] as const)
+    // The v9 editor prompt is 46 B shorter than the v8 one (the acceptance
+    // sentence), so the editor stage is held to the original bound.
+    for (const stage of ['review', 'fidelity', 'editor'] as const)
       expect(empty[stage] - v8[stage]).toBeLessThan(1024);
-    // The v9 editor prompt adds the choiceStakes calibration (about 0.7 KiB,
-    // measured 2026-10-21: editor +953 B in all, of which the package delta is
-    // about 255 B). A conscious limit, not a loosening of the others.
-    expect(empty.editor - v8.editor).toBeLessThan(
-      1024 + EDITOR_V9_PROMPT_BYTES,
-    );
   });
 
   // Lasting-cost fix: zod renders every uuid with a 178 B regex, a third of
@@ -524,8 +517,8 @@ describe('v9 request bytes (plan section 55)', () => {
         8.5 * 1024 + m.projection + decisions + slack,
       );
       expect(m.review - v8.review).toBeLessThan(1024 + decisions);
-      expect(m.fidelity - v8.fidelity).toBeLessThan(1024);
-      expect(m.editor - v8.editor).toBeLessThan(1024 + EDITOR_V9_PROMPT_BYTES);
+      for (const stage of ['fidelity', 'editor'] as const)
+        expect(m[stage] - v8[stage]).toBeLessThan(1024);
       // A package without repair is five calls; the whole increase stays small
       // against the five v8 requests of the same cast (about +9% measured).
       const sum = (r: typeof m) =>

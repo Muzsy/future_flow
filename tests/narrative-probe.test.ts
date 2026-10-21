@@ -353,11 +353,10 @@ describe('stored chapter requests', () => {
     expect(text(before)).toContain(
       'Acceptance requires causality/momentum/sceneCraft',
     );
-    expect(text(before)).not.toContain('CHOICE-STAKES CALIBRATION');
+    expect(text(after)).not.toContain('causality/momentum/sceneCraft');
     expect(text(after)).toContain(
       'Acceptance requires all eight scores >=4 and no major or canon issue.',
     );
-    expect(text(after)).toContain('CHOICE-STAKES CALIBRATION');
     expect(JSON.stringify(after.parameters.text)).toBe(
       JSON.stringify(before.parameters.text),
     );
@@ -386,11 +385,11 @@ describe('stored chapter requests', () => {
     } as StoredChapter;
     const before = await editorRequest(v8, 'last');
     const after = await editorRequest(v8, 'last', 'v9');
-    expect(JSON.stringify(before.parameters.input)).not.toContain(
-      'CHOICE-STAKES CALIBRATION',
+    expect(JSON.stringify(before.parameters.input)).toContain(
+      'causality/momentum/sceneCraft',
     );
     expect(JSON.stringify(after.parameters.input)).toContain(
-      'CHOICE-STAKES CALIBRATION',
+      'Acceptance requires all eight scores >=4',
     );
     expect(JSON.stringify(after.parameters.text)).toBe(
       JSON.stringify(before.parameters.text),

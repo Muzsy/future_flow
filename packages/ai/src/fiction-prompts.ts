@@ -209,20 +209,24 @@ export function fictionPrompts(
   // not as more rules (plan section 41).
   const characterIntent = `\nCHARACTER-INTENT CRAFT: narrativeContext.characterProjection lists the recurring people who matter for this period; each entry shows its stable cues, current aim, pressure, attention, stance and unresolved matter, and a supplied person shows only relationship state. Return characterIntent (at most 6 entries, possibly empty) for the wholly fictional recurring people this plan uses: ownAim is what the person wants for their own reasons, attentionOn is where their attention already is, interactionPressure is the pressure the protagonist's approach puts on them, and protagonistRelevance is null or a short phrase and may well be low, because a person's current matter can be largely unrelated to the protagonist's goal. Use only actorIds from characterProjection or a person this plan introduces with actor_add. Never invent a private aim or state for a supplied person. Do not repurpose a person's state solely to solve the protagonist's current problem. characterProjection.omittedActors counts relevant people who are not shown; do not contradict them. CONTINUITY: also return continuityDecisions, one entry for every projection person whose reasons include unresolved_matter or open_thread: carry (their matter moves, even slightly, or stays visibly alive in this period), defer (it stays offstage and unresolved this period) or resolve (this period closes it), with a reason under 100 characters that names only what the projection shows or this plan will show: a reason is a planning note, never a past event. A carry or resolve for a wholly fictional person also needs a characterIntent entry. Deferring is a legitimate choice, silence is not; name only people shown in characterProjection.`;
   const characterState = `\nCHARACTER-STATE CRAFT: respect narrativeContext.characterProjection and draft.characterIntent; do not repurpose a person's state merely to solve the protagonist's problem. The package must carry characterDelta: version 1.0.0 with the arrays addedProfiles, profileUpdates, dynamicUpdates, relationshipUpdates and removedActorIds, each empty when nothing durable changed; record only what could matter later. addedProfiles: exactly one profile per new recurring actor_add of this period (originEventId is the event carrying that actor_add, establishedAtPeriodId is this periodId, short behaviour-causing cues, no scores). dynamicUpdates: wholly fictional people whose aim, pressure, attention, stance or unresolved matter really changed (lastMeaningfulChangePeriodId is this periodId; provenance branch_fiction or interaction_derived). relationshipUpdates: how a person now stands toward the protagonist, provenance interaction_derived or branch_fiction, never user_supplied (only the server may label a fact as supplied). A supplied person (family, partner, friend, Shared identity) gets ONLY a relationshipUpdate and no profile or dynamic state: interaction_derived for what they actually did together, branch_fiction only for how the relationship itself changed in this branch, never a private real-world fact (health, money, work, feelings outside the interaction). removedActorIds: exactly the people removed by actor_remove this period; a person who enters by actor_add and leaves by actor_remove in this period gets the profile AND a removedActorIds entry, nothing else. A projection person with a legacy view and no profile was recorded earlier: treat role, desire, resistance and voice as established, add no profile, record change only as dynamicUpdates or relationshipUpdates. A delta touches at most 6 people and about 8 KiB; copy every actorId exactly. draft.continuityDecisions bind: carry = the person's own matter shows in action or speech this chapter; resolve = it ends here (set unresolvedMatter or unresolvedInteraction to null in the delta); defer = leave it. CAST: a new named or role-identified person who speaks or acts in a scene gets an actor_add and a profile, or stays a one-line background figure with no dialogue; put no new lasting fact in the prose (adopted, used, agreed) unless storyFacts registers it. A continuityDecisions reason is a planning note, not a fact: never write it into an event summary or the prose as something that already happened (a request, promise or visit) unless storyFacts or the projection records it. REPAIR: when authorRepair is set, follow authorRepair.repairRule for its mode. EMBODIMENT: where a scene calls for it, let the physical world press on people (place, weather, the hour, tiredness, hunger, what things cost, a small bodily limit) and change what they do; never as decoration, in every scene, or as manufactured hardship.`;
+  // The chapter's closing decision should pull already in the first draft, so
+  // that no repair has to add its stakes afterwards (blind reading, 2026-10-21:
+  // the inserted stakes read as bolted on, and in one case too direct).
+  const choiceCraft = `\nCHOICE-STAKES CRAFT: let each option of the closing decision have a concrete pull inside the chapter's own scenes, carried by an object, a sensation or an action (something the protagonist does, notices or handles) that the reader can feel, already in this first draft. Do not explain the weighing: no paragraph that states the protagonist's fear or wish for each option side by side (the 'You fear X... You also fear Y' pattern), and the closing passage does not recite the alternatives. Use only what storyFacts, the candidate events and the accepted history already contain; the pull is no reason to add a new person, cause or fact.`;
   // v9 editor: the acceptance sentence of the original editor text restated as
-  // the gate the code applies (all eight scores >=4, no major/canon issue), and
-  // a choiceStakes calibration. A v9 snapshot stored with the v8 editor keeps
-  // the v8 text.
+  // the gate the code applies (all eight scores >=4, no major/canon issue).
+  // Nothing else changes: the choiceStakes judgement keeps the v8 strictness
+  // (the blind reading of 2026-10-21 showed the stricter verdict was a real
+  // improvement, not noise). A v9 snapshot stored with the v8 editor keeps the
+  // v8 text.
   const oldAcceptance =
     'Acceptance requires causality/momentum/sceneCraft/choiceStakes/prose >=4, eight-score mean >=4, no major or canon issue.';
   if (v8Prompts.editor.split(oldAcceptance).length !== 2)
     throw new Error('The v8 editor acceptance sentence must occur once.');
-  const v9Editor =
-    v8Prompts.editor.replace(
-      oldAcceptance,
-      'Acceptance requires all eight scores >=4 and no major or canon issue.',
-    ) +
-    "\nCHOICE-STAKES CALIBRATION: choiceStakes is 4 when the chapter's own events already let the reader feel at least one concrete cost or loss and one real attraction of the protagonist's next commitment; it needs no list of the options and no new outside fact. It is 3 when the stakes live mainly in the structured decision while the scenes work on a different problem. Do not score choiceStakes 3 merely because the closing passage does not weigh the alternatives; the closing should not recite them. When the issue's repairScope is prose, its suggestedFix may ask only for stakes that the registered storyFacts, the candidate events and the accepted history already contain, shown in the scene; never ask for a new person, cause, backstory or state.";
+  const v9Editor = v8Prompts.editor.replace(
+    oldAcceptance,
+    'Acceptance requires all eight scores >=4 and no major or canon issue.',
+  );
   return {
     ...v8Prompts,
     editor:
@@ -230,7 +234,7 @@ export function fictionPrompts(
         ? v9Editor
         : v8Prompts.editor,
     planner: v8Prompts.planner + characterIntent,
-    author: v8Prompts.author + characterState,
+    author: v8Prompts.author + characterState + choiceCraft,
     review:
       v8Prompts.review +
       "\nWhen judging causality and novelty under the character additions, a plan whose characterIntent makes a recurring person's ownAim merely serve the protagonist's current problem, or gives a supplied person an invented private aim, is weak. The request may carry continuity (the planner's continuityDecisions and characterIntent): a carry or resolve decision whose matter does not show in the final package, or a resolve that leaves the matter open in characterDelta, is a continuity defect that lowers character. Also flag a final package where a new speaking person has no actor_add, or a lasting claim has no storyFact.",
