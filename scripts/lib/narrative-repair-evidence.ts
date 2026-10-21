@@ -26,6 +26,18 @@ type Attempt = {
 };
 type Fact = { id: string; assertion: string };
 
+// Editor dimensions whose fix usually needs new material (a concrete cause, price
+// or deadline) rather than a rewrite of the material already on the page. Only
+// used to project what a mode change would do to the physical call count; the
+// product does not read it.
+export const MATERIAL_EDITOR_DIMENSIONS = [
+  'choiceStakes',
+  'causality',
+  'personalization',
+  'novelty',
+  'character',
+] as const;
+
 const clip = (text: string, limit: number) =>
   text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 const words = (body: unknown) =>
@@ -96,6 +108,13 @@ export function repairEvidence(runDir: string) {
     }));
 
   const dir = join(root, 'diagnostic-attempts');
+  const chapters: {
+    caseId: string;
+    calls: number;
+    repairMode: string | null;
+    materialEditorRepair: boolean;
+    callsIfAuthorPackage: number;
+  }[] = [];
   const repairs = (existsSync(dir) ? readdirSync(dir).sort() : [])
     .filter((file) => file.endsWith('.json'))
     .flatMap((file) => {
@@ -105,6 +124,36 @@ export function repairEvidence(runDir: string) {
       };
       const caseId = trace.caseId ?? basename(file, '.json');
       const attempts = trace.attempts;
+      const repairAttempt = attempts.find(
+        (a) => a.task === 'life_narrative_chapter' && a.repairFeedback,
+      );
+      const editorBeforeRepair = repairAttempt
+        ? (attempts
+            .filter(
+              (a) =>
+                a.task === 'life_narrative_editor' &&
+                a.output &&
+                a.ordinal < repairAttempt.ordinal,
+            )
+            .at(-1)?.output as { issues?: { dimension: string }[] } | undefined)
+        : undefined;
+      const mode = repairAttempt?.repairFeedback?.mode ?? null;
+      const material =
+        mode === 'prose_only' &&
+        (editorBeforeRepair?.issues ?? []).some((i) =>
+          (MATERIAL_EDITOR_DIMENSIONS as readonly string[]).includes(
+            i.dimension,
+          ),
+        );
+      chapters.push({
+        caseId,
+        calls: attempts.length,
+        repairMode: mode,
+        materialEditorRepair: material,
+        // A prose-only repair reuses the plan review; an author-package repair
+        // cannot, so it costs one more physical call.
+        callsIfAuthorPackage: attempts.length + (material ? 1 : 0),
+      });
       return attempts
         .filter((a) => a.task === 'life_narrative_chapter' && a.repairFeedback)
         .map((repair) => {
@@ -196,7 +245,20 @@ export function repairEvidence(runDir: string) {
           };
         });
     });
-  return { run: basename(root), latency, slowCalls, repairs };
+  const at9 = (calls: number) => calls >= 9;
+  return {
+    run: basename(root),
+    latency,
+    slowCalls,
+    repairs,
+    chapters,
+    ceiling: {
+      now: chapters.filter((c) => at9(c.calls)).length,
+      ifAuthorPackage: chapters.filter((c) => at9(c.callsIfAuthorPackage))
+        .length,
+      cases: chapters.length,
+    },
+  };
 }
 
 export function repairEvidenceMarkdown(
@@ -221,6 +283,14 @@ export function repairEvidenceMarkdown(
               `- ${c.caseId} ${c.task}: ${(c.latencyMs / 1000).toFixed(0)} s, request ${c.requestBytes ?? '-'} B, output ${c.outputBytes ?? '-'} B`,
           )
         : ['- none']),
+      '',
+      '### Calls per case and the 9-call ceiling',
+      '',
+      `- Cases at 9 calls now: ${run.ceiling.now}/${run.ceiling.cases}; if every material-dimension prose-only repair became an author-package repair (+1 call): ${run.ceiling.ifAuthorPackage}/${run.ceiling.cases}`,
+      ...run.chapters.map(
+        (c) =>
+          `- ${c.caseId}: ${c.calls} calls, repair ${c.repairMode ?? 'none'}${c.materialEditorRepair ? ', material editor dimension -> ' + c.callsIfAuthorPackage + ' calls as author_package' : ''}`,
+      ),
       '',
       '### Author repairs',
       '',

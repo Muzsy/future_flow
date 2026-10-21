@@ -105,6 +105,25 @@ describe('repair evidence (stored files only)', () => {
     expect(markdown).toContain('frozen');
   });
 
+  it('projects the 9-call ceiling of an author-package repair for material editor findings', () => {
+    const evidence = repairEvidence(storedRun());
+    // 5 calls, then a prose-only repair (author, fidelity): 6 stored attempts
+    // here; the editor's choiceStakes finding is a material dimension.
+    expect(evidence.chapters).toEqual([
+      {
+        caseId: 'career:1',
+        calls: 5,
+        repairMode: 'prose_only',
+        materialEditorRepair: true,
+        callsIfAuthorPackage: 6,
+      },
+    ]);
+    expect(evidence.ceiling).toEqual({ now: 0, ifAuthorPackage: 0, cases: 1 });
+    expect(repairEvidenceMarkdown([evidence])).toContain(
+      'material editor dimension -> 6 calls as author_package',
+    );
+  });
+
   it('tells a size-driven slow call from one that is not', () => {
     const evidence = repairEvidence(storedRun());
     const author = evidence.latency.find(
