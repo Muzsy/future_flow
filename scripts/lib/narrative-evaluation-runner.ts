@@ -118,8 +118,12 @@ export type OfflineMockResponder = (context: {
   parameters: {
     model: string;
     input?: unknown;
+    // The API request's output cap and the effective per-call deadline, so a
+    // local transport can enforce the same limits the product call has.
+    max_output_tokens?: number;
     text: { format: { name: string; $parseRaw?: (raw: string) => unknown } };
   };
+  timeoutMs?: number;
   job: LifeJob;
   defaultOutput: () => unknown;
 }) =>
@@ -323,6 +327,8 @@ function clientFor(
   mockResponder?: OfflineMockResponder,
 ) {
   const caseBinding: AttemptTraceBinding = { ...traceBinding, caseId };
+  // SDK-wide fallback; fiction calls pass their own per-call timeout instead.
+  const sdkTimeoutMs = options.creative ? 180000 : 120000;
   const saveTransports = () =>
     save(join(options.out, 'transport-records.json'), transports);
   if (options.kind === 'paid') {
@@ -334,7 +340,7 @@ function clientFor(
       logLevel: 'off',
       maxRetries: 0,
       // Keep the SDK fallback unchanged; only fiction calls override it below.
-      timeout: options.creative ? 180000 : 120000,
+      timeout: sdkTimeoutMs,
     });
     type ParseParameters = Parameters<typeof sdk.responses.parse>[0];
     const parse = wrapEvaluationParse({
@@ -377,11 +383,13 @@ function clientFor(
       parameters: {
         model: string;
         input?: unknown;
+        max_output_tokens?: number;
         text: {
           format: { name: string; $parseRaw?: (raw: string) => unknown };
         };
       },
       ordinal: number,
+      requestOptions?: { timeout?: number },
     ) => {
       if (!job)
         throw new DomainError(
@@ -438,6 +446,7 @@ function clientFor(
           model: parameters.model,
           ordinal,
           parameters,
+          timeoutMs: requestOptions?.timeout ?? sdkTimeoutMs,
           job,
           defaultOutput,
         });

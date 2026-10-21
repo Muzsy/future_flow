@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-18
+last_reviewed: 2026-10-20
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -38,7 +38,7 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | backup | `operations/BACKUP_HU.md` | `CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md` és retention runbookok |
 | recovery | `operations/RECOVERY_HU.md` | restore/privacy/writer-fence runbookok |
 | security operations | `operations/SECURITY_OPERATIONS_HU.md` | privacy catalog, writer fence, monitor docs |
-| személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `plans/046_fiction_v7_narrative_economy.md`; `plans/047_fiction_v8_series_evidence.md`; `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
+| személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `plans/046_fiction_v7_narrative_economy.md`; `plans/047_fiction_v8_series_evidence.md`; `plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md` (élő világ terv, a C függelék a tulajdonosi döntéseket rögzíti; [ADR-009](decisions/ADR-009-character-state-artifact-fold.md) elfogadva); `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
 
 ## Aktív történetminőségi munka

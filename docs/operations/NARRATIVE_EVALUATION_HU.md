@@ -380,3 +380,6 @@ pnpm narrative:audit --out <kimeneti-mappa> <run-mappa> [<run-mappa> ...]
 
 Minden run-mappában a runner által írt `report.json` kell. A kimenet `series-audit.json` és `series-audit.md`: ismétlődő mondatnyitások és fordulatok, fejezetenként a v8 editor-bizonyíték jelzése, záró mondatok, névgyakoriság, a profil alapkapcsolatainak említése, futások közti közös teljes nevek és fordulatok, azonos profil azonos fejezetének lexikai átfedése. Heurisztika, nem irodalmi pontszám és nem release gate; a humán olvasás mellé ad összehasonlítható számokat. A v6/v7 baseline és a következő mérés küszöbei a 047 tervben vannak.
 
+## Helyi ügynökök (Codex, agy) — 2026-10-20
+
+`pnpm narrative:codex` és `pnpm narrative:agy` mindig offline módban fut, API-kulcs, ledger és budget guard nélkül, az előfizetéses kvótát fogyasztja, és csak a tulajdonos engedélyével indítható. A kimenet irányjelző fejlesztési bizonyíték (`comparableWithPaid: false`), nem N08-mérés. A termékhívással egyező beállítások, a kvótakapuk és az agy lépéskorlátozása: [047 terv, Kvótakapuk és az agy futtató](../plans/047_fiction_v8_series_evidence.md#kvótakapuk-és-az-agy-futtató--2026-10-20).
