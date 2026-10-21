@@ -1118,6 +1118,29 @@
       ],
       "additionalProperties": false
     },
+    "turnType": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "attempt_meets_resistance",
+            "outsider_reads_the_work",
+            "other_persons_aim_crosses",
+            "old_matter_returns",
+            "event_from_outside",
+            "success_with_price",
+            "relationship_shift",
+            "protagonist_refuses_or_withdraws",
+            "delayed_cost_of_earlier_choice",
+            "quiet_persistence",
+            "other"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "planningReview": {
       "type": "object",
       "properties": {

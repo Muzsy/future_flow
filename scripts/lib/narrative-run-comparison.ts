@@ -5,6 +5,10 @@
 // stored report.json and transport-records.json only; no provider, no ledger.
 // The text-level comparison (repeated function, embodiment per chapter,
 // dropped threads) stays in the character audit, which reads the same reports.
+import {
+  type TurnDiagnostics,
+  turnSummary,
+} from './narrative-turn-diagnostics';
 
 // The production guard adds this to the serialized request; the limit is the
 // default AI_FICTION_MAX_REQUEST_BYTES.
@@ -27,6 +31,7 @@ type Sample = {
     characterRepair?: boolean;
     repairMessage?: string | null;
     continuity?: { required: string[]; missing: string[] } | null;
+    turn?: TurnDiagnostics | null;
   } | null;
 };
 type Failure = {
@@ -104,6 +109,7 @@ export function compareRuns(runs: ComparisonRun[]) {
           deltaBytes: s.character?.deltaBytes ?? null,
           omittedActors: s.character?.omittedActors ?? null,
           characterRepair: s.character?.characterRepair ?? null,
+          turn: s.character?.turn ?? null,
           continuityMissing: s.character?.continuity
             ? `${s.character.continuity.missing.length}/${s.character.continuity.required.length}`
             : null,
@@ -132,6 +138,7 @@ export function compareRuns(runs: ComparisonRun[]) {
     return {
       label: run.label,
       rows,
+      turns: turnSummary(rows.map((r) => r.turn)),
       growth,
       totalRequests: rows.reduce((n, r) => n + (r.requestCount ?? 0), 0),
       chaptersWithRepair: rows.filter((r) => r.repairUsed).length,
@@ -181,6 +188,22 @@ export function comparisonMarkdown(result: ReturnType<typeof compareRuns>) {
       '',
       `Request growth over the series: plan ${g.plan ? `${kb(g.plan.first)} -> ${kb(g.plan.last)} KB (${g.plan.from}..${g.plan.to})` : '-'}, author ${g.author ? `${kb(g.author.first)} -> ${kb(g.author.last)} KB (${g.author.from}..${g.author.to})` : '-'}.`,
     );
+    // Turn labels only for runs that carry them (living-world generation).
+    if (run.turns.chapters) {
+      const t = run.turns;
+      lines.push(
+        '',
+        `Turn labels (diagnostic, never a gate): labelled ${t.labelled}, other ${t.other}, null ${t.null}, absent ${t.absent}; resting type chosen ${t.restingChosen}; queue ranks [${t.queueRanks.join(', ')}]; signature inconsistent ${t.inconsistent}.`,
+        '',
+        '| sample | turnType | queue rank | resting | signature |',
+        '|---|---|---|---|---|',
+      );
+      for (const r of run.rows)
+        if (r.turn)
+          lines.push(
+            `| ${r.chapter} | ${r.turn.label ?? r.turn.coverage} | ${r.turn.queueRank ?? '-'} | ${r.turn.restingChosen === null ? '-' : r.turn.restingChosen ? 'yes' : 'no'} | ${r.turn.signatureConsistency} |`,
+          );
+    }
     for (const f of run.failures)
       lines.push(
         `- Failure ${f.caseId}: ${f.code}${f.stage ? ` at ${f.stage}` : ''}${f.message ? ` (${f.message})` : ''}`,

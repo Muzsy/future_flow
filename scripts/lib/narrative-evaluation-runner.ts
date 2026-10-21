@@ -110,6 +110,10 @@ import {
   repairTriggerOf,
   type RepairTrigger,
 } from './narrative-repair-trigger';
+import {
+  turnDiagnostics,
+  type TurnDiagnostics,
+} from './narrative-turn-diagnostics';
 
 export type OfflineMockResponseOverride = {
   __rawResponse: {
@@ -182,6 +186,9 @@ export type EvaluationSample = {
     // What made the repair necessary, from the message wording only (the
     // fidelity-triggered wordings are fixed text, never model text).
     repairTrigger: RepairTrigger | null;
+    // The planner's turn label and where it stood in the request's rotation
+    // (diagnostics, never a gate); null before the label existed.
+    turn: TurnDiagnostics | null;
     // Provider answers the strict response format let through that the
     // server schema refused (malformed), of which uuid-shaped refusals, and
     // requests the API itself rejected (HTTP 400). The v9 request schemas drop
@@ -327,6 +334,37 @@ const CHECKER_FEEDBACK_PATTERN =
 // Validator wording of a character-state failure (never model text).
 const CHARACTER_REPAIR_PATTERN =
   /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
+// The label comes from the stored artifact (the draft's copy), so a draft kept
+// only in the attempt trace still counts; a draft without the key is `absent`.
+function livingTurn(
+  payload: unknown,
+  artifact: unknown,
+  draft: unknown,
+): TurnDiagnostics | null {
+  const living = (artifact as { characterDelta?: unknown } | null)
+    ?.characterDelta;
+  if (living === undefined) return null;
+  const ledger = (
+    payload as {
+      narrativeContext?: {
+        seriesLedger?: { turnQueue?: string[]; restingTurns?: string[] };
+      };
+    }
+  ).narrativeContext?.seriesLedger;
+  const carrier = [artifact, draft].find(
+    (value) => value && typeof value === 'object' && 'turnType' in value,
+  ) as { turnType?: unknown } | undefined;
+  const report = (
+    artifact as {
+      editorialReport?: { sequenceSignature?: Record<string, string> };
+    }
+  ).editorialReport;
+  return turnDiagnostics({
+    turnType: carrier ? carrier.turnType : undefined,
+    ledger,
+    signature: report?.sequenceSignature ?? null,
+  });
+}
 export function characterBytes(
   payload: unknown,
   artifact: unknown,
@@ -387,6 +425,7 @@ export function characterBytes(
         CHARACTER_REPAIR_PATTERN.test(repairMessage)
       : false,
     repairTrigger: repairTriggerOf(repairMessage),
+    turn: livingTurn(payload, artifact, draft),
     schemaFailures: trace?.schemaFailures ?? {
       malformed: 0,
       uuid: 0,

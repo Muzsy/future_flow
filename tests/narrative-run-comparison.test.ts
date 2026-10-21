@@ -118,4 +118,58 @@ describe('run comparison (generation facts)', () => {
     expect(md).toContain('| ch1 | 9 | yes | 408 |');
     expect(md).toContain('Failure fork:career:narrative-v1');
   });
+  it('adds the turn labels only for a run that carries them, and never as a verdict', () => {
+    const labelled: ComparisonRun = {
+      ...run('v9-turns', true),
+      report: {
+        samples: [
+          {
+            fixtureId: 'career',
+            mode: 'narrative-v1',
+            kind: 'full',
+            periodIndex: 0,
+            character: {
+              turn: {
+                label: 'quiet_persistence',
+                coverage: 'labelled',
+                queueRank: null,
+                restingChosen: null,
+                signatureConsistency: 'unchecked',
+              },
+            },
+          },
+          {
+            fixtureId: 'career',
+            mode: 'narrative-v1',
+            kind: 'full',
+            periodIndex: 1,
+            character: {
+              turn: {
+                label: 'quiet_persistence',
+                coverage: 'labelled',
+                queueRank: 10,
+                restingChosen: true,
+                signatureConsistency: 'inconsistent',
+              },
+            },
+          },
+        ],
+        failures: [],
+      },
+    };
+    const [turns] = compareRuns([labelled]);
+    expect(turns!.turns).toMatchObject({
+      chapters: 2,
+      labelled: 2,
+      restingChosen: 1,
+      inconsistent: 1,
+      queueRanks: [10],
+    });
+    const md = comparisonMarkdown([turns!]);
+    expect(md).toContain('Turn labels (diagnostic, never a gate)');
+    expect(md).toContain(
+      '| ch1 | quiet_persistence | 10 | yes | inconsistent |',
+    );
+    expect(comparisonMarkdown([v8!])).not.toContain('Turn labels');
+  });
 });

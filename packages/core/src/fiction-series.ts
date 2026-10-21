@@ -1,3 +1,14 @@
+import { createHash } from 'node:crypto';
+import {
+  FICTION_RECENT_TURNS_MAX,
+  FICTION_RECURRING_CAST_MAX,
+  FICTION_RESTING_TURNS_MAX,
+  FICTION_ROTATING_TURN_TYPES,
+  FICTION_SERIES_LEDGER_V11_BYTES,
+  fictionTurnTypeSchema,
+  type FictionTurnType,
+} from '@future-flow/contracts';
+
 // Deterministic, provider-free series evidence over owned chapter prose.
 // The same functions feed the quality2.7 series ledger and the offline audit,
 // so every signal the author/editor sees can be reproduced without a model.
@@ -351,4 +362,120 @@ export function fictionSeriesLedgerFrom(
       ),
     })),
   };
+}
+
+// ---- Living-world generation (series ledger 1.1.0) ----
+// Same deterministic evidence plus the recurring fictional cast and the turn
+// rotation. The 1.0.0 builder above is untouched, so v8 stays byte-identical.
+
+export type SeriesLedgerLiving = {
+  // Seeds the tie order of types that were never used (reproducible per branch).
+  branchId: string;
+  // Live, wholly fictional people of the character state, with whether their
+  // own matter is still open (dynamic.unresolvedMatter or
+  // relationship.unresolvedInteraction).
+  cast: readonly { actorId: string; openMatter: boolean }[];
+  // The planner's turnType label of each owned period, in period order (same
+  // length as `periods`); null or unknown values are unlabelled.
+  turns: readonly (string | null | undefined)[];
+};
+
+const turnLabel = (value: unknown): FictionTurnType | null => {
+  const parsed = fictionTurnTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
+// Unlabelled chapters and `other` take no part in the rotation.
+const rotationHistory = (labelled: readonly unknown[]) =>
+  labelled.flatMap((value) => {
+    const type = turnLabel(value);
+    return type && type !== 'other' ? [type] : [];
+  });
+
+// The rotation catalogue from the least recently used type to the most recently
+// used one. A type never used comes first; ties (also among never-used types)
+// are broken by a hash of the branch, so the list is reproducible per request
+// and its head is not a fixed catalogue order.
+export function fictionTurnQueue(
+  labelled: readonly unknown[],
+  tieSeed: string,
+): Exclude<FictionTurnType, 'other'>[] {
+  const used = rotationHistory(labelled);
+  const lastUse = (type: string) => used.lastIndexOf(type as never);
+  const tie = (type: string) =>
+    createHash('sha256')
+      .update(`${tieSeed}:${used.length}:${type}`)
+      .digest('hex');
+  return [...FICTION_ROTATING_TURN_TYPES].sort(
+    (a, b) =>
+      lastUse(a) - lastUse(b) ||
+      (tie(a) < tie(b) ? -1 : tie(a) > tie(b) ? 1 : 0),
+  );
+}
+
+// The types of the last two labelled chapters, the most recent first.
+export function fictionRestingTurns(
+  labelled: readonly unknown[],
+): Exclude<FictionTurnType, 'other'>[] {
+  return [
+    ...new Set(
+      rotationHistory(labelled).slice(-FICTION_RESTING_TURNS_MAX).reverse(),
+    ),
+  ];
+}
+
+export function fictionSeriesLedgerV11From(
+  periods: readonly SeriesLedgerPeriod[],
+  state: SeriesLedgerState,
+  living: SeriesLedgerLiving,
+) {
+  const n = periods.length;
+  const base = fictionSeriesLedgerFrom(periods, state);
+  const present = (actorId: string) => (p: SeriesLedgerPeriod) =>
+    p.events.some((e) => e.actorIds?.includes(actorId));
+  const recurringCast = living.cast
+    .map(({ actorId, openMatter }) => {
+      const here = present(actorId);
+      let sinceLast: number | null = null;
+      for (let i = n - 1; i >= 0 && sinceLast === null; i--)
+        if (here(periods[i]!)) sinceLast = n - 1 - i;
+      return {
+        actorId,
+        chaptersPresent: periods.filter(here).length,
+        chaptersSinceLast: sinceLast,
+        openMatter,
+      };
+    })
+    // Open matter first, then the longest absence (never seen last), then id.
+    .sort(
+      (a, b) =>
+        Number(b.openMatter) - Number(a.openMatter) ||
+        (b.chaptersSinceLast ?? -1) - (a.chaptersSinceLast ?? -1) ||
+        a.actorId.localeCompare(b.actorId),
+    )
+    .slice(0, FICTION_RECURRING_CAST_MAX);
+  const labelled = living.turns.slice(-n);
+  const ledger = {
+    ...base,
+    version: '1.1.0' as const,
+    recurringCast,
+    recentTurns: labelled.slice(-FICTION_RECENT_TURNS_MAX).map(turnLabel),
+    turnQueue: fictionTurnQueue(labelled, living.branchId),
+    restingTurns: fictionRestingTurns(labelled),
+  };
+  // Over the byte bound, evidence is dropped in a fixed order; the queue and
+  // the resting turns are what the rotation needs and stay.
+  const bytes = () => new TextEncoder().encode(JSON.stringify(ledger)).length;
+  const drop: (() => boolean)[] = [
+    () => ledger.recentTurns.splice(0).length > 0,
+    () => ledger.recurringCast.pop() !== undefined,
+    () => ledger.repeatedPhrases.pop() !== undefined,
+    // Beyond the first three, so that a crowded life degrades its evidence
+    // instead of failing the period: the 5 goals and 6 long openings are the
+    // remaining slack of the 1.0.0 fields.
+    () => ledger.repeatedOpenings.pop() !== undefined,
+    () => ledger.goalActivity.pop() !== undefined,
+  ];
+  for (const step of drop)
+    while (bytes() > FICTION_SERIES_LEDGER_V11_BYTES && step());
+  return ledger;
 }

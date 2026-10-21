@@ -128,6 +128,16 @@ describe('living-world generation in the evaluation runner', () => {
         expect(sizes.deltaBytes).toBe(sample.character!.deltaBytes);
         expect(sizes.estimatedDeltaTokens).toBeGreaterThan(0);
         expect(Array.isArray(sample.character?.omitted)).toBe(true);
+        // Turn diagnostics: the mock planner names the same type every time,
+        // so the second chapter picks the type the ledger ranks last and
+        // rests (the diagnostic says so; nothing is repaired because of it).
+        expect(sample.character?.turn).toMatchObject({
+          label: 'attempt_meets_resistance',
+          coverage: 'labelled',
+          ...(sample.periodIndex === 0
+            ? { queueRank: null, restingChosen: null }
+            : { queueRank: 10, restingChosen: true }),
+        });
         // The stored draft gives the continuity diagnostics (no decision is
         // required of the mock cast, and a missing one is never a failure).
         expect(sample.character?.continuity?.decisions).toEqual({

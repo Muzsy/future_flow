@@ -7,7 +7,9 @@ describe('v9 prompts', () => {
   const v9 = fictionPrompts('en', fictionV9Policy().promptVersions);
   it('extend the frozen v8 text and leave the checks untouched', () => {
     expect(fictionPrompts('en')).toEqual(v8);
-    expect(v9.planner.startsWith(v8.planner)).toBe(true);
+    // The planner is the one deliberate exception (C3, owner decision
+    // 2026-10-21 23:30 Hungarian time): see "the v9 planner" below.
+    expect(v9.planner.startsWith(v8.planner)).toBe(false);
     expect(v9.author.startsWith(v8.author)).toBe(true);
     expect(v9.review.startsWith(v8.review)).toBe(true);
     expect(v9.fidelity).toBe(v8.fidelity);
@@ -72,15 +74,16 @@ describe('v9 prompts', () => {
     expect(v7.editor).toBe(v8.editor);
   });
   it('add short, structured-input character rules (plan section 41)', () => {
-    expect(v9.planner.slice(v8.planner.length)).toContain('characterIntent');
+    expect(v9.planner).toContain('CHARACTER-INTENT CRAFT');
     expect(v9.author.slice(v8.author.length)).toContain('characterDelta');
     // No new rulebook: each addition stays under 3 KiB (the author addition
     // carries the delta rules, the continuity binding, the cast and repair
     // rules and the embodiment line, about 2.7 KiB measured).
     // The author addition also carries the choice-stakes craft rule (about
     // 0.8 KiB, 2026-10-21), so its bound is a conscious 3.75 KiB.
-    for (const stage of ['planner', 'review'] as const)
-      expect(v9[stage].length - v8[stage].length).toBeLessThan(3072);
+    // The planner is shorter than v8 after the C3 cleanup, so only review
+    // keeps the addition bound.
+    expect(v9.review.length - v8.review.length).toBeLessThan(3072);
     expect(v9.author.length - v8.author.length).toBeLessThan(3840);
     // New speaking people are registered, a repair adds nothing new, and the
     // final review asks for the same (the fidelity rule itself is unchanged).

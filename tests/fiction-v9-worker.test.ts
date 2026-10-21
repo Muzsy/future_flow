@@ -1019,3 +1019,154 @@ describe('fiction generation selection', () => {
     ).toThrow('requires narrative-fiction-v2');
   });
 });
+
+describe('turn rotation and the returning cast through the owned history', () => {
+  type Ledger = {
+    version: string;
+    recurringCast?: {
+      actorId: string;
+      chaptersPresent: number;
+      chaptersSinceLast: number | null;
+      openMatter: boolean;
+    }[];
+    recentTurns?: (string | null)[];
+    turnQueue?: string[];
+    restingTurns?: string[];
+  };
+  const ledgerOf = (job: LifeJob) =>
+    fictionContextSchema.parse(job.payload.narrativeContext).seriesLedger as
+      Ledger | undefined;
+
+  it('records the planner label, then orders the next request by it', async () => {
+    const f = await fixture(),
+      actorId = randomUUID();
+    introduce(f, actorId);
+    // The first chapter has no owned history, hence no ledger and no queue.
+    expect(ledgerOf(f.job)).toBeUndefined();
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    expect((await artifactOf(f.job.payload.periodId)).turnType).toBe(
+      'attempt_meets_resistance',
+    );
+    const second = await nextPeriod(f),
+      ledger = ledgerOf(second.job)!;
+    expect(ledger.version).toBe('1.1.0');
+    expect(ledger.recentTurns).toEqual(['attempt_meets_resistance']);
+    expect(ledger.turnQueue).toHaveLength(10);
+    expect(ledger.turnQueue!.at(-1)).toBe('attempt_meets_resistance');
+    expect(ledger.restingTurns).toEqual(['attempt_meets_resistance']);
+    // The fictional person with an open matter is in the returning cast.
+    expect(ledger.recurringCast).toEqual([
+      {
+        actorId,
+        chaptersPresent: 1,
+        chaptersSinceLast: 0,
+        openMatter: true,
+      },
+    ]);
+    // The planner request carries it, the proof still verifies.
+    const request = JSON.stringify(
+      (await import('@future-flow/core')).fictionPlannerRequest(
+        second.job.payload as never,
+      ),
+    );
+    expect(request).toContain('"turnQueue"');
+    // Second chapter: a different label; the queue and resting turns follow.
+    second.f.draft.turnType = 'quiet_persistence' as never;
+    await processLifeJob(second.job, jobs, provider(second).ai);
+    expect((await saved(second.job)).status).toBe('completed');
+    const third = await nextPeriod(second),
+      next = ledgerOf(third.job)!;
+    expect(next.recentTurns).toEqual([
+      'attempt_meets_resistance',
+      'quiet_persistence',
+    ]);
+    expect(next.turnQueue!.slice(-2)).toEqual([
+      'attempt_meets_resistance',
+      'quiet_persistence',
+    ]);
+    expect(next.restingTurns).toEqual([
+      'quiet_persistence',
+      'attempt_meets_resistance',
+    ]);
+    // The person did not appear again: absence grows, the matter stays open.
+    expect(next.recurringCast![0]).toMatchObject({
+      actorId,
+      chaptersPresent: 1,
+      chaptersSinceLast: 1,
+    });
+  });
+
+  it('builds a fork ledger from its own prefix only', async () => {
+    const f = await fixture();
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    const second = await nextPeriod(f);
+    second.f.draft.turnType = 'success_with_price' as never;
+    await processLifeJob(second.job, jobs, provider(second).ai);
+    const parent = await f.lives.branch(f.owner, second.branch.id);
+    await f.lives.fork(
+      f.owner,
+      second.branch.id,
+      f.job.payload.periodId,
+      parent.revision,
+      second.decision.options[1]!.id,
+      randomUUID(),
+    );
+    const child = (await jobs.claim())!,
+      ledger = ledgerOf(child)!;
+    expect(ledger.recentTurns).toEqual(['attempt_meets_resistance']);
+    expect(ledger.restingTurns).toEqual(['attempt_meets_resistance']);
+    expect(ledger.turnQueue!.at(-1)).toBe('attempt_meets_resistance');
+  });
+
+  it('never lists a supplied person in the returning cast, only the wholly fictional ones', async () => {
+    const f = await fixture(),
+      actorId = randomUUID();
+    introduce(f, actorId);
+    // The supplied friend takes part in the chapter too.
+    const friend = f.job.payload.state.actors.find(
+      (a) => a.relationship === 'friend',
+    )!;
+    (f.f.authored as Authored).candidate.events[0]!.actorIds.push(friend.id);
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    const second = await nextPeriod(f),
+      ledger = ledgerOf(second.job)!;
+    expect(ledger.recurringCast!.map((c) => c.actorId)).toEqual([actorId]);
+    expect(ledger.recurringCast!.map((c) => c.actorId)).not.toContain(
+      friend.id,
+    );
+    // The supplied person stays in the ledger's own privateLife counter.
+    expect(
+      (ledger as unknown as { privateLife: { actorId: string }[] }).privateLife
+        .map((p) => p.actorId)
+        .includes(friend.id),
+    ).toBe(true);
+  });
+
+  it('counts a chapter the planner left unlabelled as no turn at all', async () => {
+    const f = await fixture();
+    f.f.draft.turnType = null as never;
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    expect((await artifactOf(f.job.payload.periodId)).turnType).toBeNull();
+    const second = await nextPeriod(f),
+      ledger = ledgerOf(second.job)!;
+    expect(ledger.recentTurns).toEqual([null]);
+    expect(ledger.restingTurns).toEqual([]);
+    expect(ledger.turnQueue).toHaveLength(10);
+  });
+
+  it('keeps v8 on ledger 1.0.0 and its artifact free of a label', async () => {
+    const f = await fixture('v8');
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect(
+      (await artifactOf(f.job.payload.periodId)) as Record<string, unknown>,
+    ).not.toHaveProperty('turnType');
+    const second = await nextPeriod(f),
+      ledger = ledgerOf(second.job)!;
+    expect(ledger.version).toBe('1.0.0');
+    expect(ledger).not.toHaveProperty('turnQueue');
+    expect(ledger).not.toHaveProperty('recurringCast');
+  });
+});

@@ -105,6 +105,7 @@ export function fictionFixture(source?: NarrativePeriodInput) {
         ...f.result,
         characterIntent: [] as never[],
         continuityDecisions: [] as never[],
+        turnType: 'attempt_meets_resistance' as const,
       }
     : f.result;
   if (living)
