@@ -498,7 +498,7 @@ pnpm narrative:codex --creative-only --fiction-generation v9 --choice-mix rotate
   --out .local/narrative-evaluation/v9c3-codex-career-4h-rotate
 # Régi feltétel (kontroll, UGYANAZZAL a rotate választással, ≈ 40 pp): a #63 feje (3bf4a69)
 # + csak a „harness: --choice-mix” commit (cherry-pick); a termékkód változatlan:
-git switch -c probe/c2-rotate 3bf4a69 && git cherry-pick <harness-commit>
+git switch -c probe/c2-rotate 3bf4a69 && git cherry-pick f51d098
 pnpm narrative:codex --creative-only --fiction-generation v9 --choice-mix rotate \
   --fixtures career-transition --periods 4 \
   --out .local/narrative-evaluation/v9c2-codex-career-4h-rotate
