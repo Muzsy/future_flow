@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { zodTextFormat } from 'openai/helpers/zod';
 import {
   fictionCompactUuidFor,
   stripCopiedUuidPatterns,
 } from '@future-flow/ai';
 import {
   fictionAuthorSchemaFor,
+  fictionDraftSchemaFor,
   fictionV9Policy,
   type FictionAuthorResult,
 } from '@future-flow/contracts';
@@ -61,6 +63,71 @@ describe('v9 request schema compaction', () => {
     ).toBe(false);
     // format: uuid is never removed.
     expect(JSON.stringify(schema).match(/"format":"uuid"/g)).toHaveLength(7);
+  });
+
+  // Review I2: which uuid fields keep their pattern is a decision, pinned by
+  // name on the real schemas. A new field where the model mints an identifier
+  // under another name must be added here on purpose (and to the rule in
+  // fiction-schema.ts); otherwise it would silently lose its shape guard.
+  const retainedUuidPaths = (
+    schema: Parameters<typeof zodTextFormat>[0],
+    task: string,
+  ) => {
+    const format = zodTextFormat(schema, task);
+    const all: string[] = [];
+    const walk = (node: unknown, path: string) => {
+      if (Array.isArray(node))
+        return node.forEach((x, i) => walk(x, `${path}[${i}]`));
+      if (!node || typeof node !== 'object') return;
+      const n = node as Json;
+      if (n.format === 'uuid' && typeof n.pattern === 'string') all.push(path);
+      for (const [k, v] of Object.entries(n)) walk(v, `${path}.${k}`);
+    };
+    const before = (() => {
+      walk(format.schema, '');
+      return all.splice(0).length;
+    })();
+    stripCopiedUuidPatterns(format.schema);
+    walk(format.schema, '');
+    const short = (path: string) =>
+      path
+        .replace(/\.properties/g, '')
+        .replace(/\.items/g, '[]')
+        .replace(/\.anyOf\[(\d+)\]/g, '|$1');
+    return { before, kept: all.map(short) };
+  };
+  const MINTED_CANDIDATE_PATHS = [
+    '.candidate.events[].id',
+    '.candidate.events[].changes[]|3.value.id',
+    '.candidate.events[].changes[]|5.value.id',
+    '.candidate.events[].changes[]|9.value.id',
+    '.candidate.events[].decision|0.id',
+    '.candidate.events[].decision|0.options[].id',
+    '.candidate.events[].decision|0.options[].changes[]|3.value.id',
+    '.candidate.events[].decision|0.options[].changes[]|5.value.id',
+    '.candidate.events[].decision|0.options[].changes[]|9.value.id',
+    '.plan.scenes[].sceneId',
+    '.plan.memoryDelta.threadUpdates[].id',
+  ];
+  it('keeps the pattern on exactly the minted ids of the real v9 plan and author schemas', () => {
+    const policy = fictionV9Policy();
+    const plan = retainedUuidPaths(
+      fictionDraftSchemaFor(policy),
+      'life_narrative_plan',
+    );
+    const author = retainedUuidPaths(
+      fictionAuthorSchemaFor(policy),
+      'life_narrative_chapter',
+    );
+    // 41 and 55 uuid fields carry a pattern (the other patterns of these
+    // schemas are dates); 30 and 43 lose it, 11 and 12 keep it.
+    expect(plan.before).toBe(41);
+    expect(plan.kept).toEqual(MINTED_CANDIDATE_PATHS);
+    expect(author.before).toBe(55);
+    expect(author.kept).toEqual([
+      ...MINTED_CANDIDATE_PATHS,
+      '.storyFacts[].id',
+    ]);
   });
 
   it('only the v9 plan and author prompts select the compact schema', () => {

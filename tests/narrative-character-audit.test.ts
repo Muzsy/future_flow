@@ -262,7 +262,12 @@ describe('character audit over stored reports', () => {
     const sample = (
       periodIndex: number,
       latencies: number[],
-      failures?: { malformed: number; uuid: number; rejected: number },
+      failures?: {
+        malformed: number;
+        uuid: number;
+        uuidOnCompactFields: number;
+        rejected: number;
+      },
     ) => ({
       fixtureId: 'creative-portfolio',
       kind: 'full',
@@ -284,14 +289,29 @@ describe('character audit over stored reports', () => {
       {
         label: 'run',
         samples: [
-          sample(0, [90_000, 150_000], { malformed: 1, uuid: 1, rejected: 0 }),
-          sample(1, [100_000, 182_000], { malformed: 0, uuid: 0, rejected: 1 }),
+          sample(0, [90_000, 150_000], {
+            malformed: 1,
+            uuid: 1,
+            uuidOnCompactFields: 1,
+            rejected: 0,
+          }),
+          sample(1, [100_000, 182_000], {
+            malformed: 0,
+            uuid: 0,
+            uuidOnCompactFields: 0,
+            rejected: 1,
+          }),
           sample(2, [110_000]),
         ],
       },
     ]);
     const m = audit.sequences[0]!.measurement;
-    expect(m.schemaFailures).toEqual({ malformed: 1, uuid: 1, rejected: 1 });
+    expect(m.schemaFailures).toEqual({
+      malformed: 1,
+      uuid: 1,
+      uuidOnCompactFields: 1,
+      rejected: 1,
+    });
     expect(m.latencyByStage.life_narrative_chapter).toEqual({
       calls: 2,
       p50Ms: 166_000,
@@ -312,7 +332,7 @@ describe('character audit over stored reports', () => {
     });
     const markdown = characterAuditMarkdown(audit);
     expect(markdown).toContain(
-      '1 malformed answers, 1 of them uuid-shaped, 1 requests rejected',
+      '1 malformed answers, 1 of them uuid-shaped (1 on fields whose pattern the v9 schema drops [SIGNAL compact uuid]), 1 requests rejected',
     );
     expect(markdown).toContain('>180 s 1 [SIGNAL deadline]');
   });

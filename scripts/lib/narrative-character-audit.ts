@@ -44,7 +44,12 @@ export type CharacterAuditChapter = {
     repairMessage?: string | null;
     characterRepair?: boolean;
     // Measurement plan of the v9 request-schema compaction (all optional).
-    schemaFailures?: { malformed: number; uuid: number; rejected: number };
+    schemaFailures?: {
+      malformed: number;
+      uuid: number;
+      uuidOnCompactFields?: number;
+      rejected: number;
+    };
     stageTokens?: { task: string; outputTokens: number }[];
     stageLatencies?: { task: string; latencyMs: number }[];
     // Planner continuity decisions against the open matters of the people
@@ -226,7 +231,12 @@ function measurementSection(
 ) {
   const latencies = new Map<string, number[]>();
   const tokens = new Map<string, number[]>();
-  const schemaFailures = { malformed: 0, uuid: 0, rejected: 0 };
+  const schemaFailures = {
+    malformed: 0,
+    uuid: 0,
+    uuidOnCompactFields: 0,
+    rejected: 0,
+  };
   for (const c of chapters) {
     for (const stage of c.character?.stageLatencies ?? [])
       latencies.set(stage.task, [
@@ -239,6 +249,7 @@ function measurementSection(
     if (f) {
       schemaFailures.malformed += f.malformed;
       schemaFailures.uuid += f.uuid;
+      schemaFailures.uuidOnCompactFields += f.uuidOnCompactFields ?? 0;
       schemaFailures.rejected += f.rejected;
     }
   }
@@ -695,7 +706,7 @@ export function characterAuditMarkdown(
       `- Continuity decisions: ${s.continuity.totalMissing} missing of ${s.continuity.totalRequired} required${s.continuity.continuityDecisionMissing ? ' [SIGNAL continuityDecisionMissing]' : ''}; embodiment markers per chapter: ${s.sequence.embodimentPerChapter.map((e) => e.markers).join(', ')}`,
     );
     lines.push(
-      `- Schema failures (compact v9 request schemas): ${s.measurement.schemaFailures.malformed} malformed answers, ${s.measurement.schemaFailures.uuid} of them uuid-shaped, ${s.measurement.schemaFailures.rejected} requests rejected by the API (HTTP 400)`,
+      `- Schema failures (compact v9 request schemas): ${s.measurement.schemaFailures.malformed} malformed answers, ${s.measurement.schemaFailures.uuid} of them uuid-shaped (${s.measurement.schemaFailures.uuidOnCompactFields} on fields whose pattern the v9 schema drops${s.measurement.schemaFailures.uuidOnCompactFields > 0 ? ' [SIGNAL compact uuid]' : ''}), ${s.measurement.schemaFailures.rejected} requests rejected by the API (HTTP 400)`,
       ...Object.entries(s.measurement.latencyByStage).map(
         ([task, l]) =>
           `- Latency ${task}: ${l.calls} calls, p50 ${l.p50Ms}ms, max ${l.maxMs}ms, >150 s ${l.over150s}, >180 s ${l.over180s}${l.over180s > 0 ? ' [SIGNAL deadline]' : ''}`,

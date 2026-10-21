@@ -363,7 +363,8 @@ describe('v9 request bytes (plan section 55)', () => {
       expect(wire(v9.formats[stage])).toEqual(wire(v8.formats[stage]));
     // The v9 plan and author schemas keep every uuid format but lose the
     // copied-id patterns (measured 2026-10-21: author 33.5 → 25.8 KB, 43 of
-    // 66 patterns; plan 27.2 → 21.8 KB, 30 of 52; the minted ids keep theirs).
+    // 55 uuid patterns; plan 27.2 → 21.8 KB, 30 of 41; the minted ids keep
+    // theirs; the other patterns of these schemas are dates).
     const full = {
       planner: zodTextFormat(
         fictionDraftSchemaFor(v9Policy),

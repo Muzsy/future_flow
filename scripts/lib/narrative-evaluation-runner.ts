@@ -13,6 +13,7 @@ import {
   OpenAiProvider,
   ExperimentAiBudget,
   combineAiGuards,
+  isMintedUuidProperty,
   type AiReceipt,
   type AiResult,
   type AiRequestGuard,
@@ -221,7 +222,12 @@ export type EvaluationSample = {
 // package was authored from and the wording of the last repair.
 export type SchemaFailureCounts = {
   malformed: number;
+  // Malformed plan/author answers refused because of a uuid (the check
+  // stages' schemas are unchanged, so they are not classified), and of those
+  // the ones on a field whose pattern the v9 request schema drops (anything
+  // but a minted `id` / `sceneId`).
   uuid: number;
+  uuidOnCompactFields: number;
   rejected: number;
 };
 export type AttemptEvidence = {
@@ -240,7 +246,12 @@ export function schemaFailureCounts(
   trace: EvaluationAttemptTrace,
   policy?: EvidencePolicy,
 ): SchemaFailureCounts {
-  const counts: SchemaFailureCounts = { malformed: 0, uuid: 0, rejected: 0 };
+  const counts: SchemaFailureCounts = {
+    malformed: 0,
+    uuid: 0,
+    uuidOnCompactFields: 0,
+    rejected: 0,
+  };
   for (const attempt of trace.attempts) {
     if (attempt.status === 'failed' && attempt.errorCode === 'AI_HTTP_400')
       counts.rejected += 1;
@@ -254,16 +265,27 @@ export function schemaFailureCounts(
           ? fictionAuthorSchemaFor(policy)
           : null;
     const parsed = schema?.safeParse(attempt.output);
+    if (!parsed || parsed.success) continue;
+    const uuidIssues = parsed.error.issues.filter(
+      (issue) =>
+        issue.code === 'invalid_format' &&
+        (issue as { format?: string }).format === 'uuid',
+    );
+    if (!uuidIssues.length) continue;
+    counts.uuid += 1;
     if (
-      parsed &&
-      !parsed.success &&
-      parsed.error.issues.some(
+      uuidIssues.some(
         (issue) =>
-          issue.code === 'invalid_format' &&
-          (issue as { format?: string }).format === 'uuid',
+          !isMintedUuidProperty(
+            [...issue.path]
+              .reverse()
+              .find(
+                (segment): segment is string => typeof segment === 'string',
+              ),
+          ),
       )
     )
-      counts.uuid += 1;
+      counts.uuidOnCompactFields += 1;
   }
   return counts;
 }
@@ -357,6 +379,7 @@ export function characterBytes(
     schemaFailures: trace?.schemaFailures ?? {
       malformed: 0,
       uuid: 0,
+      uuidOnCompactFields: 0,
       rejected: 0,
     },
     stageTokens: receipts.map((r) => ({

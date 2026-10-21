@@ -5,6 +5,13 @@
 // copy of that regex: the provider parses every output with the full zod
 // schema, so a malformed identifier still fails closed there.
 //
+// Scope (review I1): "copied" means every uuid field NOT named `id` or
+// `sceneId`: identifiers from the request AND references to identifiers the
+// model minted earlier in the same answer (eventIds, decisionId, optionId,
+// originEventId, introducedByEventId, a delta's actorId for an actor_add of
+// this answer, ...). Those references lose the pattern too; format: uuid and
+// the server's zod schema stay.
+//
 // The pattern stays where the model MINTS an identifier (a property named
 // `id` or `sceneId`: events, decisions, options, facts, scenes, threads and
 // the asset/actor/opportunity records), because there the regex is the only
@@ -12,6 +19,12 @@
 // that already exists in the request or earlier in the same output, so
 // `format: uuid` is enough.
 const MINTED_UUID_PROPERTIES = new Set(['id', 'sceneId']);
+
+// Whether a property is where the model mints an identifier (it keeps its
+// pattern). Exported so the evaluation can tell a uuid failure on a compacted
+// field from one on a minted id.
+export const isMintedUuidProperty = (property: string | undefined) =>
+  MINTED_UUID_PROPERTIES.has(property ?? '');
 
 const FICTION_COMPACT_UUID_PROMPTS = /^life_fiction_(?:plan|author)\.v9\./;
 
@@ -40,7 +53,7 @@ export function stripCopiedUuidPatterns(
   if (
     node.format === 'uuid' &&
     typeof node.pattern === 'string' &&
-    !MINTED_UUID_PROPERTIES.has(property ?? '')
+    !isMintedUuidProperty(property)
   ) {
     delete node.pattern;
     removed += 1;

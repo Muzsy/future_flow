@@ -1,4 +1,5 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
@@ -14,6 +15,27 @@ import {
   characterBytes,
   runNarrativeEvaluation,
 } from '../scripts/lib/narrative-evaluation-runner';
+
+// Every file of a directory tree with its size, modification time and content
+// hash, so a test can prove that a tool only read it.
+async function evidenceFingerprint(root: string) {
+  const files: Record<string, string> = {};
+  const walk = async (dir: string) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) await walk(path);
+      else {
+        const stats = await stat(path);
+        files[path.slice(root.length)] =
+          `${stats.size}:${stats.mtimeMs}:${createHash('sha1')
+            .update(await readFile(path))
+            .digest('hex')}`;
+      }
+    }
+  };
+  await walk(root);
+  return files;
+}
 
 describe('living-world generation in the evaluation runner', () => {
   it('is opt-in, creative only and never paid before its own approval', () => {
@@ -116,7 +138,12 @@ describe('living-world generation in the evaluation runner', () => {
       }
       // The stored run gives the author request back, split by bytes, without
       // a model call (the real provider path from the saved payload and draft).
+      const before = await evidenceFingerprint(out);
       const split = await breakdownRun(out, 'creative-portfolio-narrative-v1');
+      // The evidence directory is only read: no file added, removed or
+      // touched (PGlite writes its control file, WAL and postmaster.pid when
+      // it opens a directory, so the state is opened on a copy).
+      expect(await evidenceFingerprint(out)).toEqual(before);
       expect(split.rows.map((r) => `${r.chapter}:${r.kind}`)).toEqual([
         'ch0:author',
         'ch1:author',
@@ -331,6 +358,20 @@ describe('v9 planner continuity diagnostics', () => {
           errorCode: 'AI_INVALID_SCHEMA',
           output: badUuid,
         }),
+        // Refused because of a minted id (its pattern is kept in the request).
+        attempt({
+          status: 'malformed',
+          errorCode: 'AI_INVALID_SCHEMA',
+          output: {
+            ...goodDraft,
+            candidate: {
+              ...goodDraft.candidate,
+              events: goodDraft.candidate.events.map((e: object, i: number) =>
+                i === 0 ? { ...e, id: 'not-a-uuid' } : e,
+              ),
+            },
+          },
+        }),
         // Refused for another reason (a missing required field).
         attempt({
           status: 'malformed',
@@ -344,14 +385,16 @@ describe('v9 planner continuity diagnostics', () => {
     } as never;
     const policy = fictionV9Policy();
     expect(attemptEvidence(trace, policy)?.schemaFailures).toEqual({
-      malformed: 2,
-      uuid: 1,
+      malformed: 3,
+      uuid: 2,
+      uuidOnCompactFields: 1,
       rejected: 1,
     });
     // Without a policy the uuid share cannot be told, the totals still count.
     expect(attemptEvidence(trace)?.schemaFailures).toEqual({
-      malformed: 2,
+      malformed: 3,
       uuid: 0,
+      uuidOnCompactFields: 0,
       rejected: 1,
     });
     // The sample carries the counter next to the stage output tokens.
@@ -371,7 +414,12 @@ describe('v9 planner continuity diagnostics', () => {
       '',
       evidence,
     );
-    expect(c.schemaFailures).toEqual({ malformed: 2, uuid: 1, rejected: 1 });
+    expect(c.schemaFailures).toEqual({
+      malformed: 3,
+      uuid: 2,
+      uuidOnCompactFields: 1,
+      rejected: 1,
+    });
     expect(c.stageTokens).toEqual([
       { task: 'life_narrative_chapter', outputTokens: 900 },
     ]);
@@ -381,6 +429,7 @@ describe('v9 planner continuity diagnostics', () => {
     expect(characterBytes({}, null).schemaFailures).toEqual({
       malformed: 0,
       uuid: 0,
+      uuidOnCompactFields: 0,
       rejected: 0,
     });
   });

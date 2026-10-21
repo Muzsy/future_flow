@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import type OpenAI from 'openai';
@@ -104,7 +105,18 @@ export async function breakdownRun(outDir: string, stateName: string) {
     stateName.slice(0, stateName.lastIndexOf('-narrative')),
     stateName.slice(stateName.lastIndexOf('-narrative') + 1),
   ];
-  const engine = new PGlite(join(root, 'state', stateName));
+  // Opening a PGlite directory writes to it (control file, WAL, postmaster.pid
+  // and more), even for a read-only query. The evidence directory of a run is
+  // only read: the state is opened on a temporary copy, without a stale
+  // postmaster.pid, and the copy is removed afterwards.
+  const source = join(root, 'state', stateName);
+  const work = mkdtempSync(join(tmpdir(), 'alterward-request-breakdown-'));
+  const copy = join(work, 'state');
+  cpSync(source, copy, {
+    recursive: true,
+    filter: (file) => basename(file) !== 'postmaster.pid',
+  });
+  const engine = new PGlite(copy);
   const rows: BreakdownRow[] = [];
   try {
     const db = adapter(engine);
@@ -169,6 +181,7 @@ export async function breakdownRun(outDir: string, stateName: string) {
     }
   } finally {
     await engine.close();
+    rmSync(work, { recursive: true, force: true });
   }
   return {
     label: basename(dirname(dirname(join(root, 'state', stateName)))),
@@ -191,7 +204,18 @@ export function breakdownMarkdown(
         contextKeys.add(k),
       );
     }
-  const lines = ['# Author request breakdown (bytes, offline)', ''];
+  const lines = [
+    '# Author request breakdown (bytes, offline)',
+    '',
+    // The request is rebuilt by the CURRENT provider code from the stored
+    // payload and draft, so the schema column is what this code sends (a run
+    // made before a schema change shows the new schema), and an author-repair
+    // row takes its previous package from the preceding author attempt that
+    // had an output (possibly a malformed one): both are approximations of the
+    // request the stored run really sent.
+    '_Rebuilt by the current provider code: the schema column is what this code sends; author-repair rows use the preceding author output as the previous package._',
+    '',
+  ];
   for (const run of runs) {
     lines.push(
       `## ${run.label}`,
