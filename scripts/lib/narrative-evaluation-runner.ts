@@ -41,9 +41,13 @@ import {
   narrativeEditorialRequest,
   fictionCharacterOmitted,
   fictionContinuityCoverage,
+  fictionMechanicsFigures,
+  fictionMechanicsRecount,
+  type FictionMechanicsFigure,
 } from '@future-flow/core';
 import {
   fictionAuthorSchemaFor,
+  fictionRepairSchemaFor,
   fictionDraftSchemaFor,
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
@@ -69,11 +73,21 @@ import {
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
 import { currentFixedNarrativeFixture as fixedNarrativeFixture } from './narrative-evaluation-fixtures';
+import type { RequestParts } from './narrative-request-parts';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
   type ExperimentalCall,
 } from './narrative-evaluation-costs';
+import {
+  approvalChapterHalt,
+  chapterHaltApproval,
+  runEstimatedUsd,
+  evaluationV9MeasurementApproval,
+  verifyApprovalBudget,
+  verifyApprovalLedger,
+} from './narrative-evaluation-approval';
+import { readLedgerCalls } from './paid-ledger-summary';
 import {
   evaluationVersion,
   choiceOverrideSchema,
@@ -189,6 +203,12 @@ export type EvaluationSample = {
     // The planner's turn label and where it stood in the request's rotation
     // (diagnostics, never a gate); null before the label existed.
     turn: TurnDiagnostics | null;
+    // The exact numbers of the life's state and the draft's typed changes (the
+    // author request's mechanicsFigures) and the ones the chapter's prose
+    // restates as a numeral or a spelled-out number. A flag for the reader of
+    // the evaluation, never a gate (a match can be a coincidence); null before
+    // the figures existed or outside the living-world generation.
+    mechanics: { figures: number; recounted: FictionMechanicsFigure[] } | null;
     // Provider answers the strict response format let through that the
     // server schema refused (malformed), of which uuid-shaped refusals, and
     // requests the API itself rejected (HTTP 400). The v9 request schemas drop
@@ -212,6 +232,9 @@ export type EvaluationSample = {
         estimatedTokens: number;
         // Raw request bytes of the call; the production guard adds 4096.
         requestBytes: number | null;
+        // The same bytes by part (system, schema, user by key, context by
+        // key); absent for a transport record written before the split existed.
+        requestParts?: RequestParts;
       }[];
       proseChars: number;
       proseBytes: number;
@@ -276,7 +299,9 @@ export function schemaFailureCounts(
       : attempt.task === 'life_narrative_plan'
         ? fictionDraftSchemaFor(policy)
         : attempt.task === 'life_narrative_chapter'
-          ? fictionAuthorSchemaFor(policy)
+          ? (attempt.repairFeedback?.mode &&
+              fictionRepairSchemaFor(policy, attempt.repairFeedback.mode)) ||
+            fictionAuthorSchemaFor(policy)
           : null;
     const parsed = schema?.safeParse(attempt.output);
     if (!parsed || parsed.success) continue;
@@ -365,6 +390,31 @@ function livingTurn(
     signature: report?.sequenceSignature ?? null,
   });
 }
+function livingMechanics(
+  payload: unknown,
+  delta: unknown,
+  draft: unknown,
+  chapterBody: string,
+): { figures: number; recounted: FictionMechanicsFigure[] } | null {
+  if (delta === undefined) return null;
+  const input = payload as {
+    state?: Parameters<typeof fictionMechanicsFigures>[0];
+    input?: { locale?: string };
+  };
+  if (!input.state) return null;
+  const events =
+    (draft as { candidate?: { events?: { changes?: unknown }[] } } | null)
+      ?.candidate?.events ?? [];
+  const figures = fictionMechanicsFigures(input.state, events);
+  return {
+    figures: figures.length,
+    recounted: fictionMechanicsRecount(
+      chapterBody,
+      figures,
+      input.input?.locale === 'hu' ? 'hu' : 'en',
+    ),
+  };
+}
 export function characterBytes(
   payload: unknown,
   artifact: unknown,
@@ -426,6 +476,7 @@ export function characterBytes(
       : false,
     repairTrigger: repairTriggerOf(repairMessage),
     turn: livingTurn(payload, artifact, draft),
+    mechanics: livingMechanics(payload, delta, draft, chapterBody),
     schemaFailures: trace?.schemaFailures ?? {
       malformed: 0,
       uuid: 0,
@@ -451,6 +502,7 @@ export function characterBytes(
                 outputBytes: t.outputBytes,
                 estimatedTokens: estimate(t.outputBytes),
                 requestBytes: t.requestBytes ?? null,
+                ...(t.requestParts ? { requestParts: t.requestParts } : {}),
               },
             ],
       ),
@@ -539,7 +591,11 @@ function code(error: unknown) {
 function shouldStopEvaluation(error: unknown, options: EvaluationOptions) {
   const c = code(error);
   return (
-    ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(c) ||
+    [
+      'SMOKE_BUDGET_EXCEEDED',
+      'AI_BUDGET_EXCEEDED',
+      'EVAL_APPROVAL_LIMIT',
+    ].includes(c) ||
     (options.kind === 'paid' &&
       [
         'AI_QUOTA_EXHAUSTED',
@@ -698,6 +754,7 @@ type TransportRecord = {
   outputChars?: number;
   outputBytes?: number;
   requestBytes?: number;
+  requestParts?: RequestParts;
 };
 function clientFor(
   options: EvaluationOptions,
@@ -797,7 +854,7 @@ function clientFor(
         return creative && task === 'life_narrative_plan'
           ? cf!.draft
           : creative && task === 'life_narrative_chapter'
-            ? cf!.authored
+            ? reducedMockAuthor(parameters.input, cf!.authored)
             : creative && task === 'life_narrative_editor'
               ? cf!.editor
               : creative && task === 'life_narrative_plan_review'
@@ -866,6 +923,28 @@ function clientFor(
     },
   });
   return { responses: { parse } } as unknown as OpenAI;
+}
+// What a model asked for a reduced v9 repair returns: only the chapter text for
+// a prose-only repair, and (as the safe default) a request for the full repair
+// for a facts-only one; a mock responder supplies real facts when it needs them.
+function reducedMockAuthor(input: unknown, authored: unknown) {
+  const user = (
+    input as { role: string; content: unknown }[] | undefined
+  )?.find((m) => m.role === 'user')?.content;
+  let repair: { mode?: string; repairRule?: string } | undefined;
+  try {
+    repair = (JSON.parse(String(user)) as { authorRepair?: typeof repair })
+      .authorRepair;
+  } catch {
+    repair = undefined;
+  }
+  if (!repair?.repairRule) return authored;
+  const { chapter } = authored as { chapter: { title: string; body: string } };
+  return repair.mode === 'prose_only'
+    ? { chapter: { title: chapter.title, body: chapter.body } }
+    : repair.mode === 'facts_only'
+      ? { outcome: 'needs_full_repair', storyFacts: [] }
+      : authored;
 }
 function receiptsInOrder(
   rows: { metadata: AiReceipt }[],
@@ -1141,6 +1220,7 @@ async function forkComparison(
   guardFor: (caseId: string) => AiRequestGuard | undefined,
   traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
   mockResponder?: OfflineMockResponder,
+  chapterHalt: () => string | null = () => null,
 ) {
   const sampleId = `fork:${fixtureId}:${mode}:2`;
   if (report.samples.some((s) => s.id === sampleId)) return;
@@ -1231,6 +1311,8 @@ async function forkComparison(
         ),
       );
     }
+    const halt = chapterHalt();
+    if (halt) throw new DomainError('EVAL_APPROVAL_LIMIT', halt);
     const job = await jobs.claim();
     if (!job) return;
     if (job.user_id !== owner || job.branch_id !== childId)
@@ -1383,12 +1465,48 @@ async function forkComparison(
   });
 }
 
+// Programmatic seams of the exported runner (tests); the command line has none.
+// `ledgerDir` replaces the accounting directory (the shared-ledger floor still
+// applies to a paid v9 run); `approval` switches the approval's chapter halts on
+// in an offline mock run, which a paid run never takes from the caller.
+export type EvaluationSeams = {
+  ledgerDir?: string;
+  approval?: typeof evaluationV9MeasurementApproval;
+};
+const ledgerDirectory = (seams?: EvaluationSeams) =>
+  seams?.ledgerDir ?? '.local/narrative-evaluation';
+const ledgerFile = (seams?: EvaluationSeams) =>
+  resolve(ledgerDirectory(seams), 'paid-usage.json');
+
 async function runEvaluationUnlocked(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
+  // The source-bound v9 approval holds the whole measurement, probe included, to
+  // its cap on the shared ledger: the ledger must be the shared one, and a
+  // budget above what it leaves the approval is refused, before any work.
+  if (
+    options.kind === 'paid' &&
+    options.fictionGeneration &&
+    options.approvalId !== evaluationV9MeasurementApproval.approvalId
+  )
+    throw new DomainError(
+      'EVAL_CONFIG_INVALID',
+      'A paid v9 measurement needs its own owner-approved budget.',
+    );
+  const v9Approval =
+    options.kind === 'paid' && options.fictionGeneration
+      ? evaluationV9MeasurementApproval
+      : undefined;
+  if (v9Approval) {
+    const calls = readLedgerCalls(ledgerFile(seams));
+    verifyApprovalLedger(calls, ledgerFile(seams));
+    verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
+  }
+  const haltApproval = chapterHaltApproval(options, seams?.approval);
   if (options.kind === 'assess')
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -1499,10 +1617,8 @@ async function runEvaluationUnlocked(
       'EVAL_CHOICE_REVIEW_INVALID',
       'Duplicate semantic reviews.',
     );
-  const ledgerPath = resolve('.local/narrative-evaluation/paid-usage.json');
-  const bindingPath = resolve(
-    '.local/narrative-evaluation/budget-bindings.json',
-  );
+  const ledgerPath = ledgerFile(seams);
+  const bindingPath = resolve(ledgerDirectory(seams), 'budget-bindings.json');
   if (options.kind === 'paid')
     for (const path of [
       resolve('.local'),
@@ -1515,6 +1631,21 @@ async function runEvaluationUnlocked(
           'EVAL_OUTPUT_INVALID',
           'Experimental accounting cannot use symlinked paths.',
         );
+  const chapterHalt = () => {
+    if (!haltApproval) return null;
+    const calls = readLedgerCalls(ledgerPath);
+    return approvalChapterHalt(
+      calls,
+      report.samples.filter((s) => s.kind !== 'fixed-canon').length,
+      runEstimatedUsd(
+        calls,
+        read<Record<string, EvaluationBudgetBinding>>(bindingPath) ?? {},
+        haltApproval.approvalId,
+        resolve(options.out),
+      ),
+      haltApproval,
+    );
+  };
   const experiment =
     options.kind === 'paid'
       ? new ExperimentAiBudget(
@@ -1546,7 +1677,11 @@ async function runEvaluationUnlocked(
         ? {
             reserve: async (raw: unknown) => {
               const id = await experiment.reserve(raw);
-              budgetBindings[id] = { sourceHash: identity.sourceHash, caseId };
+              budgetBindings[id] = {
+                sourceHash: identity.sourceHash,
+                caseId,
+                out: resolve(options.out),
+              };
               await save(bindingPath, budgetBindings);
               return id;
             },
@@ -1735,6 +1870,20 @@ async function runEvaluationUnlocked(
                     `${caseId}:retry:${periodIndex}:${before.job.attempt}`,
                   ),
                 );
+              }
+              const halt = chapterHalt();
+              if (halt) {
+                report.failures.push({
+                  caseId: `${caseId}:${periodIndex}`,
+                  code: 'EVAL_APPROVAL_LIMIT',
+                  chapter: null,
+                  editorialReport: null,
+                  diagnostic: failureDiagnostic(
+                    new DomainError('EVAL_APPROVAL_LIMIT', halt),
+                  ),
+                });
+                stop = true;
+                break;
               }
               const job = await jobs.claim();
               if (!job) break;
@@ -1941,6 +2090,7 @@ async function runEvaluationUnlocked(
                 caseGuard,
                 traceBinding,
                 mockResponder,
+                chapterHalt,
               );
             } catch (error) {
               report.failures.push({
@@ -2033,6 +2183,7 @@ async function runEvaluationUnlocked(
         ledger.calls,
         budgetBindings,
         identity.sourceHash,
+        ledgerPath,
       );
     }
     verifyExistingEvaluationAttempts(
@@ -2061,6 +2212,7 @@ export async function runNarrativeEvaluation(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
   if (existsSync(options.out) && lstatSync(options.out).isSymbolicLink())
@@ -2095,7 +2247,7 @@ export async function runNarrativeEvaluation(
       );
       await handle.close();
     }
-    return await runEvaluationUnlocked(options, env, mockResponder);
+    return await runEvaluationUnlocked(options, env, mockResponder, seams);
   } finally {
     for (const path of acquired.reverse()) await unlink(path);
   }

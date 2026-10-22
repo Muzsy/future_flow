@@ -332,4 +332,51 @@ describe('repair evidence (stored files only)', () => {
       'fidelity-ch1: 9 calls, repair author_package (trigger fidelity), pre-repair editor skipped -> 8 calls',
     );
   });
+
+  it('counts the facts-only repairs by outcome for the A/B measurement', () => {
+    const root = mkdtempSync(join(tmpdir(), 'alterward-facts-only-'));
+    mkdirSync(join(root, 'diagnostic-attempts'));
+    const attempt = (ordinal: number, task: string, extra: object) => ({
+      ordinal,
+      task,
+      status: 'completed',
+      latencyMs: 1000,
+      output: null,
+      repairFeedback: null,
+      ...extra,
+    });
+    const run = (output: unknown) => [
+      attempt(0, 'life_narrative_chapter', {
+        output: { storyFacts: [], chapter: { body: 'one two' } },
+      }),
+      attempt(1, 'life_fidelity', {
+        output: {
+          valid: false,
+          issues: [{ reason: 'unregistered_material_fact: x' }],
+        },
+      }),
+      attempt(2, 'life_narrative_chapter', {
+        output,
+        repairFeedback: { mode: 'facts_only', message: 'm' },
+      }),
+    ];
+    for (const [name, output] of [
+      ['a', { outcome: 'needs_full_repair', storyFacts: [] }],
+      ['b', { nonsense: true }],
+    ] as const)
+      writeFileSync(
+        join(root, 'diagnostic-attempts', `${name}.json`),
+        JSON.stringify({ caseId: name, attempts: run(output) }),
+      );
+    const evidence = repairEvidence(root);
+    expect(evidence.factsOnly).toEqual({
+      attempts: 2,
+      merged: 0,
+      needsFullRepair: 1,
+      rejected: 1,
+    });
+    expect(repairEvidenceMarkdown([evidence])).toContain(
+      'Facts-only repairs: 2 attempted, 0 merged, 1 asked for the full repair, 1 rejected',
+    );
+  });
 });

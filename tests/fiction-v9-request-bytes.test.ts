@@ -396,7 +396,9 @@ describe('v9 request bytes (plan section 55)', () => {
       5 * 1024,
     );
     // The request itself falls by the same bytes: the v9 author is no larger
-    // than the v8 author plus the projection and the delta rules.
+    // than the v8 author plus the projection and the delta rules and the three
+    // general sentences of C4/D1 (about 0.6 KB: the order and background
+    // sentences, and the mechanics-figures rule).
     expect(v9.author - v8.author).toBeLessThan(2 * 1024);
   });
 

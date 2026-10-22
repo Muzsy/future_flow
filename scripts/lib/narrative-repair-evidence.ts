@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import { authorPackages } from './narrative-author-packages';
 import {
   repairTriggerOf,
   type RepairTrigger,
@@ -219,8 +220,12 @@ export function repairEvidence(runDir: string) {
         .filter((a) => a.task === 'life_narrative_chapter' && a.repairFeedback)
         .map((repair) => {
           const before = attempts.filter((a) => a.ordinal < repair.ordinal);
+          // A reduced repair stores only what the model returned: compare the
+          // full packages, merged as the provider merged them in the run.
+          const packages = authorPackages(attempts);
           const previous = before
-            .filter((a) => a.task === 'life_narrative_chapter' && a.output)
+            .filter((a) => packages.has(a.ordinal))
+            .map((a) => ({ ...a, output: packages.get(a.ordinal) }))
             .at(-1);
           const lastOf = (task: string, list: Attempt[]) =>
             list.filter((a) => a.task === task && a.output).at(-1);
@@ -262,11 +267,24 @@ export function repairEvidence(runDir: string) {
               }
             | undefined;
           const factsBefore = factsOf(previous?.output);
-          const factsAfter = factsOf(repair.output);
+          const factsAfter = factsOf(
+            packages.get(repair.ordinal) ?? repair.output,
+          );
           const known = new Set(factsBefore.map((f) => f.id));
           return {
             caseId,
             mode: repair.repairFeedback!.mode ?? 'unknown',
+            // Facts-only repairs: merged into the package, asked for the full
+            // repair, or rejected (the model answer or the merge was unusable).
+            factsOnly:
+              repair.repairFeedback!.mode === 'facts_only'
+                ? packages.has(repair.ordinal)
+                  ? ('merged' as const)
+                  : (repair.output as { outcome?: string } | null)?.outcome ===
+                      'needs_full_repair'
+                    ? ('needs_full_repair' as const)
+                    : ('rejected' as const)
+                : null,
             message: clip(repair.repairFeedback!.message, 1500),
             latencyMs: repair.latencyMs,
             fidelityBefore: fidelityBefore
@@ -304,8 +322,11 @@ export function repairEvidence(runDir: string) {
                   ?.chapter?.body,
               ),
               after: words(
-                (repair.output as { chapter?: { body?: string } } | null)
-                  ?.chapter?.body,
+                (
+                  (packages.get(repair.ordinal) ?? repair.output) as {
+                    chapter?: { body?: string };
+                  } | null
+                )?.chapter?.body,
               ),
             },
             editorAfter: editorAfter
@@ -335,6 +356,15 @@ export function repairEvidence(runDir: string) {
     calls,
     slowCalls,
     repairs,
+    // Counts for the A/B measurement of the facts-only repair.
+    factsOnly: {
+      attempts: repairs.filter((r) => r.factsOnly).length,
+      merged: repairs.filter((r) => r.factsOnly === 'merged').length,
+      needsFullRepair: repairs.filter(
+        (r) => r.factsOnly === 'needs_full_repair',
+      ).length,
+      rejected: repairs.filter((r) => r.factsOnly === 'rejected').length,
+    },
     chapters,
     ceiling: {
       now: chapters.filter((c) => at9(c.calls)).length,
@@ -396,9 +426,14 @@ export function repairEvidenceMarkdown(
       '',
     );
     if (!run.repairs.length) lines.push('- none', '');
+    else
+      lines.push(
+        `- Facts-only repairs: ${run.factsOnly.attempts} attempted, ${run.factsOnly.merged} merged, ${run.factsOnly.needsFullRepair} asked for the full repair, ${run.factsOnly.rejected} rejected`,
+        '',
+      );
     for (const r of run.repairs) {
       lines.push(
-        `#### ${r.caseId}: mode ${r.mode}, ${(r.latencyMs / 1000).toFixed(0)} s`,
+        `#### ${r.caseId}: mode ${r.mode}${r.factsOnly ? ` (${r.factsOnly})` : ''}, ${(r.latencyMs / 1000).toFixed(0)} s`,
         '',
         `- Repair message (head): ${r.message.replace(/\s+/g, ' ')}`,
         `- Fidelity before: ${r.fidelityBefore ? `valid=${r.fidelityBefore.valid}; ${r.fidelityBefore.reasons.join(' | ') || 'no issues'}` : 'none'}`,

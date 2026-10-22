@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import { zodTextFormat } from 'openai/helpers/zod';
 import { describe, it, expect } from 'vitest';
 import {
   FICTION_CHARACTER_DELTA_BYTES,
   FICTION_CHARACTER_VERSION,
   NARRATIVE_ARTIFACT_BYTES,
   fictionArtifactSchema,
+  fictionAuthorSchemaFor,
+  fictionCompactAuthorSchema,
+  fictionCompactAuthorV9Schema,
   fictionContextSchema,
   fictionCompactDraftV9Schema,
   fictionDraftSchemaFor,
@@ -14,6 +18,7 @@ import {
   fictionEditorialVersionFor,
   fictionPolicy,
   fictionPolicySchema,
+  fictionRepairSchemaFor,
   fictionV8Policy,
   fictionV9Policy,
   fictionFidelityFirstRepairQualityVersions,
@@ -25,6 +30,8 @@ import {
 import {
   buildFictionArtifact,
   fictionSeriesLedgerFrom,
+  mergeFictionRepair,
+  FICTION_REPAIR_RULES,
   fictionSeriesLedgerV11From,
   characterStateFromHistory,
   emptyFictionCharacterState,
@@ -33,6 +40,7 @@ import {
   fictionCharacterProjectionFromEnvelope,
   fictionEditorialRequest,
   fictionFidelityRequest,
+  fictionMechanicsFigures,
   fictionPlannerRequest,
   fictionReviewRequest,
   fictionScope,
@@ -41,7 +49,11 @@ import {
   narrativeReferencesFromMemory,
   validateFictionAuthor,
   validateFictionCharacterDelta,
+  fictionFactsOnlyEligible,
+  fictionFidelityDiscrepancyMessage,
 } from '@future-flow/core';
+import { authorPackages } from '../scripts/lib/narrative-author-packages';
+import { captureRequest } from '../scripts/lib/narrative-request-replay';
 import { fictionFixture, fictionProof } from './fiction-fixtures';
 
 const id = (n: number) =>
@@ -975,5 +987,429 @@ describe('the planner turn label (v9 only)', () => {
         seriesLedger: v10,
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('v9 request cleaning for the check stages (C4/D5)', () => {
+  const count = (text: string, needle: string) => text.split(needle).length - 1;
+  const firstParagraph = (body: string) => body.split(/\n\s*\n/)[0]!.trim();
+
+  it('sends the editor the chapter text once: paragraphs, not the body twice', () => {
+    const f = living(true);
+    const text = firstParagraph(f.authored.chapter.body);
+    expect(text.length).toBeGreaterThan(40);
+    const editor = fictionEditorialRequest(f.input, f.authored) as {
+      chapter: Record<string, unknown>;
+      paragraphs: { index: number; text: string }[];
+    };
+    expect(count(JSON.stringify(editor), text)).toBe(1);
+    expect(editor.paragraphs[0]).toEqual({ index: 1, text });
+    // Title and the event and decision IDs stay; only the body is gone.
+    expect(Object.keys(editor.chapter).sort()).toEqual([
+      'decisionId',
+      'eventIds',
+      'title',
+    ]);
+    // The fidelity check still reads the whole chapter.
+    expect(
+      (
+        fictionFidelityRequest(f.input, f.authored) as {
+          chapter: { body: string };
+        }
+      ).chapter.body,
+    ).toBe(f.authored.chapter.body);
+    // The request got smaller by about the body.
+    const v8 = fictionFixture();
+    const v8Editor = JSON.stringify(
+      fictionEditorialRequest(v8.input, v8.authored),
+    );
+    expect(count(v8Editor, firstParagraph(v8.authored.chapter.body))).toBe(2);
+  });
+
+  it('leaves the authoring aids to the planner and the author', () => {
+    const f = living(true);
+    const aids = ['referenceProjection', 'castingProjection'];
+    for (const key of aids) {
+      expect(fictionPlannerRequest(f.input)).toHaveProperty(key);
+      expect(fictionAuthorRequest(f.input, f.draft)).toHaveProperty(key);
+      expect(
+        fictionReviewRequest(f.input, f.authored, f.draft),
+      ).not.toHaveProperty(key);
+      expect(fictionFidelityRequest(f.input, f.authored)).not.toHaveProperty(
+        key,
+      );
+      expect(fictionEditorialRequest(f.input, f.authored)).not.toHaveProperty(
+        key,
+      );
+    }
+    // The bound context and the rest of the review request are untouched.
+    expect(fictionReviewRequest(f.input, f.authored)).toHaveProperty(
+      'narrativeContext',
+    );
+    expect(fictionReviewRequest(f.input, f.authored)).toHaveProperty(
+      'proposed',
+    );
+    // The request hash is stable for the same package (reuse checks compare it).
+    expect(hash(fictionReviewRequest(f.input, f.authored, f.draft))).toBe(
+      hash(fictionReviewRequest(f.input, f.authored, f.draft)),
+    );
+    // v8 keeps whatever its planner base carries in every check stage.
+    const v8 = fictionFixture();
+    const planner = fictionPlannerRequest(v8.input);
+    for (const key of aids)
+      for (const request of [
+        fictionReviewRequest(v8.input, v8.authored),
+        fictionFidelityRequest(v8.input, v8.authored),
+        fictionEditorialRequest(v8.input, v8.authored),
+      ])
+        expect(key in request).toBe(key in planner);
+  });
+});
+
+describe('v9 author package order and mechanics figures (C4/D1)', () => {
+  it('generates the chapter before the story facts in v9 and keeps the v8 order', () => {
+    const keys = (schema: { shape: Record<string, unknown> }) =>
+      Object.keys(schema.shape);
+    expect(keys(fictionCompactAuthorV9Schema)).toEqual([
+      'version',
+      'candidate',
+      'plan',
+      'chapter',
+      'storyFacts',
+      'characterDelta',
+    ]);
+    expect(keys(fictionCompactAuthorSchema)).toEqual([
+      'version',
+      'candidate',
+      'plan',
+      'storyFacts',
+      'chapter',
+    ]);
+    // The provider's strict output schema follows the same order.
+    const sent = zodTextFormat(
+      fictionAuthorSchemaFor(fictionV9Policy()),
+      'life_narrative_chapter',
+    ).schema as { properties: Record<string, unknown>; required: string[] };
+    expect(Object.keys(sent.properties)).toEqual(
+      keys(fictionCompactAuthorV9Schema),
+    );
+    expect(sent.required).toEqual(keys(fictionCompactAuthorV9Schema));
+  });
+
+  it('still reads a stored v9 package written in the old key order', () => {
+    const f = living(true);
+    const { storyFacts, chapter, ...rest } = f.authored;
+    const oldOrder = { ...rest, storyFacts, chapter };
+    expect(Object.keys(oldOrder).indexOf('storyFacts')).toBeLessThan(
+      Object.keys(oldOrder).indexOf('chapter'),
+    );
+    expect(fictionCompactAuthorV9Schema.parse(oldOrder)).toEqual(
+      fictionCompactAuthorV9Schema.parse(f.authored),
+    );
+    expect(() => validateFictionAuthor(f.input, oldOrder)).not.toThrow();
+  });
+
+  it('gives only the v9 author request the figures of the life, computed from its own data', () => {
+    const f = living(true);
+    f.input.state.resources = { energy: 60, availableHoursPerWeek: 5 };
+    const request = fictionAuthorRequest(f.input, f.draft) as {
+      mechanicsFigures: unknown;
+    };
+    expect(request.mechanicsFigures).toEqual(
+      fictionMechanicsFigures(f.input.state, f.draft.candidate.events),
+    );
+    expect(request.mechanicsFigures).toContainEqual({
+      path: 'resources.availableHoursPerWeek',
+      value: 5,
+    });
+    // Planner, review, fidelity and editor never carry them; v8 neither.
+    for (const other of [
+      fictionPlannerRequest(f.input),
+      fictionReviewRequest(f.input, f.authored, f.draft),
+      fictionFidelityRequest(f.input, f.authored),
+      fictionEditorialRequest(f.input, f.authored),
+    ])
+      expect(other).not.toHaveProperty('mechanicsFigures');
+    const v8 = fictionFixture();
+    expect(fictionAuthorRequest(v8.input, v8.draft)).not.toHaveProperty(
+      'mechanicsFigures',
+    );
+    // A different life, different figures: nothing is fixed in the code.
+    f.input.state.resources = { energy: null, availableHoursPerWeek: 9 };
+    expect(
+      (fictionAuthorRequest(f.input, f.draft) as { mechanicsFigures: unknown })
+        .mechanicsFigures,
+    ).toContainEqual({ path: 'resources.availableHoursPerWeek', value: 9 });
+  });
+});
+
+describe('v9 reduced repair outputs (C4/D2, D3)', () => {
+  const fact = (f: ReturnType<typeof living>, over: object = {}) => ({
+    id: randomUUID(),
+    introducedByEventId: f.authored.candidate.events[0]!.id,
+    aboutActorIds: [] as string[],
+    kind: 'observation' as const,
+    assertion: 'A lasting detail that the prose names.',
+    supersedesFactId: null,
+    relevance: 'continuity' as const,
+    ...over,
+  });
+
+  it('offers a reduced schema for the living policy only, far smaller than the package', () => {
+    const v9 = fictionV9Policy(),
+      v8 = fictionV8Policy();
+    expect(fictionRepairSchemaFor(v8, 'prose_only')).toBeUndefined();
+    expect(fictionRepairSchemaFor(v8, 'facts_only')).toBeUndefined();
+    expect(fictionRepairSchemaFor(v9, 'author_package')).toBeUndefined();
+    const size = (schema: Parameters<typeof zodTextFormat>[0]) =>
+      JSON.stringify(zodTextFormat(schema, 'life_narrative_chapter').schema)
+        .length;
+    const full = size(fictionCompactAuthorV9Schema);
+    for (const mode of ['prose_only', 'facts_only'] as const)
+      expect(size(fictionRepairSchemaFor(v9, mode)!)).toBeLessThan(full / 3);
+    expect(
+      Object.keys(
+        zodTextFormat(fictionRepairSchemaFor(v9, 'prose_only')!, 'x').schema
+          .properties as object,
+      ),
+    ).toEqual(['chapter']);
+  });
+
+  it('merges a prose-only output into the previous package and nothing else', () => {
+    const f = living(true);
+    const merged = mergeFictionRepair(f.authored, 'prose_only', {
+      chapter: {
+        title: 'A new title',
+        body: f.authored.chapter.body + ' More.',
+      },
+    });
+    expect(merged.chapter).toEqual({
+      ...f.authored.chapter,
+      title: 'A new title',
+      body: f.authored.chapter.body + ' More.',
+    });
+    for (const key of [
+      'candidate',
+      'plan',
+      'storyFacts',
+      'characterDelta',
+    ] as const)
+      expect(hash((merged as Record<string, unknown>)[key])).toBe(
+        hash((f.authored as Record<string, unknown>)[key]),
+      );
+    expect(() =>
+      mergeFictionRepair(f.authored, 'prose_only', {
+        chapter: { title: 'T', body: 'x'.repeat(600), eventIds: [] },
+      }),
+    ).toThrow();
+    expect(() =>
+      mergeFictionRepair(f.authored, 'prose_only', { chapter: { title: 'T' } }),
+    ).toThrow();
+  });
+
+  it('appends facts to the previous package, leaving the chapter untouched, and refuses everything else', () => {
+    const f = living(true);
+    const added = fact(f);
+    const merged = mergeFictionRepair(f.authored, 'facts_only', {
+      outcome: 'facts_added',
+      storyFacts: [added],
+    });
+    expect(merged.storyFacts).toEqual([...f.authored.storyFacts, added]);
+    expect(merged.chapter).toEqual(f.authored.chapter);
+    expect(() => validateFictionAuthor(f.input, merged)).not.toThrow();
+    // The model's own way out, an empty answer and a repeated ID all fall back.
+    expect(() =>
+      mergeFictionRepair(f.authored, 'facts_only', {
+        outcome: 'needs_full_repair',
+        storyFacts: [],
+      }),
+    ).toThrow(/full package/);
+    expect(() =>
+      mergeFictionRepair(f.authored, 'facts_only', {
+        outcome: 'facts_added',
+        storyFacts: [],
+      }),
+    ).toThrow(/full package/);
+    const first = f.authored.storyFacts[0];
+    if (first)
+      expect(() =>
+        mergeFictionRepair(f.authored, 'facts_only', {
+          outcome: 'facts_added',
+          storyFacts: [fact(f, { id: first.id })],
+        }),
+      ).toThrow(/existing story fact/);
+    // At most four facts per repair (the schema) and twelve in all (the package).
+    const many = mergeFictionRepair(
+      { ...f.authored, storyFacts: [] },
+      'facts_only',
+      {
+        outcome: 'facts_added',
+        storyFacts: Array.from({ length: 4 }, () => fact(f)),
+      },
+    );
+    expect(many.storyFacts).toHaveLength(4);
+    expect(() =>
+      mergeFictionRepair(f.authored, 'facts_only', {
+        outcome: 'facts_added',
+        storyFacts: Array.from({ length: 5 }, () => fact(f)),
+      }),
+    ).toThrow();
+  });
+
+  it('reproduces a repair that only grew the facts: same prose, the missing facts added', () => {
+    // The stored fidelity repairs of the measured runs kept the prose word for
+    // word and only registered a lasting claim. The facts-only output is exactly
+    // the facts the repaired package has and the first one lacked.
+    const f = living(true);
+    const repaired = {
+      ...f.authored,
+      storyFacts: [...f.authored.storyFacts, fact(f)],
+    };
+    const known = new Set(f.authored.storyFacts.map((x) => x.id));
+    const output = {
+      outcome: 'facts_added' as const,
+      storyFacts: repaired.storyFacts.filter((x) => !known.has(x.id)),
+    };
+    expect(hash(mergeFictionRepair(f.authored, 'facts_only', output))).toBe(
+      hash(repaired),
+    );
+  });
+
+  it('says in the request which output the repair mode expects, for v9 only', () => {
+    expect(FICTION_REPAIR_RULES.facts_only).toContain('NEW facts');
+    expect(FICTION_REPAIR_RULES.facts_only).toContain('needs_full_repair');
+    expect(FICTION_REPAIR_RULES.prose_only).toContain(
+      'Return only chapter.title and chapter.body',
+    );
+    expect(FICTION_REPAIR_RULES.author_package).not.toContain('Return only');
+    const f = living(true);
+    for (const mode of ['facts_only', 'prose_only'] as const) {
+      const request = fictionAuthorRequest(f.input, f.draft, {
+        mode,
+        message: 'm',
+        previous: f.authored,
+      }) as { authorRepair: { repairRule: string } };
+      expect(request.authorRepair.repairRule).toBe(FICTION_REPAIR_RULES[mode]);
+    }
+    const v8 = fictionFixture();
+    expect(
+      fictionAuthorRequest(v8.input, v8.draft, {
+        mode: 'prose_only',
+        message: 'm',
+        previous: v8.authored,
+      }),
+    ).not.toHaveProperty('authorRepair.repairRule');
+  });
+});
+
+// Stored attempts of a reduced v9 repair hold only what the model returned; the
+// harness rebuilds the package the run really carried by the same merge.
+describe('the full package of a stored reduced-repair attempt (C4 harness)', () => {
+  const f = living(true);
+  const first = f.authored;
+  const fact = {
+    id: randomUUID(),
+    introducedByEventId: first.candidate.events[0]!.id,
+    aboutActorIds: [] as string[],
+    kind: 'observation' as const,
+    assertion: 'A lasting detail that the prose names.',
+    supersedesFactId: null,
+    relevance: 'continuity' as const,
+  };
+  const attempt = (
+    ordinal: number,
+    output: unknown,
+    mode?: 'facts_only' | 'prose_only' | 'author_package',
+  ) => ({
+    ordinal,
+    task: 'life_narrative_chapter',
+    output,
+    repairFeedback: mode ? { mode } : null,
+  });
+
+  it('keeps a full package and merges a reduced repair into the one before it', () => {
+    const packages = authorPackages([
+      attempt(1, first),
+      attempt(4, { outcome: 'facts_added', storyFacts: [fact] }, 'facts_only'),
+      attempt(
+        7,
+        { chapter: { title: 'Other', body: first.chapter.body } },
+        'prose_only',
+      ),
+    ]);
+    expect(packages.get(1)).toBe(first);
+    expect(packages.get(4)!.storyFacts).toEqual([...first.storyFacts, fact]);
+    // The prose-only repair builds on the facts-only package, as in the run.
+    expect(packages.get(7)!.storyFacts).toEqual([...first.storyFacts, fact]);
+    expect(packages.get(7)!.chapter.title).toBe('Other');
+  });
+
+  it('has no package for a facts-only answer that asked for the full repair', () => {
+    const packages = authorPackages([
+      attempt(1, first),
+      attempt(
+        4,
+        { outcome: 'needs_full_repair', storyFacts: [] },
+        'facts_only',
+      ),
+      attempt(5, first, 'author_package'),
+    ]);
+    expect([...packages.keys()]).toEqual([1, 5]);
+  });
+
+  it('rebuilds the reduced request of a repair mode offline with the real provider', async () => {
+    const request = (await captureRequest(
+      (ai) =>
+        ai.authorFiction(f.input, f.draft, {
+          mode: 'facts_only',
+          message: 'm',
+          previous: first,
+        }),
+      { outcome: 'facts_added', storyFacts: [fact] },
+    )) as { text: { format: { schema: { properties: object } } } };
+    expect(Object.keys(request.text.format.schema.properties)).toEqual([
+      'outcome',
+      'storyFacts',
+    ]);
+  });
+});
+
+describe('the facts-only eligibility of a fidelity failure', () => {
+  const reason = (text: string) => ({ reason: text });
+  it('needs every reason to be an unregistered material fact', () => {
+    expect(
+      fictionFactsOnlyEligible([
+        reason(
+          'unregistered_material_fact: a request the facts do not record.',
+        ),
+        reason(' unregistered_material_fact - a second one.'),
+      ]),
+    ).toBe(true);
+    expect(fictionFactsOnlyEligible([])).toBe(false);
+    expect(
+      fictionFactsOnlyEligible([
+        reason('unregistered_material_fact: one.'),
+        reason('contradicted_fact: another.'),
+      ]),
+    ).toBe(false);
+  });
+  it('is refused when the advice offers removing the claim', () => {
+    expect(
+      fictionFactsOnlyEligible([
+        reason(
+          'unregistered_material_fact: remove the sentence or register it.',
+        ),
+      ]),
+    ).toBe(false);
+    expect(
+      fictionFactsOnlyEligible([
+        reason('unregistered_material_fact: leave out the claim.'),
+      ]),
+    ).toBe(false);
+  });
+  it('words the repair message from the reasons', () => {
+    expect(
+      fictionFidelityDiscrepancyMessage([reason('a.'), reason('b.')]),
+    ).toBe('Correct the final package/prose discrepancy: a. b.');
   });
 });

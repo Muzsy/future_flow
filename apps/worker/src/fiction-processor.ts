@@ -16,6 +16,8 @@ import {
   evaluateNarrativePlanReview,
   validateNarrativePlanReview,
   evaluateFictionEditorialGate,
+  fictionFactsOnlyEligible,
+  fictionFidelityDiscrepancyMessage,
   fictionProseRepairAllowed,
   validateFictionEditorialReport,
   type FictionRepair,
@@ -304,6 +306,7 @@ export async function processFictionLifeJob(
     previous: FictionAuthorResult | null,
     proseOnly = false,
     planner = false,
+    factsOnly = false,
   ) {
     if (!repairable(error)) throw error;
     if (cp.repairUsed)
@@ -321,7 +324,11 @@ export async function processFictionLifeJob(
           }
         : {
             fictionRepair: {
-              mode: proseOnly ? 'prose_only' : 'author_package',
+              mode: factsOnly
+                ? 'facts_only'
+                : proseOnly
+                  ? 'prose_only'
+                  : 'author_package',
               message: message(error),
               previous,
             } satisfies FictionRepair,
@@ -402,6 +409,18 @@ export async function processFictionLifeJob(
         chapter: authored.chapter,
       });
     } catch (error) {
+      // A facts-only repair that cannot register the claim, or whose merged
+      // package does not validate, ends the chapter on the existing gate: the
+      // repair round is spent and a full-package fallback would be a ninth
+      // call on a path the owner fixed at eight. The reason and the receipt of
+      // the failed call are kept in the checkpoint, outside the receipt chain.
+      if (feedback?.mode === 'facts_only' && repairable(error))
+        await save('FICTION_FACTS_ONLY_FAILED', {
+          factsOnlyFailure: {
+            reason: message(error),
+            receipt: (error as { receipt?: unknown }).receipt ?? null,
+          },
+        });
       await repair(error, authored ?? null);
       continue;
     }
@@ -475,7 +494,7 @@ export async function processFictionLifeJob(
       if (!checked.valid || checked.issues.length)
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',
-          `Correct the final package/prose discrepancy: ${checked.issues.map((i) => i.reason).join(' ')}`,
+          fictionFidelityDiscrepancyMessage(checked.issues),
         );
     } catch (error) {
       // Frozen policies retain their original immediate fidelity-repair path.
@@ -506,7 +525,15 @@ export async function processFictionLifeJob(
             scope.context.policy.qualityPolicyVersion,
           )
         ) {
-          await repair(error, authored);
+          // Living world: when every fidelity issue is only an unregistered
+          // lasting claim, the repair asks for the missing facts alone.
+          await repair(
+            error,
+            authored,
+            false,
+            false,
+            !!scope.characters && fictionFactsOnlyEligible(checked.data.issues),
+          );
           continue;
         }
         const cachedEditor =

@@ -237,7 +237,7 @@ export function fictionPrompts(
   const once = (text: string, from: string, to: string) => {
     if (text.split(from).length !== 2)
       throw new Error(
-        `A v9 planner replacement must match exactly once: ${from.slice(0, 48)}`,
+        `A v9 prompt replacement must match exactly once: ${from.slice(0, 48)}`,
       );
     return text.replace(from, () => to);
   };
@@ -264,6 +264,24 @@ export function fictionPrompts(
   ])
     v9Planner = once(v9Planner, section, '');
   v9Planner = once(v9Planner, seriesLedger, seriesLedger + returningCast);
+  // v9 author (C4/D1, Ákos 2026-10-22): the package lists the chapter BEFORE
+  // the story facts (schema order = generation order), so the facts register
+  // what the prose really says; a past specific in the prose is registered or
+  // left out; and the request carries mechanicsFigures, the exact numbers of
+  // the structured state, which the prose must not recount. All three are
+  // general rules: the figures are computed from the life's own state at
+  // request time, never saved in the prompt.
+  let v9Author = once(
+    v8Prompts.author,
+    'storyFacts and chapter.',
+    'chapter, then storyFacts of what it contains.',
+  );
+  v9Author = once(
+    v9Author,
+    'Do not duplicate every sentence.',
+    'Do not duplicate every sentence, but a past specific the prose states (how long, how many times, an earlier request) is a continuity storyFact on its first event, or is left out.',
+  );
+  const mechanicsFigures = `\nMECHANICS-FIGURES CRAFT: mechanicsFigures are exact numbers of the state and typed changes. Never restate one as a figure or count in the prose; show its effect on the day or choices.`;
   return {
     ...v8Prompts,
     editor:
@@ -271,7 +289,7 @@ export function fictionPrompts(
         ? v9Editor
         : v8Prompts.editor,
     planner: v9Planner + characterIntent,
-    author: v8Prompts.author + characterState + choiceCraft,
+    author: v9Author + characterState + choiceCraft + mechanicsFigures,
     review:
       v8Prompts.review +
       "\nWhen judging causality and novelty under the character additions, a plan whose characterIntent makes a recurring person's ownAim merely serve the protagonist's current problem, or gives a supplied person an invented private aim, is weak. The request may carry continuity (the planner's continuityDecisions and characterIntent): a carry or resolve decision whose matter does not show in the final package, or a resolve that leaves the matter open in characterDelta, is a continuity defect that lowers character. Also flag a final package where a new speaking person has no actor_add, or a lasting claim has no storyFact.",

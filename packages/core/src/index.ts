@@ -25,6 +25,7 @@ export * from './narrative-requests';
 export * from './narrative-runtime';
 export * from './fiction-series';
 export * from './fiction-casting';
+export * from './fiction-mechanics';
 export function hash(value: unknown): string {
   const normalize = (item: unknown): unknown => {
     if (Array.isArray(item)) return item.map(normalize);
