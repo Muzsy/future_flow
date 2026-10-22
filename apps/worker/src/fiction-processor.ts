@@ -416,28 +416,17 @@ export async function processFictionLifeJob(
       });
     } catch (error) {
       // A facts-only repair that cannot register the claim, or whose merged
-      // package does not validate, falls back to the full-package repair of the
-      // same repair round (no second repair); it needs the four requests of the
-      // author, review, fidelity and editor calls to still be available.
-      if (feedback?.mode === 'facts_only' && repairable(error)) {
-        if (
-          scope.context.policy.maxPhysicalRequests -
-            Number(cp.providerRequestCount ?? 0) <
-          4
-        )
-          throw new DomainError(
-            'NARRATIVE_REQUEST_LIMIT',
-            'Too few requests remain for the full-package repair after a facts-only repair.',
-          );
-        await save('FICTION_REPAIR_FACTS_ONLY_FALLBACK', {
-          fictionRepair: {
-            ...feedback,
-            mode: 'author_package',
-          } satisfies FictionRepair,
+      // package does not validate, ends the chapter on the existing gate: the
+      // repair round is spent and a full-package fallback would be a ninth
+      // call on a path the owner fixed at eight. The reason and the receipt of
+      // the failed call are kept in the checkpoint, outside the receipt chain.
+      if (feedback?.mode === 'facts_only')
+        await save('FICTION_FACTS_ONLY_FAILED', {
+          factsOnlyFailure: {
+            reason: message(error),
+            receipt: (error as { receipt?: unknown }).receipt ?? null,
+          },
         });
-        await clearFinal();
-        continue;
-      }
       await repair(error, authored ?? null);
       continue;
     }

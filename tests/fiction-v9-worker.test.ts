@@ -1307,60 +1307,84 @@ describe('v9 reduced repairs: facts only and chapter only (C4/D2, D3)', () => {
     expect(row!.candidate).toEqual(original.candidate);
   });
 
-  it('falls back to the full package inside the same repair round when the model asks for it', async () => {
-    const f = await fixture();
-    const p = run(f, () => ({ outcome: 'needs_full_repair', storyFacts: [] }));
-    await processLifeJob(f.job, jobs, p.ai);
-    const done = await saved(f.job);
-    expect(done.status).toBe('completed');
-    expect(done.checkpoints.repairUsed).toBe(true);
-    // plan, author, review, fidelity, facts-only author, full author, review,
-    // fidelity, editor: the existing nine-call ceiling, no tenth call.
-    expect(done.checkpoints.providerRequestCount).toBe(9);
-    const modes = authorCalls(p).map((r) => r.user.authorRepair?.mode);
-    expect(modes).toEqual([undefined, 'facts_only', 'author_package']);
-    expect(authorCalls(p)[2]!.keys).toContain('candidate');
-  });
-
-  it('falls back when the merged package does not validate', async () => {
-    const f = await fixture();
-    const p = run(f, () => ({
-      outcome: 'facts_added',
-      storyFacts: [newFact(f, { introducedByEventId: randomUUID() })],
-    }));
-    await processLifeJob(f.job, jobs, p.ai);
-    expect((await saved(f.job)).status).toBe('completed');
+  // The fidelity-triggered path is eight calls (owner decision 2026-10-21): a
+  // facts-only repair that cannot do its job ends the chapter on the existing
+  // gate instead of asking for a ninth call with the full package.
+  async function failsOnTheGate(f: Fixture, answer: unknown, reason: RegExp) {
+    const p = run(f, () => answer);
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    // plan, author, review, fidelity, facts-only author: nothing after it.
+    expect(p.parse).toHaveBeenCalledTimes(5);
     expect(authorCalls(p).map((r) => r.user.authorRepair?.mode)).toEqual([
       undefined,
       'facts_only',
-      'author_package',
     ]);
-    // A repeated fact ID is refused by the merge itself.
-    const g = await fixture();
-    const existing = (g.f.authored as Authored).storyFacts[0];
-    if (existing) {
-      const q = run(g, () => ({
-        outcome: 'facts_added',
-        storyFacts: [newFact(g, { id: existing.id })],
-      }));
-      await processLifeJob(g.job, jobs, q.ai);
-      expect(authorCalls(q).map((r) => r.user.authorRepair?.mode)).toEqual([
-        undefined,
-        'facts_only',
-        'author_package',
-      ]);
-    }
+    expect(await rowsOf(f)).toHaveLength(0);
+    const failure = (await saved(f.job)).checkpoints.factsOnlyFailure as {
+      reason: string;
+      receipt: { task: string; outputHash: string } | null;
+    };
+    expect(failure.reason).toMatch(reason);
+    return failure;
+  }
+
+  it('ends the chapter on the existing gate, in five calls, when the model asks for the full repair', async () => {
+    const f = await fixture();
+    const failure = await failsOnTheGate(
+      f,
+      { outcome: 'needs_full_repair', storyFacts: [] },
+      /full package/,
+    );
+    // The paid call's receipt is kept beside the chain, not in it.
+    expect(failure.receipt?.task).toBe('life_narrative_chapter');
+    const receipts = (await saved(f.job)).checkpoints.receipts as {
+      task: string;
+    }[];
+    expect(
+      receipts.filter((r) => r.task === 'life_narrative_chapter'),
+    ).toHaveLength(1);
   });
 
-  it('refuses the fallback when fewer than four requests remain and commits nothing', async () => {
+  it('ends the chapter on the existing gate when the merged package does not validate or repeats a fact ID', async () => {
+    const f = await fixture();
+    await failsOnTheGate(
+      f,
+      {
+        outcome: 'facts_added',
+        storyFacts: [newFact(f, { introducedByEventId: randomUUID() })],
+      },
+      /./,
+    );
+    const g = await fixture();
+    const existing = (g.f.authored as Authored).storyFacts[0];
+    if (existing)
+      await failsOnTheGate(
+        g,
+        {
+          outcome: 'facts_added',
+          storyFacts: [newFact(g, { id: existing.id })],
+        },
+        /existing story fact/,
+      );
+  });
+
+  it('refuses a facts-only repair when fewer than four requests remain, before any call', async () => {
     const f = await fixture();
     await jobs.checkpoint(f.job, 'EARLIER_ADMISSION', {
-      providerRequestCount: 1,
+      providerRequestCount: 2,
     });
-    const p = run(f, () => ({ outcome: 'needs_full_repair', storyFacts: [] }));
+    const p = run(f, () => ({
+      outcome: 'facts_added',
+      storyFacts: [newFact(f)],
+    }));
     await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
       code: 'NARRATIVE_REQUEST_LIMIT',
     });
+    // plan, author, review, fidelity; the repair was never started.
+    expect(p.parse).toHaveBeenCalledTimes(4);
+    expect((await saved(f.job)).checkpoints.repairUsed).not.toBe(true);
     expect(await rowsOf(f)).toHaveLength(0);
   });
 

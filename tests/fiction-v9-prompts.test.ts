@@ -134,8 +134,7 @@ describe('v9 prompts', () => {
 
   describe('the v9 author (C4/D1)', () => {
     const ORDER = 'storyFacts and chapter.';
-    const ORDER_V9 =
-      'chapter and storyFacts, in that order: write the chapter first, then let storyFacts register what it really contains.';
+    const ORDER_V9 = 'chapter, then storyFacts of what it contains.';
     const BACKGROUND = 'Do not duplicate every sentence.';
     it('lists the chapter before the story facts and registers past specifics, by two exact replacements of the v8 text', () => {
       for (const from of [ORDER, BACKGROUND])
@@ -144,7 +143,7 @@ describe('v9 prompts', () => {
       expect(v9.author.split(ORDER_V9)).toHaveLength(2);
       expect(v9.author.includes(ORDER)).toBe(false);
       expect(v9.author).toContain(
-        'every past specific the prose states or implies (how long, how many times, who asked what before, an earlier event) must be a continuity storyFact on the first event it touches, or be left out of the prose',
+        'a past specific the prose states (how long, how many times, an earlier request) is a continuity storyFact on its first event, or is left out',
       );
       // Everything else of the v8 author text is where it was.
       const back = v9.author
@@ -156,9 +155,9 @@ describe('v9 prompts', () => {
       const rule = v9.author.slice(
         v9.author.indexOf('\nMECHANICS-FIGURES CRAFT:'),
       );
-      expect(rule).toContain('mechanicsFigures lists exact numbers');
-      expect(rule).toContain('never restate one as a figure or a count');
-      expect(rule.length).toBeLessThan(420);
+      expect(rule).toContain('mechanicsFigures are exact numbers');
+      expect(rule).toContain('Never restate one as a figure or count');
+      expect(rule.length).toBeLessThan(300);
       // The prompt names no concrete number or story element: the figures come
       // with the request, from the life's own state.
       expect(rule).not.toMatch(/\d/);

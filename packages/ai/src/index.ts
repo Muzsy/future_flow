@@ -687,11 +687,18 @@ export class OpenAiProvider
     if (reduced && repair?.previous && repair.mode !== 'author_package') {
       const { previous, mode } = repair;
       return this.generate(reduced, ...args).then((result) => {
-        const output = mergeFictionRepair(previous, mode, result.output);
-        return {
-          output,
-          receipt: { ...result.receipt, outputHash: hash(output) },
-        };
+        try {
+          const output = mergeFictionRepair(previous, mode, result.output);
+          return {
+            output,
+            receipt: { ...result.receipt, outputHash: hash(output) },
+          };
+        } catch (error) {
+          // The call was paid for: hand its receipt to the caller.
+          if (error instanceof Error)
+            Object.assign(error, { receipt: result.receipt });
+          throw error;
+        }
       });
     }
     return this.generate(fictionAuthorSchemaFor(context.policy), ...args);

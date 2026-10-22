@@ -274,14 +274,14 @@ export function fictionPrompts(
   let v9Author = once(
     v8Prompts.author,
     'storyFacts and chapter.',
-    'chapter and storyFacts, in that order: write the chapter first, then let storyFacts register what it really contains.',
+    'chapter, then storyFacts of what it contains.',
   );
   v9Author = once(
     v9Author,
     'Do not duplicate every sentence.',
-    'Do not duplicate every sentence, but every past specific the prose states or implies (how long, how many times, who asked what before, an earlier event) must be a continuity storyFact on the first event it touches, or be left out of the prose.',
+    'Do not duplicate every sentence, but a past specific the prose states (how long, how many times, an earlier request) is a continuity storyFact on its first event, or is left out.',
   );
-  const mechanicsFigures = `\nMECHANICS-FIGURES CRAFT: mechanicsFigures lists exact numbers that the structured state or this draft's typed changes hold (hours, money, shares). They are bookkeeping, not scenery: never restate one as a figure or a count in the prose; show what it does to the protagonist's day or choices instead.`;
+  const mechanicsFigures = `\nMECHANICS-FIGURES CRAFT: mechanicsFigures are exact numbers of the state and typed changes. Never restate one as a figure or count in the prose; show its effect on the day or choices.`;
   return {
     ...v8Prompts,
     editor:

@@ -400,7 +400,7 @@ describe('the v9 planner prompt', () => {
     // sentence replacements, C4/D1, and appended sections); review too.
     const reverted = v9.author
       .replace(
-        'chapter and storyFacts, in that order: write the chapter first, then let storyFacts register what it really contains.',
+        'chapter, then storyFacts of what it contains.',
         'storyFacts and chapter.',
       )
       .replace(
