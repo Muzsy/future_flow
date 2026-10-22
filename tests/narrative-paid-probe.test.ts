@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import type OpenAI from 'openai';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fictionFactsOnlyEligible } from '@future-flow/core';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import { runNarrativeEvaluation } from '../scripts/lib/narrative-evaluation-runner';
@@ -598,4 +598,79 @@ describe('the source-bound v9 measurement approval', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+});
+
+describe('the paid v9 gate of the evaluation options', () => {
+  const env = {
+    NARRATIVE_EVAL_API_KEY: 'sk-proj-synthetic-config-test-only-123456',
+    NARRATIVE_EVAL_PROJECT_ID: 'proj_synthetic_test',
+    NARRATIVE_EVAL_PROJECT_CONFIRMATION: 'dedicated-development',
+  };
+  // The conditions of the owner's approval; each test breaks exactly one.
+  const allowed: Record<string, string | null> = {
+    '--mode': 'paid',
+    '--allow-paid': null,
+    '--creative-only': null,
+    '--fiction-generation': 'v9',
+    '--fixtures': 'career-transition',
+    '--periods': '4',
+    '--choice-mix': 'rotate',
+    '--budget-usd': '52.7',
+    '--approval-id': evaluationV9MeasurementApproval.approvalId,
+    '--out': '.local/narrative-evaluation/test-v9-m',
+  };
+  const argv = (patch: Record<string, string | null | undefined> = {}) =>
+    Object.entries({ ...allowed, ...patch }).flatMap(([k, v]) =>
+      v === undefined ? [] : v === null ? [k] : [k, v],
+    );
+  // The price evidence expires after a week; the gate is tested inside it.
+  beforeEach(() =>
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      now: Date.parse('2026-10-19T12:00:00Z'),
+    }),
+  );
+  afterEach(() => vi.useRealTimers());
+  const refused = (patch: Record<string, string | null | undefined>) =>
+    expect(() => parseEvaluationOptions(argv(patch), env)).toThrow(
+      'owner-approved budget',
+    );
+
+  it('admits the approved measurement and nothing wider', () => {
+    const options = parseEvaluationOptions(argv(), env);
+    expect(options).toMatchObject({
+      kind: 'paid',
+      fictionGeneration: 'v9',
+      periods: 4,
+      approvalId: evaluationV9MeasurementApproval.approvalId,
+    });
+    // Fewer periods stay inside the approval.
+    expect(() =>
+      parseEvaluationOptions(argv({ '--periods': '2' }), env),
+    ).not.toThrow();
+  });
+  it('refuses another approval id', () =>
+    refused({ '--approval-id': 'v9-m-other' }));
+  it('refuses a run that is not creative-only', () =>
+    // Three periods, so that only the creative-only condition is broken.
+    refused({
+      '--creative-only': undefined,
+      '--creative': null,
+      '--periods': '3',
+    }));
+  it('refuses another fixture, or more than one', () => {
+    refused({ '--fixtures': 'creative-portfolio' });
+    refused({ '--fixtures': 'career-transition,creative-portfolio' });
+    refused({ '--fixtures': 'all' });
+  });
+  it('refuses more than four periods', () => {
+    refused({ '--periods': '5' });
+    refused({ '--periods': '8' });
+  });
+  it('refuses choices other than the rotating mix, or none', () => {
+    refused({ '--choice-mix': 'first' });
+    refused({ '--choice-mix': undefined });
+  });
+  it('keeps every other paid v9 request refused', () =>
+    refused({ '--fixtures': 'bounded-career', '--approval-id': 'x' }));
 });
