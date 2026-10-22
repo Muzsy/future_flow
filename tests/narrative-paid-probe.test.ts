@@ -23,12 +23,20 @@ import {
   summariseLedger,
   type LedgerCall,
 } from '../scripts/lib/paid-ledger-summary';
+import {
+  approvalChapterHalt,
+  approvalCumulativeBudgetUsd,
+  approvalSpend,
+  evaluationV9MeasurementApproval,
+} from '../scripts/lib/narrative-evaluation-approval';
 import { runNarrativePaidProbe } from '../scripts/narrative-paid-probe';
 
 // The provider's own copy of the SDK: its error classes are what it recognises.
 const ProviderOpenAI = createRequire(
   createRequire(import.meta.url).resolve('@future-flow/ai'),
 )('openai') as typeof OpenAI;
+
+const APPROVAL = evaluationV9MeasurementApproval.approvalId;
 
 const call = (patch: Partial<LedgerCall>): LedgerCall => ({
   id: 'a',
@@ -293,7 +301,7 @@ describe('forced facts-only paid probe, offline', () => {
       const result = await runPaidProbe({
         ledgerPath,
         maxSpendUsd: 0.5,
-        approvalId: 'test-approval',
+        approvalId: APPROVAL,
         cases: storedFactsOnlyCases(chapters, 'run-a'),
         smoke: true,
         apiKey: 'offline-test-key',
@@ -357,7 +365,7 @@ describe('forced facts-only paid probe, offline', () => {
       const result = await runPaidProbe({
         ledgerPath,
         maxSpendUsd: 0.05,
-        approvalId: 'cap',
+        approvalId: APPROVAL,
         cases: storedFactsOnlyCases(chapters, 'run-a'),
         smoke: false,
         apiKey: 'offline-test-key',
@@ -383,7 +391,7 @@ describe('forced facts-only paid probe, offline', () => {
       const result = await runPaidProbe({
         ledgerPath: join(dir, 'paid-usage.json'),
         maxSpendUsd: 0.5,
-        approvalId: 'full',
+        approvalId: APPROVAL,
         cases: storedFactsOnlyCases(chapters, 'run-a'),
         smoke: false,
         apiKey: 'offline-test-key',
@@ -422,7 +430,7 @@ describe('forced facts-only paid probe, offline', () => {
       const result = await runPaidProbe({
         ledgerPath: join(dir, 'paid-usage.json'),
         maxSpendUsd: 0.5,
-        approvalId: 'refuse',
+        approvalId: APPROVAL,
         cases: storedFactsOnlyCases(chapters, 'run-a'),
         smoke: true,
         apiKey: 'offline-test-key',
@@ -454,7 +462,7 @@ describe('forced facts-only paid probe, offline', () => {
         runPaidProbe({
           ledgerPath,
           maxSpendUsd: 0.5,
-          approvalId: 'ceiling',
+          approvalId: APPROVAL,
           cases: [],
           smoke: true,
           apiKey: 'offline-test-key',
@@ -500,6 +508,92 @@ describe('forced facts-only paid probe, offline', () => {
           await readFile(join(dir, 'out', 'ledger-summary.json'), 'utf8'),
         ).selected.calls,
       ).toBe(1);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('the source-bound v9 measurement approval', () => {
+  const mine = (patch: Partial<LedgerCall>) =>
+    call({ caseName: `narrative-evaluation:${APPROVAL}`, ...patch });
+  it('holds everything the approval spends, probe included, to its cap on the shared ledger', () => {
+    const calls = [
+      call({ id: 'old', accountedUsd: 50 }),
+      mine({ id: 'a', accountedUsd: 0.7 }),
+      call({ id: 'p', caseName: `paid-probe:${APPROVAL}`, accountedUsd: 0.3 }),
+    ];
+    expect(approvalSpend(calls, APPROVAL).accountedUsd).toBeCloseTo(1);
+    // 51.0 on the ledger, 1.0 of it the approval's: baseline 50, cap 2.70.
+    expect(approvalCumulativeBudgetUsd(calls, APPROVAL, 2.7)).toBeCloseTo(52.7);
+    // The same figure before and after the approval spent anything.
+    expect(approvalCumulativeBudgetUsd([calls[0]!], APPROVAL, 2.7)).toBeCloseTo(
+      52.7,
+    );
+  });
+  it('starts no new chapter once the approval has accounted USD 2.10', () => {
+    const base = [call({ id: 'old', accountedUsd: 50 })];
+    expect(
+      approvalChapterHalt([...base, mine({ accountedUsd: 2.09 })], 4),
+    ).toBeNull();
+    expect(
+      approvalChapterHalt([...base, mine({ accountedUsd: 2.1 })], 4),
+    ).toMatch(/no new chapter/);
+    // The probe's spend counts too.
+    expect(
+      approvalChapterHalt(
+        [
+          ...base,
+          mine({ accountedUsd: 1.7 }),
+          call({ caseName: `paid-probe:${APPROVAL}`, accountedUsd: 0.4 }),
+        ],
+        1,
+      ),
+    ).toMatch(/no new chapter/);
+  });
+  it('stops on a mean usage-estimated cost above USD 0.50 after two chapters, not before', () => {
+    const calls = [mine({ accountedUsd: 1.5, estimatedUsd: 1.1 })];
+    expect(approvalChapterHalt(calls, 1)).toBeNull();
+    expect(approvalChapterHalt(calls, 2)).toMatch(/Cost signal/);
+    expect(
+      approvalChapterHalt([mine({ accountedUsd: 1.5, estimatedUsd: 0.9 })], 2),
+    ).toBeNull();
+  });
+  it('lets the paid probe run only under this approval, and under the cap left by the ledger', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-appr-'));
+    const ledgerPath = join(dir, 'paid-usage.json');
+    await writeFile(
+      ledgerPath,
+      JSON.stringify({
+        calls: [
+          call({ id: 'old', accountedUsd: 50 }),
+          mine({ id: 'a', accountedUsd: 2.4 }),
+        ],
+      }),
+    );
+    try {
+      await expect(
+        runPaidProbe({
+          ledgerPath,
+          maxSpendUsd: 0.1,
+          approvalId: 'other',
+          cases: [],
+          smoke: true,
+          apiKey: 'offline-test-key',
+          client: fakeClient(() => ({})),
+        }),
+      ).rejects.toThrow(/approved only under/);
+      // 2.4 of the 2.70 is spent: a 0.5 cap is cut to the 0.30 that is left.
+      const result = await runPaidProbe({
+        ledgerPath,
+        maxSpendUsd: 0.5,
+        approvalId: APPROVAL,
+        cases: [],
+        smoke: false,
+        apiKey: 'offline-test-key',
+        client: fakeClient(() => ({})),
+      });
+      expect(result.ledger.cumulativeBudgetUsd).toBeCloseTo(52.7);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

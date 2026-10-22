@@ -80,6 +80,12 @@ import {
   type ExperimentalCall,
 } from './narrative-evaluation-costs';
 import {
+  approvalChapterHalt,
+  approvalCumulativeBudgetUsd,
+  evaluationV9MeasurementApproval,
+} from './narrative-evaluation-approval';
+import { readLedgerCalls } from './paid-ledger-summary';
+import {
   evaluationVersion,
   choiceOverrideSchema,
   choiceIntent,
@@ -582,7 +588,11 @@ function code(error: unknown) {
 function shouldStopEvaluation(error: unknown, options: EvaluationOptions) {
   const c = code(error);
   return (
-    ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(c) ||
+    [
+      'SMOKE_BUDGET_EXCEEDED',
+      'AI_BUDGET_EXCEEDED',
+      'EVAL_APPROVAL_LIMIT',
+    ].includes(c) ||
     (options.kind === 'paid' &&
       [
         'AI_QUOTA_EXHAUSTED',
@@ -1207,6 +1217,7 @@ async function forkComparison(
   guardFor: (caseId: string) => AiRequestGuard | undefined,
   traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
   mockResponder?: OfflineMockResponder,
+  chapterHalt: () => string | null = () => null,
 ) {
   const sampleId = `fork:${fixtureId}:${mode}:2`;
   if (report.samples.some((s) => s.id === sampleId)) return;
@@ -1297,6 +1308,8 @@ async function forkComparison(
         ),
       );
     }
+    const halt = chapterHalt();
+    if (halt) throw new DomainError('EVAL_APPROVAL_LIMIT', halt);
     const job = await jobs.claim();
     if (!job) return;
     if (job.user_id !== owner || job.branch_id !== childId)
@@ -1581,6 +1594,34 @@ async function runEvaluationUnlocked(
           'EVAL_OUTPUT_INVALID',
           'Experimental accounting cannot use symlinked paths.',
         );
+  // The source-bound v9 approval holds the whole measurement, probe included,
+  // to its cap: a budget above what the ledger leaves it is refused.
+  const v9Approval =
+    options.kind === 'paid' &&
+    options.fictionGeneration === 'v9' &&
+    options.approvalId === evaluationV9MeasurementApproval.approvalId
+      ? evaluationV9MeasurementApproval
+      : undefined;
+  if (v9Approval) {
+    const allowed = approvalCumulativeBudgetUsd(
+      readLedgerCalls(ledgerPath),
+      v9Approval.approvalId,
+      v9Approval.maxSpendUsd,
+    );
+    if (options.budgetUsd! > allowed + 1e-9)
+      throw new DomainError(
+        'EVAL_BUDGET_INVALID',
+        `The approval ${v9Approval.approvalId} may reach a cumulative ledger total of USD ${(Math.floor(allowed * 1e6) / 1e6).toFixed(6)} at most (its own spend counted); pass that or less as --budget-usd.`,
+      );
+  }
+  const chapterHalt = () =>
+    v9Approval
+      ? approvalChapterHalt(
+          readLedgerCalls(ledgerPath),
+          report.samples.filter((s) => s.kind !== 'fixed-canon').length,
+          v9Approval,
+        )
+      : null;
   const experiment =
     options.kind === 'paid'
       ? new ExperimentAiBudget(
@@ -1802,6 +1843,20 @@ async function runEvaluationUnlocked(
                   ),
                 );
               }
+              const halt = chapterHalt();
+              if (halt) {
+                report.failures.push({
+                  caseId: `${caseId}:${periodIndex}`,
+                  code: 'EVAL_APPROVAL_LIMIT',
+                  chapter: null,
+                  editorialReport: null,
+                  diagnostic: failureDiagnostic(
+                    new DomainError('EVAL_APPROVAL_LIMIT', halt),
+                  ),
+                });
+                stop = true;
+                break;
+              }
               const job = await jobs.claim();
               if (!job) break;
               if (job.user_id !== owner || job.branch_id !== before.branch.id)
@@ -2007,6 +2062,7 @@ async function runEvaluationUnlocked(
                 caseGuard,
                 traceBinding,
                 mockResponder,
+                chapterHalt,
               );
             } catch (error) {
               report.failures.push({

@@ -25,6 +25,10 @@ import {
 } from '@future-flow/core';
 import { authorPackages } from './narrative-author-packages';
 import {
+  approvalCumulativeBudgetUsd,
+  evaluationV9MeasurementApproval,
+} from './narrative-evaluation-approval';
+import {
   evaluationApprovedCumulativeBudgetUsd,
   evaluationCreativeMaxRequestBytes,
   evaluationPriceEvidence,
@@ -287,10 +291,25 @@ export async function runPaidProbe(
         'SMOKE_BUDGET_CONFIG',
         'Experimental accounting cannot use symlinked paths.',
       );
-  const start = ledgerTotals(readLedgerCalls(ledgerPath));
+  // Only the source-bound owner approval covers paid calls: its whole spend,
+  // the probe's included, stays under the approval's cap.
+  if (options.approvalId !== evaluationV9MeasurementApproval.approvalId)
+    throw new DomainError(
+      'SMOKE_BUDGET_CONFIG',
+      `The paid probe is approved only under ${evaluationV9MeasurementApproval.approvalId}.`,
+    );
+  const ledgerCalls = readLedgerCalls(ledgerPath);
+  const start = ledgerTotals(ledgerCalls);
   // The ledger enforces the cumulative figure; a probe cap that would reach
   // past the owner-approved ceiling is refused, never clamped.
-  const cumulativeBudgetUsd = start.accountedUsd + options.maxSpendUsd;
+  const cumulativeBudgetUsd = Math.min(
+    start.accountedUsd + options.maxSpendUsd,
+    approvalCumulativeBudgetUsd(
+      ledgerCalls,
+      options.approvalId,
+      evaluationV9MeasurementApproval.maxSpendUsd,
+    ),
+  );
   if (cumulativeBudgetUsd > evaluationApprovedCumulativeBudgetUsd + 1e-9)
     throw new DomainError(
       'SMOKE_BUDGET_CONFIG',
@@ -568,6 +587,12 @@ export function paidProbeMarkdown(result: PaidProbeResult) {
       ? `Ledger at the end: ${l.end.calls} calls, accounted USD ${usd(l.end.accountedUsd)}, usage-estimated USD ${usd(l.end.estimatedUsd)}.`
       : 'Ledger at the end: not yet.',
     `This probe spent: accounted USD ${usd(l.spentAccountedUsd)}, usage-estimated USD ${usd(l.spentEstimatedUsd)} (cap USD ${l.maxSpendUsd}; the ledger's cumulative budget for it was USD ${usd(l.cumulativeBudgetUsd)}).`,
+    ...(result.calls.some((c) => c.source === 'synthetic')
+      ? [
+          '',
+          `**Synthetic cases:** ${result.calls.filter((c) => c.source === 'synthetic').length} of the forced calls used a synthetic reason built from the chapter's own prose, not a stored fidelity failure. They measure cost and whether the reduced answer is accepted; draw no quality conclusion from them.`,
+        ]
+      : []),
     '',
     '| time | stage | mode | case | status | outcome | request B | input | cached | output | reasoning | latency s | accounted USD | estimated USD | request id |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
