@@ -82,6 +82,7 @@ import {
 import {
   approvalChapterHalt,
   chapterHaltApproval,
+  runEstimatedUsd,
   evaluationV9MeasurementApproval,
   verifyApprovalBudget,
   verifyApprovalLedger,
@@ -1630,14 +1631,21 @@ async function runEvaluationUnlocked(
           'EVAL_OUTPUT_INVALID',
           'Experimental accounting cannot use symlinked paths.',
         );
-  const chapterHalt = () =>
-    haltApproval
-      ? approvalChapterHalt(
-          readLedgerCalls(ledgerPath),
-          report.samples.filter((s) => s.kind !== 'fixed-canon').length,
-          haltApproval,
-        )
-      : null;
+  const chapterHalt = () => {
+    if (!haltApproval) return null;
+    const calls = readLedgerCalls(ledgerPath);
+    return approvalChapterHalt(
+      calls,
+      report.samples.filter((s) => s.kind !== 'fixed-canon').length,
+      runEstimatedUsd(
+        calls,
+        read<Record<string, EvaluationBudgetBinding>>(bindingPath) ?? {},
+        haltApproval.approvalId,
+        resolve(options.out),
+      ),
+      haltApproval,
+    );
+  };
   const experiment =
     options.kind === 'paid'
       ? new ExperimentAiBudget(
@@ -1669,7 +1677,11 @@ async function runEvaluationUnlocked(
         ? {
             reserve: async (raw: unknown) => {
               const id = await experiment.reserve(raw);
-              budgetBindings[id] = { sourceHash: identity.sourceHash, caseId };
+              budgetBindings[id] = {
+                sourceHash: identity.sourceHash,
+                caseId,
+                out: resolve(options.out),
+              };
               await save(bindingPath, budgetBindings);
               return id;
             },

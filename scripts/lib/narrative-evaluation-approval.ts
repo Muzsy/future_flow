@@ -35,15 +35,35 @@ const prefixes = (approvalId: string) => [
 const own = (call: LedgerCall, approvalId: string) =>
   prefixes(approvalId).includes(call.caseName ?? '');
 
+// What the approval has accounted on the shared ledger, probe and every run
+// included: the cap and the no-new-chapter rule are approval-wide.
 export function approvalSpend(calls: LedgerCall[], approvalId: string) {
-  const mine = calls.filter((c) => own(c, approvalId));
-  const run = mine.filter(
-    (c) => c.caseName === `narrative-evaluation:${approvalId}`,
-  );
   return {
-    accountedUsd: mine.reduce((s, c) => s + c.accountedUsd, 0),
-    runEstimatedUsd: run.reduce((s, c) => s + (c.estimatedUsd ?? 0), 0),
+    accountedUsd: calls
+      .filter((c) => own(c, approvalId))
+      .reduce((s, c) => s + c.accountedUsd, 0),
   };
+}
+
+// The usage-estimated spend of ONE run: the evaluation calls whose budget
+// binding names the run's output directory. The ledger's case name carries only
+// the approval id, so every run of the approval shares it; the binding is what
+// tells the runs apart. A call without a binding or without the `out` field (an
+// older binding) belongs to no run here.
+export function runEstimatedUsd(
+  calls: LedgerCall[],
+  bindings: Record<string, { out?: string }>,
+  approvalId: string,
+  out: string,
+) {
+  return calls
+    .filter(
+      (c) =>
+        c.caseName === `narrative-evaluation:${approvalId}` &&
+        c.id !== undefined &&
+        bindings[c.id]?.out === out,
+    )
+    .reduce((s, c) => s + (c.estimatedUsd ?? 0), 0);
 }
 
 // The cumulative ledger figure the approval may reach: everything the ledger
@@ -58,10 +78,13 @@ export function approvalCumulativeBudgetUsd(
 }
 
 // Why a new chapter must not start, or null. `chaptersDone` counts the chapters
-// this run has completed.
+// this run has completed and `runEstimatedUsd` is this run's own usage-estimated
+// spend (see runEstimatedUsd above), so the cost signal never mixes runs; the
+// cap and the no-new-chapter rule stay approval-wide.
 export function approvalChapterHalt(
   calls: LedgerCall[],
   chaptersDone: number,
+  runSpendUsd: number,
   approval: Pick<
     typeof evaluationV9MeasurementApproval,
     | 'approvalId'
@@ -75,9 +98,9 @@ export function approvalChapterHalt(
     return `The approval has accounted USD ${spend.accountedUsd.toFixed(4)}, at or over USD ${approval.noNewChapterAtUsd}: no new chapter starts.`;
   if (
     chaptersDone >= approval.costSignalAfterChapters &&
-    spend.runEstimatedUsd / chaptersDone > approval.costSignalMeanUsd
+    runSpendUsd / chaptersDone > approval.costSignalMeanUsd
   )
-    return `Cost signal: the mean usage-estimated cost of ${chaptersDone} chapters is USD ${(spend.runEstimatedUsd / chaptersDone).toFixed(4)}, above USD ${approval.costSignalMeanUsd}: stopped for analysis.`;
+    return `Cost signal: the mean usage-estimated cost of ${chaptersDone} chapters is USD ${(runSpendUsd / chaptersDone).toFixed(4)}, above USD ${approval.costSignalMeanUsd}: stopped for analysis.`;
   return null;
 }
 

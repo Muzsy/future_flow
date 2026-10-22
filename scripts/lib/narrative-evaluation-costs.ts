@@ -1,5 +1,11 @@
 import { DomainError } from '@future-flow/core';
-export type EvaluationBudgetBinding = { sourceHash: string; caseId: string };
+// `out` (the resolved output directory of the run that made the call) is
+// optional: older bindings lack it, and the cost report does not use it.
+export type EvaluationBudgetBinding = {
+  sourceHash: string;
+  caseId: string;
+  out?: string;
+};
 export type ExperimentalCall = {
   id?: string;
   accountedUsd: number;

@@ -31,6 +31,7 @@ import {
   approvalChapterHalt,
   approvalCumulativeBudgetUsd,
   approvalSpend,
+  runEstimatedUsd,
   chapterHaltApproval,
   evaluationLedgerFloorUsd,
   evaluationV9MeasurementApproval,
@@ -551,10 +552,10 @@ describe('the source-bound v9 measurement approval', () => {
   it('starts no new chapter once the approval has accounted USD 2.10', () => {
     const base = [call({ id: 'old', accountedUsd: 50 })];
     expect(
-      approvalChapterHalt([...base, mine({ accountedUsd: 2.09 })], 4),
+      approvalChapterHalt([...base, mine({ accountedUsd: 2.09 })], 4, 0),
     ).toBeNull();
     expect(
-      approvalChapterHalt([...base, mine({ accountedUsd: 2.1 })], 4),
+      approvalChapterHalt([...base, mine({ accountedUsd: 2.1 })], 4, 0),
     ).toMatch(/no new chapter/);
     // The probe's spend counts too.
     expect(
@@ -565,15 +566,47 @@ describe('the source-bound v9 measurement approval', () => {
           call({ caseName: `paid-probe:${APPROVAL}`, accountedUsd: 0.4 }),
         ],
         1,
+        0,
       ),
     ).toMatch(/no new chapter/);
   });
   it('stops on a mean usage-estimated cost above USD 0.50 after two chapters, not before', () => {
     const calls = [mine({ accountedUsd: 1.5, estimatedUsd: 1.1 })];
-    expect(approvalChapterHalt(calls, 1)).toBeNull();
-    expect(approvalChapterHalt(calls, 2)).toMatch(/Cost signal/);
+    expect(approvalChapterHalt(calls, 1, 1.1)).toBeNull();
+    expect(approvalChapterHalt(calls, 2, 1.1)).toMatch(/Cost signal/);
+    expect(approvalChapterHalt(calls, 2, 0.9)).toBeNull();
+  });
+  it("takes a run's own spend from the budget bindings, not from the approval-wide case name", () => {
+    const calls = [
+      mine({ id: 'r1', estimatedUsd: 0.65 }),
+      mine({ id: 'r2a', estimatedUsd: 0.3 }),
+      mine({ id: 'r2b', estimatedUsd: 0.386 }),
+      mine({ id: 'old', estimatedUsd: 9 }),
+      // The probe has no run: its spend is not a run's.
+      call({ id: 'p', caseName: `paid-probe:${APPROVAL}`, estimatedUsd: 5 }),
+    ];
+    const bindings = {
+      r1: { sourceHash: 's', caseId: 'c:0', out: '/runs/m1' },
+      r2a: { sourceHash: 's', caseId: 'c:0', out: '/runs/m2' },
+      r2b: { sourceHash: 's', caseId: 'c:1', out: '/runs/m2' },
+      // An older binding without the field belongs to no run.
+      old: { sourceHash: 's', caseId: 'c:2' },
+      p: { sourceHash: 's', caseId: 'c:3', out: '/runs/m2' },
+    };
+    expect(runEstimatedUsd(calls, bindings, APPROVAL, '/runs/m2')).toBeCloseTo(
+      0.686,
+    );
+    expect(runEstimatedUsd(calls, bindings, APPROVAL, '/runs/m1')).toBeCloseTo(
+      0.65,
+    );
+    expect(runEstimatedUsd(calls, bindings, APPROVAL, '/runs/m3')).toBe(0);
+    // The second run's mean is 0.343, below the signal, whatever m1 spent.
     expect(
-      approvalChapterHalt([mine({ accountedUsd: 1.5, estimatedUsd: 0.9 })], 2),
+      approvalChapterHalt(
+        calls,
+        2,
+        runEstimatedUsd(calls, bindings, APPROVAL, '/runs/m2'),
+      ),
     ).toBeNull();
   });
   it('lets the paid probe run only under this approval, and under the cap left by the ledger', async () => {
@@ -924,10 +957,48 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
   async function haltedRun(
     spendAfterPeriod: number,
     spend: { accountedUsd: number; estimatedUsd: number },
+    // A call of an EARLIER run of the same approval, already on the ledger.
+    earlier?: { accountedUsd: number; estimatedUsd: number },
   ) {
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-halt-'));
     const ledger = join(dir, 'paid-usage.json');
-    await seedLedger(ledger);
+    const runDir = join(dir, 'run');
+    await seedLedger(
+      ledger,
+      earlier
+        ? [
+            call({
+              id: 'earlier',
+              caseName: `narrative-evaluation:${APPROVAL}`,
+              ...earlier,
+            }),
+          ]
+        : [],
+    );
+    const bindings = (mine: boolean) => ({
+      ...(earlier
+        ? {
+            earlier: {
+              sourceHash: 'x',
+              caseId: 'career-transition:narrative-v1:0',
+              out: join(dir, 'earlier-run'),
+            },
+          }
+        : {}),
+      ...(mine
+        ? {
+            v9m: {
+              sourceHash: 'x',
+              caseId: 'career-transition:narrative-v1:1',
+              out: runDir,
+            },
+          }
+        : {}),
+    });
+    writeFileSync(
+      join(dir, 'budget-bindings.json'),
+      JSON.stringify(bindings(false)),
+    );
     let spent = false;
     const options = parseEvaluationOptions([
       '--creative-only',
@@ -938,7 +1009,7 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
       '--periods',
       '3',
       '--out',
-      join(dir, 'run'),
+      runDir,
     ]);
     try {
       const run = await runNarrativeEvaluation(
@@ -956,6 +1027,15 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
               JSON.stringify({
                 calls: [
                   base(),
+                  ...(earlier
+                    ? [
+                        call({
+                          id: 'earlier',
+                          caseName: `narrative-evaluation:${APPROVAL}`,
+                          ...earlier,
+                        }),
+                      ]
+                    : []),
                   call({
                     id: 'v9m',
                     caseName: `narrative-evaluation:${APPROVAL}`,
@@ -963,6 +1043,10 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
                   }),
                 ],
               }),
+            );
+            writeFileSync(
+              join(dir, 'budget-bindings.json'),
+              JSON.stringify(bindings(true)),
             );
           }
           return JSON.parse(JSON.stringify(defaultOutput()));
@@ -1000,6 +1084,42 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
     expect(limits(run)).toHaveLength(1);
     expect(limits(run)[0]!.diagnostic).toBeDefined();
   }, 120_000);
+  it("does not add an earlier run of the approval to this run's cost signal (false alarm of the second run)", async () => {
+    // Earlier run: USD 0.65 estimated. This run: two chapters at 0.343 each.
+    // The approval-wide mean would be (0.65 + 0.686) / 2 = 0.668 and stop the
+    // run; this run's own mean is 0.343.
+    const run = await haltedRun(
+      1,
+      { accountedUsd: 0.85, estimatedUsd: 0.686 },
+      { accountedUsd: 0.7, estimatedUsd: 0.65 },
+    );
+    expect(limits(run)).toEqual([]);
+    expect(run.samples.filter((s) => s.kind === 'full')).toHaveLength(3);
+    expect(run.samples.some((s) => s.kind === 'fork')).toBe(true);
+  }, 120_000);
+  it('still counts an earlier run in the approval-wide USD 2.10 rule', async () => {
+    const run = await haltedRun(
+      1,
+      { accountedUsd: 0.7, estimatedUsd: 0.2 },
+      { accountedUsd: 1.5, estimatedUsd: 0.2 },
+    );
+    expect(limits(run).map((f) => f.caseId)).toEqual([
+      'career-transition:narrative-v1:2',
+    ]);
+    expect(limits(run)[0]!.diagnostic).toBeDefined();
+  }, 120_000);
+});
+
+describe('the budget binding names the run', () => {
+  it('writes the resolved output directory into every paid binding', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'scripts/lib/narrative-evaluation-runner.ts'),
+      'utf8',
+    );
+    expect(source).toMatch(
+      /budgetBindings\[id\] = \{[^}]*out: resolve\(options\.out\)/,
+    );
+  });
 });
 
 describe('which approval governs the chapter halts', () => {
