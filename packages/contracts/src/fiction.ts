@@ -854,8 +854,20 @@ export const fictionCompactAuthorSchema = fictionAuthorResultSchema
   .strict();
 export type FictionAuthorResult = z.infer<typeof fictionAuthorResultSchema>;
 // Living-world final package: the v8 package plus this period's character delta.
-export const fictionCompactAuthorV9Schema = fictionCompactAuthorSchema
-  .extend({ characterDelta: fictionCharacterDeltaSchema })
+// The key order is the generation order of a strict structured output: the
+// chapter comes BEFORE the story facts, so the facts are a register of what the
+// prose really contains (the model's own check in the same call), instead of a
+// plan the prose then drifts from. Stored v9 packages parse by key, so their
+// order does not matter.
+export const fictionCompactAuthorV9Schema = z
+  .object({
+    version: z.literal('2.0.0'),
+    candidate: periodCandidateV2Schema,
+    plan: fictionCompactPlanSchema,
+    chapter: periodChapterV2Schema,
+    storyFacts: z.array(storyFactSchema).max(12),
+    characterDelta: fictionCharacterDeltaSchema,
+  })
   .strict();
 export type FictionAuthorResultV9 = z.infer<
   typeof fictionCompactAuthorV9Schema

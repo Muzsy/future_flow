@@ -41,6 +41,9 @@ import {
   narrativeEditorialRequest,
   fictionCharacterOmitted,
   fictionContinuityCoverage,
+  fictionMechanicsFigures,
+  fictionMechanicsRecount,
+  type FictionMechanicsFigure,
 } from '@future-flow/core';
 import {
   fictionAuthorSchemaFor,
@@ -190,6 +193,12 @@ export type EvaluationSample = {
     // The planner's turn label and where it stood in the request's rotation
     // (diagnostics, never a gate); null before the label existed.
     turn: TurnDiagnostics | null;
+    // The exact numbers of the life's state and the draft's typed changes (the
+    // author request's mechanicsFigures) and the ones the chapter's prose
+    // restates as a numeral or a spelled-out number. A flag for the reader of
+    // the evaluation, never a gate (a match can be a coincidence); null before
+    // the figures existed or outside the living-world generation.
+    mechanics: { figures: number; recounted: FictionMechanicsFigure[] } | null;
     // Provider answers the strict response format let through that the
     // server schema refused (malformed), of which uuid-shaped refusals, and
     // requests the API itself rejected (HTTP 400). The v9 request schemas drop
@@ -369,6 +378,31 @@ function livingTurn(
     signature: report?.sequenceSignature ?? null,
   });
 }
+function livingMechanics(
+  payload: unknown,
+  delta: unknown,
+  draft: unknown,
+  chapterBody: string,
+): { figures: number; recounted: FictionMechanicsFigure[] } | null {
+  if (delta === undefined) return null;
+  const input = payload as {
+    state?: Parameters<typeof fictionMechanicsFigures>[0];
+    input?: { locale?: string };
+  };
+  if (!input.state) return null;
+  const events =
+    (draft as { candidate?: { events?: { changes?: unknown }[] } } | null)
+      ?.candidate?.events ?? [];
+  const figures = fictionMechanicsFigures(input.state, events);
+  return {
+    figures: figures.length,
+    recounted: fictionMechanicsRecount(
+      chapterBody,
+      figures,
+      input.input?.locale === 'hu' ? 'hu' : 'en',
+    ),
+  };
+}
 export function characterBytes(
   payload: unknown,
   artifact: unknown,
@@ -430,6 +464,7 @@ export function characterBytes(
       : false,
     repairTrigger: repairTriggerOf(repairMessage),
     turn: livingTurn(payload, artifact, draft),
+    mechanics: livingMechanics(payload, delta, draft, chapterBody),
     schemaFailures: trace?.schemaFailures ?? {
       malformed: 0,
       uuid: 0,

@@ -138,6 +138,12 @@ describe('living-world generation in the evaluation runner', () => {
             ? { queueRank: null, restingChosen: null }
             : { queueRank: 10, restingChosen: true }),
         });
+        // The figures of the life's own state are counted, and the mock prose
+        // recounts none (diagnostic only; a flag, never a gate).
+        expect(sample.character?.mechanics).toMatchObject({
+          recounted: [],
+        });
+        expect(sample.character?.mechanics?.figures).toBeGreaterThanOrEqual(0);
         // The stored draft gives the continuity diagnostics (no decision is
         // required of the mock cast, and a missing one is never a failure).
         expect(sample.character?.continuity?.decisions).toEqual({
@@ -646,6 +652,75 @@ describe('v9 planner continuity diagnostics', () => {
     expect(
       characterBytes({}, null, [], { fictionDraft: { characterIntent: [] } })
         .continuity,
+    ).toBeNull();
+  });
+});
+
+describe('v9 mechanics-recount diagnostic (C4/D1)', () => {
+  const payload = (locale: string) => ({
+    input: { locale },
+    state: {
+      resources: { energy: null, availableHoursPerWeek: 4 },
+      finance: { currency: 'EUR', monthlyIncome: 900, liquidFunds: null },
+      ownedAssets: [],
+    },
+  });
+  const living = { characterDelta: {} };
+  const draft = {
+    candidate: {
+      events: [
+        {
+          changes: [
+            {
+              type: 'resources_set',
+              value: { energy: null, availableHoursPerWeek: 2 },
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const checkpoints = { fictionDraft: draft };
+
+  it('flags a figure of the life that the prose restates, and counts the figures', () => {
+    const c = characterBytes(
+      payload('en'),
+      living,
+      [],
+      checkpoints,
+      [],
+      'You keep four hours a week for it, and the rest is yours.',
+    );
+    expect(c.mechanics).toEqual({
+      figures: 3,
+      recounted: [{ path: 'resources.availableHoursPerWeek', value: 4 }],
+    });
+  });
+  it('reads Hungarian number words and flags nothing for prose without a figure', () => {
+    expect(
+      characterBytes(
+        payload('hu'),
+        living,
+        [],
+        checkpoints,
+        [],
+        'Négy órád marad.',
+      ).mechanics?.recounted,
+    ).toEqual([{ path: 'resources.availableHoursPerWeek', value: 4 }]);
+    expect(
+      characterBytes(
+        payload('en'),
+        living,
+        [],
+        checkpoints,
+        [],
+        'You walk home slowly.',
+      ).mechanics?.recounted,
+    ).toEqual([]);
+  });
+  it('is null outside the living-world generation', () => {
+    expect(
+      characterBytes(payload('en'), {}, [], null, [], 'Four hours.').mechanics,
     ).toBeNull();
   });
 });

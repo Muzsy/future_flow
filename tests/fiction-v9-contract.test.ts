@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import { zodTextFormat } from 'openai/helpers/zod';
 import { describe, it, expect } from 'vitest';
 import {
   FICTION_CHARACTER_DELTA_BYTES,
   FICTION_CHARACTER_VERSION,
   NARRATIVE_ARTIFACT_BYTES,
   fictionArtifactSchema,
+  fictionAuthorSchemaFor,
+  fictionCompactAuthorSchema,
+  fictionCompactAuthorV9Schema,
   fictionContextSchema,
   fictionCompactDraftV9Schema,
   fictionDraftSchemaFor,
@@ -33,6 +37,7 @@ import {
   fictionCharacterProjectionFromEnvelope,
   fictionEditorialRequest,
   fictionFidelityRequest,
+  fictionMechanicsFigures,
   fictionPlannerRequest,
   fictionReviewRequest,
   fictionScope,
@@ -1051,5 +1056,82 @@ describe('v9 request cleaning for the check stages (C4/D5)', () => {
         fictionEditorialRequest(v8.input, v8.authored),
       ])
         expect(key in request).toBe(key in planner);
+  });
+});
+
+describe('v9 author package order and mechanics figures (C4/D1)', () => {
+  it('generates the chapter before the story facts in v9 and keeps the v8 order', () => {
+    const keys = (schema: { shape: Record<string, unknown> }) =>
+      Object.keys(schema.shape);
+    expect(keys(fictionCompactAuthorV9Schema)).toEqual([
+      'version',
+      'candidate',
+      'plan',
+      'chapter',
+      'storyFacts',
+      'characterDelta',
+    ]);
+    expect(keys(fictionCompactAuthorSchema)).toEqual([
+      'version',
+      'candidate',
+      'plan',
+      'storyFacts',
+      'chapter',
+    ]);
+    // The provider's strict output schema follows the same order.
+    const sent = zodTextFormat(
+      fictionAuthorSchemaFor(fictionV9Policy()),
+      'life_narrative_chapter',
+    ).schema as { properties: Record<string, unknown>; required: string[] };
+    expect(Object.keys(sent.properties)).toEqual(
+      keys(fictionCompactAuthorV9Schema),
+    );
+    expect(sent.required).toEqual(keys(fictionCompactAuthorV9Schema));
+  });
+
+  it('still reads a stored v9 package written in the old key order', () => {
+    const f = living(true);
+    const { storyFacts, chapter, ...rest } = f.authored;
+    const oldOrder = { ...rest, storyFacts, chapter };
+    expect(Object.keys(oldOrder).indexOf('storyFacts')).toBeLessThan(
+      Object.keys(oldOrder).indexOf('chapter'),
+    );
+    expect(fictionCompactAuthorV9Schema.parse(oldOrder)).toEqual(
+      fictionCompactAuthorV9Schema.parse(f.authored),
+    );
+    expect(() => validateFictionAuthor(f.input, oldOrder)).not.toThrow();
+  });
+
+  it('gives only the v9 author request the figures of the life, computed from its own data', () => {
+    const f = living(true);
+    f.input.state.resources = { energy: 60, availableHoursPerWeek: 5 };
+    const request = fictionAuthorRequest(f.input, f.draft) as {
+      mechanicsFigures: unknown;
+    };
+    expect(request.mechanicsFigures).toEqual(
+      fictionMechanicsFigures(f.input.state, f.draft.candidate.events),
+    );
+    expect(request.mechanicsFigures).toContainEqual({
+      path: 'resources.availableHoursPerWeek',
+      value: 5,
+    });
+    // Planner, review, fidelity and editor never carry them; v8 neither.
+    for (const other of [
+      fictionPlannerRequest(f.input),
+      fictionReviewRequest(f.input, f.authored, f.draft),
+      fictionFidelityRequest(f.input, f.authored),
+      fictionEditorialRequest(f.input, f.authored),
+    ])
+      expect(other).not.toHaveProperty('mechanicsFigures');
+    const v8 = fictionFixture();
+    expect(fictionAuthorRequest(v8.input, v8.draft)).not.toHaveProperty(
+      'mechanicsFigures',
+    );
+    // A different life, different figures: nothing is fixed in the code.
+    f.input.state.resources = { energy: null, availableHoursPerWeek: 9 };
+    expect(
+      (fictionAuthorRequest(f.input, f.draft) as { mechanicsFigures: unknown })
+        .mechanicsFigures,
+    ).toContainEqual({ path: 'resources.availableHoursPerWeek', value: 9 });
   });
 });

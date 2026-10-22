@@ -10,7 +10,9 @@ describe('v9 prompts', () => {
     // The planner is the one deliberate exception (C3, owner decision
     // 2026-10-21 23:30 Hungarian time): see "the v9 planner" below.
     expect(v9.planner.startsWith(v8.planner)).toBe(false);
-    expect(v9.author.startsWith(v8.author)).toBe(true);
+    // The author is the v8 text with two exact-once replacements (C4/D1, see
+    // "the v9 author" below) plus the v9 additions.
+    expect(v9.author.startsWith(v8.author)).toBe(false);
     expect(v9.review.startsWith(v8.review)).toBe(true);
     expect(v9.fidelity).toBe(v8.fidelity);
   });
@@ -75,16 +77,18 @@ describe('v9 prompts', () => {
   });
   it('add short, structured-input character rules (plan section 41)', () => {
     expect(v9.planner).toContain('CHARACTER-INTENT CRAFT');
-    expect(v9.author.slice(v8.author.length)).toContain('characterDelta');
+    expect(v9.author).toContain('characterDelta');
+    expect(v8.author).not.toContain('characterDelta');
     // No new rulebook: each addition stays under 3 KiB (the author addition
     // carries the delta rules, the continuity binding, the cast and repair
     // rules and the embodiment line, about 2.7 KiB measured).
     // The author addition also carries the choice-stakes craft rule (about
-    // 0.8 KiB, 2026-10-21), so its bound is a conscious 3.75 KiB.
+    // 0.8 KiB, 2026-10-21) and the three C4/D1 sentences (about 0.6 KiB,
+    // 2026-10-22), so its bound is a conscious 4.25 KiB.
     // The planner is shorter than v8 after the C3 cleanup, so only review
     // keeps the addition bound.
     expect(v9.review.length - v8.review.length).toBeLessThan(3072);
-    expect(v9.author.length - v8.author.length).toBeLessThan(3840);
+    expect(v9.author.length - v8.author.length).toBeLessThan(4352);
     // New speaking people are registered, a repair adds nothing new, and the
     // final review asks for the same (the fidelity rule itself is unchanged).
     expect(v9.author).toContain('actor_add and a profile');
@@ -126,5 +130,41 @@ describe('v9 prompts', () => {
     const hu = fictionPrompts('hu', fictionV9Policy().promptVersions);
     expect(hu.author).toContain('Hungarian');
     expect(hu.author.length).toBeGreaterThan(v8.author.length - 1);
+  });
+
+  describe('the v9 author (C4/D1)', () => {
+    const ORDER = 'storyFacts and chapter.';
+    const ORDER_V9 =
+      'chapter and storyFacts, in that order: write the chapter first, then let storyFacts register what it really contains.';
+    const BACKGROUND = 'Do not duplicate every sentence.';
+    it('lists the chapter before the story facts and registers past specifics, by two exact replacements of the v8 text', () => {
+      for (const from of [ORDER, BACKGROUND])
+        expect(v8.author.split(from)).toHaveLength(2);
+      expect(v9.author).toContain(ORDER_V9);
+      expect(v9.author.split(ORDER_V9)).toHaveLength(2);
+      expect(v9.author.includes(ORDER)).toBe(false);
+      expect(v9.author).toContain(
+        'every past specific the prose states or implies (how long, how many times, who asked what before, an earlier event) must be a continuity storyFact on the first event it touches, or be left out of the prose',
+      );
+      // Everything else of the v8 author text is where it was.
+      const back = v9.author
+        .replace(ORDER_V9, ORDER)
+        .replace(/Do not duplicate every sentence, but [^.]*\./, BACKGROUND);
+      expect(back.startsWith(v8.author)).toBe(true);
+    });
+    it('carries a general mechanics rule and saves no figure or story detail in any prompt', () => {
+      const rule = v9.author.slice(
+        v9.author.indexOf('\nMECHANICS-FIGURES CRAFT:'),
+      );
+      expect(rule).toContain('mechanicsFigures lists exact numbers');
+      expect(rule).toContain('never restate one as a figure or a count');
+      expect(rule.length).toBeLessThan(420);
+      // The prompt names no concrete number or story element: the figures come
+      // with the request, from the life's own state.
+      expect(rule).not.toMatch(/\d/);
+      expect(v8.author).not.toContain('mechanicsFigures');
+      expect(v9.planner).not.toContain('mechanicsFigures');
+      expect(v9.review).not.toContain('mechanicsFigures');
+    });
   });
 });

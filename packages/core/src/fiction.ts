@@ -48,6 +48,7 @@ import {
 } from './narrative';
 import { validatePersonalSharedMemories } from './shared-personal';
 import { fictionCastingProjection } from './fiction-casting';
+import { fictionMechanicsFigures } from './fiction-mechanics';
 import { seriesEchoFindings, seriesFrictionMarkers } from './fiction-series';
 import {
   fictionCharacterActorsFromEnvelope,
@@ -304,9 +305,22 @@ export function fictionAuthorRequest(
   draft: NarrativePlanningResult,
   repair?: FictionRepair,
 ) {
+  const parsed = requestDraftSchema(fictionScope(input).context.policy).parse(
+    draft,
+  );
   return {
     ...fictionPlannerRequest(input),
-    draft: requestDraftSchema(fictionScope(input).context.policy).parse(draft),
+    draft: parsed,
+    // Living world only: the exact numbers of the state and of this draft's
+    // typed changes, computed per request, for the prose not to recount.
+    ...(fictionScope(input).characters
+      ? {
+          mechanicsFigures: fictionMechanicsFigures(
+            input.state,
+            parsed.candidate.events,
+          ),
+        }
+      : {}),
     authorRepair: repair
       ? {
           ...repair,
