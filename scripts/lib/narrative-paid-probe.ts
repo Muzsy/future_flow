@@ -300,7 +300,7 @@ export async function runPaidProbe(
       `The paid probe is approved only under ${evaluationV9MeasurementApproval.approvalId}.`,
     );
   const ledgerCalls = readLedgerCalls(ledgerPath);
-  verifyApprovalLedger(ledgerCalls);
+  verifyApprovalLedger(ledgerCalls, ledgerPath);
   const start = ledgerTotals(ledgerCalls);
   // The ledger enforces the cumulative figure; a probe cap that would reach
   // past the owner-approved ceiling is refused, never clamped.
@@ -582,6 +582,7 @@ export function paidProbeMarkdown(result: PaidProbeResult) {
     '# Paid probe: schema smoke and forced facts-only',
     '',
     `Approval ${result.approvalId}. Times are Hungarian local time.`,
+    `Ledger file (resolved): ${result.ledger.path}`,
     ...(result.stoppedBy ? ['', `**Stopped early:** ${result.stoppedBy}`] : []),
     '',
     `Ledger at the start: ${l.start.calls} calls, accounted USD ${usd(l.start.accountedUsd)}, usage-estimated USD ${usd(l.start.estimatedUsd)}.`,

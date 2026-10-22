@@ -94,9 +94,13 @@ export async function runNarrativePaidProbe(
       '--bindings',
       '--out',
     ]);
+    const ledgerPath = resolve(args.get('--ledger') ?? LEDGER);
+    // A missing file is an error, never an empty ledger.
+    if (!existsSync(ledgerPath))
+      throw new Error(`The ledger file does not exist: ${ledgerPath}`);
     const bindingsPath = resolve(args.get('--bindings') ?? BINDINGS);
     const summary = summariseLedger(
-      readLedgerCalls(resolve(args.get('--ledger') ?? LEDGER)),
+      readLedgerCalls(ledgerPath),
       {
         since: args.get('--since'),
         caseNamePrefix: args.get('--case-name-prefix'),
@@ -105,7 +109,7 @@ export async function runNarrativePaidProbe(
         ? JSON.parse(readFileSync(bindingsPath, 'utf8'))
         : {},
     );
-    const markdown = `${ledgerMarkdown(summary)}\n${paidLockStatus(resolve(args.get('--ledger') ?? LEDGER))}\n`;
+    const markdown = `${ledgerMarkdown(summary, ledgerPath)}\n${paidLockStatus(ledgerPath)}\n`;
     const out = args.get('--out');
     if (out) {
       const dir = probeOutputDir(out, []);

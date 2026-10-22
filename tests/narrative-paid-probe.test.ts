@@ -31,11 +31,13 @@ import {
   approvalChapterHalt,
   approvalCumulativeBudgetUsd,
   approvalSpend,
+  chapterHaltApproval,
   evaluationLedgerFloorUsd,
   evaluationV9MeasurementApproval,
   verifyApprovalBudget,
   verifyApprovalLedger,
 } from '../scripts/lib/narrative-evaluation-approval';
+import { evaluationCostReport } from '../scripts/lib/narrative-evaluation-costs';
 import { runNarrativePaidProbe } from '../scripts/narrative-paid-probe';
 
 // The provider's own copy of the SDK: its error classes are what it recognises.
@@ -354,6 +356,9 @@ describe('forced facts-only paid probe, offline', () => {
         'life_narrative_chapter',
       ]);
       expect(paidProbeMarkdown(result)).toContain('req_test_3');
+      expect(paidProbeMarkdown(result)).toContain(
+        `Ledger file (resolved): ${ledgerPath}`,
+      );
     } finally {
       await rm(out, { recursive: true, force: true });
       await rm(dir, { recursive: true, force: true });
@@ -689,10 +694,17 @@ describe('the paid v9 gate of the evaluation options', () => {
 
 describe('the shared-ledger floor and the approval budget', () => {
   it('refuses a missing or a too small ledger: the cap never starts from zero', async () => {
-    expect(() => verifyApprovalLedger([])).toThrow(/not the shared ledger/);
-    expect(() => verifyApprovalLedger([base(10)])).toThrow(DomainError);
+    expect(() => verifyApprovalLedger([], '/x/paid-usage.json')).toThrow(
+      /\/x\/paid-usage\.json holds/,
+    );
     expect(() =>
-      verifyApprovalLedger([base(evaluationLedgerFloorUsd)]),
+      verifyApprovalLedger([base(10)], '/x/paid-usage.json'),
+    ).toThrow(DomainError);
+    expect(() =>
+      verifyApprovalLedger(
+        [base(evaluationLedgerFloorUsd)],
+        '/x/paid-usage.json',
+      ),
     ).not.toThrow();
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-floor-'));
     try {
@@ -988,4 +1000,54 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
     expect(limits(run)).toHaveLength(1);
     expect(limits(run)[0]!.diagnostic).toBeDefined();
   }, 120_000);
+});
+
+describe('which approval governs the chapter halts', () => {
+  const seam = { ...evaluationV9MeasurementApproval, approvalId: 'seam' };
+  it('gives a paid v9 run the source-bound approval, whatever the caller offers', () => {
+    expect(chapterHaltApproval({ kind: 'paid', fictionGeneration: 'v9' })).toBe(
+      evaluationV9MeasurementApproval,
+    );
+    expect(
+      chapterHaltApproval({ kind: 'paid', fictionGeneration: 'v9' }, seam),
+    ).toBe(evaluationV9MeasurementApproval);
+  });
+  it('gives a paid run that is not v9 no halts, and never the seam', () => {
+    expect(chapterHaltApproval({ kind: 'paid' })).toBeUndefined();
+    expect(chapterHaltApproval({ kind: 'paid' }, seam)).toBeUndefined();
+  });
+  it('lets only an offline mock run take the seam approval', () => {
+    expect(chapterHaltApproval({ kind: 'offline' }, seam)).toBe(seam);
+    expect(chapterHaltApproval({ kind: 'offline' })).toBeUndefined();
+  });
+});
+
+describe('the resolved ledger path in every report', () => {
+  it('names the ledger file in the ledger command and refuses a missing one', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-path-'));
+    const ledger = join(dir, 'paid-usage.json');
+    try {
+      await expect(
+        runNarrativePaidProbe(['ledger', '--ledger', ledger]),
+      ).rejects.toThrow(`does not exist: ${ledger}`);
+      await seedLedger(ledger);
+      const { markdown } = await runNarrativePaidProbe([
+        'ledger',
+        '--ledger',
+        ledger,
+      ]);
+      expect(markdown).toContain(`Ledger file (resolved): ${ledger}`);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it('names it in the probe report and in the cost accounting', () => {
+    const calls = [call({})];
+    expect(
+      evaluationCostReport(calls, {}, 'src', '/abs/paid-usage.json'),
+    ).toMatchObject({ ledgerPath: '/abs/paid-usage.json' });
+    expect(evaluationCostReport(calls, {}, 'src')).not.toHaveProperty(
+      'ledgerPath',
+    );
+  });
 });

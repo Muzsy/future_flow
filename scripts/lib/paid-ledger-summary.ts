@@ -153,11 +153,12 @@ const table = (title: string, rows: LedgerRow[]) => [
   '',
 ];
 
-export function ledgerMarkdown(summary: LedgerSummary) {
+export function ledgerMarkdown(summary: LedgerSummary, ledgerPath?: string) {
   const s = summary.selected;
   return [
     '# Paid ledger summary',
     '',
+    ...(ledgerPath ? [`Ledger file (resolved): ${ledgerPath}`, ''] : []),
     `Whole ledger: ${summary.ledger.calls} calls, accounted USD ${usd(summary.ledger.accountedUsd)}, usage-estimated USD ${usd(summary.ledger.estimatedUsd)}, ${summary.ledger.unknownUsageCalls} call(s) without usage.`,
     `Selected${summary.filter.since ? ` since ${summary.filter.since}` : ''}${summary.filter.caseNamePrefix ? ` for ${summary.filter.caseNamePrefix}*` : ''}: ${s.calls} calls (${s.completed} with usage), accounted USD ${usd(s.accountedUsd)}, usage-estimated USD ${usd(s.estimatedUsd)}, ${s.unknownUsageCalls} without usage.`,
     '',

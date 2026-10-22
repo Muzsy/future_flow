@@ -81,6 +81,7 @@ import {
 } from './narrative-evaluation-costs';
 import {
   approvalChapterHalt,
+  chapterHaltApproval,
   evaluationV9MeasurementApproval,
   verifyApprovalBudget,
   verifyApprovalLedger,
@@ -1501,11 +1502,10 @@ async function runEvaluationUnlocked(
       : undefined;
   if (v9Approval) {
     const calls = readLedgerCalls(ledgerFile(seams));
-    verifyApprovalLedger(calls);
+    verifyApprovalLedger(calls, ledgerFile(seams));
     verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
   }
-  const haltApproval =
-    v9Approval ?? (options.kind !== 'paid' ? seams?.approval : undefined);
+  const haltApproval = chapterHaltApproval(options, seams?.approval);
   if (options.kind === 'assess')
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -2171,6 +2171,7 @@ async function runEvaluationUnlocked(
         ledger.calls,
         budgetBindings,
         identity.sourceHash,
+        ledgerPath,
       );
     }
     verifyExistingEvaluationAttempts(

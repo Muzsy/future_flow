@@ -86,12 +86,12 @@ export function approvalChapterHalt(
 // A missing file or another working directory would otherwise start the
 // approval's cap from zero and hide the cumulative ceiling.
 export const evaluationLedgerFloorUsd = 46.69296;
-export function verifyApprovalLedger(calls: LedgerCall[]) {
+export function verifyApprovalLedger(calls: LedgerCall[], ledgerPath: string) {
   const total = calls.reduce((s, c) => s + c.accountedUsd, 0);
   if (total < evaluationLedgerFloorUsd)
     throw new DomainError(
       'EVAL_LEDGER_INVALID',
-      `The ledger holds USD ${total.toFixed(4)}, below the closed v8 total USD ${evaluationLedgerFloorUsd}: it is missing or is not the shared ledger (run from the measuring checkout's root).`,
+      `The ledger ${ledgerPath} holds USD ${total.toFixed(4)}, below the closed v8 total USD ${evaluationLedgerFloorUsd}: it is missing or is not the shared ledger (run from the measuring checkout's root).`,
     );
 }
 
@@ -114,4 +114,18 @@ export function verifyApprovalBudget(
       'EVAL_BUDGET_INVALID',
       `The approval ${approval.approvalId} may reach a cumulative ledger total of USD ${(Math.floor(allowed * 1e6) / 1e6).toFixed(6)} at most (its own spend counted); pass that or less as --budget-usd.`,
     );
+}
+
+// Which approval's chapter halts apply to a run. A paid v9 run always takes the
+// source-bound approval and never one from the caller; only an offline mock run
+// may take a seam approval (the tests).
+export function chapterHaltApproval(
+  options: { kind: string; fictionGeneration?: string },
+  seamApproval?: typeof evaluationV9MeasurementApproval,
+) {
+  if (options.kind === 'paid')
+    return options.fictionGeneration
+      ? evaluationV9MeasurementApproval
+      : undefined;
+  return seamApproval;
 }
