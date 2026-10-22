@@ -396,8 +396,18 @@ describe('the v9 planner prompt', () => {
       expect(v9.planner).not.toContain(section);
       expect(v8.planner).toContain(section);
     }
-    // Author text unchanged from v8 plus the v9 additions; review too.
-    expect(v9.author.startsWith(v8.author)).toBe(true);
+    // Author text unchanged from v8 plus the v9 additions (two exactly-once
+    // sentence replacements, C4/D1, and appended sections); review too.
+    const reverted = v9.author
+      .replace(
+        'chapter and storyFacts, in that order: write the chapter first, then let storyFacts register what it really contains.',
+        'storyFacts and chapter.',
+      )
+      .replace(
+        /Do not duplicate every sentence, but [^.]*\./,
+        'Do not duplicate every sentence.',
+      );
+    expect(reverted.startsWith(v8.author)).toBe(true);
     expect(v9.author).toContain('FRICTION-BEAT CRAFT');
     expect(v9.author).toContain('PROGRESSION-SOURCE CRAFT');
     expect(v9.editor).toContain('SERIES EVIDENCE');
