@@ -16,6 +16,8 @@ import {
   evaluateNarrativePlanReview,
   validateNarrativePlanReview,
   evaluateFictionEditorialGate,
+  fictionFactsOnlyEligible,
+  fictionFidelityDiscrepancyMessage,
   fictionProseRepairAllowed,
   validateFictionEditorialReport,
   type FictionRepair,
@@ -97,20 +99,6 @@ function combinedValidationError(
     `Fix BOTH final checks in one full-package repair.\nFidelity: ${clip(message(fidelityError), 800)}\nEditor: ${clip(editor, 850)}`,
   );
 }
-
-// The fidelity prompt asks for the category in each reason. Facts-only repair
-// needs every issue to name the one category that a registration can fix, and
-// no issue whose advice offers removing the claim from the prose instead: that
-// choice needs the full package.
-const REMOVAL_ADVICE =
-  /\b(remov\w*|delet\w*|omit\w*|drop\w*|cut|strik\w*|leave\s+out|take\s+out)\b/i;
-const onlyUnregisteredFacts = (issues: { reason: string }[]) =>
-  issues.length > 0 &&
-  issues.every(
-    (issue) =>
-      /^\W*unregistered_material_fact\b/.test(issue.reason) &&
-      !REMOVAL_ADVICE.test(issue.reason),
-  );
 
 const EDITOR_FINDINGS_PREFIX = "Correct the final package's literary issues:\n";
 const blockingIssue = (issue: EditorIssue) =>
@@ -506,7 +494,7 @@ export async function processFictionLifeJob(
       if (!checked.valid || checked.issues.length)
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',
-          `Correct the final package/prose discrepancy: ${checked.issues.map((i) => i.reason).join(' ')}`,
+          fictionFidelityDiscrepancyMessage(checked.issues),
         );
     } catch (error) {
       // Frozen policies retain their original immediate fidelity-repair path.
@@ -544,7 +532,7 @@ export async function processFictionLifeJob(
             authored,
             false,
             false,
-            !!scope.characters && onlyUnregisteredFacts(checked.data.issues),
+            !!scope.characters && fictionFactsOnlyEligible(checked.data.issues),
           );
           continue;
         }

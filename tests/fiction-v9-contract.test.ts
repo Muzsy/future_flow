@@ -49,6 +49,8 @@ import {
   narrativeReferencesFromMemory,
   validateFictionAuthor,
   validateFictionCharacterDelta,
+  fictionFactsOnlyEligible,
+  fictionFidelityDiscrepancyMessage,
 } from '@future-flow/core';
 import { authorPackages } from '../scripts/lib/narrative-author-packages';
 import { captureRequest } from '../scripts/lib/narrative-request-replay';
@@ -1369,5 +1371,45 @@ describe('the full package of a stored reduced-repair attempt (C4 harness)', () 
       'outcome',
       'storyFacts',
     ]);
+  });
+});
+
+describe('the facts-only eligibility of a fidelity failure', () => {
+  const reason = (text: string) => ({ reason: text });
+  it('needs every reason to be an unregistered material fact', () => {
+    expect(
+      fictionFactsOnlyEligible([
+        reason(
+          'unregistered_material_fact: a request the facts do not record.',
+        ),
+        reason(' unregistered_material_fact - a second one.'),
+      ]),
+    ).toBe(true);
+    expect(fictionFactsOnlyEligible([])).toBe(false);
+    expect(
+      fictionFactsOnlyEligible([
+        reason('unregistered_material_fact: one.'),
+        reason('contradicted_fact: another.'),
+      ]),
+    ).toBe(false);
+  });
+  it('is refused when the advice offers removing the claim', () => {
+    expect(
+      fictionFactsOnlyEligible([
+        reason(
+          'unregistered_material_fact: remove the sentence or register it.',
+        ),
+      ]),
+    ).toBe(false);
+    expect(
+      fictionFactsOnlyEligible([
+        reason('unregistered_material_fact: leave out the claim.'),
+      ]),
+    ).toBe(false);
+  });
+  it('words the repair message from the reasons', () => {
+    expect(
+      fictionFidelityDiscrepancyMessage([reason('a.'), reason('b.')]),
+    ).toBe('Correct the final package/prose discrepancy: a. b.');
   });
 });

@@ -304,6 +304,25 @@ export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
   facts_only:
     'Facts-only repair: previous.chapter and previous.candidate stay exactly as they are. Return outcome facts_added and in storyFacts only the NEW facts that register every lasting claim the feedback names: a fresh id, introducedByEventId of an event of previous.candidate, aboutActorIds of fictional people only (a supplied person keeps relationship state only), supersedesFactId null unless an owned historical fact changes. Do not repeat a fact of previous.storyFacts. If the claim cannot be registered without a typed state change, a new person or a change to the prose, return outcome needs_full_repair and no facts.',
 };
+// The fidelity prompt asks for the category in each reason. Facts-only repair
+// needs every issue to name the one category that a registration can fix, and
+// no issue whose advice offers removing the claim from the prose instead: that
+// choice needs the full package.
+const REMOVAL_ADVICE =
+  /\b(remov\w*|delet\w*|omit\w*|drop\w*|cut|strik\w*|leave\s+out|take\s+out)\b/i;
+// The text a fidelity failure hands to the repair round (the worker clips the
+// error message to the repair budget).
+export const fictionFidelityDiscrepancyMessage = (
+  issues: { reason: string }[],
+) =>
+  `Correct the final package/prose discrepancy: ${issues.map((i) => i.reason).join(' ')}`;
+export const fictionFactsOnlyEligible = (issues: { reason: string }[]) =>
+  issues.length > 0 &&
+  issues.every(
+    (issue) =>
+      /^\W*unregistered_material_fact\b/.test(issue.reason) &&
+      !REMOVAL_ADVICE.test(issue.reason),
+  );
 // Merges a reduced v9 repair output into the previous package. Everything the
 // model did not return is the previous package itself, so a prose-only repair
 // cannot touch the facts, the candidate, the plan or the character delta, and a
