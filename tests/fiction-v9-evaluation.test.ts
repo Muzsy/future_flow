@@ -13,7 +13,14 @@ import {
 } from '../scripts/lib/narrative-request-breakdown';
 import { runNarrativeProbeEditor } from '../scripts/narrative-probe-editor';
 import { runNarrativeProbeLatency } from '../scripts/narrative-probe-latency';
-import { attemptTracePath } from '../scripts/lib/narrative-evaluation-attempts';
+import {
+  attemptTracePath,
+  verifyAttemptTrace,
+  verifyTraceMatchesReceipts,
+  type EvaluationAttemptTrace,
+} from '../scripts/lib/narrative-evaluation-attempts';
+import { DomainError, hash } from '@future-flow/core';
+import { narrativeDimensions } from '@future-flow/contracts';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import {
   attemptEvidence,
@@ -723,4 +730,167 @@ describe('v9 mechanics-recount diagnostic (C4/D1)', () => {
       characterBytes(payload('en'), {}, [], null, [], 'Four hours.').mechanics,
     ).toBeNull();
   });
+});
+
+// A reduced repair (chapter text only, or the added facts only) is merged into
+// the previous package by the provider, and its receipt binds the MERGED
+// package. The diagnostic trace must bind the same hash and keep the raw
+// response's hash beside it; every call is still checked against its receipt.
+describe('the diagnostic trace of a reduced v9 repair (Codex A/B regression)', () => {
+  const caseId = 'creative-portfolio:narrative-v1:0';
+  async function reducedRun(kind: 'prose_only' | 'facts_only'): Promise<{
+    out: string;
+    trace: EvaluationAttemptTrace;
+    run: Awaited<ReturnType<typeof runNarrativeEvaluation>>;
+  }> {
+    const out = await mkdtemp(join(tmpdir(), `alterward-reduced-${kind}-`));
+    const o = parseEvaluationOptions([
+      '--creative-only',
+      '--fiction-generation',
+      'v9',
+      '--fixtures',
+      'creative-portfolio',
+      '--periods',
+      '1',
+      '--out',
+      out,
+    ]);
+    const previousOf = (parameters: unknown) =>
+      JSON.parse(
+        (
+          parameters as { input: { role: string; content: string }[] }
+        ).input.find((m) => m.role === 'user')!.content,
+      ).authorRepair.previous as {
+        candidate: { events: { id: string }[] };
+        chapter: { title: string; body: string };
+      };
+    const run = await runNarrativeEvaluation(
+      o,
+      {},
+      ({ task, ordinal, parameters, defaultOutput }) => {
+        const base = JSON.parse(JSON.stringify(defaultOutput()));
+        if (kind === 'prose_only') {
+          if (task === 'life_narrative_editor' && ordinal === 4)
+            return {
+              ...base,
+              scores: Object.fromEntries(
+                narrativeDimensions.map((d) => [d, d === 'prose' ? 3 : 4]),
+              ),
+              verdict: 'revise',
+              issues: [
+                {
+                  dimension: 'prose',
+                  severity: 'major',
+                  repairScope: 'prose',
+                  paragraphIndex: 1,
+                  eventIds: [],
+                  explanation: 'The closing leans on a tidy summary sentence.',
+                  suggestedFix: 'Replace it with a concrete physical gesture.',
+                },
+              ],
+            };
+          if (
+            task === 'life_narrative_chapter' &&
+            ordinal === (kind === 'facts_only' ? 4 : 5)
+          )
+            return {
+              chapter: {
+                title: base.chapter.title,
+                body: `${base.chapter.body} A repaired sentence.`,
+              },
+            };
+        } else {
+          if (task === 'life_fidelity' && ordinal === 3)
+            return {
+              valid: false,
+              issues: [
+                {
+                  chapterNo: 1,
+                  reason:
+                    'unregistered_material_fact: the prose names a request that no story fact records.',
+                },
+              ],
+            };
+          if (
+            task === 'life_narrative_chapter' &&
+            ordinal === (kind === 'facts_only' ? 4 : 5)
+          )
+            return {
+              outcome: 'facts_added',
+              storyFacts: [
+                {
+                  id: '00000000-0000-4000-8000-0000000000aa',
+                  introducedByEventId:
+                    previousOf(parameters).candidate.events[0]!.id,
+                  aboutActorIds: [],
+                  kind: 'observation',
+                  assertion: 'An earlier request that the scene refers to.',
+                  supersedesFactId: null,
+                  relevance: 'continuity',
+                },
+              ],
+            };
+        }
+        return base;
+      },
+    );
+    const trace = JSON.parse(
+      await readFile(attemptTracePath(out, caseId), 'utf8'),
+    ) as EvaluationAttemptTrace;
+    return { out, trace, run };
+  }
+
+  for (const kind of ['prose_only', 'facts_only'] as const)
+    it(`binds the merged package of a ${kind} repair to its receipt and keeps the raw hash`, async () => {
+      const { out, trace, run } = await reducedRun(kind);
+      try {
+        expect(run.failures).toEqual([]);
+        const sample = run.samples[0]!;
+        expect(sample.repairUsed).toBe(true);
+        expect(sample.requestCount).toBe(8);
+        const repair = trace.attempts.find(
+          (a) => a.task === 'life_narrative_chapter' && a.repairFeedback,
+        )!;
+        expect(repair.repairFeedback?.mode).toBe(kind);
+        // outputHash is what the receipt binds (the merged package); the raw
+        // response keeps its own hash.
+        const receipt = sample.receipts[repair.ordinal]!;
+        expect(repair.outputHash).toBe(receipt.outputHash);
+        expect(repair.providerOutputHash).toBe(hash(repair.output));
+        expect(repair.providerOutputHash).not.toBe(repair.outputHash);
+        if (kind === 'prose_only')
+          expect(sample.chapter.body).toBe(
+            (repair.output as { chapter: { body: string } }).chapter.body,
+          );
+        else
+          expect((repair.output as { outcome: string }).outcome).toBe(
+            'facts_added',
+          );
+        // The strict receipt check passes on the real trace...
+        const binding = {
+          caseId,
+          sourceCommit: run.sourceCommit,
+          sourceHash: run.sourceHash,
+          manifestBinding: JSON.parse(
+            await readFile(join(out, 'manifest.json'), 'utf8'),
+          ).binding,
+          mock: true,
+          models: run.models,
+          projectHash: null,
+        };
+        expect(verifyAttemptTrace(trace, binding)).toEqual(trace);
+        expect(() =>
+          verifyTraceMatchesReceipts(trace, sample.receipts),
+        ).not.toThrow();
+        // ...and a trace that claims the raw hash instead no longer matches.
+        const forged = structuredClone(trace);
+        forged.attempts[repair.ordinal]!.outputHash =
+          repair.providerOutputHash!;
+        expect(() =>
+          verifyTraceMatchesReceipts(forged, sample.receipts),
+        ).toThrow(DomainError);
+      } finally {
+        await rm(out, { recursive: true, force: true });
+      }
+    });
 });

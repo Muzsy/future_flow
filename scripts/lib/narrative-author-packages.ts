@@ -1,5 +1,5 @@
 import type { FictionAuthorResult } from '@future-flow/contracts';
-import { mergeFictionRepair } from '@future-flow/core';
+import { hash, mergeFictionRepair } from '@future-flow/core';
 
 // The full author package of every author attempt that has one, by ordinal. A
 // reduced v9 repair (facts-only or prose-only) stores only what the model
@@ -36,4 +36,35 @@ export function authorPackages(
     previous = full;
   }
   return packages;
+}
+
+// What the provider's receipt binds for a reduced v9 repair call: the hash of
+// the MERGED package, not of the raw response. The request carries the previous
+// package and the mode, so the diagnostic trace can compute the same hash and
+// keep the raw one beside it. `null` for any other call, and for a response
+// that cannot be merged (the provider then returns no receipt for it).
+export function reducedRepairMergedHash(
+  parsedRequest: unknown,
+  output: unknown,
+): string | null {
+  const repair = (parsedRequest as { authorRepair?: Record<string, unknown> })
+    ?.authorRepair;
+  if (
+    !repair ||
+    typeof repair.repairRule !== 'string' ||
+    (repair.mode !== 'prose_only' && repair.mode !== 'facts_only') ||
+    !repair.previous
+  )
+    return null;
+  try {
+    return hash(
+      mergeFictionRepair(
+        repair.previous as FictionAuthorResult,
+        repair.mode,
+        output,
+      ),
+    );
+  } catch {
+    return null;
+  }
 }

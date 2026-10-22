@@ -841,7 +841,7 @@ function clientFor(
         return creative && task === 'life_narrative_plan'
           ? cf!.draft
           : creative && task === 'life_narrative_chapter'
-            ? cf!.authored
+            ? reducedMockAuthor(parameters.input, cf!.authored)
             : creative && task === 'life_narrative_editor'
               ? cf!.editor
               : creative && task === 'life_narrative_plan_review'
@@ -910,6 +910,28 @@ function clientFor(
     },
   });
   return { responses: { parse } } as unknown as OpenAI;
+}
+// What a model asked for a reduced v9 repair returns: only the chapter text for
+// a prose-only repair, and (as the safe default) a request for the full repair
+// for a facts-only one; a mock responder supplies real facts when it needs them.
+function reducedMockAuthor(input: unknown, authored: unknown) {
+  const user = (
+    input as { role: string; content: unknown }[] | undefined
+  )?.find((m) => m.role === 'user')?.content;
+  let repair: { mode?: string; repairRule?: string } | undefined;
+  try {
+    repair = (JSON.parse(String(user)) as { authorRepair?: typeof repair })
+      .authorRepair;
+  } catch {
+    repair = undefined;
+  }
+  if (!repair?.repairRule) return authored;
+  const { chapter } = authored as { chapter: { title: string; body: string } };
+  return repair.mode === 'prose_only'
+    ? { chapter: { title: chapter.title, body: chapter.body } }
+    : repair.mode === 'facts_only'
+      ? { outcome: 'needs_full_repair', storyFacts: [] }
+      : authored;
 }
 function receiptsInOrder(
   rows: { metadata: AiReceipt }[],

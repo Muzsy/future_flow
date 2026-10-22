@@ -20,6 +20,10 @@ import {
 import { DomainError, hash } from '@future-flow/core';
 import type { AiReceipt } from '@future-flow/ai';
 import type { EvaluationOptions } from './narrative-evaluation-options';
+import {
+  authorPackages,
+  reducedRepairMergedHash,
+} from './narrative-author-packages';
 import { requestParts, type RequestParts } from './narrative-request-parts';
 
 const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -71,7 +75,11 @@ export const evaluationAttemptRecordSchema = z
     model: z.string().min(1).max(200),
     requestHash: digestSchema,
     inputHash: digestSchema,
+    // What the provider's receipt binds. For a reduced v9 repair call it is the
+    // hash of the merged package and `providerOutputHash` is the hash of the
+    // raw response held in `output`; otherwise the hash of `output`.
     outputHash: digestSchema.nullable(),
+    providerOutputHash: digestSchema.optional(),
     output: z.unknown().nullable(),
     status: z.enum(['completed', 'incomplete', 'malformed', 'failed']),
     errorCode: z.string().min(2).max(64).nullable(),
@@ -609,6 +617,7 @@ export function verifyAttemptTrace(
     trace.models.story,
     trace.models.check,
   ]);
+  const packages = authorPackages(trace.attempts);
   for (let i = 0; i < trace.attempts.length; i++) {
     const attempt = trace.attempts[i]!;
     if (attempt.ordinal !== i)
@@ -633,7 +642,19 @@ export function verifyAttemptTrace(
           'Null attempt output cannot have an outputHash or completed status.',
         );
     } else {
-      if (attempt.outputHash !== hash(attempt.output))
+      // A reduced repair binds the merged package: recompute it from the
+      // trace's own earlier packages instead of trusting the stored hash.
+      const merged =
+        attempt.providerOutputHash !== undefined
+          ? packages.get(attempt.ordinal)
+          : undefined;
+      if (
+        attempt.providerOutputHash !== undefined
+          ? attempt.providerOutputHash !== hash(attempt.output) ||
+            !merged ||
+            attempt.outputHash !== hash(merged)
+          : attempt.outputHash !== hash(attempt.output)
+      )
         throw new DomainError(
           'EVAL_STATE_INVALID',
           'Diagnostic attempt record outputHash does not match its parsed output.',
@@ -1075,6 +1096,7 @@ export function wrapEvaluationParse<
     let errorCode: string | null = null;
     let output: unknown = null;
     let outputHash: string | null = null;
+    let providerOutputHash: string | undefined;
     if (
       response.status !== 'completed' ||
       response.output_parsed === undefined ||
@@ -1102,6 +1124,13 @@ export function wrapEvaluationParse<
       );
       output = normalized.output;
       outputHash = normalized.outputHash;
+      const merged = normalized.malformed
+        ? null
+        : reducedRepairMergedHash(parsedUserInput, output);
+      if (merged) {
+        providerOutputHash = outputHash;
+        outputHash = merged;
+      }
       if (normalized.malformed) {
         status = 'malformed';
         errorCode = 'AI_INVALID_SCHEMA';
@@ -1113,6 +1142,7 @@ export function wrapEvaluationParse<
       requestHash,
       inputHash,
       outputHash,
+      ...(providerOutputHash ? { providerOutputHash } : {}),
       output,
       status,
       errorCode,
