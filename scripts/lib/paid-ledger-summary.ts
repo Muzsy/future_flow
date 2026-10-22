@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 // Reads the shared paid-experiment ledger (`ExperimentAiBudget`'s file) and
 // summarises it without touching it: totals, and the same calls grouped per
@@ -167,4 +168,31 @@ export function ledgerMarkdown(summary: LedgerSummary) {
     ...table('Per case (budget bindings)', summary.perCase),
     ...table('Per UTC day and model', summary.perUtcDayAndModel),
   ].join('\n');
+}
+
+// The ledger's lock file survives a crashed paid process and then blocks every
+// later paid run (the safe direction). This only reports it, read-only: it is
+// stale when the process that wrote it no longer runs, and a person deletes it
+// by hand after checking that no paid process is active.
+export function paidLockStatus(ledgerPath: string) {
+  const lock = join(dirname(ledgerPath), 'paid-run.lock');
+  if (!existsSync(lock)) return 'Paid-run lock: none.';
+  let pid: number | null = null;
+  try {
+    pid =
+      (JSON.parse(readFileSync(lock, 'utf8')) as { pid?: number }).pid ?? null;
+  } catch {
+    // An unreadable lock is reported as such below.
+  }
+  if (pid === null)
+    return `Paid-run lock: ${lock} exists and is unreadable; delete it by hand only after checking that no paid process runs.`;
+  let alive = true;
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    alive = (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+  return alive
+    ? `Paid-run lock: held by process ${pid}, which is running: a paid process is active.`
+    : `Paid-run lock: ${lock} is STALE (process ${pid} no longer runs); after checking that no paid process is active, delete it by hand.`;
 }

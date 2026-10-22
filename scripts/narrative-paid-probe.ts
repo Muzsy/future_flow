@@ -21,6 +21,7 @@ import {
 } from './lib/narrative-probe';
 import {
   ledgerMarkdown,
+  paidLockStatus,
   readLedgerCalls,
   summariseLedger,
 } from './lib/paid-ledger-summary';
@@ -29,8 +30,8 @@ import { readFileSync, existsSync } from 'node:fs';
 // Usage:
 //   pnpm narrative:paid-probe list   --run <run dir>[,<run dir>] [--state <name>]
 //   pnpm narrative:paid-probe run    --run <dirs> [--state <name>] --out <dir>
-//        --paid yes --approval-id <id> [--max-spend-usd 0.5] [--cases 2]
-//        [--smoke yes|no] [--synthetic yes|no]
+//        --paid yes --approval-id <id> [--max-spend-usd 0.6] [--cases 2]
+//        [--smoke yes|no] --synthetic yes|no
 //   pnpm narrative:paid-probe ledger [--since <ISO time>] [--case-name-prefix <p>]
 //        [--ledger <file>] [--out <dir>]
 //
@@ -104,7 +105,7 @@ export async function runNarrativePaidProbe(
         ? JSON.parse(readFileSync(bindingsPath, 'utf8'))
         : {},
     );
-    const markdown = ledgerMarkdown(summary);
+    const markdown = `${ledgerMarkdown(summary)}\n${paidLockStatus(resolve(args.get('--ledger') ?? LEDGER))}\n`;
     const out = args.get('--out');
     if (out) {
       const dir = probeOutputDir(out, []);
@@ -137,7 +138,7 @@ export async function runNarrativePaidProbe(
     runs,
     args.get('--state'),
     positiveInteger(args.get('--cases'), 2),
-    yes(args.get('--synthetic'), command === 'run'),
+    yes(args.get('--synthetic'), false),
   );
   if (command === 'list')
     return {
@@ -152,6 +153,12 @@ export async function runNarrativePaidProbe(
     };
   const approvalId = args.get('--approval-id');
   const out = args.get('--out');
+  // Whether a synthetic case may stand in for a missing stored one is always an
+  // explicit choice of the person who starts the paid run.
+  if (!['yes', 'no'].includes(args.get('--synthetic') ?? ''))
+    throw new Error(
+      'A paid probe needs --synthetic yes|no, stated explicitly.',
+    );
   if (args.get('--paid') !== 'yes' || !approvalId || !out)
     throw new Error(
       'A paid probe needs --paid yes, --approval-id and --out (outside the stored runs).',

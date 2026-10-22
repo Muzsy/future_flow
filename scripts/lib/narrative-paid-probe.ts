@@ -27,6 +27,7 @@ import { authorPackages } from './narrative-author-packages';
 import {
   approvalCumulativeBudgetUsd,
   evaluationV9MeasurementApproval,
+  verifyApprovalLedger,
 } from './narrative-evaluation-approval';
 import {
   evaluationApprovedCumulativeBudgetUsd,
@@ -54,7 +55,7 @@ import type { StoredChapter } from './narrative-request-breakdown';
 // cap: the probe cannot spend more than its cap, and never more than the
 // owner-approved cumulative ceiling. Nothing here lowers a guard of the ledger.
 export const PROBE_CASE_NAME_PREFIX = 'paid-probe';
-export const PROBE_DEFAULT_MAX_SPEND_USD = 0.5;
+export const PROBE_DEFAULT_MAX_SPEND_USD = 0.6;
 // The repair message is clipped to the same budget as in the worker.
 const REPAIR_MESSAGE_LIMIT = 1800;
 // A smoke answer is tiny; the case calls use the product's own limit.
@@ -299,6 +300,7 @@ export async function runPaidProbe(
       `The paid probe is approved only under ${evaluationV9MeasurementApproval.approvalId}.`,
     );
   const ledgerCalls = readLedgerCalls(ledgerPath);
+  verifyApprovalLedger(ledgerCalls);
   const start = ledgerTotals(ledgerCalls);
   // The ledger enforces the cumulative figure; a probe cap that would reach
   // past the owner-approved ceiling is refused, never clamped.

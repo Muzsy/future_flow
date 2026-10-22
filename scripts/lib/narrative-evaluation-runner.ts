@@ -81,8 +81,9 @@ import {
 } from './narrative-evaluation-costs';
 import {
   approvalChapterHalt,
-  approvalCumulativeBudgetUsd,
   evaluationV9MeasurementApproval,
+  verifyApprovalBudget,
+  verifyApprovalLedger,
 } from './narrative-evaluation-approval';
 import { readLedgerCalls } from './paid-ledger-summary';
 import {
@@ -1462,12 +1463,49 @@ async function forkComparison(
   });
 }
 
+// Programmatic seams of the exported runner (tests); the command line has none.
+// `ledgerDir` replaces the accounting directory (the shared-ledger floor still
+// applies to a paid v9 run); `approval` switches the approval's chapter halts on
+// in an offline mock run, which a paid run never takes from the caller.
+export type EvaluationSeams = {
+  ledgerDir?: string;
+  approval?: typeof evaluationV9MeasurementApproval;
+};
+const ledgerDirectory = (seams?: EvaluationSeams) =>
+  seams?.ledgerDir ?? '.local/narrative-evaluation';
+const ledgerFile = (seams?: EvaluationSeams) =>
+  resolve(ledgerDirectory(seams), 'paid-usage.json');
+
 async function runEvaluationUnlocked(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
+  // The source-bound v9 approval holds the whole measurement, probe included, to
+  // its cap on the shared ledger: the ledger must be the shared one, and a
+  // budget above what it leaves the approval is refused, before any work.
+  if (
+    options.kind === 'paid' &&
+    options.fictionGeneration &&
+    options.approvalId !== evaluationV9MeasurementApproval.approvalId
+  )
+    throw new DomainError(
+      'EVAL_CONFIG_INVALID',
+      'A paid v9 measurement needs its own owner-approved budget.',
+    );
+  const v9Approval =
+    options.kind === 'paid' && options.fictionGeneration
+      ? evaluationV9MeasurementApproval
+      : undefined;
+  if (v9Approval) {
+    const calls = readLedgerCalls(ledgerFile(seams));
+    verifyApprovalLedger(calls);
+    verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
+  }
+  const haltApproval =
+    v9Approval ?? (options.kind !== 'paid' ? seams?.approval : undefined);
   if (options.kind === 'assess')
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -1578,10 +1616,8 @@ async function runEvaluationUnlocked(
       'EVAL_CHOICE_REVIEW_INVALID',
       'Duplicate semantic reviews.',
     );
-  const ledgerPath = resolve('.local/narrative-evaluation/paid-usage.json');
-  const bindingPath = resolve(
-    '.local/narrative-evaluation/budget-bindings.json',
-  );
+  const ledgerPath = ledgerFile(seams);
+  const bindingPath = resolve(ledgerDirectory(seams), 'budget-bindings.json');
   if (options.kind === 'paid')
     for (const path of [
       resolve('.local'),
@@ -1594,32 +1630,12 @@ async function runEvaluationUnlocked(
           'EVAL_OUTPUT_INVALID',
           'Experimental accounting cannot use symlinked paths.',
         );
-  // The source-bound v9 approval holds the whole measurement, probe included,
-  // to its cap: a budget above what the ledger leaves it is refused.
-  const v9Approval =
-    options.kind === 'paid' &&
-    options.fictionGeneration === 'v9' &&
-    options.approvalId === evaluationV9MeasurementApproval.approvalId
-      ? evaluationV9MeasurementApproval
-      : undefined;
-  if (v9Approval) {
-    const allowed = approvalCumulativeBudgetUsd(
-      readLedgerCalls(ledgerPath),
-      v9Approval.approvalId,
-      v9Approval.maxSpendUsd,
-    );
-    if (options.budgetUsd! > allowed + 1e-9)
-      throw new DomainError(
-        'EVAL_BUDGET_INVALID',
-        `The approval ${v9Approval.approvalId} may reach a cumulative ledger total of USD ${(Math.floor(allowed * 1e6) / 1e6).toFixed(6)} at most (its own spend counted); pass that or less as --budget-usd.`,
-      );
-  }
   const chapterHalt = () =>
-    v9Approval
+    haltApproval
       ? approvalChapterHalt(
           readLedgerCalls(ledgerPath),
           report.samples.filter((s) => s.kind !== 'fixed-canon').length,
-          v9Approval,
+          haltApproval,
         )
       : null;
   const experiment =
@@ -2183,6 +2199,7 @@ export async function runNarrativeEvaluation(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
   if (existsSync(options.out) && lstatSync(options.out).isSymbolicLink())
@@ -2217,7 +2234,7 @@ export async function runNarrativeEvaluation(
       );
       await handle.close();
     }
-    return await runEvaluationUnlocked(options, env, mockResponder);
+    return await runEvaluationUnlocked(options, env, mockResponder, seams);
   } finally {
     for (const path of acquired.reverse()) await unlink(path);
   }

@@ -336,6 +336,8 @@ export function verifyEvaluationAuthorization(
   if (options.creative) args.push('--creative');
   if (options.creativeOnly) args.push('--creative-only');
   if (options.noForks) args.push('--no-forks');
+  // Always passed, so that a v9 options object meets the v9 gate again here.
+  args.push('--fiction-generation', options.fictionGeneration ?? 'v8');
   if (options.choiceMix) args.push('--choice-mix', options.choiceMix);
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));

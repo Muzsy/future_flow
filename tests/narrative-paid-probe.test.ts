@@ -1,12 +1,14 @@
+import { readFileSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import type OpenAI from 'openai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fictionFactsOnlyEligible } from '@future-flow/core';
+import { DomainError, fictionFactsOnlyEligible } from '@future-flow/core';
 import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
 import { runNarrativeEvaluation } from '../scripts/lib/narrative-evaluation-runner';
+import { verifyEvaluationAuthorization } from '../scripts/lib/narrative-evaluation-options';
 import {
   paidProbeEnvironment,
   paidProbeMarkdown,
@@ -18,7 +20,9 @@ import {
 import { storedChapters } from '../scripts/lib/narrative-request-breakdown';
 import { resolveStateName } from '../scripts/lib/narrative-probe';
 import {
+  paidLockStatus,
   ledgerTotals,
+  paidLockStatus,
   readLedgerCalls,
   summariseLedger,
   type LedgerCall,
@@ -27,7 +31,10 @@ import {
   approvalChapterHalt,
   approvalCumulativeBudgetUsd,
   approvalSpend,
+  evaluationLedgerFloorUsd,
   evaluationV9MeasurementApproval,
+  verifyApprovalBudget,
+  verifyApprovalLedger,
 } from '../scripts/lib/narrative-evaluation-approval';
 import { runNarrativePaidProbe } from '../scripts/narrative-paid-probe';
 
@@ -37,6 +44,11 @@ const ProviderOpenAI = createRequire(
 )('openai') as typeof OpenAI;
 
 const APPROVAL = evaluationV9MeasurementApproval.approvalId;
+// The shared ledger the approval is anchored to: the closed earlier spend.
+const base = (usd = 50) =>
+  call({ id: 'base', caseName: 'closed', accountedUsd: usd });
+const seedLedger = (path: string, extra: LedgerCall[] = []) =>
+  writeFile(path, JSON.stringify({ calls: [base(), ...extra] }));
 
 const call = (patch: Partial<LedgerCall>): LedgerCall => ({
   id: 'a',
@@ -276,10 +288,7 @@ describe('forced facts-only paid probe, offline', () => {
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-ledger-'));
     const ledgerPath = join(dir, 'paid-usage.json');
     // An earlier spend in the same ledger: the probe starts from it.
-    await writeFile(
-      ledgerPath,
-      JSON.stringify({ calls: [call({ id: 'earlier', accountedUsd: 1.25 })] }),
-    );
+    await seedLedger(ledgerPath, [call({ id: 'earlier', accountedUsd: 1.25 })]);
     try {
       const seen: { bytes: number; maxOutputTokens: number }[] = [];
       const client = fakeClient(({ schemaKeys, user }) => {
@@ -332,7 +341,7 @@ describe('forced facts-only paid probe, offline', () => {
         expect(c.estimatedUsd).toBeLessThan(c.accountedUsd!);
       }
       // Ledger totals at the start and at the end, and the probe's own spend.
-      expect(result.ledger.start.accountedUsd).toBeCloseTo(1.25);
+      expect(result.ledger.start.accountedUsd).toBeCloseTo(51.25);
       const calls = readLedgerCalls(ledgerPath);
       expect(result.ledger.end!.accountedUsd).toBeCloseTo(
         ledgerTotals(calls).accountedUsd,
@@ -355,6 +364,7 @@ describe('forced facts-only paid probe, offline', () => {
     const { out, chapters } = await storedRun();
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-cap-'));
     const ledgerPath = join(dir, 'paid-usage.json');
+    await seedLedger(ledgerPath);
     try {
       const client = fakeClient(() => ({
         outcome: 'needs_full_repair',
@@ -387,6 +397,7 @@ describe('forced facts-only paid probe, offline', () => {
   it('reports a facts-only answer that asks for the full repair, with its receipt', async () => {
     const { out, chapters } = await storedRun();
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-full-'));
+    await seedLedger(join(dir, 'paid-usage.json'));
     try {
       const result = await runPaidProbe({
         ledgerPath: join(dir, 'paid-usage.json'),
@@ -414,6 +425,7 @@ describe('forced facts-only paid probe, offline', () => {
   it('stops after a refused schema and sends no case request', async () => {
     const { out, chapters } = await storedRun();
     const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-refuse-'));
+    await seedLedger(join(dir, 'paid-usage.json'));
     try {
       const client = {
         responses: {
@@ -673,4 +685,307 @@ describe('the paid v9 gate of the evaluation options', () => {
   });
   it('keeps every other paid v9 request refused', () =>
     refused({ '--fixtures': 'bounded-career', '--approval-id': 'x' }));
+});
+
+describe('the shared-ledger floor and the approval budget', () => {
+  it('refuses a missing or a too small ledger: the cap never starts from zero', async () => {
+    expect(() => verifyApprovalLedger([])).toThrow(/not the shared ledger/);
+    expect(() => verifyApprovalLedger([base(10)])).toThrow(DomainError);
+    expect(() =>
+      verifyApprovalLedger([base(evaluationLedgerFloorUsd)]),
+    ).not.toThrow();
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-floor-'));
+    try {
+      const run = (path: string) =>
+        runPaidProbe({
+          ledgerPath: path,
+          maxSpendUsd: 0.6,
+          approvalId: APPROVAL,
+          cases: [],
+          smoke: true,
+          apiKey: 'offline-test-key',
+          client: fakeClient(() => ({})),
+        });
+      await expect(run(join(dir, 'missing.json'))).rejects.toMatchObject({
+        code: 'EVAL_LEDGER_INVALID',
+      });
+      await writeFile(
+        join(dir, 'small.json'),
+        JSON.stringify({ calls: [base(3)] }),
+      );
+      await expect(run(join(dir, 'small.json'))).rejects.toMatchObject({
+        code: 'EVAL_LEDGER_INVALID',
+      });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it('allows a budget up to the ledger baseline plus the cap, and no more', () => {
+    const calls = [
+      base(50),
+      call({ caseName: `narrative-evaluation:${APPROVAL}`, accountedUsd: 1 }),
+    ];
+    expect(() => verifyApprovalBudget(calls, 52.7)).not.toThrow();
+    expect(() => verifyApprovalBudget(calls, 52.7000001)).toThrow(
+      /52\.700000 at most/,
+    );
+    expect(() => verifyApprovalBudget(calls, 52.9)).toThrow(DomainError);
+  });
+  it('reports the lock file of a crashed paid process without touching it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-lock-'));
+    const ledger = join(dir, 'paid-usage.json');
+    try {
+      expect(paidLockStatus(ledger)).toMatch(/none/);
+      await writeFile(
+        join(dir, 'paid-run.lock'),
+        JSON.stringify({ pid: 2 ** 22 + 12345 }),
+      );
+      expect(paidLockStatus(ledger)).toMatch(/STALE/);
+      await writeFile(
+        join(dir, 'paid-run.lock'),
+        JSON.stringify({ pid: process.pid }),
+      );
+      expect(paidLockStatus(ledger)).toMatch(/running/);
+      await writeFile(join(dir, 'paid-run.lock'), 'garbage');
+      expect(paidLockStatus(ledger)).toMatch(/unreadable/);
+      expect(readFileSync(join(dir, 'paid-run.lock'), 'utf8')).toBe('garbage');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('the probe never writes the key, and never lets the SDK retry', () => {
+  it('keeps a marked key out of the report, the markdown and the ledger, even when the API answers 401', async () => {
+    const { out, chapters } = await storedRun();
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-probe-key-'));
+    const ledgerPath = join(dir, 'paid-usage.json');
+    await seedLedger(ledgerPath);
+    const key = `sk-proj-MARKER${'z'.repeat(30)}`;
+    try {
+      const client = {
+        responses: {
+          parse: async () => {
+            throw new ProviderOpenAI.AuthenticationError(
+              401,
+              { message: `Incorrect API key provided: ${key}` },
+              `Incorrect API key provided: ${key}`,
+              new Headers(),
+            );
+          },
+        },
+      } as unknown as OpenAI;
+      const result = await runPaidProbe({
+        ledgerPath,
+        maxSpendUsd: 0.6,
+        approvalId: APPROVAL,
+        cases: storedFactsOnlyCases(chapters, 'run-a'),
+        smoke: true,
+        apiKey: key,
+        client,
+      });
+      // The first authentication failure ends the probe after one call.
+      expect(result.calls).toHaveLength(1);
+      expect(result.stoppedBy).toMatch(/AI_AUTH_FAILED/);
+      for (const text of [
+        JSON.stringify(result),
+        paidProbeMarkdown(result),
+        readFileSync(ledgerPath, 'utf8'),
+      ])
+        expect(text).not.toContain('MARKER');
+    } finally {
+      await rm(out, { recursive: true, force: true });
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it('builds every paid SDK client with maxRetries 0, so no retry bypasses the ledger', () => {
+    for (const file of [
+      'scripts/lib/narrative-paid-probe.ts',
+      'scripts/lib/narrative-evaluation-runner.ts',
+    ]) {
+      const source = readFileSync(join(process.cwd(), file), 'utf8');
+      const clients = [...source.matchAll(/new OpenAI\(\{[\s\S]*?\}\)/g)];
+      expect(clients.length).toBeGreaterThan(0);
+      for (const [client] of clients) expect(client).toMatch(/maxRetries: 0/);
+    }
+  });
+});
+
+describe('the runner holds a paid v9 run to the approval (wiring)', () => {
+  const env = {
+    NARRATIVE_EVAL_API_KEY: 'sk-proj-synthetic-config-test-only-123456',
+    NARRATIVE_EVAL_PROJECT_ID: 'proj_synthetic_test',
+    NARRATIVE_EVAL_PROJECT_CONFIRMATION: 'dedicated-development',
+  };
+  beforeEach(() =>
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      now: Date.parse('2026-10-19T12:00:00Z'),
+    }),
+  );
+  afterEach(() => vi.useRealTimers());
+  const paidOptions = (out: string, budget: string, id = APPROVAL) =>
+    parseEvaluationOptions(
+      [
+        '--mode',
+        'paid',
+        '--allow-paid',
+        '--creative-only',
+        '--fiction-generation',
+        'v9',
+        '--fixtures',
+        'career-transition',
+        '--periods',
+        '4',
+        '--choice-mix',
+        'rotate',
+        '--budget-usd',
+        budget,
+        '--approval-id',
+        id,
+        '--out',
+        out,
+      ],
+      env,
+    );
+
+  it('refuses a --budget-usd above what the ledger leaves the approval, before any work', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-wiring-'));
+    try {
+      await seedLedger(join(dir, 'paid-usage.json'));
+      await expect(
+        runNarrativeEvaluation(
+          paidOptions(join(dir, 'run'), '52.9'),
+          env,
+          undefined,
+          { ledgerDir: dir },
+        ),
+      ).rejects.toMatchObject({ code: 'EVAL_BUDGET_INVALID' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it('refuses a missing or a non-shared ledger before any work', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-wiring-'));
+    try {
+      await expect(
+        runNarrativeEvaluation(
+          paidOptions(join(dir, 'run'), '2.7'),
+          env,
+          undefined,
+          { ledgerDir: dir },
+        ),
+      ).rejects.toMatchObject({ code: 'EVAL_LEDGER_INVALID' });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it('a hand-built paid v9 options object meets the gate again (closed baseline)', async () => {
+    const wide = {
+      ...parseEvaluationOptions([
+        '--creative-only',
+        '--fiction-generation',
+        'v9',
+        '--fixtures',
+        'creative-portfolio',
+        '--periods',
+        '8',
+        '--out',
+        '/tmp/x',
+      ]),
+      kind: 'paid' as const,
+      allowPaid: true,
+      budgetUsd: 5,
+      approvalId: 'anything',
+    };
+    expect(() => verifyEvaluationAuthorization(wide, env)).toThrow(
+      'owner-approved budget',
+    );
+    await expect(runNarrativeEvaluation(wide, env)).rejects.toThrow(
+      'owner-approved budget',
+    );
+  });
+
+  // Offline mock runs with the approval's chapter halts switched on: the mock
+  // writes the approval's spend into a temporary ledger after a chosen chapter,
+  // as the real calls would.
+  async function haltedRun(
+    spendAfterPeriod: number,
+    spend: { accountedUsd: number; estimatedUsd: number },
+  ) {
+    const dir = await mkdtemp(join(tmpdir(), 'alterward-paid-halt-'));
+    const ledger = join(dir, 'paid-usage.json');
+    await seedLedger(ledger);
+    let spent = false;
+    const options = parseEvaluationOptions([
+      '--creative-only',
+      '--fiction-generation',
+      'v9',
+      '--fixtures',
+      'career-transition',
+      '--periods',
+      '3',
+      '--out',
+      join(dir, 'run'),
+    ]);
+    try {
+      const run = await runNarrativeEvaluation(
+        options,
+        {},
+        ({ task, caseId, defaultOutput }) => {
+          if (
+            !spent &&
+            task === 'life_narrative_editor' &&
+            caseId.endsWith(`:${spendAfterPeriod}`)
+          ) {
+            spent = true;
+            writeFileSync(
+              ledger,
+              JSON.stringify({
+                calls: [
+                  base(),
+                  call({
+                    id: 'v9m',
+                    caseName: `narrative-evaluation:${APPROVAL}`,
+                    ...spend,
+                  }),
+                ],
+              }),
+            );
+          }
+          return JSON.parse(JSON.stringify(defaultOutput()));
+        },
+        { ledgerDir: dir, approval: evaluationV9MeasurementApproval },
+      );
+      return run;
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+  const limits = (run: Awaited<ReturnType<typeof haltedRun>>) =>
+    run.failures.filter((f) => f.code === 'EVAL_APPROVAL_LIMIT');
+
+  it('starts no new chapter in the main loop once the approval has accounted USD 2.10', async () => {
+    const run = await haltedRun(1, { accountedUsd: 2.2, estimatedUsd: 0.2 });
+    expect(run.samples.filter((s) => s.kind === 'full')).toHaveLength(2);
+    expect(limits(run).map((f) => f.caseId)).toEqual([
+      'career-transition:narrative-v1:2',
+    ]);
+    // The halt is a stop: no fork follows.
+    expect(run.samples.some((s) => s.kind === 'fork')).toBe(false);
+  }, 120_000);
+  it('starts no fork either', async () => {
+    const run = await haltedRun(2, { accountedUsd: 2.2, estimatedUsd: 0.2 });
+    expect(run.samples.filter((s) => s.kind === 'full')).toHaveLength(3);
+    expect(run.samples.some((s) => s.kind === 'fork')).toBe(false);
+    expect(limits(run).map((f) => f.caseId)).toEqual([
+      'fork:career-transition:narrative-v1',
+    ]);
+  }, 120_000);
+  it('stops after two chapters on a mean estimated cost above USD 0.50', async () => {
+    const run = await haltedRun(1, { accountedUsd: 1.5, estimatedUsd: 1.2 });
+    expect(run.samples.filter((s) => s.kind === 'full')).toHaveLength(2);
+    expect(limits(run)).toHaveLength(1);
+    expect(limits(run)[0]!.diagnostic).toBeDefined();
+  }, 120_000);
 });

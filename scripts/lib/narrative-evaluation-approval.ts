@@ -1,3 +1,4 @@
+import { DomainError } from '@future-flow/core';
 import type { LedgerCall } from './paid-ledger-summary';
 
 // Owner authorization 2026-10-22 21:08 (Hungarian time, Ákos): "3.44 dollár van
@@ -78,4 +79,39 @@ export function approvalChapterHalt(
   )
     return `Cost signal: the mean usage-estimated cost of ${chaptersDone} chapters is USD ${(spend.runEstimatedUsd / chaptersDone).toFixed(4)}, above USD ${approval.costSignalMeanUsd}: stopped for analysis.`;
   return null;
+}
+
+// The closed v8 Stage B ledger total (875 calls) that the owner-approved
+// cumulative ceiling was built on: a ledger below it is not the shared ledger.
+// A missing file or another working directory would otherwise start the
+// approval's cap from zero and hide the cumulative ceiling.
+export const evaluationLedgerFloorUsd = 46.69296;
+export function verifyApprovalLedger(calls: LedgerCall[]) {
+  const total = calls.reduce((s, c) => s + c.accountedUsd, 0);
+  if (total < evaluationLedgerFloorUsd)
+    throw new DomainError(
+      'EVAL_LEDGER_INVALID',
+      `The ledger holds USD ${total.toFixed(4)}, below the closed v8 total USD ${evaluationLedgerFloorUsd}: it is missing or is not the shared ledger (run from the measuring checkout's root).`,
+    );
+}
+
+// The largest --budget-usd the approval allows, and the refusal of a larger one.
+export function verifyApprovalBudget(
+  calls: LedgerCall[],
+  budgetUsd: number,
+  approval: Pick<
+    typeof evaluationV9MeasurementApproval,
+    'approvalId' | 'maxSpendUsd'
+  > = evaluationV9MeasurementApproval,
+) {
+  const allowed = approvalCumulativeBudgetUsd(
+    calls,
+    approval.approvalId,
+    approval.maxSpendUsd,
+  );
+  if (budgetUsd > allowed + 1e-9)
+    throw new DomainError(
+      'EVAL_BUDGET_INVALID',
+      `The approval ${approval.approvalId} may reach a cumulative ledger total of USD ${(Math.floor(allowed * 1e6) / 1e6).toFixed(6)} at most (its own spend counted); pass that or less as --budget-usd.`,
+    );
 }
