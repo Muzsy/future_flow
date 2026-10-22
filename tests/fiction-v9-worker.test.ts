@@ -1370,6 +1370,49 @@ describe('v9 reduced repairs: facts only and chapter only (C4/D2, D3)', () => {
       );
   });
 
+  it('does not register a fact about a supplied person: the chapter ends on the existing gate', async () => {
+    const f = await fixture();
+    const supplied = envelopeOf(f.job).suppliedActorIds[0]!;
+    expect(supplied).toBeTruthy();
+    await failsOnTheGate(
+      f,
+      {
+        outcome: 'facts_added',
+        storyFacts: [newFact(f, { aboutActorIds: [supplied] })],
+      },
+      /supplied person/,
+    );
+  });
+
+  it('leaves a fidelity advice that offers removal to the full-package repair', async () => {
+    for (const reason of [
+      'unregistered_material_fact: register the earlier request or remove the sentence.',
+      'unregistered_material_fact: delete the claim or record it.',
+      'unregistered_material_fact: the claim should be omitted or registered.',
+    ]) {
+      const f = await fixture();
+      const p = provider(f, (task, n, output) =>
+        task === 'life_fidelity' && n === 1 ? failedFidelity(reason) : output,
+      );
+      await processLifeJob(f.job, jobs, p.ai);
+      const [, repair] = authorCalls(p);
+      expect(repair!.user.authorRepair?.mode).toBe('author_package');
+      expect(repair!.keys).toContain('candidate');
+      expect((await saved(f.job)).checkpoints.providerRequestCount).toBe(8);
+    }
+  });
+
+  it('writes the failure record only for a content failure, not for a transport one', async () => {
+    const f = await fixture();
+    const p = run(f, () => {
+      throw new Error('socket closed');
+    });
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'AI_REQUEST_FAILED',
+    });
+    expect((await saved(f.job)).checkpoints.factsOnlyFailure).toBeUndefined();
+  });
+
   it('refuses a facts-only repair when fewer than four requests remain, before any call', async () => {
     const f = await fixture();
     await jobs.checkpoint(f.job, 'EARLIER_ADMISSION', {

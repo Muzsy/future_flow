@@ -99,11 +99,17 @@ function combinedValidationError(
 }
 
 // The fidelity prompt asks for the category in each reason. Facts-only repair
-// needs every issue to name the one category that a registration can fix.
+// needs every issue to name the one category that a registration can fix, and
+// no issue whose advice offers removing the claim from the prose instead: that
+// choice needs the full package.
+const REMOVAL_ADVICE =
+  /\b(remov\w*|delet\w*|omit\w*|drop\w*|cut|strik\w*|leave\s+out|take\s+out)\b/i;
 const onlyUnregisteredFacts = (issues: { reason: string }[]) =>
   issues.length > 0 &&
-  issues.every((issue) =>
-    /^\W*unregistered_material_fact\b/.test(issue.reason),
+  issues.every(
+    (issue) =>
+      /^\W*unregistered_material_fact\b/.test(issue.reason) &&
+      !REMOVAL_ADVICE.test(issue.reason),
   );
 
 const EDITOR_FINDINGS_PREFIX = "Correct the final package's literary issues:\n";
@@ -420,7 +426,7 @@ export async function processFictionLifeJob(
       // repair round is spent and a full-package fallback would be a ninth
       // call on a path the owner fixed at eight. The reason and the receipt of
       // the failed call are kept in the checkpoint, outside the receipt chain.
-      if (feedback?.mode === 'facts_only')
+      if (feedback?.mode === 'facts_only' && repairable(error))
         await save('FICTION_FACTS_ONLY_FAILED', {
           factsOnlyFailure: {
             reason: message(error),

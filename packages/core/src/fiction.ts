@@ -302,7 +302,7 @@ export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
     'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names. Return only chapter.title and chapter.body; the server keeps every other field.' +
     FICTION_REPAIR_BALANCE,
   facts_only:
-    'Facts-only repair: previous.chapter and previous.candidate stay exactly as they are. Return outcome facts_added and in storyFacts only the NEW facts that register every lasting claim the feedback names: a fresh id, introducedByEventId of an event of previous.candidate, known aboutActorIds only, supersedesFactId null unless an owned historical fact changes. Do not repeat a fact of previous.storyFacts. If the claim cannot be registered without a typed state change, a new person or a change to the prose, return outcome needs_full_repair and no facts.',
+    'Facts-only repair: previous.chapter and previous.candidate stay exactly as they are. Return outcome facts_added and in storyFacts only the NEW facts that register every lasting claim the feedback names: a fresh id, introducedByEventId of an event of previous.candidate, aboutActorIds of fictional people only (a supplied person keeps relationship state only), supersedesFactId null unless an owned historical fact changes. Do not repeat a fact of previous.storyFacts. If the claim cannot be registered without a typed state change, a new person or a change to the prose, return outcome needs_full_repair and no facts.',
 };
 // Merges a reduced v9 repair output into the previous package. Everything the
 // model did not return is the previous package itself, so a prose-only repair
@@ -313,6 +313,7 @@ export function mergeFictionRepair(
   previous: FictionAuthorResult,
   mode: 'prose_only' | 'facts_only',
   raw: unknown,
+  suppliedActorIds: ReadonlySet<string> = new Set(),
 ): FictionAuthorResult {
   const base = fictionCompactAuthorV9Schema.parse(previous);
   if (mode === 'prose_only') {
@@ -330,6 +331,17 @@ export function mergeFictionRepair(
     throw new DomainError(
       'NARRATIVE_PLAN_INVALID',
       'The facts-only repair repeats an existing story fact ID.',
+    );
+  // A supplied person keeps relationship state only: a fact about them is never
+  // registered by this shortcut (owner rule, 2026-10-20).
+  if (
+    output.storyFacts.some((fact) =>
+      fact.aboutActorIds.some((id) => suppliedActorIds.has(id)),
+    )
+  )
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair registers a fact about a supplied person.',
     );
   return { ...base, storyFacts: [...base.storyFacts, ...output.storyFacts] };
 }

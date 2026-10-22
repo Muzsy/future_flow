@@ -688,7 +688,12 @@ export class OpenAiProvider
       const { previous, mode } = repair;
       return this.generate(reduced, ...args).then((result) => {
         try {
-          const output = mergeFictionRepair(previous, mode, result.output);
+          const output = mergeFictionRepair(
+            previous,
+            mode,
+            result.output,
+            fictionScope(input).characters?.actors.suppliedActorIds,
+          );
           return {
             output,
             receipt: { ...result.receipt, outputHash: hash(output) },
