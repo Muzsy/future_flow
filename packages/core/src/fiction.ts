@@ -332,7 +332,16 @@ export function fictionReviewRequest(
   authored: FictionAuthorResult,
   draft?: unknown,
 ) {
-  const { repair: _repair, ...base } = fictionPlannerRequest(input);
+  const { repair: _repair, ...plannerBase } = fictionPlannerRequest(input);
+  // Living world only: the check stages never write a name or an ID, so the
+  // authoring aids (referenceProjection, castingProjection) are not sent to
+  // them. Older policies keep every byte.
+  const base = fictionCharacterQualityVersions.includes(
+    fictionScope(input).context.policy.qualityPolicyVersion,
+  )
+    ? (({ referenceProjection: _ref, castingProjection: _cast, ...rest }) =>
+        rest)(plannerBase as typeof plannerBase & Record<string, unknown>)
+    : plannerBase;
   const { chapter: _chapter, ...proposed } = requestAuthorSchema(
     fictionScope(input).context.policy,
   ).parse(authored);
@@ -390,6 +399,16 @@ export function fictionEditorialRequest(
             markers: seriesFrictionMarkers(authored.chapter.body).slice(0, 12),
             priorRun: context.seriesLedger.frictionBeat.recentRun,
           },
+        }
+      : {}),
+    // Living world only: the paragraphs carry the prose the editor judges, so
+    // the whole body is not sent a second time (the title and the event and
+    // decision IDs stay).
+    ...(fictionCharacterQualityVersions.includes(
+      context.policy.qualityPolicyVersion,
+    )
+      ? {
+          chapter: (({ body: _body, ...rest }) => rest)(authored.chapter),
         }
       : {}),
     paragraphs: authored.chapter.body

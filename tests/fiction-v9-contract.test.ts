@@ -977,3 +977,79 @@ describe('the planner turn label (v9 only)', () => {
     ).toBe(true);
   });
 });
+
+describe('v9 request cleaning for the check stages (C4/D5)', () => {
+  const count = (text: string, needle: string) => text.split(needle).length - 1;
+  const firstParagraph = (body: string) => body.split(/\n\s*\n/)[0]!.trim();
+
+  it('sends the editor the chapter text once: paragraphs, not the body twice', () => {
+    const f = living(true);
+    const text = firstParagraph(f.authored.chapter.body);
+    expect(text.length).toBeGreaterThan(40);
+    const editor = fictionEditorialRequest(f.input, f.authored) as {
+      chapter: Record<string, unknown>;
+      paragraphs: { index: number; text: string }[];
+    };
+    expect(count(JSON.stringify(editor), text)).toBe(1);
+    expect(editor.paragraphs[0]).toEqual({ index: 1, text });
+    // Title and the event and decision IDs stay; only the body is gone.
+    expect(Object.keys(editor.chapter).sort()).toEqual([
+      'decisionId',
+      'eventIds',
+      'title',
+    ]);
+    // The fidelity check still reads the whole chapter.
+    expect(
+      (
+        fictionFidelityRequest(f.input, f.authored) as {
+          chapter: { body: string };
+        }
+      ).chapter.body,
+    ).toBe(f.authored.chapter.body);
+    // The request got smaller by about the body.
+    const v8 = fictionFixture();
+    const v8Editor = JSON.stringify(
+      fictionEditorialRequest(v8.input, v8.authored),
+    );
+    expect(count(v8Editor, firstParagraph(v8.authored.chapter.body))).toBe(2);
+  });
+
+  it('leaves the authoring aids to the planner and the author', () => {
+    const f = living(true);
+    const aids = ['referenceProjection', 'castingProjection'];
+    for (const key of aids) {
+      expect(fictionPlannerRequest(f.input)).toHaveProperty(key);
+      expect(fictionAuthorRequest(f.input, f.draft)).toHaveProperty(key);
+      expect(
+        fictionReviewRequest(f.input, f.authored, f.draft),
+      ).not.toHaveProperty(key);
+      expect(fictionFidelityRequest(f.input, f.authored)).not.toHaveProperty(
+        key,
+      );
+      expect(fictionEditorialRequest(f.input, f.authored)).not.toHaveProperty(
+        key,
+      );
+    }
+    // The bound context and the rest of the review request are untouched.
+    expect(fictionReviewRequest(f.input, f.authored)).toHaveProperty(
+      'narrativeContext',
+    );
+    expect(fictionReviewRequest(f.input, f.authored)).toHaveProperty(
+      'proposed',
+    );
+    // The request hash is stable for the same package (reuse checks compare it).
+    expect(hash(fictionReviewRequest(f.input, f.authored, f.draft))).toBe(
+      hash(fictionReviewRequest(f.input, f.authored, f.draft)),
+    );
+    // v8 keeps whatever its planner base carries in every check stage.
+    const v8 = fictionFixture();
+    const planner = fictionPlannerRequest(v8.input);
+    for (const key of aids)
+      for (const request of [
+        fictionReviewRequest(v8.input, v8.authored),
+        fictionFidelityRequest(v8.input, v8.authored),
+        fictionEditorialRequest(v8.input, v8.authored),
+      ])
+        expect(key in request).toBe(key in planner);
+  });
+});
