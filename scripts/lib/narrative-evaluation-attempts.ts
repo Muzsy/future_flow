@@ -18,6 +18,7 @@ import {
 import { DomainError, hash } from '@future-flow/core';
 import type { AiReceipt } from '@future-flow/ai';
 import type { EvaluationOptions } from './narrative-evaluation-options';
+import { requestParts, type RequestParts } from './narrative-request-parts';
 
 const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const safeCaseIdPattern = /^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/;
@@ -128,6 +129,9 @@ export type AttemptTransportSummary = {
   // 4096-byte buffer on top), so the real v9 request sizes can be compared
   // with the transport limit.
   requestBytes?: number;
+  // The same request split by part (system prompt, schema, user message by
+  // key, narrativeContext by key); the parts add up to `requestBytes`.
+  requestParts?: RequestParts;
 };
 
 export type AttemptSampleSummary = {
@@ -996,6 +1000,7 @@ export function wrapEvaluationParse<
     );
     const started = Date.now();
     const requestBytes = Buffer.byteLength(JSON.stringify(parameters), 'utf8');
+    const parts = requestParts(parameters);
     const persist = async (
       record: Omit<EvaluationAttemptRecord, 'caseId' | 'ordinal'>,
     ) => {
@@ -1016,6 +1021,7 @@ export function wrapEvaluationParse<
         task,
         latencyMs: record.latencyMs,
         requestBytes,
+        requestParts: parts,
         ...(serialized === null
           ? {}
           : {

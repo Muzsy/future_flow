@@ -49,6 +49,7 @@
     "narrative:probe-editor": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-probe-editor.ts",
     "narrative:repair-evidence": "tsx --tsconfig tsconfig.scripts.json scripts/narrative-repair-evidence.ts",
     "narrative:request-breakdown": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-request-breakdown.ts",
+    "narrative:request-replay": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-request-replay.ts",
     "narrative:compare": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-run-comparison.ts",
     "narrative:commit-replay": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/narrative-commit-replay.ts",
     "narrative:codex": "pnpm build:packages && tsx --tsconfig tsconfig.scripts.json scripts/evaluate-narrative-codex.ts",

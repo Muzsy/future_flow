@@ -69,6 +69,7 @@ import {
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
 import { currentFixedNarrativeFixture as fixedNarrativeFixture } from './narrative-evaluation-fixtures';
+import type { RequestParts } from './narrative-request-parts';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
@@ -212,6 +213,9 @@ export type EvaluationSample = {
         estimatedTokens: number;
         // Raw request bytes of the call; the production guard adds 4096.
         requestBytes: number | null;
+        // The same bytes by part (system, schema, user by key, context by
+        // key); absent for a transport record written before the split existed.
+        requestParts?: RequestParts;
       }[];
       proseChars: number;
       proseBytes: number;
@@ -451,6 +455,7 @@ export function characterBytes(
                 outputBytes: t.outputBytes,
                 estimatedTokens: estimate(t.outputBytes),
                 requestBytes: t.requestBytes ?? null,
+                ...(t.requestParts ? { requestParts: t.requestParts } : {}),
               },
             ],
       ),
@@ -698,6 +703,7 @@ type TransportRecord = {
   outputChars?: number;
   outputBytes?: number;
   requestBytes?: number;
+  requestParts?: RequestParts;
 };
 function clientFor(
   options: EvaluationOptions,
