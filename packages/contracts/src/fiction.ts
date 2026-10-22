@@ -872,6 +872,42 @@ export const fictionCompactAuthorV9Schema = z
 export type FictionAuthorResultV9 = z.infer<
   typeof fictionCompactAuthorV9Schema
 >;
+// Reduced v9 repair outputs. The model returns only what the repair changes and
+// the server merges it into the previous package, so every other field stays
+// byte for byte. `needs_full_repair` is the model's own way out when registering
+// the facts is not enough (a typed state change, a new person or a prose change
+// is needed): the worker then repairs with the full package instead.
+export const fictionFactsOnlyRepairSchema = z
+  .object({
+    outcome: z.enum(['facts_added', 'needs_full_repair']),
+    storyFacts: z.array(storyFactSchema).max(4),
+  })
+  .strict();
+export type FictionFactsOnlyRepair = z.infer<
+  typeof fictionFactsOnlyRepairSchema
+>;
+export const fictionProseOnlyRepairSchema = z
+  .object({
+    chapter: periodChapterV2Schema.pick({ title: true, body: true }).strict(),
+  })
+  .strict();
+export type FictionProseOnlyRepair = z.infer<
+  typeof fictionProseOnlyRepairSchema
+>;
+// The reduced schema of a repair mode, for the living-world policy only; the
+// frozen policies always repair with the full package.
+export function fictionRepairSchemaFor(
+  policy: FictionPolicy,
+  mode: 'author_package' | 'prose_only' | 'facts_only',
+) {
+  if (!fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion))
+    return undefined;
+  return mode === 'facts_only'
+    ? fictionFactsOnlyRepairSchema
+    : mode === 'prose_only'
+      ? fictionProseOnlyRepairSchema
+      : undefined;
+}
 // Output schemas are chosen by the frozen policy, never by the payload shape,
 // so a v1-v8 output can never be read with the v9 meaning (plan section 23).
 export function fictionDraftSchemaFor(policy: FictionPolicy) {

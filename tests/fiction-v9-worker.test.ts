@@ -76,6 +76,21 @@ afterAll(async () => {
   await engine?.close();
 });
 
+// A v9 prose-only repair asks for, and the mock returns, only the chapter text
+// (the reduced schema); every other author call returns the full package.
+function authorOutput(
+  request: { input: { role: string; content: unknown }[] },
+  authored: unknown,
+) {
+  const user = JSON.parse(
+    request.input.find((i) => i.role === 'user')!.content as string,
+  ) as { authorRepair?: { mode: string; repairRule?: string } };
+  const { chapter } = authored as { chapter: { title: string; body: string } };
+  return user.authorRepair?.repairRule &&
+    user.authorRepair.mode === 'prose_only'
+    ? { chapter: { title: chapter.title, body: chapter.body } }
+    : authored;
+}
 type Generation = 'v8' | 'v9';
 const configFor = (owner: string, generation: Generation) => ({
   mode: FICTION_MODE,
@@ -102,7 +117,11 @@ function provider(
   respond?: (task: string, ordinal: number, output: unknown) => unknown,
 ) {
   const parse = vi.fn(
-    async (request: { model: string; text: { format: { name: string } } }) => {
+    async (request: {
+      model: string;
+      input: { role: string; content: unknown }[];
+      text: { format: { name: string } };
+    }) => {
       const task = request.text.format.name,
         ordinal = parse.mock.calls.filter(
           (c) => c[0].text.format.name === task,
@@ -111,7 +130,7 @@ function provider(
         task === 'life_narrative_plan'
           ? f.f.draft
           : task === 'life_narrative_chapter'
-            ? f.f.authored
+            ? authorOutput(request, f.f.authored)
             : task === 'life_narrative_plan_review'
               ? f.f.review
               : task === 'life_fidelity'
@@ -1215,5 +1234,213 @@ describe('turn rotation and the returning cast through the owned history', () =>
     expect(ledger.version).toBe('1.0.0');
     expect(ledger).not.toHaveProperty('turnQueue');
     expect(ledger).not.toHaveProperty('recurringCast');
+  });
+});
+
+describe('v9 reduced repairs: facts only and chapter only (C4/D2, D3)', () => {
+  const requests = (p: ProviderOf) =>
+    p.parse.mock.calls.map((c) => {
+      const raw = c[0] as unknown as {
+        input: { role: string; content: string }[];
+        text: { format: { name: string; schema: { properties: object } } };
+      };
+      return {
+        task: raw.text.format.name,
+        keys: Object.keys(raw.text.format.schema.properties),
+        user: JSON.parse(raw.input.find((i) => i.role === 'user')!.content) as {
+          authorRepair?: { mode: string; repairRule?: string };
+        },
+      };
+    });
+  const authorCalls = (p: ProviderOf) =>
+    requests(p).filter((r) => r.task === 'life_narrative_chapter');
+  const unregistered = () =>
+    failedFidelity(
+      'unregistered_material_fact: the prose names an earlier request that no story fact records.',
+    );
+  const newFact = (f: Fixture, over: object = {}) => ({
+    id: randomUUID(),
+    introducedByEventId: (f.f.authored as Authored).candidate.events[0]!.id,
+    aboutActorIds: [],
+    kind: 'observation',
+    assertion: 'An earlier request that the scene refers back to.',
+    supersedesFactId: null,
+    relevance: 'continuity',
+    ...over,
+  });
+  const run = (f: Fixture, facts: (task: string, n: number) => unknown) =>
+    provider(f, (task, n, output) => {
+      if (task === 'life_fidelity' && n === 1) return unregistered();
+      if (task === 'life_narrative_chapter' && n === 2) return facts(task, n);
+      return output;
+    });
+
+  it('asks for the missing facts alone, merges them and keeps every other field byte for byte', async () => {
+    const f = await fixture();
+    const fact = newFact(f);
+    const p = run(f, () => ({ outcome: 'facts_added', storyFacts: [fact] }));
+    await processLifeJob(f.job, jobs, p.ai);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    // The same eight calls as any fidelity repair: the cost is the author call.
+    expect(done.checkpoints.providerRequestCount).toBe(8);
+    const [, repair] = authorCalls(p);
+    expect(repair!.keys).toEqual(['outcome', 'storyFacts']);
+    expect(repair!.user.authorRepair?.mode).toBe('facts_only');
+    expect(repair!.user.authorRepair?.repairRule).toContain(
+      'Facts-only repair',
+    );
+    const original = f.f.authored as Authored;
+    const stored = (await artifactOf(f.job.payload.periodId)) as unknown as {
+      storyFacts: unknown[];
+      validatedPlan: unknown;
+    };
+    expect(stored.storyFacts).toEqual([...original.storyFacts, fact]);
+    expect(hash(stored.validatedPlan)).toBe(hash(original.plan));
+    // The chapter and the candidate that were committed are the first
+    // package's own.
+    const [row] = await db.query<{ chapter: unknown; candidate: unknown }>(
+      'SELECT chapter, candidate FROM aw_periods WHERE id=$1',
+      [f.job.payload.periodId],
+    );
+    expect(row!.chapter).toEqual(original.chapter);
+    expect(row!.candidate).toEqual(original.candidate);
+  });
+
+  it('falls back to the full package inside the same repair round when the model asks for it', async () => {
+    const f = await fixture();
+    const p = run(f, () => ({ outcome: 'needs_full_repair', storyFacts: [] }));
+    await processLifeJob(f.job, jobs, p.ai);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.repairUsed).toBe(true);
+    // plan, author, review, fidelity, facts-only author, full author, review,
+    // fidelity, editor: the existing nine-call ceiling, no tenth call.
+    expect(done.checkpoints.providerRequestCount).toBe(9);
+    const modes = authorCalls(p).map((r) => r.user.authorRepair?.mode);
+    expect(modes).toEqual([undefined, 'facts_only', 'author_package']);
+    expect(authorCalls(p)[2]!.keys).toContain('candidate');
+  });
+
+  it('falls back when the merged package does not validate', async () => {
+    const f = await fixture();
+    const p = run(f, () => ({
+      outcome: 'facts_added',
+      storyFacts: [newFact(f, { introducedByEventId: randomUUID() })],
+    }));
+    await processLifeJob(f.job, jobs, p.ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    expect(authorCalls(p).map((r) => r.user.authorRepair?.mode)).toEqual([
+      undefined,
+      'facts_only',
+      'author_package',
+    ]);
+    // A repeated fact ID is refused by the merge itself.
+    const g = await fixture();
+    const existing = (g.f.authored as Authored).storyFacts[0];
+    if (existing) {
+      const q = run(g, () => ({
+        outcome: 'facts_added',
+        storyFacts: [newFact(g, { id: existing.id })],
+      }));
+      await processLifeJob(g.job, jobs, q.ai);
+      expect(authorCalls(q).map((r) => r.user.authorRepair?.mode)).toEqual([
+        undefined,
+        'facts_only',
+        'author_package',
+      ]);
+    }
+  });
+
+  it('refuses the fallback when fewer than four requests remain and commits nothing', async () => {
+    const f = await fixture();
+    await jobs.checkpoint(f.job, 'EARLIER_ADMISSION', {
+      providerRequestCount: 1,
+    });
+    const p = run(f, () => ({ outcome: 'needs_full_repair', storyFacts: [] }));
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_REQUEST_LIMIT',
+    });
+    expect(await rowsOf(f)).toHaveLength(0);
+  });
+
+  it('repairs a mixed or other fidelity failure with the full package', async () => {
+    for (const reasons of [
+      [
+        'unregistered_material_fact: a request that no fact records.',
+        'chronology_error: the visit comes before the invitation.',
+      ],
+      ['state_mismatch: the prose changes the savings.'],
+      ['The prose repeats itself.'],
+    ]) {
+      const f = await fixture();
+      const p = provider(f, (task, n, output) =>
+        task === 'life_fidelity' && n === 1
+          ? {
+              valid: false,
+              issues: reasons.map((reason) => ({ chapterNo: 1, reason })),
+            }
+          : output,
+      );
+      await processLifeJob(f.job, jobs, p.ai);
+      const [, repair] = authorCalls(p);
+      expect(repair!.user.authorRepair?.mode).toBe('author_package');
+      expect(repair!.keys).toContain('candidate');
+      expect((await saved(f.job)).checkpoints.providerRequestCount).toBe(8);
+    }
+  });
+
+  it('leaves the frozen v8 policy on the full package, the same prompt and the same schema', async () => {
+    const f = await fixture('v8');
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n === 1 ? unregistered() : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    expect(authorCalls(p).every((r) => r.keys.includes('candidate'))).toBe(
+      true,
+    );
+    expect(
+      authorCalls(p)
+        .map((r) => r.user.authorRepair?.mode)
+        .every((m) => m !== 'facts_only'),
+    ).toBe(true);
+  });
+
+  it('asks a prose-only repair for the chapter text alone and keeps the package', async () => {
+    const f = await fixture();
+    const p = provider(f, (task, n, output) =>
+      task === 'life_narrative_editor' && n === 1
+        ? failingEditor(f, [{}])
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    const [, repair] = authorCalls(p);
+    expect(repair!.user.authorRepair?.mode).toBe('prose_only');
+    expect(repair!.keys).toEqual(['chapter']);
+    expect(repair!.user.authorRepair?.repairRule).toContain(
+      'Return only chapter.title and chapter.body',
+    );
+    // What was committed is the first package with only the chapter text
+    // replaced.
+    const original = f.f.authored as Authored;
+    const [row] = await db.query<{
+      chapter: Authored['chapter'];
+      candidate: unknown;
+    }>('SELECT chapter, candidate FROM aw_periods WHERE id=$1', [
+      f.job.payload.periodId,
+    ]);
+    expect(row!.candidate).toEqual(original.candidate);
+    expect(row!.chapter.eventIds).toEqual(original.chapter.eventIds);
+    expect(row!.chapter.decisionId).toBe(original.chapter.decisionId);
+    const stored = (await artifactOf(f.job.payload.periodId)) as unknown as {
+      storyFacts: unknown;
+      validatedPlan: unknown;
+      characterDelta: unknown;
+    };
+    expect(stored.storyFacts).toEqual(original.storyFacts);
+    expect(hash(stored.validatedPlan)).toBe(hash(original.plan));
+    expect(stored.characterDelta).toEqual(original.characterDelta);
   });
 });

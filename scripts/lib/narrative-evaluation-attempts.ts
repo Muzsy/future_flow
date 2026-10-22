@@ -5,6 +5,8 @@ import { z } from 'zod';
 import {
   fidelitySchema,
   fictionAuthorResultSchema,
+  fictionFactsOnlyRepairSchema,
+  fictionProseOnlyRepairSchema,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
   fictionEditorialReportSchema,
@@ -53,7 +55,7 @@ export type EvaluationAttemptUsage = z.infer<
 
 export const evaluationAttemptRepairFeedbackSchema = z
   .object({
-    mode: z.enum(['prose_only', 'author_package']).optional(),
+    mode: z.enum(['prose_only', 'author_package', 'facts_only']).optional(),
     message: z.string().min(1).max(100000),
   })
   .strict();
@@ -358,7 +360,9 @@ export function extractAttemptRepairFeedback(
   if (authorRepair && typeof authorRepair === 'object') {
     const ar = authorRepair as Record<string, unknown>;
     const mode =
-      ar.mode === 'prose_only' || ar.mode === 'author_package'
+      ar.mode === 'prose_only' ||
+      ar.mode === 'author_package' ||
+      ar.mode === 'facts_only'
         ? ar.mode
         : undefined;
     const rawMessage =
@@ -379,7 +383,9 @@ export function extractAttemptRepairFeedback(
   if (repair && typeof repair === 'object') {
     const rep = repair as Record<string, unknown>;
     const mode =
-      rep.mode === 'prose_only' || rep.mode === 'author_package'
+      rep.mode === 'prose_only' ||
+      rep.mode === 'author_package' ||
+      rep.mode === 'facts_only'
         ? rep.mode
         : undefined;
     const directMessage =
@@ -451,6 +457,8 @@ function fallbackSchemasForTask(task: EvaluationAttemptTask): z.ZodTypeAny[] {
         fictionCompactAuthorSchema,
         fictionAuthorResultSchema,
         periodChapterV2Schema,
+        fictionFactsOnlyRepairSchema,
+        fictionProseOnlyRepairSchema,
       ];
     case 'life_narrative_plan_review':
       return [narrativePlanReviewV2Schema, narrativePlanReviewV1Schema];

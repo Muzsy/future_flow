@@ -10,6 +10,7 @@ import {
   storedChapters,
   type StoredAttempt,
 } from './narrative-request-breakdown';
+import { authorPackages } from './narrative-author-packages';
 import { requestParts, type RequestParts } from './narrative-request-parts';
 
 // Rebuilds EVERY request of a stored creative run (planner, author, review,
@@ -94,8 +95,9 @@ async function replayAttempt(
         attempt.repairFeedback && previousAuthor
           ? ({
               mode:
-                attempt.repairFeedback.mode === 'prose_only'
-                  ? 'prose_only'
+                attempt.repairFeedback.mode === 'prose_only' ||
+                attempt.repairFeedback.mode === 'facts_only'
+                  ? attempt.repairFeedback.mode
                   : 'author_package',
               message: attempt.repairFeedback.message,
               previous: previousAuthor,
@@ -135,6 +137,7 @@ export async function replayRun(
   for (const { chapter, caseId, payload, attempts } of stored.chapters) {
     let plan: NarrativePlanningResult | undefined;
     let authored: FictionAuthorResult | undefined;
+    const packages = authorPackages(attempts);
     for (const attempt of attempts) {
       if (!(STAGES as readonly string[]).includes(attempt.task)) continue;
       const request = await replayAttempt(
@@ -157,7 +160,7 @@ export async function replayRun(
         if (attempt.task === 'life_narrative_plan')
           plan = attempt.output as NarrativePlanningResult;
         if (attempt.task === 'life_narrative_chapter')
-          authored = attempt.output as FictionAuthorResult;
+          authored = packages.get(attempt.ordinal) ?? authored;
       }
     }
   }

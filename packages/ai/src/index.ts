@@ -9,6 +9,7 @@ import {
   fictionHumanEditorialV13Schema,
   type FictionEditorialReport,
   fictionAuthorSchemaFor,
+  fictionRepairSchemaFor,
   fictionDraftSchemaFor,
   type FictionAuthorResult,
   type NarrativePeriodInput,
@@ -86,6 +87,7 @@ import {
 import {
   DomainError,
   hash,
+  mergeFictionRepair,
   type CanonEvent,
   type CanonEventV2,
   validateSharedAiInput,
@@ -667,15 +669,32 @@ export class OpenAiProvider
   ) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
-    return this.generate(
-      fictionAuthorSchemaFor(context.policy),
+    const args = [
       'life_narrative_chapter',
       this.config.storyModel,
       fictionPrompts(locale, context.policy.promptVersions).author,
       fictionAuthorRequest(input, draft, repair),
       locale,
       `${context.policy.promptVersions.writer}.${locale}`,
-    );
+    ] as const;
+    // v9 reduced repairs: the model returns only the changed part, the server
+    // merges it into the previous package and the receipt binds the MERGED
+    // package, which is what every later stage and the checkpoint carry.
+    const reduced: z.ZodType<unknown> | undefined =
+      repair?.previous && repair.mode !== 'author_package'
+        ? fictionRepairSchemaFor(context.policy, repair.mode)
+        : undefined;
+    if (reduced && repair?.previous && repair.mode !== 'author_package') {
+      const { previous, mode } = repair;
+      return this.generate(reduced, ...args).then((result) => {
+        const output = mergeFictionRepair(previous, mode, result.output);
+        return {
+          output,
+          receipt: { ...result.receipt, outputHash: hash(output) },
+        };
+      });
+    }
+    return this.generate(fictionAuthorSchemaFor(context.policy), ...args);
   }
   reviewFiction(
     input: NarrativePeriodInput,

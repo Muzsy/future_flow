@@ -47,6 +47,7 @@ import {
 } from '@future-flow/core';
 import {
   fictionAuthorSchemaFor,
+  fictionRepairSchemaFor,
   fictionDraftSchemaFor,
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
@@ -289,7 +290,9 @@ export function schemaFailureCounts(
       : attempt.task === 'life_narrative_plan'
         ? fictionDraftSchemaFor(policy)
         : attempt.task === 'life_narrative_chapter'
-          ? fictionAuthorSchemaFor(policy)
+          ? (attempt.repairFeedback?.mode &&
+              fictionRepairSchemaFor(policy, attempt.repairFeedback.mode)) ||
+            fictionAuthorSchemaFor(policy)
           : null;
     const parsed = schema?.safeParse(attempt.output);
     if (!parsed || parsed.success) continue;

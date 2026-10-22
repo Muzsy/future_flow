@@ -10,6 +10,7 @@ import type {
   NarrativePlanningResult,
 } from '@future-flow/contracts';
 import type { FictionRepair } from '@future-flow/core';
+import { authorPackages } from './narrative-author-packages';
 import { adapter } from './narrative-evaluation-runner';
 import { attemptTracePath } from './narrative-evaluation-attempts';
 
@@ -66,7 +67,12 @@ export async function authorRequestBreakdown(
     },
     { responses: { parse } } as unknown as OpenAI,
   );
-  await ai.authorFiction(input, draft, repair);
+  try {
+    await ai.authorFiction(input, draft, repair);
+  } catch {
+    // A reduced repair parses a reduced output; the stub here is the full
+    // package, so only the capture (before the parse) matters.
+  }
   const request = captured as {
     input: { role: string; content: string }[];
     text: unknown;
@@ -183,8 +189,11 @@ export async function breakdownRun(outDir: string, stateName: string) {
     const authors = attempts.filter(
       (a) => a.task === 'life_narrative_chapter' && a.output,
     );
+    const packages = authorPackages(attempts);
     let previous: FictionAuthorResult | undefined;
     for (const author of authors) {
+      const full = packages.get(author.ordinal);
+      if (!full) continue;
       const plan = attempts
         .filter(
           (a) =>
@@ -199,8 +208,9 @@ export async function breakdownRun(outDir: string, stateName: string) {
         author.repairFeedback && previous
           ? ({
               mode:
-                author.repairFeedback.mode === 'prose_only'
-                  ? 'prose_only'
+                author.repairFeedback.mode === 'prose_only' ||
+                author.repairFeedback.mode === 'facts_only'
+                  ? author.repairFeedback.mode
                   : 'author_package',
               message: author.repairFeedback.message,
               previous,
@@ -212,11 +222,11 @@ export async function breakdownRun(outDir: string, stateName: string) {
         breakdown: await authorRequestBreakdown(
           payload,
           plan.output as NarrativePlanningResult,
-          author.output as FictionAuthorResult,
+          full,
           repair,
         ),
       });
-      previous = author.output as FictionAuthorResult;
+      previous = full;
     }
   }
   return { label: stored.label, rows };

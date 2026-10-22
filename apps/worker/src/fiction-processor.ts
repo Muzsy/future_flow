@@ -98,6 +98,14 @@ function combinedValidationError(
   );
 }
 
+// The fidelity prompt asks for the category in each reason. Facts-only repair
+// needs every issue to name the one category that a registration can fix.
+const onlyUnregisteredFacts = (issues: { reason: string }[]) =>
+  issues.length > 0 &&
+  issues.every((issue) =>
+    /^\W*unregistered_material_fact\b/.test(issue.reason),
+  );
+
 const EDITOR_FINDINGS_PREFIX = "Correct the final package's literary issues:\n";
 const blockingIssue = (issue: EditorIssue) =>
   issue.severity === 'major' || issue.repairScope === 'canon';
@@ -304,6 +312,7 @@ export async function processFictionLifeJob(
     previous: FictionAuthorResult | null,
     proseOnly = false,
     planner = false,
+    factsOnly = false,
   ) {
     if (!repairable(error)) throw error;
     if (cp.repairUsed)
@@ -321,7 +330,11 @@ export async function processFictionLifeJob(
           }
         : {
             fictionRepair: {
-              mode: proseOnly ? 'prose_only' : 'author_package',
+              mode: factsOnly
+                ? 'facts_only'
+                : proseOnly
+                  ? 'prose_only'
+                  : 'author_package',
               message: message(error),
               previous,
             } satisfies FictionRepair,
@@ -402,6 +415,29 @@ export async function processFictionLifeJob(
         chapter: authored.chapter,
       });
     } catch (error) {
+      // A facts-only repair that cannot register the claim, or whose merged
+      // package does not validate, falls back to the full-package repair of the
+      // same repair round (no second repair); it needs the four requests of the
+      // author, review, fidelity and editor calls to still be available.
+      if (feedback?.mode === 'facts_only' && repairable(error)) {
+        if (
+          scope.context.policy.maxPhysicalRequests -
+            Number(cp.providerRequestCount ?? 0) <
+          4
+        )
+          throw new DomainError(
+            'NARRATIVE_REQUEST_LIMIT',
+            'Too few requests remain for the full-package repair after a facts-only repair.',
+          );
+        await save('FICTION_REPAIR_FACTS_ONLY_FALLBACK', {
+          fictionRepair: {
+            ...feedback,
+            mode: 'author_package',
+          } satisfies FictionRepair,
+        });
+        await clearFinal();
+        continue;
+      }
       await repair(error, authored ?? null);
       continue;
     }
@@ -506,7 +542,15 @@ export async function processFictionLifeJob(
             scope.context.policy.qualityPolicyVersion,
           )
         ) {
-          await repair(error, authored);
+          // Living world: when every fidelity issue is only an unregistered
+          // lasting claim, the repair asks for the missing facts alone.
+          await repair(
+            error,
+            authored,
+            false,
+            false,
+            !!scope.characters && onlyUnregisteredFacts(checked.data.issues),
+          );
           continue;
         }
         const cachedEditor =

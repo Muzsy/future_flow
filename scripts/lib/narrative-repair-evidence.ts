@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import { authorPackages } from './narrative-author-packages';
 import {
   repairTriggerOf,
   type RepairTrigger,
@@ -219,8 +220,12 @@ export function repairEvidence(runDir: string) {
         .filter((a) => a.task === 'life_narrative_chapter' && a.repairFeedback)
         .map((repair) => {
           const before = attempts.filter((a) => a.ordinal < repair.ordinal);
+          // A reduced repair stores only what the model returned: compare the
+          // full packages, merged as the provider merged them in the run.
+          const packages = authorPackages(attempts);
           const previous = before
-            .filter((a) => a.task === 'life_narrative_chapter' && a.output)
+            .filter((a) => packages.has(a.ordinal))
+            .map((a) => ({ ...a, output: packages.get(a.ordinal) }))
             .at(-1);
           const lastOf = (task: string, list: Attempt[]) =>
             list.filter((a) => a.task === task && a.output).at(-1);
@@ -262,7 +267,9 @@ export function repairEvidence(runDir: string) {
               }
             | undefined;
           const factsBefore = factsOf(previous?.output);
-          const factsAfter = factsOf(repair.output);
+          const factsAfter = factsOf(
+            packages.get(repair.ordinal) ?? repair.output,
+          );
           const known = new Set(factsBefore.map((f) => f.id));
           return {
             caseId,
@@ -304,8 +311,11 @@ export function repairEvidence(runDir: string) {
                   ?.chapter?.body,
               ),
               after: words(
-                (repair.output as { chapter?: { body?: string } } | null)
-                  ?.chapter?.body,
+                (
+                  (packages.get(repair.ordinal) ?? repair.output) as {
+                    chapter?: { body?: string };
+                  } | null
+                )?.chapter?.body,
               ),
             },
             editorAfter: editorAfter

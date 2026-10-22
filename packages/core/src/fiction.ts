@@ -7,6 +7,8 @@ import {
   fictionDraftSchemaFor,
   fictionAuthorSchemaFor,
   fictionCompactAuthorV9Schema,
+  fictionFactsOnlyRepairSchema,
+  fictionProseOnlyRepairSchema,
   fictionStoredDraftV9Schema,
   fictionCharacterQualityVersions,
   fictionThreeActorQualityVersions,
@@ -207,7 +209,7 @@ const requestAuthorSchema = (policy: FictionPolicy) =>
     ? fictionCompactAuthorV9Schema
     : fictionAuthorResultSchema;
 export type FictionRepair = {
-  mode: 'author_package' | 'prose_only';
+  mode: 'author_package' | 'prose_only' | 'facts_only';
   message: string;
   previous: FictionAuthorResult | null;
 };
@@ -297,9 +299,40 @@ export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
     'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.' +
     FICTION_REPAIR_BALANCE,
   prose_only:
-    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names.' +
+    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names. Return only chapter.title and chapter.body; the server keeps every other field.' +
     FICTION_REPAIR_BALANCE,
+  facts_only:
+    'Facts-only repair: previous.chapter and previous.candidate stay exactly as they are. Return outcome facts_added and in storyFacts only the NEW facts that register every lasting claim the feedback names: a fresh id, introducedByEventId of an event of previous.candidate, known aboutActorIds only, supersedesFactId null unless an owned historical fact changes. Do not repeat a fact of previous.storyFacts. If the claim cannot be registered without a typed state change, a new person or a change to the prose, return outcome needs_full_repair and no facts.',
 };
+// Merges a reduced v9 repair output into the previous package. Everything the
+// model did not return is the previous package itself, so a prose-only repair
+// cannot touch the facts, the candidate, the plan or the character delta, and a
+// facts-only repair cannot touch the chapter. The merged package goes through
+// the ordinary author validation and the same checks as any other package.
+export function mergeFictionRepair(
+  previous: FictionAuthorResult,
+  mode: 'prose_only' | 'facts_only',
+  raw: unknown,
+): FictionAuthorResult {
+  const base = fictionCompactAuthorV9Schema.parse(previous);
+  if (mode === 'prose_only') {
+    const { chapter } = fictionProseOnlyRepairSchema.parse(raw);
+    return { ...base, chapter: { ...base.chapter, ...chapter } };
+  }
+  const output = fictionFactsOnlyRepairSchema.parse(raw);
+  if (output.outcome !== 'facts_added' || !output.storyFacts.length)
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair asks for a full package repair.',
+    );
+  const known = new Set(base.storyFacts.map((fact) => fact.id));
+  if (output.storyFacts.some((fact) => known.has(fact.id)))
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair repeats an existing story fact ID.',
+    );
+  return { ...base, storyFacts: [...base.storyFacts, ...output.storyFacts] };
+}
 export function fictionAuthorRequest(
   input: NarrativePeriodInput,
   draft: NarrativePlanningResult,
