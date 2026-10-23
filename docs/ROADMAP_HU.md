@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-23
 related:
   - STATUS_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -31,9 +31,11 @@ Elkészült:
 
 Az első személyes tesztelő aktiválása, a 30 napos ablak és háromfejezetes paid E2E megtörtént. Következő prioritás az N08 többfejezetes/humán történetminőség, a valódi folytatási/retention mérés és a gazdaságos tartalommennyiség vizsgálata. A legfeljebb 10 fős korlát megmarad; bővítés nem automatikus.
 
+Az elfogadott 2026-10-20-i prioritás szerint az élő világ **v9 fejlesztése a következő zárt narratív béta elé kerül**. A közeli sorrend: C5 független review és célzott hatásmérés → a függő PR-lánc rendezése → v9-kompatibilis N09 üzemeltetés → kis zárt béta. A részletes státuszokat és teljesülési feltételeket a [master plan V9-1–V9-5](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) tartja nyilván.
+
 Nyitott kapuk:
 
-- N08 teljes paid/human benchmark, érdemi döntéskövetkezmény és alternatív ág;
+- érdemi döntéskövetkezmény és alternatív ág; teljes N08 paid/human benchmark nyilvános/fizetős kiadás előtt, zárt bétára az elfogadott [helyettesítő kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19);
 - N09 Linux funded-runtime upgrade (Issue #34), audit/CI/recovery és kontrollált target/apply;
 - későbbi sessionből sikeres folytatás, olvasói feedback és retention;
 - további résztvevő pontos Auth/reader admissionje, új candidate-hoz kötött backup/restore;
@@ -41,7 +43,7 @@ Nyitott kapuk:
 
 Shared minden flagje ebben a körben maradjon kikapcsolva.
 
-Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` P08.
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` V9-1–V9-5, N08/N09 és P08.
 
 ## P2 — Shared friend beta
 

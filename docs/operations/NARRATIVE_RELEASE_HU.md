@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-19
+last_reviewed: 2026-10-23
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -11,9 +11,13 @@ related:
 
 # Személyes narratív és fikciós kiadás: előkészítés és fennmaradó kapuk
 
-Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; a fizetett/független emberi N08 mérés még kötelező. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
+Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; nyilvános/fizetős kiadáshoz a teljes paid/humán N08 mérés kötelező, zárt bétára a lent rögzített helyettesítő kapurend érvényes. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
 
-## Aktuális v6 bizonyíték és költési határ — 2026-10-18
+## Aktuális végrehajtási keret — 2026-10-23
+
+A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, implementáció `7bd4d42`), production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
+
+## Történeti v6 bizonyíték és költési határ — 2026-10-18
 
 PR #50 mért checkpointként beolvadt (`f755a57`, production nélkül) / quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
@@ -31,9 +35,11 @@ Kérdés: kiadható-e az új narratív pipeline egy kis, zárt tesztelői körne
 - A független emberi sorozatértékelés helyett a tesztelők saját, valódi életének értékelése: fejezetenkénti alkalmazáson belüli visszajelzés és egy rövid kérdőív a 3. és a 6. fejezet után (lent). Ez valódi emberi bizonyíték, de nem vak összehasonlítás, ezért nyilvános vagy fizetős kiadásra nem elegendő.
 - Árazás, csomag, billing és latency-SLA nem feltétele a zárt, előre keretezett bétának; a mért latency és fejezetköltség a béta eredménye.
 
-**Javasolt kiadandó verzió:** a v7, amely mért checkpointként, élesítés nélkül beolvadt a mainbe (PR #51, `466ed29`); ha a v8 jelölt a N09 munka lezárásáig fizetősen mért és jobb, kiadás előtt arra váltunk. A verzióválasztás az N09 folyamatát nem változtatja meg.
+**Kiválasztott fejlesztési generáció — 2026-10-20-i döntés:** a zárt béta előtt a **v9 élő világ** készül el, a v8 befagyott baseline. A korábbi v7/v8 kiadási javaslatot ez felváltja. A C5 draft #66 nem kiadási engedély: a végleges forrás kiválasztása, mért checkpointja, független review-ja és v9-kompatibilis N09 target/recovery bizonyítéka még szükséges. Az éles jelölt, cohort, window és budget az apply előtt explicit egyeztetendő.
 
-**Költségkeret — tulajdonosi döntés, 2026-10-19:** első körben 10 USD OpenAI-keret 3 tesztelőre (tervezett 10 USD projekt / 3,33 USD felhasználó). Kb. 0,40–0,43 USD-s elfogadott fejezetenkénti költséggel ez tesztelőnként kb. 7–8 fejezet, tehát a 6. fejezet utáni kérdőív elérhető. A plafon a `DatabaseAiBudget`-ben, a személyes policyban, a napi monitor `personal_runtime_policy` ellenőrzésében és a Linux operátori receipt-ellenőrzésben 10 / 3,34 USD; a Claude audit plafonja változatlan. A napi monitor a szerverre telepített példányból fut, ezért az új plafon csak a reviewed újratelepítés után él. A keret a visszajelzések után módosulhat; minden módosítás újabb tulajdonosi döntés. A worker egyszerre egy jobot dolgoz fel (kódból kiolvasva, élesben nem mérve), így egyidejű kérésnél a tesztelők sorban várnak.
+**Korábban jóváhagyott béta-keret — tulajdonosi döntés, 2026-10-19:** első körben 10 USD OpenAI-keret 3 tesztelőre (tervezett 10 USD projekt / 3,33 USD felhasználó). Kb. 0,40–0,43 USD-s elfogadott fejezetenkénti költséggel ez tesztelőnként kb. 7–8 fejezet, tehát a 6. fejezet utáni kérdőív elérhető. A plafon a `DatabaseAiBudget`-ben, a személyes policyban, a napi monitor `personal_runtime_policy` ellenőrzésében és a Linux operátori receipt-ellenőrzésben 10 / 3,34 USD; a Claude audit plafonja változatlan. A napi monitor a szerverre telepített példányból fut, ezért az új plafon csak a reviewed újratelepítés után él. A keret a visszajelzések után módosulhat; minden módosítás újabb tulajdonosi döntés. A worker egyszerre egy jobot dolgoz fel (kódból kiolvasva, élesben nem mérve), így egyidejű kérésnél a tesztelők sorban várnak.
+
+A fenti döntés nem igazolja a keret production alkalmazását vagy mai maradékát, és nem indít új funded ablakot. A v9 kiadásnál az eredeti béta-elszámolást megőrizve kell a konkrét alkalmazható keretet és tesztelőket rögzíteni; a v9 offline/API mérés ettől külön költségengedély.
 
 ### Tesztelői visszajelzés
 
@@ -105,7 +111,7 @@ Rollbackhez post-038 kompatibilis alkalmazás+recovery image és explicit legacy
 
 Minden engedélyezett módosítás után visszaolvasni: actual image digest/source, mindhárom saját szolgáltatás health/env, explicit cohort és a nem engedélyezett account legacy útja, Access/CA/anon tiltások, schema/catalog, queue/fence/journal, változatlan window+ledger+limit, exportból/public DTO-ból a privát artifact kizárása. Egy már engedélyezett tesztelő új fejezete csak külön költési engedély és maradék eredeti keret mellett indulhat. A literary minőség kapuját a benchmark igazolja, egy éles smoke nem helyettesíti.
 
-Nyitott kapuk: valódi paid/human benchmark; Linux funded upgrade implementáció/audit; candidate immutable image+Container CI; célgépes migration/recovery/backup/staging proof; explicit éles apply és readback. Ezek lezárásáig narrative-v1 production bekapcsolása tilos.
+Nyitott kapuk: teljes paid/human benchmark nyilvános/fizetős kiadáshoz, illetve a fenti helyettesítő minőségkapuk zárt bétához; Linux funded upgrade implementáció/audit; candidate immutable image+Container CI; célgépes migration/recovery/backup/staging proof; explicit éles apply és readback. Az adott kiadásra érvényes kapuk lezárásáig a narratív pipeline production bekapcsolása tilos.
 
 
 Az új queue max8 policyja csak a kötelező tervellenőri markerrel és az annak megfelelő hash/receipt/provenance ellenőrzéssel kompatibilis; a régi max7 snapshot nem alakítható át kézzel. A recovery/rollback image-nek az új artifact review mezőit is kezelnie kell, még ha a DB oszlopséma nem változott is. Capability hiányában az új munka az első fizetett hívás előtt zár.

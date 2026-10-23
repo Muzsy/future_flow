@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-17
+last_reviewed: 2026-10-23
 implementation_status: in-progress
 ---
 
@@ -9,7 +9,13 @@ implementation_status: in-progress
 
 Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifikáció.
 
-## Aktuális fejlesztési jelölt — 2026-10-17
+## Aktuális végrehajtás — 2026-10-23
+
+A főág v8 (`a666c905`), az aktív fejlesztési jelölt a **v9 C5**, draft [#66](https://github.com/Muzsy/future_flow/pull/66), implementáció `7bd4d42`, a #65/C4 fölött. A v9 explicit opt-in, qualityPolicy 2.8.0; a production utolsó igazolt állapota legacy. A [C5 szakasz](#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23) a mostani scope, a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) a review/mérés/integráció/N09/béta végrehajtási sorrendje. F05/F06 PARTIAL; a zöld technikai CI nem igazolja a C5 irodalmi hatását.
+
+Az alábbi dátumozott v3–v8 fejezetek korábbi verziók döntéseit és bizonyítékait őrzik. A bennük szereplő „aktuális”, „következő” vagy maradék keret az akkori állapotra vonatkozik; mai jelöltet vagy új költési jogot nem jelöl.
+
+## Korábbi v4 fejlesztési jelölt — 2026-10-17
 
 A v4 human-quality csomag implementációja új planner/author/reviewer v4 + editor v3/report 1.2.0, qualityPolicy 2.2.0 snapshotot választ. A v1–v3 változatok megmaradnak. Hosszabb dramaturgiai memória, három új minőségkapu és külön teljes sorozatos olvasói értékelés egészíti ki a PR #47-et. Részletek és elfogadási feltételek: [v4 terv](alterward_fiction_human_quality_development_plan_codex.md). Az alábbi PR #47-mérés történeti bizonyíték, nem az új v4 valódi minőségi mérése. F05/F06 továbbra nyitott.
 
@@ -690,3 +696,9 @@ A mentett promptokba nem kerül új történetspecifikus név, tárgy, szám vag
 A v9 marad explicit opt-in, qualityPolicy 2.8.0. Nincs új hívás/stage, második tartalmi javítás, kapuváltozás, DB-migráció, budget/cohort vagy production-konfiguráció. Az alapértelmezés továbbra v8, production legacy. A v9 a korábbi C2–C4-hez hasonlóan még fejlesztési generáció: a módosított promptok miatt a korábbi v9 kérés-hashek új kóddal nem reprodukálhatók. Régi korpuszt az eredeti forrásával kell megtartani; C5-höz új kimeneti mappa és új forrásbinding kell. Ez nem új paid-futási engedély.
 
 A v8 golden/baseline, v9 request-byte, prompt-, contract- és worker-regressziók, valamint a normál repository gate-ek ellenőrzik az izolációt és a védelmeket. Az offline tesztek nem bizonyítanak irodalmi javulást vagy kisebb javítási arányt; új modellmérés ebben a feladatban nem indult. Az N08/humán és N09/rollout kapuk nyitottak. A következő összehasonlítás terve: [mérési runbook, C5](../operations/NARRATIVE_EVALUATION_HU.md#c5-ellenőrzés-az-editoros-javítások-offline-elemzése-után--2026-10-23).
+
+### C5 review és korlátozott smoke — 2026-10-23
+
+A `75fdda0 → 7bd4d42` diff külön read-only review-ja APPROVE, actionable finding nélkül; hat célzott fájl / 92 teszt újra PASS. A háromperiódusos `career-transition` Codex-kontroll 3 elfogadott fejezetet, 0 repairt, 15 hívást adott. C5: 1 elfogadott, 1 teljes csomagos repair után elutasított, 1 nem indult, összesen 14 hívás. Az eredeti novelty-kifogás megváltozott oksági szerep mellett vitatható; a nagy átírásban létrejött új zárási briefing-probléma a második editoron elbukott. Ez nem ugyanannak az eredeti hibának igazolt késői felismerése. Nincs gate-felülbírálat vagy második repair.
+
+A kis, szemantikailag eltérő történetfolyamokat adó minta nem igazol általános C5-javulást vagy regressziót. Következő a mentett eredeti/javított csomag és az editor-rubrika célzott elemzése; új generálás nem indult (20% ötórás szabad kvóta, indulási minimum 30%). A v9 C5 prompt, policy, schema és production változatlan. [Teljes bizonyíték és korlátok](../operations/NARRATIVE_EVALUATION_HU.md#c5-független-review-és-első-korlátozott-próba--2026-10-23); [master plan V9-1/V9-2](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23).
