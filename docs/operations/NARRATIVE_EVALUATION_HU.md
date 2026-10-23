@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-18
+last_reviewed: 2026-10-23
 related:
   - ../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md
   - NARRATIVE_RELEASE_HU.md
@@ -9,7 +9,11 @@ related:
 
 # Személyes történetminőség: reprodukálható összehasonlítás
 
-## Aktuális v6 bizonyíték és költési határ — 2026-10-18
+## Aktuális végrehajtási keret — 2026-10-23
+
+A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, implementáció `7bd4d42`), production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
+
+## Történeti v6 bizonyíték és költési határ — 2026-10-18
 
 PR #50 mért checkpointként beolvadt (`f755a57`, production nélkül) / quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
@@ -563,3 +567,5 @@ A [C5 módosítás](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-vál
 - Pozitív ellenpéldák: a visszatérő motívum és kiérdemelt ajánlat legitim használata; természetes feltételtisztázás a döntés érthetőségéért; csendes, okságilag változó folytatás. Ezeket nem válthatja fel kötelező kudarc, új szereplő vagy dramaturgiai rotáció.
 - Idő és prompt/request byte külön mérendő. Fizetős adatoknál minden próbálkozás költsége számít az elfogadott fejezet egységköltségébe; accounted és usage-estimated külön marad. A korpusz utólag nem ad új költségengedélyt.
 - Codex/agy csak a meglévő kvótaszabályokkal és naplózással; paid csak új számszerű approval-val. Valódi hatásmérés nélkül C5 implementált javítási hipotézis, nem N08 vagy human PASS.
+
+A C5 összehasonlítás lezárásakor a [master plan V9-2](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) és a STATUS együtt frissítendő: pontos két forrás és prompt-hash, korpusz/kimenet, hibák és téves pozitívok, repair/byte/idő/költség, valamint indokolt továbbhaladási vagy javítási döntés. Előre nem állítunk új számszerű irodalmi küszöböt; a technikai teszt PASS, a modellalapú összehasonlítás és az emberi értékelés külön eredmény.

@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-17
+last_reviewed: 2026-10-23
 implementation_status: in-progress
 ---
 
@@ -9,7 +9,13 @@ implementation_status: in-progress
 
 Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifikáció.
 
-## Aktuális fejlesztési jelölt — 2026-10-17
+## Aktuális végrehajtás — 2026-10-23
+
+A főág v8 (`a666c905`), az aktív fejlesztési jelölt a **v9 C5**, draft [#66](https://github.com/Muzsy/future_flow/pull/66), implementáció `7bd4d42`, a #65/C4 fölött. A v9 explicit opt-in, qualityPolicy 2.8.0; a production utolsó igazolt állapota legacy. A [C5 szakasz](#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23) a mostani scope, a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) a review/mérés/integráció/N09/béta végrehajtási sorrendje. F05/F06 PARTIAL; a zöld technikai CI nem igazolja a C5 irodalmi hatását.
+
+Az alábbi dátumozott v3–v8 fejezetek korábbi verziók döntéseit és bizonyítékait őrzik. A bennük szereplő „aktuális”, „következő” vagy maradék keret az akkori állapotra vonatkozik; mai jelöltet vagy új költési jogot nem jelöl.
+
+## Korábbi v4 fejlesztési jelölt — 2026-10-17
 
 A v4 human-quality csomag implementációja új planner/author/reviewer v4 + editor v3/report 1.2.0, qualityPolicy 2.2.0 snapshotot választ. A v1–v3 változatok megmaradnak. Hosszabb dramaturgiai memória, három új minőségkapu és külön teljes sorozatos olvasói értékelés egészíti ki a PR #47-et. Részletek és elfogadási feltételek: [v4 terv](alterward_fiction_human_quality_development_plan_codex.md). Az alábbi PR #47-mérés történeti bizonyíték, nem az új v4 valódi minőségi mérése. F05/F06 továbbra nyitott.
 

@@ -2391,6 +2391,10 @@ Ezért legalább:
 
 # 63. Ajánlott fejlesztési fázisok
 
+**Végrehajtási állapot, 2026-10-23:** az alábbi fázisok az eredeti fejlesztési felbontást őrzik. A 0. baseline kész; az 1–4. technikai részek implementáltak a #57–#61 draft láncban. A 0–5. offline szakasz korábbi köre 2026-10-21-én lezárult; a diagnosztikát C2–C5 korrekciók követték (#63–#66). A C5 külön review-ja és hatásmérése még nyitott, a korábbi offline lezárást nem vonja vissza. A korlátozott v9 paid próbák nem teljesítik a 7. fázis teljes mérését; a 6. humán és 8. N09 rollout sincs lezárva. A humán és paid szakaszok sorrendjét a választott mérési cél és a későbbi tulajdonosi döntések szerint kell alkalmazni; zárt bétára a 2026-10-19-i helyettesítő minőségkapurend érvényes, a technikai kapuk megmaradnak.
+
+Az aktuális feladatsorrend, függőség, teljesülési feltétel és jóváhagyási határ egyetlen helye a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A jelen audit elején szereplő „nem történt módosítás/paid/CI” az eredeti, 2026-10-20-i audit műveleteire vonatkozik, nem a későbbi implementációra. A C/D függelékek döntései és a C5 [creative scope](CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23) együtt olvasandók.
+
 ## Fázis 0 — v8 baseline freeze
 
 Mielőtt kódot módosítunk:
