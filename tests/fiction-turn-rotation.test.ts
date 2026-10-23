@@ -396,18 +396,17 @@ describe('the v9 planner prompt', () => {
       expect(v9.planner).not.toContain(section);
       expect(v8.planner).toContain(section);
     }
-    // Author text unchanged from v8 plus the v9 additions (two exactly-once
-    // sentence replacements, C4/D1, and appended sections); review too.
-    const reverted = v9.author
-      .replace(
-        'chapter, then storyFacts of what it contains.',
-        'storyFacts and chapter.',
-      )
-      .replace(
-        /Do not duplicate every sentence, but [^.]*\./,
-        'Do not duplicate every sentence.',
-      );
-    expect(reverted.startsWith(v8.author)).toBe(true);
+    // C5 revises ending/causal craft; the prose rules removed only from the
+    // planner still exist in the author, with unrelated sections byte-stable.
+    for (const section of [
+      'FRICTION-BEAT CRAFT:',
+      'CLOSING-PASSAGE CRAFT:',
+      'PATTERN-SIGNAL CRAFT:',
+    ]) {
+      const line = (text: string) =>
+        text.split('\n').find((s) => s.startsWith(section));
+      expect(line(v9.author)).toBe(line(v8.author));
+    }
     expect(v9.author).toContain('FRICTION-BEAT CRAFT');
     expect(v9.author).toContain('PROGRESSION-SOURCE CRAFT');
     expect(v9.editor).toContain('SERIES EVIDENCE');

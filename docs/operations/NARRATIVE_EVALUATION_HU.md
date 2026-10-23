@@ -549,3 +549,17 @@ Az n kicsi, ezért ez nem hatás-bizonyíték, hanem a fizetős 7A előtti kapu-
 **5. Második lépés (csak külön jóváhagyással).** A szereplőállapot hatása több periódus után látszik: egy fixture 6 periódussal v9-cel (ha a kvóta engedi, v8-cal is), forkokkal; a `--no-forks` csak a 3 periódusos career-transition smoke-ra érvényes, itt elhagyandó (`--periods 6`, `--out .local/narrative-evaluation/v9-codex-career-6`). A forkos futás hívásszáma és kvótaigénye nagyobb.
 
 **Feldolgozás (felhős szál).** Az audit és a v8–v9 pár összevetése (javítási arány, hívásszám, bájt, latency irányjelzőként), majd a fejezetek elolvasása a Reddit-kritériumok szerint (alacsony feszültség, „túl tiszta”, testiség hiánya, NPC-k funkcionalitása), kifejezetten modellolvasásként jelölve, nem humán bizonyítékként. Az eredményjegyzet ebbe a szakaszba és a `docs/plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md` v9 szakaszába kerül.
+
+## C5 ellenőrzés az editoros javítások offline elemzése után — 2026-10-23
+
+A [C5 módosítás](../plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23) a kezdeti írói változatot és a meglévő ellenőrök utasításait célozza. A kilenc javításból négy rendszermechanikai próza, három ismétlődő eseménylánc, egy ismétlődő zárás és egy elégtelen choiceStakes miatt indult. Az elemzési minta 7 Codex- és 2 paid-eset; eltérő futtatásukat és a kiválasztási torzítást meg kell őrizni.
+
+**Mostani bizonyíték:** statikus/offline regresszió és a mentett korpusz összevetése. Új modell- vagy fizetős futás nem része a javítás implementációjának. A gate-ek, a maxhívás, az egyetlen javítás és a fidelity változatlan; nincs új megkerülés vagy második editor.
+
+**Későbbi mérés, külön futtatási felhatalmazással:** azonos fixture-ök, seedek, `--choice-mix rotate`, periódusszám és fork mellett a #65 pontos régi forrását és a C5 pontos új forrását külön kimeneti mappába kell futtatni. Előbb mindkét forrásból rögzítendő a prompt-hash és a policy tuple; terminális régi futás nem folytatható/átcímkézhető új forrással. A régi szövegek új prompttal történő offline újrajátszása csak a kérésalakot és méretet méri, nem a modell javulását.
+
+- Az elfogadott és elutasított próbákat, első és második editor-ítéletet, módot és javító üzenetet is meg kell őrizni. Nem elég a score<4: a hamis sequence-flag önmagában is blokkolhat.
+- Külön számláló: rendszermechanikai próza, oksági ismétlés, lezárási ismétlés, choiceStakes; új dimenzióban elbukó javítás; tényhűségi és privacy-regresszió. Nem szabad az arány csökkenését sikernek minősíteni, ha a kifogásolt hiba csak észrevétlen maradt.
+- Pozitív ellenpéldák: a visszatérő motívum és kiérdemelt ajánlat legitim használata; természetes feltételtisztázás a döntés érthetőségéért; csendes, okságilag változó folytatás. Ezeket nem válthatja fel kötelező kudarc, új szereplő vagy dramaturgiai rotáció.
+- Idő és prompt/request byte külön mérendő. Fizetős adatoknál minden próbálkozás költsége számít az elfogadott fejezet egységköltségébe; accounted és usage-estimated külön marad. A korpusz utólag nem ad új költségengedélyt.
+- Codex/agy csak a meglévő kvótaszabályokkal és naplózással; paid csak új számszerű approval-val. Valódi hatásmérés nélkül C5 implementált javítási hipotézis, nem N08 vagy human PASS.
