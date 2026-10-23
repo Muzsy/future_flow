@@ -5,30 +5,35 @@ import { fictionV8Policy, fictionV9Policy } from '@future-flow/contracts';
 describe('v9 prompts', () => {
   const v8 = fictionPrompts('en', fictionV8Policy().promptVersions);
   const v9 = fictionPrompts('en', fictionV9Policy().promptVersions);
-  it('extend the frozen v8 text and leave the checks untouched', () => {
+  it('change only the v9 generation and leave fidelity untouched', () => {
     expect(fictionPrompts('en')).toEqual(v8);
-    // The planner is the one deliberate exception (C3, owner decision
-    // 2026-10-21 23:30 Hungarian time): see "the v9 planner" below.
+    // C3 replaces planner craft; C5 also replaces selected author/review craft.
     expect(v9.planner.startsWith(v8.planner)).toBe(false);
-    // The author is the v8 text with two exact-once replacements (C4/D1, see
-    // "the v9 author" below) plus the v9 additions.
+    // The author replacements are reversed below to check every other byte.
     expect(v9.author.startsWith(v8.author)).toBe(false);
-    expect(v9.review.startsWith(v8.review)).toBe(true);
+    expect(v9.review.startsWith(v8.review)).toBe(false);
     expect(v9.fidelity).toBe(v8.fidelity);
   });
   const OLD_ACCEPTANCE =
     'Acceptance requires causality/momentum/sceneCraft/choiceStakes/prose >=4, eight-score mean >=4, no major or canon issue.';
   const NEW_ACCEPTANCE =
     'Acceptance requires all eight scores >=4 and no major or canon issue.';
-  it('give the v9 editor the gate-exact acceptance sentence and nothing else (the old choiceStakes strictness stays)', () => {
+  it('changes only acceptance wording and issue concision in the v9 editor, preserving every rubric', () => {
     expect(v8.editor.split(OLD_ACCEPTANCE)).toHaveLength(2);
     expect(v9.editor.includes(OLD_ACCEPTANCE)).toBe(false);
     expect(v9.editor.split(NEW_ACCEPTANCE)).toHaveLength(2);
-    // The one replacement is the only difference from the v8 text: no
-    // choiceStakes calibration, no softened rubric of any kind.
-    expect(v9.editor).toBe(v8.editor.replace(OLD_ACCEPTANCE, NEW_ACCEPTANCE));
+    // C5 changes feedback instructions, not any score, flag or repair scope.
+    const issueReference =
+      'Issues reference actual one-based paragraphs/final event IDs.';
+    const feedback =
+      ' Check every blocking dimension in the same pass. Keep each explanation and suggestedFix a short complete sentence within its field limit: name the decisive evidence and the needed change before elaborating. Do not clip a sentence or omit another blocking issue to fit.';
+    expect(v9.editor).toBe(
+      v8.editor
+        .replace(OLD_ACCEPTANCE, NEW_ACCEPTANCE)
+        .replace(issueReference, issueReference + feedback),
+    );
     expect(v9.editor.includes('CHOICE-STAKES')).toBe(false);
-    expect(v9.editor.length).toBeLessThan(v8.editor.length);
+    expect(v9.editor.length - v8.editor.length).toBeLessThan(300);
     // The later sentence of the inherited series text stays, so the prompt carries
     // exactly the rule the gate applies.
     expect(v9.editor).toContain(
@@ -36,7 +41,9 @@ describe('v9 prompts', () => {
     );
   });
   it('ask the v9 author for a concrete pull of every option in the first draft, without explaining the weighing', () => {
-    const rule = v9.author.slice(v9.author.indexOf('\nCHOICE-STAKES CRAFT:'));
+    const rule = v9.author
+      .slice(v9.author.indexOf('\nCHOICE-STAKES CRAFT:'))
+      .split('\nMECHANICS-FIGURES CRAFT:')[0]!;
     expect(rule.startsWith('\nCHOICE-STAKES CRAFT: let each option')).toBe(
       true,
     );
@@ -45,15 +52,16 @@ describe('v9 prompts', () => {
     expect(rule).toContain('Do not explain the weighing');
     expect(rule).toContain('You fear X... You also fear Y');
     expect(rule).toContain('storyFacts');
+    expect(rule).toContain('plan.decisionStakes');
     expect(rule).toContain('a new person, object, cause or fact');
     expect(rule).toContain(
       'In a repair round only authorRepair.message and authorRepair.repairRule apply',
     );
     expect(rule.length).toBeLessThan(1100);
-    // The rule is the last addition of the author text, only once, v9 only.
+    // The choice rule precedes mechanicsFigures, only once, v9 only.
     expect(v9.author.split('CHOICE-STAKES CRAFT').length).toBe(2);
     expect(v8.author.includes('CHOICE-STAKES CRAFT')).toBe(false);
-    expect(v9.author.endsWith(rule)).toBe(true);
+    expect(v9.author).toContain(rule + '\nMECHANICS-FIGURES CRAFT:');
     // A stored v9 snapshot (writer v9, v8 editor) gets the same author text.
     const stored = fictionPrompts('en', {
       ...fictionV9Policy().promptVersions,
@@ -136,7 +144,7 @@ describe('v9 prompts', () => {
     const ORDER = 'storyFacts and chapter.';
     const ORDER_V9 = 'chapter, then storyFacts of what it contains.';
     const BACKGROUND = 'Do not duplicate every sentence.';
-    it('lists the chapter before the story facts and registers past specifics, by two exact replacements of the v8 text', () => {
+    it('keeps D1 ordering and fact registration, changing only the selected C5 craft elsewhere', () => {
       for (const from of [ORDER, BACKGROUND])
         expect(v8.author.split(from)).toHaveLength(2);
       expect(v9.author).toContain(ORDER_V9);
@@ -145,10 +153,23 @@ describe('v9 prompts', () => {
       expect(v9.author).toContain(
         'a past specific the prose states (how long, how many times, an earlier request) is a continuity storyFact on its first event, or is left out',
       );
-      // Everything else of the v8 author text is where it was.
-      const back = v9.author
+      // C5 replaces only the limits, recurring-beat and ending craft. Undo
+      // those and D1: every other inherited author byte stays where it was.
+      let back = v9.author
         .replace(ORDER_V9, ORDER)
-        .replace(/Do not duplicate every sentence, but [^.]*\./, BACKGROUND);
+        .replace(/Do not duplicate every sentence, but [^.]*\./, BACKGROUND)
+        .replace(
+          /Keep obligations and limits exact in candidate and storyFacts\. .*?balanced option briefings\./,
+          'Trust the reader; cut administrative disclaimers, coaching, repetitive introspection, moral lessons and balanced option briefings. A practical limit should affect an action, not be recited each paragraph.',
+        );
+      for (const section of ['RECURRING-BEAT CRAFT:', 'ENDING-KIND CRAFT:']) {
+        const inherited = v8.author
+          .split('\n')
+          .find((s) => s.startsWith(section))!;
+        const revised = back.split('\n').find((s) => s.startsWith(section))!;
+        expect(revised).not.toBe(inherited);
+        back = back.replace(revised, inherited);
+      }
       expect(back.startsWith(v8.author)).toBe(true);
     });
     it('carries a general mechanics rule and saves no figure or story detail in any prompt', () => {
