@@ -433,7 +433,7 @@ def personal_config_paths():
 
 # Independent policy version: do not reinterpret the original personal/reader
 # activation archives. Installing this reviewed Daily is a later release gate.
-FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 2
+FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 3
 
 
 def funded_tree_paths(root, *, immutable_only=False):
@@ -451,7 +451,7 @@ def funded_tree_paths(root, *, immutable_only=False):
                 regular(child)
                 files.append(child)
         else:
-            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json', 'archive.json'}
+            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json', 'archive.json', 'probe.json'}
             if item.name not in allowed:
                 if not re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name) or temporary >= 8:
                     raise ValueError('Unknown funded upgrade evidence')
@@ -460,6 +460,34 @@ def funded_tree_paths(root, *, immutable_only=False):
             if not immutable_only or item.name in {'prepared.json', 'archive.json'}:
                 files.append(item)
     return sorted(files)
+
+
+FUNDED_PROBE_VERSION = 'alterward-funded-probe-1'
+
+
+def funded_probe_state(root):
+    path = root / 'probe.json'
+    if not path.exists() and not path.is_symlink():
+        return None
+    private_archive_directory(root)
+    value = json.loads(regular(path))
+    keys = {'version', 'sourceCommit', 'bundleSha256', 'name', 'imageId',
+            'composeSha256', 'state', 'containerId'}
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['version'] != FUNDED_PROBE_VERSION
+            or not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])
+            or any(not isinstance(value[k], str) or not re.fullmatch(r'[a-f0-9]{64}', value[k])
+                   for k in ('bundleSha256', 'composeSha256'))
+            or not isinstance(value['name'], str) or not re.fullmatch(
+                r'[a-z0-9][a-z0-9_.-]{0,100}-funded-probe-[a-f0-9]{32}', value['name'])
+            or not isinstance(value['imageId'], str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', value['imageId'])
+            or value['state'] not in {'pending', 'cleaned'}
+            or (value['containerId'] is not None and (not isinstance(value['containerId'], str)
+                or not re.fullmatch(r'[a-f0-9]{64}', value['containerId'])))
+            or (value['state'] == 'pending' and value['containerId'] is not None)
+            or digest(regular(root / 'probe-compose.json')) != value['composeSha256']):
+        raise ValueError('Invalid funded probe evidence')
+    return value
 
 
 FUNDED_ARCHIVE_NAME = 'funded-runtime-upgrade-archive'
@@ -472,8 +500,11 @@ def funded_unapplied_files(root):
     names = {p.relative_to(root).as_posix() for p in paths}
     required = {'prepared.json'} | {r + '/' + n for r in ('target', 'recovery') for n in
                ('server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json')}
-    if not required <= names or not names <= required | {'probe-compose.json', 'archive.json'}:
+    if not required <= names or not names <= required | {'probe-compose.json', 'archive.json', 'probe.json'}:
         raise ValueError('Only a complete never-applied funded preparation can be archived')
+    probe = funded_probe_state(root)
+    if probe is not None and probe['state'] != 'cleaned':
+        raise ValueError('Pending funded probe cannot be archived')
     return {p.relative_to(root).as_posix(): digest(regular(p)) for p in paths if p.name != 'archive.json'}
 
 
@@ -533,6 +564,9 @@ def funded_upgrade_healthy(mode):
             return False
     try:
         funded_upgrade_config_paths()
+        probe = funded_probe_state(root)
+        if probe is not None and probe['state'] != 'cleaned':
+            return False
         if (root / 'archive.json').exists() or (root / 'archive.json').is_symlink():
             return False
         prepared = json.loads(regular(root / 'prepared.json'))

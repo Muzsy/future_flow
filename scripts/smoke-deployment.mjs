@@ -352,6 +352,8 @@ try {
     'artifactRestore',
     'privacyReplay',
     'frozenPolicies',
+    'expiredPreparationArchive',
+    'probeCleanup',
   ])
     assert.equal(fundedProof.checks[check], true);
   assert.equal(fundedProof.paidAiCalls, 0);

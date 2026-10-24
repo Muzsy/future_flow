@@ -123,6 +123,7 @@ export function releaseEvidence({
     'privacyReplay',
     'frozenPolicies',
     'expiredPreparationArchive',
+    'probeCleanup',
   ];
   exactObject(fixture.checks, checks);
   if (

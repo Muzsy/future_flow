@@ -26,12 +26,17 @@ STATE_NAME = 'funded-runtime-upgrade'
 DIGEST = re.compile(r'[a-f0-9]{64}')
 IMAGE = re.compile(r'sha256:[a-f0-9]{64}')
 COMMIT = re.compile(r'[a-f0-9]{40}')
+PROBE_COMMAND = ['--import', 'tsx', 'scripts/ops/funded-runtime-probe.ts']
 
 
 def exact(value, keys):
     if not isinstance(value, dict) or set(value) != set(keys):
         raise ValueError('Exact funded-upgrade input shape required')
     return value
+
+
+def probe_identity(record):
+    return sha(encoded({k: v for k, v in record.items() if k not in {'state', 'containerId'}}))
 
 
 def stamp(value):
@@ -336,28 +341,35 @@ class System:
         probe_path = self.root / 'probe-compose.json'
         # This file is transient but deliberately retained on interruption and
         # included in the bounded encrypted operational archive.
+        self.cleanup_probe()
         readers.update_durable(probe_path, frozen(cfg))
         participants = json.loads(
             fence.original(DIRECTORY / 'personal-beta' / 'terms.json')
         )['participants']
         data = {'mode': mode, 'participants': participants, 'expected': expected}
-        result = upgrade.run(
-            upgrade.compose(probe_path)
-            + [
-                'run',
-                '-T',
-                '--rm',
-                '--no-deps',
-                '--entrypoint',
-                'node',
-                'api',
-                '--import',
-                'tsx',
-                'scripts/ops/funded-runtime-probe.ts',
-            ],
-            input=encoded(data),
-            timeout=200,
-        )
+        # Persist the exact name/config/source BEFORE Docker can create a
+        # one-off. The random nonce distinguishes it from every service/run.
+        nonce = os.urandom(16).hex()
+        record = {'version': self.daily.FUNDED_PROBE_VERSION,
+                  'sourceCommit': self.request['sourceCommit'],
+                  'bundleSha256': self.request['bundleSha256'],
+                  'name': upgrade.PROJECT + '-funded-probe-' + nonce,
+                  'imageId': image, 'composeSha256': sha(fence.original(probe_path)),
+                  'state': 'pending', 'containerId': None}
+        readers.update_durable(self.root / 'probe.json', encoded(record))
+        try:
+            result = upgrade.run(
+                upgrade.compose(probe_path)
+                + ['run', '-T', '--rm', '--no-deps', '--pull', 'never',
+                   '--name', record['name'], '--label',
+                   'com.alterward.funded-probe=' + probe_identity(record),
+                   '--entrypoint', 'node', 'api', *PROBE_COMMAND],
+                input=encoded(data), timeout=200,
+            )
+        finally:
+            # Timeout/SIGTERM are cleaned here. SIGKILL retains the durable
+            # intent for explicit cleanup/recovery under the same two locks.
+            self.cleanup_probe()
         value = json.loads(result.stdout)
         exact(
             value,
@@ -380,6 +392,49 @@ class System:
         ):
             raise ValueError('Actual drained database capability proof required')
         return value
+
+    def cleanup_probe(self):
+        self.archive_support()
+        record = self.daily.funded_probe_state(self.root)
+        if record is None:
+            return {'probeRemoved': False, 'paidAiCalls': 0}
+        if (record['sourceCommit'] != self.request['sourceCommit']
+                or record['bundleSha256'] != self.request['bundleSha256']
+                or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-probe-[a-f0-9]{32}', record['name'])
+                or sha(fence.original(self.root / 'probe-compose.json')) != record['composeSha256']):
+            raise ValueError('Exact original funded probe evidence required')
+        def lookup():
+            ids = upgrade.docker('ps', '-aq', '--no-trunc', '--filter',
+                                 'name=^/' + record['name'] + '$').stdout.decode().split()
+            if len(ids) > 1 or any(not DIGEST.fullmatch(i) for i in ids):
+                raise ValueError('Ambiguous funded probe identity')
+            return ids
+        ids = lookup()
+        removed = None
+        if ids:
+            value = json.loads(upgrade.docker('inspect', ids[0]).stdout)[0]
+            labels, config, host = value['Config'].get('Labels', {}), value['Config'], value['HostConfig']
+            if (record['state'] != 'pending' or value['Id'] != ids[0]
+                    or value['Name'] != '/' + record['name'] or value['Image'] != record['imageId']
+                    or labels.get('com.alterward.funded-probe') != probe_identity(record)
+                    or labels.get('com.docker.compose.project') != upgrade.PROJECT
+                    or labels.get('com.docker.compose.service') != 'api'
+                    or labels.get('com.docker.compose.oneoff') != 'True'
+                    or config.get('Entrypoint') != ['node'] or config.get('Cmd') != PROBE_COMMAND
+                    or config.get('User') != 'node' or not host.get('AutoRemove')
+                    or host.get('RestartPolicy', {}).get('Name') != 'no'
+                    or host.get('Privileged') or host.get('PortBindings')):
+                raise ValueError('Funded probe identity differs; no container changed')
+            # Use the inspected immutable ID, never a name/project-wide rm.
+            upgrade.docker('rm', '--force', ids[0], check=False, timeout=45)
+            if lookup():
+                raise ValueError('Funded probe removal unverified')
+            removed = ids[0]
+        if record['state'] == 'pending':
+            readers.update_durable(self.root / 'probe.json', encoded(
+                {**record, 'state': 'cleaned', 'containerId': removed}))
+        return {'probeRemoved': removed is not None, 'probeContainerId': removed,
+                'applicationContainersChanged': False, 'paidAiCalls': 0}
 
     def image(self, build):
         exact(build, {'commit', 'imageId', 'imageTag', 'sourceDirectory'})
@@ -536,7 +591,7 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         return self.hashes(path)
 
     def archive_support(self):
-        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 2:
+        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 3:
             raise ValueError(
                 'Reviewed installed funded-upgrade archive support required'
             )
@@ -1117,6 +1172,7 @@ def main(request):
     mode = request.get('mode')
     additions = {
         'inspect': set(),
+        'cleanup-probe': set(),
         'archive-expired': {'preparedSha256', 'accessSnapshot'},
         'prepare': {'release', 'accessSnapshot'},
         'apply': {'preparedSha256', 'restoreProof', 'release', 'accessSnapshot'},
@@ -1156,11 +1212,14 @@ def main(request):
                 'paidAiCalls': 0,
                 'containersStarted': 0,
             }
+        if mode == 'cleanup-probe':
+            return system.cleanup_probe()
         if mode == 'archive-expired':
             return system.archive_expired()
         if mode == 'prepare':
             return system.prepare()
         candidate = system.candidate()
+        system.cleanup_probe()
         if mode == 'recover':
             # A previous SIGKILL may have happened during ingress exposure. Stop
             # only our bound services BEFORE checking a possibly invalid recovery

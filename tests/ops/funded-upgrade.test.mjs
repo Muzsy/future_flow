@@ -50,6 +50,7 @@ function proofs() {
           'privacyReplay',
           'frozenPolicies',
           'expiredPreparationArchive',
+          'probeCleanup',
         ].map((k) => [k, true]),
       ),
     },

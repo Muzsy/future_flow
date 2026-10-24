@@ -364,12 +364,21 @@ class ExpiredFundedArchiveTests(unittest.TestCase):
         self.write(self.root/'prepared.json', funded.encoded(self.value))
 
     def test_archive_keeps_exact_files_backup_and_repeated_result(self):
+        self.write(self.root/'probe-compose.json', b'{}')
+        probe = {'version':daily.FUNDED_PROBE_VERSION, 'sourceCommit':'a'*40,
+                 'bundleSha256':'b'*64, 'name':funded.upgrade.PROJECT+'-funded-probe-'+'c'*32,
+                 'imageId':'sha256:'+'d'*64, 'composeSha256':funded.sha(b'{}'),
+                 'state':'pending', 'containerId':None}
+        self.write(self.root/'probe.json', funded.encoded(probe))
+        with self.assertRaisesRegex(ValueError,'Pending funded probe'):
+            self.system.archive_expired()
+        self.write(self.root/'probe.json', funded.encoded({**probe,'state':'cleaned'}))
         before = {p.relative_to(self.root).as_posix(): p.read_bytes() for p in daily.funded_tree_paths(self.root)}
         result = self.system.archive_expired()
         self.assertTrue(result['archived']); self.assertFalse(self.root.exists())
         dest = self.owner/daily.FUNDED_ARCHIVE_NAME/result['preparedSha256']
         self.assertEqual(before, {n:(dest/n).read_bytes() for n in before})
-        self.assertEqual(len(daily.funded_upgrade_config_paths()), 10)
+        self.assertEqual(len(daily.funded_upgrade_config_paths()), 12)
         self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
         self.assertTrue(self.system.archive_expired()['alreadyArchived'])
         self.assertEqual(result['databaseWrites'], 0)
@@ -421,6 +430,137 @@ class ExpiredFundedArchiveTests(unittest.TestCase):
         self.write(dest/'target'/'server.env', b'tampered')
         with self.assertRaises(ValueError): daily.funded_upgrade_config_paths()
         self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+
+class FundedProbeTests(unittest.TestCase):
+    def setUp(self):
+        from types import SimpleNamespace
+        self.result = lambda data=b'': SimpleNamespace(stdout=data, returncode=0)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name).resolve()
+        self.root.chmod(0o700)
+        self.system = object.__new__(funded.System)
+        self.system.root, self.system.daily = self.root, daily
+        self.system.request = {'sourceCommit': 'a'*40, 'bundleSha256': 'b'*64}
+        self.system.archive_support = lambda: None
+        self.config = {'services': {'api': {'image': 'old'}}}
+        self.system.configuration = lambda path: copy.deepcopy(self.config)
+        self.patches = [patch.object(daily, 'UID', os.getuid()),
+                        patch.object(funded.fence, 'original', side_effect=daily.regular),
+                        patch.object(funded.readers, 'update_durable', side_effect=self.write),
+                        patch.object(funded.upgrade, 'docker', side_effect=self.docker)]
+        for p in self.patches: p.start()
+        self.container = None
+        self.removed = []
+        self.fail_remove = False
+
+    def tearDown(self):
+        for p in self.patches[::-1]: p.stop()
+        self.tmp.cleanup()
+
+    def write(self, path, data):
+        path.write_bytes(data); path.chmod(0o600)
+
+    def docker(self, *args, **kwargs):
+        if args[0] == 'ps':
+            return self.result((self.container['Id'].encode()+b'\n') if self.container else b'')
+        if args[0] == 'inspect': return self.result(json.dumps([self.container]).encode())
+        if args[:2] == ('rm', '--force'):
+            self.removed.append(args[2])
+            if not self.fail_remove: self.container = None
+            return self.result()
+        raise AssertionError(args)
+
+    def pending(self):
+        config = self.root/'probe-compose.json'
+        self.write(config, b'{}')
+        record = {'version': daily.FUNDED_PROBE_VERSION, **self.system.request,
+                  'name': funded.upgrade.PROJECT+'-funded-probe-'+'c'*32,
+                  'imageId':'sha256:'+'d'*64, 'composeSha256':funded.sha(b'{}'),
+                  'state':'pending', 'containerId':None}
+        self.write(self.root/'probe.json', funded.encoded(record))
+        return record
+
+    def running(self, record):
+        self.container = {'Id': 'e'*64, 'Name':'/'+record['name'], 'Image':record['imageId'],
+            'Config': {'Entrypoint':['node'], 'Cmd':funded.PROBE_COMMAND, 'User':'node',
+                'Labels':{'com.alterward.funded-probe':funded.probe_identity(record),
+                    'com.docker.compose.project':funded.upgrade.PROJECT,
+                    'com.docker.compose.service':'api', 'com.docker.compose.oneoff':'True'}},
+            'HostConfig':{'AutoRemove':True, 'RestartPolicy':{'Name':'no'},
+                          'Privileged':False, 'PortBindings':{}}}
+
+    def test_exact_pending_probe_removed_by_immutable_id_and_repeat_is_noop(self):
+        record = self.pending(); self.running(record)
+        self.assertEqual(daily.funded_probe_state(self.root)['state'], 'pending')
+        result = self.system.cleanup_probe()
+        self.assertTrue(result['probeRemoved'])
+        self.assertEqual(self.removed, ['e'*64])
+        self.assertEqual(daily.funded_probe_state(self.root)['state'], 'cleaned')
+        self.assertFalse(self.system.cleanup_probe()['probeRemoved'])
+
+    def test_absent_probe_before_creation_or_after_autoremove_is_reconciled(self):
+        self.pending()
+        self.assertFalse(self.system.cleanup_probe()['probeRemoved'])
+        self.assertEqual(self.removed, [])
+        self.assertEqual(daily.funded_probe_state(self.root)['state'], 'cleaned')
+
+    def test_same_name_with_other_identity_or_service_is_never_removed(self):
+        record = self.pending(); self.running(record)
+        original = copy.deepcopy(self.container)
+        for section, key, value in [(None,'Name','/other'),
+                (None,'Image','sha256:'+'f'*64), ('Config','Cmd',['apps/api/dist/main.js']),
+                ('Config','User','root'), ('HostConfig','Privileged',True),
+                ('HostConfig','AutoRemove',False), ('HostConfig','PortBindings',{'80/tcp':[{}]})]:
+            self.container = copy.deepcopy(original)
+            (self.container if section is None else self.container[section])[key] = value
+            with self.assertRaises(ValueError): self.system.cleanup_probe()
+        for label in ('com.alterward.funded-probe','com.docker.compose.project',
+                      'com.docker.compose.service','com.docker.compose.oneoff'):
+            self.container = copy.deepcopy(original)
+            self.container['Config']['Labels'][label] = 'other'
+            with self.assertRaises(ValueError): self.system.cleanup_probe()
+        self.assertEqual(self.removed, [])
+
+    def test_tampered_source_config_or_public_receipt_refuses_before_docker(self):
+        record = self.pending()
+        for field, value in [('sourceCommit','f'*40), ('bundleSha256','f'*64),
+                             ('composeSha256','f'*64), ('name','another-funded-probe-'+'c'*32)]:
+            self.write(self.root/'probe.json', funded.encoded({**record,field:value}))
+            with self.assertRaises(ValueError): self.system.cleanup_probe()
+        self.write(self.root/'probe.json', funded.encoded(record))
+        (self.root/'probe.json').chmod(0o644)
+        with self.assertRaises(ValueError): self.system.cleanup_probe()
+        self.assertEqual(self.removed, [])
+
+    def test_daemon_or_removal_failure_preserves_pending_evidence(self):
+        record = self.pending(); self.running(record)
+        self.fail_remove = True
+        with self.assertRaisesRegex(ValueError,'removal unverified'): self.system.cleanup_probe()
+        self.assertEqual(daily.funded_probe_state(self.root)['state'], 'pending')
+        with patch.object(funded.upgrade, 'docker', side_effect=RuntimeError('daemon unavailable')):
+            with self.assertRaises(RuntimeError): self.system.cleanup_probe()
+        self.assertEqual(daily.funded_probe_state(self.root)['state'], 'pending')
+
+    def test_timeout_and_catchable_interruption_always_clean_exact_probe(self):
+        import subprocess
+        terms = funded.encoded({'participants':[]})
+        original = funded.fence.original
+        def read(path):
+            return terms if path.name == 'terms.json' else original(path)
+        for error in (subprocess.TimeoutExpired('synthetic',200), RuntimeError('signal')):
+            def execute(command, **kwargs):
+                record = daily.funded_probe_state(self.root)
+                self.assertEqual(record['state'],'pending')
+                self.assertIn(record['name'],command)
+                self.running(record)
+                raise error
+            with patch.object(funded.fence, 'original', side_effect=read), \
+                    patch.object(funded.upgrade, 'run', side_effect=execute):
+                with self.assertRaises(type(error)): self.system.probe('sha256:'+'d'*64,'capture')
+            self.assertEqual(daily.funded_probe_state(self.root)['state'],'cleaned')
+            self.assertIsNone(self.container)
+        self.assertEqual(self.removed,['e'*64,'e'*64])
 
 
 class NarrativeSelectionTests(unittest.TestCase):

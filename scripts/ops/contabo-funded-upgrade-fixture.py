@@ -787,6 +787,7 @@ def exercise(context):
             system.backup(candidate)
 
         for label in (
+            'probe-cleanup',
             'expired-archive',
             'success',
             'postcheck',
@@ -827,6 +828,66 @@ def exercise(context):
             prepared = system.prepare()
             candidate = json.loads((system.root / 'prepared.json').read_bytes())
             request['preparedSha256'] = prepared['preparedSha256']
+            if label == 'probe-cleanup':
+                # Exercise the production one-off lifecycle with actual Docker.
+                # Only the Node payload is inert; real SQL/migration is covered
+                # by this fixture's DB companion and interrupted transitions.
+                plain = funded.System(request, daily)
+                serving = {r: v['Id'] for r, v in system.roles().items()}
+                before = db('capture', database)
+                reply = "require('node:fs').readFileSync(0);process.stdout.write(" + json.dumps(json.dumps(before)) + ")"
+                with patch.object(funded, 'PROBE_COMMAND', ['-e', reply]):
+                    assert plain.probe(context['image'], 'capture') == before
+                assert daily.funded_probe_state(system.root)['state'] == 'cleaned'
+                hang = "require('node:fs').readFileSync(0);setInterval(()=>{},1000)"
+                actual_run = upgrade.run
+                def timeout_run(args, **kwargs):
+                    if 'run' in args and '--name' in args:
+                        kwargs['timeout'] = 5
+                    return actual_run(args, **kwargs)
+                with patch.object(funded, 'PROBE_COMMAND', ['-e', hang]):
+                    with patch.object(upgrade, 'run', timeout_run):
+                        try:
+                            plain.probe(context['image'], 'capture')
+                        except subprocess.TimeoutExpired:
+                            pass
+                        else:
+                            raise AssertionError('Probe did not time out')
+                    assert daily.funded_probe_state(system.root)['state'] == 'cleaned'
+                    pid = os.fork()
+                    if pid == 0:
+                        plain.probe(context['image'], 'capture')
+                        os._exit(3)
+                    until = time.monotonic() + 45
+                    while time.monotonic() < until:
+                        state = daily.funded_probe_state(system.root)
+                        ids = run(['docker', 'ps', '-q', '--no-trunc', '--filter',
+                                   'name=^/' + state['name'] + '$']).decode().split() if state else []
+                        if state and state['state'] == 'pending' and ids:
+                            break
+                        time.sleep(0.2)
+                    else:
+                        os.kill(pid, signal.SIGKILL); os.waitpid(pid, 0)
+                        raise AssertionError('Actual probe did not start')
+                    os.kill(pid, signal.SIGKILL)
+                    _, status = os.waitpid(pid, 0)
+                    assert os.WIFSIGNALED(status)
+                    try:
+                        system.roles()
+                    except ValueError:
+                        pass
+                    else:
+                        raise AssertionError('Unexpected fourth role was ignored')
+                    assert not daily.funded_upgrade_healthy('personal-beta')
+                    assert plain.cleanup_probe()['probeRemoved']
+                    assert not plain.cleanup_probe()['probeRemoved']
+                assert {r: v['Id'] for r, v in system.roles().items()} == serving
+                assert all(v['State']['Running'] for v in system.roles().values())
+                funded.same_funded(before, db('capture', database))
+                assert daily.funded_upgrade_healthy('personal-beta')
+                assert all((owner / n).read_bytes() == raw for n, raw in initialFiles.items())
+                checks['probeCleanup'] = True
+                continue
             if label == 'expired-archive':
                 # Advance the synthetic operator clock; do not wait 15 minutes
                 # and do not edit the immutable prepared timestamp/receipt.

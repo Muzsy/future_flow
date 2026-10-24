@@ -9,9 +9,14 @@ async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
   if (
     process.platform !== 'linux' ||
-    !['inspect', 'prepare', 'apply', 'recover', 'archive-expired'].includes(
-      mode,
-    ) ||
+    ![
+      'inspect',
+      'prepare',
+      'apply',
+      'recover',
+      'archive-expired',
+      'cleanup-probe',
+    ].includes(mode) ||
     process.argv.length !== (mode === 'prepare' ? 4 : 3)
   )
     throw Error('Explicit Linux funded-upgrade mode required');
