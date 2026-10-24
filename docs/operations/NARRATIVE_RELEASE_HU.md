@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-23
+last_reviewed: 2026-10-24
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -16,6 +16,36 @@ Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00�
 ## Aktuális végrehajtási keret — 2026-10-23
 
 A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, implementáció `7bd4d42`), production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
+
+## Bétafókusz és motorbefagyasztás — 2026-10-24
+
+**Tulajdonosi döntés:** a motor további finomítása helyett a cél annak technikai stabilizálása és a kis zárt béta kiadása. Ez felülírja a C5 mérés után következőnek javasolt history-auditot és kontextuskontrollt. Ezek, az új promptminőségi iterációk, archetípusok és a 048-as fejlesztés DEFERRED. Az alábbi három munkacsomag végrehajtási sorrend; a bizonyítékok hiánya nem indít új, általános motorfejlesztést.
+
+**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A jelenlegi főág v8, ezért még nincs egyesített, kiadásra kész v9 SHA. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
+
+### 1. Egy kiadási jelölt és a motor technikai lezárása
+
+A függő v9 lánc, a #62 tesztjavítás és a #56 N09 alap először fejlesztői integrációs ágba kerül; `main` merge külön, a konkrét reviewed jelölt alapján történik. A végleges forráson a releváns regressziók, a teljes tesztcsomag, typecheck/build/schema/docs és Verify/Container CI szükséges. Csak a kiadást akadályozó hibát javítjuk; egy újabb novelty-vélemény vagy szebb prózára vonatkozó ötlet önmagában nem nyitja újra a motort.
+
+2026-10-24-i előellenőrzés: `git merge-tree --write-tree --name-only c3bac469da3848147c3811adaa2c34ce785e71f6 86058385515b0d0c0b768e16a30017c9dac92237` három szöveges konfliktust jelez (`docs/DEVELOPMENT_PLAN_HU.md`, `docs/STATUS_HU.md`, e runbook); forráskódkonfliktust nem. A #62 `b39c30a` ugyanezen v9 alaphoz szövegesen tiszta. Ez objektumszintű helyi próba, nem tényleges merge, kompatibilitási teszt vagy CI. A konfliktusoknál a jelenlegi bétafókusz és a régi operátori szerződés szükséges részletei együtt maradjanak meg.
+
+### 2. V9-kompatibilis frissítés és helyreállítás
+
+A közvetlen implementációs feladat a #56 továbbvitele a végleges v9 jelöltre. A `8605838` forrásban a `scripts/lib/funded-runtime.ts` capability-listája v1–v8 fictiont vizsgál, a `scripts/ops/contabo-funded-upgrade.py` 18 policyt vár. A tárolt policy parse önmagában nem v9 runtime/recovery proof. Kötelező a v9 policy, artifact/szereplőállapot és a generációválasztás kezelése a target és recovery oldalon, a régi generációk megtartásával, célzott negatív ellenőrzéssel ismeretlen/inkompatibilis változatra. A compose/env/backup/monitor/fence útvonalnak is ugyanazt a generációt kell megőriznie; a compose jelenleg nem adja át a `NARRATIVE_FICTION_GENERATION` kulcsot.
+
+A #56 runbookjának hat nyitott operátori korlátját rövid release-triage zárja: registry/receipt folytonosság, applied utáni restart, maradék one-off konténer, lejárt preparation, változó CI-metaadat hash és recovery restore-proof frissesség. A biztonságos helyreállítást vagy az igazolható célállapotot blokkoló tételt javítani kell; más tétel csak dokumentált, végrehajtható operátori eljárással maradhat. Nem általános operátori eszközújraírás a cél.
+
+A konkrét runtime timeout/request cap és az ezekből számolt költségfoglalás ellenőrzése a kiadási konfiguráció része. A jelenlegi 100000 bájtos default a mentett javító kérések egy részéhez kevés; a lehetséges 131072 B / 300000 ms beállítás ellenőrizendő jelölt, nem alkalmazott vagy automatikusan jóváhagyott érték. Új irodalmi benchmark helyett a meglévő méretadatok, determinisztikus cap/timeout/budget próbák és az egyesített runtime/recovery fixture adja a technikai bizonyítékot. Titkosított backup, izolált restore/privacy replay, kompatibilis image-digest és drain/rollback próbák kötelezők.
+
+### 3. Tesztelői alapút és kis zárt indulás
+
+Egy kijelölt tesztelővel a tényleges kiadási jelölt útját kell ellenőrizni: belépés → első fejezet → választás mentése → folytatás → új munkamenetből visszatérés/újranyitás → export → visszajelzés. Elutasított generálás, timeout és keretkimerülés esetén is látható, érthető lezárás, konzisztens mentett állapot és helyes elszámolás kell; nincs rejtett újrafuttatás vagy második díj ugyanannak a commitnak a hibás ismétléséből. A meglévő budget/window/admission szabályok érvényesek. A paid lépés csak a konkrét keret és forrás jóváhagyása után indulhat; az előkészítés mock/izolált környezetben végezhető.
+
+A bétaindítást **blokkolja** az adatvesztés/adatvédelmi rés, hibás canon/choice mentés vagy elszámolás, megkerülhető budget/admission, nem működő frissítés/helyreállítás, illetve a fenti alapút ténylegesen reprodukált megakadása. Egy quality-gate elutasítás önmagában nem adatbiztonsági hiba; ismétlődő elutasítás vagy beragadt állapot miatt használhatatlan folytatás viszont működési blokkoló. Az ilyen hibára célzott javítás és érintett regresszió kell, új craft-fejlesztési ciklus helyett.
+
+Az első kijelölt tesztelőn ellenőrzött indulás után a korábban tervezett háromfős kis kör készíthető elő a pontos személyek/ablak/keret rögzítésével. A 2026-10-19-i 10 USD / háromfős terv továbbra tervezési alap, nem új funded aktiválás; a jelenlegi ablakot és költést nem írjuk felül. Feedback fejezetenként, rövid kérdőív a 3. és 6. fejezetnél, monitor és működő leállítás/visszaállás. A béta tapasztalatai döntik el, mely minőségi hibát érdemes később javítani.
+
+**Lezárási szabály:** a három munkacsomag szükséges technikai bizonyítékai után konkrét candidate/cohort/window/budget/apply csomag kerül a tulajdonos elé. A biztonsági kapukat megtartjuk, új teljes paid/humán N08, editor-kalibráció, history-kutatás vagy archetípus nem kerül a zárt béta elé. Nyilvános/fizetős kiadásnak továbbra külön minőségi és termékkapui vannak.
 
 ## Történeti v6 bizonyíték és költési határ — 2026-10-18
 
