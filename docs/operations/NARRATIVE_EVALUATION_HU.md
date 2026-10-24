@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-23
+last_reviewed: 2026-10-24
 related:
   - ../plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md
   - NARRATIVE_RELEASE_HU.md
@@ -604,3 +604,44 @@ Az egyetlen `author_package` repair új láncot hoz létre: feladat visszaadása
 **Továbbhaladási döntés:** a technikai review lezárt, a C5 hasznossága továbbra nyitott. Ez a kis, nem vak, az első döntésnél szemantikailag szétváló minta nem bizonyít általános javulást vagy C5 által okozott regressziót. A kontroll 0 repairje mellett csökkenést nem lehetett kimutatni. Szélesebb generálás, release vagy merge-készültség nem következik belőle. Következő feladat a **mentett eredeti/javított csomag és az editor tényleges kéréskontextusának célzott elemzése**: a meglévő, megváltozott oksági szerepet elismerő novelty-rubrika alkalmazása, az első kifogás indokoltsága és a javításban létrejött új zárási hiba külön vizsgálandó. Azonos csomagon végzett későbbi editor-kontroll tudná elkülöníteni a prompt- és ítéletingadozást; azt ez a smoke nem futtatta le. Új kvótás sorozat 20%-os ötórás tartalékkal nem indulhat (indulási minimum 30%); nincs újrafuttatás, csendes modellváltás, paid fallback, kapulazítás vagy történetspecifikus tiltólista.
 
 **Mentett kéréskontextus ellenőrzése:** a PGlite állapot ideiglenes másolatából, a C5 pontos checkoutján, stub providerrel újraépítettük a két editor-kérést (`editor-request-4.json`, `editor-request-8.json`, `editor-context-check.json`). Méretük a transportrekorddal egyezik: 58 319 / 58 260 bájt. Mindkettőben ott van az első periódus `sequenceHistory` és `sequenceSignatureHistory` rétege, a jelenlegi final package és a bekezdések. Az örökölt editor-rubrika már kifejezetten elismeri a megváltozott agency/outcome és oksági szerep melletti legitim visszatérést; egyszerűen hiányzó utasítás vagy hiányzó history-réteg nem azonosítható. Ugyanakkor az editor tömörített jelenetkivonatokat kap, az ügynöki olvasók teljes előző fejezetet is láttak: az eltérő információ miatt sem tekintjük a tévespozitív-feltevést lezártnak. Az azonos tényleges inputon végzett későbbi ellenőrzés és a kontextustömörítés hatása továbbra külön kérdés. Termékkód vagy prompt ebben a mérési körben nem változott.
+
+
+## Rögzített bemenetű C5 editorkalibráció — 2026-10-24
+
+**Feladat és felhatalmazás:** a tulajdonos a fenti elemzés és célzott próba folytatását kérte, minden lépés repóbeli dokumentálásával. Scope: a mentett eset értelmezése és legfeljebb 12 kvótás, csak editorhívás, új fejezet/repair/paid kérés nélkül. A termék promptjai, minőségi küszöbei, policyja, adatbázisa és production konfigurációja változatlan. A 048-as terv és az archetípusok nem részei a feladatnak.
+
+**Lezárt statikus megállapítás:** a két eredeti editor-kérésben mindkét tömörített history-réteg megvan. A kezdeti kifogás az ismétlődő külső „elkészült mű → programme → ajánlat” láncra támaszkodik, miközben az új ajánlatot a főhős saját koordinációs cselekvése és Úna más irányú igénye hozza létre. A rubrika már engedi a megváltozott agency/outcome és oksági szerep melletti visszatérést. Az átírás új szerzőségi történetet és új zárási briefinget hozott létre; ez nem egy eredeti hiba késői felismerése. A teljes előző fejezetet látó ügynöki olvasók és a tömör historyt látó editor információja eltér: a tévespozitív egyelőre hipotézis. Egyszerűen hiányzó utasítást vagy hiányzó history-réteget nem azonosítottunk; promptjavításról e statikus elemzés alapján nem döntünk.
+
+### Előre rögzített protokoll
+
+Az [evidence manifest](../evidence/c5-editor-calibration-2026-10-24/manifest.json) és a [promptsnapshotok](../evidence/c5-editor-calibration-2026-10-24/prompts.json) verziózott bemenetek. A három JSON-case a teljes szintetikus payloadot, author-csomagot, editor-kérést és eredeti ítéletet őrzi. Nincsenek valódi tesztelői adatok vagy credentialök. A manifest fájl-SHA-256, user-hash és schema-hash kötéseit a futtató minden indítás előtt ellenőrzi; a két arm csak a system üzenetben térhet el. A pillanatnyi providerrel történő újraépítés külön mock-ellenőrzés; a kísérlet a befagyasztott kérésbájtokat futtatja.
+
+| Eset | Forrás | Vizsgálati szerep, nem hitelesített emberi címke |
+| --- | --- | --- |
+| `disputed-original` | `7bd4d42`, candidate, ch1, első author | Vitatható oksági ismétlés: változó kompetencia/szerep és visszatérő külső váz. |
+| `structural-repeat` | `796f591`, v9-paid-m2, ch1, első author; C5 kérésszerkesztővel újraépítve | Strukturális negatív hipotézis: élő cue-feladat sikere után újabb ajánlat ugyanarra a működtető szerepre. Az átadási jelenet érdemi ellenbizonyíték; nem hitelesített emberi címke. |
+| `earned-recurrence` | `75fdda0`, control, ch2, első author | Pozitív ellenpélda: ugyanaz a hanganyag más oksági szerepet kap; csendes folytatás és érthető feltételek. |
+
+**Esetválasztás az első modellhívás előtt:** a kezdetben előkészített `repaired-closing.json` megmarad offline referenciának, de nem része a 12 hívásnak. Helyére a `structural-repeat` került, mert az oksági ismétlés megkülönböztetését ismétléses negatív eset méri, a zárási briefing más hibadimenzió. A korábbi stored editor novelty=3 / distinctDramaticStructure=false mellett momentum=3 kifogást is jelzett: az új eredményben a novelty, a strukturális flag és az indokolás külön értékelendő, egy momentum miatti elutasítás nem bizonyít ismétlésfelismerést. Külön reviewer a negatív hipotézist alkalmasabb kontrollnak ítélte, de felhívta a figyelmet a cue-átadás ellenbizonyítékára. A befagyasztott kérés nem az eredeti régebbi transport bájtazonos másolata, hanem ugyanazon tárolt csomag C5 providerrel újraépítése; mindkét arm ezt azonosan kapja.
+
+Arm A: `75fdda0` editor; arm B: `7bd4d42` C5 editor. Mindkettő v9 / report 1.3.0, ugyanaz a rubrika és szerveres kapu; a szövegkülönbség a visszajelzési utasítás +269 bájtja, nem új novelty-küszöb. Modell: `gpt-6.1-sol`, reasoning `medium`, eredeti output-limit, 300 s/hívás. Két kör, mindhárom esettel: első körben eseten belül A→B, másodikban B→A. Összesen legfeljebb 12, egymástól független Codex-hívás, nincs új történet. A sorrend előre rögzített, nem a kapott verdict alapján változik.
+
+Indulás előtt olvasott kvóta: 98% ötórás / 85% heti szabad (2026-10-24 magyar helyi délelőtt); az igazi futás saját preflightot és minden hívás előtt boundary-ellenőrzést végez. Megmarad a 30%/20% indulási és 10%/5% boundary-tartalék, a hard stop, és minden kvótaolvasás naplója. Az első provider-, timeout-, séma- vagy report-validációs hiba lezárja a próbát; nincs retry, modellcsere vagy paid fallback. A valid `revise` kísérleti eredmény, nem futtatási hiba. Létező outputot a parancs nem ír felül. A Codex CLI végső nyers szövege `raw-N.txt` fájlba mentődik még a JSON-parse és outputlimit-ellenőrzés előtt (hibás futásnál is, ha a CLI létrehozott kimenetet), majd a teljes parse-olt riport a validáció előtt journalba kerül. Ha a CLI nem hozott létre végső szöveget, ezt nem állítjuk elő mesterségesen. A kimeneti könyvtár kizárólagos mkdir-foglalású, a journal atomi átnevezéssel frissül.
+
+Futtatás a pontos, tiszta előkészítő commitról, a repo gyökeréből (csak megfelelő kvótával):
+
+```bash
+pnpm exec tsx --tsconfig tsconfig.scripts.json scripts/narrative-editor-calibration.ts \
+  --fixtures docs/evidence/c5-editor-calibration-2026-10-24 \
+  --out docs/evidence/c5-editor-calibration-2026-10-24/results
+```
+
+A kimenet `results/results.json`: runnerCommit, manifest-hash, teljes előre rögzített schedule, minden hívás időpontja/ideje, request-/user-/schema-hash, teljes raw report, termék szerinti gatePassed, error/halt és kvótanapló. A bemenet és a nyers eredmény repóba kerül; ezek nem production nyugták vagy N08-bizonyítékok. Az ISO-idők gépi formátumok, emberi összegzésben magyar helyi időt használunk.
+
+**Értelmezési szabály előre:** azonos arm/request ismétlésein belüli eltérő verdict ítéletingadozás jele; mindkét arm ismétlődő eredeti-kifogása inkább közös rubrika-/kontextusproblémát indokol vizsgálni. Egy armban két pass vagy két fail nem bizonyít statisztikai fölényt. A negatív és pozitív ellenpéldát külön értékeljük: az elfogadási arány növelése önmagában nem siker. A kompakt history marad változatlan, ezért ez a próba nem izolálja a teljes vs tömör előzmény hatását. Legfeljebb a következő célzott kontextuspróba vagy megindokolt promptmódosítás előkészítéséről dönthetünk; automatikus release/merge nincs.
+
+
+**Előkészítő review és tesztek:** külön read-only reviewer két P2 hibát talált a próbafuttató első változatában: a közös Codex-responder a hibás JSON-t a nyers szöveg megőrzése előtt parse-olta/törölte; a kimeneti mappa lefoglalása nem volt atomi. Mindkettő javítva. A responder opcionális `onRawOutput` callbackje kizárólag bizonyítékmentés, callback nélkül a régi viselkedés megmarad; termékpromptot nem módosít. Az új fake-CLI teszt hibás JSON és outputcap esetén is ellenőrzi a nyers szöveget; a párhuzamos azonos-out teszt csak egy írót és 12, nem 24 mock hívást enged. A három teljes provider-request offline újraépítése egyezik a befagyasztott bemenetekkel. Független újraellenőrzés: APPROVE, új actionable finding nélkül. Célzott tesztkör: 3 fájl / 44 teszt PASS (mind mock/fake transport, providerhívás nélkül); teljes repository ellenőrzés: 126 fájl / 1454 teszt PASS (`--maxWorkers=2`), format, scripts typecheck, teljes typecheck, build, schemas és docs:check PASS. A végleges esetcsere után a nyolc kalibrációs teszt ismét PASS, format/docs/diff ellenőrzés ismét PASS.
+
+
+**Helyi teljes tesztkör erőforráskorlátja:** az alapértelmezett Vitest-párhuzamosság a 14 GiB-os gépen 114 körüli loadot és teljesen foglalt 16 GiB swapot eredményezett. Több különböző, nem módosított PGlite/HTTP suite hook- és teszt-timeoutot jelzett (pl. fiction-evaluation, narrative-evaluation, publication-refresh, shared-persistence). A saját Vitest-folyamatfát megszakítottuk (143-as kilépés); ezt nem tekintjük zöld körnek. Ugyanaz a teljes tesztkör `pnpm exec vitest run --maxWorkers=2` paranccsal 126 fájl / 1454 teszt PASS eredménnyel lezárt (472,89 s); timeout- és acceptance-szabály nem változott. A korábbi megszakított kör hibái és a sikeres teljes kör külön szerepelnek; a célzott 44 PASS önmagában nem helyettesítette a teljes ellenőrzést.
