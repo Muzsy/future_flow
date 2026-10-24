@@ -45,7 +45,15 @@ const columnsSql =
 const foreignKeysSql =
   "SELECT t.relname AS table_name,k.conname AS constraint_name,pg_get_constraintdef(k.oid) AS definition FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname";
 
+// Explicit historical 001–037 entry point is restricted to the funded upgrade
+// preflight. Normal recovery stays pinned to 001–038 and still rejects 037.
+export async function assertReviewedFundedPre038Schema(tx: Database) {
+  return assertSchema(tx, true);
+}
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
+  return assertSchema(tx, false);
+}
+async function assertSchema(tx: Database, pre038: boolean) {
   await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
   const tables = (
     await tx.query<{ name: string }>(
@@ -64,7 +72,7 @@ export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
     "SELECT c.relname::text AS table_name,a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'ff_migrations' AND c.relkind IN('r','p') AND a.attnum>0 AND NOT a.attisdropped ORDER BY c.relname,a.attnum",
   );
   if (
-    columns.length !== 856 ||
+    columns.length !== (pre038 ? 855 : 856) ||
     hash(catalogColumns) !==
       hash(
         columns.map(({ table_name, column_name, ordinal_position }) => ({
@@ -73,7 +81,10 @@ export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
           ordinal_position,
         })),
       ) ||
-    hash(columns) !== columnsDigest ||
+    hash(columns) !==
+      (pre038
+        ? '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50'
+        : columnsDigest) ||
     foreignKeys.length !== 219 ||
     hash(foreignKeys) !== foreignKeysDigest
   )

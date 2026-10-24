@@ -97,6 +97,15 @@ def verify_hashes(manifest, expected, env_bytes, config_bytes, source, ca_bytes)
 
 
 def validate_running(containers, config, image):
+    return _validate_runtime(containers, config, image, held_worker=False)
+
+
+def validate_staged_running(containers, config, image):
+    # A real created/exited worker is checked as held, never fabricated as live.
+    return _validate_runtime(containers, config, image, held_worker=True)
+
+
+def _validate_runtime(containers, config, image, *, held_worker):
     by_service = {}
     for item in containers:
         labels = item['Config'].get('Labels', {})
@@ -128,8 +137,10 @@ def validate_running(containers, config, image):
                 host.get('PidsLimit') != service['pids_limit'] or
                 host.get('NanoCpus') != int(float(service['cpus']) * 1_000_000_000)):
             raise ValueError('Running image, port or resource protection differs')
-        if (state.get('Status') != 'running' or state.get('OOMKilled') or
-                item.get('RestartCount') != 0 or
+        held = held_worker and name == 'worker'
+        if ((held and (state.get('Status') not in {'created', 'exited'} or state.get('Running'))) or
+                (not held and (state.get('Status') != 'running' or not state.get('Running'))) or
+                state.get('OOMKilled') or item.get('RestartCount') != 0 or
                 (name != 'worker' and state.get('Health', {}).get('Status') != 'healthy')):
             raise ValueError('Running owner service is unhealthy')
         if name in ['api', 'worker']:
