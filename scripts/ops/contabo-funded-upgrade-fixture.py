@@ -1094,10 +1094,10 @@ def exercise(context):
             try:
                 system.daily = adapter
                 active = system.active_proof()
-                replay.require_funded_runtime(adapter, fence.original, active)
+                replay.require_funded_runtime(adapter, funded.fence.original, active)
                 assert active['imageId'] == context['image']
                 try:
-                    replay.require_funded_runtime(adapter, fence.original, {**active, 'imageId': oldImage})
+                    replay.require_funded_runtime(adapter, funded.fence.original, {**active, 'imageId': oldImage})
                 except ValueError:
                     pass
                 else:
