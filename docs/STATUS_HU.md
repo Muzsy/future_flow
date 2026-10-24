@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-19
+last_reviewed: 2026-10-24
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -34,61 +34,63 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Előfizetés / billing | nincs kész fizetési rendszer | B01: provider, lifecycle és szerveres entitlement |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
-## Történetminőség — aktuális fejlesztési jelölt
+## Történetminőség — aktuális fejlesztési jelölt, 2026-10-23
 
-A főág és a fejlesztési jelölt külön állapot: a v5 előfeltétel PR #49 beolvadt (`1e1b4303dd779ad8e8b34970892302583a7f66dd`); a v6 **[PR #50](https://github.com/Muzsy/future_flow/pull/50) mért checkpointként 2026-10-18-án beolvadt** (`f755a57aca37ee6a2e995400c76fc0394f1cdc88`, a tulajdonos kifejezett engedélyével). Ez fejlesztési főág-állapot, nem production aktiválás: a default legacy/üres narrative cohort változatlan. A beolvadt v6 snapshot planner/author/reviewer v6, editor v5, fidelity v1 és **qualityPolicy 2.5.0** (`fictionV6Quality25Policy()`). Az új fejlesztési jelölt a [046 v7 terv](plans/046_fiction_v7_narrative_economy.md): új creative jobok planner/author/reviewer v7, editor v6, fidelity v1, **qualityPolicy 2.6.0**, report 1.3.0/signature 1.1.0 snapshotot kapnak; 2026-10-19-i valódi mérése részleges: Stage A 3/3, Stage B 15/18 (1 elutasított, 2 hiányzó), 6,61496 USD, eredeti ledger 765 / 40,08666 USD; human PASS nincs. A régi policyk és prompt-bájtok megmaradnak; normál öt, legfeljebb kilenc fizikai kérés és egy globális tartalmi javítás engedett. A quality2.5 az editor visszajelzését elegendő szabad kéréshely esetén a fidelity-hibát javító egyetlen package repair előtt is összegyűjti; a végső kapuk nem lazultak.
+Három külön állapotot kell követni:
 
-### Legutóbbi valódi mérés
+| Szint | Utolsó ellenőrzött állapot | Jelentése |
+| --- | --- | --- |
+| Távoli `main` | `a666c905ef953cc696d5d8a0faa4f9169ec01824`, v8 / qualityPolicy 2.7.0 | Beolvadt fejlesztési alap; nem production aktiválás. |
+| V9 fejlesztési jelölt | [draft PR #66](https://github.com/Muzsy/future_flow/pull/66), C5; implementáció `7bd4d42`, a #65 fölött | Planner/author/reviewer/editor v9, fidelity v1, qualityPolicy 2.8.0; explicit opt-in. A függő PR-lánc még nincs a főágon. |
+| Production | Utolsó igazolt állapot: legacy, üres narrative cohort, zárt személyes béta | Friss szerveres állapotfelmérés nem történt; a fejlesztési vagy CI-eredmény nem deployment-bizonyíték. |
 
-A külön háromfejezetes quality2.5 előpróba 3/3 elfogadott szöveget adott. Az utána külön indított, friss hosszú mérés eredménye **15 elfogadott / 0 irodalmilag elutasított / 3 hiányzó** a 18 célból:
+A v9 lánc sorrendje: #57 → #58 → #59 → #60 → #61 → #63 → #64 → #65 → #66. A #62 tesztjavítás és a #56 Linux funded-runtime upgrade külön, `main` alapú ág. A #56 eddigi v1–v8 kompatibilitása önmagában nem igazolja a v9 target/recovery alkalmasságát. A pontos végrehajtás és elfogadási feltételek a [master planben](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) vannak.
 
-| Profil | Elfogadott főági fejezet | Alternatív harmadik fejezet | Hiányzik |
-| --- | ---: | --- | --- |
-| Alkotói | 8 | elkészült | nincs |
-| Munkahelyi | 6 | nem készült el | főági 7–8 és alternatív 3 |
+### Mi készült el, és mire van bizonyíték?
 
-A munkahelyi hetedik planner-kérése elkészült, de a következő author teljes előfoglalását a pénzügyi guard még API előtt megtagadta (`SMOKE_BUDGET_EXCEEDED`). Ez nem visszakapott gyenge történet vagy teljes mérési siker. A különböző forrású korábbi részleges korpuszokat nem adjuk össze új teljes mérésként.
+A v9 contract, szereplőállapot-fold/projection, pipeline és determinisztikus karakter-audit implementált a draft láncban. A 0–5. offline szakasz korábbi köre 2026-10-21-én lezárult; C5 új review-/mérési feladatot nyitott. A későbbi C2–C4 körök a fidelity-first javítást, a v9 editort, az ismétléskezelést, a kérésméretet és a szűkített javítási módokat érintik. A v8 baseline befagyasztott; az új munkák nem írják át a régi policykat.
 
-A mért forrás `cb8b539d11d8d364cee1798aa6fe5164d6c9f681`, sourceHash `d05fb027bf589169b19fa16c51ae1e6a63480d83844c16e310f89d914cd36512`; a mérés előtt Verify+Container CI340 SUCCESS. A futás 99 valódi transportot, 16 trace-t, 94 elfogadott receiptet és öt egyszeri package repairt tartalmaz. A source/project/manifest/trace kötéseket lezárás után visszaellenőriztük. A későbbi, kizárólag dokumentációs `56062a8` lezárás Verify+Container CI341 eredménye SUCCESS; ez nem új paid forrás vagy generálás. Az alkalmazáskód teljes CI338 ellenőrzése 101 fájl / 1091 teszt volt.
+A C5 a kilenc editor-kiváltott javítás offline elemzésére épül. A kiváltók: négy rendszermechanikai próza, három ismétlődő oksági szerkezet, egy ismétlődő lezárás és egy elégtelen döntési tét. A planner/author/review/editor v9 utasításai ezek megelőzését és teljesebb első ellenőrzését célozzák. Fidelity-, schema-, minőségkapu-, hívás-, budget- vagy cohortváltozás nincs. [Részletes scope és kompatibilitás](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23).
 
-### Irodalmi megállapítás és korlát
+A `7bd4d42` implementáció [Verify + Container CI-je](https://github.com/Muzsy/future_flow/actions/runs/39938341781) sikeres: 125 tesztfájl / 1446 teszt, valamint a repository ellenőrzései és a 19 ellenőrzéses closed-site HTTP próba. Ez az adott commit technikai ellenőrzése; a későbbi dokumentációs vagy egyesített forrást saját ellenőrzéshez kell kötni. A `75fdda0 → 7bd4d42` diff külön, csak olvasó ügynökkel végzett független statikus review-ja 2026-10-23-án APPROVE eredményű, actionable finding nélkül. A hat célzott tesztfájl újrafuttatása 92/92 PASS. A C5 utáni korlátozott Codex-smoke lezárt; eredménye lent, a hasznosság továbbra nem igazolt.
 
-Mind a 15 elfogadott végső szöveg és az eltérő köztes próza teljes ügynöki olvasása megtörtént, a végső body-hashek egyeztetve. Az alkotói történet a portfóliótól saját munkákon át egy barátság és közös portrérajzolás eltérő elvárásaiig jut. A munkahelyi történetben valódi fizetett megbízás és később elfogadott állásváltás történik; a következő fejezetben egy folyamatváltozás feleslegessé teszi a főszereplő útmutatóját. A kitalált diagnosztikai főágon a harness az első opciót választja; a fork eltérő választással indul. Ez nem valódi emberi tesztválasz vagy szemantikai párosítási jóváhagyás.
+### Meglévő mérési bizonyíték és korlát
 
-Külön Claude Code előfizetéses AI-kritika mind a nyolc alkotói és hat munkahelyi főági fejezetet végigolvasta, mindkét szálat tovább olvasná, konkrét oksági törést nem talált. A body-only olvasásból eredő téves agency-kifogást és a kötelező hat hónapos hossz hibaként kezelését külön addendum helyesbítette. Ez nem független emberi bizonyíték.
+A C5 előtti S1–S4 Codex-diagnosztika 20 próbált fejezetből 20 elfogadottat és hét editoros javítást tartalmaz. A két fizetős v9-m futás négy fejezetpróbájából három elfogadott, kettő editoros javítással. A kilenc kiválasztott javításból nyolc végül átment, egy másik editor-dimenzióban elbukott. Codex-forrás: `55f1df3`; paid-forrás: `796f591`. A futások eltérő végrehajtásúak és kis mintájúak: nem összevonható általános sikerráta és nem kontrollált C5 előtti/utáni összehasonlítás.
 
-Nyitott kockázat az ismételt túlmagyarázás/elfoglalt mellékszereplő mechanizmusa, néhány választási útvonalat túl közvetlenül felidéző bekezdés és a hónapváltások hasonló prózai ritmusa. A motívumok néha érdemben más szerepet kapnak; nincs új név-, szereplő-, helyszín- vagy fordulatkvóta. Minden végső gépi score legalább 4, mind a hét flag igaz, de **stabil kiváló minőség és emberi megújítási hajlandóság még nincs igazolva**.
+A mentett szövegek, ítéletek és trace-ek offline elemzése elkészült; ez ügynöki olvasás, nem független emberi PASS. A C5 implementációjakor nem indult modellhívás; a később külön elindított smoke eredménye a következő bekezdésben szerepel. A kevesebb javítás, jobb irodalmi minőség, elfogadható egységköltség és késleltetés továbbra mérendő. A régi v6/v7/v8 eredmények a verziótervekben és a [mérési runbookban](operations/NARRATIVE_EVALUATION_HU.md) történeti bizonyítékok; korábbi ledger-maradék nem mai költési engedély vagy wallet-egyenleg.
 
-### Költség és futási állapot
+### C5 utáni korlátozott próba — 2026-10-23
 
-| Mutató | Visszaellenőrzött érték |
-| --- | ---: |
-| Eredeti globális ledger | 652 kérés / 33.4716975 USD accounted |
-| V6 változatlan nyitó baseline | 305 kérés / 10.732030 USD |
-| V6 összesített elszámolás | 347 kérés / 22.7396675 USD |
-| Jóváhagyott összes v6 keret | 23 USD |
-| Fennmaradó v6 authority | 0.2603325 USD |
-| Legutóbbi hosszú mérés | 6.495380 USD accounted |
-| Aktív / hozzárendeletlen foglalás | 0 / 0 |
+Azonos `career-transition` profil, seed és választásrotáció, három tervezett periódus, fork nélkül: kontroll `75fdda0` **3 elfogadott / 0 javítás / 15 hívás**; C5 `7bd4d42` **1 elfogadott / 1 javítás után elutasított / 1 nem indult / 14 hívás**. A jelölt második fejezetének eredeti oksági ismétlés-kifogása két ügynöki olvasat szerint vitatható; a teljes átírás után új döntésmagyarázó zárási probléma keletkezett. Az eredeti és javított csomag fidelity-valid; a végső kapu helyesen elutasított és nem adott második repairt. A sikertelen javítást is beleszámoltuk; az elfogadott sample-ekre szűkített `repairRate=0` nem a teljes jelöltfutás javítási aránya.
 
-Mind a 15 globálisan lezárt, ismeretlen használatú kérés teljes konzervatív foglalása megmaradt; nincs ledger-reset vagy új fizetős futás. Az accounted nem számla vagy provider-wallet egyenleg. A hosszú mérés elfogadott fejezeteinek P50 ideje 361067 ms, P95 ideje 852171 ms; ez nem elfogadott termék-SLA. A maradék nem fedezte a következő teljes előfoglalást.
+A kis, nem vak próba nem bizonyít C5-javulást vagy általános regressziót; a történetek már az első döntésnél szemantikailag eltérnek. Következő a mentett eset és a novelty-/zárási rubrika alkalmazásának célzott elemzése. Új generálás nem indult: záró kvóta 20% ötórás / 88% heti, az új sorozat ötórás indulási minimuma 30%. Nincs paid API-költés vagy USD-becslés. [Pontos források, trace-ek, korlátok és továbbhaladási döntés](operations/NARRATIVE_EVALUATION_HU.md#c5-független-review-és-első-korlátozott-próba--2026-10-23).
+
+### Célzott folytatás — 2026-10-24
+
+A mentett eredeti/javított eset statikus elemzése lezárt, egyszerűen hiányzó rubrika vagy history-réteg nem azonosítható. A feltételezett tévespozitív tisztázására három verziózott, szintetikus, rögzített bemenetű editor-eset készült: vitatott eredeti, korábban ismétlés miatt kifogásolt szerkezet és legitim visszatérés. A javításban létrejött closing-briefing offline referencia marad. A két forrás editorpromptjával, két ismétlésben 12/12 valid kvótás hívás lezárt (`f3eaf3c`): mindkét editor mindkét körben novelty=3/structure=false/revise ítéletet adott a vitatott és ismétléses esetre, novelty=4/structure=true/pass ítéletet a legitim visszatérésre. A főítélet stabil, más részdiagnózisok ingadoztak; a C5 visszajelzésében kevesebb biztosan félbeszakadt mező volt, általános hatás vagy tévespozitív nem igazolt. Induló/záró kvóta 66→47% ötórás, 80→77% heti; nincs újrafuttatás vagy paid hívás. A befagyasztott bemenetek, 12 nyers válasz, kvótanapló, hash-ek és független ügynöki olvasat a [#68 draft PR-ben](https://github.com/Muzsy/future_flow/pull/68) követhető. A korábban javasolt history-audit és új kontextuskontroll a későbbi bétafókusz-döntéssel DEFERRED. Új termékprompt, küszöb, 048/archetípus vagy production változtatás nincs. [Protokoll és értelmezési határok](operations/NARRATIVE_EVALUATION_HU.md#rögzített-bemenetű-c5-editorkalibráció--2026-10-24).
+
+### Bétafókusz és motorlezárás — tulajdonosi döntés, 2026-10-24
+
+Elsődleges cél a kis zárt béta kiadása. A v9 C5 motoralapot befagyasztjuk; az editor/história további finomítása, az archetípusok és új minőségkutatási körök DEFERRED. A mért elutasításokat és ingadozó részdiagnózisokat megőrizzük ismert korlátként. Nem követelünk igazolt általános C5-javulást vagy teljes irodalmi benchmarkot a zárt béta elé; a szerveres kapukat nem lazítjuk.
+
+A `codex/v9-beta-integration` ág már egyesítette a v9/#69, #56 (`01b18b7`) és #62 (`8cc667e`) forrásokat, a docs-konfliktusok feloldva. A v9 capability, artifact/delta-ellenőrzés, explicit runtime-kiválasztás és generációt ellenőrző monitor fejlesztési implementációja elkészült; lokális 127 fájl / 1465 alkalmazásteszt és 99 Node ops PASS, Python 340 PASS / 11 SKIP, typecheck/build/schemas/format/docs PASS. A motor promptja nem változott. A kiadási jelölt exact-source review/CI-je, a fennmaradó operátori triage és a célgépes proof még szükséges. A #56 `8605838` forrása v1–v8 fiction capabilityt sorol, Python-oldalon 18 policyt vár; az integrációs jelölt ezt 19 policyra és v9 karakterállapotra egészíti ki. A teljes target/recovery út CI/root fixture-bizonyítéka külön szükséges. A `c3bac46` ↔ #56 helyi `git merge-tree` próbája három dokumentációs konfliktust jelzett (master plan, STATUS, narrative release), forráskódkonfliktust nem; #62 szövegesen tisztán egyesíthető. Az előellenőrzés önmagában nem futási proof; a helyi integráció és tesztek eredménye fent szerepel. [Konkrét kiadási lezárás és blokkolók](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24).
 
 ## Következő fejlesztési és kiadási kapuk
 
-F05/F06/N08 **PARTIAL**, N09 **PARTIAL/nyitott**. Következő sorrend:
+F05/F06/N08 és N09 továbbra **PARTIAL**. A következő sorrend: befagyasztott v9 motor és meglévő mérési checkpoint → kiadási integráció és technikai stabilizálás → v9-kompatibilis N09 target/recovery és runtime bizonyíték → tesztelői használati út ellenőrzése → külön engedélyezett kis zárt béta. Az N09 előkészítése most közvetlen kiadási feladat; a célgépes proof a végleges, egyesített jelöltre kell. [Feladatok, függőségek és teljesülési feltételek](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23).
 
-1. Az ismétlődő jelenetmechanizmusok és az első draft kánon-/állapotkonzisztenciájának célzott korrekciója: **offline implementálva a v7 jelöltben** ([046](plans/046_fiction_v7_narrative_economy.md)). A periódusonkénti egy új visszatérő szereplős korlát a v7-ben narratív ökonómiai elvre cserélődött; a lezáró szakasz egésze nem építheti újra a döntési ágakat; a túlmagyarázás sorozatszintű mintajelzés (nincs kvóta); a mérési profilok 1–2 magánéleti alapkapcsolatot kaptak. Automatikus kánon-normalizálás nincs (ADR-008). A v7 mérés (15/18) és független olvasás után a sorozatszintű ismétlés (nyitások, lezárások, ütem, névkészlet, eltűnő magánélet, álló cél) kódszintű kezelése a **v8 jelöltben offline kész** ([047](plans/047_fiction_v8_series_evidence.md)); ellenőrzése fizetős hívás nélkül: tesztek, CI és `pnpm narrative:audit` a meglévő v6/v7 korpuszon.
-2. Verziózott javítás, regressziók, külön audit és exact-source CI után friss valódi előpróba, majd csak elfogadható eredménynél teljes kétprofilos nyolcfejezetes mérés és két alternatív ág. Az új teljes méréshez további számszerű költségengedély kell; a terminális korpusz nem címkézhető át.
-3. Független emberi, 17 kérdéses sorozatértékelés és folytatási/megújítási visszajelzés. Az AI nem töltheti ki az emberi értékelést. Zárt narratív bétában ezt és a teljes kétprofilos mérést a 2026-10-19-i tulajdonosi döntés szerint a tesztelők visszajelzése helyettesíti (első kör: 10 USD, 3 tesztelő, v7); nyilvános vagy fizetős kiadáshoz továbbra is kötelező. [Kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19).
-4. Külön N09 target/recovery, migráció-, envelope-, timeout- és kontrollált Linux funded-runtime rollout bizonyíték, majd explicit éles apply engedély. A fejlesztési 192 KiB/300 s nem automatikus production konfiguráció; a runtime default 100000 bájt/180 s határa külön nyitott.
+Tulajdonosi döntés (2026-10-20): az élő világ **v9 a zárt béta elé került**, a v8 befagyott. A zárt béta 2026-10-19-i helyettesítő minőségkapui megmaradnak: a teljes N08/humán benchmarkot mért checkpoint, szerveres gépi kapuk és valódi tesztelői visszajelzés helyettesítheti. Nyilvános vagy fizetős kiadáshoz a teljes N08 továbbra kötelező. A technikai, privacy-, recovery- és budget-kapuk zárt bétában sem helyettesíthetők visszajelzéssel.
 
-Az árazás, havi fejezetmennyiség, billing és szélesebb pilot továbbra külön döntés; a minőségi küszöböt költség miatt nem csökkentjük. Shared és nyilvános launch nincs engedélyezve.
+A korábbi 10 USD / 3 tesztelős béta-döntés nem indít új ablakot vagy keretet. A v9 konkrét jelöltjét, kohorszát, funded ablakát és költségkeretét az éles apply előtt egyeztetni kell. Új C5 paid méréshez új számszerű jóváhagyás kell; a régi `v9-m-20261022` engedély nem terjeszthető ki hallgatólagosan. A Codex/agy diagnosztikára a meglévő kvóta- és naplózási szabályok érvényesek. [Mérési eljárás](operations/NARRATIVE_EVALUATION_HU.md#c5-ellenőrzés-az-editoros-javítások-offline-elemzése-után--2026-10-23), [kiadási kapuk](operations/NARRATIVE_RELEASE_HU.md).
 
-## Részletes források és történeti bizonyíték
+Az átadás szerint az external availability workflow privát health-projection ellenőrzése 2026-10-14 óta hibás, a publikus része sikeres volt. Friss futás/szerverdiagnózis itt nem történt; az ok és a helyreállítás igazolása az N09 előtt nyitott feladat.
 
-- [Aktív v6 végrehajtási terv](plans/045_fiction_v6_earned_life_evolution.md): pontos mérési források, az összes korábbi negatív eredmény, javítás és költség.
-- [Mérési runbook](operations/NARRATIVE_EVALUATION_HU.md): reprodukció, bizonyítéktípusok és emberi értékelés.
-- [Kiadási kapuk](operations/NARRATIVE_RELEASE_HU.md), [architektúra](architecture/ARCHITECTURE_HU.md), [AI routing](AI_MODEL_ROUTING_HU.md).
-- [Fejlesztési sorrend](DEVELOPMENT_PLAN_HU.md), [gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md), [Linux-operátor](operations/LINUX_OPERATOR_HU.md).
+Az árazás, havi fejezetmennyiség, billing és szélesebb pilot külön döntés. Shared és nyilvános launch nincs engedélyezve.
 
-A korábbi v1–v5 és v6 részdiagnózisok a részletes tervek/runbook történeti fejezeteiben megmaradnak. Nem írják felül e jelenlegi állapotot, és nem pótolják a hiányzó minőségi kapukat.
+## Részletes források
+
+- [Master plan](DEVELOPMENT_PLAN_HU.md): végrehajtási sorrend, státusz és acceptance gate-ek.
+- [Creative terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [élő világ terv](plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md), [ADR-009](decisions/ADR-009-character-state-artifact-fold.md): technikai scope és döntések.
+- [Mérési runbook](operations/NARRATIVE_EVALUATION_HU.md), [kiadási runbook](operations/NARRATIVE_RELEASE_HU.md), [Linux-operátor](operations/LINUX_OPERATOR_HU.md): végrehajtható eljárások.
+- [Architektúra](architecture/ARCHITECTURE_HU.md), [AI routing](AI_MODEL_ROUTING_HU.md), [gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md).

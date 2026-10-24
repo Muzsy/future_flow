@@ -1,5 +1,11 @@
 import { DomainError } from '@future-flow/core';
-export type EvaluationBudgetBinding = { sourceHash: string; caseId: string };
+// `out` (the resolved output directory of the run that made the call) is
+// optional: older bindings lack it, and the cost report does not use it.
+export type EvaluationBudgetBinding = {
+  sourceHash: string;
+  caseId: string;
+  out?: string;
+};
 export type ExperimentalCall = {
   id?: string;
   accountedUsd: number;
@@ -12,6 +18,7 @@ export function evaluationCostReport(
   calls: ExperimentalCall[],
   bindings: Record<string, EvaluationBudgetBinding>,
   sourceHash: string,
+  ledgerPath?: string,
 ) {
   if (
     calls.some(
@@ -47,6 +54,8 @@ export function evaluationCostReport(
     outputTokens: rows.reduce((s, c) => s + (c.usage?.output_tokens ?? 0), 0),
   }));
   return {
+    // The resolved absolute ledger these figures were read from.
+    ...(ledgerPath ? { ledgerPath } : {}),
     totalDevelopmentAccountedUsd: calls.reduce((s, c) => s + c.accountedUsd, 0),
     totalDevelopmentUsageEstimatedUsd: calls.reduce(
       (s, c) => s + (c.estimatedUsd ?? 0),

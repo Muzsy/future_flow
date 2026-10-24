@@ -1,4 +1,8 @@
 import { fictionFixture } from '../../tests/fiction-fixtures';
+import {
+  failureDiagnostic,
+  type FailureDiagnostic,
+} from './narrative-failure-diagnostic';
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { mkdir, writeFile, rename, open, unlink } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
@@ -9,6 +13,7 @@ import {
   OpenAiProvider,
   ExperimentAiBudget,
   combineAiGuards,
+  isMintedUuidProperty,
   type AiReceipt,
   type AiResult,
   type AiRequestGuard,
@@ -34,10 +39,20 @@ import {
   narrativeWriterRequest,
   narrativeFidelityRequest,
   narrativeEditorialRequest,
+  fictionCharacterOmitted,
+  fictionContinuityCoverage,
+  fictionMechanicsFigures,
+  fictionMechanicsRecount,
+  type FictionMechanicsFigure,
 } from '@future-flow/core';
 import {
+  fictionAuthorSchemaFor,
+  fictionRepairSchemaFor,
+  fictionDraftSchemaFor,
   narrativeV1Policy,
   NARRATIVE_WITHHELD_SUMMARY,
+  type FictionCharacterEnvelope,
+  type FictionCharacterProjection,
   type NarrativePeriodInput,
   type PeriodChapterV2,
 } from '@future-flow/contracts';
@@ -58,11 +73,21 @@ import {
 } from '../../tests/narrative-plan-fixtures';
 import { applyMigrations } from './migrations';
 import { currentFixedNarrativeFixture as fixedNarrativeFixture } from './narrative-evaluation-fixtures';
+import type { RequestParts } from './narrative-request-parts';
 import {
   evaluationCostReport,
   type EvaluationBudgetBinding,
   type ExperimentalCall,
 } from './narrative-evaluation-costs';
+import {
+  approvalChapterHalt,
+  chapterHaltApproval,
+  runEstimatedUsd,
+  evaluationV9MeasurementApproval,
+  verifyApprovalBudget,
+  verifyApprovalLedger,
+} from './narrative-evaluation-approval';
+import { readLedgerCalls } from './paid-ledger-summary';
 import {
   evaluationVersion,
   choiceOverrideSchema,
@@ -91,8 +116,18 @@ import {
   evaluationResponseOutput,
   verifyExistingEvaluationAttempts,
   verifyTraceCoversCheckpointReceipts,
+  readAttemptTrace,
+  type EvaluationAttemptTrace,
   type AttemptTraceBinding,
 } from './narrative-evaluation-attempts';
+import {
+  repairTriggerOf,
+  type RepairTrigger,
+} from './narrative-repair-trigger';
+import {
+  turnDiagnostics,
+  type TurnDiagnostics,
+} from './narrative-turn-diagnostics';
 
 export type OfflineMockResponseOverride = {
   __rawResponse: {
@@ -118,8 +153,12 @@ export type OfflineMockResponder = (context: {
   parameters: {
     model: string;
     input?: unknown;
+    // The API request's output cap and the effective per-call deadline, so a
+    // local transport can enforce the same limits the product call has.
+    max_output_tokens?: number;
     text: { format: { name: string; $parseRaw?: (raw: string) => unknown } };
   };
+  timeoutMs?: number;
   job: LifeJob;
   defaultOutput: () => unknown;
 }) =>
@@ -146,12 +185,358 @@ export type EvaluationSample = {
   errorCode: string | null;
   choiceMappings: unknown[];
   mock: boolean;
+  // Living-world generation only: request and artifact bytes of the character
+  // state, so the phase 5 diagnostics can check the provisional bounds.
+  character?: {
+    projectionBytes: number;
+    deltaBytes: number;
+    omittedActors: number;
+    // Output cost of the author call(s), which now also carry the delta, and
+    // whether the single repair was about the character state (review F4).
+    authorOutputTokens: number[];
+    authorReasoningTokens: number[];
+    repairMessage: string | null;
+    characterRepair: boolean;
+    // What made the repair necessary, from the message wording only (the
+    // fidelity-triggered wordings are fixed text, never model text).
+    repairTrigger: RepairTrigger | null;
+    // The planner's turn label and where it stood in the request's rotation
+    // (diagnostics, never a gate); null before the label existed.
+    turn: TurnDiagnostics | null;
+    // The exact numbers of the life's state and the draft's typed changes (the
+    // author request's mechanicsFigures) and the ones the chapter's prose
+    // restates as a numeral or a spelled-out number. A flag for the reader of
+    // the evaluation, never a gate (a match can be a coincidence); null before
+    // the figures existed or outside the living-world generation.
+    mechanics: { figures: number; recounted: FictionMechanicsFigure[] } | null;
+    // Provider answers the strict response format let through that the
+    // server schema refused (malformed), of which uuid-shaped refusals, and
+    // requests the API itself rejected (HTTP 400). The v9 request schemas drop
+    // the uuid pattern on copied ids, so this is the check that it costs no
+    // validity (paid and Codex measurements count it v9 against v8).
+    schemaFailures: SchemaFailureCounts;
+    // Output tokens of every answered request by stage (receipts; paid runs).
+    stageTokens: { task: string; outputTokens: number }[];
+    // Wall-clock of every physical call by stage (the fiction deadline is
+    // 180 s); independent of whether the transport reports output sizes.
+    stageLatencies: { task: string; latencyMs: number }[];
+    // The local Codex/agy transports report no token usage, so the cost gate
+    // cannot be judged from them: only output lengths are recorded (per stage
+    // and for the prose and the delta) with a rough token estimate. The gate
+    // is decided by the paid measurement (appendix D.8).
+    outputSizes: {
+      stages: {
+        task: string;
+        outputChars: number;
+        outputBytes: number;
+        estimatedTokens: number;
+        // Raw request bytes of the call; the production guard adds 4096.
+        requestBytes: number | null;
+        // The same bytes by part (system, schema, user by key, context by
+        // key); absent for a transport record written before the split existed.
+        requestParts?: RequestParts;
+      }[];
+      proseChars: number;
+      proseBytes: number;
+      deltaChars: number;
+      deltaBytes: number;
+      estimatedProseTokens: number;
+      estimatedDeltaTokens: number;
+    };
+    // Relevant people the projection could not show, with their reasons.
+    omitted: { actorId: string; reasons: string[] }[];
+    // Planner continuity decisions against the open matters of the projected
+    // people (diagnostics only; null when the draft or projection is absent).
+    continuity: {
+      required: string[];
+      missing: string[];
+      intentMissing: string[];
+      decisions: { carry: number; defer: number; resolve: number };
+    } | null;
+  };
 };
+// What the attempt trace adds for a completed sample: the planner draft the
+// package was authored from and the wording of the last repair.
+export type SchemaFailureCounts = {
+  malformed: number;
+  // Malformed plan/author answers refused because of a uuid (the check
+  // stages' schemas are unchanged, so they are not classified), and of those
+  // the ones on a field whose pattern the v9 request schema drops (anything
+  // but a minted `id` / `sceneId`).
+  uuid: number;
+  uuidOnCompactFields: number;
+  rejected: number;
+};
+export type AttemptEvidence = {
+  draft: {
+    characterIntent?: { actorId: string }[];
+    continuityDecisions?: { actorId: string; decision: string }[];
+  } | null;
+  repairMessage: string | null;
+  schemaFailures: SchemaFailureCounts;
+};
+type EvidencePolicy = Parameters<typeof fictionAuthorSchemaFor>[0];
+// Counts the attempts whose answer the server schema refused (status
+// malformed), whether the refusal was about a uuid, and the requests the API
+// answered with HTTP 400 (a rejected response format).
+export function schemaFailureCounts(
+  trace: EvaluationAttemptTrace,
+  policy?: EvidencePolicy,
+): SchemaFailureCounts {
+  const counts: SchemaFailureCounts = {
+    malformed: 0,
+    uuid: 0,
+    uuidOnCompactFields: 0,
+    rejected: 0,
+  };
+  for (const attempt of trace.attempts) {
+    if (attempt.status === 'failed' && attempt.errorCode === 'AI_HTTP_400')
+      counts.rejected += 1;
+    if (attempt.status !== 'malformed') continue;
+    counts.malformed += 1;
+    const schema = !policy
+      ? null
+      : attempt.task === 'life_narrative_plan'
+        ? fictionDraftSchemaFor(policy)
+        : attempt.task === 'life_narrative_chapter'
+          ? (attempt.repairFeedback?.mode &&
+              fictionRepairSchemaFor(policy, attempt.repairFeedback.mode)) ||
+            fictionAuthorSchemaFor(policy)
+          : null;
+    const parsed = schema?.safeParse(attempt.output);
+    if (!parsed || parsed.success) continue;
+    const uuidIssues = parsed.error.issues.filter(
+      (issue) =>
+        issue.code === 'invalid_format' &&
+        (issue as { format?: string }).format === 'uuid',
+    );
+    if (!uuidIssues.length) continue;
+    counts.uuid += 1;
+    if (
+      uuidIssues.some(
+        (issue) =>
+          !isMintedUuidProperty(
+            [...issue.path]
+              .reverse()
+              .find(
+                (segment): segment is string => typeof segment === 'string',
+              ),
+          ),
+      )
+    )
+      counts.uuidOnCompactFields += 1;
+  }
+  return counts;
+}
+export function attemptEvidence(
+  trace: EvaluationAttemptTrace | null,
+  policy?: EvidencePolicy,
+): AttemptEvidence | null {
+  if (!trace) return null;
+  const draft = trace.attempts
+    .filter(
+      (a) =>
+        a.task === 'life_narrative_plan' &&
+        a.status === 'completed' &&
+        a.output,
+    )
+    .at(-1)?.output;
+  const repair = trace.attempts.filter((a) => a.repairFeedback).at(-1)
+    ?.repairFeedback?.message;
+  return {
+    draft: (draft ?? null) as AttemptEvidence['draft'],
+    repairMessage: repair ?? null,
+    schemaFailures: schemaFailureCounts(trace, policy),
+  };
+}
+// Messages that carry a checker's (model) feedback, not a validator's wording:
+// they quote scores and reasons that may well contain the word "character".
+// The v9 editor-triggered wording ("Correct the final package's literary
+// issues:") starts with the first alternative; the older prefixes stay so that
+// the stored runs classify exactly as before.
+const CHECKER_FEEDBACK_PATTERN =
+  /^(?:Correct the final package|Rewrite the weak story|Fix BOTH final checks|The existing literary check)/;
+// Validator wording of a character-state failure (never model text).
+const CHARACTER_REPAIR_PATTERN =
+  /character|profile|delta|archiv|supplied person|user supplied|actor_remove|dynamic state|relationship state/i;
+// The label comes from the stored artifact (the draft's copy), so a draft kept
+// only in the attempt trace still counts; a draft without the key is `absent`.
+function livingTurn(
+  payload: unknown,
+  artifact: unknown,
+  draft: unknown,
+): TurnDiagnostics | null {
+  const living = (artifact as { characterDelta?: unknown } | null)
+    ?.characterDelta;
+  if (living === undefined) return null;
+  const ledger = (
+    payload as {
+      narrativeContext?: {
+        seriesLedger?: { turnQueue?: string[]; restingTurns?: string[] };
+      };
+    }
+  ).narrativeContext?.seriesLedger;
+  const carrier = [artifact, draft].find(
+    (value) => value && typeof value === 'object' && 'turnType' in value,
+  ) as { turnType?: unknown } | undefined;
+  const report = (
+    artifact as {
+      editorialReport?: { sequenceSignature?: Record<string, string> };
+    }
+  ).editorialReport;
+  return turnDiagnostics({
+    turnType: carrier ? carrier.turnType : undefined,
+    ledger,
+    signature: report?.sequenceSignature ?? null,
+  });
+}
+function livingMechanics(
+  payload: unknown,
+  delta: unknown,
+  draft: unknown,
+  chapterBody: string,
+): { figures: number; recounted: FictionMechanicsFigure[] } | null {
+  if (delta === undefined) return null;
+  const input = payload as {
+    state?: Parameters<typeof fictionMechanicsFigures>[0];
+    input?: { locale?: string };
+  };
+  if (!input.state) return null;
+  const events =
+    (draft as { candidate?: { events?: { changes?: unknown }[] } } | null)
+      ?.candidate?.events ?? [];
+  const figures = fictionMechanicsFigures(input.state, events);
+  return {
+    figures: figures.length,
+    recounted: fictionMechanicsRecount(
+      chapterBody,
+      figures,
+      input.input?.locale === 'hu' ? 'hu' : 'en',
+    ),
+  };
+}
+export function characterBytes(
+  payload: unknown,
+  artifact: unknown,
+  receipts: readonly AiReceipt[] = [],
+  checkpoints: unknown = null,
+  transports: readonly TransportRecord[] = [],
+  chapterBody = '',
+  trace: AttemptEvidence | null = null,
+): NonNullable<EvaluationSample['character']> {
+  const context = (
+    payload as {
+      narrativeContext?: {
+        characterProjection?: {
+          omittedActors?: number;
+          actors?: { actorId: string }[];
+        } & Partial<FictionCharacterProjection>;
+        memory?: { withheld?: boolean };
+      };
+      fictionCharacters?: FictionCharacterEnvelope;
+    }
+  ).narrativeContext;
+  const projection = context?.characterProjection;
+  const envelope = (payload as { fictionCharacters?: FictionCharacterEnvelope })
+    .fictionCharacters;
+  const delta = (artifact as { characterDelta?: unknown } | null)
+    ?.characterDelta;
+  const bytes = (value: unknown) =>
+    value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value), 'utf8');
+  const cp = (checkpoints ?? {}) as {
+    fictionRepair?: { message?: string } | null;
+    planningRepair?: string | null;
+    fictionDraft?: {
+      characterIntent?: { actorId: string }[];
+      continuityDecisions?: { actorId: string; decision: string }[];
+    } | null;
+  };
+  // A completed job keeps only its binding checkpoints, so the stored draft
+  // and the repair wording come from the attempt trace when it has them.
+  const repairMessage =
+    cp.fictionRepair?.message ??
+    cp.planningRepair ??
+    trace?.repairMessage ??
+    null;
+  const draft = cp.fictionDraft ?? trace?.draft ?? null;
+  const author = receipts.filter((r) => r.task === 'life_narrative_chapter');
+  // About 3.5 bytes per token (the 047 price estimate); never a measurement.
+  const estimate = (outputBytes: number) => Math.ceil(outputBytes / 3.5);
+  const deltaJson = delta === undefined ? '' : JSON.stringify(delta);
+  return {
+    projectionBytes: bytes(projection),
+    deltaBytes: bytes(delta),
+    omittedActors: projection?.omittedActors ?? 0,
+    authorOutputTokens: author.map((r) => r.outputTokens),
+    authorReasoningTokens: author.map((r) => r.reasoningTokens ?? 0),
+    repairMessage: repairMessage ? repairMessage.slice(0, 160) : null,
+    characterRepair: repairMessage
+      ? !CHECKER_FEEDBACK_PATTERN.test(repairMessage) &&
+        CHARACTER_REPAIR_PATTERN.test(repairMessage)
+      : false,
+    repairTrigger: repairTriggerOf(repairMessage),
+    turn: livingTurn(payload, artifact, draft),
+    mechanics: livingMechanics(payload, delta, draft, chapterBody),
+    schemaFailures: trace?.schemaFailures ?? {
+      malformed: 0,
+      uuid: 0,
+      uuidOnCompactFields: 0,
+      rejected: 0,
+    },
+    stageTokens: receipts.map((r) => ({
+      task: r.task,
+      outputTokens: r.outputTokens,
+    })),
+    stageLatencies: transports.map((t) => ({
+      task: t.task,
+      latencyMs: t.latencyMs,
+    })),
+    outputSizes: {
+      stages: transports.flatMap((t) =>
+        t.outputBytes === undefined
+          ? []
+          : [
+              {
+                task: t.task,
+                outputChars: t.outputChars ?? 0,
+                outputBytes: t.outputBytes,
+                estimatedTokens: estimate(t.outputBytes),
+                requestBytes: t.requestBytes ?? null,
+                ...(t.requestParts ? { requestParts: t.requestParts } : {}),
+              },
+            ],
+      ),
+      proseChars: [...chapterBody].length,
+      proseBytes: Buffer.byteLength(chapterBody, 'utf8'),
+      deltaChars: [...deltaJson].length,
+      deltaBytes: Buffer.byteLength(deltaJson, 'utf8'),
+      estimatedProseTokens: estimate(Buffer.byteLength(chapterBody, 'utf8')),
+      estimatedDeltaTokens: estimate(Buffer.byteLength(deltaJson, 'utf8')),
+    },
+    omitted:
+      envelope && !context?.memory?.withheld
+        ? fictionCharacterOmitted(
+            envelope.state,
+            envelope.signals,
+            (projection?.actors ?? []).map((a) => a.actorId),
+          )
+        : [],
+    continuity:
+      draft && projection?.actors
+        ? fictionContinuityCoverage(
+            projection as FictionCharacterProjection,
+            draft,
+          )
+        : null,
+  };
+}
 export type EvaluationRun = {
   version: string;
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
   noForks?: true;
+  fictionGeneration?: 'v9';
+  choiceMix?: 'rotate';
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -163,6 +548,10 @@ export type EvaluationRun = {
     code: string;
     chapter: unknown;
     editorialReport: unknown;
+    // Evaluation-only: the stage the job stopped at and the validator's own
+    // message and throwing frames (the job record keeps just the error code).
+    stage?: string | null;
+    diagnostic?: FailureDiagnostic;
   }[];
   choiceReviewRequests: unknown[];
   safetyProbe: { passed: boolean; markerExcluded: boolean };
@@ -172,7 +561,9 @@ export type EvaluationRun = {
   sequenceBundleFiles?: CreativeSequenceBundleFiles | null;
   sequenceAssessment?: CreativeSequenceAssessment | null;
 };
-function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
+export function adapter(
+  client: Pick<PGlite, 'query' | 'transaction'>,
+): Database {
   return {
     query: async <T extends Record<string, unknown>>(
       sql: string,
@@ -200,7 +591,11 @@ function code(error: unknown) {
 function shouldStopEvaluation(error: unknown, options: EvaluationOptions) {
   const c = code(error);
   return (
-    ['SMOKE_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED'].includes(c) ||
+    [
+      'SMOKE_BUDGET_EXCEEDED',
+      'AI_BUDGET_EXCEEDED',
+      'EVAL_APPROVAL_LIMIT',
+    ].includes(c) ||
     (options.kind === 'paid' &&
       [
         'AI_QUOTA_EXHAUSTED',
@@ -292,12 +687,20 @@ function safetyProbe() {
   ).includes(marker);
   return { passed: markerExcluded, markerExcluded };
 }
+// An option that ends or closes the story rather than continuing it; the
+// rotating mix avoids it when any other option exists (plan D.8 / 9.4).
+const EXIT_OPTION =
+  /\b(end|conclude|stop|close|wrap up|let .{0,30}(stand|be complete)|keep .{0,30}(personal|outside)|retain)\b/i;
 // Synthetic unpaired diagnostic path only. This is NOT semantic/human review.
+// `rotate` (creative-only diagnostic) walks the non-exit options in turn: the
+// main branch takes candidate k mod n at its k-th decision, the fork (k+1) mod n.
 function diagnosticChoice(
   options: { id: string; label: string; description: string }[],
   intent: ReturnType<typeof choiceIntent>,
   alternate = false,
+  rotate?: { k: number },
 ) {
+  if (rotate) return rotatingChoice(options, intent, alternate, rotate.k);
   const option = options[alternate ? 1 : 0];
   if (!option)
     throw new DomainError(
@@ -312,7 +715,47 @@ function diagnosticChoice(
     rationale: `UNREVIEWED DIAGNOSTIC: deterministic ${alternate ? 'second' : 'first'} option, not a semantic equivalence or human approval.`,
   };
 }
-type TransportRecord = { caseId: string; task: string; latencyMs: number };
+export function rotatingChoice(
+  options: { id: string; label: string; description: string }[],
+  intent: ReturnType<typeof choiceIntent>,
+  alternate: boolean,
+  k: number,
+) {
+  if (!options.length)
+    throw new DomainError(
+      'EVAL_STATE_INVALID',
+      'A diagnostic choice is unavailable.',
+    );
+  const stay = options.filter(
+    (o) => !EXIT_OPTION.test(`${o.label} ${o.description}`),
+  );
+  const candidates = stay.length ? stay : options;
+  const main = candidates[k % candidates.length]!;
+  // A single candidate cannot give the fork a different direction: widen to
+  // every option and take the first one that is not the main branch's choice.
+  const widened = !alternate || candidates.length > 1 ? null : options;
+  const option = alternate
+    ? widened
+      ? (widened.find((o) => o.id !== main.id) ?? main)
+      : candidates[(k + 1) % candidates.length]!
+    : main;
+  return {
+    optionId: option.id,
+    intent,
+    decisionHash: hash(options),
+    selection: 'diagnostic-rotate' as const,
+    rationale: `UNREVIEWED DIAGNOSTIC: rotating ${alternate ? 'fork' : 'main'} choice, decision ${k}, ${candidates.length} candidate(s) of ${options.length} option(s), exit filter ${stay.length && stay.length < options.length ? 'applied' : 'not applied'}${widened ? ', widened for the fork' : ''}; not a semantic equivalence or human approval.`,
+  };
+}
+type TransportRecord = {
+  caseId: string;
+  task: string;
+  latencyMs: number;
+  outputChars?: number;
+  outputBytes?: number;
+  requestBytes?: number;
+  requestParts?: RequestParts;
+};
 function clientFor(
   options: EvaluationOptions,
   env: Record<string, string | undefined>,
@@ -323,6 +766,8 @@ function clientFor(
   mockResponder?: OfflineMockResponder,
 ) {
   const caseBinding: AttemptTraceBinding = { ...traceBinding, caseId };
+  // SDK-wide fallback; fiction calls pass their own per-call timeout instead.
+  const sdkTimeoutMs = options.creative ? 180000 : 120000;
   const saveTransports = () =>
     save(join(options.out, 'transport-records.json'), transports);
   if (options.kind === 'paid') {
@@ -334,7 +779,7 @@ function clientFor(
       logLevel: 'off',
       maxRetries: 0,
       // Keep the SDK fallback unchanged; only fiction calls override it below.
-      timeout: options.creative ? 180000 : 120000,
+      timeout: sdkTimeoutMs,
     });
     type ParseParameters = Parameters<typeof sdk.responses.parse>[0];
     const parse = wrapEvaluationParse({
@@ -377,11 +822,13 @@ function clientFor(
       parameters: {
         model: string;
         input?: unknown;
+        max_output_tokens?: number;
         text: {
           format: { name: string; $parseRaw?: (raw: string) => unknown };
         };
       },
       ordinal: number,
+      requestOptions?: { timeout?: number },
     ) => {
       if (!job)
         throw new DomainError(
@@ -407,7 +854,7 @@ function clientFor(
         return creative && task === 'life_narrative_plan'
           ? cf!.draft
           : creative && task === 'life_narrative_chapter'
-            ? cf!.authored
+            ? reducedMockAuthor(parameters.input, cf!.authored)
             : creative && task === 'life_narrative_editor'
               ? cf!.editor
               : creative && task === 'life_narrative_plan_review'
@@ -438,6 +885,7 @@ function clientFor(
           model: parameters.model,
           ordinal,
           parameters,
+          timeoutMs: requestOptions?.timeout ?? sdkTimeoutMs,
           job,
           defaultOutput,
         });
@@ -475,6 +923,28 @@ function clientFor(
     },
   });
   return { responses: { parse } } as unknown as OpenAI;
+}
+// What a model asked for a reduced v9 repair returns: only the chapter text for
+// a prose-only repair, and (as the safe default) a request for the full repair
+// for a facts-only one; a mock responder supplies real facts when it needs them.
+function reducedMockAuthor(input: unknown, authored: unknown) {
+  const user = (
+    input as { role: string; content: unknown }[] | undefined
+  )?.find((m) => m.role === 'user')?.content;
+  let repair: { mode?: string; repairRule?: string } | undefined;
+  try {
+    repair = (JSON.parse(String(user)) as { authorRepair?: typeof repair })
+      .authorRepair;
+  } catch {
+    repair = undefined;
+  }
+  if (!repair?.repairRule) return authored;
+  const { chapter } = authored as { chapter: { title: string; body: string } };
+  return repair.mode === 'prose_only'
+    ? { chapter: { title: chapter.title, body: chapter.body } }
+    : repair.mode === 'facts_only'
+      ? { outcome: 'needs_full_repair', storyFacts: [] }
+      : authored;
 }
 function receiptsInOrder(
   rows: { metadata: AiReceipt }[],
@@ -750,6 +1220,7 @@ async function forkComparison(
   guardFor: (caseId: string) => AiRequestGuard | undefined,
   traceBinding: Omit<AttemptTraceBinding, 'caseId'>,
   mockResponder?: OfflineMockResponder,
+  chapterHalt: () => string | null = () => null,
 ) {
   const sampleId = `fork:${fixtureId}:${mode}:2`;
   if (report.samples.some((s) => s.id === sampleId)) return;
@@ -773,7 +1244,12 @@ async function forkComparison(
     | ReturnType<typeof diagnosticChoice>;
   try {
     mapping = options.creativeOnly
-      ? diagnosticChoice(decision.options, intent, true)
+      ? diagnosticChoice(
+          decision.options,
+          intent,
+          true,
+          options.choiceMix ? { k: 1 } : undefined,
+        )
       : selectEvaluationChoice(decision.options, intent, override);
   } catch (error) {
     if (code(error) !== 'EVAL_CHOICE_REVIEW_REQUIRED') throw error;
@@ -835,6 +1311,8 @@ async function forkComparison(
         ),
       );
     }
+    const halt = chapterHalt();
+    if (halt) throw new DomainError('EVAL_APPROVAL_LIMIT', halt);
     const job = await jobs.claim();
     if (!job) return;
     if (job.user_id !== owner || job.branch_id !== childId)
@@ -987,12 +1465,48 @@ async function forkComparison(
   });
 }
 
+// Programmatic seams of the exported runner (tests); the command line has none.
+// `ledgerDir` replaces the accounting directory (the shared-ledger floor still
+// applies to a paid v9 run); `approval` switches the approval's chapter halts on
+// in an offline mock run, which a paid run never takes from the caller.
+export type EvaluationSeams = {
+  ledgerDir?: string;
+  approval?: typeof evaluationV9MeasurementApproval;
+};
+const ledgerDirectory = (seams?: EvaluationSeams) =>
+  seams?.ledgerDir ?? '.local/narrative-evaluation';
+const ledgerFile = (seams?: EvaluationSeams) =>
+  resolve(ledgerDirectory(seams), 'paid-usage.json');
+
 async function runEvaluationUnlocked(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
+  // The source-bound v9 approval holds the whole measurement, probe included, to
+  // its cap on the shared ledger: the ledger must be the shared one, and a
+  // budget above what it leaves the approval is refused, before any work.
+  if (
+    options.kind === 'paid' &&
+    options.fictionGeneration &&
+    options.approvalId !== evaluationV9MeasurementApproval.approvalId
+  )
+    throw new DomainError(
+      'EVAL_CONFIG_INVALID',
+      'A paid v9 measurement needs its own owner-approved budget.',
+    );
+  const v9Approval =
+    options.kind === 'paid' && options.fictionGeneration
+      ? evaluationV9MeasurementApproval
+      : undefined;
+  if (v9Approval) {
+    const calls = readLedgerCalls(ledgerFile(seams));
+    verifyApprovalLedger(calls, ledgerFile(seams));
+    verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
+  }
+  const haltApproval = chapterHaltApproval(options, seams?.approval);
   if (options.kind === 'assess')
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -1023,6 +1537,10 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
     ...(options.noForks ? { noForks: true } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
+    ...(options.choiceMix ? { choiceMix: options.choiceMix } : {}),
     mock: options.kind !== 'paid',
     models: options.models,
     seed: options.seed,
@@ -1066,6 +1584,10 @@ async function runEvaluationUnlocked(
     ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
     ...(options.noForks ? { noForks: true as const } : {}),
+    ...(options.fictionGeneration
+      ? { fictionGeneration: options.fictionGeneration }
+      : {}),
+    ...(options.choiceMix ? { choiceMix: options.choiceMix } : {}),
     priceEvidence: evaluationPriceEvidence,
     samples: [],
     failures: [],
@@ -1095,10 +1617,8 @@ async function runEvaluationUnlocked(
       'EVAL_CHOICE_REVIEW_INVALID',
       'Duplicate semantic reviews.',
     );
-  const ledgerPath = resolve('.local/narrative-evaluation/paid-usage.json');
-  const bindingPath = resolve(
-    '.local/narrative-evaluation/budget-bindings.json',
-  );
+  const ledgerPath = ledgerFile(seams);
+  const bindingPath = resolve(ledgerDirectory(seams), 'budget-bindings.json');
   if (options.kind === 'paid')
     for (const path of [
       resolve('.local'),
@@ -1111,6 +1631,21 @@ async function runEvaluationUnlocked(
           'EVAL_OUTPUT_INVALID',
           'Experimental accounting cannot use symlinked paths.',
         );
+  const chapterHalt = () => {
+    if (!haltApproval) return null;
+    const calls = readLedgerCalls(ledgerPath);
+    return approvalChapterHalt(
+      calls,
+      report.samples.filter((s) => s.kind !== 'fixed-canon').length,
+      runEstimatedUsd(
+        calls,
+        read<Record<string, EvaluationBudgetBinding>>(bindingPath) ?? {},
+        haltApproval.approvalId,
+        resolve(options.out),
+      ),
+      haltApproval,
+    );
+  };
   const experiment =
     options.kind === 'paid'
       ? new ExperimentAiBudget(
@@ -1142,7 +1677,11 @@ async function runEvaluationUnlocked(
         ? {
             reserve: async (raw: unknown) => {
               const id = await experiment.reserve(raw);
-              budgetBindings[id] = { sourceHash: identity.sourceHash, caseId };
+              budgetBindings[id] = {
+                sourceHash: identity.sourceHash,
+                caseId,
+                out: resolve(options.out),
+              };
               await save(bindingPath, budgetBindings);
               return id;
             },
@@ -1186,6 +1725,9 @@ async function runEvaluationUnlocked(
                       ? 'narrative-fiction-v2'
                       : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
+                ...(options.fictionGeneration && options.creative
+                  ? { fictionGeneration: options.fictionGeneration }
+                  : {}),
               },
             );
           await repository.ensureUser(owner);
@@ -1220,7 +1762,12 @@ async function runEvaluationUnlocked(
                   );
                 try {
                   const mapping = options.creativeOnly
-                    ? diagnosticChoice(decision.options, intent)
+                    ? diagnosticChoice(
+                        decision.options,
+                        intent,
+                        false,
+                        options.choiceMix ? { k: periodIndex - 1 } : undefined,
+                      )
                     : selectEvaluationChoice(
                         decision.options,
                         intent,
@@ -1324,6 +1871,20 @@ async function runEvaluationUnlocked(
                   ),
                 );
               }
+              const halt = chapterHalt();
+              if (halt) {
+                report.failures.push({
+                  caseId: `${caseId}:${periodIndex}`,
+                  code: 'EVAL_APPROVAL_LIMIT',
+                  chapter: null,
+                  editorialReport: null,
+                  diagnostic: failureDiagnostic(
+                    new DomainError('EVAL_APPROVAL_LIMIT', halt),
+                  ),
+                });
+                stop = true;
+                break;
+              }
               const job = await jobs.claim();
               if (!job) break;
               if (job.user_id !== owner || job.branch_id !== before.branch.id)
@@ -1397,6 +1958,8 @@ async function runEvaluationUnlocked(
                   code: code(error),
                   chapter: saved?.checkpoints.chapter ?? null,
                   editorialReport: saved?.checkpoints.editorialReport ?? null,
+                  stage: saved?.stage ? String(saved.stage) : null,
+                  diagnostic: failureDiagnostic(error),
                 });
                 if (shouldStopEvaluation(error, options)) stop = true;
                 break;
@@ -1454,6 +2017,33 @@ async function runEvaluationUnlocked(
                 .map((p) => p.chapter as { title: string; body: string }),
               canon: period.events,
               plan: artifact?.narrative_artifact ?? null,
+              ...(options.fictionGeneration
+                ? {
+                    character: characterBytes(
+                      completed.payload,
+                      artifact?.narrative_artifact ?? null,
+                      receipts,
+                      completed.checkpoints,
+                      caseTransports,
+                      (period.chapter as PeriodChapterV2).body,
+                      attemptEvidence(
+                        readAttemptTrace(
+                          options.out,
+                          {
+                            ...traceBinding,
+                            caseId: `${caseId}:${periodIndex}`,
+                          },
+                          env,
+                        ),
+                        (
+                          completed.payload as {
+                            narrativeContext?: { policy?: EvidencePolicy };
+                          }
+                        ).narrativeContext?.policy,
+                      ),
+                    ),
+                  }
+                : {}),
               receipts,
               requestCount:
                 mode === 'narrative-v1'
@@ -1500,6 +2090,7 @@ async function runEvaluationUnlocked(
                 caseGuard,
                 traceBinding,
                 mockResponder,
+                chapterHalt,
               );
             } catch (error) {
               report.failures.push({
@@ -1507,6 +2098,7 @@ async function runEvaluationUnlocked(
                 code: code(error),
                 chapter: null,
                 editorialReport: null,
+                diagnostic: failureDiagnostic(error),
               });
               if (shouldStopEvaluation(error, options)) stop = true;
             }
@@ -1541,6 +2133,7 @@ async function runEvaluationUnlocked(
               state?.responses['legacy:chapter']?.output ??
               null,
             editorialReport: state?.responses.editor?.output ?? null,
+            diagnostic: failureDiagnostic(error),
           });
           if (shouldStopEvaluation(error, options)) break;
         }
@@ -1590,6 +2183,7 @@ async function runEvaluationUnlocked(
         ledger.calls,
         budgetBindings,
         identity.sourceHash,
+        ledgerPath,
       );
     }
     verifyExistingEvaluationAttempts(
@@ -1618,6 +2212,7 @@ export async function runNarrativeEvaluation(
   options: EvaluationOptions,
   env: Record<string, string | undefined> = {},
   mockResponder?: OfflineMockResponder,
+  seams?: EvaluationSeams,
 ): Promise<EvaluationRun> {
   verifyEvaluationAuthorization(options, env);
   if (existsSync(options.out) && lstatSync(options.out).isSymbolicLink())
@@ -1652,7 +2247,7 @@ export async function runNarrativeEvaluation(
       );
       await handle.close();
     }
-    return await runEvaluationUnlocked(options, env, mockResponder);
+    return await runEvaluationUnlocked(options, env, mockResponder, seams);
   } finally {
     for (const path of acquired.reverse()) await unlink(path);
   }

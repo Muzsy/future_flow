@@ -4,6 +4,15 @@ import {
   fictionAuthorResultSchema,
   fictionCompactAuthorSchema,
   fictionCompactDraftSchema,
+  fictionDraftSchemaFor,
+  fictionAuthorSchemaFor,
+  fictionCompactAuthorV9Schema,
+  fictionFactsOnlyRepairSchema,
+  fictionProseOnlyRepairSchema,
+  fictionStoredDraftV9Schema,
+  fictionCharacterQualityVersions,
+  fictionThreeActorQualityVersions,
+  fictionCharacterEnvelopeSchema,
   fictionArtifactSchema,
   narrativePlanningResultSchema,
   narrativePlanReviewV2Schema,
@@ -16,7 +25,13 @@ import {
   NARRATIVE_MEMORY_BYTES,
   NARRATIVE_ARTIFACT_BYTES,
   type NarrativePeriodInput,
+  type FictionContext,
   type FictionAuthorResult,
+  type FictionPolicy,
+  type FictionCharacterDelta,
+  type FictionCharacterIntent,
+  type FictionContinuityDecision,
+  type FictionTurnType,
   type FictionArtifact,
   type NarrativePlanningResult,
   type NarrativePlanReview,
@@ -35,7 +50,13 @@ import {
 } from './narrative';
 import { validatePersonalSharedMemories } from './shared-personal';
 import { fictionCastingProjection } from './fiction-casting';
+import { fictionMechanicsFigures } from './fiction-mechanics';
 import { seriesEchoFindings, seriesFrictionMarkers } from './fiction-series';
+import {
+  fictionCharacterActorsFromEnvelope,
+  fictionCharacterProjectionFromEnvelope,
+  validateFictionCharacterDelta,
+} from './fiction-character';
 
 const fail = (message: string): never => {
   throw new DomainError('NARRATIVE_PLAN_INVALID', message);
@@ -47,7 +68,7 @@ export function fictionScope(input: NarrativePeriodInput) {
     ...narrativeReferencesFromSnapshot(input.narrativeReferences),
     // Owner decision 2026-10-19: v7/v8 allow up to three new recurring
     // actors per period; v8 also lets invented actors leave the story.
-    ...(quality === '2.6.0' || quality === '2.7.0'
+    ...(fictionThreeActorQualityVersions.includes(quality)
       ? { maxIntroducedActors: 3 }
       : {}),
     ...(fictionSeriesQualityVersions.includes(quality)
@@ -119,10 +140,76 @@ export function fictionScope(input: NarrativePeriodInput) {
     )
       fail('A remembered story fact has no owned provenance.');
   validatePersonalSharedMemories(input.memory.sharedEvents, input.startDate);
-  return { context, references, facts };
+  const characters = fictionCharacterScope(input, context, references);
+  return { context, references, facts, characters };
 }
+// Living-world generation: the server's character envelope must exist, match
+// the owned reference inventory and reproduce the projection in the request.
+// Older generations never carry an envelope.
+function fictionCharacterScope(
+  input: NarrativePeriodInput,
+  context: ReturnType<typeof fictionContextSchema.parse>,
+  references: ReturnType<typeof narrativeReferencesFromSnapshot>,
+) {
+  const living = fictionCharacterQualityVersions.includes(
+    context.policy.qualityPolicyVersion,
+  );
+  if (!living) {
+    if (input.fictionCharacters !== undefined)
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'Only the living-world policy carries a character envelope.',
+      );
+    return null;
+  }
+  const parsed = fictionCharacterEnvelopeSchema.safeParse(
+    input.fictionCharacters,
+  );
+  const stale = () =>
+    new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Character envelope differs from the owned inventory or the request projection.',
+    );
+  if (!parsed.success) throw stale();
+  const envelope = parsed.data;
+  const actors = fictionCharacterActorsFromEnvelope(envelope);
+  const origins = references.fictionalActorOrigins ?? new Map();
+  const stateActorIds = new Set(input.state.actors.map((a) => a.id));
+  if (
+    hash([...actors.fictionalOrigins].sort()) !== hash([...origins].sort()) ||
+    [...actors.suppliedActorIds].some(
+      (id) => actors.fictionalOrigins.has(id) || !stateActorIds.has(id),
+    ) ||
+    // Every classified entry and every present person is accounted for.
+    envelope.state.actors.some(
+      (a) =>
+        a.kind !==
+          (actors.fictionalOrigins.has(a.actorId) ? 'fictional' : 'supplied') ||
+        (a.kind === 'supplied' && !actors.suppliedActorIds.has(a.actorId)),
+    ) ||
+    hash(context.characterProjection) !==
+      hash(
+        fictionCharacterProjectionFromEnvelope(
+          envelope,
+          context.memory.withheld,
+        ),
+      )
+  )
+    throw stale();
+  return { envelope, actors };
+}
+// Requests and checkpoints keep parsing v1-v8 outputs with the schemas they
+// always used; only the living-world generation reads the v9 shapes.
+const requestDraftSchema = (policy: FictionPolicy) =>
+  fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionStoredDraftV9Schema
+    : narrativePlanningResultSchema;
+const requestAuthorSchema = (policy: FictionPolicy) =>
+  fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactAuthorV9Schema
+    : fictionAuthorResultSchema;
 export type FictionRepair = {
-  mode: 'author_package' | 'prose_only';
+  mode: 'author_package' | 'prose_only' | 'facts_only';
   message: string;
   previous: FictionAuthorResult | null;
 };
@@ -172,7 +259,7 @@ export function fictionPlannerRequest(
     narrativeContext: context,
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0'].includes(
+    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0'].includes(
       context.policy.qualityPolicyVersion,
     )
       ? { referenceProjection: fictionReferenceProjection(input) }
@@ -193,25 +280,175 @@ export function fictionPlannerRequest(
     repair: repair ?? null,
   };
 }
+// v9 repair rules, one per repair mode, sent inside the repair request so the
+// author sees only the rule that can apply to it. A prose-only repair freezes
+// the registered facts (it cannot register a new one), so telling it to
+// "register or remove" a claim is impossible advice and it must stay on the
+// facts that are already there (v9-6e chapter 1). An author-package repair
+// rebuilds the package and registers what it adds. Surgical editing is the
+// shape of the repairs that passed (v9-6c chapters 1 and 4) and rewriting the
+// shape of those that failed (6b chapter 1, 6e chapter 1). Both modes also end
+// on the same guard: a repair that trades one editorial score for another
+// fails the second editor round (v9-6f chapter 2: novelty 3 to 4, a new
+// choiceStakes 3). The gate itself is unchanged. v8 requests do not carry this
+// key.
+const FICTION_REPAIR_BALANCE =
+  " Fix the named weakness without weakening anything else: the closing keeps the protagonist's own decision at its center, and every other editorial dimension stays at 4 or above.";
+export const FICTION_REPAIR_RULES: Record<FictionRepair['mode'], string> = {
+  author_package:
+    'Surgical repair: copy previous.chapter.body and change only the sentences the feedback names; every other sentence stays word for word. Never raise the strength of a claim (offered to agreed, accepted to used). Register in storyFacts every lasting claim you add, and add no new person or speaking role.' +
+    FICTION_REPAIR_BALANCE,
+  prose_only:
+    'Prose-only repair: no fact can be registered here. Work only from the facts and events already registered (previous.storyFacts, the candidate, accepted history); introduce no new cause, backstory, state or person, and no stronger claim than they record. Get concreteness by showing existing facts in the scene. Change only what the feedback names. Return only chapter.title and chapter.body; the server keeps every other field.' +
+    FICTION_REPAIR_BALANCE,
+  facts_only:
+    'Facts-only repair: previous.chapter and previous.candidate stay exactly as they are. Return outcome facts_added and in storyFacts only the NEW facts that register every lasting claim the feedback names: a fresh id, introducedByEventId of an event of previous.candidate, aboutActorIds of fictional people only (a supplied person keeps relationship state only), supersedesFactId null unless an owned historical fact changes. Do not repeat a fact of previous.storyFacts. If the claim cannot be registered without a typed state change, a new person or a change to the prose, return outcome needs_full_repair and no facts.',
+};
+// The fidelity prompt asks for the category in each reason. Facts-only repair
+// needs every issue to name the one category that a registration can fix, and
+// no issue whose advice offers removing the claim from the prose instead: that
+// choice needs the full package.
+const REMOVAL_ADVICE =
+  /\b(remov\w*|delet\w*|omit\w*|drop\w*|cut|strik\w*|leave\s+out|take\s+out)\b/i;
+// The text a fidelity failure hands to the repair round (the worker clips the
+// error message to the repair budget).
+export const fictionFidelityDiscrepancyMessage = (
+  issues: { reason: string }[],
+) =>
+  `Correct the final package/prose discrepancy: ${issues.map((i) => i.reason).join(' ')}`;
+export const fictionFactsOnlyEligible = (issues: { reason: string }[]) =>
+  issues.length > 0 &&
+  issues.every(
+    (issue) =>
+      /^\W*unregistered_material_fact\b/.test(issue.reason) &&
+      !REMOVAL_ADVICE.test(issue.reason),
+  );
+// Merges a reduced v9 repair output into the previous package. Everything the
+// model did not return is the previous package itself, so a prose-only repair
+// cannot touch the facts, the candidate, the plan or the character delta, and a
+// facts-only repair cannot touch the chapter. The merged package goes through
+// the ordinary author validation and the same checks as any other package.
+export function mergeFictionRepair(
+  previous: FictionAuthorResult,
+  mode: 'prose_only' | 'facts_only',
+  raw: unknown,
+  suppliedActorIds: ReadonlySet<string> = new Set(),
+): FictionAuthorResult {
+  const base = fictionCompactAuthorV9Schema.parse(previous);
+  if (mode === 'prose_only') {
+    const { chapter } = fictionProseOnlyRepairSchema.parse(raw);
+    return { ...base, chapter: { ...base.chapter, ...chapter } };
+  }
+  const output = fictionFactsOnlyRepairSchema.parse(raw);
+  if (output.outcome !== 'facts_added' || !output.storyFacts.length)
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair asks for a full package repair.',
+    );
+  const known = new Set(base.storyFacts.map((fact) => fact.id));
+  if (output.storyFacts.some((fact) => known.has(fact.id)))
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair repeats an existing story fact ID.',
+    );
+  // A supplied person keeps relationship state only: a fact about them is never
+  // registered by this shortcut (owner rule, 2026-10-20).
+  if (
+    output.storyFacts.some((fact) =>
+      fact.aboutActorIds.some((id) => suppliedActorIds.has(id)),
+    )
+  )
+    throw new DomainError(
+      'NARRATIVE_PLAN_INVALID',
+      'The facts-only repair registers a fact about a supplied person.',
+    );
+  return { ...base, storyFacts: [...base.storyFacts, ...output.storyFacts] };
+}
 export function fictionAuthorRequest(
   input: NarrativePeriodInput,
   draft: NarrativePlanningResult,
   repair?: FictionRepair,
 ) {
+  const parsed = requestDraftSchema(fictionScope(input).context.policy).parse(
+    draft,
+  );
   return {
     ...fictionPlannerRequest(input),
-    draft: narrativePlanningResultSchema.parse(draft),
-    authorRepair: repair ?? null,
+    draft: parsed,
+    // Living world only: the exact numbers of the state and of this draft's
+    // typed changes, computed per request, for the prose not to recount.
+    ...(fictionScope(input).characters
+      ? {
+          mechanicsFigures: fictionMechanicsFigures(
+            input.state,
+            parsed.candidate.events,
+          ),
+        }
+      : {}),
+    authorRepair: repair
+      ? {
+          ...repair,
+          ...(fictionScope(input).characters
+            ? { repairRule: FICTION_REPAIR_RULES[repair.mode] }
+            : {}),
+        }
+      : null,
   };
+}
+// The planner and the author use the character projection to write; the check
+// stages judge the finished package, which already carries the intent and the
+// delta, so they receive only the projection's hash. The request stays bound to
+// the same state without paying for the projection in every stage (review F1).
+function checkStageContext(context: FictionContext) {
+  const { characterProjection, ...rest } = context;
+  return characterProjection
+    ? { ...rest, characterProjectionHash: hash(characterProjection) }
+    : context;
 }
 export function fictionReviewRequest(
   input: NarrativePeriodInput,
   authored: FictionAuthorResult,
+  draft?: unknown,
 ) {
-  const { repair: _repair, ...base } = fictionPlannerRequest(input);
-  const { chapter: _chapter, ...proposed } =
-    fictionAuthorResultSchema.parse(authored);
-  return { ...base, proposed };
+  const { repair: _repair, ...plannerBase } = fictionPlannerRequest(input);
+  // Living world only: the check stages never write a name or an ID, so the
+  // authoring aids (referenceProjection, castingProjection) are not sent to
+  // them. Older policies keep every byte.
+  const base = fictionCharacterQualityVersions.includes(
+    fictionScope(input).context.policy.qualityPolicyVersion,
+  )
+    ? (({ referenceProjection: _ref, castingProjection: _cast, ...rest }) =>
+        rest)(plannerBase as typeof plannerBase & Record<string, unknown>)
+    : plannerBase;
+  const { chapter: _chapter, ...proposed } = requestAuthorSchema(
+    fictionScope(input).context.policy,
+  ).parse(authored);
+  // Only the living-world review sees what the planner decided for the
+  // recurring people, so it can ask whether the final package acted on it.
+  const continuity = fictionScope(input).characters
+    ? (() => {
+        const d = draft as
+          | {
+              characterIntent?: FictionCharacterIntent[];
+              continuityDecisions?: FictionContinuityDecision[];
+            }
+          | undefined;
+        return d?.continuityDecisions?.length
+          ? {
+              continuity: {
+                continuityDecisions: d.continuityDecisions,
+                characterIntent: d.characterIntent ?? [],
+              },
+            }
+          : {};
+      })()
+    : {};
+  return {
+    ...base,
+    narrativeContext: checkStageContext(fictionScope(input).context),
+    proposed,
+    ...continuity,
+  };
 }
 export function fictionFidelityRequest(
   input: NarrativePeriodInput,
@@ -240,6 +477,16 @@ export function fictionEditorialRequest(
             markers: seriesFrictionMarkers(authored.chapter.body).slice(0, 12),
             priorRun: context.seriesLedger.frictionBeat.recentRun,
           },
+        }
+      : {}),
+    // Living world only: the paragraphs carry the prose the editor judges, so
+    // the whole body is not sent a second time (the title and the event and
+    // decision IDs stay).
+    ...(fictionCharacterQualityVersions.includes(
+      context.policy.qualityPolicyVersion,
+    )
+      ? {
+          chapter: (({ body: _body, ...rest }) => rest)(authored.chapter),
         }
       : {}),
     paragraphs: authored.chapter.body
@@ -345,13 +592,24 @@ export function evaluateFictionEditorialGate(
       ),
   };
 }
-export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
+// `base` reads the draft part of a final package, which carries no intent.
+export function fictionCanon(
+  input: NarrativePeriodInput,
+  raw: unknown,
+  options: { base?: boolean } = {},
+) {
   const scope = fictionScope(input),
     result = (
-      scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
-        ? fictionCompactDraftSchema
-        : narrativePlanningResultSchema
-    ).parse(raw);
+      scope.characters && !options.base
+        ? fictionStoredDraftV9Schema
+        : scope.context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
+          ? fictionCompactDraftSchema
+          : narrativePlanningResultSchema
+    ).parse(raw) as NarrativePlanningResult & {
+      characterIntent?: FictionCharacterIntent[];
+      continuityDecisions?: FictionContinuityDecision[];
+      turnType?: FictionTurnType | null;
+    };
   const c = result.candidate;
   if (
     c.periodId !== input.periodId ||
@@ -368,24 +626,82 @@ export function fictionCanon(input: NarrativePeriodInput, raw: unknown) {
     revision: input.revision,
     acceptedDecisionIds: input.acceptedDecisionIds,
   });
-  validateNarrativePlan(result, canon, scope.context.memory, scope.references);
+  // The shared plan validator reads the narrative result; the intent is
+  // checked here against the character projection instead.
+  const {
+    characterIntent: _intent,
+    continuityDecisions: _continuity,
+    turnType: _turnType,
+    ...planResult
+  } = result;
+  validateNarrativePlan(
+    planResult,
+    canon,
+    scope.context.memory,
+    scope.references,
+  );
+  if (scope.characters && !options.base) {
+    // An intent describes a person's own aim: wholly fictional people only,
+    // never an invented private aim for a supplied person.
+    const known = new Set([
+      ...(scope.context.characterProjection?.actors ?? [])
+        .filter((a) => a.kind === 'fictional')
+        .map((a) => a.actorId),
+      ...c.events.flatMap((e) =>
+        e.changes.flatMap((change) =>
+          change.type === 'actor_add' ? [change.value.id] : [],
+        ),
+      ),
+    ]);
+    if (result.characterIntent?.some((i) => !known.has(i.actorId)))
+      fail(
+        'A character intent names a person who is not a fictional recurring actor of this request.',
+      );
+    // A decision is about a person the projection shows; a missing decision is
+    // diagnostics only (fictionContinuityCoverage), never a failure.
+    const shown = new Set(
+      (scope.context.characterProjection?.actors ?? []).map((a) => a.actorId),
+    );
+    if (result.continuityDecisions?.some((d) => !shown.has(d.actorId)))
+      fail(
+        'A continuity decision names a person who is not in the character projection.',
+      );
+  }
   return { ...scope, result, canon };
 }
 export function validateFictionAuthor(
   input: NarrativePeriodInput,
   raw: unknown,
 ) {
+  const policy = fictionScope(input).context.policy;
   const authored = (
-    fictionScope(input).context.policy.promptVersions.writer !==
-    'life_fiction_author.v1'
-      ? fictionCompactAuthorSchema
-      : fictionAuthorResultSchema
-  ).parse(raw);
-  const run = fictionCanon(input, {
-    version: '1.0.0',
-    candidate: authored.candidate,
-    plan: authored.plan,
-  });
+    fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
+      ? fictionCompactAuthorV9Schema
+      : policy.promptVersions.writer !== 'life_fiction_author.v1'
+        ? fictionCompactAuthorSchema
+        : fictionAuthorResultSchema
+  ).parse(raw) as FictionAuthorResult & {
+    characterDelta?: FictionCharacterDelta;
+  };
+  const run = fictionCanon(
+    input,
+    {
+      version: '1.0.0',
+      candidate: authored.candidate,
+      plan: authored.plan,
+    },
+    { base: true },
+  );
+  if (run.characters) {
+    if (!authored.characterDelta)
+      fail('The living-world package needs a character delta.');
+    validateFictionCharacterDelta({
+      periodId: input.periodId,
+      envelope: run.characters.envelope,
+      delta: authored.characterDelta!,
+      events: authored.candidate.events,
+    });
+  }
   validateNarrativeChapterV1(authored.chapter, run.canon.events);
   if (
     Buffer.byteLength(JSON.stringify(authored.storyFacts), 'utf8') >
@@ -513,13 +829,27 @@ export function fictionBindings(
     planHash: hash(authored.plan),
     storyFactsHash: hash(authored.storyFacts),
     chapterHash: hash(authored.chapter),
-    reviewInputHash: hash(fictionReviewRequest(input, authored)),
+    reviewInputHash: hash(fictionReviewRequest(input, authored, draft)),
     reviewOutputHash: hash(review),
     fidelityInputHash: hash(fictionFidelityRequest(input, authored)),
     fidelityOutputHash: hash(fidelitySchema.parse(fidelity)),
     editorialInputHash: hash(fictionEditorialRequest(input, authored)),
     editorialOutputHash: hash(editor),
+    ...(run.characters
+      ? {
+          characterStateHash: hash(run.characters.envelope.state),
+          characterProjectionHash: hash(run.context.characterProjection),
+          characterDeltaHash: hash(authoredCharacterDelta(authored)),
+        }
+      : {}),
   };
+}
+function draftTurnType(draft: unknown) {
+  return (draft as { turnType?: FictionTurnType | null }).turnType;
+}
+function authoredCharacterDelta(authored: FictionAuthorResult) {
+  return (authored as { characterDelta?: FictionCharacterDelta })
+    .characterDelta;
 }
 export function buildFictionArtifact(
   input: NarrativePeriodInput,
@@ -600,7 +930,7 @@ export function buildFictionArtifact(
       task === 'life_narrative_plan_review' &&
       repair?.mode === 'prose_only' &&
       repair.previous &&
-      hash(fictionReviewRequest(input, repair.previous)) ===
+      hash(fictionReviewRequest(input, repair.previous, draft)) ===
         bindings.reviewInputHash;
     if (
       last < 0 ||
@@ -630,7 +960,7 @@ export function buildFictionArtifact(
   if (
     repair?.mode === 'prose_only' &&
     repair.previous &&
-    hash(fictionReviewRequest(input, repair.previous)) !==
+    hash(fictionReviewRequest(input, repair.previous, draft)) !==
       bindings.reviewInputHash
   )
     fail('A prose-only repair changed its reviewed canon.');
@@ -641,6 +971,14 @@ export function buildFictionArtifact(
     validatedPlan: authored.plan,
     validatedMemoryDelta: authored.plan.memoryDelta,
     storyFacts: authored.storyFacts,
+    ...(run.characters
+      ? { characterDelta: authoredCharacterDelta(authored) }
+      : {}),
+    // Copied from the planner's draft; drafts stored before the label existed
+    // carry none and rebuild byte-identical (checkpoint proof).
+    ...(run.characters && draftTurnType(draft) !== undefined
+      ? { turnType: draftTurnType(draft) }
+      : {}),
     planningReview: r,
     editorialReport: fictionEditorialReportSchema.parse(editor),
     bindings,
@@ -675,8 +1013,10 @@ export function validatedFictionCheckpoint(
       'NARRATIVE_CONTEXT_INVALID',
       'Fiction checkpoint policy differs.',
     );
-  const draft = narrativePlanningResultSchema.parse(cp.fictionDraft),
-    authored = fictionAuthorResultSchema.parse(cp.fictionAuthor);
+  const draft = requestDraftSchema(scope.context.policy).parse(cp.fictionDraft),
+    authored = requestAuthorSchema(scope.context.policy).parse(
+      cp.fictionAuthor,
+    );
   const artifact = buildFictionArtifact(
     input,
     draft,

@@ -35,7 +35,8 @@
                 "life_fiction_plan.v5",
                 "life_fiction_plan.v6",
                 "life_fiction_plan.v7",
-                "life_fiction_plan.v8"
+                "life_fiction_plan.v8",
+                "life_fiction_plan.v9"
               ]
             },
             "writer": {
@@ -48,7 +49,8 @@
                 "life_fiction_author.v5",
                 "life_fiction_author.v6",
                 "life_fiction_author.v7",
-                "life_fiction_author.v8"
+                "life_fiction_author.v8",
+                "life_fiction_author.v9"
               ]
             },
             "planReviewer": {
@@ -61,7 +63,8 @@
                 "life_fiction_plan_review.v5",
                 "life_fiction_plan_review.v6",
                 "life_fiction_plan_review.v7",
-                "life_fiction_plan_review.v8"
+                "life_fiction_plan_review.v8",
+                "life_fiction_plan_review.v9"
               ]
             },
             "fidelity": {
@@ -77,7 +80,9 @@
                 "life_fiction_editor.v4",
                 "life_fiction_editor.v5",
                 "life_fiction_editor.v6",
-                "life_fiction_editor.v7"
+                "life_fiction_editor.v7",
+                "life_fiction_editor.v8",
+                "life_fiction_editor.v9"
               ]
             }
           },
@@ -104,7 +109,8 @@
             "2.4.0",
             "2.5.0",
             "2.6.0",
-            "2.7.0"
+            "2.7.0",
+            "2.8.0"
           ]
         },
         "maxPhysicalRequests": {
@@ -808,6 +814,332 @@
         ],
         "additionalProperties": false
       }
+    },
+    "characterDelta": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "addedProfiles": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "originEventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "socialRole": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 120
+              },
+              "coreWant": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "independentConcern": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "conflictStyle": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "attentionStyle": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "valueCue": {
+                "minItems": 1,
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 60
+                }
+              },
+              "voiceCue": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 120
+              },
+              "establishedAtPeriodId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "actorId",
+              "originEventId",
+              "socialRole",
+              "coreWant",
+              "independentConcern",
+              "conflictStyle",
+              "attentionStyle",
+              "valueCue",
+              "voiceCue",
+              "establishedAtPeriodId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "profileUpdates": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "originEventId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "socialRole": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 120
+              },
+              "coreWant": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "independentConcern": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "conflictStyle": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "attentionStyle": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "valueCue": {
+                "minItems": 1,
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 60
+                }
+              },
+              "voiceCue": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 120
+              },
+              "establishedAtPeriodId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": [
+              "actorId",
+              "originEventId",
+              "socialRole",
+              "coreWant",
+              "independentConcern",
+              "conflictStyle",
+              "attentionStyle",
+              "valueCue",
+              "voiceCue",
+              "establishedAtPeriodId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "dynamicUpdates": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "currentAim": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "currentPressure": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "attentionOn": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 160
+              },
+              "stanceTowardProtagonist": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "unresolvedMatter": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "lastMeaningfulChangePeriodId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "provenance": {
+                "type": "string",
+                "enum": [
+                  "user_supplied",
+                  "branch_fiction",
+                  "interaction_derived"
+                ]
+              }
+            },
+            "required": [
+              "actorId",
+              "currentAim",
+              "currentPressure",
+              "attentionOn",
+              "stanceTowardProtagonist",
+              "unresolvedMatter",
+              "lastMeaningfulChangePeriodId",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "relationshipUpdates": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "currentDynamic": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 240
+              },
+              "expectation": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 200
+              },
+              "unresolvedInteraction": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 240
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "provenance": {
+                "type": "string",
+                "enum": [
+                  "user_supplied",
+                  "branch_fiction",
+                  "interaction_derived"
+                ]
+              }
+            },
+            "required": [
+              "actorId",
+              "currentDynamic",
+              "expectation",
+              "unresolvedInteraction",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "removedActorIds": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "addedProfiles",
+        "profileUpdates",
+        "dynamicUpdates",
+        "relationshipUpdates",
+        "removedActorIds"
+      ],
+      "additionalProperties": false
+    },
+    "turnType": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "attempt_meets_resistance",
+            "outsider_reads_the_work",
+            "other_persons_aim_crosses",
+            "old_matter_returns",
+            "event_from_outside",
+            "success_with_price",
+            "relationship_shift",
+            "protagonist_refuses_or_withdraws",
+            "delayed_cost_of_earlier_choice",
+            "quiet_persistence",
+            "other"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "planningReview": {
       "type": "object",
@@ -2049,6 +2381,18 @@
           "pattern": "^[a-f0-9]{64}$"
         },
         "editorialOutputHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "characterStateHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "characterProjectionHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "characterDeltaHash": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         }

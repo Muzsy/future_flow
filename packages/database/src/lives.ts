@@ -1,5 +1,5 @@
 import {
-  personalFictionContext,
+  personalFictionPeriod,
   ownedFictionReferences,
 } from './fiction-memory';
 import { randomUUID } from 'node:crypto';
@@ -609,6 +609,19 @@ export class LifeRepository {
         'NARRATIVE_CONTEXT_INVALID',
         'This fictional history requires the compatible creative continuation policy.',
       );
+    // A living-world history keeps its character state only under v9; v8
+    // would silently freeze it, so continuing it there is refused.
+    if (creativeHistory?.present && this.narrative.fictionGeneration !== 'v9') {
+      const [living] = await tx.query<{ present: boolean }>(
+        "SELECT EXISTS(SELECT 1 FROM aw_history h JOIN aw_periods p ON p.id=h.period_id AND p.user_id=h.user_id WHERE h.branch_id=$1 AND h.user_id=$2 AND p.narrative_artifact->'policy'->>'qualityPolicyVersion'='2.8.0') AS present",
+        [branch.id, userId],
+      );
+      if (living?.present)
+        throw new DomainError(
+          'NARRATIVE_CONTEXT_INVALID',
+          'This living-world history requires the v9 fiction generation.',
+        );
+    }
     if (
       this.narrative.mode !== 'legacy' &&
       this.narrative.cohortUserIds.includes(userId)
@@ -623,10 +636,23 @@ export class LifeRepository {
         this.narrative.mode === 'narrative-v1' ||
           this.narrative.mode === 'narrative-fiction-v2',
       );
-      payload.narrativeContext =
-        this.narrative.mode === 'narrative-fiction-v2'
-          ? await personalFictionContext(tx, userId, branch.id, memory)
-          : this.narrative.mode === 'narrative-v1'
+      if (this.narrative.mode === 'narrative-fiction-v2') {
+        const period = await personalFictionPeriod(
+          tx,
+          userId,
+          branch.id,
+          memory,
+          {
+            generation: this.narrative.fictionGeneration ?? 'v8',
+            stateActorIds: state.actors.map((actor) => actor.id),
+          },
+        );
+        payload.narrativeContext = period.context;
+        if (period.fictionCharacters)
+          payload.fictionCharacters = period.fictionCharacters;
+      } else
+        payload.narrativeContext =
+          this.narrative.mode === 'narrative-v1'
             ? { policy: readyNarrativePolicy(), memory }
             : { policy: contextNarrativePolicy(), memory };
     }

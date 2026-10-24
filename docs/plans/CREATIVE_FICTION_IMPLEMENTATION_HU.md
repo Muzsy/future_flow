@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: personal-simulation
-last_reviewed: 2026-10-17
+last_reviewed: 2026-10-23
 implementation_status: in-progress
 ---
 
@@ -9,7 +9,13 @@ implementation_status: in-progress
 
 Részletes, kódra épített fejlesztési terv és agent-végrehajtási specifikáció.
 
-## Aktuális fejlesztési jelölt — 2026-10-17
+## Aktuális végrehajtás — 2026-10-23
+
+A főág v8 (`a666c905`), az aktív fejlesztési jelölt a **v9 C5**, draft [#66](https://github.com/Muzsy/future_flow/pull/66), implementáció `7bd4d42`, a #65/C4 fölött. A v9 explicit opt-in, qualityPolicy 2.8.0; a production utolsó igazolt állapota legacy. A [C5 szakasz](#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23) a mostani scope, a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) a review/mérés/integráció/N09/béta végrehajtási sorrendje. F05/F06 PARTIAL; a zöld technikai CI nem igazolja a C5 irodalmi hatását.
+
+Az alábbi dátumozott v3–v8 fejezetek korábbi verziók döntéseit és bizonyítékait őrzik. A bennük szereplő „aktuális”, „következő” vagy maradék keret az akkori állapotra vonatkozik; mai jelöltet vagy új költési jogot nem jelöl.
+
+## Korábbi v4 fejlesztési jelölt — 2026-10-17
 
 A v4 human-quality csomag implementációja új planner/author/reviewer v4 + editor v3/report 1.2.0, qualityPolicy 2.2.0 snapshotot választ. A v1–v3 változatok megmaradnak. Hosszabb dramaturgiai memória, három új minőségkapu és külön teljes sorozatos olvasói értékelés egészíti ki a PR #47-et. Részletek és elfogadási feltételek: [v4 terv](alterward_fiction_human_quality_development_plan_codex.md). Az alábbi PR #47-mérés történeti bizonyíték, nem az új v4 valódi minőségi mérése. F05/F06 továbbra nyitott.
 
@@ -650,3 +656,49 @@ F05 és F06 továbbra PARTIAL: offline készültségből nem lesz emberi vagy é
 [V6 terv](045_fiction_v6_earned_life_evolution.md), tényleges base `1e1b4303dd779ad8e8b34970892302583a7f66dd` (PR #49 merge). Új v6/quality2.4/editorv5, explicit frozen v5; az induló élet nem plafon, nagyobb változás erősebb okságot igényel. Nincs fejezetszám szerinti menetrend vagy billing-aware generálás. A v5 goal/actor hibák pontos regressziói és bounded saját-ID projection készülnek, változatlan authority mellett.
 
 Előbb valódi három főági munkahelyi fejezet fork nélkül; hiba esetén fizetett stop, nem újragenerálás zöldre. Csak elfogadható Stage A után külön friss kétprofilos 8+fork (18 szöveg) mérés. Összesen legfeljebb új 8 USD, ugyanazon kumulatív ledgeren. Offline teszt, modellkapu, ügynöki olvasás és független emberi elfogadás külön bizonyíték. F05/F06/N08 PARTIAL; N09/production változatlanul nyitott.
+
+## Élő világ (v9) — contract és core réteg, 2026-10-20
+
+A v9 policy-generáció (`fictionV9Policy()`: planner/author/reviewer v9, editor v8, fidelity v1, `qualityPolicyVersion` 2.8.0, 9 kérés, 1 javítás) a v8-cal azonos stage-gráfot használ; a v8 fagyott, a `fictionPolicy()` továbbra is v8-at ad, a v9 csak explicit kiválasztással aktív (a kiválasztás a következő PR-ban jön, alapértelmezés v8). Terv: [élő világ terv](alterward_v8_living_world_feasibility_audit_2026-10-20.md), szereplőállapot: [ADR-009](../decisions/ADR-009-character-state-artifact-fold.md).
+
+- **Közös artifact-család.** Az artifact módja és verziója (`narrative-fiction-v2`, 2.0.0) nem változik; a v9 mezői opcionálisak és policy-kapuhoz kötöttek: `characterDelta` és a `characterStateHash` / `characterProjectionHash` / `characterDeltaHash` binding pontosan 2.8.0-nál kötelező, máskor tilos. A v1–v8 artifact parse-a bájtra változatlan.
+- **Séma-választás policy szerint.** `fictionDraftSchemaFor` / `fictionAuthorSchemaFor`: a v9 draft kiegészül `characterIntent`-tel (legfeljebb 6 szereplő), a v9 author kötelező `characterDelta`-val. Régi policy kimenete soha nem olvasódik v9 jelentéssel.
+- **Request.** A `fictionContext.characterProjection` (legfeljebb 8 KiB) csak 2.8.0-nál van jelen, része a kérésnek és annak hash-ének; withheld memóriánál üres.
+- **Szerver-oldali envelope.** `NarrativePeriodInput.fictionCharacters` (foldolt állapot, szereplő-eredetek, megadott személyek, relevancia-jelek) soha nem modellbemenet. A belőle újraszámolt projection egyezik a kérésben lévővel, különben `NARRATIVE_CONTEXT_INVALID`; v8-nál az envelope tilos.
+- **Delta-validáció** (`validateFictionCharacterDelta`, javítható `NARRATIVE_PLAN_INVALID`): új `actor_add` ugyanabban a periódusban profilt kap; az `actor_remove` és a `removedActorIds` kétirányban egyezik; megadott személynek csak kapcsolati állapota lehet; a `characterIntent` szereplői ismert fiktív szereplők.
+- **Adatbázis (PR B2).** `fiction-character.ts`: a fold a tárolt per-periódus `characterDelta`-kból épül (a v9 előtti periódus csak a saját, rögzített régi szereplőmezőit adja magnak, régi prózából semmi nem következtetett), az envelope a job payloadba kerül. A relevancia-jelek szerver-oldaliak: nyitott szál szereplői, cél/lehetőség szál szereplői, és a series ledger szerint legalább 3 fejezete nem látott magánéleti szereplő (ideiglenes küszöb). A commit és a worker az owned prefixből újraszámolt fold-hash egyezését ellenőrzi (`assertFictionCharacterFold`), eltérésnél `NARRATIVE_CONTEXT_INVALID`, és semmi nem kerül a canon historyba. Nincs új tábla vagy migráció.
+- **Kiválasztás.** `NARRATIVE_FICTION_GENERATION=v9` (`NarrativeConfig.fictionGeneration`, csak `narrative-fiction-v2` módban); alapértelmezés és a deploy compose v8. Egy v9 történet v8 konfigurációval nem folytatható; v8 élet v9-cel az üres, csak régi mezőkből seedelt állapotból indul.
+- **AI.** `life_fiction_plan.v9` / `life_fiction_author.v9` / `life_fiction_plan_review.v9` a v8 szövegére épít, rövid `CHARACTER-INTENT` és `CHARACTER-STATE` kiegészítéssel; az állapot strukturált inputban utazik. A séma-útvonal policy szerinti, `max_output_tokens` változatlan (6500/12000).
+- **Review F1/F2 utáni újramérés (2026-10-20, mock, ugyanaz a szereplőkör v8-nál és v9-nél, 8 releváns tipikus szereplő, 3 fér a projectionbe, 6,3 KiB):** a projection csak a planner és az author kérésében van, a review/fidelity/editor a hash-ét kapja. v9 − v8: planner +8,4 KiB, author +13,4 KiB, csomagjavítás +13,6 KiB, review +0,5 KiB, fidelity és editor +0,26 KiB; a javítás nélküli öt hívás összege +22,8 KiB (≈ +8,8%), korábban a projection mind az öt kérésben ismétlődött (+≈74 KB). Becsült költséghatás (nem mérés; 047 árazás: 2 USD/M input, 10 USD/M output, ≈ 3,5 B/token): input +≈0,013 USD, delta-kimenet 0,011 (tipikus) – 0,023 (8 KiB) USD, tervezői intent +≈0,005 USD, javítási arány +10 pp esetén +≈0,01 USD, együtt tipikusan ≈ +0,03–0,04 USD a v8 0,364 USD-jához (≈ +9–11%, ≈ 0,40 USD), legrosszabb esetben ≈ 0,417 USD, vagyis a 0,419 USD-os kapu szélén; a bizonytalanságot a delta hossza és a reasoning-token adja, nem az input-bájt. **Éles plafon:** az `AI_FICTION_MAX_REQUEST_BYTES` alapértelmezése 100 000; a fixture-kérések alatta maradnak (a teszt ehhez mér), de a valódi v8 kérések már +20–30 KB-tal nagyobbak (repair 108 751), így a valós v9 author ≈ 100 KB, a v9 repair ≈ 122 KB: az éles érték emelése (kb. 131 072) tulajdonosi/N09 döntés (lásd NARRATIVE_RELEASE_HU).
+- **Mért request-bájt (2026-10-20, mock, v8 → v9 üres projection; a populált mérést lásd fent):** planner +1,9 KiB, author és csomagjavítás +6,9 KiB (a delta sémája és szabályai), review/fidelity/editor +0,2–0,5 KiB. **Mérési eredmény a tervhez:** teljes (profil + dinamika + kapcsolat) állapotnál a 8 KiB-os projection-keret a mezőhossz 55%-án (≈ 2,1 KiB/szereplő) csak 3 szereplőt enged (4 és 8 releváns szereplőnél is 3 fér, a többi az `omittedActors`-ban látszik), maximális mezőhossznál 2-t; 1 szereplő ≈ 2,1 KiB. A terv 4–8 szereplős célja ezzel a kerettel és ennyi mezőhosszal nem érhető el: tulajdonosi döntés kell a keret emeléséről vagy a mezők rövidítéséről, a 4–5. fázis valós kimenetei után. A delta 8 KiB-os kerete tipikus mezőhosszaknál ≈ 3, maximálisnál ≈ 2 teljes szereplőállapot-frissítést enged periódusonként. Mindkét keret ideiglenes, a 4–5. fázis mérése véglegesíti.
+- **4. fázis (PR C1).** Determinisztikus karakter-audit (`narrative:character-audit`) és az A–G negatív kontroll korpusz jó ellenpéldával, termékviselkedés-változás nélkül; leírás: `docs/operations/NARRATIVE_EVALUATION_HU.md`. Az editor report 1.4.0 (C2) az 5. fázis eredményei után tulajdonosi döntés.
+- **5. fázis első köre után (PR C1).** A v9 tervező vázlata `continuityDecisions` mezőt kap (carry/defer/resolve, szereplőnként egy, legfeljebb 8): a hiányzó lefedettség diagnosztika (`fictionContinuityCoverage`, runner `character.continuity`, audit `continuityDecisionMissing`), nem hard fail; a projectionben nem szereplő személyre szóló döntés érvénytelen. Az author és a final review megkapja a döntéseket, a fidelity és az editor nem, a v8 kérések bájtra azonosak. Az author promptba rövid testiség-craft sor került, az audit fejezetenként számolja az embodiment-jelzőket (C2, editor report 1.4.0, változatlan). A `recent_change` jel az utolsó két megírt periódusra vonatkozik (nem hiba). Részletek: a megvalósíthatósági audit D.8 pontja.
+
+
+## V9 első változat és oksági ismétlés — C5, 2026-10-23
+
+**Tulajdonosi jóváhagyás:** a kilenc editor-kiváltott javítás offline elemzése után Ákos engedélyezte a javasolt javításokat. Issue #45/#24, a #65/C4 fejére épülő külön fejlesztési ág. Scope: kizárólag a még nem telepített v9 promptszövegek és a kapcsolódó regressziók/dokumentáció. A történeti v1–v8 promptok, policyk, sémák és kérések, valamint a fidelity változatlanok.
+
+**Bizonyíték és korlát:** az S1–S4 Codex-futások 20 fejezetéből 7 editoros javítás, a két fizetős v9-m futás négy fejezetpróbájából kettő. A kilenc kiválasztott eset elsődleges okai: 4 rendszermechanikai próza, 3 ismétlődő oksági szerkezet, 1 ismétlődő lezárás, 1 choiceStakes. Három fejezet minden score-ja 4 volt, de a `systemMechanicsInvisible=false` blokkolta őket. Az egyik fizetős prózajavítás megszüntette az eredeti hibákat, de a második editor a változatlan kánonszerkezetet már ismétlésnek tekintette. Ez változó megítélés jele, nem bizonyított új hiba a javító írótól. A két runner aránya nem vonható össze általános sikerrátává. Mért források: Codex `55f1df3`, paid `796f591`. A nyers anyag helyben megőrzött; modellolvasás, nem human PASS.
+
+### Változtatások
+
+- **Author, a korábbi prózai limit-utasítás helyén:** a candidate/storyFacts őrizze pontosan a vállalásokat és korlátokat; az első fejezetváltozat ezek hatását cselekvésben vagy természetes párbeszédben mutassa, ne narrátori biztosítékban. A döntés megértéséhez szükséges feltétel nem rejthető el.
+- **Planner/author/review, a meglévő RECURRING-BEAT helyén:** az owned `sequenceHistory` és `sequenceSignatureHistory` alapján azonosítsa a fordulat kezdeményezőjét, a változást és annak a végső választáshoz vezető következményét. Új turnType/címke, feladat vagy nagyobb jutalom önmagában nem új oksági szerkezet. Kiérdemelt folytatás, új ajánlat és visszatérő helyszín megengedett; nincs kötelező kudarc vagy dramaturgiai rotáció. A végső tervellenőr a tényleges végső eseményláncot vizsgálja, a meglévő novelty-kapuval.
+- **Author, ENDING-KIND helyén:** a zárás funkcióját is összeveti az előzményekkel; az ismétlődő felismerést korábban mondja el, és meglévő következményre/cselekvésre zárjon. Új tényt nem találhat ki pusztán a változatosság kedvéért; a végső döntés nyitott marad.
+- **Author, CHOICE-STAKES kiegészítés:** az első változat a meglévő `plan.decisionStakes` költségét és bizonytalanságát is jelenítse meg, ne csak az opció vonzerejét. A zárás továbbra sem sorolja fel párhuzamosan az alternatívákat. Javításkor a meglévő `authorRepair.message/repairRule` az irányadó.
+- **Editor v9, feedbackmondat:** minden blokkoló dimenziót ugyanabban az ellenőrzésben keressen meg; rövid, teljes mondatban nevezze meg a döntő bizonyítékot és a szükséges módosítást. Nincs mezőlimit-emelés, új schema, második editor vagy enyhébb rubrika. V8 editorral tárolt v9 snapshot továbbra a v8 editorszöveget kapja.
+
+A mentett promptokba nem kerül új történetspecifikus név, tárgy, szám vagy példalista (PROMPT RULE). A meglévő utasítások cseréje korlátozza a méretnövekedést; a korábbi author-prompt és request-byte korlátok nem emelkednek.
+
+### Kompatibilitás és ellenőrzés
+
+A v9 marad explicit opt-in, qualityPolicy 2.8.0. Nincs új hívás/stage, második tartalmi javítás, kapuváltozás, DB-migráció, budget/cohort vagy production-konfiguráció. Az alapértelmezés továbbra v8, production legacy. A v9 a korábbi C2–C4-hez hasonlóan még fejlesztési generáció: a módosított promptok miatt a korábbi v9 kérés-hashek új kóddal nem reprodukálhatók. Régi korpuszt az eredeti forrásával kell megtartani; C5-höz új kimeneti mappa és új forrásbinding kell. Ez nem új paid-futási engedély.
+
+A v8 golden/baseline, v9 request-byte, prompt-, contract- és worker-regressziók, valamint a normál repository gate-ek ellenőrzik az izolációt és a védelmeket. Az offline tesztek nem bizonyítanak irodalmi javulást vagy kisebb javítási arányt; új modellmérés ebben a feladatban nem indult. Az N08/humán és N09/rollout kapuk nyitottak. A következő összehasonlítás terve: [mérési runbook, C5](../operations/NARRATIVE_EVALUATION_HU.md#c5-ellenőrzés-az-editoros-javítások-offline-elemzése-után--2026-10-23).
+
+### C5 review és korlátozott smoke — 2026-10-23
+
+A `75fdda0 → 7bd4d42` diff külön read-only review-ja APPROVE, actionable finding nélkül; hat célzott fájl / 92 teszt újra PASS. A háromperiódusos `career-transition` Codex-kontroll 3 elfogadott fejezetet, 0 repairt, 15 hívást adott. C5: 1 elfogadott, 1 teljes csomagos repair után elutasított, 1 nem indult, összesen 14 hívás. Az eredeti novelty-kifogás megváltozott oksági szerep mellett vitatható; a nagy átírásban létrejött új zárási briefing-probléma a második editoron elbukott. Ez nem ugyanannak az eredeti hibának igazolt késői felismerése. Nincs gate-felülbírálat vagy második repair.
+
+A kis, szemantikailag eltérő történetfolyamokat adó minta nem igazol általános C5-javulást vagy regressziót. Következő a mentett eredeti/javított csomag és az editor-rubrika célzott elemzése; új generálás nem indult (20% ötórás szabad kvóta, indulási minimum 30%). A v9 C5 prompt, policy, schema és production változatlan. [Teljes bizonyíték és korlátok](../operations/NARRATIVE_EVALUATION_HU.md#c5-független-review-és-első-korlátozott-próba--2026-10-23); [master plan V9-1/V9-2](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23).

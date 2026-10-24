@@ -4,6 +4,7 @@ import {
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
 } from '@future-flow/ai';
 import { DomainError } from '@future-flow/core';
+import { evaluationV9MeasurementApproval } from './narrative-evaluation-approval';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
 // Owner authorization on 2026-10-18: USD 23 total v6 development spend
@@ -65,6 +66,11 @@ export type EvaluationOptions = {
   creative?: true;
   creativeOnly?: true;
   noForks?: true;
+  // Living-world generation; absent means the frozen v8 generation.
+  fictionGeneration?: 'v9';
+  // Creative-only choice rule: absent = the first option on the main branch (the
+  // second on the fork), 'rotate' = deterministic rotation (diagnostic only).
+  choiceMix?: 'rotate';
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -103,6 +109,8 @@ export function parseEvaluationOptions(
     '--event-model',
     '--story-model',
     '--check-model',
+    '--fiction-generation',
+    '--choice-mix',
     '--max-mean-cost-usd',
     '--max-p95-ms',
   ]);
@@ -184,6 +192,37 @@ export function parseEvaluationOptions(
     invalid(
       'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
     );
+  const generation = values.get('--fiction-generation') ?? 'v8';
+  if (generation !== 'v8' && generation !== 'v9')
+    invalid('Unsupported fiction generation.');
+  if (
+    generation === 'v9' &&
+    !boolean.has('--creative') &&
+    !boolean.has('--creative-only')
+  )
+    invalid('Fiction generation v9 needs a creative run.');
+  // The v9 measurement is a later phase with its own owner-approved budget:
+  // only the source-bound approval of narrative-evaluation-approval.ts, for
+  // exactly its fixture, at most its periods and the rotating choices.
+  const v9Approval = evaluationV9MeasurementApproval;
+  if (
+    generation === 'v9' &&
+    kind === 'paid' &&
+    !(
+      values.get('--approval-id') === v9Approval.approvalId &&
+      boolean.has('--creative-only') &&
+      fixtureIds.length === 1 &&
+      fixtureIds[0] === v9Approval.fixtureId &&
+      Number(values.get('--periods') ?? 3) <= v9Approval.maxPeriods &&
+      values.get('--choice-mix') === 'rotate'
+    )
+  )
+    invalid('A paid v9 measurement needs its own owner-approved budget.');
+  const choiceMix = values.get('--choice-mix') ?? 'first';
+  if (choiceMix !== 'first' && choiceMix !== 'rotate')
+    invalid('Unsupported choice mix.');
+  if (choiceMix === 'rotate' && !boolean.has('--creative-only'))
+    invalid('The rotating choice mix is a creative-only diagnostic.');
   const allowPaid = boolean.has('--allow-paid'),
     budgetUsd = values.has('--budget-usd')
       ? Number(values.get('--budget-usd'))
@@ -249,6 +288,8 @@ export function parseEvaluationOptions(
       : {}),
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
+    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
+    ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,
@@ -295,6 +336,9 @@ export function verifyEvaluationAuthorization(
   if (options.creative) args.push('--creative');
   if (options.creativeOnly) args.push('--creative-only');
   if (options.noForks) args.push('--no-forks');
+  // Always passed, so that a v9 options object meets the v9 gate again here.
+  args.push('--fiction-generation', options.fictionGeneration ?? 'v8');
+  if (options.choiceMix) args.push('--choice-mix', options.choiceMix);
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));
   if (options.approvalId !== null)

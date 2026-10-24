@@ -377,3 +377,4 @@ export * from './shared-safety';
 export * from './narrative';
 
 export * from './fiction';
+export * from './fiction-character';

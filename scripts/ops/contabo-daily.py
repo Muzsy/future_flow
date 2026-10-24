@@ -254,6 +254,24 @@ def personal_runtime_policy(environments, now):
     users = worker.get('CLOSED_BETA_USER_IDS', '').split(',') if worker.get('CLOSED_BETA_USER_IDS') else []
     if len(users) > 10 or len(set(users)) != len(users) or any(not ADMISSION_UUID.fullmatch(u) for u in users):
         raise ValueError('At most ten exact account UUIDs required')
+    defaults = {'NARRATIVE_PIPELINE_MODE': 'legacy', 'NARRATIVE_COHORT_USER_IDS': '',
+                'NARRATIVE_FICTION_GENERATION': 'v8'}
+    for key, default in defaults.items():
+        if api.get(key, default) != worker.get(key, default):
+            raise ValueError('API and worker narrative configuration mismatch')
+    mode, generation = (worker.get(k, defaults[k]) for k in
+                        ('NARRATIVE_PIPELINE_MODE', 'NARRATIVE_FICTION_GENERATION'))
+    cohort = worker.get('NARRATIVE_COHORT_USER_IDS', '')
+    cohort = cohort.split(',') if cohort else []
+    if (mode not in ('legacy', 'context', 'narrative-v1', 'narrative-fiction-v2')
+            or generation not in ('v8', 'v9') or (generation == 'v9' and mode != 'narrative-fiction-v2')
+            or len(cohort) != len(set(cohort)) or any(u not in users for u in cohort)):
+        raise ValueError('Supported narrative configuration and admitted cohort required')
+    for key, default, low, high in [('AI_FICTION_TIMEOUT_MS', '180000', 1000, 300000),
+                                   ('AI_FICTION_MAX_REQUEST_BYTES', '100000', 100000, 196608)]:
+        value = worker.get(key, default)
+        if not isinstance(value, str) or not re.fullmatch(r'\d+', value) or not low <= int(value) <= high:
+            raise ValueError('Bounded narrative worker runtime required')
     oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 10)
     claude = bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 1)
     user = bounded_budget(worker, 'AI_USER_BUDGET_USD', 3.34)
@@ -352,6 +370,7 @@ def extended_config_archive(proxy):
     paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
     paths += reader_config_paths()
     paths += personal_config_paths()
+    paths += funded_upgrade_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -410,6 +429,75 @@ def personal_config_paths():
         regular(item)
         files.append(item)
     return sorted(files)
+
+
+# Independent policy version: do not reinterpret the original personal/reader
+# activation archives. Installing this reviewed Daily is a later release gate.
+FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 1
+
+
+def funded_upgrade_config_paths(*, immutable_only=False):
+    root = OWNER / 'funded-runtime-upgrade'
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    files = []
+    temporary = 0
+    for item in root.iterdir():
+        if item.name in {'target', 'recovery'}:
+            private_archive_directory(item)
+            for child in item.iterdir():
+                if child.name not in {'server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json'}:
+                    raise ValueError('Unknown funded runtime candidate file')
+                regular(child)
+                files.append(child)
+        else:
+            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json'}
+            if item.name not in allowed:
+                if not re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name) or temporary >= 8:
+                    raise ValueError('Unknown funded upgrade evidence')
+                temporary += 1
+            regular(item)
+            if not immutable_only or item.name == 'prepared.json':
+                files.append(item)
+    return sorted(files)
+
+
+def funded_upgrade_healthy(mode):
+    root = OWNER / 'funded-runtime-upgrade'
+    if not root.exists() and not root.is_symlink():
+        return True
+    try:
+        funded_upgrade_config_paths()
+        prepared = json.loads(regular(root / 'prepared.json'))
+        if prepared.get('version') != 'alterward-funded-upgrade-1':
+            return False
+        journal = root / 'journal.json'
+        if not journal.exists():
+            return mode == 'personal-beta' and utcnow() < dt.datetime.fromisoformat(prepared['expiresAt'])
+        intent = json.loads(regular(journal))
+        if set(intent)!={'version','preparedSha256','states'} or intent['version']!='alterward-funded-upgrade-1' or not 1<=len(intent['states'])<=32:
+            return False
+        previous=None
+        for row in intent['states']:
+            if set(row)!={'state','changedAt','previousSha256','sha256'} or row['previousSha256']!=previous:
+                return False
+            data=(json.dumps({k:v for k,v in row.items() if k!='sha256'},sort_keys=True,separators=(',',':'))+'\n').encode()
+            if digest(data)!=row['sha256']:
+                return False
+            previous=row['sha256']
+        state=intent['states'][-1]['state']
+        if mode != 'personal-beta' or state not in {'applied', 'recovered'}:
+            return False
+        proof = json.loads(regular(root / 'readback.json'))
+        expected = digest(regular(root / 'prepared.json'))
+        role = 'recovery' if state == 'recovered' else 'target'
+        return (intent.get('preparedSha256') == expected == proof.get('preparedSha256') and
+                proof.get('schema') == 38 and proof.get('protectedDataUnchanged') is True and
+                proof.get('imageId') == prepared['release'][role]['imageId'] and
+                {name: digest(regular(OWNER / name)) for name in prepared['files'][role]} == prepared['files'][role])
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
 
 
 def reader_config_paths():
@@ -941,6 +1029,8 @@ def personal_transition_healthy(mode):
     All values come from root-only files under the same activation lock. No
     provider, participant, preparation bytes or window are emitted in health.
     """
+    if not funded_upgrade_healthy(mode):
+        return False
     path = OWNER / 'personal-beta'
     try:
         if not path.exists() and not path.is_symlink():

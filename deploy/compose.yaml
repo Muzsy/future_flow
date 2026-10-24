@@ -51,6 +51,7 @@ x-narrative:
   &narrative # Default-off: only an explicit server cohort may use the narrative pipeline.
   NARRATIVE_PIPELINE_MODE: ${NARRATIVE_PIPELINE_MODE:-legacy}
   NARRATIVE_COHORT_USER_IDS: ${NARRATIVE_COHORT_USER_IDS:-}
+  NARRATIVE_FICTION_GENERATION: ${NARRATIVE_FICTION_GENERATION:-v8}
 services:
   web:
     <<: *runtime

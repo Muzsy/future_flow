@@ -1,0 +1,59 @@
+{
+  "version": "1.3.0",
+  "scores": {
+    "causality": 4,
+    "momentum": 4,
+    "sceneCraft": 4,
+    "character": 4,
+    "personalization": 4,
+    "choiceStakes": 4,
+    "novelty": 3,
+    "prose": 4
+  },
+  "issues": [
+    {
+      "dimension": "novelty",
+      "severity": "major",
+      "repairScope": "canon",
+      "paragraphIndex": 21,
+      "eventIds": [
+        "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+        "3010b71d-75d3-4354-b310-306513b99b87"
+      ],
+      "explanation": "The chapter repeats the preceding period's work → public validation → Úna's new opportunity → unresolved participation decision. Paragraphs 8–11 complete and publicly credit the contribution; paragraphs 21–28 turn that success into another offer from Úna. The mismatch between creative desire and administrative usefulness gives this iteration depth,"
+
+      ,"suggestedFix": "Make that mismatch change the course of the contribution itself: let the protagonist take an action over coordination duties that changes delivery or the working relationship. Build the final offer around the consequences of that action, so the decisive turn comes from an exercised preference rather than another successful programme generating an/"
+
+    }
+  ],
+  "verdict": "revise",
+  "sequenceReview": {
+    "comparedPeriodIds": [
+      "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+    ],
+    "distinctDramaticStructure": false,
+    "distinctEnding": true,
+    "independentProgression": true,
+    "characterAgency": true,
+    "evidence": "The preceding period moves from making and revising an edit to public playback and Úna's volunteer offer. This chapter again moves from completed work through public playback to Úna's next offer, now paid. However, progression is causally earned: the protagonist independently creates the running order in paragraph 3, loses listening time through coordination in paragraphs 5 and 10, and becomes wanted for that demonstrated competence. The ending changes function: the previous audience leans forward to hear a recording; here Úna identifies an unsolicited scheduling correction as the precise work she wants to buy. Neither ending is an explicit decision handoff. There is no repeated tidy self-c​",
+
+    "distinctRhetoricalShape": true,
+    "systemMechanicsInvisible": true,
+    "behavioralVariety": true
+  },
+  "sequenceSignature": {
+    "version": "1.1.0",
+    "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+    "dramaticEngine": "relationship_shift",
+    "turningPointDriver": "npc",
+    "resolutionMode": "reframe",
+    "endingMode": "dialogue",
+    "protagonistResponse": "no_correction_arc",
+    "rhetoricalFlags": [
+      "none"
+    ],
+    "systemLeakageFlags": [
+      "none"
+    ]
+  }
+}
