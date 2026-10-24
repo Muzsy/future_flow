@@ -29,6 +29,8 @@ import type { OfflineMockResponder } from './narrative-evaluation-runner';
 export type CodexLocalOptions = {
   bin: string;
   model: string;
+  // Optional evidence sink, called before output-limit checks or JSON parsing.
+  onRawOutput?: (text: string) => Promise<void>;
 };
 
 export const CODEX_REASONING_EFFORT = 'medium';
@@ -157,17 +159,26 @@ export function codexLocalResponder(
     const dir = await mkdtemp(join(tmpdir(), 'alterward-codex-'));
     try {
       await writeFile(join(dir, 'schema.json'), JSON.stringify(format.schema));
-      await run(
-        options,
-        codexExecArgs(
-          options.model,
-          join(dir, 'schema.json'),
-          join(dir, 'out.json'),
-        ),
-        codexPrompt(parameters.input),
-        dir,
-        timeoutMs!,
-      );
+      try {
+        await run(
+          options,
+          codexExecArgs(
+            options.model,
+            join(dir, 'schema.json'),
+            join(dir, 'out.json'),
+          ),
+          codexPrompt(parameters.input),
+          dir,
+          timeoutMs!,
+        );
+      } finally {
+        if (options.onRawOutput) {
+          const raw = await readFile(join(dir, 'out.json'), 'utf8').catch(
+            () => null,
+          );
+          if (raw !== null) await options.onRawOutput(raw);
+        }
+      }
       const output = await readFile(join(dir, 'out.json'), 'utf8');
       // The API reports a response past max_output_tokens as incomplete, which
       // the product turns into AI_INCOMPLETE_OR_REFUSED.

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-23
+last_reviewed: 2026-10-24
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -65,6 +65,10 @@ A mentett szövegek, ítéletek és trace-ek offline elemzése elkészült; ez �
 Azonos `career-transition` profil, seed és választásrotáció, három tervezett periódus, fork nélkül: kontroll `75fdda0` **3 elfogadott / 0 javítás / 15 hívás**; C5 `7bd4d42` **1 elfogadott / 1 javítás után elutasított / 1 nem indult / 14 hívás**. A jelölt második fejezetének eredeti oksági ismétlés-kifogása két ügynöki olvasat szerint vitatható; a teljes átírás után új döntésmagyarázó zárási probléma keletkezett. Az eredeti és javított csomag fidelity-valid; a végső kapu helyesen elutasított és nem adott második repairt. A sikertelen javítást is beleszámoltuk; az elfogadott sample-ekre szűkített `repairRate=0` nem a teljes jelöltfutás javítási aránya.
 
 A kis, nem vak próba nem bizonyít C5-javulást vagy általános regressziót; a történetek már az első döntésnél szemantikailag eltérnek. Következő a mentett eset és a novelty-/zárási rubrika alkalmazásának célzott elemzése. Új generálás nem indult: záró kvóta 20% ötórás / 88% heti, az új sorozat ötórás indulási minimuma 30%. Nincs paid API-költés vagy USD-becslés. [Pontos források, trace-ek, korlátok és továbbhaladási döntés](operations/NARRATIVE_EVALUATION_HU.md#c5-független-review-és-első-korlátozott-próba--2026-10-23).
+
+### Célzott folytatás — 2026-10-24
+
+A mentett eredeti/javított eset statikus elemzése lezárt, egyszerűen hiányzó rubrika vagy history-réteg nem azonosítható. A feltételezett tévespozitív tisztázására három verziózott, szintetikus, rögzített bemenetű editor-eset készült: vitatott eredeti, korábban ismétlés miatt kifogásolt szerkezet és legitim visszatérés. A javításban létrejött closing-briefing offline referencia marad. A két forrás editorpromptjával, két ismétlésben 12/12 valid kvótás hívás lezárt (`f3eaf3c`): mindkét editor mindkét körben novelty=3/structure=false/revise ítéletet adott a vitatott és ismétléses esetre, novelty=4/structure=true/pass ítéletet a legitim visszatérésre. A főítélet stabil, más részdiagnózisok ingadoztak; a C5 visszajelzésében kevesebb biztosan félbeszakadt mező volt, általános hatás vagy tévespozitív nem igazolt. Induló/záró kvóta 66→47% ötórás, 80→77% heti; nincs újrafuttatás vagy paid hívás. A befagyasztott bemenetek, 12 nyers válasz, kvótanapló, hash-ek és független ügynöki olvasat a [#68 draft PR-ben](https://github.com/Muzsy/future_flow/pull/68) követhető. Következő a teljes előzmény és a tényleges history-kivonat oksági tartalmának offline összevetése, kontextuskontroll tervezése előtt. Új termékprompt, küszöb, 048/archetípus vagy production változtatás nincs. [Protokoll és értelmezési határok](operations/NARRATIVE_EVALUATION_HU.md#rögzített-bemenetű-c5-editorkalibráció--2026-10-24).
 
 ## Következő fejlesztési és kiadási kapuk
 

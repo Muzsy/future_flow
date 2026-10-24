@@ -1,0 +1,44 @@
+{
+  "version": "1.3.0",
+  "scores": {
+    "causality": 4,
+    "momentum": 4,
+    "sceneCraft": 4,
+    "character": 4,
+    "personalization": 4,
+    "choiceStakes": 4,
+    "novelty": 4,
+    "prose": 4
+  },
+  "issues": [],
+  "verdict": "pass",
+  "sequenceReview": {
+    "comparedPeriodIds": [
+      "51482d3a-0170-4d05-a849-007e47498d16",
+      "ef0d9895-9a3b-4249-9ff2-b486b0db0825"
+    ],
+    "distinctDramaticStructure": true,
+    "distinctEnding": true,
+    "independentProgression": true,
+    "characterAgency": true,
+    "evidence": "Earlier chapters connected sound-making to theatrical use, live responsibility and a vacancy. This chapter develops a private artistic problem: completing an unsatisfactory ending leads to discovering the fragments' comic independence and questioning control over reuse. In paragraphs 12–19, Tunde pursues his meal rather than supplying artistic validation or correction. The protagonist deliberately isolates and rearranges material. Completion changes the situation without guaranteeing employment or public interest. The final recognition of protectiveness differs from the earlier dialogue and application-heading endings. Paragraphs 23–25 make permission emotionally consequential without rec వి",
+    "distinctRhetoricalShape": true,
+    "systemMechanicsInvisible": true,
+    "behavioralVariety": true
+  },
+  "sequenceSignature": {
+    "version": "1.1.0",
+    "periodId": "cdc91d78-f460-45b4-bf60-b4d580e06ad4",
+    "dramaticEngine": "material_experiment",
+    "turningPointDriver": "protagonist",
+    "resolutionMode": "reframe",
+    "endingMode": "quiet_observation",
+    "protagonistResponse": "no_correction_arc",
+    "rhetoricalFlags": [
+      "balanced_antithesis"
+    ],
+    "systemLeakageFlags": [
+      "none"
+    ]
+  }
+}
