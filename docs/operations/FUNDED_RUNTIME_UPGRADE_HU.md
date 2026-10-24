@@ -29,7 +29,7 @@ A meglévő `.local/contabo-release/` privát directoryban új, külön fájlok 
 
 - `funded-upgrade-release.json`: `target` és `recovery`, mindkettő `commit`, immutable `imageId`, `imageTag`, rooton tárolt `sourceDirectory` mezővel. Mindkettő a kiválasztott exact source-ból épül, lehet eltérő digest. A régi futó image önmagában nem recovery target.
 - `funded-upgrade-audit-proof.json`: `sourceCommit`, `bundleSha256`, `interpretedByOperator: true`, `critical/high/medium: 0`. Csak tényleges független audit és operátori értelmezés után készülhet.
-- `funded-upgrade-fixture-proof.json`: a `releaseEvidence` által megkövetelt exact source/bundle/target/recovery, 15 igazolt check és `privacyFixtureSha256`, `paidAiCalls: 0`. A CI proof kizárólag a CI image digestjeire érvényes; eltérő célgépes image-hez új, ugyanahhoz a source-hoz és tényleges digesthez kötött fixture kell. Hash átírása nem fixture.
+- `funded-upgrade-fixture-proof.json`: a `releaseEvidence` által megkövetelt exact source/bundle/target/recovery, 16 igazolt check és `privacyFixtureSha256`, `paidAiCalls: 0`. A CI proof kizárólag a CI image digestjeire érvényes; eltérő célgépes image-hez új, ugyanahhoz a source-hoz és tényleges digesthez kötött fixture kell. Hash átírása nem fixture.
 - prepare után a kliens új `funded-upgrade-prepare-proof.json` fájlt tárol.
 - apply/recover előtt `funded-upgrade-restore-proof.json`: `sourceCommit`, `preparedSha256`, tényleges `runId`, `targetImage`, `recoveryImage`, `privacyFixtureSha256`. A szerver Daily proofja és archívumai ettől függetlenül újra ellenőrzöttek.
 
@@ -113,7 +113,7 @@ A privát `selection.json` változatlan `target` és `recovery` buildjei mellé 
   "generation": "v9",
   "cohortUserIds": ["00000000-0000-4000-8000-000000000001"],
   "timeoutMs": 300000,
-  "maxRequestBytes": 131072
+  "maxRequestBytes": 196608
 }
 ```
 
@@ -263,3 +263,16 @@ A teljes helyi ellenőrzés: **128 Vitest-fájl / 1474 PASS**, **383 Python-tesz
 A root/Docker funded fixture új `fundedReplayProof` ellenőrzése sikeres target/recovery állapot után az eredeti runtime-fájlokon, actual image capabilityvel ellenőrzi az aktív proofot és az idegen image elutasítását. A release fixture-lista 16 ellenőrzésre bővül. A companion PostgreSQL privacy fixture v9 artifactot és megőrzött karakterállapotot visz át tényleges fizikai snapshot-copy és új funded replay útján. A host/project/installed identity és Auth-adatok továbbra dokumentált szintetikus határok. Ez nem teljes production SSH/funded fence E2E; az új operátori módok pontos célgépes image/backup/held/TLS/cleanup próbája és a független exact-source audit szükséges kiadási kapu.
 
 További nyitott tétel a mért C5 request boundnak megfelelő konkrét runtime/cost selection, a telepített Daily/privát monitor és a tesztelői alapút. E fejlesztés nem indít új modellt, archetípust vagy történetminőségi kört, nem módosítja az éles konfigurációt, és nem engedélyez main merge-et vagy funded aktiválást.
+
+
+## Konkrét konfiguráció és próbamenet előkészítése — #75, 2026-10-24
+
+Az ellenőrzött fejlesztési alap [#74](https://github.com/Muzsy/future_flow/pull/74), `ab9eb3fd41bbf476e5989552e8c61ad0d32dcdb2`: [CI 40133568688](https://github.com/Muzsy/future_flow/actions/runs/40133568688) Verify és Container SUCCESS, 128/1474 alkalmazásteszt, 16 root/Docker check, külön read-only fejlesztési review APPROVE. Ez a korábbi hiányzó fejlesztési bizonyítékot pótolja, a célgépes bizonyítékot és a végső operátori auditot nem. Az új konfigurációs változásnak és a későbbi main-forrásnak saját CI szükséges.
+
+A [runtime-minta](../../deploy/narrative-beta-runtime.example.json) kizárólag `selection.runtime`, szintetikus UUID-val. Értékei: fiction-v2 / v9, 300000 ms, 196608 B. A target/recovery image, sourceDirectory, végleges commit és valódi cohort nincs kitalálva vagy előre kitöltve. A root/Docker fixture e változásban már ugyanezt a 192 KiB értéket ellenőrzi. Az éles env és a generic default változatlan.
+
+A 196608 B guard a **teljes JSON kérés + 4096 B** összege; legnagyobb nyers kérés 192512 B lehet. Az ismert C5 raw 139370 B ezért 143466 B budget-bound. A valódi `DatabaseAiBudget.reserve` izolált SQL-próbája 12000 output token mellett **478665 microUSD = 0,478665 USD** előfoglalást igazol; 131072 B mellett elutasít. A cap felső szélén 611520 microUSD / 0,611520 USD foglalás, egy további bájt elutasított. Ezek a repository Standard input-ceiling díjtáblájából számolt konzervatív foglalások, nem provider-számla és nem garantált fejezetár. A guard a tényleges kérésméretet foglalja, nem minden kérésre a teljes capet. Unknown usage esetén a teljes foglalás megmarad; újabb kérés nem írhatja felül. Ezt a célzott teszt az eredeti költés változatlanságával együtt igazolja.
+
+A korábban igazolt user-spent 0,188585 USD és a rögzített 0,50 USD plafon mellett a puszta számított maradék **0,311415 USD**, tehát a fenti repair foglalása már nem férne be. A célzott teszt ezt szintetikus SQL-állapottal reprodukálja; ez **nem mai éles maradéklekérdezés**. A 2 USD projektlimit sem helyettesíti a userlimit teljesülését. A korábbi 10/3,33 USD tervből nem következik sem a futó allowance emelése, sem új ablak létrehozása; a jelenlegi upgrade ezeket explicit tiltja. A háromfős béta új window/admission/budget eljárása külön megoldandó kiadási tétel, az első `apply-personal` nem ismételhető.
+
+A modellútvonal és a próbamenet konkrét, műveleti fázisokra bontott rendje a [kanonikus release runbookban](NARRATIVE_RELEASE_HU.md#konkrét-béta-konfiguráció-és-próbamenet--75-2026-10-24) van. A most előkészített minta sem paid E2E-, sem szolgáltatásleállítási engedély.

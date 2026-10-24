@@ -39,10 +39,10 @@ import { fictionFixture } from './fiction-fixtures';
 // (AI_FICTION_MAX_REQUEST_BYTES, default 100000) is already exceeded by the
 // package-repair request of a real chapter in v8 and in v9. The value the
 // production setting needs is an owner decision that waits for N09 / the
-// release (docs/operations/NARRATIVE_RELEASE_HU.md); 131072 is the smallest
-// round value above the recorded v9 request with room for a longer chapter.
+// release (docs/operations/NARRATIVE_RELEASE_HU.md); 196608 is the prepared
+// reviewed-envelope candidate; C5 later measured a 139370-byte raw repair.
 // Measured on real runs, not computed by this mock.
-const REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER = 131072;
+const REQUIRED_PROD_REQUEST_CAP_PENDING_OWNER = 196608;
 const RECORDED_REAL_REPAIR_REQUEST_BYTES = {
   v8: 108751, // 2026-10-19, v8 paid measurement, real repair author request
   v9: 116336, // 2026-10-20, v9-6b chapter 1, local Codex run, raw request bytes

@@ -484,7 +484,7 @@ def exercise(context):
         release = {
             'runtime': {'mode': 'narrative-fiction-v2', 'generation': 'v9',
                         'cohortUserIds': [terms['participants'][0]['userId']],
-                        'timeoutMs': 300000, 'maxRequestBytes': 131072},
+                        'timeoutMs': 300000, 'maxRequestBytes': 196608},
             'target': {
                 'commit': context['sourceCommit'],
                 'imageId': context['image'],
@@ -1073,7 +1073,7 @@ def exercise(context):
             for role in ('api', 'worker'):
                 assert actual[role]['environment']['NARRATIVE_FICTION_GENERATION'] == 'v9'
                 assert actual[role]['environment']['NARRATIVE_COHORT_USER_IDS'] == terms['participants'][0]['userId']
-            assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '131072'
+            assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '196608'
             after = db('capture', database)
             funded.same_funded(before, after)
             assert after['schema'] == 38

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -146,4 +147,23 @@ test('mutable GitHub metadata cannot prevent recovery; a new run attempt changes
   assert.equal(releaseEvidence(p).ciSha256, before);
   p.ci[0].run_attempt = 2;
   assert.notEqual(releaseEvidence(p).ciSha256, before);
+});
+
+test('prepared beta runtime example is accepted without adding admission or budget fields', () => {
+  const runtime = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../deploy/narrative-beta-runtime.example.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(validateFundedNarrativeRuntime(runtime), runtime);
+  const p = proofs();
+  p.selection.runtime = runtime;
+  assert.deepEqual(releaseEvidence(p).runtime, runtime);
+  assert.throws(() =>
+    validateFundedNarrativeRuntime({ ...runtime, projectUsd: 10 }),
+  );
 });

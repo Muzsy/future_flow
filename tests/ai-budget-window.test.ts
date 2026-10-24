@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -614,4 +615,114 @@ describe('fixed approved AI spending period', () => {
       expect(receipt!.project_key).toContain('project:anthropic:window:');
     },
   );
+});
+
+describe('prepared v9 beta request envelope and financial headroom', () => {
+  const runtime = JSON.parse(
+    readFileSync('deploy/narrative-beta-runtime.example.json', 'utf8'),
+  ) as { maxRequestBytes: number };
+  // Match recorded UTF-8 lengths without copying private model requests.
+  function sizedRequest(bytes: number) {
+    const p = { model: 'gpt-6.1-sol', max_output_tokens: 12000, input: '' };
+    p.input = 'x'.repeat(bytes - Buffer.byteLength(JSON.stringify(p)));
+    expect(Buffer.byteLength(JSON.stringify(p))).toBe(bytes);
+    return p;
+  }
+  it('admits the recorded 139370-byte repair only with enough actual allowance and preserves unknown usage', async () => {
+    const owner = await user();
+    const config = { projectUsd: 2, userUsd: 0.5 };
+    const p = sizedRequest(139370);
+    await expect(
+      new DatabaseAiBudget(
+        db,
+        owner,
+        randomUUID(),
+        config,
+        undefined,
+        131072,
+      ).reserve(p),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+    const budget = new DatabaseAiBudget(
+      db,
+      owner,
+      randomUUID(),
+      config,
+      undefined,
+      runtime.maxRequestBytes,
+    );
+    const id = await budget.reserve(p);
+    const [record] = await db.query(
+      'SELECT reserved_micro FROM aw_budget_reservations WHERE id=$1',
+      [id],
+    );
+    expect(Number(record!.reserved_micro)).toBe(478665);
+    await budget.settle(id, null);
+    const before = await ledger();
+    await expect(budget.reserve(p)).rejects.toMatchObject({
+      code: 'AI_BUDGET_EXCEEDED',
+    });
+    expect(await ledger()).toEqual(before);
+    expect(
+      (
+        await db.query(
+          'SELECT status,accounted_micro FROM aw_budget_reservations WHERE id=$1',
+          [id],
+        )
+      )[0],
+    ).toMatchObject({ status: 'unknown', accounted_micro: expect.anything() });
+  });
+  it('does not erase previous spending to fit the recorded repair in the old 0.50-dollar allowance', async () => {
+    const owner = await user();
+    const budget = new DatabaseAiBudget(
+      db,
+      owner,
+      randomUUID(),
+      { projectUsd: 2, userUsd: 0.5 },
+      undefined,
+      runtime.maxRequestBytes,
+    );
+    const initial = await budget.reserve(sizedRequest(70000));
+    await budget.settle(initial, { input_tokens: 35434, output_tokens: 10000 });
+    const before = await ledger();
+    expect(
+      before.accounts.find((x) => x.id === `user:${owner}`)?.accounted_micro,
+    ).toBe(188585);
+    await expect(budget.reserve(sizedRequest(139370))).rejects.toMatchObject({
+      code: 'AI_BUDGET_EXCEEDED',
+    });
+    expect(await ledger()).toEqual(before);
+  });
+  it('prices the complete 192-KiB boundary and rejects one extra byte before allocating funds', async () => {
+    const owner = await user();
+    const budget = new DatabaseAiBudget(
+      db,
+      owner,
+      randomUUID(),
+      { projectUsd: 10, userUsd: 3.33 },
+      undefined,
+      runtime.maxRequestBytes,
+    );
+    const before = await ledger();
+    await expect(
+      budget.reserve(sizedRequest(runtime.maxRequestBytes - 4096 + 1)),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+    expect(await ledger()).toEqual(before);
+    const id = await budget.reserve(
+      sizedRequest(runtime.maxRequestBytes - 4096),
+    );
+    const [record] = await db.query(
+      'SELECT reserved_micro FROM aw_budget_reservations WHERE id=$1',
+      [id],
+    );
+    expect(Number(record!.reserved_micro)).toBe(611520);
+    await budget.settle(id, { input_tokens: 1000, output_tokens: 100 });
+    const [settled] = await db.query(
+      'SELECT status,accounted_micro FROM aw_budget_reservations WHERE id=$1',
+      [id],
+    );
+    expect(settled).toMatchObject({
+      status: 'completed',
+      accounted_micro: 3500,
+    });
+  });
 });

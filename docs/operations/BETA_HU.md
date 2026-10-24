@@ -130,3 +130,8 @@ A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host
 Egy tesztelővel három paid fejezet, két continuation ciklus, mentett választások, lista/újranyitás/logout-login és friss hitelesítés utáni export ellenőrzött. Kilenc task 0,188585 USD adatbázis-elszámolással, nem provider-számlaegyeztetéssel. A következő generálást a szándékos 3/UTC-nap, 1 párhuzamos kérés limit megállította; későbbi sessionből sikeres új generálás és a megtartott fiók destruktív törlése nincs igazolva. Ez nem széles kohorsz-, Shared-, public vagy új narrative release.
 
 A normál reader/funded/daily/fence munka Linuxon elvégezhető; O01/PR #21 átadás lezárt. Az új narratív runtime már funded környezetre frissítése külön támogatási és recovery-kapu (Issue #34, N09). A fejlesztési benchmark külön projektje/összesített 5 USD ledgere nem a fenti bétaablak része. Árjavaslat vagy docs-merge nem módosíthatja a live admissiont, költséget vagy időablakot.
+
+
+## Konkrét v9 előkészítés — #75
+
+Az aktuális [runtime-minta és próbamenet](NARRATIVE_RELEASE_HU.md#konkrét-béta-konfiguráció-és-próbamenet--75-2026-10-24) 196608 B / 300000 ms v9 konfigurációt vizsgál. Az eredeti 2/0,50 USD ablak megőrzése mellett a mért repair előfoglalása már a korábbi költéssel sem férne be; ez nem mai live maradék. A 10/3,33 USD háromfős tervhez új, auditált window/admission eljárás szükséges, amelyet az aktív funded upgrade nem biztosít. A CI-only fixture sem állít ki a célgépes digestre proofot. Az előkészítés nem bétaaktiválás; a konkrét hiányzó döntéseket/eszközöket a release runbook sorolja.
