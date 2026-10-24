@@ -66,6 +66,27 @@ class PersonalBetaPolicyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             daily.personal_runtime_policy(env, NOW)
 
+    def test_v9_configuration_is_consistent_bounded_and_admitted_without_renewing_terms(self):
+        env = self.beta()
+        for role in ('api', 'worker'):
+            env[role].update(NARRATIVE_PIPELINE_MODE='narrative-fiction-v2',
+                             NARRATIVE_FICTION_GENERATION='v9', NARRATIVE_COHORT_USER_IDS=USER)
+        env['worker'].update(AI_FICTION_TIMEOUT_MS='300000', AI_FICTION_MAX_REQUEST_BYTES='131072')
+        self.assertTrue(daily.personal_runtime_policy(env, NOW)['queueAllowed'])
+        self.assertFalse(daily.personal_runtime_policy(env, NOW + dt.timedelta(days=30))['queueAllowed'])
+        import copy
+        for role, key, value in [('api','NARRATIVE_FICTION_GENERATION','v8'),
+                                 ('worker','AI_FICTION_TIMEOUT_MS','300001'),
+                                 ('worker','AI_FICTION_MAX_REQUEST_BYTES','196609')]:
+            changed = copy.deepcopy(env); changed[role][key] = value
+            with self.assertRaises(ValueError): daily.personal_runtime_policy(changed, NOW)
+        for key, value in [('NARRATIVE_COHORT_USER_IDS','00000000-0000-4000-8000-000000000002'),
+                           ('NARRATIVE_COHORT_USER_IDS',USER+','+USER), ('NARRATIVE_PIPELINE_MODE','legacy'),
+                           ('NARRATIVE_FICTION_GENERATION','v10')]:
+            changed = copy.deepcopy(env)
+            for role in ('api','worker'): changed[role][key] = value
+            with self.assertRaises(ValueError): daily.personal_runtime_policy(changed, NOW)
+
     def test_normal_beta_queue_does_not_alarm_but_unhealthy_queue_does(self):
         from test_contabo_daily import MonitorTests
         health = {**MonitorTests().healthy(), 'lastBackupAt': NOW.isoformat(), 'runtimeMode': 'personal-beta', 'pendingJobs': 1, 'queueHealthy': True}

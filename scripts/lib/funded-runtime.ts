@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { hash } from '@future-flow/core';
+import { hash, emptyFictionCharacterState } from '@future-flow/core';
 import {
   fictionArtifactSchema,
   fictionPolicySchema,
@@ -12,6 +12,9 @@ import {
   fictionV6Quality25Policy,
   fictionV7Policy,
   fictionV8Policy,
+  fictionV9Policy,
+  FICTION_CHARACTER_VERSION,
+  fictionCharacterStateSchema,
   narrativeArtifactSchema,
   narrativeV1Policy,
   narrativeV1PolicySchema,
@@ -70,10 +73,12 @@ export function fundedRuntimeCapabilities() {
     ['v6q25', fictionV6Quality25Policy],
     ['v7', fictionV7Policy],
     ['v8', fictionV8Policy],
+    ['v9', fictionV9Policy],
   ] as const) {
     fictionPolicySchema.parse(make());
     supported.push(`fiction-${name}`);
   }
+  fictionCharacterStateSchema.parse(emptyFictionCharacterState());
   narrativeV1PolicySchema.parse(reviewedNarrativePolicy());
   if (
     narrativeV1PolicySchema.safeParse({
@@ -96,6 +101,9 @@ export function fundedRuntimeCapabilities() {
     policies: supported,
     reviewedPolicy: reviewedNarrativePolicy(),
     artifactVersion: '1.0.0',
+    fictionArtifactVersion: '2.0.0',
+    characterStateVersion: FICTION_CHARACTER_VERSION,
+    fictionV9Policy: fictionV9Policy(),
   };
 }
 

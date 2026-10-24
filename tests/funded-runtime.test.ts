@@ -2,7 +2,13 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
-import { hash } from '@future-flow/core';
+import {
+  hash,
+  buildFictionArtifact,
+  emptyFictionCharacterState,
+  fictionCharacterProjectionFromEnvelope,
+} from '@future-flow/core';
+import { fictionFixture, fictionProof } from './fiction-fixtures';
 import { LifeRepository, type Database } from '@future-flow/database';
 import {
   narrativeV1Policy,
@@ -17,6 +23,7 @@ import {
   fictionV6Quality25Policy,
   fictionV7Policy,
   fictionV8Policy,
+  fictionV9Policy,
 } from '@future-flow/contracts';
 import { setupFixture } from './life-fixtures';
 import {
@@ -99,8 +106,11 @@ describe('funded runtime schema and accounting boundary', () => {
   });
   it('exercises all legacy narrative prompt pairs and the mandatory plan-review ceiling', () => {
     const c = fundedRuntimeCapabilities();
-    expect(c.policies).toHaveLength(18);
+    expect(c.policies).toHaveLength(19);
     expect(c.policies).toContain('fiction-v8');
+    expect(c.policies).toContain('fiction-v9');
+    expect(c.fictionV9Policy).toEqual(fictionV9Policy());
+    expect(c.characterStateVersion).toBe('1.0.0');
     expect(c.reviewedPolicy.maxPhysicalRequests).toBe(8);
   });
   it('rejects schema drift rather than adjusting expected fingerprints', async () => {
@@ -178,6 +188,7 @@ describe('funded runtime schema and accounting boundary', () => {
           fictionV6Quality25Policy(),
           fictionV7Policy(),
           fictionV8Policy(),
+          fictionV9Policy(),
         ]) {
           await d.query(
             "UPDATE aw_jobs SET payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb)",
@@ -209,7 +220,7 @@ describe('funded runtime schema and accounting boundary', () => {
         throw Error('rollback synthetic job inventory');
       }),
     ).rejects.toThrow('rollback synthetic job inventory');
-    expect(observed).toBe(12);
+    expect(observed).toBe(13);
   });
   it('appends only migration 038 and preserves every existing data/accounting row', async () => {
     const before = await tx((d) => captureFundedRuntime(d, input));
@@ -239,6 +250,78 @@ describe('funded runtime schema and accounting boundary', () => {
       },
     ]);
     await tx((d) => assertReviewedPrivacyRecoverySchema(d));
+  });
+  it('captures a stored v9 artifact and refuses missing character state without discarding history', async () => {
+    const base = fictionFixture().input;
+    const envelope = {
+      version: '1.0.0' as const,
+      state: emptyFictionCharacterState(),
+      fictionalOrigins: [],
+      suppliedActorIds: [],
+      signals: {
+        openThreadActors: [],
+        goalOrOpportunityActors: [],
+        overduePrivateLifeActors: [],
+      },
+    };
+    const context = base.narrativeContext!;
+    if (context.policy.mode !== 'narrative-fiction-v2')
+      throw Error('Fiction required');
+    context.policy = fictionV9Policy();
+    context.characterProjection = fictionCharacterProjectionFromEnvelope(
+      envelope,
+      false,
+    );
+    base.fictionCharacters = envelope;
+    const f = fictionFixture(base);
+    const artifact = buildFictionArtifact(
+      f.input,
+      f.draft,
+      f.authored,
+      f.review,
+      f.fidelity,
+      f.editor,
+      fictionProof(f),
+    );
+    for (const valid of [true, false]) {
+      const stored = structuredClone(artifact);
+      if (!valid) delete stored.characterDelta;
+      await expect(
+        engine.transaction(async (e) => {
+          const d = adapter(e);
+          await d.query(
+            "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES(gen_random_uuid(),$1,'alpha-privacy-v1','adult_and_ai_acknowledgement')",
+            [user],
+          );
+          await new LifeRepository(d).create(
+            user,
+            setupFixture(),
+            randomUUID(),
+          );
+          await d.query("UPDATE aw_branches SET status='ready'");
+          await d.query(
+            "UPDATE aw_jobs SET status='completed',lease_token=NULL,lease_until=NULL,payload=jsonb_set(payload,'{narrativeContext}',$1::jsonb),checkpoints=$2::jsonb",
+            [
+              JSON.stringify({ policy: fictionV9Policy() }),
+              JSON.stringify({ policy: fictionV9Policy() }),
+            ],
+          );
+          const inserted = await d.query(
+            `INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact)
+          SELECT gen_random_uuid(),user_id,life_id,id,1,0,'{}','[]',state,state,'[]','{}','synthetic',$1::jsonb FROM aw_branches RETURNING id`,
+            [JSON.stringify(stored)],
+          );
+          expect(inserted.length).toBeGreaterThan(0);
+          if (valid)
+            expect((await captureFundedRuntime(d, input)).schema).toBe(38);
+          else
+            await expect(captureFundedRuntime(d, input)).rejects.toThrow(
+              /character/,
+            );
+          throw Error('rollback v9 artifact fixture');
+        }),
+      ).rejects.toThrow('rollback v9 artifact fixture');
+    }
   });
   it('does not reset allowance or data to force a saved baseline to match', async () => {
     const before = await tx((d) => captureFundedRuntime(d, input));

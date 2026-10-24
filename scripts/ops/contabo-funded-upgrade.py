@@ -43,6 +43,75 @@ def stamp(value):
     return parsed
 
 
+# Default additions from a newer Compose are harmless; existing nondefault
+# values and all other environment/authority fields must remain exact.
+NARRATIVE_DEFAULTS = {
+    'NARRATIVE_PIPELINE_MODE': 'legacy',
+    'NARRATIVE_COHORT_USER_IDS': '',
+    'NARRATIVE_FICTION_GENERATION': 'v8',
+}
+WORKER_DEFAULTS = {'AI_FICTION_TIMEOUT_MS': '180000', 'AI_FICTION_MAX_REQUEST_BYTES': '100000'}
+
+
+def narrative_runtime_values(runtime):
+    exact(runtime, {'mode', 'generation', 'cohortUserIds', 'timeoutMs', 'maxRequestBytes'})
+    users = runtime['cohortUserIds']
+    if (runtime['mode'] != 'narrative-fiction-v2' or runtime['generation'] != 'v9'
+            or not isinstance(users, list) or not 1 <= len(users) <= 10
+            or any(not isinstance(u, str) or not re.fullmatch(
+                r'[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}', u) for u in users)
+            or len(set(users)) != len(users)
+            or type(runtime['timeoutMs']) is not int or not 1000 <= runtime['timeoutMs'] <= 300000
+            or type(runtime['maxRequestBytes']) is not int or not 100000 <= runtime['maxRequestBytes'] <= 196608):
+        raise ValueError('Bounded explicit v9 runtime required')
+    return {
+        'NARRATIVE_PIPELINE_MODE': runtime['mode'],
+        'NARRATIVE_FICTION_GENERATION': runtime['generation'],
+        'NARRATIVE_COHORT_USER_IDS': ','.join(users),
+        'AI_FICTION_TIMEOUT_MS': str(runtime['timeoutMs']),
+        'AI_FICTION_MAX_REQUEST_BYTES': str(runtime['maxRequestBytes']),
+    }
+
+
+def narrative_environment(text, runtime):
+    if runtime is None:
+        return text
+    values = narrative_runtime_values(runtime)
+    before = upgrade.server_environment(text)
+    admitted = before.get('CLOSED_BETA_USER_IDS', '').split(',')
+    if not set(runtime['cohortUserIds']) <= set(admitted):
+        raise ValueError('Narrative cohort must already have funded admission')
+    for key, value in values.items():
+        if key in before:
+            text = re.sub(r"^" + key + r"='[^'\r\n]*'$", key + "='" + value + "'", text, flags=re.MULTILINE)
+        else:
+            text = text.rstrip('\n') + "\n" + key + "='" + value + "'\n"
+    after = upgrade.server_environment(text)
+    if {k: v for k, v in before.items() if k not in values} != {k: v for k, v in after.items() if k not in values}:
+        raise ValueError('Narrative selection changed funded authority')
+    return text
+
+
+def normalized_configuration(config, runtime=None):
+    config = copy.deepcopy(config)
+    values = narrative_runtime_values(runtime) if runtime is not None else {}
+    for role, svc in config['services'].items():
+        svc['image'] = '<reviewed-image>'
+        if 'build' in svc:
+            svc['build']['context'] = '<reviewed-source>'
+        if role in ('api', 'worker'):
+            env = svc['environment']
+            for key, value in NARRATIVE_DEFAULTS.items():
+                env.setdefault(key, value)
+            if role == 'worker':
+                for key, value in WORKER_DEFAULTS.items():
+                    env.setdefault(key, value)
+            for key, value in values.items():
+                if role == 'worker' or key in NARRATIVE_DEFAULTS:
+                    env[key] = value
+    return config
+
+
 def same_funded(before, after):
     # Catalog/schema may change only through the guarded 038 migration. Every
     # existing application row (including costs/leases) and artifact must match.
@@ -383,7 +452,11 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         if (
             capability.get('version') != 'alterward-funded-runtime-1'
             or capability.get('schema') != 38
-            or len(capability.get('policies', [])) != 18
+            or len(capability.get('policies', [])) != 19
+            or 'fiction-v9' not in capability.get('policies', [])
+            or capability.get('characterStateVersion') != '1.0.0'
+            or capability.get('fictionArtifactVersion') != '2.0.0'
+            or capability.get('fictionV9Policy', {}).get('qualityPolicyVersion') != '2.8.0'
             or capability.get('reviewedPolicy', {}).get('maxPhysicalRequests') != 8
         ):
             raise ValueError(
@@ -407,9 +480,9 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         old = self.files(DIRECTORY)
         readers.durable_file(
             path / 'server.env',
-            upgrade.image_only_environment(
+            narrative_environment(upgrade.image_only_environment(
                 old['server.env'].decode(), build['imageTag']
-            ).encode(),
+            ), self.request['release'].get('runtime')).encode(),
         )
         readers.durable_file(
             path / 'pinned-image.json',
@@ -444,18 +517,12 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         )
         original = self.configuration(DIRECTORY)
 
-        def normalized(cfg):
-            cfg = copy.deepcopy(cfg)
-            for svc in cfg['services'].values():
-                svc['image'] = '<reviewed-image>'
-                if 'build' in svc:
-                    svc['build']['context'] = '<reviewed-source>'
-            return cfg
-
-        if normalized(rendered) != normalized(original):
-            raise ValueError(
-                'Funded upgrade may change only image/source, never env/caps/access/network'
-            )
+        runtime = self.request['release'].get('runtime')
+        if normalized_configuration(rendered) != normalized_configuration(original, runtime):
+            raise ValueError('Only reviewed image and explicit narrative configuration may change')
+        self.daily.personal_runtime_policy(
+            {k: v['environment'] for k, v in rendered['services'].items()}, self.now()
+        )
         readers.durable_file(path / 'effective-compose.json', frozen(rendered))
         manifest = json.loads(old['manifest.json'])
         manifest.update(
@@ -496,11 +563,10 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         before = self.baseline()
         from alterward_backup import private_directory
 
-        private_directory(self.root)
         release = copy.deepcopy(self.request['release'])
         exact(
             release,
-            {
+            ({'runtime'} if 'runtime' in release else set()) | {
                 'target',
                 'recovery',
                 'auditSha256',
@@ -521,6 +587,10 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
             raise ValueError(
                 'Exact interpreted source/CI/fixture evidence hashes required'
             )
+        if 'runtime' in release:
+            narrative_environment(self.files(DIRECTORY)['server.env'].decode(), release['runtime'])
+        # Invalid selections must not leave a preparation that blocks Daily or recovery.
+        private_directory(self.root)
         for role in ('target', 'recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
         database = self.probe(release['target']['imageId'], 'capture')

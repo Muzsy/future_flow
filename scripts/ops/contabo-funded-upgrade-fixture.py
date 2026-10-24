@@ -434,7 +434,7 @@ def exercise(context):
             ).stdout
         )
         initialFiles = {
-            'server.env': b"ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\n",
+            'server.env': b"ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n",
             'pinned-image.json': encoded(
                 {
                     'services': {
@@ -480,6 +480,9 @@ def exercise(context):
             for p in daily.reader_config_paths() + daily.personal_config_paths()
         }
         release = {
+            'runtime': {'mode': 'narrative-fiction-v2', 'generation': 'v9',
+                        'cohortUserIds': [terms['participants'][0]['userId']],
+                        'timeoutMs': 300000, 'maxRequestBytes': 131072},
             'target': {
                 'commit': context['sourceCommit'],
                 'imageId': context['image'],
@@ -535,15 +538,22 @@ def exercise(context):
                 path = self.root / role
                 path.mkdir(mode=0o700)
                 new = copy.deepcopy(cfg)
-                for svc in new['services'].values():
+                values = funded.narrative_runtime_values(self.request['release']['runtime'])
+                for service, svc in new['services'].items():
                     svc['image'] = build['imageId']
+                    if service in ('api', 'worker'):
+                        svc['environment'].update({k: v for k, v in values.items()
+                                                   if service == 'worker' or k in funded.NARRATIVE_DEFAULTS})
+                if funded.normalized_configuration(new) != funded.normalized_configuration(cfg, self.request['release']['runtime']):
+                    raise ValueError('Fixture narrative configuration drift')
+                daily.personal_runtime_policy({k: v['environment'] for k, v in new['services'].items()}, self.now())
                 for name, raw in initialFiles.items():
                     if name == 'effective-compose.json':
                         raw = frozen(new)
                     elif name == 'server.env':
-                        raw = upgrade.image_only_environment(
+                        raw = funded.narrative_environment(upgrade.image_only_environment(
                             raw.decode(), build['imageTag']
-                        ).encode()
+                        ), self.request['release']['runtime']).encode()
                     elif name == 'manifest.json':
                         raw = encoded(
                             {
@@ -964,6 +974,11 @@ def exercise(context):
                 checks['interruption'] = True
                 funded.transition(system, candidate, recovery=True)
             assert daily.personal_transition_healthy('personal-beta')
+            actual = system.configuration(owner)['services']
+            for role in ('api', 'worker'):
+                assert actual[role]['environment']['NARRATIVE_FICTION_GENERATION'] == 'v9'
+                assert actual[role]['environment']['NARRATIVE_COHORT_USER_IDS'] == terms['participants'][0]['userId']
+            assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '131072'
             after = db('capture', database)
             funded.same_funded(before, after)
             assert after['schema'] == 38

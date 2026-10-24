@@ -254,6 +254,24 @@ def personal_runtime_policy(environments, now):
     users = worker.get('CLOSED_BETA_USER_IDS', '').split(',') if worker.get('CLOSED_BETA_USER_IDS') else []
     if len(users) > 10 or len(set(users)) != len(users) or any(not ADMISSION_UUID.fullmatch(u) for u in users):
         raise ValueError('At most ten exact account UUIDs required')
+    defaults = {'NARRATIVE_PIPELINE_MODE': 'legacy', 'NARRATIVE_COHORT_USER_IDS': '',
+                'NARRATIVE_FICTION_GENERATION': 'v8'}
+    for key, default in defaults.items():
+        if api.get(key, default) != worker.get(key, default):
+            raise ValueError('API and worker narrative configuration mismatch')
+    mode, generation = (worker.get(k, defaults[k]) for k in
+                        ('NARRATIVE_PIPELINE_MODE', 'NARRATIVE_FICTION_GENERATION'))
+    cohort = worker.get('NARRATIVE_COHORT_USER_IDS', '')
+    cohort = cohort.split(',') if cohort else []
+    if (mode not in ('legacy', 'context', 'narrative-v1', 'narrative-fiction-v2')
+            or generation not in ('v8', 'v9') or (generation == 'v9' and mode != 'narrative-fiction-v2')
+            or len(cohort) != len(set(cohort)) or any(u not in users for u in cohort)):
+        raise ValueError('Supported narrative configuration and admitted cohort required')
+    for key, default, low, high in [('AI_FICTION_TIMEOUT_MS', '180000', 1000, 300000),
+                                   ('AI_FICTION_MAX_REQUEST_BYTES', '100000', 100000, 196608)]:
+        value = worker.get(key, default)
+        if not isinstance(value, str) or not re.fullmatch(r'\d+', value) or not low <= int(value) <= high:
+            raise ValueError('Bounded narrative worker runtime required')
     oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 10)
     claude = bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 1)
     user = bounded_budget(worker, 'AI_USER_BUDGET_USD', 3.34)

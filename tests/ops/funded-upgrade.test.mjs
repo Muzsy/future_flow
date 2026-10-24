@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   releaseEvidence,
   fundedSourceBundle,
+  validateFundedNarrativeRuntime,
 } from '../../scripts/lib/funded-upgrade.mjs';
 const commit = 'a'.repeat(40),
   bundleSha256 = 'b'.repeat(64),
@@ -96,4 +97,50 @@ test('source bundle binds Docker inputs and executable sources while excluding p
     'packages/a/src/test.ts',
     'scripts/test.py',
   ]);
+});
+
+const runtime = () => ({
+  mode: 'narrative-fiction-v2',
+  generation: 'v9',
+  cohortUserIds: ['00000000-0000-4000-8000-000000000001'],
+  timeoutMs: 300000,
+  maxRequestBytes: 131072,
+});
+test('explicit v9 selection is retained in release evidence and rejects other authority', () => {
+  const p = proofs();
+  p.selection.runtime = runtime();
+  assert.deepEqual(releaseEvidence(p).runtime, runtime());
+  for (const change of [
+    (r) => (r.generation = 'v10'),
+    (r) => (r.mode = 'legacy'),
+    (r) => r.cohortUserIds.push(r.cohortUserIds[0]),
+    (r) => (r.cohortUserIds = []),
+    (r) => (r.timeoutMs = 300001),
+    (r) => (r.maxRequestBytes = 196609),
+    (r) => (r.maxRequestBytes = 99999),
+    (r) => (r.budget = 10),
+  ]) {
+    const r = runtime();
+    change(r);
+    assert.throws(() => validateFundedNarrativeRuntime(r));
+  }
+});
+test('mutable GitHub metadata cannot prevent recovery; a new run attempt changes its binding', () => {
+  const p = proofs();
+  p.ci = [
+    {
+      id: 42,
+      head_sha: commit,
+      run_attempt: 1,
+      status: 'completed',
+      conclusion: 'success',
+      updated_at: 'before',
+    },
+  ];
+  const before = releaseEvidence(p).ciSha256;
+  p.ci[0].updated_at = 'after';
+  p.ci[0].actor = { login: 'irrelevant' };
+  assert.equal(releaseEvidence(p).ciSha256, before);
+  p.ci[0].run_attempt = 2;
+  assert.notEqual(releaseEvidence(p).ciSha256, before);
 });

@@ -317,5 +317,55 @@ class RootJournalTests(unittest.TestCase):
             self.system.candidate()
 
 
+class NarrativeSelectionTests(unittest.TestCase):
+    def runtime(self):
+        return dict(mode='narrative-fiction-v2', generation='v9',
+                    cohortUserIds=['00000000-0000-4000-8000-000000000001'],
+                    timeoutMs=300000, maxRequestBytes=131072)
+
+    def test_only_narrative_values_change_and_cohort_must_already_be_admitted(self):
+        text = "ALTERWARD_TAG='old'\nCLOSED_BETA_USER_IDS='00000000-0000-4000-8000-000000000001'\nAI_PROJECT_BUDGET_USD='2'\nAI_BUDGET_WINDOW_END='fixed'\n"
+        result = funded.narrative_environment(text, self.runtime())
+        self.assertTrue(result.startswith(text))
+        self.assertIn("NARRATIVE_FICTION_GENERATION='v9'", result)
+        self.assertEqual(funded.narrative_environment(result, self.runtime()), result)
+        self.assertEqual(funded.narrative_environment(text, None), text)
+        r = self.runtime(); r['cohortUserIds'] = ['00000000-0000-4000-8000-000000000002']
+        with self.assertRaises(ValueError): funded.narrative_environment(text, r)
+        for key, value in [('generation','v10'), ('mode','legacy'), ('timeoutMs',True),
+                           ('timeoutMs',300001), ('maxRequestBytes',196609), ('budget',10)]:
+            r = self.runtime(); r[key] = value
+            with self.assertRaises(ValueError): funded.narrative_runtime_values(r)
+
+    def test_invalid_cohort_is_rejected_before_creating_preparation_state(self):
+        with tempfile.TemporaryDirectory() as folder:
+            system = object.__new__(funded.System)
+            system.root = Path(folder) / 'not-created'
+            system.archive_support = lambda: None
+            system.baseline = lambda: {}
+            system.files = lambda path: {'server.env': b"CLOSED_BETA_USER_IDS='00000000-0000-4000-8000-000000000002'\n"}
+            system.request = {'release': {'target': {}, 'recovery': {}, 'runtime': self.runtime(),
+                **{key: 'a'*64 for key in ('auditSha256','fixtureSha256','privacyFixtureSha256','ciSha256')}}}
+            with self.assertRaisesRegex(ValueError, 'already have funded admission'):
+                system.prepare()
+            self.assertFalse(system.root.exists())
+
+    def test_default_additions_are_allowed_but_other_configuration_drift_is_not_hidden(self):
+        old = {'services': {r: {'image':'old', 'environment':{'AI_PROJECT_BUDGET_USD':'2'}} for r in ('web','api','worker')}}
+        rendered = copy.deepcopy(old)
+        for role in ('api','worker'):
+            rendered['services'][role]['environment'].update(funded.NARRATIVE_DEFAULTS)
+        rendered['services']['worker']['environment'].update(funded.WORKER_DEFAULTS)
+        self.assertEqual(funded.normalized_configuration(old), funded.normalized_configuration(rendered))
+        selected = funded.normalized_configuration(old, self.runtime())
+        env = selected['services']['worker']['environment']
+        self.assertEqual(env['NARRATIVE_FICTION_GENERATION'], 'v9')
+        self.assertEqual(env['AI_PROJECT_BUDGET_USD'], '2')
+        drift = copy.deepcopy(selected); drift['services']['worker']['environment']['AI_PROJECT_BUDGET_USD'] = '10'
+        self.assertNotEqual(funded.normalized_configuration(drift), selected)
+        drift = copy.deepcopy(selected); drift['services']['worker']['environment']['NARRATIVE_FICTION_GENERATION'] = 'v8'
+        self.assertNotEqual(funded.normalized_configuration(drift), selected)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -25,6 +25,40 @@ export function exactObject(value, keys) {
     throw Error('Exact funded-upgrade proof required');
   return value;
 }
+// Explicit beta configuration only; this does not admit users or grant budget.
+export function validateFundedNarrativeRuntime(runtime) {
+  exactObject(runtime, [
+    'mode',
+    'generation',
+    'cohortUserIds',
+    'timeoutMs',
+    'maxRequestBytes',
+  ]);
+  if (
+    runtime.mode !== 'narrative-fiction-v2' ||
+    runtime.generation !== 'v9' ||
+    !Array.isArray(runtime.cohortUserIds) ||
+    runtime.cohortUserIds.length < 1 ||
+    runtime.cohortUserIds.length > 10 ||
+    new Set(runtime.cohortUserIds).size !== runtime.cohortUserIds.length ||
+    runtime.cohortUserIds.some(
+      (id) =>
+        typeof id !== 'string' ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+          id,
+        ),
+    ) ||
+    !Number.isSafeInteger(runtime.timeoutMs) ||
+    runtime.timeoutMs < 1000 ||
+    runtime.timeoutMs > 300000 ||
+    !Number.isSafeInteger(runtime.maxRequestBytes) ||
+    runtime.maxRequestBytes < 100000 ||
+    runtime.maxRequestBytes > 196608
+  )
+    throw Error('Bounded explicit v9 runtime required');
+  return runtime;
+}
+
 export function releaseEvidence({
   commit,
   bundleSha256,
@@ -33,8 +67,14 @@ export function releaseEvidence({
   fixture,
   ci,
 }) {
-  exactObject(selection, ['target', 'recovery']);
-  for (const build of Object.values(selection)) {
+  exactObject(
+    selection,
+    'runtime' in selection
+      ? ['target', 'recovery', 'runtime']
+      : ['target', 'recovery'],
+  );
+  if ('runtime' in selection) validateFundedNarrativeRuntime(selection.runtime);
+  for (const build of [selection.target, selection.recovery]) {
     exactObject(build, ['commit', 'imageId', 'imageTag', 'sourceDirectory']);
     if (
       build.commit !== commit ||
@@ -99,7 +139,19 @@ export function releaseEvidence({
     auditSha256: sha(JSON.stringify(audit)),
     fixtureSha256: sha(JSON.stringify(fixture)),
     privacyFixtureSha256: fixture.privacyFixtureSha256,
-    ciSha256: sha(JSON.stringify(ci)),
+    ciSha256: sha(
+      JSON.stringify(
+        ci
+          .map(({ id, head_sha, run_attempt, status, conclusion }) => ({
+            id,
+            head_sha,
+            run_attempt,
+            status,
+            conclusion,
+          }))
+          .sort((a, b) => a.id - b.id),
+      ),
+    ),
   };
 }
 

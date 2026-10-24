@@ -1,13 +1,13 @@
 ---
 status: active-supporting
 owner: engineering
-last_updated: 2026-10-16
+last_updated: 2026-10-24
 canonical_parent: NARRATIVE_RELEASE_HU.md
 ---
 
 # Linux active-funded runtime upgrade — Issue #34
 
-Ez a `scripts/contabo-funded-upgrade.mjs` dedikált Linux útvonala. Nem kezdeti funded aktiválás, owner-zero upgrade vagy általános deployment. A kanonikus kiadási kapuk: [Narrative release](NARRATIVE_RELEASE_HU.md), [Linux operator](LINUX_OPERATOR_HU.md), [backup](BACKUP_HU.md), [recovery](RECOVERY_HU.md). A kód implementációs jelölt; **nem éles kiadási engedély**. N09 továbbra PARTIAL, N08 emberi benchmark kötelező. A task nem végez production műveletet, migrációt, paid hívást vagy credential-rotációt.
+Ez a `scripts/contabo-funded-upgrade.mjs` dedikált Linux útvonala. Nem kezdeti funded aktiválás, owner-zero upgrade vagy általános deployment. A kanonikus kiadási kapuk: [Narrative release](NARRATIVE_RELEASE_HU.md), [Linux operator](LINUX_OPERATOR_HU.md), [backup](BACKUP_HU.md), [recovery](RECOVERY_HU.md). A kód implementációs jelölt; **nem éles kiadási engedély**. N09 továbbra PARTIAL; zárt bétához a kanonikus helyettesítő minőségkapuk, nyilvános/fizetős kiadáshoz a teljes N08 érvényes. A task nem végez production műveletet, migrációt, paid hívást vagy credential-rotációt.
 
 ## Megőrzött authority és határ
 
@@ -67,13 +67,35 @@ Apply sorrendje:
 
 Az apply előtti dupla preflight és az image/runtime capability probe szándékos; a baseline felvétele nem writer hold. A sikerhez az első és utolsó megfigyelés közötti összes védett adatnak egyeznie kell. Egy közben beérkező írás drift és fail-closed eredmény, nem felülírható eltérés.
 
+## Explicit v9 kiadási konfiguráció — 2026-10-24
+
+A privát `selection.json` változatlan `target` és `recovery` buildjei mellé opcionális `runtime` kerülhet. Hiányában nincs új cohort vagy generációváltás: az image-only út megmarad. Példa, kizárólag szintetikus azonosítókkal:
+
+```json
+{
+  "mode": "narrative-fiction-v2",
+  "generation": "v9",
+  "cohortUserIds": ["00000000-0000-4000-8000-000000000001"],
+  "timeoutMs": 300000,
+  "maxRequestBytes": 131072
+}
+```
+
+Ez a blokk a `selection.runtime` értéke, nem teljes selection vagy jóváhagyott éles beállítás. A Node-kliens és a root-helper is szigorúan ellenőrzi a mezőket: v9/fiction-v2, 1–10 egyedi UUID, 1000–300000 ms és 100000–196608 B. Root-oldalon a cohort az **eredeti funded admission részhalmaza** kell legyen. Mindkét image ugyanazt a kiválasztást kapja; a prepare az immutable fájlhash-ekbe és a release-bizonyítékba köti, apply/recover alatt nem módosítható. A helyreállítás kompatibilis image-et indít ugyanazon DB-n; nem lép vissza v8-ra egy v9 történet fölött.
+
+Csak a két `NARRATIVE_*` mód/cohort mező, a `NARRATIVE_FICTION_GENERATION`, valamint a worker fiction timeout/cap változhat explicit kiválasztással. Budget/window/provider/admission/access/hálózat és minden más env/config mező változása továbbra tiltott. A Compose új default mezőit (legacy/üres cohort/v8/180000 ms/100000 B) a régi renderhez szemantikailag egyeztetjük; eltérő nemdefault értéket nem rejt el az összehasonlítás. API és worker ugyanazt a generációt/cohortot kapja; a web nem kap generációválasztást. A Daily monitor ezek egyezését, a meglévő admissiont és a határokat is ellenőrzi. A változás nem telepít új Daily-t a szerverre: az exact-source újratelepítés megmaradó kiadási kapu.
+
+A CI root/Docker fixture inert szolgáltatásokkal ugyanezt a v9 kiválasztást viszi végig a target és recovery ágon; a Docker env és az eredeti költség/window-authority visszaolvasása része a próbának. Ez nem valódi provideres minőségmérés vagy production target proof. A kliens CI-hash-e a futás `id`, `head_sha`, `run_attempt`, `status`, `conclusion` mezőit köti, id szerint rendezve; az `updated_at`/actor/sorrend nem akadályozhatja a recoveryt, új futás/próbálkozás viszont új bizonyíték.
+
 ## Drain, schema és frozen policy
 
 A hat job-queue pending/validating/running és lease oszlopai, draft review, generating branch, reserved/unknown vagy settlement nélküli budget reservation és aktív idegen DB-session tiltja az upgrade-et. A kikapcsolt narrative flag nem drain. A már bound-ready ingyenes commit a meglévő, felülvizsgált alkalmazásútvonalon, az upgrade ELŐTT fejezhető be. A tool nem töröl/cancel/manual-settle jobot, nem nulláz számlálót és nem ír át frozen payloadot.
 
+A v9 capability ellenőrzi a qualityPolicy 2.8.0-t, a 2.0.0 fiction artifact és az 1.0.0 karakterállapot támogatását is. A tárolt v9 artifact a karakterdeltával és kötéseivel együtt strict parse-on megy át; hiányzó delta esetén a frissítés elutasított, nem dobjuk el a történetállapotot.
+
 A `captureFundedRuntime` az ismert 037 vagy 038 migrációs checksum-prefixet és strict security catalogot fogadja el. A név szerint külön `assertFundedPre038SecurityCatalog`/`assertReviewedFundedPre038Schema` kizárólag az ismert 855 oszlopos baseline-t engedi; a normál recovery-guard változatlanul a 856 oszlopos 038 baseline-t követeli. Nincs caller által megadható tetszőleges schema-fingerprint, artifact eldobás vagy generikus downgrade.
 
-A két image tényleges contracts-kódja értelmezi a legacy/context policyt, a planner/writer v1–v3 kilenc párosítását, a reviewed max-8 policyt és mind a kilenc `narrative-fiction-v2` generációt (v1–v8, köztük v6/quality2.5); a review marker max-7 elutasított. Tárolt policy (job payload, checkpoint és 038 artifact policy) és a 038 artifact (1.0.0 és 2.0.0) strict parse történik. Ismeretlen frozen revision vagy forrásonként >1000 elemű inventory külön elemzést igényel, nincs átírás. A null artifact legacy period olvasható marad; a publikus és normál life DTO nem kap új artifact mezőt. A saját export meglévő privát artifact-szerződése változatlan.
+A két image tényleges contracts-kódja értelmezi a legacy/context policyt, a planner/writer v1–v3 kilenc párosítását, a reviewed max-8 policyt és mind a tíz `narrative-fiction-v2` generációt (v1–v9, köztük v6/quality2.5; összesen 19 felsorolt policy); a review marker max-7 elutasított. Tárolt policy (job payload, checkpoint és 038 artifact policy) és a 038 artifact (1.0.0 és 2.0.0) strict parse történik. Ismeretlen frozen revision vagy forrásonként >1000 elemű inventory külön elemzést igényel, nincs átírás. A null artifact legacy period olvasható marad; a publikus és normál life DTO nem kap új artifact mezőt. A saját export meglévő privát artifact-szerződése változatlan.
 
 ## Backup és recovery
 
@@ -102,5 +124,19 @@ Kifejezett synthetic seam: nonce-os host/project/proxy identity, source Compose 
 - **`applied` utáni restart policy:** az `applied` sor a restart policy visszaállítása ELŐTT tartós; egy késői hiba a verifikált stacket is lezárja és `--recover` kell. Ez szándékos (újraindulás nem indíthat ellenőrizetlen állapotot), de a sorrend külön döntés tárgya.
 - **Compose one-off konténer:** a DB-probe időtúllépése vagy jelzése `docker compose run` maradékot hagyhat, amelyet a role-ellenőrzés elutasít; kézi eltávolítás kell a recovery előtt.
 - **Lejárt, soha nem alkalmazott preparation:** a Daily 900 s után nem egészségesnek látja, nincs reader-szerű archiválás, és a `restore_zero` megtagadja az eredeti-zero visszaállítást.
-- **`ciSha256`:** a nyers GitHub run-objektumokra számolt hash módosuló mezőket is tartalmaz; recovery közben metaadat-drift blokkolhat.
+- **`ciSha256` — javítva 2026-10-24:** stabil futásazonosító/eredmény mezőkre kötött hash; módosuló metaadat nem okoz driftet. A valódi új futás/próbálkozás továbbra új review-bizonyítékot igényel.
 - **Recovery restore-proof frissesség:** a `--recover` ugyanazt a 3600 s-nél frissebb offsite restore proofot követeli, míg a funded oldal áll.
+
+
+### Kiadási triage az integráció után — 2026-10-24
+
+A fenti történeti korlátok nem új motorfeladatok. A CI-metaadat hibája e csomagban javított. Az applied utáni ellenőrzési hiba zárt állapotot és explicit recoveryt eredményez; ez megtartott biztonsági viselkedés, nem automatikus rollback. A registry/receipt-folytonosság, a lejárt soha nem alkalmazott preparation rendezése, a maradék one-off konténer felismerése és a hosszabb leállás alatti friss restore-proof végrehajthatósága még **éles apply előtti operátori lezárás**. Nem állítunk rájuk PASS-t attól, hogy a v9 compatibility és a helyi unit tesztek sikeresek. Következő review ezek konkrét frissítés/helyreállítási útjára szorítkozik; új irodalmi iteráció nem része.
+
+
+### Integrációs ellenőrzések — 2026-10-24
+
+Lokális typecheck, build, schema export, format és docs ellenőrzés PASS. Teljes Vitest: **127 fájl / 1465 teszt PASS**, `--maxWorkers=2` (496,46 s). A célzott v9 worker 40/40, funded-runtime 10/10 PASS; az új artifact-teszt valóban beszúr egy immutable v9 artifactot, és hiányzó karakterdeltával elutasítást vár. A teszt előkészítésének korábbi hibái (nem létező period UPDATE-je, majd immutable canon UPDATE) az insert-alapú fixture javításával rendezve, termékguard-módosítás nélkül.
+
+A teljes operátori Node-kör **99/99 PASS**. Végső Python-kör **351 teszt: 340 PASS, 11 SKIP** (rootjog/külön környezet szükséges). A nem admitted cohort már a preparation könyvtár létrehozása előtt elutasított, ezt új negatív teszt ellenőrzi; e Python-hardening után a teljes Python-kör ismét lefutott. A teljes Vitest-kört ezután nem számoljuk újrafutottnak. A helyi sudo no-new-privileges miatt nem használható; nem állítunk helyi root-fs/Docker rehearsal PASS-t, és a CI-only fixture guardját nem kerüljük meg. A Docker compose deployment-preflight PASS, application konténerindítás és valódi credential nélkül; a zárt production web lokális smoke-ja 19/19 HTTP PASS, live credential és paid hívás nélkül. A konténeres/root/PostgreSQL frissítés–megszakítás–recovery fixture és az exact-commit CI még a feltöltött jelölt saját bizonyítéka kell legyen; korábbi #56 CI nem helyettesíti.
+
+A független exact-source audit, registry/receipt és preparation/one-off/restore-frissesség lezárása, telepített Daily/privát monitor helyreállítása, célgépes backup/restore és a jóváhagyott tesztelői paid E2E továbbra éles kiadás előtti feladat. Ebben az integrációban nincs main merge, production módosítás vagy modellhívás.
