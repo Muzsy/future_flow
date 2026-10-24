@@ -28,6 +28,36 @@ export const evaluationV9MeasurementApproval = {
   maxPeriods: 4,
 } as const;
 
+// Owner authorization 2026-10-24 (Ákos): "indíthatod a fizetős api
+// hívásokat 7 dollár keretig" for C5 Flex 3-period smoke, then acceptable
+// smoke followed by a fresh 8-period main + alternate third (12 texts total).
+// One shared cap across both stages, original ledger retained unchanged.
+export const evaluationC5FlexApproval = {
+  approvalId: 'v9-c5-flex-20261024',
+  authorized: true,
+  maxSpendUsd: 7,
+  noNewChapterAtUsd: 6,
+  costSignalAfterChapters: 2,
+  costSignalMeanUsd: 0.75,
+  fixtureId: 'career-transition',
+  maxPeriods: 8,
+} as const;
+export const evaluationC5FlexCumulativeBudgetUsd = 58.6490625;
+export type EvaluationMeasurementApproval = {
+  approvalId: string;
+  maxSpendUsd: number;
+  noNewChapterAtUsd: number;
+  costSignalAfterChapters: number;
+  costSignalMeanUsd: number;
+  fixtureId: string;
+  maxPeriods: number;
+};
+export function measurementApproval(options: { approvalId: string | null }) {
+  return options.approvalId === evaluationC5FlexApproval.approvalId
+    ? evaluationC5FlexApproval
+    : evaluationV9MeasurementApproval;
+}
+
 const prefixes = (approvalId: string) => [
   `narrative-evaluation:${approvalId}`,
   `paid-probe:${approvalId}`,
@@ -86,7 +116,7 @@ export function approvalChapterHalt(
   chaptersDone: number,
   runSpendUsd: number,
   approval: Pick<
-    typeof evaluationV9MeasurementApproval,
+    EvaluationMeasurementApproval,
     | 'approvalId'
     | 'noNewChapterAtUsd'
     | 'costSignalAfterChapters'
@@ -109,12 +139,16 @@ export function approvalChapterHalt(
 // A missing file or another working directory would otherwise start the
 // approval's cap from zero and hide the cumulative ceiling.
 export const evaluationLedgerFloorUsd = 46.69296;
-export function verifyApprovalLedger(calls: LedgerCall[], ledgerPath: string) {
+export function verifyApprovalLedger(
+  calls: LedgerCall[],
+  ledgerPath: string,
+  minimumUsd = evaluationLedgerFloorUsd,
+) {
   const total = calls.reduce((s, c) => s + c.accountedUsd, 0);
-  if (total < evaluationLedgerFloorUsd)
+  if (total + 1e-9 < minimumUsd)
     throw new DomainError(
       'EVAL_LEDGER_INVALID',
-      `The ledger ${ledgerPath} holds USD ${total.toFixed(4)}, below the closed v8 total USD ${evaluationLedgerFloorUsd}: it is missing or is not the shared ledger (run from the measuring checkout's root).`,
+      `The ledger ${ledgerPath} holds USD ${total.toFixed(4)}, below the closed v8 total USD ${minimumUsd}: it is missing or is not the shared ledger (run from the measuring checkout's root).`,
     );
 }
 
@@ -123,7 +157,7 @@ export function verifyApprovalBudget(
   calls: LedgerCall[],
   budgetUsd: number,
   approval: Pick<
-    typeof evaluationV9MeasurementApproval,
+    EvaluationMeasurementApproval,
     'approvalId' | 'maxSpendUsd'
   > = evaluationV9MeasurementApproval,
 ) {
@@ -143,12 +177,16 @@ export function verifyApprovalBudget(
 // source-bound approval and never one from the caller; only an offline mock run
 // may take a seam approval (the tests).
 export function chapterHaltApproval(
-  options: { kind: string; fictionGeneration?: string },
+  options: {
+    kind: string;
+    fictionGeneration?: string;
+    approvalId?: string | null;
+  },
   seamApproval?: typeof evaluationV9MeasurementApproval,
 ) {
   if (options.kind === 'paid')
     return options.fictionGeneration
-      ? evaluationV9MeasurementApproval
+      ? measurementApproval({ approvalId: options.approvalId ?? null })
       : undefined;
   return seamApproval;
 }

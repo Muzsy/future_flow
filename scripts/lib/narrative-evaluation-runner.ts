@@ -84,6 +84,8 @@ import {
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
+  measurementApproval,
+  evaluationC5FlexApproval,
   verifyApprovalBudget,
   verifyApprovalLedger,
 } from './narrative-evaluation-approval';
@@ -101,8 +103,9 @@ import {
 import {
   evaluationPrices,
   evaluationPriceEvidence,
+  evaluationFlexPriceEvidence,
   verifyEvaluationAuthorization,
-  evaluationApprovedCumulativeBudgetUsd,
+  evaluationCumulativeCeiling,
   evaluationMaxRequestBytes,
   evaluationTimeouts,
   type EvaluationOptions,
@@ -537,6 +540,15 @@ export type EvaluationRun = {
   noForks?: true;
   fictionGeneration?: 'v9';
   choiceMix?: 'rotate';
+  serviceTier?: 'flex';
+  flexAccounting?: {
+    standardRateAccountedUsd: number;
+    standardRateUsageEstimatedUsd: number;
+    flexUsageEstimatedUsd: number;
+    unknownUsageCalls: number;
+    returnedTiers: (string | null)[];
+    note: string;
+  };
   sourceCommit: string;
   sourceHash: string;
   mock: boolean;
@@ -748,6 +760,8 @@ export function rotatingChoice(
   };
 }
 type TransportRecord = {
+  requestedServiceTier?: 'flex';
+  returnedServiceTier?: string | null;
   caseId: string;
   task: string;
   latencyMs: number;
@@ -756,7 +770,7 @@ type TransportRecord = {
   requestBytes?: number;
   requestParts?: RequestParts;
 };
-function clientFor(
+export function clientFor(
   options: EvaluationOptions,
   env: Record<string, string | undefined>,
   job: LifeJob | undefined,
@@ -767,7 +781,12 @@ function clientFor(
 ) {
   const caseBinding: AttemptTraceBinding = { ...traceBinding, caseId };
   // SDK-wide fallback; fiction calls pass their own per-call timeout instead.
-  const sdkTimeoutMs = options.creative ? 180000 : 120000;
+  const sdkTimeoutMs =
+    options.serviceTier === 'flex'
+      ? 900000
+      : options.creative
+        ? 180000
+        : 120000;
   const saveTransports = () =>
     save(join(options.out, 'transport-records.json'), transports);
   if (options.kind === 'paid') {
@@ -788,20 +807,23 @@ function clientFor(
       env,
       transports,
       saveTransports,
+      requestedServiceTier: options.serviceTier,
       execute: async (
         parameters: ParseParameters,
         _ordinal,
         requestOptions,
       ) => {
-        // Same API request, tier and store=false. Parse in the provider AFTER
+        // Keep the selected tier explicit; never retry with Standard. Parse AFTER
         // local capture so even a schema-invalid candidate retains evidence.
         const response = await sdk.responses.create(
           {
             ...parameters,
             stream: false,
-            service_tier: 'default',
+            service_tier: options.serviceTier ?? 'default',
           },
-          requestOptions,
+          options.serviceTier === 'flex'
+            ? { ...requestOptions, timeout: 900000 }
+            : requestOptions,
         );
         return {
           ...response,
@@ -1491,7 +1513,7 @@ async function runEvaluationUnlocked(
   if (
     options.kind === 'paid' &&
     options.fictionGeneration &&
-    options.approvalId !== evaluationV9MeasurementApproval.approvalId
+    options.approvalId !== measurementApproval(options).approvalId
   )
     throw new DomainError(
       'EVAL_CONFIG_INVALID',
@@ -1499,11 +1521,15 @@ async function runEvaluationUnlocked(
     );
   const v9Approval =
     options.kind === 'paid' && options.fictionGeneration
-      ? evaluationV9MeasurementApproval
+      ? measurementApproval(options)
       : undefined;
   if (v9Approval) {
     const calls = readLedgerCalls(ledgerFile(seams));
-    verifyApprovalLedger(calls, ledgerFile(seams));
+    verifyApprovalLedger(
+      calls,
+      ledgerFile(seams),
+      v9Approval === evaluationC5FlexApproval ? 51.6490625 : undefined,
+    );
     verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
   }
   const haltApproval = chapterHaltApproval(options, seams?.approval);
@@ -1534,6 +1560,7 @@ async function runEvaluationUnlocked(
     options.kind === 'paid' ? hash(env.NARRATIVE_EVAL_PROJECT_ID) : null;
   const binding = hash({
     sourceHash: identity.sourceHash,
+    ...(options.serviceTier ? { serviceTier: options.serviceTier } : {}),
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true } : {}),
     ...(options.noForks ? { noForks: true } : {}),
@@ -1561,7 +1588,11 @@ async function runEvaluationUnlocked(
       mock: options.kind !== 'paid',
       ...(options.noForks ? { noForks: true } : {}),
       models: options.models,
-      priceEvidence: evaluationPriceEvidence,
+      ...(options.serviceTier ? { serviceTier: options.serviceTier } : {}),
+      priceEvidence:
+        options.serviceTier === 'flex'
+          ? evaluationFlexPriceEvidence
+          : evaluationPriceEvidence,
     });
   const reportPath = join(options.out, 'report.json'),
     prior = read<EvaluationRun>(reportPath);
@@ -1580,6 +1611,7 @@ async function runEvaluationUnlocked(
     sourceCommit: identity.commit,
     sourceHash: identity.sourceHash,
     mock: options.kind !== 'paid',
+    ...(options.serviceTier ? { serviceTier: options.serviceTier } : {}),
     models: options.models,
     ...(options.creative ? { variant: 'narrative-fiction-v2' as const } : {}),
     ...(options.creativeOnly ? { diagnosticOnly: true as const } : {}),
@@ -1588,7 +1620,10 @@ async function runEvaluationUnlocked(
       ? { fictionGeneration: options.fictionGeneration }
       : {}),
     ...(options.choiceMix ? { choiceMix: options.choiceMix } : {}),
-    priceEvidence: evaluationPriceEvidence,
+    priceEvidence:
+      options.serviceTier === 'flex'
+        ? evaluationFlexPriceEvidence
+        : evaluationPriceEvidence,
     samples: [],
     failures: [],
     choiceReviewRequests: [],
@@ -1653,7 +1688,7 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
-          evaluationApprovedCumulativeBudgetUsd,
+          evaluationCumulativeCeiling(options),
           evaluationMaxRequestBytes(options),
         )
       : undefined;
@@ -2185,6 +2220,25 @@ async function runEvaluationUnlocked(
         identity.sourceHash,
         ledgerPath,
       );
+      if (options.serviceTier === 'flex') {
+        const own = ledger.calls.filter(
+          (c) => c.id && budgetBindings[c.id]?.out === resolve(options.out),
+        );
+        const standardUsage = own.reduce(
+          (s, c) => s + (c.estimatedUsd ?? 0),
+          0,
+        );
+        report.flexAccounting = {
+          standardRateAccountedUsd: own.reduce((s, c) => s + c.accountedUsd, 0),
+          standardRateUsageEstimatedUsd: standardUsage,
+          flexUsageEstimatedUsd: standardUsage * 0.5,
+          unknownUsageCalls: own.filter((c) => !c.usage).length,
+          returnedTiers: [
+            ...new Set(transports.map((t) => t.returnedServiceTier ?? null)),
+          ],
+          note: 'This run only. Ledger and reservations retain conservative Standard prices; Flex usage estimate is half the known Standard usage estimate, not an invoice. Unknown usage retains the full reservation. A missing or non-Flex returned tier rejects the chapter.',
+        };
+      }
     }
     verifyExistingEvaluationAttempts(
       options.out,

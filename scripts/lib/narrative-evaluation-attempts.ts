@@ -73,6 +73,8 @@ export const evaluationAttemptRecordSchema = z
     ordinal: z.number().int().min(0).max(64),
     task: evaluationAttemptTaskSchema,
     model: z.string().min(1).max(200),
+    requestedServiceTier: z.literal('flex').optional(),
+    returnedServiceTier: z.string().max(40).nullable().optional(),
     requestHash: digestSchema,
     inputHash: digestSchema,
     // What the provider's receipt binds. For a reduced v9 repair call it is the
@@ -128,6 +130,8 @@ export type AttemptTraceBinding = {
 };
 
 export type AttemptTransportSummary = {
+  requestedServiceTier?: 'flex';
+  returnedServiceTier?: string | null;
   caseId: string;
   task: string;
   latencyMs: number;
@@ -998,6 +1002,7 @@ export function wrapEvaluationParse<
     output_parsed?: unknown;
     usage?: unknown;
     _request_id?: string | null;
+    service_tier?: string | null;
   },
 >(config: {
   outDir: string;
@@ -1005,6 +1010,7 @@ export function wrapEvaluationParse<
   env: Record<string, string | undefined>;
   transports: AttemptTransportSummary[];
   saveTransports: () => Promise<void>;
+  requestedServiceTier?: 'flex';
   execute: (
     parameters: TParams,
     ordinal: number,
@@ -1048,6 +1054,12 @@ export function wrapEvaluationParse<
       config.transports.push({
         caseId: config.binding.caseId,
         task,
+        ...(record.requestedServiceTier
+          ? {
+              requestedServiceTier: record.requestedServiceTier,
+              returnedServiceTier: record.returnedServiceTier ?? null,
+            }
+          : {}),
         latencyMs: record.latencyMs,
         requestBytes,
         requestParts: parts,
@@ -1136,9 +1148,22 @@ export function wrapEvaluationParse<
         errorCode = 'AI_INVALID_SCHEMA';
       }
     }
+    const tierMismatch =
+      config.requestedServiceTier === 'flex' &&
+      response.service_tier !== 'flex';
+    if (tierMismatch) {
+      status = 'incomplete';
+      errorCode = 'AI_SERVICE_TIER_MISMATCH';
+    }
     await persist({
       task,
       model,
+      ...(config.requestedServiceTier
+        ? {
+            requestedServiceTier: config.requestedServiceTier,
+            returnedServiceTier: response.service_tier ?? null,
+          }
+        : {}),
       requestHash,
       inputHash,
       outputHash,
@@ -1151,6 +1176,10 @@ export function wrapEvaluationParse<
       latencyMs,
       repairFeedback,
     });
-    return response;
+    // Return known usage so the normal provider guard settles the paid call,
+    // then rejects it as incomplete; never commit or retry at another tier.
+    return tierMismatch
+      ? { ...response, status: 'failed', output_parsed: null }
+      : response;
   };
 }

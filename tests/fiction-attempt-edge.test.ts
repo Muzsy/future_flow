@@ -44,6 +44,42 @@ function response(usage?: unknown) {
   };
 }
 describe('evaluation attempt evidence edge cases', () => {
+  it.each(['flex', 'default', null])(
+    'keeps actual tier and known usage, refusing unexpected tier %s',
+    async (tier) => {
+      const outDir = mkdtempSync(join(tmpdir(), 'aw-flex-tier-'));
+      try {
+        const transports: AttemptTransportSummary[] = [];
+        const parse = wrapEvaluationParse({
+          outDir,
+          binding,
+          env: {},
+          transports,
+          saveTransports: async () => {},
+          requestedServiceTier: 'flex',
+          execute: async () => ({
+            ...response({ input_tokens: 12, output_tokens: 8 }),
+            service_tier: tier,
+          }),
+        });
+        const result = await parse(request());
+        expect(result.usage).toEqual({ input_tokens: 12, output_tokens: 8 });
+        expect(result.status).toBe(tier === 'flex' ? 'completed' : 'failed');
+        if (tier !== 'flex') expect(result.output_parsed).toBeNull();
+        const record = readAttemptTrace(outDir, binding)!.attempts[0]!;
+        expect(record.requestedServiceTier).toBe('flex');
+        expect(record.returnedServiceTier).toBe(tier);
+        expect(record.usage?.inputTokens).toBe(12);
+        expect(record.errorCode).toBe(
+          tier === 'flex' ? null : 'AI_SERVICE_TIER_MISMATCH',
+        );
+        expect(transports[0]?.returnedServiceTier).toBe(tier);
+      } finally {
+        rmSync(outDir, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('preserves the provider deadline through raw-response capture without changing request evidence', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'aw-deadline-'));
     try {
