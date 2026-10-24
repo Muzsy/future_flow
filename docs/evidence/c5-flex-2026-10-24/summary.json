@@ -1,0 +1,711 @@
+{
+  "version": "1.0.0",
+  "date": "2026-10-24",
+  "approvalId": "v9-c5-flex-20261024",
+  "authorizedMaxUsd": 7,
+  "sourceCommit": "a44d659cc35bf7886170d431dd5836aa7adee6fa",
+  "model": "gpt-6.1-sol",
+  "serviceTier": "flex",
+  "fixture": "career-transition",
+  "choiceMix": "diagnostic-rotate",
+  "humanQualityApproval": false,
+  "stageBDecision": "Started only after Stage A 3/3 accepted and full agent reading; no reroll.",
+  "runs": [
+    {
+      "outputDirectory": "c5-flex-smoke-api-20261024-v1",
+      "sourceCommit": "a44d659cc35bf7886170d431dd5836aa7adee6fa",
+      "sourceHash": "8fb1b4e35f68bc4ee4ec90b0c82e031d4e51091a9c6069c0cdbb1a1daeb6ffc7",
+      "mock": false,
+      "reportComplete": false,
+      "interpretation": "Creative-only diagnostic; complete=false and no human sequence assessment are expected, not a full N08 approval.",
+      "accepted": 3,
+      "failures": [],
+      "repairChapters": 1,
+      "transportCalls": 19,
+      "requestedTiers": [
+        "flex"
+      ],
+      "returnedTiers": [
+        "flex"
+      ],
+      "transportElapsedMs": 651531,
+      "maxTransportLatencyMs": 94971,
+      "flexAccounting": {
+        "standardRateAccountedUsd": 1.2147675,
+        "standardRateUsageEstimatedUsd": 1.0587990000000003,
+        "flexUsageEstimatedUsd": 0.5293995000000001,
+        "unknownUsageCalls": 0,
+        "returnedTiers": [
+          "flex"
+        ],
+        "note": "This run only. Ledger and reservations retain conservative Standard prices; Flex usage estimate is half the known Standard usage estimate, not an invoice. Unknown usage retains the full reservation. A missing or non-Flex returned tier rejects the chapter."
+      },
+      "samples": [
+        {
+          "id": "full:career-transition:narrative-v1:0",
+          "kind": "full",
+          "periodIndex": 0,
+          "title": "The Unused Rain",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 172119,
+          "optionCounts": [
+            3
+          ],
+          "optionLabels": [
+            [
+              "Take the autumn sound role",
+              "Follow the editing instead",
+              "Complete the experiment here"
+            ]
+          ],
+          "selectedPriorChoices": []
+        },
+        {
+          "id": "full:career-transition:narrative-v1:1",
+          "kind": "full",
+          "periodIndex": 1,
+          "title": "The House Lights",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 171059,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Apply for the paid technical assistant vacancy",
+              "Conclude the career experiment for now"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Take the autumn sound role",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:2",
+          "kind": "full",
+          "periodIndex": 2,
+          "title": "The Room Between Events",
+          "repairUsed": true,
+          "requestCount": 9,
+          "elapsedMs": 310816,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Accept the broad panel place and await induction",
+              "Decline and target sound-focused entry"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Take the autumn sound role",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Apply for the paid technical assistant vacancy",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        }
+      ],
+      "repairEvidence": [
+        {
+          "caseId": "career-transition:narrative-v1:2",
+          "ordinal": 4,
+          "task": "life_narrative_editor",
+          "issues": [
+            {
+              "dimension": "novelty",
+              "severity": "major",
+              "repairScope": "canon",
+              "paragraphIndex": 19,
+              "eventIds": [
+                "467ce65f-c457-4f05-a6b9-3a67e93770dc",
+                "ac1946fb-d4ee-4591-9a41-f5821e225725",
+                "a0696196-7fac-4a4f-a36a-78043c7a964c"
+              ],
+              "explanation": "The successful interview, new offer and clarifying visit repeat the earlier chapters’ work-to-validation-to-opportunity-to-decision structure despite the sharper conflict about general duties.",
+              "suggestedFix": "Preserve the application and offer, but let a protagonist-initiated attempt produce a consequential change before the decision instead of using the visit only to clarify the opportunity."
+            }
+          ],
+          "verdict": "revise",
+          "valid": null
+        }
+      ],
+      "sha256": {
+        "manifest.json": "21d935faa0543903470ea5c90f36501372b11c7c13cef63de1af3983a8758973",
+        "report.json": "a6fda353fe2636d172209120641fd7afe48b4e593d60c6c6b3328462591ae231",
+        "summary.json": "5b5a86af1707ff3eeb635038b847ca7f0c6832e259fe21b39cd73e0308af24cf",
+        "transport-records.json": "6e6882941b69bbacfdc73f38fdb5848635a7a8e653e3579425b79b8440a3acb8",
+        "diagnostic-attempts/career-transition-narrative-v1-0.json": "c033c08f6f0cc1fae07d01d0a2ed5f4c944e39927f35af965ac0760b1b4f0746",
+        "diagnostic-attempts/career-transition-narrative-v1-1.json": "b164ed50790c9b744ebe2ea9ef4eab6c18f1fdaee7cfc6c76f7e1f07d4f6147c",
+        "diagnostic-attempts/career-transition-narrative-v1-2.json": "ce72d55908ddd80da2460c9d5cba561754f226a0b824ab6910f570bc9ceba6be"
+      }
+    },
+    {
+      "outputDirectory": "c5-flex-long-api-20261024-v1",
+      "sourceCommit": "a44d659cc35bf7886170d431dd5836aa7adee6fa",
+      "sourceHash": "8fb1b4e35f68bc4ee4ec90b0c82e031d4e51091a9c6069c0cdbb1a1daeb6ffc7",
+      "mock": false,
+      "reportComplete": false,
+      "interpretation": "Creative-only diagnostic; complete=false and no human sequence assessment are expected, not a full N08 approval.",
+      "accepted": 9,
+      "failures": [],
+      "repairChapters": 5,
+      "transportCalls": 62,
+      "requestedTiers": [
+        "flex"
+      ],
+      "returnedTiers": [
+        "flex"
+      ],
+      "transportElapsedMs": 2014561,
+      "maxTransportLatencyMs": 100111,
+      "flexAccounting": {
+        "standardRateAccountedUsd": 4.155732500000001,
+        "standardRateUsageEstimatedUsd": 3.4571123,
+        "flexUsageEstimatedUsd": 1.72855615,
+        "unknownUsageCalls": 0,
+        "returnedTiers": [
+          "flex"
+        ],
+        "note": "This run only. Ledger and reservations retain conservative Standard prices; Flex usage estimate is half the known Standard usage estimate, not an invoice. Unknown usage retains the full reservation. A missing or non-Flex returned tier rejects the chapter."
+      },
+      "samples": [
+        {
+          "id": "full:career-transition:narrative-v1:0",
+          "kind": "full",
+          "periodIndex": 0,
+          "title": "The Rain Under the Scene",
+          "repairUsed": true,
+          "requestCount": 8,
+          "elapsedMs": 208996,
+          "optionCounts": [
+            3
+          ],
+          "optionLabels": [
+            [
+              "Make the next recorded cue set",
+              "Try live playback",
+              "Finish the experiment here"
+            ]
+          ],
+          "selectedPriorChoices": []
+        },
+        {
+          "id": "full:career-transition:narrative-v1:1",
+          "kind": "full",
+          "periodIndex": 1,
+          "title": "The Work Under the Title",
+          "repairUsed": true,
+          "requestCount": 9,
+          "elapsedMs": 289323,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Attend the coordination-focused interview",
+              "Withdraw and test editing directly"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:2",
+          "kind": "full",
+          "periodIndex": 2,
+          "title": "The Ladder in the Hall",
+          "repairUsed": true,
+          "requestCount": 9,
+          "elapsedMs": 261805,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Release the authored miniature",
+              "Rebuild it as an editing demonstration"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:3",
+          "kind": "full",
+          "periodIndex": 3,
+          "title": "The Chair in the Hallway",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 189441,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "License the live adaptation",
+              "Keep this piece in its recorded form"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Release the authored miniature",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:4",
+          "kind": "full",
+          "periodIndex": 4,
+          "title": "The Line Under the Laugh",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 190494,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Accept the assembly commission",
+              "Decline this commission"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Release the authored miniature",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep this piece in its recorded form",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:5",
+          "kind": "full",
+          "periodIndex": 5,
+          "title": "The Delivery Version",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 191858,
+          "optionCounts": [
+            3
+          ],
+          "optionLabels": [
+            [
+              "Make your availability public",
+              "Keep it to individual enquiries",
+              "Leave paid editing here for now"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Release the authored miniature",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep this piece in its recorded form",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Accept the assembly commission",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:6",
+          "kind": "full",
+          "periodIndex": 6,
+          "title": "The Other Side of the Screen",
+          "repairUsed": true,
+          "requestCount": 8,
+          "elapsedMs": 239322,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Take the live playback role",
+              "Decline the production role"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Release the authored miniature",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep this piece in its recorded form",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Accept the assembly commission",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep it to individual enquiries",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "full:career-transition:narrative-v1:7",
+          "kind": "full",
+          "periodIndex": 7,
+          "title": "The Room Reset",
+          "repairUsed": true,
+          "requestCount": 8,
+          "elapsedMs": 296030,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Accept and arrange the employment transition",
+              "Decline and retain administration employment"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Make the next recorded cue set",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Withdraw and test editing directly",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Release the authored miniature",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep this piece in its recorded form",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Accept the assembly commission",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Keep it to individual enquiries",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            },
+            {
+              "label": "Take the live playback role",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        },
+        {
+          "id": "fork:career-transition:narrative-v1:2",
+          "kind": "fork",
+          "periodIndex": 2,
+          "title": "Nobody Enters",
+          "repairUsed": false,
+          "requestCount": 5,
+          "elapsedMs": 155253,
+          "optionCounts": [
+            2
+          ],
+          "optionLabels": [
+            [
+              "Publish the independent piece",
+              "Keep it private and pursue paid coordination"
+            ]
+          ],
+          "selectedPriorChoices": [
+            {
+              "label": "Attend the coordination-focused interview",
+              "reviewed": false,
+              "selection": "diagnostic-rotate"
+            }
+          ]
+        }
+      ],
+      "repairEvidence": [
+        {
+          "caseId": "career-transition:narrative-v1:0",
+          "ordinal": 4,
+          "task": "life_narrative_editor",
+          "issues": [
+            {
+              "dimension": "prose",
+              "severity": "minor",
+              "repairScope": "prose",
+              "paragraphIndex": 26,
+              "eventIds": [
+                "d01355df-1e55-4187-b75c-a00e6f16a3fa"
+              ],
+              "explanation": "“She gives you bounded terms for each” exposes the experiment's guardrail language instead of conveying an ordinary conversation about the work.",
+              "suggestedFix": "Replace the abstract reassurance with one concrete scheduling detail and the protagonist's reaction, preserving the established commitments."
+            }
+          ],
+          "verdict": "revise",
+          "valid": null
+        },
+        {
+          "caseId": "career-transition:narrative-v1:1",
+          "ordinal": 4,
+          "task": "life_narrative_editor",
+          "issues": [
+            {
+              "dimension": "novelty",
+              "severity": "major",
+              "repairScope": "canon",
+              "paragraphIndex": 27,
+              "eventIds": [
+                "ab09335f-a0c7-47ed-bb71-94dd7bc05084",
+                "e19fa89e-1af0-4928-bb76-3391f0a76274",
+                "6e68c39e-ce6c-4ccf-985d-c157f995dc1c"
+              ],
+              "explanation": "The sequence again moves from sound-making through successful use to an external opportunity and a decision, repeating the previous chapter's principal engine.",
+              "suggestedFix": "Introduce an employer interaction where your administrative competence creates a concrete conflict over the proposed work, so the interview choice emerges from a changed encounter rather than another successful-delivery-to-opportunity sequence."
+            },
+            {
+              "dimension": "prose",
+              "severity": "major",
+              "repairScope": "prose",
+              "paragraphIndex": 13,
+              "eventIds": [
+                "19435bf2-ab8a-4b2a-94ae-18da45bfd463",
+                "ab09335f-a0c7-47ed-bb71-94dd7bc05084"
+              ],
+              "explanation": "Paragraph 9 recites the assignment's contractual limits, while paragraph 13's “finished within its limits; the originals remain yours” sounds like compliance reassurance rather than lived experience.",
+              "suggestedFix": "Preserve the agreed scope and ownership through concrete scheduling, delivery and saved-file details instead of summarizing their protections."
+            }
+          ],
+          "verdict": "revise",
+          "valid": null
+        },
+        {
+          "caseId": "career-transition:narrative-v1:2",
+          "ordinal": 4,
+          "task": "life_narrative_editor",
+          "issues": [
+            {
+              "dimension": "novelty",
+              "severity": "major",
+              "repairScope": "canon",
+              "paragraphIndex": 20,
+              "eventIds": [
+                "5c8ae6fe-cce4-4497-a371-7d4ddd490261",
+                "03d4c8fb-a367-40e4-8a38-0cb8889d7f89"
+              ],
+              "explanation": "Completing creative work, receiving outside appreciation, and encountering another work opportunity repeats both earlier chapters' route to a decision, despite changing the order of appreciation and opportunity.",
+              "suggestedFix": "Make a concrete consequence of this experiment drive the next decision instead of attaching another work solicitation to a completed piece."
+            },
+            {
+              "dimension": "choiceStakes",
+              "severity": "major",
+              "repairScope": "prose",
+              "paragraphIndex": 20,
+              "eventIds": [
+                "03d4c8fb-a367-40e4-8a38-0cb8889d7f89"
+              ],
+              "explanation": "The chapter establishes freelance submission but never establishes a desire to publish independently, leaving the second decision option and its sacrifice unprepared.",
+              "suggestedFix": "Before the closing exchange, dramatize why releasing this particular miniature matters and why the protagonist would pass over the freelance call to do it."
+            }
+          ],
+          "verdict": "revise",
+          "valid": null
+        },
+        {
+          "caseId": "career-transition:narrative-v1:6",
+          "ordinal": 4,
+          "task": "life_narrative_editor",
+          "issues": [
+            {
+              "dimension": "novelty",
+              "severity": "minor",
+              "repairScope": "prose",
+              "paragraphIndex": 31,
+              "eventIds": [
+                "9126346d-1cc4-4957-94cb-4b319b5568e6"
+              ],
+              "explanation": "Vera returns to rehearsing while the protagonist observes, repeating the previous chapter’s closing device of continued playback work beneath an unresolved professional question.",
+              "suggestedFix": "Retain the demonstrated fallback but end on its concrete consequence rather than another repetition of the task followed by quiet observation."
+            },
+            {
+              "dimension": "prose",
+              "severity": "minor",
+              "repairScope": "prose",
+              "paragraphIndex": 21,
+              "eventIds": [
+                "ce5928f3-849b-4821-a53c-6554437c0eb4"
+              ],
+              "explanation": "The explanatory contrast in “Nothing has been repaired” and “simply given her enough time,” repeated in paragraph 24, renews the balanced-antithesis pattern recorded across four earlier chapters.",
+              "suggestedFix": "Let Vera’s ordinary-volume answer carry the discovery and shorten paragraph 24 to the protagonist’s unexpected desire for another run."
+            }
+          ],
+          "verdict": "revise",
+          "valid": null
+        },
+        {
+          "caseId": "career-transition:narrative-v1:7",
+          "ordinal": 3,
+          "task": "life_fidelity",
+          "issues": [
+            {
+              "chapterNo": 8,
+              "reason": "unregistered_material_fact: “Your current job has no corresponding date printed beside it” implies that the administration job has no fixed end date. The supplied state establishes employment, but not its contract duration, and the final package does not register this additional fact. Remove the uny"
+            }
+          ],
+          "verdict": null,
+          "valid": false
+        }
+      ],
+      "sha256": {
+        "manifest.json": "505b24a0da8c65d2b59913fb7a06a77a4a19e7617c91db467638207eef7000c7",
+        "report.json": "d3d42488b38018d92aaf3aa13fa98fc62be9612b993a685169a977b2d60a5080",
+        "summary.json": "f165ab1442ea17d91bc622e0dcc6a19e89e07ad6ea71d39fb55c75feba7b14ce",
+        "transport-records.json": "505650ec7b87fb06eea724445d0d71a832d15b4ea2b2d25e38f9d1f6b3c0338e",
+        "diagnostic-attempts/career-transition-narrative-v1-0.json": "78307aa0f4753c6ca1b7eefd363569cd7826516da9d17c58642237ce64868192",
+        "diagnostic-attempts/career-transition-narrative-v1-1.json": "0f62415e4db3f9286b2915b874339fb0571558ea0153db61c820b9ffb633fca9",
+        "diagnostic-attempts/career-transition-narrative-v1-2.json": "d4b8ceddb7e5e753d9fc53bc518ffd9345bb66325267c02c3a22ef85683376a6",
+        "diagnostic-attempts/career-transition-narrative-v1-3.json": "79d2b13ed4d344894f877adb72632666744b54f56ecac438ccb4b2a93135d72a",
+        "diagnostic-attempts/career-transition-narrative-v1-4.json": "384f21b55030452e369cdd883d84934ea9da4ebb14fafce8929cb21144426fd9",
+        "diagnostic-attempts/career-transition-narrative-v1-5.json": "463c5eda7f9fb2784c36c25ba22700491326fa8b52e291105891f3b2d2bbf5ee",
+        "diagnostic-attempts/career-transition-narrative-v1-6.json": "5843202890f260d3be51a09513392aa7f5bf44ba2ae20d0f2cbaf7bebdaf3777",
+        "diagnostic-attempts/career-transition-narrative-v1-7.json": "a436c479454b9359582402ab291fe06e525985e0915b7cf797e93dc9e2b5c8d8",
+        "diagnostic-attempts/fork-career-transition-narrative-v1-2.json": "64b0f97b54e95daaafa38d95a61099a9d40c8824e00670c53527ef8c1d274f86"
+      }
+    }
+  ],
+  "totals": {
+    "acceptedChapters": 12,
+    "finalFailures": 0,
+    "repairChapters": 6,
+    "physicalCalls": 81,
+    "standardRateAccountedUsd": 5.3705,
+    "flexUsageEstimatedUsd": 2.25795565,
+    "unknownUsageCalls": 0,
+    "inputTokens": 1282892,
+    "outputTokens": 216327,
+    "chapterElapsedMs": {
+      "min": 155253,
+      "median": 200427.0,
+      "max": 310816
+    },
+    "optionCountDistribution": {
+      "2": 9,
+      "3": 3
+    }
+  },
+  "ledger": {
+    "openingCalls": 959,
+    "openingAccountedUsd": 51.6490625,
+    "closingCalls": 1040,
+    "closingAccountedUsd": 57.01956250000009,
+    "pendingNewCalls": 0,
+    "originalPrefixAccountedUnchanged": true,
+    "cumulativeCeilingUsd": 58.6490625
+  },
+  "forkFirstTwoChaptersIdentical": true,
+  "reading": {
+    "scope": "Agent read all 12 final texts, decisions and repair reasons; not independent human/N08 PASS. English prose, one synthetic profile.",
+    "observedConsequences": "Main: recordings -> withdraw coordination interview -> authored dialogue -> publish -> decline stage licence -> paid assembly -> direct enquiries -> live playback -> fixed-term venue offer. Fork: attend coordination interview -> rejected -> private sound composition.",
+    "limits": [
+      "Only one alternate chapter; long-term branch divergence not tested.",
+      "Main ends at employment-transition offer, no subsequent execution of resignation/start tested.",
+      "Three options not consistent: 9 chapters have two options, 3 have three.",
+      "Novelty repair can introduce a new disadvantage before the next player choice: Stage A released provisional induction seat while panel offer remained open.",
+      "Six chapters need repair: five editor-triggered, one fidelity-triggered. No control arm or general improvement claim.",
+      "Flex usage estimate is not invoice, available balance or production latency SLA."
+    ]
+  },
+  "technicalProof": {
+    "ci": "https://github.com/Muzsy/future_flow/actions/runs/40104886006",
+    "sourceCommit": "a44d659cc35bf7886170d431dd5836aa7adee6fa",
+    "applicationTestFiles": 128,
+    "applicationTests": 1472,
+    "verify": "success",
+    "container": "success"
+  },
+  "privateEvidenceRoot": "Original narrative-evaluation checkout .local/narrative-evaluation; raw outputs and ledger remain local, no credentials committed."
+}
