@@ -1,0 +1,67 @@
+{
+  "version": "1.3.0",
+  "scores": {
+    "causality": 4,
+    "momentum": 4,
+    "sceneCraft": 4,
+    "character": 4,
+    "personalization": 4,
+    "choiceStakes": 4,
+    "novelty": 3,
+    "prose": 4
+  },
+  "issues": [
+    {
+      "dimension": "novelty",
+      "severity": "major",
+      "repairScope": "canon",
+      "paragraphIndex": 19,
+      "eventIds": [
+        "6801d05a-7c2f-4afc-85b1-c599b25780ed",
+        "985082a5-8df6-4b1f-bca7-c94fdbbf53ca"
+      ],
+      "explanation": "Both chapters turn completed sound work into Úna's validation, another invitation and an unresolved continuation decision.",
+      "suggestedFix": "Make the handover's consequences drive the central conflict and decision, rather than another offer following demonstrated competence."
+    },
+    {
+      "dimension": "prose",
+      "severity": "minor",
+      "repairScope": "prose",
+      "paragraphIndex": 43,
+      "eventIds": [
+        "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+      ],
+      "explanation": "The closing reassurance, “I haven't booked you,” foregrounds the decision's acceptance guardrail instead of the changed rehearsal situation.",
+      "suggestedFix": "End with the practical consequence of Úna using the sheet while preserving the unanswered offer in canon."
+    }
+  ],
+  "verdict": "revise",
+  "sequenceReview": {
+    "comparedPeriodIds": [
+      "47ea4905-8d1c-4388-a4ec-99218f0effa9"
+    ],
+    "distinctDramaticStructure": false,
+    "distinctEnding": true,
+    "independentProgression": true,
+    "characterAgency": true,
+    "evidence": "The earlier chapter moves from sound-making through Úna's assessment to further sessions; this chapter repeats that scaffold with completed sessions and paid performances. However, transferable notes and successful operation without the protagonist create an earned change in responsibility. The protagonist retains an earlier-timing preference rather than undergoing a tidy correction. The prior ending reveals an actor's response; this ending confirms an unanswered booking. Paragraph 43's “I haven't booked you” exposes the acceptance guardrail.",
+    "distinctRhetoricalShape": true,
+    "systemMechanicsInvisible": false,
+    "behavioralVariety": true
+  },
+  "sequenceSignature": {
+    "version": "1.1.0",
+    "periodId": "98437de4-1508-4cdb-9c28-6367dfba5abe",
+    "dramaticEngine": "mixed",
+    "turningPointDriver": "shared",
+    "resolutionMode": "reframe",
+    "endingMode": "dialogue",
+    "protagonistResponse": "act_without_resolution",
+    "rhetoricalFlags": [
+      "none"
+    ],
+    "systemLeakageFlags": [
+      "contractual_guardrail"
+    ]
+  }
+}
