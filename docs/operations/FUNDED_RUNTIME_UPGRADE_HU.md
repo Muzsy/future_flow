@@ -276,3 +276,48 @@ A 196608 B guard a **teljes JSON kérés + 4096 B** összege; legnagyobb nyers k
 A korábban igazolt user-spent 0,188585 USD és a rögzített 0,50 USD plafon mellett a puszta számított maradék **0,311415 USD**, tehát a fenti repair foglalása már nem férne be. A célzott teszt ezt szintetikus SQL-állapottal reprodukálja; ez **nem mai éles maradéklekérdezés**. A 2 USD projektlimit sem helyettesíti a userlimit teljesülését. A korábbi 10/3,33 USD tervből nem következik sem a futó allowance emelése, sem új ablak létrehozása; a jelenlegi upgrade ezeket explicit tiltja. A háromfős béta új window/admission/budget eljárása külön megoldandó kiadási tétel, az első `apply-personal` nem ismételhető.
 
 A modellútvonal és a próbamenet konkrét, műveleti fázisokra bontott rendje a [kanonikus release runbookban](NARRATIVE_RELEASE_HU.md#konkrét-béta-konfiguráció-és-próbamenet--75-2026-10-24) van. A most előkészített minta sem paid E2E-, sem szolgáltatásleállítási engedély.
+
+
+## Önálló kiadási image-próba — #76, 2026-10-25
+
+A `scripts/ops/contabo-funded-image-rehearsal.py` explicit Linux/root CLI elkülönített, mesterséges adatos próbát készít a megadott **lokálisan cache-elt immutable image ID-hoz**. A meglévő CI wrapper neve és CI/root kapuja megmarad; a közös `contabo-funded-fixture-engine.py` végzi mindkét út 16 átmeneti/recovery ellenőrzését. A standalone út nem kér és nem állít CI/GITHUB_ACTIONS flaget. A `releaseEvidence` és az eredeti audit/CI/fixture kapuk változatlanok.
+
+### Támogatott kiadási elrendezés
+
+Az első verzió **ugyanazt az image ID-t** igazolja target és recovery szerepre. Ez a meglévő selectionben megengedett; a recovery a v9/038-kompatibilis alkalmazás helyreállítása ugyanazon adatmodell fölött, nem régi v8 visszaindítása. Két eltérő image-párhoz e proof nem használható: azt a változatlan `releaseEvidence` elutasítja. Nincs image-azonosító vagy eredménymező kézi átírása.
+
+### Előfeltétel és későbbi célgépes használat
+
+Tiszta, committed checkout, reviewed konkrét forrás és image; lokális Docker daemon a `/var/run/docker.sock` socketen, Docker Compose/Node/git/OpenSSL/age/age-keygen telepítve. A pinned PostgreSQL 17 image előre cache-elt legyen (`postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826`); a futtató nem telepít csomagot és nem húz image-et. Legalább 3 GiB pillanatnyilag elérhető hostmemória és 2 GiB szabad ideiglenes tárhely szükséges; ez minimális preflight, nem erőforrás-garancia. A Docker/cgroup rendelkezésre álló korlátait és a közös szerver terhelését az operátor külön értékeli. Kevés kapacitásnál külön Linux/Docker host szükséges.
+
+Az alábbi a jövőbeli, külön engedélyezett célgépes futtatás alakja; a jelen fejlesztés nem hajtja végre:
+
+```sh
+# A checkout gyökeréből; a digest tényleges docker image inspect eredmény.
+# Az output könyvtár új, abszolút, symlink nélküli legyen, és még ne létezzen.
+sudo env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -B \
+  scripts/ops/contabo-funded-image-rehearsal.py \
+  --image sha256:<actual-64-lowercase-hex-image-id> \
+  --output-directory /root/alterward-ops/image-rehearsal-<new-run-id>
+```
+
+A CLI nem SSH-kliens, nincs benne éles host, Supabase/Auth URL, production könyvtár vagy providerkulcs. A source/bundle az eredeti `fundedSourceBundle` függvényből származik, Git-bájtokhoz ellenőrzött; az image-ben lévő fájlokat és valódi v9 capabilityt hálózat nélküli, korlátozott Node folyamat ellenőrzi. Az image env nem tartalmazhat provider/private credentialt, DB URL-t vagy Node preloadot; a nyilvános Supabase klienskulcs kivétel. A futtató saját gyermekei rögzített, lokális környezetet kapnak, a hívó CI/provider/DB/Docker-context változói nem öröklődnek.
+
+### A tényleges izolált menet
+
+1. Saját operátori zárolás, friss 0700 output és TLS scratch, privát intent. A régi output/receipt nem írható felül.
+2. Saját nonce-os belső Docker-hálózat és pinned PostgreSQL, publikus port és host DB-volume nélkül; read-only konténer, tmpfs adat, CPU/memória/PID korlátok és ellenőrzött TLS. Valódi anon/authenticated NOLOGIN tesztrole-ok, szintetikus jelszó.
+3. A kiválasztott image saját `smoke-privacy-restore.ts` programja tényleges fizikai PostgreSQL snapshot-copyt és v9 delete/revoke/accounting/karakterállapot replayt futtat. Nincs providerhívás.
+4. A közös motor ugyanazon tényleges image-en futtatja a 16 ellenőrzést: sikeres átmenet; lejárt/bad proof; postcheck hiba; megszakítás/death watch; konkurens lock; foglalás és lease; inkompatibilis recovery; idegen workload; eredeti funded authority/ledger; artifact/privacy/frozen policy; lejárt preparation; probe cleanup; aktív funded replay proof. A renderelt szolgáltatások szándékosan inert HTTP/idle folyamatok: nem indul igazi worker vagy felhasználói generálás. A host/Auth/Access/systemd/install identity továbbra szintetikus határ, nem élő szolgáltató-ellenőrzés.
+5. A közös motor és a futtató eltakarítja a saját konténereket/hálózatokat/TLS/plaintext munkaterületet; az idegen konténerállapotnak változatlannak kell maradnia. A driver cleanup név + tényleges immutable ID + label + image kötés alapján dolgozik, idegen erőforrást elutasít.
+6. Csak teljes siker, változatlan source és sikeres cleanup után jön létre a `funded-upgrade-fixture-proof.json`, az eredeti strict release-contract szerint, és a külön `image-rehearsal-receipt.json`, amely az eredmény hash-ét és a synthetic/cleanup határt rögzíti. A 0600 fájlokban nincs személyes tartalom vagy titok. A valódi release selection ugyanazon digestjei mellett az eredeti audit/CI/forráskapuk külön teljesítendők.
+
+SIGINT/SIGTERM/SIGHUP és kezelt hiba alatt cleanup fut; timeout után a saját forrás/privacy/PG konténer név+label+image alapján egyeztethető. SIGKILL vagy hostvesztés nem garantál cleanupot, és nem ad sikeres proofot. A megmaradó 0600 `rehearsal-intent.json`, nonce-label, scratch és a közös motor privát journala alapján kézi, scoped operátori egyeztetés szükséges; nincs automatikus idegen-container prune vagy vak újraindítás. A befejezetlen output nem használható release-inputként.
+
+### Ellenőrzés és bizonyítékhatár
+
+Tíz új helyi negatív unit teszt igazolja az immutable image/private-env kaput, a régi output megőrzését, a stale/foreign/hiányos proof elutasítását, a tényleges ID-hez kötött cleanupot, a forrásprobe timeout-takarítását, a dirty-source/non-root elutasítást és a CI/provider-env kizárását. A helyi teljes Python regresszió 393 teszt / 382 PASS + 11 környezeti SKIP, a Node ops 102 PASS. A root/Docker futás helyben nem engedélyezett; az új exact-source CI külön szükséges.
+
+A Container CI először a korábbi CI-wrapperes próbát, majd a standalone CLI-t futtatja `sudo env -i` mellett ugyanazon megépített image-en, saját új PostgreSQL/TLS/hálózatban. A standalone eredményből a változatlan Node `releaseEvidence` tényleges contractpróbája elfogadja az egyező image-et és elutasítja az idegent. Az ottani in-memory auditadat szintetikus validátorteszt, nem kiadási audit-proof. Külön `funded-image-rehearsal-proof` artifact őrzi a titokmentes eredményt és receiptet; a CI job 30 perces határa a két tényleges próba miatt nőtt, nem alkalmazási időkorlát.
+
+Ez az implementáció nem célgépes futási eredmény, nem élő mentés-helyreállítás, nem main merge és nem apply-engedély. A ténylegesen kiválasztott image saját célgépes próbája, az eredeti production mentés külön restore/fence/TLS/cleanup ellenőrzése, a telepített Daily/monitor, a végső audit és a későbbi paid felhasználói alapút külön kiadási kapuk maradnak. A #77 successor window/admission feladatot nem oldja meg és nem módosítja a tervezett 10 USD béta keretet.

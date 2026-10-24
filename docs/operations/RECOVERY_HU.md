@@ -107,3 +107,8 @@ A meglévő Daily offsite rehearsal held alkalmazás mellett is végezhető, a k
 ## V9 funded capture/replay
 
 A legacy replay-guard megmarad. A külön aktív funded proof a befejezett eredeti upgrade journal/readback/konfigurációját és tényleges image-ét köti; az új funded fence módok ezt rooton újraellenőrzik. A karantén az igazolt v9 image-ből migrál tiszta 038 katalógust, csak adatot tölt vissza, strict policy/artifact/karakterállapot ellenőrzést és a meglévő független delete/revoke/accounting/privacy verifiert futtat. Az eredeti-zero/reader/window receiptek változatlanok; szolgáltatásaktiválás és élő snapshot-visszatöltés továbbra tilos. A fejlesztési implementáció és a még szükséges exact-source audit/célgépes funded fence E2E: [funded replay runbook](FUNDED_RUNTIME_UPGRADE_HU.md#v9-funded-capturereplay-út--72-fejlesztési-implementáció-2026-10-24).
+
+
+## #76 — konkrét image izolált próbája, 2026-10-25
+
+A [standalone image-futtató](FUNDED_RUNTIME_UPGRADE_HU.md#önálló-kiadási-image-próba--76-2026-10-25) a lokálisan cache-elt immutable v9 image saját forrását ellenőrzi, majd saját TLS-es PostgreSQL/hálózatban mesterséges adatokkal futtatja a közös frissítési és privacy/recovery próbákat. Egy image-et igazol target/recovery szerepre; a kiadási validator és legacy védelmek változatlanok. Proof csak teljes cleanup és idegenkonténer-egyezés után készülhet. Ez nem a production mentés restore-próbája és nem tényleges célgépes PASS; az új source CI és a kiválasztott image célgépes futása külön bizonyíték.
