@@ -78,6 +78,8 @@ Több valós felhasználó korlátozott, privacy-tudatos közös szimulációs k
 
 Cél: a felhasználó ne egyszeri promptot kapjon, hanem tartós, folytatható életet.
 
+Tulajdonosi pontosítás — 2026-10-24: a fejezetvégi döntés 2–4 járható lehetőséget kínálhat; nincs kötelező három opció. A lehetőségek érdemben különböző cselekvést, vállalást vagy következményt jelentsenek, és segítsék a felhasználót a kívánt történetirány alakításában. Azonos lépés vagy várható történetirány puszta átfogalmazása nem külön alternatíva. A tényleges eredmény maradhat bizonytalan; nem kell minden ágnak garantáltan külön végkimenetelt adnia. Ez termékbeli elvárás, nem újonnan igazolt automatikus szemantikai garancia.
+
 ## 6. AI szerepe
 
 AI szükséges a termékhez; AI nélküli fő termékváltozat nincs tervben.
