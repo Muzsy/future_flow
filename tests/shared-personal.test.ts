@@ -104,6 +104,14 @@ async function memories(person: Group['a']) {
   );
 }
 
+// True when `value` occurs as its own token: not inside a longer run of
+// letters, digits or hyphens. Every character of a UUID is a hex digit or a
+// hyphen, so a UUID can never contain a standalone token, while the value as a
+// JSON number, a quoted string, a decimal (2123.5) or a word in prose is found.
+function standaloneToken(text: string, value: string) {
+  return new RegExp(`(?<![0-9A-Za-z-])${value}(?![0-9A-Za-z-])`).test(text);
+}
+
 describe.sequential('S3 delayed common canon and personal snapshots', () => {
   it('permits a personal chapter while waiting and learns a later resolution without rewriting history', async () => {
     const g = await group();
@@ -151,10 +159,14 @@ describe.sequential('S3 delayed common canon and personal snapshots', () => {
       g.b.lifeId,
       'Private employer',
       'Private goal',
-      '2123',
       'UNTRUSTED proposal',
     ])
       expect(encoded).not.toContain(value);
+    // The private income must not appear as a value. A bare substring search
+    // for 2123 also hits random public UUIDs that happen to contain those four
+    // hex digits (a rare, run-dependent failure), so the value is looked for
+    // as a standalone token; no UUID can match it (see standaloneToken).
+    expect(standaloneToken(encoded, '2123')).toBe(false);
     expect(personalSharedMemorySchema.safeParse(m!.payload).success).toBe(true);
   });
 
@@ -634,5 +646,26 @@ describe.sequential('S3 delayed common canon and personal snapshots', () => {
     expect(job.checkpoints.repairReasonCode).toBe('LIFE_INVALID_TIMELINE');
     expect((await lives.detail(g.a.id, g.a.branchId)).periods).toHaveLength(2);
     expect(await memories(g.a)).toHaveLength(1);
+  });
+});
+
+describe('standalone private-value check', () => {
+  it('ignores digits inside UUIDs but finds the value in every real form', () => {
+    for (const uuid of [
+      'f942123e-16be-4ada-898b-ed41f622d37c',
+      '2123abcd-0000-4000-8000-000000000000',
+      'aaaaaaaa-2123-4000-8000-000000000000',
+      'aaaaaaaa-bbbb-4000-8000-000000002123',
+      '00000000-0000-4000-8000-a00000002123',
+    ])
+      expect(standaloneToken(JSON.stringify({ id: uuid }), '2123')).toBe(false);
+    for (const leak of [
+      '{"monthlyIncome":2123}',
+      '["2123"]',
+      '{"note":"income 2123 EUR"}',
+      '{"x":2123.5}',
+      '[2123,1]',
+    ])
+      expect(standaloneToken(leak, '2123')).toBe(true);
   });
 });
