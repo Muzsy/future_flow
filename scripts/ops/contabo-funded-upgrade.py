@@ -880,7 +880,7 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
 
     def stop(self):
         # Validate the exact three roles first, then stop immutable IDs only.
-        values = self.roles()
+        values = self.roles(stopping=True)
         errors = []
         for value in values.values():
             result = upgrade.docker(
@@ -1030,12 +1030,20 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         else:
             raise ValueError('Isolated candidate health failed')
 
-    def roles(self):
+    def roles(self, *, stopping=False):
         ids = upgrade.project_ids()
         values = json.loads(upgrade.docker('inspect', *ids).stdout) if ids else []
         result = {}
         for v in values:
-            role = v['Config'].get('Labels', {}).get('com.docker.compose.service')
+            labels = v['Config'].get('Labels', {})
+            if labels.get('com.docker.compose.project') != upgrade.PROJECT:
+                raise ValueError('Exact owned project required')
+            # Stop-first recovery must not depend on probe cleanup succeeding.
+            # This exception permits ONLY stopping the three regular services;
+            # serving/staging/hold/readback still reject every extra member.
+            if stopping and labels.get('com.docker.compose.oneoff') == 'True':
+                continue
+            role = labels.get('com.docker.compose.service')
             if (
                 v['Config'].get('Labels', {}).get('com.docker.compose.project')
                 != upgrade.PROJECT
@@ -1219,7 +1227,6 @@ def main(request):
         if mode == 'prepare':
             return system.prepare()
         candidate = system.candidate()
-        system.cleanup_probe()
         if mode == 'recover':
             # A previous SIGKILL may have happened during ingress exposure. Stop
             # only our bound services BEFORE checking a possibly invalid recovery
@@ -1236,4 +1243,5 @@ def main(request):
                 except ValueError:
                     if attempt == 2:
                         raise
+        system.cleanup_probe()
         return transition(system, candidate, recovery=mode == 'recover')

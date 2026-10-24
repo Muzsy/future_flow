@@ -879,8 +879,12 @@ def exercise(context):
                     else:
                         raise AssertionError('Unexpected fourth role was ignored')
                     assert not daily.funded_upgrade_healthy('personal-beta')
+                    plain.stop()
+                    assert all(not v['State']['Running'] for v in plain.roles(stopping=True).values())
                     assert plain.cleanup_probe()['probeRemoved']
                     assert not plain.cleanup_probe()['probeRemoved']
+                upgrade.run(upgrade.compose(owner / 'effective-compose.json')
+                            + ['up', '-d', '--wait', '--wait-timeout', '45'], timeout=90)
                 assert {r: v['Id'] for r, v in system.roles().items()} == serving
                 assert all(v['State']['Running'] for v in system.roles().values())
                 funded.same_funded(before, db('capture', database))

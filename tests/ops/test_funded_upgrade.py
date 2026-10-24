@@ -542,6 +542,32 @@ class FundedProbeTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): self.system.cleanup_probe()
         self.assertEqual(daily.funded_probe_state(self.root)['state'], 'pending')
 
+    def test_stop_first_recovery_stops_services_even_with_unknown_oneoff(self):
+        services = [{'Id': digit*64, 'Config':{'Labels':{
+            'com.docker.compose.project':funded.upgrade.PROJECT,
+            'com.docker.compose.service':role, 'com.docker.compose.oneoff':'False'}},
+            'State':{'Running':True}}
+            for digit, role in [('1','web'),('2','api'),('3','worker')]]
+        oneoff = {'Id':'4'*64, 'Config':{'Labels':{
+            'com.docker.compose.project':funded.upgrade.PROJECT,
+            'com.docker.compose.service':'api', 'com.docker.compose.oneoff':'True'}},
+            'State':{'Running':True}}
+        items = {v['Id']:v for v in services+[oneoff]}
+        stopped = []
+        def docker(*args, **kwargs):
+            if args[0]=='inspect': return self.result(json.dumps([items[i] for i in args[1:]]).encode())
+            if args[0]=='stop':
+                stopped.append(args[-1]); items[args[-1]]['State']['Running']=False
+                return self.result()
+            raise AssertionError(args)
+        with patch.object(funded.upgrade, 'project_ids', return_value=list(items)), \
+                patch.object(funded.upgrade, 'docker', side_effect=docker):
+            with self.assertRaises(ValueError): self.system.roles()
+            self.system.stop()
+            self.assertEqual(stopped,['1'*64,'2'*64,'3'*64])
+            self.assertTrue(oneoff['State']['Running'])
+            with self.assertRaises(ValueError): self.system.roles()
+
     def test_timeout_and_catchable_interruption_always_clean_exact_probe(self):
         import subprocess
         terms = funded.encoded({'participants':[]})
