@@ -639,5 +639,119 @@ class NarrativeSelectionTests(unittest.TestCase):
         self.assertNotEqual(funded.normalized_configuration(drift), selected)
 
 
+class HeldRecoveryProofTests(unittest.TestCase):
+    """Real freshness/binding gates, with synthetic installed identity and file IO."""
+    def setUp(self):
+        from types import SimpleNamespace
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        (self.root / 'status').mkdir()
+        self.path = self.root / 'status' / 'restore.json'
+        self.preparation = self.root / 'funded-prepared.json'
+        self.preparation.write_bytes(b'original-immutable-candidate')
+        self.runtime_file = self.root / 'target-server.env'
+        self.runtime_file.write_bytes(b'synthetic-private-v9-runtime')
+        self.now = dt.datetime(2026, 10, 24, 14, tzinfo=dt.timezone.utc)
+        self.prepared = self.now - dt.timedelta(hours=4)
+        self.binding = {'sourceCommit': 'a' * 40, 'scriptHashes': {'daily': 'b' * 64}, 'unitHashes': {}}
+        self.candidate = {'sourceCommit': 'a' * 40, 'preparedAt': self.prepared.isoformat(),
+                          'release': {'target': {'imageId': 'sha256:' + 'c' * 64},
+                                      'recovery': {'imageId': 'sha256:' + 'd' * 64},
+                                      'privacyFixtureSha256': 'e' * 64}}
+        self.manifest = {**self.binding, 'runId': '20261024T100001Z-12345678',
+                         'capturedAt': (self.prepared + dt.timedelta(seconds=1)).isoformat(),
+                         'encryptedFiles': {'config.tar.age': {'sha256': 'f' * 64, 'bytes': 32}},
+                         'configFiles': {str(p).lstrip('/'): funded.sha(p.read_bytes())
+                                         for p in (self.preparation, self.runtime_file)},
+                         'expectedTables': [{'name': 'aw_periods', 'count': 7}]}
+        self.proof = {**self.binding, 'runId': self.manifest['runId'],
+                      'capturedAt': self.manifest['capturedAt'],
+                      'encryptedFiles': self.manifest['encryptedFiles'],
+                      'configFilesRestored': 2, 'tablesRestoredAndDataMatched': 1, 'rowsMatched': 7,
+                      'liveDatabaseWrites': False, 'paidAiCalls': 0,
+                      **{k: True for k in ('offsiteCiphertextVerified', 'tamperedCiphertextRejected',
+                                          'proxyAdaptAndValidate', 'singleTransactionRestore',
+                                          'temporaryContainersRemoved', 'temporaryPlaintextRemoved',
+                                          'allExistingContainersUnchanged', 'decryptionIdentityMemoryOnly')}}
+        self.adapter = SimpleNamespace(ROOT=self.root, config=lambda: self.binding,
+                                       regular=lambda p: p.read_bytes(), current_proof=daily.current_proof,
+                                       source_binding=daily.source_binding,
+                                       completed_archives=lambda _: [{'manifest': self.manifest}],
+                                       reader_config_paths=lambda: [self.preparation], personal_config_paths=lambda: [],
+                                       funded_upgrade_config_paths=lambda **_: [self.runtime_file])
+        self.system = SimpleNamespace(daily=self.adapter, archive_support=lambda: None,
+                                      request={'restoreProof': {
+                                          'sourceCommit': self.candidate['sourceCommit'],
+                                          'preparedSha256': funded.sha(funded.encoded(self.candidate)),
+                                          'runId': self.manifest['runId'],
+                                          'targetImage': self.candidate['release']['target']['imageId'],
+                                          'recoveryImage': self.candidate['release']['recovery']['imageId'],
+                                          'privacyFixtureSha256': self.candidate['release']['privacyFixtureSha256']}})
+        for item in (patch.object(daily, 'utcnow', return_value=self.now),
+                     patch.object(funded.fence, 'original', side_effect=lambda p: p.read_bytes())):
+            item.start()
+            self.addCleanup(item.stop)
+        self.save()
+
+    def save(self):
+        self.path.write_text(json.dumps(self.proof))
+
+    def verify(self):
+        funded.System.backup(self.system, self.candidate)
+
+    def test_expired_proof_fails_then_new_rehearsal_of_same_archive_can_pass(self):
+        original_candidate = funded.encoded(self.candidate)
+        original_manifest = copy.deepcopy(self.manifest)
+        with self.assertRaisesRegex(ValueError, 'Fresh installed-source'):
+            self.verify()
+        # Only a successful rehearsal's status would advance this timestamp;
+        # installer tests separately cover how it is published, not a CLI bypass.
+        self.proof['capturedAt'] = self.now.isoformat()
+        self.save()
+        self.verify()
+        self.assertEqual(self.manifest, original_manifest)
+        self.assertEqual(funded.encoded(self.candidate), original_candidate)
+
+    def test_fresh_timestamp_cannot_hide_source_or_ciphertext_or_cleanup_fault(self):
+        self.proof['capturedAt'] = self.now.isoformat()
+        for key, value in [('sourceCommit', '0' * 40), ('encryptedFiles', {}),
+                           ('temporaryPlaintextRemoved', False), ('decryptionIdentityMemoryOnly', False),
+                           ('rowsMatched', 6), ('paidAiCalls', 1)]:
+            with self.subTest(key=key):
+                original = self.proof[key]
+                self.proof[key] = value
+                self.save()
+                with self.assertRaises(ValueError):
+                    self.verify()
+                self.proof[key] = original
+
+    def test_rehearsed_archive_must_contain_current_candidate_bytes(self):
+        self.proof['capturedAt'] = self.now.isoformat()
+        self.save()
+        self.runtime_file.write_bytes(b'changed-candidate')
+        with self.assertRaisesRegex(ValueError, 'exact funded candidate bytes'):
+            self.verify()
+
+    def test_fresh_rehearsal_of_archive_before_preparation_is_rejected(self):
+        self.proof['capturedAt'] = self.now.isoformat()
+        self.save()
+        self.manifest['capturedAt'] = (self.prepared - dt.timedelta(seconds=1)).isoformat()
+        with self.assertRaisesRegex(ValueError, 'current complete archive'):
+            self.verify()
+
+    def test_client_evidence_remains_bound_to_original_images_and_archive(self):
+        self.proof['capturedAt'] = self.now.isoformat()
+        self.save()
+        evidence = self.system.request['restoreProof']
+        for key in ('runId', 'sourceCommit', 'preparedSha256', 'targetImage', 'recoveryImage', 'privacyFixtureSha256'):
+            with self.subTest(key=key):
+                original = evidence[key]
+                evidence[key] = 'changed'
+                with self.assertRaisesRegex(ValueError, 'Candidate-bound'):
+                    self.verify()
+                evidence[key] = original
+
+
 if __name__ == '__main__':
     unittest.main()

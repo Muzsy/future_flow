@@ -180,3 +180,36 @@ Az archiválási `d9ad91e` forrás [Verify + Container CI-je](https://github.com
 A one-off kiegészítés helyi operátori köre: **363 Python-teszt: 352 PASS / 11 SKIP**, **99 Node ops PASS**. Hét új teszt ellenőrzi az immutable ID szerinti cleanupot, a már hiányzó konténer egyeztetését, a más identitású konténer védelmét, source/config/jogosultság driftet, a daemon/eltávolítás hibáját és timeout/jelzés után a finally ágat. A root/Docker fixture a production lifecycle-t inert Node payloadra alkalmazza: normál kilépés, valódi subprocess-timeout, majd külön operátori child SIGKILL és explicit cleanup. A serving ID-k, futás, eredeti fájlok és DB/ledger változatlansága kötelező. A Node payload külön synthetic seam; az adatbázis és migráció ellenőrzése a meglévő valódi PostgreSQL companionban marad. Az új exact-commit CI eredménye a #70 PR-ben követendő.
 
 A független exact-source audit, registry/receipt és restore-frissesség lezárása, telepített Daily/privát monitor helyreállítása, célgépes backup/restore és a jóváhagyott tesztelői paid E2E továbbra éles kiadás előtti feladat. Ebben az integrációban nincs main merge, production módosítás vagy modellhívás.
+
+
+## Kiadási előellenőrzés: hosszabb hold és legacy replay — 2026-10-24
+
+A `5be123bc2679ab11ba02e7077bc3d8a9c5107519` integrációs jelölt [Verify + Container CI-je](https://github.com/Muzsy/future_flow/actions/runs/40101366458) sikeres, beleértve a korábbi one-off cleanupot és a stop-first recoveryt. Ez lezárja a korábbi „saját CI szükséges” megjegyzéseket erre a forrásra; független audit és célgépes proof továbbra nincs. A Flex mérési ág `f4b9be7` [teljes CI-je](https://github.com/Muzsy/future_flow/actions/runs/40129546478) szintén sikeres, az ops implementáció ugyanerről az integrációs alapról származik.
+
+### Restore-bizonyíték frissítése held alkalmazás mellett
+
+A meglévő `scripts/contabo-daily.mjs --restore-latest` → root `contabo-daily-install.py` `rehearse` út nem követel futó alkalmazást. A szerveren pontosan létező, az aktuális installált Daily-forráshoz kötött archívumot kér; egyszerre tartja a Daily job-lockot és az activation-lockot. Az offsite ciphertextből újra végrehajtott izolált restore után összeveti az összes meglévő konténer állapotát, és csak siker esetén rögzít új `restore.json` bizonyítékot. Nem indítja el a web/API/workert és nem aktivál timert. A restore-művelet saját ideiglenes konténerei továbbra a normál izolációs/cleanup szabályok alá esnek.
+
+Előkészített operátori sorrend, kizárólag a reviewed main, installált Daily, eredeti privát state és pontos jelölt kapuinak teljesülése után:
+
+1. A megszakadt funded átmenet saját inspectje és journalja alapján a három alkalmazásszolgáltatás held. Az eredeti candidate/source/image/authority és a védett archívum megmarad; új prepare vagy új ablak nem indul.
+2. A meglévő Daily `--sync` az offsite ciphertextpéldányt hash/byte szerint egyezteti. A legfrissebb kiválasztott archívumnak a candidate elkészülte UTÁN kell keletkeznie, és az aktuális immutable jelölt-fájlokat kell tartalmaznia.
+3. A `--restore-latest` újra végrehajtja az izolált helyreállítást ebből a tényleges archívumból. A frissességet ez az új művelet adja, a régi proof időpontja nem írható át.
+4. Az eredmény runId-je egyezzen az eredeti `funded-upgrade-restore-proof.json` metaadatával, vagy külön igazolt új archívum esetén az új valódi restore-ból származó, változatlan prepared/source/target/recovery/privacy kötésekkel készüljön a request. E fájl nem helyettesíti a szerveroldali restore-t; a root gate újra ellenőrzi a teljes egyezést.
+5. Friss GET-only Access- és exact-source CI/audit-bizonyíték mellett explicit `--recover`. A recovery továbbra stop-first; friss restore mellett is az aktuális DB-t ellenőrzi, nem tölti vissza a snapshotot az élő adatbázisba.
+
+Ha az archívum hiányzik, lejárt a hét napos retentionből, más installált forrásból származik vagy nem tartalmazza a pontos candidate-fájlokat, ez az út elutasít. Ilyenkor a held alkalmazás visszaindítása vagy a proof átdátumozása tilos; külön, ellenőrzött operátori helyreállítás szükséges. Az egyórás restore-frissességi határ, az eredeti ablak és minden költség/privacy kapu változatlan.
+
+Új célzott ellenőrzések: `HeldRestoreRefreshTests` öt installer-boundary tesztje igazolja a két lockot, a held státuszból történő végrehajtást, az idegen/old-source archívum elutasítását, a hiba/drift/foglalt lock alatti régi proof megőrzését és a szolgáltatásparancsok hiányát. `HeldRecoveryProofTests` öt tesztje a valódi `System.backup` és `require_restored_preparation` kapukkal igazolja a négyórás régi proof elutasítását, ugyanazon archívum friss restore-státuszának elfogadását, valamint a source/ciphertext/cleanup/row/image/prepared kötéseket. Ezekben az installált identity, a root-only fájlbeolvasás és a crypto/Docker határ szintetikus; **nem célgépes vagy új fizikai Docker/restore proofok**. A szükséges éles végrehajthatóság így továbbra kiadási kapu.
+
+### A registry-bővítés önmagában nem elég — reprodukált kiadási akadály
+
+A `scripts/contabo-fence-operator.mjs` `assertReplayInputsUnchanged` függvénye a `9eb7732b69e84583cf7e63c237763b51b9bb4eab` legacy capture/replay alaphoz köti a sémát, package-eket és függőségeket. A valós `5be123b` jelölt ellen a tényleges Git-diff callbackkel futtatva **elutasít**: `Reviewed capture/replay schema and dependencies must remain identical`; **41 védett fájl változott**, köztük a `038_narrative_artifacts.sql`. Ez megismételhető a `assertReplayInputsUnchanged(registry, candidate, (base, commit, paths) => git diff --name-only base commit -- paths)` hívással; nincs SSH, credential vagy DB-művelet.
+
+További receipt-határ: az `activeRecoveryManifest` a régi owner-only stage/build shape-et (`betaWindowActive=false`) kéri, míg az új funded upgrade saját journal/readback-ot készít, és új root manifestet promote-ol. A régi owner/eredeti-zero receipt nem írható át funded runtime igazolásává. Az image-registry követő commitja önmagában sem a replay-séma eltérését, sem ezt a külön proof-contractot nem oldja fel.
+
+A konkrét kompatibilitási folytatás: [Issue #72](https://github.com/Muzsy/future_flow/issues/72), a #34/N09 alatt.
+
+**Kiadás előtt szükséges:** külön reviewed, schema-038/v9-kompatibilis capture/replay image és az aktuális funded jelölthöz kötött aktív runtime-proof út. Megőrzendő az eredeti zero/reader/funded authority és a történeti registry; valós új image-digest nélkül nem kerülhet be kitalált registry-bejegyzés. Izolált tesztben kell igazolni a v9 artifact/karakterállapot, a költés/usage, Auth/ownership és delete/revoke replay megőrzését, valamint az idegen/stale image/receipt elutasítását. A régi dependency-guard törlése vagy az owner-only receipt kézi átírása nem megoldás. A végleges új forráshoz független exact-source audit szükséges; e fejlesztői önellenőrzés nem az.
+
+A helyi teljes operátori regresszió e preflight után **373 Python-teszt: 362 PASS / 11 SKIP**, **99 Node ops PASS**. A tíz új célzott teszt PASS. A 11 SKIP környezeti/root kapu, nem elrejtett PASS; a korábbi `5be123b` root/Docker CI nem válik az új tesztforrás saját bizonyítékává. Nincs production inspect/apply, élő mentés/restore, providerhívás, authority-módosítás vagy budget-reset e munkában.
