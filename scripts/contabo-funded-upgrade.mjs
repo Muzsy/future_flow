@@ -9,7 +9,9 @@ async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
   if (
     process.platform !== 'linux' ||
-    !['inspect', 'prepare', 'apply', 'recover'].includes(mode) ||
+    !['inspect', 'prepare', 'apply', 'recover', 'archive-expired'].includes(
+      mode,
+    ) ||
     process.argv.length !== (mode === 'prepare' ? 4 : 3)
   )
     throw Error('Explicit Linux funded-upgrade mode required');
@@ -152,6 +154,15 @@ async function main() {
     // and owner-zero receipts are never hand-edited or substituted.
     if (mode === 'prepare')
       privateReportFile(directory, 'funded-upgrade-release.json', selection);
+  }
+  if (mode === 'archive-expired') {
+    request.preparedSha256 = report(
+      'funded-upgrade-prepare-proof.json',
+    ).preparedSha256;
+    const { readFundedAccess } = await import('./lib/funded-access.mjs');
+    request.accessSnapshot = await readFundedAccess(
+      read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),
+    );
   }
   const secrets = operatorSecretsDirectory();
   const key = join(secrets, 'contabo_alterward_ed25519'),

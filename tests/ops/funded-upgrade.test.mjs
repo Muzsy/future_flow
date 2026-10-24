@@ -49,6 +49,7 @@ function proofs() {
           'artifactRestore',
           'privacyReplay',
           'frozenPolicies',
+          'expiredPreparationArchive',
         ].map((k) => [k, true]),
       ),
     },

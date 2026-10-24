@@ -433,11 +433,10 @@ def personal_config_paths():
 
 # Independent policy version: do not reinterpret the original personal/reader
 # activation archives. Installing this reviewed Daily is a later release gate.
-FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 1
+FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 2
 
 
-def funded_upgrade_config_paths(*, immutable_only=False):
-    root = OWNER / 'funded-runtime-upgrade'
+def funded_tree_paths(root, *, immutable_only=False):
     if not root.exists() and not root.is_symlink():
         return []
     private_archive_directory(root)
@@ -452,23 +451,90 @@ def funded_upgrade_config_paths(*, immutable_only=False):
                 regular(child)
                 files.append(child)
         else:
-            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json'}
+            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json', 'archive.json'}
             if item.name not in allowed:
                 if not re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name) or temporary >= 8:
                     raise ValueError('Unknown funded upgrade evidence')
                 temporary += 1
             regular(item)
-            if not immutable_only or item.name == 'prepared.json':
+            if not immutable_only or item.name in {'prepared.json', 'archive.json'}:
                 files.append(item)
     return sorted(files)
+
+
+FUNDED_ARCHIVE_NAME = 'funded-runtime-upgrade-archive'
+FUNDED_ARCHIVE_LIMIT = 8
+FUNDED_ARCHIVE_VERSION = 'alterward-funded-archive-1'
+
+
+def funded_unapplied_files(root):
+    paths = funded_tree_paths(root)
+    names = {p.relative_to(root).as_posix() for p in paths}
+    required = {'prepared.json'} | {r + '/' + n for r in ('target', 'recovery') for n in
+               ('server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json')}
+    if not required <= names or not names <= required | {'probe-compose.json', 'archive.json'}:
+        raise ValueError('Only a complete never-applied funded preparation can be archived')
+    return {p.relative_to(root).as_posix(): digest(regular(p)) for p in paths if p.name != 'archive.json'}
+
+
+def validate_funded_archive(root):
+    files = funded_unapplied_files(root)
+    value = json.loads(regular(root / 'archive.json'))
+    keys = {'version', 'preparedSha256', 'preparedSourceCommit', 'archiverSourceCommit',
+            'archivedAt', 'baselineSha256', 'files'}
+    prepared_bytes = regular(root / 'prepared.json')
+    prepared = json.loads(prepared_bytes)
+    for role in ('target', 'recovery'):
+        expected = prepared['files'][role]
+        observed = {name.split('/', 1)[1]: h for name, h in files.items() if name.startswith(role + '/')}
+        if expected != observed:
+            raise ValueError('Archived runtime differs from preparation')
+    if (set(value) != keys or value['version'] != FUNDED_ARCHIVE_VERSION or value['files'] != files
+            or value['preparedSha256'] != digest(prepared_bytes)
+            or value['preparedSourceCommit'] != prepared['sourceCommit']
+            or not re.fullmatch(r'[a-f0-9]{40}', value['archiverSourceCommit'])
+            or value['baselineSha256'] != digest((json.dumps(prepared['baseline'], sort_keys=True, separators=(',', ':')) + '\n').encode())
+            or dt.datetime.fromisoformat(value['archivedAt']) < dt.datetime.fromisoformat(prepared['expiresAt'])):
+        raise ValueError('Funded archive evidence changed')
+    return prepared, value
+
+
+def funded_archived_paths():
+    root = OWNER / FUNDED_ARCHIVE_NAME
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > FUNDED_ARCHIVE_LIMIT:
+        raise ValueError('Too many funded preparation archives')
+    files = []
+    for entry in entries:
+        if not re.fullmatch(r'[a-f0-9]{64}', entry.name):
+            raise ValueError('Unknown funded archive')
+        validate_funded_archive(entry)
+        if digest(regular(entry / 'prepared.json')) != entry.name:
+            raise ValueError('Funded archive identity changed')
+        files += funded_tree_paths(entry)
+    return files
+
+
+def funded_upgrade_config_paths(*, immutable_only=False):
+    return sorted(funded_tree_paths(OWNER / 'funded-runtime-upgrade', immutable_only=immutable_only)
+                  + funded_archived_paths())
 
 
 def funded_upgrade_healthy(mode):
     root = OWNER / 'funded-runtime-upgrade'
     if not root.exists() and not root.is_symlink():
-        return True
+        try:
+            funded_archived_paths()
+            return True
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
     try:
         funded_upgrade_config_paths()
+        if (root / 'archive.json').exists() or (root / 'archive.json').is_symlink():
+            return False
         prepared = json.loads(regular(root / 'prepared.json'))
         if prepared.get('version') != 'alterward-funded-upgrade-1':
             return False

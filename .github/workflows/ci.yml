@@ -54,14 +54,14 @@ jobs:
           result = unittest.TextTestRunner().run(suite)
           assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
           PY
-      - name: Verify root-only funded journal file contracts
+      - name: Verify root-only funded journal and archive file contracts
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
           import sys, unittest
           sys.path.insert(0, 'tests/ops')
-          suite = unittest.TestLoader().loadTestsFromName('test_funded_upgrade.RootJournalTests')
+          suite = unittest.TestLoader().loadTestsFromNames(['test_funded_upgrade.RootJournalTests', 'test_funded_upgrade.ExpiredFundedArchiveTests'])
           result = unittest.TextTestRunner().run(suite)
-          assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
+          assert result.wasSuccessful() and result.testsRun == 9 and not result.skipped
           PY
       - run: pnpm typecheck
       - run: pnpm test

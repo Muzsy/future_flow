@@ -317,6 +317,112 @@ class RootJournalTests(unittest.TestCase):
             self.system.candidate()
 
 
+class ExpiredFundedArchiveTests(unittest.TestCase):
+    """Real temporary files; root owner checks use the current isolated UID."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.owner = Path(self.tmp.name).resolve()
+        self.owner.chmod(0o700)
+        self.root = self.owner / 'funded-runtime-upgrade'
+        self.root.mkdir(mode=0o700)
+        self.patches = [patch.object(funded, 'DIRECTORY', self.owner),
+                        patch.object(daily, 'OWNER', self.owner), patch.object(daily, 'UID', os.getuid())]
+        if os.getuid() != 0:
+            self.patches += [patch.object(funded.fence, 'original', side_effect=daily.regular),
+                             patch.object(funded.readers, 'durable_file', side_effect=self.portable_durable)]
+        for item in self.patches: item.start()
+        self.value = candidate()
+        start = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)
+        self.value.update(preparedAt=start.isoformat(), expiresAt=(start+dt.timedelta(seconds=900)).isoformat(),
+                          baseline={'files': {'serving': 'unchanged'}, 'authority': {'window':'unchanged'}})
+        for role in ('target', 'recovery'):
+            (self.root / role).mkdir(mode=0o700)
+            for name in funded.FILES: self.write(self.root / role / name, b'synthetic-runtime')
+        self.value['files'] = {r: {n: funded.sha((self.root/r/n).read_bytes()) for n in funded.FILES}
+                               for r in ('target','recovery')}
+        self.save_candidate()
+        self.system = object.__new__(funded.System)
+        self.system.daily = daily
+        self.system.root = self.root
+        self.system.request = {'preparedSha256': funded.sha(funded.encoded(self.value)), 'sourceCommit': 'a'*40}
+        self.system.archive_support = lambda: None
+        self.system.baseline = lambda **kwargs: self.value['baseline']
+
+    def tearDown(self):
+        for item in self.patches[::-1]: item.stop()
+        self.tmp.cleanup()
+
+    def write(self, path, data):
+        path.write_bytes(data); path.chmod(0o600)
+
+    def portable_durable(self, path, data):
+        if path.exists():
+            if daily.regular(path) != data: raise ValueError('Existing bytes differ')
+        else: self.write(path, data)
+
+    def save_candidate(self):
+        self.write(self.root/'prepared.json', funded.encoded(self.value))
+
+    def test_archive_keeps_exact_files_backup_and_repeated_result(self):
+        before = {p.relative_to(self.root).as_posix(): p.read_bytes() for p in daily.funded_tree_paths(self.root)}
+        result = self.system.archive_expired()
+        self.assertTrue(result['archived']); self.assertFalse(self.root.exists())
+        dest = self.owner/daily.FUNDED_ARCHIVE_NAME/result['preparedSha256']
+        self.assertEqual(before, {n:(dest/n).read_bytes() for n in before})
+        self.assertEqual(len(daily.funded_upgrade_config_paths()), 10)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        self.assertTrue(self.system.archive_expired()['alreadyArchived'])
+        self.assertEqual(result['databaseWrites'], 0)
+
+    def test_fresh_preparation_and_any_apply_evidence_refuse_before_move(self):
+        original = copy.deepcopy(self.value)
+        now = dt.datetime.now(dt.timezone.utc)
+        self.value.update(preparedAt=now.isoformat(), expiresAt=(now+dt.timedelta(seconds=900)).isoformat())
+        self.save_candidate(); self.system.request['preparedSha256'] = funded.sha(funded.encoded(self.value))
+        with self.assertRaisesRegex(ValueError, 'expired'): self.system.archive_expired()
+        self.value = original; self.save_candidate()
+        self.system.request['preparedSha256'] = funded.sha(funded.encoded(self.value))
+        for name in ('journal.json','readback.json','watchdog.json'):
+            self.write(self.root/name,b'{}')
+            with self.assertRaises(ValueError): self.system.archive_expired()
+            self.assertTrue(self.root.exists()); (self.root/name).unlink()
+
+    def test_interruption_after_intent_or_rename_can_be_reconciled(self):
+        with patch.object(funded.os, 'rename', side_effect=OSError('before rename')):
+            with self.assertRaises(OSError): self.system.archive_expired()
+        self.assertTrue((self.root/'archive.json').exists())
+        with self.assertRaisesRegex(ValueError, 'Archiving intent'): self.system.candidate()
+        with patch.object(funded.readers, 'sync_directory', side_effect=OSError('after rename')):
+            with self.assertRaises(OSError): self.system.archive_expired()
+        self.assertFalse(self.root.exists())
+        self.assertTrue(self.system.archive_expired()['alreadyArchived'])
+
+    def test_modified_candidate_public_permissions_links_or_baseline_drift_refuse(self):
+        leaf = self.root/'target'/'server.env'
+        leaf.chmod(0o644)
+        with self.assertRaises(ValueError): self.system.archive_expired()
+        leaf.chmod(0o600)
+        self.write(leaf,b'changed')
+        with self.assertRaisesRegex(ValueError, 'runtime changed'): self.system.archive_expired()
+        self.write(leaf,b'synthetic-runtime')
+        leaf.unlink(); leaf.symlink_to(self.root/'recovery'/'server.env')
+        with self.assertRaises(ValueError): self.system.archive_expired()
+        leaf.unlink(); self.write(leaf,b'synthetic-runtime')
+        self.system.baseline = lambda **kwargs: {'different':'authority'}
+        with self.assertRaisesRegex(ValueError, 'baseline'): self.system.archive_expired()
+        self.assertTrue(self.root.exists())
+
+    def test_archive_tamper_and_capacity_never_drop_evidence(self):
+        with patch.object(daily, 'FUNDED_ARCHIVE_LIMIT', 0):
+            with self.assertRaisesRegex(ValueError, 'limit reached'): self.system.archive_expired()
+        self.assertTrue(self.root.exists())
+        result = self.system.archive_expired()
+        dest = self.owner/daily.FUNDED_ARCHIVE_NAME/result['preparedSha256']
+        self.write(dest/'target'/'server.env', b'tampered')
+        with self.assertRaises(ValueError): daily.funded_upgrade_config_paths()
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+
 class NarrativeSelectionTests(unittest.TestCase):
     def runtime(self):
         return dict(mode='narrative-fiction-v2', generation='v9',

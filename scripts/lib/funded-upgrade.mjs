@@ -122,6 +122,7 @@ export function releaseEvidence({
     'artifactRestore',
     'privacyReplay',
     'frozenPolicies',
+    'expiredPreparationArchive',
   ];
   exactObject(fixture.checks, checks);
   if (

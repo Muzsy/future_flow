@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-24
 related:
   - BACKUP_HU.md
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
@@ -93,3 +93,5 @@ A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host
 ## Aktív funded runtime új verziója
 
 A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.
+
+A lejárt, teljes, soha nem alkalmazott funded preparation külön `--archive-expired` paranccsal, bizonyítékmegőrzően archiválható. Ez nem recovery: nem indít/leállít szolgáltatást és nem ír DB-t, a változatlan eredeti funded baseline-t ellenőrzi. Megszakadás után ugyanazzal a hash-hez kötött privát proof-fal ismételhető; a megmaradt archíválási szándék apply/recover-re nem használható. Megkezdett journal/watchdog/readback állapotot nem archivál; ahhoz az eredeti transition recovery útja kell. Az archívum nem ad visszaállítási vagy költségkeret-megújítási jogosultságot. Részletes előfeltételek és megszakításkezelés a funded runtime runbookban.

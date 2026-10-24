@@ -260,7 +260,7 @@ class System:
             raise ValueError('External Access configuration changed since preparation')
         return value['configurationSha256']
 
-    def baseline(self, *, running=True):
+    def baseline(self, *, running=True, require_active=True):
         personal = DIRECTORY / 'personal-beta'
         prepared = json.loads(fence.original(personal / 'prepared.json'))
         journal = json.loads(fence.original(personal / 'journal.json'))
@@ -288,8 +288,8 @@ class System:
         terms = json.loads(fence.original(personal / 'terms.json'))
         if (
             policy['mode'] != 'personal-beta'
-            or not policy['queueAllowed']
-            or not stamp(terms['startsAt']) <= self.now() < stamp(terms['endsAt'])
+            or (require_active and (not policy['queueAllowed']
+                or not stamp(terms['startsAt']) <= self.now() < stamp(terms['endsAt'])))
             or sha(encoded(terms)) != prepared['termsSha256']
         ):
             raise ValueError('Existing active funded window and terms required')
@@ -536,7 +536,7 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         return self.hashes(path)
 
     def archive_support(self):
-        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 1:
+        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 2:
             raise ValueError(
                 'Reviewed installed funded-upgrade archive support required'
             )
@@ -621,7 +621,68 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
             'paidAiCalls': 0,
         }
 
+    def archive_expired(self):
+        # No Docker start/stop, database probe, migration or authority mutation.
+        self.archive_support()
+        digest = self.request['preparedSha256']
+        if not isinstance(digest, str) or not DIGEST.fullmatch(digest):
+            raise ValueError('Exact preparation identity required')
+        archive = DIRECTORY / self.daily.FUNDED_ARCHIVE_NAME
+        destination = archive / digest
+        self.daily.funded_archived_paths()
+        if destination.exists() or destination.is_symlink():
+            if self.root.exists() or self.root.is_symlink():
+                raise ValueError('Conflicting active and archived preparation')
+            candidate, receipt = self.daily.validate_funded_archive(destination)
+            if self.baseline(require_active=False) != candidate['baseline']:
+                raise ValueError('Funded baseline changed since archive')
+            readers.sync_directory(archive)
+            readers.sync_directory(DIRECTORY)
+            return self.archive_result(digest, receipt, True)
+        files = self.daily.funded_unapplied_files(self.root)
+        candidate = json.loads(fence.original(self.root / 'prepared.json'))
+        fresh(candidate, stamp(candidate['preparedAt']))
+        if sha(encoded(candidate)) != digest or self.now() < stamp(candidate['expiresAt']):
+            raise ValueError('Only an expired exact preparation may be archived')
+        for role in ('target', 'recovery'):
+            if self.hashes(self.root / role) != candidate['files'][role]:
+                raise ValueError('Prepared runtime changed before archive')
+        if self.baseline(require_active=False) != candidate['baseline']:
+            raise ValueError('Original funded baseline must still be serving')
+        intent = self.root / 'archive.json'
+        if intent.exists() or intent.is_symlink():
+            _, receipt = self.daily.validate_funded_archive(self.root)
+        else:
+            receipt = {'version': self.daily.FUNDED_ARCHIVE_VERSION,
+                       'preparedSha256': digest, 'preparedSourceCommit': candidate['sourceCommit'],
+                       'archiverSourceCommit': self.request['sourceCommit'], 'archivedAt': self.now().isoformat(),
+                       'baselineSha256': sha(encoded(candidate['baseline'])), 'files': files}
+        if not archive.exists() and not archive.is_symlink():
+            archive.mkdir(mode=0o700)
+        self.daily.private_archive_directory(archive)
+        if len(list(archive.iterdir())) >= self.daily.FUNDED_ARCHIVE_LIMIT:
+            raise ValueError('Funded archive limit reached; no automatic deletion')
+        readers.durable_file(intent, encoded(receipt))
+        self.daily.validate_funded_archive(self.root)
+        if self.baseline(require_active=False) != candidate['baseline']:
+            raise ValueError('Funded baseline drift before archive move')
+        os.rename(self.root, destination)
+        readers.sync_directory(archive)
+        readers.sync_directory(DIRECTORY)
+        self.daily.validate_funded_archive(destination)
+        if self.baseline(require_active=False) != candidate['baseline']:
+            raise ValueError('Funded baseline drift after archive move')
+        return self.archive_result(digest, receipt, False)
+
+    def archive_result(self, digest, receipt, repeated):
+        return {'version': self.daily.FUNDED_ARCHIVE_VERSION, 'preparedSha256': digest,
+                'archived': True, 'alreadyArchived': repeated,
+                'archivedFiles': len(receipt['files']), 'paidAiCalls': 0, 'databaseWrites': 0,
+                'containersStarted': 0, 'containersStopped': 0, 'authorityChanged': False}
+
     def candidate(self):
+        if (self.root / 'archive.json').exists() or (self.root / 'archive.json').is_symlink():
+            raise ValueError('Archiving intent cannot be applied or recovered')
         value = json.loads(fence.original(self.root / 'prepared.json'))
         if sha(encoded(value)) != self.request['preparedSha256']:
             raise ValueError('Altered funded candidate rejected')
@@ -1056,6 +1117,7 @@ def main(request):
     mode = request.get('mode')
     additions = {
         'inspect': set(),
+        'archive-expired': {'preparedSha256', 'accessSnapshot'},
         'prepare': {'release', 'accessSnapshot'},
         'apply': {'preparedSha256', 'restoreProof', 'release', 'accessSnapshot'},
         'recover': {'preparedSha256', 'restoreProof', 'release', 'accessSnapshot'},
@@ -1094,6 +1156,8 @@ def main(request):
                 'paidAiCalls': 0,
                 'containersStarted': 0,
             }
+        if mode == 'archive-expired':
+            return system.archive_expired()
         if mode == 'prepare':
             return system.prepare()
         candidate = system.candidate()

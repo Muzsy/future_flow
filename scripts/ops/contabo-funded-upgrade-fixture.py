@@ -787,6 +787,7 @@ def exercise(context):
             system.backup(candidate)
 
         for label in (
+            'expired-archive',
             'success',
             'postcheck',
             'interruption-intent',
@@ -826,6 +827,30 @@ def exercise(context):
             prepared = system.prepare()
             candidate = json.loads((system.root / 'prepared.json').read_bytes())
             request['preparedSha256'] = prepared['preparedSha256']
+            if label == 'expired-archive':
+                # Advance the synthetic operator clock; do not wait 15 minutes
+                # and do not edit the immutable prepared timestamp/receipt.
+                advanced = system.now() + dt.timedelta(seconds=901)
+                system.now = lambda: advanced
+                request['accessSnapshot']['checkedAt'] = advanced.isoformat()
+                serving = {r: v['Id'] for r, v in system.roles().items()}
+                before = db('capture', database)
+                saved = {p.relative_to(system.root).as_posix(): p.read_bytes()
+                         for p in daily.funded_tree_paths(system.root)}
+                result = system.archive_expired()
+                destination = owner / daily.FUNDED_ARCHIVE_NAME / prepared['preparedSha256']
+                assert result['archived'] and not system.root.exists()
+                assert all((destination / n).read_bytes() == data for n, data in saved.items())
+                assert system.archive_expired()['alreadyArchived']
+                assert {r: v['Id'] for r, v in system.roles().items()} == serving
+                assert all(v['State']['Running'] for v in system.roles().values())
+                assert daily.funded_upgrade_healthy('personal-beta')
+                after = db('capture', database)
+                funded.same_funded(before, after)
+                assert after['schema'] == 37
+                assert all((owner / n).read_bytes() == raw for n, raw in initialFiles.items())
+                checks['expiredPreparationArchive'] = True
+                continue
             make_archive(system, candidate)
             before = db('capture', database)
             if label == 'success':
