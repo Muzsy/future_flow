@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-23
+last_reviewed: 2026-10-24
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -42,6 +42,8 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
 
 ## Aktív történetminőségi munka
+
+**Aktuális fókusz — 2026-10-24:** befagyasztott v9 C5 motor → technikai stabilizálás/integráció → N09 → kis zárt béta. Az editor/history további finomítása DEFERRED. Első kiadási olvasás: [bétafókuszú lezárás](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24), majd a master plan.
 
 Az aktív részletes végrehajtási terv a [master plan V9-1–V9-5 sora](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A `main` v8 (`a666c905`), a fejlesztési jelölt **v9 C5**, draft [#66](https://github.com/Muzsy/future_flow/pull/66) a #57–#65 láncon. Production utolsó igazolt állapota legacy; az implementáció, review, mérés és élesítés külön státusz.
 

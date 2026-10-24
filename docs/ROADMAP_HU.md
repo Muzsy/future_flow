@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-23
+last_reviewed: 2026-10-24
 related:
   - STATUS_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -29,9 +29,9 @@ Elkészült:
 
 ## P1 — Personal beta értékelés és történetminőség
 
-Az első személyes tesztelő aktiválása, a 30 napos ablak és háromfejezetes paid E2E megtörtént. Következő prioritás az N08 többfejezetes/humán történetminőség, a valódi folytatási/retention mérés és a gazdaságos tartalommennyiség vizsgálata. A legfeljebb 10 fős korlát megmarad; bővítés nem automatikus.
+Az első személyes tesztelő aktiválása, a 30 napos ablak és háromfejezetes paid E2E megtörtént. A 2026-10-24-i tulajdonosi prioritás a v9 motor befagyasztása, technikai stabilizálása és a kis zárt béta kiadása; a történetminőség további javítását a valós olvasói visszajelzés irányítja. A legfeljebb 10 fős korlát megmarad; bővítés nem automatikus.
 
-Az elfogadott 2026-10-20-i prioritás szerint az élő világ **v9 fejlesztése a következő zárt narratív béta elé kerül**. A közeli sorrend: C5 független review és célzott hatásmérés → a függő PR-lánc rendezése → v9-kompatibilis N09 üzemeltetés → kis zárt béta. A részletes státuszokat és teljesülési feltételeket a [master plan V9-1–V9-5](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) tartja nyilván.
+Az elfogadott 2026-10-20-i prioritás szerint az élő világ **v9 fejlesztése a következő zárt narratív béta elé kerül**. A C5 review és mérési checkpoint elkészült. A 2026-10-24-i döntéssel a közeli sorrend: motorbefagyasztás → PR-integráció és kiadást akadályozó technikai hibák javítása → v9-kompatibilis N09 üzemeltetés és tesztelői E2E → kis zárt béta. További editor-/history-kalibráció, új promptfinomítás és archetípus-fejlesztés DEFERRED; ezek nem új béta-előfeltételek. A részletes státuszokat és teljesülési feltételeket a [master plan V9-1–V9-5](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) tartja nyilván.
 
 Nyitott kapuk:
 

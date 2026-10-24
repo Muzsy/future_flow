@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-15
+last_reviewed: 2026-10-24
 related:
   - ../PERSONAL_BETA_ACTIVATION_PLAN_HU.md
   - ../PERSONAL_BETA_OPERATOR_HU.md
@@ -10,6 +10,10 @@ related:
 ---
 
 # Beta operations
+
+## Aktuális kiadási fókusz — 2026-10-24
+
+Tulajdonosi döntés: a v9 motor további finomítása helyett annak befagyasztása, technikai stabilizálása és a kis zárt béta előkészítése az elsődleges. Végrehajtás: integrált jelölt → v9-kompatibilis N09/backup/recovery → teljes tesztelői alapút → konkrét engedélyezett indulás. További editor/history-kutatás és archetípus-fejlesztés DEFERRED. A meglévő helyettesítő zártbéta-minőségkapuk érvényesek; adat-, költség-, privacy- és helyreállítási védelem nem halasztható. A konkrét lezárási feltételeket a [narratív kiadási runbook](NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24) tartalmazza.
 
 ## 1. Release sorrend
 
