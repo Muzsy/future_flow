@@ -47,6 +47,7 @@ for name, file in [
     ('alterward_funded_watchdog', 'contabo-funded-watchdog.py'),
 ]:
     load(name, file)
+replay = load('alterward_funded_replay', 'contabo-funded-replay.py')
 funded = load('alterward_funded_upgrade', 'contabo-funded-upgrade.py')
 daily = load('fixture_daily', 'contabo-daily.py')
 upgrade = funded.upgrade
@@ -266,6 +267,7 @@ def exercise(context):
             (readers, 'DIRECTORY', owner),
             (readers, 'PROJECT', project),
             (daily, 'OWNER', owner),
+            (replay, 'PROJECT', project),
             (backup, 'ROOT', base),
             (sys.modules['alterward_target'], 'ROOT', diagnostics),
             (upgrade, 'proxy_network', fixture_proxy),
@@ -595,6 +597,9 @@ def exercise(context):
                 after = self.probe(context['image'], 'capture')
                 funded.same_funded(candidate['database'], after)
                 proof = {
+                    'version': funded.VERSION,
+                    'sourceCommit': candidate['sourceCommit'],
+                    'paidAiCalls': 0, 'operationPaidAiCalls': 0, 'databaseRestored': False,
                     'schema': 38,
                     'preparedSha256': sha(encoded(candidate)),
                     'imageId': context['image'],
@@ -1080,6 +1085,26 @@ def exercise(context):
                 == terms
             )
             checks['fundedState'] = True
+            from types import SimpleNamespace
+            adapter = SimpleNamespace(OWNER=owner, funded_upgrade_healthy=daily.funded_upgrade_healthy,
+                owner_runtime=lambda: (json.loads((owner/'manifest.json').read_bytes()), system.roles()),
+                containers=daily.containers, reader_config_paths=daily.reader_config_paths,
+                personal_config_paths=daily.personal_config_paths)
+            actual_daily = system.daily
+            try:
+                system.daily = adapter
+                active = system.active_proof()
+                replay.require_funded_runtime(adapter, fence.original, active)
+                assert active['imageId'] == context['image']
+                try:
+                    replay.require_funded_runtime(adapter, fence.original, {**active, 'imageId': oldImage})
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('Stale active funded image proof accepted')
+            finally:
+                system.daily = actual_daily
+            checks['fundedReplayProof'] = True
             system.stop()
             db('drop', database)
             databases.remove(database)

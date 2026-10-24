@@ -35,6 +35,7 @@ jobs:
           node --test tests/ops/reader-archive-retry.test.mjs
           node --test tests/ops/linux-operator.test.mjs
           node --test tests/ops/operator-transfer.test.mjs
+          node --test tests/ops/funded-replay.test.mjs
           node --test tests/ops/funded-upgrade.test.mjs
           node --test tests/ops/funded-access.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services

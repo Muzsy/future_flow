@@ -155,7 +155,11 @@ export async function capturePrivacyRestoreAuthority(
 export async function captureVerifiedPrivacyRestoreAuthority(
   db: Database,
   readPage: (page: number) => Promise<unknown>,
-  binding: { projectBinding: string; writerFenceDigest: string },
+  binding: {
+    projectBinding: string;
+    writerFenceDigest: string;
+    fundedRuntime?: 'v9';
+  },
 ) {
   const deadline = Date.now() + 60000;
   const readInventory = async () => {
@@ -191,6 +195,11 @@ export async function captureVerifiedPrivacyRestoreAuthority(
     await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
     await tx.query("SET LOCAL statement_timeout='15s'");
     await tx.query("SET LOCAL idle_in_transaction_session_timeout='30s'");
+    if (binding.fundedRuntime === 'v9') {
+      const { assertFundedStoredNarrativeState } =
+        await import('./funded-runtime');
+      await assertFundedStoredNarrativeState(tx);
+    }
     const localStartedAt = new Date().toISOString();
     const [clock] = await tx.query<{ observed_at: string }>(
       'SELECT to_jsonb(clock_timestamp()) AS observed_at',

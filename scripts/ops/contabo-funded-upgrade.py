@@ -217,6 +217,19 @@ class System:
         self.root = DIRECTORY / STATE_NAME
         self.staging_network = 'alterward-funded-check-' + request['sourceCommit'][:12]
 
+    def active_proof(self):
+        from alterward_funded_replay import active_funded_runtime
+        candidate = json.loads(fence.original(self.root / 'prepared.json'))
+        if (candidate['sourceCommit'] != self.request['sourceCommit'] or
+                candidate['bundleSha256'] != self.request['bundleSha256']):
+            raise ValueError('Use the original exact committed upgrade source for active proof')
+        proof = active_funded_runtime(self.daily, fence.original)
+        self.image(candidate['release'][proof['role']])
+        # Re-read after the image capability check; concurrent state cannot issue a proof.
+        if active_funded_runtime(self.daily, fence.original) != proof:
+            raise ValueError('Active runtime drift while validating image')
+        return proof
+
     def now(self):
         return dt.datetime.now(dt.timezone.utc)
 
@@ -1180,6 +1193,7 @@ def main(request):
     mode = request.get('mode')
     additions = {
         'inspect': set(),
+        'active-proof': set(),
         'cleanup-probe': set(),
         'archive-expired': {'preparedSha256', 'accessSnapshot'},
         'prepare': {'release', 'accessSnapshot'},
@@ -1204,6 +1218,8 @@ def main(request):
         readers.exclusive_lock(owner_lock, 0)
         daily = fence.installed_daily()
         system = System(request, daily)
+        if mode == 'active-proof':
+            return system.active_proof()
         if mode == 'inspect':
             journal = system.root / 'journal.json'
             return {

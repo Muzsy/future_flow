@@ -29,6 +29,8 @@ NODE_FILES = {
     'scripts/lib/privacy-restore-verifier.ts', 'scripts/lib/quarantined-replay.ts',
     'scripts/lib/migrations.ts', 'scripts/replay-fenced-backup.ts',
 }
+FUNDED_HELPER = 'scripts/ops/contabo-funded-replay.py'
+FUNDED_NODE_FILES = {'scripts/lib/funded-runtime.ts', 'scripts/lib/personal-beta-admission-observation.mjs'}
 REGISTRY = 'deploy/reviewed-recovery-images.json'
 PHASE = 'validation'
 FAILURE_PHASE = None
@@ -107,7 +109,8 @@ def original_services(services):
 
 
 def sources(request):
-    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE, REGISTRY}:
+    extra = FUNDED_NODE_FILES | {FUNDED_HELPER} if 'fundedRuntime' in request else set()
+    if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE, REGISTRY} | extra:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
     for name, value in request['files'].items():
@@ -155,7 +158,11 @@ def capture_identity(item, name, image, nonce):
 def main(request):
     global PHASE
     os.umask(0o077)
+    funded = 'fundedRuntime' in request
+    node_files = NODE_FILES | FUNDED_NODE_FILES if funded else NODE_FILES
     expected = {'mode', 'sourceCommit', 'ownerManifestDigest', 'files'}
+    if funded:
+        expected.add('fundedRuntime')
     if request.get('mode')=='rehearsal':
         expected.add('recoveryIdentity')
     if (os.geteuid() != 0 or set(request) != expected or
@@ -186,9 +193,14 @@ def main(request):
         PHASE = 'owner-runtime'
         if hashlib.sha256(fence.original(fence.OWNER/'manifest.json')).hexdigest() != request['ownerManifestDigest']:
             raise ValueError('Original owner manifest differs')
+        if funded:
+            funded_helper = types.ModuleType('alterward_funded_replay')
+            exec(compile(files[FUNDED_HELPER], '<reviewed-funded-replay>', 'exec'), funded_helper.__dict__)
+            funded_helper.require_funded_runtime(daily, fence.original, request['fundedRuntime'])
+            releases = {(request['fundedRuntime']['sourceCommit'], request['fundedRuntime']['imageId'])}
         manifest, services = daily.owner_runtime()
         if (manifest['commit'],manifest['imageId']) not in releases:
-            raise ValueError('Reviewed owner-only image required')
+            raise ValueError('Reviewed active image required')
         owner_image=manifest['imageId']
         fence.validate_services(services)
         baseline = {c['Id']: c for c in daily.containers()}
@@ -246,6 +258,7 @@ def main(request):
                 'sourceCommit':request['sourceCommit'],
                 'sourceFilesDigest':digest({k:hashlib.sha256(v).hexdigest() for k,v in files.items()}),
                 'ownerManifestDigest':request['ownerManifestDigest'],
+                **({'fundedRuntime':request['fundedRuntime']} if funded else {}),
                 'projectBinding':digest(project_host),
                 'createdAt':started.isoformat().replace('+00:00','Z'),
                 'expiresAt':expires.isoformat().replace('+00:00','Z'),
@@ -263,7 +276,7 @@ def main(request):
             scratch = Path(tmp)
             # Source code is public; only the bounded root-owned env file is
             # private. Docker reads it; it is never mounted into the container.
-            for name in NODE_FILES:
+            for name in node_files:
                 destination=scratch/name
                 destination.parent.mkdir(parents=True,exist_ok=True,mode=0o755)
                 destination.write_bytes(files[name]);destination.chmod(0o644)
@@ -276,6 +289,8 @@ def main(request):
             selected = {key:env[key] for key in needed}
             selected.update(DATABASE_SSL='true',DATABASE_SSL_CA_FILE='/run/secrets/supabase-ca.crt',
                             ALTERWARD_FENCE_OPERATOR='true',AI_PROJECT_BUDGET_USD='0',AI_USER_BUDGET_USD='0')
+            if funded:
+                selected['ALTERWARD_FUNDED_REPLAY'] = 'v9'
             client_env=scratch/'client.env'
             client_env.write_text(''.join(key+'='+value+'\n' for key,value in selected.items()))
             client_env.chmod(0o600)
@@ -304,7 +319,7 @@ def main(request):
                       '--mount','type=bind,src=/etc/alterward/supabase-ca.crt,dst=/run/secrets/supabase-ca.crt,readonly']
                 if payload is not None:
                     args+=['-i']
-                for filename in sorted(NODE_FILES):
+                for filename in sorted(node_files):
                     args+=['--mount','type=bind,src='+str(scratch/filename)+',dst=/app/'+filename+',readonly']
                 # A bounded parent suppresses all private stderr. A failed
                 # observer may return only its fixed diagnostic object, which
@@ -389,8 +404,9 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay'}:
                         raise ValueError('Fixed quarantine phase required')
                     PHASE=value
-                rehearsal_proof=quarantine.replay(daily,scratch,files,NODE_FILES,nonce,backup,last_envelope,
-                    {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup,quarantine_phase)
+                rehearsal_proof=quarantine.replay(daily,scratch,files,node_files,nonce,backup,last_envelope,
+                    {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup,quarantine_phase,
+                    **({'funded_runtime':request['fundedRuntime']} if funded else {}))
                 check()
                 after=capture('recovery')
                 if after['stateDigest']!=bundle['stateDigest']:
@@ -480,7 +496,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     raise
                 record.update(stage='plan-complete',checkedAt=dt.datetime.now(dt.timezone.utc).isoformat())
                 daily.atomic(pointer,record)
-                return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+                return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                         'ownerManifestDigest':request['ownerManifestDigest'],'planNonce':nonce,
                         'mode':'plan','sourceFilesVerified':len(files),'servicesStopped':0,
                         'originalOwnerEgressNetworkVerified':True,'dockerLoggingDisabled':True,
@@ -499,14 +515,14 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     settle=settle,checkpoint=checkpoint,cleanup=resume_cleanup,
                     while_held=while_held if request['mode']=='rehearsal' else None)
         if request['mode']=='rehearsal':
-            return {**rehearsal_proof,'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+            return {**rehearsal_proof,**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'mode':'rehearsal','servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,
                 'foreignContainersUnchanged':True,'freshStateEqualBeforeAndAfterReplay':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
                 'writerFenceStillHeld':False,'replayAllowed':False,'serviceActivationAllowed':False,
                 'ownerOriginBoundaryVerified':True,'liveDatabaseWrites':False,'authProviderWrites':False,
                 'externalMessagesSent':False,'paidAiCalls':0}
-        return {'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+        return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
                 'captureProofs':captures,'mode':'drill','replayAllowed':False,'serviceActivationAllowed':False,

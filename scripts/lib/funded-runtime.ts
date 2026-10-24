@@ -119,6 +119,50 @@ function assertStoredPolicy(policy: unknown) {
   else narrativeV1PolicySchema.parse(policy);
 }
 
+export async function assertFundedStoredNarrativeState(
+  tx: Database,
+  schema: 37 | 38 = 38,
+) {
+  // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
+  // policy snapshots; every one must be interpretable by this image.
+  const inventory = [
+    await tx.query<{
+      policy: unknown;
+    }>(`SELECT payload->'narrativeContext'->'policy' AS policy FROM public.aw_jobs
+    WHERE payload->'narrativeContext'->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
+    await tx.query<{
+      policy: unknown;
+    }>(`SELECT checkpoints->'policy' AS policy FROM public.aw_jobs
+    WHERE checkpoints->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
+    schema === 38
+      ? await tx.query<{
+          policy: unknown;
+        }>(`SELECT narrative_artifact->'policy' AS policy FROM public.aw_periods
+    WHERE narrative_artifact->'policy' IS NOT NULL ORDER BY id LIMIT 1001`)
+      : [],
+  ];
+  // Each source is bounded on its own: a truncated list must never pass.
+  if (inventory.some((rows) => rows.length > 1000))
+    throw Error('Bounded stored policy inventory required');
+  const policies = inventory.flat();
+  for (const { policy } of policies) assertStoredPolicy(policy);
+  if (schema === 38) {
+    const artifacts = await tx.query<{ artifact: unknown }>(
+      'SELECT narrative_artifact AS artifact FROM public.aw_periods WHERE narrative_artifact IS NOT NULL LIMIT 1001',
+    );
+    if (artifacts.length > 1000)
+      throw Error('Bounded stored artifact inventory required');
+    for (const { artifact } of artifacts)
+      (artifact &&
+      typeof artifact === 'object' &&
+      (artifact as { version?: string }).version === '2.0.0'
+        ? fictionArtifactSchema
+        : narrativeArtifactSchema
+      ).parse(artifact);
+  }
+  return policies;
+}
+
 function migrationPlan() {
   const files = readdirSync('database/migrations')
     .filter((f) => f.endsWith('.sql'))
@@ -215,43 +259,7 @@ export async function captureFundedRuntime(
     Object.values(other).some((v) => v !== 0)
   )
     throw Error('Funded runtime is not drained; no flags-only shortcut');
-  // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
-  // policy snapshots; every one must be interpretable by this image.
-  const inventory = [
-    await tx.query<{
-      policy: unknown;
-    }>(`SELECT payload->'narrativeContext'->'policy' AS policy FROM public.aw_jobs
-    WHERE payload->'narrativeContext'->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
-    await tx.query<{
-      policy: unknown;
-    }>(`SELECT checkpoints->'policy' AS policy FROM public.aw_jobs
-    WHERE checkpoints->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
-    schema === 38
-      ? await tx.query<{
-          policy: unknown;
-        }>(`SELECT narrative_artifact->'policy' AS policy FROM public.aw_periods
-    WHERE narrative_artifact->'policy' IS NOT NULL ORDER BY id LIMIT 1001`)
-      : [],
-  ];
-  // Each source is bounded on its own: a truncated list must never pass.
-  if (inventory.some((rows) => rows.length > 1000))
-    throw Error('Bounded stored policy inventory required');
-  const policies = inventory.flat();
-  for (const { policy } of policies) assertStoredPolicy(policy);
-  if (schema === 38) {
-    const artifacts = await tx.query<{ artifact: unknown }>(
-      'SELECT narrative_artifact AS artifact FROM public.aw_periods WHERE narrative_artifact IS NOT NULL LIMIT 1001',
-    );
-    if (artifacts.length > 1000)
-      throw Error('Bounded stored artifact inventory required');
-    for (const { artifact } of artifacts)
-      (artifact &&
-      typeof artifact === 'object' &&
-      (artifact as { version?: string }).version === '2.0.0'
-        ? fictionArtifactSchema
-        : narrativeArtifactSchema
-      ).parse(artifact);
-  }
+  const policies = await assertFundedStoredNarrativeState(tx, schema);
   // Canonical data, accounting, job snapshots and privacy/control data are all
   // covered. Only the newly nullable column and the append-only migration row
   // may differ. SQL returns bounded hashes, never personal content or amounts.

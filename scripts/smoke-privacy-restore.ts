@@ -1,3 +1,5 @@
+import { createPrivacyFenceEnvelope } from './lib/privacy-fence-envelope';
+import { runQuarantinedReplay } from './lib/quarantined-replay';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import {
@@ -179,8 +181,49 @@ async function main() {
       (await target.query('SHOW TIME ZONE'))[0]?.TimeZone,
       'America/Los_Angeles',
     );
+    const replayBinding = {
+      mode: 'recovery' as const,
+      nonce: 'a'.repeat(24),
+      sourceCommit: 'b'.repeat(40),
+      sourceFilesDigest: hash('synthetic-funded-runtime-source'),
+      ownerManifestDigest: hash('synthetic-funded-manifest'),
+      projectBinding: f.projectBinding,
+      writerFenceDigest: f.writerFenceDigest,
+      expiresAt: new Date(Date.now() + 300000).toISOString(),
+    };
+    const envelope = createPrivacyFenceEnvelope(
+      f.authority,
+      hash('synthetic-independent-auth'),
+      replayBinding,
+    );
+    const retainedBefore = await target.query(
+      'SELECT narrative_artifact FROM aw_periods WHERE id=$1',
+      [f.retainedV9NarrativePeriod],
+    );
+    assert(
+      retainedBefore.length === 1 &&
+        (retainedBefore[0]!.narrative_artifact as Record<string, unknown>)
+          .characterDelta,
+    );
+    await runQuarantinedReplay(target, {
+      action: 'replay',
+      fundedRuntime: 'v9',
+      quarantineDatabase: targetName,
+      backupCapturedAt: f.backupCapturedAt,
+      backupDumpSha256: hash('synthetic-physical-snapshot'),
+      envelope,
+      held: { ...replayBinding, stateDigest: envelope.stateDigest },
+    });
+    assert.deepEqual(
+      await target.query(
+        'SELECT narrative_artifact FROM aw_periods WHERE id=$1',
+        [f.retainedV9NarrativePeriod],
+      ),
+      retainedBefore,
+    );
     return {
       ...proof,
+      fundedV9ReplayAndCharacterStateVerified: true,
       physicalOldSnapshot: true,
       narrativeArtifactsSurvivedPhysicalRestore: true,
       legacyNullArtifactsReadable: true,

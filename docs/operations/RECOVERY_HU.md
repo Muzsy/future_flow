@@ -102,3 +102,8 @@ A DB-probe one-off konténere előzetes, source/config/image/hash-hez kötött i
 ## Hosszabb funded hold utáni friss restore-proof
 
 A meglévő Daily offsite rehearsal held alkalmazás mellett is végezhető, a két operátori lockkal és változatlan konténerállapot mellett. A friss proof tényleges új izolált restore eredménye ugyanabból a pontos, candidate-ot tartalmazó archívumból; a régi timestamp nem írható át, az élő DB nem cserélhető régi snapshotra. A legacy capture/replay eszköz v9-re jelenleg elutasít: új registry-bejegyzés és régi owner-only receipt átírása nem oldja meg a schema-038/funded proof eltérést. A célzott ellenőrzések határai, az operátori sorrend és a szükséges kompatibilis út: [funded release preflight](FUNDED_RUNTIME_UPGRADE_HU.md#kiadási-előellenőrzés-hosszabb-hold-és-legacy-replay--2026-10-24).
+
+
+## V9 funded capture/replay
+
+A legacy replay-guard megmarad. A külön aktív funded proof a befejezett eredeti upgrade journal/readback/konfigurációját és tényleges image-ét köti; az új funded fence módok ezt rooton újraellenőrzik. A karantén az igazolt v9 image-ből migrál tiszta 038 katalógust, csak adatot tölt vissza, strict policy/artifact/karakterállapot ellenőrzést és a meglévő független delete/revoke/accounting/privacy verifiert futtat. Az eredeti-zero/reader/window receiptek változatlanok; szolgáltatásaktiválás és élő snapshot-visszatöltés továbbra tilos. A fejlesztési implementáció és a még szükséges exact-source audit/célgépes funded fence E2E: [funded replay runbook](FUNDED_RUNTIME_UPGRADE_HU.md#v9-funded-capturereplay-út--72-fejlesztési-implementáció-2026-10-24).

@@ -354,6 +354,7 @@ try {
     'frozenPolicies',
     'expiredPreparationArchive',
     'probeCleanup',
+    'fundedReplayProof',
   ])
     assert.equal(fundedProof.checks[check], true);
   assert.equal(fundedProof.paidAiCalls, 0);

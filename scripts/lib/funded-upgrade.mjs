@@ -10,6 +10,7 @@ export const fundedUpgradeModules = [
   ['alterward_readers', 'contabo-personal-beta-readers.py'],
   ['alterward_personal_beta', 'contabo-personal-beta.py'],
   ['alterward_funded_watchdog', 'contabo-funded-watchdog.py'],
+  ['alterward_funded_replay', 'contabo-funded-replay.py'],
   ['alterward_funded_upgrade', 'contabo-funded-upgrade.py'],
 ];
 export function sha(bytes) {
@@ -124,6 +125,7 @@ export function releaseEvidence({
     'frozenPolicies',
     'expiredPreparationArchive',
     'probeCleanup',
+    'fundedReplayProof',
   ];
   exactObject(fixture.checks, checks);
   if (

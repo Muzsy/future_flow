@@ -106,6 +106,11 @@ async function main() {
         );
         await tx.query('SET LOCAL search_path=pg_catalog,public');
         await tx.query("SET LOCAL statement_timeout='10s'");
+        if (process.env.ALTERWARD_FUNDED_REPLAY === 'v9') {
+          const { assertFundedStoredNarrativeState } =
+            await import('./lib/funded-runtime');
+          await assertFundedStoredNarrativeState(tx);
+        }
         let pendingJobs = 0,
           liveLeases = 0;
         for (const table of [
@@ -178,6 +183,9 @@ async function main() {
         {
           projectBinding: request.projectBinding,
           writerFenceDigest: request.binding.writerFenceDigest,
+          ...(process.env.ALTERWARD_FUNDED_REPLAY === 'v9'
+            ? { fundedRuntime: 'v9' as const }
+            : {}),
         },
       );
       observationPhase = 'envelope-verification';

@@ -222,3 +222,44 @@ A lezárt `a44d659` Flex mérés 81 mentett transportja között a legnagyobb k�
 A kiadási konfigurációhoz a meglévő, kódban már megengedett **196608 B / 192 KiB** felső határ a jelenlegi korpusz összes kérését befogadó jelölt, nem új guardlazítás vagy automatikus production érték. A nagyobb maximális kéréshez tartozó konzervatív költségfoglalást a változatlan projekt/user kereten és a tényleges fennmaradó allowance-on ellenőrizni kell; a limit nem emel költségkeretet. Target és recovery ugyanahhoz az explicit runtime-kiválasztáshoz kötendő, a fixture/monitor/readback ugyanazt az értéket igazolja. A 300000 ms timeoutnál a megfigyelt leghosszabb Flex hívás 100111 ms, de ez nem garantált production késleltetés vagy végleges timeout-döntés.
 
 A méretmegfigyelés az eredeti report/transport hash-ekhez kötött [Flex evidence](../evidence/c5-flex-2026-10-24/summary.json) adataiból származik. Nem indult új modellhívás és nincs éles konfigurációváltozás; a konkrét candidate költség/runtime/célgépes próbája megmaradó kiadási kapu.
+
+
+## V9 funded capture/replay út — #72 fejlesztési implementáció, 2026-10-24
+
+A korábbi legacy replay-sémaőr és a `deploy/reviewed-recovery-images.json` változatlan. A funded út külön proof-contractot használ: a már befejezett, reviewed upgrade eredeti root candidate/journal/readback és tényleges aktív konfigurációja köti az image-et, nem kézzel felvett registry-bejegyzés. Az implementáció nem production vagy független audit-PASS; az exact-source CI és az alábbi célgépes kiadási kapuk külön bizonyítékok.
+
+### Aktív funded runtime igazolása
+
+Az upgrade eredeti, tiszta main forrásából `node --import tsx scripts/contabo-funded-upgrade.mjs --active-proof` futtatható. Ugyanazt a két operátori lockot használja. Csak `applied` vagy `recovered` hash-lánc, 038 readback, v9 runtime-kiválasztás és egészséges, pending probe nélküli Daily állapot mellett ad eredményt. A rooton megőrzött target/recovery fájloknak az aktív négy runtime-fájllal és a candidate hash-eivel egyezniük kell. A reader/personal authority teljes fájlkészlete és hash-e változatlan; a tényleges három Docker-tag az igazolt image-et futtatja, extra one-off nem engedett.
+
+Az eredeti source/bundle egyezés és a cached image belsejében lévő források hash/capability ellenőrzése is lefut, majd a root újraolvassa az aktív állapotot. Az image capability probe izolált, hálózat és szolgáltatásindítás nélküli folyamat; DB-írást vagy providerhívást nem végez. A normál alkalmazás futása nem változik. A privát kimenet `funded-upgrade-active-proof-proof.json`; ez külön fájl, az owner-stage/build/eredeti-zero proofot nem helyettesíti és nem írja át. Hiányos vagy régi átmenethez nem gyártunk pótló bizonyítékot.
+
+### Külön funded operátori módok
+
+A `scripts/contabo-fence-operator.mjs` új explicit módjai:
+
+```sh
+node --import tsx scripts/contabo-fence-operator.mjs --funded-plan
+node --import tsx scripts/contabo-fence-operator.mjs --funded-drill
+node --import tsx scripts/contabo-fence-operator.mjs --funded-rehearsal
+```
+
+Az eredeti `--plan/--drill/--rehearsal` owner-only ellenőrzései megmaradnak. Az új mód 900 s-nél frissebb aktív funded receiptet kér; a Git a tényleges aktív source commit és az operator source között minden schema/package/build/dependency eltérést elutasít. A régi registry többi image-e nem válik v9 replay image-dzsé. A root a kért proofot az eredeti aktuális fájlokból újra levezeti, nem bízik a workstation állításában. A helperlista és hash-kötések funded módban külön kiegészülnek a v9 inventory és root-proof modulokkal.
+
+A `funded-plan` nem állít le szolgáltatást, ugyanazt a fresh readonly DB/Auth/queue/foreign megfigyelést és eldobott titkosítási próbát végzi. Drill/rehearsal előtt saját friss funded plan, a tényleges exact-source Verify + Container CI és értelmezett audit kötelező. Az audit a meglévő engedélyeken túl explicit `operatorApprovedFundedReplay=true` értéket kér; egy régi owner-only plan vagy audit nem elegendő. A privát eredmények `funded-fence-transport-<mode>-proof.json` neveken külön maradnak.
+
+A root a teljes frozen funded identityt belefoglalja a fence provenance-ba. A meglévő stop/held/capture/cleanup/resume állapotgép marad használatban; változatlan konkrét ID/image, idegen workload, Origin/health, lock, határidő, held előtti/utáni authority-egyezés és leállva maradó hibakezelés mellett. Sem budget/window, sem admission nem bővíthető ezzel az úttal.
+
+### Aktív v9 image a karanténban
+
+Funded rehearsal kizárólag ugyanahhoz a source/image párhoz tartozó, pontos és még megőrzött backupot fogad el. A karantén Node folyamata a root által újra igazolt aktív v9 image-et használja a korábbi hardcoded legacy image helyett. A tiszta, pinned PostgreSQL, külső hálózat/port hiánya, verified TLS, tmpfs/erőforrás-limit, secret/provider nélküli env és az exact helper mountok változatlanok. A reviewed 001–038 migrációkból épülő tiszta katalógus után csak a whitelist szerinti TABLE DATA tölthető, egy tranzakcióban; régi SQL/trigger/ACL/owner nem importálható.
+
+Ugyanaz a strict, forrásonként korlátozott stored-policy/artifact validator fut a funded capture readonly snapshotjában és a karantén replay előtt/után. A v9 characterDelta hiánya, ismeretlen policy vagy >1000-es inventory elutasított; adatot nem dobunk el azért, hogy átmenjen. Az önálló post-replay verifier továbbra ellenőrzi az account/life törlést, revocationt, költésminimumot, queue-t, ownership/FK/grant és privacy állapotot; a szolgáltatásaktiválás tiltott. A cél a karantén ellenőrzése, nem egy régi dump élő DB-be töltése.
+
+### Ellenőrzés és fennmaradó kiadási határ
+
+A teljes helyi ellenőrzés: **128 Vitest-fájl / 1474 PASS**, **383 Python-teszt / 372 PASS + 11 környezeti SKIP**, **101 Node ops PASS**. A `pnpm typecheck`, `pnpm build`, `pnpm schemas`, `pnpm format:check`, `pnpm docs:check` és `git diff --check` sikeres; a sémaexport nem változtatott contractot. A root/Docker futás exact-source CI-eredménye még külön szükséges. A két célzott adatbázistesztfájl 28 tesztje PASS. Az új tesztek egy megtartott és egy törlendő v9 artifacttal ellenőrzik a karakterállapot byte szerinti megőrzését és a törlés érvényesülését; hiányzó karakterdeltánál a replay még a felhasználói/költségmutáció előtt elutasít. Az első fixture-próba a kézzel üresre vett karakterfold miatt elutasított; a javított fixture a valódi owned-prefix foldot használja, a production guard változatlan. Az inventory kiemelésének TypeScript hibája a visszaadott policy-lista megőrzésével rendezett.
+
+A root/Docker funded fixture új `fundedReplayProof` ellenőrzése sikeres target/recovery állapot után az eredeti runtime-fájlokon, actual image capabilityvel ellenőrzi az aktív proofot és az idegen image elutasítását. A release fixture-lista 16 ellenőrzésre bővül. A companion PostgreSQL privacy fixture v9 artifactot és megőrzött karakterállapotot visz át tényleges fizikai snapshot-copy és új funded replay útján. A host/project/installed identity és Auth-adatok továbbra dokumentált szintetikus határok. Ez nem teljes production SSH/funded fence E2E; az új operátori módok pontos célgépes image/backup/held/TLS/cleanup próbája és a független exact-source audit szükséges kiadási kapu.
+
+További nyitott tétel a mért C5 request boundnak megfelelő konkrét runtime/cost selection, a telepített Daily/privát monitor és a tesztelői alapút. E fejlesztés nem indít új modellt, archetípust vagy történetminőségi kört, nem módosítja az éles konfigurációt, és nem engedélyez main merge-et vagy funded aktiválást.

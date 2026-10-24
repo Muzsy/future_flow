@@ -11,6 +11,7 @@ async function main() {
     process.platform !== 'linux' ||
     ![
       'inspect',
+      'active-proof',
       'prepare',
       'apply',
       'recover',

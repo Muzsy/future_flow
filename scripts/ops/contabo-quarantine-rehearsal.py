@@ -69,14 +69,22 @@ def prepare_backup(daily, request, scratch, *, reviewed_releases=None):
         path.unlink()
 
 
-def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None):
+def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None, *, funded_runtime=None):
     pg_name = 'alterward-quarantine-pg-'+nonce
     target = 'aw_restore_'+nonce
     created = []
+    app = APP
+    if funded_runtime is not None:
+        if (funded_runtime.get('version') != 'alterward-funded-replay-1' or
+                funded_runtime.get('sourceCommit') != backup['manifest'].get('ownerCommit') or
+                funded_runtime.get('imageId') != backup['manifest'].get('ownerImage') or
+                not re.fullmatch(r'sha256:[a-f0-9]{64}', funded_runtime.get('imageId', ''))):
+            raise ValueError('Funded replay requires the same verified active backup image')
+        app = funded_runtime['imageId']
     # Only names/label are durable; no identity, envelope or personal data.
     def register(name, image):
         created.append((name,image)); checkpoint([n for n,_ in created])
-    for image in [APP,PG]:
+    for image in [app,PG]:
         daily.command(['docker','image','inspect',image], timeout=10)
     key,cert = scratch/'quarantine.key',scratch/'quarantine.crt'
     daily.command(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-days','1',
@@ -87,7 +95,8 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
     hosts = scratch/'quarantine.hosts'
     hosts.write_text('127.0.0.1 localhost postgres\n::1 localhost\n'); hosts.chmod(0o644)
     request = {'quarantineDatabase':target,'backupCapturedAt':backup['manifest']['capturedAt'].replace('+00:00','Z'),
-               'backupDumpSha256':backup['manifest']['dumpSha256'],'envelope':envelope,'held':held}
+               'backupDumpSha256':backup['manifest']['dumpSha256'],'envelope':envelope,'held':held,
+               **({'fundedRuntime':'v9'} if funded_runtime is not None else {})}
     def psql(sql):
         return daily.command(['docker','exec','-i',pg_name,'psql','-X','-A','-t','-U','postgres','-d',target,'-v','ON_ERROR_STOP=1'],input=sql.encode(),timeout=25)
     def node(action):
@@ -103,9 +112,9 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
             args+=['--mount','type=bind,src='+str(scratch/filename)+',dst=/app/'+filename+',readonly']
         args+=['-e','ALTERWARD_QUARANTINE_REHEARSAL=true','-e','AI_PROJECT_BUDGET_USD=0','-e','AI_USER_BUDGET_USD=0',
                '-e','DATABASE_URL=postgresql://postgres:rehearsal_unused@postgres:5432/'+target,
-               '-e','DATABASE_SSL_CA_FILE=/run/quarantine-ca.crt',APP,
+               '-e','DATABASE_SSL_CA_FILE=/run/quarantine-ca.crt',app,
                'node','node_modules/tsx/dist/cli.mjs','--tsconfig','tsconfig.scripts.json','scripts/replay-fenced-backup.ts','--'+action]
-        register(name,APP)
+        register(name,app)
         raw=daily.command(args,input=json.dumps({**request,'action':action},separators=(',',':')).encode(),timeout=165)
         if not 0 < len(raw) <= 8192:
             raise ValueError('Bounded aggregate quarantine result required')

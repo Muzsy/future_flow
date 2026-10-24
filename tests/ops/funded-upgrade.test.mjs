@@ -51,6 +51,7 @@ function proofs() {
           'frozenPolicies',
           'expiredPreparationArchive',
           'probeCleanup',
+          'fundedReplayProof',
         ].map((k) => [k, true]),
       ),
     },

@@ -224,6 +224,51 @@ describe('independent authority and quarantined privacy restore', () => {
       await expect(runQuarantinedReplay(forbidden, raw)).rejects.toThrow();
     expect(queried).toBe(false);
   });
+  it('validates v9 artifacts before and after funded replay and preserves the retained character state', async () => {
+    const db = await restored();
+    const before = await db.query(
+      'SELECT narrative_artifact FROM aw_periods WHERE id=$1',
+      [fixture.retainedV9NarrativePeriod],
+    );
+    expect(before[0]?.narrative_artifact).toHaveProperty('characterDelta');
+    const result = await runQuarantinedReplay(db, {
+      ...heldRequest(),
+      fundedRuntime: 'v9',
+    });
+    expect(result.independentReadOnlyPostReplayVerified).toBe(true);
+    expect(
+      await db.query('SELECT narrative_artifact FROM aw_periods WHERE id=$1', [
+        fixture.retainedV9NarrativePeriod,
+      ]),
+    ).toEqual(before);
+    expect(
+      await db.query('SELECT id FROM aw_periods WHERE id=$1', [
+        fixture.deletedLifeNarrativePeriod,
+      ]),
+    ).toEqual([]);
+  });
+  it('rejects missing v9 character state before mutating restored users or budgets', async () => {
+    const db = await restored();
+    await db.query(
+      `INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact)
+      SELECT gen_random_uuid(),user_id,life_id,branch_id,period_no+1,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact-'characterDelta'
+      FROM aw_periods WHERE id=$1`,
+      [fixture.retainedV9NarrativePeriod],
+    );
+    const users = await db.query('SELECT id,status FROM ff_users ORDER BY id');
+    const budgets = await db.query(
+      'SELECT * FROM aw_budget_accounts ORDER BY id',
+    );
+    await expect(
+      runQuarantinedReplay(db, { ...heldRequest(), fundedRuntime: 'v9' }),
+    ).rejects.toThrow();
+    expect(
+      await db.query('SELECT id,status FROM ff_users ORDER BY id'),
+    ).toEqual(users);
+    expect(
+      await db.query('SELECT * FROM aw_budget_accounts ORDER BY id'),
+    ).toEqual(budgets);
+  });
   it('rejects executable drift before changing any restored account row', async () => {
     const db = await restored();
     const before = await db.query('SELECT id,status FROM ff_users ORDER BY id');
