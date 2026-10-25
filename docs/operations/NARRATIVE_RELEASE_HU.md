@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-24
+last_reviewed: 2026-10-25
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -21,7 +21,7 @@ A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, imple
 
 **Tulajdonosi döntés:** a motor további finomítása helyett a cél annak technikai stabilizálása és a kis zárt béta kiadása. Ez felülírja a C5 mérés után következőnek javasolt history-auditot és kontextuskontrollt. Ezek, az új promptminőségi iterációk, archetípusok és a 048-as fejlesztés DEFERRED. Az alábbi három munkacsomag végrehajtási sorrend; a bizonyítékok hiánya nem indít új, általános motorfejlesztést.
 
-**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A jelenlegi főág v8, ezért még nincs egyesített, kiadásra kész v9 SHA. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
+**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A jelenlegi főág v8; az egyesített fejlesztési jelölt a #80 csomagban áll, végső kiadási auditja és main merge-je még nyitott. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
 
 ### 1. Egy kiadási jelölt és a motor technikai lezárása
 
@@ -48,6 +48,31 @@ A bétaindítást **blokkolja** az adatvesztés/adatvédelmi rés, hibás canon/
 Az első kijelölt tesztelőn ellenőrzött indulás után a korábban tervezett háromfős kis kör készíthető elő a pontos személyek/ablak/keret rögzítésével. A 2026-10-19-i 10 USD / háromfős terv továbbra tervezési alap, nem új funded aktiválás; a jelenlegi ablakot és költést nem írjuk felül. Feedback fejezetenként, rövid kérdőív a 3. és 6. fejezetnél, monitor és működő leállítás/visszaállás. A béta tapasztalatai döntik el, mely minőségi hibát érdemes később javítani.
 
 **Lezárási szabály:** a három munkacsomag szükséges technikai bizonyítékai után konkrét candidate/cohort/window/budget/apply csomag kerül a tulajdonos elé. A biztonsági kapukat megtartjuk, új teljes paid/humán N08, editor-kalibráció, history-kutatás vagy archetípus nem kerül a zárt béta elé. Nyilvános/fizetős kiadásnak továbbra külön minőségi és termékkapui vannak.
+
+
+
+### Egyesített kiadási jelölt — #80, 2026-10-25
+
+Az aktív `codex/v9-beta-release-candidate` ág a #79 végső `1c8c3de5c1158f62f5fb49df2e910f81a23d26a1` forrásából indul, `main` célú, egyesített review-csomag. A 2026-10-25-én lekért távoli `main` továbbra `a666c905ef953cc696d5d8a0faa4f9169ec01824`; ez a jelölt őse, a `git merge-tree` konfliktusmentes és a jelölt fáját adja. A fő munkakönyvtár helyi `main` ága más operátori történetet tartalmaz; azt nem reseteltük és nem használtuk kiadási alapnak.
+
+A #56, #57–#61, #62–#71, #73, #74, #78 és #79 jelenlegi fejei mind valódi Git-ősök a jelöltben (a sorban #72, #75–#77 Issue, nem PR). A #56 és #62 integrációs merge-je `01b18b7`, illetve `8cc667e`. Az `apps/` és `packages/` teljes committed tartalma **bájtazonos a befagyasztott C5 `7bd4d42` állapottal**. A konszolidáció csak a kiadási dokumentációt rendezi; új motor-, séma-, költség- vagy runtime-szabály nincs.
+
+A #79 pontos forrásának [CI-je](https://github.com/Muzsy/future_flow/actions/runs/40177172040) Verify+Container SUCCESS: 1477 alkalmazásteszt; Python 393 PASS / 11 SKIP és külön root csoportok 3+4+9 PASS; mindkét tényleges Docker-próba sikeres. Külön read-only review APPROVE a `cdb8bb8 → 1c8c3de` diffre, 21/21 saját célzott teszttel. A két P2 cleanup-hiba javítva. **Ez a review nem a teljes `main → jelölt` diff auditja.** Az egyesített jelölt teljes CI-jét, pontos végső SHA-ját és review-eredményét a #80-hoz kapcsolt PR rögzíti; a korábbi rész-PR eredményeit nem címkézzük át.
+
+A `main` merge, a teljes kiadási diff független review-ja és a célgépes proof továbbra nyitott. A régi PR-k nem kerülnek külön squash/rebase integrációba: a jóváhagyott, teljes jelölt egyszeri beolvasztása után rendezhető a beolvadt vagy helyettesített stack GitHub-állapota. Addig mindegyik megmarad eredettörténetként. A majdani `main` pontos commitjához friss CI/audit/build/image/fixture kell; dokumentációs commit vagy merge után sem írható át régi proof.
+
+#### Következő konkrét operátori átadás
+
+| Sorrend | Előkészített elem / még szükséges eredmény | Megállási feltétel |
+| --- | --- | --- |
+| 1 | Egyetlen `main` célú jelölt, a teljes diff független review-ja és saját zöld CI; ezután a konkrét main merge tulajdonosi engedélye. | Rész-PR review-ja, eltérő SHA, közben megváltozó main vagy új finding. |
+| 2 | Jóváhagyott mainből clean, privát Linux checkout és tényleges build. A target/recovery ugyanaz az immutable image lehet; image ID és bundle valódi mérésből kerül a privát selectionbe. | Kitalált digest/útvonal, fejlesztési branchre átírt main-őr vagy más source-ból származó image. |
+| 3 | Külön jóváhagyott célgépes standalone próba a #76 eljárása szerint. Előtte kapacitás és cached függőségek felmérése; utána 16 check, privacy replay, cleanup és eredeti idegen workload egyezés. | Hiányzó erőforrás, más image-re érvényes CI-artifact vagy sikertelen cleanup; utóbbinál privát intent megőrzendő. |
+| 4 | Tényleges Daily/private-monitor telepítési és readback terv, eredeti titkosított mentés + offsite + izolált restore/fence/TLS bizonyíték, friss Access/Auth/reader/DB megfigyelés. | Nem ellenőrzött installált source, régi restore, ismeretlen költés/reservation vagy identity-drift. |
+| 5 | A #77 szerint konkrét résztvevők, dátumok, új-window/admission eljárás és számszerű paid engedély. A 10 USD a tervezett bétafeltöltés; a megadott 4,77 EUR nem új kiadási limit. | Régi ablak/ledger resetje, allowance nélküli hívás vagy pusztán a runtime selectionbe írt új user. |
+| 6 | Külön jóváhagyott prepare/restore/apply/active-proof, majd egy tesztelő teljes belépés–választás–folytatás–új session–export útja; csak ezután a kis kör. | Nem igazolt recovery/monitor vagy hibás mentés/elszámolás. |
+
+A runtime-minta továbbra v9 / fiction-v2 / 196608 B / 300000 ms; a benne lévő UUID szintetikus és nem admission. A későbbi privát csomag helye a meglévő `.local/contabo-release/`: release selection, tényleges operator-interpreted audit, source/image fixture, prepare/restore/active proof. A történeti receiptek és ledger változatlanok; sem üres, sem szintetikus audit-PASS fájlt nem állítunk elő. A célgépes próba eredménye az új root outputkönyvtárban marad, a repóba csak titok- és személyesadat-mentes összesítés kerül.
 
 ## Történeti v6 bizonyíték és költési határ — 2026-10-18
 
