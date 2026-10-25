@@ -889,7 +889,13 @@ def exercise(context, *, scope='ci'):
                 # The actual production capability lifecycle owns this direct
                 # Docker run; no fixture wrapper rewrites its name/intent/cleanup.
                 hang = "require('node:fs').readFileSync(0);setInterval(()=>{},1000)"
+                plain.cleanup_capability()
+                assert daily.funded_capability_state(system.root)['state'] == 'cleaned'
                 saved_capability = (system.root/'capability.json').read_bytes()
+                # The prior completed fixture receipt binds the real command.
+                # Start a fresh synthetic intent for the inert payload override;
+                # production never reinterprets a receipt with another command.
+                (system.root/'capability.json').unlink()
                 original_run = upgrade.run
                 def capability_timeout(args, **kwargs):
                     if args[:2] == ['docker', 'run']:
