@@ -137,7 +137,7 @@ type Account = {
 };
 async function accounts(tx: Database, lock = false): Promise<Account[]> {
   const rows =
-    await tx.query<Account>(`SELECT id,user_id,limit_micro::text,accounted_micro::text,created_at::text
+    await tx.query<Account>(`SELECT id,user_id,limit_micro::text,accounted_micro::text,(created_at AT TIME ZONE 'UTC')::text AS created_at
     FROM public.aw_budget_accounts ORDER BY id LIMIT 10001${lock ? ' FOR UPDATE' : ''}`);
   if (rows.length > 10000) refuse();
   return rows;
@@ -197,7 +197,79 @@ export async function captureSuccessorAccounts(
     version: VERSION,
     planSha256: hash(plan),
     accountsSha256: hash(rows),
+    beforeAccounts: rows,
     closingAccountIds: old.map((row) => row.id),
+  };
+}
+export type SuccessorAccounts = Awaited<
+  ReturnType<typeof captureSuccessorAccounts>
+>;
+
+// Read-only reconciliation after an uncertain COMMIT response. Original rows
+// must match byte-for-byte except the explicitly closed limits; all four new
+// accounts must be untouched. A mixed state or real new spending is not reset.
+export async function reconcileSuccessorAccounts(
+  tx: Database,
+  previous: unknown,
+  selection: unknown,
+  plan: SuccessorPlan,
+  expected: SuccessorAccounts,
+) {
+  if (hash(successorPlan(previous, selection, plan.observedAt)) !== hash(plan))
+    refuse();
+  exact(expected, [
+    'version',
+    'planSha256',
+    'accountsSha256',
+    'beforeAccounts',
+    'closingAccountIds',
+  ]);
+  if (
+    expected.version !== VERSION ||
+    expected.planSha256 !== hash(plan) ||
+    !Array.isArray(expected.beforeAccounts) ||
+    expected.beforeAccounts.length > 10000 ||
+    hash(expected.beforeAccounts) !== expected.accountsSha256
+  )
+    refuse();
+  const closing = closingAccounts(plan, expected.beforeAccounts);
+  if (hash(expected.closingAccountIds) !== hash(closing.map((row) => row.id)))
+    refuse();
+  await unsettled(tx);
+  const current = await accounts(tx);
+  if (hash(current) === expected.accountsSha256)
+    return {
+      state: 'uncommitted' as const,
+      accountsSha256: hash(current),
+      paidAiCalls: 0,
+    };
+  const closed = new Set(closing.map((row) => row.id));
+  const expectedOld = expected.beforeAccounts.map((row) =>
+    closed.has(row.id) ? { ...row, limit_micro: '0' } : row,
+  );
+  const oldIds = new Set(expected.beforeAccounts.map((row) => row.id));
+  const retained = current.filter((row) => oldIds.has(row.id));
+  const added = current.filter((row) => !oldIds.has(row.id));
+  if (hash(retained) !== hash(expectedOld) || added.length !== 4) refuse();
+  for (const row of added) {
+    const index = plan.nextKeys.users.indexOf(row.id);
+    const project = row.id === plan.nextKeys.project;
+    const created = Date.parse(row.created_at.replace(' ', 'T') + 'Z');
+    if (
+      (!project && index < 0) ||
+      row.user_id !==
+        (project ? null : plan.next.participants[index]!.userId) ||
+      row.limit_micro !== (project ? '10000000' : '3330000') ||
+      row.accounted_micro !== '0' ||
+      !Number.isFinite(created) ||
+      created < Date.parse(plan.observedAt)
+    )
+      refuse();
+  }
+  return {
+    state: 'committed' as const,
+    accountsSha256: hash(current),
+    paidAiCalls: 0,
   };
 }
 // Call ONLY inside an explicitly SERIALIZABLE transaction, under the operator's
@@ -244,12 +316,12 @@ export async function closeAndSeedSuccessorAccounts(
     [closing.map((row) => row.id)],
   );
   await tx.query(
-    'INSERT INTO public.aw_budget_accounts(id,limit_micro,accounted_micro) VALUES($1,10000000,0)',
+    'INSERT INTO public.aw_budget_accounts(id,limit_micro,accounted_micro,created_at) VALUES($1,10000000,0,clock_timestamp())',
     [plan.nextKeys.project],
   );
   for (const [i, id] of plan.nextKeys.users.entries())
     await tx.query(
-      'INSERT INTO public.aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES($1,$2,3330000,0)',
+      'INSERT INTO public.aw_budget_accounts(id,user_id,limit_micro,accounted_micro,created_at) VALUES($1,$2,3330000,0,clock_timestamp())',
       [id, plan.next.participants[i]!.userId],
     );
   const after = await accounts(tx);

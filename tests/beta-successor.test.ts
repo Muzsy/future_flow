@@ -9,6 +9,7 @@ import {
   successorPlan,
   captureSuccessorAccounts,
   closeAndSeedSuccessorAccounts,
+  reconcileSuccessorAccounts,
 } from '../scripts/lib/beta-successor';
 
 const users = Array.from({ length: 3 }, (_, i) => ({
@@ -371,5 +372,122 @@ it('refuses autocommit even when the session default isolation is serializable',
     await engine.exec(
       'DELETE FROM aw_budget_reservations;DELETE FROM aw_budget_accounts;RESET default_transaction_isolation',
     );
+  }
+});
+
+it('recognizes a lost COMMIT response without re-closing, reseeding or changing a row', async () => {
+  const i = input();
+  await rollback(async (tx) => {
+    await seeded(tx, i.plan);
+    const expected = await captureSuccessorAccounts(tx, i.plan);
+    expect(
+      (
+        await reconcileSuccessorAccounts(
+          tx,
+          i.previous,
+          i.selection,
+          i.plan,
+          expected,
+        )
+      ).state,
+    ).toBe('uncommitted');
+    await closeAndSeedSuccessorAccounts(
+      tx,
+      i.previous,
+      i.selection,
+      i.plan,
+      expected,
+    );
+    const committed = await tx.query(
+      'SELECT * FROM aw_budget_accounts ORDER BY id',
+    );
+    for (let n = 0; n < 2; n++)
+      expect(
+        (
+          await reconcileSuccessorAccounts(
+            tx,
+            i.previous,
+            i.selection,
+            i.plan,
+            expected,
+          )
+        ).state,
+      ).toBe('committed');
+    expect(
+      await tx.query('SELECT * FROM aw_budget_accounts ORDER BY id'),
+    ).toEqual(committed);
+  });
+});
+
+it('does not label a mixed state or new spending as a clean completed closure', async () => {
+  for (const kind of [
+    'partial',
+    'new-spend',
+    'old-spend',
+    'old-reopen',
+    'new-limit',
+    'new-identity',
+    'snapshot-edit',
+  ]) {
+    const i = input();
+    await rollback(async (tx) => {
+      await seeded(tx, i.plan);
+      const expected = await captureSuccessorAccounts(tx, i.plan);
+      if (kind === 'partial')
+        await tx.query(
+          'UPDATE aw_budget_accounts SET limit_micro=0 WHERE id=$1',
+          [i.plan.previousKeys.project],
+        );
+      else
+        await closeAndSeedSuccessorAccounts(
+          tx,
+          i.previous,
+          i.selection,
+          i.plan,
+          expected,
+        );
+      if (kind === 'new-spend')
+        await tx.query(
+          'UPDATE aw_budget_accounts SET accounted_micro=1 WHERE id=$1',
+          [i.plan.nextKeys.project],
+        );
+      if (kind === 'old-spend')
+        await tx.query(
+          'UPDATE aw_budget_accounts SET accounted_micro=accounted_micro+1 WHERE id=$1',
+          [i.plan.previousKeys.project],
+        );
+      if (kind === 'old-reopen')
+        await tx.query(
+          'UPDATE aw_budget_accounts SET limit_micro=2000000 WHERE id=$1',
+          [i.plan.previousKeys.project],
+        );
+      if (kind === 'new-limit')
+        await tx.query(
+          'UPDATE aw_budget_accounts SET limit_micro=10000001 WHERE id=$1',
+          [i.plan.nextKeys.project],
+        );
+      if (kind === 'new-identity')
+        await tx.query('UPDATE aw_budget_accounts SET user_id=$2 WHERE id=$1', [
+          i.plan.nextKeys.users[0],
+          users[1]!.userId,
+        ]);
+      if (kind === 'snapshot-edit')
+        expected.beforeAccounts[0]!.accounted_micro = '999';
+      const before = await tx.query(
+        'SELECT * FROM aw_budget_accounts ORDER BY id',
+      );
+      await expect(
+        reconcileSuccessorAccounts(
+          tx,
+          i.previous,
+          i.selection,
+          i.plan,
+          expected,
+        ),
+      ).rejects.toThrow();
+      expect(
+        await tx.query('SELECT * FROM aw_budget_accounts ORDER BY id'),
+      ).toEqual(before);
+    });
   }
 });
