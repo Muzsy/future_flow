@@ -1190,7 +1190,15 @@ def exercise(context, *, scope='ci'):
                 lambda: run(['docker', 'image', 'rm', oldTag])
             )
         if oldImage:
-            cleanup(lambda: run(['docker', 'image', 'rm', oldImage]))
+            def cleanup_derived_image():
+                # Removing its final tag can already remove the derived image.
+                ids = run(['docker', 'image', 'ls', '--no-trunc', '-q']).decode().split()
+                if oldImage in ids:
+                    value = json.loads(run(['docker', 'image', 'inspect', oldImage]))[0]
+                    if value['Config'].get('Labels', {}).get('com.alterward.fixture') != 'legacy-' + nonce:
+                        raise ValueError('Foreign derived image cannot be cleaned')
+                    run(['docker', 'image', 'rm', oldImage])
+            cleanup(cleanup_derived_image)
         if createdBaseTag:
             cleanup(lambda: run(['docker', 'image', 'rm', baseTag]))
         for item in patches[::-1]:
