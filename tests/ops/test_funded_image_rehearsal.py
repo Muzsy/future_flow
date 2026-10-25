@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -139,6 +140,110 @@ class ImageRehearsalBoundaries(unittest.TestCase):
         with patch.object(r.os, 'geteuid', return_value=1000), patch.object(r, 'run') as run:
             with self.assertRaises(ValueError): r.execute(IMAGE, Path('/tmp/unused-proof'))
             run.assert_not_called()
+
+    def test_failure_diagnostic_excludes_sensitive_exception_and_process_values(self):
+        errors = [AssertionError('private-message-marker'),
+                  subprocess.CalledProcessError(7, ['docker', 'run', 'PASSWORD=private-message-marker'],
+                                                output=b'private-output-marker', stderr=b'private-stderr-marker'),
+                  subprocess.TimeoutExpired(['node', 'private-argument-marker'], 3)]
+        for error in errors:
+            with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp).resolve()/'proof'
+                with patch.object(r, 'isolated_owned', side_effect=error):
+                    with self.assertRaises(type(error)) as raised:
+                        r.isolated(IMAGE, output, BINDING)
+                self.assertIs(raised.exception, error)
+                report = output/'image-rehearsal-failure.json'
+                text = report.read_text()
+                value = json.loads(text)
+                self.assertFalse(value['releaseProof'])
+                self.assertEqual(value['sourceCommit'], BINDING['sourceCommit'])
+                self.assertEqual(value['imageId'], IMAGE)
+                self.assertEqual(value['exceptions'][0]['type'], type(error).__name__)
+                self.assertEqual(report.stat().st_mode & 0o777, 0o600)
+                for marker in ('private-message-marker', 'private-output-marker', 'private-stderr-marker',
+                               'private-argument-marker', 'PASSWORD', str(Path(tmp).resolve())):
+                    self.assertNotIn(marker, text)
+                if isinstance(error, subprocess.CalledProcessError):
+                    self.assertEqual(value['exceptions'][0]['program'], 'docker')
+                    self.assertEqual(value['exceptions'][0]['exitCode'], 7)
+                for item in value['exceptions']:
+                    for frame in item['frames']:
+                        self.assertFalse(Path(frame['file']).is_absolute())
+                        self.assertGreater(frame['line'], 0)
+                self.assertFalse((output/'funded-upgrade-fixture-proof.json').exists())
+
+    def test_cleanup_exception_keeps_the_original_failure_location_after_scratch_is_removed(self):
+        def failing_engine(*_):
+            try:
+                raise AssertionError('sensitive original failure')
+            finally:
+                raise RuntimeError('sensitive cleanup failure')
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp).resolve()/'proof'
+            with patch.object(r, 'isolated_owned', side_effect=failing_engine):
+                with self.assertRaisesRegex(RuntimeError, 'cleanup failure'):
+                    r.isolated(IMAGE, output, BINDING)
+            value = json.loads((output/'image-rehearsal-failure.json').read_text())
+            self.assertEqual([v['type'] for v in value['exceptions']], ['RuntimeError', 'AssertionError'])
+            original = value['exceptions'][1]['frames']
+            self.assertTrue(any(v['file'] == 'tests/ops/test_funded_image_rehearsal.py' for v in original))
+            self.assertNotIn('sensitive', json.dumps(value))
+
+    def test_failure_reporting_never_replaces_old_output_or_follows_a_report_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve(); output = root/'proof'
+            r.reserve_output(output)
+            original = root/'original'; original.write_bytes(b'old-proof')
+            (output/'image-rehearsal-failure.json').symlink_to(original)
+            with self.assertRaises(FileExistsError):
+                r.save_failure(output, IMAGE, BINDING, ValueError('unused'))
+            self.assertEqual(original.read_bytes(), b'old-proof')
+            with patch.object(r, 'isolated_owned') as execute:
+                with self.assertRaises(FileExistsError): r.isolated(IMAGE, output, BINDING)
+                execute.assert_not_called()
+            output.chmod(0o755)
+            with self.assertRaises(ValueError): r.save_failure(output, IMAGE, BINDING, ValueError('unused'))
+
+    def test_diagnostic_io_failure_preserves_original_exception_and_interrupt_is_recorded(self):
+        for error in (AssertionError('original'), KeyboardInterrupt('interrupted')):
+            with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp).resolve()/'proof'
+                with patch.object(r, 'isolated_owned', side_effect=error), \
+                     patch.object(r, 'save_failure', side_effect=OSError('diagnostic disk failure')):
+                    with self.assertRaises(type(error)) as raised:
+                        r.isolated(IMAGE, output, BINDING)
+                self.assertIs(raised.exception, error)
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp).resolve()/'proof'
+            with patch.object(r, 'isolated_owned', side_effect=KeyboardInterrupt('private interruption')):
+                with self.assertRaises(KeyboardInterrupt): r.isolated(IMAGE, output, BINDING)
+            self.assertEqual(json.loads((output/'image-rehearsal-failure.json').read_text())['exceptions'][0]['type'],
+                             'KeyboardInterrupt')
+
+    def test_success_does_not_publish_a_failure_diagnostic(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp).resolve()/'proof'
+            proof = {'fixture': 'synthetic'}
+            with patch.object(r, 'isolated_owned', return_value=proof), patch.object(r, 'save_failure') as failure:
+                self.assertIs(r.isolated(IMAGE, output, BINDING), proof)
+                failure.assert_not_called()
+            self.assertFalse((output/'image-rehearsal-failure.json').exists())
+
+    def test_failure_diagnostic_bounds_exception_chains_and_type_names(self):
+        errors = [ValueError('sensitive') for _ in range(12)]
+        for first, second in zip(errors, errors[1:]): first.__context__ = second
+        errors[-1].__context__ = errors[0]
+        errors[0] = type('private-type-marker-'*40, (Exception,), {})()
+        errors[0].__context__ = errors[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            output = r.reserve_output(Path(tmp).resolve()/'proof')
+            r.save_failure(output, IMAGE, BINDING, errors[0])
+            text = (output/'image-rehearsal-failure.json').read_text()
+            self.assertEqual(len(json.loads(text)['exceptions']), 8)
+            self.assertEqual(json.loads(text)['exceptions'][0]['type'], 'Exception')
+            self.assertNotIn('private-type-marker', text)
+            self.assertNotIn('sensitive', text)
 
     def test_legacy_ci_entry_point_still_rejects_a_non_ci_caller(self):
         wrapper_path = path.with_name('contabo-funded-upgrade-fixture.py')

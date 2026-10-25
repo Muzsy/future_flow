@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: engineering
-last_updated: 2026-10-24
+last_updated: 2026-10-25
 canonical_parent: NARRATIVE_RELEASE_HU.md
 ---
 
@@ -350,3 +350,12 @@ A javított SHA saját teljes CI-je és az eredeti reviewer exact-source re-revi
 
 
 Az első javított Container CI (`40180187187`, `4c722d2`) az inert capability-teszt indításakor elutasított: az előző lezárt receipt még a valódi parancshashhez tartozott, a teszt már az inert parancsra váltott. A production guard helyesen zárt; a javítás kizárólag a fixture-ben a korábbi helper egyeztetése és lezárt állapotának ellenőrzése után indít friss, szintetikus intentet a payload-override-hoz. A már lezárt korábbi fixture-receiptet csak sikeres egyeztetés után állítja vissza. Az éles command/source/ID kapu nem lazult; új CI és exact-source re-review szükséges.
+
+
+### Célgépes sikertelen futás és privát hibadiagnosztika — #85/#86, 2026-10-25
+
+A `c3e7393` main saját image-e elkészült, de a tényleges standalone próba exit 1; nincs target fixture proof. Az eredeti konténerek változatlanok, a disposable erőforrások eltűntek. A generic CLI-üzenet és a cleanup utáni evidence nem tartalmazza a kiváltó kivételt; azt nem szabad feltételezett engine/host hibának nevezni. [Tényleges image/source, időpontok és readback](NARRATIVE_RELEASE_HU.md#engedélyezett-image-építés-és-izolált-próba--85-2026-10-25).
+
+A #86 javítás az output kizárólag sikeres új létrehozása után fogja közre az eredeti izolált menetet. Hibánál a saját 0700 outputban új, 0600, fsync-elt `image-rehearsal-failure.json` keletkezik: source/bundle/image kötés, időpont, `releaseProof:false`, legfeljebb 8 kivétel és kivételenként 32 `scripts/`/`tests/` relatív forráshely. Csak típus és opcionális whitelist programnév/exit code; nincs hibaüzenet, locals, nyers parancsargumentum, stdout/stderr vagy SQL/credential. A cleanup során felülrétegződő hiba eredeti context/cause lánca is megőrizhető, a scratch eltávolítása után is. Nem írható régi outputba vagy meglévő/symlink reportba; a diagnosztika írási hibája az eredeti hibát nem helyettesíti. A cleanup-, forrás-, image- és 16-check proofkapuk változatlanok. Siker nem ír failure-receiptet.
+
+Ez előkészített forrásjavítás, nem utólagos napló a régi futáshoz és nem az ismeretlen teszthiba megoldása. Új exact-source CI/review és friss source/image próba szükséges; a régi sikertelen receipt nem címkézhető át. Nincs production rollout, Daily update, paid hívás vagy új ablak/admission.

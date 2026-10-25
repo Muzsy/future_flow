@@ -163,6 +163,60 @@ def execute(image, output):
 
 def isolated(image, output, binding):
     output = reserve_output(output)
+    try:
+        return isolated_owned(image, output, binding)
+    except BaseException as error:
+        try:
+            save_failure(output, image, binding, error)
+        except Exception:
+            # Keep the original exception and cleanup result authoritative.
+            print('Private rehearsal failure diagnostic could not be saved.', file=sys.stderr)
+        raise
+
+
+def save_failure(output, image, binding, error):
+    """Failure-only metadata; never serialize messages, locals or command arguments."""
+    info = output.lstat()
+    if (output.resolve() != output or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Original private rehearsal output required')
+    exceptions, seen = [], set()
+    while error is not None and id(error) not in seen and len(exceptions) < 8:
+        seen.add(id(error))
+        frames, trace = [], error.__traceback__
+        while trace is not None and len(frames) < 32:
+            try:
+                name = str(Path(trace.tb_frame.f_code.co_filename).resolve().relative_to(REPO))
+            except ValueError:
+                name = None
+            if name is not None and len(name) <= 240 and name.startswith(('scripts/', 'tests/')):
+                frames.append({'file': name, 'line': trace.tb_lineno})
+            trace = trace.tb_next
+        kind = type(error).__name__
+        item = {'type': kind if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,79}', kind) else 'Exception', 'frames': frames}
+        if isinstance(error, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+            command = error.cmd
+            program = Path(command[0]).name if isinstance(command, (list, tuple)) and command and isinstance(command[0], str) else None
+            item['program'] = program if program in {'docker', 'git', 'node', 'openssl', 'python3'} else 'other'
+            if isinstance(error, subprocess.CalledProcessError):
+                item['exitCode'] = error.returncode
+        exceptions.append(item)
+        error = error.__cause__ or error.__context__
+    report = {'version': 'alterward-image-rehearsal-failure-1',
+              'sourceCommit': binding['sourceCommit'], 'bundleSha256': binding['bundleSha256'],
+              'imageId': image, 'capturedAt': dt.datetime.now(dt.timezone.utc).isoformat(),
+              'releaseProof': False, 'exceptions': exceptions}
+    fd = os.open(output/'image-rehearsal-failure.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        handle.write(json.dumps(report, sort_keys=True, separators=(',', ':'))+'\n')
+        handle.flush()
+        os.fsync(handle.fileno())
+    fd = os.open(output, os.O_DIRECTORY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
+
+
+def isolated_owned(image, output, binding):
     nonce = uuid.uuid4().hex[:24]
     network = 'alterward-image-rehearsal-' + nonce
     name = network + '-postgres'
