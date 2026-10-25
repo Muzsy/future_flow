@@ -11,7 +11,7 @@ related:
 
 # Személyes narratív és fikciós kiadás: előkészítés és fennmaradó kapuk
 
-Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; nyilvános/fizetős kiadáshoz a teljes paid/humán N08 mérés kötelező, zárt bétára a lent rögzített helyettesítő kapurend érvényes. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
+Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; nyilvános/fizetős kiadáshoz a teljes paid/humán N08 mérés kötelező, zárt bétára a lent rögzített helyettesítő kapurend érvényes. A production megfigyelések határát és időpontját a célgépes előkészítési szakasz külön rögzíti; a korábbi fejlesztési bizonyítékok nem éles állapotigazolások.
 
 ## Main-integráció — 2026-10-25
 
@@ -326,11 +326,11 @@ A #81 teljes `main → c68ab037` review két P2 hibája célzott operátori jav�
 
 ## Main utáni célgépes előkészítés — 2026-10-25
 
-**Státusz:** offline előkészítés. Célgépes hozzáférés vagy szerveroldali parancs nem futott. A mainbe olvasztás kész; a main saját CI-eredményét a #81 és a dokumentációs követő PR rögzíti. A további main commitokhoz a saját forrás/CI/image bindingot kell választani, nem a korábbi merge SHA-ját kézzel az új HEAD-re átírni.
+**Státusz:** a #82 beolvadt (`c3e7393b62c3a8f9cd4e7bd8385c979966ccb993`); a tulajdonos „Haladj tovább” utasítása alapján a #83 csak olvasó célgépes felmérése elkészült. Telepítés/build/image-próba vagy alkalmazás-átállítás még nem futott. A mainbe olvasztás kész; a #81 main CI-je zöld, a #82 utáni `c3e7393` saját [Verify/Container futása](https://github.com/Muzsy/future_flow/actions/runs/40198316929) szintén sikeres. A további main commitokhoz a saját forrás/CI/image bindingot kell választani, nem a korábbi merge SHA-ját kézzel az új HEAD-re átírni.
 
-### 1. Csak olvasó célgépes előellenőrzés — későbbi külön engedéllyel
+### 1. Csak olvasó célgépes előellenőrzés — elvégezve, #83
 
-A meglévő pinned SSH/host identityvel, a kijelölt Linux/Docker hoston először az alábbi minimális adatokat kell bekérni. Nem kell teljes environmentet, Docker-inspectet vagy credentialfájlt reportba másolni.
+A meglévő eredeti SSH-kulccsal és szigorúan ellenőrzött eredeti hostpinnel, SSH-config/agent/forwarding nélkül történt a felmérés. A következő parancsok a minimális kapacitásellenőrzést mutatják; a tényleges bounded Python-kérés emellett csak kiválasztott Docker/systemd/Daily mezőket olvasott. Nem kell teljes environmentet, Docker-inspectet vagy credentialfájlt reportba másolni.
 
 ```sh
 uname -sr
@@ -343,7 +343,7 @@ df -Pm /tmp
 docker image inspect --format '{{.Id}}' postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
 ```
 
-Elvárt eredmény: támogatott Linux/root Docker műveleti környezet, Compose és valamennyi előre telepített függőség, cached pinned PostgreSQL, legalább 3 GiB tényleges szabad memória és 2 GiB scratch. A teljes host CPU/memória-korlát és más alkalmazások terhelése külön operátori értékelés. Ezeket most nem mértük; elégtelen kapacitásnál külön Linux/Docker host szükséges, nem automatikus csomagtelepítés vagy a limit lazítása.
+Elvárt eredmény: támogatott Linux/root Docker műveleti környezet, Compose és valamennyi előre telepített függőség, cached pinned PostgreSQL, legalább 3 GiB tényleges szabad memória és 2 GiB scratch. A teljes host CPU/memória-korlát és más alkalmazások terhelése külön operátori értékelés. Az alábbi mérés pillanatfelvétel; közvetlenül a későbbi próba előtt ismét ellenőrizendő. Elégtelen kapacitásnál külön Linux/Docker host szükséges, nem automatikus csomagtelepítés vagy a limit lazítása.
 
 ### 2. A forrás és a build rögzítése
 
@@ -354,3 +354,28 @@ Jóváhagyott, tiszta, privát main checkout szükséges. A fő helyi munkaköny
 A [#76 standalone parancs](FUNDED_RUNTIME_UPGRADE_HU.md#előfeltétel-és-későbbi-célgépes-használat) az új, tényleges digest és új root outputkönyvtár mellett futtatható majd. Saját TLS/PostgreSQL/internal-network és szintetikus adatok; nincs providerkulcs vagy valódi generation worker. Kötelező a 16 check, image-only és v9 replay, production capability timeout/SIGKILL cleanup, idegen workload egyezés és teljes cleanup. Hibánál nincs PASS; pending intent és privát munkakönyvtár megőrzendő.
 
 Az image-próba sikere után a telepített Daily v4/private-monitor/readback, az eredeti titkosított mentés/offsite és izolált restore/fence/TLS, a friss Access/Auth/reader/DB állapot és a tényleges operator-interpreted audit szükséges. A #77 dátumok/résztvevők/successor-window/admission és paid cap még külön tétel. V9 apply és a valódi tesztelői alapút a meglévő konkrét jóváhagyási kapuk után jön. A mostani előkészítés nem hosszabbítja a régi ablakot, nem resetel ledgert és nem használja fel a megmaradt provider-egyenleget.
+
+
+### Megfigyelt célgépes állapot — #83, 2026-10-25 14:42 CET
+
+| Ellenőrzés | Tényleges eredmény és határ |
+| --- | --- |
+| Kapacitás | Linux/root elérhető; 4 CPU, kb. 7,76 GiB Docker-memória; 5,15 GiB elérhető hostmemória, 71,63 GiB `/tmp` szabad hely. A 3 GiB/2 GiB minimum teljesül; terhelés alatti tartalékot ez nem igazol. |
+| Docker és függőségek | Docker 29.1.3, Compose 5.1.4; git/node/openssl/python3 elérhető; a runbook pinned PostgreSQL image-e cache-elt. `age` és `age-keygen` a runner fix PATH-ján hiányzik. A külön read-only ellenőrzés az eredeti `/root/alterward-ops/tools/usr/bin/` alatt mindkettőt root-tulajdonú, regular, nem symlink, 0755 fájlként megtalálta; új telepítés szükségessége nincs igazolva. A runner előfeltétele jelenleg még nem teljesül. |
+| Saját alkalmazás | Három saját konténer fut: API és web healthy; worker fut, nincs Docker-healthcheck eredménye. Hét más projektbeli konténer is jelen van; állapotukat nem módosítottuk. A kiválasztott env-mezők olvasása mindhárom saját konténernél sikeres. |
+| Runtime/budget | API és worker env: projekt 2 USD / user 0,50 USD; explicit v9/pipeline/byte/timeout env nincs a kiválasztott mezők között. Ez nem DB-ledger-, mai maradék-, modell- vagy tier-ellenőrzés. A régi owner manifest forrása `827d72aceabd7360c9cfbc120166d87cc11e2425`; a mostani main v9 target-image még nincs megépítve vagy igazolva. |
+| Telepített Daily | `sourceCommit=0b57f7f316945ab97ee61985b569e6b56e5a6c8d`; mindhárom telepített script hash-e egyezik a saját configjával. Az új funded archive-policy konstans nincs benne: ez nem Daily v4. Nincs `funded-runtime-upgrade` könyvtár. |
+| Mentés és monitor | A backup és monitor timer active/waiting; a legutóbbi service-kilépés mindkettőnél success/0. Backup státusz 04:16 CET, monitor 14:30 CET: `ok=true`, üres alerts, régi Daily-forrás. A restore státusz 2026-10-14 00:02 CEST, ebből a felmérés nem olvasott igazolt friss sikerállapotot. A régi zöld monitor nem az új v9/Daily kapu PASS-a. |
+
+**Bizonyíték:** privát 0700 `.local/verification/target-preflight-20261025/`, 0600 request/response fájlokkal. A `response-v2.json` SHA-256: `0d9664c96ad48d3b6b25ca75110d96d74c6d52fa3d53b5bbadd85399341dcf8c`; a hozzá kötött request SHA-256: `ade5c5cdab776000fe1c2c97584e874500e56e30524bfda17b78ee9cddd02f5d`. A `response-tools.json` a két eredeti privát eszköz metadata/hash megfigyelése. Az első kérés Docker Go-template hibánál megállt; az eredeti kérés/hibareceipt megőrzött, a javított v2 teljes, inspect-hiba nélkül. Ez a helyi receipt utólagos sérülését felismerhetővé teszi, de nem független kiadási audit vagy image-fixture.
+
+**Határ:** nem futott DB-lekérdezés, backup/monitor program, Docker pull/build/run, package install, service/timer állapotváltoztatás, paid hívás, admission/window/budget módosítás. Access/Auth/reader mapping, queue/lease/reservation és tényleges maradék nincs frissen igazolva. V9-4 PARTIAL, V9-5 PENDING marad.
+
+### Következő konkrét műveleti csomag — még nem végrehajtott
+
+1. **Próbakörnyezet előfeltétele:** a meglévő privát `age` binárisok eredetének/verziójának és biztonságos parentjeinek ellenőrzése, majd külön jóváhagyott, célzott hozzáférhetővé tétel a runner fix PATH-ján; vagy külön előkészített Linux/Docker host. A hívó PATH átírása nem oldja meg a runner belső fix PATH-ját. Nincs automatikus apt-install vagy védelmi feltétel lazítása.
+2. **Exact main és build:** külön tiszta/root-private checkout a kiválasztott main SHA-ról, saját zöld Verify/Containerrel; a runtime-forrás és a három új Daily-script hashének rögzítése. A Dockerfile nyilvános Supabase/API build-argumentumait a létező alkalmazás megfelelő értékeiből kell ellenőrzötten választani; provider/DB/Auth secret nem kerül buildbe. Új tag, tényleges immutable image ID és build-erőforráskorlát szükséges. A többi workload megfigyelése és kapacitásfrissítés előfeltétel.
+3. **Csak izolált image-próba:** az előző pont tényleges digestjével, új `/root/alterward-ops/image-rehearsal-<run-id>` outputtal a fenti standalone CLI. A futó három app marad a régi image-en; a runner csak saját szintetikus erőforrásokat indít/takarít. Sikert csak a 16 check és teljes cleanup után szabad rögzíteni. Hiba/pending intent esetén megállás és scoped egyeztetés, nem újabb vak futtatás.
+4. **Daily v4 külön műveleti ablak:** a meglévő `contabo-daily.mjs --update` út a három scriptet/config-source-t és a négy saját unitot frissíti; előtte kizárólag a két saját timer kikapcsolása és az inaktív service-k ellenőrzése kell. A kód az előző privát prepare/update-proof script-hashét és változatlan configot kéri; a kliens eredeti privát inputjainak megléte még ellenőrizendő. Korábbi fájlokat `previous-<candidateCommit>` alatt megőriz, hiba esetén fájlvisszaállítást kísérel meg; ez nem teljes, automatikus operátori rollback-igazolás. Friss backup → offsite sync → izolált restore → monitor → proofhoz kötött timer-aktiválás szükséges, a rövid monitorozási szünet és hiba esetén a rendezés előre rögzítendő. Az alkalmazáskonténerek változatlanságát readbackkel kell igazolni.
+
+A következő engedélyezhető lépés az **1–3. pont konkrét forrás/build/izolált próba csomagja**, a biztonságos eszközút megoldásával. Ez Docker-erőforrásokat és új operátori fájlokat hoz létre a megosztott gépen, ezért a jelen csak olvasó felhatalmazás nem terjed rá. A 4. pont, az éles apply és a paid teszt továbbra külön kiadási kapu. A megmaradt provider-egyenleg most egyik feladathoz sem szükséges.
