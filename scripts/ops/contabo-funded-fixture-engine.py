@@ -77,6 +77,26 @@ def run(args, data=None, timeout=180):
         raise
 
 
+def fixture_project_ids(project):
+    if not re.fullmatch(r'alterward-funded-fixture-[a-f0-9]{12}', project):
+        raise ValueError('Exact nonce fixture project required')
+    return upgrade.docker('ps', '-aq', '--no-trunc', '--filter',
+                          'label=com.docker.compose.project=' + project).stdout.decode().split()
+
+
+def preserved_containers(before, project=None, sentinel=None):
+    current = upgrade.existing_state()
+    if sentinel is not None:
+        owned = set(fixture_project_ids(project))
+        # A fixture must never hide a pre-existing owner or foreign container.
+        if (owned.intersection(before) or sentinel in before or
+                sentinel in owned or sentinel not in current):
+            return False
+        current = {key: value for key, value in current.items()
+                   if key not in owned and key != sentinel}
+    return current == before
+
+
 def exercise(context, *, scope='ci'):
     run = globals()['run']
     if os.geteuid() != 0 or scope not in {'ci', 'image-rehearsal'}:
@@ -139,7 +159,8 @@ def exercise(context, *, scope='ci'):
     ca.chmod(0o644)
     network = project + '-proxy'
     sentinel = project + '-foreign'
-    all_before = upgrade.foreign_state()
+    # PROJECT is patched below: include the real owner stack in this baseline.
+    all_before = upgrade.existing_state()
     oldImage = None
     patches = []
     created_network = False
@@ -1216,10 +1237,7 @@ def exercise(context, *, scope='ci'):
             system.stop()
             db('drop', database)
             databases.remove(database)
-        foreign = upgrade.foreign_state()
-        checks['foreign'] = {
-            k: v for k, v in foreign.items() if k != foreign_id
-        } == all_before and foreign_id in foreign
+        checks['foreign'] = preserved_containers(all_before, project, foreign_id)
         assert checks['foreign']
         # Reservation and lease/queue failures are exercised against real SQL by
         # the companion below, not simulated booleans in this controller.
@@ -1269,7 +1287,8 @@ def exercise(context, *, scope='ci'):
                     'postgres', 'DROP DATABASE IF EXISTS ' + database + ' WITH (FORCE)'
                 )
             )
-        owned = upgrade.project_ids()
+        # Setup can fail before PROJECT is patched; never target the live owner.
+        owned = fixture_project_ids(project)
         if owned:
             cleanup(lambda: run(['docker', 'rm', '-f', *owned]))
         if foreign_id:
@@ -1307,7 +1326,7 @@ def exercise(context, *, scope='ci'):
         for item in patches[::-1]:
             item.stop()
         try:
-            if upgrade.foreign_state() != all_before:
+            if not preserved_containers(all_before):
                 failures.append('foreign-state-drift')
         except BaseException:
             failures.append('foreign-state-readback')
