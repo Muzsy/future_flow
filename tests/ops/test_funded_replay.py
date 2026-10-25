@@ -70,6 +70,19 @@ class ActiveFundedReplayTests(unittest.TestCase):
         replay.require_funded_runtime(self.daily, lambda p: p.read_bytes(), proof)
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
 
+    def test_image_only_default_off_keeps_exact_bound_replay_authority(self):
+        del self.candidate['release']['runtime']
+        self.candidate_sha = replay.sha(replay.encoded(self.candidate))
+        self.journal['preparedSha256'] = self.candidate_sha
+        self.readback['preparedSha256'] = self.candidate_sha
+        self.save()
+        proof = self.proof()
+        self.assertEqual(proof['preparedSha256'], self.candidate_sha)
+        self.assertEqual(proof['imageId'], self.manifest['imageId'])
+        self.assertEqual(replay.require_funded_runtime(self.daily, lambda p: p.read_bytes(), proof), proof)
+        self.services['worker']['Image'] = 'sha256:'+'f'*64
+        with self.assertRaises(ValueError): self.proof()
+
     def test_recovered_uses_the_retained_recovery_role(self):
         self.row['state'] = 'recovered'
         self.row['sha256'] = replay.sha(replay.encoded({k: v for k, v in self.row.items() if k != 'sha256'}))

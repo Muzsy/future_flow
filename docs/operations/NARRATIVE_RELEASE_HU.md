@@ -55,7 +55,7 @@ Az első kijelölt tesztelőn ellenőrzött indulás után a korábban tervezett
 
 Az aktív `codex/v9-beta-release-candidate` ág a #79 végső `1c8c3de5c1158f62f5fb49df2e910f81a23d26a1` forrásából indul, `main` célú, egyesített review-csomag. A 2026-10-25-én lekért távoli `main` továbbra `a666c905ef953cc696d5d8a0faa4f9169ec01824`; ez a jelölt őse, a `git merge-tree` konfliktusmentes és a jelölt fáját adja. A fő munkakönyvtár helyi `main` ága más operátori történetet tartalmaz; azt nem reseteltük és nem használtuk kiadási alapnak.
 
-A #56, #57–#61, #62–#71, #73, #74, #78 és #79 jelenlegi fejei mind valódi Git-ősök a jelöltben (a sorban #72, #75–#77 Issue, nem PR). A #56 és #62 integrációs merge-je `01b18b7`, illetve `8cc667e`. Az `apps/` és `packages/` teljes committed tartalma **bájtazonos a befagyasztott C5 `7bd4d42` állapottal**. A konszolidáció csak a kiadási dokumentációt rendezi; új motor-, séma-, költség- vagy runtime-szabály nincs.
+A #56, #57–#61, #62–#71, #73, #74, #78 és #79 jelenlegi fejei mind valódi Git-ősök a jelöltben (a sorban #72, #75–#77 Issue, nem PR). A #56 és #62 integrációs merge-je `01b18b7`, illetve `8cc667e`. Az `apps/` és `packages/` teljes committed tartalma **bájtazonos a befagyasztott C5 `7bd4d42` állapottal**. A `c68ab037` konszolidáció csak a kiadási dokumentációt rendezte; a teljes review utáni célzott operátori javítások alább külön követettek, új motor-, séma- vagy költségszabály nélkül.
 
 A #79 pontos forrásának [CI-je](https://github.com/Muzsy/future_flow/actions/runs/40177172040) Verify+Container SUCCESS: 1477 alkalmazásteszt; Python 393 PASS / 11 SKIP és külön root csoportok 3+4+9 PASS; mindkét tényleges Docker-próba sikeres. Külön read-only review APPROVE a `cdb8bb8 → 1c8c3de` diffre, 21/21 saját célzott teszttel. A két P2 cleanup-hiba javítva. **Ez a review nem a teljes `main → jelölt` diff auditja.** Az egyesített jelölt teljes CI-jét, pontos végső SHA-ját és review-eredményét a #80-hoz kapcsolt PR rögzíti; a korábbi rész-PR eredményeit nem címkézzük át.
 
@@ -313,3 +313,6 @@ Megőrzendő privát bizonyítékok: új release selection; tényleges audit/CI 
 
 
 Helyi ellenőrzés e konfigurációs csomagra: **38/38 célzott Vitest**, **102/102 Node ops**, **383 Python / 372 PASS + 11 környezeti SKIP**; typecheck, teljes build, sémaexport, format/docs/diff sikeres, generált contract nem változott. A teljes regressziót és a 192 KiB beállítással futó root/Docker átmeneteket az új exact-source CI külön igazolja; a korábbi #74 CI-t nem nevezzük az új forrás saját futásának.
+
+
+A #81 teljes `main → c68ab037` review két P2 hibája célzott operátori javítást kapott: a capability-konténernek production oldalon is saját durable cleanup kell, és az image-only módhoz is működő funded replay authority. Daily v4 és a javított exact source telepítése új előfeltétel; a teljes CI és független re-review saját SHA-ra kötött. [Működés és regressziós bizonyítékhatár](FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25). A C5 termékkód változatlan; a régi zöld jelölt nem a javítások proofja.

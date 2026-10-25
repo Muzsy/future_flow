@@ -62,7 +62,7 @@ jobs:
           sys.path.insert(0, 'tests/ops')
           suite = unittest.TestLoader().loadTestsFromNames(['test_funded_upgrade.RootJournalTests', 'test_funded_upgrade.ExpiredFundedArchiveTests'])
           result = unittest.TextTestRunner().run(suite)
-          assert result.wasSuccessful() and result.testsRun == 9 and not result.skipped
+          assert result.wasSuccessful() and result.testsRun == 10 and not result.skipped
           PY
       - run: pnpm typecheck
       - run: pnpm test

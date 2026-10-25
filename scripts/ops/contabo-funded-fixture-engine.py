@@ -149,6 +149,8 @@ def exercise(context, *, scope='ci'):
     foreign_id = None
     databases = set()
     checks = {}
+    active_system = None
+    image_only_verified = False
     raw_run = run
     helpers = containers.FixtureContainers(base/'helper-intents', project,
         lambda: {context['image'], oldImage}, raw_run)
@@ -289,9 +291,6 @@ def exercise(context, *, scope='ci'):
             item = patch.object(module, key, value)
             item.start()
             patches.append(item)
-        item = patch.object(upgrade, 'run', helpers.wrap(upgrade.run))
-        item.start()
-        patches.append(item)
         originalDocker = upgrade.docker
 
         def isolatedDocker(*args, **kwargs):
@@ -582,13 +581,14 @@ def exercise(context, *, scope='ci'):
                 path = self.root / role
                 path.mkdir(mode=0o700)
                 new = copy.deepcopy(cfg)
-                values = funded.narrative_runtime_values(self.request['release']['runtime'])
+                runtime = self.request['release'].get('runtime')
+                values = funded.narrative_runtime_values(runtime) if runtime is not None else {}
                 for service, svc in new['services'].items():
                     svc['image'] = build['imageId']
                     if service in ('api', 'worker'):
                         svc['environment'].update({k: v for k, v in values.items()
                                                    if service == 'worker' or k in funded.NARRATIVE_DEFAULTS})
-                if funded.normalized_configuration(new) != funded.normalized_configuration(cfg, self.request['release']['runtime']):
+                if funded.normalized_configuration(new) != funded.normalized_configuration(cfg, runtime):
                     raise ValueError('Fixture narrative configuration drift')
                 daily.personal_runtime_policy({k: v['environment'] for k, v in new['services'].items()}, self.now())
                 for name, raw in initialFiles.items():
@@ -597,7 +597,7 @@ def exercise(context, *, scope='ci'):
                     elif name == 'server.env':
                         raw = funded.narrative_environment(upgrade.image_only_environment(
                             raw.decode(), build['imageTag']
-                        ), self.request['release']['runtime']).encode()
+                        ), runtime).encode()
                     elif name == 'manifest.json':
                         raw = encoded(
                             {
@@ -837,6 +837,7 @@ def exercise(context, *, scope='ci'):
             'probe-cleanup',
             'expired-archive',
             'success',
+            'image-only',
             'postcheck',
             'interruption-intent',
             'interruption-held',
@@ -871,7 +872,10 @@ def exercise(context, *, scope='ci'):
                     'configurationSha256': 'c' * 64,
                 },
             }
+            if label == 'image-only':
+                request['release'] = {k: v for k, v in release.items() if k != 'runtime'}
             system = FixtureSystem(request, database)
+            active_system = system
             prepared = system.prepare()
             candidate = json.loads((system.root / 'prepared.json').read_bytes())
             request['preparedSha256'] = prepared['preparedSha256']
@@ -882,6 +886,50 @@ def exercise(context, *, scope='ci'):
                 plain = funded.System(request, daily)
                 serving = {r: v['Id'] for r, v in system.roles().items()}
                 before = db('capture', database)
+                # The actual production capability lifecycle owns this direct
+                # Docker run; no fixture wrapper rewrites its name/intent/cleanup.
+                hang = "require('node:fs').readFileSync(0);setInterval(()=>{},1000)"
+                saved_capability = (system.root/'capability.json').read_bytes()
+                original_run = upgrade.run
+                def capability_timeout(args, **kwargs):
+                    if args[:2] == ['docker', 'run']:
+                        kwargs['timeout'] = 2
+                    return original_run(args, **kwargs)
+                with patch.object(funded, 'CAPABILITY_COMMAND', ['-e', hang]):
+                    with patch.object(upgrade, 'run', capability_timeout):
+                        try:
+                            plain.capability(context['image'], context['sourceHashes'])
+                        except subprocess.TimeoutExpired:
+                            pass
+                        else:
+                            raise AssertionError('Capability helper did not time out')
+                    assert daily.funded_capability_state(system.root)['state'] == 'cleaned'
+                    pid = os.fork()
+                    if pid == 0:
+                        plain.capability(context['image'], context['sourceHashes'])
+                        os._exit(3)
+                    until = time.monotonic() + 45
+                    while time.monotonic() < until:
+                        state = daily.funded_capability_state(system.root)
+                        ids = run(['docker', 'ps', '-q', '--no-trunc', '--filter',
+                                   'name=^/' + state['name'] + '$']).decode().split() if state else []
+                        if state and state['state'] == 'pending' and ids:
+                            break
+                        time.sleep(0.2)
+                    else:
+                        os.kill(pid, signal.SIGKILL); os.waitpid(pid, 0)
+                        raise AssertionError('Actual capability helper did not start')
+                    os.kill(pid, signal.SIGKILL)
+                    _, status = os.waitpid(pid, 0)
+                    assert os.WIFSIGNALED(status)
+                    assert not daily.funded_upgrade_healthy('personal-beta')
+                    assert plain.cleanup_probe()['capabilityRemoved']
+                    assert not plain.cleanup_probe()['capabilityRemoved']
+                # Restore the preceding completed test-owned intent after the
+                # inert payload override; no pending helper remains at this point.
+                private(system.root/'capability.json', saved_capability)
+                assert {r: v['Id'] for r, v in system.roles().items()} == serving
+                assert db('capture', database) == before
                 reply = "require('node:fs').readFileSync(0);process.stdout.write(" + json.dumps(json.dumps(before)) + ")"
                 with patch.object(funded, 'PROBE_COMMAND', ['-e', reply]):
                     assert plain.probe(context['image'], 'capture') == before
@@ -1049,6 +1097,8 @@ def exercise(context, *, scope='ci'):
                     pass
                 else:
                     raise AssertionError('Pre-038 rollback image accepted after 038')
+            elif label == 'image-only':
+                funded.transition(system, candidate)
             elif label == 'postcheck':
                 actual = system.postcheck
 
@@ -1112,10 +1162,15 @@ def exercise(context, *, scope='ci'):
                 funded.transition(system, candidate, recovery=True)
             assert daily.personal_transition_healthy('personal-beta')
             actual = system.configuration(owner)['services']
-            for role in ('api', 'worker'):
-                assert actual[role]['environment']['NARRATIVE_FICTION_GENERATION'] == 'v9'
-                assert actual[role]['environment']['NARRATIVE_COHORT_USER_IDS'] == terms['participants'][0]['userId']
-            assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '196608'
+            if label == 'image-only':
+                for role in ('api', 'worker'):
+                    assert actual[role]['environment'].get('NARRATIVE_PIPELINE_MODE', 'legacy') == 'legacy'
+                    assert actual[role]['environment'].get('NARRATIVE_COHORT_USER_IDS', '') == ''
+            else:
+                for role in ('api', 'worker'):
+                    assert actual[role]['environment']['NARRATIVE_FICTION_GENERATION'] == 'v9'
+                    assert actual[role]['environment']['NARRATIVE_COHORT_USER_IDS'] == terms['participants'][0]['userId']
+                assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '196608'
             after = db('capture', database)
             funded.same_funded(before, after)
             assert after['schema'] == 38
@@ -1128,7 +1183,10 @@ def exercise(context, *, scope='ci'):
             )
             checks['fundedState'] = True
             from types import SimpleNamespace
-            adapter = SimpleNamespace(OWNER=owner, funded_upgrade_healthy=daily.funded_upgrade_healthy,
+            adapter = SimpleNamespace(**{k: getattr(daily, k) for k in (
+                'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', 'FUNDED_CAPABILITY_VERSION',
+                'config', 'funded_capability_state')},
+                OWNER=owner, funded_upgrade_healthy=daily.funded_upgrade_healthy,
                 owner_runtime=lambda: (json.loads((owner/'manifest.json').read_bytes()), system.roles()),
                 containers=daily.containers, reader_config_paths=daily.reader_config_paths,
                 personal_config_paths=daily.personal_config_paths)
@@ -1146,6 +1204,8 @@ def exercise(context, *, scope='ci'):
                     raise AssertionError('Stale active funded image proof accepted')
             finally:
                 system.daily = actual_daily
+            if label == 'image-only':
+                image_only_verified = True
             checks['fundedReplayProof'] = True
             system.stop()
             db('drop', database)
@@ -1163,7 +1223,7 @@ def exercise(context, *, scope='ci'):
         db('drop', database)
         databases.remove(database)
         checks.update(artifactRestore=True, privacyReplay=True, frozenPolicies=True)
-        assert all(checks.values())
+        assert all(checks.values()) and image_only_verified
         return {
             'sourceCommit': context['sourceCommit'],
             'bundleSha256': context['bundleSha256'],
@@ -1191,6 +1251,8 @@ def exercise(context, *, scope='ci'):
             except BaseException as error:
                 failures.append(type(error).__name__)
 
+        if active_system is not None:
+            cleanup(active_system.cleanup_capability)
         cleanup(helpers.cleanup_all)
         for database in list(databases):
             if not re.fullmatch(r'(aw_fixture_|aw_restore_)[a-f0-9]{24}', database):

@@ -54,9 +54,8 @@ def active_funded_runtime(daily, original):
     role = 'target' if terminal == 'applied' else 'recovery'
     build = candidate['release'][role]
     if (build.get('commit') != candidate['sourceCommit'] or
-            not re.fullmatch(r'sha256:[a-f0-9]{64}', build.get('imageId', '')) or
-            candidate['release'].get('runtime', {}).get('generation') != 'v9'):
-        raise ValueError('Exact committed v9 funded image required')
+            not re.fullmatch(r'sha256:[a-f0-9]{64}', build.get('imageId', ''))):
+        raise ValueError('Exact committed funded image required')
     actual = {name: sha(original(daily.OWNER / name)) for name in FILES}
     retained = {name: sha(original(root / role / name)) for name in FILES}
     if actual != retained or retained != candidate['files'][role]:

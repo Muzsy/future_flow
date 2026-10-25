@@ -27,6 +27,11 @@ DIGEST = re.compile(r'[a-f0-9]{64}')
 IMAGE = re.compile(r'sha256:[a-f0-9]{64}')
 COMMIT = re.compile(r'[a-f0-9]{40}')
 PROBE_COMMAND = ['--import', 'tsx', 'scripts/ops/funded-runtime-probe.ts']
+CAPABILITY_CODE = """import{readFileSync}from'node:fs';import{createHash}from'node:crypto';
+const hashes=JSON.parse(readFileSync(0,'utf8'));
+for(const[p,h]of Object.entries(hashes))if(createHash('sha256').update(readFileSync('/app/'+p)).digest('hex')!==h)throw Error('Image source mismatch');
+const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.ts');console.log(JSON.stringify(fundedRuntimeCapabilities()));"""
+CAPABILITY_COMMAND = ['--import', 'tsx', '--input-type=module', '-e', CAPABILITY_CODE]
 
 
 def exact(value, keys):
@@ -408,9 +413,10 @@ class System:
 
     def cleanup_probe(self):
         self.archive_support()
+        capability = self.cleanup_capability()
         record = self.daily.funded_probe_state(self.root)
         if record is None:
-            return {'probeRemoved': False, 'paidAiCalls': 0}
+            return {**capability, 'probeRemoved': False, 'paidAiCalls': 0}
         if (record['sourceCommit'] != self.request['sourceCommit']
                 or record['bundleSha256'] != self.request['bundleSha256']
                 or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-probe-[a-f0-9]{32}', record['name'])
@@ -446,8 +452,73 @@ class System:
         if record['state'] == 'pending':
             readers.update_durable(self.root / 'probe.json', encoded(
                 {**record, 'state': 'cleaned', 'containerId': removed}))
-        return {'probeRemoved': removed is not None, 'probeContainerId': removed,
+        return {**capability, 'probeRemoved': removed is not None, 'probeContainerId': removed,
                 'applicationContainersChanged': False, 'paidAiCalls': 0}
+
+    def cleanup_capability(self):
+        self.archive_support()
+        record = self.daily.funded_capability_state(self.root)
+        result = {'capabilityRemoved': False, 'capabilityContainerId': None}
+        if record is None:
+            return result
+        if (record['sourceCommit'] != self.request['sourceCommit']
+                or record['bundleSha256'] != self.request['bundleSha256']
+                or record['inputSha256'] != sha(encoded(self.request['sourceHashes']))
+                or record['commandSha256'] != sha(encoded(CAPABILITY_COMMAND))
+                or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-capability-[a-f0-9]{32}', record['name'])):
+            raise ValueError('Exact original funded capability evidence required')
+        def lookup():
+            ids = upgrade.docker('ps', '-aq', '--no-trunc', '--filter',
+                                 'name=^/' + record['name'] + '$').stdout.decode().split()
+            if len(ids) > 1 or any(not DIGEST.fullmatch(i) for i in ids):
+                raise ValueError('Ambiguous funded capability identity')
+            return ids
+        ids = lookup()
+        if ids:
+            value = json.loads(upgrade.docker('inspect', ids[0]).stdout)[0]
+            config, host = value['Config'], value['HostConfig']
+            if (record['state'] != 'pending' or value['Id'] != ids[0]
+                    or value['Name'] != '/' + record['name'] or value['Image'] != record['imageId']
+                    or (record['containerId'] is not None and record['containerId'] != ids[0])
+                    or config.get('Labels', {}).get('com.alterward.funded-capability') != probe_identity(record)
+                    or config.get('Entrypoint') != ['node'] or config.get('Cmd') != CAPABILITY_COMMAND
+                    or config.get('User') != 'node' or config.get('WorkingDir') != '/app'
+                    or not host.get('AutoRemove') or not host.get('ReadonlyRootfs')
+                    or host.get('NetworkMode') != 'none' or host.get('Privileged') or host.get('PortBindings')
+                    or host.get('Binds') or host.get('Mounts')
+                    or host.get('RestartPolicy', {}).get('Name') != 'no'
+                    or host.get('Memory') != 512 * 1024**2 or host.get('NanoCpus') != 1000000000
+                    or host.get('PidsLimit') != 128 or host.get('CapDrop') != ['ALL']
+                    or 'no-new-privileges:true' not in host.get('SecurityOpt', [])):
+                raise ValueError('Funded capability identity differs; no container changed')
+            # Persist the observed immutable ID before removing this exact helper.
+            record = {**record, 'containerId': ids[0]}
+            readers.update_durable(self.root / 'capability.json', encoded(record))
+            upgrade.docker('rm', '--force', ids[0], timeout=45)
+            if lookup():
+                raise ValueError('Funded capability removal unverified')
+            result = {'capabilityRemoved': True, 'capabilityContainerId': ids[0]}
+        if record['state'] == 'pending':
+            readers.update_durable(self.root / 'capability.json', encoded({**record, 'state': 'cleaned'}))
+        return result
+
+    def capability(self, image, hashes):
+        self.cleanup_capability()
+        record = {'version': self.daily.FUNDED_CAPABILITY_VERSION,
+                  'sourceCommit': self.request['sourceCommit'], 'bundleSha256': self.request['bundleSha256'],
+                  'name': upgrade.PROJECT + '-funded-capability-' + os.urandom(16).hex(),
+                  'imageId': image, 'commandSha256': sha(encoded(CAPABILITY_COMMAND)),
+                  'inputSha256': sha(encoded(hashes)), 'state': 'pending', 'containerId': None}
+        readers.update_durable(self.root / 'capability.json', encoded(record))
+        try:
+            return upgrade.run(['docker', 'run', '--rm', '-i', '--pull', 'never',
+                '--name', record['name'], '--label', 'com.alterward.funded-capability=' + probe_identity(record),
+                '--network', 'none', '--user', 'node', '--read-only', '--cap-drop', 'ALL',
+                '--security-opt', 'no-new-privileges:true', '--memory', '512m', '--cpus', '1',
+                '--pids-limit', '128', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
+                '--entrypoint', 'node', image, *CAPABILITY_COMMAND], input=encoded(hashes), timeout=60)
+        finally:
+            self.cleanup_capability()
 
     def image(self, build):
         exact(build, {'commit', 'imageId', 'imageTag', 'sourceDirectory'})
@@ -490,32 +561,7 @@ class System:
                 raise ValueError('Build source differs from reviewed Git bundle')
         # Compare files INSIDE the actual image before importing any capability
         # implementation. The image digest alone is not a self-declared version.
-        code = """import{readFileSync}from'node:fs';import{createHash}from'node:crypto';
-const hashes=JSON.parse(readFileSync(0,'utf8'));
-for(const[p,h]of Object.entries(hashes))if(createHash('sha256').update(readFileSync('/app/'+p)).digest('hex')!==h)throw Error('Image source mismatch');
-const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.ts');console.log(JSON.stringify(fundedRuntimeCapabilities()));"""
-        result = upgrade.run(
-            [
-                'docker',
-                'run',
-                '--rm',
-                '-i',
-                '--network',
-                'none',
-                '--user',
-                'node',
-                '--entrypoint',
-                'node',
-                build['imageId'],
-                '--import',
-                'tsx',
-                '--input-type=module',
-                '-e',
-                code,
-            ],
-            input=encoded(hashes),
-            timeout=60,
-        )
+        result = self.capability(build['imageId'], hashes)
         capability = json.loads(result.stdout)
         if (
             capability.get('version') != 'alterward-funded-runtime-1'
@@ -604,7 +650,7 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         return self.hashes(path)
 
     def archive_support(self):
-        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 3:
+        if getattr(self.daily, 'FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION', None) != 4:
             raise ValueError(
                 'Reviewed installed funded-upgrade archive support required'
             )

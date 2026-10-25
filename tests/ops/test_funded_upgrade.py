@@ -383,6 +383,23 @@ class ExpiredFundedArchiveTests(unittest.TestCase):
         self.assertTrue(self.system.archive_expired()['alreadyArchived'])
         self.assertEqual(result['databaseWrites'], 0)
 
+    def test_capability_intent_blocks_archive_until_cleaned_then_is_preserved(self):
+        record = {'version':daily.FUNDED_CAPABILITY_VERSION, 'sourceCommit':'a'*40,
+                  'bundleSha256':'b'*64, 'name':funded.upgrade.PROJECT+'-funded-capability-'+'c'*32,
+                  'imageId':'sha256:'+'d'*64, 'commandSha256':'e'*64, 'inputSha256':'f'*64,
+                  'state':'pending', 'containerId':None}
+        self.write(self.root/'capability.json', funded.encoded(record))
+        with self.assertRaisesRegex(ValueError,'Pending funded capability'):
+            self.system.archive_expired()
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        cleaned = funded.encoded({**record, 'state':'cleaned', 'containerId':'9'*64})
+        self.write(self.root/'capability.json', cleaned)
+        self.assertIn(self.root/'capability.json', daily.funded_upgrade_config_paths())
+        result = self.system.archive_expired()
+        dest = self.owner/daily.FUNDED_ARCHIVE_NAME/result['preparedSha256']
+        self.assertEqual((dest/'capability.json').read_bytes(), cleaned)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+
     def test_fresh_preparation_and_any_apply_evidence_refuse_before_move(self):
         original = copy.deepcopy(self.value)
         now = dt.datetime.now(dt.timezone.utc)
