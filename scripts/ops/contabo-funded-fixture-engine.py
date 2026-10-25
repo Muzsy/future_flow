@@ -47,6 +47,7 @@ for name, file in [
     ('alterward_funded_watchdog', 'contabo-funded-watchdog.py'),
 ]:
     load(name, file)
+containers = load('alterward_fixture_containers', 'contabo-fixture-containers.py')
 replay = load('alterward_funded_replay', 'contabo-funded-replay.py')
 funded = load('alterward_funded_upgrade', 'contabo-funded-upgrade.py')
 daily = load('fixture_daily', 'contabo-daily.py')
@@ -77,6 +78,7 @@ def run(args, data=None, timeout=180):
 
 
 def exercise(context, *, scope='ci'):
+    run = globals()['run']
     if os.geteuid() != 0 or scope not in {'ci', 'image-rehearsal'}:
         raise ValueError('Explicit Linux/root isolated fixture scope required')
     if scope == 'ci' and (os.environ.get('CI') != 'true' or os.environ.get('GITHUB_ACTIONS') != 'true'):
@@ -147,6 +149,10 @@ def exercise(context, *, scope='ci'):
     foreign_id = None
     databases = set()
     checks = {}
+    raw_run = run
+    helpers = containers.FixtureContainers(base/'helper-intents', project,
+        lambda: {context['image'], oldImage}, raw_run)
+    run = helpers.wrap(raw_run)
 
     def private(path, data):
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -283,6 +289,9 @@ def exercise(context, *, scope='ci'):
             item = patch.object(module, key, value)
             item.start()
             patches.append(item)
+        item = patch.object(upgrade, 'run', helpers.wrap(upgrade.run))
+        item.start()
+        patches.append(item)
         originalDocker = upgrade.docker
 
         def isolatedDocker(*args, **kwargs):
@@ -293,6 +302,31 @@ def exercise(context, *, scope='ci'):
         item = patch.object(upgrade, 'docker', isolatedDocker)
         item.start()
         patches.append(item)
+        # Actual one-off failures, including a killed fork whose memory cannot
+        # report its new container back to the parent. Intents precede creation.
+        idle = ['docker', 'run', '--rm', '--network', 'none', '--memory', '256m',
+                '--cpus', '0.5', '--pids-limit', '64', '--cap-drop', 'ALL',
+                '--security-opt', 'no-new-privileges:true', '--entrypoint', 'node',
+                context['image'], '-e', 'setInterval(()=>{},1000)']
+        try:
+            run(idle, timeout=2)
+        except subprocess.TimeoutExpired:
+            pass
+        else:
+            raise AssertionError('Fixture helper timeout did not occur')
+        helpers.cleanup_all()
+        child = os.fork()
+        if child == 0:
+            try:
+                args, _ = helpers.prepare(idle[:2]+['-d']+idle[2:])
+                raw_run(args)
+                os.kill(os.getpid(), signal.SIGKILL)
+            finally:
+                os._exit(3)
+        _, status = os.waitpid(child, 0)
+        assert os.WIFSIGNALED(status) and os.WTERMSIG(status) == signal.SIGKILL
+        helpers.cleanup_all()
+
         sourceBinding = {
             'sourceCommit': context['sourceCommit'],
             'scriptHashes': {
@@ -1157,6 +1191,7 @@ def exercise(context, *, scope='ci'):
             except BaseException as error:
                 failures.append(type(error).__name__)
 
+        cleanup(helpers.cleanup_all)
         for database in list(databases):
             if not re.fullmatch(r'(aw_fixture_|aw_restore_)[a-f0-9]{24}', database):
                 failures.append('unsafe-database-name')

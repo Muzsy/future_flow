@@ -182,6 +182,7 @@ def isolated(image, output, binding):
     proof = None
     pg_image = json.loads(run(['docker', 'image', 'inspect', PG]))[0]['Id']
     privacy_name = network + '-privacy'
+    gid_name = network + '-pg-group'
     # Child operations, including the shared engine, see only the fixed local environment.
     try:
         ca, key, cert = scratch/'ca.crt', scratch/'server.key', scratch/'server.crt'
@@ -193,7 +194,7 @@ def isolated(image, output, binding):
         (scratch/'server.ext').write_text('subjectAltName=DNS:postgres\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\n')
         run(['openssl', 'x509', '-req', '-days', '1', '-in', str(scratch/'server.csr'), '-CA', str(ca),
              '-CAkey', str(scratch/'ca.key'), '-CAcreateserial', '-extfile', str(scratch/'server.ext'), '-out', str(cert)])
-        gid = run(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'id', PG, '-g', 'postgres']).decode().strip()
+        gid = run(['docker', 'run', '--rm', '--name', gid_name, '--label', LABEL+'='+network, '--network', 'none', '--entrypoint', 'id', PG, '-g', 'postgres']).decode().strip()
         if not re.fullmatch(r'[0-9]+', gid):
             raise ValueError('Pinned PostgreSQL group required')
         os.chown(key, 0, int(gid)); key.chmod(0o640); ca.chmod(0o644); cert.chmod(0o644)
@@ -237,7 +238,7 @@ def isolated(image, output, binding):
     finally:
         # Publish no success unless every cleanup step and foreign-state comparison succeeds.
         failures = []
-        for container, expected in ((privacy_name, image), (name, pg_image)):
+        for container, expected in ((privacy_name, image), (gid_name, pg_image), (name, pg_image)):
             try: clean_container(container, network, expected)
             except BaseException: failures.append('container-cleanup')
         if created_network:
