@@ -484,7 +484,9 @@ export function assertExactFenceCiJobs(detail, sourceCommit) {
     throw Error('Exact verify and container jobs required');
 }
 async function main() {
-  const mode = process.argv[2]?.replace(/^--/, '');
+  const selectedMode = process.argv[2]?.replace(/^--/, '');
+  const funded = selectedMode?.startsWith('funded-') === true;
+  const mode = funded ? selectedMode.slice(7) : selectedMode;
   if (
     !['win32', 'linux'].includes(process.platform) ||
     !['plan', 'drill', 'rehearsal'].includes(mode) ||
@@ -552,26 +554,61 @@ async function main() {
   // Preparing another image must not make the still-running release's plan
   // impossible. Derive its canonical manifest only from the active receipts;
   // the root executor independently compares it to the real protected bytes.
-  const ownerManifestDigest = activeRecoveryManifest(
-    report('owner-stage-proof.json'),
-    report('owner-active-build-proof.json'),
-    registry,
-  );
-  assertReplayInputsUnchanged(registry, sourceCommit, (base, commit, paths) =>
-    execFileSync('git', ['diff', '--name-only', base, commit, '--', ...paths], {
-      encoding: 'utf8',
-    }),
-  );
+  let fundedRuntime;
+  let ownerManifestDigest;
+  if (funded) {
+    const name = 'scripts/lib/funded-replay.mjs';
+    const info = lstatSync(name);
+    if (
+      !info.isFile() ||
+      info.isSymbolicLink() ||
+      info.nlink !== 1 ||
+      !readFileSync(name).equals(source(name))
+    )
+      throw Error('Exact funded replay helper required');
+    const { activeFundedReplayProof, assertFundedReplayInputsUnchanged } =
+      await import('./lib/funded-replay.mjs');
+    fundedRuntime = activeFundedReplayProof(
+      report('funded-upgrade-active-proof-proof.json'),
+    );
+    ownerManifestDigest = fundedRuntime.ownerManifestDigest;
+    assertFundedReplayInputsUnchanged(
+      fundedRuntime,
+      sourceCommit,
+      (base, commit, paths) =>
+        execFileSync(
+          'git',
+          ['diff', '--name-only', base, commit, '--', ...paths],
+          { encoding: 'utf8' },
+        ),
+    );
+  } else {
+    ownerManifestDigest = activeRecoveryManifest(
+      report('owner-stage-proof.json'),
+      report('owner-active-build-proof.json'),
+      registry,
+    );
+    assertReplayInputsUnchanged(registry, sourceCommit, (base, commit, paths) =>
+      execFileSync(
+        'git',
+        ['diff', '--name-only', base, commit, '--', ...paths],
+        { encoding: 'utf8' },
+      ),
+    );
+  }
+  const receiptPrefix = funded ? 'funded-fence' : 'fence';
   if (mode === 'drill' || mode === 'rehearsal') {
     const audit = report('fence-transport-audit-proof.json'),
-      plan = report('fence-transport-plan-proof.json');
+      plan = report(`${receiptPrefix}-transport-plan-proof.json`);
     const age = Date.now() - Date.parse(plan.capturedAt);
     if (
       audit.sourceCommit !== sourceCommit ||
       audit.operatorApprovedDrill !== true ||
+      (funded && audit.operatorApprovedFundedReplay !== true) ||
       (mode === 'rehearsal' && audit.operatorApprovedRehearsal !== true) ||
       plan.sourceCommit !== sourceCommit ||
       plan.ownerManifestDigest !== ownerManifestDigest ||
+      (funded && !isDeepStrictEqual(plan.fundedRuntime, fundedRuntime)) ||
       !/^[a-f0-9]{24}$/.test(plan.planNonce) ||
       plan.mode !== 'plan' ||
       !Number.isFinite(age) ||
@@ -652,6 +689,12 @@ async function main() {
     'scripts/replay-fenced-backup.ts',
     'scripts/ops/contabo-quarantine-rehearsal.py',
   ];
+  if (funded)
+    names.push(
+      'scripts/ops/contabo-funded-replay.py',
+      'scripts/lib/funded-runtime.ts',
+      'scripts/lib/personal-beta-admission-observation.mjs',
+    );
   for (const name of names) {
     const data = source(name);
     files[name] = { data: data.toString('base64'), sha256: sha(data) };
@@ -668,7 +711,13 @@ async function main() {
   if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host))
     throw Error('Original pinned host required');
   const payload = {
-    request: { mode, sourceCommit, ownerManifestDigest, files },
+    request: {
+      mode,
+      sourceCommit,
+      ownerManifestDigest,
+      files,
+      ...(funded ? { fundedRuntime } : {}),
+    },
     script: files['scripts/ops/contabo-fence-drill.py'].data,
     clientSha256: sha(clientBytes),
   };
@@ -726,10 +775,11 @@ async function main() {
     if (
       output.result.sourceCommit !== sourceCommit ||
       output.result.mode !== mode ||
-      output.result.serviceActivationAllowed !== false
+      output.result.serviceActivationAllowed !== false ||
+      (funded && !isDeepStrictEqual(output.result.fundedRuntime, fundedRuntime))
     )
       throw Error('Root result binding differs');
-    privateReportFile(dir, `fence-transport-${mode}-proof.json`, {
+    privateReportFile(dir, `${receiptPrefix}-transport-${mode}-proof.json`, {
       ...output.result,
       capturedAt: new Date().toISOString(),
     });

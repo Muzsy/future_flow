@@ -442,5 +442,125 @@ class DailyActivationTests(unittest.TestCase):
         self.assertEqual((library.ROOT, library.LABEL, library.age_path), original)
 
 
+class HeldRestoreRefreshTests(unittest.TestCase):
+    """Exercise the real installer boundary; crypto/Docker are explicit mocks."""
+    def setUp(self):
+        from contextlib import contextmanager
+        from unittest.mock import Mock
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        (self.root / 'status').mkdir()
+        self.status = self.root / 'status' / 'restore.json'
+        self.original = b'{"capturedAt":"old-proof-must-survive-failure"}'
+        self.status.write_bytes(self.original)
+        self.binding = {'sourceCommit': 'a' * 40, 'scriptHashes': {'daily': 'b' * 64},
+                        'unitHashes': {'backup': 'c' * 64}}
+        self.manifest = {**self.binding, 'runId': '20261024T120000Z-12345678',
+                         'encryptedFiles': {'application.dump.age': {'sha256': 'd' * 64, 'bytes': 32}}}
+        self.locks = []
+        self.events = []
+        @contextmanager
+        def locked(path):
+            self.locks.append(path)
+            self.events.append(('lock', path))
+            try:
+                yield
+            finally:
+                self.events.append(('unlock', path))
+                self.locks.pop()
+        self.mock = Mock()
+        self.mock.ROOT = self.root
+        self.mock.OWNER = self.root / 'owner'
+        self.mock.config.return_value = self.binding
+        self.mock.source_binding.side_effect = daily.source_binding
+        self.mock.completed_archives.return_value = [{'manifest': self.manifest}]
+        self.mock.exclusive.side_effect = locked
+        self.held = {role: (0, 'exited') for role in ('web', 'api', 'worker')}
+        self.mock.stable_state.return_value = self.held
+        self.mock.utcnow.return_value = NOW
+        self.mock.owner_runtime.side_effect = AssertionError('Held services must not need running health')
+        def restore(request):
+            self.assertEqual(self.locks, [self.root / 'job.lock', self.mock.OWNER / 'activation.lock'])
+            self.assertEqual(self.status.read_bytes(), self.original)
+            self.assertEqual(request['manifest'], self.manifest)
+            self.events.append(('restore', None))
+            return {'runId': request['manifest']['runId'], 'applicationStarted': False,
+                    'liveDatabaseWrites': False, 'paidAiCalls': 0}
+        self.mock.rehearse_offsite.side_effect = restore
+        def publish(path, proof):
+            self.assertEqual(path, self.status)
+            self.assertEqual(self.locks, [self.root / 'job.lock', self.mock.OWNER / 'activation.lock'])
+            path.write_text(json.dumps(proof))
+            self.events.append(('publish', None))
+        self.mock.atomic.side_effect = publish
+        for item in (patch.object(installer, 'ROOT', self.root),
+                     patch.object(installer, 'installed_daily', return_value=self.mock),
+                     patch.object(installer.os, 'geteuid', return_value=0, create=True)):
+            item.start()
+            self.addCleanup(item.stop)
+        item = patch.object(installer, 'run', side_effect=AssertionError('No service command allowed'))
+        self.command = item.start()
+        self.addCleanup(item.stop)
+
+    def refresh(self, manifest=None):
+        return installer.main({'action': 'rehearse',
+                               'manifest': self.manifest if manifest is None else manifest})
+
+    def test_held_rehearsal_records_new_time_without_starting_application_or_timers(self):
+        proof = self.refresh()
+        self.assertEqual(proof['capturedAt'], NOW.isoformat())
+        self.assertEqual(proof['runId'], self.manifest['runId'])
+        self.assertEqual(proof['encryptedFiles'], self.manifest['encryptedFiles'])
+        self.assertTrue(proof['allExistingContainersUnchanged'])
+        self.assertEqual(json.loads(self.status.read_bytes()), proof)
+        self.mock.owner_runtime.assert_not_called()
+        self.command.assert_not_called()
+        self.assertEqual(self.locks, [])
+        self.assertLess(self.events.index(('restore', None)), self.events.index(('publish', None)))
+
+    def test_foreign_archive_and_old_source_refused_before_restore(self):
+        for changed in ({**self.manifest, 'runId': 'other'},
+                        {**self.manifest, 'sourceCommit': 'f' * 40},
+                        {**self.manifest, 'encryptedFiles': {}}):
+            with self.subTest(manifest=changed), self.assertRaises(ValueError):
+                self.refresh(changed)
+        # Also reject an exact server archive made by a different installed source.
+        self.mock.completed_archives.return_value = [{'manifest': {**self.manifest, 'sourceCommit': 'f' * 40}}]
+        with self.assertRaises(ValueError):
+            self.refresh({**self.manifest, 'sourceCommit': 'f' * 40})
+        self.mock.rehearse_offsite.assert_not_called()
+        self.mock.atomic.assert_not_called()
+        self.assertEqual(self.status.read_bytes(), self.original)
+
+    def test_restore_failure_preserves_original_proof_and_releases_locks(self):
+        self.mock.rehearse_offsite.side_effect = RuntimeError('Synthetic decrypt/restore failure')
+        with self.assertRaises(RuntimeError):
+            self.refresh()
+        self.mock.atomic.assert_not_called()
+        self.assertEqual(self.status.read_bytes(), self.original)
+        self.assertEqual(self.locks, [])
+
+    def test_runtime_drift_prevents_success_proof(self):
+        self.mock.stable_state.side_effect = [self.held, {**self.held, 'worker': (1, 'running')}]
+        with self.assertRaises(ValueError):
+            self.refresh()
+        self.mock.atomic.assert_not_called()
+        self.assertEqual(self.status.read_bytes(), self.original)
+
+    def test_busy_lock_prevents_restore_or_proof_replacement(self):
+        from contextlib import contextmanager
+        @contextmanager
+        def busy(_):
+            raise BlockingIOError('Another operator holds the lock')
+            yield
+        self.mock.exclusive.side_effect = busy
+        with self.assertRaises(BlockingIOError):
+            self.refresh()
+        self.mock.rehearse_offsite.assert_not_called()
+        self.mock.atomic.assert_not_called()
+        self.assertEqual(self.status.read_bytes(), self.original)
+
+
 if __name__ == '__main__':
     unittest.main()

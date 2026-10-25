@@ -254,6 +254,24 @@ def personal_runtime_policy(environments, now):
     users = worker.get('CLOSED_BETA_USER_IDS', '').split(',') if worker.get('CLOSED_BETA_USER_IDS') else []
     if len(users) > 10 or len(set(users)) != len(users) or any(not ADMISSION_UUID.fullmatch(u) for u in users):
         raise ValueError('At most ten exact account UUIDs required')
+    defaults = {'NARRATIVE_PIPELINE_MODE': 'legacy', 'NARRATIVE_COHORT_USER_IDS': '',
+                'NARRATIVE_FICTION_GENERATION': 'v8'}
+    for key, default in defaults.items():
+        if api.get(key, default) != worker.get(key, default):
+            raise ValueError('API and worker narrative configuration mismatch')
+    mode, generation = (worker.get(k, defaults[k]) for k in
+                        ('NARRATIVE_PIPELINE_MODE', 'NARRATIVE_FICTION_GENERATION'))
+    cohort = worker.get('NARRATIVE_COHORT_USER_IDS', '')
+    cohort = cohort.split(',') if cohort else []
+    if (mode not in ('legacy', 'context', 'narrative-v1', 'narrative-fiction-v2')
+            or generation not in ('v8', 'v9') or (generation == 'v9' and mode != 'narrative-fiction-v2')
+            or len(cohort) != len(set(cohort)) or any(u not in users for u in cohort)):
+        raise ValueError('Supported narrative configuration and admitted cohort required')
+    for key, default, low, high in [('AI_FICTION_TIMEOUT_MS', '180000', 1000, 300000),
+                                   ('AI_FICTION_MAX_REQUEST_BYTES', '100000', 100000, 196608)]:
+        value = worker.get(key, default)
+        if not isinstance(value, str) or not re.fullmatch(r'\d+', value) or not low <= int(value) <= high:
+            raise ValueError('Bounded narrative worker runtime required')
     oa = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', 10)
     claude = bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 1)
     user = bounded_budget(worker, 'AI_USER_BUDGET_USD', 3.34)
@@ -352,6 +370,7 @@ def extended_config_archive(proxy):
     paths += [ROOT / 'scripts' / name for name in config()['scriptHashes']]
     paths += reader_config_paths()
     paths += personal_config_paths()
+    paths += funded_upgrade_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -410,6 +429,207 @@ def personal_config_paths():
         regular(item)
         files.append(item)
     return sorted(files)
+
+
+# Independent policy version: do not reinterpret the original personal/reader
+# activation archives. Installing this reviewed Daily is a later release gate.
+FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 4
+
+
+def funded_tree_paths(root, *, immutable_only=False):
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    files = []
+    temporary = 0
+    for item in root.iterdir():
+        if item.name in {'target', 'recovery'}:
+            private_archive_directory(item)
+            for child in item.iterdir():
+                if child.name not in {'server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json'}:
+                    raise ValueError('Unknown funded runtime candidate file')
+                regular(child)
+                files.append(child)
+        else:
+            allowed = {'prepared.json', 'journal.json', 'readback.json', 'probe-compose.json', 'watchdog.json', 'archive.json', 'probe.json', 'capability.json'}
+            if item.name not in allowed:
+                if not re.fullmatch(r'\.upgrade-[a-z0-9_]{8}', item.name) or temporary >= 8:
+                    raise ValueError('Unknown funded upgrade evidence')
+                temporary += 1
+            regular(item)
+            if not immutable_only or item.name in {'prepared.json', 'archive.json'}:
+                files.append(item)
+    return sorted(files)
+
+
+FUNDED_PROBE_VERSION = 'alterward-funded-probe-1'
+
+
+def funded_probe_state(root):
+    path = root / 'probe.json'
+    if not path.exists() and not path.is_symlink():
+        return None
+    private_archive_directory(root)
+    value = json.loads(regular(path))
+    keys = {'version', 'sourceCommit', 'bundleSha256', 'name', 'imageId',
+            'composeSha256', 'state', 'containerId'}
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['version'] != FUNDED_PROBE_VERSION
+            or not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])
+            or any(not isinstance(value[k], str) or not re.fullmatch(r'[a-f0-9]{64}', value[k])
+                   for k in ('bundleSha256', 'composeSha256'))
+            or not isinstance(value['name'], str) or not re.fullmatch(
+                r'[a-z0-9][a-z0-9_.-]{0,100}-funded-probe-[a-f0-9]{32}', value['name'])
+            or not isinstance(value['imageId'], str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', value['imageId'])
+            or value['state'] not in {'pending', 'cleaned'}
+            or (value['containerId'] is not None and (not isinstance(value['containerId'], str)
+                or not re.fullmatch(r'[a-f0-9]{64}', value['containerId'])))
+            or (value['state'] == 'pending' and value['containerId'] is not None)
+            or digest(regular(root / 'probe-compose.json')) != value['composeSha256']):
+        raise ValueError('Invalid funded probe evidence')
+    return value
+
+
+FUNDED_CAPABILITY_VERSION = 'alterward-funded-capability-1'
+
+
+def funded_capability_state(root):
+    path = root / 'capability.json'
+    if not path.exists() and not path.is_symlink():
+        return None
+    private_archive_directory(root)
+    value = json.loads(regular(path))
+    keys = {'version', 'sourceCommit', 'bundleSha256', 'name', 'imageId',
+            'commandSha256', 'inputSha256', 'state', 'containerId'}
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['version'] != FUNDED_CAPABILITY_VERSION
+            or not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])
+            or any(not isinstance(value[k], str) or not re.fullmatch(r'[a-f0-9]{64}', value[k])
+                   for k in ('bundleSha256', 'commandSha256', 'inputSha256'))
+            or not isinstance(value['name'], str) or not re.fullmatch(
+                r'[a-z0-9][a-z0-9_.-]{0,100}-funded-capability-[a-f0-9]{32}', value['name'])
+            or not isinstance(value['imageId'], str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', value['imageId'])
+            or value['state'] not in {'pending', 'cleaned'}
+            or (value['containerId'] is not None and (not isinstance(value['containerId'], str)
+                or not re.fullmatch(r'[a-f0-9]{64}', value['containerId'])))):
+        raise ValueError('Invalid funded capability evidence')
+    return value
+
+
+FUNDED_ARCHIVE_NAME = 'funded-runtime-upgrade-archive'
+FUNDED_ARCHIVE_LIMIT = 8
+FUNDED_ARCHIVE_VERSION = 'alterward-funded-archive-1'
+
+
+def funded_unapplied_files(root):
+    paths = funded_tree_paths(root)
+    names = {p.relative_to(root).as_posix() for p in paths}
+    required = {'prepared.json'} | {r + '/' + n for r in ('target', 'recovery') for n in
+               ('server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json')}
+    if not required <= names or not names <= required | {'probe-compose.json', 'archive.json', 'probe.json', 'capability.json'}:
+        raise ValueError('Only a complete never-applied funded preparation can be archived')
+    capability = funded_capability_state(root)
+    if capability is not None and capability['state'] != 'cleaned':
+        raise ValueError('Pending funded capability cannot be archived')
+    probe = funded_probe_state(root)
+    if probe is not None and probe['state'] != 'cleaned':
+        raise ValueError('Pending funded probe cannot be archived')
+    return {p.relative_to(root).as_posix(): digest(regular(p)) for p in paths if p.name != 'archive.json'}
+
+
+def validate_funded_archive(root):
+    files = funded_unapplied_files(root)
+    value = json.loads(regular(root / 'archive.json'))
+    keys = {'version', 'preparedSha256', 'preparedSourceCommit', 'archiverSourceCommit',
+            'archivedAt', 'baselineSha256', 'files'}
+    prepared_bytes = regular(root / 'prepared.json')
+    prepared = json.loads(prepared_bytes)
+    for role in ('target', 'recovery'):
+        expected = prepared['files'][role]
+        observed = {name.split('/', 1)[1]: h for name, h in files.items() if name.startswith(role + '/')}
+        if expected != observed:
+            raise ValueError('Archived runtime differs from preparation')
+    if (set(value) != keys or value['version'] != FUNDED_ARCHIVE_VERSION or value['files'] != files
+            or value['preparedSha256'] != digest(prepared_bytes)
+            or value['preparedSourceCommit'] != prepared['sourceCommit']
+            or not re.fullmatch(r'[a-f0-9]{40}', value['archiverSourceCommit'])
+            or value['baselineSha256'] != digest((json.dumps(prepared['baseline'], sort_keys=True, separators=(',', ':')) + '\n').encode())
+            or dt.datetime.fromisoformat(value['archivedAt']) < dt.datetime.fromisoformat(prepared['expiresAt'])):
+        raise ValueError('Funded archive evidence changed')
+    return prepared, value
+
+
+def funded_archived_paths():
+    root = OWNER / FUNDED_ARCHIVE_NAME
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > FUNDED_ARCHIVE_LIMIT:
+        raise ValueError('Too many funded preparation archives')
+    files = []
+    for entry in entries:
+        if not re.fullmatch(r'[a-f0-9]{64}', entry.name):
+            raise ValueError('Unknown funded archive')
+        validate_funded_archive(entry)
+        if digest(regular(entry / 'prepared.json')) != entry.name:
+            raise ValueError('Funded archive identity changed')
+        files += funded_tree_paths(entry)
+    return files
+
+
+def funded_upgrade_config_paths(*, immutable_only=False):
+    return sorted(funded_tree_paths(OWNER / 'funded-runtime-upgrade', immutable_only=immutable_only)
+                  + funded_archived_paths())
+
+
+def funded_upgrade_healthy(mode):
+    root = OWNER / 'funded-runtime-upgrade'
+    if not root.exists() and not root.is_symlink():
+        try:
+            funded_archived_paths()
+            return True
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+    try:
+        funded_upgrade_config_paths()
+        capability = funded_capability_state(root)
+        if capability is not None and capability['state'] != 'cleaned':
+            return False
+        probe = funded_probe_state(root)
+        if probe is not None and probe['state'] != 'cleaned':
+            return False
+        if (root / 'archive.json').exists() or (root / 'archive.json').is_symlink():
+            return False
+        prepared = json.loads(regular(root / 'prepared.json'))
+        if prepared.get('version') != 'alterward-funded-upgrade-1':
+            return False
+        journal = root / 'journal.json'
+        if not journal.exists():
+            return mode == 'personal-beta' and utcnow() < dt.datetime.fromisoformat(prepared['expiresAt'])
+        intent = json.loads(regular(journal))
+        if set(intent)!={'version','preparedSha256','states'} or intent['version']!='alterward-funded-upgrade-1' or not 1<=len(intent['states'])<=32:
+            return False
+        previous=None
+        for row in intent['states']:
+            if set(row)!={'state','changedAt','previousSha256','sha256'} or row['previousSha256']!=previous:
+                return False
+            data=(json.dumps({k:v for k,v in row.items() if k!='sha256'},sort_keys=True,separators=(',',':'))+'\n').encode()
+            if digest(data)!=row['sha256']:
+                return False
+            previous=row['sha256']
+        state=intent['states'][-1]['state']
+        if mode != 'personal-beta' or state not in {'applied', 'recovered'}:
+            return False
+        proof = json.loads(regular(root / 'readback.json'))
+        expected = digest(regular(root / 'prepared.json'))
+        role = 'recovery' if state == 'recovered' else 'target'
+        return (intent.get('preparedSha256') == expected == proof.get('preparedSha256') and
+                proof.get('schema') == 38 and proof.get('protectedDataUnchanged') is True and
+                proof.get('imageId') == prepared['release'][role]['imageId'] and
+                {name: digest(regular(OWNER / name)) for name in prepared['files'][role]} == prepared['files'][role])
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
 
 
 def reader_config_paths():
@@ -941,6 +1161,8 @@ def personal_transition_healthy(mode):
     All values come from root-only files under the same activation lock. No
     provider, participant, preparation bytes or window are emitted in health.
     """
+    if not funded_upgrade_healthy(mode):
+        return False
     path = OWNER / 'personal-beta'
     try:
         if not path.exists() and not path.is_symlink():

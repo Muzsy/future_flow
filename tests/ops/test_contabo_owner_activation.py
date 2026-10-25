@@ -88,7 +88,7 @@ class OwnerActivationTests(unittest.TestCase):
                     'SecurityOpt': ['no-new-privileges:true'], 'Init': True,
                     'Memory': 1024, 'PidsLimit': 256, 'NanoCpus': 1_000_000_000},
                 'NetworkSettings': {'Ports': {'3000/tcp': None}},
-                'State': {'Status': 'running', 'Health': {'Status': 'healthy'}},
+                'State': {'Status': 'running', 'Running': True, 'Health': {'Status': 'healthy'}},
                 'RestartCount': 0, 'Mounts': [] if name == 'web' else [
                     {'Destination': '/run/secrets/supabase-ca.crt',
                      'Source': str(activation.CA), 'RW': False}]})

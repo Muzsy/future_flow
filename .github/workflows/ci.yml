@@ -35,6 +35,9 @@ jobs:
           node --test tests/ops/reader-archive-retry.test.mjs
           node --test tests/ops/linux-operator.test.mjs
           node --test tests/ops/operator-transfer.test.mjs
+          node --test tests/ops/funded-replay.test.mjs
+          node --test tests/ops/funded-upgrade.test.mjs
+          node --test tests/ops/funded-access.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
@@ -52,6 +55,15 @@ jobs:
           result = unittest.TextTestRunner().run(suite)
           assert result.wasSuccessful() and result.testsRun == 4 and not result.skipped
           PY
+      - name: Verify root-only funded journal and archive file contracts
+        run: |
+          sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
+          import sys, unittest
+          sys.path.insert(0, 'tests/ops')
+          suite = unittest.TestLoader().loadTestsFromNames(['test_funded_upgrade.RootJournalTests', 'test_funded_upgrade.ExpiredFundedArchiveTests'])
+          result = unittest.TextTestRunner().run(suite)
+          assert result.wasSuccessful() and result.testsRun == 10 and not result.skipped
+          PY
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
@@ -61,7 +73,7 @@ jobs:
       - run: git diff --exit-code -- docs/contracts
   container:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Build the Contabo image without credentials
@@ -72,5 +84,42 @@ jobs:
           .
       - name: Verify isolated Contabo deployment and secret boundaries
         run: node scripts/verify-deployment.mjs
+      - name: Install isolated encrypted-restore fixture dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y age
       - name: Verify web, API, worker, migrations and TLS without API spending
         run: node scripts/smoke-deployment.mjs
+      - name: Rehearse the actual immutable image without CI environment impersonation
+        run: |
+          image=$(docker image inspect alterward:ci --format '{{.Id}}')
+          proof_dir="/tmp/alterward-image-proof-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          sudo env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -B scripts/ops/contabo-funded-image-rehearsal.py --image "$image" --output-directory "$proof_dir"
+          sudo install -m 644 "$proof_dir/funded-upgrade-fixture-proof.json" test-results/funded-image-fixture-proof.json
+          sudo install -m 644 "$proof_dir/image-rehearsal-receipt.json" test-results/funded-image-rehearsal-receipt.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {releaseEvidence} from './scripts/lib/funded-upgrade.mjs';
+          const fixture=JSON.parse(readFileSync('test-results/funded-image-fixture-proof.json','utf8'));
+          const build={commit:fixture.sourceCommit,imageId:fixture.targetImage,imageTag:'alterward:contabo-aaaaaaaaaaaa',sourceDirectory:'/root/alterward-ops/synthetic-contract-check'};
+          // This in-memory fixture audit exercises the validator, never authorizes a release.
+          const input={commit:fixture.sourceCommit,bundleSha256:fixture.bundleSha256,selection:{target:build,recovery:build},fixture,audit:{sourceCommit:fixture.sourceCommit,bundleSha256:fixture.bundleSha256,interpretedByOperator:true,critical:0,high:0,medium:0},ci:[]};
+          assert.equal(releaseEvidence(input).target.imageId,fixture.targetImage);
+          assert.throws(()=>releaseEvidence({...input,selection:{target:{...build,imageId:'sha256:'+'0'.repeat(64)},recovery:build}}));
+          console.log('Actual isolated image proof accepted; foreign image rejected; no release authorization.');
+          JS
+      - name: Retain synthetic funded upgrade evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-upgrade-ci-proof
+          path: test-results/funded-upgrade-ci-proof.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain standalone image rehearsal evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-image-rehearsal-proof
+          path: |
+            test-results/funded-image-fixture-proof.json
+            test-results/funded-image-rehearsal-receipt.json
+          if-no-files-found: error
+          retention-days: 7

@@ -1,5 +1,9 @@
 import type { Locale, FictionPolicy } from '@future-flow/contracts';
-import { languages, fictionPolicy } from '@future-flow/contracts';
+import {
+  languages,
+  fictionPolicy,
+  fictionV9Policy,
+} from '@future-flow/contracts';
 
 export function fictionPrompts(
   locale: Locale,
@@ -166,7 +170,7 @@ export function fictionPrompts(
   const frictionBeat = `\nFRICTION-BEAT CRAFT: seriesLedger.frictionBeat counts owned chapters whose narration names the protagonist's small private friction (irritation, annoyance, dislike, impatience, a door or laptop closed too sharply, saying something unhelpful); recentRun is how many of the latest chapters in a row did so and recentMarkers are their words. This is not a ban on conflict. But a passing flash of irritation that changes nothing is a reflex, not character: when recentRun is 1 or more, do not give this chapter another such flash under different wording. Let the protagonist meet other people's wants with another real response this period, such as curiosity, embarrassment, generosity, envy, fear, delight, being wrong and admitting it, or an open disagreement that is said aloud and has a consequence in what someone does next. If friction is the earned centre of this period, make it an event with stakes, not a mood in the narration.`;
   const castChange = `\nCAST-CHANGE CRAFT: a period may introduce at most three new recurring people through actor_add; the server rejects a fourth. A one-off participant who never returns stays unnamed and in passing, never a scene actor and never the acting party of a visibleAction. An invented recurring person (never a supplied partner, family member, friend or Shared identity) may also leave the story through an actor_remove change on the event where this period's own causality makes it happen: they move away, a job or role ends, a friendship drifts or a relationship ends. Never remove someone as housekeeping or to avoid a conflict. A person who leaves may take part in that event, but not in any later event or scene; afterwards they may only be remembered or mentioned. Current state holds at most thirty people, so when it is crowded a departure the story has earned is better than yet another new person.`;
   const endingKind = `\nENDING-KIND CRAFT: before writing the last paragraph, read seriesLedger.recentClosings and name to yourself the KIND of ending each one uses, not just its words. A common hidden repeat is the suspended-activity ending: the protagonist keeps doing, leaves running, closes or walks on with something while an ordinary background sound or another person's small act interrupts and nothing is said. If any recent closing is of that kind, this chapter must end on a different kind, for example a line of dialogue that changes the situation, a decision taken aloud, a new fact arriving, or a cut in the middle of an action with stakes.`;
-  return {
+  const v8Prompts = {
     ...v7Prompts,
     planner:
       v7Prompts.planner +
@@ -197,4 +201,126 @@ export function fictionPrompts(
       seriesLedger +
       `\nSERIES EVIDENCE under the SAME report version 1.3.0: the request may carry seriesEchoFindings, deterministic counts of where THIS chapter's narration reuses an opening or phrase that seriesLedger already shows recurring across earlier chapters. Kind opening or phrase means narration reuses wording seriesLedger already shows across earlier chapters; kind within means one opening recurs three or more times inside this chapter alone. These are measured facts, not your opinion: set distinctRhetoricalShape=false and cite the exact wording and its count when any opening or phrase finding has priorChapters >=3 or occurrences >=2, when two or more different opening or phrase findings occur, or when any within finding occurs; a single reuse inside a character's dialogue is not that defect. Compare the final sentence against seriesLedger.recentClosings and set distinctEnding=false when it repeats the same closing device. Do not give behavioralVariety=true when the chapter again resolves its central exchange as proposal, irritated resistance and half-yield after recent owned periods did the same. Do not award novelty or character >=4 merely because nothing is broken; a competent chapter that repeats the series' wording, ending device or beat is a 3. The request may also carry frictionFinding: markers are this chapter's narrated small-friction words and priorRun is how many immediately preceding owned chapters already carried them. When markers is non-empty and priorRun >=2, set behavioralVariety=false and cite the marker, unless the friction is spoken aloud and changes what someone does later in this chapter; a marker inside dialogue alone is not that defect.`,
   };
+  // Freeze the measured v8 text (PR #52 checkpoint); v9 below is the new
+  // living-world generation, opt-in only.
+  if (versions.writer === 'life_fiction_author.v8') return v8Prompts;
+  // v9 inherits the v8 safety/quality rules; selected craft text is replaced
+  // below (C3-C5). Character state travels as structured input
+  // (narrativeContext.characterProjection), not as more rules (plan 41).
+  const characterIntent = `\nCHARACTER-INTENT CRAFT: narrativeContext.characterProjection lists the recurring people who matter for this period; each entry shows its stable cues, current aim, pressure, attention, stance and unresolved matter, and a supplied person shows only relationship state. Return characterIntent (at most 6 entries, possibly empty) for the wholly fictional recurring people this plan uses: ownAim is what the person wants for their own reasons, attentionOn is where their attention already is, interactionPressure is the pressure the protagonist's approach puts on them, and protagonistRelevance is null or a short phrase and may well be low, because a person's current matter can be largely unrelated to the protagonist's goal. Use only actorIds from characterProjection or a person this plan introduces with actor_add. Never invent a private aim or state for a supplied person. Do not repurpose a person's state solely to solve the protagonist's current problem. characterProjection.omittedActors counts relevant people who are not shown; do not contradict them. CONTINUITY: also return continuityDecisions, one entry for every projection person whose reasons include unresolved_matter or open_thread: carry (their matter moves, even slightly, or stays visibly alive in this period), defer (it stays offstage and unresolved this period) or resolve (this period closes it), with a reason under 100 characters that names only what the projection shows or this plan will show: a reason is a planning note, never a past event. A carry or resolve for a wholly fictional person also needs a characterIntent entry. Deferring is a legitimate choice, silence is not; name only people shown in characterProjection.`;
+  const characterState = `\nCHARACTER-STATE CRAFT: respect narrativeContext.characterProjection and draft.characterIntent; do not repurpose a person's state merely to solve the protagonist's problem. The package must carry characterDelta: version 1.0.0 with the arrays addedProfiles, profileUpdates, dynamicUpdates, relationshipUpdates and removedActorIds, each empty when nothing durable changed; record only what could matter later. addedProfiles: exactly one profile per new recurring actor_add of this period (originEventId is the event carrying that actor_add, establishedAtPeriodId is this periodId, short behaviour-causing cues, no scores). dynamicUpdates: wholly fictional people whose aim, pressure, attention, stance or unresolved matter really changed (lastMeaningfulChangePeriodId is this periodId; provenance branch_fiction or interaction_derived). relationshipUpdates: how a person now stands toward the protagonist, provenance interaction_derived or branch_fiction, never user_supplied (only the server may label a fact as supplied). A supplied person (family, partner, friend, Shared identity) gets ONLY a relationshipUpdate and no profile or dynamic state: interaction_derived for what they actually did together, branch_fiction only for how the relationship itself changed in this branch, never a private real-world fact (health, money, work, feelings outside the interaction). removedActorIds: exactly the people removed by actor_remove this period; a person who enters by actor_add and leaves by actor_remove in this period gets the profile AND a removedActorIds entry, nothing else. A projection person with a legacy view and no profile was recorded earlier: treat role, desire, resistance and voice as established, add no profile, record change only as dynamicUpdates or relationshipUpdates. A delta touches at most 6 people and about 8 KiB; copy every actorId exactly. draft.continuityDecisions bind: carry = the person's own matter shows in action or speech this chapter; resolve = it ends here (set unresolvedMatter or unresolvedInteraction to null in the delta); defer = leave it. CAST: a new named or role-identified person who speaks or acts in a scene gets an actor_add and a profile, or stays a one-line background figure with no dialogue; put no new lasting fact in the prose (adopted, used, agreed) unless storyFacts registers it. A continuityDecisions reason is a planning note, not a fact: never write it into an event summary or the prose as something that already happened (a request, promise or visit) unless storyFacts or the projection records it. REPAIR: when authorRepair is set, follow authorRepair.repairRule for its mode. EMBODIMENT: where a scene calls for it, let the physical world press on people (place, weather, the hour, tiredness, hunger, what things cost, a small bodily limit) and change what they do; never as decoration, in every scene, or as manufactured hardship.`;
+  // The chapter's closing decision should pull already in the first draft, so
+  // that no repair has to add its stakes afterwards (blind reading, 2026-10-21:
+  // the inserted stakes read as bolted on, and in one case too direct).
+  const choiceCraft = `\nCHOICE-STAKES CRAFT: let each option of the closing decision have a concrete pull inside the chapter's own scenes, carried by an object, a sensation or an action (something the protagonist does, notices or handles) that the reader can feel, already in this first draft. Ground cost and uncertainty as well as attraction in the existing plan.decisionStakes. Do not explain the weighing: no paragraph that states the protagonist's fear or wish for each option side by side (the 'You fear X... You also fear Y' pattern), and the closing passage does not recite the alternatives. Use only what storyFacts, the candidate events and the accepted history already contain; the pull is no reason to add a new person, object, cause or fact. In a repair round only authorRepair.message and authorRepair.repairRule apply: this rule is for the first draft and asks for nothing further then.`;
+  // v9 editor: the acceptance sentence of the original editor text restated as
+  // the gate the code applies (all eight scores >=4, no major/canon issue).
+  // C5 also asks for complete, compact issue feedback; choiceStakes keeps the
+  // v8 strictness
+  // (the blind reading of 2026-10-21 showed the stricter verdict was a real
+  // improvement, not noise). A v9 snapshot stored with the v8 editor keeps the
+  // v8 text.
+  const oldAcceptance =
+    'Acceptance requires causality/momentum/sceneCraft/choiceStakes/prose >=4, eight-score mean >=4, no major or canon issue.';
+  if (v8Prompts.editor.split(oldAcceptance).length !== 2)
+    throw new Error('The v8 editor acceptance sentence must occur once.');
+  let v9Editor = v8Prompts.editor.replace(
+    oldAcceptance,
+    'Acceptance requires all eight scores >=4 and no major or canon issue.',
+  );
+  // v9 planner (Ákos's decision of 2026-10-21 23:30 Hungarian time, deviating on
+  // purpose from "v9 keeps every v8 rule"): the planner writes no prose, so the
+  // prose-side craft rules it could not carry out are removed from ITS text (the
+  // author and editor texts keep them), its opening no longer prescribes the
+  // "attempt meets resistance" skeleton, and its closed list of alternative
+  // progression sources becomes the turn-type catalogue. Every replacement is
+  // exactly-once and checked at load, like the v9 editor above.
+  const once = (text: string, from: string, to: string) => {
+    if (text.split(from).length !== 2)
+      throw new Error(
+        `A v9 prompt replacement must match exactly once: ${from.slice(0, 48)}`,
+      );
+    return text.replace(from, () => to);
+  };
+  // C5 (owner-approved, 2026-10-23): replace inherited craft instructions
+  // rather than adding another rulebook. Compare actual causes, not labels;
+  // preserve legitimate recurrence and the existing quality gate.
+  const causalProgression = `\nRECURRING-BEAT CRAFT: compare who drives the turn, what changes and how it creates the final choice with owned sequenceHistory and sequenceSignatureHistory. A new turnType, task, reward or scale alone is not a new cause. In the first draft, change a repeated causal chain through an existing action or independent want. Keep accepted commitments; earned continuations and further offers remain valid when their causal role changes. Never force failure, new people or plot rotation for variety.`;
+  const livedLimits =
+    'Trust the reader; cut administrative disclaimers, coaching, repetitive introspection, moral lessons and balanced option briefings. A practical limit should affect an action, not be recited each paragraph.';
+  const livedLimitsV9 =
+    'Keep obligations and limits exact in candidate and storyFacts. In the first draft show their effect through action or a natural exchange, rather than narrator reassurance about what is not owed, accepted or allocated. Keep conditions needed to understand the choice; cut coaching, repetitive introspection, moral lessons and balanced option briefings.';
+  const endingKindV9 = `\nENDING-KIND CRAFT: in the first draft, compare the closing passage's function with seriesLedger.recentClosings and both owned sequence history layers. A repeated revelation or suspension needs more than new wording: move the information earlier and close on an existing consequence or action. Recurring imagery can change causal roles; invent no fact to rotate endings. Leave the reader's decision unresolved.`;
+  v9Editor = once(
+    v9Editor,
+    'Issues reference actual one-based paragraphs/final event IDs.',
+    'Issues reference actual one-based paragraphs/final event IDs. Check every blocking dimension in the same pass. Keep each explanation and suggestedFix a short complete sentence within its field limit: name the decisive evidence and the needed change before elaborating. Do not clip a sentence or omit another blocking issue to fit.',
+  );
+  const plannerOpening =
+    'Start from what this protagonist wants, let a specific attempt meet a person or resistance, and allow';
+  const humanRhythm = ` Vary sentence rhythm and the closing device across chapters: do not routinely build a balanced antithesis (for example "You had understood X. She had understood Y." or "You miss X. You do not miss Y."), an "almost say... then stop..." self-correction formula, an explicit spoken moral, or a quiet object tableau ending; an ordinary sentence can close a chapter as well as a polished one, and an incidental detail need not pay off later.`;
+  const returningCast = `\nRETURNING-CAST CRAFT: seriesLedger.recurringCast lists the wholly fictional recurring people with chaptersPresent, chaptersSinceLast and whether their matter is still open. A person with an open matter who has been absent for two or more chapters is a natural source of this period's turn: let the period, or one event of it, begin from something that person wants (a message, a request, a consequence of their own work) instead of introducing a further outsider whose only role is to meet the protagonist's latest work. This is neither a quota nor a rotation: a person may stay offstage when this period's own causality gives a reason, and a defer then names that reason in continuityDecisions. Register every new lasting fact about them in storyFacts as usual.`;
+  // The catalogue lines are the one-sentence descriptions of
+  // FICTION_TURN_TYPES (plan D.8); each value is named exactly once.
+  const turnTypeCraft = `\nTURN-TYPE CRAFT: return turnType: the catalogue value this period's central turn (what changes the situation, not its topic) belongs to, judged by the events, or other, or null. Catalogue: attempt_meets_resistance (the protagonist's own attempt meets resistance and ends partial, changed or abandoned); outsider_reads_the_work (someone outside judges the protagonist's work and finds what the protagonist had not seen; the densest pattern, use it rarely); other_persons_aim_crosses (another person's own plan, independent of the protagonist's project, crosses the protagonist); old_matter_returns (an earlier person, promise, dispute or thread returns and asks something); event_from_outside (a cost, deadline, season, closure, move or news changes the options, independent of the protagonist's project); success_with_price (something works and its price in time, a bond or a lost chance is the chapter's subject); relationship_shift (a bond changes for its own reasons, the work staying in the background); protagonist_refuses_or_withdraws (the protagonist declines, stops or holds a position, and others bear the consequence); delayed_cost_of_earlier_choice (the consequence of an earlier accepted choice or omission arrives now); quiet_persistence (no outside verdict: slow, steady work or a small shift in ordinary life). seriesLedger.turnQueue lists the catalogue from least to most recently used. When several types fit this period equally, prefer the one nearest the front; types in seriesLedger.restingTurns were used in the last two chapters, so choose one of them only when this period's own causality truly asks for it. This is a planning note, neither a quota nor a schedule: never add an event, person or fact only to reach a type, never force spectacle, keep accepted choices, hard boundaries, the safety scope and the supplied-person rules. A type that involves a recurring person uses a wholly fictional one.`;
+  let v9Planner = v8Prompts.planner;
+  v9Planner = once(
+    v9Planner,
+    plannerOpening,
+    'Start from what this protagonist wants and from what the other people in the story are already doing; let their paths cross, and allow',
+  );
+  v9Planner = once(v9Planner, progressionDiversity, turnTypeCraft);
+  v9Planner = once(v9Planner, humanRhythm, '');
+  for (const section of [
+    closingPassage,
+    patternSignal,
+    frictionBeat,
+    endingKind,
+  ])
+    v9Planner = once(v9Planner, section, '');
+  v9Planner = once(v9Planner, seriesLedger, seriesLedger + returningCast);
+  v9Planner = once(v9Planner, recurringBeat, causalProgression);
+  // v9 author (C4/D1, Ákos 2026-10-22): the package lists the chapter BEFORE
+  // the story facts (schema order = generation order), so the facts register
+  // what the prose really says; a past specific in the prose is registered or
+  // left out; and the request carries mechanicsFigures, the exact numbers of
+  // the structured state, which the prose must not recount. All three are
+  // general rules: the figures are computed from the life's own state at
+  // request time, never saved in the prompt.
+  let v9Author = once(
+    v8Prompts.author,
+    'storyFacts and chapter.',
+    'chapter, then storyFacts of what it contains.',
+  );
+  v9Author = once(
+    v9Author,
+    'Do not duplicate every sentence.',
+    'Do not duplicate every sentence, but a past specific the prose states (how long, how many times, an earlier request) is a continuity storyFact on its first event, or is left out.',
+  );
+  v9Author = once(v9Author, livedLimits, livedLimitsV9);
+  v9Author = once(v9Author, recurringBeat, causalProgression);
+  v9Author = once(v9Author, endingKind, endingKindV9);
+  let v9Review = once(v8Prompts.review, recurringBeat, causalProgression);
+  v9Review = once(
+    v9Review,
+    '\nWhen judging novelty under these additions, a plan that again reaches its turning point through the same proposal-resistance-half-yield exchange or the same application-test-offer-call skeleton as recent owned periods is a repeated causal shape.',
+    '\nJudge the final event/action/consequence chain against both owned history layers before accepting novelty. State progression or a new label alone cannot justify a pass; identify what changes the causal role. An earned continuation is not a defect merely because a person, activity or offer recurs.',
+  );
+  const mechanicsFigures = `\nMECHANICS-FIGURES CRAFT: mechanicsFigures are exact numbers of the state and typed changes. Never restate one as a figure or count in the prose; show its effect on the day or choices.`;
+  return {
+    ...v8Prompts,
+    editor:
+      versions.editor === 'life_fiction_editor.v9'
+        ? v9Editor
+        : v8Prompts.editor,
+    planner: v9Planner + characterIntent,
+    author: v9Author + characterState + choiceCraft + mechanicsFigures,
+    review:
+      v9Review +
+      "\nWhen judging causality and novelty under the character additions, a plan whose characterIntent makes a recurring person's ownAim merely serve the protagonist's current problem, or gives a supplied person an invented private aim, is weak. The request may carry continuity (the planner's continuityDecisions and characterIntent): a carry or resolve decision whose matter does not show in the final package, or a resolve that leaves the matter open in characterDelta, is a continuity defect that lowers character. Also flag a final package where a new speaking person has no actor_add, or a lasting claim has no storyFact.",
+  };
 }
+
+// The v9 editor text is built by exact-once replacements; fail at load, not
+// at the first chapter, if the inherited sentence ever stops matching.
+fictionPrompts('en', fictionV9Policy().promptVersions);

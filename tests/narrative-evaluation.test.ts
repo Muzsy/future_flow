@@ -93,6 +93,66 @@ describe('bounded and independently assessed narrative experiment', () => {
     expect(evaluationTimeouts({})).toEqual({ timeoutMs: 120000 });
   });
 
+  it('binds the approved C5 Flex smoke and long shapes to one USD 7 allowance', () => {
+    const args = [
+      '--out',
+      '.local/flex-test',
+      '--creative-only',
+      '--fiction-generation',
+      'v9',
+      '--service-tier',
+      'flex',
+      '--fixtures',
+      'career-transition',
+      '--choice-mix',
+      'rotate',
+      '--periods',
+      '3',
+      '--no-forks',
+    ];
+    const options = parseEvaluationOptions(args, {});
+    expect(options.serviceTier).toBe('flex');
+    // Product provider config keeps its existing <=300s validation. Only the
+    // isolated paid SDK adapter overrides the transport deadline to 900s.
+    expect(evaluationTimeouts(options)).toEqual({
+      timeoutMs: 120000,
+      fictionTimeoutMs: 300000,
+    });
+    const paidFlex = {
+      ...options,
+      kind: 'paid' as const,
+      allowPaid: true,
+      budgetUsd: 58.6490625,
+      approvalId: 'v9-c5-flex-20261024',
+    };
+    expect(() =>
+      verifyEvaluationAuthorization(paidFlex, development),
+    ).not.toThrow();
+    expect(() =>
+      verifyEvaluationAuthorization(
+        { ...paidFlex, periods: 8, noForks: undefined },
+        development,
+      ),
+    ).not.toThrow();
+    for (const patch of [
+      { periods: 4, noForks: undefined },
+      { budgetUsd: 58.65 },
+      { fixtureIds: ['creative-portfolio'] },
+      { choiceMix: undefined },
+      { approvalId: 'v9-m-20261022' },
+      { serviceTier: undefined },
+    ])
+      expect(() =>
+        verifyEvaluationAuthorization({ ...paidFlex, ...patch }, development),
+      ).toThrow();
+    expect(() =>
+      parseEvaluationOptions(['--service-tier', 'auto'], {}),
+    ).toThrow();
+    expect(() =>
+      parseEvaluationOptions(['--service-tier', 'flex'], {}),
+    ).toThrow();
+  });
+
   it('defaults to eight fictional offline profiles and never adopts the application credential', () => {
     const options = parseEvaluationOptions([], {
       OPENAI_API_KEY: 'application-secret-must-not-be-used',

@@ -136,7 +136,7 @@ export async function preparePrivacyRestoreFixture(
     const job = await jobs.claim();
     assert(job && job.id === jobId);
     if (creative) {
-      const prepared = await prepareFictionJobFixture(db, job);
+      const prepared = await prepareFictionJobFixture(db, job, 'v9');
       await jobs.complete(
         job,
         prepared.candidate,
@@ -163,6 +163,11 @@ export async function preparePrivacyRestoreFixture(
     deletedLife = removed.lifeId,
     unchangedLife = g.people[0]!.lifeId;
   const deletedLifeNarrativePeriod = await narrativePeriod(removed.jobId, true);
+  const retainedV9Life = await lives.create(a, setupFixture(), randomUUID());
+  const retainedV9NarrativePeriod = await narrativePeriod(
+    retainedV9Life.jobId,
+    true,
+  );
   await db.query(
     "INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES('privacy-project',1000000,100)",
   );
@@ -214,6 +219,7 @@ export async function preparePrivacyRestoreFixture(
     deletedLife,
     deletedAccountNarrativePeriod,
     deletedLifeNarrativePeriod,
+    retainedV9NarrativePeriod,
     unchangedLife,
     withdrawnToken: published.unlistedToken,
     keptSlug,

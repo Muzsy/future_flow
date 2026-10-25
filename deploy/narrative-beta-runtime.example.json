@@ -1,0 +1,7 @@
+{
+  "mode": "narrative-fiction-v2",
+  "generation": "v9",
+  "cohortUserIds": ["00000000-0000-4000-8000-000000000001"],
+  "timeoutMs": 300000,
+  "maxRequestBytes": 196608
+}

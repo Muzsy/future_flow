@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-24
 related:
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
   - RECOVERY_HU.md
@@ -85,3 +85,11 @@ Az apply csak az aktuális candidate hash-eket tartalmazó, izoláltan ellenőrz
 ## Linux operátori host
 
 A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.
+
+## Aktív funded runtime új verziója
+
+A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.
+
+A funded upgrade külön `FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 4` szabálya az aktív evidence mellett legfeljebb nyolc hash-nevű, lejárt és soha nem alkalmazott preparation-archívumot foglal a titkosított config backupba. Kilenc eredeti immutable fájl, opcionális probe-compose, lezárt probe- és capability-receipt, valamint hash-hez kötött archive receipt megőrzendő; ismeretlen fájl, alias, hardlink, hibás private jogosultság vagy hash-eltérés elutasított. Automatikus archívumtörlés nincs. Az új Daily installálása változatlan kiadási kapu, az archívum nem apply-authority.
+
+A v3 policy az aktív `probe.json` intent/cleanup evidence-t is menti; pending állapot archivált preparationben nem megengedett. A változó probe-receipt az általános titkosított backup része, nem az immutable candidate restore-kapu vagy új apply-authority. A hozzá kötött config hashét a Daily health és az archiválási ellenőrzés is validálja.

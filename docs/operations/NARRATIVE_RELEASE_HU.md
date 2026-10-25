@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-19
+last_reviewed: 2026-10-25
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -11,9 +11,70 @@ related:
 
 # Személyes narratív és fikciós kiadás: előkészítés és fennmaradó kapuk
 
-Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; a fizetett/független emberi N08 mérés még kötelező. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
+Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; nyilvános/fizetős kiadáshoz a teljes paid/humán N08 mérés kötelező, zárt bétára a lent rögzített helyettesítő kapurend érvényes. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
 
-## Aktuális v6 bizonyíték és költési határ — 2026-10-18
+## Aktuális végrehajtási keret — 2026-10-23
+
+A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, implementáció `7bd4d42`), production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
+
+## Bétafókusz és motorbefagyasztás — 2026-10-24
+
+**Tulajdonosi döntés:** a motor további finomítása helyett a cél annak technikai stabilizálása és a kis zárt béta kiadása. Ez felülírja a C5 mérés után következőnek javasolt history-auditot és kontextuskontrollt. Ezek, az új promptminőségi iterációk, archetípusok és a 048-as fejlesztés DEFERRED. Az alábbi három munkacsomag végrehajtási sorrend; a bizonyítékok hiánya nem indít új, általános motorfejlesztést.
+
+**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A jelenlegi főág v8; az egyesített fejlesztési jelölt a #80 csomagban áll, végső kiadási auditja és main merge-je még nyitott. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
+
+### 1. Egy kiadási jelölt és a motor technikai lezárása
+
+A függő v9 lánc, a #62 tesztjavítás és a #56 N09 alap először fejlesztői integrációs ágba kerül; `main` merge külön, a konkrét reviewed jelölt alapján történik. A végleges forráson a releváns regressziók, a teljes tesztcsomag, typecheck/build/schema/docs és Verify/Container CI szükséges. Csak a kiadást akadályozó hibát javítjuk; egy újabb novelty-vélemény vagy szebb prózára vonatkozó ötlet önmagában nem nyitja újra a motort.
+
+2026-10-24-i előellenőrzés: `git merge-tree --write-tree --name-only c3bac469da3848147c3811adaa2c34ce785e71f6 86058385515b0d0c0b768e16a30017c9dac92237` három szöveges konfliktust jelez (`docs/DEVELOPMENT_PLAN_HU.md`, `docs/STATUS_HU.md`, e runbook); forráskódkonfliktust nem. A #62 `b39c30a` ugyanezen v9 alaphoz szövegesen tiszta. Ez objektumszintű helyi próba, nem tényleges merge, kompatibilitási teszt vagy CI. A konfliktusoknál a jelenlegi bétafókusz és a régi operátori szerződés szükséges részletei együtt maradjanak meg.
+
+### 2. V9-kompatibilis frissítés és helyreállítás
+
+A közvetlen implementációs feladat a #56 továbbvitele a végleges v9 jelöltre. A `8605838` forrásban a `scripts/lib/funded-runtime.ts` capability-listája v1–v8 fictiont vizsgál, a `scripts/ops/contabo-funded-upgrade.py` 18 policyt vár. A tárolt policy parse önmagában nem v9 runtime/recovery proof. Kötelező a v9 policy, artifact/szereplőállapot és a generációválasztás kezelése a target és recovery oldalon, a régi generációk megtartásával, célzott negatív ellenőrzéssel ismeretlen/inkompatibilis változatra. A compose/env/backup/monitor/fence útvonalnak is ugyanazt a generációt kell megőriznie. A 2026-10-24-i integrációs jelölt már átadja a generációkulcsot (default v8), és az explicit privát selection.runtime blokkot mindkét image-re köti; részletes szerződés az [N09 runbookban](FUNDED_RUNTIME_UPGRADE_HU.md#explicit-v9-kiadási-konfiguráció--2026-10-24). Ez fejlesztési implementáció, nem éles beállítás.
+
+A #56 runbookjának hat dokumentált operátori korlátját rövid release-triage zárja (a változó CI-metaadat hash hibája az integrációs jelöltben javítva): registry/receipt folytonosság, applied utáni restart, maradék one-off konténer, lejárt preparation, változó CI-metaadat hash és recovery restore-proof frissesség. A biztonságos helyreállítást vagy az igazolható célállapotot blokkoló tételt javítani kell; más tétel csak dokumentált, végrehajtható operátori eljárással maradhat. Nem általános operátori eszközújraírás a cél.
+
+A konkrét runtime timeout/request cap és az ezekből számolt költségfoglalás ellenőrzése a kiadási konfiguráció része. A jelenlegi 100000 bájtos default a mentett javító kérések egy részéhez kevés; a korábbi 131072 B javaslatot a C5 mérés felülírta, a #75-ben 196608 B / 300000 ms az ellenőrizendő jelölt, nem alkalmazott vagy automatikusan jóváhagyott érték. Új irodalmi benchmark helyett a meglévő méretadatok, determinisztikus cap/timeout/budget próbák és az egyesített runtime/recovery fixture adja a technikai bizonyítékot. Titkosított backup, izolált restore/privacy replay, kompatibilis image-digest és drain/rollback próbák kötelezők.
+
+A 2026-10-24-i kiadási előellenőrzés a hosszabb held állapot melletti restore-frissítés meglévő útját tíz célzott teszttel igazolta a szintetikus határok között. A registry/receipt kérdés viszont konkrét kódoldali akadály: a legacy replay dependency-guardja a v9 jelöltet 41 védett fájl eltérése miatt elutasítja, és a régi owner-only stage/build receipt nem az új funded runtime bizonyítéka. Következő ezért kompatibilis schema-038/v9 capture/replay és funded aktív proof, külön exact-source audit/CI/célgépes restore-próbával. Nem elegendő egy új image-párt a registrybe felvenni. [Részletes reprodukció és megőrzött recovery-kapuk](FUNDED_RUNTIME_UPGRADE_HU.md#kiadási-előellenőrzés-hosszabb-hold-és-legacy-replay--2026-10-24).
+
+### 3. Tesztelői alapút és kis zárt indulás
+
+Egy kijelölt tesztelővel a tényleges kiadási jelölt útját kell ellenőrizni: belépés → első fejezet → választás mentése → folytatás → új munkamenetből visszatérés/újranyitás → export → visszajelzés. Elutasított generálás, timeout és keretkimerülés esetén is látható, érthető lezárás, konzisztens mentett állapot és helyes elszámolás kell; nincs rejtett újrafuttatás vagy második díj ugyanannak a commitnak a hibás ismétléséből. A meglévő budget/window/admission szabályok érvényesek. A paid lépés csak a konkrét keret és forrás jóváhagyása után indulhat; az előkészítés mock/izolált környezetben végezhető.
+
+A bétaindítást **blokkolja** az adatvesztés/adatvédelmi rés, hibás canon/choice mentés vagy elszámolás, megkerülhető budget/admission, nem működő frissítés/helyreállítás, illetve a fenti alapút ténylegesen reprodukált megakadása. Egy quality-gate elutasítás önmagában nem adatbiztonsági hiba; ismétlődő elutasítás vagy beragadt állapot miatt használhatatlan folytatás viszont működési blokkoló. Az ilyen hibára célzott javítás és érintett regresszió kell, új craft-fejlesztési ciklus helyett.
+
+Az első kijelölt tesztelőn ellenőrzött indulás után a korábban tervezett háromfős kis kör készíthető elő a pontos személyek/ablak/keret rögzítésével. A 2026-10-19-i 10 USD / háromfős terv továbbra tervezési alap, nem új funded aktiválás; a jelenlegi ablakot és költést nem írjuk felül. Feedback fejezetenként, rövid kérdőív a 3. és 6. fejezetnél, monitor és működő leállítás/visszaállás. A béta tapasztalatai döntik el, mely minőségi hibát érdemes később javítani.
+
+**Lezárási szabály:** a három munkacsomag szükséges technikai bizonyítékai után konkrét candidate/cohort/window/budget/apply csomag kerül a tulajdonos elé. A biztonsági kapukat megtartjuk, új teljes paid/humán N08, editor-kalibráció, history-kutatás vagy archetípus nem kerül a zárt béta elé. Nyilvános/fizetős kiadásnak továbbra külön minőségi és termékkapui vannak.
+
+
+
+### Egyesített kiadási jelölt — #80, 2026-10-25
+
+Az aktív `codex/v9-beta-release-candidate` ág a #79 végső `1c8c3de5c1158f62f5fb49df2e910f81a23d26a1` forrásából indul, `main` célú, egyesített review-csomag. A 2026-10-25-én lekért távoli `main` továbbra `a666c905ef953cc696d5d8a0faa4f9169ec01824`; ez a jelölt őse, a `git merge-tree` konfliktusmentes és a jelölt fáját adja. A fő munkakönyvtár helyi `main` ága más operátori történetet tartalmaz; azt nem reseteltük és nem használtuk kiadási alapnak.
+
+A #56, #57–#61, #62–#71, #73, #74, #78 és #79 jelenlegi fejei mind valódi Git-ősök a jelöltben (a sorban #72, #75–#77 Issue, nem PR). A #56 és #62 integrációs merge-je `01b18b7`, illetve `8cc667e`. Az `apps/` és `packages/` teljes committed tartalma **bájtazonos a befagyasztott C5 `7bd4d42` állapottal**. A `c68ab037` konszolidáció csak a kiadási dokumentációt rendezte; a teljes review utáni célzott operátori javítások alább külön követettek, új motor-, séma- vagy költségszabály nélkül.
+
+A #79 pontos forrásának [CI-je](https://github.com/Muzsy/future_flow/actions/runs/40177172040) Verify+Container SUCCESS: 1477 alkalmazásteszt; Python 393 PASS / 11 SKIP és külön root csoportok 3+4+9 PASS; mindkét tényleges Docker-próba sikeres. Külön read-only review APPROVE a `cdb8bb8 → 1c8c3de` diffre, 21/21 saját célzott teszttel. A két P2 cleanup-hiba javítva. **Ez a review nem a teljes `main → jelölt` diff auditja.** Az egyesített jelölt teljes CI-jét, pontos végső SHA-ját és review-eredményét a #80-hoz kapcsolt PR rögzíti; a korábbi rész-PR eredményeit nem címkézzük át.
+
+A `main` merge, a teljes kiadási diff független review-ja és a célgépes proof továbbra nyitott. A régi PR-k nem kerülnek külön squash/rebase integrációba: a jóváhagyott, teljes jelölt egyszeri beolvasztása után rendezhető a beolvadt vagy helyettesített stack GitHub-állapota. Addig mindegyik megmarad eredettörténetként. A majdani `main` pontos commitjához friss CI/audit/build/image/fixture kell; dokumentációs commit vagy merge után sem írható át régi proof.
+
+#### Következő konkrét operátori átadás
+
+| Sorrend | Előkészített elem / még szükséges eredmény | Megállási feltétel |
+| --- | --- | --- |
+| 1 | Egyetlen `main` célú jelölt, a teljes diff független review-ja és saját zöld CI; ezután a konkrét main merge tulajdonosi engedélye. | Rész-PR review-ja, eltérő SHA, közben megváltozó main vagy új finding. |
+| 2 | Jóváhagyott mainből clean, privát Linux checkout és tényleges build. A target/recovery ugyanaz az immutable image lehet; image ID és bundle valódi mérésből kerül a privát selectionbe. | Kitalált digest/útvonal, fejlesztési branchre átírt main-őr vagy más source-ból származó image. |
+| 3 | Külön jóváhagyott célgépes standalone próba a #76 eljárása szerint. Előtte kapacitás és cached függőségek felmérése; utána 16 check, privacy replay, cleanup és eredeti idegen workload egyezés. | Hiányzó erőforrás, más image-re érvényes CI-artifact vagy sikertelen cleanup; utóbbinál privát intent megőrzendő. |
+| 4 | Tényleges Daily/private-monitor telepítési és readback terv, eredeti titkosított mentés + offsite + izolált restore/fence/TLS bizonyíték, friss Access/Auth/reader/DB megfigyelés. | Nem ellenőrzött installált source, régi restore, ismeretlen költés/reservation vagy identity-drift. |
+| 5 | A #77 szerint konkrét résztvevők, dátumok, új-window/admission eljárás és számszerű paid engedély. A 10 USD a tervezett bétafeltöltés; a megadott 4,77 EUR nem új kiadási limit. | Régi ablak/ledger resetje, allowance nélküli hívás vagy pusztán a runtime selectionbe írt új user. |
+| 6 | Külön jóváhagyott prepare/restore/apply/active-proof, majd egy tesztelő teljes belépés–választás–folytatás–új session–export útja; csak ezután a kis kör. | Nem igazolt recovery/monitor vagy hibás mentés/elszámolás. |
+
+A runtime-minta továbbra v9 / fiction-v2 / 196608 B / 300000 ms; a benne lévő UUID szintetikus és nem admission. A későbbi privát csomag helye a meglévő `.local/contabo-release/`: release selection, tényleges operator-interpreted audit, source/image fixture, prepare/restore/active proof. A történeti receiptek és ledger változatlanok; sem üres, sem szintetikus audit-PASS fájlt nem állítunk elő. A célgépes próba eredménye az új root outputkönyvtárban marad, a repóba csak titok- és személyesadat-mentes összesítés kerül.
+
+## Történeti v6 bizonyíték és költési határ — 2026-10-18
 
 PR #50 mért checkpointként beolvadt (`f755a57`, production nélkül) / quality2.5, mért forráscb8b539 (CI340 SUCCESS); későbbi docs-only56062a8 CI341 SUCCESS. Legutóbbi friss B:15/18 elfogadott, alkotói8+fork és munkahelyi6; munkahelyi7–8/fork hiányzik, a következő author teljes előfoglalását budget guard állította meg API előtt. Nincs teljes kétprofilos vagy emberi PASS. V6 összesen22.7396675/23 USD, maradék0.2603325 USD; eredeti globális ledger652/33.4716975 USD, kumulatív plafon33.732030 USD. Minden unknown teljes foglalása megtartva, aktív/hozzárendeletlen0. Új paid futás nem indul. A korábbi keret- és eredményszakaszok dátumhoz/forráshoz kötött történeti checkpointok, nem mai engedélyek. [Aktuális státusz](../STATUS_HU.md), [részletes v6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
 
@@ -31,9 +92,11 @@ Kérdés: kiadható-e az új narratív pipeline egy kis, zárt tesztelői körne
 - A független emberi sorozatértékelés helyett a tesztelők saját, valódi életének értékelése: fejezetenkénti alkalmazáson belüli visszajelzés és egy rövid kérdőív a 3. és a 6. fejezet után (lent). Ez valódi emberi bizonyíték, de nem vak összehasonlítás, ezért nyilvános vagy fizetős kiadásra nem elegendő.
 - Árazás, csomag, billing és latency-SLA nem feltétele a zárt, előre keretezett bétának; a mért latency és fejezetköltség a béta eredménye.
 
-**Javasolt kiadandó verzió:** a v7, amely mért checkpointként, élesítés nélkül beolvadt a mainbe (PR #51, `466ed29`); ha a v8 jelölt a N09 munka lezárásáig fizetősen mért és jobb, kiadás előtt arra váltunk. A verzióválasztás az N09 folyamatát nem változtatja meg.
+**Kiválasztott fejlesztési generáció — 2026-10-20-i döntés:** a zárt béta előtt a **v9 élő világ** készül el, a v8 befagyott baseline. A korábbi v7/v8 kiadási javaslatot ez felváltja. A C5 draft #66 nem kiadási engedély: a végleges forrás kiválasztása, mért checkpointja, független review-ja és v9-kompatibilis N09 target/recovery bizonyítéka még szükséges. Az éles jelölt, cohort, window és budget az apply előtt explicit egyeztetendő.
 
-**Költségkeret — tulajdonosi döntés, 2026-10-19:** első körben 10 USD OpenAI-keret 3 tesztelőre (tervezett 10 USD projekt / 3,33 USD felhasználó). Kb. 0,40–0,43 USD-s elfogadott fejezetenkénti költséggel ez tesztelőnként kb. 7–8 fejezet, tehát a 6. fejezet utáni kérdőív elérhető. A plafon a `DatabaseAiBudget`-ben, a személyes policyban, a napi monitor `personal_runtime_policy` ellenőrzésében és a Linux operátori receipt-ellenőrzésben 10 / 3,34 USD; a Claude audit plafonja változatlan. A napi monitor a szerverre telepített példányból fut, ezért az új plafon csak a reviewed újratelepítés után él. A keret a visszajelzések után módosulhat; minden módosítás újabb tulajdonosi döntés. A worker egyszerre egy jobot dolgoz fel (kódból kiolvasva, élesben nem mérve), így egyidejű kérésnél a tesztelők sorban várnak.
+**Korábban jóváhagyott béta-keret — tulajdonosi döntés, 2026-10-19:** első körben 10 USD OpenAI-keret 3 tesztelőre (tervezett 10 USD projekt / 3,33 USD felhasználó). Kb. 0,40–0,43 USD-s elfogadott fejezetenkénti költséggel ez tesztelőnként kb. 7–8 fejezet, tehát a 6. fejezet utáni kérdőív elérhető. A plafon a `DatabaseAiBudget`-ben, a személyes policyban, a napi monitor `personal_runtime_policy` ellenőrzésében és a Linux operátori receipt-ellenőrzésben 10 / 3,34 USD; a Claude audit plafonja változatlan. A napi monitor a szerverre telepített példányból fut, ezért az új plafon csak a reviewed újratelepítés után él. A keret a visszajelzések után módosulhat; minden módosítás újabb tulajdonosi döntés. A worker egyszerre egy jobot dolgoz fel (kódból kiolvasva, élesben nem mérve), így egyidejű kérésnél a tesztelők sorban várnak.
+
+A fenti döntés nem igazolja a keret production alkalmazását vagy mai maradékát, és nem indít új funded ablakot. A v9 kiadásnál az eredeti béta-elszámolást megőrizve kell a konkrét alkalmazható keretet és tesztelőket rögzíteni; a v9 offline/API mérés ettől külön költségengedély.
 
 ### Tesztelői visszajelzés
 
@@ -66,6 +129,8 @@ A deploy compose a következő kulcsokat adja át; mind default-off vagy a megl�
 | `AI_FICTION_TIMEOUT_MS` | worker | 180000 | 1000–300000 |
 | `AI_FICTION_MAX_REQUEST_BYTES` | worker | 100000 | 100000–196608, csak `narrative-v1`/`narrative-fiction-v2` jobokra |
 
+`NARRATIVE_FICTION_GENERATION` (api, worker): opcionális kiválasztás, `v8` (alapértelmezés, kulcs nélkül is) vagy `v9` (élő világ, qualityPolicy 2.8.0). A `v9` csak `narrative-fiction-v2` módban érvényes, minden más érték vagy mód indításkor `NARRATIVE_CONFIG_INVALID`. A 2026-10-24-i integrációs jelölt deploy compose-a átadja `v8` defaulttal, az éles env itt nem módosul; a v9 bekapcsolása külön tulajdonosi döntés és N09-sorrend (b) szerint a Linux-helyreállítás ismerete után lehetséges. Egy v9 történet nem folytatható v8 konfigurációval (a szereplőállapot csendes befagyása helyett `NARRATIVE_CONTEXT_INVALID`). **Kérésméret-plafon:** a default továbbra 100000 B. A 2026-10-24-i C5 mérés 139370 B raw repairt tartalmaz; a 4096 B budget-tartalékkal 143466 B szükséges, ezért a korábbi 131072 B javaslat nem elegendő. A [#75 konkrét előkészítése](#konkrét-béta-konfiguráció-és-próbamenet--75-2026-10-24) 196608 B capet vizsgál; a `tests/fiction-v9-request-bytes.test.ts` pending-owner tesztértéke ehhez igazodik, a régi 108751 B v8 és 116336 B v9 mérések történeti adatai változatlanok. A budget cap az egész serialized kérés + 4096 B összege. A generic default, az éles env és a költségkeret nem változik; külön N09 selection/apply és tényleges foglalási headroom kell.
+
 A korábbi compose ezeket nem adta át, ezért a cohort productionben nem volt bekapcsolható, és a narratív jobok a 100000 bájtos envelope-pal futottak volna. A tulajdonosi owner-konfiguráció ellenőrzése (`validate_owner_configuration`) nem-legacy módot vagy nem üres cohortot elutasít. A compose változása miatt a következő éles frissítés már nem tisztán image-only: az N09 funded-runtime upgrade-nek ezeket a kulcsokat a fenti defaultokkal kell elfogadnia, minden más funded env-bájt változatlansága mellett. Konkrét éles értéket csak a külön jóváhagyott N09 apply állíthat be.
 
 ## Kiadási manifest, csak igazolt értékekkel
@@ -82,7 +147,7 @@ A kiadáskor rögzítendő: pontos clean main SHA; Verify és Container CI run+S
 
 A `LINUX_OPERATOR_HU.md` kifejezetten reader/funded/daily/writer-fence portot ad; owner-image deployment és scheduler-migráció nem része. A `scripts/contabo-owner-upgrade.mjs` win32-ra és original-zero tulajdonosi image-only állapotra kötött. A `scripts/ops/contabo-personal-beta.py` reader/original image baseline-ból indított funded átmenetet ellenőriz. Ezek egyike sem jogosít fel a már aktív funded window alatt schema+image+cohort átírására.
 
-Következő külön implementációs csomag szükséges: kanonikus Linux **funded-runtime upgrade**. Meg kell tartania az aktuális window kezdő/vég időpontját, összes és user keretet, ledger/reservation/usage összegét, napi/concurrent limitet, reader/access/CA/hostpint, jelenlegi worker-fence-t és idegen konténereket. A támogatott transition, rollback és candidate schema/recovery páros explicit szerződés legyen; existing receipt hand-edit vagy initial activation újrajátszása tiltott. Source audit, target fixture és CI kapuit ugyanazon candidate SHA-n kell igazolni. A feladatot az [Issue #34](https://github.com/Muzsy/future_flow/issues/34) követi; külön PR-ben készül, nem ezen benchmark scriptből végzett SSH művelet.
+Az Issue #34 implementációs jelöltje a dedikált Linux **funded-runtime upgrade**; végrehajtási szerződése a [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Meg kell tartania az aktuális window kezdő/vég időpontját, összes és user keretet, ledger/reservation/usage összegét, napi/concurrent limitet, reader/access/CA/hostpint, jelenlegi worker-fence-t és idegen konténereket. A támogatott transition, rollback és candidate schema/recovery páros explicit szerződés legyen; existing receipt hand-edit vagy initial activation újrajátszása tiltott. Source audit, target fixture és CI kapuit ugyanazon candidate SHA-n kell igazolni. A feladatot az [Issue #34](https://github.com/Muzsy/future_flow/issues/34) követi; külön PR-review és exact-source audit szükséges; nem ezen benchmark scriptből végzett SSH művelet.
 
 ## Izolált staging sorrend
 
@@ -101,9 +166,9 @@ Rollbackhez post-038 kompatibilis alkalmazás+recovery image és explicit legacy
 
 ## Éles post-check
 
-Minden engedélyezett módosítás után visszaolvasni: actual image digest/source, mindhárom saját szolgáltatás health/env, explicit cohort és a nem engedélyezett account legacy útja, Access/CA/anon tiltások, schema/catalog, queue/fence/journal, változatlan window+ledger+limit, exportból/public DTO-ból a privát artifact kizárása. Egy már engedélyezett tesztelő új fejezete csak külön költési engedély és maradék eredeti keret mellett indulhat. A literary minőség kapuját a benchmark igazolja, egy éles smoke nem helyettesíti.
+Minden engedélyezett módosítás után visszaolvasni: actual image digest/source, mindhárom saját szolgáltatás health/env, explicit cohort és a nem engedélyezett account legacy útja, Access/CA/anon tiltások, schema/catalog, queue/fence/journal, változatlan window+ledger+limit, normál life/public DTO-ból a privát artifact kizárása, saját exportban a meglévő privát artifact-szerződés megőrzése. Egy már engedélyezett tesztelő új fejezete csak külön költési engedély és maradék eredeti keret mellett indulhat. A literary minőség kapuját a benchmark igazolja, egy éles smoke nem helyettesíti.
 
-Nyitott kapuk: valódi paid/human benchmark; Linux funded upgrade implementáció/audit; candidate immutable image+Container CI; célgépes migration/recovery/backup/staging proof; explicit éles apply és readback. Ezek lezárásáig narrative-v1 production bekapcsolása tilos.
+Nyitott kapuk: teljes paid/human benchmark nyilvános/fizetős kiadáshoz, illetve a fenti helyettesítő minőségkapuk zárt bétához; Linux funded upgrade implementáció/audit; candidate immutable image+Container CI; célgépes migration/recovery/backup/staging proof; explicit éles apply és readback. Az adott kiadásra érvényes kapuk lezárásáig a narratív pipeline production bekapcsolása tilos.
 
 
 Az új queue max8 policyja csak a kötelező tervellenőri markerrel és az annak megfelelő hash/receipt/provenance ellenőrzéssel kompatibilis; a régi max7 snapshot nem alakítható át kézzel. A recovery/rollback image-nek az új artifact review mezőit is kezelnie kell, még ha a DB oszlopséma nem változott is. Capability hiányában az új munka az első fizetett hívás előtt zár.
@@ -183,3 +248,71 @@ Friss `2c4e9c8` (CI339 SUCCESS) Stage A **3/3 elfogadott,17 hívás,0 tartalmi j
 ### Quality2.5 hosszú mérés — részleges, 2026-10-18
 
 15/18 elfogadott: alkotói8+fork, munkahelyi6; munkahelyi7–8 és fork hiányzik. A következő author teljes előfoglalását a budget guard API előtt megtagadta, nem irodalmi elutasítás történt. B99 valódi hívás/5 repair/6.495380 USD, négy unknown teljes1.3534425 USD foglalással. Globális652/33.4716975 USD; teljes v6 **22.7396675 USD a23-ból**, remaining0.2603325 USD, aktív/hozzárendeletlen0. Új paid futás nem indul. A valós korai editor-gyűjtés4 esetben működött, de mind PASS: kettős hiba kijavítását nem igazolja. A teljes kiérdemelt állásváltás és alkotói/baráti fejlődés mellett ismétlődő túlmagyarázás/hétköznapi NPC-megszakítás és opcióközeli penultimák nyitottak; a gépi PASS nem emberi minőség. F05/F06/N08 PARTIAL, N09/human/retention/ár nyitott; PR#50 draft. Részletek és a forráshoz kötött következő lépések a [v6 tervben](../plans/045_fiction_v6_earned_life_evolution.md).
+
+
+## V9 integrációs jelölt — 2026-10-24
+
+A `codex/v9-beta-integration` ág a #69 bétafókusz fölé egyesítette a #56 `8605838` N09 alapot (`01b18b7` merge) és a #62 `b39c30a` tesztjavítást (`8cc667e` merge). A három docs-konfliktus a jelenlegi bétafókusz megtartásával rendezett; az N09-ből a saját export privát artifact-szerződésének pontosítása megmaradt. Main/production továbbra változatlan.
+
+Az integrációs módosítások: v9 capability + tárolt artifact/delta ellenőrzés, explicit és boundolt runtime-kiválasztás már admitted cohortból, API/worker/monitor egyezés, Compose default-kompatibilitás, stabil CI-bizonyítékhash. A motor promptja, policyja és minőségkapuja változatlan. Az akkori 131072 B / 300000 ms szintetikus fixture-beállítást a C5 méretmérése után a #75 196608 B / 300000 ms jelöltje váltja fel; egyik sem production apply. A lejárt preparation explicit archiválása implementált, saját CI/review szükséges; a one-off intent/cleanup is implementált, saját CI/review szükséges; a registry/restore-frissesség fennmaradó operátori korlátai a [kiadási triage-ban](FUNDED_RUNTIME_UPGRADE_HU.md#kiadási-triage-az-integráció-után--2026-10-24) nyitottként követettek. A jelölt ezért még nem élesítésre kész bizonyíték.
+
+Lokális integrációs ellenőrzés: 127 fájl / 1465 alkalmazásteszt, 99 Node ops teszt, 351 Python ops tesztből 340 PASS / 11 SKIP; typecheck/build/schemas/format/docs PASS. A teljes root/Docker recovery rehearsal és az egyesített commit független auditja/CI-je külön követendő. Részletes ellenőrzési korlátok és a végső Python-hardening: [N09 ellenőrzési napló](FUNDED_RUNTIME_UPGRADE_HU.md#integrációs-ellenőrzések--2026-10-24).
+
+
+## #72 v9 funded replay fejlesztési folytatás
+
+A legacy replay-guard által jelzett akadályra külön funded proof/capture/replay út készült; nincs általános guardlazítás vagy eredeti receipt-átírás. Az aktív, befejezett upgrade root- és image-bizonyítékát a szerver újraellenőrzi, a karantén ugyanennek a v9 image-nek a 038 katalógusát és stored artifact/karakterállapot validatorát használja. A célzott 28 DB-teszt PASS, az új root/Docker fixture és PostgreSQL companion az exact-source CI része. Független audit és a konkrét célgépes új funded módok E2E-je továbbra kötelező; ez az implementáció önmagában nem aktiválás. [Parancsok és határok](FUNDED_RUNTIME_UPGRADE_HU.md#v9-funded-capturereplay-út--72-fejlesztési-implementáció-2026-10-24).
+
+
+## Konkrét béta-konfiguráció és próbamenet — #75, 2026-10-24
+
+Ez az aktuális, offline előkészített végrehajtási csomag a #74 fölött; nem új motorfejlesztési terv. A [szintetikus runtime-minta](../../deploy/narrative-beta-runtime.example.json) a `selection.runtime` blokkja, nem teljes kiadási input. A korábbi 131072 B példa a C5 139370 B raw repairjéhez kevés; e csomag **196608 B** értéket vizsgál, a default és a live env megváltoztatása nélkül.
+
+### Kiválasztott jelölt és még hiányzó kötések
+
+| Elem | Előkészített érték / szükséges kötés |
+| --- | --- |
+| Motor | Befagyasztott v9 C5, qualityPolicy 2.8.0; változatlan promptok, kapuk, egy globális repair és max9 fizikai kérés. |
+| Mód | `narrative-fiction-v2`, generáció `v9`, azonos API/worker konfiguráció. |
+| Cohort | Első műszaki alapút: egy, már felvett tesztelő; kizárólag az eredeti funded admission részhalmaza. A minta UUID szintetikus. A tényleges személy/Auth UUID privát selectionbe kerül, soha Gitbe. A későbbi háromfős kör külön admission és finanszírozás után. |
+| Kérés és idő | Worker `AI_FICTION_MAX_REQUEST_BYTES=196608`, `AI_FICTION_TIMEOUT_MS=300000`; target és recovery egyező. A 300 s hívásonkénti plafon, nem teljes fejezet-SLA. A worker a meglévő lease harmadánál heartbeatet küld; a 180 s lease nem egyenlő teljes feldolgozási határidővel. |
+| Modellút | Meglévő OpenAI / `gpt-6.1-sol` planner/author/check útvonal, 12000 author / 6500 egyéb life output maximum. A futó model env tényleges egyezése még kiadás előtti readback. Az upgrade nem módosíthatja a modellt/providert. |
+| Service tier | A termék transportja nem állít `service_tier` mezőt; a projektbeállítás az irányadó. **Standard/default ellenőrzendő, jelenleg nem igazolt**; nincs production Flex-ENV kapcsoló. A korábbi Flex-eval adapter explicit Flexet és 900 s hívási timeoutot használt; annak ára/latencyje nem a jelen konfiguráció működési bizonyítéka. |
+| Futtatási budget | Meglévő 2 USD projekt / 0,50 USD user, eredeti `2026-10-13T22:11:21Z–2026-11-12T22:11:21Z` ablak és ledger változatlan. Mai maradék ismeretlen. 10/3,33 USD háromfős terv még nem alkalmazható ezzel az upgrade-del. |
+| Napi/párhuzamos korlát | Eredeti 3/UTC-nap, userenként 1 párhuzamos; egy worker sorban dolgozik. A 3./6. fejezet ellenőrzése több napra eshet, nem lazítunk kvótát a próba kedvéért; 3,33 USD sem garantál hat fejezetet, a következő hívás előfoglalásához is kell maradék. |
+| Forrás/image | #74 `ab9eb3f` sikeres CI és független fejlesztési review; a mostani előkészítés és a későbbi tiszta main külön forrás. Végleges SHA, target/recovery digest és forráskönyvtár csak tényleges buildből. |
+| Kizárt scope | Shared és publikus funkciók OFF, nincs archetípus/rotáció/choice tuning, nincs fizetős benchmark vagy új paid engedély. |
+
+A [hivatalos Flex-leírás](https://developers.openai.com/api/docs/guides/flex-processing) szerint Flexet explicit kérési mező választ, nagyobb latency és kapacitáshiány előfordulhat. A repository `packages/ai/src/index.ts` és `scripts/lib/narrative-evaluation-runner.ts` forrása igazolja a termék és a mérőadapter fenti eltérését. Flex termékbe emelése külön technikai változás és jóváhagyás; a korábbi „Sol-flex” tesztkérés önmagában nem állította át a bétát. Ez a csomag a meglévő termékútvonalat készíti elő, nem választ új modellt.
+
+### Előkészített végrehajtási sorrend
+
+Az alábbi menetet most **nem futtattuk le**. Az éles műveletek előtt a konkrét forrás, image-ek, friss bizonyítékok, szükséges leállás és paid cap kerülnek operátori jóváhagyásra. A 900 s a prepare lejárata; nem becsült kiesés. A szükséges kiesés időtartama a célgépes dry/izolált mérésig ismeretlen.
+
+| Fázis | Művelet és elfogadási feltétel | Megállási feltétel |
+| --- | --- | --- |
+| 0. Offline csomag | Runtime-minta validálása; valódi budget-guard negatív/pozitív próbák; exact-source Verify+Container; reviewer által ellenőrzött forrás. | Hibás cap, hiányzó teszt vagy audit; fejlesztői önellenőrzést nem nevezünk végső operátori auditnak. |
+| 1. Kiadási forrás | Reviewed PR-lánc és külön jóváhagyott main merge; clean, védett Linux main checkout. Tényleges target/recovery build, source/bundle/image binding és final audit. | Fejlesztési branch, régi vagy más commit CI-je, kitalált digest, privát state hiánya. A CLI main-őrét nem kerüljük meg. |
+| 2. Friss felmérés | Telepített Daily/source/monitor, három saját szolgáltatás, Access/reader/Auth mapping, modell/projekttier, ablak/kvóta/budget/reservation, queue/lease és idegen workload readonly ellenőrzése. `--inspect` csak journalt igazol, ehhez önmagában kevés. | Drift, pending/unknown költség, lejárt ablak, új probe, nem átlátható admission vagy nem biztosítható foglalás. |
+| 3. Izolált célgépes bizonyíték | A tényleges digesthez kötött v9 capability és config; titkosított mentés/offsite és külön PostgreSQL restore/privacy replay, hálózat/secret/TLS/cleanup ellenőrzéssel. Target és recovery kompatibilis. | Csak más image-re érvényes CI-proof, hiányzó cleanup, ismeretlen policy/karakterállapot vagy eltérő védett adatok. |
+| 4. Konkrét átállás | Jóváhagyás után friss Access + release/audit/fixture; `--prepare`, candidate utáni backup/sync/restore és `--apply` a 900 s kapun belül, a [funded runbook](FUNDED_RUNTIME_UPGRADE_HU.md) szerint. A védett DB/accounting/authority nem változhat. | Lejárt preparation nem hosszabbítható. Ha már held állapot: csak a dokumentált restore-frissítés/recovery; nincs vaktában új start vagy dump visszatöltés. |
+| 5. Futó v9 ellenőrzése | Aktuális source-ból `--active-proof`, majd `--funded-plan`; külön jóváhagyott drill/rehearsal friss saját plan/audit/CI alapján. Image/source/schema038/cohort/cap/timeout egyezik; TLS, origin, monitor, idegen workload és cleanup rendben. | Régi owner receipt, rossz image, plusz one-off, v9 történethez v8 rollback vagy romló monitor. |
+| 6. Tesztelői alapút | Külön jóváhagyott paid cap és megfelelő tényleges allowance után egy tesztelő: belépés → első fejezet → választás mentése → folytatás → új munkamenetben visszatérés → újabb folytatás → export → feedback. Frissítés/dupla kattintás nem hozhat létre kettős commitot/elszámolást. | Beragadt job, elveszett vagy rossz ághoz mentett választás, félrevezető hiba, nem elszámolható hívás. |
+| 7. Kis kör | Külön végrehajtható 3 fős admission/window/budget eljárás után fokozatos nyitás; 3./6. fejezetnél kérdőív, meglévő privát monitor és működő vészleállítás. | Csak a régi tesztelő szűk kerete áll rendelkezésre, nincs tényleges mapping vagy leállási út. |
+
+A 6. fázis hibaágai izoláltan előkészítendők: minőségkapu-elutasítás, hívási timeout/unknown usage, budget denial, lejárt ablak és ismételt kérés. Ezeket productionben nem szándékos többletköltéssel idézzük elő. A valódi normál út és új sessionből folytatás paid/user bizonyítéka külön kerül rögzítésre; az offline kapu nem tesztelői PASS.
+
+### Még szükséges döntések és eszközök
+
+1. **Tényleges keret és résztvevők — [#77](https://github.com/Muzsy/future_flow/issues/77):** a régi userlimit mellett a mért nagy repair nem finanszírozható a korábbi költés megőrzésével ([számítás és SQL-próba](FUNDED_RUNTIME_UPGRADE_HU.md#konkrét-konfiguráció-és-próbamenet-előkészítése--75-2026-10-24)). A háromfős 10 USD tervhez végrehajtható, auditált új-window/admission út kell; a jelen eszköz csak az eredeti ablakot őrzi. Nincs automatikus emelés vagy ledger-reset. A későbbi paid capet és a tényleges tesztelőket a tulajdonos rögzíti.
+2. **Célgépes fixture-eszköz — [#76](https://github.com/Muzsy/future_flow/issues/76):** a jelen `contabo-funded-upgrade-fixture.py` kizárólag CI/root és szintetikus host/Auth környezetet enged. Nem célgépes runner, a CI/GITHUB_ACTIONS env kézi megadása nem támogatott megoldás. A #76 új standalone image-futtatója a közös tesztmotorból állít elő tényleges image/source proofot, egy image mindkét szerepére; a fejlesztési implementáció elkészült, saját CI és a konkrét célgépes futás külön igazolandó. [Eljárás és határok](FUNDED_RUNTIME_UPGRADE_HU.md#önálló-kiadási-image-próba--76-2026-10-25). A CI artifact mezőinek átírása tiltott.
+3. **Telepítés és monitor:** a reviewed mainhez tartozó Daily és privát monitor pontos telepítési/rollback eljárása és célgépes readbackja szükséges; a kódban szereplő új policy nem bizonyítja a szerverre telepített példányt. A Standard projekttier ellenőrzése is itt zárul.
+4. **Kiadási engedély:** a fennmaradó technikai tételek és friss bizonyítékok után konkrét main/source/image + cohort/window/budget + kiesés + recovery terv. A végső szolgáltatásleállítás és fizetős E2E előtt a tulajdonos jóváhagyása kell; az offline előkészítéshez most nincs szükség újabb engedélyre.
+
+Megőrzendő privát bizonyítékok: új release selection; tényleges audit/CI és target fixture; prepare/restore/apply/active-proof; saját funded-plan/drill/rehearsal; Daily/private monitor readback; paid alapút és accountolt költség; tényleges emberi feedback. Eredeti zero/reader/personal és korábbi ledger/corpus változatlan. Nyilvánosan csak személyes adat és titok nélküli összesítés kerül a PR-ba.
+
+
+Helyi ellenőrzés e konfigurációs csomagra: **38/38 célzott Vitest**, **102/102 Node ops**, **383 Python / 372 PASS + 11 környezeti SKIP**; typecheck, teljes build, sémaexport, format/docs/diff sikeres, generált contract nem változott. A teljes regressziót és a 192 KiB beállítással futó root/Docker átmeneteket az új exact-source CI külön igazolja; a korábbi #74 CI-t nem nevezzük az új forrás saját futásának.
+
+
+A #81 teljes `main → c68ab037` review két P2 hibája célzott operátori javítást kapott: a capability-konténernek production oldalon is saját durable cleanup kell, és az image-only módhoz is működő funded replay authority. Daily v4 és a javított exact source telepítése új előfeltétel; a teljes CI és független re-review saját SHA-ra kötött. [Működés és regressziós bizonyítékhatár](FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25). A C5 termékkód változatlan; a régi zöld jelölt nem a javítások proofja.

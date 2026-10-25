@@ -8,6 +8,8 @@ import {
   fictionSequenceEditorialSchema,
   fictionEditorialVersionFor,
   fictionContextSchema,
+  fictionCharacterQualityVersions,
+  FICTION_CHARACTER_VERSION,
   type NarrativePeriodInput,
   type FictionAuthorResult,
   type NarrativePlanReview,
@@ -50,6 +52,9 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       ...(sourceContext?.seriesLedger
         ? { seriesLedger: sourceContext.seriesLedger }
         : {}),
+      ...(sourceContext?.characterProjection
+        ? { characterProjection: sourceContext.characterProjection }
+        : {}),
       storyFacts:
         source?.narrativeContext?.policy.mode === 'narrative-fiction-v2'
           ? fictionContextSchema.parse(source.narrativeContext).storyFacts
@@ -59,6 +64,9 @@ export function fictionFixture(source?: NarrativePeriodInput) {
       source?.narrativeReferences ??
       narrativeReferenceSnapshot(narrativeReferencesFromMemory(f.memory)),
     fictionReferences: source?.fictionReferences ?? { facts: [] },
+    ...(source?.fictionCharacters
+      ? { fictionCharacters: source.fictionCharacters }
+      : {}),
   };
   const authored: FictionAuthorResult = {
     version: '2.0.0',
@@ -87,10 +95,27 @@ export function fictionFixture(source?: NarrativePeriodInput) {
     'A blue glove beside a parcel makes the drawing look like an unclaimed delivery; a visitor misunderstands the intended direction.';
   authored.plan.memoryDelta.periodSummary =
     'A visitor mistakes the glove drawing for a parcel collection. The misunderstood direction becomes a concrete choice about making the next image clearer.';
+  // Living-world generation: the draft carries an (empty) intent and the final
+  // package a delta that adds one profile per new recurring actor.
+  const living = fictionCharacterQualityVersions.includes(
+    sourceContext?.policy.qualityPolicyVersion ?? '',
+  );
+  const draft = living
+    ? {
+        ...f.result,
+        characterIntent: [] as never[],
+        continuityDecisions: [] as never[],
+        turnType: 'attempt_meets_resistance' as const,
+      }
+    : f.result;
+  if (living)
+    (
+      authored as FictionAuthorResult & { characterDelta: unknown }
+    ).characterDelta = fictionFixtureCharacterDelta(input.periodId, authored);
   return {
     ...f,
     input,
-    draft: f.result,
+    draft,
     authored,
     review: narrativePlanReadinessFixture() as Extract<
       NarrativePlanReview,
@@ -181,7 +206,7 @@ export function fictionProof(f = fictionFixture(), repair?: FictionRepair) {
     fictionReceipt(
       'life_narrative_plan_review',
       'planReviewer',
-      fictionReviewRequest(f.input, f.authored),
+      fictionReviewRequest(f.input, f.authored, f.draft),
       f.review,
       f.input.narrativeContext!.policy as ReturnType<typeof fictionV3Policy>,
     ),
@@ -277,4 +302,37 @@ export function fictionSignatureFixture(
     rhetoricalFlags: ['none'],
     systemLeakageFlags: ['none'],
   });
+}
+
+// A valid v9 delta for a fixture package: one profile per introduced actor.
+export function fictionFixtureCharacterDelta(
+  periodId: string,
+  authored: FictionAuthorResult,
+) {
+  const introduced = authored.candidate.events.flatMap((event) =>
+    event.changes.flatMap((change) =>
+      change.type === 'actor_add'
+        ? [{ actorId: change.value.id, eventId: event.id }]
+        : [],
+    ),
+  );
+  return {
+    version: FICTION_CHARACTER_VERSION,
+    addedProfiles: introduced.map(({ actorId, eventId }) => ({
+      actorId,
+      originEventId: eventId,
+      socialRole: 'Neighbour who keeps their own hours',
+      coreWant: 'Wants a quiet routine that is not disturbed.',
+      independentConcern: 'Keeping an ageing relative comfortable at home.',
+      conflictStyle: 'Says little, then states one firm condition.',
+      attentionStyle: 'Notices practical details before intentions.',
+      valueCue: ['reliability'],
+      voiceCue: 'Short, plain sentences.',
+      establishedAtPeriodId: periodId,
+    })),
+    profileUpdates: [],
+    dynamicUpdates: [],
+    relationshipUpdates: [],
+    removedActorIds: [],
+  };
 }

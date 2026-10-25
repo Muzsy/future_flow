@@ -4,6 +4,11 @@ import {
   EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
 } from '@future-flow/ai';
 import { DomainError } from '@future-flow/core';
+import {
+  evaluationC5FlexApproval,
+  evaluationC5FlexCumulativeBudgetUsd,
+  measurementApproval,
+} from './narrative-evaluation-approval';
 import { narrativeProfiles } from '../../tests/narrative-fixtures';
 
 // Owner authorization on 2026-10-18: USD 23 total v6 development spend
@@ -37,7 +42,7 @@ export function evaluationMaxRequestBytes(
 // Development-only creative calibration after seven 180s transport timeouts.
 // Fixed, source-bound ceiling; runtime defaults and retry/request budgets stay put.
 export function evaluationTimeouts(
-  options: Pick<EvaluationOptions, 'creative'>,
+  options: Pick<EvaluationOptions, 'creative' | 'serviceTier'>,
 ) {
   return {
     timeoutMs: 120000,
@@ -60,11 +65,25 @@ export const evaluationPriceEvidence = {
   context: 'short',
   source: 'https://developers.openai.com/api/docs/pricing',
 };
+export const evaluationFlexPriceEvidence = {
+  ...evaluationPriceEvidence,
+  checkedOn: '2026-10-24',
+  tier: 'flex',
+  accountingTier: 'default',
+  usageDiscount: 0.5,
+  source: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol',
+};
 export type EvaluationOptions = {
   kind: 'offline' | 'paid' | 'assess';
+  serviceTier?: 'flex';
   creative?: true;
   creativeOnly?: true;
   noForks?: true;
+  // Living-world generation; absent means the frozen v8 generation.
+  fictionGeneration?: 'v9';
+  // Creative-only choice rule: absent = the first option on the main branch (the
+  // second on the fork), 'rotate' = deterministic rotation (diagnostic only).
+  choiceMix?: 'rotate';
   out: string;
   fixtureIds: string[];
   periods: number;
@@ -89,6 +108,7 @@ export function parseEvaluationOptions(
   const values = new Map<string, string>(),
     boolean = new Set<string>();
   const flags = new Set([
+    '--service-tier',
     '--mode',
     '--out',
     '--fixtures',
@@ -103,6 +123,8 @@ export function parseEvaluationOptions(
     '--event-model',
     '--story-model',
     '--check-model',
+    '--fiction-generation',
+    '--choice-mix',
     '--max-mean-cost-usd',
     '--max-p95-ms',
   ]);
@@ -184,6 +206,59 @@ export function parseEvaluationOptions(
     invalid(
       'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
     );
+  const generation = values.get('--fiction-generation') ?? 'v8';
+  if (generation !== 'v8' && generation !== 'v9')
+    invalid('Unsupported fiction generation.');
+  if (
+    generation === 'v9' &&
+    !boolean.has('--creative') &&
+    !boolean.has('--creative-only')
+  )
+    invalid('Fiction generation v9 needs a creative run.');
+  // The v9 measurement is a later phase with its own owner-approved budget:
+  // only the source-bound approval of narrative-evaluation-approval.ts, for
+  // exactly its fixture, at most its periods and the rotating choices.
+  const tier = values.get('--service-tier') ?? 'default';
+  if (!['default', 'flex'].includes(tier))
+    invalid('Only default or flex evaluation tier is supported.');
+  if (
+    tier === 'flex' &&
+    (generation !== 'v9' || !boolean.has('--creative-only'))
+  )
+    invalid('Flex is restricted to the isolated v9 creative-only evaluation.');
+  const v9Approval = measurementApproval({
+    approvalId: values.get('--approval-id') ?? null,
+  });
+  const c5Flex = v9Approval === evaluationC5FlexApproval;
+  if (kind === 'paid' && c5Flex && !evaluationC5FlexApproval.authorized)
+    invalid(
+      'C5 Flex is prepared but needs a new explicit numeric owner approval before paid execution.',
+    );
+  if (kind === 'paid' && (tier === 'flex') !== c5Flex)
+    invalid(
+      'Flex needs its own C5 measurement approval; no default-tier fallback.',
+    );
+  if (
+    generation === 'v9' &&
+    kind === 'paid' &&
+    !(
+      values.get('--approval-id') === v9Approval.approvalId &&
+      boolean.has('--creative-only') &&
+      fixtureIds.length === 1 &&
+      fixtureIds[0] === v9Approval.fixtureId &&
+      Number(values.get('--periods') ?? 3) <= v9Approval.maxPeriods &&
+      values.get('--choice-mix') === 'rotate' &&
+      (!c5Flex ||
+        (tier === 'flex' &&
+          ((periods === 3 && noForks) || (periods === 8 && !noForks))))
+    )
+  )
+    invalid('A paid v9 measurement needs its own owner-approved budget.');
+  const choiceMix = values.get('--choice-mix') ?? 'first';
+  if (choiceMix !== 'first' && choiceMix !== 'rotate')
+    invalid('Unsupported choice mix.');
+  if (choiceMix === 'rotate' && !boolean.has('--creative-only'))
+    invalid('The rotating choice mix is a creative-only diagnostic.');
   const allowPaid = boolean.has('--allow-paid'),
     budgetUsd = values.has('--budget-usd')
       ? Number(values.get('--budget-usd'))
@@ -200,7 +275,10 @@ export function parseEvaluationOptions(
       budgetUsd === null ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
-      budgetUsd > evaluationApprovedCumulativeBudgetUsd ||
+      budgetUsd >
+        (c5Flex
+          ? evaluationC5FlexCumulativeBudgetUsd
+          : evaluationApprovedCumulativeBudgetUsd) ||
       !approvalId ||
       approvalId.length > 160 ||
       !values.has('--out')
@@ -219,7 +297,13 @@ export function parseEvaluationOptions(
         'A separately approved development project and its evaluation key are required. The application key is never reused.',
       );
     const age =
-      Date.now() - Date.parse(evaluationPriceEvidence.checkedOn + 'T00:00:00Z');
+      Date.now() -
+      Date.parse(
+        (tier === 'flex'
+          ? evaluationFlexPriceEvidence
+          : evaluationPriceEvidence
+        ).checkedOn + 'T00:00:00Z',
+      );
     if (age > 7 * 86400000 || age < -86400000)
       invalid(
         'Recheck the official experiment model prices before paid execution.',
@@ -244,11 +328,14 @@ export function parseEvaluationOptions(
     invalid('Assessment requires human ratings.');
   return {
     kind: kind as EvaluationOptions['kind'],
+    ...(tier === 'flex' ? { serviceTier: 'flex' as const } : {}),
     ...(boolean.has('--creative') || boolean.has('--creative-only')
       ? { creative: true as const }
       : {}),
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
+    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
+    ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
     periods,
@@ -290,11 +377,16 @@ export function verifyEvaluationAuthorization(
     options.models.check,
   ];
   if (options.allowPaid) args.push('--allow-paid');
+  if (options.serviceTier !== undefined)
+    args.push('--service-tier', options.serviceTier);
   if (options.creativeOnly && !options.creative)
     invalid('Creative-only diagnostics require the creative policy.');
   if (options.creative) args.push('--creative');
   if (options.creativeOnly) args.push('--creative-only');
   if (options.noForks) args.push('--no-forks');
+  // Always passed, so that a v9 options object meets the v9 gate again here.
+  args.push('--fiction-generation', options.fictionGeneration ?? 'v8');
+  if (options.choiceMix) args.push('--choice-mix', options.choiceMix);
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));
   if (options.approvalId !== null)
@@ -308,4 +400,14 @@ export function verifyEvaluationAuthorization(
   if (options.maxP95Ms !== null)
     args.push('--max-p95-ms', String(options.maxP95Ms));
   parseEvaluationOptions(args, env);
+}
+
+// Ledger accounting stays at Standard rates for conservative reservations;
+// Flex usage estimates are reported separately and never rewrite past calls.
+export function evaluationCumulativeCeiling(
+  options: Pick<EvaluationOptions, 'approvalId'>,
+) {
+  return options.approvalId === evaluationC5FlexApproval.approvalId
+    ? evaluationC5FlexCumulativeBudgetUsd
+    : evaluationApprovedCumulativeBudgetUsd;
 }

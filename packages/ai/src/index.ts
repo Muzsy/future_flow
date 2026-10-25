@@ -1,12 +1,16 @@
 import { fictionPrompts } from './fiction-prompts';
 import {
-  fictionAuthorResultSchema,
+  fictionCompactUuidFor,
+  stripCopiedUuidPatterns,
+} from './fiction-schema';
+import {
   fictionSequenceEditorialSchema,
   fictionHumanEditorialSchema,
   fictionHumanEditorialV13Schema,
   type FictionEditorialReport,
-  fictionCompactAuthorSchema,
-  fictionCompactDraftSchema,
+  fictionAuthorSchemaFor,
+  fictionRepairSchemaFor,
+  fictionDraftSchemaFor,
   type FictionAuthorResult,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
@@ -21,6 +25,8 @@ import {
 } from '@future-flow/core';
 import OpenAI, { type APIError } from 'openai';
 export * from './experiment-budget';
+export * from './fiction-schema';
+export { fictionPrompts } from './fiction-prompts';
 export * from './claude';
 export * from './narrative-prompts';
 import {
@@ -81,6 +87,7 @@ import {
 import {
   DomainError,
   hash,
+  mergeFictionRepair,
   type CanonEvent,
   type CanonEventV2,
   validateSharedAiInput,
@@ -128,6 +135,7 @@ export interface FictionAiProvider {
   reviewFiction(
     input: NarrativePeriodInput,
     authored: FictionAuthorResult,
+    draft?: unknown,
   ): Promise<AiResult<NarrativePlanReview>>;
   checkFiction(
     input: NarrativePeriodInput,
@@ -378,6 +386,18 @@ export class OpenAiProvider
       }
     }
   }
+  // zodTextFormat's parser (non-enumerable) stays on the object; only the
+  // freshly rendered JSON schema is edited, and only for the v9 fiction stages.
+  private responseFormat<T>(
+    schema: z.ZodType<T>,
+    task: string,
+    promptVersion?: string,
+  ) {
+    const format = zodTextFormat(schema, task);
+    if (fictionCompactUuidFor(promptVersion))
+      stripCopiedUuidPatterns(format.schema);
+    return format;
+  }
   private async generate<T>(
     schema: z.ZodType<T>,
     task: string,
@@ -408,7 +428,7 @@ export class OpenAiProvider
             { role: 'system', content: instructions },
             { role: 'user', content: JSON.stringify(input) },
           ],
-          text: { format: zodTextFormat(schema, task) },
+          text: { format: this.responseFormat(schema, task, promptVersion) },
         },
         task !== 'public_review' &&
           task !== 'public_content_review' &&
@@ -633,9 +653,7 @@ export class OpenAiProvider
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
-      context.policy.promptVersions.planner !== 'life_fiction_plan.v1'
-        ? fictionCompactDraftSchema
-        : narrativePlanningResultSchema,
+      fictionDraftSchemaFor(context.policy),
       'life_narrative_plan',
       this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).planner,
@@ -651,19 +669,50 @@ export class OpenAiProvider
   ) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
-    return this.generate(
-      context.policy.promptVersions.writer !== 'life_fiction_author.v1'
-        ? fictionCompactAuthorSchema
-        : fictionAuthorResultSchema,
+    const args = [
       'life_narrative_chapter',
       this.config.storyModel,
       fictionPrompts(locale, context.policy.promptVersions).author,
       fictionAuthorRequest(input, draft, repair),
       locale,
       `${context.policy.promptVersions.writer}.${locale}`,
-    );
+    ] as const;
+    // v9 reduced repairs: the model returns only the changed part, the server
+    // merges it into the previous package and the receipt binds the MERGED
+    // package, which is what every later stage and the checkpoint carry.
+    const reduced: z.ZodType<unknown> | undefined =
+      repair?.previous && repair.mode !== 'author_package'
+        ? fictionRepairSchemaFor(context.policy, repair.mode)
+        : undefined;
+    if (reduced && repair?.previous && repair.mode !== 'author_package') {
+      const { previous, mode } = repair;
+      return this.generate(reduced, ...args).then((result) => {
+        try {
+          const output = mergeFictionRepair(
+            previous,
+            mode,
+            result.output,
+            fictionScope(input).characters?.actors.suppliedActorIds,
+          );
+          return {
+            output,
+            receipt: { ...result.receipt, outputHash: hash(output) },
+          };
+        } catch (error) {
+          // The call was paid for: hand its receipt to the caller.
+          if (error instanceof Error)
+            Object.assign(error, { receipt: result.receipt });
+          throw error;
+        }
+      });
+    }
+    return this.generate(fictionAuthorSchemaFor(context.policy), ...args);
   }
-  reviewFiction(input: NarrativePeriodInput, authored: FictionAuthorResult) {
+  reviewFiction(
+    input: NarrativePeriodInput,
+    authored: FictionAuthorResult,
+    draft?: unknown,
+  ) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
     return this.generate(
@@ -671,7 +720,7 @@ export class OpenAiProvider
       'life_narrative_plan_review',
       this.config.checkModel ?? this.config.eventModel,
       fictionPrompts(locale, context.policy.promptVersions).review,
-      fictionReviewRequest(input, authored),
+      fictionReviewRequest(input, authored, draft),
       locale,
       `${context.policy.promptVersions.planReviewer}.${locale}`,
     );
@@ -694,13 +743,18 @@ export class OpenAiProvider
       locale = input.input.locale;
     return this.generate<FictionEditorialReport>(
       // Editors v3-v5 share report 1.2.0; editors v6-v7 emit report 1.3.0
-      // with signature 1.1.0, so frozen request schemas stay byte-identical.
+      // with signature 1.1.0 (as do v8 and v9), so frozen request schemas stay
+      // byte-identical.
       context.policy.promptVersions.editor === 'life_fiction_editor.v1'
         ? narrativeEditorialReportSchema
         : context.policy.promptVersions.editor === 'life_fiction_editor.v2'
           ? fictionSequenceEditorialSchema
           : context.policy.promptVersions.editor === 'life_fiction_editor.v6' ||
-              context.policy.promptVersions.editor === 'life_fiction_editor.v7'
+              context.policy.promptVersions.editor ===
+                'life_fiction_editor.v7' ||
+              context.policy.promptVersions.editor ===
+                'life_fiction_editor.v8' ||
+              context.policy.promptVersions.editor === 'life_fiction_editor.v9'
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',

@@ -152,6 +152,8 @@ export type NarrativePeriodInput = LifePeriodInput & {
   narrativeContext?:
     NarrativeContext | NarrativeV1Context | import('./fiction').FictionContext;
   fictionReferences?: import('./fiction').FictionReferences;
+  // Server-owned character state of the living-world generation; never model input.
+  fictionCharacters?: import('./fiction-character').FictionCharacterEnvelope;
   narrativeReferences?: NarrativeReferenceSnapshot;
 };
 export function contextNarrativePolicy(): NarrativeContext['policy'] {

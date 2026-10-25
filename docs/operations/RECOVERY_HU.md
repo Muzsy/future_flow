@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-24
 related:
   - BACKUP_HU.md
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
@@ -89,3 +89,29 @@ Nem az számít sikeres recoverynek, hogy a DB elindul, hanem hogy:
 ## Linux operátori host
 
 A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.
+
+## Aktív funded runtime új verziója
+
+A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.
+
+A lejárt, teljes, soha nem alkalmazott funded preparation külön `--archive-expired` paranccsal, bizonyítékmegőrzően archiválható. Ez nem recovery: nem indít/leállít szolgáltatást és nem ír DB-t, a változatlan eredeti funded baseline-t ellenőrzi. Megszakadás után ugyanazzal a hash-hez kötött privát proof-fal ismételhető; a megmaradt archíválási szándék apply/recover-re nem használható. Megkezdett journal/watchdog/readback állapotot nem archivál; ahhoz az eredeti transition recovery útja kell. Az archívum nem ad visszaállítási vagy költségkeret-megújítási jogosultságot. Részletes előfeltételek és megszakításkezelés a funded runtime runbookban.
+
+A DB-probe one-off konténere előzetes, source/config/image/hash-hez kötött intentet kap. Timeout és kezelhető megszakítás után célzott cleanup fut; SIGKILL után explicit `--cleanup-probe`, illetve a normál apply/recover előtti egyeztetés szükséges. Csak a teljesen egyező konténer immutable ID-je távolítható el; az alkalmazás három szolgáltatása és ismeretlen konténer érintetlen. Ez nem adatbázis-helyreállítás vagy sikeres migrációs proof: a következő DB/catalog/drain és restore-kapuk kötelezők. Receipt nélküli régi konténer kézi vizsgálatot igényel. Részletek a funded runtime runbookban.
+
+
+## Hosszabb funded hold utáni friss restore-proof
+
+A meglévő Daily offsite rehearsal held alkalmazás mellett is végezhető, a két operátori lockkal és változatlan konténerállapot mellett. A friss proof tényleges új izolált restore eredménye ugyanabból a pontos, candidate-ot tartalmazó archívumból; a régi timestamp nem írható át, az élő DB nem cserélhető régi snapshotra. A legacy capture/replay eszköz v9-re jelenleg elutasít: új registry-bejegyzés és régi owner-only receipt átírása nem oldja meg a schema-038/funded proof eltérést. A célzott ellenőrzések határai, az operátori sorrend és a szükséges kompatibilis út: [funded release preflight](FUNDED_RUNTIME_UPGRADE_HU.md#kiadási-előellenőrzés-hosszabb-hold-és-legacy-replay--2026-10-24).
+
+
+## V9 funded capture/replay
+
+A legacy replay-guard megmarad. A külön aktív funded proof a befejezett eredeti upgrade journal/readback/konfigurációját és tényleges image-ét köti; az új funded fence módok ezt rooton újraellenőrzik. A karantén az igazolt v9 image-ből migrál tiszta 038 katalógust, csak adatot tölt vissza, strict policy/artifact/karakterállapot ellenőrzést és a meglévő független delete/revoke/accounting/privacy verifiert futtat. Az eredeti-zero/reader/window receiptek változatlanok; szolgáltatásaktiválás és élő snapshot-visszatöltés továbbra tilos. A fejlesztési implementáció és a még szükséges exact-source audit/célgépes funded fence E2E: [funded replay runbook](FUNDED_RUNTIME_UPGRADE_HU.md#v9-funded-capturereplay-út--72-fejlesztési-implementáció-2026-10-24).
+
+
+## #76 — konkrét image izolált próbája, 2026-10-25
+
+A [standalone image-futtató](FUNDED_RUNTIME_UPGRADE_HU.md#önálló-kiadási-image-próba--76-2026-10-25) a lokálisan cache-elt immutable v9 image saját forrását ellenőrzi, majd saját TLS-es PostgreSQL/hálózatban mesterséges adatokkal futtatja a közös frissítési és privacy/recovery próbákat. Egy image-et igazol target/recovery szerepre; a kiadási validator és legacy védelmek változatlanok. Proof csak teljes cleanup és idegenkonténer-egyezés után készülhet. Ez nem a production mentés restore-próbája és nem tényleges célgépes PASS; az új source CI és a kiválasztott image célgépes futása külön bizonyíték.
+
+
+A #81 teljes kiadási review-jának javítása a production image-capability one-offra is tartós, source/bundle/input/parancs/image/nonce kötött intentet vezet be. Timeout után finally-cleanup, SIGKILL után a meglévő `--cleanup-probe` egyeztet; a tényleges ID a törlés előtt rögzül, ismeretlen vagy lecserélt konténer megmarad, pending intent mellett nincs aktív proof. Daily v4 foglalja a capability-receiptet a titkosított backupba és a lezárt preparation-archívumba. A runtime nélküli image-only átállás aktív funded replay útja az explicit v9 módhoz hasonlóan az eredeti completed journal/readback/source/image/038/authority kötésekkel működik; az image tényleges v9/frozen-policy képességellenőrzése megmarad. [Részletes javítás és regressziós határ](FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25).

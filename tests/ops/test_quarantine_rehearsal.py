@@ -35,6 +35,19 @@ class DataOnlyArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Complete'):
             quarantine.selected_table_data(b'1; 1 2 TABLE public ff_users postgres\n',['ff_users'])
 
+class FundedReplaySelectionTests(unittest.TestCase):
+    def test_wrong_funded_backup_pair_is_rejected_before_any_container_or_key_operation(self):
+        from unittest.mock import Mock
+        daily = Mock()
+        backup = {'manifest': {'ownerCommit': 'a' * 40, 'ownerImage': 'sha256:' + 'b' * 64}}
+        proof = {'version': 'alterward-funded-replay-1', 'sourceCommit': 'a' * 40, 'imageId': 'sha256:' + 'b' * 64}
+        for key, value in [('version', 'legacy'), ('sourceCommit', 'c' * 40), ('imageId', 'sha256:' + 'd' * 64)]:
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                quarantine.replay(daily, Path(directory), {}, set(), 'a' * 24, backup, {}, {},
+                                  lambda _: None, lambda: None, funded_runtime={**proof, key: value})
+        daily.command.assert_not_called()
+
+
 class BackupPreflightTests(unittest.TestCase):
     def fixture(self,root):
         now=dt.datetime(2026,10,11,6,0,tzinfo=dt.timezone.utc)

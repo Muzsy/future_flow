@@ -15,6 +15,7 @@ import { reviewedPrivacyRecoveryTables } from './privacy-recovery-schema';
 const requestSchema = z
   .object({
     action: z.enum(['prepare', 'replay']),
+    fundedRuntime: z.literal('v9').optional(),
     quarantineDatabase: z.string().regex(/^aw_restore_[a-f0-9]{24}$/),
     backupCapturedAt: z.string().datetime(),
     backupDumpSha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -102,7 +103,16 @@ export async function runQuarantinedReplay(
       serviceActivationAllowed: false as const,
     };
   }
+  const validateFunded = async () => {
+    if (request.fundedRuntime === 'v9') {
+      const { assertFundedStoredNarrativeState } =
+        await import('./funded-runtime');
+      await assertFundedStoredNarrativeState(db);
+    }
+  };
+  await validateFunded();
   await replayPrivacyRestore(db, envelope.authority, binding, now);
+  await validateFunded();
   // Deliberately independent of the mutation transaction and its private proof.
   const verification = await verifyPrivacyRestore(
     db,

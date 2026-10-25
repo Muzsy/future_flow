@@ -512,16 +512,16 @@ fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, 
       const respond = codexLocalResponder({
         bin,
         model: 'gpt-6.1-sol',
-        reasoningEffort: 'low',
-        timeoutMs: 20000,
       });
       const result = (await respond({
         caseId: 'c',
         task: 'life_narrative_editor',
         model: 'gpt-6.1-sol',
         ordinal: 0,
+        timeoutMs: 20000,
         parameters: {
           model: 'gpt-6.1-sol',
+          max_output_tokens: 6500,
           input: [
             { role: 'system', content: 'SYSTEM TEXT' },
             { role: 'user', content: '{"a":1}' },
@@ -547,11 +547,13 @@ fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, 
         expect.arrayContaining([
           'exec',
           '--ephemeral',
+          '--ignore-user-config',
+          '--ignore-rules',
           '--sandbox',
           'read-only',
           '--model',
           'gpt-6.1-sol',
-          'model_reasoning_effort="low"',
+          'model_reasoning_effort="medium"',
         ]),
       );
       expect(result.cwd).toContain('alterward-codex-');
@@ -583,6 +585,9 @@ fs.writeFileSync(out, JSON.stringify({ args, schema: JSON.parse(schema), stdin, 
       );
       expect(marker).toMatchObject({
         transport: 'codex-local',
+        reasoningEffort: 'medium',
+        ignoreUserConfig: true,
+        ignoreRules: true,
         comparableWithPaid: false,
       });
       expect(existsSync(join(out, 'report.json'))).toBe(true);

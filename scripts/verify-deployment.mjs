@@ -93,6 +93,20 @@ try {
     assert.equal(config.services.web.build.args[key], undefined);
     assert.equal(config.services.worker.environment[key], undefined);
   }
+  for (const role of ['api', 'worker']) {
+    assert.equal(
+      config.services[role].environment.NARRATIVE_FICTION_GENERATION,
+      'v8',
+    );
+    assert.equal(
+      config.services[role].environment.NARRATIVE_PIPELINE_MODE,
+      'legacy',
+    );
+  }
+  assert.equal(
+    config.services.web.environment.NARRATIVE_FICTION_GENERATION,
+    undefined,
+  );
   assert.equal(config.services.web.environment.CLOSED_SITE_ENABLED, 'false');
   assert(config.services.web.healthcheck.test.at(-1).includes('/healthz'));
   assert.equal(

@@ -432,6 +432,9 @@ export async function writeEvaluationArtifacts(
           run.samples.filter((s) => s.kind === 'full').map((s) => s.elapsedMs),
         ),
     accounting: run.accounting,
+    ...(run.serviceTier
+      ? { serviceTier: run.serviceTier, flexAccounting: run.flexAccounting }
+      : {}),
     narrativeYield: run.mock
       ? null
       : evaluationNarrativeYield(run.accounting, run.samples),

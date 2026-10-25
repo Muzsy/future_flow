@@ -27,7 +27,8 @@
                 "life_fiction_plan.v5",
                 "life_fiction_plan.v6",
                 "life_fiction_plan.v7",
-                "life_fiction_plan.v8"
+                "life_fiction_plan.v8",
+                "life_fiction_plan.v9"
               ]
             },
             "writer": {
@@ -40,7 +41,8 @@
                 "life_fiction_author.v5",
                 "life_fiction_author.v6",
                 "life_fiction_author.v7",
-                "life_fiction_author.v8"
+                "life_fiction_author.v8",
+                "life_fiction_author.v9"
               ]
             },
             "planReviewer": {
@@ -53,7 +55,8 @@
                 "life_fiction_plan_review.v5",
                 "life_fiction_plan_review.v6",
                 "life_fiction_plan_review.v7",
-                "life_fiction_plan_review.v8"
+                "life_fiction_plan_review.v8",
+                "life_fiction_plan_review.v9"
               ]
             },
             "fidelity": {
@@ -69,7 +72,9 @@
                 "life_fiction_editor.v4",
                 "life_fiction_editor.v5",
                 "life_fiction_editor.v6",
-                "life_fiction_editor.v7"
+                "life_fiction_editor.v7",
+                "life_fiction_editor.v8",
+                "life_fiction_editor.v9"
               ]
             }
           },
@@ -96,7 +101,8 @@
             "2.4.0",
             "2.5.0",
             "2.6.0",
-            "2.7.0"
+            "2.7.0",
+            "2.8.0"
           ]
         },
         "maxPhysicalRequests": {
@@ -806,132 +812,558 @@
       }
     },
     "seriesLedger": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "const": "1.0.0"
+            },
+            "ownedChapters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "repeatedOpenings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "repeatedPhrases": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "frictionBeat": {
+              "type": "object",
+              "properties": {
+                "chaptersWithMarkers": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentRun": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentMarkers": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              },
+              "required": [
+                "chaptersWithMarkers",
+                "recentRun",
+                "recentMarkers"
+              ],
+              "additionalProperties": false
+            },
+            "recentClosings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "periodId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "sentence": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "periodId",
+                  "sentence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "privateLife": {
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "partner",
+                      "family",
+                      "friend"
+                    ]
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "relationship",
+                  "chaptersPresent",
+                  "chaptersSinceLast"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "goalActivity": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "goalId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersSinceProgressChange": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goalId",
+                  "chaptersSinceProgressChange"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "version",
+            "ownedChapters",
+            "repeatedOpenings",
+            "repeatedPhrases",
+            "frictionBeat",
+            "recentClosings",
+            "privateLife",
+            "goalActivity"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "const": "1.1.0"
+            },
+            "ownedChapters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "repeatedOpenings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "repeatedPhrases": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "chapters": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "text",
+                  "count",
+                  "chapters"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "frictionBeat": {
+              "type": "object",
+              "properties": {
+                "chaptersWithMarkers": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentRun": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "recentMarkers": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              },
+              "required": [
+                "chaptersWithMarkers",
+                "recentRun",
+                "recentMarkers"
+              ],
+              "additionalProperties": false
+            },
+            "recentClosings": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "periodId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "sentence": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "periodId",
+                  "sentence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "privateLife": {
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "partner",
+                      "family",
+                      "friend"
+                    ]
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "relationship",
+                  "chaptersPresent",
+                  "chaptersSinceLast"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "goalActivity": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "goalId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersSinceProgressChange": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goalId",
+                  "chaptersSinceProgressChange"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "recurringCast": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actorId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "chaptersPresent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "chaptersSinceLast": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "openMatter": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "actorId",
+                  "chaptersPresent",
+                  "chaptersSinceLast",
+                  "openMatter"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "recentTurns": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "attempt_meets_resistance",
+                      "outsider_reads_the_work",
+                      "other_persons_aim_crosses",
+                      "old_matter_returns",
+                      "event_from_outside",
+                      "success_with_price",
+                      "relationship_shift",
+                      "protagonist_refuses_or_withdraws",
+                      "delayed_cost_of_earlier_choice",
+                      "quiet_persistence",
+                      "other"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "turnQueue": {
+              "maxItems": 10,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "attempt_meets_resistance",
+                  "outsider_reads_the_work",
+                  "other_persons_aim_crosses",
+                  "old_matter_returns",
+                  "event_from_outside",
+                  "success_with_price",
+                  "relationship_shift",
+                  "protagonist_refuses_or_withdraws",
+                  "delayed_cost_of_earlier_choice",
+                  "quiet_persistence"
+                ]
+              }
+            },
+            "restingTurns": {
+              "maxItems": 2,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "attempt_meets_resistance",
+                  "outsider_reads_the_work",
+                  "other_persons_aim_crosses",
+                  "old_matter_returns",
+                  "event_from_outside",
+                  "success_with_price",
+                  "relationship_shift",
+                  "protagonist_refuses_or_withdraws",
+                  "delayed_cost_of_earlier_choice",
+                  "quiet_persistence"
+                ]
+              }
+            }
+          },
+          "required": [
+            "version",
+            "ownedChapters",
+            "repeatedOpenings",
+            "repeatedPhrases",
+            "frictionBeat",
+            "recentClosings",
+            "privateLife",
+            "goalActivity",
+            "recurringCast",
+            "recentTurns",
+            "turnQueue",
+            "restingTurns"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "characterProjection": {
       "type": "object",
       "properties": {
         "version": {
           "type": "string",
           "const": "1.0.0"
         },
-        "ownedChapters": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 1000
-        },
-        "repeatedOpenings": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 80
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100000
-              },
-              "chapters": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 1000
-              }
-            },
-            "required": [
-              "text",
-              "count",
-              "chapters"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "repeatedPhrases": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "text": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 80
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100000
-              },
-              "chapters": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 1000
-              }
-            },
-            "required": [
-              "text",
-              "count",
-              "chapters"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "frictionBeat": {
-          "type": "object",
-          "properties": {
-            "chaptersWithMarkers": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 1000
-            },
-            "recentRun": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 1000
-            },
-            "recentMarkers": {
-              "maxItems": 8,
-              "type": "array",
-              "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 40
-              }
-            }
-          },
-          "required": [
-            "chaptersWithMarkers",
-            "recentRun",
-            "recentMarkers"
-          ],
-          "additionalProperties": false
-        },
-        "recentClosings": {
-          "maxItems": 6,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "periodId": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "sentence": {
-                "type": "string",
-                "maxLength": 200
-              }
-            },
-            "required": [
-              "periodId",
-              "sentence"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "privateLife": {
-          "maxItems": 12,
+        "actors": {
+          "maxItems": 8,
           "type": "array",
           "items": {
             "type": "object",
@@ -941,82 +1373,255 @@
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
               },
-              "relationship": {
+              "kind": {
                 "type": "string",
                 "enum": [
-                  "partner",
-                  "family",
-                  "friend"
+                  "fictional",
+                  "supplied"
                 ]
               },
-              "chaptersPresent": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 1000
+              "reasons": {
+                "minItems": 1,
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "in_candidate",
+                    "open_thread",
+                    "goal_or_opportunity",
+                    "unresolved_matter",
+                    "overdue_private_life",
+                    "recent_change"
+                  ]
+                }
               },
-              "chaptersSinceLast": {
+              "profile": {
                 "anyOf": [
                   {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1000
+                    "type": "object",
+                    "properties": {
+                      "socialRole": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 120
+                      },
+                      "coreWant": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "independentConcern": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "conflictStyle": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "attentionStyle": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "valueCue": {
+                        "minItems": 1,
+                        "maxItems": 3,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 60
+                        }
+                      },
+                      "voiceCue": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 120
+                      }
+                    },
+                    "required": [
+                      "socialRole",
+                      "coreWant",
+                      "independentConcern",
+                      "conflictStyle",
+                      "attentionStyle",
+                      "valueCue",
+                      "voiceCue"
+                    ],
+                    "additionalProperties": false
                   },
                   {
                     "type": "null"
                   }
                 ]
+              },
+              "dynamic": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "currentAim": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "currentPressure": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "attentionOn": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 160
+                      },
+                      "stanceTowardProtagonist": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "unresolvedMatter": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "provenance": {
+                        "type": "string",
+                        "enum": [
+                          "user_supplied",
+                          "branch_fiction",
+                          "interaction_derived"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currentAim",
+                      "currentPressure",
+                      "attentionOn",
+                      "stanceTowardProtagonist",
+                      "unresolvedMatter",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relationship": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "currentDynamic": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 240
+                      },
+                      "expectation": {
+                        "type": "string",
+                        "minLength": 20,
+                        "maxLength": 200
+                      },
+                      "unresolvedInteraction": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 240
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "provenance": {
+                        "type": "string",
+                        "enum": [
+                          "user_supplied",
+                          "branch_fiction",
+                          "interaction_derived"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "currentDynamic",
+                      "expectation",
+                      "unresolvedInteraction",
+                      "provenance"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "legacy": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 120
+                  },
+                  "desire": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "resistance": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  },
+                  "voiceCue": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "role",
+                  "desire",
+                  "resistance",
+                  "voiceCue"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
               "actorId",
-              "relationship",
-              "chaptersPresent",
-              "chaptersSinceLast"
+              "kind",
+              "reasons",
+              "profile",
+              "dynamic",
+              "relationship"
             ],
             "additionalProperties": false
           }
         },
-        "goalActivity": {
-          "maxItems": 5,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "goalId": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "chaptersSinceProgressChange": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 1000
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "goalId",
-              "chaptersSinceProgressChange"
-            ],
-            "additionalProperties": false
-          }
+        "omittedActors": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       },
       "required": [
         "version",
-        "ownedChapters",
-        "repeatedOpenings",
-        "repeatedPhrases",
-        "frictionBeat",
-        "recentClosings",
-        "privateLife",
-        "goalActivity"
+        "actors",
+        "omittedActors"
       ],
       "additionalProperties": false
     }

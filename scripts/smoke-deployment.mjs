@@ -2,16 +2,19 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   realpathSync,
   rmSync,
   writeFileSync,
+  readFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
+import { fundedSourceBundle } from './lib/funded-upgrade.mjs';
 
 // Never point this test at the user's VPS, database, or experimental API budget.
 assert.equal(process.platform, 'linux');
@@ -292,9 +295,75 @@ try {
     'interruptedReplayRolledBack',
     'missingCurrentBudgetAccountRejected',
     'differentSessionTimezonesVerified',
+    'narrativeArtifactsSurvivedPhysicalRestore',
+    'legacyNullArtifactsReadable',
+    'privateArtifactExcludedFromLifeDto',
   ])
     assert.equal(privacyRestore[check], true);
   assert.equal(privacyRestore.serviceActivationAllowed, false);
+  const fundedCommit = run('git', ['rev-parse', 'HEAD']).trim();
+  const fundedPaths = run('git', ['ls-files']).trim().split('\n');
+  const fundedBundle = fundedSourceBundle(fundedPaths, (p) =>
+    readFileSync(join(root, p)),
+  );
+  const fundedContext = {
+    image: JSON.parse(run('docker', ['image', 'inspect', 'alterward:ci']))[0]
+      .Id,
+    databaseNetwork: network,
+    postgres: compose('ps', '-q', 'postgres').trim(),
+    ca: join(fixture, 'ca.crt'),
+    sourceCommit: fundedCommit,
+    ...fundedBundle,
+    privacy: privacyRestore,
+  };
+  const fundedProof = JSON.parse(
+    execFileSync(
+      'sudo',
+      [
+        '-n',
+        'env',
+        'CI=true',
+        'GITHUB_ACTIONS=true',
+        'PYTHONDONTWRITEBYTECODE=1',
+        'python3',
+        '-B',
+        'scripts/ops/contabo-funded-upgrade-fixture.py',
+      ],
+      {
+        cwd: root,
+        input: JSON.stringify(fundedContext),
+        encoding: 'utf8',
+        timeout: 600000,
+        maxBuffer: 8 * 1024 * 1024,
+      },
+    ),
+  );
+  for (const check of [
+    'success',
+    'stale',
+    'postcheck',
+    'interruption',
+    'locks',
+    'reservations',
+    'leases',
+    'incompatibleRecovery',
+    'foreign',
+    'fundedState',
+    'artifactRestore',
+    'privacyReplay',
+    'frozenPolicies',
+    'expiredPreparationArchive',
+    'probeCleanup',
+    'fundedReplayProof',
+  ])
+    assert.equal(fundedProof.checks[check], true);
+  assert.equal(fundedProof.paidAiCalls, 0);
+  mkdirSync(join(root, 'test-results'), { recursive: true });
+  writeFileSync(
+    join(root, 'test-results/funded-upgrade-ci-proof.json'),
+    JSON.stringify(fundedProof, null, 2) + '\n',
+    { mode: 0o600 },
+  );
   const officialLife = JSON.parse(
     compose(
       'run',

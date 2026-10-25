@@ -1,32 +1,63 @@
-import { fictionPolicy } from '@future-flow/contracts';
+import { fictionPolicy, fictionV9Policy } from '@future-flow/contracts';
 import {
   buildFictionArtifact,
   narrativeReferenceSnapshot,
+  fictionCharacterProjectionFromEnvelope,
 } from '@future-flow/core';
 import {
   ownedNarrativeReferences,
   ownedFictionReferences,
+  ownedFictionCharacterFold,
+  fictionCharacterEnvelopeFrom,
+  fictionCharacterSignals,
   type Database,
   type LifeJob,
 } from '@future-flow/database';
 import { fictionFixture, fictionProof } from './fiction-fixtures';
 
 // Synthetic storage/restore proof only. No paid request or literary assertion.
-export async function prepareFictionJobFixture(db: Database, job: LifeJob) {
+export async function prepareFictionJobFixture(
+  db: Database,
+  job: LifeJob,
+  generation: 'v1' | 'v9' = 'v1',
+) {
   const baseline = fictionFixture(job.payload);
+  const fold =
+    generation === 'v9'
+      ? await ownedFictionCharacterFold(
+          db,
+          job.user_id,
+          job.branch_id,
+          baseline.memory.fictionalActors,
+          baseline.input.state.actors.map((a) => a.id),
+        )
+      : undefined;
+  const characters = fold
+    ? fictionCharacterEnvelopeFrom(
+        fold,
+        fictionCharacterSignals(baseline.memory, undefined, fold),
+      )
+    : undefined;
+  const policy = generation === 'v9' ? fictionV9Policy() : fictionPolicy();
   const f = fictionFixture({
     ...baseline.input,
+    ...(characters ? { fictionCharacters: characters } : {}),
     narrativeContext: {
-      policy: fictionPolicy(),
+      policy,
       memory: baseline.memory,
       storyFacts: [],
+      ...(characters
+        ? {
+            characterProjection: fictionCharacterProjectionFromEnvelope(
+              characters,
+              false,
+            ),
+          }
+        : {}),
     },
   });
-  job.payload.narrativeContext = {
-    policy: fictionPolicy(),
-    memory: f.memory,
-    storyFacts: [],
-  };
+  job.payload.narrativeContext = f.input.narrativeContext;
+  if (characters) job.payload.fictionCharacters = characters;
   job.payload.narrativeReferences = narrativeReferenceSnapshot(
     await ownedNarrativeReferences(db, job.user_id, job.branch_id),
   );

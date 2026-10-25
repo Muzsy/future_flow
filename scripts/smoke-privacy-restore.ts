@@ -1,6 +1,12 @@
+import { createPrivacyFenceEnvelope } from './lib/privacy-fence-envelope';
+import { runQuarantinedReplay } from './lib/quarantined-replay';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { connectDatabase, type Database } from '@future-flow/database';
+import {
+  LifeRepository,
+  connectDatabase,
+  type Database,
+} from '@future-flow/database';
 import { hash } from '@future-flow/core';
 import { applyMigrations } from './lib/migrations';
 import {
@@ -59,8 +65,12 @@ async function main() {
     sourceCreated = true;
     source = connection(sourceName);
     await applyMigrations({ exec: (sql) => facade.query(sql) });
+    let artifactSnapshot: unknown;
     const f = await preparePrivacyRestoreFixture(facade, async () => {
       assert(source);
+      artifactSnapshot = await source.query(
+        'SELECT id,narrative_artifact FROM aw_periods ORDER BY id',
+      );
       await source.close();
       source = undefined;
       // Actual PostgreSQL physical database copy after all transactions close.
@@ -70,6 +80,20 @@ async function main() {
       source = connection(sourceName);
     });
     target = connection(targetName);
+    const restoredArtifacts = await target.query(
+      'SELECT id,narrative_artifact FROM aw_periods ORDER BY id',
+    );
+    assert.deepEqual(restoredArtifacts, artifactSnapshot);
+    assert(restoredArtifacts.some((p) => p.narrative_artifact !== null));
+    assert(restoredArtifacts.some((p) => p.narrative_artifact === null));
+    const [restoredBranch] = await target.query<{ id: string }>(
+      'SELECT id FROM aw_branches WHERE life_id=$1',
+      [f.deletedLife],
+    );
+    assert(restoredBranch);
+    const dto = await new LifeRepository(target).detail(f.a, restoredBranch.id);
+    assert(dto.periods.every((p) => !('narrative_artifact' in p)));
+
     await source!.query("SET TIME ZONE 'Asia/Tokyo'");
     f.authority = await capturePrivacyRestoreAuthority(source!, {
       projectBinding: f.projectBinding,
@@ -157,9 +181,53 @@ async function main() {
       (await target.query('SHOW TIME ZONE'))[0]?.TimeZone,
       'America/Los_Angeles',
     );
+    const replayBinding = {
+      mode: 'recovery' as const,
+      nonce: 'a'.repeat(24),
+      sourceCommit: 'b'.repeat(40),
+      sourceFilesDigest: hash('synthetic-funded-runtime-source'),
+      ownerManifestDigest: hash('synthetic-funded-manifest'),
+      projectBinding: f.projectBinding,
+      writerFenceDigest: f.writerFenceDigest,
+      expiresAt: new Date(Date.now() + 300000).toISOString(),
+    };
+    const envelope = createPrivacyFenceEnvelope(
+      f.authority,
+      hash('synthetic-independent-auth'),
+      replayBinding,
+    );
+    const retainedBefore = await target.query(
+      'SELECT narrative_artifact FROM aw_periods WHERE id=$1',
+      [f.retainedV9NarrativePeriod],
+    );
+    assert(
+      retainedBefore.length === 1 &&
+        (retainedBefore[0]!.narrative_artifact as Record<string, unknown>)
+          .characterDelta,
+    );
+    await runQuarantinedReplay(target, {
+      action: 'replay',
+      fundedRuntime: 'v9',
+      quarantineDatabase: targetName,
+      backupCapturedAt: f.backupCapturedAt,
+      backupDumpSha256: hash('synthetic-physical-snapshot'),
+      envelope,
+      held: { ...replayBinding, stateDigest: envelope.stateDigest },
+    });
+    assert.deepEqual(
+      await target.query(
+        'SELECT narrative_artifact FROM aw_periods WHERE id=$1',
+        [f.retainedV9NarrativePeriod],
+      ),
+      retainedBefore,
+    );
     return {
       ...proof,
+      fundedV9ReplayAndCharacterStateVerified: true,
       physicalOldSnapshot: true,
+      narrativeArtifactsSurvivedPhysicalRestore: true,
+      legacyNullArtifactsReadable: true,
+      privateArtifactExcludedFromLifeDto: true,
       actualDatabaseNameGuard: true,
       missingOrMismatchedAuthorityRejected: true,
       interruptedReplayRolledBack: true,
