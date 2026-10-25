@@ -461,7 +461,9 @@ A #88 review idején 2026-10-25 19:47:54 CET read-only ellenőrzés: 10 eredeti 
 
 ## Daily v4 műveleti csomag előkészítése — #90, 2026-10-25
 
-**Engedélyhatár:** a tulajdonos az előkészítést engedélyezte. Az alábbi felmérés csak olvasás: nincs timer/service/config módosítás, CLI action, archívumtörlés, backup/restore végrehajtás, DB/Auth/provider művelet vagy paid hívás. Az eredeti backup identity csak a meglévő, hash-ellenőrzött `age-keygen -y` memóriabeli bemeneteként, eredeti pinned SSH-n került felhasználásra; nem írtuk ki vagy másoltuk fájlba. A visszatérő eredmény csak recipient-egyezés. Privát evidence: `.local/verification/daily-v4-preflight-20261025/`, 0700/0600. Kilenc eredeti kliensreceipt külön privát másolatban megőrzött; az eredetiek változatlanok, secretet és archívumot nem másoltunk.
+Az alábbi előkészítési pillanatkép megőrzött történet; a jóváhagyott végrehajtás az [eredményszakaszban](#daily-v4-végrehajtás-és-visszaellenőrzés--90-2026-10-25) lezárt.
+
+**Előkészítéskori engedélyhatár (történeti állapot):** a tulajdonos ekkor az előkészítést engedélyezte. Az alábbi felmérés csak olvasás: nincs timer/service/config módosítás, CLI action, archívumtörlés, backup/restore végrehajtás, DB/Auth/provider művelet vagy paid hívás. Az eredeti backup identity csak a meglévő, hash-ellenőrzött `age-keygen -y` memóriabeli bemeneteként, eredeti pinned SSH-n került felhasználásra; nem írtuk ki vagy másoltuk fájlba. A visszatérő eredmény csak recipient-egyezés. Privát evidence: `.local/verification/daily-v4-preflight-20261025/`, 0700/0600. Kilenc eredeti kliensreceipt külön privát másolatban megőrzött; az eredetiek változatlanok, secretet és archívumot nem másoltunk.
 
 ### Friss előfeltételek és talált hiány
 
@@ -481,7 +483,7 @@ A #88 review idején 2026-10-25 19:47:54 CET read-only ellenőrzés: 10 eredeti 
 
 A 19 helyi archívum mind a 38 ciphertext-fájljának mérete/SHA-256-ja egyezik a saját manifesttel, a fájllista pontos, a fájlok regular/0600/nlink1/saját tulajdonosúak; a read-only ellenőrzés receiptje `de70e528b1eae5a8b001a2cb6a80430108bc25f6ab6312023745c6f72ae996ad`. A kliens bármely normál Daily action előtt lefuttatja az `expireLocal` retenciót; a szerveres `status/inventory` pedig `clean_pending` műveletet is végezhet. Emiatt a felméréshez nem hívtuk a CLI `--status` ágát. A végrehajtandó csomagban az első `--sync` a jóváhagyott hétnapos szabály szerint eltávolíthatja a 19 lejárt managed **backup-archívumot**; az eredeti proof/evidence másolatokat nem. A változatlan szerveren lévő öt frissebb mentést hash-kötötten letölti. A sikertelen régi tesztek bizonyítékai ettől külön megmaradnak. Új retention-szabály vagy jövőbeli offsite-automatizálás nem készül ebből hallgatólagosan; a rendszeres offsite-futtatási rend a béta operátori átadásának nyitott része.
 
-### Előkészített végrehajtási sorrend — még nem futott
+### Előkészített végrehajtási sorrend — az előkészítéskor még nem futott
 
 1. **Friss ellenőrzés, régi offsite pótlása:** a változatlan eredeti, tiszta operátori checkoutból `node scripts/contabo-daily.mjs --sync`, explicit eredeti `ALTERWARD_SSH_SECRETS_DIR` mellett. A helyi hétnapos retenció és az öt szerveres managed másolat átvétele a konkrét műveleti csomag része. A friss sync-proof és ciphertext-hash-ek nélkül nincs timerleállítás. Deferred/lock vagy részleges letöltés nem siker.
 2. **Pontos új kliensforrás:** a jóváhagyott `adf2b95` Git-bundle fetch külön remote refbe, majd a tiszta privát main `git merge --ff-only adf2b951b3f8f584a34007570d3560e08f7fae81`; minden tracked bájt és a CLI/függőségek committed hash-e ellenőrzött. Nincs reset, untracked overwrite, új dependency/credential vagy titokmásolás. A fő future_flow munkakönyvtár érintetlen.
@@ -499,3 +501,39 @@ Az installer a fájlcsere közbeni kivételnél az eredeti nyolc fájl visszaál
 Szükség esetén a műveleti csomag szűk rendezése: a két timer kikapcsolva, service-k inaktívak; job.lock és owner activation.lock mellett kizárólag az új `previous-adf2b95…` nyolc, eredeti hash-hez ellenőrzött regular/0600/nlink1 fájlja állítható vissza az eredeti script/config és négy unit útvonalra, atomic/fsync cserével, majd daemon-reload és teljes régi config/script/unit/konténer readback. Más fájl, archívum, alkalmazás vagy DB nem célozható. Utána a visszaállított forráshoz **új** backup/offsite/izolált restore/monitor lánc kell a normál `--activate` előtt; a régi októberi restore nem frissíthető dátumátírással. Ha az eredeti hash-kötés, lock, jogosultság, aktuális fájlazonosság vagy konténerbaseline nem igazolható, megállás és új operátori döntés szükséges, a timerek nem kapcsolhatók vissza bypassszal. Ilyenkor az alkalmazás változatlanul fut, a monitoring/backup szünetét külön jelezni kell. A kézi nyolcfájlos rendezés eljárás, nem új automatikusan kipróbált rollback-tool vagy előre kiadott PASS.
 
 **Bizonyíték és ellenőrzés:** 37/37 Daily Python teszt, 21/21 Node archive-retention/Linux-operator teszt PASS; ezek szintetikus, nem új célgépes backup/restore próbák. A read-only előfeltétel-receipt SHA-256 `a7d95fb88a582ce49c5ccdd9d4cf18ce6b520815602013817b344a87bf3cc59e`; teljes konténeregyezés és ciphertext-méret receipt `6b196311d8a6e82de40ac84650e50310d1eb22a5f4e78c09a04e7da560c81465`; helyi offsite-inventory `d0f7356c7b567768dd848f84ab88f12fca762cb023c18eac68c644f6352e7ecb`; megőrzött kilenc kliensreceipt manifest `8ac8cfa78f45fd5b7463f151aae6c21eb09082445e35b269a0eb407fbb2461ad`. A műveleti csomag végrehajtása külön tulajdonosi jóváhagyást kér a timer/service/fájl/retenció/backup/restore hatások miatt. V9-4 PARTIAL, V9-5 PENDING; app apply és paid E2E nincs e csomagban.
+
+
+## Daily v4 végrehajtás és visszaellenőrzés — #90, 2026-10-25
+
+**Teljesült részkapu:** a tulajdonos a fenti konkrét csomagot külön jóváhagyta, beleértve a hétnapos retenciót és szükség esetén a szűk nyolcfájlos rendezést. A teljes lánc elsőre sikerült; visszaállításra nem volt szükség. A telepített Daily és az eredeti privát Linux kliens forrása **`adf2b951b3f8f584a34007570d3560e08f7fae81`**; a dokumentációs branch későbbi commitja nem runtime-proof forrás.
+
+| Művelet | Tényleges eredmény, CET |
+| --- | --- |
+| Régi-source offsite sync | 21:28:58–21:29:11: öt friss szerveres archívum átvéve és hash-ellenőrizve; 19 lejárt helyi managed backup eltávolítva a meglévő hétnapos szabállyal. A `.expiry-journal` megőrzött retenciós metadata, nem hatodik backup. A helyi összesítés első könyvtárszámlálását ennek megfelelően javítottuk; sync/proof nem futott újra. |
+| Privát kliens | Tiszta main fast-forward az eredeti Git-bundle-ből; mind az 1243 tracked fájl committed bájtja és az eredeti privát inputok változatlansága ellenőrzött. A fő munkakönyvtár érintetlen. |
+| Timerpause és update | Disable 21:31:53–21:31:56; update 21:32:02–21:32:06 PASS. Új `previous-adf2b95…` nyolcfájlos archívum, eredeti régi script/unit hash-egyezéssel. Változatlan immutable config és recipient; új daily script hash a jelölttel egyezik. |
+| Friss backup és offsite | Backup 21:32:14–21:32:29 PASS; sync 21:32:42–21:32:45 PASS. Az új-source mentés read-only/TLS snapshotból; összesen hat helyi archívum, mind a tizenkét ciphertext mérete/SHA-256-ja és védett fájlmetadata ellenőrzött. |
+| Izolált restore | 21:32:58–21:33:53 PASS ugyanabból a legújabb, offsite hash-kötött runból. **97 tábla és az adatok egyeznek**, sérült ciphertext elutasítva, config visszaállítás és proxy adapt/validate sikeres. Egy tranzakcióban végzett izolált restore, éles DB-írás nélkül; identity csak memóriában, ideiglenes konténer/plaintext eltávolítva. |
+| Monitor és aktiválás | Monitor 21:33:59–21:34:06 PASS, üres alerts; normál proof-bound activate 21:34:12–21:34:15 PASS. Nem közvetlen systemctl bypass. |
+| Független végső readback | 21:34:21: source/config/scripts/units egyeznek, a nyolc régi fájl megőrzött és hash-kötött. Mindkét timer enabled+active/waiting, mindkét service inactive/success/0; következő backup október 26. 04:15:34 CET, monitor 21:45:20 CET. Mind a tíz eredeti konténer ID/image/restart/status/start-time állapota változatlan (kilenc fut, egy korábban is állt), API/web healthy, worker running. Nincs pending backup, restore tmpfs üres. |
+
+A backup/monitor időzítés szünete kb. **2 perc 22 másodperc** volt a disable kezdetétől az activate végéig; az alkalmazás végig futott. Ez egyszeri mért eredmény, nem jövőbeli időígéret. Fizetős AI-hívás **0**, app-rollout/restart, éles DB-visszatöltés/migráció, új authority/window/budget/cohort/admission nem történt. A régi proofok, korábbi sikertelen próbák és retenciós journal megőrzöttek.
+
+### Végrehajtási bizonyítékok
+
+Privát, 0700/0600 evidence: `.local/verification/daily-v4-run-adf2b95-20261025/`; eredeti action-outputok, intentek, friss proofok és külön végső readback. A nyers backup-, adat- és credentialtartalom nem része a repónak.
+
+| Proof | SHA-256 |
+| --- | --- |
+| `pre-sync` | `cad782b61bb162710f27c9553fb46f353ad49c9f3265c19745bfa0ddd911d6cd` |
+| `disable` | `4ead2aab8625d45c0464b9c3b9195f94706f116296635b971876b8e6d9ba9a29` |
+| `update` | `c4054f5100182a216f7a03ea16295e85d6d93c725ce27cd49201115a1ae1c5b0` |
+| `backup` | `f768a01711b0ee225003df26da69ee44c25b5f98727454f4c458ce6b871588c4` |
+| `post-sync` | `8d2b1fbfac9d14a44681a22e074fb3882e9f4de456cbf6586f685e8ebf5d81fe` |
+| `restore` | `96dda6821afc943d16adc2b0ba3caa2e9f34583c2bb5fc2a403fb5377abd729d` |
+| `monitor` | `895a687971e9aa8a65801ffba92483dd14e33accd1a2b81ed793211ad5dffd1e` |
+| `activate` | `c2de1aeb1a6c7fcae4383455eb3370e81dc6c15b5e111b4cebe04f81aadd622f` |
+| Végső readback | `2a08c8a3b836d1d017e31863fb720b31857756225668275b76a0e4d918ce99e4` |
+| Lánc-egyeztetés | `503a6f8ba338f93c4c871e5a98b226bce4c29a3f2ada1d5027adcc7c02c6d76b` |
+
+**További kapuk:** #90 műveleti csomag kész, de V9-4 **PARTIAL**, V9-5 **PENDING**. Következő a friss, csak olvasó DB/drain/Access/Auth/reader felmérés és az exact-source operátori audit előkészítése; éles apply külön döntés. A Daily restore a jelenlegi production forrást igazolja, nem bizonyít automatikusan minden v9 migrációs/privacy/funded replay vagy tesztelői E2E kaput. #77 kohorsz/window/admission/keret, a rendszeres Linux offsite-futtatás operátori rendje és az alkalmazás béta átállítása továbbra külön nyitott tétel. Új automatizálást ez az egyszeri sync nem hozott létre.
