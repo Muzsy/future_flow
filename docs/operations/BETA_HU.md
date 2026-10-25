@@ -67,7 +67,7 @@ Ezek aktív supporting runbookok. A closure/audit reportok csak bizonyítékok.
 
 ## 4. Budget/window
 
-A personal beta operátor elfogadott kerete. Tulajdonosi döntés, 2026-10-19: a narratív zárt béta első köre **10 USD OpenAI-keret 3 tesztelőre** (tervezett beállítás 10 USD projekt / 3,33 USD felhasználó). A kód és az operátori ellenőrzések plafonja ehhez 10 USD projekt és 3,34 USD felhasználó. A már futó, 2026-11-12-ig tartó első ablak 2/0,50 USD-s értékei változatlanok; az új keret csak új, külön jóváhagyott 30 napos ablakkal, az N09 frissítés után indulhat.
+A personal beta operátor elfogadott kerete. Tulajdonosi döntés, 2026-10-19: a narratív zárt béta első köre **10 USD OpenAI-keret 3 tesztelőre** (tervezett beállítás 10 USD projekt / 3,33 USD felhasználó). A kód és az operátori ellenőrzések plafonja ehhez 10 USD projekt és 3,34 USD felhasználó. A már futó, 2026-11-12-ig tartó első ablak 2/0,50 USD-s értékei változatlanok; az új keret csak új, külön jóváhagyott 30 napos ablakkal, az N09 frissítés után indulhat. A 2026-10-25-i tulajdonosi döntés engedi a régi ablak szabályos korai lezárásával történő indulás megvalósítását; a régi history és költés megmarad. A #77 elszámolási magja helyi implementáció, a teljes operátori út még fejlesztés alatt: [scope és határ](NARRATIVE_RELEASE_HU.md#új-bétaablak-korai-lezárással--77-2026-10-25).
 
 - maximum 10 USD OpenAI runtime (az első ablakban 2 USD);
 - maximum 3,34 USD/user (az első ablakban 0,50 USD);

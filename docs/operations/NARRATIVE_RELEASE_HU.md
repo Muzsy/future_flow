@@ -537,3 +537,28 @@ Privát, 0700/0600 evidence: `.local/verification/daily-v4-run-adf2b95-20261025/
 | Lánc-egyeztetés | `503a6f8ba338f93c4c871e5a98b226bce4c29a3f2ada1d5027adcc7c02c6d76b` |
 
 **További kapuk:** #90 műveleti csomag kész, de V9-4 **PARTIAL**, V9-5 **PENDING**. Következő a friss, csak olvasó DB/drain/Access/Auth/reader felmérés és az exact-source operátori audit előkészítése; éles apply külön döntés. A Daily restore a jelenlegi production forrást igazolja, nem bizonyít automatikusan minden v9 migrációs/privacy/funded replay vagy tesztelői E2E kaput. #77 kohorsz/window/admission/keret, a rendszeres Linux offsite-futtatás operátori rendje és az alkalmazás béta átállítása továbbra külön nyitott tétel. Új automatizálást ez az egyszeri sync nem hozott létre.
+
+
+## Új bétaablak korai lezárással — #77, 2026-10-25
+
+**Tulajdonosi döntés:** az új, tervezett 10 USD / három tesztelős béta az eredeti november 12-i vég előtt is indulhat, a régi ablak szabályos lezárásával. A korábbi költés, történetek, eredeti terms/receipt és a teljes history megmarad. Ez az eljárás fejlesztésének engedélye; nem konkrét production időpont, névlista, DB-írás vagy paid hívás engedélye.
+
+A külön `codex/beta-successor-window` branch első implementációs egysége a `scripts/lib/beta-successor.ts` elszámolási mag. Ez **nem telepíthető successor-operátor**, nincs production CLI-je és nem változtatja meg az alkalmazás motorját. A meglévő első activation és funded upgrade őrei változatlanok. A #77 továbbra nyitott; az alábbi megoldás nem aktivált béta.
+
+### Megvalósított elszámolási határ
+
+- Exact korábbi terms-hash, explicit korai lezárási idő és külön, pontosan 30 napos új ablak; három egyedi kanonikus email/UUID pár, 10 USD projekt / 3,33 USD user. A kezdés legfeljebb 15 percre tervezhető, a lezárásnak meg kell előznie. Időpont, résztvevő vagy keret nem lesz automatikusan kitalálva.
+- Az account kulcsai a runtime tényleges UTC-normalizálásával készülnek. Az új kulcs nem használhatja újra a korábbi ablakot; létező új-window account vagy idegen régi-window account elutasított.
+- Előzetes, csak olvasó account-snapshot hash; SERIALIZABLE tranzakcióban ismételt egyezés, projekt→user account-lock sorrend, öt másodperces lock timeout, adatbázisóra és resolved usage szükséges. Reserved/unknown vagy settlement nélküli hívás tiltja a lezárást.
+- A régi ablak meglévő projekt-/user accountjain kizárólag a `limit_micro` lesz nulla. Az `accounted_micro`, eredeti azonosító, dátum, reservation és usage nem törlődik és nem nullázódik; más ablak és legacy account változatlan. Ez a régi konfigurációval működő budget-guardot is megállítja, nem csak az új worker beállítására támaszkodik.
+- Ugyanebben a tranzakcióban négy új account készül (egy projekt, három user), külön kulccsal és nulláról induló **új** elszámolással. Hibára a teljes tranzakció visszagördül; a lezárás és új accountok nem válhatnak részlegesen tartóssá. Újraalkalmazás nem nyithatja vissza a régi keretet vagy nullázhatja az újat.
+
+A helyi PGlite-próba a valódi `DatabaseAiBudget` kóddal igazolja: a régi konfiguráció költése elutasított, az új kezdés előtt az új is tiltott, kezdés után az új accountokat terheli; korábbi reservation/spend megmarad. Az account-hash drift, ismeretlen usage, account-ütközés, módosított terv és nem SERIALIZABLE tranzakció elutasítása, valamint beiktatott beszúrási hiba teljes rollbackje ellenőrzött. Az autocommit mód akkor is elutasított, ha a session default izolációja SERIALIZABLE: két megfigyelés között azonos tényleges tranzakcióazonosító szükséges. Végső helyi kör: 7 új successor + 19 meglévő budget-window + 10 funded-runtime teszt, összesen **36/36 PASS**; scripts TypeScript, docs:check, format:check és diff-check PASS. Ez nem tényleges PostgreSQL többkapcsolatos race-próba vagy root/production bizonyíték.
+
+### Még szükséges operátori integráció — ugyanazon #77 része
+
+A magot csak olyan külön, reviewzott operátor hívhatja, amely az eredeti authorityt és az új konkrét tulajdonosi selectiont hitelesíti, ellenőrzi a valódi Auth/email/UUID és Access/reader mappinget, valamint job/activation-lock mellett leállítja és draineli a saját írókat. A TypeScript függvény önmagában nem bizonyít writer-fence-et, Auth-jogosultságot, backupot vagy tulajdonosi engedélyt; közvetlen SQL-futtatás nem támogatott.
+
+A teljes művelethez tartós korai-lezárási intent/journal és eredeti terms-hash, candidate utáni backup/offsite/restore, a DB-tranzakció megszakítás utáni egyeztetése, külön új effective window/admission authority, annak Daily/monitor/backup/funded replay/recovery értelmezése és stop-first hibakezelés szükséges. Az eredeti personal-beta receiptet vagy funded-upgrade prepared/readback fájlt nem írjuk át. DB-commit utáni alkalmazási hiba esetén a régi keret **nem** nyitható újra; a szolgáltatások held állapotban maradnak a kötött új-authority recoveryig. A meglévő v9 apply-útba nem csempészünk más budgetet vagy résztvevőket.
+
+Ezek a #77 végrehajthatóságának részei, nem új termékfunkciók vagy motorfinomítások. Az elkészült adf2b95 image- és Daily-bizonyíték megmarad a saját forrására; az új eszköz majdani kiadási forrásának bizonyítékát külön kell kötni. A jelen munka nem indított új image-próbát, nem ismételte a kész backup-restore láncot, és nem végzett célgépes vagy provider műveletet.
