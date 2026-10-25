@@ -244,10 +244,13 @@ def isolated(image, output, binding):
         if created_network:
             try: run(['docker', 'network', 'rm', network])
             except BaseException: failures.append('network-cleanup')
-        try: shutil.rmtree(scratch)
-        except BaseException: failures.append('scratch-cleanup')
-        if engine.upgrade.foreign_state() != baseline:
-            failures.append('foreign-state-drift')
+        try:
+            if engine.upgrade.foreign_state() != baseline:
+                failures.append('foreign-state-drift')
+        except BaseException:
+            failures.append('foreign-state-readback')
+        engine.containers.cleanup_workspace(scratch, failures,
+            nested_pattern='alterward-funded-fixture-*')
         if failures:
             raise RuntimeError('Image rehearsal cleanup incomplete: ' + ','.join(failures))
     require_proof(proof, image, binding)

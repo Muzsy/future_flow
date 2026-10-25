@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 path = Path(__file__).resolve().parents[2] / 'scripts/ops/contabo-funded-image-rehearsal.py'
@@ -81,6 +82,58 @@ class ImageRehearsalBoundaries(unittest.TestCase):
             with self.assertRaises(ValueError): r.source_binding()
             self.assertEqual(run.call_count, 1)
             self.assertEqual(run.call_args.args[0][-2:], ['status', '--porcelain'])
+
+    def test_incomplete_cleanup_preserves_reconciliation_data_and_publishes_no_proof(self):
+        helper_spec = importlib.util.spec_from_file_location('cleanup_test_helper', path.with_name('contabo-fixture-containers.py'))
+        helper = importlib.util.module_from_spec(helper_spec)
+        helper_spec.loader.exec_module(helper)
+        original_mkdtemp = tempfile.mkdtemp
+        proof = {**BINDING, 'targetImage': IMAGE, 'recoveryImage': IMAGE,
+                 'checks': dict.fromkeys(r.CHECKS, True), 'privacyFixtureSha256': 'e'*64, 'paidAiCalls': 0}
+        for failure in ('nested-engine', 'outer-container'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp).resolve()
+                output = root/'proof'
+                def command(args, **kwargs):
+                    if args[0] == 'openssl':
+                        for flag in ('-keyout', '-out'):
+                            if flag in args: Path(args[args.index(flag)+1]).write_bytes(b'synthetic')
+                    if args[:3] == ['docker', 'image', 'inspect']:
+                        return json.dumps([{'Id': 'sha256:'+'f'*64}]).encode()
+                    if args[-2:] == ['-g', 'postgres']: return b'999'
+                    if args[:3] == ['docker', 'run', '-d']: return ('1'*64).encode()
+                    if 'scripts/smoke-privacy-restore.ts' in args: return b'{}'
+                    return b''
+                def exercise(context, **kwargs):
+                    if failure == 'nested-engine':
+                        retained = Path(context['ca']).parent/'alterward-funded-fixture-retained'
+                        retained.mkdir(mode=0o700)
+                        intent = retained/'helper-intent.json'
+                        intent.write_bytes(b'original-owned-container-identifiers')
+                        intent.chmod(0o600)
+                        raise RuntimeError('Synthetic engine cleanup incomplete')
+                    return proof
+                engine = SimpleNamespace(upgrade=SimpleNamespace(foreign_state=lambda: {}),
+                    containers=helper, exercise=exercise)
+                fake_spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
+                cleanup_error = RuntimeError('Synthetic daemon unavailable') if failure == 'outer-container' else None
+                with patch.dict(r.os.environ), \
+                     patch.object(r.tempfile, 'mkdtemp', side_effect=lambda **kw: original_mkdtemp(dir=root, **kw)), \
+                     patch.object(r.os, 'chown'), patch.object(r, 'run', side_effect=command), \
+                     patch.object(r, 'clean_container', side_effect=cleanup_error), \
+                     patch.object(r, 'source_binding', return_value=BINDING), \
+                     patch.object(r.importlib.util, 'spec_from_file_location', return_value=fake_spec), \
+                     patch.object(r.importlib.util, 'module_from_spec', return_value=engine):
+                    with self.assertRaisesRegex(RuntimeError, 'cleanup incomplete'):
+                        r.isolated(IMAGE, output, BINDING)
+                scratch = Path(json.loads((output/'rehearsal-intent.json').read_text())['scratchDirectory'])
+                self.assertTrue(scratch.is_dir())
+                self.assertEqual(scratch.stat().st_mode & 0o777, 0o700)
+                if failure == 'nested-engine':
+                    self.assertEqual((scratch/'alterward-funded-fixture-retained/helper-intent.json').read_bytes(),
+                                     b'original-owned-container-identifiers')
+                for filename in ('funded-upgrade-fixture-proof.json', 'image-rehearsal-receipt.json'):
+                    self.assertFalse((output/filename).exists())
 
     def test_non_root_rejected_before_any_child_command(self):
         with patch.object(r.os, 'geteuid', return_value=1000), patch.object(r, 'run') as run:

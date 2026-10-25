@@ -1238,11 +1238,12 @@ def exercise(context, *, scope='ci'):
             cleanup(lambda: run(['docker', 'image', 'rm', baseTag]))
         for item in patches[::-1]:
             item.stop()
-        if upgrade.foreign_state() != all_before:
-            failures.append('foreign-state-drift')
-        import shutil
-
-        cleanup(lambda: shutil.rmtree(base))
+        try:
+            if upgrade.foreign_state() != all_before:
+                failures.append('foreign-state-drift')
+        except BaseException:
+            failures.append('foreign-state-readback')
+        containers.cleanup_workspace(base, failures)
         if failures:
             raise RuntimeError(
                 'Isolated funded fixture cleanup incomplete: ' + ','.join(failures)

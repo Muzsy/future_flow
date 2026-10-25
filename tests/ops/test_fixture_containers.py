@@ -121,6 +121,27 @@ class FixtureHelperTests(unittest.TestCase):
             self.helpers.cleanup_all()
         self.assertEqual(json.loads(self.live.read_text()), {})
 
+    def test_failed_daemon_cleanup_preserves_the_private_engine_intents(self):
+        args, intent = self.helpers.prepare(['docker', 'run', IMAGE])
+        self.create(args)
+        original = intent.read_bytes()
+        failures = ['daemon-unavailable']
+        self.assertFalse(h.cleanup_workspace(self.root, failures))
+        self.assertEqual(intent.read_bytes(), original)
+        self.assertEqual(len(json.loads(self.live.read_text())), 1)
+
+    def test_outer_workspace_retains_unreconciled_engine_and_cleans_only_after_success(self):
+        retained = self.root/'alterward-funded-fixture-retained'
+        retained.mkdir(mode=0o700)
+        (retained/'intent.json').write_bytes(b'pending identity')
+        failures = []
+        self.assertFalse(h.cleanup_workspace(self.root, failures, nested_pattern='alterward-funded-fixture-*'))
+        self.assertIn('nested-reconciliation-required', failures)
+        self.assertEqual((retained/'intent.json').read_bytes(), b'pending identity')
+        (retained/'intent.json').unlink(); retained.rmdir()
+        self.assertTrue(h.cleanup_workspace(self.root, [], nested_pattern='alterward-funded-fixture-*'))
+        self.assertFalse(self.root.exists())
+
     def test_modified_or_aliased_intent_is_refused(self):
         _, intent = self.helpers.prepare(['docker', 'run', IMAGE])
         value = json.loads(intent.read_text()); value['image'] = None

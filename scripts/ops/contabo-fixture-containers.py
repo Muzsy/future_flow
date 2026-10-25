@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import uuid
 
@@ -112,3 +113,21 @@ class FixtureContainers:
             failures.append('daemon-readback')
         if failures:
             raise ValueError('Fixture helper cleanup incomplete: ' + ','.join(failures))
+
+
+def cleanup_workspace(directory, failures, *, nested_pattern=None):
+    """Keep private reconciliation evidence until daemon cleanup is proven."""
+    directory = Path(directory)
+    if nested_pattern is not None:
+        try:
+            if any(directory.glob(nested_pattern)):
+                failures.append('nested-reconciliation-required')
+        except BaseException:
+            failures.append('nested-reconciliation-readback')
+    if failures:
+        return False
+    try:
+        shutil.rmtree(directory)
+    except BaseException:
+        failures.append('workspace-cleanup')
+    return not failures
