@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-24
+last_reviewed: 2026-10-25
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -45,7 +45,7 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 
 **Aktuális fókusz — 2026-10-24:** befagyasztott v9 C5 motor → technikai stabilizálás/integráció → N09 → kis zárt béta. Az editor/history további finomítása DEFERRED. Első kiadási olvasás: [bétafókuszú lezárás](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24), majd a master plan.
 
-Az aktív részletes végrehajtási terv a [master plan V9-1–V9-5 sora](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A `main` v8 (`a666c905`), a fejlesztési jelölt **v9 C5**, draft [#66](https://github.com/Muzsy/future_flow/pull/66) a #57–#65 láncon. Production utolsó igazolt állapota legacy; az implementáció, review, mérés és élesítés külön státusz.
+Az aktív részletes végrehajtási terv a [master plan V9-1–V9-5 sora](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A **v9 C5** a [#81](https://github.com/Muzsy/future_flow/pull/81) merge-dzsel a `main` része (`4fb7b489`, 2026-10-25); a motoralap `7bd4d42`. A teljes review APPROVE és a jelölt CI-je zöld; a main saját CI-eredménye külön követett. Következő V9-4: célgépes bizonyíték és telepített monitor, majd V9-5 tesztelői alapút. Production utolsó igazolt állapota legacy; az implementáció, review, mérés és élesítés külön státusz.
 
 Minimális kontextus: [STATUS](STATUS_HU.md) → [master plan](DEVELOPMENT_PLAN_HU.md) → [creative terv C5](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23). Szereplőállapot és elfogadott fázisok: [élő világ terv](plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md), [ADR-009](decisions/ADR-009-character-state-artifact-fold.md). Modellalapú összehasonlítás: [mérési runbook C5](operations/NARRATIVE_EVALUATION_HU.md#c5-ellenőrzés-az-editoros-javítások-offline-elemzése-után--2026-10-23); kiadás: [release runbook](operations/NARRATIVE_RELEASE_HU.md).
 
