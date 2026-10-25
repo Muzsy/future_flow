@@ -34,21 +34,21 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Előfizetés / billing | nincs kész fizetési rendszer | B01: provider, lifecycle és szerveres entitlement |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
-## Történetminőség — aktuális fejlesztési jelölt, 2026-10-23
+## Történetminőség — beolvadt v9 C5, 2026-10-25
 
 Három külön állapotot kell követni:
 
 | Szint | Utolsó ellenőrzött állapot | Jelentése |
 | --- | --- | --- |
-| Távoli `main` | `a666c905ef953cc696d5d8a0faa4f9169ec01824`, v8 / qualityPolicy 2.7.0 | Beolvadt fejlesztési alap; nem production aktiválás. |
-| V9 fejlesztési jelölt | [draft PR #66](https://github.com/Muzsy/future_flow/pull/66), C5; implementáció `7bd4d42`, a #65 fölött | Planner/author/reviewer/editor v9, fidelity v1, qualityPolicy 2.8.0; explicit opt-in. A függő PR-lánc még nincs a főágon. |
+| Távoli `main`, integrációs checkpoint | `4fb7b48906235384b78617c807fb3995655842bc`, v9 C5 / qualityPolicy 2.8.0, [#81](https://github.com/Muzsy/future_flow/pull/81) | Tulajdonosi engedéllyel beolvadt; saját Verify+Container CI40195596461 sikeres; production aktiválás nem történt. |
+| Befagyasztott motoralap | C5 `7bd4d42`; a teljes #81 main-integráció `apps/` és `packages/` tartalma bájtazonos ezzel | Planner/author/reviewer/editor v9, fidelity v1; explicit opt-in és default-off határok megmaradnak. |
 | Production | Utolsó igazolt állapot: legacy, üres narrative cohort, zárt személyes béta | Friss szerveres állapotfelmérés nem történt; a fejlesztési vagy CI-eredmény nem deployment-bizonyíték. |
 
-A v9 lánc sorrendje: #57 → #58 → #59 → #60 → #61 → #63 → #64 → #65 → #66. A #62 tesztjavítás és a #56 Linux funded-runtime upgrade külön, `main` alapú ág. A #56 eddigi v1–v8 kompatibilitása önmagában nem igazolja a v9 target/recovery alkalmasságát. A pontos végrehajtás és elfogadási feltételek a [master planben](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) vannak.
+A #81 a teljes v9 láncot, #56/#62 integrációt és a #70–#79 kiadási javításait valódi merge committal a főágba vitte. Mind a húsz rész-PR feje Git-ős; négyet GitHub automatikusan merged állapotba tett (#56/#57/#62/#70), a többi tizenhat stacked PR lezárult integráltként, eredeti branch/commit megőrzésével. A teljes diff független review-ja APPROVE a `bc77cc9` jelöltre; a merge két szülője `a666c905` és `bc77cc9`, fája pontosan a jóváhagyott jelölté. A pontos végrehajtás és elfogadási feltételek a [master planben](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) vannak.
 
 ### Mi készült el, és mire van bizonyíték?
 
-A v9 contract, szereplőállapot-fold/projection, pipeline és determinisztikus karakter-audit implementált a draft láncban. A 0–5. offline szakasz korábbi köre 2026-10-21-én lezárult; C5 új review-/mérési feladatot nyitott. A későbbi C2–C4 körök a fidelity-first javítást, a v9 editort, az ismétléskezelést, a kérésméretet és a szűkített javítási módokat érintik. A v8 baseline befagyasztott; az új munkák nem írják át a régi policykat.
+A v9 contract, szereplőállapot-fold/projection, pipeline és determinisztikus karakter-audit implementált és a #81-gyel a mainbe integrált. A 0–5. offline szakasz korábbi köre 2026-10-21-én lezárult; C5 új review-/mérési feladatot nyitott. A későbbi C2–C4 körök a fidelity-first javítást, a v9 editort, az ismétléskezelést, a kérésméretet és a szűkített javítási módokat érintik. A v8 baseline befagyasztott; az új munkák nem írják át a régi policykat.
 
 A C5 a kilenc editor-kiváltott javítás offline elemzésére épül. A kiváltók: négy rendszermechanikai próza, három ismétlődő oksági szerkezet, egy ismétlődő lezárás és egy elégtelen döntési tét. A planner/author/review/editor v9 utasításai ezek megelőzését és teljesebb első ellenőrzését célozzák. Fidelity-, schema-, minőségkapu-, hívás-, budget- vagy cohortváltozás nincs. [Részletes scope és kompatibilitás](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23).
 
@@ -116,4 +116,11 @@ Az árazás, havi fejezetmennyiség, billing és szélesebb pilot külön dönt�
 **#80 — kiadási konszolidáció, 2026-10-25:** az aktív `codex/v9-beta-release-candidate` a #79 végső forrására épülő, egyetlen main-célú jelölt. A távoli main `a666c905` és mind a húsz rész-PR aktuális feje Git-ős; konfliktus nincs, a teljes `apps/` és `packages/` a C5-höz bájtazonos. A `c68ab037` konszolidáció csak kiadási dokumentációt rendezett; a teljes review utáni célzott operátori javítások külön, lent követettek. A jelölt saját CI-je és a teljes main-diff független review-ja külön kapu; a #79 szűkebb APPROVE-ja ezt nem helyettesíti. Main merge, célgépes futás és paid aktiválás nem történt. [Konkrét átadás és megállási feltételek](operations/NARRATIVE_RELEASE_HU.md#egyesített-kiadási-jelölt--80-2026-10-25). V9-3/4 PARTIAL, V9-5 PENDING.
 
 
-**#81 teljes review — javítás alatt, 2026-10-25:** a `a666c905 → c68ab037` teljes diff külön ellenőrzése két P2-t talált: a production capability one-off megszakítási takarítását a fixture pótolta; a dokumentált image-only átállás után hiányzott az aktív funded replay út. Javítva a production tartós capability-intent/immutable-ID cleanup, Daily v4 backup/health/archive integráció és az eredeti authorityhoz kötött image-only proof; a motor változatlan. Tíz új regresszió, teljes Python 403 PASS / 11 SKIP. A javított SHA saját CI-je és független re-review-ja még szükséges, pontos eredmények a #81 PR-ben. Main merge vagy éles művelet nincs. [Scope és kapuk](operations/FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25).
+**#81 teljes review — lezárt, 2026-10-25:** a `a666c905 → c68ab037` teljes diff külön ellenőrzése két P2-t talált: a production capability one-off megszakítási takarítását a fixture pótolta; a dokumentált image-only átállás után hiányzott az aktív funded replay út. Javítva a production tartós capability-intent/immutable-ID cleanup, Daily v4 backup/health/archive integráció és az eredeti authorityhoz kötött image-only proof; a motor változatlan. Tíz új regresszió, teljes Python 403 PASS / 11 SKIP. A végső `bc77cc9` saját Verify+Container CI40180444339 sikeres, független re-review APPROVE. A #81 tulajdonosi engedéllyel beolvadt; az új main eredményét külön követjük. Éles művelet nincs. [Scope és kapuk](operations/FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25).
+
+
+### Main-integráció utáni átadás — 2026-10-25
+
+A #81 merge engedélye kifejezetten a kód integrációjára szólt. A main saját [Verify+Container CI-je](https://github.com/Muzsy/future_flow/actions/runs/40195596461) sikeres: 1477 alkalmazásteszt, Python 403 PASS/11 SKIP, root 3+4+10 és mindkét Docker-próba. V9-3 DONE, V9-4 PARTIAL, V9-5 PENDING. A PR-head korábbi zöld CI-je és független review-ja megőrzött bizonyíték; nem címkézzük át main/célgépes proofra. A fő munkakönyvtár `46f93e8` helyi main ágának fast-forwardját négy nem követett tervfájl ütközése miatt a Git elutasította. Ezeket nem mozgattuk és nem írtuk felül; az új dokumentációs előkészítés a fetch-elt remote mainből külön ágon készül.
+
+Következő: jóváhagyott célgépes előellenőrzés és pontos main/source/image rögzítés, izolált image-próba, Daily v4/monitor és valódi backup/restore/readback. Tényleges célgépes kapacitás, image ID és mai egyenleg nem lett lekérdezve; nincs SSH/production/paid művelet vagy új window/admission. [Előkészített parancsok és bekérendő eredmények](operations/NARRATIVE_RELEASE_HU.md#main-utáni-célgépes-előkészítés--2026-10-25).

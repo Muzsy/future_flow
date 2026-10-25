@@ -13,15 +13,21 @@ related:
 
 Ez N09 előkészítés, **nem apply engedély vagy kiadási bizonyíték**. N00–N07 és a withheld actor follow-up fejlesztési főágon kész; nyilvános/fizetős kiadáshoz a teljes paid/humán N08 mérés kötelező, zárt bétára a lent rögzített helyettesítő kapurend érvényes. Production állapotból e dokumentum nem készít új állítást, nem olvas privát operátori fájlt és nem módosít receipteket.
 
-## Aktuális végrehajtási keret — 2026-10-23
+## Main-integráció — 2026-10-25
 
-A fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (draft #66, implementáció `7bd4d42`), production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
+A tulajdonos jóváhagyta a #81 `bc77cc9` jelölt merge commit alapú beolvasztását. Main integráció: `4fb7b48906235384b78617c807fb3995655842bc`; szülők `a666c905` és `bc77cc9`, tree `382f4fcc2d5e958fb79d964487b1a37e86bf17b0` (a reviewed jelölttel azonos). A húsz komponens-PR feje Git-ős, a stacked review-felületek integráltként lezárva, branch-/commit-/adattörlés nélkül. A teljes független review APPROVE; a [main saját CI-je](https://github.com/Muzsy/future_flow/actions/runs/40195596461) sikeres: 1477 app-teszt, Python 403 PASS/11 SKIP, root 3+4+10 és mindkét Docker-próba. V9-3 DONE; V9-4 PARTIAL és V9-5 PENDING. A korábbi PR/CI/image-proof továbbra a saját forrásához kötött.
+
+A következő nyitott kapu a V9-4 célgépes bizonyíték. A merge-engedély nem szerveres parancs, telepítés, Daily-újratelepítés, admission/window/budget módosítás vagy paid hívás engedélye. A következő szakasz ezekhez konkrétan előkészített átadás.
+
+## Történeti végrehajtási keret — 2026-10-23
+
+A 2026-10-23-i checkpointban a fejlesztési főág v8 (`a666c905`), az aktív jelölt v9 C5 (akkor draft #66, implementáció `7bd4d42`); a jelenlegi main-integráció fent szerepel. Production utolsó igazolt állapota legacy. A review/mérés/integráció/N09/béta függőségeket a [master plan V9-1–V9-5](../DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23), a bizonyítékszinteket a [STATUS](../STATUS_HU.md) foglalja össze. A dátumozott korábbi költségkeretek és források történeti bizonyítékok; nem mai maradékok vagy új futtatási engedélyek. C5 paid méréshez új számszerű approval kell; a `v9-m-20261022` forráskötött engedély nem terjeszthető ki automatikusan.
 
 ## Bétafókusz és motorbefagyasztás — 2026-10-24
 
 **Tulajdonosi döntés:** a motor további finomítása helyett a cél annak technikai stabilizálása és a kis zárt béta kiadása. Ez felülírja a C5 mérés után következőnek javasolt history-auditot és kontextuskontrollt. Ezek, az új promptminőségi iterációk, archetípusok és a 048-as fejlesztés DEFERRED. Az alábbi három munkacsomag végrehajtási sorrend; a bizonyítékok hiánya nem indít új, általános motorfejlesztést.
 
-**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A jelenlegi főág v8; az egyesített fejlesztési jelölt a #80 csomagban áll, végső kiadási auditja és main merge-je még nyitott. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
+**Befagyasztott alap:** v9 C5 `7bd4d42`, meglévő #67–#68 dokumentációs/mérési checkpointtal. A kiadási jelölt pontos commitja csak #62, #56 és a szükséges technikai javítások integrációja után rögzíthető. A #80/#81 csomag 2026-10-25-én beolvadt; a végső operátori kiadási audit és a tényleges célgépes proof még nyitott. Az ismert C5 minőségi korlátokat elfogadjuk a zárt béta visszajelzéssel vizsgálandó kockázataként; ez nem általános minőségi PASS. A szerveres minőség- és fidelity-kapuk, az egyjavításos korlát és az elszámolási védelmek megmaradnak.
 
 ### 1. Egy kiadási jelölt és a motor technikai lezárása
 
@@ -316,3 +322,35 @@ Helyi ellenőrzés e konfigurációs csomagra: **38/38 célzott Vitest**, **102/
 
 
 A #81 teljes `main → c68ab037` review két P2 hibája célzott operátori javítást kapott: a capability-konténernek production oldalon is saját durable cleanup kell, és az image-only módhoz is működő funded replay authority. Daily v4 és a javított exact source telepítése új előfeltétel; a teljes CI és független re-review saját SHA-ra kötött. [Működés és regressziós bizonyítékhatár](FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25). A C5 termékkód változatlan; a régi zöld jelölt nem a javítások proofja.
+
+
+## Main utáni célgépes előkészítés — 2026-10-25
+
+**Státusz:** offline előkészítés. Célgépes hozzáférés vagy szerveroldali parancs nem futott. A mainbe olvasztás kész; a main saját CI-eredményét a #81 és a dokumentációs követő PR rögzíti. A további main commitokhoz a saját forrás/CI/image bindingot kell választani, nem a korábbi merge SHA-ját kézzel az új HEAD-re átírni.
+
+### 1. Csak olvasó célgépes előellenőrzés — későbbi külön engedéllyel
+
+A meglévő pinned SSH/host identityvel, a kijelölt Linux/Docker hoston először az alábbi minimális adatokat kell bekérni. Nem kell teljes environmentet, Docker-inspectet vagy credentialfájlt reportba másolni.
+
+```sh
+uname -sr
+id -u
+command -v docker git node openssl age age-keygen
+docker version --format '{{.Server.Version}}'
+docker compose version --short
+awk '/^MemAvailable:/ {print}' /proc/meminfo
+df -Pm /tmp
+docker image inspect --format '{{.Id}}' postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+```
+
+Elvárt eredmény: támogatott Linux/root Docker műveleti környezet, Compose és valamennyi előre telepített függőség, cached pinned PostgreSQL, legalább 3 GiB tényleges szabad memória és 2 GiB scratch. A teljes host CPU/memória-korlát és más alkalmazások terhelése külön operátori értékelés. Ezeket most nem mértük; elégtelen kapacitásnál külön Linux/Docker host szükséges, nem automatikus csomagtelepítés vagy a limit lazítása.
+
+### 2. A forrás és a build rögzítése
+
+Jóváhagyott, tiszta, privát main checkout szükséges. A fő helyi munkakönyvtár eltérő main ágát nem reseteljük; a célgépes release source saját checkout. Rögzítendő a tényleges `git rev-parse HEAD`, tiszta `git status --porcelain`, az ehhez a SHA-hoz tartozó Verify/Container CI, source bundle és a tényleges build után `docker image inspect` image ID. Az image-hash jelenleg ismeretlen. A build/függőség-cache/erőforrás és az output új útvonala a célgépes engedély konkrét csomagja; régi image/fixture/audit receipt nem örökíthető át. A standalone producer egyetlen tényleges image-et támogat target és recovery szerepre.
+
+### 3. Izolált image-próba és utána az operátori kapuk
+
+A [#76 standalone parancs](FUNDED_RUNTIME_UPGRADE_HU.md#előfeltétel-és-későbbi-célgépes-használat) az új, tényleges digest és új root outputkönyvtár mellett futtatható majd. Saját TLS/PostgreSQL/internal-network és szintetikus adatok; nincs providerkulcs vagy valódi generation worker. Kötelező a 16 check, image-only és v9 replay, production capability timeout/SIGKILL cleanup, idegen workload egyezés és teljes cleanup. Hibánál nincs PASS; pending intent és privát munkakönyvtár megőrzendő.
+
+Az image-próba sikere után a telepített Daily v4/private-monitor/readback, az eredeti titkosított mentés/offsite és izolált restore/fence/TLS, a friss Access/Auth/reader/DB állapot és a tényleges operator-interpreted audit szükséges. A #77 dátumok/résztvevők/successor-window/admission és paid cap még külön tétel. V9 apply és a valódi tesztelői alapút a meglévő konkrét jóváhagyási kapuk után jön. A mostani előkészítés nem hosszabbítja a régi ablakot, nem resetel ledgert és nem használja fel a megmaradt provider-egyenleget.
