@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-25
+last_reviewed: 2026-10-26
 related:
   - ../PERSONAL_BETA_ACTIVATION_PLAN_HU.md
   - ../PERSONAL_BETA_OPERATOR_HU.md
@@ -137,3 +137,16 @@ A normál reader/funded/daily/fence munka Linuxon elvégezhető; O01/PR #21 áta
 ## Konkrét v9 előkészítés — #75
 
 Az aktuális [runtime-minta és próbamenet](NARRATIVE_RELEASE_HU.md#konkrét-béta-konfiguráció-és-próbamenet--75-2026-10-24) 196608 B / 300000 ms v9 konfigurációt vizsgál. Az eredeti 2/0,50 USD ablak megőrzése mellett a mért repair előfoglalása már a korábbi költéssel sem férne be; ez nem mai live maradék. A 10/3,33 USD háromfős tervhez új, auditált window/admission eljárás szükséges, amelyet az aktív funded upgrade nem biztosít. A CI-only fixture sem állít ki a célgépes digestre proofot. Az előkészítés nem bétaaktiválás; a konkrét hiányzó döntéseket/eszközöket a release runbook sorolja.
+
+
+## Saját fiókos éles út mint indulási kapu — 2026-10-26
+
+A tulajdonos új sorrendje: a korábbi bétaablak és rendelkezésre álló keret szabályos lezárása, minden történet/usage/reservation/költés megőrzésével; utána kizárólag saját fiókos, mért éles Playwright-próba. A teljes saját fiókos próba jóváhagyott költési plafonja **3 USD**, a későbbi tesztelői10USD kerettől külön. Sem a tervezett három résztvevőt, sem a10USD keretet nem szabad ehhez automatikusan aktiválni. Az operátori szerződés jelenlegi, pontosan30napos ablaka a saját próbánál is megmarad; a konkrét kezdés/lezárás az új candidate része, nem a fejlesztéskor indul. A próba sikere nem automatikus tesztelő-admission.
+
+Kötelező böngészős út: **belépés → történet → választás → következő fejezet → kilépés → visszabelépés és ugyanazon történet újranyitása**. A felhasználói lépések Playwrighttal történnek; közvetlen DB-beírás, admin-tokenes UI-megkerülés vagy API-val létrehozott történet nem helyettesíti ezt. A bejelentkezéshez a tulajdonos szükség esetén segítséget ad; az OTP/session/token és a személyes történet privát bizonyíték marad.
+
+Mérendő: lépésenként az indítástól a látható eredményig eltelt idő (az automatizálás többletidejét is tartalmazó E2E-idő), generálási kérés/queue/feldolgozás idői, nem várt konzol- és hálózati hibák, a kiválasztott opció tényleges mentése és a folytatás kapcsolata, kilépés utáni hitelesítési kapu, új sessionből visszatérés és a fejezetek megőrzése, valamint elszámolás/reservation/usage és a3USD plafon szerveres érvényesülése. A felhasználói tartalom csak az alkalmazás normál folyamatában kezelhető; repo-ba aggregált, anonimizált eredmény és a privát bizonyíték hash-e kerül.
+
+**PASS csak teljes út esetén:** minden előírt lépés sikeres, nincs megmagyarázatlan hiba, nincs unknown vagy rendezetlen usage, az elszámolás és a visszatérési állapot ellenőrzött. Hiba → javítás → az érintett út sikeres újramérése. A keretváltó fixture, zöld CI, funded runtime és működő mentés önmagában nem böngészős PASS. Az éles tesztelői szakasz csak az igazolt saját fiókos PASS után jelenthető indulásra késznek; V9-5 addig PENDING.
+
+A #91 külön `owner-e2e` tervet kezel egyetlen tényleges fiókkal,3USD projekt és3USD user plafonnal; a két korlát ugyanazokat a költségeket korlátozza, nem6USD-t biztosít. A `tester-beta` továbbra külön10/3,33USD és háromfős terv. Régi limitek nullázása kizárólag a régi allowance lezárása; accounted/history/usage nem törlődik. A külső, éles root adapter, durable journal/watchdog, candidate backup és az új effective authority Daily/replay bekötése még fejlesztés alatt; **az éles régi ablak nem lett lezárva és az új sem indult el**. A hozzáadott belső transition-sorrend önmagában nem végrehajtható éles parancs.

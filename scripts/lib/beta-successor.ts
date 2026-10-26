@@ -13,11 +13,12 @@ export type BetaTerms = {
   endsAt: string;
 };
 export type SuccessorSelection = {
+  purpose: 'owner-e2e' | 'tester-beta';
   previousTermsSha256: string;
   closePreviousAt: string;
   next: BetaTerms;
 };
-const VERSION = 'alterward-beta-successor-plan-1';
+const VERSION = 'alterward-beta-successor-plan-2';
 const duration = 30 * 86400000;
 function refuse(): never {
   throw Error('Beta successor refused');
@@ -88,15 +89,29 @@ export function successorPlan(
   observedAt: string,
 ) {
   const prior = terms(previous);
-  exact(selection, ['previousTermsSha256', 'closePreviousAt', 'next']);
+  exact(selection, [
+    'purpose',
+    'previousTermsSha256',
+    'closePreviousAt',
+    'next',
+  ]);
   const next = terms(selection.next),
     now = timestamp(observedAt);
   const closePreviousAt = timestamp(selection.closePreviousAt);
+  // These are two separately approved purposes, never an arbitrary participant
+  // or allowance override. Passing the owner journey does not admit testers.
+  const allowed =
+    selection.purpose === 'owner-e2e'
+      ? next.participants.length === 1 &&
+        next.projectUsd === '3' &&
+        next.userUsd === '3'
+      : selection.purpose === 'tester-beta' &&
+        next.participants.length === 3 &&
+        next.projectUsd === '10' &&
+        next.userUsd === '3.33';
   if (
     selection.previousTermsSha256 !== hash(previous) ||
-    next.participants.length !== 3 ||
-    next.projectUsd !== '10' ||
-    next.userUsd !== '3.33' ||
+    !allowed ||
     Date.parse(now) < Date.parse(prior.startsAt) ||
     Date.parse(now) >= Date.parse(prior.endsAt) ||
     Date.parse(closePreviousAt) < Date.parse(now) ||
@@ -116,6 +131,7 @@ export function successorPlan(
   };
   return {
     version: VERSION,
+    purpose: selection.purpose as SuccessorSelection['purpose'],
     previousTermsSha256: hash(previous),
     selectionSha256: hash(selection),
     observedAt: now,
@@ -128,6 +144,13 @@ export function successorPlan(
   };
 }
 export type SuccessorPlan = ReturnType<typeof successorPlan>;
+function micros(usd: string): string {
+  const [whole, fraction = ''] = usd.split('.');
+  return (
+    BigInt(whole!) * 1000000n +
+    BigInt(fraction.padEnd(6, '0'))
+  ).toString();
+}
 type Account = {
   id: string;
   user_id: string | null;
@@ -206,7 +229,7 @@ export type SuccessorAccounts = Awaited<
 >;
 
 // Read-only reconciliation after an uncertain COMMIT response. Original rows
-// must match byte-for-byte except the explicitly closed limits; all four new
+// must match byte-for-byte except the explicitly closed limits; all selected new
 // accounts must be untouched. A mixed state or real new spending is not reset.
 export async function reconcileSuccessorAccounts(
   tx: Database,
@@ -250,7 +273,11 @@ export async function reconcileSuccessorAccounts(
   const oldIds = new Set(expected.beforeAccounts.map((row) => row.id));
   const retained = current.filter((row) => oldIds.has(row.id));
   const added = current.filter((row) => !oldIds.has(row.id));
-  if (hash(retained) !== hash(expectedOld) || added.length !== 4) refuse();
+  if (
+    hash(retained) !== hash(expectedOld) ||
+    added.length !== plan.next.participants.length + 1
+  )
+    refuse();
   for (const row of added) {
     const index = plan.nextKeys.users.indexOf(row.id);
     const project = row.id === plan.nextKeys.project;
@@ -259,7 +286,8 @@ export async function reconcileSuccessorAccounts(
       (!project && index < 0) ||
       row.user_id !==
         (project ? null : plan.next.participants[index]!.userId) ||
-      row.limit_micro !== (project ? '10000000' : '3330000') ||
+      row.limit_micro !==
+        micros(project ? plan.next.projectUsd : plan.next.userUsd) ||
       row.accounted_micro !== '0' ||
       !Number.isFinite(created) ||
       created < Date.parse(plan.observedAt)
@@ -316,13 +344,13 @@ export async function closeAndSeedSuccessorAccounts(
     [closing.map((row) => row.id)],
   );
   await tx.query(
-    'INSERT INTO public.aw_budget_accounts(id,limit_micro,accounted_micro,created_at) VALUES($1,10000000,0,clock_timestamp())',
-    [plan.nextKeys.project],
+    'INSERT INTO public.aw_budget_accounts(id,limit_micro,accounted_micro,created_at) VALUES($1,$2,0,clock_timestamp())',
+    [plan.nextKeys.project, micros(plan.next.projectUsd)],
   );
   for (const [i, id] of plan.nextKeys.users.entries())
     await tx.query(
-      'INSERT INTO public.aw_budget_accounts(id,user_id,limit_micro,accounted_micro,created_at) VALUES($1,$2,3330000,0,clock_timestamp())',
-      [id, plan.next.participants[i]!.userId],
+      'INSERT INTO public.aw_budget_accounts(id,user_id,limit_micro,accounted_micro,created_at) VALUES($1,$2,$3,0,clock_timestamp())',
+      [id, plan.next.participants[i]!.userId, micros(plan.next.userUsd)],
     );
   const after = await accounts(tx);
   const expectedOld = before.map((row) =>
@@ -335,7 +363,7 @@ export async function closeAndSeedSuccessorAccounts(
   );
   if (
     hash(existing) !== hash(expectedOld) ||
-    after.length !== before.length + 4
+    after.length !== before.length + plan.next.participants.length + 1
   )
     refuse();
   return {
@@ -344,7 +372,7 @@ export async function closeAndSeedSuccessorAccounts(
     beforeAccountsSha256: hash(before),
     afterAccountsSha256: hash(after),
     previousAccountLimitsClosed: closing.length,
-    newAccounts: 4,
+    newAccounts: plan.next.participants.length + 1,
     previousSpendPreserved: true,
     paidAiCalls: 0,
   };

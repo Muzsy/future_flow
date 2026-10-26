@@ -80,6 +80,7 @@ function input() {
     endsAt: iso(now + 29 * 86400000),
   };
   const selection = {
+    purpose: 'tester-beta' as const,
     previousTermsSha256: hash(previous),
     closePreviousAt: iso(now + 300),
     next: {

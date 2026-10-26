@@ -51,6 +51,7 @@ function input(leadMs = 60000) {
     endsAt: iso(now + 29 * 86400000),
   };
   const selection = {
+    purpose: 'tester-beta' as const,
     previousTermsSha256: hash(previous),
     closePreviousAt: iso(now),
     next: {
@@ -143,6 +144,139 @@ it('binds explicit early closure, exact three participants and new independent a
     change(s);
     expect(() => successorPlan(previous, s, plan.observedAt)).toThrow();
   }
+});
+function ownerInput(leadMs = 60000) {
+  const i = input(leadMs);
+  const selection = {
+    ...i.selection,
+    purpose: 'owner-e2e' as const,
+    next: {
+      ...i.selection.next,
+      participants: [users[0]!],
+      projectUsd: '3',
+      userUsd: '3',
+    },
+  };
+  return {
+    previous: i.previous,
+    selection,
+    plan: successorPlan(i.previous, selection, i.plan.observedAt),
+  };
+}
+it('separately binds the approved single-owner 3 USD journey without admitting the tester beta', () => {
+  const i = ownerInput();
+  expect(i.plan.purpose).toBe('owner-e2e');
+  expect(i.plan.next.participants).toHaveLength(1);
+  for (const mutate of [
+    (s: Record<string, any>) => {
+      s.purpose = 'tester-beta';
+    },
+    (s: Record<string, any>) => {
+      s.purpose = 'arbitrary';
+    },
+    (s: Record<string, any>) => {
+      delete s.purpose;
+    },
+    (s: Record<string, any>) => {
+      s.next.participants = users;
+    },
+    (s: Record<string, any>) => {
+      s.next.projectUsd = '10';
+    },
+    (s: Record<string, any>) => {
+      s.next.userUsd = '3.33';
+    },
+    (s: Record<string, any>) => {
+      s.next.endsAt = i.previous.endsAt;
+    },
+  ]) {
+    const altered = structuredClone(i.selection);
+    mutate(altered);
+    expect(() =>
+      successorPlan(i.previous, altered, i.plan.observedAt),
+    ).toThrow();
+  }
+});
+it('closes old allowance and reconciles exactly two independent 3 USD owner accounts, retaining spend and history', async () => {
+  const i = ownerInput(1500);
+  await rollback(async (tx) => {
+    await seeded(tx, i.plan);
+    const history = await tx.query(
+      'SELECT * FROM aw_budget_reservations ORDER BY id',
+    );
+    const before = await captureSuccessorAccounts(tx, i.plan);
+    const result = await closeAndSeedSuccessorAccounts(
+      tx,
+      i.previous,
+      i.selection,
+      i.plan,
+      before,
+    );
+    expect(result.newAccounts).toBe(2);
+    expect(result.previousSpendPreserved).toBe(true);
+    expect(
+      (
+        await reconcileSuccessorAccounts(
+          tx,
+          i.previous,
+          i.selection,
+          i.plan,
+          before,
+        )
+      ).state,
+    ).toBe('committed');
+    const accounts = await tx.query(
+      'SELECT id,limit_micro::text,accounted_micro::text FROM aw_budget_accounts WHERE id=ANY($1::text[]) ORDER BY id',
+      [[i.plan.nextKeys.project, ...i.plan.nextKeys.users]],
+    );
+    expect(accounts).toHaveLength(2);
+    expect(
+      accounts.every(
+        (a) => a.limit_micro === '3000000' && a.accounted_micro === '0',
+      ),
+    ).toBe(true);
+    expect(
+      await tx.query('SELECT * FROM aw_budget_reservations ORDER BY id'),
+    ).toEqual(history);
+    const old = new DatabaseAiBudget(tx, users[0]!.userId, randomUUID(), {
+      projectUsd: 2,
+      userUsd: 0.5,
+      window: i.plan.previous,
+    });
+    await expect(
+      old.reserve({ model: 'gpt-6.1-sol', max_output_tokens: 1, input: [] }),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+    const owner = new DatabaseAiBudget(tx, users[0]!.userId, randomUUID(), {
+      projectUsd: 3,
+      userUsd: 3,
+      window: i.plan.next,
+      closedBetaUserIds: [users[0]!.userId],
+    });
+    await delay(
+      Math.max(0, Date.parse(i.plan.next.startsAt) - Date.now() + 30),
+    );
+    const reservation = await owner.reserve({
+      model: 'gpt-6.1-sol',
+      max_output_tokens: 1,
+      input: [],
+    });
+    await owner.settle(reservation, { input_tokens: 0, output_tokens: 0 });
+    // Synthetic exhausted NEW accounts exercise the real reservation guard;
+    // old spend/history remain untouched and no provider request is made.
+    await tx.query(
+      'UPDATE aw_budget_accounts SET accounted_micro=3000000 WHERE id=ANY($1::text[])',
+      [[i.plan.nextKeys.project, ...i.plan.nextKeys.users]],
+    );
+    await expect(
+      owner.reserve({ model: 'gpt-6.1-sol', max_output_tokens: 1, input: [] }),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+    await expect(
+      reconcileSuccessorAccounts(tx, i.previous, i.selection, i.plan, before),
+    ).rejects.toThrow();
+    expect(
+      await captureSuccessorAccounts(tx, i.plan).catch(() => null),
+    ).toBeNull();
+  });
 });
 it('atomically closes old limits, preserves history/spend and seeds only the new four accounts', async () => {
   const i = input();
