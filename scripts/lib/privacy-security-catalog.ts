@@ -4,6 +4,7 @@ import type { Database } from '@future-flow/database';
 import {
   assertReviewedPrivacyRecoverySchema,
   assertReviewedFundedPre038Schema,
+  assertReviewedFundedPre037Schema,
 } from './privacy-recovery-schema';
 
 // Public application catalog only. The installed PostgreSQL/platform and the
@@ -177,24 +178,30 @@ export async function assertPrivacySecurityCatalog(
   mode: 'source' | 'quarantine' = 'source',
   expected?: PrivacySecurityCatalog,
 ) {
-  return assertCatalog(tx, mode, expected, false);
+  return assertCatalog(tx, mode, expected, 38);
 }
 
 // No caller-supplied expected hashes or permissive catalog fallback. This is
 // the exact audited 037 baseline, used only before the append-only 038 step.
 export async function assertFundedPre038SecurityCatalog(tx: Database) {
-  return assertCatalog(tx, 'source', undefined, true);
+  return assertCatalog(tx, 'source', undefined, 37);
+}
+export async function assertFundedPre037SecurityCatalog(tx: Database) {
+  return assertCatalog(tx, 'source', undefined, 36);
 }
 async function assertCatalog(
   tx: Database,
   mode: 'source' | 'quarantine',
   expected: PrivacySecurityCatalog | undefined,
-  pre038: boolean,
+  baselineSchema: 36 | 37 | 38,
 ) {
   z.enum(['source', 'quarantine']).parse(mode);
-  const schema = pre038
-    ? await assertReviewedFundedPre038Schema(tx)
-    : await assertReviewedPrivacyRecoverySchema(tx);
+  const schema =
+    baselineSchema === 36
+      ? await assertReviewedFundedPre037Schema(tx)
+      : baselineSchema === 37
+        ? await assertReviewedFundedPre038Schema(tx)
+        : await assertReviewedPrivacyRecoverySchema(tx);
   for (const name of ['constraints', 'indexes', 'defaults'] as const) {
     const sql = privacySecurityCatalogSql[name].replace(
       "c.relname<>'ff_migrations'",
@@ -213,13 +220,29 @@ async function assertCatalog(
       throw Error('Bounded privacy security catalog required');
     summaries[name] = { count: rows.length, digest: hash(rows) };
     if (name in immutable) {
+      const pre037 = {
+        constraints: [
+          710,
+          '082fee5ae303682f05770f71adaf32f5cdca476ee85505de341b3c89642d3499',
+        ],
+        indexes: [
+          250,
+          '995a4dd5054f77715249929558a2be05c4f4acc9b45ace3744194e1a07449f70',
+        ],
+        defaults: [
+          854,
+          '7cff5af0a7d2c5f6f8577bb761acd12c9053690fd2790e8d3f8d8c74e074e1f5',
+        ],
+      } as const;
       const baseline =
-        pre038 && name === 'defaults'
-          ? ([
-              855,
-              '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
-            ] as const)
-          : immutable[name as keyof typeof immutable];
+        baselineSchema === 36 && name in pre037
+          ? pre037[name as keyof typeof pre037]
+          : baselineSchema === 37 && name === 'defaults'
+            ? ([
+                855,
+                '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
+              ] as const)
+            : immutable[name as keyof typeof immutable];
       if (rows.length !== baseline[0] || hash(rows) !== baseline[1])
         throw Error('Unreviewed privacy recovery executable catalog');
     }

@@ -26,6 +26,7 @@ import type { Database } from '@future-flow/database';
 import {
   assertPrivacySecurityCatalog,
   assertFundedPre038SecurityCatalog,
+  assertFundedPre037SecurityCatalog,
 } from './privacy-security-catalog';
 import { reviewedPrivacyRecoveryTables } from './privacy-recovery-schema';
 import {
@@ -121,7 +122,7 @@ function assertStoredPolicy(policy: unknown) {
 
 export async function assertFundedStoredNarrativeState(
   tx: Database,
-  schema: 37 | 38 = 38,
+  schema: 36 | 37 | 38 = 38,
 ) {
   // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
   // policy snapshots; every one must be interpretable by this image.
@@ -183,14 +184,14 @@ async function migrationState(tx: Database) {
     'SELECT name,checksum FROM public.ff_migrations ORDER BY name',
   );
   if (
-    ![37, 38].includes(applied.length) ||
+    ![36, 37, 38].includes(applied.length) ||
     applied.some(
       (row, i) =>
         row.name !== plan[i]?.name || row.checksum !== hash(plan[i]!.sql),
     )
   )
-    throw Error('Exact 037/038 migration checksums required');
-  return applied.length as 37 | 38;
+    throw Error('Exact 036/037/038 migration checksums required');
+  return applied.length as 36 | 37 | 38;
 }
 
 export async function captureFundedRuntime(
@@ -205,9 +206,11 @@ export async function captureFundedRuntime(
   await tx.query("SET LOCAL statement_timeout='15s'");
   const schema = await migrationState(tx);
   const catalog =
-    schema === 37
-      ? await assertFundedPre038SecurityCatalog(tx)
-      : await assertPrivacySecurityCatalog(tx);
+    schema === 36
+      ? await assertFundedPre037SecurityCatalog(tx)
+      : schema === 37
+        ? await assertFundedPre038SecurityCatalog(tx)
+        : await assertPrivacySecurityCatalog(tx);
   const [clock] = await tx.query<{ db: string; role: string; now: Date }>(
     'SELECT current_database() AS db,session_user AS role,clock_timestamp() AS now',
   );
@@ -261,14 +264,15 @@ export async function captureFundedRuntime(
     throw Error('Funded runtime is not drained; no flags-only shortcut');
   const policies = await assertFundedStoredNarrativeState(tx, schema);
   // Canonical data, accounting, job snapshots and privacy/control data are all
-  // covered. Only the newly nullable column and the append-only migration row
-  // may differ. SQL returns bounded hashes, never personal content or amounts.
+  // covered. The 036 projection adds exactly the future subscriber default;
+  // existing 037/038 entitlement values remain fully protected. The nullable
+  // artifact column is separately hashed. No application row may be rewritten.
   const data = await tx.query<{ table: string; count: string; digest: string }>(
     reviewedPrivacyRecoveryTables
       .map(
         (table) =>
           `SELECT '${table}' AS "table",count(*)::text AS count,md5(coalesce(string_agg(h,'' ORDER BY h),'')) AS digest FROM
-      (SELECT md5((${table === 'aw_periods' ? "to_jsonb(t)-'narrative_artifact'" : 'to_jsonb(t)'})::text) AS h FROM public.${table} t) v`,
+      (SELECT md5((${table === 'aw_periods' ? "to_jsonb(t)-'narrative_artifact'" : table === 'aw_shared_members' && schema === 36 ? "to_jsonb(t)||jsonb_build_object('entitlement_mode','subscriber')" : 'to_jsonb(t)'})::text) AS h FROM public.${table} t) v`,
       )
       .join(' UNION ALL ') + ' ORDER BY \"table\"',
   );
@@ -300,8 +304,7 @@ export async function migrateFundedRuntime(
   const before = await captureFundedRuntime(tx, input);
   if (hash(before) !== hash(expected))
     throw Error('Funded source drift before migration');
-  if (before.schema === 37) {
-    const step = migrationPlan().at(-1)!;
+  for (const step of migrationPlan().slice(before.schema)) {
     await tx.query(step.sql);
     await tx.query(
       'INSERT INTO public.ff_migrations(name,checksum) VALUES($1,$2)',
