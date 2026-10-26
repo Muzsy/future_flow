@@ -351,7 +351,7 @@ class System:
             ).stdout
         )
 
-    def probe(self, image, mode, expected=None):
+    def raw_probe(self, image, data):
         # API-shaped one-off: no worker/provider process and no public ports.
         # The image's exact source and contract capability have already matched.
         cfg = self.configuration(DIRECTORY)
@@ -361,10 +361,6 @@ class System:
         # included in the bounded encrypted operational archive.
         self.cleanup_probe()
         readers.update_durable(probe_path, frozen(cfg))
-        participants = json.loads(
-            fence.original(DIRECTORY / 'personal-beta' / 'terms.json')
-        )['participants']
-        data = {'mode': mode, 'participants': participants, 'expected': expected}
         # Persist the exact name/config/source BEFORE Docker can create a
         # one-off. The random nonce distinguishes it from every service/run.
         nonce = os.urandom(16).hex()
@@ -388,7 +384,13 @@ class System:
             # Timeout/SIGTERM are cleaned here. SIGKILL retains the durable
             # intent for explicit cleanup/recovery under the same two locks.
             self.cleanup_probe()
-        value = json.loads(result.stdout)
+        return json.loads(result.stdout)
+
+    def probe(self, image, mode, expected=None):
+        if mode not in {'capture', 'migrate'}:
+            raise ValueError('Fixed funded database mode required')
+        participants = json.loads(fence.original(DIRECTORY / 'personal-beta' / 'terms.json'))['participants']
+        value = self.raw_probe(image, {'mode': mode, 'participants': participants, 'expected': expected})
         exact(
             value,
             {

@@ -176,6 +176,72 @@ it('binds schema038, actual Auth identities and all non-account rows around the 
     (await engine.query('SELECT * FROM aw_budget_accounts ORDER BY id')).rows,
   ).toEqual(rows);
 });
+it('moves funding from a technical account to the authenticated owner without moving its spend or history', async () => {
+  const i = input();
+  const selection = {
+    ...i.selection,
+    purpose: 'owner-e2e' as const,
+    next: {
+      ...i.selection.next,
+      participants: [users[1]!],
+      projectUsd: '3',
+      userUsd: '3',
+    },
+  };
+  await seed(adapter(engine), i);
+  const expected = await tx((d) =>
+    captureSuccessorOperation(d, i.previous, selection, identity),
+  );
+  const history = (await engine.query('SELECT * FROM aw_budget_reservations'))
+    .rows;
+  await ready(i);
+  const result = await tx((d) =>
+    applySuccessorOperation(d, i.previous, selection, identity, expected),
+  );
+  expect(result.state).toBe('committed');
+  const accounts = (
+    await engine.query<{
+      id: string;
+      user_id: string | null;
+      limit_micro: string;
+      accounted_micro: string;
+    }>(
+      'SELECT id,user_id,limit_micro::text,accounted_micro::text FROM aw_budget_accounts ORDER BY id',
+    )
+  ).rows;
+  expect(accounts).toHaveLength(4);
+  for (const id of [i.plan.previousKeys.project, i.plan.previousKeys.users[0]])
+    expect(accounts.find((a) => a.id === id)).toMatchObject({
+      limit_micro: '0',
+      accounted_micro: '188585',
+    });
+  const fresh = accounts.filter((a) => a.id.includes(selection.next.startsAt));
+  expect(fresh).toHaveLength(2);
+  expect(
+    fresh.every(
+      (a) => a.limit_micro === '3000000' && a.accounted_micro === '0',
+    ),
+  ).toBe(true);
+  expect(fresh.filter((a) => a.user_id !== null).map((a) => a.user_id)).toEqual(
+    [users[1]!.userId],
+  );
+  expect(
+    (await engine.query('SELECT * FROM aw_budget_reservations')).rows,
+  ).toEqual(history);
+  expect(
+    (
+      await tx((d) =>
+        reconcileSuccessorOperation(
+          d,
+          i.previous,
+          selection,
+          identity,
+          expected,
+        ),
+      )
+    ).state,
+  ).toBe('committed');
+});
 it('rejects a forged Auth mapping, missing first sign-in and a foreign database identity', async () => {
   const i = input();
   await seed(adapter(engine), i);
