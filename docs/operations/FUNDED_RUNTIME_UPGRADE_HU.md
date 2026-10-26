@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: engineering
-last_updated: 2026-10-25
+last_updated: 2026-10-26
 canonical_parent: NARRATIVE_RELEASE_HU.md
 ---
 
@@ -380,3 +380,12 @@ A #76/#85 image-fixture részkapu teljesült. Host/Auth/Access/systemd install t
 A friss readonly Contabo DB-felmérés exact001–036 checksumokat és a forrásból izoláltan előállított854-oszlopos/710-constraint/250-index/854-default baseline-t igazolta. Az eddigi adf kiadási image-próba037-et használt. Célzott #34 javítás: dedikált strict036 guard, ugyanazon advisory-lockos tranzakcióban037+038; régi tagságok subscriber defaultjának explicit hash-projekciója, minden más adat/elszámolás és a037/038 guardok megőrzésével. Normál recovery továbbra038-only. A PostgreSQL/root fixture kezdete036-ra változott, a037-es unit-mátrix megmarad. Nem általános migrációs fallback, nem Shared aktiválás és nem éles migráció.
 
 A #92 `91e6da5` kódjelölt saját CI40248511217 Verify+Container SUCCESS, a független source review APPROVE (36/36 saját regresszió). A tulajdonos megadta a meglévő credential helyét; az aktív token és a szigorú Access app/organization/policy GET PASS, a kanonikus privát input létrejött. Ez nem új token vagy szabálymódosítás. Main merge, új source/image/telepítési bizonyíték és végső operátori audit még szükséges; adf receipt nem írható át. [Tényleges mérések, scope és következő kapu](NARRATIVE_RELEASE_HU.md#contabo-telepítési-felmérés-és-036-os-kiinduló-állapot--2026-10-26).
+
+
+### #92 integrálva és új image építve — 2026-10-26
+
+A tulajdonos által jóváhagyott merge `6d17fda5aee4c958d90ed3102630da9aea80f728`; teljes jelölt-review APPROVE, jelölt CI40250405238 és saját main CI40251518673 Verify+Container SUCCESS. Az új `sha256:d85a92f72e33606825032e3399507181657e45cdf71236e8f93430af0381d60e` image korlátozott buildje és exact-main forrásellenőrzése PASS, mind a tíz eredeti konténer változatlan. Saját standalone próbája 16/16 + cleanup PASS, 28m24s; actual source/image/bundle és fixture→receipt kötés külön ellenőrzött, paid 0. A próba alatti régi Daily-monitor jelzése megőrzött; a későbbi06:31UTC külön readback a06:30UTC rendes monitor és a03:15UTC ütemezett backup zöld állapotát igazolta, kézi beavatkozás nélkül. Éles prepare/apply nem történt. A korábbi adf receipt nem örökíthető át.
+
+A további Daily-frissítés és candidate utáni mentés/restore szükségességét a tényleges kód is kikényszeríti: `System.archive_support()` exact `installed.sourceCommit` és három script hash egyezést kér a kiadással; `System.backup()` a preparation után készült restore-t és az új immutable candidate fájlok konkrét archívumbeli hash-eit ellenőrzi. Az október25-i Daily/97-táblás restore sikeres történeti részkapu, de a még nem létező új candidate-ot nem fedhette le. Nem általános újratesztelés vagy új Daily-funkció fejlesztése a következő lépés. [Tényleges végrehajtás és határ](NARRATIVE_RELEASE_HU.md#92-main-és-új-célgépes-image--2026-10-26).
+
+A külön privát, tényleges kiadási inputok elkészültek: `funded-upgrade-release.json` (opcionális narrative runtime nélkül), a független teljes forrásreview tényleges operátori értelmezését rögzítő `funded-upgrade-audit-proof.json`, és az eredeti új-image `funded-upgrade-fixture-proof.json`. A változatlan committed `releaseEvidence()` a valós6d17fda main-CI GET, a teljes hash-egyeztetés és a rendes monitor zöld readbackje mellett elfogadta őket. Ezek a `.local/verification/target-image-pre036-20261026/release-packet/` privát előkészítésében vannak; nem kerültek hallgatólagosan az eredeti operátori működő konfigurációba. Audit kritikus/magas/közepes finding0, de a friss élő Access/Auth/DB/drain, a Daily source-frissítés és az actual candidate utáni mentés/restore továbbra kötelező végrehajtási kapu. Prepare/restore/apply proofot nem gyártottunk jövőbeli eredményből.
