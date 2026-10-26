@@ -63,6 +63,36 @@ class FundedCapabilityTests(unittest.TestCase):
             self.assertEqual(daily.funded_capability_state(self.root)['state'], 'cleaned')
             self.assertEqual(daily.funded_capability_state(self.root)['containerId'], 'e'*64)
 
+    def test_original_upgrade_refuses_partial_input_before_creating_any_intent_or_container(self):
+        self.system.request['sourceHashes']={'apps/frozen.ts':'a'*64,'scripts/operator.ts':'b'*64}
+        with patch.object(funded.upgrade,'run') as execute:
+            with self.assertRaises(ValueError):
+                self.system.capability('sha256:'+'d'*64,{'apps/frozen.ts':'a'*64})
+            execute.assert_not_called()
+        self.assertFalse((self.root/'capability.json').exists())
+
+    def test_successor_fixed_engine_scope_has_same_timeout_and_cleanup_binding(self):
+        import test_beta_successor_root as successor
+        request={**self.system.request,'mode':'prepare','sourceHashes':{
+            'apps/frozen.ts':'a'*64,'scripts/operator.ts':'b'*64}}
+        scoped=successor.root.System(request,self.system.daily)
+        scoped.root=self.root
+        scoped.archive_support=self.system.archive_support
+        self.system=scoped
+        def execute(args,**kwargs):
+            record=daily.funded_capability_state(self.root)
+            self.assertEqual(record['inputSha256'],funded.sha(funded.encoded({'apps/frozen.ts':'a'*64})))
+            self.running(record)
+            raise subprocess.TimeoutExpired('synthetic fixed engine check',60)
+        with patch.object(funded.upgrade,'run',side_effect=execute):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                self.system.capability('sha256:'+'d'*64,self.system.frozen_source_hashes())
+        self.assertIsNone(self.container)
+        self.assertEqual(daily.funded_capability_state(self.root)['state'],'cleaned')
+        record=daily.funded_capability_state(self.root)
+        self.write(self.root/'capability.json',funded.encoded({**record,'inputSha256':'f'*64}))
+        with self.assertRaises(ValueError):self.system.cleanup_capability()
+
     def test_system_image_uses_owned_capability_before_accepting_result(self):
         self.system.request['sourceHashes'] = {}
         source = self.root/'source'; source.mkdir(mode=0o700)

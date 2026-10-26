@@ -65,6 +65,30 @@ class SuccessorRootTests(unittest.TestCase):
             self.assertEqual(self.system.candidate(),self.value)
             self.assertFalse(authority.daily.funded_upgrade_healthy('personal-beta'))
 
+    def test_main_recovery_stops_services_then_cleans_pending_probe_before_strict_hold(self):
+        self.fixture.journal(self.fixture.root,root.VERSION,['apply-intent','held','database-intent'])
+        self.request.update(mode='recover',accessSnapshot={},restoreProof={})
+        self.system.recovery=True
+        job=self.fixture.owner/'daily/job.lock'
+        self.fixture.write(job,b'')
+        self.fixture.write(self.fixture.owner/'activation.lock',b'')
+        events=[]
+        self.system.stop=Mock(side_effect=lambda:events.append('regular-service-stop'))
+        self.system.stop_and_hold=Mock(side_effect=ValueError('strict hold must follow cleanup'))
+        self.system.cleanup_probe=Mock(side_effect=lambda:events.append('pending-probe-cleanup'))
+        self.system.proof={}
+        def execute(system,candidate,**kwargs):
+            self.assertEqual(events,['regular-service-stop','pending-probe-cleanup'])
+            self.assertTrue(kwargs['recovery'])
+            events.append('transition-strict-hold')
+            return {'browserJourneyPassed':False}
+        with patch.object(root,'System',return_value=self.system),patch.object(root.os,'geteuid',return_value=0), \
+             patch.object(root.fence,'DAILY',job.parent),patch.object(root.fence,'installed_daily',return_value=authority.daily), \
+             patch.object(root,'transition',side_effect=execute),patch.object(root.signal,'signal'):
+            self.assertFalse(root.main(self.request)['browserJourneyPassed'])
+        self.assertEqual(events,['regular-service-stop','pending-probe-cleanup','transition-strict-hold'])
+        self.system.stop_and_hold.assert_not_called()
+
     def test_reconcile_requires_original_operation_hash_and_protected_readback(self):
         valid={'state':'committed','operationSha256':root.canonical_sha(self.value['operation']),
                'protectedDataUnchanged':True,'paidAiCalls':0}

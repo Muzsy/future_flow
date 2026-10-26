@@ -156,7 +156,39 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
                 assert trial.reconcile_accounts(candidate)['state']=='committed'
                 trial.recovery=True
                 request['mode']='recover'
-                successor.transition(trial,candidate,recovery=True)
+                # A genuine pending API-shaped probe survives its operator's
+                # SIGKILL. Its fixed Node command blocks on open stdin, so it
+                # cannot query the DB or execute a provider while orphaned.
+                pid=os.fork()
+                if pid==0:
+                    original_run=upgrade.run
+                    def killed_probe(args,**kwargs):
+                        if args[-len(funded.PROBE_COMMAND):]==funded.PROBE_COMMAND:
+                            detached=list(args)
+                            at=detached.index('run')+1
+                            detached[at:at]=['--detach','--interactive']
+                            original_run(detached,timeout=30)
+                            os.kill(os.getpid(),signal.SIGKILL)
+                        return original_run(args,**kwargs)
+                    with patch.object(upgrade,'run',killed_probe):
+                        trial.raw_probe(ctx['image'],{'mode':'capture','participants':[],'expected':None})
+                    os._exit(3)
+                _,status=os.waitpid(pid,0)
+                assert os.WIFSIGNALED(status) and os.WTERMSIG(status)==signal.SIGKILL
+                pending=daily.funded_probe_state(trial.root)
+                assert pending['state']=='pending'
+                probe=json.loads(upgrade.docker('inspect',pending['name']).stdout)[0]
+                assert probe['State']['Running'] is True
+                private(daily.ROOT/'job.lock',b'')
+                # Only installed-source lookup and synthetic DB/source-render
+                # adapter construction are seams; locks, stop/cleanup and main
+                # dispatch are the actual production recovery path.
+                with patch.object(successor.fence,'DAILY',daily.ROOT), \
+                     patch.object(successor.fence,'installed_daily',return_value=daily), \
+                     patch.object(successor,'System',return_value=trial):
+                    successor.main(request)
+                assert daily.funded_probe_state(trial.root)['state']=='cleaned'
+                assert upgrade.docker('inspect',probe['Id'],check=False).returncode!=0
                 assert trial.applications==1
                 checks.update(lostCommitRecovery=True,noSqlReplay=True)
             else:

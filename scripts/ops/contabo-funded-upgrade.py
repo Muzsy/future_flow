@@ -457,6 +457,10 @@ class System:
         return {**capability, 'probeRemoved': removed is not None, 'probeContainerId': removed,
                 'applicationContainersChanged': False, 'paidAiCalls': 0}
 
+    def capability_input_hashes(self):
+        # Original image upgrades accept ONLY the complete committed bundle.
+        return {sha(encoded(self.request['sourceHashes']))}
+
     def cleanup_capability(self):
         self.archive_support()
         record = self.daily.funded_capability_state(self.root)
@@ -465,7 +469,7 @@ class System:
             return result
         if (record['sourceCommit'] != self.request['sourceCommit']
                 or record['bundleSha256'] != self.request['bundleSha256']
-                or record['inputSha256'] != sha(encoded(self.request['sourceHashes']))
+                or record['inputSha256'] not in self.capability_input_hashes()
                 or record['commandSha256'] != sha(encoded(CAPABILITY_COMMAND))
                 or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-capability-[a-f0-9]{32}', record['name'])):
             raise ValueError('Exact original funded capability evidence required')
@@ -505,6 +509,8 @@ class System:
         return result
 
     def capability(self, image, hashes):
+        if sha(encoded(hashes)) not in self.capability_input_hashes():
+            raise ValueError('Exact committed capability input required before creation')
         self.cleanup_capability()
         record = {'version': self.daily.FUNDED_CAPABILITY_VERSION,
                   'sourceCommit': self.request['sourceCommit'], 'bundleSha256': self.request['bundleSha256'],

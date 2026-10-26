@@ -102,6 +102,16 @@ class System(funded.System):
     def original_terms(self):
         return json.loads(fence.original(DIRECTORY / 'personal-beta' / 'terms.json'))
 
+    def frozen_source_hashes(self):
+        return {p:h for p,h in self.request['sourceHashes'].items()
+                if p.startswith(('apps/','packages/','database/','deploy/'))
+                or p in {'Dockerfile','package.json','pnpm-lock.yaml','pnpm-workspace.yaml'}}
+
+    def capability_input_hashes(self):
+        # A second fixed scope compares the NEW application inputs inside the
+        # ORIGINAL image. No request-supplied alternate scope is accepted.
+        return super().capability_input_hashes() | {sha(encoded(self.frozen_source_hashes()))}
+
     def parent(self):
         root = DIRECTORY / 'funded-runtime-upgrade'
         value = json.loads(fence.original(root / 'prepared.json'))
@@ -223,9 +233,7 @@ class System(funded.System):
             release[role + 'CapabilitySha256'] = self.image(release[role])
         # Freeze the motor: compare the NEW reviewed application inputs inside
         # the ORIGINAL image, independently of the source cache's old contents.
-        frozen_hashes = {p:h for p,h in self.request['sourceHashes'].items()
-                         if p.startswith(('apps/','packages/','database/','deploy/'))
-                         or p in {'Dockerfile','package.json','pnpm-lock.yaml','pnpm-workspace.yaml'}}
+        frozen_hashes = self.frozen_source_hashes()
         if not frozen_hashes or self.capability(parent['release'][parent_role]['imageId'], frozen_hashes).returncode:
             raise ValueError('Original serving engine sources must remain unchanged')
         operation = self.accounting(release['target']['imageId'], 'capture')
@@ -465,7 +473,12 @@ def main(request):
         if mode == 'recover':
             if system.journal(candidate)['states'][-1]['state'] in {'applied','recovered'}:
                 raise ValueError('Completed successor cannot be recovered again')
-            system.stop_and_hold(candidate)  # before checking a recovery capability
+            # Stop only captured regular-service IDs before pending one-off
+            # cleanup. The strict three-member hold follows cleanup inside the
+            # transition; pending probes cannot prevent this initial STOP.
+            for number in upgrade.INTERRUPTION_SIGNALS:
+                signal.signal(number, signal.SIG_IGN)
+            system.stop()
         system.cleanup_probe()
         result = transition(system, candidate, recovery=mode=='recover')
         return {**result, **system.proof}
