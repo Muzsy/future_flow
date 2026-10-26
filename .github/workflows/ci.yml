@@ -38,6 +38,7 @@ jobs:
           node --test tests/ops/funded-replay.test.mjs
           node --test tests/ops/funded-upgrade.test.mjs
           node --test tests/ops/funded-access.test.mjs
+          node --test tests/ops/beta-successor-release.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'
@@ -94,17 +95,25 @@ jobs:
           proof_dir="/tmp/alterward-image-proof-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           sudo env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -B scripts/ops/contabo-funded-image-rehearsal.py --image "$image" --output-directory "$proof_dir"
           sudo install -m 644 "$proof_dir/funded-upgrade-fixture-proof.json" test-results/funded-image-fixture-proof.json
+          sudo install -m 644 "$proof_dir/beta-successor-fixture-proof.json" test-results/beta-successor-fixture-proof.json
           sudo install -m 644 "$proof_dir/image-rehearsal-receipt.json" test-results/funded-image-rehearsal-receipt.json
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import {readFileSync} from 'node:fs';
           import {releaseEvidence} from './scripts/lib/funded-upgrade.mjs';
+          import {successorReleaseEvidence} from './scripts/lib/beta-successor-release.mjs';
           const fixture=JSON.parse(readFileSync('test-results/funded-image-fixture-proof.json','utf8'));
           const build={commit:fixture.sourceCommit,imageId:fixture.targetImage,imageTag:'alterward:contabo-aaaaaaaaaaaa',sourceDirectory:'/root/alterward-ops/synthetic-contract-check'};
           // This in-memory fixture audit exercises the validator, never authorizes a release.
           const input={commit:fixture.sourceCommit,bundleSha256:fixture.bundleSha256,selection:{target:build,recovery:build},fixture,audit:{sourceCommit:fixture.sourceCommit,bundleSha256:fixture.bundleSha256,interpretedByOperator:true,critical:0,high:0,medium:0},ci:[]};
           assert.equal(releaseEvidence(input).target.imageId,fixture.targetImage);
           assert.throws(()=>releaseEvidence({...input,selection:{target:{...build,imageId:'sha256:'+'0'.repeat(64)},recovery:build}}));
+          const successorFixture=JSON.parse(readFileSync('test-results/beta-successor-fixture-proof.json','utf8'));
+          const owner='22222222-2222-4222-8222-222222222222';
+          const selection={purpose:'owner-e2e',previousTermsSha256:'a'.repeat(64),closePreviousAt:'2026-01-01T00:00:00Z',next:{participants:[{email:'owner@example.invalid',userId:owner}],projectUsd:'3',userUsd:'3',startsAt:'2026-01-01T00:01:00Z',endsAt:'2026-01-31T00:01:00Z'}};
+          const ownerRelease={...input.selection,runtime:{mode:'narrative-fiction-v2',generation:'v9',cohortUserIds:[owner],timeoutMs:300000,maxRequestBytes:196608}};
+          assert.equal(successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture}).target.imageId,fixture.targetImage);
+          assert.throws(()=>successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture:{...successorFixture,sourceCommit:'f'.repeat(40)}}));
           console.log('Actual isolated image proof accepted; foreign image rejected; no release authorization.');
           JS
       - name: Retain synthetic funded upgrade evidence
@@ -120,6 +129,7 @@ jobs:
           name: funded-image-rehearsal-proof
           path: |
             test-results/funded-image-fixture-proof.json
+            test-results/beta-successor-fixture-proof.json
             test-results/funded-image-rehearsal-receipt.json
           if-no-files-found: error
           retention-days: 7

@@ -134,6 +134,19 @@ def require_proof(proof, image, binding):
         raise ValueError('Complete actual image/source-bound fixture proof required')
 
 
+def require_successor_proof(proof, image, binding):
+    checks = {'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
+        'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
+        'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup'}
+    if (not isinstance(proof,dict) or set(proof) != {'version','sourceCommit','bundleSha256',
+            'targetImage','recoveryImage','checks','paidAiCalls'}
+            or proof['version'] != 'alterward-beta-successor-fixture-1'
+            or proof['sourceCommit'] != binding['sourceCommit'] or proof['bundleSha256'] != binding['bundleSha256']
+            or proof['targetImage'] != image or proof['recoveryImage'] != image or proof['paidAiCalls'] != 0
+            or set(proof['checks']) != checks or any(v is not True for v in proof['checks'].values())):
+        raise ValueError('Complete actual successor image/source-bound fixture proof required')
+
+
 def execute(image, output):
     if sys.platform != 'linux' or os.geteuid() != 0:
         raise ValueError('Explicit local Linux/root Docker execution required')
@@ -308,7 +321,9 @@ def isolated_owned(image, output, binding):
         if failures:
             raise RuntimeError('Image rehearsal cleanup incomplete: ' + ','.join(failures))
     require_proof(proof, image, binding)
-    for filename, value in [('funded-upgrade-fixture-proof.json', proof), ('image-rehearsal-receipt.json', {
+    successor = getattr(engine,'SUCCESSOR_PROOF',None)
+    require_successor_proof(successor,image,binding)
+    for filename, value in [('funded-upgrade-fixture-proof.json', proof), ('beta-successor-fixture-proof.json',successor), ('image-rehearsal-receipt.json', {
             'version': 'alterward-image-rehearsal-1', 'sourceCommit': binding['sourceCommit'], 'imageId': image,
             'capturedAt': dt.datetime.now(dt.timezone.utc).isoformat(), 'syntheticDataOnly': True,
             'cleanupVerified': True, 'foreignContainersUnchanged': True, 'paidAiCalls': 0,

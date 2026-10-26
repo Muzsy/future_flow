@@ -26,12 +26,15 @@ def sha(value):
 def active_funded_runtime(daily, original):
     if daily.funded_upgrade_healthy('personal-beta') is not True:
         raise ValueError('Healthy completed funded state without pending probe required')
-    root = daily.OWNER / 'funded-runtime-upgrade'
+    root = (daily.active_funded_directory() if hasattr(daily, 'active_funded_directory')
+            else daily.OWNER / 'funded-runtime-upgrade')
+    successor = root == daily.OWNER / 'beta-successor'
+    expected_version = 'alterward-beta-successor-1' if successor else 'alterward-funded-upgrade-1'
     candidate = json.loads(original(root / 'prepared.json'))
     journal = json.loads(original(root / 'journal.json'))
     readback = json.loads(original(root / 'readback.json'))
     prepared_sha = sha(encoded(candidate))
-    if (candidate.get('version') != 'alterward-funded-upgrade-1' or
+    if (candidate.get('version') != expected_version or
             not re.fullmatch(r'[a-f0-9]{40}', candidate.get('sourceCommit', '')) or
             not re.fullmatch(r'[a-f0-9]{64}', candidate.get('bundleSha256', '')) or
             journal.get('version') != candidate['version'] or
@@ -39,12 +42,13 @@ def active_funded_runtime(daily, original):
             not isinstance(journal.get('states'), list) or not 1 <= len(journal['states']) <= 32):
         raise ValueError('Original complete funded transition required')
     previous = None
+    known_states = STATES | {'database-intent', 'accounts-committed', 'authority-staged', 'held-after-failure'} if successor else STATES
     for row in journal['states']:
         if (set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'} or
                 row['previousSha256'] != previous or
                 row['sha256'] != sha(encoded({k: v for k, v in row.items() if k != 'sha256'}))):
             raise ValueError('Original funded journal chain required')
-        if (row['state'] not in STATES or
+        if (row['state'] not in known_states or
                 dt.datetime.fromisoformat(row['changedAt'].replace('Z', '+00:00')).utcoffset() != dt.timedelta(0)):
             raise ValueError('Known UTC journal state required')
         previous = row['sha256']
@@ -63,6 +67,8 @@ def active_funded_runtime(daily, original):
     authority = {path: sha(original(Path(path)))
                  for path in candidate['baseline']['authority']}
     paths = daily.reader_config_paths() + daily.personal_config_paths()
+    if successor:
+        paths += daily.funded_tree_paths(daily.OWNER / 'funded-runtime-upgrade') + daily.funded_archived_paths()
     if (not authority or set(authority) != {str(p) for p in paths} or
             authority != candidate['baseline']['authority']):
         raise ValueError('Original funded admission and window authority changed')

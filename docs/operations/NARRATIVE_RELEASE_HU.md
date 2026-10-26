@@ -679,3 +679,132 @@ Privát0700/0600 evidence `.local/verification/contabo-live-6d17fda-20261026/`: 
 | `database-readonly-diagnostic-response.json` | `15e4b63ef2fd491eba37c0ec14805e6d9d652d95f7a617c8b9c0e6b27ddca517` |
 | `backup-path-diagnostic-response.json` | `ce6fd718c459d3d258df0e109ae2663ecd945c93bb94c8bd6a53962a57fa46f1` |
 | `operation-reconciliation.json` | `fd828ef07c6d0fd3d516570e344e100e9d351d91081ceaf0571b1b324401dbd9` |
+
+
+## #95 lezárva: éles Daily-mentés és restore — 2026-10-26
+
+A tulajdonos jóváhagyta a #96 `9cb677f` jelölt merge commitját és a szűk Daily-karbantartást a jelölt/main saját sikeres CI-je után. A teljes független review APPROVE; a kódot113PASS/4környezetiSKIP saját ellenőrzés, a teljes helyi Python-kört425PASS/11SKIP és10 új regresszió igazolja. Jelölt CI40309914380 Verify+Container SUCCESS. Merge `9088275f1565dce01aa2780542bbc0b1813f6896`, szülők6d17fda/9cb677f, reviewed-tree egyezés; saját main [CI40323512340](https://github.com/Muzsy/future_flow/actions/runs/40323512340) Verify+Container SUCCESS. #93 dokumentációja is integrált; az alkalmazás runtime-ja továbbra6d17fda / `sha256:d85a92f7…0381d60e` / schema038, nem az új Daily commitjára átnevezett image.
+
+A friss readonly felmérés az eredeti candidate/authority/runtime változatlanságát, hét szerveres és hét helyi mentést, nulla lejárt/pending példányt igazolt. A14 eredeti offsite ciphertext mérete/hash-e egyezik. Az eredeti privát kliens6d Git-bundle-je és operátori JSON-bizonyítékai külön megmaradtak. A kliens tiszta main9088275-re frissült,1245 tracked fájl bájtazonos Gittel, mind a hat eredeti secret változatlan. A szerveroldali nyolc eredeti Daily-fájl a `previous-9088275f1565dce01aa2780542bbc0b1813f6896` privát archívumba került, az eredeti6d config/script/unit hash-ekkel; az immutable Daily-config és a négy unit tartalma nem változott.
+
+A tényleges UTC sorrend:
+
+| Művelet | Idő | Eredmény |
+| --- | --- | --- |
+| Két saját timer disable |12:47:54–12:47:57|PASS; az alkalmazás tovább fut|
+| Normál Daily update |12:47:57–12:48:04|PASS; source/script/archívum külön readbackkel ellenőrzött|
+| Új038 backup |12:48:19–12:48:42|PASS;97 tábla,1711 sor,107 config fájl; éles DB-írás0|
+| Offsite sync |12:48:43–12:48:48|PASS;8 helyi archívum,16 ciphertext hash-egyezés|
+| Izolált restore |12:48:48–12:50:03|PASS;97 tábla/adata egyezik, ciphertext-tamper elutasított, config/proxy és cleanup sikeres|
+| Normál monitor |12:50:13–12:50:25|PASS; üres alerts|
+| Proof-bound timer activate |12:50:25–12:50:31|PASS; mindkét timer enabled+active/waiting|
+| Független readonly readback |12:50:34|PASS; mind a tíz konténer változatlan a karbantartás előtti állapothoz képest|
+
+A1711 sor a korábbi036 mentés1709 sorához képest kizárólag a `ff_migrations`36→38 sorszámnövekedésében tér el; más tábla sorszáma nem változott. A mostani restore a saját038 snapshotja összes adatát egyeztette, nem a korábbi dumpot nevezte át. A config manifest külön igazolta az eredeti827d72a legacy upgrade11 fájlját, a jelenlegi runtime négy fájlját, a funded target/recovery4+4 fájlját és minden root funded-bizonyíték változatlan hash-ét. Nincs mesterséges `upgrades/6d17fda` könyvtár.
+
+A timer-szünet156,65s, kb.2m37s; alkalmazásleállás vagy új restart nem történt. API/web healthy, worker running; az API korábban megfigyelt restartCount1 maradt, új restart0. Az eredeti keret/ablak/admission, legacy/üres cohort, candidate és funded proofok változatlanok. Mindkét service inactive/success/0, backup és monitor zöld; plaintext tmpfs üres, pending backup és ideiglenes restore-erőforrás nincs. Retenciós törlés0, paid AI0, külső üzenet0; recovery és éles DB-visszatöltés nem kellett.
+
+A régi funded CLI új `--active-proof` kiadása az új Daily mellett továbbra a változatlan exact-source kapun megáll. Az eredeti6d proof megőrzött történeti bizonyíték; az aktuális root/candidate/authority byte-egyezést külön ellenőriztük. Ez nem új capability-proof. A normál Daily saját új-source backup/restore/monitor/activate prooflánca sikeres; a review ezt a szűk karbantartási utat elfogadta. A pontos korlát a [funded runbookban](FUNDED_RUNTIME_UPGRADE_HU.md#95-helyi-javítás-és-telepítési-korlát) marad.
+
+Privát bizonyíték: `.local/verification/daily-anchor-maintenance-20261026/`,0700/0600; titok, valódi adat és titkosított backup nem kerül Gitbe. A régi sikertelen státuszok/receiptek megmaradtak; a mostani zöld eredmény új, normál műveletekből származik.
+
+| Proof | SHA-256 |
+| --- | --- |
+| Daily update |`a4885e96be11b2c7d3954a9ec1c5e619d086c7a154c670a649325e3a58a53471`|
+| Új038 backup |`f9b19e7e93cf6dd3252ad88469a0315b70b5c64d25c91b1678de3da73f563671`|
+| Offsite sync |`8f61e72dea0bc5c515a558e85e0a3268b1dfa817d4ffcc8b0537efa2e9c191ce`|
+| Izolált restore |`81f6de2cd1a40df9fe8ee957fd0471e98ebe3924c847e2d799225e6953577965`|
+| Monitor |`4f033c0edf2a7be1022958b76ffa9a3fc8f79c95ba6ea576e7c147551f831286`|
+| Activate |`601bc42244df86d6015680b786ac36a48d098ce55acaa55a372e1e009ac11b11`|
+| Final readonly |`af41a3ebd26c6c4a943408b14bf3f0ade377f0d4cc597af15f849943b17771d6`|
+| Reconciliation |`3d86e088b75d5d873d037ab1cbcfcf8d212805c49a4a679ce8eb2a0714d45a8f`|
+
+**Lezárás:** #95 konkrét mentési hibája és #34 technikai funded-runtime upgrade feladata kész; V9-4/N09 technikai kapu DONE. A diagnosztikai #94 külön nyitott, nem igazolt első migrációs hibát nem nevezünk meg utólag. V9-5 PENDING: új bétaablak/keret/admission és narrative cohort nincs aktiválva; tesztelői lista és a #77/#91 külön folyamat következik, motorfinomítás nélkül.
+
+
+## Új bétaablak korai lezárással — #77, 2026-10-25
+
+**Tulajdonosi döntés:** az új, tervezett 10 USD / három tesztelős béta az eredeti november 12-i vég előtt is indulhat, a régi ablak szabályos lezárásával. A korábbi költés, történetek, eredeti terms/receipt és a teljes history megmarad. Ez az eljárás fejlesztésének engedélye; nem konkrét production időpont, névlista, DB-írás vagy paid hívás engedélye.
+
+A külön `codex/beta-successor-window` branch első implementációs egysége a `scripts/lib/beta-successor.ts` elszámolási mag. Ez **nem telepíthető successor-operátor**, nincs production CLI-je és nem változtatja meg az alkalmazás motorját. A meglévő első activation és funded upgrade őrei változatlanok. A #77 továbbra nyitott; az alábbi megoldás nem aktivált béta.
+
+### Megvalósított elszámolási határ
+
+- Exact korábbi terms-hash, explicit korai lezárási idő és külön, pontosan 30 napos új ablak; három egyedi kanonikus email/UUID pár, 10 USD projekt / 3,33 USD user. A kezdés legfeljebb 15 percre tervezhető, a lezárásnak meg kell előznie. Időpont, résztvevő vagy keret nem lesz automatikusan kitalálva.
+- Az account kulcsai a runtime tényleges UTC-normalizálásával készülnek. Az új kulcs nem használhatja újra a korábbi ablakot; létező új-window account vagy idegen régi-window account elutasított.
+- Előzetes, csak olvasó account-snapshot hash; SERIALIZABLE tranzakcióban ismételt egyezés, projekt→user account-lock sorrend, öt másodperces lock timeout, adatbázisóra és resolved usage szükséges. Reserved/unknown vagy settlement nélküli hívás tiltja a lezárást.
+- A régi ablak meglévő projekt-/user accountjain kizárólag a `limit_micro` lesz nulla. Az `accounted_micro`, eredeti azonosító, dátum, reservation és usage nem törlődik és nem nullázódik; más ablak és legacy account változatlan. Ez a régi konfigurációval működő budget-guardot is megállítja, nem csak az új worker beállítására támaszkodik.
+- Ugyanebben a tranzakcióban négy új account készül (egy projekt, három user), külön kulccsal és nulláról induló **új** elszámolással. Hibára a teljes tranzakció visszagördül; a lezárás és új accountok nem válhatnak részlegesen tartóssá. Újraalkalmazás nem nyithatja vissza a régi keretet vagy nullázhatja az újat.
+
+A helyi PGlite-próba a valódi `DatabaseAiBudget` kóddal igazolja: a régi konfiguráció költése elutasított, az új kezdés előtt az új is tiltott, kezdés után az új accountokat terheli; korábbi reservation/spend megmarad. Az account-hash drift, ismeretlen usage, account-ütközés, módosított terv és nem SERIALIZABLE tranzakció elutasítása, valamint beiktatott beszúrási hiba teljes rollbackje ellenőrzött. Az autocommit mód akkor is elutasított, ha a session default izolációja SERIALIZABLE: két megfigyelés között azonos tényleges tranzakcióazonosító szükséges. Végső helyi kör: 7 új successor + 19 meglévő budget-window + 10 funded-runtime teszt, összesen **36/36 PASS**; scripts TypeScript, docs:check, format:check és diff-check PASS. Ez nem tényleges PostgreSQL többkapcsolatos race-próba vagy root/production bizonyíték.
+
+### Még szükséges operátori integráció — ugyanazon #77 része
+
+A magot csak olyan külön, reviewzott operátor hívhatja, amely az eredeti authorityt és az új konkrét tulajdonosi selectiont hitelesíti, ellenőrzi a valódi Auth/email/UUID és Access/reader mappinget, valamint job/activation-lock mellett leállítja és draineli a saját írókat. A TypeScript függvény önmagában nem bizonyít writer-fence-et, Auth-jogosultságot, backupot vagy tulajdonosi engedélyt; közvetlen SQL-futtatás nem támogatott.
+
+A teljes művelethez tartós korai-lezárási intent/journal és eredeti terms-hash, candidate utáni backup/offsite/restore, a DB-tranzakció megszakítás utáni egyeztetése, külön új effective window/admission authority, annak Daily/monitor/backup/funded replay/recovery értelmezése és stop-first hibakezelés szükséges. Az eredeti personal-beta receiptet vagy funded-upgrade prepared/readback fájlt nem írjuk át. DB-commit utáni alkalmazási hiba esetén a régi keret **nem** nyitható újra; a szolgáltatások held állapotban maradnak a kötött új-authority recoveryig. A meglévő v9 apply-útba nem csempészünk más budgetet vagy résztvevőket.
+
+Ezek a #77 végrehajthatóságának részei, nem új termékfunkciók vagy motorfinomítások. Az elkészült adf2b95 image- és Daily-bizonyíték megmarad a saját forrására; az új eszköz majdani kiadási forrásának bizonyítékát külön kell kötni. A jelen munka nem indított új image-próbát, nem ismételte a kész backup-restore láncot, és nem végzett célgépes vagy provider műveletet.
+
+
+### Adatbázis-operátori bekötés és megszakítás egyeztetése — 2026-10-26
+
+A #91 `35a9a5c` első elszámolási magjának saját CI40232503787 Verify+Container eredménye SUCCESS. Ez az adott commit bizonyítéka; az alábbi kiegészítéshez új saját CI tartozik, nem örökli az előző zöldjét.
+
+A `scripts/lib/beta-successor-operation.ts` a magot az alkalmazás meglévő `captureFundedRuntime` ellenőrzéseihez köti: tényleges DB-identity, strict 038 katalógus/migráció, eredeti és új résztvevők Auth/email/UUID kötése, megerősített és korábban bejelentkezett, aktív, nem tiltott/törlés alatt álló fiókok; üres queue/lease/reservation és ismert stored policy/artifact. Az azonos UUID eltérő emaillel nem köthető újra. Nem hoz létre Auth-fiókot, nem hív providert és nem futtat migrációt.
+
+Az egész adatbázis-művelet előtt és után a meglévő védett táblakészlet valamennyi, nem accounttáblabeli sora hash-sel egyezik. A budget accountok teljes külön snapshotja csak a már meghatározott nulla régi limiteket és négy új accountot engedi; történet, artifact, reservation, usage és eredeti accounting érték nem változhat. A post-check a tranzakción belül van: beiktatott history-drift esetén a keretváltás teljesen visszagördül.
+
+Új, csak olvasó egyeztetés különbözteti meg az **érintetlen, nem commitolt** és a **teljesen commitolt, még nem használt** keretváltást. Elveszett COMMIT-válasz után a megtartott snapshotból felismeri a négy új accountot és a lezárt régi limiteket, írás vagy újraalkalmazás nélkül. Vegyes állapot, régi költés módosulása, visszanyitott limit, eltérő új user/limit, account-snapshot módosítása vagy már megjelent új költés elutasított; ilyenkor külön operátori egyeztetés szükséges, nem reset. Ez az automatikus egyeztetés szűk határa, nem tetszőleges, már használt bétaállapot automatikus recovery-je.
+
+A belső `scripts/ops/beta-successor-probe.ts` csak fix `capture`, `apply`, `reconcile` request alakot ismer. Az adatbázis TLS/CA/hostname és a meglévő DB-identity ellenőrzése kötelező; capture/reconcile REPEATABLE READ READ ONLY, apply SERIALIZABLE tranzakció. COMMIT előtt nincs kimeneti siker, hibára ROLLBACK és adatmentes hibaüzenet; a 180 s processzhatár utáni bizonytalan commitot az egyeztetés kezeli. Ez **nem önálló production operátor vagy támogatott közvetlen parancs**. A külső root controller, intent/journal, writer-hold, pontos Access/reader mapping, backup és Daily/replay authority bekötése még nem készült el. A meglévő funded CLI nem kapott új módot; a transportot éles adatbázison nem futtattuk.
+
+Helyi ellenőrzés: **43/43 PASS** (9 accounting/reconcile + 5 teljes-schema operation + 19 budget-window + 10 funded-runtime teszt), scripts TypeScript PASS. A kezdeti új queue-teszt rossz `ff_jobs.type` fixture-oszlopot használt; a meglévő valódi `LifeRepository.create` setupra javítottuk, séma/termékguard változtatása nélkül. A tesztek PGlite-on, szintetikus Auth-adatokkal futottak, nem többkapcsolatos célgépes PostgreSQL/TLS vagy root/Docker successor-próbák. Az eredeti adf2b95 célgépes image/Daily bizonyíték megőrzött, nem lett újrafuttatva vagy átírva.
+
+**Tulajdonosi pontosítás — 2026-10-26:** még nincs tesztelő. A résztvevőlista nem feltétele a #77 általános root controller/journal/backup/Daily-replay implementációjának és szintetikus ellenőrzésének; ezekkel folytatható a fejlesztés. A tényleges email/Auth UUID/Access mapping és első belépési állapot csak a konkrét éles admission/aktiválás előtt szükséges; addig az új bétaablak és költési keret nem indul el. Az éles csomag összeállításakor kell eldönteni, kell-e előbb unpaid reader/admission lépés. Nem találunk ki személyeket, nem írunk be szintetikus UUID-t az éles selectionbe, és nem lazítjuk az első bejelentkezési követelményt. A végrehajtási időpont, tényleges forrás/image és az éles engedély későbbi konkrét csomag része. A Supabase connector újrahitelesítést kért; a helyi fejlesztéshez a hivatalos [Auth-adatkezelési leírást](https://supabase.com/docs/guides/auth/managing-user-data) és changelogot ellenőriztük. Új API-key/role/RLS vagy Supabase-séma változás nem készült.
+
+
+## Saját fiókos próba előkészítése — #77/#91, 2026-10-26
+
+Új tulajdonosi utasítás: előbb régi bétaablak/keret szabályos lezárása, majd kizárólag saját fiókos, mért Playwright E2E; tesztelői fázis csak ennek teljes, hibamentes PASS-a után. A külön jóváhagyott saját fiókos plafon3USD; nem a háromfős10USD indulás. [Pontos elfogadási feltételek és mérések](BETA_HU.md#saját-fiókos-éles-út-mint-indulási-kapu--2026-10-26).
+
+Az általános successor munka ága integrálta a9088275 main és a #97 lezáró dokumentáció változásait; a V9-4 technikai lezárása megmarad. Az elszámolási terv új, explicit `purpose` mezővel különbözteti meg a szigorúan egyfiókos3/3USD `owner-e2e` és a változatlan háromfős10/3,33USD `tester-beta` esetet. A terv verziója2; az előző prototype1 nem volt élesítve. Az accountszám és limitek a hitelesített tervből származnak, nem egy tetszőleges összeg-paraméterből. Régi elszámolás/history változatlan; a valódi DatabaseAiBudget a lezárt régi keretet és a kimerített3USD új keretet is elutasítja. Elveszett COMMIT után a két új owner-account írásmentesen felismerhető; már használt/módosult állapot nem resetelhető.
+
+A belső `beta-successor-transition.py` a még bekötendő root adapter kötelező sorrendjét rögzíti: preflight → tartós intent → writer-hold/drain → candidate-restore kapu → DB-művelet → független commit-egyeztetés → új authority staging/ellenőrzés → kezdés előtti ellenőrzés → exposure/readback. Explicit recovery soha nem ismétli az account-írást; nem commitolt/vegyes/használt állapot held marad. Hibára stop-first, és az eredeti kivételt a cleanup/journal hibája sem helyettesíti; sikertelen stop nem nevezhető held-PASS-nak. Ez még **nem production CLI vagy root/Docker-próba**, az adapter/source/Access/reader/backup/watchdog és effective-authority/Daily/replay bekötés nyitott. Nem helyettesítjük ezt belső SQL-probe közvetlen éles futtatásával.
+
+A böngésző Chrome-lapján a Cloudflare normál kódos belépéséig jutottunk; tulajdonosi belépés kért, generálás nem indult. Privát bizonyíték `.local/verification/owner-e2e-20261026/`,0700/0600; a3USD felhatalmazás és a belépési állapot megőrzött. A belépés jelenlegi állapota nem PASS és a mérés még nem futott. Éles DB-, runtime-, keret-, admission- vagy provider-módosítás0, paid0.
+
+Helyi ellenőrzés az új saját fiókos előkészítésen:45/45 célzott TypeScript DB/budget/funded teszt PASS;6 új Python transition teszt a sikerút, invalid preflight,14 külön hibahely, elveszett COMMIT explicit írásmentes recovery, nem commitolt/vegyes/használt állapot elutasítása és cleanup-hiba eredetmegőrzése mellett PASS. Teljes Python442teszt=431PASS/11környezetiSKIP; scripts TypeScript, docs:check, format:check és diff-check PASS. Ez PGlite és adapter-szintű fault injekció; nem valódi root/PostgreSQL/Docker successor próba, böngészős E2E vagy élesítés.
+
+
+### Saját fiók azonosítva, successor authority integráció — 2026-10-26
+
+A tulajdonos segítségével a normál Cloudflare-belépés után az alkalmazás hitelesített felülete és mindkét történetlista Playwrighttal elérhető. Külön pinned SSH/TLS/DB-identity ellenőrzés egy aktív, megerősített, korábban belépett Auth-fiókot igazolt; ez **eltér a régi finanszírozott technikai fióktól**, és már az eredeti reader Access-listán van. A konkrét email/UUID és képek csak a privát `.local/verification/owner-e2e-20261026/` könyvtárban vannak. Readonly preflight manifest SHA256: `f1de4c8f00b5273548b28ad650175affc7c6f5d760f53cffb5a1222dba8f142f`. A navigáció első megfigyelésének időtartama nem teljes oldalbetöltési mérés; böngészős PASS-ként nem használható.
+
+A helyi Daily a külön `beta-successor` preparation/selection/terms és három runtime-szerep véges, privát fájlkészletét menti. Az eredeti funded/personal/reader authority és proof változatlan parent marad. Az új, explicit egyfiókos3USD/v9 állapot csak teljes, sorrendhelyes, hash-láncolt journal és saját commit/readback után effektív; függő probe/capability, félbemaradt vagy átugrott lépések, módosult parent, eltérő keret/cohort/reader vagy SQL-t ismétlő recovery elutasított. A replay ekkor saját source/image/prepared/authority kötést ad, a régi proofot nem címkézi át. Az új tulajdonos lehet az eredeti technikai fióktól eltérő, meglévő reader; az Auth-kötést és az eredeti költés megőrzését a DB-operation ellenőrzi. A TLS-es belső probe fix successor módot kapott, a meglévő funded CLI továbbra nem enged ilyen éles műveletet.
+
+Ellenőrzés:46/46 célzott TypeScript teszt PASS; teljes Python457teszt=446PASS/11környezetiSKIP, ebből15 új authority regresszió;23 célzott Node ops teszt, scripts TypeScript, docs:check, format:check és diff-check PASS. A külön fiókra váltás a teljes038 fixture-ben megőrzi a régi reservation/history/költés sorait, lezárja a régi allowance-ot és csak a kiválasztott owner két új3USD accountját hozza létre. Ez helyi integráció, nem production successor-végrehajtó vagy tényleges root/PostgreSQL/Docker próba. A root adapter/CLI, source-bound audit/fixture/CI és candidate utáni friss backup/restore kapuja még nyitott; emiatt az éles régi keret lezárása, új keret/admission/cohort, paid hívás és teljes Playwright E2E továbbra0/nem történt. V9-4 DONE, V9-5 PENDING.
+
+
+### Saját fiókos keretváltó végrehajtó — #77/#91, 2026-10-26
+
+Implementált a külön `scripts/contabo-beta-successor.mjs` kliens és a `contabo-beta-successor.py` root adapter. Ez a befejezett, eredeti funded parentből indul; a régi personal/reader/funded fájlokat nem írja felül. A három új runtime-fájlcsomag (previous/target/recovery) saját prepared/selection/terms kötést kap. A pénzügyi írás a meglévő strict038 operation, nem migráció vagy Auth-létrehozás. Az eredeti image-ben külön ellenőrzi a befagyasztott alkalmazás/package/database/deploy források egyezését; az új, saját forrásból épített image csak az új operátori transporttal és explicit saját fiókos3USD/v9 konfigurációval szolgálhat. Providerkulcs és más termékflag nem változhat.
+
+A közös transition immár a tényleges PID/pipe watchdogot és restart-policy visszaállítást is vezérli. Hiba stop-first → held-after-failure → closed; sikertelen stop nem kap verified-hold sikert. A journal/cleanup hiba nem cserélheti le az eredeti kivételt. A recovery az eredeti selection/candidate/current DB egyeztetése után kizárólag a már commitolt, fel nem használt állapotot viheti tovább, SQL-ismétlés nélkül. A pending one-off nem akadályozhatja a recovery előtti saját service-stopot; cleanup és további kapuk viszont kötelezők. A host siker explicit `browserJourneyPassed:false`.
+
+Parancsok a végleges, tiszta main privát kliensében: `node scripts/contabo-beta-successor.mjs --inspect`; konkrét privát `{selection,release}` packet mellett `--prepare /abs/private/packet.json`; megfelelő friss, candidate-bound restore receipt után `--apply`; csak megszakított, azonos candidate esetén `--recover`. A saját receiptnevek `beta-successor-release/prepare/apply/recover/restore-proof.json`, az eredeti funded receiptnevek változatlanok. A release packet fix owner-e2e/egy tényleges Auth-fiók3/3USD, v9/cohort=owner,300000ms/196608B. A CLI a saját pontos main-CI-t, függetlenül értelmezett `beta-successor-audit-proof.json`-t, a hagyományos16 kapus image-fixture-t és a külön14 kapus `beta-successor-fixture-proof.json`-t is megköveteli. Ezek tesztadatból vagy korábbi forrásból nem állíthatók elő kézzel.
+
+Időzítés: a capture-kor még jövőbeli, explicit close/start kell; apply preflight csak a close idő elérése után, még a következő start előtt enged writer-holdot. A candidate élettartama900s, a next start legfeljebb a capture+900s. A backup/offsite/izolált restore-nak és staging/readbacknek is bele kell férnie; az image-fixture előtte fut. A startot a helyreállítás sem tolhatja ki. Már elért start, új költés vagy bizonytalan/vegyes állapot esetén closed és külön operátori döntés szükséges, nem automatikus reset vagy további próbálkozás.
+
+A `--archive-expired` kizárólag teljes, lejárt, soha meg nem kísérelt preparationt vihet saját, legfeljebb8 bejegyzéses, hash-azonosítós privát archívumba. Minden régi bájt megmarad és mentésbe kerül; service-stop/DB-írás nincs, az eredeti szolgáltatásoknak változatlanul kell futniuk. Pending probe esetén előbb az eredeti `--cleanup-probe`; sérült/hiányos preparation vagy bármely journal mellett scoped inspection kell, archiválás/vak újrapróba tilos. Az archiválás idempotens, a korábbi ablakot nem aktiválja újra.
+
+Az elkülönített Linux/root Docker-fixture új esetei a production transitionnel vizsgálják a másik saját fiókot, valódi PostgreSQL COMMIT utáni elveszett választ, SIGKILL utáni watchdog-stopot és explicit recoveryt, eredeti history/188585mikroUSD megőrzését,0 régi és3USD új limiteket, hatályos authority/replayt, tényleges candidate-mentést/offsite/restore-t és lejárt preparation archiválását. Host/Access-installáció/source-render és szintetikus DB-identity deklarált fixture seam; provider nem fut. Az új külön proof csak sikeres teljes cleanup és idegen konténerek változatlansága után publikálható. **A producer implementációja még nem a próba tényleges PASS-a.** A saját forrás új image-próbája/CI-je és független review-ja szükséges az éles művelet előkészítéséhez. Éles változás/paid/teljes Playwright E2E továbbra nem történt.
+
+Helyi ellenőrzés az adapter első teljes forrásán:469 Python teszt=458PASS/11környezetiSKIP;106 Node ops teszt;46 célzott TypeScript teszt és scripts TypeScript/docs/format/diff PASS. A11 root-adapter teszt a valódi privát authority/fájlokon futott, Docker/DB határhelyettesítéssel; nem Linux/root elfogadási proof. A producer tényleges image/SQL/kill próbájának eredménye külön követendő.
+
+
+A `82f328d` saját CI40362347427 Verify része SUCCESS, a Container a tényleges successor prepare-ben elutasított: a befagyasztott motor ellenőrzésének szűkebb input-hashét az eredeti capability-cleanup teljes-bundle őre nem ismerte. Javítva két determinisztikus successor-scope-pal (teljes source és abból számolt befagyasztott app/package/database/deploy/Docker-inputok); az eredeti funded operátor változatlanul csak a teljes scope-ot engedi. Idegen/részleges input már helper-intent létrehozása előtt elutasított; a szűk scope timeoutja is az eredeti command/source/name/label/immutable-ID őrökkel takarít. Nem tetszőleges request-override vagy guard-lazítás.
+
+A külön független review ugyanazon forráson P2-t talált a recovery kezdetén: a stop_and_hold a három rendes service leállítása után még pending one-off mellett kérte a strict háromtagú nézetet, ezért a cleanupig nem jutott el. Javítás: a main recovery az eredeti scoped stop immutábilis service-ID ellenőrzésével indul; utána exact probe-cleanup, majd a transition változatlan strict hold/drain/staging/readback kapui. Main-szintű regresszió és a valódi fixture-ben SIGKILL után bennmaradt, rögzített parancsú/nyitott stdinre váró API-shaped one-off került hozzá. A független review első futása használati keretkorláton megszakadt, nem APPROVE; folytatása és a végső javító forrás saját CI-je külön követett. Éles művelet/paid0.
+
+A review további fixture-blokkolót azonosított: az új successor ugyanabban a szintetikus DB-ben második valódi backup/offsite ciklust kér, de az offsite könyvtár régi neve csak a DB-t tartalmazta. A két, összetartozó Daily/offsite könyvtár most minden hívásnál közös új nonce-ot kap, kizárólag az eredeti privát fixture-scope alatt; korábbi ciphertext és proof nem íródik felül. Külön valós fájlrendszeres regresszió ellenőrzi ugyanazon DB két egymás utáni ciklusát és a scope-injekció elutasítását. Ez az izolált producer javítása, nem production mentés újrafuttatása.

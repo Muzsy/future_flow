@@ -1,4 +1,4 @@
-// Called only by the git-bound funded-upgrade controller through an API-shaped
+// Internal transport for git-bound privileged controllers through an API-shaped
 // one-off container. Input/output stay on private stdin/stdout; no provider SDK.
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -12,12 +12,16 @@ import {
   fundedRuntimeCapabilities,
 } from '../lib/funded-runtime';
 import { DATABASE_IDENTITY_SHA256 } from '../lib/personal-beta-admission-observation.mjs';
+import { successorDatabaseRequest } from '../lib/beta-successor-operation';
 
 async function main() {
-  const input = JSON.parse(readFileSync(0, 'utf8'));
+  const raw = readFileSync(0, 'utf8');
+  if (Buffer.byteLength(raw) > 2 * 1024 * 1024)
+    throw Error('Bounded probe input required');
+  const input = JSON.parse(raw);
   if (
     Object.keys(input).sort().join(',') !== 'expected,mode,participants' ||
-    !['capture', 'migrate'].includes(input.mode)
+    !['capture', 'migrate', 'successor'].includes(input.mode)
   )
     throw Error('Exact probe input required');
   if (!process.env.DATABASE_SSL_CA_FILE || !process.env.DATABASE_URL)
@@ -47,7 +51,9 @@ async function main() {
     )
       throw Error('TLS identity mismatch');
     await client.query(
-      input.mode === 'capture'
+      input.mode === 'capture' ||
+        (input.mode === 'successor' &&
+          ['capture', 'reconcile'].includes(input.expected?.mode))
         ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'
         : 'BEGIN ISOLATION LEVEL SERIALIZABLE',
     );
@@ -62,9 +68,14 @@ async function main() {
     };
     fundedRuntimeCapabilities();
     const result =
-      input.mode === 'capture'
-        ? await captureFundedRuntime(tx, selected)
-        : await migrateFundedRuntime(tx, selected, input.expected);
+      input.mode === 'successor'
+        ? await successorDatabaseRequest(tx, input.expected, {
+            databaseIdentitySha256: DATABASE_IDENTITY_SHA256,
+            connectionHostname: host,
+          })
+        : input.mode === 'capture'
+          ? await captureFundedRuntime(tx, selected)
+          : await migrateFundedRuntime(tx, selected, input.expected);
     await client.query('COMMIT');
     console.log(JSON.stringify(result));
   } catch {

@@ -604,7 +604,298 @@ def funded_archived_paths():
 
 def funded_upgrade_config_paths(*, immutable_only=False):
     return sorted(funded_tree_paths(OWNER / 'funded-runtime-upgrade', immutable_only=immutable_only)
-                  + funded_archived_paths())
+                  + funded_archived_paths() + successor_config_paths(immutable_only=immutable_only))
+
+
+SUCCESSOR_VERSION = 'alterward-beta-successor-1'
+RUNTIME_NAMES = {'server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json'}
+SUCCESSOR_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'journal.json',
+                   'readback.json', 'database-after.json', 'probe-compose.json',
+                   'probe.json', 'capability.json', 'watchdog.json', 'archive.json'}
+SUCCESSOR_ARCHIVE_NAME = 'beta-successor-archive'
+SUCCESSOR_ARCHIVE_VERSION = 'alterward-beta-successor-archive-1'
+
+
+def successor_config_paths(*, immutable_only=False):
+    """Only finite, private successor evidence; never scan arbitrary backups."""
+    return sorted(successor_tree_paths(OWNER / 'beta-successor', immutable_only=immutable_only)
+                  + successor_archived_paths())
+
+
+def successor_tree_paths(root, *, immutable_only=False):
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    result = []
+    for path in root.iterdir():
+        if path.name in {'previous', 'target', 'recovery'}:
+            private_archive_directory(path)
+            for child in path.iterdir():
+                if child.name not in RUNTIME_NAMES:
+                    raise ValueError('Unknown successor runtime evidence')
+                regular(child)
+                result.append(child)
+        else:
+            if path.name not in SUCCESSOR_NAMES:
+                raise ValueError('Unknown successor evidence')
+            regular(path)
+            if not immutable_only or path.name in {'prepared.json', 'selection.json', 'terms.json', 'archive.json'}:
+                result.append(path)
+    return sorted(result)
+
+
+def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
+    """Validate the one owner trial's immutable authority, including its parent.
+
+    This consumes root evidence, it does not create accounts or activate users.
+    The original reader/personal/funded files remain byte-bound and untouched.
+    """
+    root = OWNER / 'beta-successor' if root is None else root
+    if not root.exists() and not root.is_symlink():
+        return None
+    successor_tree_paths(root)
+    if check_oneoffs:
+        for observe in (funded_probe_state, funded_capability_state):
+            pending = observe(root)
+            if pending is not None and pending['state'] != 'cleaned':
+                raise ValueError('Pending successor one-off cannot issue active authority')
+    value = json.loads(regular(root / 'prepared.json'))
+    keys = {'version', 'sourceCommit', 'bundleSha256', 'preparedAt', 'expiresAt',
+            'baseline', 'release', 'files', 'database', 'operation',
+            'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256',
+            'termsSha256', 'selectionSha256'}
+    if set(value) != keys or value['version'] != SUCCESSOR_VERSION:
+        raise ValueError('Exact successor preparation required')
+    if (not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])
+            or not isinstance(value['bundleSha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', value['bundleSha256'])):
+        raise ValueError('Committed successor source required')
+    original = OWNER / 'funded-runtime-upgrade'
+    for name, key in [('prepared.json', 'parentPreparedSha256'), ('journal.json', 'parentJournalSha256'),
+                      ('readback.json', 'parentReadbackSha256')]:
+        if digest(regular(original / name)) != value[key]:
+            raise ValueError('Original funded parent evidence changed')
+    authority = reader_config_paths() + personal_config_paths() + funded_tree_paths(original) + funded_archived_paths()
+    if value['baseline']['authority'] != {str(p): digest(regular(p)) for p in authority}:
+        raise ValueError('Successor original authority changed')
+    if (set(value['files']) != {'previous', 'target', 'recovery'}
+            or value['files']['previous'] != parent['files'][parent_role]
+            or value['baseline']['files'] != value['files']['previous']):
+        raise ValueError('Successor does not retain original active runtime')
+    for role in ('previous', 'target', 'recovery'):
+        if set(value['files'][role]) != RUNTIME_NAMES:
+            raise ValueError('Four exact successor runtime files required')
+        if {n: digest(regular(root / role / n)) for n in RUNTIME_NAMES} != value['files'][role]:
+            raise ValueError('Successor runtime candidate changed')
+    for name, key in [('terms.json', 'termsSha256'), ('selection.json', 'selectionSha256')]:
+        if digest(regular(root / name)) != value[key]:
+            raise ValueError('Successor terms or selection changed')
+    terms = json.loads(regular(root / 'terms.json'))
+    selection = json.loads(regular(root / 'selection.json'))
+    plan = value['operation']['plan']
+    prior = json.loads(regular(OWNER / 'personal-beta' / 'terms.json'))
+    access = json.loads(regular(OWNER / 'personal-beta-readers' / 'access.json'))
+    def normalized_terms(raw):
+        return {**raw, **{k: dt.datetime.fromisoformat(raw[k].replace('Z', '+00:00'))
+                          .isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                          for k in ('startsAt', 'endsAt')}}
+    canonical_hash = lambda v: digest(json.dumps(v, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode())
+    if (set(selection) != {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'}
+            or selection['purpose'] != 'owner-e2e' or plan['purpose'] != 'owner-e2e'
+            or plan['version'] != 'alterward-beta-successor-plan-2'
+            or set(terms) != {'participants', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'}
+            or terms != selection['next'] or normalized_terms(terms) != plan['next']
+            or normalized_terms(prior) != plan['previous']
+            or len(terms['participants']) != 1
+            or set(terms['participants'][0]) != {'email', 'userId'}
+            or not ADMISSION_UUID.fullmatch(terms['participants'][0]['userId'])
+            or terms['participants'][0]['email'] not in access['allowedEmails']
+            or terms['projectUsd'] != '3' or terms['userUsd'] != '3'
+            or selection['previousTermsSha256'] != canonical_hash(prior)
+            or plan['previousTermsSha256'] != canonical_hash(prior)
+            or plan['selectionSha256'] != canonical_hash(selection)):
+        raise ValueError('Only the explicit already-readable owner 3 USD trial is supported')
+    start, end = [dt.datetime.fromisoformat(terms[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
+    close = dt.datetime.fromisoformat(selection['closePreviousAt'].replace('Z', '+00:00'))
+    prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00')) for k in ('preparedAt', 'expiresAt')]
+    prior_start, prior_end = [dt.datetime.fromisoformat(prior[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
+    if (any(t.utcoffset() != dt.timedelta(0) for t in (start, end, close, prepared_at, expires))
+            or (end - start).total_seconds() != 30 * 86400 or not prepared_at <= close < start <= expires
+            or not prior_start <= prepared_at <= close < prior_end
+            or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            or plan['closePreviousAt'] != close.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            or (expires - prepared_at).total_seconds() != 900):
+        raise ValueError('Bounded ordered successor window required')
+    for role in ('target', 'recovery'):
+        manifest = json.loads(regular(root / role / 'manifest.json'))
+        build = value['release'][role]
+        if (build['commit'] != value['sourceCommit'] or manifest['commit'] != build['commit']
+                or manifest['imageId'] != build['imageId']
+                or manifest['ownerEnvironmentSha256'] != value['files'][role]['server.env']
+                or manifest['effectiveComposeSha256'] != value['files'][role]['effective-compose.json']):
+            raise ValueError('Exact successor source/image manifest required')
+        config = json.loads(regular(root / role / 'effective-compose.json'))
+        for service in ('api', 'worker'):
+            env = config['services'][service]['environment']
+            if (env['AI_PROJECT_BUDGET_USD'] != '3' or env['AI_USER_BUDGET_USD'] != '3'
+                    or env['CLOSED_BETA_USER_IDS'] != terms['participants'][0]['userId']
+                    or env.get('CLAUDE_PRODUCTION_BUDGET_USD', '0') != '0'
+                    or env['NARRATIVE_PIPELINE_MODE'] != 'narrative-fiction-v2'
+                    or env['NARRATIVE_FICTION_GENERATION'] != 'v9'
+                    or env['NARRATIVE_COHORT_USER_IDS'] != terms['participants'][0]['userId']
+                    or sorted(env['CLOSED_SITE_ALLOWED_EMAILS'].split(',')) != sorted(access['allowedEmails'])):
+                raise ValueError('Successor owner runtime policy differs')
+        env = config['services']['worker']['environment']
+        if (env['AI_BUDGET_WINDOW_START'] != terms['startsAt'] or env['AI_BUDGET_WINDOW_END'] != terms['endsAt']
+                or env['AI_BUDGET_WINDOW_REQUIRED'] != 'true'
+                or env['AI_FICTION_TIMEOUT_MS'] != '300000' or env['AI_FICTION_MAX_REQUEST_BYTES'] != '196608'):
+            raise ValueError('Successor runtime window differs')
+    return value
+
+
+def successor_unapplied_files(root):
+    paths = successor_tree_paths(root)
+    names = {p.relative_to(root).as_posix() for p in paths}
+    required = {'prepared.json', 'selection.json', 'terms.json'} | {
+        r + '/' + n for r in ('previous', 'target', 'recovery') for n in RUNTIME_NAMES}
+    if not required <= names or not names <= required | {'probe-compose.json','probe.json','capability.json','archive.json'}:
+        raise ValueError('Only complete never-attempted successor preparation may be archived')
+    for observe in (funded_probe_state, funded_capability_state):
+        value = observe(root)
+        if value is not None and value['state'] != 'cleaned':
+            raise ValueError('Pending successor one-off cannot be archived')
+    return {p.relative_to(root).as_posix():digest(regular(p)) for p in paths if p.name != 'archive.json'}
+
+
+def validate_successor_archive(root):
+    files = successor_unapplied_files(root)
+    receipt = json.loads(regular(root / 'archive.json'))
+    parent_root = OWNER / 'funded-runtime-upgrade'
+    parent = json.loads(regular(parent_root / 'prepared.json'))
+    parent_journal = json.loads(regular(parent_root / 'journal.json'))
+    terminal = parent_journal['states'][-1]['state']
+    if terminal not in {'applied','recovered'}:
+        raise ValueError('Completed original funded parent required')
+    candidate = successor_candidate(parent, 'recovery' if terminal == 'recovered' else 'target', root=root)
+    if (set(receipt) != {'version','preparedSha256','preparedSourceCommit','archiverSourceCommit','archivedAt','files'}
+            or receipt['version'] != SUCCESSOR_ARCHIVE_VERSION or receipt['files'] != files
+            or receipt['preparedSha256'] != digest(regular(root / 'prepared.json'))
+            or receipt['preparedSourceCommit'] != candidate['sourceCommit']
+            or not re.fullmatch(r'[a-f0-9]{40}',receipt['archiverSourceCommit'])
+            or dt.datetime.fromisoformat(receipt['archivedAt']) < dt.datetime.fromisoformat(candidate['expiresAt'])):
+        raise ValueError('Original expired successor archive receipt required')
+    return candidate, receipt
+
+
+def successor_archived_paths():
+    root = OWNER / SUCCESSOR_ARCHIVE_NAME
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > 8:
+        raise ValueError('Successor archive limit reached')
+    result = []
+    for entry in entries:
+        if not re.fullmatch(r'[a-f0-9]{64}',entry.name):
+            raise ValueError('Unknown successor archive entry')
+        validate_successor_archive(entry)
+        if digest(regular(entry / 'prepared.json')) != entry.name:
+            raise ValueError('Successor archive identity changed')
+        result += successor_tree_paths(entry)
+    return result
+
+
+def successor_effective_role(value):
+    root = OWNER / 'beta-successor'
+    journal = root / 'journal.json'
+    if not journal.exists() and not journal.is_symlink():
+        if utcnow() >= dt.datetime.fromisoformat(value['expiresAt']):
+            raise ValueError('Expired successor preparation')
+        return 'previous'
+    intent = json.loads(regular(journal))
+    if (set(intent) != {'version', 'preparedSha256', 'states'} or intent['version'] != SUCCESSOR_VERSION
+            or intent['preparedSha256'] != digest(regular(root / 'prepared.json'))
+            or not isinstance(intent['states'], list) or not 1 <= len(intent['states']) <= 32):
+        raise ValueError('Bounded original successor journal required')
+    previous = None
+    known = {'apply-intent', 'recovery-intent', 'held', 'database-intent', 'accounts-committed',
+             'authority-staged', 'exposure-intent', 'applied', 'recovered', 'held-after-failure',
+             'stop-unverified', 'watchdog-stop-intent', 'closed'}
+    last_time = None
+    last_state = None
+    attempt = None
+    successors = {
+        None: {'apply-intent'},
+        'apply-intent': {'held'}, 'recovery-intent': {'held'},
+        'held': {'database-intent', 'accounts-committed'},
+        'database-intent': {'accounts-committed'},
+        'accounts-committed': {'authority-staged'},
+        'authority-staged': {'exposure-intent'},
+        'exposure-intent': {'applied', 'recovered'},
+    }
+    failures = {'held-after-failure', 'stop-unverified', 'watchdog-stop-intent', 'closed'}
+    for row in intent['states']:
+        if set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'} or row['previousSha256'] != previous:
+            raise ValueError('Successor journal chain changed')
+        data = (json.dumps({k:v for k,v in row.items() if k != 'sha256'},sort_keys=True,separators=(',', ':'))+'\n').encode()
+        if row['sha256'] != digest(data):
+            raise ValueError('Successor journal digest changed')
+        changed = dt.datetime.fromisoformat(row['changedAt'].replace('Z', '+00:00'))
+        state = row['state']
+        if (row['state'] not in known or changed.utcoffset() != dt.timedelta(0)
+                or changed < dt.datetime.fromisoformat(value['preparedAt'])
+                or changed > utcnow() + dt.timedelta(seconds=300)
+                or (last_time is not None and changed < last_time)):
+            raise ValueError('Known ordered UTC successor journal required')
+        if state == 'recovery-intent':
+            valid = last_state is not None and last_state not in {'applied', 'recovered'}
+        elif state in failures:
+            valid = last_state is not None
+        else:
+            valid = state in successors.get(last_state, set())
+        if (not valid or (state == 'database-intent' and attempt != 'apply-intent')
+                or (last_state == 'held' and state == 'accounts-committed' and attempt != 'recovery-intent')
+                or (state == 'applied' and attempt != 'apply-intent')
+                or (state == 'recovered' and attempt != 'recovery-intent')):
+            raise ValueError('Ordered successor transition without SQL replay required')
+        if state in {'apply-intent', 'recovery-intent'}:
+            attempt = state
+        last_state = state
+        last_time = changed
+        previous = row['sha256']
+    state = intent['states'][-1]['state']
+    if state not in {'applied', 'recovered'}:
+        raise ValueError('Successor not fully exposed; keep held')
+    role = 'recovery' if state == 'recovered' else 'target'
+    proof = json.loads(regular(root / 'readback.json'))
+    if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
+            or proof.get('sourceCommit') != value['sourceCommit']
+            or proof.get('imageId') != value['release'][role]['imageId'] or proof.get('schema') != 38
+            or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
+            or proof.get('previousAllowanceClosed') is not True or proof.get('browserJourneyPassed') is not False
+            or proof.get('operationSha256') != digest(json.dumps(value['operation'],sort_keys=True,separators=(',', ':')).encode())
+            or proof.get('operationPaidAiCalls') != 0 or proof.get('paidAiCalls') != 0
+            or proof.get('databaseRestored') is not False):
+        raise ValueError('Original successor commit/readback proof required')
+    return role
+
+
+def active_funded_directory():
+    """Choose new authority only when its own terminal proof has passed.
+
+    Called after funded_upgrade_healthy; a prepared-only successor cannot make
+    an old proof look like an activation of the new window.
+    """
+    original = OWNER / 'funded-runtime-upgrade'
+    root = OWNER / 'beta-successor'
+    if not root.exists() and not root.is_symlink():
+        return original
+    parent = json.loads(regular(original / 'prepared.json'))
+    journal = json.loads(regular(original / 'journal.json'))
+    role = 'recovery' if journal['states'][-1]['state'] == 'recovered' else 'target'
+    value = successor_candidate(parent, role)
+    return original if successor_effective_role(value) == 'previous' else root
 
 
 def funded_upgrade_healthy(mode):
@@ -612,6 +903,8 @@ def funded_upgrade_healthy(mode):
     if not root.exists() and not root.is_symlink():
         try:
             funded_archived_paths()
+            if (OWNER / 'beta-successor').exists() or (OWNER / 'beta-successor').is_symlink():
+                return False
             return True
         except (OSError, ValueError, KeyError, TypeError):
             return False
@@ -630,7 +923,8 @@ def funded_upgrade_healthy(mode):
             return False
         journal = root / 'journal.json'
         if not journal.exists():
-            return mode == 'personal-beta' and utcnow() < dt.datetime.fromisoformat(prepared['expiresAt'])
+            return (not (OWNER / 'beta-successor').exists() and mode == 'personal-beta'
+                    and utcnow() < dt.datetime.fromisoformat(prepared['expiresAt']))
         intent = json.loads(regular(journal))
         if set(intent)!={'version','preparedSha256','states'} or intent['version']!='alterward-funded-upgrade-1' or not 1<=len(intent['states'])<=32:
             return False
@@ -648,10 +942,14 @@ def funded_upgrade_healthy(mode):
         proof = json.loads(regular(root / 'readback.json'))
         expected = digest(regular(root / 'prepared.json'))
         role = 'recovery' if state == 'recovered' else 'target'
-        return (intent.get('preparedSha256') == expected == proof.get('preparedSha256') and
+        parent_valid = (intent.get('preparedSha256') == expected == proof.get('preparedSha256') and
                 proof.get('schema') == 38 and proof.get('protectedDataUnchanged') is True and
-                proof.get('imageId') == prepared['release'][role]['imageId'] and
-                {name: digest(regular(OWNER / name)) for name in prepared['files'][role]} == prepared['files'][role])
+                proof.get('imageId') == prepared['release'][role]['imageId'])
+        if not parent_valid:
+            return False
+        successor = successor_candidate(prepared, role)
+        expected_files = prepared['files'][role] if successor is None else successor['files'][successor_effective_role(successor)]
+        return {name: digest(regular(OWNER / name)) for name in expected_files} == expected_files
     except (OSError, ValueError, KeyError, TypeError):
         return False
 

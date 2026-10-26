@@ -8,6 +8,8 @@ import {
   captureFundedRuntime,
   migrateFundedRuntime,
 } from '../lib/funded-runtime';
+import { successorDatabaseRequest } from '../lib/beta-successor-operation';
+import { successorPlan } from '../lib/beta-successor';
 
 async function main() {
   assert.equal(process.env.ALTERWARD_FUNDED_FIXTURE, 'true');
@@ -25,7 +27,18 @@ async function main() {
   const request = JSON.parse(readFileSync(0, 'utf8'));
   assert(/^(aw_fixture_|aw_restore_)[a-f0-9]{24}$/.test(request.database));
   assert(
-    ['init', 'capture', 'migrate', 'drop', 'unsafe'].includes(request.mode),
+    [
+      'init',
+      'capture',
+      'migrate',
+      'drop',
+      'unsafe',
+      'successor-setup',
+      'successor-capture',
+      'successor-apply',
+      'successor-reconcile',
+      'successor-verify',
+    ].includes(request.mode),
   );
   const admin = connectDatabase(url.href, true);
   let db: ReturnType<typeof connectDatabase> | undefined;
@@ -44,6 +57,133 @@ async function main() {
       await admin.query(`CREATE DATABASE ${request.database}`);
     url.pathname = '/' + request.database;
     db = connectDatabase(url.href, true);
+    if (request.mode.startsWith('successor-')) {
+      const { previous, selection, expected } = request.expected;
+      const owner = {
+        email: 'owner@example.invalid',
+        userId: '22222222-2222-4222-8222-222222222222',
+      };
+      assert.deepEqual(previous.participants, input.participants);
+      assert.deepEqual(selection.next.participants, [owner]);
+      if (request.mode === 'successor-setup') {
+        // This synthetic seed is NEVER part of the production controller. It
+        // starts from the fixture's completed038 database and retains history.
+        const plan = successorPlan(
+          previous,
+          selection,
+          new Date().toISOString(),
+        );
+        await db.query('INSERT INTO ff_users(id) VALUES($1)', [owner.userId]);
+        await db.query(
+          "INSERT INTO auth.users VALUES($1,$2,'authenticated','authenticated',false,NULL,now()-interval '1 day',now()-interval '1 hour',NULL,'')",
+          [owner.userId, owner.email],
+        );
+        await db.query(
+          'INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES($1,NULL,2000000,188585),($2,$3,500000,188585)',
+          [plan.previousKeys.project, plan.previousKeys.users[0], user],
+        );
+        return { syntheticSeeded: true };
+      }
+      if (request.mode === 'successor-verify') {
+        const plan = expected.plan;
+        const rows = await db.query<{
+          id: string;
+          user_id: string | null;
+          limit_micro: string;
+          accounted_micro: string;
+        }>(
+          'SELECT id,user_id,limit_micro::text,accounted_micro::text FROM aw_budget_accounts WHERE id=ANY($1::text[]) ORDER BY id',
+          [
+            [
+              plan.previousKeys.project,
+              ...plan.previousKeys.users,
+              plan.nextKeys.project,
+              ...plan.nextKeys.users,
+            ],
+          ],
+        );
+        assert.equal(rows.length, 4);
+        for (const id of [
+          plan.previousKeys.project,
+          ...plan.previousKeys.users,
+        ])
+          assert.deepEqual(
+            rows.find((r) => r.id === id),
+            {
+              id,
+              user_id: id === plan.previousKeys.project ? null : user,
+              limit_micro: '0',
+              accounted_micro: '188585',
+            },
+          );
+        for (const id of [plan.nextKeys.project, ...plan.nextKeys.users])
+          assert.deepEqual(
+            rows.find((r) => r.id === id),
+            {
+              id,
+              user_id: id === plan.nextKeys.project ? null : owner.userId,
+              limit_micro: '3000000',
+              accounted_micro: '0',
+            },
+          );
+        const { DatabaseAiBudget } = await import('@future-flow/database');
+        const old = new DatabaseAiBudget(db, user, crypto.randomUUID(), {
+          projectUsd: 2,
+          userUsd: 0.5,
+          window: previous,
+        });
+        await assert.rejects(
+          () =>
+            old.reserve({
+              model: 'gpt-6.1-sol',
+              max_output_tokens: 1,
+              input: [],
+            }),
+          { code: 'AI_BUDGET_EXCEEDED' },
+        );
+        const next = new DatabaseAiBudget(
+          db,
+          owner.userId,
+          crypto.randomUUID(),
+          {
+            projectUsd: 3,
+            userUsd: 3,
+            window: selection.next,
+            closedBetaUserIds: [owner.userId],
+          },
+        );
+        await assert.rejects(
+          () =>
+            next.reserve({
+              model: 'gpt-6.1-sol',
+              max_output_tokens: 1,
+              input: [],
+            }),
+          { code: 'AI_BUDGET_WINDOW_CLOSED' },
+        );
+        return {
+          oldAllowanceClosed: true,
+          ownerCap: true,
+          differentOwner: true,
+        };
+      }
+      const mode = request.mode.slice('successor-'.length);
+      return await db.transaction(async (tx) => {
+        await tx.query(
+          mode === 'apply'
+            ? 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'
+            : 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+        );
+        return successorDatabaseRequest(
+          tx,
+          { mode, previous, selection, expected: expected ?? null },
+          {
+            connectionHostname: input.connectionHostname,
+            databaseIdentitySha256: input.databaseIdentitySha256,
+          },
+        );
+      });
+    }
     if (request.mode === 'init' || request.mode === 'unsafe') {
       await db.query(
         'CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',

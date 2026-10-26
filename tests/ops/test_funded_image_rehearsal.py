@@ -72,6 +72,20 @@ class ImageRehearsalBoundaries(unittest.TestCase):
                 with self.subTest(field=field), self.assertRaises(ValueError): r.clean_container(name, owner, IMAGE)
                 self.assertEqual(run.call_count, 2)
 
+    def test_successor_proof_cannot_be_missing_or_substituted_by_the_old_fixture(self):
+        names={'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
+               'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
+               'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup'}
+        proof={'version':'alterward-beta-successor-fixture-1',**BINDING,
+               'targetImage':IMAGE,'recoveryImage':IMAGE,'checks':dict.fromkeys(names,True),'paidAiCalls':0}
+        r.require_successor_proof(proof,IMAGE,BINDING)
+        for wrong in (None,{}, {**proof,'sourceCommit':'f'*40}, {**proof,'checks':dict.fromkeys(r.CHECKS,True)}):
+            with self.subTest(wrong=wrong),self.assertRaises(ValueError):
+                r.require_successor_proof(wrong,IMAGE,BINDING)
+        for name in names:
+            with self.subTest(name=name),self.assertRaises(ValueError):
+                r.require_successor_proof({**proof,'checks':{**proof['checks'],name:False}},IMAGE,BINDING)
+
     def test_source_probe_cleanup_runs_even_after_timeout(self):
         with patch.object(r, 'run', side_effect=TimeoutError), patch.object(r, 'clean_container') as cleanup:
             with self.assertRaises(TimeoutError): r.verify_image_sources(IMAGE, {**BINDING, 'sourceHashes': {}})

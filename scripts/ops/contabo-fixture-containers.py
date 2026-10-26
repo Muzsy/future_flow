@@ -14,6 +14,22 @@ import uuid
 LABEL = 'com.alterward.fixture-helper'
 
 
+def reserve_archive_directories(base, database):
+    """Separate every real backup/offsite cycle, including repeated same-DB cases."""
+    base = Path(base)
+    info = base.lstat()
+    if (base.resolve() != base or not stat.S_ISDIR(info.st_mode)
+            or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700
+            or not base.name.startswith('alterward-funded-fixture-')
+            or not re.fullmatch(r'aw_fixture_[a-f0-9]{24}',database)):
+        raise ValueError('Owned synthetic fixture archive scope required')
+    suffix = database + '-' + uuid.uuid4().hex
+    daily, offsite = base / ('daily-' + suffix), base / ('offsite-' + suffix)
+    daily.mkdir(mode=0o700)
+    offsite.mkdir(mode=0o700)
+    return daily, offsite
+
+
 class FixtureContainers:
     def __init__(self, directory, project, images, command):
         self.directory = Path(directory)

@@ -50,6 +50,8 @@ for name, file in [
 containers = load('alterward_fixture_containers', 'contabo-fixture-containers.py')
 replay = load('alterward_funded_replay', 'contabo-funded-replay.py')
 funded = load('alterward_funded_upgrade', 'contabo-funded-upgrade.py')
+load('alterward_successor_transition', 'beta-successor-transition.py')
+successor_fixture = load('alterward_successor_fixture', 'contabo-beta-successor-fixture.py')
 daily = load('fixture_daily', 'contabo-daily.py')
 upgrade = funded.upgrade
 activation = sys.modules['alterward_activation']
@@ -170,6 +172,7 @@ def exercise(context, *, scope='ci'):
     foreign_id = None
     databases = set()
     checks = {}
+    successor_checks = {}
     active_system = None
     image_only_verified = False
     raw_run = run
@@ -381,13 +384,13 @@ def exercise(context, *, scope='ci'):
         access = {
             'teamDomain': 'fixture.cloudflareaccess.com',
             'audience': 'a' * 64,
-            'allowedEmails': ['funded@example.invalid'],
+            'allowedEmails': ['funded@example.invalid', 'owner@example.invalid'],
         }
         baseenv = {
             'CLOUDFLARE_ACCESS_TEAM_DOMAIN': access['teamDomain'],
             'CLOUDFLARE_ACCESS_AUD': access['audience'],
             'CLOSED_SITE_ENABLED': 'true',
-            'CLOSED_SITE_ALLOWED_EMAILS': 'funded@example.invalid',
+            'CLOSED_SITE_ALLOWED_EMAILS': 'funded@example.invalid,owner@example.invalid',
         }
         paid = {
             'GENERATION_DAILY_LIMIT': '3',
@@ -498,7 +501,9 @@ def exercise(context, *, scope='ci'):
             ).stdout
         )
         initialFiles = {
-            'server.env': b"ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n",
+            'server.env': ("ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n"
+                + "AI_PROJECT_BUDGET_USD='2'\nAI_USER_BUDGET_USD='0.5'\n"
+                + "AI_BUDGET_WINDOW_START='"+terms['startsAt']+"'\nAI_BUDGET_WINDOW_END='"+terms['endsAt']+"'\n").encode(),
             'pinned-image.json': encoded(
                 {
                     'services': {
@@ -677,7 +682,7 @@ def exercise(context, *, scope='ci'):
         def make_archive(system, candidate):
             # A real encrypted offsite copy, decrypt and isolated physical DB
             # restore precede the SAME production proof/ciphertext validators.
-            daily.ROOT = base / ('daily-' + system.database)
+            daily.ROOT, offsite = containers.reserve_archive_directories(base, system.database)
             (daily.ROOT / 'status').mkdir(mode=0o700, parents=True)
             archives = daily.ROOT / 'backups'
             archives.mkdir(mode=0o700)
@@ -712,8 +717,6 @@ def exercise(context, *, scope='ci'):
                 'application.dump.age': dump,
             }
             encrypted = {}
-            offsite = base / ('offsite-' + system.database)
-            offsite.mkdir(mode=0o700)
             for name, raw in originals.items():
                 cipher = run(['age', '-r', recipient], raw)
                 private(archive / name, cipher)
@@ -871,6 +874,10 @@ def exercise(context, *, scope='ci'):
                 import shutil
 
                 shutil.rmtree(owner / 'funded-runtime-upgrade')
+            for name in ('beta-successor','beta-successor-archive'):
+                if (owner/name).exists():
+                    # Independent nonce-owned cases ONLY, never an operator retry.
+                    __import__('shutil').rmtree(owner/name)
             for name, raw in initialFiles.items():
                 private(owner / name, raw)
             upgrade.run(
@@ -1234,11 +1241,28 @@ def exercise(context, *, scope='ci'):
             if label == 'image-only':
                 image_only_verified = True
             checks['fundedReplayProof'] = True
+            if label in {'success','postcheck','interruption-staged'}:
+                from types import SimpleNamespace
+                successor_fixture.exercise(SimpleNamespace(**globals()),context,label=label,system=system,
+                    database=database,owner=owner,project=project,terms=terms,release=release,
+                    db=db,make_archive=make_archive,private=private,checks=successor_checks)
             system.stop()
             db('drop', database)
             databases.remove(database)
         checks['foreign'] = preserved_containers(all_before, project, foreign_id)
         assert checks['foreign']
+        successor_checks.update(foreignStable=checks['foreign'],cleanup=True)
+        expected_successor = {'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
+            'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
+            'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup'}
+        assert set(successor_checks)==expected_successor and all(v is True for v in successor_checks.values())
+        # Consumed ONLY after exercise() returns through the verified finally
+        # cleanup. Never published by a failed or interrupted fixture.
+        global SUCCESSOR_PROOF
+        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-1',
+            'sourceCommit':context['sourceCommit'],'bundleSha256':context['bundleSha256'],
+            'targetImage':context['image'],'recoveryImage':context['image'],
+            'checks':successor_checks,'paidAiCalls':0}
         # Reservation and lease/queue failures are exercised against real SQL by
         # the companion below, not simulated booleans in this controller.
         database = 'aw_fixture_' + uuid.uuid4().hex[:24]

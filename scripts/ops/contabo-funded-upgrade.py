@@ -351,7 +351,7 @@ class System:
             ).stdout
         )
 
-    def probe(self, image, mode, expected=None):
+    def raw_probe(self, image, data):
         # API-shaped one-off: no worker/provider process and no public ports.
         # The image's exact source and contract capability have already matched.
         cfg = self.configuration(DIRECTORY)
@@ -361,10 +361,6 @@ class System:
         # included in the bounded encrypted operational archive.
         self.cleanup_probe()
         readers.update_durable(probe_path, frozen(cfg))
-        participants = json.loads(
-            fence.original(DIRECTORY / 'personal-beta' / 'terms.json')
-        )['participants']
-        data = {'mode': mode, 'participants': participants, 'expected': expected}
         # Persist the exact name/config/source BEFORE Docker can create a
         # one-off. The random nonce distinguishes it from every service/run.
         nonce = os.urandom(16).hex()
@@ -388,7 +384,13 @@ class System:
             # Timeout/SIGTERM are cleaned here. SIGKILL retains the durable
             # intent for explicit cleanup/recovery under the same two locks.
             self.cleanup_probe()
-        value = json.loads(result.stdout)
+        return json.loads(result.stdout)
+
+    def probe(self, image, mode, expected=None):
+        if mode not in {'capture', 'migrate'}:
+            raise ValueError('Fixed funded database mode required')
+        participants = json.loads(fence.original(DIRECTORY / 'personal-beta' / 'terms.json'))['participants']
+        value = self.raw_probe(image, {'mode': mode, 'participants': participants, 'expected': expected})
         exact(
             value,
             {
@@ -455,6 +457,10 @@ class System:
         return {**capability, 'probeRemoved': removed is not None, 'probeContainerId': removed,
                 'applicationContainersChanged': False, 'paidAiCalls': 0}
 
+    def capability_input_hashes(self):
+        # Original image upgrades accept ONLY the complete committed bundle.
+        return {sha(encoded(self.request['sourceHashes']))}
+
     def cleanup_capability(self):
         self.archive_support()
         record = self.daily.funded_capability_state(self.root)
@@ -463,7 +469,7 @@ class System:
             return result
         if (record['sourceCommit'] != self.request['sourceCommit']
                 or record['bundleSha256'] != self.request['bundleSha256']
-                or record['inputSha256'] != sha(encoded(self.request['sourceHashes']))
+                or record['inputSha256'] not in self.capability_input_hashes()
                 or record['commandSha256'] != sha(encoded(CAPABILITY_COMMAND))
                 or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-capability-[a-f0-9]{32}', record['name'])):
             raise ValueError('Exact original funded capability evidence required')
@@ -503,6 +509,8 @@ class System:
         return result
 
     def capability(self, image, hashes):
+        if sha(encoded(hashes)) not in self.capability_input_hashes():
+            raise ValueError('Exact committed capability input required before creation')
         self.cleanup_capability()
         record = {'version': self.daily.FUNDED_CAPABILITY_VERSION,
                   'sourceCommit': self.request['sourceCommit'], 'bundleSha256': self.request['bundleSha256'],
