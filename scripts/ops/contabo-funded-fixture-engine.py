@@ -1034,7 +1034,7 @@ def exercise(context, *, scope='ci'):
                 assert daily.funded_upgrade_healthy('personal-beta')
                 after = db('capture', database)
                 funded.same_funded(before, after)
-                assert after['schema'] == 37
+                assert after['schema'] == 36
                 assert all((owner / n).read_bytes() == raw for n, raw in initialFiles.items())
                 checks['expiredPreparationArchive'] = True
                 continue

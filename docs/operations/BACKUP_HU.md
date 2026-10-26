@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-24
+last_reviewed: 2026-10-26
 related:
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
   - RECOVERY_HU.md
@@ -93,3 +93,10 @@ A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [f
 A funded upgrade külön `FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 4` szabálya az aktív evidence mellett legfeljebb nyolc hash-nevű, lejárt és soha nem alkalmazott preparation-archívumot foglal a titkosított config backupba. Kilenc eredeti immutable fájl, opcionális probe-compose, lezárt probe- és capability-receipt, valamint hash-hez kötött archive receipt megőrzendő; ismeretlen fájl, alias, hardlink, hibás private jogosultság vagy hash-eltérés elutasított. Automatikus archívumtörlés nincs. Az új Daily installálása változatlan kiadási kapu, az archívum nem apply-authority.
 
 A v3 policy az aktív `probe.json` intent/cleanup evidence-t is menti; pending állapot archivált preparationben nem megengedett. A változó probe-receipt az általános titkosított backup része, nem az immutable candidate restore-kapu vagy új apply-authority. A hozzá kötött config hashét a Daily health és az archiválási ellenőrzés is validálja.
+
+
+## 8. Funded runtime utáni legacy bizonyíték
+
+Lezárt, egészséges funded transition után az eredeti legacy upgrade könyvtárát a preparationben byte-hash-sel kötött eredeti personal-beta manifest commitja jelöli ki; az aktív runtime commitja ehhez nem használható. A jelenlegi runtime négy fájlja és a funded target/recovery bizonyítékok ugyanabba a titkosított config archívumba kerülnek. Ismeretlen/módosult/hiányzó authority és részleges transition elutasított; történeti upgrade könyvtár nem gyártható utólag.
+
+A #96 javítás9088275 Daily-forrásának jóváhagyott éles mentése és izolált restore-ja2026-10-26-án PASS:97tábla/1711sor/107config; a runtime külön6d17fda/schema038 maradt. A backup manifest külön rögzíti a Daily sourceCommit és a runtime ownerCommit/ownerImage értékeit. A régi funded CLI active-proof újrakiadási korlátja ettől nem lazul. [Tényleges bizonyíték és megőrzött korlát](NARRATIVE_RELEASE_HU.md#95-lezárva-éles-daily-mentés-és-restore--2026-10-26).

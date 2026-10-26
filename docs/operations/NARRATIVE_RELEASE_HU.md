@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-25
+last_reviewed: 2026-10-26
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -537,6 +537,189 @@ Privát, 0700/0600 evidence: `.local/verification/daily-v4-run-adf2b95-20261025/
 | Lánc-egyeztetés | `503a6f8ba338f93c4c871e5a98b226bce4c29a3f2ada1d5027adcc7c02c6d76b` |
 
 **További kapuk:** #90 műveleti csomag kész, de V9-4 **PARTIAL**, V9-5 **PENDING**. Következő a friss, csak olvasó DB/drain/Access/Auth/reader felmérés és az exact-source operátori audit előkészítése; éles apply külön döntés. A Daily restore a jelenlegi production forrást igazolja, nem bizonyít automatikusan minden v9 migrációs/privacy/funded replay vagy tesztelői E2E kaput. #77 kohorsz/window/admission/keret, a rendszeres Linux offsite-futtatás operátori rendje és az alkalmazás béta átállítása továbbra külön nyitott tétel. Új automatizálást ez az egyszeri sync nem hozott létre.
+
+
+## Contabo telepítési felmérés és 036-os kiinduló állapot — 2026-10-26
+
+**Aktív sorrend:** a tulajdonos az alkalmazás technikai Contabo-telepítését kérte előbb, új résztvevő és új költségkeret nélkül. A #77/#91 keretváltó fejlesztés külön drafton marad, nem feltétele ennek a telepítési csomagnak. A felmérés eredménye még nem apply-engedély vagy kész release audit.
+
+### Friss, csak olvasó célgépes eredmény
+
+2026-10-26 01:03–01:13 CET körül eredeti SSH-key/pin mellett: az API és web healthy, worker running; mind a tíz eredeti konténer ID/image/restart/status/start-time állapota egyezik a korábbi baseline-nal. A két Daily timer enabled+active/waiting, a service-k success/0; a legutóbbi monitor új-source zöld. Telepített Daily exact `adf2b95`, script/unit hash-egyezés; pending backup nincs, restore tmpfs üres. A futó alkalmazás továbbra `827d72a`, image `sha256:0a58ee4e…fcd2527e`, legacy és üres narratív cohort. Az `adf2b95` elkészült target image és tiszta source továbbra elérhető; a main változatlan adf, saját CI40223702770 SUCCESS. Funded-upgrade preparation/journal még nincs.
+
+A futó API-ban végzett Node/pg megfigyelés TLS/CA/hostname és pinned DB-identity ellenőrzött, REPEATABLE READ READ ONLY tranzakció. Hat queue pending/lease számlálója, running draft/generating branch és rendezetlen reservation számlálója mind nulla. Az eredeti egy technikai funded account Auth/email/UUID kötése valid; ez nem újonnan kiválasztott bétatesztelő. A worker tényleges allowlist/window/cap értékei a védett configgal egyeznek, az eredeti négy runtime-fájl változatlan és a terms-hash az eredeti prepare-hoz kötött. A korábbi API-env alapú általános window-egyezés false volt, mert a window worker-only, a budget pedig decimal-normalizált; a külön, tényleges worker/config/eredeti fájlok vizsgálata igazolta az egyezést. Nem változtattunk értéket az egyezés érdekében.
+
+**Konkrét blokkoló:** az éles adatbázis **001–036**, nem 037. Mind a 36 migráció neve/checksumja a committed migrációs runner `hash(sql)` értékével egyezik. A 854 oszlopos 036-os séma, valamint constraints/index/default/function/trigger/policy/sequence/rule/custom-type digestje a kizárólag verziózott 001–036 SQL-ből, izolált PGlite-on előállított baseline-nal egyezik. Az elvárt fingerprintet nem az éles DB-ből vettük át. Az eddigi funded upgrade csak 037/038-at fogadott el; ezért az `adf2b95` image korábbi 16-check PASS-a önmagában nem teszi végrehajthatóvá a jelenlegi éles átállást.
+
+**Access-hiány rendezve, 01:37 CET:** a tulajdonos megadta a meglévő hitelesítés privát fájlját. A meglévő account-token verify aktív, az alkalmazáslista GET pontosan egy Alterward self-hosted appot talált. A kiadási eszköz változatlan `readFundedAccess` olvasója app/organization/policy GET után PASS: két explicit email, támogatott szűk policy-alak. Az eredeti Linux operátor védett secrets könyvtárában új, 0600 `cloudflare-access-read.json` input készült; a forrás credential tartalma változatlan, fájljogát 0664-ről 0600-ra szűkítettük. Nincs új token, Cloudflare-policy vagy távoli állapotmódosítás. A személyes lista/token/account-azonosítók privátak. Ez pillanatfelvétel: prepare/apply/recover előtt továbbra friss, legfeljebb 900 s-os megfigyelés kell.
+
+### Célzott javítás — a #34 telepítési scope-ja
+
+A `codex/funded-pre036-upgrade` külön branch az adf-kódú #89 dokumentációs ágából indul; a #91 successor-kódját nem tartalmazza. Dedikált, hardcoded 036-os funded schema/security entry point készült. A normál recovery továbbra kizárólag 038-at fogad el, a meglévő 037 és 038 baseline változatlan. Nincs caller által megadható expected catalog, új migráció vagy elfogadott tetszőleges korábbi séma.
+
+A funded migrátor ugyanazon tranzakció és advisory lock alatt alkalmazza a hiányzó, checksum-ellenőrzött **037 + 038** forráslépést. A 037 a meglévő Shared tagsághoz subscriber defaultot/korlátot/indexet ad, nem kapcsolja be a Shared funkciót; a 038 nullable artifact oszlop. A 036-os adat-összehasonlítás a leendő `entitlement_mode=subscriber` mezőt explicit várható defaultként vetíti, így a migráció előtti és utáni teljes sorhash összevethető. A 037/038-ból induló meglévő entitlement értékek teljesen védettek; új sponsored_guest érték vagy más sor-/költség-/history-változás nem maszkolható. Hibára mindkét DDL és migrációs receipt visszagördül.
+
+A valódi PostgreSQL/root/image CI-fixture alapját 036-ra állítottuk, hogy a következő saját CI a ténylegesen feltárt kiinduló verzió útját járja be. A régi 037 → 038 unit-mátrix megmarad. Helyi eredmény: **5 új + 10 meglévő funded DB teszt PASS**, teljes Python **426 teszt / 415 PASS + 11 környezeti SKIP**, 10 Node funded/replay/Access contract PASS; scripts TypeScript PASS. A PGlite-adaptert a több statementes 037 DDL-hez pg simple-protocol szemantikával (`exec`) illesztettük; a forrás SQL-t nem daraboljuk vagy írjuk át. Nincs helyi root/Docker PASS vagy éles migráció.
+
+**Kiadási következmény:** a javítás saját exact-source review/CI-t, majd jóváhagyott main forrásból új image-et és ugyanahhoz kötött célgépes bizonyítékot igényel. Az adf image/Daily/restore proofjai megmaradnak, nem címkézhetők át a javításra. Az új source-hoz kötött Daily és candidate utáni mentés/restore kapu az alkalmazás tényleges átállítása előtt ellenőrzendő; a korábbi backup visszamenőleg nem lesz új candidate-proof. A jelen felmérésben nem történt service/timer/config/DB módosítás, build, új konténer, paid/provider hívás vagy új ablak/admission.
+
+### Privát bizonyíték
+
+0700/0600: `.local/verification/contabo-release-preflight-20261026/`. Szerveres readback SHA-256 `6d7dcbecc3b95e3125e791ffa84c69be8a05d601da369f29410146a843f244c9`; DB/catalog v2 `dd771c4e14db8a13aae0e6be3925c0cc8eae07ae5519119d98a444d2a45e8840`; worker/eredeti runtime egyezés `d864d448b84d929e47af637ba9df3570170e4ef65dddf69699fe1f78644da998`; izolált 036/037/038 baseline-manifest `19b0293ce3b0338496fb7bdbdd781b16d7ff43c6dedea0491bdfac9adafe03e3`. Az első read-only segéd nem betöltött Python-modul importjánál megállt; külön v2-ben a committed literal OWNER útvonal AST-olvasása váltotta ki a kódimportot. Az eredeti kérés/hiba megőrzött, a sikeres v2 külön receipt. A nyers Auth-, provider-, DB- vagy host-credential nem kerül a repóba.
+
+
+### #92 forrásellenőrzés és következő konkrét csomag
+
+A `91e6da5ae3165deae94947ddae429ea170b65f90` kódjelölt [CI40248511217](https://github.com/Muzsy/future_flow/actions/runs/40248511217) Verify és Container jobja SUCCESS, a tényleges izolált image/root/PostgreSQL fixture 036-ról indulva is sikeres. A külön, csak olvasó reviewer a `7fadc002` → `91e6da5` diffre **APPROVE**, nincs actionable finding; saját 4 tesztfájl / 36 teszt és diff-check PASS. A reviewer nem futtatott éles kapcsolatot vagy helyi root image-próbát. Ez forrásreview, nem végső operátori audit vagy apply-felhatalmazás. A jelen dokumentációs követés nem változtatja a reviewzott runtime-kódot.
+
+Az Access snapshot `2026-10-26T00:37:52.179Z` időpontú, konfigurációdigestje `c6e7b381d9773de4f1efa14a8940ee837186af3b24d41db1da54f9caf0bba153`; a privát `access-snapshot.json` fájl SHA-256: `e671eb0a94ffc279fe3a3281ac558d9d0601368c5f751d87f62176be3b9104f5`. A GET-only token/app ellenőrzés külön privát receiptben megmaradt; secret nem kerül a repóba, image-be vagy SSH-ra. A forrásfile megadásából nem következik tokenrotáció vagy új jogosultság engedélyezése.
+
+Következő engedélyezhető művelet: a teljes main-célú #92 jelölt merge committal történő beolvasztása, saját zöld main CI után új, tiszta privát exact-main checkout és image építése a korábbi 2 GiB/1 CPU korláttal, majd egy új, izolált szintetikus standalone próba és teljes cleanup/eredeti konténer readback. Korábbi evidence megmarad. Ez még nem alkalmazás-rollout, Daily/timer frissítés, éles DB-migráció, paid hívás vagy új window/admission. A későbbi source-bound Daily/candidate-backup/restore és végső apply külön konkrét kapu.
+
+
+## #92 main és új célgépes image — 2026-10-26
+
+A tulajdonos a #92 merge-jét és az új image izolált próbáját „Csinálhatod” válasszal engedélyezte. Az aktuális `992095b` jelölt teljes main-célú független review-ja APPROVE; saját [CI40250405238](https://github.com/Muzsy/future_flow/actions/runs/40250405238) Verify+Container SUCCESS. A merge commit **`6d17fda5aee4c958d90ed3102630da9aea80f728`**, szülők `adf2b951` és `992095b`; tree `9e2bf92ea177e4493c26011b46b871c481d072ef`, pontosan a jóváhagyott jelölt fája. Saját [main CI40251518673](https://github.com/Muzsy/future_flow/actions/runs/40251518673) Verify+Container SUCCESS, tényleges izolált image-próbákkal. A #89 dokumentációs története is integrálódott; #91 successor-kódja nincs benne.
+
+### Korlátozott build — PASS
+
+Az új, tiszta main-forrásból épített image: **`sha256:d85a92f72e33606825032e3399507181657e45cdf71236e8f93430af0381d60e`**, tag `alterward:contabo-6d17fda5aee4`; source `/root/alterward-ops/target/build-6d17fda5aee4-ac8196e8/source`. A build 2026-10-26 **01:05:53–01:18:05 UTC / 02:05:53–02:18:05 CET**, kb. 12m12s. Dedikált 2 GiB memória/swap és 1 CPU, nyilvános port nélkül; a builder eltávolítva. Mind az összes tracked forrásbájt, a main branch/HEAD és a tiszta checkout ellenőrzött. Kizárólag verziózott forrás és az eredeti publikus buildértékek kerültek át; DB/provider credential nincs a buildben.
+
+A build után friss readonly mérés: 5,04 GiB elérhető memória, 68,23 GiB szabad lemez, pinned PostgreSQL és eredeti age1.1.1 elérhető. **Mind a tíz eredeti konténer ID/image/restart/status/start-time állapota egyezik a korábbi baseline-nal**, tehát a korábban álló tizedik konténer is védett. Az engedély nem alkalmazás-rollout, Daily/timer update, éles migráció, paid hívás vagy új window/admission; ezek nem történtek.
+
+Az első privát előkészítő kérésben régi relatív work-directory név maradt. A `mkdir` FileExistsErrorral még a build/inputátadás előtt megállt, a meglévő könyvtárhoz nem nyúlt. A külön `prepare-v2.py` kizárólag az új kiválasztott útvonalat javította, utána a kapacitás/eszköz/publikus-input ellenőrzés PASS. Az első kérés és hibareceipt megmarad; nem sikertelen image-próba vagy éles változtatás. A friss export segéd 0077 umaskkal hozza létre a későbbi fájljait, hogy ne kelljen az előző menet metadata-only javítását megismételni.
+
+### Izolált standalone próba — PASS
+
+A fenti immutable image tényleges, új outputkönyvtáras próbája **2026-10-26 01:18:41–01:47:05 UTC / 02:18:41–02:47:05 CET**, **28m24s**, exit0; **16/16 check és cleanup PASS**. Exact036 kiindulásról a hiányzó037+038 út, image-only legacy/üres cohort, stale/postcheck/interruption/lock/reservation/lease/recovery, privacy/artifact/frozen-policy/funded replay, expired preparation és probe cleanup ellenőrzött. Target és recovery azonos új image, providerkulcs nélkül, paid0. A helyi külön ellenőrzés a teljes source/image/bundle kötést, mind a 16 true checket, fixture→receipt hash-t és a tíz eredeti konténer baseline-egyezését igazolta. A régi adf receipt megmarad, nem helyettesíti ezt a futást.
+
+A külön, 01:48:33 UTC readback: API/web healthy, worker running; tíz eredeti konténer ID/image/restart/status/start-time egyezik a korábbi adf utáni baseline-nal. Tiszta exact-main source és tényleges új image ID egyezik; az izolált külső konténerek, hálózat és scratch eltávolítva. Nincs Daily/timer update, alkalmazás-rollout, éles DB-írás vagy új authority/window/admission. A régi Daily monitor 01:46:13 UTC-kor, még a próba alatt `container_state_changed` jelzést rögzített; ezt megőrizzük, nem jelöljük zöldnek. A következő rendes timerfutás 03:00:13 CET; kézi monitorindítás/reset vagy timerátállítás nincs.
+
+Privát evidence: `.local/verification/target-image-pre036-20261026/`, eredeti request/response, külön buildsummary, exportált eredeti artifactok és helyi egyeztetés 0700/0600 védelemmel. A jóváhagyott 703-fájlos runtime bundle SHA-256: `d1bd4890bbba959aa47a16d703a70a6bb528a21e0b6d00d7a5e179884d24a8d3`.
+
+| Új bizonyíték | SHA-256 |
+| --- | --- |
+| Tényleges image fixture | `cee35cf63b4eb29e76e2846924a3dac2b3c88ce5061aeae04d3d2f9da8450114` |
+| Image rehearsal receipt | `d7c2c93a7a5d405147aa750c1a9b78ca67e5356513cb9b494600e9eccdbdfa14` |
+
+| Build proof | `20800e670d18df81ce27159b0b2ad63b15cdc4f2a47bd7ed4b0c6cfb614ebc8f` |
+| Próba utáni teljes readback | `4141f08112751be06ffc0dab9feccfe23c509b74d40d5ee7fe9534e9bdd84db4` |
+| Független helyi hash-egyeztetés | `4608f156c3803a79f9577723b08de21ae8c0d4f3fef54d338a3ad801064a21f0` |
+
+Az eredeti védett Linux operátor továbbra tiszta adf main, nem frissítettük hallgatólagosan. Eredeti CI-read credentialje a kiválasztott main saját sikeres futását GET-tel visszaigazolta. Az offsite-könyvtár hat archívumának mind a tizenkét ciphertext hash-e egyezik; 01:50:56 UTC-kor lejárt archívum0, a legrégebbi mentés október19.03:15:33 UTC. A meglévő hétnapos retenció csak a későbbi rendes műveleti csomag engedélyezett végrehajtásakor futhat; az akkori lejárt darabszám friss mérés tárgya. E felmérés nem hívott CLI status/sync/retention ágat, semmit nem törölt.
+
+
+### Következő éles műveleti csomag — előkészítve, nem végrehajtva
+
+A következő engedély tárgya a fenti **`6d17fda` / `sha256:d85a92f7…0381d60e`** konkrét kiadás. A kiválasztás csak `target` és `recovery` mezőt tartalmaz: nincs benne opcionális narrative `runtime`. Tehát az image/source frissülne és az exact036 DB a meglévő037+038 migrációval038-ra lépne; a régi legacy mód/üres cohort, a résztvevők, az eredeti budget/window/terms és minden korábbi történet/elszámolás változatlan maradna. C5-cohort bekapcsolása, #77/#91 új10USD ablak, új felhasználó és paid E2E külön későbbi tétel.
+
+1. **Friss read-only kapuk:** exact source/image/CI, hostkapacitás, eredeti tíz konténer, telepített Daily/hash/timerek, eredeti authority/négy aktív fájl; TLS/CA/DB identity, checksummed036 catalog, Auth/reader/Access, üres queue/lease/reservation/drain. A prepare/apply saját megfigyelése továbbra kötelező, korábbi pillanatfelvétel nem frissíthető át. Eltérésre nincs rollout.
+2. **Eredeti kliens és Daily source:** a védett Linux operátor tiszta mainjének ff-only frissítése a jóváhagyott6d17fda bundle-ből, minden tracked bájt ellenőrzésével. Eredeti credential/pin/backup identity marad. Csak a két saját timer szünetel; normál Daily `--update`, a nyolc régi fájl külön `previous-6d17fda…` archívumával. Source/helper/unit/config/recipient és a szűk visszaállítási alap visszaolvasása kötelező. Az alkalmazás ekkor még változatlanul fut.
+3. **Egyetlen új candidate:** a külön privát release/audit/actual-fixture inputok validálása után normál `--prepare` az eredeti funded authorityból. Új target/recovery fájlok és immutable preparation, legfeljebb900s érvényesség; még nincs éles migráció vagy app-stop. Félkész állapotot nem törlünk, elutasítást nem kerülünk meg.
+4. **Candidate utáni tényleges mentés:** backup → offsite sync → izolált restore ugyanahhoz a legújabb runhoz. Ciphertext/config/összes tábla/adat egyezés, tamper/fence/TLS/cleanup; az aktuális candidate fájlhash-ei szerepelnek az archívumban. Restore-proof kizárólag a tényleges runId/preparedSha/image/fixture kötésből készülhet. A normál kliens hétnapos managed-backup retenciója az engedély része kell legyen; a lejárt készletet a végrehajtáskor újra mérjük, eredeti proofokat/hibareceipteket nem törlünk.
+5. **Feltételes apply:** csak a teljes, friss és változatlan kapulánc után normál `--apply`. Az alkalmazás három saját konténere kontrolláltan cserélődne; a migráció a meglévő tranzakció/advisory lock alatt, teljes védett adat/elszámolás-egyezéssel. Hoston más projekt, Access-policy, provider-konfiguráció vagy költségkeret nem változhat. Részleges transitionnél kizárólag az eredeti candidate és azonos forrás/image auditált `--recover` útja jöhet szóba; nincs régi image-re erőltetés vagy éles DB-visszatöltés. Biztonságos folytatás hiányában a megőrzött állapotnál megállunk.
+6. **Zárás:** tényleges source/image/env/network/DB/data/authority readback, health és monitor, normál proof-bound timeraktiválás, majd végső eredeti/idegen workload ellenőrzés és repo-dokumentáció. Paid AI-hívás0; új bétaablak/tesztelő/admission nincs ebben a csomagban.
+
+Ez a műveleti terv nem már kiadott apply-felhatalmazás. Az eddigi jóváhagyás a #92 merge-jére, a fenti buildre és izolált próbára szólt; új engedély nélkül a telepített Daily/client, a futó app és az éles DB nem módosul.
+
+
+### Záró rendes monitor és validált privát csomag
+
+A külön **2026-10-26 06:31:32 UTC / 07:31:32 CET** readback mind a tíz eredeti konténer változatlanságát, API/web healthy és worker running állapotot, a tiszta6d17fda source/new-image egyezését és az izolált külső konténer/hálózat hiányát ismét igazolta. Az akkor legfrissebb **06:30:08 UTC / 07:30:08 CET rendes monitor zöld, alerts[]**, a **03:15:52 UTC / 04:15:52 CET ütemezett backup sikeres**. Kézi monitortrigger, reset, timer vagy service művelet nem történt. Ez a külön későbbi megfigyelés zárja a próba alatt rögzített jelzést; nem állítunk nem olvasott02:00UTC futásra eredményt, az eredeti piros receipt megmarad. A normál mentés továbbra a telepített adf forrásé, nem az új, még nem létező candidate mentése.
+
+A privát release-packet elkészült, és a változatlan committed `releaseEvidence()` elfogadta a valós CI GET, source/image/bundle/fixture/receipt és a tényleges független review operátori értelmezése mellett. A source-audit finding kritikus/magas/közepes0; ez nem új éles apply-engedély. A kiválasztás két szerepe ugyanaz az immutable image, opcionális narrative `runtime` nélkül. A külön auditértelmezés rögzíti a teljes adf→992095b független APPROVE review-t, 36/36 regressziót és az ezzel azonos merge tree-t; a régi adf image-proofot nem használja újként. A packet csak a privát evidence-könyvtárban van, az eredeti védett Linux operátor továbbra adf/tiszta main. Tényleges candidate/preparation és új restore run még nincs, így ilyen proof sem készülhetett.
+
+Záró ütemezett readback SHA-256: `00d317904e700f075f30217ca1eb9afaee0a8e6b48defe7a602af96dca94a8bb`.
+
+Privát release-input validálás SHA-256: `0ca59d28f03675504248c901cf61d328e20b20e9e4b2d14cdc130f45e4252953`.
+
+A záráskori helyi readonly retenciós felmérés: 6 meglevő offsite-archívum, ebből 1 lejárt a hétnapos szabály szerint; ebben a munkában semmit nem töröltünk. A későbbi engedélyezett normál Daily-kliens ezt a managed archívumot eltávolíthatja, az eredeti proof/hibareceipt megőrzése mellett. Az aktuális készletet a végrehajtás előtt ismét ellenőrizni kell.
+
+
+## Jóváhagyott éles végrehajtás — 2026-10-26
+
+**Valós eredmény:** az alkalmazás `6d17fda5aee4c958d90ed3102630da9aea80f728` / `sha256:d85a92f72e33606825032e3399507181657e45cdf71236e8f93430af0381d60e` kiadása normál, azonos candidate-hez kötött **recoveryvel élesben fut**, schema038 és protectedDataUnchanged=true. **A teljes V9-4 lezárás még nem állítható:** az alkalmazásfrissítés utáni külön038-backup a [#95](https://github.com/Muzsy/future_flow/issues/95) konfigurációgyűjtő-hibán megállt. Ez valódi failed backup státusz; nem töröljük vagy reseteljük zöldre. A frissítés ELŐTTI, konkrét candidate-ot tartalmazó titkosított mentés/offsite/izolált restore igazolt és megmaradt.
+
+A tulajdonos a teljes konkrét csomagot külön jóváhagyta, a saját két timerrel, feltételes apply/recoveryvel és a meglévő hétnapos retencióval. Az eredeti védett Linux kliens tiszta main ff-only frissítése:1244 tracked bájt ellenőrzött, eredeti hat credential változatlan. A régi receiptfájlok külön privát példányban megőrzöttek. Pre-sync a rendes hajnalimentést offsite-ra vette, a hét napnál régebbi egy managed helyi backup eltávolítva az engedély szerint.
+
+| Lépés | Tényleges eredmény, UTC (CET=UTC+1) |
+| --- | --- |
+| Két saját timer disable | 07:05:22–07:05:27, app változatlan |
+| Daily source update | 07:05:27–07:05:32, exact6d17fda, régi nyolc fájl `previous-6d17fda…` alatt megőrzött, immutable config/recipient változatlan |
+| Candidate prepare | 07:08:06–07:08:39, prepared SHA `b79c3ad44a90ead3e719039acdb4d1212749d73b79ea0c7a158eb8a91f944eda`, éles DB-írás0 |
+| Candidate utáni backup/sync/restore | 07:09:07–07:10:44 PASS:97 tábla,1709 sor,105 configfájl, köztük a prepared és nyolc target/recovery fájl pontos hash-e. Offsite ciphertext, tamper rejection, TLS, single transaction és cleanup PASS; éles DB-visszatöltés0 |
+| Első apply | apply-intent07:12:16; held07:12:19; migration-intent07:12:33; closed07:12:40. Nem jutott schema-038/stage állapotig. A probe pontos SQLSTATE/kivételét a jelenlegi generic hiba elfedi; nem állítunk konkrét kiváltó okot |
+| Read-only diagnosztika | exact036, minden candidate adat/catalog/identity/policy hash egyezik; DDL-tulajdonosi jogosultság rendben. SERIALIZABLE READ ONLY tranzakció, a DDL explicit blokkolva, nincs kézi migráció |
+| Egyetlen normál explicit recovery | ugyanaz a source/image/candidate; recovery-intent07:22:41, schema03807:23:08, staged07:23:30, verified-staged07:23:39, **recovered07:23:52**. Adat/elszámolás változatlan, éles DB-visszatöltés0; nem régi image-re kényszerített rollback |
+| Monitor és timeraktiválás | monitor07:24:36–07:24:42 PASS; normál proof-bound activate07:24:42–07:24:45 PASS. Időzítési szünet kb19m23s, nem a teljes alkalmazás leállási ideje |
+| Friss normál active-proof | 07:27:19–07:27:32 PASS, role=recovery, tényleges source/image/authority/runtime binding |
+| Külön végső readback | 07:29:43: három új saját konténer, mind újimage/0restart/unless-stopped; API/web healthy, worker running; másik hét konténer ID/image/restart/status/start-time változatlan. Root runtime pontosan a recovery candidate; eredeti authority/window/caps/admission változatlan, csak image tag változott, legacy/üres cohort marad. Staging network és restore tmpfs tiszta, pending backup0 |
+| Külön post-deployment038-backup | 07:34:30–07:34:38 FAILED proxy-config-capture fázis. Sync/restore nem indult utána; az új hiba #95, a serving app változatlanul működik |
+
+Az első `--import tsx`-es helyi launcher a hiányzó külön csomag miatt még SSH előtt megállt; a Node24 natív TypeScript-kezelésével, tracked forrásváltoztatás/új csomag nélkül indult a normál CLI. Az eredeti local failure megőrzött. A korábbi API-startup következtetést a journal cáfolta: az akkor olvasott exit-code az eredeti leállított konténeré volt; az új stage csak a sikeres recoveryben jött létre. Ezt nem használjuk hibaokként. [#94](https://github.com/Muzsy/future_flow/issues/94) kizárólag a privát probe-diagnosztika későbbi, guardlazítás nélküli javítása.
+
+### Konkrét fennmaradó blokkoló: post-funded backup #95
+
+A valós readonly felmérés szerint az `extended_config_archive()` az OWNER/upgrades/**current manifest commit** legacy útvonalra épít. A current commit6d17fda, ilyen owner-zero upgrade-könyvtár nincs, mert a valódi funded transition az OWNER/funded-runtime-upgrade alatt van. Az eredeti827d72a legacy upgrade teljes és változatlan; az eredeti personal-beta manifest hash-e a funded candidate baseline.authorityhoz kötött. A helyes javítás e bizonyított eredeti anchor és a teljes jelenlegi funded/runtime-történet együttes archiválása. Nem gyártunk hamis legacy upgrade-fájlokat, nem módosítunk történeti receiptet, és nem lazítunk forrás-/sémavédelmet.
+
+A futó image és DB most működő új kiadás. A Daily/source6d17fda configcollector javításához új reviewed forrás, saját CI és külön pontos telepítési csomag szükséges; erre az eredeti6d17fda-only engedély nem terjed ki. A frissebb Daily és a lezárt régi runtime exact-source aktív-proof/cleanup kompatibilitása is külön ellenőrzendő, ezért nincs közvetlen live patch. V9-4 PARTIAL és #34 nyitott a038-as végállapot valódi új backup/offsite/restore sikeréig. Paid hívás0, C5-cohort bekapcsolás és új10USD-window/#77/#91 nem történt.
+
+### Éles bizonyítékok
+
+Privát0700/0600 evidence `.local/verification/contabo-live-6d17fda-20261026/`: eredeti intent/stdout/stderr/receipt, külön failed apply és sikeres recovery, eredeti és végső journal, readonly diagnosztika; korábbi proofot nem írtunk át.
+
+| Proof | SHA-256 |
+| --- | --- |
+| `funded-prepare-node24-proof.json` | `95b8dd2cd388367a12c9f4d6e9ecb0177fcf1450fd6f397fa1e6aa1341c92b14` |
+| `restore-proof.json` | `69911f286084757d7f309a3f57ac8757a086c6d53a1cbf67dcd4b6c9e2d7c73d` |
+| `funded-recover-node24-proof.json` | `2071f2460248d9adbf3d4464cdd5679061206f267fb4218c17e362fd2d6304ed` |
+| `funded-active-proof-node24-proof.json` | `77e0754a122d33f768c755074de72942c84b5235e1b62af90137375bc2251ee1` |
+| `activate-proof.json` | `24bc74d48196b2d0d5b8f2e1f31ce31c99ac0a09f7cbabf32a53f382bb3acf0c` |
+| `final-response.json` | `6a121c33bd50e4810374430c9c7f8092e8db92455f1656626312dab4c395e44d` |
+| `database-readonly-diagnostic-response.json` | `15e4b63ef2fd491eba37c0ec14805e6d9d652d95f7a617c8b9c0e6b27ddca517` |
+| `backup-path-diagnostic-response.json` | `ce6fd718c459d3d258df0e109ae2663ecd945c93bb94c8bd6a53962a57fa46f1` |
+| `operation-reconciliation.json` | `fd828ef07c6d0fd3d516570e344e100e9d351d91081ceaf0571b1b324401dbd9` |
+
+
+## #95 lezárva: éles Daily-mentés és restore — 2026-10-26
+
+A tulajdonos jóváhagyta a #96 `9cb677f` jelölt merge commitját és a szűk Daily-karbantartást a jelölt/main saját sikeres CI-je után. A teljes független review APPROVE; a kódot113PASS/4környezetiSKIP saját ellenőrzés, a teljes helyi Python-kört425PASS/11SKIP és10 új regresszió igazolja. Jelölt CI40309914380 Verify+Container SUCCESS. Merge `9088275f1565dce01aa2780542bbc0b1813f6896`, szülők6d17fda/9cb677f, reviewed-tree egyezés; saját main [CI40323512340](https://github.com/Muzsy/future_flow/actions/runs/40323512340) Verify+Container SUCCESS. #93 dokumentációja is integrált; az alkalmazás runtime-ja továbbra6d17fda / `sha256:d85a92f7…0381d60e` / schema038, nem az új Daily commitjára átnevezett image.
+
+A friss readonly felmérés az eredeti candidate/authority/runtime változatlanságát, hét szerveres és hét helyi mentést, nulla lejárt/pending példányt igazolt. A14 eredeti offsite ciphertext mérete/hash-e egyezik. Az eredeti privát kliens6d Git-bundle-je és operátori JSON-bizonyítékai külön megmaradtak. A kliens tiszta main9088275-re frissült,1245 tracked fájl bájtazonos Gittel, mind a hat eredeti secret változatlan. A szerveroldali nyolc eredeti Daily-fájl a `previous-9088275f1565dce01aa2780542bbc0b1813f6896` privát archívumba került, az eredeti6d config/script/unit hash-ekkel; az immutable Daily-config és a négy unit tartalma nem változott.
+
+A tényleges UTC sorrend:
+
+| Művelet | Idő | Eredmény |
+| --- | --- | --- |
+| Két saját timer disable |12:47:54–12:47:57|PASS; az alkalmazás tovább fut|
+| Normál Daily update |12:47:57–12:48:04|PASS; source/script/archívum külön readbackkel ellenőrzött|
+| Új038 backup |12:48:19–12:48:42|PASS;97 tábla,1711 sor,107 config fájl; éles DB-írás0|
+| Offsite sync |12:48:43–12:48:48|PASS;8 helyi archívum,16 ciphertext hash-egyezés|
+| Izolált restore |12:48:48–12:50:03|PASS;97 tábla/adata egyezik, ciphertext-tamper elutasított, config/proxy és cleanup sikeres|
+| Normál monitor |12:50:13–12:50:25|PASS; üres alerts|
+| Proof-bound timer activate |12:50:25–12:50:31|PASS; mindkét timer enabled+active/waiting|
+| Független readonly readback |12:50:34|PASS; mind a tíz konténer változatlan a karbantartás előtti állapothoz képest|
+
+A1711 sor a korábbi036 mentés1709 sorához képest kizárólag a `ff_migrations`36→38 sorszámnövekedésében tér el; más tábla sorszáma nem változott. A mostani restore a saját038 snapshotja összes adatát egyeztette, nem a korábbi dumpot nevezte át. A config manifest külön igazolta az eredeti827d72a legacy upgrade11 fájlját, a jelenlegi runtime négy fájlját, a funded target/recovery4+4 fájlját és minden root funded-bizonyíték változatlan hash-ét. Nincs mesterséges `upgrades/6d17fda` könyvtár.
+
+A timer-szünet156,65s, kb.2m37s; alkalmazásleállás vagy új restart nem történt. API/web healthy, worker running; az API korábban megfigyelt restartCount1 maradt, új restart0. Az eredeti keret/ablak/admission, legacy/üres cohort, candidate és funded proofok változatlanok. Mindkét service inactive/success/0, backup és monitor zöld; plaintext tmpfs üres, pending backup és ideiglenes restore-erőforrás nincs. Retenciós törlés0, paid AI0, külső üzenet0; recovery és éles DB-visszatöltés nem kellett.
+
+A régi funded CLI új `--active-proof` kiadása az új Daily mellett továbbra a változatlan exact-source kapun megáll. Az eredeti6d proof megőrzött történeti bizonyíték; az aktuális root/candidate/authority byte-egyezést külön ellenőriztük. Ez nem új capability-proof. A normál Daily saját új-source backup/restore/monitor/activate prooflánca sikeres; a review ezt a szűk karbantartási utat elfogadta. A pontos korlát a [funded runbookban](FUNDED_RUNTIME_UPGRADE_HU.md#95-helyi-javítás-és-telepítési-korlát) marad.
+
+Privát bizonyíték: `.local/verification/daily-anchor-maintenance-20261026/`,0700/0600; titok, valódi adat és titkosított backup nem kerül Gitbe. A régi sikertelen státuszok/receiptek megmaradtak; a mostani zöld eredmény új, normál műveletekből származik.
+
+| Proof | SHA-256 |
+| --- | --- |
+| Daily update |`a4885e96be11b2c7d3954a9ec1c5e619d086c7a154c670a649325e3a58a53471`|
+| Új038 backup |`f9b19e7e93cf6dd3252ad88469a0315b70b5c64d25c91b1678de3da73f563671`|
+| Offsite sync |`8f61e72dea0bc5c515a558e85e0a3268b1dfa817d4ffcc8b0537efa2e9c191ce`|
+| Izolált restore |`81f6de2cd1a40df9fe8ee957fd0471e98ebe3924c847e2d799225e6953577965`|
+| Monitor |`4f033c0edf2a7be1022958b76ffa9a3fc8f79c95ba6ea576e7c147551f831286`|
+| Activate |`601bc42244df86d6015680b786ac36a48d098ce55acaa55a372e1e009ac11b11`|
+| Final readonly |`af41a3ebd26c6c4a943408b14bf3f0ade377f0d4cc597af15f849943b17771d6`|
+| Reconciliation |`3d86e088b75d5d873d037ab1cbcfcf8d212805c49a4a679ce8eb2a0714d45a8f`|
+
+**Lezárás:** #95 konkrét mentési hibája és #34 technikai funded-runtime upgrade feladata kész; V9-4/N09 technikai kapu DONE. A diagnosztikai #94 külön nyitott, nem igazolt első migrációs hibát nem nevezünk meg utólag. V9-5 PENDING: új bétaablak/keret/admission és narrative cohort nincs aktiválva; tesztelői lista és a #77/#91 külön folyamat következik, motorfinomítás nélkül.
 
 
 ## Új bétaablak korai lezárással — #77, 2026-10-25

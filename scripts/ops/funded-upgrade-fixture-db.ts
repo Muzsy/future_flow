@@ -49,7 +49,7 @@ async function main() {
         'CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',
       );
       for (const name of readdirSync('database/migrations')
-        .filter((n) => n.endsWith('.sql') && !n.startsWith('038_'))
+        .filter((n) => n.endsWith('.sql') && Number(n.slice(0, 3)) <= 36)
         .sort()) {
         const sql = readFileSync('database/migrations/' + name, 'utf8').replace(
           /\r\n/g,
