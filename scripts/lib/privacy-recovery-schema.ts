@@ -48,12 +48,17 @@ const foreignKeysSql =
 // Explicit historical 001–037 entry point is restricted to the funded upgrade
 // preflight. Normal recovery stays pinned to 001–038 and still rejects 037.
 export async function assertReviewedFundedPre038Schema(tx: Database) {
-  return assertSchema(tx, true);
+  return assertSchema(tx, 37);
+}
+// Dedicated funded upgrade entry for the observed 001–036 production baseline.
+// Normal recovery is still strictly 038; no caller-supplied catalog is accepted.
+export async function assertReviewedFundedPre037Schema(tx: Database) {
+  return assertSchema(tx, 36);
 }
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
-  return assertSchema(tx, false);
+  return assertSchema(tx, 38);
 }
-async function assertSchema(tx: Database, pre038: boolean) {
+async function assertSchema(tx: Database, baseline: 36 | 37 | 38) {
   await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
   const tables = (
     await tx.query<{ name: string }>(
@@ -72,7 +77,7 @@ async function assertSchema(tx: Database, pre038: boolean) {
     "SELECT c.relname::text AS table_name,a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'ff_migrations' AND c.relkind IN('r','p') AND a.attnum>0 AND NOT a.attisdropped ORDER BY c.relname,a.attnum",
   );
   if (
-    columns.length !== (pre038 ? 855 : 856) ||
+    columns.length !== { 36: 854, 37: 855, 38: 856 }[baseline] ||
     hash(catalogColumns) !==
       hash(
         columns.map(({ table_name, column_name, ordinal_position }) => ({
@@ -82,9 +87,11 @@ async function assertSchema(tx: Database, pre038: boolean) {
         })),
       ) ||
     hash(columns) !==
-      (pre038
-        ? '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50'
-        : columnsDigest) ||
+      (baseline === 36
+        ? 'c5ac8bcddfc2a635b3923f8be73790d78ff6909734e0b6aaa3b1351be88a7af2'
+        : baseline === 37
+          ? '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50'
+          : columnsDigest) ||
     foreignKeys.length !== 219 ||
     hash(foreignKeys) !== foreignKeysDigest
   )
