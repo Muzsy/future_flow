@@ -31,6 +31,15 @@ class Adapter:
     def record(self, name, candidate):
         self.event(name)
 
+    def begin_guard(self, candidate):
+        self.event('watch-start')
+
+    def finish_guard(self):
+        self.event('watch-finish')
+
+    def restore_restart_policy(self):
+        self.event('restart-restored')
+
     def stop_and_hold(self, candidate):
         self.event('stop')
         if self.stop_fails and self.sql_applications:
@@ -82,7 +91,7 @@ class SuccessorTransitionTests(unittest.TestCase):
         self.assertLess(a.events.index('reconcile'), a.events.index('stage'))
         self.assertLess(a.events.index('verify-staged'), a.events.index('expose'))
         self.assertLess(a.events.index('future-start'), a.events.index('expose'))
-        self.assertEqual(a.events[-1], 'applied')
+        self.assertEqual(a.events[-3:], ['applied','restart-restored','watch-finish'])
 
     def test_invalid_preflight_does_not_mutate_or_stop(self):
         a = Adapter(fail='preflight')
@@ -96,13 +105,13 @@ class SuccessorTransitionTests(unittest.TestCase):
                          'apply-accounts', 'reconcile', 'accounts-committed',
                          'stage', 'verify-staged', 'authority-staged',
                          'future-start', 'exposure-intent', 'expose',
-                         'verify-serving', 'applied']:
+                         'verify-serving', 'applied', 'restart-restored']:
             with self.subTest(boundary=boundary):
                 a = Adapter(fail=boundary)
                 with self.assertRaises(InterruptedError):
                     module.transition(a, {})
                 self.assertTrue(a.held)
-                self.assertEqual(a.events[-1], 'held-after-failure')
+                self.assertEqual(a.events[-3:], ['held-after-failure','closed','watch-finish'])
                 if a.sql_applications:
                     self.assertEqual(a.old_limit, 0)
                 else:
@@ -116,7 +125,7 @@ class SuccessorTransitionTests(unittest.TestCase):
         module.transition(a, {}, recovery=True)
         self.assertEqual(a.sql_applications, 1)
         self.assertEqual(a.old_limit, 0)
-        self.assertEqual(a.events[-1], 'recovered')
+        self.assertEqual(a.events[-3:], ['recovered','restart-restored','watch-finish'])
 
     def test_uncommitted_or_mixed_recovery_cannot_seed_or_expose(self):
         for state in ['uncommitted', 'mixed', 'used', None]:

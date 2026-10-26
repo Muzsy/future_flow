@@ -611,12 +611,18 @@ SUCCESSOR_VERSION = 'alterward-beta-successor-1'
 RUNTIME_NAMES = {'server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json'}
 SUCCESSOR_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'journal.json',
                    'readback.json', 'database-after.json', 'probe-compose.json',
-                   'probe.json', 'capability.json', 'watchdog.json'}
+                   'probe.json', 'capability.json', 'watchdog.json', 'archive.json'}
+SUCCESSOR_ARCHIVE_NAME = 'beta-successor-archive'
+SUCCESSOR_ARCHIVE_VERSION = 'alterward-beta-successor-archive-1'
 
 
 def successor_config_paths(*, immutable_only=False):
     """Only finite, private successor evidence; never scan arbitrary backups."""
-    root = OWNER / 'beta-successor'
+    return sorted(successor_tree_paths(OWNER / 'beta-successor', immutable_only=immutable_only)
+                  + successor_archived_paths())
+
+
+def successor_tree_paths(root, *, immutable_only=False):
     if not root.exists() and not root.is_symlink():
         return []
     private_archive_directory(root)
@@ -633,25 +639,26 @@ def successor_config_paths(*, immutable_only=False):
             if path.name not in SUCCESSOR_NAMES:
                 raise ValueError('Unknown successor evidence')
             regular(path)
-            if not immutable_only or path.name in {'prepared.json', 'selection.json', 'terms.json'}:
+            if not immutable_only or path.name in {'prepared.json', 'selection.json', 'terms.json', 'archive.json'}:
                 result.append(path)
     return sorted(result)
 
 
-def successor_candidate(parent, parent_role):
+def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
     """Validate the one owner trial's immutable authority, including its parent.
 
     This consumes root evidence, it does not create accounts or activate users.
     The original reader/personal/funded files remain byte-bound and untouched.
     """
-    root = OWNER / 'beta-successor'
+    root = OWNER / 'beta-successor' if root is None else root
     if not root.exists() and not root.is_symlink():
         return None
-    successor_config_paths()
-    for observe in (funded_probe_state, funded_capability_state):
-        pending = observe(root)
-        if pending is not None and pending['state'] != 'cleaned':
-            raise ValueError('Pending successor one-off cannot issue active authority')
+    successor_tree_paths(root)
+    if check_oneoffs:
+        for observe in (funded_probe_state, funded_capability_state):
+            pending = observe(root)
+            if pending is not None and pending['state'] != 'cleaned':
+                raise ValueError('Pending successor one-off cannot issue active authority')
     value = json.loads(regular(root / 'prepared.json'))
     keys = {'version', 'sourceCommit', 'bundleSha256', 'preparedAt', 'expiresAt',
             'baseline', 'release', 'files', 'database', 'operation',
@@ -744,6 +751,59 @@ def successor_candidate(parent, parent_role):
                 or env['AI_FICTION_TIMEOUT_MS'] != '300000' or env['AI_FICTION_MAX_REQUEST_BYTES'] != '196608'):
             raise ValueError('Successor runtime window differs')
     return value
+
+
+def successor_unapplied_files(root):
+    paths = successor_tree_paths(root)
+    names = {p.relative_to(root).as_posix() for p in paths}
+    required = {'prepared.json', 'selection.json', 'terms.json'} | {
+        r + '/' + n for r in ('previous', 'target', 'recovery') for n in RUNTIME_NAMES}
+    if not required <= names or not names <= required | {'probe-compose.json','probe.json','capability.json','archive.json'}:
+        raise ValueError('Only complete never-attempted successor preparation may be archived')
+    for observe in (funded_probe_state, funded_capability_state):
+        value = observe(root)
+        if value is not None and value['state'] != 'cleaned':
+            raise ValueError('Pending successor one-off cannot be archived')
+    return {p.relative_to(root).as_posix():digest(regular(p)) for p in paths if p.name != 'archive.json'}
+
+
+def validate_successor_archive(root):
+    files = successor_unapplied_files(root)
+    receipt = json.loads(regular(root / 'archive.json'))
+    parent_root = OWNER / 'funded-runtime-upgrade'
+    parent = json.loads(regular(parent_root / 'prepared.json'))
+    parent_journal = json.loads(regular(parent_root / 'journal.json'))
+    terminal = parent_journal['states'][-1]['state']
+    if terminal not in {'applied','recovered'}:
+        raise ValueError('Completed original funded parent required')
+    candidate = successor_candidate(parent, 'recovery' if terminal == 'recovered' else 'target', root=root)
+    if (set(receipt) != {'version','preparedSha256','preparedSourceCommit','archiverSourceCommit','archivedAt','files'}
+            or receipt['version'] != SUCCESSOR_ARCHIVE_VERSION or receipt['files'] != files
+            or receipt['preparedSha256'] != digest(regular(root / 'prepared.json'))
+            or receipt['preparedSourceCommit'] != candidate['sourceCommit']
+            or not re.fullmatch(r'[a-f0-9]{40}',receipt['archiverSourceCommit'])
+            or dt.datetime.fromisoformat(receipt['archivedAt']) < dt.datetime.fromisoformat(candidate['expiresAt'])):
+        raise ValueError('Original expired successor archive receipt required')
+    return candidate, receipt
+
+
+def successor_archived_paths():
+    root = OWNER / SUCCESSOR_ARCHIVE_NAME
+    if not root.exists() and not root.is_symlink():
+        return []
+    private_archive_directory(root)
+    entries = sorted(root.iterdir())
+    if len(entries) > 8:
+        raise ValueError('Successor archive limit reached')
+    result = []
+    for entry in entries:
+        if not re.fullmatch(r'[a-f0-9]{64}',entry.name):
+            raise ValueError('Unknown successor archive entry')
+        validate_successor_archive(entry)
+        if digest(regular(entry / 'prepared.json')) != entry.name:
+            raise ValueError('Successor archive identity changed')
+        result += successor_tree_paths(entry)
+    return result
 
 
 def successor_effective_role(value):
