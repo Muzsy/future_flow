@@ -679,3 +679,44 @@ Privát0700/0600 evidence `.local/verification/contabo-live-6d17fda-20261026/`: 
 | `database-readonly-diagnostic-response.json` | `15e4b63ef2fd491eba37c0ec14805e6d9d652d95f7a617c8b9c0e6b27ddca517` |
 | `backup-path-diagnostic-response.json` | `ce6fd718c459d3d258df0e109ae2663ecd945c93bb94c8bd6a53962a57fa46f1` |
 | `operation-reconciliation.json` | `fd828ef07c6d0fd3d516570e344e100e9d351d91081ceaf0571b1b324401dbd9` |
+
+
+## #95 lezárva: éles Daily-mentés és restore — 2026-10-26
+
+A tulajdonos jóváhagyta a #96 `9cb677f` jelölt merge commitját és a szűk Daily-karbantartást a jelölt/main saját sikeres CI-je után. A teljes független review APPROVE; a kódot113PASS/4környezetiSKIP saját ellenőrzés, a teljes helyi Python-kört425PASS/11SKIP és10 új regresszió igazolja. Jelölt CI40309914380 Verify+Container SUCCESS. Merge `9088275f1565dce01aa2780542bbc0b1813f6896`, szülők6d17fda/9cb677f, reviewed-tree egyezés; saját main [CI40323512340](https://github.com/Muzsy/future_flow/actions/runs/40323512340) Verify+Container SUCCESS. #93 dokumentációja is integrált; az alkalmazás runtime-ja továbbra6d17fda / `sha256:d85a92f7…0381d60e` / schema038, nem az új Daily commitjára átnevezett image.
+
+A friss readonly felmérés az eredeti candidate/authority/runtime változatlanságát, hét szerveres és hét helyi mentést, nulla lejárt/pending példányt igazolt. A14 eredeti offsite ciphertext mérete/hash-e egyezik. Az eredeti privát kliens6d Git-bundle-je és operátori JSON-bizonyítékai külön megmaradtak. A kliens tiszta main9088275-re frissült,1245 tracked fájl bájtazonos Gittel, mind a hat eredeti secret változatlan. A szerveroldali nyolc eredeti Daily-fájl a `previous-9088275f1565dce01aa2780542bbc0b1813f6896` privát archívumba került, az eredeti6d config/script/unit hash-ekkel; az immutable Daily-config és a négy unit tartalma nem változott.
+
+A tényleges UTC sorrend:
+
+| Művelet | Idő | Eredmény |
+| --- | --- | --- |
+| Két saját timer disable |12:47:54–12:47:57|PASS; az alkalmazás tovább fut|
+| Normál Daily update |12:47:57–12:48:04|PASS; source/script/archívum külön readbackkel ellenőrzött|
+| Új038 backup |12:48:19–12:48:42|PASS;97 tábla,1711 sor,107 config fájl; éles DB-írás0|
+| Offsite sync |12:48:43–12:48:48|PASS;8 helyi archívum,16 ciphertext hash-egyezés|
+| Izolált restore |12:48:48–12:50:03|PASS;97 tábla/adata egyezik, ciphertext-tamper elutasított, config/proxy és cleanup sikeres|
+| Normál monitor |12:50:13–12:50:25|PASS; üres alerts|
+| Proof-bound timer activate |12:50:25–12:50:31|PASS; mindkét timer enabled+active/waiting|
+| Független readonly readback |12:50:34|PASS; mind a tíz konténer változatlan a karbantartás előtti állapothoz képest|
+
+A1711 sor a korábbi036 mentés1709 sorához képest kizárólag a `ff_migrations`36→38 sorszámnövekedésében tér el; más tábla sorszáma nem változott. A mostani restore a saját038 snapshotja összes adatát egyeztette, nem a korábbi dumpot nevezte át. A config manifest külön igazolta az eredeti827d72a legacy upgrade11 fájlját, a jelenlegi runtime négy fájlját, a funded target/recovery4+4 fájlját és minden root funded-bizonyíték változatlan hash-ét. Nincs mesterséges `upgrades/6d17fda` könyvtár.
+
+A timer-szünet156,65s, kb.2m37s; alkalmazásleállás vagy új restart nem történt. API/web healthy, worker running; az API korábban megfigyelt restartCount1 maradt, új restart0. Az eredeti keret/ablak/admission, legacy/üres cohort, candidate és funded proofok változatlanok. Mindkét service inactive/success/0, backup és monitor zöld; plaintext tmpfs üres, pending backup és ideiglenes restore-erőforrás nincs. Retenciós törlés0, paid AI0, külső üzenet0; recovery és éles DB-visszatöltés nem kellett.
+
+A régi funded CLI új `--active-proof` kiadása az új Daily mellett továbbra a változatlan exact-source kapun megáll. Az eredeti6d proof megőrzött történeti bizonyíték; az aktuális root/candidate/authority byte-egyezést külön ellenőriztük. Ez nem új capability-proof. A normál Daily saját új-source backup/restore/monitor/activate prooflánca sikeres; a review ezt a szűk karbantartási utat elfogadta. A pontos korlát a [funded runbookban](FUNDED_RUNTIME_UPGRADE_HU.md#95-helyi-javítás-és-telepítési-korlát) marad.
+
+Privát bizonyíték: `.local/verification/daily-anchor-maintenance-20261026/`,0700/0600; titok, valódi adat és titkosított backup nem kerül Gitbe. A régi sikertelen státuszok/receiptek megmaradtak; a mostani zöld eredmény új, normál műveletekből származik.
+
+| Proof | SHA-256 |
+| --- | --- |
+| Daily update |`a4885e96be11b2c7d3954a9ec1c5e619d086c7a154c670a649325e3a58a53471`|
+| Új038 backup |`f9b19e7e93cf6dd3252ad88469a0315b70b5c64d25c91b1678de3da73f563671`|
+| Offsite sync |`8f61e72dea0bc5c515a558e85e0a3268b1dfa817d4ffcc8b0537efa2e9c191ce`|
+| Izolált restore |`81f6de2cd1a40df9fe8ee957fd0471e98ebe3924c847e2d799225e6953577965`|
+| Monitor |`4f033c0edf2a7be1022958b76ffa9a3fc8f79c95ba6ea576e7c147551f831286`|
+| Activate |`601bc42244df86d6015680b786ac36a48d098ce55acaa55a372e1e009ac11b11`|
+| Final readonly |`af41a3ebd26c6c4a943408b14bf3f0ade377f0d4cc597af15f849943b17771d6`|
+| Reconciliation |`3d86e088b75d5d873d037ab1cbcfcf8d212805c49a4a679ce8eb2a0714d45a8f`|
+
+**Lezárás:** #95 konkrét mentési hibája és #34 technikai funded-runtime upgrade feladata kész; V9-4/N09 technikai kapu DONE. A diagnosztikai #94 külön nyitott, nem igazolt első migrációs hibát nem nevezünk meg utólag. V9-5 PENDING: új bétaablak/keret/admission és narrative cohort nincs aktiválva; tesztelői lista és a #77/#91 külön folyamat következik, motorfinomítás nélkül.

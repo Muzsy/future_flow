@@ -26,7 +26,7 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Terület | Állapot | Következő határ |
 |---|---|---|
 | Private Personal Simulation | implementált és egy tesztelővel valódi E2E-ben ellenőrzött | irodalmi minőség, későbbi visszatérés és szélesebb pilot |
-| Új személyes narratív pipeline | N00–N07 kész; N08/N09 nyitott | teljes paid/human benchmark és külön operátori rollout |
+| Új személyes narratív pipeline | N00–N07 és N09 technikai kapu kész; N08/humán béta nyitott | teljes paid/human benchmark és külön operátori rollout |
 | Official Lives / Scenario | technikai alap és angol katalógus létezik | nem általános publikus launch-engedély |
 | Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
 | Shared Context | foundation kész, első személyes körben OFF | owner downgrade kontroll és kétfős friend beta |
@@ -140,3 +140,5 @@ A #82 beolvadt (`c3e7393`); a #83 tulajdonosi engedéllyel végzett read-only SS
 
 
 **Éles alkalmazásfrissítés — 2026-10-26:** a jóváhagyott6d17fda/d85a92f7 image az eredeti candidate normál explicit recoveryjével élesben fut, schema038/protectedDataUnchanged=true, API/web healthy, worker running; másik hét konténer változatlan, eredeti authority/keret/ablak/admission és legacy/üres cohort megmarad, paid0. Candidate előtti új mentés/offsite/97tábla/1709sor/105config izolált restore PASS, két timer proof-bound visszaaktiválva. Első apply generic migrációs elutasítása és a változatlan036/hash readonly diagnózis megőrzött; utána egy recovery sikeres. A post-deployment038 mentés viszont a valós [#95](https://github.com/Muzsy/future_flow/issues/95) legacy-anchor collectorhibán megállt: V9-4 és #34 emiatt még PARTIAL/nyitott, backup failed nem resetelhető zöldre. Probe-diagnosztika külön[#94](https://github.com/Muzsy/future_flow/issues/94); motorfinomítás nem indul. A jelenlegi app telepítve van; a következő konkrét feladat az új állapot menthetőségének javítása, majd a kis béta előkészítése. [Tényleges sorrend, korlát és bizonyíték](operations/NARRATIVE_RELEASE_HU.md#jóváhagyott-éles-végrehajtás--2026-10-26).
+
+**Üzemeltetés rendezve — 2026-10-26:** a #96 reviewed9088275 Daily-javítás külön tulajdonosi engedéllyel élesítve; saját main CI40323512340 Verify+Container SUCCESS. Új038 mentés → offsite → izolált restore → monitor → timeraktiválás → független readback PASS,97tábla/1711sor/107config. Mind a tíz konténer változatlan a karbantartásban, az alkalmazás6d17fda/image d85a92f7/schema038, eredeti keret/ablak/admission és legacy/üres cohort megmarad. Két timer aktív, service-k success/0, backup/monitor zöld, cleanup teljes, paid0. #95/#34 technikai kész, V9-4 DONE; #94 diagnosztika és V9-5/#77/#91 külön nyitott. A régi active-proof újrakiadási korlát dokumentált; nem új capability-proof. [Tényleges végrehajtás és proofok](operations/NARRATIVE_RELEASE_HU.md#95-lezárva-éles-daily-mentés-és-restore--2026-10-26).
