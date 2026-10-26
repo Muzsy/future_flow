@@ -634,3 +634,48 @@ Záró ütemezett readback SHA-256: `00d317904e700f075f30217ca1eb9afaee0a8e6b48d
 Privát release-input validálás SHA-256: `0ca59d28f03675504248c901cf61d328e20b20e9e4b2d14cdc130f45e4252953`.
 
 A záráskori helyi readonly retenciós felmérés: 6 meglevő offsite-archívum, ebből 1 lejárt a hétnapos szabály szerint; ebben a munkában semmit nem töröltünk. A későbbi engedélyezett normál Daily-kliens ezt a managed archívumot eltávolíthatja, az eredeti proof/hibareceipt megőrzése mellett. Az aktuális készletet a végrehajtás előtt ismét ellenőrizni kell.
+
+
+## Jóváhagyott éles végrehajtás — 2026-10-26
+
+**Valós eredmény:** az alkalmazás `6d17fda5aee4c958d90ed3102630da9aea80f728` / `sha256:d85a92f72e33606825032e3399507181657e45cdf71236e8f93430af0381d60e` kiadása normál, azonos candidate-hez kötött **recoveryvel élesben fut**, schema038 és protectedDataUnchanged=true. **A teljes V9-4 lezárás még nem állítható:** az alkalmazásfrissítés utáni külön038-backup a [#95](https://github.com/Muzsy/future_flow/issues/95) konfigurációgyűjtő-hibán megállt. Ez valódi failed backup státusz; nem töröljük vagy reseteljük zöldre. A frissítés ELŐTTI, konkrét candidate-ot tartalmazó titkosított mentés/offsite/izolált restore igazolt és megmaradt.
+
+A tulajdonos a teljes konkrét csomagot külön jóváhagyta, a saját két timerrel, feltételes apply/recoveryvel és a meglévő hétnapos retencióval. Az eredeti védett Linux kliens tiszta main ff-only frissítése:1244 tracked bájt ellenőrzött, eredeti hat credential változatlan. A régi receiptfájlok külön privát példányban megőrzöttek. Pre-sync a rendes hajnalimentést offsite-ra vette, a hét napnál régebbi egy managed helyi backup eltávolítva az engedély szerint.
+
+| Lépés | Tényleges eredmény, UTC (CET=UTC+1) |
+| --- | --- |
+| Két saját timer disable | 07:05:22–07:05:27, app változatlan |
+| Daily source update | 07:05:27–07:05:32, exact6d17fda, régi nyolc fájl `previous-6d17fda…` alatt megőrzött, immutable config/recipient változatlan |
+| Candidate prepare | 07:08:06–07:08:39, prepared SHA `b79c3ad44a90ead3e719039acdb4d1212749d73b79ea0c7a158eb8a91f944eda`, éles DB-írás0 |
+| Candidate utáni backup/sync/restore | 07:09:07–07:10:44 PASS:97 tábla,1709 sor,105 configfájl, köztük a prepared és nyolc target/recovery fájl pontos hash-e. Offsite ciphertext, tamper rejection, TLS, single transaction és cleanup PASS; éles DB-visszatöltés0 |
+| Első apply | apply-intent07:12:16; held07:12:19; migration-intent07:12:33; closed07:12:40. Nem jutott schema-038/stage állapotig. A probe pontos SQLSTATE/kivételét a jelenlegi generic hiba elfedi; nem állítunk konkrét kiváltó okot |
+| Read-only diagnosztika | exact036, minden candidate adat/catalog/identity/policy hash egyezik; DDL-tulajdonosi jogosultság rendben. SERIALIZABLE READ ONLY tranzakció, a DDL explicit blokkolva, nincs kézi migráció |
+| Egyetlen normál explicit recovery | ugyanaz a source/image/candidate; recovery-intent07:22:41, schema03807:23:08, staged07:23:30, verified-staged07:23:39, **recovered07:23:52**. Adat/elszámolás változatlan, éles DB-visszatöltés0; nem régi image-re kényszerített rollback |
+| Monitor és timeraktiválás | monitor07:24:36–07:24:42 PASS; normál proof-bound activate07:24:42–07:24:45 PASS. Időzítési szünet kb19m23s, nem a teljes alkalmazás leállási ideje |
+| Friss normál active-proof | 07:27:19–07:27:32 PASS, role=recovery, tényleges source/image/authority/runtime binding |
+| Külön végső readback | 07:29:43: három új saját konténer, mind újimage/0restart/unless-stopped; API/web healthy, worker running; másik hét konténer ID/image/restart/status/start-time változatlan. Root runtime pontosan a recovery candidate; eredeti authority/window/caps/admission változatlan, csak image tag változott, legacy/üres cohort marad. Staging network és restore tmpfs tiszta, pending backup0 |
+| Külön post-deployment038-backup | 07:34:30–07:34:38 FAILED proxy-config-capture fázis. Sync/restore nem indult utána; az új hiba #95, a serving app változatlanul működik |
+
+Az első `--import tsx`-es helyi launcher a hiányzó külön csomag miatt még SSH előtt megállt; a Node24 natív TypeScript-kezelésével, tracked forrásváltoztatás/új csomag nélkül indult a normál CLI. Az eredeti local failure megőrzött. A korábbi API-startup következtetést a journal cáfolta: az akkor olvasott exit-code az eredeti leállított konténeré volt; az új stage csak a sikeres recoveryben jött létre. Ezt nem használjuk hibaokként. [#94](https://github.com/Muzsy/future_flow/issues/94) kizárólag a privát probe-diagnosztika későbbi, guardlazítás nélküli javítása.
+
+### Konkrét fennmaradó blokkoló: post-funded backup #95
+
+A valós readonly felmérés szerint az `extended_config_archive()` az OWNER/upgrades/**current manifest commit** legacy útvonalra épít. A current commit6d17fda, ilyen owner-zero upgrade-könyvtár nincs, mert a valódi funded transition az OWNER/funded-runtime-upgrade alatt van. Az eredeti827d72a legacy upgrade teljes és változatlan; az eredeti personal-beta manifest hash-e a funded candidate baseline.authorityhoz kötött. A helyes javítás e bizonyított eredeti anchor és a teljes jelenlegi funded/runtime-történet együttes archiválása. Nem gyártunk hamis legacy upgrade-fájlokat, nem módosítunk történeti receiptet, és nem lazítunk forrás-/sémavédelmet.
+
+A futó image és DB most működő új kiadás. A Daily/source6d17fda configcollector javításához új reviewed forrás, saját CI és külön pontos telepítési csomag szükséges; erre az eredeti6d17fda-only engedély nem terjed ki. A frissebb Daily és a lezárt régi runtime exact-source aktív-proof/cleanup kompatibilitása is külön ellenőrzendő, ezért nincs közvetlen live patch. V9-4 PARTIAL és #34 nyitott a038-as végállapot valódi új backup/offsite/restore sikeréig. Paid hívás0, C5-cohort bekapcsolás és új10USD-window/#77/#91 nem történt.
+
+### Éles bizonyítékok
+
+Privát0700/0600 evidence `.local/verification/contabo-live-6d17fda-20261026/`: eredeti intent/stdout/stderr/receipt, külön failed apply és sikeres recovery, eredeti és végső journal, readonly diagnosztika; korábbi proofot nem írtunk át.
+
+| Proof | SHA-256 |
+| --- | --- |
+| `funded-prepare-node24-proof.json` | `95b8dd2cd388367a12c9f4d6e9ecb0177fcf1450fd6f397fa1e6aa1341c92b14` |
+| `restore-proof.json` | `69911f286084757d7f309a3f57ac8757a086c6d53a1cbf67dcd4b6c9e2d7c73d` |
+| `funded-recover-node24-proof.json` | `2071f2460248d9adbf3d4464cdd5679061206f267fb4218c17e362fd2d6304ed` |
+| `funded-active-proof-node24-proof.json` | `77e0754a122d33f768c755074de72942c84b5235e1b62af90137375bc2251ee1` |
+| `activate-proof.json` | `24bc74d48196b2d0d5b8f2e1f31ce31c99ac0a09f7cbabf32a53f382bb3acf0c` |
+| `final-response.json` | `6a121c33bd50e4810374430c9c7f8092e8db92455f1656626312dab4c395e44d` |
+| `database-readonly-diagnostic-response.json` | `15e4b63ef2fd491eba37c0ec14805e6d9d652d95f7a617c8b9c0e6b27ddca517` |
+| `backup-path-diagnostic-response.json` | `ce6fd718c459d3d258df0e109ae2663ecd945c93bb94c8bd6a53962a57fa46f1` |
+| `operation-reconciliation.json` | `fd828ef07c6d0fd3d516570e344e100e9d351d91081ceaf0571b1b324401dbd9` |
