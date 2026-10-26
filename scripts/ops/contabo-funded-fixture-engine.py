@@ -682,7 +682,7 @@ def exercise(context, *, scope='ci'):
         def make_archive(system, candidate):
             # A real encrypted offsite copy, decrypt and isolated physical DB
             # restore precede the SAME production proof/ciphertext validators.
-            daily.ROOT = base / ('daily-' + system.database + '-' + uuid.uuid4().hex[:8])
+            daily.ROOT, offsite = containers.reserve_archive_directories(base, system.database)
             (daily.ROOT / 'status').mkdir(mode=0o700, parents=True)
             archives = daily.ROOT / 'backups'
             archives.mkdir(mode=0o700)
@@ -717,8 +717,6 @@ def exercise(context, *, scope='ci'):
                 'application.dump.age': dump,
             }
             encrypted = {}
-            offsite = base / ('offsite-' + system.database)
-            offsite.mkdir(mode=0o700)
             for name, raw in originals.items():
                 cipher = run(['age', '-r', recipient], raw)
                 private(archive / name, cipher)

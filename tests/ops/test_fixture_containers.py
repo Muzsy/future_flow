@@ -26,6 +26,21 @@ class FixtureHelperTests(unittest.TestCase):
         self.commands = []
         self.helpers = h.FixtureContainers(self.root/'intents', PROJECT, lambda: {IMAGE}, self.command)
 
+    @unittest.skipIf(os.name=='nt','POSIX private directory modes required')
+    def test_repeated_same_database_backup_reserves_distinct_daily_and_offsite_without_overwrite(self):
+        base=self.root/PROJECT
+        base.mkdir(mode=0o700)
+        database='aw_fixture_'+'c'*24
+        first=h.reserve_archive_directories(base,database)
+        for directory in first:(directory/'ciphertext.age').write_bytes(b'preserved-original')
+        second=h.reserve_archive_directories(base,database)
+        self.assertEqual(len(set(first+second)),4)
+        for directory in first:self.assertEqual((directory/'ciphertext.age').read_bytes(),b'preserved-original')
+        for directory in second:self.assertEqual(list(directory.iterdir()),[])
+        before=set(base.iterdir())
+        with self.assertRaises(ValueError):h.reserve_archive_directories(base,'../foreign')
+        self.assertEqual(set(base.iterdir()),before)
+
     def command(self, args):
         self.commands.append(args)
         state = json.loads(self.live.read_text())
