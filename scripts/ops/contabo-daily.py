@@ -351,6 +351,30 @@ def owner_database():
             'password': urllib.parse.unquote(value.password)}
 
 
+def legacy_upgrade_archive_directory(manifest):
+    """Keep the original legacy evidence after a completed funded transition.
+
+    The active manifest moves to the funded source; its legacy upgrade directory
+    does not. Only the preparation's byte-bound original authority may select
+    that directory, and only after the existing terminal-state checks pass.
+    """
+    commit = manifest['commit']
+    root = OWNER / 'funded-runtime-upgrade'
+    journal = root / 'journal.json'
+    if journal.exists() or journal.is_symlink():
+        if not funded_upgrade_healthy('personal-beta'):
+            raise ValueError('Completed funded transition required for legacy backup anchor')
+        original = OWNER / 'personal-beta' / 'manifest.json'
+        original_bytes = regular(original)
+        prepared = json.loads(regular(root / 'prepared.json'))
+        if digest(original_bytes) != prepared['baseline']['authority'][str(original)]:
+            raise ValueError('Original legacy backup authority changed')
+        commit = json.loads(original_bytes)['commit']
+    if not isinstance(commit, str) or not re.fullmatch(r'[a-f0-9]{40}', commit):
+        raise ValueError('Exact legacy backup commit required')
+    return OWNER / 'upgrades' / commit
+
+
 def extended_config_archive(proxy):
     source, _ = original_config_archive(proxy)
     files = {}
@@ -360,7 +384,7 @@ def extended_config_archive(proxy):
                 raise ValueError('Proxy archive invalid')
             files[member.name] = archive.extractfile(member).read()
     manifest = json.loads(regular(OWNER / 'manifest.json'))
-    upgrade = OWNER / 'upgrades' / manifest['commit']
+    upgrade = legacy_upgrade_archive_directory(manifest)
     paths = [OWNER / n for n in ['server.env', 'manifest.json', 'effective-compose.json', 'pinned-image.json']]
     paths += [upgrade / n for n in ['server.env', 'manifest.json', 'effective-compose.json', 'pinned-image.json', 'prepared.json', 'applying.json', 'applied.json']]
     paths += [upgrade / 'previous' / n for n in ['server.env', 'manifest.json', 'effective-compose.json', 'pinned-image.json']]
