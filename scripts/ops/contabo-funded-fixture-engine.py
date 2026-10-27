@@ -438,6 +438,9 @@ def exercise(context, *, scope='ci'):
                 ),
             }
             if role == 'worker':
+                # Production Compose puts the reader email boundary on web/API,
+                # not on the worker. Keep this absence in the real fixture too.
+                env.pop('CLOSED_SITE_ALLOWED_EMAILS')
                 env['OPENAI_API_KEY'] = 'synthetic_never_executed'
             # These inert processes cannot import a provider or claim queue work.
             code = (

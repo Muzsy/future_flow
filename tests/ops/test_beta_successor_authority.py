@@ -112,7 +112,9 @@ class SuccessorAuthorityTests(unittest.TestCase):
              'AI_FICTION_MAX_REQUEST_BYTES':'196608',
              'AI_BUDGET_WINDOW_START':terms['startsAt'],'AI_BUDGET_WINDOW_END':terms['endsAt']}
         for role in ('target','recovery'):
-            cfg={'services':{'api':{'environment':env},'worker':{'environment':env}}}
+            cfg={'services':{'web':{'environment':{'CLOSED_SITE_ALLOWED_EMAILS':env['CLOSED_SITE_ALLOWED_EMAILS']}},
+                             'api':{'environment':dict(env)},
+                             'worker':{'environment':{k:v for k,v in env.items() if k!='CLOSED_SITE_ALLOWED_EMAILS'}}}}
             self.write(self.root/role/'server.env',b'new-runtime')
             self.write(self.root/role/'effective-compose.json',encoded(cfg))
             self.write(self.root/role/'pinned-image.json',b'pinned')
@@ -238,11 +240,33 @@ class SuccessorAuthorityTests(unittest.TestCase):
         # The old funded technical account is deliberately a DIFFERENT user.
         self.assertNotEqual(self.prior['participants'],value['operation']['plan']['next']['participants'])
         self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
-        for role in ('api','worker'):
-            p=self.root/'target/effective-compose.json';cfg=json.loads(p.read_bytes())
-            cfg['services'][role]['environment']['CLOSED_SITE_ALLOWED_EMAILS']='stranger@example.invalid'
-            self.write(p,encoded(cfg))
-            self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        # Match the real Compose service boundary: ingress web/API carry the
+        # reader list; the background worker deliberately has no such field.
+        self.assertNotIn('CLOSED_SITE_ALLOWED_EMAILS',
+            json.loads((self.root/'target/effective-compose.json').read_bytes())['services']['worker']['environment'])
+
+    def test_rehashed_missing_or_foreign_ingress_reader_list_is_rejected(self):
+        for role in ('target','recovery'):
+            for service in ('web','api'):
+                for wrong in (None,'stranger@example.invalid'):
+                    with self.subTest(role=role,service=service,wrong=wrong):
+                        value=self.prepare()
+                        p=self.root/role/'effective-compose.json';cfg=json.loads(p.read_bytes())
+                        env=cfg['services'][service]['environment']
+                        if wrong is None:env.pop('CLOSED_SITE_ALLOWED_EMAILS')
+                        else:env['CLOSED_SITE_ALLOWED_EMAILS']=wrong
+                        self.write(p,encoded(cfg))
+                        # Rebind all hashes so this reaches the reader-policy
+                        # check rather than being rejected as generic tampering.
+                        digest=daily.digest(encoded(cfg))
+                        value['files'][role]['effective-compose.json']=digest
+                        mp=self.root/role/'manifest.json';manifest=json.loads(mp.read_bytes())
+                        manifest['effectiveComposeSha256']=digest
+                        self.write(mp,encoded(manifest))
+                        value['files'][role]['manifest.json']=daily.digest(encoded(manifest))
+                        self.write(self.root/'prepared.json',encoded(value))
+                        with self.assertRaisesRegex(ValueError,'reader access'):
+                            daily.successor_candidate(self.old,'target')
 
     def test_pending_successor_one_off_is_not_healthy(self):
         value=self.prepare();self.expose(value)

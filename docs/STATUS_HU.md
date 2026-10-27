@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**Aktuális checkpoint — 2026-10-27 12:47 UTC:** az engedélyezett 18 fájlos forenzikus elkülönítés és Daily-helyreállítás kész: új mentés/offsite, tényleges 97 tábla / 1711 sor / 107 konfigurációs fájl izolált visszaállítása, friss monitor, timerek és külön végső readback PASS. Az első általános restore-hiba megmaradt, az oka nem bizonyított; a külön megfigyelt menet sikeres. Serving 6d17fda / legacy / eredeti keret, privát kliens és Daily 03dc190, eredeti tíz workload és négy runtime-hash változatlan, paid 0. Reader-javítás #105 bf52611 független APPROVE és saját CI SUCCESS, még nem main/telepítés. Új saját 3 USD és teljes saját Playwright nincs. [Pontos lezárás és következő kapu](operations/NARRATIVE_RELEASE_HU.md#reader-kapuhiba-után-engedélyezett-forenzikus-és-daily-helyreállítás-pass--2026-10-27).
+
 Az első személyes tesztelő reader-hozzáférése, első belépése és a 30 napos funded ablak kanonikus Linux-operátori aktiválása megtörtént. Az alkalmazott UTC ablak **2026-10-13T22:11:21Z–2026-11-12T22:11:21Z**, a projektmaximum 2 USD, a felhasználói maximum 0,50 USD. Nincs automatikus hosszabbítás vagy újraindított költségkeret.
 
 Az utolsó igazolt böngészős E2E (2026-10-14) három valódi fejezetet, két folytatási ciklust, mentett választásokat, újranyitást, visszabelépést és friss hitelesítés utáni exportot ellenőrzött. A kilenc provider-task elszámolt összege 0,188585 USD; ez a béta adatbázis-elszámolása, nem szolgáltatói számla. A következő generálást a 3/UTC-nap, 1 párhuzamos kérés korlát megállította. A későbbi új-munkamenetes sikeres folytatás nem igazolt. A megtartott fiók destruktív törlése nem volt része a próbának.
