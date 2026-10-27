@@ -201,3 +201,159 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
             checks.update(db('successor-verify',database,{'previous':terms,'selection':selection,'expected':candidate['operation']}))
             checks.update(historyPreserved=True,stagedIngress=True,effectiveAuthority=True)
             assert trial.proof['browserJourneyPassed'] is False
+            if label=='success':
+                chain(engine,successor,ctx,request=request,release=release,owner=owner,project=project,
+                      database=database,window=selection['next'],db=db,make_archive=make_archive,
+                      private=private,checks=checks)
+
+
+READERS = ['funded@example.invalid','owner@example.invalid','tester-one@example.invalid','tester-two@example.invalid']
+OWNER = {'email':'owner@example.invalid','userId':'22222222-2222-4222-8222-222222222222'}
+TESTERS = [OWNER,
+    {'email':'tester-one@example.invalid','userId':'33333333-3333-4333-8333-333333333333'},
+    {'email':'tester-two@example.invalid','userId':'44444444-4444-4444-8444-444444444444'}]
+
+
+def chain(engine, successor, ctx, *, request, release, owner, project, database, window, db,
+          make_archive, private, checks):
+    """The two separately authorized generations that follow the owner trial.
+
+    The owner window must be running first (a real wait, no clock seam), then
+    reader admission (Access list only, no database write) and the 10 USD tester
+    window, each consuming the previous generation's complete evidence.
+    """
+    daily, funded, upgrade = engine.daily, engine.funded, engine.upgrade
+    encoded, sha, frozen = engine.encoded, engine.sha, engine.frozen
+    iso = lambda t:t.isoformat(timespec='milliseconds').replace('+00:00','Z')
+    utc = lambda:dt.datetime.now(dt.timezone.utc)
+
+    def fixture_system(req, selection, previous):
+        class ChainSystem(successor.System):
+            def __init__(self):
+                super().__init__(req,daily)
+                self.database=database
+                self.staging_network=project+'-stage'
+                self.applications=0
+
+            def probe(self,image,mode,expected=None):
+                if image != ctx['image'] or mode != 'capture' or expected is not None:
+                    raise ValueError('Only actual synthetic038 capture supported')
+                return db('capture',database)
+
+            def accounting(self,image,mode,expected=None):
+                if self.is_reader() or image != ctx['image'] or mode not in {'capture','apply','reconcile'}:
+                    raise ValueError('Exact isolated successor transport required')
+                return db('successor-'+mode,database,{'previous':previous,'selection':selection,'expected':expected})
+
+            def apply_accounts(self,candidate):
+                self.applications+=1
+                return super().apply_accounts(candidate)
+
+            def build_files(self,role,build,baseline):
+                path=self.root/role
+                path.mkdir(mode=0o700)
+                old=self.files(owner)
+                config=self.configuration(owner)
+                new=copy.deepcopy(config)
+                values=successor.selection_values(selection)
+                runtime=funded.narrative_runtime_values(successor.runtime_selection(selection,previous))
+                for name,svc in new['services'].items():
+                    svc['image']=build['imageId']
+                    if name in {'api','worker'}:
+                        svc['environment'].update({k:v for k,v in values.items()
+                            if name=='worker' or k in {'CLOSED_BETA_USER_IDS','AI_PROJECT_BUDGET_USD','AI_USER_BUDGET_USD'}})
+                        svc['environment'].update({k:v for k,v in runtime.items() if name=='worker' or k in funded.NARRATIVE_DEFAULTS})
+                    if self.is_reader() and name in {'web','api'}:
+                        svc['environment']['CLOSED_SITE_ALLOWED_EMAILS']=','.join(successor.reader_emails(selection))
+                assert successor.normalized(new,selection,previous)==successor.normalized(config,selection,previous)
+                private(path/'server.env',successor.candidate_environment(old['server.env'].decode(),selection,build['imageTag'],previous))
+                private(path/'pinned-image.json',encoded({'services':{n:{'image':build['imageId'],'pull_policy':'never'} for n in new['services']}}))
+                private(path/'effective-compose.json',frozen(new))
+                manifest={**json.loads(old['manifest.json']),
+                    'commit':build['commit'],'imageId':build['imageId'],
+                    'ownerEnvironmentSha256':sha((path/'server.env').read_bytes()),
+                    'effectiveComposeSha256':sha(frozen(new))}
+                if self.is_reader():
+                    manifest['accessConfigurationSha256']=sha(self.reader_receipt())
+                private(path/'manifest.json',encoded(manifest))
+                return self.hashes(path)
+        return ChainSystem()
+
+    def advance(selection, previous, *, emails):
+        req=copy.deepcopy(request)
+        for key in ('preparedSha256','restoreProof'):
+            req.pop(key,None)
+        req.update(mode='prepare',selection=selection,release={**release,
+            'runtime':successor.runtime_selection(selection,previous),'successorFixtureSha256':'b'*64})
+        # External Access always leads the origin: it already shows the new list.
+        req['accessSnapshot']={**req['accessSnapshot'],'allowedEmails':emails,'checkedAt':utc().isoformat()}
+        trial=fixture_system(req,selection,previous)
+
+        def runtime():
+            manifest=json.loads((owner/'manifest.json').read_bytes())
+            roles=trial.roles()
+            config=trial.configuration(owner)
+            engine.activation.validate_running(list(roles.values()),config,manifest['imageId'])
+            assert sha(upgrade.CA.read_bytes())==manifest['databaseCaSha256']
+            daily.personal_runtime_policy({k:v['environment'] for k,v in config['services'].items()},daily.utcnow())
+            return manifest,roles
+
+        with patch.object(daily,'owner_runtime',runtime):
+            prepared=trial.prepare()
+            candidate=json.loads((trial.root/'prepared.json').read_bytes())
+            req['preparedSha256']=prepared['preparedSha256']
+            assert trial.candidate()==candidate
+            make_archive(trial,candidate)
+            if 'closePreviousAt' in selection:
+                until=funded.stamp(selection['closePreviousAt'])
+                while trial.now()<until:
+                    time.sleep(min(1,(until-trial.now()).total_seconds()))
+            req['accessSnapshot']['checkedAt']=utc().isoformat()
+            successor.transition(trial,candidate)
+            assert trial.applications==1
+            assert daily.funded_upgrade_healthy('personal-beta')
+            active=engine.replay.active_funded_runtime(daily,funded.fence.original)
+            assert active['preparedSha256']==sha(encoded(candidate))
+            assert trial.reconcile_accounts(candidate)['protectedDataUnchanged'] is True
+            assert trial.proof['browserJourneyPassed'] is False
+        return trial,candidate
+
+    # The owner window is part of the baseline of both later generations and must
+    # be the running window: wait for its real start instead of moving a clock.
+    start=funded.stamp(window['startsAt'])+dt.timedelta(seconds=3)
+    while utc()<start:
+        time.sleep(min(5,(start-utc()).total_seconds()))
+
+    reader_selection={'purpose':'reader-admission','previousTermsSha256':successor.canonical_sha(window),
+        'readers':{'allowedEmails':sorted(READERS)}}
+    reader,reader_candidate=advance(reader_selection,window,emails=sorted(READERS))
+    assert reader.generation==2 and reader.root.name=='beta-successor-2'
+    assert (reader.root/'terms.json').read_bytes()==encoded(window)
+    assert json.loads((reader.root/'access.json').read_bytes())['allowedEmails']==sorted(READERS)
+    assert json.loads((reader.root/'readback.json').read_bytes())['previousAllowanceClosed'] is False
+    # The origin now matches the externally admitted list and cohort is unchanged.
+    env=reader.configuration(owner)['services']['api']['environment']
+    assert env['CLOSED_SITE_ALLOWED_EMAILS']==','.join(sorted(READERS))
+    assert env['CLOSED_BETA_USER_IDS']==OWNER['userId']
+    checks['readerAdmission']=True
+
+    db('successor-tester-setup',database,{'previous':window,'selection':{'purpose':'tester-beta','next':{'participants':TESTERS}}})
+    now=utc()
+    tester_selection={'purpose':'tester-beta','previousTermsSha256':successor.canonical_sha(window),
+        'closePreviousAt':iso(now+dt.timedelta(seconds=60)),'next':{'participants':TESTERS,
+        'projectUsd':'10','userUsd':'3.33','startsAt':iso(now+dt.timedelta(minutes=10)),
+        'endsAt':iso(now+dt.timedelta(days=30,minutes=10))}}
+    tester,tester_candidate=advance(tester_selection,window,emails=sorted(READERS))
+    assert tester.generation==3 and tester.root.name=='beta-successor-3'
+    verified=db('successor-tester-verify',database,{'previous':window,'selection':tester_selection,
+                                                     'expected':tester_candidate['operation']})
+    assert verified=={'testerBetaWindow':True}
+    checks['testerBetaWindow']=True
+    # Each generation re-proves its parent's complete evidence from the original
+    # files; the active authority is the last one, with all earlier trees bound.
+    state=daily.successor_active_state()
+    assert state['generation']==3 and state['directory'].name=='beta-successor-3'
+    assert reader_candidate['preparedAt']<tester_candidate['preparedAt']
+    assert tester_candidate['parentPreparedSha256']==sha(encoded(reader_candidate))
+    assert reader_candidate['parentPreparedSha256']!=tester_candidate['parentPreparedSha256']
+    checks['chainedAuthority']=True

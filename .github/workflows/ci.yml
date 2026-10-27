@@ -76,7 +76,8 @@ jobs:
   container:
     runs-on: ubuntu-latest
     # Build, complete funded fixture, independent image rehearsal and cleanup.
-    timeout-minutes: 40
+    # The chained successor case really waits for the owner window to start.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Build the Contabo image without credentials

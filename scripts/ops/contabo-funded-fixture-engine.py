@@ -877,7 +877,7 @@ def exercise(context, *, scope='ci'):
                 import shutil
 
                 shutil.rmtree(owner / 'funded-runtime-upgrade')
-            for name in ('beta-successor','beta-successor-archive'):
+            for name in (*daily.SUCCESSOR_ROOT_NAMES,'beta-successor-archive'):
                 if (owner/name).exists():
                     # Independent nonce-owned cases ONLY, never an operator retry.
                     __import__('shutil').rmtree(owner/name)
