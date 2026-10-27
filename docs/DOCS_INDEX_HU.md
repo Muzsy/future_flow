@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-26
+last_reviewed: 2026-10-27
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -46,6 +46,12 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 **Aktuális fókusz — 2026-10-24:** befagyasztott v9 C5 motor → technikai stabilizálás/integráció → N09 → kis zárt béta. Az editor/history további finomítása DEFERRED. Első kiadási olvasás: [bétafókuszú lezárás](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24), majd a master plan.
 
 Az aktív részletes végrehajtási terv a [master plan V9-1–V9-5 sora](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A **v9 C5** a [#81](https://github.com/Muzsy/future_flow/pull/81) merge-dzsel a `main` része (`4fb7b489`, 2026-10-25); a motoralap `7bd4d42`. Az integráció és a későbbi operátori javítások saját review/CI-eredménye külön követett. A #88 utáni `adf2b95` saját main CI-je és tényleges célgépes image-fixture próbája 16/16 + cleanup PASS. A #90 engedélyezett Daily v4/friss backup/offsite/97-táblás izolált restore/monitor/aktiválás lánca PASS. A 2026-10-26 readonly DB/drain/Auth/runtime és Access felmérés után az éles exact036 séma miatti #92 javítás beolvadt (`6d17fda`), teljes review és saját main CI40251518673 SUCCESS. Új célgépes build és standalone próba 16/16 + cleanup PASS; a későbbi jóváhagyott éles recovery6d17fda/schema038 és a candidate mentése/restore-ja PASS. A #96 reviewed9088275 Daily-javítás engedélyezett éles lánca az új038 mentéssel/offsite/izolált restore-ral/monitorral/timeraktiválással és független readbackkel PASS; #95/#34 technikai kész, V9-4 DONE. A serving app6d17fda image-en fut, legacy/üres cohorttal; a Daily9088275 és a régi active-proof újrakiadási korlát külön dokumentált. Utána V9-5 tesztelői alapút. Production utolsó igazolt állapota legacy; az implementáció, review, mérés és élesítés külön státusz.
+
+**2026-10-27 frissítés:** #105 reviewed `b31464a` → exact-tree main `66062ec`, saját main CI és új `3200b28e` célgépes image16/16+14/14/cleanup PASS,16:47 UTC friss normál monitor és külön runtime/timer readback PASS. Serving6d17fda/legacy/régi allowance és kliens/Daily03dc190 marad; saját3USD és teljes saját Playwright még nincs. Következő a konkrét éles saját fiókos csomag külön engedélye; a [release runbook aktuális szakasza](operations/NARRATIVE_RELEASE_HU.md#reader-javítás-main-és-új-célgépes-image--2026-10-27) írja le a proofokat és a végrehajtási határt. A korábbi bejegyzések történeti részkapuk.
+
+**2026-10-27 17:07UTC operátori frissítés:** a külön engedélyezett66062ec/3200b28e saját fiókos éles csomag és Daily-frissítés tényleges backup/offsite/restore/apply/monitor/timer/readbackPASS. A fenti6d17fda/03dc190 állapot történetivé vált. Régi allowance lezárt,új saját3USD/0költés; teljes saját böngészős út Cloudflare-belépésre vár,tesztelői indulás nincs. [Aktuális műveleti lezárás](operations/NARRATIVE_RELEASE_HU.md#saját-fiókos-éles-keretváltás-pass--2026-10-27).
+
+**2026-10-27 20:34UTC saját kapu PASS:** a fenti belépésre váró állapotot felváltotta a teljes saját v9 C5 Playwright-út:2fejezet/1mentett választás/kilépés/friss belépés/azonos állapot,friss DB/accounting/monitor/runtimePASS. Összes0.671215USD a3USD-ből,0unsettled. V9-5PARTIAL; tényleges tesztelői kör és külön10USD-s ablak még nincs. [Mért lezárás és korlátok](operations/NARRATIVE_RELEASE_HU.md#teljes-saját-fiókos-v9-playwright-alapút-pass--2026-10-27).
 
 Minimális kontextus: [STATUS](STATUS_HU.md) → [master plan](DEVELOPMENT_PLAN_HU.md) → [creative terv C5](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md#v9-első-változat-és-oksági-ismétlés--c5-2026-10-23). Szereplőállapot és elfogadott fázisok: [élő világ terv](plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md), [ADR-009](decisions/ADR-009-character-state-artifact-fold.md). Modellalapú összehasonlítás: [mérési runbook C5](operations/NARRATIVE_EVALUATION_HU.md#c5-ellenőrzés-az-editoros-javítások-offline-elemzése-után--2026-10-23); kiadás: [release runbook](operations/NARRATIVE_RELEASE_HU.md).
 
