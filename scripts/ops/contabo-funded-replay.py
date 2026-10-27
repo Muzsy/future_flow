@@ -28,7 +28,9 @@ def active_funded_runtime(daily, original):
         raise ValueError('Healthy completed funded state without pending probe required')
     root = (daily.active_funded_directory() if hasattr(daily, 'active_funded_directory')
             else daily.OWNER / 'funded-runtime-upgrade')
-    successor = root == daily.OWNER / 'beta-successor'
+    names = getattr(daily, 'SUCCESSOR_ROOT_NAMES', ())
+    generation = next((n for n, name in enumerate(names, 1) if root == daily.OWNER / name), 0)
+    successor = generation > 0
     expected_version = 'alterward-beta-successor-1' if successor else 'alterward-funded-upgrade-1'
     candidate = json.loads(original(root / 'prepared.json'))
     journal = json.loads(original(root / 'journal.json'))
@@ -68,7 +70,8 @@ def active_funded_runtime(daily, original):
                  for path in candidate['baseline']['authority']}
     paths = daily.reader_config_paths() + daily.personal_config_paths()
     if successor:
-        paths += daily.funded_tree_paths(daily.OWNER / 'funded-runtime-upgrade') + daily.funded_archived_paths()
+        # Every earlier generation is part of this one's immutable baseline.
+        paths = daily.successor_authority_paths(generation)
     if (not authority or set(authority) != {str(p) for p in paths} or
             authority != candidate['baseline']['authority']):
         raise ValueError('Original funded admission and window authority changed')
