@@ -75,8 +75,9 @@ class ImageRehearsalBoundaries(unittest.TestCase):
     def test_successor_proof_cannot_be_missing_or_substituted_by_the_old_fixture(self):
         names={'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
                'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
-               'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup'}
-        proof={'version':'alterward-beta-successor-fixture-1',**BINDING,
+               'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
+               'readerAdmission','testerBetaWindow','chainedAuthority'}
+        proof={'version':'alterward-beta-successor-fixture-2',**BINDING,
                'targetImage':IMAGE,'recoveryImage':IMAGE,'checks':dict.fromkeys(names,True),'paidAiCalls':0}
         r.require_successor_proof(proof,IMAGE,BINDING)
         for wrong in (None,{}, {**proof,'sourceCommit':'f'*40}, {**proof,'checks':dict.fromkeys(r.CHECKS,True)}):

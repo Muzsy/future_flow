@@ -324,6 +324,106 @@ it('atomically closes old limits, preserves history/spend and seeds only the new
     await expect(captureSuccessorAccounts(tx, i.plan)).rejects.toThrow();
   });
 });
+it('chains the tester beta from the live single-owner 3 USD window, keeping its spend and history', async () => {
+  const owner = ownerInput();
+  const now = Date.now();
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const previous = {
+    participants: [users[0]!],
+    projectUsd: '3',
+    userUsd: '3',
+    startsAt: iso(now - 86400000),
+    endsAt: iso(now - 86400000 + 30 * 86400000),
+  };
+  const selection = {
+    purpose: 'tester-beta' as const,
+    previousTermsSha256: hash(previous),
+    closePreviousAt: iso(now),
+    next: {
+      participants: users,
+      projectUsd: '10',
+      userUsd: '3.33',
+      startsAt: iso(now + 60000),
+      endsAt: iso(now + 60000 + 30 * 86400000),
+    },
+  };
+  const plan = successorPlan(previous, selection, iso(now));
+  expect(plan.purpose).toBe('tester-beta');
+  expect(owner.plan.purpose).toBe('owner-e2e');
+  // The same selection cannot be replayed against another previous window.
+  expect(() =>
+    successorPlan(owner.previous, selection, plan.observedAt),
+  ).toThrow();
+  await rollback(async (tx) => {
+    await tx.query(
+      `INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES
+      ($1,NULL,3000000,671215),($2,$3,3000000,671215)`,
+      [plan.previousKeys.project, plan.previousKeys.users[0], users[0]!.userId],
+    );
+    await tx.query(
+      `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status,input_tokens,output_tokens,settled_at)
+      VALUES($1,$2,$3,$4,$5,'gpt-6.1-sol','history',700000,671215,'completed',100,200,now())`,
+      [
+        randomUUID(),
+        users[0]!.userId,
+        plan.previousKeys.project,
+        plan.previousKeys.users[0],
+        randomUUID(),
+      ],
+    );
+    const history = await tx.query(
+      'SELECT * FROM aw_budget_reservations ORDER BY id',
+    );
+    const before = await captureSuccessorAccounts(tx, plan);
+    const result = await closeAndSeedSuccessorAccounts(
+      tx,
+      previous,
+      selection,
+      plan,
+      before,
+    );
+    expect(result.previousSpendPreserved).toBe(true);
+    expect(result.previousAccountLimitsClosed).toBe(2);
+    expect(result.newAccounts).toBe(4);
+    expect(
+      (await reconcileSuccessorAccounts(tx, previous, selection, plan, before))
+        .state,
+    ).toBe('committed');
+    expect(
+      await tx.query('SELECT * FROM aw_budget_reservations ORDER BY id'),
+    ).toEqual(history);
+    const closed = await tx.query(
+      'SELECT limit_micro::text,accounted_micro::text FROM aw_budget_accounts WHERE id=ANY($1::text[]) ORDER BY id',
+      [[plan.previousKeys.project, ...plan.previousKeys.users]],
+    );
+    expect(closed).toHaveLength(2);
+    expect(
+      closed.every(
+        (a) => a.limit_micro === '0' && a.accounted_micro === '671215',
+      ),
+    ).toBe(true);
+    const fresh = await tx.query(
+      'SELECT id,limit_micro::text,accounted_micro::text FROM aw_budget_accounts WHERE id=ANY($1::text[]) ORDER BY id',
+      [[plan.nextKeys.project, ...plan.nextKeys.users]],
+    );
+    expect(fresh).toHaveLength(4);
+    expect(fresh.map((a) => a.limit_micro).sort()).toEqual([
+      '10000000',
+      '3330000',
+      '3330000',
+      '3330000',
+    ]);
+    expect(fresh.every((a) => a.accounted_micro === '0')).toBe(true);
+    const old = new DatabaseAiBudget(tx, users[0]!.userId, randomUUID(), {
+      projectUsd: 3,
+      userUsd: 3,
+      window: plan.previous,
+    });
+    await expect(
+      old.reserve({ model: 'gpt-6.1-sol', max_output_tokens: 1, input: [] }),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
+  });
+});
 it('normal DatabaseAiBudget spends from the new window after its start; old configuration stays denied', async () => {
   const i = input(1500);
   await rollback(async (tx) => {

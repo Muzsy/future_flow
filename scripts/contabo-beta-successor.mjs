@@ -1,5 +1,7 @@
-// Explicit owner-only allowance transition. No provider call, migration or
-// implicit rollout. Verify the committed helpers before importing any of them.
+// Explicit successor-generation transition: owner-e2e (first), then reader
+// admission and the tester window, each chained to the previous exposed one.
+// No provider call, migration or implicit rollout. Verify the committed helpers
+// before importing any of them.
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFileSync, lstatSync, realpathSync } from 'node:fs';
@@ -17,9 +19,33 @@ async function main() {
       'archive-expired',
       'cleanup-probe',
     ].includes(mode) ||
-    process.argv.length !== (mode === 'prepare' ? 4 : 3)
+    process.argv.length < (mode === 'prepare' ? 4 : 3) ||
+    process.argv.length >
+      (mode === 'prepare'
+        ? 4
+        : ['apply', 'recover', 'archive-expired'].includes(mode)
+          ? 4
+          : 3)
   )
     throw Error('Explicit Linux beta-successor mode required');
+  // Every generation keeps its own receipts; a later one never overwrites an
+  // earlier proof. The first (owner) generation keeps its original names.
+  const purposes = {
+    owner: 'owner-e2e',
+    reader: 'reader-admission',
+    tester: 'tester-beta',
+  };
+  const prefixes = {
+    'owner-e2e': '',
+    'reader-admission': 'reader-',
+    'tester-beta': 'tester-',
+  };
+  let purpose = 'owner-e2e';
+  if (mode !== 'prepare' && process.argv[3] !== undefined) {
+    purpose = purposes[process.argv[3]];
+    if (!purpose) throw Error('Explicit successor generation required');
+  }
+  const receipt = (kind) => `beta-successor-${prefixes[purpose]}${kind}.json`;
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
@@ -125,10 +151,14 @@ async function main() {
         commit,
       );
     const packet =
-      mode === 'prepare'
-        ? read(process.argv[3])
-        : report('beta-successor-release.json');
+      mode === 'prepare' ? read(process.argv[3]) : report(receipt('release'));
     exactObject(packet, ['selection', 'release']);
+    if (mode === 'prepare') {
+      purpose = packet.selection?.purpose;
+      if (!(purpose in prefixes))
+        throw Error('Approved successor purpose required');
+    } else if (packet.selection?.purpose !== purpose)
+      throw Error('Receipt belongs to another successor generation');
     const release = successorReleaseEvidence({
       commit,
       bundleSha256,
@@ -146,10 +176,8 @@ async function main() {
       read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),
     );
     if (mode !== 'prepare') {
-      request.preparedSha256 = report(
-        'beta-successor-prepare-proof.json',
-      ).preparedSha256;
-      request.restoreProof = report('beta-successor-restore-proof.json');
+      request.preparedSha256 = report(receipt('prepare-proof')).preparedSha256;
+      request.restoreProof = report(receipt('restore-proof'));
       exactObject(request.restoreProof, [
         'sourceCommit',
         'preparedSha256',
@@ -162,12 +190,10 @@ async function main() {
     // The selected images are retained as a NEW receipt. Historical activation
     // and owner-zero receipts are never hand-edited or substituted.
     if (mode === 'prepare')
-      privateReportFile(directory, 'beta-successor-release.json', packet);
+      privateReportFile(directory, receipt('release'), packet);
   }
   if (mode === 'archive-expired') {
-    request.preparedSha256 = report(
-      'beta-successor-prepare-proof.json',
-    ).preparedSha256;
+    request.preparedSha256 = report(receipt('prepare-proof')).preparedSha256;
     const { readFundedAccess } = await import('./lib/funded-access.mjs');
     request.accessSnapshot = await readFundedAccess(
       read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),
@@ -233,7 +259,7 @@ except BaseException:
   pending.child.stdin.end(JSON.stringify({ modules, request }));
   const output = JSON.parse((await pending).stdout);
   if (output.ok !== true) throw Error('Successor transition refused');
-  privateReportFile(directory, `beta-successor-${mode}-proof.json`, {
+  privateReportFile(directory, receipt(`${mode}-proof`), {
     ...output.result,
     opsCommit: commit,
     capturedAt: new Date().toISOString(),
@@ -244,7 +270,7 @@ except BaseException:
 }
 main().catch(() => {
   console.error(
-    'Owner successor refused or incomplete. Keep serving closed and inspect the private journal before explicit recovery.',
+    'Successor refused or incomplete. Keep serving closed and inspect the private journal before explicit recovery.',
   );
   process.exitCode = 1;
 });

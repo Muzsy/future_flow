@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import {
   successorReleaseEvidence,
   validateOwnerSelection,
+  validateReaderSelection,
+  validateSuccessorSelection,
   successorChecks,
   successorModules,
 } from '../../scripts/lib/beta-successor-release.mjs';
@@ -83,7 +85,7 @@ function proof() {
       ),
     },
     successorFixture: {
-      version: 'alterward-beta-successor-fixture-1',
+      version: 'alterward-beta-successor-fixture-2',
       sourceCommit: commit,
       bundleSha256,
       targetImage: image,
@@ -138,6 +140,110 @@ test('does not convert the owner trial into an arbitrary allowance/cohort or mal
   }
   const p = proof();
   p.release.runtime.cohortUserIds = ['11111111-1111-4111-8111-111111111111'];
+  assert.throws(() => successorReleaseEvidence(p));
+});
+const testers = [
+  {
+    email: 'owner@example.invalid',
+    userId: '22222222-2222-4222-8222-222222222222',
+  },
+  {
+    email: 'tester-one@example.invalid',
+    userId: '11111111-1111-4111-8111-111111111111',
+  },
+  {
+    email: 'tester-two@example.invalid',
+    userId: '33333333-3333-4333-8333-333333333333',
+  },
+];
+function testerProof() {
+  const p = proof();
+  p.selection.purpose = 'tester-beta';
+  p.selection.next.participants = structuredClone(testers);
+  p.selection.next.projectUsd = '10';
+  p.selection.next.userUsd = '3.33';
+  p.release.runtime.cohortUserIds = testers.map((t) => t.userId);
+  return p;
+}
+function readerProof() {
+  const p = proof();
+  p.selection = {
+    purpose: 'reader-admission',
+    previousTermsSha256: 'd'.repeat(64),
+    readers: {
+      allowedEmails: ['owner@example.invalid', 'tester-one@example.invalid'],
+    },
+  };
+  return p;
+}
+test('tester-beta is exactly three unique participants with the 10 / 3.33 USD allowance', () => {
+  const p = testerProof();
+  assert.equal(successorReleaseEvidence(p).target.imageId, image);
+  assert.throws(() => validateOwnerSelection(p.selection));
+  for (const change of [
+    (s) => s.next.participants.pop(),
+    (s) =>
+      s.next.participants.push({
+        email: 'fourth@example.invalid',
+        userId: '44444444-4444-4444-8444-444444444444',
+      }),
+    (s) => (s.next.projectUsd = '11'),
+    (s) => (s.next.projectUsd = '3'),
+    (s) => (s.next.userUsd = '3.34'),
+    (s) => (s.next.userUsd = '3'),
+    (s) => (s.next.participants[2].userId = s.next.participants[1].userId),
+    (s) => (s.next.participants[2].email = 'Tester@example.invalid'),
+    (s) => (s.next.endsAt = '2026-02-01T00:01:00Z'),
+    (s) => (s.closePreviousAt = s.next.startsAt),
+  ]) {
+    const s = testerProof().selection;
+    change(s);
+    assert.throws(() => validateSuccessorSelection(s));
+  }
+  const wrong = testerProof();
+  wrong.release.runtime.cohortUserIds = [testers[0].userId];
+  assert.throws(() => successorReleaseEvidence(wrong));
+});
+test('reader admission is a sorted unique reader list and carries no allowance', () => {
+  const p = readerProof();
+  assert.equal(successorReleaseEvidence(p).target.imageId, image);
+  assert.throws(() => validateOwnerSelection(p.selection));
+  for (const change of [
+    (s) => (s.readers.allowedEmails = []),
+    (s) => s.readers.allowedEmails.reverse(),
+    (s) => s.readers.allowedEmails.push(s.readers.allowedEmails[1]),
+    (s) => (s.readers.allowedEmails[1] = 'Tester@example.invalid'),
+    (s) =>
+      (s.readers.allowedEmails = Array.from(
+        { length: 11 },
+        (_, i) => `reader${String(i).padStart(2, '0')}@example.invalid`,
+      )),
+    (s) => (s.previousTermsSha256 = 'xyz'),
+    (s) => (s.next = {}),
+    (s) => (s.projectUsd = '10'),
+    (s) => (s.purpose = 'owner-e2e'),
+  ]) {
+    const s = readerProof().selection;
+    change(s);
+    assert.throws(() => validateSuccessorSelection(s));
+  }
+  assert.throws(() => validateReaderSelection(testerProof().selection));
+  const runtime = readerProof();
+  runtime.release.runtime.cohortUserIds = [];
+  assert.throws(() => successorReleaseEvidence(runtime));
+  const bytes = readerProof();
+  bytes.release.runtime.maxRequestBytes = 100000;
+  assert.throws(() => successorReleaseEvidence(bytes));
+});
+test('the fixture contract demands the chained-generation checks', () => {
+  for (const name of [
+    'readerAdmission',
+    'testerBetaWindow',
+    'chainedAuthority',
+  ])
+    assert.ok(successorChecks.includes(name));
+  const p = proof();
+  p.successorFixture.version = 'alterward-beta-successor-fixture-1';
   assert.throws(() => successorReleaseEvidence(p));
 });
 test('privileged imports are finite and leave the original CLI mode contract unchanged', () => {
