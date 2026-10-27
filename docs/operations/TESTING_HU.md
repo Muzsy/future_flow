@@ -35,6 +35,12 @@ A GitHub Verify pipeline a repository alap quality gate-je. Többek között ell
 
 Merge csak a releváns kötelező ellenőrzések sikeres lefutása után.
 
+### Teljes funded CI-próba időkerete — #101, 2026-10-27
+
+A `smoke-deployment.mjs` izolált, root jogosultságú funded fixture-je fizikai mentést/visszaállítást és successor-várakozásokat is végrehajt. A teljes gyermekfolyamat CI-kerete15perc, a külön image-rehearsalt és építést is futtató Container job felső határa40perc. A sikeres fixture tényleges `fundedFixtureElapsedMs` időtartama a CI-naplóba kerül; a mérés nem elfogadási proof. Az egyedi parancsok határai, watchdogok, ellenőrzések és a production/provider időkorlátok változatlanok. Nincs automatikus retry vagy sikertelen ellenőrzés átugrása.
+
+Indok: a89aa943 main [CI40463665750](https://github.com/Muzsy/future_flow/actions/runs/40463665750) első Container-kísérletét a korábbi600000ms külső keret megszakította (`spawnSync sudo ETIMEDOUT`), miközben a Verify sikeres. Az egyező tracked tree korábbi sikeres PR-smoke-ja kb.9m11s volt. Ez szűk időtartalékot jelez, de az eredeti timeout mélyebb oka nem bizonyított; az eredeti failure megmarad. A módosított keret elfogadásához saját tényleges Container CI szükséges, nem elég a konfiguráció ellenőrzése. Célgépes művelet továbbra csak a konkrét main saját sikeres CI-je és az arra érvényes tulajdonosi felhatalmazás mellett indulhat.
+
 ## Célzott tesztek
 
 Az alap suite nem helyettesíti a domain-specifikus próbát.
