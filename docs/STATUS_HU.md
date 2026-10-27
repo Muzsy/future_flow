@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-10-26
+last_reviewed: 2026-10-27
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -155,4 +155,7 @@ A #82 beolvadt (`c3e7393`); a #83 tulajdonosi engedéllyel végzett read-only SS
 
 **Aktuális saját fiókos kapu — 2026-10-27:** privát main/Daily cf33ba3 frissítve, backup/offsite/restore/monitor/timerek PASS; app tovább6d17fda, régi keret változatlan. Második successor prepare a már dokumentált API restartCount1 miatt a szigorú baseline-on elutasított, production candidate/journal és paid0. A szolgáltatás most egészséges, új restart nincs; a kiadási őr változatlan. Szűk, eredeti image/config szerinti API-újralétrehozás és utána friss preparation jóváhagyásra előkészítve. Teljes böngészős PASS nincs, V9-5 PENDING. [Pontos akadály és műveleti terv](operations/NARRATIVE_RELEASE_HU.md#második-preparation-korábbi-api-restart-a-szigorú-kiadási-kapuban--2026-10-27).
 
-**Aktuális saját fiókos akadály — 2026-10-27:** API-only eredeti image/config karbantartás PASS, adatmegőrzés97táblán igazolt. Harmadik successor prepare az első readonly DB-capture-ben elutasított, belső okot a jelenlegi transport nem őriz meg. Prepared/journal/keretváltás/paid0; öt hiányos előkészítési fájl megőrizve és privát kliensre exportálva. Ez jelenleg a Daily/monitor kaput is blokkolja; két saját timer szünetel. Külön engedélyre előkészített, adatvesztés nélküli forenzikus elkülönítés szükséges az eredeti üzemeltetés visszaállításához; új próbához privát diagnosztika kell. [Pontos állapot és művelet](operations/NARRATIVE_RELEASE_HU.md#api-karbantartás-pass-harmadik-preparation-és-elkülönítendő-hibabizonyíték--2026-10-27).
+**Aktuális saját fiókos akadály — 2026-10-27:** API-only eredeti image/config karbantartás PASS, adatmegőrzés97táblán igazolt. Harmadik successor prepare az első readonly DB-capture-ben elutasított, belső okot a jelenlegi transport nem őriz meg. Prepared/journal/keretváltás/paid0; öt hiányos előkészítési fájl megőrizve és privát kliensre exportálva. Ez átmenetileg a Daily/monitor kaput is blokkolta; a későbbi jóváhagyott elkülönítés és teljes üzemeltetési helyreállítás lent PASS. Új próbához privát diagnosztika kell. [Pontos állapot és művelet](operations/NARRATIVE_RELEASE_HU.md#api-karbantartás-pass-harmadik-preparation-és-elkülönítendő-hibabizonyíték--2026-10-27).
+
+
+**Aktuális állapot — üzemeltetés helyreállt, 2026-10-27 05:08UTC:** kifejezett tulajdonosi kivétellel az öt hiányos preparation-fájl változatlanul, rooton és privát kliensen megőrizve elkülönült;97táblás adatmegőrzés PASS. Új normál backup→offsite→tényleges izolált restore97tábla/1711sor/107config→monitor→guarded timeraktiválás és külön végső readonly readback PASS. Mindkét timer enabled+active/waiting, service-k success/0; tíz workload és négy runtime-fájl változatlan. Egy lejárt managed archívum retenciója megtörtént, mindhárom eredeti szerverfájlja hash-azonosan rooton és privát kliensen megőrzött; az első manifestellenőrzés és launcher hibája dokumentált. App6d17fda, Dailycf33ba3, régi keret/ablak változatlan, saját3USD/paid/full-E2E nincs. A #100 diagnosztika9d4a7eb Verify+Container CI-je SUCCESS, független review még szükséges; az eredeti capture-hiba oka ismeretlen. V9-4 DONE/V9-5 PENDING. [Végrehajtás és proofhash-ek](operations/NARRATIVE_RELEASE_HU.md#jóváhagyott-forenzikus-elkülönítés-és-üzemeltetés-helyreállítva--2026-10-27).
