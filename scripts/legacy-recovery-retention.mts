@@ -14,9 +14,13 @@ async function main() {
   if (
     !['win32', 'linux'].includes(process.platform) ||
     process.argv.length !== 3 ||
-    !['enroll', 'check', 'apply'].includes(mode ?? '')
+    !['enroll', 'check', 'apply', 'server-check'].includes(mode ?? '') ||
+    // A Linux operator has no local historical copies: it reads the enrolled
+    // server policy only and never applies, enrolls or expires anything.
+    (mode === 'server-check' && process.platform !== 'linux')
   )
     throw Error('Explicit historical operator action required');
+  const serverOnly = mode === 'server-check';
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
@@ -85,10 +89,13 @@ async function main() {
   if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host))
     throw Error('Original pinned host required');
   const python = process.env.ALTERWARD_PYTHON ?? '';
-  if (!isAbsolute(python)) throw Error('Explicit absolute Python required');
-  const pythonHash = createHash('sha256')
-    .update(original(python, 64 * 1024 ** 2))
-    .digest('hex');
+  if (!serverOnly && !isAbsolute(python))
+    throw Error('Explicit absolute Python required');
+  const pythonHash = serverOnly
+    ? null
+    : createHash('sha256')
+        .update(original(python, 64 * 1024 ** 2))
+        .digest('hex');
   const loader = [
     'import sys,json,base64,types,datetime,pathlib',
     'p=json.load(sys.stdin)',
@@ -234,11 +241,13 @@ async function main() {
     action: 'check',
     peerObservedAt: new Date().toISOString(),
   });
-  const localCheck = await invoke('local', {
-    action: 'check',
-    peerObservedAt: serverCheck.checkedAt,
-  });
-  if (serverCheck.policyDigest !== localCheck.policyDigest)
+  const localCheck = serverOnly
+    ? null
+    : await invoke('local', {
+        action: 'check',
+        peerObservedAt: serverCheck.checkedAt,
+      });
+  if (localCheck && serverCheck.policyDigest !== localCheck.policyDigest)
     throw Error('Original historical policies disagree');
   let localResult = localCheck,
     serverResult = serverCheck;

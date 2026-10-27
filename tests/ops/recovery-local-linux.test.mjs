@@ -560,3 +560,68 @@ test(
     }
   },
 );
+
+test(
+  'Linux historical step reads only the enrolled server policy and never applies',
+  linuxOnly,
+  () => {
+    const script = 'scripts/legacy-recovery-retention.mts';
+    const root = privateDirectory();
+    try {
+      commitFixture(root, [
+        script,
+        'scripts/lib/private-report.ts',
+        'scripts/lib/operator-platform.mjs',
+        'scripts/ops/legacy-recovery-retention.py',
+        'scripts/ops/local-managed-recovery.py',
+        'scripts/ops/contabo-managed-expiry.py',
+        'pnpm-lock.yaml',
+      ]);
+      const secrets = protectedSecrets(root);
+      const calls = join(root, 'ssh-calls.txt');
+      const digest = 'a'.repeat(64);
+      const bin = fakeBin(
+        root,
+        'ssh',
+        `printf 'CALL %s\\n' "$*" >> ${JSON.stringify(calls)}\ncat > /dev/null\nprintf '{"ok":true,"result":{"checkedAt":"2026-10-27T21:00:00+00:00","policyDigest":"${digest}","knownRuns":3}}'`,
+      );
+      const env = {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        ALTERWARD_SSH_SECRETS_DIR: secrets,
+      };
+      delete env.ALTERWARD_PYTHON;
+      const loader = pathToFileURL(
+        createRequire(import.meta.url).resolve('tsx'),
+      ).href;
+      const result = spawnSync(
+        process.execPath,
+        ['--import', loader, script, '--server-check'],
+        { cwd: root, encoding: 'utf8', env },
+      );
+      assert.equal(result.status, 0, result.stderr);
+      const proof = JSON.parse(
+        fs.readFileSync(
+          join(root, '.local/legacy-retention/proof.json'),
+          'utf8',
+        ),
+      );
+      assert.equal(proof.mode, 'server-check');
+      assert.equal(proof.localResult, null);
+      assert.equal(proof.pythonHash, null);
+      assert.equal(proof.serverResult.policyDigest, digest);
+      assert.equal(fs.readFileSync(calls, 'utf8').match(/^CALL /gm).length, 1);
+      assert.match(fs.readFileSync(calls, 'utf8'), /^CALL -F none /);
+      // apply still demands the local operator Python and enrolled local state.
+      const apply = spawnSync(
+        process.execPath,
+        ['--import', loader, script, '--apply'],
+        { cwd: root, encoding: 'utf8', env },
+      );
+      assert.equal(apply.status, 1);
+      assert.equal(fs.readFileSync(calls, 'utf8').match(/^CALL /gm).length, 1);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  },
+);

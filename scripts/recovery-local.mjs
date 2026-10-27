@@ -162,19 +162,25 @@ try {
         'Authenticated fresh backups required before local historical expiry',
       );
     phase = 'historical-expiry';
+    // Linux holds no local historical copies: only the enrolled server policy
+    // digest is read (no apply), and the server still verifies it in the receipt.
+    const linux = process.platform === 'linux';
     await run([
       '--import',
       'tsx',
       'scripts/legacy-recovery-retention.mts',
-      '--apply',
+      linux ? '--server-check' : '--apply',
     ]);
     const legacy = JSON.parse(
       readFileSync('.local/legacy-retention/proof.json', 'utf8'),
     );
     if (
       legacy.sourceCommit !== commit ||
-      legacy.mode !== 'apply' ||
-      legacy.serverResult.policyDigest !== legacy.localResult.policyDigest ||
+      legacy.mode !== (linux ? 'server-check' : 'apply') ||
+      (linux
+        ? legacy.localResult !== null
+        : legacy.serverResult.policyDigest !==
+          legacy.localResult.policyDigest) ||
       !fresh(legacy.checkedAt, 300)
     )
       throw Error('Fresh joint historical expiry proof required');
