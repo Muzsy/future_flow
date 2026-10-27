@@ -13,6 +13,9 @@ import {
 } from '../lib/funded-runtime';
 import { DATABASE_IDENTITY_SHA256 } from '../lib/personal-beta-admission-observation.mjs';
 import { successorDatabaseRequest } from '../lib/beta-successor-operation';
+import { privateProbeFailure } from '../lib/funded-probe-diagnostics';
+
+let phase = 'input';
 
 async function main() {
   const raw = readFileSync(0, 'utf8');
@@ -24,6 +27,7 @@ async function main() {
     !['capture', 'migrate', 'successor'].includes(input.mode)
   )
     throw Error('Exact probe input required');
+  phase = 'database-config';
   if (!process.env.DATABASE_SSL_CA_FILE || !process.env.DATABASE_URL)
     throw Error('Pinned TLS database required');
   const { Client } = createRequire(resolve('packages/database/package.json'))(
@@ -39,7 +43,9 @@ async function main() {
   const watchdog = setTimeout(() => process.exit(1), 180000);
   watchdog.unref();
   try {
+    phase = 'connect';
     await client.connect();
+    phase = 'tls';
     const socket = client.connection.stream;
     if (
       !(socket instanceof TLSSocket) ||
@@ -50,6 +56,7 @@ async function main() {
       !new X509Certificate(socket.getPeerCertificate().raw).checkHost(host)
     )
       throw Error('TLS identity mismatch');
+    phase = 'begin';
     await client.query(
       input.mode === 'capture' ||
         (input.mode === 'successor' &&
@@ -66,7 +73,14 @@ async function main() {
       databaseIdentitySha256: DATABASE_IDENTITY_SHA256,
       connectionHostname: host,
     };
+    phase = 'capabilities';
     fundedRuntimeCapabilities();
+    phase =
+      input.mode === 'successor'
+        ? ['capture', 'apply', 'reconcile'].includes(input.expected?.mode)
+          ? `successor-${input.expected.mode}`
+          : 'dispatch'
+        : input.mode;
     const result =
       input.mode === 'successor'
         ? await successorDatabaseRequest(tx, input.expected, {
@@ -76,17 +90,22 @@ async function main() {
         : input.mode === 'capture'
           ? await captureFundedRuntime(tx, selected)
           : await migrateFundedRuntime(tx, selected, input.expected);
+    phase = 'commit';
     await client.query('COMMIT');
     console.log(JSON.stringify(result));
-  } catch {
+  } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
-    throw Error('Funded database probe refused');
+    throw Error('Funded database probe refused', { cause: error });
   } finally {
     clearTimeout(watchdog);
     await client.end();
   }
 }
-main().catch(() => {
+main().catch((error: unknown) => {
+  console.error(
+    'ALTERWARD_PROBE_FAILURE ' +
+      JSON.stringify(privateProbeFailure(error, phase)),
+  );
   console.error('Funded database probe refused');
   process.exitCode = 1;
 });
