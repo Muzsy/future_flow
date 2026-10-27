@@ -5,8 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   assertLinuxPrivatePath,
   operatorSecretsDirectory,
@@ -162,8 +162,19 @@ function systemctl(...args) {
   });
 }
 
+// Every action works on the checkout that contains this reviewed script, never
+// on whatever directory it happens to be started from.
+function scriptWorkspace() {
+  const workspace = fs.realpathSync(
+    join(dirname(fileURLToPath(import.meta.url)), '..'),
+  );
+  if (fs.realpathSync(process.cwd()) !== workspace)
+    throw Error('Run from the reviewed checkout root');
+  return workspace;
+}
+
 function install() {
-  const workspace = fs.realpathSync(process.cwd());
+  const workspace = scriptWorkspace();
   const node = fs.realpathSync(process.execPath);
   const python = process.env.ALTERWARD_PYTHON ?? '';
   const secrets = operatorSecretsDirectory();
@@ -204,8 +215,19 @@ function install() {
     systemctl('daemon-reload');
     systemctl('enable', '--now', TIMER);
   } catch (error) {
-    // A half-finished install must not block the next reviewed install.
+    // A half-finished install must not block the next reviewed install: undo a
+    // possible enable symlink first, then the written files, then reload.
+    try {
+      systemctl('disable', '--now', TIMER);
+    } catch {
+      // Nothing was enabled.
+    }
     for (const path of written) fs.rmSync(path, { force: true });
+    try {
+      systemctl('daemon-reload');
+    } catch {
+      // The user manager will reload on the next login.
+    }
     throw error;
   }
   return {
@@ -256,7 +278,7 @@ function inspect() {
   };
 }
 
-function remove(workspace = fs.realpathSync(process.cwd())) {
+function remove(workspace = scriptWorkspace()) {
   const unitDirectory = join(os.homedir(), '.config/systemd/user');
   const timer = join(unitDirectory, TIMER);
   try {

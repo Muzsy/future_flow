@@ -487,7 +487,14 @@ test(
       git('init', '-q');
       for (const path of sourcePaths) {
         fs.mkdirSync(join(root, path, '..'), { recursive: true });
-        fs.writeFileSync(join(root, path), `synthetic ${path}\n`);
+        if (
+          [
+            'scripts/contabo-recovery-sync-timer.mjs',
+            'scripts/lib/operator-platform.mjs',
+          ].includes(path)
+        )
+          fs.copyFileSync(join(repository, path), join(root, path));
+        else fs.writeFileSync(join(root, path), `synthetic ${path}\n`);
       }
       fs.mkdirSync(join(root, 'node_modules/tsx/dist'), { recursive: true });
       fs.writeFileSync(join(root, 'node_modules/tsx/dist/a.mjs'), 'tsx\n');
@@ -505,13 +512,10 @@ test(
         'systemctl',
         `printf '%s\\n' "$*" >> ${JSON.stringify(calls)}`,
       );
-      const timerScript = join(
-        repository,
-        'scripts/contabo-recovery-sync-timer.mjs',
-      );
-      const run = (action) =>
+      const timerScript = join(root, 'scripts/contabo-recovery-sync-timer.mjs');
+      const run = (action, cwd = root) =>
         spawnSync(process.execPath, [timerScript, action], {
-          cwd: root,
+          cwd,
           encoding: 'utf8',
           env: {
             ...process.env,
@@ -536,6 +540,10 @@ test(
         /--user enable --now alterward-recovery-sync.timer/,
       );
       assert.equal(run('--install').status, 1);
+      // Started from another directory nothing is touched, not even a wrapper.
+      assert.equal(run('--remove', home).status, 1);
+      assert.equal(run('--install', home).status, 1);
+      assert.ok(fs.existsSync(wrapper));
       assert.equal(run('--remove').status, 0);
       assert.equal(fs.existsSync(wrapper), false);
       assert.deepEqual(fs.readdirSync(unitDirectory), []);
@@ -549,10 +557,19 @@ test(
       assert.equal(run('--remove').status, 0);
       fs.writeFileSync(
         join(bin, 'systemctl'),
-        '#!/bin/sh\n[ "$2" = enable ] && exit 1\nexit 0\n',
+        `#!/bin/sh\nprintf '%s\\n' "$*" >> ${JSON.stringify(calls)}\n[ "$2" = enable ] && exit 1\nexit 0\n`,
         { mode: 0o700 },
       );
+      const before = fs.readFileSync(calls, 'utf8').split('\n').length;
       assert.equal(run('--install').status, 1);
+      const after = fs
+        .readFileSync(calls, 'utf8')
+        .split('\n')
+        .slice(before - 1);
+      assert.match(
+        after.join('|'),
+        /enable --now.*\|--user disable --now.*\|--user daemon-reload/,
+      );
       assert.equal(fs.existsSync(wrapper), false);
       assert.deepEqual(fs.readdirSync(unitDirectory), []);
     } finally {
@@ -620,6 +637,127 @@ test(
       );
       assert.equal(apply.status, 1);
       assert.equal(fs.readFileSync(calls, 'utf8').match(/^CALL /gm).length, 1);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'recovery-local on Linux asks for the server-only historical check and attests that digest',
+  linuxOnly,
+  () => {
+    const root = privateDirectory();
+    try {
+      commitFixture(root, [
+        'scripts/recovery-local.mjs',
+        'scripts/lib/private-report.ts',
+        'scripts/lib/operator-platform.mjs',
+        'scripts/ops/contabo-recovery-install.py',
+      ]);
+      const git = (...args) =>
+        execFileSync(
+          'git',
+          ['-c', 'user.name=Fixture', '-c', 'user.email=f@localhost', ...args],
+          { cwd: root, encoding: 'utf8' },
+        );
+      const write = (path, text) => {
+        fs.mkdirSync(join(root, path, '..'), { recursive: true });
+        fs.writeFileSync(join(root, path), text);
+      };
+      const digest = 'b'.repeat(64);
+      write('scripts/contabo-daily.mjs', 'process.exit(0);\n');
+      write(
+        'scripts/supabase-managed-retention.mts',
+        `import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+fs.mkdirSync('.local/supabase-recovery', { recursive: true });
+fs.writeFileSync('.local/supabase-recovery/managed-retention-proof.json', JSON.stringify({
+  sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  mode: 'apply', metadataReconciled: true, checkedAt: new Date().toISOString(), serverFreshArchives: 3,
+}));
+`,
+      );
+      write(
+        'scripts/legacy-recovery-retention.mts',
+        `import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+fs.appendFileSync('.local/legacy-argv.txt', process.argv[2] + '\\n');
+fs.mkdirSync('.local/legacy-retention', { recursive: true });
+fs.writeFileSync('.local/legacy-retention/proof.json', JSON.stringify({
+  sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  mode: process.argv[2] === '--server-check' ? 'server-check' : 'apply',
+  checkedAt: new Date().toISOString(), localResult: null,
+  serverResult: { policyDigest: ${JSON.stringify(digest)} },
+}));
+`,
+      );
+      git('add', '.');
+      git('commit', '-qm', 'stubs', '--no-gpg-sign');
+      fs.symlinkSync(
+        join(repository, 'node_modules'),
+        join(root, 'node_modules'),
+      );
+      const secrets = protectedSecrets(root);
+      const requests = join(root, 'requests.jsonl');
+      const bin = join(root, 'bin');
+      fs.mkdirSync(bin, { mode: 0o700 });
+      fs.writeFileSync(
+        join(bin, 'ssh'),
+        `#!${process.execPath}
+const fs = require('node:fs');
+const request = JSON.parse(fs.readFileSync(0, 'utf8')).request;
+fs.appendFileSync(${JSON.stringify(requests)}, JSON.stringify(request) + '\\n');
+const now = new Date().toISOString();
+process.stdout.write(JSON.stringify(
+  request.action === 'local-preconditions'
+    ? { localExpiryPreconditionsVerified: true, observedAt: now, managedCapturedAt: now, applicationCapturedAt: now }
+    : { localAttestationRecorded: true, ok: request.ok },
+));
+`,
+        { mode: 0o700 },
+      );
+      fs.mkdirSync(join(root, '.local'), { recursive: true, mode: 0o700 });
+      const result = spawnSync(
+        process.execPath,
+        ['scripts/recovery-local.mjs', '--sync-and-expire'],
+        {
+          cwd: root,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            ALTERWARD_SSH_SECRETS_DIR: secrets,
+          },
+          timeout: 60000,
+        },
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        fs.readFileSync(join(root, '.local/legacy-argv.txt'), 'utf8'),
+        '--server-check\n',
+      );
+      const sent = fs
+        .readFileSync(requests, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line));
+      assert.deepEqual(
+        sent.map((request) => request.action),
+        ['local-preconditions', 'record-local'],
+      );
+      assert.equal(sent[1].ok, true);
+      assert.equal(sent[1].managedArchives, 3);
+      assert.equal(sent[1].legacyPolicyDigest, digest);
+      assert.equal(sent[1].sourceCommit, git('rev-parse', 'HEAD').trim());
+      const proof = JSON.parse(
+        fs.readFileSync(
+          join(root, '.local/contabo-recovery/local-sync-proof.json'),
+          'utf8',
+        ),
+      );
+      assert.equal(proof.externalAttestationRecorded, true);
+      assert.equal(proof.keyRead, false);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

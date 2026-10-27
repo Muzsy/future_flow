@@ -17,7 +17,9 @@ async function main() {
     !['enroll', 'check', 'apply', 'server-check'].includes(mode ?? '') ||
     // A Linux operator has no local historical copies: it reads the enrolled
     // server policy only and never applies, enrolls or expires anything.
-    (mode === 'server-check' && process.platform !== 'linux')
+    (mode === 'server-check' && process.platform !== 'linux') ||
+    // The Linux operator has no local enrollment: it must not even start these.
+    (['enroll', 'apply'].includes(mode ?? '') && process.platform === 'linux')
   )
     throw Error('Explicit historical operator action required');
   const serverOnly = mode === 'server-check';
