@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**Aktuális checkpoint — 2026-10-27 11:15UTC:** saját próba indítása engedélyezve, de a03dc190/f925 normál éles prepare FAIL a telepített Daily worker-reader mezőjének hibás elvárásán. Az adatbázis-capture sikerült, teljes prepared létrejött; apply/keretváltás/paid0. A97tábla és eredeti runtime változatlan; serving6d17fda/legacy/régi keret, kliens+Daily03dc190. A két saját timer szünetel, aktív hibás preparation megmaradt; még nincs helyreállítási vagy E2E-PASS. Szűk javítás és explicit forenzikus helyreállítási csomag előkészítve. [Pontos ok és következő kapu](operations/NARRATIVE_RELEASE_HU.md#saját-fiókos-éles-próba-reader-konfigurációs-kapuhiba--2026-10-27).
+
 Az első személyes tesztelő reader-hozzáférése, első belépése és a 30 napos funded ablak kanonikus Linux-operátori aktiválása megtörtént. Az alkalmazott UTC ablak **2026-10-13T22:11:21Z–2026-11-12T22:11:21Z**, a projektmaximum 2 USD, a felhasználói maximum 0,50 USD. Nincs automatikus hosszabbítás vagy újraindított költségkeret.
 
 Az utolsó igazolt böngészős E2E (2026-10-14) három valódi fejezetet, két folytatási ciklust, mentett választásokat, újranyitást, visszabelépést és friss hitelesítés utáni exportot ellenőrzött. A kilenc provider-task elszámolt összege 0,188585 USD; ez a béta adatbázis-elszámolása, nem szolgáltatói számla. A következő generálást a 3/UTC-nap, 1 párhuzamos kérés korlát megállította. A későbbi új-munkamenetes sikeres folytatás nem igazolt. A megtartott fiók destruktív törlése nem volt része a próbának.

@@ -742,9 +742,14 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
                     or env.get('CLAUDE_PRODUCTION_BUDGET_USD', '0') != '0'
                     or env['NARRATIVE_PIPELINE_MODE'] != 'narrative-fiction-v2'
                     or env['NARRATIVE_FICTION_GENERATION'] != 'v9'
-                    or env['NARRATIVE_COHORT_USER_IDS'] != terms['participants'][0]['userId']
-                    or sorted(env['CLOSED_SITE_ALLOWED_EMAILS'].split(',')) != sorted(access['allowedEmails'])):
+                    or env['NARRATIVE_COHORT_USER_IDS'] != terms['participants'][0]['userId']):
                 raise ValueError('Successor owner runtime policy differs')
+        # The reader boundary belongs to ingress web/API. Compose deliberately
+        # omits access settings from the background worker.
+        for service in ('web', 'api'):
+            allowed = config['services'][service]['environment'].get('CLOSED_SITE_ALLOWED_EMAILS')
+            if not isinstance(allowed, str) or sorted(allowed.split(',')) != sorted(access['allowedEmails']):
+                raise ValueError('Successor reader access differs')
         env = config['services']['worker']['environment']
         if (env['AI_BUDGET_WINDOW_START'] != terms['startsAt'] or env['AI_BUDGET_WINDOW_END'] != terms['endsAt']
                 or env['AI_BUDGET_WINDOW_REQUIRED'] != 'true'
