@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-26
+last_reviewed: 2026-10-27
 related:
   - ../PERSONAL_BETA_ACTIVATION_PLAN_HU.md
   - ../PERSONAL_BETA_OPERATOR_HU.md
@@ -163,3 +163,7 @@ A régi allowance szabályos lezárása és az új, egy saját fiókos3USD/30nap
 A két v9-fejezet237349/283201ms backend-idő,10completed task/0.599364USD. A korábbról nyitva maradt `/futures`→`/onboarding` legacy útvonal kitérője3completed task/0.071851USD; megőrzött és a teljes saját3USD-be beleszámolt,nem v9-proof. Összesen **0.671215USD**,0unknown/unsettled,0rögzített dev-log warn/error; két új project/useraccount ugyanazt az összeget mutatja. A hosszkorlát- és locator/read-only observer korrekciók megőrzöttek,nincs újragenerálás vagy elhallgatott alkalmazáshiba. RawHAR nem támogatott; a normál UI/dev-log/szerveres readback az ellenőrzés határa. A friss normál monitor és külön runtime/timer readbackPASS.
 
 A saját technikai indulási kapu kész,**V9-5PARTIAL**. A tesztelői szakasz előkészíthető,de tényleges új résztvevő/admission és a külön10USD-s ablak még nincs aktiválva,nincs kijelölt tesztelő. A3./6.fejezeti humán visszajelzés és hosszabb visszatérés továbbra nyitott; nincs széles minőségi/retention/terheléses PASS. A saját próba kerete nem resetelődik és nem lesz automatikusan tesztelői keret. [Teljes idő/költség/proof lezárás](NARRATIVE_RELEASE_HU.md#teljes-saját-fiókos-v9-playwright-alapút-pass--2026-10-27).
+
+### Tesztelői ablak végrehajtási útja — 2026-10-27
+
+A három fős kör rögzített: a tulajdonos saját fiókja és két meghívott tesztelő (az email-címek csak a privát csomagban). A belépés és a költés két külön lépés: előbb `reader-admission` (csak az Access/origin olvasói lista bővül, keret nincs), majd a `tester-beta` (3 egyedi résztvevő, 10 USD projekt / 3,33 USD user, 30 nap). A kettő láncolt successor-generáció, mindegyik az előző teljes bizonyítékára épül; nincs újraírás az élesítéskor. Részletek és határok: [Láncolt successor-generációk](NARRATIVE_RELEASE_HU.md#láncolt-successor-generációk-olvasói-belépés-és-tesztelői-ablak--2026-10-27). Éles lépés csak külön tulajdonosi engedéllyel.
