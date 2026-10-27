@@ -186,18 +186,28 @@ function install() {
     throw Error('Existing timer requires reviewed source update');
   const pins = collectPins({ workspace, node, python });
   fs.mkdirSync(unitDirectory, { recursive: true, mode: 0o700 });
-  fs.writeFileSync(
-    wrapper,
-    renderWrapper({ node, python, secrets, workspace, log, pins }),
-    { mode: 0o600, flag: 'wx' },
-  );
-  for (const [name, text] of Object.entries(units))
-    fs.writeFileSync(join(unitDirectory, name), text, {
-      mode: 0o600,
-      flag: 'wx',
-    });
-  systemctl('daemon-reload');
-  systemctl('enable', '--now', TIMER);
+  const written = [];
+  try {
+    fs.writeFileSync(
+      wrapper,
+      renderWrapper({ node, python, secrets, workspace, log, pins }),
+      { mode: 0o600, flag: 'wx' },
+    );
+    written.push(wrapper);
+    for (const [name, text] of Object.entries(units)) {
+      fs.writeFileSync(join(unitDirectory, name), text, {
+        mode: 0o600,
+        flag: 'wx',
+      });
+      written.push(join(unitDirectory, name));
+    }
+    systemctl('daemon-reload');
+    systemctl('enable', '--now', TIMER);
+  } catch (error) {
+    // A half-finished install must not block the next reviewed install.
+    for (const path of written) fs.rmSync(path, { force: true });
+    throw error;
+  }
   return {
     installed: true,
     hourly: true,
@@ -246,15 +256,22 @@ function inspect() {
   };
 }
 
-function remove() {
+function remove(workspace = fs.realpathSync(process.cwd())) {
   const unitDirectory = join(os.homedir(), '.config/systemd/user');
+  const timer = join(unitDirectory, TIMER);
   try {
     systemctl('disable', '--now', TIMER);
-  } catch {
-    // Already absent or inactive.
+  } catch (error) {
+    // Only an already absent timer may be ignored; a failed stop is reported.
+    if (fs.existsSync(timer)) throw error;
   }
-  for (const name of [TIMER, SERVICE]) {
-    const path = join(unitDirectory, name);
+  // The generated wrapper embeds the pins, so it is removed with the units and
+  // the next reviewed source needs a fresh --install. Evidence/logs are kept.
+  for (const path of [
+    timer,
+    join(unitDirectory, SERVICE),
+    join(workspace, '.local/contabo-recovery/managed-sync-timer.mjs'),
+  ]) {
     if (fs.existsSync(path)) {
       regularFile(path);
       fs.unlinkSync(path);

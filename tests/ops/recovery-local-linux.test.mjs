@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   assertSafeUnitPath,
   collectPins,
@@ -33,6 +35,7 @@ test('Linux SSH never uses config, agents, global pins or forwarding', () => {
     'IdentitiesOnly=yes',
     'IdentityAgent=none',
     'ClearAllForwardings=yes',
+    'UpdateHostKeys=no',
   ])
     assert.match(options, new RegExp(expected));
 });
@@ -317,6 +320,241 @@ test(
       );
       assert.equal(result.status, 1);
       assert.equal(fs.existsSync(calls), false);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
+
+function commitFixture(root, files) {
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-c', 'user.name=Fixture', '-c', 'user.email=f@localhost', ...args],
+      { cwd: root, encoding: 'utf8' },
+    );
+  git('init', '-q');
+  for (const path of files) {
+    fs.mkdirSync(join(root, path, '..'), { recursive: true });
+    fs.copyFileSync(join(repository, path), join(root, path));
+  }
+  git('add', '.');
+  git('commit', '-qm', 'fixture', '--no-gpg-sign');
+}
+
+function protectedSecrets(root, mode = 0o700) {
+  const secrets = join(root, 'secrets');
+  fs.mkdirSync(secrets, { mode });
+  fs.chmodSync(secrets, mode);
+  fs.writeFileSync(join(secrets, 'contabo_alterward_ed25519'), 'synthetic', {
+    mode: 0o600,
+  });
+  fs.writeFileSync(
+    join(secrets, 'contabo_known_hosts'),
+    '192.0.2.7 ssh-ed25519 AAAAsynthetic\n',
+    { mode: 0o600 },
+  );
+  return secrets;
+}
+
+function fakeBin(root, name, body) {
+  const bin = join(root, 'bin');
+  fs.mkdirSync(bin, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o700 });
+  return bin;
+}
+
+const retention = [
+  {
+    script: 'scripts/supabase-managed-retention.mts',
+    support: [
+      'scripts/lib/private-report.ts',
+      'scripts/lib/operator-platform.mjs',
+      'scripts/lib/local-managed-recovery.ts',
+      'scripts/lib/managed-retention.ts',
+      'scripts/ops/local-managed-recovery.py',
+      'scripts/ops/contabo-managed-expiry.py',
+      'pnpm-lock.yaml',
+    ],
+  },
+  {
+    script: 'scripts/legacy-recovery-retention.mts',
+    support: [
+      'scripts/lib/private-report.ts',
+      'scripts/lib/operator-platform.mjs',
+      'scripts/ops/legacy-recovery-retention.py',
+      'scripts/ops/local-managed-recovery.py',
+      'scripts/ops/contabo-managed-expiry.py',
+      'pnpm-lock.yaml',
+    ],
+  },
+];
+
+for (const { script, support } of retention) {
+  const run = (root, secrets, bin) =>
+    spawnSync(
+      process.execPath,
+      [
+        '--import',
+        pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href,
+        script,
+        '--check',
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          ALTERWARD_SSH_SECRETS_DIR: secrets,
+          ALTERWARD_PYTHON: join(root, 'python-stub'),
+          SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co',
+        },
+      },
+    );
+  const prepare = (mode) => {
+    const root = privateDirectory();
+    commitFixture(root, [script, ...support]);
+    fs.mkdirSync(join(root, '.local/supabase-recovery'), {
+      recursive: true,
+      mode: 0o700,
+    });
+    // A regular wrapper that execs the system Python keeps the exact-file rules.
+    fs.writeFileSync(
+      join(root, 'python-stub'),
+      '#!/bin/sh\nexec /usr/bin/python3 "$@"\n',
+      { mode: 0o700 },
+    );
+    const secrets = protectedSecrets(root, mode);
+    const calls = join(root, 'ssh-calls.txt');
+    const bin = fakeBin(
+      root,
+      'ssh',
+      `printf '%s\\n' "$*" >> ${JSON.stringify(calls)}\ncat > /dev/null\nprintf '{"ok":false}'`,
+    );
+    return { root, secrets, bin, calls };
+  };
+  test(
+    `${script} runs on Linux over hardened SSH with the protected secrets directory`,
+    linuxOnly,
+    () => {
+      const { root, secrets, bin, calls } = prepare(0o700);
+      try {
+        const result = run(root, secrets, bin);
+        assert.equal(result.status, 1);
+        const invoked = fs.readFileSync(calls, 'utf8').trim().split('\n');
+        assert.match(invoked[0], /^-F none -o GlobalKnownHostsFile=none /);
+        assert.match(invoked[0], /-o UpdateHostKeys=no /);
+        assert.match(invoked[0], /-o StrictHostKeyChecking=yes/);
+        assert.match(invoked[0], /root@192\.0\.2\.7 /);
+        assert.doesNotMatch(
+          result.stdout + result.stderr,
+          /synthetic|192\.0\.2/,
+        );
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+  test(
+    `${script} refuses an unprotected secrets directory before any SSH call`,
+    linuxOnly,
+    () => {
+      const { root, secrets, bin, calls } = prepare(0o755);
+      try {
+        assert.equal(run(root, secrets, bin).status, 1);
+        assert.equal(fs.existsSync(calls), false);
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+}
+
+test(
+  'timer install writes pinned units, refuses a second install, and remove cleans the wrapper too',
+  linuxOnly,
+  () => {
+    if (fs.realpathSync(process.execPath) !== process.execPath) return;
+    const root = privateDirectory();
+    try {
+      const git = (...args) =>
+        execFileSync(
+          'git',
+          ['-c', 'user.name=Fixture', '-c', 'user.email=f@localhost', ...args],
+          { cwd: root, encoding: 'utf8' },
+        );
+      git('init', '-q');
+      for (const path of sourcePaths) {
+        fs.mkdirSync(join(root, path, '..'), { recursive: true });
+        fs.writeFileSync(join(root, path), `synthetic ${path}\n`);
+      }
+      fs.mkdirSync(join(root, 'node_modules/tsx/dist'), { recursive: true });
+      fs.writeFileSync(join(root, 'node_modules/tsx/dist/a.mjs'), 'tsx\n');
+      git('add', '.');
+      git('commit', '-qm', 'fixture', '--no-gpg-sign');
+      fs.mkdirSync(join(root, '.local'), { mode: 0o700 });
+      const secrets = protectedSecrets(root);
+      const python = join(root, 'python-real');
+      fs.writeFileSync(python, 'synthetic-python');
+      const home = join(root, 'home');
+      fs.mkdirSync(home, { mode: 0o700 });
+      const calls = join(root, 'systemctl-calls.txt');
+      const bin = fakeBin(
+        root,
+        'systemctl',
+        `printf '%s\\n' "$*" >> ${JSON.stringify(calls)}`,
+      );
+      const timerScript = join(
+        repository,
+        'scripts/contabo-recovery-sync-timer.mjs',
+      );
+      const run = (action) =>
+        spawnSync(process.execPath, [timerScript, action], {
+          cwd: root,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            HOME: home,
+            PATH: `${bin}:${process.env.PATH}`,
+            ALTERWARD_PYTHON: python,
+            ALTERWARD_SSH_SECRETS_DIR: secrets,
+          },
+        });
+      const installed = run('--install');
+      assert.equal(installed.status, 0, installed.stderr);
+      const wrapper = join(
+        root,
+        '.local/contabo-recovery/managed-sync-timer.mjs',
+      );
+      const unitDirectory = join(home, '.config/systemd/user');
+      assert.ok(fs.existsSync(wrapper));
+      assert.deepEqual(fs.readdirSync(unitDirectory).sort(), [SERVICE, TIMER]);
+      assert.equal((fs.statSync(wrapper).mode & 0o777).toString(8), '600');
+      assert.match(
+        fs.readFileSync(calls, 'utf8'),
+        /--user enable --now alterward-recovery-sync.timer/,
+      );
+      assert.equal(run('--install').status, 1);
+      assert.equal(run('--remove').status, 0);
+      assert.equal(fs.existsSync(wrapper), false);
+      assert.deepEqual(fs.readdirSync(unitDirectory), []);
+      assert.match(
+        fs.readFileSync(calls, 'utf8'),
+        /--user disable --now alterward-recovery-sync.timer/,
+      );
+      // The reviewed source can be installed again after a removal.
+      assert.equal(run('--install').status, 0);
+      // A failed enable rolls the written files back instead of blocking reinstall.
+      assert.equal(run('--remove').status, 0);
+      fs.writeFileSync(
+        join(bin, 'systemctl'),
+        '#!/bin/sh\n[ "$2" = enable ] && exit 1\nexit 0\n',
+        { mode: 0o700 },
+      );
+      assert.equal(run('--install').status, 1);
+      assert.equal(fs.existsSync(wrapper), false);
+      assert.deepEqual(fs.readdirSync(unitDirectory), []);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

@@ -27,6 +27,8 @@ export function linuxSshHardening(platform = process.platform) {
         'IdentityAgent=none',
         '-o',
         'ClearAllForwardings=yes',
+        '-o',
+        'UpdateHostKeys=no',
       ]
     : [];
 }
