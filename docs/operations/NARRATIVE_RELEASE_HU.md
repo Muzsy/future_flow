@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-26
+last_reviewed: 2026-10-27
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -926,3 +926,33 @@ A #100 tulajdonosi engedéllyel merge committal beolvadt: `89aa9435819c3e8bfc86c
 A tulajdonos a89aa943 image-építést és16+14 izolált próbát csak sikeres saját main-CI után engedélyezte, ezért **célgépes előkészítés/build/rehearsal nem indult**. A helyi csomag és readonly preflight megmaradt; serving app6d17fda, Dailycf33ba3, régi keret/ablak és timerek változatlanok, paid0. Az új CI-javítás nem kap automatikusan éles vagy eltérő source-ra szóló célgépes engedélyt.
 
 A #101 szűk jelölt kizárólag a CI teljes funded fixture-jének15perces és a Container job40perces felső keretét, valamint titokmentes sikeres futásidőmérést vezet be. Minden egyedi timeout, watchdog,16+14 acceptance check, forrás/image-kötés, cleanup és pénzügyi guard változatlan; nincs automatikus retry vagy production/provider-timeout módosítás. A fixture fizikai backup/restore és valódi successor-várakozásai osztoznak a külső kereten; az egyező tree korábbi sikeres teljes smoke-ja kb.9m11s volt. Saját új Container PASS nélkül ez implementált jelölt, nem javítási vagy kiadási PASS. [Kanonikus CI-időkeret](TESTING_HU.md#teljes-funded-ci-próba-időkerete--101-2026-10-27).
+
+
+### 03dc190 diagnosztikai image: célgépes elfogadás lezárva — 2026-10-27
+
+A #100 teljes független review-ja APPROVE, a #102 szűk CI-időkeret-javításé szintén APPROVE; a merge-tree egyezések külön ellenőrzöttek. Main **`03dc19010e84ab826a77e92d901f474195089f36`**, saját [CI40480608431](https://github.com/Muzsy/future_flow/actions/runs/40480608431) Verify122109663588 és Container122109663872 SUCCESS. A CI funded fixture603260ms, a #102 jelölté619407ms volt: mindkettő túllépte a régi600000ms külső határt, az új15perces CI-keretben sikeres. Az eredeti89aa943 main-timeout és annak egyszeri sikeres, változatlan forrású ismétlése megmarad; az első timeout mélyebb okát nem állítjuk bizonyítottnak.
+
+A tulajdonos a konkrét03dc190 build+izolált csomagot csak teljes saját main-CI siker után engedélyezte. A09:48:54UTC friss pinned-SSH preflight az eredeti10workload/négy runtime-fájl, zöld backup/monitor, aktív timerek, új tag/aktív successor hiánya és kapacitás egyezését igazolta. Az inputok/embedded payloadok hash-ellenőrzése és az eredeti age1.1.1 eszközök változatlansága PASS.
+
+**Tényleges build09:48:57–10:00:28UTC /11m31s PASS.** Image `sha256:f9250d5c98cdf3a0bb920328587dcf5a147616ed5aa012bb2c056c1ecda14a12`, tag `alterward:contabo-03dc19010e84`, source `/root/alterward-ops/target/build-03dc19010e84-276613ef/source`. Tiszta exact-main és minden tracked bájt egyezik. Dedikált1CPU/2147483648B memória és swap, publikus port0; builder eltávolítva, eredeti konténerek változatlanok, eredeti publikus buildértékek. Privát DB/provider credential nem került a buildbe, liveDB-kapcsolat/paid0. Source-archive SHA256 `898fbf932d85b800e644653726d0a4f017d782164c34e45d16c5947fc0d374a6`.
+
+**Saját immutable image standalone próbája10:00:43–10:42:01UTC /41m17s, exit0:16/16 funded+14/14 successor+cleanup PASS.** Valódi, külön root/Linux/PostgreSQL/TLS/Docker környezetben: candidate-mentés/offsite/izolált restore, privacy replay, eltérő owner3USD-guard, tényleges COMMIT utáni elveszett válasz, SQL-ismétlés nélküli recovery, SIGKILL/watchdog/hold és staging/authority/expired-archive ellenőrzés. Ez szintetikus elfogadás; nem éles allowance-váltás, providerhívás vagy történetminőségi mérés.
+
+A rooton megőrzött eredeti proofok privát kliensmásolata és mind a hét exportált fájl hash-e egyezik. A külön ellenőrzés saját main-CI/source/image/720fájlos helyi bundle/source-archive/fixture→receipt kötést és a teljes tízkonténeres baseline egyezését igazolta. Bundle `2afdcacd8af99d6dc2e123f37f7e0fe43fac0b0acda6506fe9bc3a5615ff5368`.
+
+| Tényleges bizonyíték | SHA256 |
+| --- | --- |
+| Funded16-check fixture | `67b4e441149cca2350630dec63c382faf7ef89684967ca2dd763dc27367409dd` |
+| Successor14-check fixture | `cbce7621f3164b68fe20ed4c6bb33179eba5cde9faafd61b7950fcf4a573f26a` |
+| Image-rehearsal receipt | `3540a82052a5153a40f77ee4088fd9a720fe8e0de11dd73c70eed0a0690e5df9` |
+| Külön proof-reconciliation | `cbcff8833ad3e5a337a0445a53f4bef6f6b3e7d1080dc5ee189a97b9d21225f3` |
+| Cleanup utáni valódi normál monitor | `a49e1ee9d4483fb82f508b7d3f7df90b6c25aee141a42ceec0124f59c4e6c920` |
+| Végső külön unit/runtime readback | `b6e1198713221ec10bdda82fb12db51cba37650bb5444fff5d560ee1642e2bd8` |
+
+**Monitorjelzések megőrzése:**10:15:52 és10:30:57UTC normál monitor ok=false, kizárólag `container_state_changed`. Eredeti JSON-hash-ek `b738c4a42111ab16fd4d914aa046ca674234fe501330b2cc44e230b21bb46ee5`, illetve `b9fb2345d10946b4d171d3c14cb88b3d083bfe9c2928e9a2079af3ca17a9a21c`. A külön10:16 és10:32 readonly readback az eredeti tíz konténer teljes életciklusát és négy runtime-hashét változatlannak találta; a globális monitor a közben változó fixture-konténereket is figyeli. A hibaeredményeket nem reseteltük, a timereket nem állítottuk le.
+
+**Tényleges üzemeltetési lezárás:** cleanup után ismét csak10konténer;11managed archívum,0 jelenlévő lejárt/0 pending/üres Daily-work, installedcf33 script/unit hash-egyezés. Az eredeti, változatlan Daily friss normál monitorja10:43:52–10:43:57UTC PASS, alerts[], archivesExpired0, externalMessageSent=false. Ez nem Daily-update vagy zöldre állított státusz. A10:45-ös rendes ütemezett monitor is zöld. **10:50:35UTC végső readonly PASS:** mindkét timer enabled+active/waiting, mindkét service success/0, az eredeti10workload/négy runtime-fájl változatlan, aktív hiányos successor nincs, backup és monitor zöld.
+
+Privát eredetik: `.local/verification/probe-diagnostics-main-03dc190-20261027/`,0700/0600; rooton az új build- és rehearsal-könyvtárak változatlanul megmaradnak. Nincs email/UUID/session vagy történetszöveg a repóban. A korábbi forenzikus fájlok/mentések és minden régi proof megmaradt.
+
+**Határ és következő feladat:** a jóváhagyott build+izolált csomag kész. A serving app továbbra6d17fda/d85a92f7/schema038/legacy/üres cohort; Daily és privát klienscf33ba3, régi2/0,50USD keret és eredeti ablak változatlan. Nem történt éles runtime/allowance-váltás, új successor preparation, saját 3 USD aktiválás vagy UI-profilbeírás; paid hívás 0, a teljes saját fiókos Playwright-út nem futott. Az eredeti éles capture-elutasítás oka továbbra ismeretlen; az új diagnosztika a következő elutasítás privát okát tudja megőrizni, nem oldja meg visszamenőleg a hibát. Következő a03dc190/f925 konkrét saját fiókos éles csomag előkészítése, friss Access/Auth/DB/drain/retenciós kapuk és külön tulajdonosi jóváhagyás; utána csak teljes aktiválási PASS esetén az engedélyezett fiktív profilos, összesen3USD-s teljes Playwright-út. V9-4 DONE/V9-5 PENDING; motorfinomítás nem indul. Ez a dokumentációs változás nem cseréli a kiválasztott executable source03dc190-at.
