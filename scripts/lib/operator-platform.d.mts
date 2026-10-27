@@ -4,6 +4,7 @@ export function sameOperatorPath(
   right: string,
   platform?: string,
 ): boolean;
+export function linuxSshHardening(platform?: string): string[];
 export function assertLinuxPrivatePath(path: string, directory?: boolean): void;
 export function assertOperatorLocalInput(path: string): void;
 export function operatorSecretsDirectory(

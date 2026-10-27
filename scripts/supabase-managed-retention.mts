@@ -9,7 +9,7 @@ let recordFailure: ((error: unknown) => void) | undefined;
 async function main() {
   const mode = process.argv[2]?.slice(2);
   if (
-    process.platform !== 'win32' ||
+    !['win32', 'linux'].includes(process.platform) ||
     process.argv.length !== 3 ||
     !['check', 'sync', 'apply'].includes(mode ?? '')
   )
@@ -22,6 +22,7 @@ async function main() {
   for (const path of [
     'scripts/supabase-managed-retention.mts',
     'scripts/lib/private-report.ts',
+    'scripts/lib/operator-platform.mjs',
     'scripts/lib/local-managed-recovery.ts',
     'scripts/lib/managed-retention.ts',
     'scripts/ops/local-managed-recovery.py',
@@ -51,12 +52,17 @@ async function main() {
   const projectBinding = createHash('sha256')
     .update(project.hostname.split('.')[0]!)
     .digest('hex');
-  const secrets = realpathSync(
-    resolve(
-      process.env.ALTERWARD_SSH_SECRETS_DIR ??
-        join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
-    ),
-  );
+  const { linuxSshHardening, operatorSecretsDirectory } =
+    await import('./lib/operator-platform.mjs');
+  const secrets =
+    process.platform === 'linux'
+      ? operatorSecretsDirectory()
+      : realpathSync(
+          resolve(
+            process.env.ALTERWARD_SSH_SECRETS_DIR ??
+              join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
+          ),
+        );
   const key = join(secrets, 'contabo_alterward_ed25519');
   const pin = join(secrets, 'contabo_known_hosts');
   for (const path of [key, pin]) {
@@ -73,6 +79,7 @@ async function main() {
     const pending = promisify(execFile)(
       'ssh',
       [
+        ...linuxSshHardening(),
         '-i',
         key,
         '-o',

@@ -3,15 +3,26 @@ import { createHash } from 'node:crypto';
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, resolve, basename, dirname } from 'node:path';
 import { promisify } from 'node:util';
+import {
+  linuxSshHardening,
+  operatorSecretsDirectory,
+  sameOperatorPath,
+} from './lib/operator-platform.mjs';
 
 async function main() {
   const mode = process.argv[2]?.slice(2);
   if (
-    process.platform !== 'win32' ||
+    !['win32', 'linux'].includes(process.platform) ||
     process.argv.length !== 3 ||
-    !['enroll', 'check', 'apply'].includes(mode ?? '')
+    !['enroll', 'check', 'apply', 'server-check'].includes(mode ?? '') ||
+    // A Linux operator has no local historical copies: it reads the enrolled
+    // server policy only and never applies, enrolls or expires anything.
+    (mode === 'server-check' && process.platform !== 'linux') ||
+    // The Linux operator has no local enrollment: it must not even start these.
+    (['enroll', 'apply'].includes(mode ?? '') && process.platform === 'linux')
   )
     throw Error('Explicit historical operator action required');
+  const serverOnly = mode === 'server-check';
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
@@ -24,7 +35,7 @@ async function main() {
       before.isSymbolicLink() ||
       before.nlink !== 1 ||
       before.size > limit ||
-      realpathSync(path).toLowerCase() !== resolve(path).toLowerCase()
+      !sameOperatorPath(realpathSync(path), resolve(path))
     )
       throw Error('Original bounded operator input required');
     const data = readFileSync(path),
@@ -44,6 +55,7 @@ async function main() {
     'scripts/ops/local-managed-recovery.py',
     'scripts/ops/contabo-managed-expiry.py',
     'scripts/lib/private-report.ts',
+    'scripts/lib/operator-platform.mjs',
     'pnpm-lock.yaml',
   ]) {
     const data = original(path);
@@ -55,12 +67,15 @@ async function main() {
   const { privateReportDirectory, privateReportFile } =
     await import('./lib/private-report.js');
   const directory = privateReportDirectory('legacy-retention');
-  const secrets = realpathSync(
-    resolve(
-      process.env.ALTERWARD_SSH_SECRETS_DIR ??
-        join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
-    ),
-  );
+  const secrets =
+    process.platform === 'linux'
+      ? operatorSecretsDirectory()
+      : realpathSync(
+          resolve(
+            process.env.ALTERWARD_SSH_SECRETS_DIR ??
+              join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
+          ),
+        );
   const key = join(secrets, 'contabo_alterward_ed25519'),
     pin = join(secrets, 'contabo_known_hosts');
   const keyInfo = lstatSync(key);
@@ -76,10 +91,13 @@ async function main() {
   if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host))
     throw Error('Original pinned host required');
   const python = process.env.ALTERWARD_PYTHON ?? '';
-  if (!isAbsolute(python)) throw Error('Explicit absolute Python required');
-  const pythonHash = createHash('sha256')
-    .update(original(python, 64 * 1024 ** 2))
-    .digest('hex');
+  if (!serverOnly && !isAbsolute(python))
+    throw Error('Explicit absolute Python required');
+  const pythonHash = serverOnly
+    ? null
+    : createHash('sha256')
+        .update(original(python, 64 * 1024 ** 2))
+        .digest('hex');
   const loader = [
     'import sys,json,base64,types,datetime,pathlib',
     'p=json.load(sys.stdin)',
@@ -99,6 +117,7 @@ async function main() {
       side === 'local'
         ? ['-I', '-c', loader]
         : [
+            ...linuxSshHardening(),
             '-i',
             key,
             '-o',
@@ -224,11 +243,13 @@ async function main() {
     action: 'check',
     peerObservedAt: new Date().toISOString(),
   });
-  const localCheck = await invoke('local', {
-    action: 'check',
-    peerObservedAt: serverCheck.checkedAt,
-  });
-  if (serverCheck.policyDigest !== localCheck.policyDigest)
+  const localCheck = serverOnly
+    ? null
+    : await invoke('local', {
+        action: 'check',
+        peerObservedAt: serverCheck.checkedAt,
+      });
+  if (localCheck && serverCheck.policyDigest !== localCheck.policyDigest)
     throw Error('Original historical policies disagree');
   let localResult = localCheck,
     serverResult = serverCheck;
