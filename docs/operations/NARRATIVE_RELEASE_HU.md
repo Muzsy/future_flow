@@ -971,3 +971,42 @@ A byte-azonos eredeti installer/CLI/request/lock/guard/cleanup/protokoll mellé 
 | Végső külön readonly | `63c1744a69e200b2e9b8db2d7582b7fd8e27049588224656bd4ac13994e1da51` |
 
 **Záró állapot:** alkalmazás 6d17fda/d85a92f7/schema038/legacy/eredeti keret és ablak; kliens és Daily 03dc190. Minden korábbi történet/spend/reservation/history megmaradt, providerhívás 0. A jóváhagyott üzemeltetési helyreállítás kész. A #105 javítás még nem main/új éles forrás; következő a végső reviewed jelölt és sajátCI alapján konkrét main-merge, majd saját main CI és exact-source új image/célgépes próba csomagja. Saját 3 USD aktiválás, teljes saját Playwright és tesztelői bétaindulás továbbra nincs. V9-4 DONE / V9-5 PENDING, motorfinomítás nem nyílik. Privát eredetik és closure: `.local/verification/owner-live-03dc190-20261027/`.
+
+
+## Reader-javítás main és új célgépes image — 2026-10-27
+
+A tulajdonos a #105 végső `b31464a55f5d412207f5d747adca98f74c8967a6` jelöltjének saját sikeres CI-je után merge commitot, majd a közvetlen merge main saját sikeres CI-je után korlátos buildet és tényleges 16+14 izolált próbát engedélyezett. Az engedély nem terjed ki alkalmazásátállásra, privát kliens/Daily/timer-frissítésre, új successor-preparationre, allowance-aktiválásra vagy paid hívásra.
+
+**Merge és forrásazonosság PASS:** a #105 közvetlen merge-je `66062ec307d8993b9b5c3e3bb2e9b668d8b15d5b`; szülei `03dc19010e84ab826a77e92d901f474195089f36` és a reviewed `b31464a`. Fája `bc82e9320f5c5b3a13e7c51f9c06c3293afd5693`, pontosan a függetlenül jóváhagyott jelölté. A saját main [CI40528401978](https://github.com/Muzsy/future_flow/actions/runs/40528401978) Verify122274160301 és Container122274159869 SUCCESS, eredeti CI-credentiales GET-tel is ellenőrizve. A 720 fájlos exact-source bundle SHA-256 `8bf573828cce692ed534951337e54e8e2de6e47e7016737582f6c8c7258261ed`; a csomagmanifest `8ac434fb79dc6f8baffb3fab9e69eec9e6fbf7594776e63b8d5af75ddd6ecf64`.
+
+**Tényleges build PASS, 15:35:29–15:48:36 UTC:** új immutable image `sha256:3200b28e001b4f9d4ad771a155fc18b7bf402a03b3eaeb1f4df05259eb5e58aa`, tag `alterward:contabo-66062ec307d8`, 13m06s. Tiszta exact main és minden tracked fájl ellenőrzött; builder ténylegesen 1 CPU/2 GiB, utána eltávolítva. Publikus buildfingerprint változatlan, eredeti konténerek változatlanok; nincs publikus port, éles DB-kapcsolat vagy paid hívás.
+
+**Tényleges izolált elfogadás PASS, 15:48:50–16:46:20 UTC / 57m31s, exit0:** 16/16 funded +14/14 successor + privacy/cleanup. Valódi root/PostgreSQL/Docker próbában candidate-mentés/offsite/izolált restore, eltérő saját fiók 3USD-guard, régi allowance lezárása/history megőrzése, COMMIT után elveszett válasz és SQL-ismétlés nélküli recovery, SIGKILL/watchdog/hold/staging, authority/replay és idegen konténer stabilitás ellenőrzött, kizárólag szintetikus adatokkal. Hét eredeti proof külön exportálva, saját main-CI/source/image/local bundle/source-archive/fixture→receipt és eredeti tízkonténeres baseline gépileg egyeztetve.
+
+| Eredeti bizonyíték | SHA-256 |
+| --- | --- |
+| Funded 16/16 | `f824ba95fcab6105346b20279882216acb956249facef5b6083a06b8572bfa95` |
+| Successor 14/14 | `427d327fed75cf8af6f42bb41145070b6aa4294e57c4597e878aa3b4063cf9e0` |
+| Image-rehearsal receipt | `c5625055052b21c6f539db008ab75a90bbb2da0c294113e810eb672e7ceb78a8` |
+| Külön proof-reconciliation | `783cf17422165f47a2be03a16a1ce3d1113b8cdaf9f9ff26e7b064cba212696b` |
+| Takarítás utáni normál monitor | `182d54de65ea29970e833a6dd6b40f577a0f4b6ad12b7fb35986e0205d7b9d9e` |
+| Külön végső runtime/unit readback | `f1ca81a4f9dfef01865a66f3945deb03a7ba15074a948c695617984e012298da` |
+
+**Próba közbeni eredeti monitoreredmények megőrizve:** 16:00:26 és16:15:45 UTC egyetlen `container_state_changed` jelzés (SHA `6df7d5130e463adafa70271d0059f9e09187c8c6d6c1b3280e58178b76a378dc`, illetve `fc4efa2b03a0ebdd566f091e0c37c62badb2b4d9edf62e10ca850633f5263ce2`);16:30:33 UTC tényleges zöld (SHA `2970932cd50498c1b953e4aeec601db3af6fe9e059070bfc8d02a382c2483202`);16:45:14 UTC ismét csak lifecycle-jelzés (SHA `a5d45529e563e063878fcc9435cb2ae787581929d6edc09fdd8e0e634835ba1b`). A külön readonly-k az eredeti tíz workload/four-runtime változatlanságát igazolták; a fixture saját konténerei változtak. A jelzéseket nem reseteltük vagy jelöltük zöldnek. A supplementary readonly megfigyelő első sablonjában régi image-literal maradt: a megfigyelés írás nélkül elutasított, eredetije megőrzött; a javított megfigyelő a tényleges successful build receiptjéből ellenőrizte az image-et. Ez nem acceptance-retry, a committed CLI/check/cleanup változatlan.
+
+**Takarítás utáni lezárás PASS:** ismét csak tíz eredeti konténer;12 managed archívum/0 jelenlévő lejárt/0 pending/üres Daily-work, installed03dc190 script/unit hash-egyezés. A változatlan eredeti Daily valódi új normál monitorja16:47:03–16:47:11 UTC PASS, alerts[], retenció0, külső üzenet0.16:47:21 UTC külön readonly: eredeti lifecycle/image/restart/start-time és négy runtime-hash változatlan, két timer enabled+active/waiting, két service inactive/success/0, backup/monitor zöld, aktív hiányos successor nincs. Nem történt timer- vagy Daily-frissítés.
+
+**A jóváhagyott build+izolált szakasz kész.** Serving alkalmazás6d17fda/d85a92f7/schema038/legacy/üres cohort, kliens/Daily03dc190, régi2/0,50USD keret és eredeti ablak változatlan; paid0. Saját3USD aktiválás, teljes saját Playwright és tesztelői bétaindulás nincs; V9-4 DONE/V9-5 PENDING.
+
+Privát eredetik: `.local/verification/reader-fix-release-20261027/`. Ez a dokumentációs ág nem új executable-forrás kiválasztása; a csomaghoz rögzített forrás a közvetlen `66062ec` merge marad.
+
+
+### Következő konkrét éles csomag — előkészített, még nem engedélyezett
+
+Kiválasztott executable source kizárólag **66062ec**, target és recovery a már ténylegesen elfogadott **3200b28e** immutable image; ehhez nem kell új build vagy azonos próba ismétlése. A dokumentációs PR feje nem új executable source. A privát source-review értelmezés az eredeti független APPROVE/azonos reviewed tree és a valódi új image-proof alapján készült; nem utólag kitalált reviewer- vagy fixture-eredmény. Privát packet-manifest SHA256 `b50704152f2fe42fd4d919f8cce1cd6920ab37a97284ea7b4054366d42108f24`.
+
+Külön tulajdonosi éles engedély után: friss Access GET/reader/Auth/DBidentity/schema038/drain/terms/ledger és eredeti workload/runtime/retenció/backup/monitor ellenőrzés; az eredeti privát03dc190 kliens/receiptek/titkok megőrzése; kliens és Daily66062ec-ra frissítése, kizárólag a két saját timer kontrollja. A konkrét dátumok egyszer, közvetlenül a normál prepare előtt keletkeznek: régi ablakzárás a tervezéstől+60s, új kezdés+840s,30napos ablak. Kizárólag a meglévő saját fiók, összesen3USD projekt/user plafon, narrative-fiction-v2/v9 cohort csak erre a saját fiókra,300000ms/196608B. Személyes azonosítók kizárólag privát packetben.
+
+Normál candidate-előkészítés → friss candidate-bound backup → offsite → tényleges izolált restore → csak minden kapu sikerénél guarded apply és a három app-szolgáltatás rövid átállítása/előző allowance szabályos lezárása → monitor → ellenőrzött timeraktiválás. Megszakításnál kizárólag ugyanazon candidate/source szerinti recovery; nincs újraírt dátum, keretreset, ismételt SQL vagy vak újrapróba. Korábbi történetek/spend/history és minden hibás preparation bizonyítéka megmarad. Végrehajtás előtti lejárt meglévő mentés esetén a retenció konkrét hatását külön ellenőrizni kell; a16:46-os felmérésben ilyen nincs.
+
+Csak sikeres aktiválás után következik a már kért teljes, mért fiktív profilos Playwright-út: belépés → történet → választás → következő fejezet → kilépés → friss belépés/azonos történet. A teljes saját próba összes provider-költése legfeljebb3USD; műveleti előkészítésben paid0. A műveleti idők, konzolhibák, mentett választás/folytatás/visszatérés és szerveres accounting/reservation ellenőrzendők. Belépési kihívásnál tulajdonosi segítség; teljes hibamentes mért PASS nélkül nincs tesztelői bétaindulás. Az éles csomag és fizetős generálás e dokumentáláskor nem futott.
