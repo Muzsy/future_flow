@@ -1010,3 +1010,28 @@ Külön tulajdonosi éles engedély után: friss Access GET/reader/Auth/DBidenti
 Normál candidate-előkészítés → friss candidate-bound backup → offsite → tényleges izolált restore → csak minden kapu sikerénél guarded apply és a három app-szolgáltatás rövid átállítása/előző allowance szabályos lezárása → monitor → ellenőrzött timeraktiválás. Megszakításnál kizárólag ugyanazon candidate/source szerinti recovery; nincs újraírt dátum, keretreset, ismételt SQL vagy vak újrapróba. Korábbi történetek/spend/history és minden hibás preparation bizonyítéka megmarad. Végrehajtás előtti lejárt meglévő mentés esetén a retenció konkrét hatását külön ellenőrizni kell; a16:46-os felmérésben ilyen nincs.
 
 Csak sikeres aktiválás után következik a már kért teljes, mért fiktív profilos Playwright-út: belépés → történet → választás → következő fejezet → kilépés → friss belépés/azonos történet. A teljes saját próba összes provider-költése legfeljebb3USD; műveleti előkészítésben paid0. A műveleti idők, konzolhibák, mentett választás/folytatás/visszatérés és szerveres accounting/reservation ellenőrzendők. Belépési kihívásnál tulajdonosi segítség; teljes hibamentes mért PASS nélkül nincs tesztelői bétaindulás. Az éles csomag és fizetős generálás e dokumentáláskor nem futott.
+
+
+## Saját fiókos éles keretváltás PASS — 2026-10-27
+
+A tulajdonos a #106 konkrét66062ec/3200b28e éles csomagját és az utána következő, összesen legfeljebb3USD-s fiktív profilos saját Playwright-próbát kifejezetten jóváhagyta. A fenti „még nem engedélyezett” csomagállapot ezzel történetivé vált; új build vagy forrásválasztás nem történt.
+
+**Friss kapuk16:56UTC PASS:** eredeti tíz workload/négy runtime-hash, healthyAPI/web és runningworker, eredeti terms/DBidentity/TLS/Auth/reader/AccessGET,0 rendezetlen reservation,12managed archívum/0 jelenlévő lejárt/0pending/üreswork; saját mainCI40528401978 továbbraSUCCESS. Eredeti privát03dc190 Git-bundle, összes Daily/release receipt és változatlan eredeti titok megőrizve, tiszta main kliens exact66062ec-ra fast-forward frissítve.16:57:49offsite-sync,16:58:05csak két saját timer szüneteltetése,16:58:08Daily66062ec-frissítés,16:58:14inspect PASS.
+
+**Egyetlen előkészítés16:58:32–16:59:27UTC PASS:** a konkrét időpontokat egyszer írtuk ki, nincs retiming vagy ismételt prepare. Régi ablakzárás2026-10-27T16:59:32Z; saját ablak2026-10-27T17:12:32Z–2026-11-26T17:12:32Z,egy már meglévő saját fiók,3USD projekt és3USD user ugyanazon teljes próbára. Runtime narrative-fiction-v2/v9,cohort csak sajátfiók,300000ms/196608B. Prepared SHA `ed4f8351e400661dceabcd3866501fca558743036b80d021f036263fee5d5418`, eredeti capture/drain és reader-ellenőrzés sikeres.
+
+**Candidate-bound mentés és restore PASS:** backup16:59:47–17:00:31UTC,run `20261027T165953Z-bbb50435`,125config; offsite17:00:31–17:00:41UTC,13helyi managed archívum/retenció0. Valódi normál izolált restore17:00:41–17:02:24UTC:97tábla/1711sor/125config egyezik,TLS/offsite/ciphertext-tamper/transaction/cleanup/eredeti konténerek PASS,élesDB-írás0,paid0. Az eredeti prepare/hash/source/image/privacy/runId egyezése külön ellenőrzött; a restore-binding a tényleges proofból készült.
+
+**Guarded apply17:02:59–17:06:09UTC PASS:** accountsCommitted/authorityExposed/protectedDataUnchanged/previousSpendPreserved/previousAllowanceClosed true,journalapplied,schema038; nincsDB-visszatöltés vagy paid hívás. Az eredeti két allowance-limit a reviewed SQL szerint0-ra zárult,mindkét eredeti188585microUSD accounted érték változatlan. Minden más régi account változatlan; pontosan két új project/user account3milliómicroUSD limittel/0költéssel. Történet/history/reservation/usage megőrizve. Egy helyi, írásmentes utóellenőrzési assertion először limit=spend értéket várt; megállt, a reviewedSQL ellenőrzése után a helyes limit0/változatlan spend egyeztetés PASS; sem ledger-, sem guardmódosítás vagy apply-ismétlés nem történt.
+
+**Üzemeltetési lezárás17:07UTC PASS:** normál monitor17:06:38–17:06:48UTC zöld; proof-bound timeraktiválás17:06:49–17:06:53UTC PASS.17:07:01UTC külön readonly: három app valóban66062ec/3200b28e image,restart0,API/webhealthy/workerrunning; hét idegen workload változatlan; Daily/kliens66062ec,timerek enabled+active/waiting,backup/monitor zöld,successorapplied. A régi6d17fda serving állapotot ez a konkrét sikeres éles átállítás váltotta le.
+
+| Eredeti bizonyíték | SHA-256 |
+| --- | --- |
+| Tényleges candidate restore | `0958f54c0c992623b7c41133d88963855dda7abf65f37509d22a9d79ba3fa96b` |
+| Éles successor apply | `a70d3ac3391ca8948cbadc0a51a4a4d7958c89e809828b537d132375c5369fc3` |
+| Friss normál monitor | `6e7915778c81d30568f4d618b91ac6c0530dade5a3f300859358876eb0c05c34` |
+| Timeraktiválás | `bdfa71729b39afc7809f1bb02f4d4bcd8202ea1f46eb6b5e9ef5c22332e3112b` |
+| Külön végső readback | `210eb838e140a5a3e860613118bdfaf1abf9cf9d2cd6c95d83c07f3633700da5` |
+
+**Saját böngészős út: belépésre vár, nem PASS.** A meglévő üres történetlista még látszott a régi lapon, de a friss éles betöltés Cloudflare új belépést kért. A tulajdonosnak ugyanazon próbalapon átadva; nem kerülünk meg hitelesítést,sessiont nem másolunk. Saját történet/job/provider-task0,költség0; fiktív profil még nincs beküldve. A már engedélyezett teljes mért út az új ablak kezdete és tulajdonosi belépés után folytatható, nincs új3USD vagy újablak igény. Tesztelői bétaindulás továbbra nem kész,V9-4DONE/V9-5PENDING. Privát eredetik `.local/verification/owner-live-66062ec-20261027/`,live-operation-closure.json és böngészős bizonyítékok; személyes adatok nem kerülnek Gitbe.
