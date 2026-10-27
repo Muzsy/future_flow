@@ -46,7 +46,9 @@ export async function localManagedRecovery(request: object, commit: string) {
     runtime.isSymbolicLink() ||
     runtime.nlink !== 1 ||
     runtime.size > 64 * 1024 * 1024 ||
-    realpathSync(python).toLowerCase() !== python.toLowerCase()
+    (process.platform === 'win32'
+      ? realpathSync(python).toLowerCase() !== python.toLowerCase()
+      : realpathSync(python) !== python)
   )
     throw Error('Original bounded operator Python required');
   const runtimeSha256 = createHash('sha256')

@@ -7,6 +7,11 @@ import {
   privateReportDirectory,
   privateReportFile,
 } from './lib/private-report.ts';
+import {
+  linuxSshHardening,
+  operatorSecretsDirectory,
+  supportedOperatorPlatform,
+} from './lib/operator-platform.mjs';
 
 const directory = privateReportDirectory('contabo-recovery');
 const startedAt = Date.now();
@@ -16,10 +21,13 @@ let commit;
 async function remote(request) {
   const remaining = request.ok === false ? 30000 : deadline - Date.now();
   if (remaining <= 0) throw Error('Bounded local operation deadline reached');
-  const secrets = realpathSync(
-    process.env.ALTERWARD_SSH_SECRETS_DIR ??
-      join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
-  );
+  const secrets =
+    process.platform === 'linux'
+      ? operatorSecretsDirectory()
+      : realpathSync(
+          process.env.ALTERWARD_SSH_SECRETS_DIR ??
+            join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
+        );
   const pin = join(secrets, 'contabo_known_hosts');
   const key = join(secrets, 'contabo_alterward_ed25519');
   for (const path of [pin, key]) {
@@ -45,8 +53,7 @@ async function remote(request) {
   const pending = promisify(execFile)(
     'ssh',
     [
-      '-F',
-      'NUL',
+      ...(process.platform === 'linux' ? linuxSshHardening() : ['-F', 'NUL']),
       '-i',
       key,
       '-o',
@@ -93,20 +100,23 @@ function fresh(value, seconds) {
 
 try {
   if (
-    process.platform !== 'win32' ||
+    !supportedOperatorPlatform() ||
     process.argv.slice(2).join('|') !== '--sync-and-expire'
   )
     throw Error('Explicit local recovery action required');
   commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
-  const self = readFileSync('scripts/recovery-local.mjs');
-  if (
-    !self.equals(
-      execFileSync('git', ['show', `${commit}:scripts/recovery-local.mjs`]),
+  for (const path of [
+    'scripts/recovery-local.mjs',
+    'scripts/lib/operator-platform.mjs',
+  ])
+    if (
+      !readFileSync(path).equals(
+        execFileSync('git', ['show', `${commit}:${path}`]),
+      )
     )
-  )
-    throw Error('Committed local operator required');
+      throw Error('Committed local operator required');
   const run = async (args) => {
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw Error('Bounded local operation deadline reached');

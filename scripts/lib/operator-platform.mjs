@@ -12,6 +12,25 @@ export function sameOperatorPath(left, right, platform = process.platform) {
     : left === right;
 }
 
+// Linux SSH never reads user or global configuration, agents or extra identities
+// and never forwards anything. Windows keeps its original explicit options.
+export function linuxSshHardening(platform = process.platform) {
+  return platform === 'linux'
+    ? [
+        '-F',
+        'none',
+        '-o',
+        'GlobalKnownHostsFile=none',
+        '-o',
+        'IdentitiesOnly=yes',
+        '-o',
+        'IdentityAgent=none',
+        '-o',
+        'ClearAllForwardings=yes',
+      ]
+    : [];
+}
+
 // Linux inputs must be owned by the executing operator, confined by real
 // directories, and private before reading. Never repair an unsafe input here.
 export function assertLinuxPrivatePath(path, directory = false) {

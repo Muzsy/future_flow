@@ -34,6 +34,7 @@ jobs:
           node --test tests/ops/reader-preparation-lifecycle.test.mjs
           node --test tests/ops/reader-archive-retry.test.mjs
           node --test tests/ops/linux-operator.test.mjs
+          node --test tests/ops/recovery-local-linux.test.mjs
           node --test tests/ops/operator-transfer.test.mjs
           node --test tests/ops/funded-replay.test.mjs
           node --test tests/ops/funded-upgrade.test.mjs
