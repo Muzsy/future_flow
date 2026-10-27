@@ -74,7 +74,8 @@ jobs:
       - run: git diff --exit-code -- docs/contracts
   container:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Build, complete funded fixture, independent image rehearsal and cleanup.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Build the Contabo image without credentials

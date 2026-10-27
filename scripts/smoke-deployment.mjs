@@ -316,6 +316,7 @@ try {
     ...fundedBundle,
     privacy: privacyRestore,
   };
+  const fundedStartedAt = performance.now();
   const fundedProof = JSON.parse(
     execFileSync(
       'sudo',
@@ -333,10 +334,17 @@ try {
         cwd: root,
         input: JSON.stringify(fundedContext),
         encoding: 'utf8',
-        timeout: 600000,
+        // Physical backup/restore and successor waits share this CI-only budget.
+        // Individual operation deadlines and every acceptance check stay intact.
+        timeout: 15 * 60 * 1000,
         maxBuffer: 8 * 1024 * 1024,
       },
     ),
+  );
+  console.log(
+    JSON.stringify({
+      fundedFixtureElapsedMs: Math.round(performance.now() - fundedStartedAt),
+    }),
   );
   for (const check of [
     'success',
