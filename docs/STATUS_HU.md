@@ -15,7 +15,7 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
-**Aktuális checkpoint — 2026-10-27 17:07 UTC:** a külön jóváhagyott saját fiókos éles csomag PASS. Serving app és kliens/Daily `66062ec`, tényleges `3200b28e` image, schema038,narrative-fiction-v2/v9 és csak saját cohort. Friss candidate-mentés/offsite/97tábla–1711sor–125config izolált restore, guarded apply,monitor,timeraktiválás és külön végső readback zöld. Régi allowance-limit0-ra lezárt,elszámolás/history megőrzött; új saját teljes3USD keret/0költés,ablak2026-10-27T17:12:32Z–2026-11-26T17:12:32Z. Saját teljes Playwright-út új Cloudflare-belépésre vár; profil/történet/providerhívás még0. Tesztelői bétaindulás nincs. [Pontos műveleti eredmények és proofok](operations/NARRATIVE_RELEASE_HU.md#saját-fiókos-éles-keretváltás-pass--2026-10-27).
+**Aktuális checkpoint — 2026-10-27 20:34 UTC:** a teljes saját fiókos, mért v9 C5 Playwright-alapút **PASS**: belépés → fiktív profil → két valódi v9-fejezet/egy választás → kilépés → privát-route hitelesítési kapu → normál friss belépés → ugyanazon fejezetek/választás visszatérése. A választás tényleges state-változása és a folytatás pontos state-kötése DB-readbackkel igazolt. Szerveres fejezetidők237349/283201ms; teljes saját próba0.671215USD az összes3USD-ből,ebből v9 0.599364USD;13completed task/0unsettled,0dev-log warn/error. A régi `/futures` lap miatti egy legacy kitérő és az automatizálási korrekciók megőrzöttek, a v9-acceptance külön `/start` útvonalon történt. Friss monitor/runtime/timerekPASS; app és Daily/kliens66062ec/3200b28e/schema038/v9 saját cohort. Saját technikai indulási kapu kész; tényleges tesztelő-admission/10USD-s ablak még nincs,**V9-5PARTIAL**. [Mérés, költség, proofok és korlátok](operations/NARRATIVE_RELEASE_HU.md#teljes-saját-fiókos-v9-playwright-alapút-pass--2026-10-27).
 
 **Történeti előző ablak, 2026-10-27-én szabályosan lezárva:** az első személyes tesztelő reader-hozzáférése, első belépése és a 30 napos funded ablak kanonikus Linux-operátori aktiválása megtörtént. Az alkalmazott UTC ablak **2026-10-13T22:11:21Z–2026-11-12T22:11:21Z**, a projektmaximum 2 USD, a felhasználói maximum 0,50 USD. Nincs automatikus hosszabbítás vagy újraindított költségkeret.
 
@@ -27,7 +27,7 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 
 | Terület | Állapot | Következő határ |
 |---|---|---|
-| Private Personal Simulation | implementált és egy tesztelővel valódi E2E-ben ellenőrzött | irodalmi minőség, későbbi visszatérés és szélesebb pilot |
+| Private Personal Simulation | korábbi legacy E2E és új teljes saját fiókos v9-alapút PASS | tényleges kis tesztelői kör, humán feedback és hosszabb visszatérés |
 | Új személyes narratív pipeline | N00–N07 és N09 technikai kapu kész; N08/humán béta nyitott | teljes paid/human benchmark és külön operátori rollout |
 | Official Lives / Scenario | technikai alap és angol katalógus létezik | nem általános publikus launch-engedély |
 | Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
@@ -44,7 +44,7 @@ Három külön állapotot kell követni:
 | --- | --- | --- |
 | Távoli `main`, legutóbbi operátori javítás | `66062ec307d8993b9b5c3e3bb2e9b668d8b15d5b`, [#105](https://github.com/Muzsy/future_flow/pull/105); v9 C5 a #81 óta | Független APPROVE a byte-azonos reviewed fára; saját main Verify+Container CI40528401978 SUCCESS. Új célgépes build PASS; az új image tényleges 16/16+14/14 próbája, cleanup és friss normál monitor/readback PASS. |
 | Befagyasztott motoralap | C5 `7bd4d42`; a teljes #81 main-integráció `apps/` és `packages/` tartalma bájtazonos ezzel | Planner/author/reviewer/editor v9, fidelity v1; explicit opt-in és default-off határok megmaradnak. |
-| Production | Serving66062ec/3200b28e,schema038,narrative-fiction-v2/v9 csak saját cohort | Kliens/Daily66062ec; éles successor/candidate backup/offsite/97-táblás restore/apply/monitor/timer/readback PASS. Régi keret lezárt,új saját3USD/0költés; teljes saját E2E belépésre vár. |
+| Production | Serving66062ec/3200b28e,schema038,narrative-fiction-v2/v9 csak saját cohort | Kliens/Daily66062ec; éles successor/candidate backup/offsite/97-táblás restore/apply/monitor/timer/readback PASS. Régi keret lezárt,új saját3USD/0költés; teljes saját v9 E2E PASS,két fejezet/egy választás és friss belépés utáni megőrzés igazolt. |
 
 A #81 a teljes v9 láncot, #56/#62 integrációt és a #70–#79 kiadási javításait valódi merge committal a főágba vitte. Mind a húsz rész-PR feje Git-ős; négyet GitHub automatikusan merged állapotba tett (#56/#57/#62/#70), a többi tizenhat stacked PR lezárult integráltként, eredeti branch/commit megőrzésével. A teljes diff független review-ja APPROVE a `bc77cc9` jelöltre; a merge két szülője `a666c905` és `bc77cc9`, fája pontosan a jóváhagyott jelölté. A pontos végrehajtás és elfogadási feltételek a [master planben](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) vannak.
 

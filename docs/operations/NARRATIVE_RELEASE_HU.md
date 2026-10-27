@@ -1035,3 +1035,42 @@ A tulajdonos a #106 konkrét66062ec/3200b28e éles csomagját és az utána köv
 | Külön végső readback | `210eb838e140a5a3e860613118bdfaf1abf9cf9d2cd6c95d83c07f3633700da5` |
 
 **Saját böngészős út: belépésre vár, nem PASS.** A meglévő üres történetlista még látszott a régi lapon, de a friss éles betöltés Cloudflare új belépést kért. A tulajdonosnak ugyanazon próbalapon átadva; nem kerülünk meg hitelesítést,sessiont nem másolunk. Saját történet/job/provider-task0,költség0; fiktív profil még nincs beküldve. A már engedélyezett teljes mért út az új ablak kezdete és tulajdonosi belépés után folytatható, nincs új3USD vagy újablak igény. Tesztelői bétaindulás továbbra nem kész,V9-4DONE/V9-5PENDING. Privát eredetik `.local/verification/owner-live-66062ec-20261027/`,live-operation-closure.json és böngészős bizonyítékok; személyes adatok nem kerülnek Gitbe.
+
+
+## Teljes saját fiókos v9 Playwright-alapút PASS — 2026-10-27
+
+**A tulajdonos által kért saját fiókos technikai indulási kapu teljesült.** A korábbi belépésre váró állapot történeti: a tulajdonos friss Cloudflare/app-belépése után tényleges Chrome/Playwright UI-val végrehajtva: belépés → egyértelműen fiktív profil → első v9-fejezet → egy választás mentése → második v9-fejezet → alkalmazásból kilépés → privát történet hitelesítési kapuja → normál friss belépés → történetlista → ugyanazon történet két fejezete és választása. Sem történet, sem választás nem készült közvetlen DB-írással vagy admin API-val. A visszatéréshez a böngésző meglévő automatikus kitöltése működött; jelszó/session/token olvasása vagy másolása nem történt.
+
+**Mérési útvonal és megőrzött eltérések:** a korábbról megtartott `/futures` lapon a „Get started” még a kompatibilitási `/onboarding` → `POST /futures` régi utat indította. Egy ilyen futás befejeződött, megmaradt, 3 elszámolt task/0.071851USD; nem számítjuk v9-acceptance-nek. A jelenlegi „Start a life” `/start` → `/life/…` út külön, a teljes próba eredeti összes3USD-jén belül futott le. A régi profil tesztszövegének80/160karakteres hosszkorlátját az operátor javította még generálás előtt. Az átmeneti locator-várakozások és egy írásmentes SQL-megfigyelő idézési hibája külön megőrzött; friss UI/DB-megfigyelés alapján korrigálva, ismételt choice/generation/apply nélkül. A visszatérési bare-label locator kezdetben nem találta az egy DOM-szövegként megjelenő „Your choice: …” sort; tényleges szövegolvasás után a helyes ellenőrzés PASS. Ezek nem elhallgatott alkalmazás- vagy providerhibák; a kanonikus v9-úton nincs megmagyarázatlan alkalmazáshiba. Nincs kódmódosítás vagy vak API-újrapróba.
+
+**A tényleges motor igazolt:** mindkét `aw_jobs` payload policy narrative-fiction-v2 / quality2.8.0 / planner-author-planReviewer-editor v9, fidelityv1; két valódi2.0.0 narrative artifact. Az első és második fejezet egyaránt az öt rendes modellfeladattal elfogadott, tartalmi repair0, manuális generálásismétlés0. A ledger modellazonosítója `gpt-6.1-sol`; a service tier ebből a mezőből önmagában nem igazolható.
+
+| Mérés | Eredmény |
+| --- | --- |
+| Első v9-job, szerveres created_at → completed_at | 20:21:11.171–20:25:08.520UTC;237349ms,3m57.349s |
+| Második v9-job | 20:26:37.505–20:31:20.706UTC;283201ms,4m43.201s |
+| UI indítás → megfigyelt első/második fejezet | 261106/307478ms; automatizálási és polling többletidővel |
+| Választás → megfigyelt mentés | 21142ms; nem izolált HTTP-latencia |
+| Kilépés / privát-route kapu / friss belépés / újranyitás megfigyelt idői | 11649/24377/32214/48944ms; eszköz- és megfigyelési többletidővel |
+| V9-költség | 10 completed task,0.599364USD |
+| Teljes saját próba, a régi útvonal kitérőjével együtt | 13 completed task,**0.671215USD az összes3USD-ből**;2.328785USD megmaradt |
+| Unknown vagy rendezetlen reservation | 0 |
+| Rögzített böngésző warn/error | 0 |
+
+**Valódi döntési hatás:** két eltérő lehetőség volt: heti háromórás vasárnapi hely6000HUF vagy kétheti kétórás pénteki hely2000HUF. A vasárnapi választás pontosan egy `aw_choices` rekordként a helyes period/decision/option kötésre ment. A kitalált szereplő liquidFunds150000→144000HUF; vasárnapi opportunity accepted, pénteki declined. A második period `start_state` értéke pontosan a választás `state_after` értéke, az elfogadott decision a folytatás `accepted_before` listájában van. A második fejezet vasárnapi műhelyhozzáférésre, ismétlődő költségekre, fizetés nélküli próbaalkalomra és a későbbi kis szolgáltatás megnyitásának döntésére épül; a munkahely és6órás heti korlát megmarad. Ez egy mintában igazolt oksági/persistencia eredmény, nem általános irodalmi benchmark.
+
+**Visszatérés és elszámolás:** kijelentkezve a közvetlen ismert privát történetút „Your story is private”/Sign in kaput adott, fejezetszöveg nélkül. Friss normál alkalmazás-belépés után ugyanazon listaelem és branch nyílt meg. Mindkét fejezet, a mentett választás, canon-hashek, jobok és usage byte/logikailag változatlanok; nem keletkezett új job/task. A friss Auth-azonosság igazolt. Mindkét új project/user account ugyanazt a671215microUSD költést mutatja3000000-es limit mellett; nem adódnak össze6USD-vé. Minden korábbi accounted érték megmaradt, nincs budget-reset vagy újablak.
+
+**Záró üzemeltetés:**20:34:05–20:34:13UTC normál monitor PASS,üres queue/personalPending,alerts[]; külön final runtime readback PASS,app/Daily/kliens66062ec/3200b28e/schema038/v9 saját cohort,restart0,hét idegen workload változatlan,timerekaktívak. A teszt nem igényelt új deployt vagy új keretváltást.
+
+| Privát eredeti bizonyíték | SHA-256 |
+| --- | --- |
+| Összesített, ellenőrzött owner-e2e-proof.json | `3364e908ba60621a36c19de6d42ff1a381c0a7e71cc00d8921f485c80f4ff861` |
+| Két kész fejezet/choice/elszámolás | `4a0cdb282400c4de25984096875e49b4bdc0a7bb9183a8c78932d133206fe0a1` |
+| Friss belépés utáni külön DB-readback | `6d79fbd9da62d4ae4c743f38566804d24e89552272edc96cba9b2ad726e4553b` |
+| Teljes visszanyitott UI-szöveg | `7b122d9fb2a8c5e96b03afe92f4122b50b346b7d30aed170d7b8f432f92d7419` |
+| Visszanyitott történet képe | `d6e54c7dfed86e67bb2c6e09c4c05afd9ba1389eaaa4dfaa14e08e91face2342` |
+| Próba utáni normál monitor | `11d0595a897fefd30640b8cb34650d60468b88914065c22f6af05bca23e13c8a` |
+| Próba utáni külön runtime-readback | `497f73d761b0310e8585be4a9759e2f6cebd210b11409b8c8504e6f10e4e36b2` |
+
+**Határok és következő lépés:** egy fiktív fiók/egy választott irány/két v9-fejezet; nincs széles humán minőségi, többfős, hosszú retention vagy terheléses PASS. Nyers HAR/network hook nem elérhető, ezért teljes HTTP-forgalmi hibamentességet nem állítunk; a normál UI-eredmények, dev-logok és szerveres job/accounting/auth readback szolgálnak bizonyítékként. A költés az alkalmazás elszámolása,nem szolgáltatói számlaegyeztetés. A saját technikai indulási kapu **PASS**, a tesztelői kör előkészíthető. Tényleges tesztelő/admission és a későbbi külön10USD-s ablak még nincs aktiválva; a tulajdonosnak még nincs kijelölt tesztelője. V9-4DONE,**V9-5PARTIAL**: a saját kapu kész, a kis kör és3./6.fejezeti feedback nyitott. A motor befagyasztva marad, új finomítás nem indul ebből a mérésből. Személyes azonosító/történetszöveg/session kizárólag `.local/verification/owner-live-66062ec-20261027/`; a történetet a tulajdonos böngészőjében nyitva hagytuk.
