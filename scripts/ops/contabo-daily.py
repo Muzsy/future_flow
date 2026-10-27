@@ -914,6 +914,23 @@ def successor_next_context(number, root, value, role, context):
                              json.loads(regular(root / 'terms.json')), access)
 
 
+def successor_parent_context(generation):
+    """Funded parent and the context a generation is prepared/validated against.
+
+    Every EARLIER generation must be fully exposed; the generation itself (which
+    may be mid-transition) is never evaluated here.
+    """
+    parent, parent_role = successor_funded_parent()
+    context = successor_funded_context(parent, parent_role)
+    for number, root in enumerate(successor_roots()[:generation - 1], 1):
+        value = successor_candidate(parent, parent_role, root=root, context=context)
+        role = successor_effective_role(value, root)
+        if role == 'previous':
+            raise ValueError('Earlier successor generation must be fully exposed')
+        context = successor_next_context(number, root, value, role, context)
+    return parent, parent_role, context
+
+
 def validate_successor_archive(root):
     files = successor_unapplied_files(root)
     receipt = json.loads(regular(root / 'archive.json'))
