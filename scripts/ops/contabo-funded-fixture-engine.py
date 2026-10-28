@@ -505,6 +505,7 @@ def exercise(context, *, scope='ci'):
         )
         initialFiles = {
             'server.env': ("ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n"
+                + "CLOSED_SITE_ALLOWED_EMAILS='funded@example.invalid,owner@example.invalid'\n"
                 + "AI_PROJECT_BUDGET_USD='2'\nAI_USER_BUDGET_USD='0.5'\n"
                 + "AI_BUDGET_WINDOW_START='"+terms['startsAt']+"'\nAI_BUDGET_WINDOW_END='"+terms['endsAt']+"'\n").encode(),
             'pinned-image.json': encoded(
