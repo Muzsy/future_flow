@@ -73,6 +73,24 @@ class FundedCapabilityTests(unittest.TestCase):
             execute.assert_not_called()
         self.assertFalse((self.root/'capability.json').exists())
 
+    def test_successor_engine_freeze_exempts_only_dependency_manifests(self):
+        import test_beta_successor_root as successor
+        sources={name:'a'*64 for name in (
+            'apps/api/src/main.ts','packages/core/src/index.ts','database/001.sql','deploy/compose.contabo.yaml',
+            'Dockerfile','pnpm-workspace.yaml')}
+        manifests=('package.json','pnpm-lock.yaml','apps/api/package.json','apps/web/package.json',
+            'packages/ai/package.json','packages/contracts/package.json')
+        request={**self.system.request,'mode':'prepare','sourceHashes':{
+            **sources,**{name:'b'*64 for name in manifests},
+            # near misses stay frozen: nested manifests, other workspace files, scripts are out of scope
+            'apps/api/src/package.json':'c'*64,'apps/api/tsconfig.json':'d'*64,'scripts/operator.ts':'e'*64}}
+        empty=tempfile.TemporaryDirectory();self.addCleanup(empty.cleanup)
+        with patch.object(successor.root,'DIRECTORY',Path(empty.name)):
+            scoped=successor.root.System(request,self.system.daily)
+        frozen=scoped.frozen_source_hashes()
+        self.assertEqual(set(frozen),set(sources)|{'apps/api/src/package.json','apps/api/tsconfig.json'})
+        self.assertFalse(set(manifests)&set(frozen))
+
     def test_successor_fixed_engine_scope_has_same_timeout_and_cleanup_binding(self):
         import test_beta_successor_root as successor
         request={**self.system.request,'mode':'prepare','sourceHashes':{
