@@ -42,9 +42,20 @@ beforeAll(async () => {
 afterAll(async () => {
   await engine?.close();
 });
-async function group() {
-  const g = await sharedAiGroup(db, shared),
-    a = g.people[0]!,
+async function group(startsAt?: string) {
+  // Life creation starts at today's date; pinning only that step keeps the
+  // decision timestamps below on the real clock.
+  if (startsAt) {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(startsAt));
+  }
+  let g: Awaited<ReturnType<typeof sharedAiGroup>>;
+  try {
+    g = await sharedAiGroup(db, shared);
+  } finally {
+    if (startsAt) vi.useRealTimers();
+  }
+  const a = g.people[0]!,
     b = g.people[1]!;
   const f = sharedEventFixture(
     g.contextId,
@@ -565,7 +576,8 @@ describe.sequential('S3 delayed common canon and personal snapshots', () => {
     expect(await lives.branch(g.b.id, g.b.branchId)).toEqual(peer);
   });
   it('accepts different days in one month, anchors at the latest day and defers a future-dated memory', async () => {
-    const g = await group();
+    // Day 10 keeps day 28 of the same month strictly later on every run date.
+    const g = await group('2030-01-10T12:00:00.000Z');
     await respond(g);
     await respond(g, g.b, g.f.no);
     const later = g.a.date.slice(0, 8) + '28';
