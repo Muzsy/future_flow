@@ -281,7 +281,7 @@ class ChainTests(unittest.TestCase):
                     path.unlink() if path.is_file() else path.rmdir()
                 chain.root(3).rmdir()
 
-    def test_first_generation_remains_owner_only_and_tester_beta_cannot_skip_the_reader_step(self):
+    def test_first_generation_remains_owner_only_and_cannot_claim_tester_beta(self):
         fx = self.chain.fixture
         # Replace the exposed first generation by a tester-beta claim at generation 1.
         selection = json.loads((fx.root / 'selection.json').read_bytes())
@@ -291,6 +291,36 @@ class ChainTests(unittest.TestCase):
         value['selectionSha256'] = daily.digest(encoded(selection))
         fx.write(fx.root / 'prepared.json', encoded(value))
         self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_the_tester_window_can_be_opened_only_once(self):
+        chain = self.chain
+        chain.admit_readers()
+        value = chain.prepare(3, 'tester-beta', participants=chain.testers())
+        chain.expose(3, value, window_changed=True)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        self.assertEqual(daily.successor_active_state()['generation'], 3)
+        # A second 10 / 3.33 USD window is refused even though it is well formed.
+        chain.prepare(4, 'tester-beta', participants=chain.testers())
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        for path in sorted(chain.root(4).rglob('*'), reverse=True):
+            path.unlink() if path.is_file() else path.rmdir()
+        chain.root(4).rmdir()
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        # Only admitting more readers (no money) may still follow it.
+        emails = sorted(set(chain.active_access['allowedEmails']) | {'late-reader@example.invalid'})
+        chain.prepare(4, 'reader-admission', emails=emails)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_a_reader_step_may_follow_the_tester_window_and_the_record_of_it_is_kept(self):
+        chain = self.chain
+        chain.admit_readers()
+        tester = chain.prepare(3, 'tester-beta', participants=chain.testers())
+        chain.expose(3, tester, window_changed=True)
+        emails = sorted(set(chain.active_access['allowedEmails']) | {'late-reader@example.invalid'})
+        reader = chain.prepare(4, 'reader-admission', emails=emails)
+        chain.expose(4, reader, window_changed=False)
+        self.assertEqual(daily.successor_active_state()['generation'], 4)
+        self.assertEqual(daily.successor_parent_context(4)[2]['purposes'][-1], 'tester-beta')
 
     def test_earlier_generation_evidence_is_part_of_the_next_baseline(self):
         chain = self.chain

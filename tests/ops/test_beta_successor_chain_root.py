@@ -332,6 +332,16 @@ class TesterBeta(ChainRootBase):
         self.assertEqual(system.active_access(), self.chain.active_access)
         self.assertEqual(selection['purpose'], 'tester-beta')
 
+    def test_a_second_tester_window_is_recognized_from_the_effective_terms(self):
+        self.assertFalse(root.is_tester_window(self.chain.terms))
+        self.chain.admit_readers()
+        value = self.chain.prepare(3, 'tester-beta', participants=self.chain.testers())
+        self.chain.expose(3, value, window_changed=True)
+        # A later generation's effective terms ARE the tester window, so another
+        # tester-beta selection (or one behind a reader step) is refused in prepare.
+        self.assertTrue(root.is_tester_window(self.chain.terms))
+        self.assertTrue(root.is_tester_window(self.system().original_terms()))
+
     def test_tester_beta_uses_the_database_accounting_transport_with_previous_terms(self):
         self.chain.admit_readers()
         selection = self.beta_selection()

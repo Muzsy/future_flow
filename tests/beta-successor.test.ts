@@ -424,6 +424,44 @@ it('chains the tester beta from the live single-owner 3 USD window, keeping its 
     ).rejects.toMatchObject({ code: 'AI_BUDGET_EXCEEDED' });
   });
 });
+it('opens the tester window at most once: a tester window can never be succeeded by another', () => {
+  const now = Date.now();
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const tester = {
+    participants: users,
+    projectUsd: '10',
+    userUsd: '3.33',
+    startsAt: iso(now - 86400000),
+    endsAt: iso(now - 86400000 + 30 * 86400000),
+  };
+  const again = {
+    purpose: 'tester-beta' as const,
+    previousTermsSha256: hash(tester),
+    closePreviousAt: iso(now),
+    next: {
+      participants: users,
+      projectUsd: '10',
+      userUsd: '3.33',
+      startsAt: iso(now + 60000),
+      endsAt: iso(now + 60000 + 30 * 86400000),
+    },
+  };
+  expect(() => successorPlan(tester, again, iso(now))).toThrow();
+  // The same selection over the owner window is the approved single step.
+  const owner = {
+    ...tester,
+    participants: [users[0]!],
+    projectUsd: '3',
+    userUsd: '3',
+  };
+  expect(
+    successorPlan(
+      owner,
+      { ...again, previousTermsSha256: hash(owner) },
+      iso(now),
+    ).purpose,
+  ).toBe('tester-beta');
+});
 it('normal DatabaseAiBudget spends from the new window after its start; old configuration stays denied', async () => {
   const i = input(1500);
   await rollback(async (tx) => {

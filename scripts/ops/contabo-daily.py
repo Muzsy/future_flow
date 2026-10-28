@@ -688,10 +688,11 @@ def successor_funded_parent():
     return prepared, 'recovery' if terminal == 'recovered' else 'target'
 
 
-def successor_context(generation, parent_dir, files, terms, access):
-    """What a generation is chained to: parent evidence, active files, terms, readers."""
+def successor_context(generation, parent_dir, files, terms, access, purposes=()):
+    """What a generation is chained to: parent evidence, active files, terms, readers
+    and the purposes of every earlier generation (a tester window may open only once)."""
     return {'generation': generation, 'parent_dir': parent_dir, 'files': files,
-            'terms': terms, 'access': access}
+            'terms': terms, 'access': access, 'purposes': tuple(purposes)}
 
 
 def successor_funded_context(parent, parent_role):
@@ -780,6 +781,8 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
     allowed = {'owner-e2e'} if generation == 1 else {SUCCESSOR_READER_PURPOSE, 'tester-beta'}
     if purpose not in allowed or plan.get('purpose') != purpose:
         raise ValueError('Approved successor purpose for this generation required')
+    if purpose == 'tester-beta' and 'tester-beta' in context.get('purposes', ()):
+        raise ValueError('The tester window may be opened at most once')
     prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00'))
                             for k in ('preparedAt', 'expiresAt')]
     prior_start, prior_end = [dt.datetime.fromisoformat(prior[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
@@ -906,7 +909,10 @@ def successor_chain_contexts():
         try:
             role = successor_effective_role(value, root)
         except SuccessorNotExposed:
-            break  # an in-flight generation is never a parent of anything
+            # An in-flight generation is never a parent of anything. Stopping here
+            # does not loosen health: successor_active_state still rejects a
+            # directory that follows an unfinished one.
+            break
         if role == 'previous':
             break
         context = successor_next_context(number, root, value, role, context)
@@ -917,8 +923,10 @@ def successor_chain_contexts():
 def successor_next_context(number, root, value, role, context):
     receipt = root / 'access.json'
     access = (json.loads(regular(receipt)) if receipt.exists() or receipt.is_symlink() else context['access'])
+    purpose = json.loads(regular(root / 'selection.json')).get('purpose')
     return successor_context(number, root, value['files'][role],
-                             json.loads(regular(root / 'terms.json')), access)
+                             json.loads(regular(root / 'terms.json')), access,
+                             context.get('purposes', ()) + (purpose,))
 
 
 def successor_parent_context(generation):

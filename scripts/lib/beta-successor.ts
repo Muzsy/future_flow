@@ -109,9 +109,17 @@ export function successorPlan(
         next.participants.length === 3 &&
         next.projectUsd === '10' &&
         next.userUsd === '3.33';
+  // The tester window opens at most once: a previous window of its own shape
+  // can never be succeeded by another one.
+  const repeatsTesterWindow =
+    selection.purpose === 'tester-beta' &&
+    prior.participants.length === 3 &&
+    prior.projectUsd === '10' &&
+    prior.userUsd === '3.33';
   if (
     selection.previousTermsSha256 !== hash(previous) ||
     !allowed ||
+    repeatsTesterWindow ||
     Date.parse(now) < Date.parse(prior.startsAt) ||
     Date.parse(now) >= Date.parse(prior.endsAt) ||
     Date.parse(closePreviousAt) < Date.parse(now) ||

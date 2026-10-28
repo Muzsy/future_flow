@@ -50,6 +50,13 @@ def allowed_purposes(generation):
     return {'owner-e2e'} if generation == 1 else {READER_PURPOSE, 'tester-beta'}
 
 
+def is_tester_window(terms):
+    """The effective window already is the one tester window (shape of tester-beta)."""
+    count, project_usd, user_usd = WINDOW_PURPOSES['tester-beta']
+    return (len(terms['participants']) == count and terms['projectUsd'] == project_usd
+            and terms['userUsd'] == user_usd)
+
+
 def reader_emails(selection):
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'readers'})
     emails = funded.exact(selection['readers'], {'allowedEmails'})['allowedEmails']
@@ -392,6 +399,8 @@ class System(funded.System):
         access = self.active_access()
         if selected['previousTermsSha256'] != canonical_sha(previous):
             raise ValueError('Original terms required')
+        if purpose_of(selected) == 'tester-beta' and is_tester_window(previous):
+            raise ValueError('The tester window may be opened at most once')
         if self.is_reader():
             if not set(access['allowedEmails']) < set(reader_emails(selected)):
                 raise ValueError('Reader admission may only add readers')
