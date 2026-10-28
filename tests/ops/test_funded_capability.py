@@ -73,6 +73,42 @@ class FundedCapabilityTests(unittest.TestCase):
             execute.assert_not_called()
         self.assertFalse((self.root/'capability.json').exists())
 
+    def test_successor_engine_freeze_exempts_only_the_six_named_manifests(self):
+        import test_beta_successor_root as successor
+        sources={name:'a'*64 for name in (
+            'apps/api/src/main.ts','packages/core/src/index.ts','database/001.sql','deploy/compose.contabo.yaml',
+            'Dockerfile','pnpm-workspace.yaml')}
+        manifests=('package.json','pnpm-lock.yaml','apps/api/package.json','apps/web/package.json',
+            'packages/ai/package.json','packages/contracts/package.json')
+        # near misses stay frozen: other workspace manifests, nested or spelled differently
+        near=('apps/worker/package.json','packages/core/package.json','apps/api/src/package.json',
+            'apps/api/tsconfig.json','Package.json','package.json5','apps/../package.json','./package.json',
+            'database/package.json','apps/api/package.json\n')
+        request={**self.system.request,'mode':'prepare','sourceHashes':{
+            **sources,**{name:'b'*64 for name in manifests},**{name:'c'*64 for name in near},
+            'scripts/operator.ts':'e'*64}}
+        empty=tempfile.TemporaryDirectory();self.addCleanup(empty.cleanup)
+        with patch.object(successor.root,'DIRECTORY',Path(empty.name)):
+            scoped=successor.root.System(request,self.system.daily)
+        frozen=scoped.frozen_source_hashes()
+        self.assertFalse(set(manifests)&set(frozen))
+        self.assertTrue(set(near)-{'Package.json','package.json5','./package.json','apps/api/package.json\n'}<=set(frozen))
+
+    def test_successor_engine_freeze_still_detects_source_drift_next_to_manifests(self):
+        import test_beta_successor_root as successor
+        frozen_before={'apps/api/src/main.ts':'a'*64,'pnpm-workspace.yaml':'a'*64}
+        changed=[{**frozen_before,'apps/api/src/main.ts':'f'*64},{**frozen_before,'pnpm-workspace.yaml':'f'*64}]
+        manifests={'package.json':'b'*64,'pnpm-lock.yaml':'b'*64}
+        empty=tempfile.TemporaryDirectory();self.addCleanup(empty.cleanup)
+        with patch.object(successor.root,'DIRECTORY',Path(empty.name)):
+            base=successor.root.System({**self.system.request,'mode':'prepare','sourceHashes':{**frozen_before,**manifests}},self.system.daily)
+            for drift in changed:
+                scoped=successor.root.System({**self.system.request,'mode':'prepare','sourceHashes':{**drift,**manifests}},self.system.daily)
+                self.assertNotEqual(scoped.frozen_source_hashes(),base.frozen_source_hashes())
+            only_manifests=successor.root.System({**self.system.request,'mode':'prepare','sourceHashes':{
+                **frozen_before,'package.json':'0'*64,'pnpm-lock.yaml':'0'*64}},self.system.daily)
+            self.assertEqual(only_manifests.frozen_source_hashes(),base.frozen_source_hashes())
+
     def test_successor_fixed_engine_scope_has_same_timeout_and_cleanup_binding(self):
         import test_beta_successor_root as successor
         request={**self.system.request,'mode':'prepare','sourceHashes':{
