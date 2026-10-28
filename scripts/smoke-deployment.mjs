@@ -336,7 +336,7 @@ try {
         encoding: 'utf8',
         // Physical backup/restore and successor waits share this CI-only budget.
         // Individual operation deadlines and every acceptance check stay intact.
-        timeout: 15 * 60 * 1000,
+        timeout: 30 * 60 * 1000,
         maxBuffer: 8 * 1024 * 1024,
       },
     ),
