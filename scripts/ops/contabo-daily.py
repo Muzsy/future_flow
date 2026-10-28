@@ -890,6 +890,10 @@ def successor_unapplied_files(root):
     return {p.relative_to(root).as_posix():digest(regular(p)) for p in paths if p.name != 'archive.json'}
 
 
+class SuccessorNotExposed(ValueError):
+    """A generation exists but is not yet (or no longer) the fully exposed parent."""
+
+
 def successor_chain_contexts():
     """Contexts of every possible parent: the original funded upgrade, then each
     generation that is already fully exposed. Archived (never-applied) preparations
@@ -899,7 +903,10 @@ def successor_chain_contexts():
     contexts = [context]
     for number, root in enumerate(successor_roots(), 1):
         value = successor_candidate(parent, parent_role, root=root, context=context)
-        role = successor_effective_role(value, root)
+        try:
+            role = successor_effective_role(value, root)
+        except SuccessorNotExposed:
+            break  # an in-flight generation is never a parent of anything
         if role == 'previous':
             break
         context = successor_next_context(number, root, value, role, context)
@@ -1032,7 +1039,7 @@ def successor_effective_role(value, root=None):
         previous = row['sha256']
     state = intent['states'][-1]['state']
     if state not in {'applied', 'recovered'}:
-        raise ValueError('Successor not fully exposed; keep held')
+        raise SuccessorNotExposed('Successor not fully exposed; keep held')
     role = 'recovery' if state == 'recovered' else 'target'
     proof = json.loads(regular(root / 'readback.json'))
     if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
