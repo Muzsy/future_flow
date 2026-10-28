@@ -611,15 +611,48 @@ SUCCESSOR_VERSION = 'alterward-beta-successor-1'
 RUNTIME_NAMES = {'server.env', 'effective-compose.json', 'pinned-image.json', 'manifest.json'}
 SUCCESSOR_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'journal.json',
                    'readback.json', 'database-after.json', 'probe-compose.json',
-                   'probe.json', 'capability.json', 'watchdog.json', 'archive.json'}
+                   'probe.json', 'capability.json', 'watchdog.json', 'archive.json',
+                   'access.json'}
+SUCCESSOR_IMMUTABLE_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'archive.json', 'access.json'}
 SUCCESSOR_ARCHIVE_NAME = 'beta-successor-archive'
 SUCCESSOR_ARCHIVE_VERSION = 'alterward-beta-successor-archive-1'
+SUCCESSOR_PLAN_VERSION = 'alterward-beta-successor-plan-2'
+# One finite directory per separately authorized transition. The first is the
+# owner-e2e window; each later one has the previous FULLY exposed generation as
+# its parent and may never be prepared while an earlier one is still unfinished.
+SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4')
+# purpose -> (participants, projectUsd, userUsd) for allowance-changing purposes.
+SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
+SUCCESSOR_READER_PURPOSE = 'reader-admission'
+SUCCESSOR_EMAIL = re.compile(r'[-a-z0-9._+]+@[-a-z0-9.]+')
+
+
+def successor_json(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+
+
+def successor_roots():
+    """Existing generation roots in order; a gap is invalid, not skipped."""
+    roots = []
+    missing = False
+    for name in SUCCESSOR_ROOT_NAMES:
+        path = OWNER / name
+        present = path.exists() or path.is_symlink()
+        if present and missing:
+            raise ValueError('Successor generations must be contiguous')
+        if present:
+            roots.append(path)
+        else:
+            missing = True
+    return roots
 
 
 def successor_config_paths(*, immutable_only=False):
     """Only finite, private successor evidence; never scan arbitrary backups."""
-    return sorted(successor_tree_paths(OWNER / 'beta-successor', immutable_only=immutable_only)
-                  + successor_archived_paths())
+    paths = []
+    for root in successor_roots():
+        paths += successor_tree_paths(root, immutable_only=immutable_only)
+    return sorted(paths + successor_archived_paths())
 
 
 def successor_tree_paths(root, *, immutable_only=False):
@@ -639,20 +672,71 @@ def successor_tree_paths(root, *, immutable_only=False):
             if path.name not in SUCCESSOR_NAMES:
                 raise ValueError('Unknown successor evidence')
             regular(path)
-            if not immutable_only or path.name in {'prepared.json', 'selection.json', 'terms.json', 'archive.json'}:
+            if not immutable_only or path.name in SUCCESSOR_IMMUTABLE_NAMES:
                 result.append(path)
     return sorted(result)
 
 
-def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
-    """Validate the one owner trial's immutable authority, including its parent.
+def successor_funded_parent():
+    """The completed ORIGINAL funded upgrade: the parent of the first generation."""
+    original = OWNER / 'funded-runtime-upgrade'
+    prepared = json.loads(regular(original / 'prepared.json'))
+    journal = json.loads(regular(original / 'journal.json'))
+    terminal = journal['states'][-1]['state']
+    if terminal not in {'applied', 'recovered'}:
+        raise ValueError('Completed original funded parent required')
+    return prepared, 'recovery' if terminal == 'recovered' else 'target'
+
+
+def successor_context(generation, parent_dir, files, terms, access, purposes=()):
+    """What a generation is chained to: parent evidence, active files, terms, readers
+    and the purposes of every earlier generation (a tester window may open only once)."""
+    return {'generation': generation, 'parent_dir': parent_dir, 'files': files,
+            'terms': terms, 'access': access, 'purposes': tuple(purposes)}
+
+
+def successor_funded_context(parent, parent_role):
+    return successor_context(
+        0, OWNER / 'funded-runtime-upgrade', parent['files'][parent_role],
+        json.loads(regular(OWNER / 'personal-beta' / 'terms.json')),
+        json.loads(regular(OWNER / 'personal-beta-readers' / 'access.json')))
+
+
+def successor_authority_paths(generation):
+    """Immutable-by-construction authority a generation is prepared against.
+
+    Every earlier generation is fully exposed before the next may be prepared, so
+    its whole tree is part of the baseline, exactly like the original funded tree.
+    """
+    original = OWNER / 'funded-runtime-upgrade'
+    paths = reader_config_paths() + personal_config_paths() + funded_tree_paths(original) + funded_archived_paths()
+    for name in SUCCESSOR_ROOT_NAMES[:generation - 1]:
+        paths += successor_tree_paths(OWNER / name)
+    return paths
+
+
+def successor_normalized_terms(raw):
+    return {**raw, **{k: dt.datetime.fromisoformat(raw[k].replace('Z', '+00:00'))
+                      .isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                      for k in ('startsAt', 'endsAt')}}
+
+
+def successor_canonical_hash(value):
+    return digest(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode())
+
+
+def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, context=None):
+    """Validate one generation's immutable authority, including its parent.
 
     This consumes root evidence, it does not create accounts or activate users.
-    The original reader/personal/funded files remain byte-bound and untouched.
+    The original reader/personal/funded files remain byte-bound and untouched; a
+    later generation additionally binds every earlier generation's evidence.
     """
     root = OWNER / 'beta-successor' if root is None else root
     if not root.exists() and not root.is_symlink():
         return None
+    context = successor_funded_context(parent, parent_role) if context is None else context
+    generation = context['generation'] + 1
     successor_tree_paths(root)
     if check_oneoffs:
         for observe in (funded_probe_state, funded_capability_state):
@@ -669,16 +753,15 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
     if (not isinstance(value['sourceCommit'], str) or not re.fullmatch(r'[a-f0-9]{40}', value['sourceCommit'])
             or not isinstance(value['bundleSha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', value['bundleSha256'])):
         raise ValueError('Committed successor source required')
-    original = OWNER / 'funded-runtime-upgrade'
+    parent_dir = context['parent_dir']
     for name, key in [('prepared.json', 'parentPreparedSha256'), ('journal.json', 'parentJournalSha256'),
                       ('readback.json', 'parentReadbackSha256')]:
-        if digest(regular(original / name)) != value[key]:
+        if digest(regular(parent_dir / name)) != value[key]:
             raise ValueError('Original funded parent evidence changed')
-    authority = reader_config_paths() + personal_config_paths() + funded_tree_paths(original) + funded_archived_paths()
-    if value['baseline']['authority'] != {str(p): digest(regular(p)) for p in authority}:
+    if value['baseline']['authority'] != {str(p): digest(regular(p)) for p in successor_authority_paths(generation)}:
         raise ValueError('Successor original authority changed')
     if (set(value['files']) != {'previous', 'target', 'recovery'}
-            or value['files']['previous'] != parent['files'][parent_role]
+            or value['files']['previous'] != context['files']
             or value['baseline']['files'] != value['files']['previous']):
         raise ValueError('Successor does not retain original active runtime')
     for role in ('previous', 'target', 'recovery'):
@@ -692,40 +775,75 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
     terms = json.loads(regular(root / 'terms.json'))
     selection = json.loads(regular(root / 'selection.json'))
     plan = value['operation']['plan']
-    prior = json.loads(regular(OWNER / 'personal-beta' / 'terms.json'))
-    access = json.loads(regular(OWNER / 'personal-beta-readers' / 'access.json'))
-    def normalized_terms(raw):
-        return {**raw, **{k: dt.datetime.fromisoformat(raw[k].replace('Z', '+00:00'))
-                          .isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-                          for k in ('startsAt', 'endsAt')}}
-    canonical_hash = lambda v: digest(json.dumps(v, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode())
-    if (set(selection) != {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'}
-            or selection['purpose'] != 'owner-e2e' or plan['purpose'] != 'owner-e2e'
-            or plan['version'] != 'alterward-beta-successor-plan-2'
-            or set(terms) != {'participants', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'}
-            or terms != selection['next'] or normalized_terms(terms) != plan['next']
-            or normalized_terms(prior) != plan['previous']
-            or len(terms['participants']) != 1
-            or set(terms['participants'][0]) != {'email', 'userId'}
-            or not ADMISSION_UUID.fullmatch(terms['participants'][0]['userId'])
-            or terms['participants'][0]['email'] not in access['allowedEmails']
-            or terms['projectUsd'] != '3' or terms['userUsd'] != '3'
-            or selection['previousTermsSha256'] != canonical_hash(prior)
-            or plan['previousTermsSha256'] != canonical_hash(prior)
-            or plan['selectionSha256'] != canonical_hash(selection)):
-        raise ValueError('Only the explicit already-readable owner 3 USD trial is supported')
-    start, end = [dt.datetime.fromisoformat(terms[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
-    close = dt.datetime.fromisoformat(selection['closePreviousAt'].replace('Z', '+00:00'))
-    prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00')) for k in ('preparedAt', 'expiresAt')]
+    prior = context['terms']
+    access = context['access']
+    purpose = selection.get('purpose') if isinstance(selection, dict) else None
+    allowed = {'owner-e2e'} if generation == 1 else {SUCCESSOR_READER_PURPOSE, 'tester-beta'}
+    if purpose not in allowed or plan.get('purpose') != purpose:
+        raise ValueError('Approved successor purpose for this generation required')
+    if purpose == 'tester-beta' and 'tester-beta' in context.get('purposes', ()):
+        raise ValueError('The tester window may be opened at most once')
+    prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00'))
+                            for k in ('preparedAt', 'expiresAt')]
     prior_start, prior_end = [dt.datetime.fromisoformat(prior[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
-    if (any(t.utcoffset() != dt.timedelta(0) for t in (start, end, close, prepared_at, expires))
-            or (end - start).total_seconds() != 30 * 86400 or not prepared_at <= close < start <= expires
-            or not prior_start <= prepared_at <= close < prior_end
-            or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            or plan['closePreviousAt'] != close.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            or (expires - prepared_at).total_seconds() != 900):
-        raise ValueError('Bounded ordered successor window required')
+    receipt = root / 'access.json'
+    has_receipt = receipt.exists() or receipt.is_symlink()
+    readers = access['allowedEmails']
+    if purpose == SUCCESSOR_READER_PURPOSE:
+        # Reader admission changes ONLY who may reach the closed site. The window,
+        # participants, budget, cohort and every account stay byte-identical.
+        emails = selection.get('readers', {}).get('allowedEmails') if isinstance(selection.get('readers'), dict) else None
+        if (set(selection) != {'purpose', 'previousTermsSha256', 'readers'} or set(selection['readers']) != {'allowedEmails'}
+                or not isinstance(emails, list) or emails != sorted(set(emails)) or len(emails) > 10
+                or any(not isinstance(e, str) or not SUCCESSOR_EMAIL.fullmatch(e) for e in emails)
+                or not set(readers) < set(emails)
+                or terms != prior
+                or set(plan) != {'version', 'purpose', 'observedAt', 'expiresAt', 'previousTermsSha256', 'selectionSha256'}
+                or plan['version'] != SUCCESSOR_PLAN_VERSION
+                or selection['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['selectionSha256'] != successor_canonical_hash(selection)
+                or not has_receipt
+                or regular(receipt) != successor_json({'allowedEmails': emails, 'audience': access['audience'],
+                                                       'teamDomain': access['teamDomain']})):
+            raise ValueError('Only the exact approved reader-admission selection is supported')
+        readers = emails
+        if (any(t.utcoffset() != dt.timedelta(0) for t in (prepared_at, expires))
+                or not prior_start <= prepared_at < prior_end or (expires - prepared_at).total_seconds() != 900
+                or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
+            raise ValueError('Bounded reader-admission preparation within the active window required')
+    else:
+        count, project_usd, user_usd = SUCCESSOR_WINDOW_PURPOSES[purpose]
+        participants = terms['participants'] if isinstance(terms.get('participants'), list) else []
+        if (set(selection) != {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'}
+                or plan['version'] != SUCCESSOR_PLAN_VERSION
+                or set(terms) != {'participants', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'}
+                or terms != selection['next'] or successor_normalized_terms(terms) != plan['next']
+                or successor_normalized_terms(prior) != plan['previous']
+                or len(participants) != count
+                or len({p.get('userId') for p in participants if isinstance(p, dict)}) != count
+                or len({p.get('email') for p in participants if isinstance(p, dict)}) != count
+                or any(not isinstance(p, dict) or set(p) != {'email', 'userId'}
+                       or not isinstance(p['userId'], str) or not ADMISSION_UUID.fullmatch(p['userId'])
+                       or p['email'] not in readers for p in participants)
+                or terms['projectUsd'] != project_usd or terms['userUsd'] != user_usd
+                or selection['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['selectionSha256'] != successor_canonical_hash(selection)
+                or has_receipt):
+            raise ValueError('Only the exact approved already-readable successor selection is supported')
+        start, end = [dt.datetime.fromisoformat(terms[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
+        close = dt.datetime.fromisoformat(selection['closePreviousAt'].replace('Z', '+00:00'))
+        if (any(t.utcoffset() != dt.timedelta(0) for t in (start, end, close, prepared_at, expires))
+                or (end - start).total_seconds() != 30 * 86400 or not prepared_at <= close < start <= expires
+                or not prior_start <= prepared_at <= close < prior_end
+                or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or plan['closePreviousAt'] != close.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or (expires - prepared_at).total_seconds() != 900):
+            raise ValueError('Bounded ordered successor window required')
+    ids = ','.join(p['userId'] for p in terms['participants'])
     for role in ('target', 'recovery'):
         manifest = json.loads(regular(root / role / 'manifest.json'))
         build = value['release'][role]
@@ -737,18 +855,18 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True):
         config = json.loads(regular(root / role / 'effective-compose.json'))
         for service in ('api', 'worker'):
             env = config['services'][service]['environment']
-            if (env['AI_PROJECT_BUDGET_USD'] != '3' or env['AI_USER_BUDGET_USD'] != '3'
-                    or env['CLOSED_BETA_USER_IDS'] != terms['participants'][0]['userId']
+            if (env['AI_PROJECT_BUDGET_USD'] != terms['projectUsd'] or env['AI_USER_BUDGET_USD'] != terms['userUsd']
+                    or env['CLOSED_BETA_USER_IDS'] != ids
                     or env.get('CLAUDE_PRODUCTION_BUDGET_USD', '0') != '0'
                     or env['NARRATIVE_PIPELINE_MODE'] != 'narrative-fiction-v2'
                     or env['NARRATIVE_FICTION_GENERATION'] != 'v9'
-                    or env['NARRATIVE_COHORT_USER_IDS'] != terms['participants'][0]['userId']):
-                raise ValueError('Successor owner runtime policy differs')
+                    or env['NARRATIVE_COHORT_USER_IDS'] != ids):
+                raise ValueError('Successor runtime policy differs')
         # The reader boundary belongs to ingress web/API. Compose deliberately
         # omits access settings from the background worker.
         for service in ('web', 'api'):
-            allowed = config['services'][service]['environment'].get('CLOSED_SITE_ALLOWED_EMAILS')
-            if not isinstance(allowed, str) or sorted(allowed.split(',')) != sorted(access['allowedEmails']):
+            allowed_emails = config['services'][service]['environment'].get('CLOSED_SITE_ALLOWED_EMAILS')
+            if not isinstance(allowed_emails, str) or sorted(allowed_emails.split(',')) != sorted(readers):
                 raise ValueError('Successor reader access differs')
         env = config['services']['worker']['environment']
         if (env['AI_BUDGET_WINDOW_START'] != terms['startsAt'] or env['AI_BUDGET_WINDOW_END'] != terms['endsAt']
@@ -763,6 +881,9 @@ def successor_unapplied_files(root):
     names = {p.relative_to(root).as_posix() for p in paths}
     required = {'prepared.json', 'selection.json', 'terms.json'} | {
         r + '/' + n for r in ('previous', 'target', 'recovery') for n in RUNTIME_NAMES}
+    # A reader-admission preparation also carries its immutable reader receipt.
+    if 'selection.json' in names and json.loads(regular(root / 'selection.json')).get('purpose') == SUCCESSOR_READER_PURPOSE:
+        required |= {'access.json'}
     if not required <= names or not names <= required | {'probe-compose.json','probe.json','capability.json','archive.json'}:
         raise ValueError('Only complete never-attempted successor preparation may be archived')
     for observe in (funded_probe_state, funded_capability_state):
@@ -772,19 +893,74 @@ def successor_unapplied_files(root):
     return {p.relative_to(root).as_posix():digest(regular(p)) for p in paths if p.name != 'archive.json'}
 
 
+class SuccessorNotExposed(ValueError):
+    """A generation exists but is not yet (or no longer) the fully exposed parent."""
+
+
+def successor_chain_contexts():
+    """Contexts of every possible parent: the original funded upgrade, then each
+    generation that is already fully exposed. Archived (never-applied) preparations
+    are validated against the context whose evidence they were prepared from."""
+    parent, parent_role = successor_funded_parent()
+    context = successor_funded_context(parent, parent_role)
+    contexts = [context]
+    for number, root in enumerate(successor_roots(), 1):
+        value = successor_candidate(parent, parent_role, root=root, context=context)
+        try:
+            role = successor_effective_role(value, root)
+        except SuccessorNotExposed:
+            # An in-flight generation is never a parent of anything. Stopping here
+            # does not loosen health: successor_active_state still rejects a
+            # directory that follows an unfinished one.
+            break
+        if role == 'previous':
+            break
+        context = successor_next_context(number, root, value, role, context)
+        contexts.append(context)
+    return contexts
+
+
+def successor_next_context(number, root, value, role, context):
+    receipt = root / 'access.json'
+    access = (json.loads(regular(receipt)) if receipt.exists() or receipt.is_symlink() else context['access'])
+    purpose = json.loads(regular(root / 'selection.json')).get('purpose')
+    return successor_context(number, root, value['files'][role],
+                             json.loads(regular(root / 'terms.json')), access,
+                             context.get('purposes', ()) + (purpose,))
+
+
+def successor_parent_context(generation):
+    """Funded parent and the context a generation is prepared/validated against.
+
+    Every EARLIER generation must be fully exposed; the generation itself (which
+    may be mid-transition) is never evaluated here.
+    """
+    parent, parent_role = successor_funded_parent()
+    context = successor_funded_context(parent, parent_role)
+    for number, root in enumerate(successor_roots()[:generation - 1], 1):
+        value = successor_candidate(parent, parent_role, root=root, context=context)
+        role = successor_effective_role(value, root)
+        if role == 'previous':
+            raise ValueError('Earlier successor generation must be fully exposed')
+        context = successor_next_context(number, root, value, role, context)
+    return parent, parent_role, context
+
+
 def validate_successor_archive(root):
     files = successor_unapplied_files(root)
     receipt = json.loads(regular(root / 'archive.json'))
-    parent_root = OWNER / 'funded-runtime-upgrade'
-    parent = json.loads(regular(parent_root / 'prepared.json'))
-    parent_journal = json.loads(regular(parent_root / 'journal.json'))
-    terminal = parent_journal['states'][-1]['state']
-    if terminal not in {'applied','recovered'}:
-        raise ValueError('Completed original funded parent required')
-    candidate = successor_candidate(parent, 'recovery' if terminal == 'recovered' else 'target', root=root)
+    parent, parent_role = successor_funded_parent()
+    expected = digest(regular(root / 'prepared.json'))
+    value = json.loads(regular(root / 'prepared.json'))
+    for context in successor_chain_contexts():
+        if digest(regular(context['parent_dir'] / 'prepared.json')) == value.get('parentPreparedSha256'):
+            break
+    else:
+        raise ValueError('Archived successor parent is not part of the exposed chain')
+    candidate = successor_candidate(parent, parent_role, root=root, context=context)
     if (set(receipt) != {'version','preparedSha256','preparedSourceCommit','archiverSourceCommit','archivedAt','files'}
             or receipt['version'] != SUCCESSOR_ARCHIVE_VERSION or receipt['files'] != files
-            or receipt['preparedSha256'] != digest(regular(root / 'prepared.json'))
+            or receipt['preparedSha256'] != expected
             or receipt['preparedSourceCommit'] != candidate['sourceCommit']
             or not re.fullmatch(r'[a-f0-9]{40}',receipt['archiverSourceCommit'])
             or dt.datetime.fromisoformat(receipt['archivedAt']) < dt.datetime.fromisoformat(candidate['expiresAt'])):
@@ -811,8 +987,8 @@ def successor_archived_paths():
     return result
 
 
-def successor_effective_role(value):
-    root = OWNER / 'beta-successor'
+def successor_effective_role(value, root=None):
+    root = OWNER / 'beta-successor' if root is None else root
     journal = root / 'journal.json'
     if not journal.exists() and not journal.is_symlink():
         if utcnow() >= dt.datetime.fromisoformat(value['expiresAt']):
@@ -871,19 +1047,47 @@ def successor_effective_role(value):
         previous = row['sha256']
     state = intent['states'][-1]['state']
     if state not in {'applied', 'recovered'}:
-        raise ValueError('Successor not fully exposed; keep held')
+        raise SuccessorNotExposed('Successor not fully exposed; keep held')
     role = 'recovery' if state == 'recovered' else 'target'
     proof = json.loads(regular(root / 'readback.json'))
     if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
             or proof.get('sourceCommit') != value['sourceCommit']
             or proof.get('imageId') != value['release'][role]['imageId'] or proof.get('schema') != 38
             or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
-            or proof.get('previousAllowanceClosed') is not True or proof.get('browserJourneyPassed') is not False
+            or proof.get('previousAllowanceClosed') is not (
+                json.loads(regular(root / 'selection.json')).get('purpose') != SUCCESSOR_READER_PURPOSE)
+            or proof.get('browserJourneyPassed') is not False
             or proof.get('operationSha256') != digest(json.dumps(value['operation'],sort_keys=True,separators=(',', ':')).encode())
             or proof.get('operationPaidAiCalls') != 0 or proof.get('paidAiCalls') != 0
             or proof.get('databaseRestored') is not False):
         raise ValueError('Original successor commit/readback proof required')
     return role
+
+
+def successor_active_state():
+    """The authority every consumer must treat as active: the last FULLY exposed
+    generation (or the original funded upgrade), plus an unfinished last generation.
+
+    Returns {'directory','generation','files','terms','access','pending'}; `pending` is
+    the root of a prepared-but-not-exposed last generation, never active authority.
+    """
+    parent, parent_role = successor_funded_parent()
+    context = successor_funded_context(parent, parent_role)
+    directory = OWNER / 'funded-runtime-upgrade'
+    pending = None
+    roots = successor_roots()
+    for number, root in enumerate(roots, 1):
+        value = successor_candidate(parent, parent_role, root=root, context=context)
+        role = successor_effective_role(value, root)
+        if role == 'previous':
+            if number != len(roots):
+                raise ValueError('Only the last successor generation may be unfinished')
+            pending = root
+            break
+        context = successor_next_context(number, root, value, role, context)
+        directory = root
+    return {'directory': directory, 'generation': context['generation'], 'files': context['files'],
+            'terms': context['terms'], 'access': context['access'], 'pending': pending}
 
 
 def active_funded_directory():
@@ -892,15 +1096,9 @@ def active_funded_directory():
     Called after funded_upgrade_healthy; a prepared-only successor cannot make
     an old proof look like an activation of the new window.
     """
-    original = OWNER / 'funded-runtime-upgrade'
-    root = OWNER / 'beta-successor'
-    if not root.exists() and not root.is_symlink():
-        return original
-    parent = json.loads(regular(original / 'prepared.json'))
-    journal = json.loads(regular(original / 'journal.json'))
-    role = 'recovery' if journal['states'][-1]['state'] == 'recovered' else 'target'
-    value = successor_candidate(parent, role)
-    return original if successor_effective_role(value) == 'previous' else root
+    if not successor_roots():
+        return OWNER / 'funded-runtime-upgrade'
+    return successor_active_state()['directory']
 
 
 def funded_upgrade_healthy(mode):
@@ -908,7 +1106,7 @@ def funded_upgrade_healthy(mode):
     if not root.exists() and not root.is_symlink():
         try:
             funded_archived_paths()
-            if (OWNER / 'beta-successor').exists() or (OWNER / 'beta-successor').is_symlink():
+            if successor_roots():
                 return False
             return True
         except (OSError, ValueError, KeyError, TypeError):
@@ -928,7 +1126,7 @@ def funded_upgrade_healthy(mode):
             return False
         journal = root / 'journal.json'
         if not journal.exists():
-            return (not (OWNER / 'beta-successor').exists() and mode == 'personal-beta'
+            return (not successor_roots() and mode == 'personal-beta'
                     and utcnow() < dt.datetime.fromisoformat(prepared['expiresAt']))
         intent = json.loads(regular(journal))
         if set(intent)!={'version','preparedSha256','states'} or intent['version']!='alterward-funded-upgrade-1' or not 1<=len(intent['states'])<=32:
@@ -952,8 +1150,7 @@ def funded_upgrade_healthy(mode):
                 proof.get('imageId') == prepared['release'][role]['imageId'])
         if not parent_valid:
             return False
-        successor = successor_candidate(prepared, role)
-        expected_files = prepared['files'][role] if successor is None else successor['files'][successor_effective_role(successor)]
+        expected_files = successor_active_state()['files'] if successor_roots() else prepared['files'][role]
         return {name: digest(regular(OWNER / name)) for name in expected_files} == expected_files
     except (OSError, ValueError, KeyError, TypeError):
         return False

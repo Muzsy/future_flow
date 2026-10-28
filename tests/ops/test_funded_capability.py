@@ -5,7 +5,9 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 import test_funded_upgrade as base
 
@@ -75,7 +77,11 @@ class FundedCapabilityTests(unittest.TestCase):
         import test_beta_successor_root as successor
         request={**self.system.request,'mode':'prepare','sourceHashes':{
             'apps/frozen.ts':'a'*64,'scripts/operator.ts':'b'*64}}
-        scoped=successor.root.System(request,self.system.daily)
+        # The adapter inspects the generation roots, so give it an empty owner
+        # directory instead of the real (root-only) production path.
+        empty=tempfile.TemporaryDirectory();self.addCleanup(empty.cleanup)
+        with patch.object(successor.root,'DIRECTORY',Path(empty.name)):
+            scoped=successor.root.System(request,self.system.daily)
         scoped.root=self.root
         scoped.archive_support=self.system.archive_support
         self.system=scoped

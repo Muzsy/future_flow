@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-26
+last_reviewed: 2026-10-27
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -1074,3 +1074,26 @@ A tulajdonos a #106 konkrét66062ec/3200b28e éles csomagját és az utána köv
 | Próba utáni külön runtime-readback | `497f73d761b0310e8585be4a9759e2f6cebd210b11409b8c8504e6f10e4e36b2` |
 
 **Határok és következő lépés:** egy fiktív fiók/egy választott irány/két v9-fejezet; nincs széles humán minőségi, többfős, hosszú retention vagy terheléses PASS. Nyers HAR/network hook nem elérhető, ezért teljes HTTP-forgalmi hibamentességet nem állítunk; a normál UI-eredmények, dev-logok és szerveres job/accounting/auth readback szolgálnak bizonyítékként. A költés az alkalmazás elszámolása,nem szolgáltatói számlaegyeztetés. A saját technikai indulási kapu **PASS**, a tesztelői kör előkészíthető. Tényleges tesztelő/admission és a későbbi külön10USD-s ablak még nincs aktiválva; a tulajdonosnak még nincs kijelölt tesztelője. V9-4DONE,**V9-5PARTIAL**: a saját kapu kész, a kis kör és3./6.fejezeti feedback nyitott. A motor befagyasztva marad, új finomítás nem indul ebből a mérésből. Személyes azonosító/történetszöveg/session kizárólag `.local/verification/owner-live-66062ec-20261027/`; a történetet a tulajdonos böngészőjében nyitva hagytuk.
+
+
+## Láncolt successor-generációk: olvasói belépés és tesztelői ablak — 2026-10-27
+
+**Döntés (tulajdonos):** a béta három résztvevővel indul, közülük egy a tulajdonos saját, már használt fiókja; a másik kettő a két meghívott tesztelő. A tesztelők egyesével léphetnek be, de a belépés nem ad költési jogot. A konkrét email-címek és felhasználó-azonosítók kizárólag a privát csomagban vannak, sem a repóban, sem ebben a dokumentumban nem szerepelnek.
+
+**Miért kellett kódváltozás:** a successor-lánc eddig egyetlen generációt (`beta-successor`, `owner-e2e`) ismert, és a tesztelői ablak az olvasói (Access) listát nem tudta bővíteni. Az új szabály nem lazít semmilyen kaput: a lánc véges (legfeljebb négy generáció), minden következő generáció az előző teljesen kitett generációra épül, és az összes korábbi fa a következő baseline authorityjának része.
+
+| Generáció | Megengedett cél | Mit változtat |
+|---|---|---|
+| 1 | `owner-e2e` (már éles) | egyfiókos 3/3 USD ablak |
+| ≥2 | `reader-admission` | csak az olvasói listát bővíti (szigorú részhalmaz-bővítés, rendezett, egyedi, legfeljebb 10); nincs DB-írás, nincs keret, ablak vagy cohort-változás |
+| ≥2 | `tester-beta` | pontosan 3 egyedi résztvevő, 10 USD projekt / 3,33 USD user, 30 nap; mindhárom már olvasó; a régi limit 0-ra áll, a spend és a history megmarad |
+
+**Legfeljebb egy tesztelői ablak (tulajdonosi döntés, 2026-10-28):** a `tester-beta` a láncban egyszer nyitható meg. A Daily minden korábbi generáció célját számon tartja, és elutasít egy második `tester-beta`-t; az adapter és az elszámolási terv ezt az érvényes (effektív) előző terms alakjából is ellenőrzi, így a 10 / 3,33 USD-s ablak nem ismételhető meg kódváltoztatás nélkül. Utána csak pénz nélküli `reader-admission` jöhet. Több tesztelői keret új tulajdonosi döntést, kódváltoztatást és új review-t igényel.
+
+**Működési hatás:** a `reader-admission` is a teljes `transition`-t futtatja (stop, hold, drain, expose), tehát rövid kiesést és a futó fejezet-job lezárását jelenti az aktív ablak közben; ezért üres queue-nál, külön engedéllyel kell végrehajtani. A fixture a nulla-költésű esetet fedi, a nem nulla owner-spend (kb. 0,67 USD) láncolt esetét a célgépes próba.
+
+A külső Access-lista mindig megelőzi az origin beállítását; a `reader-admission` ezért külön éles lépés a `tester-beta` előtt, és a meglévő `CLOSED_BETA_USER_IDS` kapu miatt a belépés önmagában 403-at ad a generálásra. A Daily a kimenetét generációnként kötött `access.json` receipttel igazolja, a readback `previousAllowanceClosed=false`. A telepített Daily-nek a második generáció előtt tartalmaznia kell a láncolt authorityt, különben az adapter elutasít. A kliens receiptjei generációnként külön nevet kapnak (`beta-successor-reader-*`, `beta-successor-tester-*`), így egy későbbi lépés nem írja felül a korábbi bizonyítékot. A `deploy/reviewed-recovery-images.json` legacy replay-szerződés változatlan.
+
+**Ellenőrzés (helyi):** 509 Python ops teszt, 12 TypeScript elszámolási teszt (köztük a tester-beta az owner-ablakból: 10/3,33 USD új accountok, a régi limitek 0, a history érintetlen), 7 Node release-teszt. A fixture-szerződés `alterward-beta-successor-fixture-2`, három új kötelező ellenőrzéssel (`readerAdmission`, `testerBetaWindow`, `chainedAuthority`); a root/Docker fixture a valós owner-ablak indulására várva lefuttatja mindkét generációt, ezért a CI container job időkerete 80 percre nőtt. A Docker-fixture helyben nem futtatható (Docker Hub rate limit), tényleges futása a CI-ben lesz.
+
+**Határ:** semmi sem lett éles szerveren futtatva; nincs Access-lista módosítás, nincs ablakváltás, nincs paid hívás, a motor befagyasztott. A v9 C5 és minden gate változatlan. Az élesítés három külön, tulajdonosi engedélyhez kötött lépés: Daily/kliens frissítés, `reader-admission`, majd a `tester-beta` átállás. V9-5 PARTIAL.

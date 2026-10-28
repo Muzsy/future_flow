@@ -1,9 +1,11 @@
-"""Root adapter for one explicit owner trial, retaining the original authority.
+"""Root adapter for one explicit successor generation, retaining the original authority.
 
 No migration, provider request, account creation or database restore. The new
 image contains the reviewed accounting transport; application sources must also
-match the ORIGINAL serving image. Only the selected owner's future allowance,
-admission and v9 runtime configuration may change.
+match the ORIGINAL serving image. Only the selected generation's future allowance,
+admission, reader list and v9 runtime configuration may change: owner-e2e (first
+generation), then reader-admission (no database write) and tester-beta, each chained
+to the previous fully exposed generation.
 """
 import copy
 import datetime as dt
@@ -21,9 +23,16 @@ import alterward_funded_upgrade as funded
 from alterward_successor_transition import transition
 
 VERSION = 'alterward-beta-successor-1'
-STATE_NAME = 'beta-successor'
+STATE_NAME = 'beta-successor'  # the first generation; later ones are chained, see System
+ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4')
+PLAN_VERSION = 'alterward-beta-successor-plan-2'
 ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD',
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
+READER_PURPOSE = 'reader-admission'
+# purpose -> (participants, projectUsd, userUsd); only allowance-changing purposes.
+WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
+USER_ID = re.compile(r'[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}')
+EMAIL = re.compile(r'[-a-z0-9._+]+@[-a-z0-9.]+')
 
 
 def canonical_sha(value):
@@ -31,35 +40,82 @@ def canonical_sha(value):
     return sha(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode())
 
 
+def purpose_of(selection):
+    return selection.get('purpose') if isinstance(selection, dict) else None
+
+
+def allowed_purposes(generation):
+    # The first generation is the single-owner trial that is already exposed. Later
+    # generations first admit readers (no money), then open the tester window.
+    return {'owner-e2e'} if generation == 1 else {READER_PURPOSE, 'tester-beta'}
+
+
+def is_tester_window(terms):
+    """The effective window already is the one tester window (shape of tester-beta)."""
+    count, project_usd, user_usd = WINDOW_PURPOSES['tester-beta']
+    return (len(terms['participants']) == count and terms['projectUsd'] == project_usd
+            and terms['userUsd'] == user_usd)
+
+
+def reader_emails(selection):
+    funded.exact(selection, {'purpose', 'previousTermsSha256', 'readers'})
+    emails = funded.exact(selection['readers'], {'allowedEmails'})['allowedEmails']
+    if (not isinstance(emails, list) or emails != sorted(set(emails)) or not 1 <= len(emails) <= 10
+            or any(not isinstance(e, str) or not EMAIL.fullmatch(e) for e in emails)
+            or not isinstance(selection['previousTermsSha256'], str)
+            or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])):
+        raise ValueError('Exact sorted reader list required')
+    return emails
+
+
 def selection_values(selection):
+    """The allowance environment a selection may set; empty for reader admission."""
+    purpose = purpose_of(selection)
+    if purpose == READER_PURPOSE:
+        reader_emails(selection)
+        return {}
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'})
     terms = selection['next']
     funded.exact(terms, {'participants', 'projectUsd', 'userUsd', 'startsAt', 'endsAt'})
-    if (selection['purpose'] != 'owner-e2e' or terms['projectUsd'] != '3' or terms['userUsd'] != '3'
-            or not isinstance(terms['participants'], list) or len(terms['participants']) != 1):
-        raise ValueError('Explicit single-owner 3 USD trial required')
-    owner = funded.exact(terms['participants'][0], {'email', 'userId'})
-    if (not isinstance(owner['userId'], str) or not re.fullmatch(
-            r'[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}', owner['userId'])
-            or not isinstance(owner['email'], str) or not re.fullmatch(r'[a-z0-9._+\-]+@[a-z0-9.\-]+', owner['email'])
+    if purpose not in WINDOW_PURPOSES:
+        raise ValueError('Approved successor purpose required')
+    count, project_usd, user_usd = WINDOW_PURPOSES[purpose]
+    participants = terms['participants']
+    if (terms['projectUsd'] != project_usd or terms['userUsd'] != user_usd
+            or not isinstance(participants, list) or len(participants) != count):
+        raise ValueError('Explicit approved participant count and allowance required')
+    for participant in participants:
+        funded.exact(participant, {'email', 'userId'})
+        if (not isinstance(participant['userId'], str) or not USER_ID.fullmatch(participant['userId'])
+                or not isinstance(participant['email'], str) or not EMAIL.fullmatch(participant['email'])):
+            raise ValueError('Exact private participant mapping required')
+    if (len({p['userId'] for p in participants}) != count or len({p['email'] for p in participants}) != count
             or not isinstance(selection['previousTermsSha256'], str)
             or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])):
-        raise ValueError('Exact private owner mapping required')
+        raise ValueError('Unique participants and previous terms digest required')
     start, end = (funded.stamp(terms[k]) for k in ('startsAt', 'endsAt'))
     if end - start != dt.timedelta(days=30) or funded.stamp(selection['closePreviousAt']) >= start:
         raise ValueError('Ordered thirty-day trial required')
-    return {'CLOSED_BETA_USER_IDS': owner['userId'], 'AI_PROJECT_BUDGET_USD': '3',
-            'AI_USER_BUDGET_USD': '3', 'AI_BUDGET_WINDOW_START': terms['startsAt'],
-            'AI_BUDGET_WINDOW_END': terms['endsAt']}
+    return {'CLOSED_BETA_USER_IDS': ','.join(p['userId'] for p in participants),
+            'AI_PROJECT_BUDGET_USD': project_usd, 'AI_USER_BUDGET_USD': user_usd,
+            'AI_BUDGET_WINDOW_START': terms['startsAt'], 'AI_BUDGET_WINDOW_END': terms['endsAt']}
 
 
-def runtime_selection(selection):
+def runtime_selection(selection, previous=None):
+    if purpose_of(selection) == READER_PURPOSE:
+        # Reader admission never changes who may generate: the cohort is the
+        # still-active window's, taken from the authenticated previous terms.
+        if previous is None:
+            raise ValueError('Active terms required for reader admission')
+        participants = previous['participants']
+    else:
+        participants = selection['next']['participants']
     return {'mode': 'narrative-fiction-v2', 'generation': 'v9',
-            'cohortUserIds': [selection['next']['participants'][0]['userId']],
+            'cohortUserIds': [p['userId'] for p in participants],
             'timeoutMs': 300000, 'maxRequestBytes': 196608}
 
 
-def candidate_environment(text, selection, image_tag):
+def candidate_environment(text, selection, image_tag, previous=None):
     values = selection_values(selection)
     before = upgrade.server_environment(text)
     text = upgrade.image_only_environment(text, image_tag)
@@ -69,38 +125,84 @@ def candidate_environment(text, selection, image_tag):
         text, count = re.subn(r"^" + key + r"='[^'\r\n]*'$", key + "='" + value + "'", text, flags=re.MULTILINE)
         if count != 1:
             raise ValueError('One original allowance line required')
-    text = funded.narrative_environment(text, runtime_selection(selection))
-    changed = set(values) | set(funded.narrative_runtime_values(runtime_selection(selection))) | {'ALTERWARD_TAG'}
+    extra = set()
+    if purpose_of(selection) == READER_PURPOSE:
+        text, count = re.subn(r"^CLOSED_SITE_ALLOWED_EMAILS='[^'\r\n]*'$",
+                              "CLOSED_SITE_ALLOWED_EMAILS='" + ','.join(reader_emails(selection)) + "'",
+                              text, flags=re.MULTILINE)
+        if count != 1:
+            raise ValueError('One original reader line required')
+        extra.add('CLOSED_SITE_ALLOWED_EMAILS')
+    runtime = runtime_selection(selection, previous)
+    text = funded.narrative_environment(text, runtime)
+    changed = set(values) | set(funded.narrative_runtime_values(runtime)) | {'ALTERWARD_TAG'} | extra
     after = upgrade.server_environment(text)
     if {k:v for k,v in before.items() if k not in changed} != {k:v for k,v in after.items() if k not in changed}:
         raise ValueError('Unrelated authority or credential changed')
     return text.encode()
 
 
-def normalized(config, selection):
-    result = funded.normalized_configuration(config, runtime_selection(selection))
+def normalized(config, selection, previous=None):
+    result = funded.normalized_configuration(config, runtime_selection(selection, previous))
     values = selection_values(selection)
     for role in ('api', 'worker'):
         env = result['services'][role]['environment']
         for key, value in values.items():
             if role == 'worker' or key in {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD'}:
                 env[key] = value
+    if purpose_of(selection) == READER_PURPOSE:
+        for role in ('web', 'api'):
+            result['services'][role]['environment']['CLOSED_SITE_ALLOWED_EMAILS'] = ','.join(reader_emails(selection))
     return result
 
 
 class System(funded.System):
     def __init__(self, request, daily):
         super().__init__(request, daily)
-        self.root = DIRECTORY / STATE_NAME
+        names = getattr(daily, 'SUCCESSOR_ROOT_NAMES', None)
+        if (not names or tuple(names) != tuple(ROOT_NAMES)
+                or any(not hasattr(daily, n) for n in ('successor_parent_context', 'successor_authority_paths'))):
+            raise ValueError('Installed Daily lacks the reviewed chained successor authority')
+        present = [n for n in names if (DIRECTORY / n).exists() or (DIRECTORY / n).is_symlink()]
+        if present != list(names[:len(present)]):
+            raise ValueError('Successor generations must be contiguous')
+        if request['mode'] == 'prepare':
+            if len(present) == len(names):
+                raise ValueError('Successor generation limit reached')
+            name = names[len(present)]
+        else:
+            name = present[-1] if present else names[0]
+        self.root = DIRECTORY / name
+        self.generation = names.index(name) + 1
         self.recovery = request['mode'] == 'recover'
 
     def selected(self):
         if 'selection' in self.request:
-            return self.request['selection']
-        return json.loads(fence.original(self.root / 'selection.json'))
+            value = self.request['selection']
+        else:
+            value = json.loads(fence.original(self.root / 'selection.json'))
+        if purpose_of(value) not in allowed_purposes(self.generation):
+            raise ValueError('Approved successor purpose for this generation required')
+        return value
+
+    def is_reader(self):
+        return purpose_of(self.selected()) == READER_PURPOSE
+
+    def chain(self):
+        """Funded parent, its role and the context this generation is bound to."""
+        return self.daily.successor_parent_context(self.generation)
 
     def original_terms(self):
-        return json.loads(fence.original(DIRECTORY / 'personal-beta' / 'terms.json'))
+        # Kept under its first-generation name: the terms the NEW selection replaces.
+        return self.chain()[2]['terms']
+
+    def active_access(self):
+        return self.chain()[2]['access']
+
+    def validate_candidate(self, *, check_oneoffs=True):
+        parent, role, context = self.chain()
+        return self.daily.successor_candidate(parent, role, root=self.root, context=context,
+                                              check_oneoffs=check_oneoffs)
 
     def frozen_source_hashes(self):
         return {p:h for p,h in self.request['sourceHashes'].items()
@@ -113,6 +215,9 @@ class System(funded.System):
         return super().capability_input_hashes() | {sha(encoded(self.frozen_source_hashes()))}
 
     def parent(self):
+        _, _, context = self.chain()
+        if self.generation > 1:
+            return self.parent_generation(context)
         root = DIRECTORY / 'funded-runtime-upgrade'
         value = json.loads(fence.original(root / 'prepared.json'))
         original = funded.System(self.request, self.daily)
@@ -140,10 +245,65 @@ class System(funded.System):
             ('parentPreparedSha256', 'prepared.json'), ('parentJournalSha256', 'journal.json'),
             ('parentReadbackSha256', 'readback.json'))}
 
+    def parent_generation(self, context):
+        """The previous FULLY exposed successor generation, re-proven from its own evidence."""
+        root = context['parent_dir']
+        value = json.loads(fence.original(root / 'prepared.json'))
+        journal = json.loads(fence.original(root / 'journal.json'))
+        state = journal['states'][-1]['state']
+        if journal.get('version') != VERSION or state not in {'applied', 'recovered'}:
+            raise ValueError('Completed previous successor generation required')
+        role = 'recovery' if state == 'recovered' else 'target'
+        proof = json.loads(fence.original(root / 'readback.json'))
+        if (proof.get('version') != VERSION or proof.get('preparedSha256') != sha(encoded(value))
+                or proof.get('sourceCommit') != value['sourceCommit']
+                or proof.get('imageId') != value['release'][role]['imageId']
+                or proof.get('schema') != 38 or proof.get('protectedDataUnchanged') is not True
+                or proof.get('operationPaidAiCalls') != 0 or proof.get('databaseRestored') is not False
+                or self.hashes(root / role) != value['files'][role]
+                or value['files'][role] != context['files']):
+            raise ValueError('Unchanged previous successor proof required')
+        for observe in (self.daily.funded_probe_state, self.daily.funded_capability_state):
+            pending = observe(root)
+            if pending is not None and pending['state'] != 'cleaned':
+                raise ValueError('Previous successor pending one-off requires inspection')
+        for path, digest in value['baseline']['authority'].items():
+            if sha(fence.original(Path(path))) != digest:
+                raise ValueError('Earlier authority changed')
+        return value, role, {key: sha(fence.original(root / name)) for key, name in (
+            ('parentPreparedSha256', 'prepared.json'), ('parentJournalSha256', 'journal.json'),
+            ('parentReadbackSha256', 'readback.json'))}
+
+    def access(self, expected=None):
+        value = self.request['accessSnapshot']
+        funded.exact(value, {'checkedAt', 'teamDomain', 'audience', 'allowedEmails', 'configurationSha256'})
+        if not 0 <= (self.now() - funded.stamp(value['checkedAt'])).total_seconds() <= 900:
+            raise ValueError('Fresh GET-only external Access observation required')
+        if not funded.DIGEST.fullmatch(value['configurationSha256']):
+            raise ValueError('Access configuration digest required')
+        previous = self.active_access()
+        # External Access always leads the origin: for reader admission it already
+        # shows the approved list while the origin may still carry the previous one.
+        wanted = reader_emails(self.selected()) if self.is_reader() else previous['allowedEmails']
+        origin = [sorted(previous['allowedEmails'])] + ([sorted(wanted)] if self.is_reader() else [])
+        if (value['teamDomain'] != previous['teamDomain'] or value['audience'] != previous['audience']
+                or sorted(value['allowedEmails']) != sorted(wanted)):
+            raise ValueError('Access reader identity drift')
+        config = self.configuration(DIRECTORY)
+        for role in ('web', 'api'):
+            env = config['services'][role]['environment']
+            if (env.get('CLOUDFLARE_ACCESS_TEAM_DOMAIN') != value['teamDomain']
+                    or env.get('CLOUDFLARE_ACCESS_AUD') != value['audience']
+                    or sorted(env.get('CLOSED_SITE_ALLOWED_EMAILS', '').split(',')) not in origin):
+                raise ValueError('Origin and external Access identities differ')
+        if expected is not None and value['configurationSha256'] != expected:
+            raise ValueError('External Access configuration changed since preparation')
+        return value['configurationSha256']
+
     def baseline(self, *, require_active=True):
         parent, role, _ = self.parent()
         if self.hashes(DIRECTORY) != parent['files'][role]:
-            raise ValueError('Original active funded files required')
+            raise ValueError('Active parent runtime files required')
         config = self.configuration(DIRECTORY)
         upgrade.inspect_owner(config, parent['release'][role]['imageId'])
         self.daily.owner_runtime()  # actual env/provider boundary and original CA hash
@@ -156,10 +316,8 @@ class System(funded.System):
                     'AI_BUDGET_WINDOW_START': terms['startsAt'], 'AI_BUDGET_WINDOW_END': terms['endsAt']}
         if (policy['mode'] != 'personal-beta' or any(env.get(k) != v for k,v in expected.items())
                 or (require_active and not policy['queueAllowed'])):
-            raise ValueError('Original funded window/configuration required')
-        paths = (self.daily.reader_config_paths() + self.daily.personal_config_paths()
-                 + self.daily.funded_tree_paths(DIRECTORY / 'funded-runtime-upgrade')
-                 + self.daily.funded_archived_paths())
+            raise ValueError('Active parent funded window/configuration required')
+        paths = self.daily.successor_authority_paths(self.generation)
         return {'files': self.hashes(DIRECTORY), 'authority': {str(p):sha(fence.original(p)) for p in paths},
                 'accessConfigurationSha256': self.access(), 'proxyNetwork': upgrade.proxy_network(),
                 'foreign': upgrade.foreign_state()}
@@ -167,7 +325,9 @@ class System(funded.System):
     def probe(self, image, mode, expected=None):
         if mode != 'capture' or expected is not None:
             raise ValueError('Successor cannot migrate a database')
-        participants = self.original_terms()['participants'] + self.selected()['next']['participants']
+        participants = list(self.original_terms()['participants'])
+        if not self.is_reader():
+            participants += self.selected()['next']['participants']
         unique = list({p['userId']:p for p in participants}.values())
         value = self.raw_probe(image, {'mode':'capture','participants':unique,'expected':None})
         funded.exact(value, {'version','schema','identityBindingSha256','dataSha256','artifactSha256',
@@ -178,29 +338,50 @@ class System(funded.System):
         return value
 
     def accounting(self, image, mode, expected=None):
+        if self.is_reader():
+            raise ValueError('Reader admission has no accounting operation')
         return self.raw_probe(image, {'mode':'successor','participants':[], 'expected':{
             'mode':mode, 'previous':self.original_terms(), 'selection':self.selected(), 'expected':expected}})
+
+    def reader_operation(self):
+        now = self.now()
+        stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        selected = self.selected()
+        return {'plan': {'version': PLAN_VERSION, 'purpose': READER_PURPOSE,
+                         'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
+                         'previousTermsSha256': canonical_sha(self.original_terms()),
+                         'selectionSha256': canonical_sha(selected)}}
+
+    def reader_receipt(self):
+        previous = self.active_access()
+        return encoded({'allowedEmails': reader_emails(self.selected()),
+                        'audience': previous['audience'], 'teamDomain': previous['teamDomain']})
 
     def build_files(self, role, build, baseline):
         from alterward_backup import private_directory
         path = self.root / role
         private_directory(path)
         old = self.files(DIRECTORY)
-        readers.durable_file(path / 'server.env', candidate_environment(old['server.env'].decode(), self.selected(), build['imageTag']))
+        previous = self.original_terms()
+        readers.durable_file(path / 'server.env', candidate_environment(
+            old['server.env'].decode(), self.selected(), build['imageTag'], previous))
         readers.durable_file(path / 'pinned-image.json', encoded({'services':{
             r:{'image':build['imageId'],'pull_policy':'never'} for r in ('web','api','worker')}}))
         source = Path(build['sourceDirectory'])
         rendered = json.loads(upgrade.run(['docker','compose','--project-name',upgrade.PROJECT,
             '--env-file',str(path / 'server.env'),'-f',str(source / 'deploy/compose.contabo.yaml'),
             '-f',str(path / 'pinned-image.json'),'config','--format','json']).stdout)
-        if normalized(rendered, self.selected()) != normalized(self.configuration(DIRECTORY), self.selected()):
-            raise ValueError('Runtime delta exceeds selected owner allowance and v9 configuration')
+        if (normalized(rendered, self.selected(), previous)
+                != normalized(self.configuration(DIRECTORY), self.selected(), previous)):
+            raise ValueError('Runtime delta exceeds selected allowance, readers and v9 configuration')
         self.daily.personal_runtime_policy({k:v['environment'] for k,v in rendered['services'].items()}, self.now())
         readers.durable_file(path / 'effective-compose.json', frozen(rendered))
         manifest = json.loads(old['manifest.json'])
         manifest.update(commit=build['commit'],imageId=build['imageId'],
             ownerEnvironmentSha256=sha(fence.original(path / 'server.env')),
             effectiveComposeSha256=sha(frozen(rendered)),sourceComposeSha256=upgrade.source_hash(source))
+        if self.is_reader():
+            manifest['accessConfigurationSha256'] = sha(self.reader_receipt())
         readers.durable_file(path / 'manifest.json', encoded(manifest))
         return self.hashes(path)
 
@@ -215,20 +396,28 @@ class System(funded.System):
         before = self.baseline()
         parent, parent_role, parent_hashes = self.parent()
         previous = self.original_terms()
-        access = json.loads(fence.original(DIRECTORY / 'personal-beta-readers/access.json'))
-        if (selected['previousTermsSha256'] != canonical_sha(previous)
-                or selected['next']['participants'][0]['email'] not in access['allowedEmails']):
-            raise ValueError('Original terms and already-readable owner required')
+        access = self.active_access()
+        if selected['previousTermsSha256'] != canonical_sha(previous):
+            raise ValueError('Original terms required')
+        if purpose_of(selected) == 'tester-beta' and is_tester_window(previous):
+            raise ValueError('The tester window may be opened at most once')
+        if self.is_reader():
+            if not set(access['allowedEmails']) < set(reader_emails(selected)):
+                raise ValueError('Reader admission may only add readers')
+        elif any(p['email'] not in access['allowedEmails'] for p in selected['next']['participants']):
+            raise ValueError('Every participant must already be a readable, signed-in account')
         release = copy.deepcopy(self.request['release'])
         funded.exact(release, {'target','recovery','runtime','auditSha256','fixtureSha256','privacyFixtureSha256','ciSha256','successorFixtureSha256'})
-        if release['runtime'] != runtime_selection(selected) or any(
+        if release['runtime'] != runtime_selection(selected, previous) or any(
                 not isinstance(release[k], str) or not funded.DIGEST.fullmatch(release[k])
                 for k in ('auditSha256','fixtureSha256','privacyFixtureSha256','ciSha256','successorFixtureSha256')):
-            raise ValueError('Exact interpreted source/fixture/CI and owner v9 runtime required')
+            raise ValueError('Exact interpreted source/fixture/CI and v9 runtime required')
         from alterward_backup import private_directory
         private_directory(self.root)
         readers.durable_file(self.root / 'selection.json', encoded(selected))
-        readers.durable_file(self.root / 'terms.json', encoded(selected['next']))
+        readers.durable_file(self.root / 'terms.json', encoded(previous if self.is_reader() else selected['next']))
+        if self.is_reader():
+            readers.durable_file(self.root / 'access.json', self.reader_receipt())
         for role in ('target','recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
         # Freeze the motor: compare the NEW reviewed application inputs inside
@@ -236,14 +425,15 @@ class System(funded.System):
         frozen_hashes = self.frozen_source_hashes()
         if not frozen_hashes or self.capability(parent['release'][parent_role]['imageId'], frozen_hashes).returncode:
             raise ValueError('Original serving engine sources must remain unchanged')
-        operation = self.accounting(release['target']['imageId'], 'capture')
+        operation = self.reader_operation() if self.is_reader() else self.accounting(release['target']['imageId'], 'capture')
         database = self.probe(release['target']['imageId'], 'capture')
         plan = operation['plan']
         value = {'version':VERSION,'sourceCommit':self.request['sourceCommit'],
             'bundleSha256':self.request['bundleSha256'],'preparedAt':plan['observedAt'],
             'expiresAt':plan['expiresAt'],'baseline':before,'release':release,'files':{},
             'operation':operation,'database':database, **parent_hashes,
-            'termsSha256':sha(encoded(selected['next'])),'selectionSha256':sha(encoded(selected))}
+            'termsSha256':sha(encoded(previous if self.is_reader() else selected['next'])),
+            'selectionSha256':sha(encoded(selected))}
         private_directory(self.root / 'previous')
         for name, data in self.files(DIRECTORY).items():
             readers.durable_file(self.root / 'previous' / name, data)
@@ -253,7 +443,7 @@ class System(funded.System):
         if self.baseline() != before:
             raise ValueError('Original runtime drift during successor preparation')
         readers.durable_file(self.root / 'prepared.json', encoded(value))
-        self.daily.successor_candidate(parent, parent_role)
+        self.validate_candidate()
         return {'version':VERSION,'preparedSha256':sha(encoded(value)),'expiresAt':value['expiresAt'],
                 'preparedOnly':True,'databaseWrites':0,'paidAiCalls':0,'browserJourneyPassed':False}
 
@@ -304,11 +494,10 @@ class System(funded.System):
 
     def candidate(self):
         value = super().candidate()
-        parent, role, _ = self.parent()
         # Authenticate immutable authority before stop-first recovery. Pending
         # probes must not block STOP; their strict validation/cleanup follows
         # under both locks before any preflight, DB operation or serving.
-        if self.daily.successor_candidate(parent, role, check_oneoffs=False) != value:
+        if self.validate_candidate(check_oneoffs=False) != value:
             raise ValueError('Exact original-parent-bound successor required')
         if self.request.get('selection') != json.loads(fence.original(self.root / 'selection.json')):
             raise ValueError('Reviewed owner selection changed')
@@ -354,7 +543,7 @@ class System(funded.System):
                 raise ValueError('Fresh never-attempted successor required')
             if self.baseline() != candidate['baseline']:
                 raise ValueError('Original active funded baseline drift')
-            if not funded.stamp(self.selected()['closePreviousAt']) <= self.now() < funded.stamp(self.selected()['next']['startsAt']):
+            if not self.is_reader() and not funded.stamp(self.selected()['closePreviousAt']) <= self.now() < funded.stamp(self.selected()['next']['startsAt']):
                 raise ValueError('Selected closure time must have arrived before writer hold')
         self.parent()
         self.access(candidate['baseline']['accessConfigurationSha256'])
@@ -387,9 +576,22 @@ class System(funded.System):
     def apply_accounts(self, candidate):
         # No polling/retry around the financial write. A lost output is reconciled
         # only by a separately invoked --recover, never by running apply again.
+        if self.is_reader():
+            return {'accountsChanged': False}  # reader admission never writes the database
         return self.accounting(candidate['release']['target']['imageId'], 'apply', candidate['operation'])
 
     def reconcile_accounts(self, candidate):
+        if self.is_reader():
+            # No account may change. "Committed" only means the durable database
+            # intent was reached, so recovery and replay follow the same order.
+            current = self.probe(candidate['release']['target']['imageId'], 'capture')
+            funded.same_funded(candidate['database'], current)
+            journal = self.root / 'journal.json'
+            intended = journal.exists() and any(
+                row['state'] == 'database-intent' for row in self.journal(candidate)['states'])
+            return {'state': 'committed' if intended else 'uncommitted',
+                    'operationSha256': canonical_sha(candidate['operation']),
+                    'protectedDataUnchanged': True, 'paidAiCalls': 0}
         result = self.accounting(candidate['release']['target']['imageId'], 'reconcile', candidate['operation'])
         if (result.get('operationSha256') != canonical_sha(candidate['operation'])
                 or result.get('protectedDataUnchanged') is not True or result.get('paidAiCalls') != 0):
@@ -414,6 +616,8 @@ class System(funded.System):
 
     def require_future_start(self, candidate):
         # A narrow recovery cannot extend/retime/reset a used or expired trial.
+        if self.is_reader():
+            return  # the unchanged window is already running; nothing can be extended
         if not self.now() < funded.stamp(self.selected()['next']['startsAt']):
             raise ValueError('Owner trial start already reached; keep held for explicit inspection')
 
@@ -434,7 +638,7 @@ class System(funded.System):
         self.proof = {'version':VERSION,'preparedSha256':sha(encoded(candidate)),
             'sourceCommit':candidate['sourceCommit'],'imageId':candidate['release'][role]['imageId'],
             'schema':38,'protectedDataUnchanged':True,'previousSpendPreserved':True,
-            'previousAllowanceClosed':True,'operationSha256':canonical_sha(candidate['operation']),
+            'previousAllowanceClosed':not self.is_reader(),'operationSha256':canonical_sha(candidate['operation']),
             'fundedStateSha256':sha(encoded(self.after)), 'browserJourneyPassed':False,
             'paidAiCalls':0,'operationPaidAiCalls':0,'databaseRestored':False}
         readers.update_durable(self.root / 'readback.json', encoded(self.proof))
@@ -461,6 +665,8 @@ def main(request):
         system = System(request, fence.installed_daily())
         if mode == 'inspect':
             return {'version':VERSION,'successorPresent':system.root.exists(),
+                    'generation':system.generation,
+                    'generations':sum(1 for n in ROOT_NAMES if (DIRECTORY / n).exists()),
                     'journalState':system.journal()['states'][-1]['state'] if (system.root/'journal.json').exists() else None,
                     'databaseWrites':0,'paidAiCalls':0,'browserJourneyPassed':False}
         if mode == 'cleanup-probe':

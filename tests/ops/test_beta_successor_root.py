@@ -175,6 +175,21 @@ class SuccessorRootTests(unittest.TestCase):
         self.system.stop.assert_not_called()
         self.assertEqual(before,{p:p.read_bytes() for p in self.fixture.parent.rglob('*') if p.is_file()})
 
+    def test_an_archived_preparation_stays_valid_while_a_new_one_is_in_flight(self):
+        self.system.now.return_value=self.fixture.now+dt.timedelta(minutes=16)
+        self.system.archive_support=Mock()
+        self.system.baseline=Mock(return_value=self.value['baseline'])
+        with patch.object(funded.readers,'durable_file',side_effect=self.fixture.write),patch.object(
+                sys.modules['alterward_backup'],'ROOT',self.fixture.owner):
+            self.system.archive_expired()
+        self.assertFalse(self.fixture.root.exists())
+        self.fixture.prepare()
+        self.fixture.journal(self.fixture.root,root.VERSION,['apply-intent','held'])
+        # The unfinished first generation is not a parent of anything, so the
+        # archive and the backup path list must still be derivable (CI regression).
+        self.assertTrue(authority.daily.successor_archived_paths())
+        self.assertTrue(authority.daily.funded_upgrade_config_paths(immutable_only=True))
+
     def test_an_attempted_or_live_preparation_cannot_be_archived(self):
         self.system.archive_support=Mock()
         self.system.baseline=Mock(return_value=self.value['baseline'])

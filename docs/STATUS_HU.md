@@ -23,6 +23,8 @@ Az utolsó igazolt böngészős E2E (2026-10-14) három valódi fejezetet, két 
 
 A webhely továbbra zárt személyes béta; Shared és nyilvános/community launch nincs engedélyezve. A66062ec/3200b28e kód productionben fut; a narrative v9 opt-in kizárólag a saját fiókos próbára aktív. A default legacy és a külön cohort-határ a többi felhasználóra megmarad. A régi operátori kiadást dokumentációfrissítés vagy új fejlesztési commit nem cseréli le.
 
+**Tesztelői kör előkészítése (2026-10-27):** a három fős béta (tulajdonos + két tesztelő) végrehajtási útja kód- és tesztszinten kész: láncolt `reader-admission` (csak olvasói lista) majd `tester-beta` (10 / 3,33 USD) generáció, fail-closed szabályokkal; [részletek](operations/NARRATIVE_RELEASE_HU.md#láncolt-successor-generációk-olvasói-belépés-és-tesztelői-ablak--2026-10-27). Független review, saját CI, új image és célgépes próba még hátra van; semmi nem fut élesben, a tesztelők nincsenek meghívva.
+
 ## Termékterületek
 
 | Terület | Állapot | Következő határ |

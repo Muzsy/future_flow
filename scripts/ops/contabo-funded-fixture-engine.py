@@ -505,6 +505,7 @@ def exercise(context, *, scope='ci'):
         )
         initialFiles = {
             'server.env': ("ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n"
+                + "CLOSED_SITE_ALLOWED_EMAILS='funded@example.invalid,owner@example.invalid'\n"
                 + "AI_PROJECT_BUDGET_USD='2'\nAI_USER_BUDGET_USD='0.5'\n"
                 + "AI_BUDGET_WINDOW_START='"+terms['startsAt']+"'\nAI_BUDGET_WINDOW_END='"+terms['endsAt']+"'\n").encode(),
             'pinned-image.json': encoded(
@@ -877,7 +878,7 @@ def exercise(context, *, scope='ci'):
                 import shutil
 
                 shutil.rmtree(owner / 'funded-runtime-upgrade')
-            for name in ('beta-successor','beta-successor-archive'):
+            for name in (*daily.SUCCESSOR_ROOT_NAMES,'beta-successor-archive'):
                 if (owner/name).exists():
                     # Independent nonce-owned cases ONLY, never an operator retry.
                     __import__('shutil').rmtree(owner/name)
@@ -1257,12 +1258,13 @@ def exercise(context, *, scope='ci'):
         successor_checks.update(foreignStable=checks['foreign'],cleanup=True)
         expected_successor = {'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
             'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
-            'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup'}
+            'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
+            'readerAdmission','testerBetaWindow','chainedAuthority'}
         assert set(successor_checks)==expected_successor and all(v is True for v in successor_checks.values())
         # Consumed ONLY after exercise() returns through the verified finally
         # cleanup. Never published by a failed or interrupted fixture.
         global SUCCESSOR_PROOF
-        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-1',
+        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-2',
             'sourceCommit':context['sourceCommit'],'bundleSha256':context['bundleSha256'],
             'targetImage':context['image'],'recoveryImage':context['image'],
             'checks':successor_checks,'paidAiCalls':0}

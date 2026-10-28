@@ -38,6 +38,8 @@ async function main() {
       'successor-apply',
       'successor-reconcile',
       'successor-verify',
+      'successor-tester-setup',
+      'successor-tester-verify',
     ].includes(request.mode),
   );
   const admin = connectDatabase(url.href, true);
@@ -63,8 +65,138 @@ async function main() {
         email: 'owner@example.invalid',
         userId: '22222222-2222-4222-8222-222222222222',
       };
-      assert.deepEqual(previous.participants, input.participants);
-      assert.deepEqual(selection.next.participants, [owner]);
+      const testers = [
+        owner,
+        {
+          email: 'tester-one@example.invalid',
+          userId: '33333333-3333-4333-8333-333333333333',
+        },
+        {
+          email: 'tester-two@example.invalid',
+          userId: '44444444-4444-4444-8444-444444444444',
+        },
+      ];
+      if (selection.purpose === 'tester-beta') {
+        // Chained from the owner window: previous is the owner's own terms.
+        assert.deepEqual(previous.participants, [owner]);
+        assert.deepEqual(selection.next.participants, testers);
+      } else {
+        assert.deepEqual(previous.participants, input.participants);
+        assert.deepEqual(selection.next.participants, [owner]);
+      }
+      if (request.mode === 'successor-tester-setup') {
+        // Synthetic stand-ins for the two signed-in invited readers.
+        for (const tester of testers.slice(1)) {
+          await db.query('INSERT INTO ff_users(id) VALUES($1)', [
+            tester.userId,
+          ]);
+          await db.query(
+            "INSERT INTO auth.users VALUES($1,$2,'authenticated','authenticated',false,NULL,now()-interval '1 day',now()-interval '1 hour',NULL,'')",
+            [tester.userId, tester.email],
+          );
+        }
+        return { syntheticSeeded: true };
+      }
+      if (request.mode === 'successor-tester-verify') {
+        const plan = expected.plan;
+        const rows = await db.query<{
+          id: string;
+          user_id: string | null;
+          limit_micro: string;
+          accounted_micro: string;
+        }>(
+          'SELECT id,user_id,limit_micro::text,accounted_micro::text FROM aw_budget_accounts WHERE id=ANY($1::text[]) ORDER BY id',
+          [
+            [
+              plan.previousKeys.project,
+              ...plan.previousKeys.users,
+              plan.nextKeys.project,
+              ...plan.nextKeys.users,
+            ],
+          ],
+        );
+        assert.equal(rows.length, 6);
+        // The still-unspent owner allowance is closed, its history retained.
+        assert.deepEqual(
+          rows.find((r) => r.id === plan.previousKeys.project),
+          {
+            id: plan.previousKeys.project,
+            user_id: null,
+            limit_micro: '0',
+            accounted_micro: '0',
+          },
+        );
+        assert.deepEqual(
+          rows.find((r) => r.id === plan.previousKeys.users[0]),
+          {
+            id: plan.previousKeys.users[0],
+            user_id: owner.userId,
+            limit_micro: '0',
+            accounted_micro: '0',
+          },
+        );
+        assert.deepEqual(
+          rows.find((r) => r.id === plan.nextKeys.project),
+          {
+            id: plan.nextKeys.project,
+            user_id: null,
+            limit_micro: '10000000',
+            accounted_micro: '0',
+          },
+        );
+        testers.forEach((tester, index) =>
+          assert.deepEqual(
+            rows.find((r) => r.id === plan.nextKeys.users[index]),
+            {
+              id: plan.nextKeys.users[index],
+              user_id: tester.userId,
+              limit_micro: '3330000',
+              accounted_micro: '0',
+            },
+          ),
+        );
+        const { DatabaseAiBudget } = await import('@future-flow/database');
+        const old = new DatabaseAiBudget(
+          db,
+          owner.userId,
+          crypto.randomUUID(),
+          {
+            projectUsd: 3,
+            userUsd: 3,
+            window: previous,
+          },
+        );
+        await assert.rejects(
+          () =>
+            old.reserve({
+              model: 'gpt-6.1-sol',
+              max_output_tokens: 1,
+              input: [],
+            }),
+          { code: 'AI_BUDGET_EXCEEDED' },
+        );
+        const next = new DatabaseAiBudget(
+          db,
+          owner.userId,
+          crypto.randomUUID(),
+          {
+            projectUsd: 10,
+            userUsd: 3.33,
+            window: selection.next,
+            closedBetaUserIds: testers.map((t) => t.userId),
+          },
+        );
+        await assert.rejects(
+          () =>
+            next.reserve({
+              model: 'gpt-6.1-sol',
+              max_output_tokens: 1,
+              input: [],
+            }),
+          { code: 'AI_BUDGET_WINDOW_CLOSED' },
+        );
+        return { testerBetaWindow: true };
+      }
       if (request.mode === 'successor-setup') {
         // This synthetic seed is NEVER part of the production controller. It
         // starts from the fixture's completed038 database and retains history.
