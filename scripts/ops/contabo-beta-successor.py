@@ -26,7 +26,11 @@ VERSION = 'alterward-beta-successor-1'
 STATE_NAME = 'beta-successor'  # the first generation; later ones are chained, see System
 ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4')
 PLAN_VERSION = 'alterward-beta-successor-plan-2'
-DEPENDENCY_MANIFEST = re.compile(r'(?:apps|packages)/[^/]+/package\.json|package\.json|pnpm-lock\.yaml')
+# The six files the audit-driven dependency update (#110) changed; any other
+# manifest, even a sibling workspace package, stays frozen until a reviewed change names it.
+DEPENDENCY_MANIFESTS = frozenset({
+    'package.json', 'pnpm-lock.yaml', 'apps/api/package.json', 'apps/web/package.json',
+    'packages/ai/package.json', 'packages/contracts/package.json'})
 ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD',
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
 READER_PURPOSE = 'reader-admission'
@@ -207,13 +211,13 @@ class System(funded.System):
 
     def frozen_source_hashes(self):
         # Application sources, schema, deploy files, Dockerfile and workspace policy stay
-        # byte-identical to the serving image. Only the dependency manifests and the
+        # byte-identical to the serving image. Only the named dependency manifests and the
         # lockfile may differ: reviewed patch updates reach the target image through the
         # exact audit, image-fixture and rehearsal gates, not through this engine freeze.
         return {p:h for p,h in self.request['sourceHashes'].items()
                 if (p.startswith(('apps/','packages/','database/','deploy/'))
                     or p in {'Dockerfile','pnpm-workspace.yaml'})
-                and not DEPENDENCY_MANIFEST.fullmatch(p)}
+                and p not in DEPENDENCY_MANIFESTS}
 
     def capability_input_hashes(self):
         # A second fixed scope compares the NEW application inputs inside the
