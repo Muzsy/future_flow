@@ -34,6 +34,8 @@ Külön mentett self-hosted alkalmazás: `Alterward account rights and assets`; 
 | `/api/v1/me` | Kizárólag DELETE saját fiókra; Supabase Bearer, ownership és friss hitelesítés kötelező |
 | `/api/v1/me/export` | GET/HEAD saját adatokra; Supabase Bearer és friss hitelesítés kötelező |
 
+**Előkészítve, még nincs alkalmazva (2026-10-30):** tulajdonosi döntés szerint a `/terms` (ÁSZF, GET/HEAD) is nyilvános lesz. Az origin-kivétel kódja a #115 PR-ban van. A fenti táblázat és a „hat path / tizenkét destination" szám az élő Cloudflare-állapotot írja le, ezért csak a `/terms` bypass tényleges beállításakor bővül hét pathra / tizennégy destinationre; addig az éles `/terms` Access mögött marad.
+
 A kivétel launcher-megjelenítése és eager redirectje Off. `/healthz` és `/health` számára nem készült külön edge-bypass; a konténeres healthcheck belső marad. Nincs teljes `/api/*`, `/_next/*`, `/login`, `/settings`, reader vagy Discovery bypass.
 
 **A Cloudflare útvonalillesztése hierarchikus, és a specifikusabb alkalmazás szabálya nem örökli a fő alkalmazás policyját.** Egy megadott path leszármazottait is érintheti; a dashboard path-listája nem azonos az origin pontos path- és HTTP-method ellenőrzésével. Ezért például a `/api/v1/me` kivételből más `me` végpont vagy egy GET fiókolvasás nem kaphat automatikus engedélyt. A módszer/path korlátot és a saját adatok hitelesítését az origin tartja meg. A konkrét Cloudflare-normalizálás, kódolt útvonalak, leszármazottak, RSC, cache és nem engedett methodok **élő negatív próbája még szükséges**. [Hivatalos útvonal-szabályok](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/).

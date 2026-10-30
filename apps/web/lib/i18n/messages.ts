@@ -195,7 +195,7 @@ export const en = {
     'You can download your data or permanently delete your account at any time.',
   'terms.inputTitle': '4. What you enter',
   'terms.input1':
-    'You may enter fictional or real biographical details. Do not enter sensitive information about other identifiable people (for example their real names, addresses, health information or other special categories of data), and do not enter anything you are not entitled to share. Use pseudonymous labels for relationships, as the form suggests.',
+    'You may enter fictional or real biographical details. Do not enter sensitive information about other identifiable people (for example their real names, addresses, health information or other special categories of data), and do not enter anything you are not entitled to share. Use pseudonymous labels for relationships, as the form suggests. [PROPOSED RULE, owner and legal review pending]',
   'terms.input2':
     'To create your stories, what you enter is processed by AI providers, as described in the privacy notice.',
   'terms.contentTitle': '5. Generated stories',
@@ -207,7 +207,7 @@ export const en = {
   'terms.use1':
     "You must not use the service for unlawful purposes; enter or try to generate unlawful content, content that involves minors in a harmful way, or hateful content; try to bypass limits, security, access controls or cost controls; overload the service or use automated access (bots, scraping) without permission; or try to reach other users' accounts or data.",
   'terms.use2':
-    'The Operator may refuse requests, remove content and suspend or close accounts that breach these terms.',
+    'The Operator may refuse requests, remove content and suspend or close accounts that breach these terms. [PROPOSED RULE, owner and legal review pending]',
   'terms.limitsTitle': '7. Limits and availability',
   'terms.limits1':
     'Generation is limited by quotas, for example a daily number of chapters and a cost budget per account. The quotas can differ between test phases and may change at any time. A chapter can take several minutes and requests are processed in a queue.',
@@ -222,7 +222,7 @@ export const en = {
     '[TO BE DECIDED WITH LEGAL REVIEW: right of withdrawal for digital services, refunds, tax treatment, and whether the payment provider acts as seller or merchant of record.]',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
-    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends.',
+    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends. [PROPOSED RULE, owner and legal review pending]',
   'terms.end2':
     '[TO BE DECIDED: what happens to stories and accounts when a test phase ends.]',
   'terms.liabilityTitle': '10. Liability',
@@ -519,7 +519,7 @@ export const hu: Record<MessageKey, string> = {
     'Az adataidat bármikor letöltheted, a fiókodat bármikor véglegesen törölheted.',
   'terms.inputTitle': '4. Amit megadsz',
   'terms.input1':
-    'Megadhatsz kitalált vagy valós életrajzi elemeket. Ne adj meg másokról azonosítható, érzékeny adatot (például valódi nevet, címet, egészségi adatot vagy más különleges kategóriájú adatot), és semmit, amit nem jogosult vagy megosztani. A kapcsolatokhoz álneves címkéket használj, ahogy az űrlap is javasolja.',
+    'Megadhatsz kitalált vagy valós életrajzi elemeket. Ne adj meg másokról azonosítható, érzékeny adatot (például valódi nevet, címet, egészségi adatot vagy más különleges kategóriájú adatot), és semmit, amit nem jogosult vagy megosztani. A kapcsolatokhoz álneves címkéket használj, ahogy az űrlap is javasolja. [JAVASOLT SZABÁLY, tulajdonosi és jogi átnézésre vár]',
   'terms.input2':
     'A történeteid elkészítéséhez az általad megadott adatokat AI-szolgáltatók dolgozzák fel, az adatkezelési tájékoztatóban leírtak szerint.',
   'terms.contentTitle': '5. A generált történetek',
@@ -531,7 +531,7 @@ export const hu: Record<MessageKey, string> = {
   'terms.use1':
     'Tilos a szolgáltatást jogellenes célra használni; jogellenes, kiskorúakat sértő módon érintő vagy gyűlöletkeltő tartalmat megadni vagy előállítani próbálni; a korlátokat, a biztonsági, hozzáférés-védelmi vagy költségvédelmi megoldásokat megkerülni; a szolgáltatást túlterhelni vagy engedély nélkül automatizáltan (bot, adatgyűjtés) használni; illetve más felhasználók fiókjához vagy adataihoz hozzáférni próbálni.',
   'terms.use2':
-    'Az Üzemeltető elutasíthat kéréseket, eltávolíthat tartalmat, és felfüggesztheti vagy megszüntetheti azokat a fiókokat, amelyek megsértik ezeket a feltételeket.',
+    'Az Üzemeltető elutasíthat kéréseket, eltávolíthat tartalmat, és felfüggesztheti vagy megszüntetheti azokat a fiókokat, amelyek megsértik ezeket a feltételeket. [JAVASOLT SZABÁLY, tulajdonosi és jogi átnézésre vár]',
   'terms.limitsTitle': '7. Korlátok és elérhetőség',
   'terms.limits1':
     'A generálást kvóták korlátozzák, például napi fejezetszám és fiókonkénti költségkeret. A kvóták a tesztfázisonként eltérhetnek, és bármikor változhatnak. Egy fejezet elkészülte több percig tarthat, a kérések sorban állva dolgozódnak fel.',
@@ -546,7 +546,7 @@ export const hu: Record<MessageKey, string> = {
     '[JOGI ÁTNÉZÉSSEL ELDÖNTENDŐ: elállási jog a digitális szolgáltatásoknál, visszatérítés, adózási kezelés, és hogy a fizetési szolgáltató eladóként vagy kereskedőként (merchant of record) jár-e el.]',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
-    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén.',
+    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén. [JAVASOLT SZABÁLY, tulajdonosi és jogi átnézésre vár]',
   'terms.end2':
     '[ELDÖNTENDŐ: mi történik a történetekkel és fiókokkal egy tesztfázis végén.]',
   'terms.liabilityTitle': '10. Felelősség',
