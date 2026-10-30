@@ -324,9 +324,19 @@ describe.sequential('Shared Context private foundation persistence', () => {
     expect(await shared.list(b.id)).toEqual([]);
   });
   it('accepts owned branches on different days in the same month without advancing either personal branch', async () => {
-    const a = await sharedParticipant(db),
-      b = await sharedParticipant(db),
-      c = await group(a),
+    // Life creation starts at today's date; pin only that step so that day 28
+    // of the same month is strictly later on every run date.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2030-01-10T12:00:00.000Z'));
+    let a: Awaited<ReturnType<typeof sharedParticipant>>,
+      b: Awaited<ReturnType<typeof sharedParticipant>>;
+    try {
+      a = await sharedParticipant(db);
+      b = await sharedParticipant(db);
+    } finally {
+      vi.useRealTimers();
+    }
+    const c = await group(a),
       i = await invitation(a, c.contextId),
       later = b.date.slice(0, 8) + '28';
     await db.query(
