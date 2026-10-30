@@ -8,7 +8,10 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   assertSafeUnitPath,
+  changedPins,
   collectPins,
+  readSyncState,
+  readWrapperConfig,
   renderUnits,
   renderWrapper,
   sourcePaths,
@@ -108,6 +111,7 @@ fs.writeFileSync(${JSON.stringify(marker)}, [process.env.ALTERWARD_PYTHON, proce
           secrets: '/opt/secrets',
           workspace: root,
           log,
+          state: join(root, 'wrapper-state.json'),
           pins: [
             { path: pinned, hash: hash(pinned) },
             { path: process.execPath, hash: hash(process.execPath) },
@@ -136,6 +140,128 @@ fs.writeFileSync(${JSON.stringify(marker)}, [process.env.ALTERWARD_PYTHON, proce
     }
   },
 );
+
+test(
+  'wrapper counts consecutive failures and alerts only from the second one',
+  linuxOnly,
+  () => {
+    const root = privateDirectory();
+    try {
+      fs.mkdirSync(join(root, 'scripts'));
+      const pinned = join(root, 'scripts/recovery-local.mjs');
+      const toggle = join(root, 'fail');
+      fs.writeFileSync(
+        pinned,
+        `import fs from 'node:fs';
+process.exit(fs.existsSync(${JSON.stringify(toggle)}) ? 5 : 0);
+`,
+      );
+      fs.writeFileSync(join(root, '.env'), '');
+      const notified = join(root, 'notified.txt');
+      const notify = join(root, 'notify-send');
+      fs.writeFileSync(
+        notify,
+        `#!/bin/sh\nprintf '%s|%s|%s\\n' "$1" "$2" "$3" >> ${JSON.stringify(notified)}\nenv > ${JSON.stringify(join(root, 'notify-env.txt'))}\n`,
+        { mode: 0o700 },
+      );
+      const state = join(root, 'state.json');
+      const wrapper = join(root, 'wrapper.mjs');
+      const hash = (path) =>
+        execFileSync('sha256sum', [path], { encoding: 'utf8' }).split(' ')[0];
+      fs.writeFileSync(
+        wrapper,
+        renderWrapper({
+          node: process.execPath,
+          python: '/opt/python',
+          secrets: '/opt/secrets',
+          workspace: root,
+          log: join(root, 'wrapper.log'),
+          state,
+          notify,
+          pins: [{ path: pinned, hash: hash(pinned) }],
+        }),
+      );
+      const run = () =>
+        spawnSync(process.execPath, [wrapper], {
+          cwd: '/',
+          env: { ...process.env, ALTERWARD_SECRET_PROBE: 'must-not-leak' },
+        });
+      assert.equal(run().status, 0);
+      let current = readSyncState(state);
+      assert.equal(current.consecutiveFailures, 0);
+      assert.ok(current.lastSuccessAt);
+      assert.equal(current.lastFailure, null);
+      assert.equal((fs.statSync(state).mode & 0o777).toString(8), '600');
+      assert.equal(fs.existsSync(notified), false);
+
+      fs.writeFileSync(toggle, '');
+      assert.equal(run().status, 5);
+      current = readSyncState(state);
+      assert.equal(current.consecutiveFailures, 1);
+      assert.equal(current.lastFailure, 'sync-failed');
+      assert.equal(fs.existsSync(notified), false, 'one failure is silent');
+
+      assert.equal(run().status, 5);
+      assert.equal(readSyncState(state).consecutiveFailures, 2);
+      const message = fs.readFileSync(notified, 'utf8');
+      assert.match(message, /2 egymás utáni sikertelen futás/);
+      assert.match(message, /--inspect/);
+      // The notifier gets no sync environment, secret path or key material.
+      const environment = fs.readFileSync(join(root, 'notify-env.txt'), 'utf8');
+      assert.doesNotMatch(environment, /ALTERWARD_|must-not-leak|opt\/secrets/);
+      assert.doesNotMatch(
+        fs.readFileSync(state, 'utf8'),
+        /opt\/secrets|\/opt\/python|[a-f0-9]{64}/,
+      );
+
+      // A pin mismatch is its own category and keeps counting, fail closed.
+      fs.appendFileSync(pinned, '\n// tampered\n');
+      assert.equal(run().status, 1);
+      current = readSyncState(state);
+      assert.equal(current.consecutiveFailures, 3);
+      assert.equal(current.lastFailure, 'pin-mismatch');
+      assert.equal(
+        changedPins(readWrapperConfig(fs.readFileSync(wrapper, 'utf8'))).join(),
+        'scripts/recovery-local.mjs',
+      );
+
+      // A missing notifier or corrupt state never hides the failure itself.
+      fs.writeFileSync(state, 'not json');
+      fs.rmSync(notify);
+      assert.equal(run().status, 1);
+      assert.equal(readSyncState(state).consecutiveFailures, 1);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
+
+test('the wrapper needs an absolute state path and exposes its pins', () => {
+  assert.throws(() =>
+    renderWrapper({
+      node: '/n',
+      python: '/p',
+      secrets: '/s',
+      workspace: '/w',
+      log: '/l',
+      state: 'relative.json',
+      pins: [],
+    }),
+  );
+  const pins = [{ path: '/w/a.mjs', hash: 'a'.repeat(64) }];
+  const source = renderWrapper({
+    node: '/n',
+    python: '/p',
+    secrets: '/s',
+    workspace: '/w',
+    log: '/l',
+    state: '/w/state.json',
+    pins,
+  });
+  assert.deepEqual(readWrapperConfig(source).pins, pins);
+  assert.throws(() => readWrapperConfig('// not generated'));
+  assert.equal(readSyncState('/nonexistent/state.json'), null);
+});
 
 test('collectPins requires exact committed bytes', linuxOnly, () => {
   const root = privateDirectory();
@@ -540,6 +666,39 @@ test(
         /--user enable --now alterward-recovery-sync.timer/,
       );
       assert.equal(run('--install').status, 1);
+      // A missing operator input is named (never its value) instead of a generic stop.
+      for (const name of ['ALTERWARD_PYTHON', 'ALTERWARD_SSH_SECRETS_DIR']) {
+        const refused = spawnSync(
+          process.execPath,
+          [timerScript, '--install'],
+          {
+            cwd: root,
+            encoding: 'utf8',
+            env: {
+              ...process.env,
+              HOME: home,
+              PATH: `${bin}:${process.env.PATH}`,
+              ALTERWARD_PYTHON: python,
+              ALTERWARD_SSH_SECRETS_DIR: secrets,
+              [name]: '',
+            },
+          },
+        );
+        assert.equal(refused.status, 1);
+        assert.match(refused.stderr, new RegExp(`${name} must be`));
+        assert.doesNotMatch(refused.stderr, new RegExp(root));
+      }
+      // --inspect compares the installed pins with the files and names drift.
+      const inspected = () => JSON.parse(run('--inspect').stdout);
+      assert.equal(inspected().pinsCurrent, true);
+      assert.deepEqual(inspected().changedPins, []);
+      assert.equal(inspected().syncState, null);
+      fs.appendFileSync(join(root, 'pnpm-lock.yaml'), 'drift\n');
+      assert.equal(inspected().pinsCurrent, false);
+      assert.deepEqual(inspected().changedPins, ['pnpm-lock.yaml']);
+      assert.doesNotMatch(run('--inspect').stdout, /[a-f0-9]{64}/);
+      git('checkout', '--', 'pnpm-lock.yaml');
+      assert.equal(inspected().pinsCurrent, true);
       // Started from another directory nothing is touched, not even a wrapper.
       assert.equal(run('--remove', home).status, 1);
       assert.equal(run('--install', home).status, 1);
