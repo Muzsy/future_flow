@@ -118,6 +118,9 @@ export type BillingSubscription = Readonly<{
   cancelAtPeriodEnd: boolean;
   discounted: boolean;
   paidInvoiceIds: readonly string[];
+  refundedInvoiceIds: readonly string[];
+  // Set only by a full refund of the current cycle or by a dispute; it is final
+  // (no automatic reopening, a won dispute needs a manual owner decision).
   revoked: BillingRevocation | null;
   lastStateEventCreated: number;
 }>;
@@ -162,6 +165,16 @@ export type BillingEvent =
       paymentIntentId: string | null;
       chargeId: string | null;
       invoiceId: string | null;
+    }>
+  | Readonly<{
+      // A partial refund has no automatic effect; it is only logged and alerted.
+      type: 'partial_refund';
+      eventId: string;
+      created: number;
+      customerId: string | null;
+      chargeId: string | null;
+      invoiceId: string | null;
+      amountRefunded: number;
     }>;
 
 export type ChapterGrant = Readonly<{
@@ -174,8 +187,24 @@ export type ChapterGrant = Readonly<{
 export type BillingTransition = Readonly<{
   next: BillingSubscription | null;
   grant: ChapterGrant | null;
-  revokeGrants: boolean;
-  outcome: 'applied' | 'duplicate' | 'stale' | 'ignored';
+  // Grant keys (paid invoice ids) whose unspent allowance must be zeroed.
+  revokeGrantKeys: readonly string[];
+  // The provider subscription must be cancelled (refund of the current cycle or
+  // a dispute), so the customer is not charged without access.
+  cancelSubscription: boolean;
+  // `unknown_subscription` and `unresolved` mean the event could not be applied
+  // yet (it may have arrived before its subscription, or the refund/dispute
+  // could not be traced to one). The caller must NOT mark such an event as
+  // processed: answer 5xx so the provider redelivers, or reconcile with the
+  // provider state, and raise an alert while it stays unresolved.
+  outcome:
+    | 'applied'
+    | 'duplicate'
+    | 'stale'
+    | 'ignored'
+    | 'noted'
+    | 'unknown_subscription'
+    | 'unresolved';
 }>;
 
 const grantingReasons = new Set(['subscription_create', 'subscription_cycle']);
@@ -185,13 +214,15 @@ const unchanged = (
 ): BillingTransition => ({
   next: prev,
   grant: null,
-  revokeGrants: false,
+  revokeGrantKeys: [],
+  cancelSubscription: false,
   outcome,
 });
 
 // Order- and replay-tolerant: state fields follow only newer events, a revoked
 // subscription is never reopened by a later event, and a grant is produced at
-// most once per paid invoice id.
+// most once per paid invoice id. `prev` must be loaded by subscription id (not
+// by user), so a re-subscription with a new id starts from `null`.
 export function applyBillingEvent(
   prev: BillingSubscription | null,
   event: BillingEvent,
@@ -199,7 +230,7 @@ export function applyBillingEvent(
 ): BillingTransition {
   if (event.type === 'subscription_synced') {
     if (prev && prev.subscriptionId !== event.subscriptionId)
-      return unchanged(prev, 'ignored');
+      return unchanged(prev, 'unknown_subscription');
     if (prev && event.created < prev.lastStateEventCreated)
       return unchanged(prev, 'stale');
     return {
@@ -214,18 +245,27 @@ export function applyBillingEvent(
         // Once designated at checkout the flag cannot be flipped by a later event.
         discounted: prev ? prev.discounted : event.discounted,
         paidInvoiceIds: prev?.paidInvoiceIds ?? [],
+        refundedInvoiceIds: prev?.refundedInvoiceIds ?? [],
         revoked: prev?.revoked ?? null,
         lastStateEventCreated: event.created,
       },
       grant: null,
-      revokeGrants: false,
+      revokeGrantKeys: [],
+      cancelSubscription: false,
       outcome: 'applied',
     };
   }
-  if (!prev) return unchanged(prev, 'ignored');
+  if (event.type === 'partial_refund') return unchanged(prev, 'noted');
+  if (
+    event.type === 'revocation' &&
+    ((!event.subscriptionId && !event.customerId) ||
+      (event.reason === 'refund' && !event.invoiceId))
+  )
+    return unchanged(prev, 'unresolved');
+  if (!prev) return unchanged(prev, 'unknown_subscription');
   if (event.type === 'subscription_deleted') {
     if (prev.subscriptionId !== event.subscriptionId)
-      return unchanged(prev, 'ignored');
+      return unchanged(prev, 'unknown_subscription');
     if (event.created < prev.lastStateEventCreated)
       return unchanged(prev, 'stale');
     return {
@@ -236,7 +276,8 @@ export function applyBillingEvent(
         lastStateEventCreated: event.created,
       },
       grant: null,
-      revokeGrants: false,
+      revokeGrantKeys: [],
+      cancelSubscription: false,
       outcome: 'applied',
     };
   }
@@ -247,17 +288,46 @@ export function applyBillingEvent(
         event.customerId &&
         event.customerId === prev.customerId);
     if (!matches) return unchanged(prev, 'ignored');
-    if (prev.revoked) return unchanged(prev, 'duplicate');
+    if (event.reason === 'dispute') {
+      if (prev.revoked) return unchanged(prev, 'duplicate');
+      return {
+        next: { ...prev, revoked: 'dispute' },
+        grant: null,
+        revokeGrantKeys: prev.paidInvoiceIds,
+        cancelSubscription: true,
+        outcome: 'applied',
+      };
+    }
+    // Full refund, decided per invoice.
+    const invoiceId = event.invoiceId as string;
+    if (prev.refundedInvoiceIds.includes(invoiceId))
+      return unchanged(prev, 'duplicate');
+    if (!prev.paidInvoiceIds.includes(invoiceId))
+      return unchanged(prev, 'unresolved');
+    const refundedInvoiceIds = [...prev.refundedInvoiceIds, invoiceId];
+    const current =
+      prev.paidInvoiceIds[prev.paidInvoiceIds.length - 1] === invoiceId;
+    if (!current)
+      // An older, expired cycle: only that invoice's allowance is closed, the
+      // subscription keeps running.
+      return {
+        next: { ...prev, refundedInvoiceIds },
+        grant: null,
+        revokeGrantKeys: [invoiceId],
+        cancelSubscription: false,
+        outcome: 'applied',
+      };
     return {
-      next: { ...prev, revoked: event.reason },
+      next: { ...prev, refundedInvoiceIds, revoked: prev.revoked ?? 'refund' },
       grant: null,
-      revokeGrants: true,
+      revokeGrantKeys: prev.paidInvoiceIds,
+      cancelSubscription: !prev.revoked,
       outcome: 'applied',
     };
   }
   // invoice_paid
   if (prev.subscriptionId !== event.subscriptionId)
-    return unchanged(prev, 'ignored');
+    return unchanged(prev, 'unknown_subscription');
   if (prev.paidInvoiceIds.includes(event.invoiceId))
     return unchanged(prev, 'duplicate');
   if (!grantingReasons.has(event.billingReason))
@@ -281,7 +351,8 @@ export function applyBillingEvent(
           expiresAt: event.periodEnd,
         }
       : null,
-    revokeGrants: false,
+    revokeGrantKeys: [],
+    cancelSubscription: false,
     outcome: 'applied',
   };
 }
@@ -290,7 +361,8 @@ export type EntitlementConfig = Readonly<{
   // Renewal webhook can lag the period end; beyond this a missing renewal
   // lapses the access (fail closed) until the provider state is reconciled.
   renewalSlackMs: number;
-  // Hard upper bound for past_due access while the provider retries payment.
+  // Hard upper bound for past_due access while the provider retries payment,
+  // measured from the start of the current (unpaid) period.
   pastDueMaxMs: number;
 }>;
 export const defaultEntitlementConfig: EntitlementConfig = Object.freeze({
@@ -319,6 +391,7 @@ export function deriveEntitlement(
   if (!sub) return deny('none');
   if (sub.revoked) return deny('revoked');
   const end = sub.periodEnd ? Date.parse(sub.periodEnd) : Number.NaN;
+  const start = sub.periodStart ? Date.parse(sub.periodStart) : Number.NaN;
   const t = now.getTime();
   if (!Number.isFinite(end) || !Number.isFinite(t)) return deny('none');
   switch (sub.status) {
@@ -330,7 +403,7 @@ export function deriveEntitlement(
         canGenerate: true,
       };
     case 'past_due':
-      return t <= end + config.pastDueMaxMs
+      return Number.isFinite(start) && t <= start + config.pastDueMaxMs
         ? { state: 'past_due', canGenerate: true }
         : deny('ended');
     case 'canceled':
@@ -372,11 +445,17 @@ export function addChapterGrant(
   };
 }
 
-// Unspent keret is zeroed; chapters already reserved or consumed stay.
-export function revokeUnspentGrants(ledger: ChapterLedger): ChapterLedger {
+// Unspent keret of the given grants is zeroed; chapters already reserved or
+// consumed stay.
+export function revokeGrantKeys(
+  ledger: ChapterLedger,
+  keys: readonly string[],
+): ChapterLedger {
   return {
     ...ledger,
-    grants: ledger.grants.map((g) => ({ ...g, revoked: true })),
+    grants: ledger.grants.map((g) =>
+      keys.includes(g.key) ? { ...g, revoked: true } : g,
+    ),
   };
 }
 

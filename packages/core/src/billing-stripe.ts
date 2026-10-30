@@ -13,6 +13,7 @@ import {
 // sandbox before any live use.
 
 export const STRIPE_SIGNATURE_TOLERANCE_SECONDS = 300;
+const MAX_V1_SIGNATURES = 10;
 
 // Never throws; any malformed input is simply "not verified".
 export function verifyStripeSignature(input: {
@@ -25,6 +26,14 @@ export function verifyStripeSignature(input: {
   try {
     const { payload, header, secret, nowSeconds } = input;
     if (!secret || !header || typeof header !== 'string') return false;
+    const tolerance =
+      input.toleranceSeconds ?? STRIPE_SIGNATURE_TOLERANCE_SECONDS;
+    if (
+      !Number.isFinite(nowSeconds) ||
+      !Number.isFinite(tolerance) ||
+      tolerance <= 0
+    )
+      return false;
     let timestamp = '';
     const signatures: string[] = [];
     for (const part of header.split(',')) {
@@ -35,9 +44,12 @@ export function verifyStripeSignature(input: {
       if (name === 't') timestamp = timestamp || value;
       else if (name === 'v1') signatures.push(value);
     }
-    if (!/^\d{1,12}$/.test(timestamp) || !signatures.length) return false;
-    const tolerance =
-      input.toleranceSeconds ?? STRIPE_SIGNATURE_TOLERANCE_SECONDS;
+    if (
+      !/^\d{1,12}$/.test(timestamp) ||
+      !signatures.length ||
+      signatures.length > MAX_V1_SIGNATURES
+    )
+      return false;
     if (Math.abs(nowSeconds - Number(timestamp)) > tolerance) return false;
     const body = Buffer.concat([
       Buffer.from(`${timestamp}.`, 'utf8'),
@@ -89,13 +101,29 @@ function subscriptionId(object: Obj): string | null {
   return idOf(details?.subscription) ?? idOf(object.subscription);
 }
 
+const uuid =
+  /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const userIdOf = (v: unknown): string | null =>
+  typeof v === 'string' && uuid.test(v) ? v.toLowerCase() : null;
+
+// Price id of an invoice line: legacy `price.id` or basil `pricing.price_details.price`.
+function linePriceId(line: Obj): string | null {
+  const pricing = isObj(line.pricing) ? line.pricing : null;
+  const details =
+    pricing && isObj(pricing.price_details) ? pricing.price_details : null;
+  return idOf(line.price) ?? idOf(details?.price);
+}
+
 export const STRIPE_OFFER_METADATA_KEY = 'offer_version';
 export const STRIPE_USER_METADATA_KEY = 'user_id';
 
 // Returns null for event types we do not act on. Throws
 // BillingEventFormatError for a handled type with an unusable body, so the
 // caller can answer 400 without changing any state.
-export function normalizeStripeEvent(raw: unknown): BillingEvent | null {
+export function normalizeStripeEvent(
+  raw: unknown,
+  options: { priceId?: string } = {},
+): BillingEvent | null {
   if (!isObj(raw)) throw new BillingEventFormatError();
   const type = str(raw.type);
   if (!type) throw new BillingEventFormatError();
@@ -140,7 +168,7 @@ export function normalizeStripeEvent(raw: unknown): BillingEvent | null {
       created,
       subscriptionId: id,
       customerId: need(idOf(object.customer)),
-      userId: str(metadata[STRIPE_USER_METADATA_KEY]),
+      userId: userIdOf(metadata[STRIPE_USER_METADATA_KEY]),
       status: status as BillingStatus,
       periodStart: iso(
         item?.current_period_start ?? object.current_period_start,
@@ -152,17 +180,30 @@ export function normalizeStripeEvent(raw: unknown): BillingEvent | null {
   }
 
   if (type === 'invoice.paid') {
+    // Only a paid subscription invoice for our own price counts. Anything else
+    // (no subscription, zero amount, another product) is simply not ours.
+    const subId = subscriptionId(object);
+    if (!subId) return null;
+    if (
+      typeof object.amount_paid !== 'number' ||
+      !Number.isFinite(object.amount_paid) ||
+      object.amount_paid <= 0
+    )
+      return null;
     const lines =
       isObj(object.lines) && Array.isArray(object.lines.data)
-        ? object.lines.data
+        ? object.lines.data.filter(isObj)
         : [];
-    const period =
-      isObj(lines[0]) && isObj(lines[0].period) ? lines[0].period : null;
+    const line = options.priceId
+      ? lines.find((l) => linePriceId(l) === options.priceId)
+      : lines[0];
+    if (options.priceId && !line) return null;
+    const period = line && isObj(line.period) ? line.period : null;
     return {
       type: 'invoice_paid',
       eventId,
       created,
-      subscriptionId: need(subscriptionId(object)),
+      subscriptionId: subId,
       invoiceId: need(str(object.id)),
       billingReason: need(str(object.billing_reason)),
       periodStart: need(iso(period?.start ?? object.period_start)),
@@ -171,8 +212,28 @@ export function normalizeStripeEvent(raw: unknown): BillingEvent | null {
   }
 
   if (type === 'charge.refunded') {
-    // Only a full refund revokes; a partial refund changes nothing here.
-    if (object.refunded !== true) return null;
+    const amount = object.amount;
+    const refunded = object.amount_refunded;
+    // Full when the provider says so or the cumulative refund reaches the
+    // charge; anything less has no automatic effect (logged and alerted).
+    const full =
+      object.refunded === true ||
+      (typeof amount === 'number' &&
+        typeof refunded === 'number' &&
+        amount > 0 &&
+        refunded >= amount);
+    if (!full) {
+      if (typeof refunded !== 'number' || !(refunded > 0)) return null;
+      return {
+        type: 'partial_refund',
+        eventId,
+        created,
+        customerId: idOf(object.customer),
+        chargeId: str(object.id),
+        invoiceId: idOf(object.invoice),
+        amountRefunded: refunded,
+      };
+    }
   }
   return {
     type: 'revocation',

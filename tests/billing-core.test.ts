@@ -14,7 +14,7 @@ import {
   paidChaptersAvailable,
   releaseChapter,
   reserveChapter,
-  revokeUnspentGrants,
+  revokeGrantKeys,
   tasterChaptersAvailable,
   validateBillingOfferConfig,
   validateDiscountedUserIds,
@@ -64,13 +64,15 @@ const paid = (
 function run(events: BillingEvent[]) {
   let sub: BillingSubscription | null = null;
   let ledger: ChapterLedger = emptyChapterLedger;
+  let cancels = 0;
   for (const e of events) {
     const t = applyBillingEvent(sub, e);
     sub = t.next;
-    if (t.revokeGrants) ledger = revokeUnspentGrants(ledger);
+    ledger = revokeGrantKeys(ledger, t.revokeGrantKeys);
+    if (t.cancelSubscription) cancels += 1;
     if (t.grant) ledger = addChapterGrant(ledger, t.grant);
   }
-  return { sub, ledger };
+  return { sub, ledger, cancels };
 }
 
 describe('offer configuration', () => {
@@ -156,8 +158,10 @@ describe('subscription state machine', () => {
       run([synced(), paid(1), paid(1), paid(1)]).ledger.grants,
     ).toHaveLength(1);
   });
-  it('ignores invoice.paid without a known subscription', () => {
-    expect(applyBillingEvent(null, paid(1)).outcome).toBe('ignored');
+  it('reports invoice.paid for a not yet known subscription as unprocessable', () => {
+    expect(applyBillingEvent(null, paid(1)).outcome).toBe(
+      'unknown_subscription',
+    );
   });
   it('ignores invoices that are not a create/cycle payment', () => {
     const t = applyBillingEvent(
@@ -167,14 +171,14 @@ describe('subscription state machine', () => {
     expect(t.grant).toBeNull();
     expect(t.outcome).toBe('ignored');
   });
-  it('ignores events of a different subscription', () => {
+  it('does not apply events of a different subscription', () => {
     const sub = run([synced()]).sub;
     expect(
       applyBillingEvent(sub, paid(1, { subscriptionId: 'sub_other' })).outcome,
-    ).toBe('ignored');
+    ).toBe('unknown_subscription');
     expect(
       applyBillingEvent(sub, synced({ subscriptionId: 'sub_other' })).outcome,
-    ).toBe('ignored');
+    ).toBe('unknown_subscription');
   });
   it('does not let an older state event overwrite a newer one', () => {
     const sub = run([
@@ -213,32 +217,110 @@ describe('subscription state machine', () => {
 });
 
 describe('refund and dispute', () => {
+  const at = (ms: number) => new Date(T0 + ms);
   const revocation = (
     reason: 'refund' | 'dispute',
     over: Record<string, unknown> = {},
   ): BillingEvent =>
     ({
       type: 'revocation',
-      eventId: 'evt_r',
+      eventId: `evt_r_${String(over.invoiceId ?? reason)}`,
       created: sec(T0) + 200,
       reason,
       subscriptionId: 'sub_1',
       customerId: 'cus_1',
       paymentIntentId: null,
       chargeId: null,
-      invoiceId: null,
+      invoiceId: reason === 'refund' ? 'in_1' : null,
       ...over,
     }) as BillingEvent;
-  it('revokes access at once and zeroes the unspent allowance', () => {
-    const { sub, ledger } = run([synced(), paid(1), revocation('refund')]);
+  const partial: BillingEvent = {
+    type: 'partial_refund',
+    eventId: 'evt_p',
+    created: sec(T0) + 200,
+    customerId: 'cus_1',
+    chargeId: 'ch_1',
+    invoiceId: 'in_1',
+    amountRefunded: 500,
+  };
+
+  it('a full refund of the current cycle revokes at once, zeroes the unspent allowance and cancels the provider subscription', () => {
+    const { sub, ledger, cancels } = run([
+      synced(),
+      paid(1),
+      revocation('refund'),
+    ]);
     expect(sub?.revoked).toBe('refund');
-    expect(deriveEntitlement(sub, new Date(T0 + day))).toEqual({
+    expect(deriveEntitlement(sub, at(day))).toEqual({
       state: 'revoked',
       canGenerate: false,
     });
-    expect(paidChaptersAvailable(ledger, new Date(T0 + day))).toBe(0);
+    expect(paidChaptersAvailable(ledger, at(day))).toBe(0);
+    expect(cancels).toBe(1);
   });
-  it('matches by customer when the subscription is unknown', () => {
+  it('a full refund of an older cycle closes only that cycle and the subscription keeps running', () => {
+    const { sub, ledger, cancels } = run([
+      synced(),
+      paid(1),
+      paid(2),
+      revocation('refund', { invoiceId: 'in_1' }),
+    ]);
+    expect(sub?.revoked).toBeNull();
+    expect(cancels).toBe(0);
+    expect(deriveEntitlement(sub, at(20 * day)).canGenerate).toBe(true);
+    expect(ledger.grants.map((g) => [g.key, g.revoked])).toEqual([
+      ['in_1', true],
+      ['in_2', false],
+    ]);
+    expect(paidChaptersAvailable(ledger, at(20 * day))).toBe(5);
+  });
+  it('the refunded older invoice still counts in the cycle counter', () => {
+    const { ledger } = run([
+      synced(),
+      paid(1),
+      paid(2),
+      revocation('refund', { invoiceId: 'in_1' }),
+      paid(3),
+      paid(4),
+    ]);
+    expect(ledger.grants.map((g) => g.amount)).toEqual([5, 5, 5, 8]);
+  });
+  it('a refund of an invoice we do not know is unresolved, not processed', () => {
+    const { sub } = run([synced(), paid(1)]);
+    const t = applyBillingEvent(
+      sub,
+      revocation('refund', { invoiceId: 'in_unknown' }),
+    );
+    expect(t.outcome).toBe('unresolved');
+    expect(t.next?.revoked).toBeNull();
+  });
+  it('a refund that names no invoice is unresolved', () => {
+    const { sub } = run([synced(), paid(1)]);
+    expect(
+      applyBillingEvent(sub, revocation('refund', { invoiceId: null })).outcome,
+    ).toBe('unresolved');
+  });
+  it('a partial refund has no automatic effect and is only noted', () => {
+    const { sub } = run([synced(), paid(1)]);
+    const t = applyBillingEvent(sub, partial);
+    expect(t.outcome).toBe('noted');
+    expect(t.next).toBe(sub);
+    expect(t.revokeGrantKeys).toEqual([]);
+    expect(t.cancelSubscription).toBe(false);
+    expect(applyBillingEvent(null, partial).outcome).toBe('noted');
+  });
+  it('a dispute revokes everything at once and cancels the subscription', () => {
+    const { sub, ledger, cancels } = run([
+      synced(),
+      paid(1),
+      paid(2),
+      revocation('dispute'),
+    ]);
+    expect(sub?.revoked).toBe('dispute');
+    expect(paidChaptersAvailable(ledger, at(40 * day))).toBe(0);
+    expect(cancels).toBe(1);
+  });
+  it('matches a dispute by customer when the subscription is unknown', () => {
     const { sub } = run([
       synced(),
       revocation('dispute', { subscriptionId: null }),
@@ -248,26 +330,47 @@ describe('refund and dispute', () => {
   it('does not match a different customer', () => {
     const { sub } = run([
       synced(),
-      revocation('refund', { subscriptionId: null, customerId: 'cus_x' }),
+      revocation('dispute', { subscriptionId: null, customerId: 'cus_x' }),
     ]);
     expect(sub?.revoked).toBeNull();
   });
-  it('is never reopened by later sync or payment events', () => {
+  it('a revoked subscription is never reopened by later sync or payment events', () => {
     const { sub, ledger } = run([
       synced(),
       paid(1),
-      revocation('refund'),
+      revocation('dispute'),
       synced({ created: sec(T0) + 900 }),
       paid(2),
     ]);
-    expect(deriveEntitlement(sub, new Date(T0 + 31 * day)).canGenerate).toBe(
-      false,
-    );
-    expect(paidChaptersAvailable(ledger, new Date(T0 + 31 * day))).toBe(0);
+    expect(deriveEntitlement(sub, at(31 * day)).canGenerate).toBe(false);
+    expect(paidChaptersAvailable(ledger, at(31 * day))).toBe(0);
   });
-  it('treats a repeated revocation as a duplicate', () => {
-    const { sub } = run([synced(), revocation('refund')]);
-    expect(applyBillingEvent(sub, revocation('refund')).outcome).toBe(
+  it('reports a dispute traceable to no subscription as unresolved', () => {
+    const { sub } = run([synced()]);
+    const untraceable = revocation('dispute', {
+      subscriptionId: null,
+      customerId: null,
+      paymentIntentId: 'pi_1',
+    });
+    const t = applyBillingEvent(sub, untraceable);
+    expect(t.outcome).toBe('unresolved');
+    expect(t.next?.revoked).toBeNull();
+    expect(applyBillingEvent(null, untraceable).outcome).toBe('unresolved');
+  });
+  it('reports a revocation for a not yet known subscription as unprocessable', () => {
+    expect(applyBillingEvent(null, revocation('refund')).outcome).toBe(
+      'unknown_subscription',
+    );
+    expect(applyBillingEvent(null, revocation('dispute')).outcome).toBe(
+      'unknown_subscription',
+    );
+  });
+  it('treats a repeated revocation as a duplicate and cancels only once', () => {
+    const { sub } = run([synced(), paid(1), revocation('refund')]);
+    const again = applyBillingEvent(sub, revocation('refund'));
+    expect(again.outcome).toBe('duplicate');
+    expect(again.cancelSubscription).toBe(false);
+    expect(applyBillingEvent(sub, revocation('dispute')).outcome).toBe(
       'duplicate',
     );
   });
@@ -308,10 +411,19 @@ describe('entitlement derivation (fail closed)', () => {
   });
   it('past_due keeps access only inside the hard bound', () => {
     expect(
-      deriveEntitlement(sub({ status: 'past_due' }), at(35 * day)),
+      deriveEntitlement(sub({ status: 'past_due' }), at(13 * day)),
     ).toEqual({ state: 'past_due', canGenerate: true });
     expect(
-      deriveEntitlement(sub({ status: 'past_due' }), at(50 * day)).canGenerate,
+      deriveEntitlement(sub({ status: 'past_due' }), at(15 * day)).canGenerate,
+    ).toBe(false);
+  });
+  it('past_due is bounded from the period start, not the renewed period end', () => {
+    expect(
+      deriveEntitlement(sub({ status: 'past_due' }), at(44 * day)).canGenerate,
+    ).toBe(false);
+    expect(
+      deriveEntitlement(sub({ status: 'past_due', periodStart: null }), at(day))
+        .canGenerate,
     ).toBe(false);
   });
   it.each([
@@ -423,7 +535,10 @@ describe('chapter ledger', () => {
   });
   it('revocation keeps spent chapters spent and removes the rest', () => {
     const r = reserved(funded(), 'k1');
-    const revoked = revokeUnspentGrants(r.ledger);
+    const revoked = revokeGrantKeys(
+      r.ledger,
+      r.ledger.grants.map((g) => g.key),
+    );
     expect(paidChaptersAvailable(revoked, now)).toBe(0);
     expect(consumeChapter(revoked, 'k1').reservations[0].state).toBe(
       'consumed',
@@ -502,6 +617,24 @@ describe('stripe webhook signature', () => {
     ['non-numeric timestamp', `t=abc,v1=${sign(now, payload)}`],
   ])('rejects %s', (_name, h) => {
     expect(verify({ header: h })).toBe(false);
+  });
+  it('fails closed on a non-finite clock or tolerance', () => {
+    expect(verify({ nowSeconds: Number.NaN })).toBe(false);
+    expect(verify({ nowSeconds: Number.POSITIVE_INFINITY })).toBe(false);
+    expect(verify({ toleranceSeconds: Number.NaN })).toBe(false);
+    expect(verify({ toleranceSeconds: 0 })).toBe(false);
+    expect(verify({ toleranceSeconds: -5 })).toBe(false);
+    expect(
+      verify({ header: header(1, sign(1, payload)), nowSeconds: Number.NaN }),
+    ).toBe(false);
+  });
+  it('rejects an unreasonable number of signatures', () => {
+    const many = Array.from({ length: 11 }, () => `v1=${'0'.repeat(64)}`).join(
+      ',',
+    );
+    expect(
+      verify({ header: `t=${now},${many},v1=${sign(now, payload)}` }),
+    ).toBe(false);
   });
   it('rejects an empty secret and never throws', () => {
     expect(verify({ secret: '' })).toBe(false);
@@ -588,6 +721,7 @@ describe('stripe event normalisation', () => {
       evt('invoice.paid', {
         id: 'in_1',
         billing_reason: 'subscription_create',
+        amount_paid: 1499,
         parent: { subscription_details: { subscription: 'sub_1' } },
         lines: {
           data: [{ period: { start: 1_800_000_000, end: 1_802_592_000 } }],
@@ -606,12 +740,70 @@ describe('stripe event normalisation', () => {
       evt('invoice.paid', {
         id: 'in_1',
         billing_reason: 'subscription_cycle',
+        amount_paid: 1499,
         subscription: 'sub_1',
         period_start: 1_800_000_000,
         period_end: 1_802_592_000,
       }),
     );
     expect(e).toMatchObject({ type: 'invoice_paid', subscriptionId: 'sub_1' });
+  });
+  it('ignores invoices that are not ours: no subscription, zero amount, other price', () => {
+    const base = {
+      id: 'in_1',
+      billing_reason: 'manual',
+      period_start: 1_800_000_000,
+      period_end: 1_802_592_000,
+    };
+    expect(
+      normalizeStripeEvent(evt('invoice.paid', { ...base, amount_paid: 1499 })),
+    ).toBeNull();
+    expect(
+      normalizeStripeEvent(
+        evt('invoice.paid', { ...base, amount_paid: 0, subscription: 'sub_1' }),
+      ),
+    ).toBeNull();
+    expect(
+      normalizeStripeEvent(
+        evt('invoice.paid', { ...base, subscription: 'sub_1' }),
+      ),
+    ).toBeNull();
+    const withLines = evt('invoice.paid', {
+      ...base,
+      billing_reason: 'subscription_cycle',
+      amount_paid: 1499,
+      subscription: 'sub_1',
+      lines: {
+        data: [
+          { price: { id: 'price_other' }, period: { start: 1, end: 2 } },
+          {
+            pricing: { price_details: { price: 'price_ours' } },
+            period: { start: 1_800_000_000, end: 1_802_592_000 },
+          },
+        ],
+      },
+    });
+    expect(
+      normalizeStripeEvent(withLines, { priceId: 'price_none' }),
+    ).toBeNull();
+    expect(
+      normalizeStripeEvent(withLines, { priceId: 'price_ours' }),
+    ).toMatchObject({
+      periodEnd: new Date(1_802_592_000 * 1000).toISOString(),
+    });
+  });
+  it('drops a non-UUID user id from the subscription metadata', () => {
+    const e = normalizeStripeEvent(
+      evt('customer.subscription.created', {
+        id: 'sub_1',
+        customer: 'cus_1',
+        status: 'active',
+        metadata: { user_id: 'not-a-uuid' },
+        current_period_start: 1,
+        current_period_end: 2,
+      }),
+    );
+    expect(e).toMatchObject({ userId: null });
   });
   it('maps a full refund to a revocation and ignores a partial refund', () => {
     expect(
@@ -635,10 +827,41 @@ describe('stripe event normalisation', () => {
         evt('charge.refunded', {
           id: 'ch_1',
           refunded: false,
+          amount: 1499,
+          amount_refunded: 500,
           customer: 'cus_1',
+          invoice: 'in_1',
+        }),
+      ),
+    ).toMatchObject({
+      type: 'partial_refund',
+      amountRefunded: 500,
+      invoiceId: 'in_1',
+    });
+    expect(
+      normalizeStripeEvent(
+        evt('charge.refunded', {
+          id: 'ch_1',
+          refunded: false,
+          amount: 1499,
+          amount_refunded: 0,
         }),
       ),
     ).toBeNull();
+    expect(
+      normalizeStripeEvent(
+        evt('charge.refunded', {
+          id: 'ch_1',
+          amount: 1499,
+          amount_refunded: 1499,
+          invoice: 'in_1',
+        }),
+      ),
+    ).toMatchObject({
+      type: 'revocation',
+      reason: 'refund',
+      invoiceId: 'in_1',
+    });
   });
   it('maps a dispute to a revocation', () => {
     expect(
@@ -674,19 +897,11 @@ describe('stripe event normalisation', () => {
       evt('customer.subscription.updated', { id: 's', status: 'active' }),
     ],
     [
-      'invoice without subscription',
-      evt('invoice.paid', {
-        id: 'i',
-        billing_reason: 'subscription_cycle',
-        period_start: 1,
-        period_end: 2,
-      }),
-    ],
-    [
       'invoice without period',
       evt('invoice.paid', {
         id: 'i',
         billing_reason: 'subscription_cycle',
+        amount_paid: 1499,
         subscription: 's',
       }),
     ],
@@ -717,6 +932,7 @@ describe('stripe event normalisation', () => {
           {
             id: 'in_1',
             billing_reason: 'subscription_create',
+            amount_paid: 1499,
             subscription: 'sub_1',
             period_start: sec(T0),
             period_end: sec(T0 + 30 * day),
@@ -727,7 +943,7 @@ describe('stripe event normalisation', () => {
       normalizeStripeEvent(
         evt(
           'charge.refunded',
-          { id: 'ch_1', refunded: true, customer: 'cus_1' },
+          { id: 'ch_1', refunded: true, customer: 'cus_1', invoice: 'in_1' },
           { id: 'evt_3' },
         ),
       )!,
