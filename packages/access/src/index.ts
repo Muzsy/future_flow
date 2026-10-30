@@ -91,9 +91,13 @@ export function createClosedSiteGate(
 export function publicWebException(method: string, path: string) {
   if (!['GET', 'HEAD'].includes(method)) return false;
   if (
-    ['/healthz', '/privacy-notice', '/account-access', '/favicon.ico'].includes(
-      path,
-    )
+    [
+      '/healthz',
+      '/privacy-notice',
+      '/terms',
+      '/account-access',
+      '/favicon.ico',
+    ].includes(path)
   )
     return true;
   return path.startsWith('/_next/static/') && !/[\\%]/.test(path);

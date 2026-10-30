@@ -111,8 +111,8 @@ describe('legal pages (draft pending legal review)', () => {
     expect(text).not.toMatch(/sk-|eyJ|api[_-]?key|password\s*[:=]/i);
   });
 
-  it('does not widen the closed-site Access exceptions: /terms stays behind the gate', () => {
-    expect(publicWebException('GET', '/terms')).toBe(false);
+  it('exposes /terms next to /privacy-notice through the closed-site exception', () => {
+    expect(publicWebException('GET', '/terms')).toBe(true);
     expect(publicWebException('GET', '/privacy-notice')).toBe(true);
   });
 });

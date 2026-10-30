@@ -248,6 +248,7 @@ describe('Next origin gate', () => {
     for (const path of [
       '/account-access',
       '/privacy-notice',
+      '/terms',
       '/healthz',
       '/_next/static/chunks/example.js',
     ])
