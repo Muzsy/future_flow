@@ -1,0 +1,118 @@
+import { createRequire } from 'node:module';
+import type { createElement as createElementType } from 'react';
+import type { renderToStaticMarkup as renderType } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import { messages } from '../apps/web/lib/i18n';
+import { en } from '../apps/web/lib/i18n/messages';
+import { publicWebException } from '../packages/access/src';
+
+// react is a dependency of the web app only, so resolve it from there.
+const webRequire = createRequire(
+  new URL('../apps/web/package.json', import.meta.url),
+);
+const { createElement } = webRequire('react') as {
+  createElement: typeof createElementType;
+};
+const { renderToStaticMarkup } = webRequire('react-dom/server') as {
+  renderToStaticMarkup: typeof renderType;
+};
+
+const legalKeys = Object.keys(en).filter((key) =>
+  /^(terms|legal)\.|^privacy\.(operatorTitle|collect|purpose|processor|transfers|retention|rights|cookies|automated|betaAccess|activity|accountLink)/.test(
+    key,
+  ),
+) as (keyof typeof en)[];
+
+async function render(locale: 'en' | 'hu', page: 'terms' | 'privacy') {
+  // Not hoisted: the module id must be resolved from the web app.
+  vi.doMock(webRequire.resolve('next/navigation'), () => ({
+    useRouter: () => ({ refresh: () => undefined }),
+  }));
+  const { LanguageProvider } =
+    await import('../apps/web/components/language-provider');
+  const { TermsOfUse } = await import('../apps/web/components/terms-of-use');
+  const { PrivacyNotice } =
+    await import('../apps/web/components/privacy-notice');
+  return renderToStaticMarkup(
+    createElement(
+      LanguageProvider,
+      { initialLocale: locale },
+      createElement(page === 'terms' ? TermsOfUse : PrivacyNotice),
+    ),
+  );
+}
+
+describe('legal pages (draft pending legal review)', () => {
+  it('has a complete English and Hungarian catalog without unbalanced placeholders', () => {
+    expect(legalKeys.length).toBeGreaterThan(60);
+    for (const key of legalKeys)
+      for (const locale of ['en', 'hu'] as const) {
+        const text = messages[locale][key];
+        expect(text.trim(), `${locale}:${key}`).not.toBe('');
+        expect(text.split('[').length, `${locale}:${key}`).toBe(
+          text.split(']').length,
+        );
+        expect(text, `${locale}:${key}`).not.toMatch(/\{\w+\}/);
+      }
+  });
+
+  it('keeps every undecided policy item as a marked placeholder, in both languages', () => {
+    for (const locale of ['en', 'hu'] as const) {
+      for (const key of [
+        'legal.operatorPlaceholder',
+        'terms.account2',
+        'terms.payment2',
+        'terms.payment3',
+        'terms.liability1',
+        'terms.changes2',
+        'privacy.purposesNote',
+        'privacy.transfers',
+      ] as const)
+        expect(messages[locale][key], `${locale}:${key}`).toMatch(/\[.+\]/);
+    }
+  });
+
+  it('renders the terms page with every section, the draft banner and highlighted placeholders', async () => {
+    // Hungarian is stored but not enabled yet, so the page renders English.
+    const html = await render('en', 'terms');
+    expect(html).toContain('<h1>Terms of Use</h1>');
+    expect(html).toContain('role="note"');
+    expect(html).toContain('class="legal-placeholder"');
+    expect(html.match(/<h2>/g)).toHaveLength(11);
+    expect(html).toContain('href="/account-access"');
+    expect(html).toContain('href="/privacy-notice"');
+    expect(html).toContain('mailto:info@alterward.com');
+    expect(html).not.toContain('{');
+  });
+
+  it('renders the privacy notice with processors, retention, rights and the existing smoke-test title', async () => {
+    const html = await render('en', 'privacy');
+    expect(html).toContain('Privacy and your data');
+    for (const provider of [
+      'OpenAI',
+      'Supabase',
+      'Cloudflare',
+      'SMTP2GO',
+      'Contabo',
+    ])
+      expect(html).toContain(provider);
+    expect(html).toContain('7 days');
+    expect(html).toContain('withdraw it at any time');
+    expect(html).toContain('href="/account-access"');
+    expect(html).toContain('href="/terms"');
+    expect(messages.hu['privacy.rights2']).toContain('visszavonhatod');
+  });
+
+  it('does not put personal data or secrets in the legal text', () => {
+    const text = legalKeys.map((key) => en[key]).join('\n');
+    expect(text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g)).toEqual([
+      'info@alterward.com',
+    ]);
+    expect(text).not.toMatch(/sk-|eyJ|api[_-]?key|password\s*[:=]/i);
+  });
+
+  it('does not widen the closed-site Access exceptions: /terms stays behind the gate', () => {
+    expect(publicWebException('GET', '/terms')).toBe(false);
+    expect(publicWebException('GET', '/privacy-notice')).toBe(true);
+  });
+});

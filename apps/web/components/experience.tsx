@@ -1612,6 +1612,7 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
             Give feedback
           </button>
         )}
+        <a href="/terms">{t('legal.termsLink')}</a>
         <span>{t('footer.note')}</span>
       </footer>
     </>
