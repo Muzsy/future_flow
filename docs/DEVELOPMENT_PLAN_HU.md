@@ -76,6 +76,23 @@ A V9-2 nem vezet be új számszerű minőségküszöböt. Kevesebb repair csak a
 
 A részletes technikai specifikáció a [creative tervben](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md) és az [élő világ tervben](plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md) marad; új párhuzamos végrehajtási terv nem készül. Minden továbblépéskor e táblázat és a [STATUS](STATUS_HU.md) együtt frissítendő.
 
+### 2.2. Nyilvános/fizetős indulás előfeltételei — 2026-10-30
+
+Az „éles indulás” három külön lépcső: **A)** a most futó zárt tesztelői ablak (2026-11-28 01:17 CET-ig), **B)** szélesebb zárt kör (legfeljebb 10 fő, új tulajdonosi döntés és új ablak kell, mert a tesztelői ablak egyszeri), **C)** nyilvános és/vagy fizetős indulás. A C nincs engedélyezve. A motor (v9 C5) befagyasztott; a C-nek nem előfeltétele motorfejlesztés.
+
+| Kapu | Állapot | Megjegyzés |
+| --- | --- | --- |
+| N08 teljes paid + emberi bizonyítás vagy külön, rögzített tulajdonosi helyettesítés | NYITOTT | A 2026-10-19-i helyettesítő kapurend csak a zárt bétára szól. Új paid mérés új számszerű engedélyhez kötött. |
+| Béta-visszajelzés (3./6. fejezet kérdőív, folytatás, költség/fejezet) | FOLYAMATBAN | Az ablak 2026-11-28-ig tart. |
+| B01 billing (provider, checkout, webhook, életciklus, termékegyenleg) | PENDING | A csomag- és árdöntés tulajdonosi; a havi 8+4 fejezet csak javaslat. |
+| P13 public release gate (privacy, moderáció, fork, retention, cohort, költségfelelősség) | PARTIAL | Csak a személyes béta és a Shared-sorrend döntése után aktuális. |
+| Regisztráció megnyitása, Cloudflare Access leválasztása, visszaélés elleni védelem | NYITOTT | Ma a Supabase önregisztráció KI, belépés csak meghívással. A változás biztonsági határ-változás: ADR és célzott negatív tesztek kellenek. |
+| Felhasználási feltételek, végleges adatkezelési tájékoztató (feldolgozók, megőrzés), DPA-k, üzemeltetői/jogi forma | NYITOTT | Az alkalmazásban csak az alpha `/privacy-notice` van; jogi jóváhagyás tulajdonosi feladat. |
+| Független mentési tárhely, kulcsőrzés, operátori gép kivezetése, M3 (történeti másolatok lejárata) | NYITOTT | A mentési kulcs és az egyetlen szerveren kívüli példány ma az operátori gépen van. |
+| Szolgáltatói oldali költséglimit (OpenAI), Supabase csomag/mentés, riasztási csatorna, kapacitás (egy worker) | ELLENŐRIZENDŐ | Dashboard-ellenőrzés tulajdonosi hozzáférést igényel; nyilvános nyitás fokozatos (várólista) javasolt. |
+
+A tételes munkalista és a tulajdonosi döntések sorrendje nem része a repónak; ez a táblázat a kanonikus kapuállapot.
+
 ## 3. Personal / public execution plan — L01, P01–P13
 
 | ID  | Státusz | Eredeti cél / jelenlegi értelmezés                                                                                                                     | Kanonikus forrás                                                                                                        | Fennmaradó gate / következő lépés                                                                                                                                                                                                       |
