@@ -28,6 +28,8 @@ export * from './fiction-casting';
 export * from './fiction-mechanics';
 export * from './billing';
 export * from './billing-stripe';
+export * from './billing-service';
+export * from './billing-stripe-provider';
 export function hash(value: unknown): string {
   const normalize = (item: unknown): unknown => {
     if (Array.isArray(item)) return item.map(normalize);

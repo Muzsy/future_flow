@@ -123,6 +123,8 @@ export type BillingSubscription = Readonly<{
   // (no automatic reopening, a won dispute needs a manual owner decision).
   revoked: BillingRevocation | null;
   lastStateEventCreated: number;
+  // Set by recovery: closed until a newer provider state event is applied.
+  reconcileRequired: boolean;
 }>;
 
 export type BillingEvent =
@@ -248,6 +250,7 @@ export function applyBillingEvent(
         refundedInvoiceIds: prev?.refundedInvoiceIds ?? [],
         revoked: prev?.revoked ?? null,
         lastStateEventCreated: event.created,
+        reconcileRequired: false,
       },
       grant: null,
       revokeGrantKeys: [],
@@ -390,6 +393,7 @@ export function deriveEntitlement(
 ): Entitlement {
   if (!sub) return deny('none');
   if (sub.revoked) return deny('revoked');
+  if (sub.reconcileRequired) return deny('none');
   const end = sub.periodEnd ? Date.parse(sub.periodEnd) : Number.NaN;
   const start = sub.periodStart ? Date.parse(sub.periodStart) : Number.NaN;
   const t = now.getTime();
