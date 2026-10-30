@@ -131,6 +131,19 @@ export function createStripeProvider(
     }
     if (!isInvoiceId(invoiceId)) return null;
     const invoice = (await call('GET', `/v1/invoices/${invoiceId}`)).body;
+    // An invoice that carries none of our price is positively not ours (another
+    // product on the same Stripe account): acknowledge, never retry.
+    const lines =
+      isObj(invoice.lines) && Array.isArray(invoice.lines.data)
+        ? invoice.lines.data.filter(isObj)
+        : [];
+    const ours = lines.some((l) => {
+      const pricing = isObj(l.pricing) ? l.pricing : null;
+      const details =
+        pricing && isObj(pricing.price_details) ? pricing.price_details : null;
+      return (idOf(l.price) ?? idOf(details?.price)) === options.priceId;
+    });
+    if (lines.length && !ours) return 'not_ours' as const;
     const parent = isObj(invoice.parent) ? invoice.parent : null;
     const details =
       parent && isObj(parent.subscription_details)
@@ -138,6 +151,8 @@ export function createStripeProvider(
         : null;
     subscriptionId = idOf(details?.subscription) ?? idOf(invoice.subscription);
     customerId = customerId ?? idOf(invoice.customer);
+    // A one-off invoice (no subscription) is positively not ours either.
+    if (subscriptionId === null && lines.length) return 'not_ours' as const;
     if (!isSubscriptionId(subscriptionId)) return null;
     return {
       invoiceId,
@@ -159,6 +174,9 @@ export function createStripeProvider(
           offerVersion,
         success_url: options.successUrl,
         cancel_url: options.cancelUrl,
+        // A short-lived session limits how long two parallel checkouts of one
+        // account can stay open (Stripe minimum is 30 minutes).
+        expires_at: String(Math.floor(now.getTime() / 1000) + 35 * 60),
         // Managed Payments. Not set, by design: automatic_tax, tax_id_collection,
         // adaptive_pricing, payment_method_types, invoice_creation.
         'managed_payments[enabled]': 'true',
@@ -196,6 +214,18 @@ export function createStripeProvider(
       } catch (error) {
         // Already cancelled or gone: the goal state is reached.
         if (error instanceof StripeRequestError && error.status === 404) return;
+        // Other client errors: if the subscription is in fact already cancelled
+        // (for example by Stripe at refund time) the goal state is reached.
+        if (
+          error instanceof StripeRequestError &&
+          error.status >= 400 &&
+          error.status < 500
+        ) {
+          const current = (
+            await call('GET', `/v1/subscriptions/${subscriptionId}`)
+          ).body;
+          if (current.status === 'canceled') return;
+        }
         throw error;
       }
     },
@@ -215,6 +245,7 @@ export function createStripeProvider(
       } catch {
         return null;
       }
+      if (traced === 'not_ours') return 'not_ours';
       if (!traced) return null;
       const resolved: BillingEvent = {
         ...event,

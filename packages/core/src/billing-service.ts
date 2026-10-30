@@ -33,8 +33,14 @@ import {
 // result, so a SQL store and the in-memory test store share the same logic.
 
 export type BillingTx = {
-  // Serialises all billing writes of one user (reserve/consume/release).
+  // Serialises all billing writes of one user. Lock order is always
+  // user -> subscription row, in every operation, to rule out deadlocks.
   lockUser(userId: string): Promise<void>;
+  // Non-locking owner lookup, used to take the user lock before the row lock.
+  ownerOf(by: {
+    subscriptionId: string | null;
+    customerId: string | null;
+  }): Promise<string | null>;
   hasEvent(eventId: string): Promise<boolean>;
   recordEvent(
     eventId: string,
@@ -48,6 +54,7 @@ export type BillingTx = {
     customerId: string | null;
   }): Promise<BillingSubscription | null>;
   listSubscriptions(userId: string): Promise<BillingSubscription[]>;
+  listCancelPending(limit: number): Promise<string[]>;
   saveSubscription(
     sub: BillingSubscription & { userId: string },
   ): Promise<void>;
@@ -74,7 +81,13 @@ export type BillingAlert = Readonly<{
     | 'unknown_subscription'
     | 'partial_refund'
     | 'invalid_signature'
-    | 'malformed_event';
+    | 'malformed_event'
+    | 'mode_mismatch'
+    | 'api_version_mismatch'
+    | 'cancel_failed'
+    | 'processing_failed'
+    | 'duplicate_discount'
+    | 'second_subscription';
   eventId?: string;
   eventType?: string;
 }>;
@@ -89,10 +102,12 @@ export type BillingProvider = {
   // Idempotent: an already cancelled or missing subscription is success.
   cancelSubscription(subscriptionId: string): Promise<void>;
   // Resolves charge/payment-intent identifiers to an invoice and subscription.
-  // null = could not be traced (the event stays unresolved and alerted).
+  // 'not_ours' = positively established to belong to no Alterward subscription
+  // (acknowledged and ignored). null = could not be traced (stays unresolved,
+  // alerted, retried).
   resolveRevocation(
     event: Extract<BillingEvent, { type: 'revocation' | 'partial_refund' }>,
-  ): Promise<BillingEvent | null>;
+  ): Promise<BillingEvent | null | 'not_ours'>;
 };
 
 export type ProcessedEvent = Readonly<{
@@ -106,6 +121,17 @@ export type ProcessedEvent = Readonly<{
     | 'unresolved';
   // true only when the event is durably recorded as processed.
   processed: boolean;
+  // The revocation is committed, but cancelling the provider subscription
+  // failed; it stays pending and is retried (redelivery or the retry job).
+  cancelFailed?: boolean;
+  anomalies: readonly ('duplicate_discount' | 'second_subscription')[];
+}>;
+
+export type ProcessOptions = Readonly<{
+  offer?: BillingOfferConfig;
+  entitlement?: EntitlementConfig;
+  // When given, a launch discount on a non-designated account is not honoured.
+  designatedUserIds?: readonly string[];
 }>;
 
 const eventTypeLabel: Record<BillingEvent['type'], string> = {
@@ -118,42 +144,81 @@ const eventTypeLabel: Record<BillingEvent['type'], string> = {
 
 // Idempotent by event id in the same transaction as the state change. An event
 // that cannot be applied yet is never recorded (the caller answers 5xx so the
-// provider redelivers). A provider call that must accompany the change
-// (cancelling the subscription) runs inside the transaction: if it fails the
-// whole event rolls back and is retried.
+// provider redelivers). The revocation itself always commits: cancelling the
+// provider subscription is a retried side effect after the commit (flag
+// `cancelPending`), so a provider outage can only delay the cancellation, never
+// leave a refunded customer with access.
 export async function processBillingEvent(
   store: BillingStore,
   event: BillingEvent,
   provider: Pick<BillingProvider, 'cancelSubscription'>,
-  config: BillingOfferConfig = defaultBillingOfferConfig,
+  options: ProcessOptions = {},
 ): Promise<ProcessedEvent> {
-  return store.transaction(async (tx) => {
-    if (await tx.hasEvent(event.eventId))
-      return { outcome: 'duplicate', processed: true };
+  const entitlementConfig = options.entitlement ?? defaultEntitlementConfig;
+  const phase1 = await store.transaction(async (tx) => {
     const subscriptionId =
       'subscriptionId' in event ? event.subscriptionId : null;
     const customerId = 'customerId' in event ? event.customerId : null;
-    const prev =
+    const by = { subscriptionId, customerId };
+    const owner =
       event.type === 'partial_refund'
         ? null
-        : await tx.findSubscription({ subscriptionId, customerId });
+        : ((await tx.ownerOf(by)) ??
+          (event.type === 'subscription_synced' ? event.userId : null));
+    if (owner) await tx.lockUser(owner);
+    const anomalies: ('duplicate_discount' | 'second_subscription')[] = [];
+    const result = (
+      outcome: ProcessedEvent['outcome'],
+      processed: boolean,
+      cancelTarget: string | null = null,
+    ) => ({ outcome, processed, anomalies, cancelTarget });
+    const prev =
+      event.type === 'partial_refund' ? null : await tx.findSubscription(by);
+    if (await tx.hasEvent(event.eventId))
+      return result(
+        'duplicate',
+        true,
+        prev?.cancelPending ? prev.subscriptionId : null,
+      );
+    let applied: BillingEvent = event;
     // A new subscription needs an owner we can verify; otherwise it cannot be
     // stored yet.
-    if (
-      event.type === 'subscription_synced' &&
-      !prev &&
-      (!event.userId || !(await tx.userExists(event.userId)))
-    )
-      return { outcome: 'unresolved', processed: false };
-    const transition = applyBillingEvent(prev, event, config);
+    if (event.type === 'subscription_synced' && !prev) {
+      if (!event.userId || !(await tx.userExists(event.userId)))
+        return result('unresolved', false);
+      if (event.discounted) {
+        const honoured =
+          (!options.designatedUserIds ||
+            options.designatedUserIds.includes(event.userId)) &&
+          !(await tx.hasRedeemedFounderDiscount(event.userId));
+        if (!honoured) {
+          applied = { ...event, discounted: false };
+          anomalies.push('duplicate_discount');
+        }
+      }
+      const others = await tx.listSubscriptions(event.userId);
+      if (
+        others.some(
+          (o) =>
+            o.subscriptionId !== event.subscriptionId &&
+            deriveEntitlement(
+              o,
+              new Date(event.created * 1000),
+              entitlementConfig,
+            ).canGenerate,
+        )
+      )
+        anomalies.push('second_subscription');
+    }
+    const transition = applyBillingEvent(prev, applied, options.offer);
     if (
       transition.outcome === 'unknown_subscription' ||
       transition.outcome === 'unresolved'
     )
-      return { outcome: transition.outcome, processed: false };
+      return result(transition.outcome, false);
     if (transition.next && transition.next !== prev) {
       const userId = prev?.userId ?? transition.next.userId;
-      if (!userId) return { outcome: 'unresolved', processed: false };
+      if (!userId) return result('unresolved', false);
       await tx.saveSubscription({ ...transition.next, userId });
       if (transition.grant)
         await tx.insertGrant(transition.grant, {
@@ -163,16 +228,65 @@ export async function processBillingEvent(
     }
     if (transition.revokeGrantKeys.length)
       await tx.revokeGrants(transition.revokeGrantKeys);
-    if (transition.cancelSubscription && transition.next)
-      await provider.cancelSubscription(transition.next.subscriptionId);
     await tx.recordEvent(
       event.eventId,
       eventTypeLabel[event.type],
       transition.next?.subscriptionId ?? null,
       transition.outcome,
     );
-    return { outcome: transition.outcome, processed: true };
+    return result(
+      transition.outcome,
+      true,
+      transition.cancelSubscription && transition.next
+        ? transition.next.subscriptionId
+        : null,
+    );
   });
+  const { cancelTarget, ...rest } = phase1;
+  if (!cancelTarget) return rest;
+  return {
+    ...rest,
+    ...(await settleCancellation(store, provider, cancelTarget)),
+  };
+}
+
+// Cancels the provider subscription and clears the pending flag. A failure is
+// not an error of the event (the revocation is committed): it stays pending.
+async function settleCancellation(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  subscriptionId: string,
+): Promise<{ cancelFailed?: true }> {
+  try {
+    await provider.cancelSubscription(subscriptionId);
+  } catch {
+    return { cancelFailed: true };
+  }
+  await store.transaction(async (tx) => {
+    const sub = await tx.findSubscription({ subscriptionId, customerId: null });
+    if (sub?.userId && sub.cancelPending) {
+      await tx.lockUser(sub.userId);
+      await tx.saveSubscription({
+        ...sub,
+        userId: sub.userId,
+        cancelPending: false,
+      });
+    }
+  });
+  return {};
+}
+
+// For a periodic job: retries every cancellation that is still pending.
+export async function retryPendingCancellations(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  limit = 50,
+): Promise<{ attempted: number; failed: number }> {
+  const ids = await store.transaction((tx) => tx.listCancelPending(limit));
+  let failed = 0;
+  for (const id of ids)
+    if ((await settleCancellation(store, provider, id)).cancelFailed) failed++;
+  return { attempted: ids.length, failed };
 }
 
 export type StripeWebhookInput = Readonly<{
@@ -181,6 +295,9 @@ export type StripeWebhookInput = Readonly<{
   nowSeconds: number;
   webhookSecret: string;
   priceId: string;
+  // Strict test/live separation (ADR-010): a mismatch is rejected.
+  expectedLivemode?: boolean;
+  expectedApiVersion?: string;
 }>;
 export type WebhookResult = Readonly<{
   status: 200 | 400 | 500;
@@ -190,6 +307,7 @@ export type WebhookResult = Readonly<{
     | 'invalid_signature'
     | 'invalid_json'
     | 'malformed_event'
+    | 'mode_mismatch'
     | 'unresolved'
     | 'retry';
   outcome?: ProcessedEvent['outcome'];
@@ -203,6 +321,8 @@ export async function handleStripeWebhook(
     store: BillingStore;
     provider: BillingProvider;
     offer?: BillingOfferConfig;
+    entitlement?: EntitlementConfig;
+    designatedUserIds?: readonly string[];
     alert?: (alert: BillingAlert) => void;
   },
 ): Promise<WebhookResult> {
@@ -228,12 +348,31 @@ export async function handleStripeWebhook(
   } catch {
     return { status: 400, code: 'invalid_json' };
   }
+  const envelope =
+    parsed && typeof parsed === 'object'
+      ? (parsed as { id?: unknown; livemode?: unknown; api_version?: unknown })
+      : {};
+  const eventId = typeof envelope.id === 'string' ? envelope.id : undefined;
+  if (
+    input.expectedLivemode !== undefined &&
+    envelope.livemode !== input.expectedLivemode
+  ) {
+    alert({ kind: 'mode_mismatch', eventId });
+    return { status: 400, code: 'mode_mismatch' };
+  }
+  if (
+    input.expectedApiVersion !== undefined &&
+    envelope.api_version !== input.expectedApiVersion
+  ) {
+    alert({ kind: 'api_version_mismatch', eventId });
+    return { status: 400, code: 'mode_mismatch' };
+  }
   let event: BillingEvent | null;
   try {
     event = normalizeStripeEvent(parsed, { priceId: input.priceId });
   } catch (error) {
     if (error instanceof BillingEventFormatError) {
-      alert({ kind: 'malformed_event' });
+      alert({ kind: 'malformed_event', eventId });
       return { status: 400, code: 'malformed_event' };
     }
     throw error;
@@ -242,6 +381,7 @@ export async function handleStripeWebhook(
   try {
     if (event.type === 'revocation' || event.type === 'partial_refund') {
       const resolved = await deps.provider.resolveRevocation(event);
+      if (resolved === 'not_ours') return { status: 200, code: 'ignored' };
       if (!resolved) {
         if (event.type === 'partial_refund') {
           // Only logged and alerted; nothing to apply.
@@ -253,12 +393,13 @@ export async function handleStripeWebhook(
       }
       event = resolved;
     }
-    const result = await processBillingEvent(
-      deps.store,
-      event,
-      deps.provider,
-      deps.offer,
-    );
+    const result = await processBillingEvent(deps.store, event, deps.provider, {
+      offer: deps.offer,
+      entitlement: deps.entitlement,
+      designatedUserIds: deps.designatedUserIds,
+    });
+    for (const anomaly of result.anomalies)
+      alert({ kind: anomaly, eventId: event.eventId, eventType: event.type });
     if (result.outcome === 'noted')
       alert({ kind: 'partial_refund', eventId: event.eventId });
     if (!result.processed) {
@@ -272,8 +413,15 @@ export async function handleStripeWebhook(
       });
       return { status: 500, code: 'unresolved', outcome: result.outcome };
     }
+    if (result.cancelFailed) {
+      // Committed revocation, pending cancellation: ask for a redelivery, which
+      // retries the cancellation.
+      alert({ kind: 'cancel_failed', eventId: event.eventId });
+      return { status: 500, code: 'retry', outcome: result.outcome };
+    }
     return { status: 200, code: 'ok', outcome: result.outcome };
   } catch {
+    alert({ kind: 'processing_failed', eventId });
     return { status: 500, code: 'retry' };
   }
 }
@@ -312,40 +460,47 @@ export async function createCheckoutSession(
     config: Pick<BillingConfig, 'designatedUserIds' | 'entitlement'>;
   },
 ): Promise<{ url: string }> {
-  const { redeemed, entitlement } = await deps.store.transaction(
-    async (tx) => ({
-      redeemed: await tx.hasRedeemedFounderDiscount(userId),
-      entitlement: entitlementOfSubscriptions(
-        await tx.listSubscriptions(userId),
-        now,
-        deps.config.entitlement,
-      ),
-    }),
-  );
-  // One live subscription per user.
-  if (entitlement.canGenerate)
-    throw new DomainError(
-      'BILLING_ALREADY_SUBSCRIBED',
-      'An active subscription already exists.',
-      409,
+  // The user lock is held across the provider call so two checkouts of the same
+  // user cannot be created concurrently.
+  return deps.store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    const redeemed = await tx.hasRedeemedFounderDiscount(userId);
+    const entitlement = entitlementOfSubscriptions(
+      await tx.listSubscriptions(userId),
+      now,
+      deps.config.entitlement,
     );
-  const discounted = mayAttachFounderDiscount(
-    deps.config.designatedUserIds,
-    userId,
-    redeemed,
-  );
-  return deps.provider.createCheckoutSession({
-    userId,
-    offerVersion: discounted ? 'launch_v1' : 'standard_v1',
-    discounted,
-    now,
+    // One live subscription per user.
+    if (entitlement.canGenerate)
+      throw new DomainError(
+        'BILLING_ALREADY_SUBSCRIBED',
+        'An active subscription already exists.',
+        409,
+      );
+    const discounted = mayAttachFounderDiscount(
+      deps.config.designatedUserIds,
+      userId,
+      redeemed,
+    );
+    return deps.provider.createCheckoutSession({
+      userId,
+      offerVersion: discounted ? 'launch_v1' : 'standard_v1',
+      discounted,
+      now,
+    });
   });
 }
 
 // ---- chapter gate ----
 
 export type GateResult =
-  | Readonly<{ ok: true; created: boolean; bucket: 'paid' | 'taster' }>
+  | Readonly<{
+      ok: true;
+      created: boolean;
+      bucket: 'paid' | 'taster';
+      // 'consumed' tells an identical retry that the chapter was already saved.
+      state: 'reserved' | 'consumed';
+    }>
   | Readonly<{
       ok: false;
       reason: 'no_entitlement' | 'allowance_exhausted' | 'invalid_key';
@@ -380,6 +535,7 @@ export async function reserveChapterForUser(
       ok: true,
       created: result.created,
       bucket: result.reservation.bucket,
+      state: result.reservation.state as 'reserved' | 'consumed',
     };
   });
 }
@@ -460,9 +616,17 @@ export function billingConfigFromEnv(
     if (!['true', 'false'].includes(value)) throw Error('flag');
     return value === 'true';
   };
+  // The intent to enforce is read first and survives every configuration error:
+  // a broken setup must close the gate, never open it. An unreadable flag counts
+  // as "enforce".
+  let enforcement = true;
   try {
-    if (!flag('BILLING_ENABLED')) return off('disabled');
-    const enforcement = flag('BILLING_ENFORCEMENT');
+    enforcement = flag('BILLING_ENFORCEMENT');
+  } catch {
+    return off('invalid configuration', true);
+  }
+  try {
+    if (!flag('BILLING_ENABLED')) return off('disabled', enforcement);
     const secretKey = env.STRIPE_SECRET_KEY?.trim() ?? '';
     const webhookSecret = env.STRIPE_WEBHOOK_SECRET?.trim() ?? '';
     const priceId = env.STRIPE_PRICE_ID?.trim() ?? '';
@@ -479,26 +643,35 @@ export function billingConfigFromEnv(
       !successUrl ||
       !cancelUrl
     )
-      return off('invalid configuration');
+      return off('invalid configuration', enforcement);
     const ids = env.BILLING_FOUNDER_USER_IDS?.trim() ?? '';
-    return {
-      enabled: true,
+    const config = {
+      enabled: true as const,
       enforcement,
       designatedUserIds: validateDiscountedUserIds(
         ids ? ids.split(',').map((id) => id.trim()) : [],
       ),
       offer: validateBillingOfferConfig(defaultBillingOfferConfig),
       entitlement: defaultEntitlementConfig,
-      secretKey,
-      webhookSecret,
       priceId,
       couponId,
       apiVersion,
       successUrl,
       cancelUrl,
     };
+    // Secrets are not enumerable: a stray JSON.stringify or log of the config
+    // object cannot print them.
+    Object.defineProperty(config, 'secretKey', {
+      value: secretKey,
+      enumerable: false,
+    });
+    Object.defineProperty(config, 'webhookSecret', {
+      value: webhookSecret,
+      enumerable: false,
+    });
+    return config as unknown as BillingEnvConfig;
   } catch {
-    return off('invalid configuration');
+    return off('invalid configuration', enforcement);
   }
 }
 
@@ -509,7 +682,7 @@ export function redactBillingConfig(config: BillingEnvConfig) {
     enforcement: config.enforcement,
     designatedAccounts: config.designatedUserIds.length,
     ...(config.enabled
-      ? { mode: config.secretKey.startsWith('sk_live') ? 'live' : 'test' }
+      ? { mode: /_live_/.test(config.secretKey) ? 'live' : 'test' }
       : { reason: config.reason }),
   };
 }

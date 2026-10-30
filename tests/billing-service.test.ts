@@ -11,6 +11,7 @@ import {
   handleStripeWebhook,
   redactBillingConfig,
   releaseChapterForUser,
+  retryPendingCancellations,
   reserveChapterForUser,
   DomainError,
   FREE_TASTER_CHAPTERS,
@@ -63,6 +64,19 @@ function memoryStore(users: string[] = [USER, OTHER]) {
   let chain: Promise<unknown> = Promise.resolve();
   const tx = (): BillingTx => ({
     lockUser: async () => undefined,
+    ownerOf: async ({ subscriptionId, customerId }) => {
+      if (subscriptionId) return state.subs.get(subscriptionId)?.userId ?? null;
+      if (!customerId) return null;
+      return (
+        [...state.subs.values()].find((x) => x.customerId === customerId)
+          ?.userId ?? null
+      );
+    },
+    listCancelPending: async (limit) =>
+      [...state.subs.values()]
+        .filter((x) => x.cancelPending)
+        .slice(0, limit)
+        .map((x) => x.subscriptionId),
     hasEvent: async (id) => state.events.has(id),
     recordEvent: async (eventId, _type, subscriptionId, outcome) => {
       state.events.set(eventId, { outcome, subscriptionId });
@@ -184,12 +198,24 @@ const subscriptionEvent = (
       items: {
         data: [
           {
+            price: { id: PRICE },
             current_period_start: sec(T0),
             current_period_end: sec(T0 + 30 * day),
           },
         ],
       },
       ...over,
+    },
+    created,
+  );
+const deletedEvent = (created: number, id = 'sub_1') =>
+  stripeEvent(
+    'customer.subscription.deleted',
+    {
+      id,
+      customer: 'cus_1',
+      status: 'canceled',
+      items: { data: [{ price: { id: PRICE } }] },
     },
     created,
   );
@@ -305,6 +331,7 @@ describe('webhook handling', () => {
       stripeEvent('customer.subscription.updated', {
         id: 'sub_1',
         status: 'weird',
+        items: { data: [{ price: { id: PRICE } }] },
       }),
     );
     expect(malformed).toMatchObject({ status: 400, code: 'malformed_event' });
@@ -405,12 +432,14 @@ describe('webhook handling', () => {
     const gate = await reserveChapterForUser(h.store, USER, 'k1', now);
     expect(gate).toMatchObject({ ok: true, bucket: 'taster' });
   });
-  it('rolls everything back and asks for redelivery when the provider cancel fails', async () => {
+  it('commits the revocation, asks for redelivery and retries the cancel when the provider cancel fails', async () => {
     let fail = true;
+    const cancelled: string[] = [];
     const h = harness(
       fakeProvider({
-        cancelSubscription: async () => {
+        cancelSubscription: async (id) => {
           if (fail) throw Error('network');
+          cancelled.push(id);
         },
       }),
     );
@@ -418,14 +447,15 @@ describe('webhook handling', () => {
     await h.send(invoiceEvent(1));
     const refund = refundEvent();
     expect(await h.send(refund)).toMatchObject({ status: 500, code: 'retry' });
-    expect(h.subs()[0].revoked).toBeNull();
-    expect(h.peek().events.has((refund as { id: string }).id)).toBe(false);
-    fail = false;
-    expect(await h.send(refund)).toMatchObject({
-      status: 200,
-      outcome: 'applied',
-    });
+    // Access is closed at once; only the provider-side cancel is pending.
     expect(h.subs()[0].revoked).toBe('refund');
+    expect(h.subs()[0].cancelPending).toBe(true);
+    expect(h.alerts.some((a) => a.kind === 'cancel_failed')).toBe(true);
+    expect(entitlementOfSubscriptions(h.subs(), now).canGenerate).toBe(false);
+    fail = false;
+    expect(await h.send(refund)).toMatchObject({ status: 200 });
+    expect(h.subs()[0].cancelPending).toBe(false);
+    expect(cancelled).toEqual(['sub_1']);
   });
   it('closes only the old invoice allowance on a refund of an older cycle', async () => {
     const h = harness();
@@ -500,19 +530,189 @@ describe('webhook handling', () => {
   it('an older state event never overwrites a newer one', async () => {
     const h = harness();
     await h.send(subscriptionEvent({}, sec(T0) + 100));
-    await h.send(
-      stripeEvent(
-        'customer.subscription.deleted',
-        { id: 'sub_1' },
-        sec(T0) + 200,
-      ),
-    );
+    await h.send(deletedEvent(sec(T0) + 200));
     const stale = subscriptionEvent({ status: 'active' }, sec(T0) + 50);
     expect(await h.send(stale)).toMatchObject({
       status: 200,
       outcome: 'stale',
     });
     expect(h.subs()[0].status).toBe('canceled');
+  });
+});
+
+describe('webhook hardening', () => {
+  it('orders same-second state events by severity, in either arrival order', async () => {
+    const active = (id: number) =>
+      subscriptionEvent({ status: 'active' }, sec(T0) + id);
+    const canceled = (id: number) =>
+      subscriptionEvent({ status: 'canceled' }, sec(T0) + id);
+    const a = harness();
+    await a.send(active(100));
+    await a.send(canceled(100));
+    expect(a.subs()[0].status).toBe('canceled');
+    const b = harness();
+    await b.send(canceled(100));
+    expect(await b.send(active(100))).toMatchObject({ outcome: 'stale' });
+    expect(b.subs()[0].status).toBe('canceled');
+  });
+  it('ignores a subscription event that carries none of our price', async () => {
+    const h = harness();
+    const other = subscriptionEvent({
+      items: { data: [{ price: { id: 'price_other' } }] },
+    });
+    expect(await h.send(other)).toMatchObject({ status: 200, code: 'ignored' });
+    expect(h.subs()).toHaveLength(0);
+    expect(h.peek().events.size).toBe(0);
+  });
+  it('acknowledges a refund the provider says is not ours without recording it', async () => {
+    const h = harness(
+      fakeProvider({ resolveRevocation: async () => 'not_ours' }),
+    );
+    await h.send(subscriptionEvent());
+    await h.send(invoiceEvent(1));
+    expect(await h.send(refundEvent())).toMatchObject({
+      status: 200,
+      code: 'ignored',
+    });
+    expect(h.subs()[0].revoked).toBeNull();
+    expect(h.calls.cancel).toEqual([]);
+  });
+  it('rejects an event from the wrong mode or API version and raises an alert', async () => {
+    const h = harness();
+    const alerts: BillingAlert[] = [];
+    const call = (body: Record<string, unknown>, extra: object) => {
+      const sgn = signed(body);
+      return handleStripeWebhook(
+        {
+          rawBody: sgn.rawBody,
+          signatureHeader: sgn.header,
+          nowSeconds: sec(now.getTime()),
+          webhookSecret: SECRET,
+          priceId: PRICE,
+          ...extra,
+        },
+        { store: h.store, provider: h.provider, alert: (x) => alerts.push(x) },
+      );
+    };
+    const live = { ...subscriptionEvent(), livemode: true };
+    expect(await call(live, { expectedLivemode: false })).toMatchObject({
+      status: 400,
+      code: 'mode_mismatch',
+    });
+    const old = { ...subscriptionEvent(), api_version: '2020-01-01' };
+    expect(
+      await call(old, { expectedApiVersion: '2025-03-31.basil' }),
+    ).toMatchObject({ status: 400, code: 'mode_mismatch' });
+    expect(alerts.map((x) => x.kind)).toEqual([
+      'mode_mismatch',
+      'api_version_mismatch',
+    ]);
+    expect(h.subs()).toHaveLength(0);
+    const ok = {
+      ...subscriptionEvent(),
+      livemode: false,
+      api_version: '2025-03-31.basil',
+    };
+    expect(
+      await call(ok, {
+        expectedLivemode: false,
+        expectedApiVersion: '2025-03-31.basil',
+      }),
+    ).toMatchObject({ status: 200 });
+  });
+  it('answers 500 and alerts when the store fails, recording nothing', async () => {
+    const h = harness();
+    const broken: BillingStore = {
+      transaction: async () => {
+        throw Error('db down');
+      },
+    };
+    const alerts: BillingAlert[] = [];
+    const sgn = signed(subscriptionEvent());
+    const res = await handleStripeWebhook(
+      {
+        rawBody: sgn.rawBody,
+        signatureHeader: sgn.header,
+        nowSeconds: sec(now.getTime()),
+        webhookSecret: SECRET,
+        priceId: PRICE,
+      },
+      { store: broken, provider: h.provider, alert: (x) => alerts.push(x) },
+    );
+    expect(res).toMatchObject({ status: 500, code: 'retry' });
+    expect(alerts.map((x) => x.kind)).toEqual(['processing_failed']);
+  });
+  it('alerts a repeated launch discount and a second live subscription, and strips the discount', async () => {
+    const h = harness();
+    await h.send(subscriptionEvent());
+    await h.send(invoiceEvent(1));
+    await h.send(
+      subscriptionEvent({ id: 'sub_2', customer: 'cus_2' }, sec(T0) + 10),
+    );
+    const kinds = h.alerts.map((a) => a.kind);
+    expect(kinds).toContain('duplicate_discount');
+    expect(kinds).toContain('second_subscription');
+    expect(h.subs().find((x) => x.subscriptionId === 'sub_2')?.discounted).toBe(
+      false,
+    );
+  });
+  it('retries a pending provider cancellation from a periodic job', async () => {
+    let fail = true;
+    const cancelled: string[] = [];
+    const h = harness(
+      fakeProvider({
+        cancelSubscription: async (id) => {
+          if (fail) throw Error('network');
+          cancelled.push(id);
+        },
+      }),
+    );
+    await h.send(subscriptionEvent());
+    await h.send(invoiceEvent(1));
+    await h.send(refundEvent());
+    expect(h.subs()[0].cancelPending).toBe(true);
+    expect(await retryPendingCancellations(h.store, h.provider)).toEqual({
+      attempted: 1,
+      failed: 1,
+    });
+    fail = false;
+    expect(await retryPendingCancellations(h.store, h.provider)).toEqual({
+      attempted: 1,
+      failed: 0,
+    });
+    expect(h.subs()[0].cancelPending).toBe(false);
+    expect(cancelled).toEqual(['sub_1']);
+    expect(await retryPendingCancellations(h.store, h.provider)).toEqual({
+      attempted: 0,
+      failed: 0,
+    });
+  });
+  it('a later sync does not clear a pending cancellation', async () => {
+    const h = harness(
+      fakeProvider({
+        cancelSubscription: async () => {
+          throw Error('network');
+        },
+      }),
+    );
+    await h.send(subscriptionEvent());
+    await h.send(invoiceEvent(1));
+    await h.send(refundEvent());
+    await h.send(subscriptionEvent({ status: 'active' }, sec(T0) + 500));
+    expect(h.subs()[0].cancelPending).toBe(true);
+    expect(h.subs()[0].revoked).toBe('refund');
+  });
+  it('reports whether a reserved chapter was already consumed', async () => {
+    const h = harness();
+    await h.send(subscriptionEvent());
+    await h.send(invoiceEvent(1));
+    expect(await reserveChapterForUser(h.store, USER, 'k1', now)).toMatchObject(
+      { ok: true, state: 'reserved' },
+    );
+    await consumeChapterForUser(h.store, USER, 'k1');
+    expect(await reserveChapterForUser(h.store, USER, 'k1', now)).toMatchObject(
+      { ok: true, created: false, state: 'consumed' },
+    );
   });
 });
 
@@ -544,13 +744,7 @@ describe('checkout', () => {
   it('never repeats the launch discount for the same account', async () => {
     const h = harness();
     await h.send(subscriptionEvent());
-    await h.send(
-      stripeEvent(
-        'customer.subscription.deleted',
-        { id: 'sub_1' },
-        sec(T0) + 10,
-      ),
-    );
+    await h.send(deletedEvent(sec(T0) + 10));
     await createCheckoutSession(USER, now, {
       store: h.store,
       provider: h.provider,
@@ -764,6 +958,33 @@ describe('configuration', () => {
       designatedAccounts: 1,
     });
   });
+  it('reads a restricted live key as live mode', () => {
+    const c = billingConfigFromEnv({
+      ...valid,
+      STRIPE_SECRET_KEY: 'rk_live_abcdefgh12345678',
+    });
+    expect(redactBillingConfig(c)).toMatchObject({ mode: 'live' });
+  });
+  it('keeps secrets non-enumerable on the config object', () => {
+    const c = billingConfigFromEnv(valid);
+    expect(Object.keys(c)).not.toContain('secretKey');
+    expect(Object.keys(c)).not.toContain('webhookSecret');
+    expect(JSON.stringify(c)).not.toContain('whsec_');
+    expect(JSON.stringify(c)).not.toContain('sk_test_');
+    expect(c.enabled && c.secretKey).toBe(valid.STRIPE_SECRET_KEY);
+  });
+  it('keeps the enforcement intent when the configuration is broken', () => {
+    expect(
+      billingConfigFromEnv({
+        ...valid,
+        BILLING_ENFORCEMENT: 'true',
+        STRIPE_PRICE_ID: '',
+      }),
+    ).toMatchObject({ enabled: false, enforcement: true });
+    expect(
+      billingConfigFromEnv({ ...valid, BILLING_ENFORCEMENT: 'maybe' }),
+    ).toMatchObject({ enabled: false, enforcement: true });
+  });
   it('keeps the offer defaults', () => {
     expect(defaultBillingOfferConfig).toEqual({
       discountedCycles: 3,
@@ -974,5 +1195,81 @@ describe('stripe provider', () => {
       invoiceId: null,
     };
     expect(await p.resolveRevocation(lost)).toBeNull();
+  });
+  it('treats a client error on cancel as done only when the subscription is cancelled', async () => {
+    const already = fakeFetch((_url, init) =>
+      init.method === 'DELETE'
+        ? { status: 400, body: { error: { code: 'resource_invalid' } } }
+        : { body: { id: 'sub_1', status: 'canceled' } },
+    );
+    await createStripeProvider({
+      ...base,
+      fetch: already.impl,
+    }).cancelSubscription('sub_1');
+    expect(already.calls.map((c) => c.init.method)).toEqual(['DELETE', 'GET']);
+    const live = fakeFetch((_url, init) =>
+      init.method === 'DELETE'
+        ? { status: 400, body: {} }
+        : { body: { id: 'sub_1', status: 'active' } },
+    );
+    await expect(
+      createStripeProvider({ ...base, fetch: live.impl }).cancelSubscription(
+        'sub_1',
+      ),
+    ).rejects.toThrow('400');
+  });
+  it('sets a checkout expiry so parallel sessions cannot stay open', async () => {
+    const f = fakeFetch(() => ({
+      body: { url: 'https://checkout.stripe.com/c/pay/cs_1' },
+    }));
+    await createStripeProvider({
+      ...base,
+      fetch: f.impl,
+    }).createCheckoutSession({
+      userId: USER,
+      offerVersion: 'standard_v1',
+      discounted: false,
+      now,
+    });
+    const form = new URLSearchParams(String(f.calls[0].init.body));
+    expect(Number(form.get('expires_at'))).toBe(sec(now.getTime()) + 35 * 60);
+  });
+  it('answers not_ours for an invoice of another price or a one-off invoice', async () => {
+    const dispute = (invoice: Record<string, unknown>) => {
+      const f = fakeFetch((url) =>
+        url.pathname === '/v1/charges/ch_1'
+          ? { body: { id: 'ch_1', customer: 'cus_1', invoice: 'in_9' } }
+          : { body: { id: 'in_9', customer: 'cus_1', ...invoice } },
+      );
+      return createStripeProvider({ ...base, fetch: f.impl }).resolveRevocation(
+        {
+          type: 'revocation',
+          eventId: 'e',
+          created: 1,
+          reason: 'dispute',
+          subscriptionId: null,
+          customerId: null,
+          paymentIntentId: null,
+          chargeId: 'ch_1',
+          invoiceId: null,
+        },
+      );
+    };
+    const line = (price: string) => ({
+      pricing: { price_details: { price } },
+    });
+    expect(
+      await dispute({
+        lines: { data: [line('price_other')] },
+        parent: { subscription_details: { subscription: 'sub_1' } },
+      }),
+    ).toBe('not_ours');
+    expect(await dispute({ lines: { data: [line(PRICE)] } })).toBe('not_ours');
+    expect(
+      await dispute({
+        lines: { data: [line(PRICE)] },
+        parent: { subscription_details: { subscription: 'sub_1' } },
+      }),
+    ).toMatchObject({ subscriptionId: 'sub_1', invoiceId: 'in_9' });
   });
 });

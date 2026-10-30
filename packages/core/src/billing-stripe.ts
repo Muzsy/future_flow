@@ -146,6 +146,16 @@ export function normalizeStripeEvent(
 
   if (type.startsWith('customer.subscription.')) {
     const id = need(str(object.id));
+    const items =
+      isObj(object.items) && Array.isArray(object.items.data)
+        ? object.items.data.filter(isObj)
+        : [];
+    // A subscription of another price (another product on the same Stripe
+    // account) is not ours: acknowledge and ignore, never retry.
+    const item = options.priceId
+      ? items.find((i) => (idOf(i.price) ?? idOf(i.plan)) === options.priceId)
+      : items[0];
+    if (options.priceId && !item) return null;
     if (type.endsWith('.deleted'))
       return {
         type: 'subscription_deleted',
@@ -156,11 +166,6 @@ export function normalizeStripeEvent(
     const status = str(object.status);
     if (!status || !(billingStatuses as readonly string[]).includes(status))
       throw new BillingEventFormatError();
-    const items =
-      isObj(object.items) && Array.isArray(object.items.data)
-        ? object.items.data
-        : [];
-    const item = isObj(items[0]) ? items[0] : null;
     const metadata = isObj(object.metadata) ? object.metadata : {};
     return {
       type: 'subscription_synced',
