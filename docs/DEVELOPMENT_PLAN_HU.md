@@ -84,7 +84,7 @@ Az „éles indulás” három külön lépcső: **A)** a most futó zárt teszt
 | --- | --- | --- |
 | N08 teljes paid + emberi bizonyítás vagy külön, rögzített tulajdonosi helyettesítés | NYITOTT | A 2026-10-19-i helyettesítő kapurend csak a zárt bétára szól. Új paid mérés új számszerű engedélyhez kötött. |
 | Béta-visszajelzés (3./6. fejezet kérdőív, folytatás, költség/fejezet) | FOLYAMATBAN | Az ablak 2026-11-28-ig tart. |
-| B01 billing (provider, checkout, webhook, életciklus, termékegyenleg) | PENDING | A csomag- és árdöntés tulajdonosi; a havi 8+4 fejezet csak javaslat. |
+| B01 billing (provider, checkout, webhook, életciklus, termékegyenleg) | PARTIAL | Provider: Stripe Managed Payments; csomag: 14,99 USD/8 fejezet, 3 hónap 9,99 USD/5 fejezet a kijelölt fiókokra (tulajdonosi döntés 2026-10-30, mérések után finomítható). Kész/review alatt: [ADR-010](decisions/ADR-010-payment-data-and-responsibility-boundaries.md) és a tiszta domainlogika. Hátra: migráció, Checkout, webhook, generálási kapu, sandbox próba. |
 | P13 public release gate (privacy, moderáció, fork, retention, cohort, költségfelelősség) | PARTIAL | Csak a személyes béta és a Shared-sorrend döntése után aktuális. |
 | Regisztráció megnyitása, Cloudflare Access leválasztása, visszaélés elleni védelem | NYITOTT | Ma a Supabase önregisztráció KI, belépés csak meghívással. A változás biztonsági határ-változás: ADR és célzott negatív tesztek kellenek. |
 | Felhasználási feltételek, végleges adatkezelési tájékoztató (feldolgozók, megőrzés), DPA-k, üzemeltetői/jogi forma | NYITOTT | Az alkalmazásban csak az alpha `/privacy-notice` van; jogi jóváhagyás tulajdonosi feladat. |
@@ -182,9 +182,9 @@ Issue #45; alap: [creative terv](plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md), [
 
 **F06 PARTIAL:** compatible-mode/fallback védelem és korábbi lokális recovery próbák kész; a v9 pontos egyesített forrásához kötött Linux target/recovery és kontrollált rollout még szükséges. A korábbi verziók proofja nem vihető át automatikusan.
 
-### B01 — Billing foundation — PENDING
+### B01 — Billing foundation — PARTIAL
 
-Az entitlement modell elkészült, de ez nem kész fizetési rendszer.
+Az entitlement modell elkészült, de ez nem kész fizetési rendszer. Döntések: [ADR-010](decisions/ADR-010-payment-data-and-responsibility-boundaries.md) (javasolt). Első lépés: tiszta, I/O nélküli domainlogika (`packages/core/src/billing*.ts`: ajánlatverziók, állapotgép, jogosultság-levezetés, fejezet-főkönyv, Stripe aláírás-ellenőrzés és eseménynormalizálás), migráció/route/éles hatás nélkül. Második lépés (külön PR): migráció + recovery-séma baseline, Checkout, webhook, generálási kapu, fióktörlés-kapcsolás.
 
 Kell:
 
