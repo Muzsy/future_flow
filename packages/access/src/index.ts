@@ -107,7 +107,10 @@ export function publicApiException(method: string, path: string) {
   return (
     (['GET', 'HEAD'].includes(method) &&
       ['/health', '/api/v1/me/export'].includes(path)) ||
-    (method === 'DELETE' && path === '/api/v1/me')
+    (method === 'DELETE' && path === '/api/v1/me') ||
+    // Stripe cannot present a Cloudflare Access token; the route is closed
+    // unless billing is configured and authenticates by the Stripe signature.
+    (method === 'POST' && path === '/api/v1/billing/webhook')
   );
 }
 

@@ -492,6 +492,10 @@ const errors: Record<string, readonly [string, string]> = {
   ],
 };
 const domainFailures: Record<string, readonly [string, string]> = {
+  BILLING: [
+    'The subscription service is not available right now.',
+    'Az előfizetési szolgáltatás jelenleg nem érhető el.',
+  ],
   SIMULATION: [
     'The generated events did not pass consistency checks.',
     'A generált események nem feleltek meg a konzisztencia-ellenőrzésnek.',

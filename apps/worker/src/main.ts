@@ -20,6 +20,7 @@ import {
   ExperimentAiBudget,
   combineAiGuards,
 } from '@future-flow/ai';
+import { createBillingMaintenance } from './billing-maintenance';
 import { processJob } from './processor';
 import { processLifeJob } from './life-processor';
 import { processSharedJob } from './shared-processor';
@@ -69,6 +70,9 @@ async function main() {
   const sharedEnabled =
     process.env.SHARED_CONTEXTS_ENABLED === 'true' &&
     process.env.SHARED_FRIEND_ENABLED === 'true';
+  // Null (and never touched) unless billing is explicitly and fully configured.
+  const billingMaintenance = createBillingMaintenance(db);
+  let nextBillingMaintenance = 0;
   let queueStart = 0;
   let nextReadingCleanup = 0;
   let stopping = false;
@@ -100,6 +104,16 @@ async function main() {
           console.error(
             'Expired public reading cleanup failed; retry scheduled.',
           );
+        }
+      }
+      if (billingMaintenance && Date.now() >= nextBillingMaintenance) {
+        try {
+          await billingMaintenance.run();
+          nextBillingMaintenance = Date.now() + 5 * 60 * 1000;
+        } catch {
+          // Retry soon; never blocks the AI queues or exposes provider detail.
+          nextBillingMaintenance = Date.now() + 60000;
+          console.error('Billing maintenance failed; retry scheduled.');
         }
       }
       type Claimed =
