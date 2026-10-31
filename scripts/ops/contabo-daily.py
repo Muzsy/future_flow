@@ -633,6 +633,46 @@ SUCCESSOR_BILLING_DEFAULTS = {
     'STRIPE_WEBHOOK_SECRET': '', 'STRIPE_PRICE_ID': '', 'STRIPE_FOUNDER_COUPON_ID': '',
     'STRIPE_API_VERSION': '', 'BILLING_SUCCESS_URL': '', 'BILLING_CANCEL_URL': '',
     'BILLING_FOUNDER_USER_IDS': '', 'BILLING_RESERVATION_TTL_SECONDS': '7200'}
+# The ONLY application sources that may differ between the serving image and the
+# schema-039 target image (909ae28..fe67d94: billing, legal pages, the closed-site
+# webhook/terms exception and the default-off generation-gate hooks). Everything
+# else in the frozen scope, above all the narrative engine, must stay byte-identical
+# to the serving image or the preparation is refused. Reviewed together with the
+# diff; adding a path is a code change that needs its own review.
+SUCCESSOR_SCHEMA_ALLOWED_CHANGES = (
+    'apps/api/src/account-deletion.ts',
+    'apps/api/src/app.ts',
+    'apps/api/src/billing-runtime.ts',
+    'apps/api/src/billing.ts',
+    'apps/web/app/billing/page.tsx',
+    'apps/web/app/globals.css',
+    'apps/web/app/terms/page.tsx',
+    'apps/web/components/billing-panel.tsx',
+    'apps/web/components/experience.tsx',
+    'apps/web/components/legal-text.tsx',
+    'apps/web/components/privacy-notice.tsx',
+    'apps/web/components/terms-of-use.tsx',
+    'apps/web/lib/billing.ts',
+    'apps/web/lib/i18n/messages.ts',
+    'apps/worker/src/billing-maintenance.ts',
+    'apps/worker/src/main.ts',
+    'database/migrations/039_billing_foundation.sql',
+    'deploy/compose.yaml',
+    'deploy/server.env.example',
+    'packages/access/src/index.ts',
+    'packages/ai/src/claude.ts',
+    'packages/contracts/src/error-messages.ts',
+    'packages/core/src/billing-service.ts',
+    'packages/core/src/billing-stripe-provider.ts',
+    'packages/core/src/billing-stripe.ts',
+    'packages/core/src/billing.ts',
+    'packages/core/src/index.ts',
+    'packages/database/src/ai-budget.ts',
+    'packages/database/src/billing.ts',
+    'packages/database/src/index.ts',
+    'packages/database/src/life-jobs.ts',
+    'packages/database/src/lives.ts',
+)
 SUCCESSOR_EMAIL = re.compile(r'[-a-z0-9._+]+@[-a-z0-9.]+')
 
 
@@ -834,9 +874,12 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 or (selection['fromSchema'], selection['toSchema']) != SUCCESSOR_SCHEMA_STEP
                 or terms != prior
                 or set(plan) != {'version', 'purpose', 'observedAt', 'expiresAt', 'previousTermsSha256',
-                                 'selectionSha256', 'fromSchema', 'toSchema'}
+                                 'selectionSha256', 'fromSchema', 'toSchema', 'allowedChanges'}
                 or plan['version'] != SUCCESSOR_PLAN_VERSION
                 or (plan['fromSchema'], plan['toSchema']) != SUCCESSOR_SCHEMA_STEP
+                # The exact reviewed set of sources that were allowed to differ from the
+                # serving image when this preparation passed the engine freeze.
+                or plan['allowedChanges'] != list(SUCCESSOR_SCHEMA_ALLOWED_CHANGES)
                 or selection['previousTermsSha256'] != successor_canonical_hash(prior)
                 or plan['previousTermsSha256'] != successor_canonical_hash(prior)
                 or plan['selectionSha256'] != successor_canonical_hash(selection)

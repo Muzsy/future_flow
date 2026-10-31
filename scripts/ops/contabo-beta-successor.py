@@ -261,7 +261,18 @@ class System(funded.System):
     def capability_input_hashes(self):
         # A second fixed scope compares the NEW application inputs inside the
         # ORIGINAL image. No request-supplied alternate scope is accepted.
-        return super().capability_input_hashes() | {sha(encoded(self.frozen_source_hashes()))}
+        accepted = super().capability_input_hashes() | {sha(encoded(self.frozen_source_hashes()))}
+        # The filtered scope exists only once a schema selection has been recorded.
+        if (self.root / 'selection.json').exists() and self.is_schema():
+            accepted |= {sha(encoded(self.schema_frozen_source_hashes()))}
+        return accepted
+
+    def schema_frozen_source_hashes(self):
+        # The schema upgrade ships billing, so exactly the reviewed allow-list may differ
+        # from the serving image. Every other frozen path (above all the narrative engine)
+        # must still match it byte for byte inside the SERVING image.
+        return {p:h for p,h in self.frozen_source_hashes().items()
+                if p not in funded.SCHEMA_039_ALLOWED_CHANGES}
 
     def parent(self):
         _, _, context = self.chain()
@@ -429,7 +440,9 @@ class System(funded.System):
                          'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
                          'previousTermsSha256': canonical_sha(self.original_terms()),
                          'selectionSha256': canonical_sha(selected),
-                         'fromSchema': SCHEMA_FROM, 'toSchema': SCHEMA_TO}}
+                         'fromSchema': SCHEMA_FROM, 'toSchema': SCHEMA_TO,
+                         # Recorded evidence of the only sources allowed to differ from the serving image.
+                         'allowedChanges': list(funded.SCHEMA_039_ALLOWED_CHANGES)}}
 
     def reader_receipt(self):
         previous = self.active_access()
@@ -473,6 +486,21 @@ class System(funded.System):
         readers.durable_file(path / 'manifest.json', encoded(manifest))
         return self.hashes(path)
 
+    def require_engine_freeze(self, serving_image):
+        """Freeze the motor: compare the NEW reviewed application inputs inside the
+        ORIGINAL (serving) image, independently of the source cache's old contents.
+
+        The schema upgrade ships billing, so only the exact reviewed allow-list of
+        paths may differ (recorded in the plan and re-checked by Daily); every other
+        path, above all the narrative engine, must still be byte-identical to the
+        serving image. A removed file cannot be seen from the target hashes: the
+        target image is built from the exact committed bundle and the audit records
+        the full source diff.
+        """
+        frozen_hashes = self.schema_frozen_source_hashes() if self.is_schema() else self.frozen_source_hashes()
+        if not frozen_hashes or self.capability(serving_image, frozen_hashes).returncode:
+            raise ValueError('Original serving engine sources must remain unchanged')
+
     def prepare(self):
         self.archive_support()
         selected = self.selected()
@@ -511,16 +539,7 @@ class System(funded.System):
             readers.durable_file(self.root / 'access.json', self.reader_receipt())
         for role in ('target','recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
-        if not self.is_schema():
-            # Freeze the motor: compare the NEW reviewed application inputs inside
-            # the ORIGINAL image, independently of the source cache's old contents.
-            # The schema upgrade is the deliberate exception: its application source
-            # (billing) differs from the serving image by design, and is instead
-            # bound by the exact committed bundle inside the TARGET image (above),
-            # the independent audit, the fixture proof and the commit's own CI.
-            frozen_hashes = self.frozen_source_hashes()
-            if not frozen_hashes or self.capability(parent['release'][parent_role]['imageId'], frozen_hashes).returncode:
-                raise ValueError('Original serving engine sources must remain unchanged')
+        self.require_engine_freeze(parent['release'][parent_role]['imageId'])
         operation = (self.reader_operation() if self.is_reader() else self.schema_operation() if self.is_schema()
                      else self.accounting(release['target']['imageId'], 'capture'))
         database = self.probe(release['target']['imageId'], 'capture')

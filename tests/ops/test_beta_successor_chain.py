@@ -92,7 +92,8 @@ class Chain:
             plan = {'version': 'alterward-beta-successor-plan-2', 'purpose': purpose,
                     'observedAt': iso(at, True), 'expiresAt': iso(at + dt.timedelta(minutes=15), True),
                     'previousTermsSha256': hashed(prior), 'selectionSha256': hashed(selection),
-                    'fromSchema': 38, 'toSchema': 39}
+                    'fromSchema': 38, 'toSchema': 39,
+                    'allowedChanges': list(daily.SUCCESSOR_SCHEMA_ALLOWED_CHANGES)}
             readers = self.active_access['allowedEmails']
         else:
             terms = {'participants': participants, 'projectUsd': project, 'userUsd': user,
@@ -409,6 +410,14 @@ class ChainTests(unittest.TestCase):
             ('plan schema drift', lambda v: self.rewrite_plan(v, toSchema=40)),
             ('plan extra field', lambda v: self.rewrite_plan(v, closePreviousAt='x')),
             ('unbounded validity', lambda v: self.rewrite_validity(v)),
+            # B1: the recorded set of sources allowed to differ from the serving image is exact.
+            ('allow-list missing', lambda v: self.rewrite_plan(v, allowedChanges=[])),
+            ('allow-list widened to the narrative engine', lambda v: self.rewrite_plan(
+                v, allowedChanges=sorted(v['operation']['plan']['allowedChanges'] + ['packages/ai/src/narrative.ts']))),
+            ('allow-list narrowed', lambda v: self.rewrite_plan(
+                v, allowedChanges=v['operation']['plan']['allowedChanges'][1:])),
+            ('allow-list reordered', lambda v: self.rewrite_plan(
+                v, allowedChanges=v['operation']['plan']['allowedChanges'][::-1])),
         ]:
             with self.subTest(label):
                 value = chain.prepare(4, 'schema-039')

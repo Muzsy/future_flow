@@ -7,6 +7,7 @@ import datetime as dt
 import json
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import test_beta_successor_authority as authority
@@ -366,7 +367,7 @@ class TesterBeta(ChainRootBase):
 
 
 
-class SchemaUpgrade(ChainRootBase):
+class SchemaBase(ChainRootBase):
     DATABASE = {'version': 'alterward-funded-runtime-1', 'schema': 38, 'identityBindingSha256': 'a' * 64,
                 'dataSha256': 'b' * 64, 'artifactSha256': 'c' * 64, 'catalogSha256': 'd' * 64,
                 'policiesSha256': 'e' * 64, 'drained': True, 'providerApiCalls': 0}
@@ -393,6 +394,8 @@ class SchemaUpgrade(ChainRootBase):
     def observed(self, **changes):
         return {**self.DATABASE, **changes}
 
+
+class SchemaUpgrade(SchemaBase):
     def test_schema_upgrade_is_selectable_behind_the_first_generation_only(self):
         self.tip()
         self.assertEqual(self.system(selection=self.selection()).selected()['purpose'], 'schema-039')
@@ -592,6 +595,98 @@ class SchemaUpgrade(ChainRootBase):
         worker['AI_USER_BUDGET_USD'] = '99'
         with self.assertRaisesRegex(ValueError, 'Active parent funded window'):
             baseline(self.selection(), True)
+
+
+class SchemaEngineFreeze(SchemaBase):
+    """B1: the schema image may differ from the serving image ONLY in the reviewed allow-list."""
+    ENGINE = 'packages/ai/src/narrative.ts'
+
+    def hashes(self, **changes):
+        allowed = {path: 'a' * 64 for path in funded.SCHEMA_039_ALLOWED_CHANGES}
+        kept = {self.ENGINE: 'b' * 64, 'apps/worker/src/narrative-runner.ts': 'b' * 64,
+                'database/migrations/038_x.sql': 'b' * 64, 'Dockerfile': 'b' * 64}
+        return {**allowed, **kept, **changes}
+
+    def schema_system(self, hashes):
+        if not getattr(self, 'tipped', False):
+            self.tip()
+            self.tipped = True
+        system = self.system(selection=self.selection(), sourceHashes=hashes)
+        # prepare records selection.json before the freeze runs
+        self.fixture.write(system.root / 'selection.json', authority.encoded(self.selection()))
+        return system
+
+    def test_allow_list_is_the_reviewed_32_billing_and_gate_files_and_never_the_engine(self):
+        allowed = funded.SCHEMA_039_ALLOWED_CHANGES
+        self.assertEqual(len(allowed), 32)
+        self.assertEqual(list(allowed), sorted(set(allowed)))
+        for path in allowed:
+            self.assertTrue(path.startswith(('apps/', 'packages/', 'database/', 'deploy/')), path)
+        # The narrative engine and its AI pipeline are not on it (claude.ts is a 4-line comment/price-date edit).
+        engine_like = [p for p in allowed if p.startswith('packages/ai/') or 'narrative' in p or 'chapter' in p]
+        self.assertEqual(engine_like, ['packages/ai/src/claude.ts'])
+
+    def test_freeze_input_excludes_exactly_the_allow_list(self):
+        system = self.schema_system(self.hashes())
+        frozen = system.schema_frozen_source_hashes()
+        self.assertEqual(set(frozen), {self.ENGINE, 'apps/worker/src/narrative-runner.ts',
+                                       'database/migrations/038_x.sql', 'Dockerfile'})
+        self.assertIn(root.sha(root.encoded(frozen)), system.capability_input_hashes())
+
+    def test_the_serving_image_must_match_every_non_allowed_source(self):
+        system = self.schema_system(self.hashes())
+        with patch.object(system, 'capability', return_value=Mock(returncode=0)) as capability:
+            system.require_engine_freeze('sha256:' + '5' * 64)
+        image, sent = capability.call_args.args
+        self.assertEqual(image, 'sha256:' + '5' * 64)
+        self.assertEqual(sent, system.schema_frozen_source_hashes())
+        self.assertFalse(set(sent) & set(funded.SCHEMA_039_ALLOWED_CHANGES))
+        # The serving image disagreeing on ANY non-allowed path (checked inside that image) refuses.
+        with patch.object(system, 'capability', return_value=Mock(returncode=1)):
+            with self.assertRaisesRegex(ValueError, 'engine sources must remain unchanged'):
+                system.require_engine_freeze('sha256:' + '5' * 64)
+
+    def test_a_changed_engine_file_is_part_of_the_checked_input_and_a_changed_allowed_file_is_not(self):
+        system = self.schema_system(self.hashes())
+        frozen = lambda **changes: (system.request.update(sourceHashes=self.hashes(**changes)),
+                                    system.schema_frozen_source_hashes())[1]
+        base = frozen()
+        engine = frozen(**{self.ENGINE: 'f' * 64})
+        gate = frozen(**{funded.SCHEMA_039_ALLOWED_CHANGES[0]: 'f' * 64})
+        self.assertNotEqual(engine, base)
+        self.assertEqual(gate, base)
+
+    def test_an_extra_unlisted_new_file_is_checked_and_therefore_refused_by_the_serving_image(self):
+        hashes = self.hashes(**{'apps/api/src/surprise.ts': 'c' * 64})
+        system = self.schema_system(hashes)
+        self.assertIn('apps/api/src/surprise.ts', system.schema_frozen_source_hashes())
+
+    def test_nothing_to_freeze_is_refused_and_other_purposes_keep_the_full_scope(self):
+        system = self.schema_system({path: 'a' * 64 for path in funded.SCHEMA_039_ALLOWED_CHANGES})
+        with self.assertRaisesRegex(ValueError, 'engine sources must remain unchanged'):
+            system.require_engine_freeze('sha256:' + '5' * 64)
+
+    def test_other_purposes_keep_the_full_scope_and_never_accept_the_filtered_one(self):
+        self.chain.admit_readers()
+        selection = self.beta_selection(participants=self.chain.testers())
+        other = self.system(selection=selection, sourceHashes=self.hashes())
+        self.fixture.write(other.root / 'selection.json', authority.encoded(selection))
+        self.assertNotIn(root.sha(root.encoded(other.schema_frozen_source_hashes())), other.capability_input_hashes())
+        self.assertIn(root.sha(root.encoded(other.frozen_source_hashes())), other.capability_input_hashes())
+
+    def test_plan_carries_the_list_and_daily_demands_the_same_exact_list(self):
+        self.assertEqual(list(funded.SCHEMA_039_ALLOWED_CHANGES), list(daily.SUCCESSOR_SCHEMA_ALLOWED_CHANGES))
+        system, value = self.prepared_system()
+        self.assertEqual(value['operation']['plan']['allowedChanges'], list(funded.SCHEMA_039_ALLOWED_CHANGES))
+        self.assertEqual(system.schema_operation()['plan']['allowedChanges'], list(funded.SCHEMA_039_ALLOWED_CHANGES))
+
+    def test_the_three_billing_default_sets_cannot_drift_apart(self):
+        import re
+        compose = (Path(__file__).resolve().parents[2] / 'deploy/compose.yaml').read_text()
+        block = compose.split('x-billing: &billing', 1)[1].split('x-narrative', 1)[0]
+        in_compose = dict(re.findall(r'^  ([A-Z_]+): \$\{[A-Z_]+:-(.*)\}$', block, re.M))
+        self.assertEqual(in_compose, funded.BILLING_DEFAULTS)
+        self.assertEqual(daily.SUCCESSOR_BILLING_DEFAULTS, funded.BILLING_DEFAULTS)
 
 
 if __name__ == '__main__':
