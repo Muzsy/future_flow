@@ -47,6 +47,21 @@ x-review: &review
   PUBLIC_REVIEW_DAILY_LIMIT: ${PUBLIC_REVIEW_DAILY_LIMIT:-5}
   AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
   AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
+x-billing: &billing
+  # Stripe billing (ADR-010), default-off: nothing is reachable unless
+  # BILLING_ENABLED=true and every value below is valid. Only api and worker get
+  # these (the secrets stay out of web). BILLING_ENFORCEMENT is the chapter gate.
+  BILLING_ENABLED: ${BILLING_ENABLED:-false}
+  BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+  STRIPE_FOUNDER_COUPON_ID: ${STRIPE_FOUNDER_COUPON_ID:-}
+  STRIPE_API_VERSION: ${STRIPE_API_VERSION:-}
+  BILLING_SUCCESS_URL: ${BILLING_SUCCESS_URL:-}
+  BILLING_CANCEL_URL: ${BILLING_CANCEL_URL:-}
+  BILLING_FOUNDER_USER_IDS: ${BILLING_FOUNDER_USER_IDS:-}
+  BILLING_RESERVATION_TTL_SECONDS: ${BILLING_RESERVATION_TTL_SECONDS:-7200}
 x-narrative:
   &narrative # Default-off: only an explicit server cohort may use the narrative pipeline.
   NARRATIVE_PIPELINE_MODE: ${NARRATIVE_PIPELINE_MODE:-legacy}
@@ -93,7 +108,7 @@ services:
     <<: *runtime
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
-      <<: [*database, *shared, *review, *access, *narrative]
+      <<: [*database, *shared, *review, *access, *narrative, *billing]
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
@@ -125,7 +140,7 @@ services:
     # Deliver SIGTERM directly to the worker so it can finish and close the DB.
     command: [node, apps/worker/dist/main.js]
     environment:
-      <<: [*database, *shared, *review, *narrative]
+      <<: [*database, *shared, *review, *narrative, *billing]
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
       AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
       AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}
