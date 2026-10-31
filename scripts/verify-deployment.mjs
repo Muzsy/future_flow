@@ -20,6 +20,18 @@ const env = {
   AI_BUDGET_WINDOW_REQUIRED: 'true',
   AI_BUDGET_WINDOW_START: '',
   AI_BUDGET_WINDOW_END: '',
+  // Pinned so an operator's exported shell values cannot change the preflight.
+  BILLING_ENABLED: 'false',
+  BILLING_ENFORCEMENT: 'false',
+  STRIPE_SECRET_KEY: '',
+  STRIPE_WEBHOOK_SECRET: '',
+  STRIPE_PRICE_ID: '',
+  STRIPE_FOUNDER_COUPON_ID: '',
+  STRIPE_API_VERSION: '',
+  BILLING_SUCCESS_URL: '',
+  BILLING_CANCEL_URL: '',
+  BILLING_FOUNDER_USER_IDS: '',
+  BILLING_RESERVATION_TTL_SECONDS: '7200',
 };
 
 try {
