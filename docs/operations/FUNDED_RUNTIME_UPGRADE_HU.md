@@ -280,7 +280,7 @@ A modellútvonal és a próbamenet konkrét, műveleti fázisokra bontott rendje
 
 ## Önálló kiadási image-próba — #76, 2026-10-25
 
-A `scripts/ops/contabo-funded-image-rehearsal.py` explicit Linux/root CLI elkülönített, mesterséges adatos próbát készít a megadott **lokálisan cache-elt immutable image ID-hoz**. A meglévő CI wrapper neve és CI/root kapuja megmarad; a közös `contabo-funded-fixture-engine.py` végzi mindkét út 16 átmeneti/recovery ellenőrzését. A standalone út nem kér és nem állít CI/GITHUB_ACTIONS flaget. A `releaseEvidence` és az eredeti audit/CI/fixture kapuk változatlanok.
+A `scripts/ops/contabo-funded-image-rehearsal.py` explicit Linux/root CLI elkülönített, mesterséges adatos próbát készít a megadott **lokálisan cache-elt immutable image ID-hoz**. A meglévő CI wrapper neve és CI/root kapuja megmarad; a CI-ban a próba önálló `image-rehearsal` jobként fut a `container` job mellett (2026-10-31-től párhuzamosan, mindkettő a saját image-buildjével); a release CI-kapu mindhárom jobot (`verify`, `container`, `image-rehearsal`) megköveteli. A közös `contabo-funded-fixture-engine.py` végzi mindkét út 16 átmeneti/recovery ellenőrzését. A standalone út nem kér és nem állít CI/GITHUB_ACTIONS flaget. A `releaseEvidence` és az eredeti audit/CI/fixture kapuk változatlanok.
 
 ### Támogatott kiadási elrendezés
 
