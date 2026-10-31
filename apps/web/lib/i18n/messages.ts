@@ -221,17 +221,18 @@ export const en = {
   'billing.signIn': 'Sign in to alterward first, then open this page again.',
   'billing.unavailable': 'Subscriptions are not available yet.',
   'billing.loading': 'Loading your subscription…',
-  'billing.cancelled':
+  'billing.banner.cancelled':
     'The payment was not completed and you were not charged.',
-  'billing.activating': 'Payment received. Activating your subscription…',
-  'billing.slow':
-    'Activation is taking longer than usual. Your payment is safe: refresh this page in a minute, or write to info@alterward.com.',
+  'billing.banner.activating':
+    'Payment received. Activating your subscription…',
+  'billing.banner.slow':
+    'Activation is taking longer than usual. Your payment is safe, please do not pay again: refresh this page in a minute, or write to info@alterward.com.',
   'billing.state.none': 'You have no subscription.',
   'billing.state.active': 'Your subscription is active.',
   'billing.state.canceling':
     'Your subscription is cancelled and runs until the end of the paid period.',
   'billing.state.past_due':
-    'The last payment failed. Update your payment method to keep the subscription.',
+    'The last payment failed. To update your payment method and keep the subscription, write to info@alterward.com.',
   'billing.state.ended': 'Your subscription has ended.',
   'billing.state.revoked': 'Your subscription was cancelled and refunded.',
   'billing.chapters':
@@ -241,6 +242,7 @@ export const en = {
     '8 chapters per month for 14.99 USD per month, VAT included.',
   'billing.offerTerms':
     'The subscription renews automatically every month until you cancel it. Invited testers get their launch discount automatically at checkout. You see the final price at checkout before you pay.',
+  'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
   'billing.manage': 'To cancel or change your subscription, write to',
   'terms.endTitle': '9. Suspension and ending',
@@ -567,17 +569,18 @@ export const hu: Record<MessageKey, string> = {
     'Előbb jelentkezz be az alterwardba, aztán nyisd meg újra ezt az oldalt.',
   'billing.unavailable': 'Az előfizetés még nem érhető el.',
   'billing.loading': 'Az előfizetésed betöltése…',
-  'billing.cancelled': 'A fizetés nem fejeződött be, nem terheltünk meg.',
-  'billing.activating':
+  'billing.banner.cancelled':
+    'A fizetés nem fejeződött be, nem terheltünk meg.',
+  'billing.banner.activating':
     'A fizetés megérkezett. Az előfizetésed aktiválása folyamatban van…',
-  'billing.slow':
-    'Az aktiválás a szokásosnál tovább tart. A fizetésed biztonságban van: frissítsd az oldalt egy perc múlva, vagy írj az info@alterward.com címre.',
+  'billing.banner.slow':
+    'Az aktiválás a szokásosnál tovább tart. A fizetésed biztonságban van, ne fizess újra: frissítsd az oldalt egy perc múlva, vagy írj az info@alterward.com címre.',
   'billing.state.none': 'Nincs előfizetésed.',
   'billing.state.active': 'Az előfizetésed aktív.',
   'billing.state.canceling':
     'Az előfizetésed le van mondva, a kifizetett időszak végéig tart.',
   'billing.state.past_due':
-    'Az utolsó fizetés nem sikerült. Frissítsd a fizetési módot, hogy megmaradjon az előfizetés.',
+    'Az utolsó fizetés nem sikerült. A fizetési mód frissítéséhez és az előfizetés megtartásához írj az info@alterward.com címre.',
   'billing.state.ended': 'Az előfizetésed véget ért.',
   'billing.state.revoked':
     'Az előfizetésed le lett mondva és visszatérítettük.',
@@ -587,6 +590,7 @@ export const hu: Record<MessageKey, string> = {
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
     'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A meghívott tesztelők kedvezménye automatikusan érvényesül a fizetésnél. A végső árat a fizetés előtt látod.',
+  'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
   'billing.manage': 'Az előfizetés lemondásához vagy módosításához írj ide:',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',

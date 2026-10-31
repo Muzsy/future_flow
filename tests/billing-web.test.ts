@@ -4,9 +4,11 @@ import type { renderToStaticMarkup as renderType } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   POLL_MAX_ATTEMPTS,
+  billingView,
   canStartCheckout,
   checkoutResult,
   isBillingStatus,
+  offerCheckout,
   safeCheckoutUrl,
   shouldPoll,
   type BillingStatus,
@@ -66,6 +68,9 @@ describe('subscription page helpers', () => {
       'http://checkout.stripe.com/c/pay/x',
       'https://checkout.stripe.com.evil.example/x',
       'https://evilstripe.com/x',
+      'https://user:pw@checkout.stripe.com/c/pay/x',
+      'https://checkout.stripe.com:444/c/pay/x',
+      'https://stripe.com@evil.example/x',
       'javascript:alert(1)',
       '//checkout.stripe.com/x',
       '',
@@ -122,5 +127,85 @@ describe('subscription page helpers', () => {
         ),
       );
     expect(html('en')).toContain('Subscription');
+    vi.doUnmock(webRequire.resolve('next/navigation'));
+  });
+
+  it('never offers a second payment on the way back from a checkout (double-charge guard)', () => {
+    for (const state of ['none', 'ended', 'revoked'] as const) {
+      expect(offerCheckout('success', status(state))).toBe(false);
+      expect(offerCheckout('cancel', status(state))).toBe(true);
+      expect(offerCheckout(null, status(state))).toBe(true);
+    }
+    for (const state of ['active', 'canceling', 'past_due'] as const)
+      expect(offerCheckout(null, status(state))).toBe(false);
+  });
+
+  const base = {
+    authConfigured: true,
+    authReady: true,
+    userId: 'u1',
+    unavailable: false,
+    status: null,
+    failed: false,
+    result: null,
+    attempts: 0,
+  } as const;
+
+  it('maps the page state: shell, sign-in, switched-off billing, loading, error', () => {
+    expect(billingView({ ...base, authConfigured: false }).kind).toBe(
+      'not-configured',
+    );
+    expect(billingView({ ...base, authReady: false }).kind).toBe(
+      'auth-loading',
+    );
+    expect(billingView({ ...base, userId: null }).kind).toBe('sign-in');
+    expect(billingView({ ...base, unavailable: true }).kind).toBe(
+      'unavailable',
+    );
+    expect(billingView(base).kind).toBe('loading');
+    expect(billingView({ ...base, failed: true }).kind).toBe('error');
+  });
+
+  it('after a successful checkout: informs while polling, then keeps informing, never pays again', () => {
+    const waiting = {
+      ...base,
+      status: status('none'),
+      result: 'success',
+    } as const;
+    const polling = billingView({ ...waiting, attempts: 2 });
+    expect(polling).toMatchObject({
+      kind: 'ready',
+      banner: 'activating',
+      offerCheckout: false,
+      offerRefresh: true,
+    });
+    // Polling over, the webhook still has not arrived: the double-charge case.
+    const slow = billingView({ ...waiting, attempts: POLL_MAX_ATTEMPTS });
+    expect(slow).toMatchObject({
+      kind: 'ready',
+      banner: 'slow',
+      offerCheckout: false,
+      offerRefresh: true,
+    });
+    // Once the subscription is live the page manages it, with no payment offer.
+    expect(billingView({ ...waiting, status: status('active') })).toMatchObject(
+      {
+        banner: null,
+        offerCheckout: false,
+        offerRefresh: false,
+        manage: true,
+      },
+    );
+  });
+
+  it('offers payment on a clean address and after a cancelled checkout', () => {
+    expect(billingView({ ...base, status: status('none') })).toMatchObject({
+      banner: null,
+      offerCheckout: true,
+      manage: false,
+    });
+    expect(
+      billingView({ ...base, status: status('ended'), result: 'cancel' }),
+    ).toMatchObject({ banner: 'cancelled', offerCheckout: true });
   });
 });

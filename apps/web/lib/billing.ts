@@ -42,19 +42,90 @@ export function shouldPoll(
   );
 }
 
-// The Checkout URL comes from our API, but is only ever followed when it is an
-// https address on a Stripe host.
+// The Checkout URL comes from our API, but is only ever followed when it is a
+// plain https address on a Stripe host: no credentials, no explicit port.
 export function safeCheckoutUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   try {
     const url = new URL(value);
     return url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
       (url.hostname === 'stripe.com' || url.hostname.endsWith('.stripe.com'))
       ? url.toString()
       : null;
   } catch {
     return null;
   }
+}
+
+// A payment may be offered only when no live subscription exists AND the visitor
+// is not coming back from a checkout. After `?checkout=success` the money may
+// already have been taken while the webhook is still late, so a second payment
+// button there could charge the customer twice; the page then only informs and
+// offers a refresh. A clean address (no `?checkout`) offers payment again.
+export function offerCheckout(
+  result: CheckoutResult,
+  status: BillingStatus,
+): boolean {
+  return result !== 'success' && canStartCheckout(status.state);
+}
+
+export type BillingView =
+  | {
+      kind:
+        | 'not-configured'
+        | 'auth-loading'
+        | 'sign-in'
+        | 'unavailable'
+        | 'loading'
+        | 'error';
+    }
+  | {
+      kind: 'ready';
+      status: BillingStatus;
+      banner: 'cancelled' | 'activating' | 'slow' | null;
+      offerCheckout: boolean;
+      // Waiting for the webhook: inform and let the visitor refresh.
+      offerRefresh: boolean;
+      // A live subscription is managed outside this page.
+      manage: boolean;
+    };
+
+export function billingView(input: {
+  authConfigured: boolean;
+  authReady: boolean;
+  userId: string | null;
+  unavailable: boolean;
+  status: BillingStatus | null;
+  failed: boolean;
+  result: CheckoutResult;
+  attempts: number;
+}): BillingView {
+  if (!input.authConfigured) return { kind: 'not-configured' };
+  if (!input.authReady) return { kind: 'auth-loading' };
+  if (!input.userId) return { kind: 'sign-in' };
+  if (input.unavailable) return { kind: 'unavailable' };
+  if (!input.status) return { kind: input.failed ? 'error' : 'loading' };
+  const { status, result, attempts } = input;
+  const waiting = result === 'success' && canStartCheckout(status.state);
+  const polling = shouldPoll(result, status, attempts);
+  return {
+    kind: 'ready',
+    status,
+    banner:
+      result === 'cancel'
+        ? 'cancelled'
+        : waiting
+          ? polling
+            ? 'activating'
+            : 'slow'
+          : null,
+    offerCheckout: offerCheckout(result, status),
+    offerRefresh: waiting,
+    manage: !canStartCheckout(status.state),
+  };
 }
 
 export function isBillingStatus(value: unknown): value is BillingStatus {

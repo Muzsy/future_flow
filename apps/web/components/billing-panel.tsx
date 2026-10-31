@@ -10,7 +10,7 @@ import {
 } from '../lib/client';
 import {
   POLL_INTERVAL_MS,
-  canStartCheckout,
+  billingView,
   checkoutResult,
   isBillingStatus,
   safeCheckoutUrl,
@@ -35,11 +35,22 @@ export function BillingPanel() {
 
   useEffect(() => {
     setResult(checkoutResult(window.location.search));
+    // Coming back with the browser's back button from Stripe restores the page
+    // from the back/forward cache with the button still disabled.
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) setBusy(false);
+    };
+    window.addEventListener('pageshow', restored);
     if (!authConfigured) {
       setAuthReady(true);
-      return;
+      return () => window.removeEventListener('pageshow', restored);
     }
     let active = true;
+    const { data: subscription } = supabase().auth.onAuthStateChange(
+      (_, session) => {
+        if (active) setUserId(session?.user.id ?? null);
+      },
+    );
     void initializeAuthSession(supabase().auth)
       .then(({ session }) => {
         if (active) setUserId(session?.user.id ?? null);
@@ -52,42 +63,50 @@ export function BillingPanel() {
       });
     return () => {
       active = false;
+      subscription.subscription.unsubscribe();
+      window.removeEventListener('pageshow', restored);
     };
   }, []);
 
+  // Reads the status, then (only after the answer) schedules the next read while
+  // the webhook is still expected: a slow API cannot starve the polling.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    const load = async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = async (done: number) => {
+      let next: BillingStatus | null = null;
       try {
         const body = await api<unknown>('/billing/status', {}, 'v1', userId);
-        if (cancelled) return;
         if (!isBillingStatus(body)) throw new ClientError('REQUEST_FAILED');
-        setStatus(body);
-        setNotice('');
+        next = body;
+        if (!cancelled) {
+          setStatus(body);
+          setNotice('');
+        }
       } catch (error) {
         if (cancelled) return;
         // Billing switched off (or not configured yet): the server answers 404.
         if (
           error instanceof ClientError &&
           error.code === 'BILLING_UNAVAILABLE'
-        )
+        ) {
           setUnavailable(true);
-        else setNotice(clientErrorMessage(error));
+          return;
+        }
+        setNotice(clientErrorMessage(error));
       }
+      if (cancelled) return;
+      setAttempts(done + 1);
+      if (shouldPoll(result, next, done + 1))
+        timer = setTimeout(() => void load(done + 1), POLL_INTERVAL_MS);
     };
-    void load();
+    void load(0);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-    // Re-run for each polling attempt after a successful checkout.
-  }, [userId, attempts]);
-
-  useEffect(() => {
-    if (unavailable || !shouldPoll(result, status, attempts)) return;
-    const timer = setTimeout(() => setAttempts((n) => n + 1), POLL_INTERVAL_MS);
-    return () => clearTimeout(timer);
-  }, [result, status, attempts, unavailable]);
+  }, [userId, result]);
 
   async function startCheckout() {
     if (!userId) return;
@@ -106,14 +125,25 @@ export function BillingPanel() {
     } catch (error) {
       setNotice(clientErrorMessage(error));
       setBusy(false);
+      // Already subscribed (409): show the real state instead of a stale offer.
+      if (
+        error instanceof ClientError &&
+        error.code === 'BILLING_ALREADY_SUBSCRIBED'
+      )
+        setAttempts((n) => n + 1);
     }
   }
 
-  const polling = shouldPoll(result, status, attempts);
-  const waitedTooLong =
-    result === 'success' &&
-    !polling &&
-    (!status || canStartCheckout(status.state));
+  const view = billingView({
+    authConfigured,
+    authReady,
+    userId,
+    unavailable,
+    status,
+    failed: Boolean(notice),
+    result,
+    attempts,
+  });
   return (
     <section className="panel narrow">
       <h1>{t('billing.title')}</h1>
@@ -122,41 +152,25 @@ export function BillingPanel() {
           {notice}
         </p>
       )}
-      {!authConfigured ? (
-        <p>{t('billing.notConfigured')}</p>
-      ) : !authReady ? null : !userId ? (
-        <p>{t('billing.signIn')}</p>
-      ) : unavailable ? (
-        <p>{t('billing.unavailable')}</p>
-      ) : !status ? (
-        notice ? null : (
-          <p role="status">{t('billing.loading')}</p>
-        )
-      ) : (
+      {view.kind === 'not-configured' && <p>{t('billing.notConfigured')}</p>}
+      {view.kind === 'sign-in' && <p>{t('billing.signIn')}</p>}
+      {view.kind === 'unavailable' && <p>{t('billing.unavailable')}</p>}
+      {view.kind === 'loading' && <p role="status">{t('billing.loading')}</p>}
+      {view.kind === 'ready' && (
         <>
-          {result === 'cancel' && (
+          {view.banner && (
             <p className="notice" role="status">
-              {t('billing.cancelled')}
+              {t(`billing.banner.${view.banner}`)}
             </p>
           )}
-          {polling && (
-            <p className="notice" role="status">
-              {t('billing.activating')}
-            </p>
-          )}
-          {waitedTooLong && (
-            <p className="notice" role="status">
-              {t('billing.slow')}
-            </p>
-          )}
-          <p>{t(`billing.state.${status.state}`)}</p>
+          <p>{t(`billing.state.${view.status.state}`)}</p>
           <p>
             {t('billing.chapters', {
-              paid: status.paidChaptersAvailable,
-              taster: status.tasterChaptersAvailable,
+              paid: view.status.paidChaptersAvailable,
+              taster: view.status.tasterChaptersAvailable,
             })}
           </p>
-          {canStartCheckout(status.state) && (
+          {view.offerCheckout && (
             <>
               <h2>{t('billing.offerTitle')}</h2>
               <p>{t('billing.offer')}</p>
@@ -168,14 +182,22 @@ export function BillingPanel() {
               </p>
               <button
                 className="primary"
-                disabled={busy || polling}
+                disabled={busy}
                 onClick={() => void startCheckout()}
               >
                 {t('billing.subscribe')}
               </button>
             </>
           )}
-          {!canStartCheckout(status.state) && (
+          {view.offerRefresh && (
+            <button
+              className="secondary"
+              onClick={() => window.location.reload()}
+            >
+              {t('billing.refresh')}
+            </button>
+          )}
+          {view.manage && (
             <p>
               {t('billing.manage')}{' '}
               <a href="mailto:info@alterward.com">info@alterward.com</a>
