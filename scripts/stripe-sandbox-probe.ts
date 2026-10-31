@@ -31,7 +31,9 @@ import { applyMigrations } from './lib/migrations';
 //   PROBE_DISCOUNT=1         also run the launch-discount variant (redeems the
 //                            sandbox coupon once; it allows ten redemptions)
 // While running, forward events with:
-//   stripe listen --api-key "$STRIPE_SECRET_KEY" --forward-to localhost:PORT/webhook
+//   stripe listen --api-key "$STRIPE_SECRET_KEY" --forward-to localhost:PORT/webhook \
+//     --events customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,charge.refunded,charge.dispute.created
+// (the CLI does not retry an event the receiver answered with 5xx, unlike Stripe)
 
 const env = process.env;
 const secretKey = env.STRIPE_SECRET_KEY?.trim() ?? '';
@@ -351,6 +353,58 @@ async function main() {
         return `state ${s.state}`;
       },
     );
+
+    // Information only, and only when the refund check failed: the shape (key
+    // names and types, never values) of the objects the refund tracing reads.
+    if (results.some((r) => !r.ok && r.name.startsWith('a full refund'))) {
+      const shape = (value: unknown) =>
+        value && typeof value === 'object'
+          ? Object.entries(value as Record<string, unknown>)
+              .map(
+                ([k, v]) =>
+                  `${k}:${v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v}`,
+              )
+              .join(',')
+          : String(value);
+      try {
+        const charges = await stripe('GET', '/v1/charges', {
+          customer: standard.customerId,
+          limit: '1',
+        });
+        const charge = (charges.data as Record<string, unknown>[])[0];
+        console.log(`INFO  charge keys: ${shape(charge)}`);
+        const pi =
+          typeof charge?.payment_intent === 'string'
+            ? charge.payment_intent
+            : '';
+        const payments = await stripe('GET', '/v1/invoice_payments', {
+          'payment[type]': 'payment_intent',
+          'payment[payment_intent]': pi,
+          limit: '1',
+        }).catch((e: unknown) => ({ error: String(e) }));
+        console.log(`INFO  invoice_payments: ${shape(payments)}`);
+        const first = (payments as { data?: Record<string, unknown>[] })
+          .data?.[0];
+        console.log(`INFO  invoice_payment keys: ${shape(first)}`);
+        const invoiceId =
+          typeof first?.invoice === 'string' ? first.invoice : '';
+        if (invoiceId) {
+          const invoice = await stripe('GET', `/v1/invoices/${invoiceId}`);
+          console.log(`INFO  invoice keys: ${shape(invoice)}`);
+          console.log(`INFO  invoice.parent keys: ${shape(invoice.parent)}`);
+          const lines = (invoice.lines as { data?: Record<string, unknown>[] })
+            ?.data;
+          console.log(`INFO  invoice line keys: ${shape(lines?.[0])}`);
+          console.log(
+            `INFO  invoice line pricing keys: ${shape(lines?.[0]?.pricing)}`,
+          );
+        }
+      } catch (error) {
+        console.log(
+          `INFO  diagnosis failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
 
     await check(
       'cancel at period end keeps the entitlement as "canceling", immediate cancel ends it',

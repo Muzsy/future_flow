@@ -5,6 +5,7 @@ import {
 import {
   STRIPE_OFFER_METADATA_KEY,
   STRIPE_USER_METADATA_KEY,
+  normalizeStripeEvent,
 } from './billing-stripe';
 import type { BillingEvent } from './billing';
 
@@ -227,6 +228,28 @@ export function createStripeProvider(
           if (current.status === 'canceled') return;
         }
         throw error;
+      }
+    },
+
+    async fetchSubscription(subscriptionId, stamp) {
+      if (!isSubscriptionId(subscriptionId)) return null;
+      const subscription = (
+        await call('GET', `/v1/subscriptions/${subscriptionId}`)
+      ).body;
+      // The same normalisation as a webhook, so the field handling is shared.
+      try {
+        const event = normalizeStripeEvent(
+          {
+            id: stamp.eventId,
+            type: 'customer.subscription.updated',
+            created: stamp.created,
+            data: { object: subscription },
+          },
+          { priceId: options.priceId },
+        );
+        return event && event.type === 'subscription_synced' ? event : null;
+      } catch {
+        return null;
       }
     },
 
