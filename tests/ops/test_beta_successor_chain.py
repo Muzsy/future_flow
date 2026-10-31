@@ -342,6 +342,17 @@ class ChainTests(unittest.TestCase):
         chain.expose(3, tester, window_changed=True)
         return tester
 
+    def test_schema_upgrade_does_not_need_the_prior_window_to_have_started(self):
+        # The fixture (and a real operator) may upgrade while the just-opened tester
+        # window is still a few minutes away from its start: nothing about it changes.
+        chain = self.chain
+        tester = self.to_tester_tip()
+        start = dt.datetime.fromisoformat(tester['operation']['plan']['next']['startsAt'].replace('Z', '+00:00'))
+        chain.at = start - dt.timedelta(minutes=2)
+        daily.utcnow.return_value = chain.at + dt.timedelta(minutes=1)
+        chain.prepare(4, 'schema-039')
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+
     def remove_generation(self, number):
         for path in sorted(self.chain.root(number).rglob('*'), reverse=True):
             path.unlink() if path.is_file() else path.rmdir()

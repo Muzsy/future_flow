@@ -885,10 +885,12 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 or plan['selectionSha256'] != successor_canonical_hash(selection)
                 or has_receipt):
             raise ValueError('Only the exact approved schema 038 to 039 selection is supported')
-        # Deliberately no upper window bound: an ended window only means that nothing
-        # can generate. The preparation itself must still be a fresh 900 s candidate.
+        # Deliberately no window bound at all: the upgrade does not depend on the funded
+        # window (it may not have started yet, or may already have ended; either way
+        # nothing is changed about it). The preparation itself must still be a fresh,
+        # exactly 900 s candidate whose clock equals the recorded plan.
         if (any(t.utcoffset() != dt.timedelta(0) for t in (prepared_at, expires))
-                or prepared_at < prior_start or (expires - prepared_at).total_seconds() != 900
+                or (expires - prepared_at).total_seconds() != 900
                 or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
                 or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
             raise ValueError('Bounded schema-upgrade preparation required')
