@@ -5,7 +5,6 @@ import type { AiRequestGuard, AiResult } from './index';
 import type { ExperimentTokenPrices } from './experiment-budget';
 
 // Standard global Claude API prices verified 2026-10-31. No fast mode or 1h cache.
-// Sonnet 5.5 cachedInput stays at the conservative 0.2 (the page lists 0.10 for cache reads).
 export const claudeExperimentPrices: ExperimentTokenPrices = {
   'claude-haiku-4-5-20251001': {
     input: 1,
@@ -15,7 +14,7 @@ export const claudeExperimentPrices: ExperimentTokenPrices = {
   },
   'claude-sonnet-5-5': {
     input: 2,
-    cachedInput: 0.2,
+    cachedInput: 0.1,
     inputCeiling: 2.5,
     output: 10,
   },
