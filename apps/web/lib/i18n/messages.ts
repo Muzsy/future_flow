@@ -266,7 +266,7 @@ export const en = {
     'Contabo: server hosting for the application, the job queue and encrypted backups.',
   'privacy.transfersTitle': 'Transfers outside the EU/EEA',
   'privacy.transfers':
-    "OpenAI and Cloudflare are US companies and may process data in the United States. Cloudflare relies on the EU-US Data Privacy Framework and the EU standard contractual clauses, and Supabase on the standard contractual clauses, in their data processing terms. SMTP2GO is used with an EU-region account. [TO BE CONFIRMED: the transfer mechanism in OpenAI's terms, the region of our Supabase project and the location of our Contabo server.]",
+    'OpenAI and Cloudflare are US companies and may process data in the United States. In their data processing terms OpenAI and Supabase rely on the EU standard contractual clauses, and Cloudflare on the EU-US Data Privacy Framework and the standard contractual clauses. SMTP2GO is used with an EU-region account. [TO BE CONFIRMED: the region of our Supabase project and the location of our Contabo server.]',
   'privacy.retentionTitle': 'How long we keep data',
   'privacy.retention1':
     'Your account, profile, stories and feedback are kept until you delete your account.',
@@ -585,7 +585,7 @@ export const hu: Record<MessageKey, string> = {
     'Contabo: az alkalmazás, a feladatsor és a titkosított mentések szerverhosztingja.',
   'privacy.transfersTitle': 'Az EU-n/EGT-n kívüli továbbítás',
   'privacy.transfers':
-    'Az OpenAI és a Cloudflare amerikai cég, és az Egyesült Államokban is kezelhet adatot. A Cloudflare az EU–USA adatvédelmi keretre és az uniós általános szerződési feltételekre (SCC), a Supabase az általános szerződési feltételekre támaszkodik az adatfeldolgozási feltételeiben. Az SMTP2GO-t EU-régiós fiókkal használjuk. [ERŐSÍTENDŐ MEG: az OpenAI feltételeiben szereplő továbbítási mechanizmus, a Supabase-projektünk régiója és a Contabo-szerverünk helye.]',
+    'Az OpenAI és a Cloudflare amerikai cég, és az Egyesült Államokban is kezelhet adatot. Az adatfeldolgozási feltételeikben az OpenAI és a Supabase az uniós általános szerződési feltételekre (SCC), a Cloudflare az EU–USA adatvédelmi keretre és az SCC-re támaszkodik. Az SMTP2GO-t EU-régiós fiókkal használjuk. [ERŐSÍTENDŐ MEG: a Supabase-projektünk régiója és a Contabo-szerverünk helye.]',
   'privacy.retentionTitle': 'Meddig őrizzük az adatokat',
   'privacy.retention1':
     'A fiókod, a profilod, a történeteid és a visszajelzéseid a fiókod törléséig megmaradnak.',
