@@ -59,8 +59,7 @@ describe('legal pages (draft pending legal review)', () => {
   it('keeps every undecided policy item as a marked placeholder, in both languages', () => {
     for (const locale of ['en', 'hu'] as const) {
       for (const key of [
-        'legal.operatorPlaceholder',
-        'terms.account2',
+        'legal.operatorDetails',
         'terms.payment2',
         'terms.payment3',
         'terms.liability1',

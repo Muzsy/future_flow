@@ -11,7 +11,7 @@ export function TermsOfUse() {
       <LegalSection title="terms.operatorTitle">
         <p>{t('privacy.operator')}</p>
         <p>
-          <LegalText text={t('legal.operatorPlaceholder')} />
+          <LegalText text={t('legal.operatorDetails')} />
         </p>
         <p>
           {t('privacy.contact')}{' '}
