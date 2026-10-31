@@ -11,6 +11,7 @@ import { applyMigrations } from '../scripts/lib/migrations';
 import {
   deleteAccount,
   recoverAccountDeletion,
+  noAccountDeletionBilling,
 } from '../apps/api/src/account-deletion';
 import {
   sharedAdapter,
@@ -658,9 +659,9 @@ describe.sequential('Shared Context private foundation persistence', () => {
       deleteUser: vi.fn(async () => {}),
       userExists: async () => false,
     };
-    await expect(deleteAccount(repo, auth, b.id)).rejects.toThrow(
-      'Synthetic interruption',
-    );
+    await expect(
+      deleteAccount(repo, auth, b.id, noAccountDeletionBilling),
+    ).rejects.toThrow('Synthetic interruption');
     expect(
       (
         await db.query(
@@ -669,7 +670,7 @@ describe.sequential('Shared Context private foundation persistence', () => {
         )
       )[0],
     ).toEqual({ status: 'cancelled', lease_token: null });
-    await recoverAccountDeletion(repo, auth, b.id);
+    await recoverAccountDeletion(repo, auth, b.id, noAccountDeletionBilling);
     failOnce.mockRestore();
     await repo.deleteAccountData(b.id); // Cleanup is repeatable after recovery.
     const detail = await shared.detail(a.id, c.contextId),

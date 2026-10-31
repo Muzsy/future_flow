@@ -17,6 +17,7 @@ import {
 // completely configured, so the default worker loop is unchanged.
 
 const DEFAULT_TTL_SECONDS = 7_200;
+const MAINTENANCE_BATCH = 5;
 // Must exceed the longest possible generation (job lease + retries); read here,
 // never below ten minutes, so a live generation is not reclaimed.
 export function reservationTtlSeconds(env: NodeJS.ProcessEnv = process.env) {
@@ -56,7 +57,13 @@ export function createBillingMaintenance(
   const ttlMs = reservationTtlSeconds(env) * 1000;
   return {
     run: async () => {
-      const retried = await retryPendingCancellations(store, provider);
+      // Small batch: with the provider down every attempt waits for its timeout,
+      // and this runs on the worker loop before AI jobs are claimed.
+      const retried = await retryPendingCancellations(
+        store,
+        provider,
+        MAINTENANCE_BATCH,
+      );
       const { released } = await releaseStaleBillingReservations(db, {
         olderThanMs: ttlMs,
         now: options.now?.(),

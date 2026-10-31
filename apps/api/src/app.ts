@@ -1162,6 +1162,26 @@ export async function createApp(
     raw({ type: () => true, limit: BILLING_WEBHOOK_LIMIT }),
   );
   app.use(json({ limit: '64kb' }));
+  // Checkout holds the user lock and a pool connection across the provider call.
+  app.use(
+    '/api/v1/billing/checkout',
+    rateLimit({
+      windowMs: 60000,
+      limit: 10,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      handler: (request, response) =>
+        response.status(429).json({
+          error: {
+            code: 'RATE_LIMIT',
+            message: errorMessage(
+              (request as AuthRequest).locale,
+              'RATE_LIMIT',
+            ),
+          },
+        }),
+    }),
+  );
   app.use(
     '/api',
     rateLimit({

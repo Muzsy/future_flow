@@ -14,6 +14,7 @@ import { processLifeJob } from '../apps/worker/src/life-processor';
 import {
   deleteAccount,
   recoverAccountDeletion,
+  noAccountDeletionBilling,
 } from '../apps/api/src/account-deletion';
 import { setupFixture, lifeTestAi, periodFixture } from './life-fixtures';
 
@@ -398,7 +399,9 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
       deleteUser: vi.fn(async () => {}),
       userExists: vi.fn(async () => false),
     };
-    await expect(deleteAccount(repo, auth, owner)).rejects.toThrow('Synthetic');
+    await expect(
+      deleteAccount(repo, auth, owner, noAccountDeletionBilling),
+    ).rejects.toThrow('Synthetic');
     expect(
       (
         await db.query(
@@ -407,7 +410,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
         )
       )[0]!.status,
     ).toBe('auth_deleted');
-    await recoverAccountDeletion(repo, auth, owner);
+    await recoverAccountDeletion(repo, auth, owner, noAccountDeletionBilling);
     expect(auth.deleteUser).toHaveBeenCalledTimes(1);
     expect(
       await db.query('SELECT id FROM ff_users WHERE id=$1', [owner]),
@@ -433,7 +436,9 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
       },
       userExists: async () => true,
     };
-    await expect(deleteAccount(repo, failed, owner)).rejects.toMatchObject({
+    await expect(
+      deleteAccount(repo, failed, owner, noAccountDeletionBilling),
+    ).rejects.toMatchObject({
       code: 'PRIVACY_AUTH_DELETE_FAILED',
     });
     expect(
@@ -460,6 +465,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
       repo,
       { ...failed, deleteUser: successfulRetry },
       owner,
+      noAccountDeletionBilling,
     );
     expect(successfulRetry).toHaveBeenCalledOnce();
     expect(
@@ -481,9 +487,9 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
         return observed;
       }),
     };
-    await expect(deleteAccount(repo, auth, owner)).rejects.toThrow(
-      'Synthetic timeout',
-    );
+    await expect(
+      deleteAccount(repo, auth, owner, noAccountDeletionBilling),
+    ).rejects.toThrow('Synthetic timeout');
     expect(
       (await db.query('SELECT status FROM ff_users WHERE id=$1', [owner]))[0]!
         .status,
@@ -496,7 +502,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
         )
       )[0]!.status,
     ).toBe('awaiting_auth');
-    await recoverAccountDeletion(repo, auth, owner);
+    await recoverAccountDeletion(repo, auth, owner, noAccountDeletionBilling);
     expect(auth.deleteUser).toHaveBeenCalledOnce();
     expect(
       await db.query('SELECT id FROM ff_users WHERE id=$1', [owner]),
@@ -521,6 +527,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
           },
         },
         owner,
+        noAccountDeletionBilling,
       ),
     ).rejects.toThrow();
     expect(
@@ -531,6 +538,7 @@ describe.sequential('account deletion recovery and minimal metrics', () => {
       repo,
       { ...failed, userExists: async () => false },
       owner,
+      noAccountDeletionBilling,
     );
     expect(
       await db.query('SELECT id FROM ff_users WHERE id=$1', [owner]),

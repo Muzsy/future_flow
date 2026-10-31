@@ -135,6 +135,11 @@ export type ProcessOptions = Readonly<{
   designatedUserIds?: readonly string[];
 }>;
 
+// Survives the account's deletion (an event row with no subscription link holds
+// only the provider's subscription id, no personal data).
+export const deletedSubscriptionMarker = (subscriptionId: string) =>
+  `deleted-subscription:${subscriptionId}`;
+
 const eventTypeLabel: Record<BillingEvent['type'], string> = {
   subscription_synced: 'subscription_synced',
   subscription_deleted: 'subscription_deleted',
@@ -215,8 +220,24 @@ export async function processBillingEvent(
     if (
       transition.outcome === 'unknown_subscription' ||
       transition.outcome === 'unresolved'
-    )
+    ) {
+      // A subscription cancelled by an account deletion is gone locally; the
+      // provider's follow-up events for it are acknowledged, not retried for days.
+      if (
+        transition.outcome === 'unknown_subscription' &&
+        subscriptionId &&
+        (await tx.hasEvent(deletedSubscriptionMarker(subscriptionId)))
+      ) {
+        await tx.recordEvent(
+          event.eventId,
+          eventTypeLabel[event.type],
+          null,
+          'ignored',
+        );
+        return result('ignored', true);
+      }
       return result(transition.outcome, false);
+    }
     if (transition.next && transition.next !== prev) {
       const userId = prev?.userId ?? transition.next.userId;
       if (!userId) return result('unresolved', false);
@@ -742,6 +763,11 @@ export async function cancelProviderSubscriptionsForUser(
     )
       continue;
     await provider.cancelSubscription(sub.subscriptionId);
+    await store.transaction(async (tx) => {
+      const marker = deletedSubscriptionMarker(sub.subscriptionId);
+      if (!(await tx.hasEvent(marker)))
+        await tx.recordEvent(marker, 'account_deleted', null, 'noted');
+    });
     cancelled++;
   }
   return { cancelled };

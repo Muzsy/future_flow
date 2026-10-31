@@ -14,9 +14,11 @@ import { Repository, type Database } from '@future-flow/database';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { createApp } from '../apps/api/src/app';
 import {
+  accountDeletionBilling,
   createBillingAlertSink,
   createBillingRuntime,
 } from '../apps/api/src/billing';
+import { recoverAccountDeletion } from '../apps/api/src/account-deletion';
 
 const SECRET = 'whsec_apitestsecret123';
 const PRICE = 'price_apitest123';
@@ -52,12 +54,19 @@ const env = (over: Record<string, string> = {}) => ({
   ...over,
 });
 
-// createApp takes 24 optional positional settings before the billing runtime.
-const undefinedArgs = Array<undefined>(24).fill(undefined) as unknown as [
-  undefined,
-];
+// createApp takes 23 optional positional settings, then the closed-site gate and
+// the billing runtime. Keep this padding next to the call so a new parameter
+// fails these tests loudly (the gate stub would land in the wrong slot).
+const pad = Array<undefined>(23).fill(undefined);
+type Gate = { enabled: boolean; verify: () => Promise<boolean> };
+const createAppLoose = createApp as unknown as (
+  ...args: unknown[]
+) => ReturnType<typeof createApp>;
 
-async function boot(config: ReturnType<typeof billingConfigFromEnv>) {
+async function boot(
+  config: ReturnType<typeof billingConfigFromEnv>,
+  gate?: Gate,
+) {
   const engine = new PGlite();
   await applyMigrations(engine);
   const db = adapter(engine);
@@ -82,10 +91,10 @@ async function boot(config: ReturnType<typeof billingConfigFromEnv>) {
     now: () => NOW,
   });
   const repo = new Repository(db);
-  const app = await createApp(
+  const app = await createAppLoose(
     repo,
     {
-      verify: async (value) => {
+      verify: async (value: string) => {
         const id = value.split('.')[2];
         if (!id || !/^[0-9a-f-]{36}$/.test(id))
           throw new DomainError('AUTH_INVALID_TOKEN', 'Invalid token.', 401);
@@ -93,8 +102,8 @@ async function boot(config: ReturnType<typeof billingConfigFromEnv>) {
       },
       deleteUser: async () => {},
     },
-    // @ts-expect-error spread of a fixed-size undefined tuple
-    ...undefinedArgs,
+    ...pad,
+    gate,
     runtime,
   );
   await app.listen(0, '127.0.0.1');
@@ -250,6 +259,64 @@ describe('billing disabled (the default)', () => {
   });
 });
 
+describe('operator recovery uses the same guard', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await boot(billingConfigFromEnv({}));
+  });
+  afterAll(() => close(h));
+  it('keeps a pending deletion pending while a live subscription cannot be cancelled', async () => {
+    const user = randomUUID();
+    const repo = new Repository(h.db);
+    await repo.ensureUser(user);
+    await h.runtime.store.transaction((tx) =>
+      tx.saveSubscription({
+        subscriptionId: 'sub_recover1',
+        customerId: 'cus_recover1',
+        userId: user,
+        status: 'active',
+        periodStart: null,
+        periodEnd: null,
+        cancelAtPeriodEnd: false,
+        discounted: false,
+        paidInvoiceIds: [],
+        refundedInvoiceIds: [],
+        revoked: null,
+        lastStateEventCreated: 1,
+        reconcileRequired: false,
+        cancelPending: false,
+      }),
+    );
+    expect(
+      (
+        await fetch(`${h.base}/api/v1/me`, {
+          method: 'DELETE',
+          headers: authed(user),
+          body: JSON.stringify({ confirmation: 'DELETE ACCOUNT' }),
+        })
+      ).status,
+    ).toBe(503);
+    const auth = {
+      deleteUser: async () => {},
+      verify: async () => ({ id: user }),
+    };
+    await expect(
+      recoverAccountDeletion(
+        repo,
+        auth,
+        user,
+        accountDeletionBilling(h.runtime),
+      ),
+    ).rejects.toMatchObject({ code: 'BILLING_CANCELLATION_UNAVAILABLE' });
+    expect(
+      await h.db.query(
+        'SELECT 1 FROM aw_billing_subscriptions WHERE user_id=$1',
+        [user],
+      ),
+    ).toHaveLength(1);
+  });
+});
+
 describe('billing enabled (test mode, fake provider)', () => {
   let h: Harness;
   beforeAll(async () => {
@@ -346,6 +413,24 @@ describe('billing enabled (test mode, fake provider)', () => {
     });
     expect(removed.status).toBe(200);
     expect(h.cancelled).toContain('sub_life1');
+    // The provider's follow-up for the cancelled subscription is acknowledged,
+    // not retried for days.
+    const followUp = await webhook(
+      h,
+      stripeEvent(
+        'customer.subscription.deleted',
+        {
+          id: 'sub_life1',
+          customer: 'cus_apitest1',
+          status: 'canceled',
+          items: { data: [{ price: { id: PRICE } }] },
+        },
+        sec(T0 + 2 * day),
+      ),
+    );
+    expect(followUp.status).toBe(200);
+    // An unrelated unknown subscription is still not acknowledged.
+    expect((await webhook(h, invoiceEvent('sub_never_seen'))).status).toBe(500);
     expect(
       await h.db.query(
         'SELECT 1 FROM aw_billing_subscriptions WHERE user_id=$1',
@@ -378,6 +463,63 @@ describe('billing enabled (test mode, fake provider)', () => {
         [user],
       ),
     ).toHaveLength(1);
+  });
+});
+
+describe('closed-site gate in front of billing routes', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await boot(billingConfigFromEnv(env()), {
+      enabled: true,
+      verify: async () => false,
+    });
+  });
+  afterAll(() => close(h));
+  it('lets only the exact signed webhook POST past the gate', async () => {
+    const user = randomUUID();
+    expect(
+      (await webhook(h, subscriptionEvent(user, 'sub_gate1'))).status,
+    ).not.toBe(403);
+    for (const [method, path] of [
+      ['GET', '/api/v1/billing/webhook'],
+      ['POST', '/api/v1/billing/webhook/'],
+      ['POST', '/API/V1/BILLING/WEBHOOK'],
+      ['POST', '/api/v1/billing/checkout'],
+      ['GET', '/api/v1/billing/status'],
+    ] as const)
+      expect(
+        (
+          await fetch(`${h.base}${path}`, {
+            method,
+            headers: authed(user),
+            ...(method === 'POST' ? { body: '{}' } : {}),
+          })
+        ).status,
+      ).toBe(403);
+  });
+});
+
+describe('checkout rate limit', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await boot(billingConfigFromEnv(env()));
+  });
+  afterAll(() => close(h));
+  it('limits repeated checkout starts from one client', async () => {
+    const user = randomUUID();
+    const statuses: number[] = [];
+    for (let i = 0; i < 12; i++)
+      statuses.push(
+        (
+          await fetch(`${h.base}/api/v1/billing/checkout`, {
+            method: 'POST',
+            headers: authed(user),
+            body: '{}',
+          })
+        ).status,
+      );
+    expect(statuses.slice(0, 10).every((x) => x === 201)).toBe(true);
+    expect(statuses.slice(10)).toEqual([429, 429]);
   });
 });
 

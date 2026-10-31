@@ -23,7 +23,7 @@ const { SupabaseAuthProvider } =
   require('../apps/api/dist/auth.js') as typeof import('../apps/api/src/auth');
 const { createApp } =
   require('../apps/api/dist/app.js') as typeof import('../apps/api/src/app');
-const { deleteAccount } =
+const { deleteAccount, noAccountDeletionBilling } =
   require('../apps/api/dist/account-deletion.js') as typeof import('../apps/api/src/account-deletion');
 
 // Explicit developer smoke command: real Supabase and OpenAI, entirely synthetic accounts.
@@ -355,7 +355,7 @@ async function main() {
       try {
         if (await auth.userExists!(account.id)) {
           await repo.ensureUser(account.id);
-          await deleteAccount(repo, auth, account.id);
+          await deleteAccount(repo, auth, account.id, noAccountDeletionBilling);
         }
       } catch {
         console.error(

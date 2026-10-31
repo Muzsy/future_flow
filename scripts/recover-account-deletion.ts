@@ -3,6 +3,10 @@ import { idSchema } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import { SupabaseAuthProvider } from '../apps/api/src/auth';
 import { recoverAccountDeletion } from '../apps/api/src/account-deletion';
+import {
+  accountDeletionBilling,
+  createBillingRuntime,
+} from '../apps/api/src/billing';
 
 async function main() {
   const db = connectDatabase(
@@ -30,7 +34,15 @@ async function main() {
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
         '',
     );
-    await recoverAccountDeletion(new Repository(db), auth, idSchema.parse(id));
+    // Same guard as the API: subscriptions are cancelled first, and with billing
+    // unavailable a live subscription keeps the deletion pending (cancel it at
+    // the provider or enable billing, then run this again).
+    await recoverAccountDeletion(
+      new Repository(db),
+      auth,
+      idSchema.parse(id),
+      accountDeletionBilling(createBillingRuntime(db)),
+    );
     console.log('Pending account deletion completed.');
   } finally {
     await db.close();

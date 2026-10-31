@@ -9,16 +9,21 @@ import type { AuthProvider } from './auth';
 export type AccountDeletionBilling = {
   cancelSubscriptions(userId: string): Promise<unknown>;
 };
+// The guard is a required parameter so no deletion path can silently skip it.
+// Only tests and fixtures with no billing state may pass this explicit no-op.
+export const noAccountDeletionBilling: AccountDeletionBilling = {
+  cancelSubscriptions: async () => undefined,
+};
 
 export async function deleteAccount(
   repo: Repository,
   auth: AuthProvider,
   userId: string,
-  billing?: AccountDeletionBilling,
+  billing: AccountDeletionBilling,
 ) {
   auth.assertDeletionConfigured?.();
   await repo.markDeleting(userId);
-  await billing?.cancelSubscriptions(userId);
+  await billing.cancelSubscriptions(userId);
   try {
     await auth.deleteUser(userId);
   } catch (error) {
@@ -42,7 +47,7 @@ export async function recoverAccountDeletion(
   repo: Repository,
   auth: AuthProvider,
   userId: string,
-  billing?: AccountDeletionBilling,
+  billing: AccountDeletionBilling,
 ) {
   const pending = (
     await repo.db.query(
@@ -56,7 +61,7 @@ export async function recoverAccountDeletion(
       'No pending account deletion.',
       409,
     );
-  await billing?.cancelSubscriptions(userId);
+  await billing.cancelSubscriptions(userId);
   if (pending.status !== 'auth_deleted') {
     auth.assertDeletionConfigured?.();
     if (!auth.userExists)
