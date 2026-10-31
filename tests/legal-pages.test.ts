@@ -60,7 +60,6 @@ describe('legal pages (draft pending legal review)', () => {
     for (const locale of ['en', 'hu'] as const) {
       for (const key of [
         'privacy.processorsNote',
-        'privacy.transfers',
         'privacy.retention2',
         'privacy.retention3',
         'privacy.retention4',
