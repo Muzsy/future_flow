@@ -59,7 +59,6 @@ describe('legal pages (draft pending legal review)', () => {
   it('keeps every undecided policy item as a marked placeholder, in both languages', () => {
     for (const locale of ['en', 'hu'] as const) {
       for (const key of [
-        'legal.operatorDetails',
         'privacy.processorsNote',
         'privacy.transfers',
         'privacy.retention2',
@@ -76,8 +75,9 @@ describe('legal pages (draft pending legal review)', () => {
     const html = await render('en', 'terms');
     expect(html).toContain('<h1>Terms of Use</h1>');
     expect(html).toContain('role="note"');
-    expect(html).toContain('class="legal-placeholder"');
     expect(html.match(/<h2>/g)).toHaveLength(11);
+    expect(html).toContain('Nagypeterd');
+    expect(html).toContain('at least 18 years old');
     expect(html).toContain('href="/account-access"');
     expect(html).toContain('href="/privacy-notice"');
     expect(html).toContain('mailto:info@alterward.com');
@@ -99,6 +99,7 @@ describe('legal pages (draft pending legal review)', () => {
     expect(html).toContain('withdraw it at any time');
     expect(html).toContain('href="/account-access"');
     expect(html).toContain('href="/terms"');
+    expect(html).toContain('class="legal-placeholder"');
     expect(messages.hu['privacy.rights2']).toContain('visszavonhatod');
   });
 

@@ -178,7 +178,7 @@ export const en = {
   'legal.draftNotice':
     'DRAFT 2026-10-31. Items in [square brackets] are still being verified and will be completed before launch.',
   'legal.operatorDetails':
-    'Registered office: 7912 Nagypeterd, Kossuth Lajos utca 132, Hungary. Sole proprietor registration number: 51783961. Tax number: 68464192-1-22 (EU VAT number: HU68464192). Registering authority: Ministry of the Interior, Deputy State Secretariat for the Management of Registers (Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság). [TO BE VERIFIED against the official register before publishing.]',
+    'Registered office: 7912 Nagypeterd, Kossuth Lajos utca 132, Hungary. Sole proprietor registration number: 51783961. Tax number: 68464192-1-22 (EU VAT number: HU68464192). Registering authority: Ministry of the Interior, Deputy State Secretariat for the Management of Registers (Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság).',
   'legal.termsLink': 'Terms of Use',
   'legal.privacyLink': 'Privacy notice',
   'terms.title': 'Terms of Use',
@@ -497,7 +497,7 @@ export const hu: Record<MessageKey, string> = {
   'legal.draftNotice':
     'VÁZLAT, 2026-10-31. A [szögletes zárójeles] részek még ellenőrzés alatt állnak, az indulás előtt kerülnek kitöltésre.',
   'legal.operatorDetails':
-    'Székhely: 7912 Nagypeterd, Kossuth Lajos utca 132. Egyéni vállalkozói nyilvántartási szám: 51783961. Adószám: 68464192-1-22 (közösségi adószám: HU68464192). Nyilvántartásba vevő szerv: Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság. [KÖZZÉTÉTEL ELŐTT A HIVATALOS NYILVÁNTARTÁSSAL ELLENŐRIZENDŐ.]',
+    'Székhely: 7912 Nagypeterd, Kossuth Lajos utca 132. Egyéni vállalkozói nyilvántartási szám: 51783961. Adószám: 68464192-1-22 (közösségi adószám: HU68464192). Nyilvántartásba vevő szerv: Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság.',
   'legal.termsLink': 'Felhasználási feltételek',
   'legal.privacyLink': 'Adatkezelési tájékoztató',
   'terms.title': 'Felhasználási feltételek',
