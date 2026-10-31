@@ -563,6 +563,8 @@ describe('webhook hardening', () => {
     expect(await h.send(other)).toMatchObject({ status: 200, code: 'ignored' });
     expect(h.subs()).toHaveLength(0);
     expect(h.peek().events.size).toBe(0);
+    // A wrong STRIPE_PRICE_ID must not swallow real events silently.
+    expect(h.alerts.map((a) => a.kind)).toEqual(['foreign_object']);
   });
   it('acknowledges a refund the provider says is not ours without recording it', async () => {
     const h = harness(
@@ -576,6 +578,7 @@ describe('webhook hardening', () => {
     });
     expect(h.subs()[0].revoked).toBeNull();
     expect(h.calls.cancel).toEqual([]);
+    expect(h.alerts.some((a) => a.kind === 'foreign_object')).toBe(true);
   });
   it('rejects an event from the wrong mode or API version and raises an alert', async () => {
     const h = harness();
@@ -602,7 +605,7 @@ describe('webhook hardening', () => {
     const old = { ...subscriptionEvent(), api_version: '2020-01-01' };
     expect(
       await call(old, { expectedApiVersion: '2025-03-31.basil' }),
-    ).toMatchObject({ status: 400, code: 'mode_mismatch' });
+    ).toMatchObject({ status: 400, code: 'api_version_mismatch' });
     expect(alerts.map((x) => x.kind)).toEqual([
       'mode_mismatch',
       'api_version_mismatch',

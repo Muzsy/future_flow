@@ -87,7 +87,8 @@ export type BillingAlert = Readonly<{
     | 'cancel_failed'
     | 'processing_failed'
     | 'duplicate_discount'
-    | 'second_subscription';
+    | 'second_subscription'
+    | 'foreign_object';
   eventId?: string;
   eventType?: string;
 }>;
@@ -263,15 +264,17 @@ async function settleCancellation(
     return { cancelFailed: true };
   }
   await store.transaction(async (tx) => {
+    // Lock order user, then subscription row (same as every other path).
+    const owner = await tx.ownerOf({ subscriptionId, customerId: null });
+    if (!owner) return;
+    await tx.lockUser(owner);
     const sub = await tx.findSubscription({ subscriptionId, customerId: null });
-    if (sub?.userId && sub.cancelPending) {
-      await tx.lockUser(sub.userId);
+    if (sub?.userId && sub.cancelPending)
       await tx.saveSubscription({
         ...sub,
         userId: sub.userId,
         cancelPending: false,
       });
-    }
   });
   return {};
 }
@@ -289,13 +292,17 @@ export async function retryPendingCancellations(
   return { attempted: ids.length, failed };
 }
 
+const handledStripeTypes =
+  /^(customer\.subscription\.|invoice\.paid$|charge\.refunded$|charge\.dispute\.)/;
+
 export type StripeWebhookInput = Readonly<{
   rawBody: string | Uint8Array;
   signatureHeader: string | undefined;
   nowSeconds: number;
   webhookSecret: string;
   priceId: string;
-  // Strict test/live separation (ADR-010): a mismatch is rejected.
+  // Strict test/live separation (ADR-010): a mismatch is rejected. Optional
+  // here; the route layer must always pass both (step 3 acceptance).
   expectedLivemode?: boolean;
   expectedApiVersion?: string;
 }>;
@@ -308,6 +315,7 @@ export type WebhookResult = Readonly<{
     | 'invalid_json'
     | 'malformed_event'
     | 'mode_mismatch'
+    | 'api_version_mismatch'
     | 'unresolved'
     | 'retry';
   outcome?: ProcessedEvent['outcome'];
@@ -353,6 +361,10 @@ export async function handleStripeWebhook(
       ? (parsed as { id?: unknown; livemode?: unknown; api_version?: unknown })
       : {};
   const eventId = typeof envelope.id === 'string' ? envelope.id : undefined;
+  const eventType =
+    parsed && typeof parsed === 'object'
+      ? (parsed as { type?: unknown }).type
+      : undefined;
   if (
     input.expectedLivemode !== undefined &&
     envelope.livemode !== input.expectedLivemode
@@ -365,7 +377,7 @@ export async function handleStripeWebhook(
     envelope.api_version !== input.expectedApiVersion
   ) {
     alert({ kind: 'api_version_mismatch', eventId });
-    return { status: 400, code: 'mode_mismatch' };
+    return { status: 400, code: 'api_version_mismatch' };
   }
   let event: BillingEvent | null;
   try {
@@ -377,11 +389,21 @@ export async function handleStripeWebhook(
     }
     throw error;
   }
-  if (!event) return { status: 200, code: 'ignored' };
+  if (!event) {
+    // Filtered by price or type: a wrong STRIPE_PRICE_ID would swallow every
+    // real event silently, so objects of handled types are alerted (the
+    // consumer rate-limits alerts).
+    if (typeof eventType === 'string' && handledStripeTypes.test(eventType))
+      alert({ kind: 'foreign_object', eventId, eventType });
+    return { status: 200, code: 'ignored' };
+  }
   try {
     if (event.type === 'revocation' || event.type === 'partial_refund') {
       const resolved = await deps.provider.resolveRevocation(event);
-      if (resolved === 'not_ours') return { status: 200, code: 'ignored' };
+      if (resolved === 'not_ours') {
+        alert({ kind: 'foreign_object', eventId: event.eventId });
+        return { status: 200, code: 'ignored' };
+      }
       if (!resolved) {
         if (event.type === 'partial_refund') {
           // Only logged and alerted; nothing to apply.
