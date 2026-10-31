@@ -19,11 +19,6 @@ from unittest.mock import patch
 START_LEAD = dt.timedelta(minutes=4)
 
 
-def _trace(message):  # TEMPORARY measurement, removed before merge
-    with open('/tmp/successor-lead-timing.log', 'a') as handle:
-        handle.write(dt.datetime.now(dt.timezone.utc).isoformat() + ' ' + message + '\n')
-
-
 def exercise(engine, ctx, *, label, system, database, owner, project, terms, release,
              db, make_archive, private, checks):
     successor = engine.load('alterward_beta_successor', 'contabo-beta-successor.py')
@@ -59,10 +54,6 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
                 if image != ctx['image'] or mode not in {'capture','apply','reconcile'}:
                     raise ValueError('Exact isolated successor transport required')
                 return db('successor-'+mode,database,{'previous':terms,'selection':selection,'expected':expected})
-
-            def require_future_start(self,candidate):
-                _trace('owner label=%s margin=%.1fs' % (label,(funded.stamp(self.selected()['next']['startsAt'])-self.now()).total_seconds()))
-                return super().require_future_start(candidate)
 
             def apply_accounts(self,candidate):
                 self.applications+=1
@@ -260,11 +251,6 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                     raise ValueError('Exact isolated successor transport required')
                 return db('successor-'+mode,database,{'previous':previous,'selection':selection,'expected':expected})
 
-            def require_future_start(self,candidate):
-                if not self.is_reader():
-                    _trace('chain tester margin=%.1fs' % (funded.stamp(self.selected()['next']['startsAt'])-self.now()).total_seconds())
-                return super().require_future_start(candidate)
-
             def apply_accounts(self,candidate):
                 self.applications+=1
                 return super().apply_accounts(candidate)
@@ -341,7 +327,6 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     # The owner window is part of the baseline of both later generations and must
     # be the running window: wait for its real start instead of moving a clock.
     start=funded.stamp(window['startsAt'])+dt.timedelta(seconds=3)
-    _trace('chain owner-window wait=%.1fs' % max(0,(start-utc()).total_seconds()))
     while utc()<start:
         time.sleep(min(5,(start-utc()).total_seconds()))
 

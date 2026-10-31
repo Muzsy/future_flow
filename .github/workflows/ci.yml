@@ -96,9 +96,6 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y age
       - name: Verify web, API, worker, migrations and TLS without API spending
         run: node scripts/smoke-deployment.mjs
-      - name: TEMP lead-time measurement
-        if: always()
-        run: cat /tmp/successor-lead-timing.log || true
       - name: Retain synthetic funded upgrade evidence
         uses: actions/upload-artifact@v4
         with:
@@ -154,9 +151,6 @@ jobs:
           assert.throws(()=>successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture:{...successorFixture,sourceCommit:'f'.repeat(40)}}));
           console.log('Actual isolated image proof accepted; foreign image rejected; no release authorization.');
           JS
-      - name: TEMP lead-time measurement
-        if: always()
-        run: cat /tmp/successor-lead-timing.log || true
       - name: Retain standalone image rehearsal evidence
         uses: actions/upload-artifact@v4
         with:
