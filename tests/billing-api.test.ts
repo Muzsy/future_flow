@@ -71,6 +71,7 @@ const createAppLoose = createApp as unknown as (
 async function boot(
   config: ReturnType<typeof billingConfigFromEnv>,
   gate?: Gate,
+  closedBeta?: { enabled: boolean; userIds: string[] },
 ) {
   const engine = new PGlite();
   await applyMigrations(engine);
@@ -107,7 +108,7 @@ async function boot(
       },
       deleteUser: async () => {},
     },
-    ...pad,
+    ...pad.map((_, index) => (index === 22 ? closedBeta : undefined)),
     gate,
     runtime,
   );
@@ -562,6 +563,34 @@ describe('generation gate wiring in createApp', () => {
       ).rejects.toMatchObject({ code: 'BILLING_UNAVAILABLE', status: 503 });
     } finally {
       await close(enforced);
+    }
+    // The exemption belongs to the running closed beta, not to a leftover list.
+    const member = randomUUID();
+    const beta = await boot(
+      billingConfigFromEnv({ BILLING_ENFORCEMENT: 'true' }),
+      undefined,
+      { enabled: true, userIds: [member] },
+    );
+    try {
+      await expect(
+        lifeFor(beta, member, 'beta-on-key-0001'),
+      ).resolves.toBeTruthy();
+    } finally {
+      await close(beta);
+    }
+    const ended = await boot(
+      billingConfigFromEnv({ BILLING_ENFORCEMENT: 'true' }),
+      undefined,
+      { enabled: false, userIds: [member] },
+    );
+    try {
+      await expect(
+        lifeFor(ended, member, 'beta-off-key-0001'),
+      ).rejects.toMatchObject({
+        code: 'BILLING_UNAVAILABLE',
+      });
+    } finally {
+      await close(ended);
     }
     // A later app without enforcement resets the process-wide gate.
     const again = await boot(billingConfigFromEnv({}));

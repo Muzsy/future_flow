@@ -31,7 +31,7 @@ import {
   type instantiateForkCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
-import { reserveGenerationChapter } from './billing';
+import { releaseGenerationChapter, reserveGenerationChapter } from './billing';
 import { activitySession } from './beta';
 import {
   legacyNarrativeConfig,
@@ -946,6 +946,8 @@ export class LifeRepository {
           job.error_code === 'SHARED_PRIVACY_CHANGED'
         ) {
           await materializeSharedMemories(tx, branch);
+          // The new job gets its own key; the old job's reservation goes back.
+          await releaseGenerationChapter(tx, userId, jobId);
           return this.queue(tx, userId, branch);
         }
         const [active] = await tx.query<{ count: number }>(

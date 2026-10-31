@@ -122,6 +122,7 @@ export class LifeJobRepository {
           "UPDATE aw_branches SET status='failed' WHERE id=$1 AND user_id=$2",
           [job.branch_id, job.user_id],
         );
+        await releaseGenerationChapter(tx, job.user_id, job.id);
         return null;
       }
       return lifeRow(

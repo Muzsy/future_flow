@@ -7,6 +7,7 @@ import {
 } from '@future-flow/core';
 import {
   createBillingStore,
+  releaseSettledBillingReservations,
   releaseStaleBillingReservations,
   type Database,
 } from '@future-flow/database';
@@ -68,7 +69,9 @@ export function createBillingMaintenance(
         olderThanMs: ttlMs,
         now: options.now?.(),
       });
-      return { ...retried, released };
+      // Reservations of jobs that ended without settling (cancelled, vanished).
+      const settled = await releaseSettledBillingReservations(db);
+      return { ...retried, released: released + settled.released };
     },
   };
 }

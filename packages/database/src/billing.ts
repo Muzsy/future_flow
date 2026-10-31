@@ -309,8 +309,13 @@ export async function hasLiveBillingSubscription(db: Database, userId: string) {
 
 // ---- generation gate (BILLING_ENFORCEMENT) ----
 //
-// Off unless configured: with no gate registered every function below is a no-op
-// that issues no query, so behaviour (and the beta) is byte-identical.
+// Reserving is off unless configured: with no gate registered it issues no
+// query and the beta behaves exactly as before. Settling (consume/release) does
+// NOT depend on the gate: the API and the worker are separate processes, and a
+// worker without the gate must still settle what the API reserved, otherwise
+// the reaper hands the quota back after the timeout and the paywall leaks. The
+// settle statements touch no row when no reservation exists (beta accounts,
+// enforcement off), and are skipped on a database without migration 039.
 // One chapter = one life job. The reservation key is the job id: reserved when
 // the job is queued (or retried), consumed in the transaction that durably saves
 // the chapter, released when the job fails. The reaper is the safety net.
@@ -390,6 +395,19 @@ export async function reserveGenerationChapter(
   if (result.created) await bt.saveReservation(userId, result.reservation);
 }
 
+let reservationsTableKnown = false;
+
+// Positive answers are cached for the process; a database that still lacks the
+// table (before migration 039) is asked again, so the upgrade needs no restart.
+async function reservationsTablePresent(tx: Database) {
+  if (reservationsTableKnown) return true;
+  const [row] = await tx.query<{ present: boolean }>(
+    "SELECT to_regclass('public.aw_billing_reservations') IS NOT NULL AS present",
+  );
+  reservationsTableKnown = row?.present === true;
+  return reservationsTableKnown;
+}
+
 // A saved chapter always consumes: also a reservation the reaper handed back in
 // the meantime (a generation longer than the timeout), never a free chapter.
 export async function consumeGenerationChapter(
@@ -397,7 +415,7 @@ export async function consumeGenerationChapter(
   userId: string,
   key: string,
 ) {
-  if (!activeGate) return;
+  if (!(await reservationsTablePresent(tx))) return;
   await tx.query(
     "UPDATE aw_billing_reservations SET state='consumed',updated_at=now() WHERE user_id=$1 AND key=$2 AND state IN ('reserved','released')",
     [userId, key],
@@ -409,9 +427,39 @@ export async function releaseGenerationChapter(
   userId: string,
   key: string,
 ) {
-  if (!activeGate) return;
+  if (!(await reservationsTablePresent(tx))) return;
   await tx.query(
     "UPDATE aw_billing_reservations SET state='released',updated_at=now() WHERE user_id=$1 AND key=$2 AND state='reserved'",
     [userId, key],
   );
+}
+
+// Reservations whose job can no longer consume: it was cancelled (shared privacy
+// change, account or life invalidation), failed without going through fail(), or
+// vanished with its life. Released without waiting for the stale timeout, so a
+// first-chapter failure does not lock the taster out for hours. A failed job may
+// still be retried: retry() reserves the same key again. Worker maintenance only.
+export async function releaseSettledBillingReservations(db: Database) {
+  if (!(await reservationsTablePresent(db))) return { released: 0 };
+  const users = await db.query<{ user_id: string }>(
+    `SELECT DISTINCT r.user_id FROM aw_billing_reservations r
+     WHERE r.state='reserved' AND r.created_at<now()-interval '1 minute'
+       AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+     ORDER BY r.user_id LIMIT 200`,
+  );
+  let released = 0;
+  for (const { user_id } of users)
+    released += await db.transaction(async (tx) => {
+      await billingTx(tx).lockUser(user_id);
+      return (
+        await tx.query(
+          `UPDATE aw_billing_reservations r SET state='released',updated_at=now()
+           WHERE r.user_id=$1 AND r.state='reserved' AND r.created_at<now()-interval '1 minute'
+             AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+           RETURNING key`,
+          [user_id],
+        )
+      ).length;
+    });
+  return { released };
 }

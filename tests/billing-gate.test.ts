@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 import { DomainError } from '@future-flow/core';
 import {
   Repository,
@@ -9,6 +17,7 @@ import {
   configureGenerationGate,
   createBillingStore,
   createGenerationGate,
+  releaseSettledBillingReservations,
   type Database,
 } from '@future-flow/database';
 import { applyMigrations } from '../scripts/lib/migrations';
@@ -101,6 +110,12 @@ async function subscribe(userId: string, chapters: number) {
 }
 
 describe.sequential('generation gate', () => {
+  // Earlier cases may leave queued jobs behind; claim() takes the oldest one.
+  beforeEach(async () => {
+    await db.query(
+      "UPDATE aw_jobs SET status='cancelled' WHERE status IN ('queued','running')",
+    );
+  });
   it('is a complete no-op while enforcement is off', async () => {
     const u = await person();
     const created = await lives.create(u, setupFixture(), 'off-create');
@@ -224,5 +239,65 @@ describe.sequential('generation gate', () => {
     expect(
       await db.query('SELECT 1 FROM aw_jobs WHERE user_id=$1', [u]),
     ).toHaveLength(0);
+  });
+
+  it('settles in the worker even when the worker has no gate configured (paywall does not leak)', async () => {
+    configureGenerationGate(
+      createGenerationGate({ ready: true, exemptUserIds: [] }),
+    );
+    const u = await person();
+    await lives.create(u, setupFixture(), 'split-create');
+    // The worker process runs without BILLING_ENFORCEMENT.
+    configureGenerationGate(null);
+    const job = await finishNext();
+    expect(await reservations(u)).toMatchObject([
+      { key: job.id, state: 'consumed' },
+    ]);
+  });
+
+  it('releases the reservation when the claim gives up on the job', async () => {
+    configureGenerationGate(
+      createGenerationGate({ ready: true, exemptUserIds: [] }),
+    );
+    const u = await person();
+    const created = await lives.create(u, setupFixture(), 'exhaust-create');
+    await db.query('UPDATE aw_jobs SET attempt=5 WHERE id=$1', [created.jobId]);
+    expect(await jobs.claim()).toBeNull();
+    expect(await reservations(u)).toMatchObject([
+      { key: created.jobId, state: 'released' },
+    ]);
+  });
+
+  it('hands back reservations of cancelled or vanished jobs, but not live or finished ones', async () => {
+    configureGenerationGate(
+      createGenerationGate({ ready: true, exemptUserIds: [] }),
+    );
+    const cancelled = await person();
+    const live = await person();
+    const gone = await person();
+    const a = await lives.create(cancelled, setupFixture(), 'settle-a');
+    const b = await lives.create(live, setupFixture(), 'settle-b');
+    const c = await lives.create(gone, setupFixture(), 'settle-c');
+    await db.query("UPDATE aw_jobs SET status='cancelled' WHERE id=$1", [
+      a.jobId,
+    ]);
+    await db.query('DELETE FROM aw_jobs WHERE id=$1', [c.jobId]);
+    // Too young: nothing is touched while the job may still be committing.
+    expect(await releaseSettledBillingReservations(db)).toEqual({
+      released: 0,
+    });
+    await db.query(
+      "UPDATE aw_billing_reservations SET created_at=now()-interval '5 minutes'",
+    );
+    expect(await releaseSettledBillingReservations(db)).toEqual({
+      released: 2,
+    });
+    expect(await reservations(cancelled)).toMatchObject([
+      { state: 'released' },
+    ]);
+    expect(await reservations(gone)).toMatchObject([{ state: 'released' }]);
+    expect(await reservations(live)).toMatchObject([
+      { key: b.jobId, state: 'reserved' },
+    ]);
   });
 });

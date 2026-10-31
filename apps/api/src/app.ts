@@ -1004,7 +1004,11 @@ export async function createApp(
     billing.config.enforcement
       ? createGenerationGate({
           ready: billing.config.enabled,
-          exemptUserIds: closedBetaConfig.userIds,
+          // The exemption belongs to the running closed beta: with
+          // CLOSED_BETA_ENABLED=false a leftover list does not give free chapters.
+          exemptUserIds: closedBetaConfig.enabled
+            ? closedBetaConfig.userIds
+            : [],
           entitlement: billing.config.entitlement,
         })
       : null,
