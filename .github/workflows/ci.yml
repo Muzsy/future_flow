@@ -73,11 +73,15 @@ jobs:
         run: node scripts/smoke-closed-site.mjs
       - run: pnpm schemas
       - run: git diff --exit-code -- docs/contracts
+  # `container` and `image-rehearsal` are independent proofs that each need
+  # the image built from the same commit, so they run in parallel and each builds
+  # its own copy. Release gates (scripts/contabo-fence-operator.mjs) require
+  # exactly the three jobs verify, container and image-rehearsal to succeed.
   container:
     runs-on: ubuntu-latest
-    # Build, complete funded fixture, independent image rehearsal and cleanup.
-    # The chained successor case really waits for the owner window to start.
-    timeout-minutes: 80
+    # Build, complete funded fixture (including the chained successor case that
+    # really waits for the owner window to start) and cleanup.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Build the Contabo image without credentials
@@ -92,6 +96,34 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y age
       - name: Verify web, API, worker, migrations and TLS without API spending
         run: node scripts/smoke-deployment.mjs
+      - name: Retain synthetic funded upgrade evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-upgrade-ci-proof
+          path: test-results/funded-upgrade-ci-proof.json
+          if-no-files-found: error
+          retention-days: 7
+  image-rehearsal:
+    runs-on: ubuntu-latest
+    # Independent rehearsal of the actual immutable image in its own isolated
+    # database; the same fixture engine, including the real successor-window wait.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Contabo image without credentials
+        run: >-
+          docker build -t alterward:ci
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_unused
+          .
+      - name: Install isolated encrypted-restore fixture dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y age
+      - name: Cache the pinned PostgreSQL input the rehearsal refuses to pull itself
+        run: |
+          pg=$(grep -oE "postgres@sha256:[a-f0-9]{64}" scripts/ops/contabo-funded-image-rehearsal.py | sort -u)
+          test "$(printf '%s\n' "$pg" | wc -l)" = 1
+          docker pull "$pg"
+          mkdir -p test-results
       - name: Rehearse the actual immutable image without CI environment impersonation
         run: |
           image=$(docker image inspect alterward:ci --format '{{.Id}}')
@@ -119,13 +151,6 @@ jobs:
           assert.throws(()=>successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture:{...successorFixture,sourceCommit:'f'.repeat(40)}}));
           console.log('Actual isolated image proof accepted; foreign image rejected; no release authorization.');
           JS
-      - name: Retain synthetic funded upgrade evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: funded-upgrade-ci-proof
-          path: test-results/funded-upgrade-ci-proof.json
-          if-no-files-found: error
-          retention-days: 7
       - name: Retain standalone image rehearsal evidence
         uses: actions/upload-artifact@v4
         with:

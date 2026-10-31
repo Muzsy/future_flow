@@ -12,6 +12,12 @@ import signal
 import time
 from unittest.mock import patch
 
+# Time between choosing a disposable window and its start. The lead must cover
+# prepare, the physical candidate backup, the 60 s close delay and the
+# stop/restore/stage steps that run before the future-start check. The chained
+# cases then really wait for the owner window, so the lead is wall-clock CI time.
+START_LEAD = dt.timedelta(minutes=4)
+
 
 def exercise(engine, ctx, *, label, system, database, owner, project, terms, release,
              db, make_archive, private, checks):
@@ -24,8 +30,8 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
         selection = {'purpose':'owner-e2e','previousTermsSha256':successor.canonical_sha(terms),
             'closePreviousAt':iso(now+dt.timedelta(seconds=60)), 'next':{
                 'participants':[{'email':'owner@example.invalid','userId':'22222222-2222-4222-8222-222222222222'}],
-                'projectUsd':'3','userUsd':'3','startsAt':iso(now+dt.timedelta(minutes=10)),
-                'endsAt':iso(now+dt.timedelta(days=30,minutes=10))}}
+                'projectUsd':'3','userUsd':'3','startsAt':iso(now+START_LEAD),
+                'endsAt':iso(now+dt.timedelta(days=30)+START_LEAD)}}
         db('successor-setup', database, {'previous':terms,'selection':selection})
         request = {**system.request,'mode':'prepare','selection':selection,
             'release':{**release,'runtime':successor.runtime_selection(selection),'successorFixtureSha256':'b'*64}}
@@ -113,8 +119,8 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
                 # close time. Reset only this disposable case's never-used dates.
                 now=trial.now()
                 selection['closePreviousAt']=iso(now+dt.timedelta(seconds=60))
-                selection['next']['startsAt']=iso(now+dt.timedelta(minutes=10))
-                selection['next']['endsAt']=iso(now+dt.timedelta(days=30,minutes=10))
+                selection['next']['startsAt']=iso(now+START_LEAD)
+                selection['next']['endsAt']=iso(now+dt.timedelta(days=30)+START_LEAD)
                 checks['expiredArchive']=True
                 request.pop('preparedSha256',None)
             prepared=trial.prepare()
@@ -341,8 +347,8 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     now=utc()
     tester_selection={'purpose':'tester-beta','previousTermsSha256':successor.canonical_sha(window),
         'closePreviousAt':iso(now+dt.timedelta(seconds=60)),'next':{'participants':TESTERS,
-        'projectUsd':'10','userUsd':'3.33','startsAt':iso(now+dt.timedelta(minutes=10)),
-        'endsAt':iso(now+dt.timedelta(days=30,minutes=10))}}
+        'projectUsd':'10','userUsd':'3.33','startsAt':iso(now+START_LEAD),
+        'endsAt':iso(now+dt.timedelta(days=30)+START_LEAD)}}
     tester,tester_candidate=advance(tester_selection,window,emails=sorted(READERS))
     assert tester.generation==3 and tester.root.name=='beta-successor-3'
     verified=db('successor-tester-verify',database,{'previous':window,'selection':tester_selection,

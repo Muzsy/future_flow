@@ -253,8 +253,8 @@ const run = (changes = {}) => ({
   ...changes,
 });
 const jobs = () => ({
-  total_count: 2,
-  jobs: ['verify', 'container'].map((name) => ({
+  total_count: 3,
+  jobs: ['verify', 'container', 'image-rehearsal'].map((name) => ({
     name,
     head_sha: sha,
     status: 'completed',
@@ -308,6 +308,16 @@ test('a missing, duplicate, stale or failing required job refuses the drill', ()
   }
   const value = jobs();
   value.jobs.pop();
-  value.total_count = 1;
+  value.total_count = 2;
   assert.throws(() => assertExactFenceCiJobs(value, sha));
+  // A run without the independent image rehearsal never qualifies, however the
+  // count is reported.
+  for (const missing of ['verify', 'container', 'image-rehearsal']) {
+    const partial = jobs();
+    partial.jobs = partial.jobs.filter((job) => job.name !== missing);
+    for (const count of [2, 3]) {
+      partial.total_count = count;
+      assert.throws(() => assertExactFenceCiJobs(partial, sha));
+    }
+  }
 });
