@@ -365,5 +365,234 @@ class TesterBeta(ChainRootBase):
         self.assertEqual(sorted(p['userId'] for p in sent), sorted(p['userId'] for p in self.chain.testers()))
 
 
+
+class SchemaUpgrade(ChainRootBase):
+    DATABASE = {'version': 'alterward-funded-runtime-1', 'schema': 38, 'identityBindingSha256': 'a' * 64,
+                'dataSha256': 'b' * 64, 'artifactSha256': 'c' * 64, 'catalogSha256': 'd' * 64,
+                'policiesSha256': 'e' * 64, 'drained': True, 'providerApiCalls': 0}
+
+    def selection(self, **changes):
+        return {'purpose': 'schema-039', 'previousTermsSha256': root.canonical_sha(self.chain.terms),
+                'fromSchema': 38, 'toSchema': 39, **changes}
+
+    def tip(self):
+        self.chain.admit_readers()
+        tester = self.chain.prepare(3, 'tester-beta', participants=self.chain.testers())
+        self.chain.expose(3, tester, window_changed=True)
+
+    def prepared_system(self, mode='apply', **request):
+        self.tip()
+        value = {**self.chain.prepare(4, 'schema-039'), 'database': self.DATABASE}
+        self.fixture.write(self.chain.root(4) / 'prepared.json', authority.encoded(value))
+        selection = self.selection()
+        system = self.system(mode, selection=selection, release=value['release'],
+                             preparedSha256=daily.digest(authority.encoded(value)), **request)
+        system.now = Mock(return_value=funded.stamp(value['preparedAt']))
+        return system, value
+
+    def observed(self, **changes):
+        return {**self.DATABASE, **changes}
+
+    def test_schema_upgrade_is_selectable_behind_the_first_generation_only(self):
+        self.tip()
+        self.assertEqual(self.system(selection=self.selection()).selected()['purpose'], 'schema-039')
+        self.assertEqual(self.system(selection=self.selection()).generation, 4)
+
+    def test_schema_upgrade_is_not_a_first_generation_purpose(self):
+        self.assertEqual(self.system('apply').generation, 1)
+        with self.assertRaisesRegex(ValueError, 'purpose for this generation'):
+            self.system('apply', selection=self.selection()).selected()
+
+    def test_selection_is_exactly_038_to_039_with_the_active_terms(self):
+        self.assertEqual(root.selection_values(self.selection()), {})
+        for label, selection in [
+            ('target 040', self.selection(toSchema=40)), ('source 037', self.selection(fromSchema=37)),
+            ('same schema', self.selection(fromSchema=39)), ('string schema', self.selection(toSchema='39')),
+            ('bool schema', self.selection(toSchema=True)), ('no digest', self.selection(previousTermsSha256='x')),
+            ('extra window', {**self.selection(), 'next': {}}), ('extra readers', {**self.selection(), 'readers': {}}),
+            ('missing source', {k: v for k, v in self.selection().items() if k != 'fromSchema'}),
+        ]:
+            with self.subTest(label), self.assertRaises(ValueError):
+                root.selection_values(selection)
+
+    def test_cohort_is_the_authenticated_active_window_and_cannot_change(self):
+        runtime = root.runtime_selection(self.selection(), self.chain.terms)
+        self.assertEqual(runtime['cohortUserIds'], [p['userId'] for p in self.chain.terms['participants']])
+        with self.assertRaises(ValueError):
+            root.runtime_selection(self.selection())
+
+    def test_environment_changes_only_the_image_tag(self):
+        text = EnvironmentTests.text(self)
+        before = funded.upgrade.server_environment(text)
+        after = funded.upgrade.server_environment(root.candidate_environment(
+            text, self.selection(), 'alterward:contabo-aaaaaaaaaaaa', self.chain.terms).decode())
+        self.assertEqual({k for k in set(before) | set(after) if before.get(k) != after.get(k)}, {'ALTERWARD_TAG'})
+
+    def rendered(self, billing=True):
+        env = {'AI_PROJECT_BUDGET_USD': '10', 'CLOSED_BETA_USER_IDS': 'u'}
+        def service(extra=None):
+            return {'image': 'x', 'environment': {**env, **(extra or {})}}
+        return {'services': {'web': {'image': 'x', 'environment': {}},
+                             'api': service(funded.BILLING_DEFAULTS if billing else None),
+                             'worker': service(funded.BILLING_DEFAULTS if billing else None)}}
+
+    def test_a_newer_compose_may_add_only_the_default_off_billing_values(self):
+        selection = self.selection()
+        previous = self.chain.terms
+        old = self.rendered(billing=False)
+        self.assertEqual(root.normalized(self.rendered(), selection, previous), root.normalized(old, selection, previous))
+        # The originals of an earlier release (no billing keys) and one that already
+        # carries the very same defaults are the same runtime.
+        self.assertEqual(root.normalized(old, selection, previous), root.normalized(self.rendered(), selection, previous))
+        # Any nondefault value, on either side, is an unreviewed change.
+        for service, key, bad in [('api', 'BILLING_ENABLED', 'true'), ('worker', 'BILLING_ENABLED', 'true'),
+                                  ('api', 'BILLING_ENFORCEMENT', 'true'), ('worker', 'STRIPE_SECRET_KEY', 'sk_test_x'),
+                                  ('api', 'STRIPE_WEBHOOK_SECRET', 'whsec_x'), ('api', 'STRIPE_PRICE_ID', 'price_x'),
+                                  ('worker', 'BILLING_FOUNDER_USER_IDS', 'u'), ('api', 'BILLING_SUCCESS_URL', 'https://x'),
+                                  ('worker', 'BILLING_RESERVATION_TTL_SECONDS', '1')]:
+            with self.subTest(service=service, key=key):
+                drift = self.rendered()
+                drift['services'][service]['environment'][key] = bad
+                self.assertNotEqual(root.normalized(drift, selection, previous), root.normalized(old, selection, previous))
+                self.assertNotEqual(root.normalized(old, selection, previous), root.normalized(drift, selection, previous))
+        web = self.rendered()
+        web['services']['web']['environment']['BILLING_ENABLED'] = 'false'
+        self.assertNotEqual(root.normalized(web, selection, previous), root.normalized(old, selection, previous))
+        other = self.rendered()
+        other['services']['api']['environment']['SOMETHING_ELSE'] = 'x'
+        self.assertNotEqual(root.normalized(other, selection, previous), root.normalized(old, selection, previous))
+
+    def test_probe_captures_038_or_039_and_migrates_only_with_the_captured_state(self):
+        self.tip()
+        system = self.system(selection=self.selection())
+        system.raw_probe = Mock(return_value=self.observed())
+        self.assertEqual(system.probe('image', 'capture')['schema'], 38)
+        sent = system.raw_probe.call_args.args[1]
+        self.assertEqual((sent['mode'], sent['expected']), ('capture', None))
+        self.assertEqual(sorted(p['userId'] for p in sent['participants']),
+                         sorted(p['userId'] for p in self.chain.terms['participants']))
+        system.raw_probe.return_value = self.observed(schema=39)
+        self.assertEqual(system.probe('image', 'migrate', self.observed())['schema'], 39)
+        self.assertEqual(system.raw_probe.call_args.args[1]['mode'], 'migrate')
+        for label, mode, expected, value in [
+            ('migrate without state', 'migrate', None, self.observed(schema=39)),
+            ('capture with state', 'capture', self.observed(), self.observed()),
+            ('unknown mode', 'successor', None, self.observed()),
+            ('migrate stays 038', 'migrate', self.observed(), self.observed()),
+            ('schema 037', 'capture', None, self.observed(schema=37)),
+            ('schema 040', 'capture', None, self.observed(schema=40)),
+            ('not drained', 'capture', None, self.observed(drained=False)),
+            ('provider call', 'capture', None, self.observed(providerApiCalls=1)),
+            ('extra field', 'capture', None, {**self.observed(), 'x': 1}),
+        ]:
+            with self.subTest(label):
+                system.raw_probe.return_value = value
+                with self.assertRaises(ValueError):
+                    system.probe('image', mode, expected)
+
+    def test_there_is_no_accounting_operation_and_no_window_start_check(self):
+        system, value = self.prepared_system()
+        with self.assertRaises(ValueError):
+            system.accounting('image', 'capture')
+        system.require_future_start(value)
+        system.now.return_value = funded.stamp(self.chain.terms['endsAt']) + dt.timedelta(days=1)
+        system.require_future_start(value)
+
+    def test_operation_and_candidate_match_what_daily_accepts(self):
+        system, value = self.prepared_system()
+        self.assertEqual(system.schema_operation(), value['operation'])
+        self.assertEqual(system.candidate(), value)
+        self.assertEqual((system.generation, system.is_schema(), system.is_window(), system.is_reader()), (4, True, False, False))
+
+    def test_reconcile_reads_the_database_state_and_protects_the_data(self):
+        system, value = self.prepared_system()
+        system.probe = Mock(return_value=self.observed())
+        before = system.reconcile_accounts(value)
+        self.assertEqual((before['state'], before['protectedDataUnchanged'], before['paidAiCalls']), ('uncommitted', True, 0))
+        self.assertEqual(before['operationSha256'], root.canonical_sha(value['operation']))
+        system.probe.return_value = self.observed(schema=39, catalogSha256='f' * 64)
+        self.assertEqual(system.reconcile_accounts(value)['state'], 'committed')
+        for key in ('dataSha256', 'artifactSha256', 'policiesSha256', 'identityBindingSha256'):
+            with self.subTest(key):
+                system.probe.return_value = self.observed(schema=39, **{key: '0' * 64})
+                with self.assertRaises(ValueError):
+                    system.reconcile_accounts(value)
+
+    def test_migration_runs_once_from_a_captured_038_and_proves_the_result(self):
+        system, value = self.prepared_system()
+        calls = []
+        def probe(image, mode, expected=None):
+            calls.append((mode, expected))
+            return self.observed(schema=39, catalogSha256='f' * 64) if mode == 'migrate' else self.observed()
+        system.probe = probe
+        self.assertEqual(system.apply_accounts(value), {'migrated': True, 'schema': 39})
+        self.assertEqual([c[0] for c in calls], ['capture', 'migrate'])
+        self.assertEqual(calls[1][1], self.observed())
+        for label, observed, migrated in [
+            ('already 039', self.observed(schema=39), self.observed(schema=39)),
+            ('data drift before', self.observed(dataSha256='0' * 64), self.observed(schema=39)),
+            ('data drift by the migration', self.observed(), self.observed(schema=39, dataSha256='0' * 64)),
+            ('artifact drift by the migration', self.observed(), self.observed(schema=39, artifactSha256='0' * 64)),
+        ]:
+            with self.subTest(label):
+                system.probe = lambda image, mode, expected=None, a=observed, b=migrated: b if mode == 'migrate' else a
+                with self.assertRaises(ValueError):
+                    system.apply_accounts(value)
+
+    def test_attempt_and_recovery_start_from_the_states_they_may_start_from(self):
+        system, value = self.prepared_system()
+        self.assertEqual(system.expected_states(), {'uncommitted'})
+        self.assertEqual(system.expected_states(False), {'uncommitted'})
+        self.assertEqual(system.expected_states(True), {'committed', 'uncommitted'})
+        recovering = self.system('recover', selection=self.selection())
+        self.assertEqual(recovering.expected_states(), {'committed', 'uncommitted'})
+        recovering.probe = Mock(return_value=self.observed())
+        self.assertTrue(recovering.database_pending(value))
+        recovering.probe.return_value = self.observed(schema=39)
+        self.assertFalse(recovering.database_pending(value))
+        recovering.verify_drained(value)
+        # Accounting generations keep the strict rule: committed only on recovery.
+        self.chain.expose(4, value, window_changed=False, schema=True)
+
+    def test_other_generations_never_replay_their_database_step(self):
+        self.chain.admit_readers()
+        selection = self.beta_selection()
+        system = self.system('recover', selection=selection)
+        self.assertEqual(system.expected_states(), {'committed'})
+        self.assertFalse(system.database_pending({}))
+        self.assertEqual(self.system(selection=selection).expected_states(), {'uncommitted'})
+
+    def test_the_window_need_not_be_running_but_the_active_authority_is_still_required(self):
+        self.tip()
+        terms = self.chain.terms
+        worker = {'CLOSED_BETA_USER_IDS': ','.join(p['userId'] for p in terms['participants']),
+                  'AI_PROJECT_BUDGET_USD': terms['projectUsd'], 'AI_USER_BUDGET_USD': terms['userUsd'],
+                  'AI_BUDGET_WINDOW_START': terms['startsAt'], 'AI_BUDGET_WINDOW_END': terms['endsAt']}
+        parent = {'files': {'target': {}}, 'release': {'target': {'imageId': 'sha256:' + 'b' * 64}}}
+
+        def baseline(selection, queue_allowed):
+            system = self.system('prepare', selection=selection)
+            system.parent = Mock(return_value=(parent, 'target', {}))
+            system.hashes = Mock(return_value={})
+            system.configuration = Mock(return_value={'services': {'worker': {'environment': worker}}})
+            system.access = Mock(return_value='d' * 64)
+            with patch.object(daily, 'owner_runtime'), \
+                 patch.object(daily, 'personal_runtime_policy', return_value={'mode': 'personal-beta', 'queueAllowed': queue_allowed}), \
+                 patch.object(funded.upgrade, 'inspect_owner'), patch.object(funded.upgrade, 'proxy_network', return_value='net'), \
+                 patch.object(funded.upgrade, 'foreign_state', return_value=[]):
+                return system.baseline()
+
+        # An ended or not-yet-running window means nothing can generate: the upgrade
+        # does not need it. The accounting generations and reader admission still do.
+        self.assertEqual(baseline(self.selection(), False)['accessConfigurationSha256'], 'd' * 64)
+        self.assertEqual(baseline(self.selection(), True)['accessConfigurationSha256'], 'd' * 64)
+        with self.assertRaisesRegex(ValueError, 'Active parent funded window'):
+            baseline(self.reader_selection(), False)
+        # The funded configuration itself must still equal the authenticated terms.
+        worker['AI_USER_BUDGET_USD'] = '99'
+        with self.assertRaisesRegex(ValueError, 'Active parent funded window'):
+            baseline(self.selection(), True)
+
+
 if __name__ == '__main__':
     unittest.main()

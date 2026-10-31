@@ -29,9 +29,19 @@ export const successorChecks = [
   'readerAdmission',
   'testerBetaWindow',
   'chainedAuthority',
+  // The schema-039 generation against a real PostgreSQL: 038 to 039 migration,
+  // 96 pre-039 tables unchanged, billing tables empty and RLS on, an attempt
+  // interrupted before the database write finished by explicit recovery, and
+  // the default-off billing configuration accepted/non-default refused.
+  'schemaMigration',
+  'schemaRecovery',
+  'billingDefaultsGuard',
 ];
+export const successorFixtureVersion = 'alterward-beta-successor-fixture-3';
 
 const READER_PURPOSE = 'reader-admission';
+// The database and application upgrade: no allowance, window, cohort or reader change.
+const SCHEMA_PURPOSE = 'schema-039';
 // purpose -> [participants, projectUsd, userUsd]; the only allowance-changing selections.
 const windowPurposes = {
   'owner-e2e': [1, '3', '3'],
@@ -113,11 +123,32 @@ export function validateReaderSelection(selection) {
   return selection;
 }
 
+// The only supported database step: the live 038 database to the reviewed 039
+// billing foundation. Changes no allowance, window, participant or reader.
+export function validateSchemaSelection(selection) {
+  exactObject(selection, [
+    'purpose',
+    'previousTermsSha256',
+    'fromSchema',
+    'toSchema',
+  ]);
+  if (
+    selection.purpose !== SCHEMA_PURPOSE ||
+    !digestPattern.test(selection.previousTermsSha256) ||
+    selection.fromSchema !== 38 ||
+    selection.toSchema !== 39
+  )
+    throw Error('Exact approved schema 038 to 039 selection required');
+  return selection;
+}
+
 // Dispatches on the explicit purpose. The generation a purpose is allowed in is
 // enforced where the chain is known (Daily authority and the root adapter).
 export function validateSuccessorSelection(selection) {
   if (selection?.purpose === READER_PURPOSE)
     return validateReaderSelection(selection);
+  if (selection?.purpose === SCHEMA_PURPOSE)
+    return validateSchemaSelection(selection);
   return validateWindowSelection(selection, ['owner-e2e', 'tester-beta']);
 }
 
@@ -130,10 +161,12 @@ export function successorReleaseEvidence({
   validateSuccessorSelection(selection);
   const result = releaseEvidence({ ...original, selection: release });
   const cohort = result.runtime?.cohortUserIds;
-  // A window selection names its cohort. Reader admission has none of its own:
-  // the root adapter proves the cohort equals the still-active window's.
+  // A window selection names its cohort. Reader admission and the schema upgrade
+  // have none of their own: the root adapter proves the cohort equals the
+  // still-active window's.
   if (
-    (selection.purpose === READER_PURPOSE
+    (selection.purpose === READER_PURPOSE ||
+    selection.purpose === SCHEMA_PURPOSE
       ? !Array.isArray(cohort) || cohort.length < 1 || cohort.length > 10
       : JSON.stringify(cohort) !==
         JSON.stringify(selection.next.participants.map((p) => p.userId))) ||
@@ -152,7 +185,7 @@ export function successorReleaseEvidence({
   ]);
   exactObject(successorFixture.checks, successorChecks);
   if (
-    successorFixture.version !== 'alterward-beta-successor-fixture-2' ||
+    successorFixture.version !== successorFixtureVersion ||
     successorFixture.sourceCommit !== original.commit ||
     successorFixture.bundleSha256 !== original.bundleSha256 ||
     successorFixture.targetImage !== release.target.imageId ||

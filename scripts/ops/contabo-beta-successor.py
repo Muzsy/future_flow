@@ -1,11 +1,18 @@
 """Root adapter for one explicit successor generation, retaining the original authority.
 
-No migration, provider request, account creation or database restore. The new
-image contains the reviewed accounting transport; application sources must also
-match the ORIGINAL serving image. Only the selected generation's future allowance,
+No provider request, account creation or database restore. The new image
+contains the reviewed accounting transport; application sources must also match
+the ORIGINAL serving image. Only the selected generation's future allowance,
 admission, reader list and v9 runtime configuration may change: owner-e2e (first
 generation), then reader-admission (no database write) and tester-beta, each chained
 to the previous fully exposed generation.
+
+The schema-039 generation is the one exception that changes the database and the
+application: it takes the live, fully exposed chain tip from schema 038 to the
+reviewed 039 billing foundation (one serializable migration that proves every
+pre-039 row unchanged and the four billing tables empty) and swaps the three
+services to the reviewed 039 image, with no allowance, reader, cohort or window
+change and billing left at its compose default (off).
 """
 import copy
 import datetime as dt
@@ -34,6 +41,10 @@ DEPENDENCY_MANIFESTS = frozenset({
 ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD',
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
 READER_PURPOSE = 'reader-admission'
+SCHEMA_PURPOSE = 'schema-039'
+# The only supported database step: the live 038 production database to the
+# reviewed 001-039 baseline. No caller-supplied schema, catalog or file list.
+SCHEMA_FROM, SCHEMA_TO = 38, 39
 # purpose -> (participants, projectUsd, userUsd); only allowance-changing purposes.
 WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
 USER_ID = re.compile(r'[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}')
@@ -51,8 +62,10 @@ def purpose_of(selection):
 
 def allowed_purposes(generation):
     # The first generation is the single-owner trial that is already exposed. Later
-    # generations first admit readers (no money), then open the tester window.
-    return {'owner-e2e'} if generation == 1 else {READER_PURPOSE, 'tester-beta'}
+    # generations first admit readers (no money), then open the tester window; the
+    # schema upgrade is allowed once, behind any fully exposed generation.
+    return ({'owner-e2e'} if generation == 1
+            else {READER_PURPOSE, 'tester-beta', SCHEMA_PURPOSE})
 
 
 def is_tester_window(terms):
@@ -73,11 +86,30 @@ def reader_emails(selection):
     return emails
 
 
+def schema_selection(selection):
+    funded.exact(selection, {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'})
+    if (selection['purpose'] != SCHEMA_PURPOSE or type(selection['fromSchema']) is not int
+            or type(selection['toSchema']) is not int
+            or (selection['fromSchema'], selection['toSchema']) != (SCHEMA_FROM, SCHEMA_TO)
+            or not isinstance(selection['previousTermsSha256'], str)
+            or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])):
+        raise ValueError('Exact approved schema 038 to 039 selection required')
+    return selection
+
+
+def keeps_window(selection):
+    """Reader admission and the schema upgrade never change the funded window."""
+    return purpose_of(selection) in {READER_PURPOSE, SCHEMA_PURPOSE}
+
+
 def selection_values(selection):
-    """The allowance environment a selection may set; empty for reader admission."""
+    """The allowance environment a selection may set; empty without a window change."""
     purpose = purpose_of(selection)
     if purpose == READER_PURPOSE:
         reader_emails(selection)
+        return {}
+    if purpose == SCHEMA_PURPOSE:
+        schema_selection(selection)
         return {}
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'})
     terms = selection['next']
@@ -107,11 +139,11 @@ def selection_values(selection):
 
 
 def runtime_selection(selection, previous=None):
-    if purpose_of(selection) == READER_PURPOSE:
-        # Reader admission never changes who may generate: the cohort is the
-        # still-active window's, taken from the authenticated previous terms.
+    if keeps_window(selection):
+        # Reader admission and the schema upgrade never change who may generate: the
+        # cohort is the still-active window's, taken from the authenticated previous terms.
         if previous is None:
-            raise ValueError('Active terms required for reader admission')
+            raise ValueError('Active terms required without a window change')
         participants = previous['participants']
     else:
         participants = selection['next']['participants']
@@ -192,6 +224,13 @@ class System(funded.System):
 
     def is_reader(self):
         return purpose_of(self.selected()) == READER_PURPOSE
+
+    def is_schema(self):
+        return purpose_of(self.selected()) == SCHEMA_PURPOSE
+
+    def is_window(self):
+        """An allowance-changing generation: owner-e2e or tester-beta."""
+        return not keeps_window(self.selected())
 
     def chain(self):
         """Funded parent, its role and the context this generation is bound to."""
@@ -310,7 +349,11 @@ class System(funded.System):
             raise ValueError('External Access configuration changed since preparation')
         return value['configurationSha256']
 
-    def baseline(self, *, require_active=True):
+    def baseline(self, *, require_active=None):
+        # The schema upgrade does not depend on a running funded window: an ended
+        # window only means nothing can be generating, which the drain proves.
+        if require_active is None:
+            require_active = not self.is_schema()
         parent, role, _ = self.parent()
         if self.hashes(DIRECTORY) != parent['files'][role]:
             raise ValueError('Active parent runtime files required')
@@ -332,7 +375,23 @@ class System(funded.System):
                 'accessConfigurationSha256': self.access(), 'proxyNetwork': upgrade.proxy_network(),
                 'foreign': upgrade.foreign_state()}
 
+    def schema_probe(self, image, mode, expected=None):
+        """Capture (038 or 039) or the single reviewed 038 to 039 migration."""
+        if mode not in {'capture', 'migrate'} or (mode == 'migrate') != (expected is not None):
+            raise ValueError('Fixed schema database mode required')
+        value = self.raw_probe(image, {'mode': mode, 'expected': expected,
+                                       'participants': list(self.original_terms()['participants'])})
+        funded.exact(value, {'version','schema','identityBindingSha256','dataSha256','artifactSha256',
+                             'catalogSha256','policiesSha256','drained','providerApiCalls'})
+        if (value['version'] != 'alterward-funded-runtime-1' or value['schema'] not in (SCHEMA_FROM, SCHEMA_TO)
+                or (mode == 'migrate' and value['schema'] != SCHEMA_TO)
+                or value['providerApiCalls'] != 0 or value['drained'] is not True):
+            raise ValueError('Exact drained schema038/039 observation required')
+        return value
+
     def probe(self, image, mode, expected=None):
+        if self.is_schema():
+            return self.schema_probe(image, mode, expected)
         if mode != 'capture' or expected is not None:
             raise ValueError('Successor cannot migrate a database')
         participants = list(self.original_terms()['participants'])
@@ -348,8 +407,8 @@ class System(funded.System):
         return value
 
     def accounting(self, image, mode, expected=None):
-        if self.is_reader():
-            raise ValueError('Reader admission has no accounting operation')
+        if not self.is_window():
+            raise ValueError('Only an allowance-changing generation has an accounting operation')
         return self.raw_probe(image, {'mode':'successor','participants':[], 'expected':{
             'mode':mode, 'previous':self.original_terms(), 'selection':self.selected(), 'expected':expected}})
 
@@ -361,6 +420,16 @@ class System(funded.System):
                          'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
                          'previousTermsSha256': canonical_sha(self.original_terms()),
                          'selectionSha256': canonical_sha(selected)}}
+
+    def schema_operation(self):
+        now = self.now()
+        stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        selected = self.selected()
+        return {'plan': {'version': PLAN_VERSION, 'purpose': SCHEMA_PURPOSE,
+                         'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
+                         'previousTermsSha256': canonical_sha(self.original_terms()),
+                         'selectionSha256': canonical_sha(selected),
+                         'fromSchema': SCHEMA_FROM, 'toSchema': SCHEMA_TO}}
 
     def reader_receipt(self):
         previous = self.active_access()
@@ -385,6 +454,15 @@ class System(funded.System):
                 != normalized(self.configuration(DIRECTORY), self.selected(), previous)):
             raise ValueError('Runtime delta exceeds selected allowance, readers and v9 configuration')
         self.daily.personal_runtime_policy({k:v['environment'] for k,v in rendered['services'].items()}, self.now())
+        if self.is_schema():
+            # Billing arrives with this image but stays at its compose default (off).
+            # Enabling it, or any Stripe value, is a separate reviewed step.
+            for role in ('api', 'worker'):
+                env = rendered['services'][role]['environment']
+                if any(env.get(k) != v for k, v in funded.BILLING_DEFAULTS.items()):
+                    raise ValueError('Billing must stay at its default-off configuration')
+            if any(k in rendered['services']['web']['environment'] for k in funded.BILLING_DEFAULTS):
+                raise ValueError('Billing configuration must not reach the web service')
         readers.durable_file(path / 'effective-compose.json', frozen(rendered))
         manifest = json.loads(old['manifest.json'])
         manifest.update(commit=build['commit'],imageId=build['imageId'],
@@ -414,6 +492,9 @@ class System(funded.System):
         if self.is_reader():
             if not set(access['allowedEmails']) < set(reader_emails(selected)):
                 raise ValueError('Reader admission may only add readers')
+        elif self.is_schema():
+            if SCHEMA_PURPOSE in self.chain()[2].get('purposes', ()):
+                raise ValueError('The schema upgrade may be applied at most once')
         elif any(p['email'] not in access['allowedEmails'] for p in selected['next']['participants']):
             raise ValueError('Every participant must already be a readable, signed-in account')
         release = copy.deepcopy(self.request['release'])
@@ -425,24 +506,32 @@ class System(funded.System):
         from alterward_backup import private_directory
         private_directory(self.root)
         readers.durable_file(self.root / 'selection.json', encoded(selected))
-        readers.durable_file(self.root / 'terms.json', encoded(previous if self.is_reader() else selected['next']))
+        readers.durable_file(self.root / 'terms.json', encoded(previous if keeps_window(selected) else selected['next']))
         if self.is_reader():
             readers.durable_file(self.root / 'access.json', self.reader_receipt())
         for role in ('target','recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
-        # Freeze the motor: compare the NEW reviewed application inputs inside
-        # the ORIGINAL image, independently of the source cache's old contents.
-        frozen_hashes = self.frozen_source_hashes()
-        if not frozen_hashes or self.capability(parent['release'][parent_role]['imageId'], frozen_hashes).returncode:
-            raise ValueError('Original serving engine sources must remain unchanged')
-        operation = self.reader_operation() if self.is_reader() else self.accounting(release['target']['imageId'], 'capture')
+        if not self.is_schema():
+            # Freeze the motor: compare the NEW reviewed application inputs inside
+            # the ORIGINAL image, independently of the source cache's old contents.
+            # The schema upgrade is the deliberate exception: its application source
+            # (billing) differs from the serving image by design, and is instead
+            # bound by the exact committed bundle inside the TARGET image (above),
+            # the independent audit, the fixture proof and the commit's own CI.
+            frozen_hashes = self.frozen_source_hashes()
+            if not frozen_hashes or self.capability(parent['release'][parent_role]['imageId'], frozen_hashes).returncode:
+                raise ValueError('Original serving engine sources must remain unchanged')
+        operation = (self.reader_operation() if self.is_reader() else self.schema_operation() if self.is_schema()
+                     else self.accounting(release['target']['imageId'], 'capture'))
         database = self.probe(release['target']['imageId'], 'capture')
+        if self.is_schema() and database['schema'] != SCHEMA_FROM:
+            raise ValueError('Live schema 038 database required before the upgrade')
         plan = operation['plan']
         value = {'version':VERSION,'sourceCommit':self.request['sourceCommit'],
             'bundleSha256':self.request['bundleSha256'],'preparedAt':plan['observedAt'],
             'expiresAt':plan['expiresAt'],'baseline':before,'release':release,'files':{},
             'operation':operation,'database':database, **parent_hashes,
-            'termsSha256':sha(encoded(previous if self.is_reader() else selected['next'])),
+            'termsSha256':sha(encoded(previous if keeps_window(selected) else selected['next'])),
             'selectionSha256':sha(encoded(selected))}
         private_directory(self.root / 'previous')
         for name, data in self.files(DIRECTORY).items():
@@ -553,7 +642,7 @@ class System(funded.System):
                 raise ValueError('Fresh never-attempted successor required')
             if self.baseline() != candidate['baseline']:
                 raise ValueError('Original active funded baseline drift')
-            if not self.is_reader() and not funded.stamp(self.selected()['closePreviousAt']) <= self.now() < funded.stamp(self.selected()['next']['startsAt']):
+            if self.is_window() and not funded.stamp(self.selected()['closePreviousAt']) <= self.now() < funded.stamp(self.selected()['next']['startsAt']):
                 raise ValueError('Selected closure time must have arrived before writer hold')
         self.parent()
         self.access(candidate['baseline']['accessConfigurationSha256'])
@@ -562,7 +651,7 @@ class System(funded.System):
             raise ValueError('Foreign/proxy drift')
         self.capabilities(candidate)
         result = self.reconcile_accounts(candidate)
-        if result['state'] != ('committed' if recovery else 'uncommitted'):
+        if result['state'] not in self.expected_states(recovery):
             raise ValueError('Exact unused accounting state required')
         self.backup(candidate)
 
@@ -575,9 +664,23 @@ class System(funded.System):
         if upgrade.foreign_state() != candidate['baseline']['foreign']:
             raise ValueError('Foreign workload changed under hold')
 
+    def expected_states(self, recovery=None):
+        """Database states this attempt may start from.
+
+        A first attempt starts uncommitted. Recovery starts committed, except for the
+        schema migration, whose single serializable transaction either committed or
+        did not: recovery finishes an uncommitted one (see database_pending).
+        """
+        if not (self.recovery if recovery is None else recovery):
+            return {'uncommitted'}
+        return {'committed', 'uncommitted'} if self.is_schema() else {'committed'}
+
+    def database_pending(self, candidate):
+        return self.is_schema() and self.reconcile_accounts(candidate)['state'] == 'uncommitted'
+
     def verify_drained(self, candidate):
         result = self.reconcile_accounts(candidate)
-        if result['state'] != ('committed' if self.recovery else 'uncommitted'):
+        if result['state'] not in self.expected_states():
             raise ValueError('Exact drained accounting state required')
 
     def require_candidate_restore(self, candidate):
@@ -588,9 +691,36 @@ class System(funded.System):
         # only by a separately invoked --recover, never by running apply again.
         if self.is_reader():
             return {'accountsChanged': False}  # reader admission never writes the database
+        if self.is_schema():
+            return self.migrate_schema(candidate)
         return self.accounting(candidate['release']['target']['imageId'], 'apply', candidate['operation'])
 
+    def migrate_schema(self, candidate):
+        """The one database write of the schema generation, never polled or retried.
+
+        Exact image capability, drain and protected-data identity were proven before
+        the hold. The image migrates inside one serializable transaction that re-checks
+        the exact expected state, applies only the missing checksummed step(s), proves
+        the 96 pre-039 tables, artifacts, policies and identities byte-identical, and
+        that the four billing tables are empty. A lost output is reconciled by an
+        explicit --recover, which observes the database first.
+        """
+        image = candidate['release']['target']['imageId']
+        current = self.probe(image, 'capture')
+        funded.same_funded(candidate['database'], current)
+        if current['schema'] != SCHEMA_FROM:
+            raise ValueError('Live schema 038 database required for the migration')
+        result = self.probe(image, 'migrate', current)
+        funded.same_funded(candidate['database'], result)
+        return {'migrated': True, 'schema': result['schema']}
+
     def reconcile_accounts(self, candidate):
+        if self.is_schema():
+            current = self.probe(candidate['release']['target']['imageId'], 'capture')
+            funded.same_funded(candidate['database'], current)
+            return {'state': 'committed' if current['schema'] == SCHEMA_TO else 'uncommitted',
+                    'operationSha256': canonical_sha(candidate['operation']),
+                    'protectedDataUnchanged': True, 'paidAiCalls': 0}
         if self.is_reader():
             # No account may change. "Committed" only means the durable database
             # intent was reached, so recovery and replay follow the same order.
@@ -626,8 +756,8 @@ class System(funded.System):
 
     def require_future_start(self, candidate):
         # A narrow recovery cannot extend/retime/reset a used or expired trial.
-        if self.is_reader():
-            return  # the unchanged window is already running; nothing can be extended
+        if not self.is_window():
+            return  # the window is unchanged; nothing can be extended or retimed
         if not self.now() < funded.stamp(self.selected()['next']['startsAt']):
             raise ValueError('Owner trial start already reached; keep held for explicit inspection')
 
@@ -648,7 +778,8 @@ class System(funded.System):
         self.proof = {'version':VERSION,'preparedSha256':sha(encoded(candidate)),
             'sourceCommit':candidate['sourceCommit'],'imageId':candidate['release'][role]['imageId'],
             'schema':39,'protectedDataUnchanged':True,'previousSpendPreserved':True,
-            'previousAllowanceClosed':not self.is_reader(),'operationSha256':canonical_sha(candidate['operation']),
+            **({'fromSchema':SCHEMA_FROM} if self.is_schema() else {}),
+            'previousAllowanceClosed':self.is_window(),'operationSha256':canonical_sha(candidate['operation']),
             'fundedStateSha256':sha(encoded(self.after)), 'browserJourneyPassed':False,
             'paidAiCalls':0,'operationPaidAiCalls':0,'databaseRestored':False}
         readers.update_durable(self.root / 'readback.json', encoded(self.proof))

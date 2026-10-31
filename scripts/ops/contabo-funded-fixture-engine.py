@@ -1259,12 +1259,13 @@ def exercise(context, *, scope='ci'):
         expected_successor = {'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
             'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
             'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
-            'readerAdmission','testerBetaWindow','chainedAuthority'}
+            'readerAdmission','testerBetaWindow','chainedAuthority',
+            'schemaMigration','schemaRecovery','billingDefaultsGuard'}
         assert set(successor_checks)==expected_successor and all(v is True for v in successor_checks.values())
         # Consumed ONLY after exercise() returns through the verified finally
         # cleanup. Never published by a failed or interrupted fixture.
         global SUCCESSOR_PROOF
-        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-2',
+        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-3',
             'sourceCommit':context['sourceCommit'],'bundleSha256':context['bundleSha256'],
             'targetImage':context['image'],'recoveryImage':context['image'],
             'checks':successor_checks,'paidAiCalls':0}

@@ -61,6 +61,25 @@ NARRATIVE_DEFAULTS = {
     'NARRATIVE_FICTION_GENERATION': 'v8',
 }
 WORKER_DEFAULTS = {'AI_FICTION_TIMEOUT_MS': '180000', 'AI_FICTION_MAX_REQUEST_BYTES': '100000'}
+# Billing (ADR-010) reaches api and worker only and is OFF unless an operator sets
+# it. These are exactly the compose defaults of the x-billing block: a newer
+# Compose adds the keys with these values to a runtime rendered before they
+# existed. Only the default-off values are tolerated; a nondefault value (billing
+# switched on, a Stripe credential, a URL) on either side is still a difference
+# and needs its own reviewed step. They are never accepted for web.
+BILLING_DEFAULTS = {
+    'BILLING_ENABLED': 'false',
+    'BILLING_ENFORCEMENT': 'false',
+    'STRIPE_SECRET_KEY': '',
+    'STRIPE_WEBHOOK_SECRET': '',
+    'STRIPE_PRICE_ID': '',
+    'STRIPE_FOUNDER_COUPON_ID': '',
+    'STRIPE_API_VERSION': '',
+    'BILLING_SUCCESS_URL': '',
+    'BILLING_CANCEL_URL': '',
+    'BILLING_FOUNDER_USER_IDS': '',
+    'BILLING_RESERVATION_TTL_SECONDS': '7200',
+}
 
 
 def narrative_runtime_values(runtime):
@@ -112,6 +131,8 @@ def normalized_configuration(config, runtime=None):
         if role in ('api', 'worker'):
             env = svc['environment']
             for key, value in NARRATIVE_DEFAULTS.items():
+                env.setdefault(key, value)
+            for key, value in BILLING_DEFAULTS.items():
                 env.setdefault(key, value)
             if role == 'worker':
                 for key, value in WORKER_DEFAULTS.items():

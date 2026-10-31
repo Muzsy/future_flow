@@ -225,8 +225,9 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     """The two separately authorized generations that follow the owner trial.
 
     The owner window must be running first (a real wait, no clock seam), then
-    reader admission (Access list only, no database write) and the 10 USD tester
-    window, each consuming the previous generation's complete evidence.
+    reader admission (Access list only, no database write), the 10 USD tester
+    window and finally the schema 038 to 039 upgrade, each consuming the previous
+    generation's complete evidence.
     """
     daily, funded, upgrade = engine.daily, engine.funded, engine.upgrade
     encoded, sha, frozen = engine.encoded, engine.sha, engine.frozen
@@ -240,19 +241,28 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 self.database=database
                 self.staging_network=project+'-stage'
                 self.applications=0
+                self.interrupt_first=False
 
             def probe(self,image,mode,expected=None):
-                if image != ctx['image'] or mode != 'capture' or expected is not None:
+                if image != ctx['image']:
+                    raise ValueError('Only the actual fixture image supported')
+                if self.is_schema() and mode == 'migrate' and expected is not None:
+                    # The real image-side migration against the real PostgreSQL.
+                    return db('migrate',database,expected)
+                if mode != 'capture' or expected is not None:
                     raise ValueError('Only actual synthetic039 capture supported')
                 return db('capture',database)
 
             def accounting(self,image,mode,expected=None):
-                if self.is_reader() or image != ctx['image'] or mode not in {'capture','apply','reconcile'}:
+                if not self.is_window() or image != ctx['image'] or mode not in {'capture','apply','reconcile'}:
                     raise ValueError('Exact isolated successor transport required')
                 return db('successor-'+mode,database,{'previous':previous,'selection':selection,'expected':expected})
 
             def apply_accounts(self,candidate):
                 self.applications+=1
+                if self.interrupt_first and self.applications == 1:
+                    # Dies BEFORE any database write: the migration stays uncommitted.
+                    raise InterruptedError('Synthetic interruption before the schema migration')
                 return super().apply_accounts(candidate)
 
             def build_files(self,role,build,baseline):
@@ -271,6 +281,17 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                         svc['environment'].update({k:v for k,v in runtime.items() if name=='worker' or k in funded.NARRATIVE_DEFAULTS})
                     if self.is_reader() and name in {'web','api'}:
                         svc['environment']['CLOSED_SITE_ALLOWED_EMAILS']=','.join(successor.reader_emails(selection))
+                if self.is_schema():
+                    # The new image brings billing at its compose defaults (off).
+                    for name in ('api','worker'):
+                        new['services'][name]['environment'].update(funded.BILLING_DEFAULTS)
+                    enabled=copy.deepcopy(new)
+                    enabled['services']['api']['environment']['BILLING_ENABLED']='true'
+                    assert successor.normalized(enabled,selection,previous)!=successor.normalized(config,selection,previous)
+                    stripe=copy.deepcopy(new)
+                    stripe['services']['worker']['environment']['STRIPE_SECRET_KEY']='synthetic'
+                    assert successor.normalized(stripe,selection,previous)!=successor.normalized(config,selection,previous)
+                    checks['billingDefaultsGuard']=True
                 assert successor.normalized(new,selection,previous)==successor.normalized(config,selection,previous)
                 private(path/'server.env',successor.candidate_environment(old['server.env'].decode(),selection,build['imageTag'],previous))
                 private(path/'pinned-image.json',encoded({'services':{n:{'image':build['imageId'],'pull_policy':'never'} for n in new['services']}}))
@@ -285,7 +306,7 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 return self.hashes(path)
         return ChainSystem()
 
-    def advance(selection, previous, *, emails):
+    def advance(selection, previous, *, emails, interrupted=False):
         req=copy.deepcopy(request)
         for key in ('preparedSha256','restoreProof'):
             req.pop(key,None)
@@ -315,8 +336,24 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 while trial.now()<until:
                     time.sleep(min(1,(until-trial.now()).total_seconds()))
             req['accessSnapshot']['checkedAt']=utc().isoformat()
-            successor.transition(trial,candidate)
-            assert trial.applications==1
+            if interrupted:
+                trial.interrupt_first=True
+                try:successor.transition(trial,candidate)
+                except InterruptedError:pass
+                else:raise AssertionError('Interrupted schema migration did not stop')
+                # Held and fenced with the database untouched (still schema 038).
+                assert trial.applications==1 and not any(v['State']['Running'] for v in trial.roles().values())
+                assert db('capture',database)['schema']==38
+                assert trial.reconcile_accounts(candidate)['state']=='uncommitted'
+                trial.recovery=True
+                req['mode']='recover'
+                req['accessSnapshot']['checkedAt']=utc().isoformat()
+                successor.transition(trial,candidate,recovery=True)
+                # Recovery observed the database first and finished the one step.
+                assert trial.applications==2
+            else:
+                successor.transition(trial,candidate)
+                assert trial.applications==1
             assert daily.funded_upgrade_healthy('personal-beta')
             active=engine.replay.active_funded_runtime(daily,funded.fence.original)
             assert active['preparedSha256']==sha(encoded(candidate))
@@ -363,3 +400,30 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     assert tester_candidate['parentPreparedSha256']==sha(encoded(reader_candidate))
     assert reader_candidate['parentPreparedSha256']!=tester_candidate['parentPreparedSha256']
     checks['chainedAuthority']=True
+
+    # The schema generation: the live 038 database to the reviewed 039 billing
+    # foundation. The fixture database is stepped back to 038 first (synthetic,
+    # fixture only); the migration then runs inside the real image. The first
+    # attempt dies before the database write, the explicit recovery finishes it.
+    active_terms=json.loads((tester.root/'terms.json').read_bytes())
+    assert db('schema-downgrade',database)=={'downgraded':True}
+    assert db('capture',database)['schema']==38
+    schema_selection={'purpose':'schema-039','previousTermsSha256':successor.canonical_sha(active_terms),
+        'fromSchema':38,'toSchema':39}
+    schema,schema_candidate=advance(schema_selection,active_terms,emails=sorted(READERS),interrupted=True)
+    assert schema.generation==4 and schema.root.name=='beta-successor-4'
+    assert (schema.root/'terms.json').read_bytes()==encoded(active_terms)
+    assert db('capture',database)['schema']==39
+    assert db('schema-verify',database)=={'schemaMigration':True}
+    proof=json.loads((schema.root/'readback.json').read_bytes())
+    assert proof['schema']==39 and proof['fromSchema']==38 and proof['previousAllowanceClosed'] is False
+    # The cohort, allowance and readers are exactly the tester window's.
+    env=schema.configuration(owner)['services']['api']['environment']
+    assert env['CLOSED_SITE_ALLOWED_EMAILS']==','.join(sorted(READERS))
+    assert env['CLOSED_BETA_USER_IDS']==','.join(p['userId'] for p in TESTERS)
+    assert env['BILLING_ENABLED']=='false'
+    assert tester_candidate['preparedAt']<schema_candidate['preparedAt']
+    assert schema_candidate['parentPreparedSha256']==sha(encoded(tester_candidate))
+    state=daily.successor_active_state()
+    assert state['generation']==4 and state['directory'].name=='beta-successor-4'
+    checks.update(schemaMigration=True,schemaRecovery=True)

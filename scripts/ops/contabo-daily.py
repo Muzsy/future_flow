@@ -624,6 +624,15 @@ SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3'
 # purpose -> (participants, projectUsd, userUsd) for allowance-changing purposes.
 SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
+# The 038 to 039 database and application upgrade: no allowance, window, cohort or reader change.
+SUCCESSOR_SCHEMA_PURPOSE = 'schema-039'
+SUCCESSOR_SCHEMA_STEP = (38, 39)
+# Billing reaches api and worker only and stays at the compose default (off) in this upgrade.
+SUCCESSOR_BILLING_DEFAULTS = {
+    'BILLING_ENABLED': 'false', 'BILLING_ENFORCEMENT': 'false', 'STRIPE_SECRET_KEY': '',
+    'STRIPE_WEBHOOK_SECRET': '', 'STRIPE_PRICE_ID': '', 'STRIPE_FOUNDER_COUPON_ID': '',
+    'STRIPE_API_VERSION': '', 'BILLING_SUCCESS_URL': '', 'BILLING_CANCEL_URL': '',
+    'BILLING_FOUNDER_USER_IDS': '', 'BILLING_RESERVATION_TTL_SECONDS': '7200'}
 SUCCESSOR_EMAIL = re.compile(r'[-a-z0-9._+]+@[-a-z0-9.]+')
 
 
@@ -778,11 +787,14 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
     prior = context['terms']
     access = context['access']
     purpose = selection.get('purpose') if isinstance(selection, dict) else None
-    allowed = {'owner-e2e'} if generation == 1 else {SUCCESSOR_READER_PURPOSE, 'tester-beta'}
+    allowed = ({'owner-e2e'} if generation == 1
+               else {SUCCESSOR_READER_PURPOSE, 'tester-beta', SUCCESSOR_SCHEMA_PURPOSE})
     if purpose not in allowed or plan.get('purpose') != purpose:
         raise ValueError('Approved successor purpose for this generation required')
     if purpose == 'tester-beta' and 'tester-beta' in context.get('purposes', ()):
         raise ValueError('The tester window may be opened at most once')
+    if purpose == SUCCESSOR_SCHEMA_PURPOSE and SUCCESSOR_SCHEMA_PURPOSE in context.get('purposes', ()):
+        raise ValueError('The schema upgrade may be applied at most once')
     prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00'))
                             for k in ('preparedAt', 'expiresAt')]
     prior_start, prior_end = [dt.datetime.fromisoformat(prior[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
@@ -813,6 +825,30 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
                 or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
             raise ValueError('Bounded reader-admission preparation within the active window required')
+    elif purpose == SUCCESSOR_SCHEMA_PURPOSE:
+        # The schema upgrade changes the database and the image, never the funded
+        # window, participants, budget, cohort, readers or any account: terms, readers
+        # and the allowance environment stay byte-identical to the effective parent.
+        if (set(selection) != {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'}
+                or type(selection['fromSchema']) is not int or type(selection['toSchema']) is not int
+                or (selection['fromSchema'], selection['toSchema']) != SUCCESSOR_SCHEMA_STEP
+                or terms != prior
+                or set(plan) != {'version', 'purpose', 'observedAt', 'expiresAt', 'previousTermsSha256',
+                                 'selectionSha256', 'fromSchema', 'toSchema'}
+                or plan['version'] != SUCCESSOR_PLAN_VERSION
+                or (plan['fromSchema'], plan['toSchema']) != SUCCESSOR_SCHEMA_STEP
+                or selection['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['selectionSha256'] != successor_canonical_hash(selection)
+                or has_receipt):
+            raise ValueError('Only the exact approved schema 038 to 039 selection is supported')
+        # Deliberately no upper window bound: an ended window only means that nothing
+        # can generate. The preparation itself must still be a fresh 900 s candidate.
+        if (any(t.utcoffset() != dt.timedelta(0) for t in (prepared_at, expires))
+                or prepared_at < prior_start or (expires - prepared_at).total_seconds() != 900
+                or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
+            raise ValueError('Bounded schema-upgrade preparation required')
     else:
         count, project_usd, user_usd = SUCCESSOR_WINDOW_PURPOSES[purpose]
         participants = terms['participants'] if isinstance(terms.get('participants'), list) else []
@@ -862,6 +898,13 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                     or env['NARRATIVE_FICTION_GENERATION'] != 'v9'
                     or env['NARRATIVE_COHORT_USER_IDS'] != ids):
                 raise ValueError('Successor runtime policy differs')
+        if purpose == SUCCESSOR_SCHEMA_PURPOSE:
+            for service in ('api', 'worker'):
+                if any(config['services'][service]['environment'].get(k) != v
+                       for k, v in SUCCESSOR_BILLING_DEFAULTS.items()):
+                    raise ValueError('Schema upgrade must keep billing at its default-off configuration')
+            if any(k in config['services']['web']['environment'] for k in SUCCESSOR_BILLING_DEFAULTS):
+                raise ValueError('Billing configuration must not reach the web service')
         # The reader boundary belongs to ingress web/API. Compose deliberately
         # omits access settings from the background worker.
         for service in ('web', 'api'):
@@ -999,6 +1042,7 @@ def successor_effective_role(value, root=None):
             or intent['preparedSha256'] != digest(regular(root / 'prepared.json'))
             or not isinstance(intent['states'], list) or not 1 <= len(intent['states']) <= 32):
         raise ValueError('Bounded original successor journal required')
+    purpose = json.loads(regular(root / 'selection.json')).get('purpose')
     previous = None
     known = {'apply-intent', 'recovery-intent', 'held', 'database-intent', 'accounts-committed',
              'authority-staged', 'exposure-intent', 'applied', 'recovered', 'held-after-failure',
@@ -1035,7 +1079,11 @@ def successor_effective_role(value, root=None):
             valid = last_state is not None
         else:
             valid = state in successors.get(last_state, set())
-        if (not valid or (state == 'database-intent' and attempt != 'apply-intent')
+        # Accounting SQL is never repeated by recovery. The schema migration is the
+        # one idempotent database step: a recovery may finish it, but only if the
+        # database still has to be migrated (the adapter observes this first).
+        if (not valid or (state == 'database-intent' and attempt != 'apply-intent'
+                          and not (purpose == SUCCESSOR_SCHEMA_PURPOSE and attempt == 'recovery-intent'))
                 or (last_state == 'held' and state == 'accounts-committed' and attempt != 'recovery-intent')
                 or (state == 'applied' and attempt != 'apply-intent')
                 or (state == 'recovered' and attempt != 'recovery-intent')):
@@ -1050,12 +1098,18 @@ def successor_effective_role(value, root=None):
         raise SuccessorNotExposed('Successor not fully exposed; keep held')
     role = 'recovery' if state == 'recovered' else 'target'
     proof = json.loads(regular(root / 'readback.json'))
+    schema_step = purpose == SUCCESSOR_SCHEMA_PURPOSE
+    # The schema upgrade must read back schema 039 reached FROM 038; every other
+    # generation keeps the recorded 038/039 acceptance and carries no such field.
+    schema_ok = ((proof.get('schema') == SUCCESSOR_SCHEMA_STEP[1] and proof.get('fromSchema') == SUCCESSOR_SCHEMA_STEP[0])
+                 if schema_step else (proof.get('schema') in (38, 39) and 'fromSchema' not in proof))
     if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
             or proof.get('sourceCommit') != value['sourceCommit']
-            or proof.get('imageId') != value['release'][role]['imageId'] or proof.get('schema') not in (38, 39)
+            or proof.get('imageId') != value['release'][role]['imageId']
+            or not schema_ok
             or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
             or proof.get('previousAllowanceClosed') is not (
-                json.loads(regular(root / 'selection.json')).get('purpose') != SUCCESSOR_READER_PURPOSE)
+                purpose not in {SUCCESSOR_READER_PURPOSE, SUCCESSOR_SCHEMA_PURPOSE})
             or proof.get('browserJourneyPassed') is not False
             or proof.get('operationSha256') != digest(json.dumps(value['operation'],sort_keys=True,separators=(',', ':')).encode())
             or proof.get('operationPaidAiCalls') != 0 or proof.get('paidAiCalls') != 0

@@ -5,6 +5,7 @@ import {
   successorReleaseEvidence,
   validateOwnerSelection,
   validateReaderSelection,
+  validateSchemaSelection,
   validateSuccessorSelection,
   successorChecks,
   successorModules,
@@ -85,7 +86,7 @@ function proof() {
       ),
     },
     successorFixture: {
-      version: 'alterward-beta-successor-fixture-2',
+      version: 'alterward-beta-successor-fixture-3',
       sourceCommit: commit,
       bundleSha256,
       targetImage: image,
@@ -234,6 +235,63 @@ test('reader admission is a sorted unique reader list and carries no allowance',
   const bytes = readerProof();
   bytes.release.runtime.maxRequestBytes = 100000;
   assert.throws(() => successorReleaseEvidence(bytes));
+});
+function schemaProof() {
+  const p = proof();
+  p.selection = {
+    purpose: 'schema-039',
+    previousTermsSha256: 'd'.repeat(64),
+    fromSchema: 38,
+    toSchema: 39,
+  };
+  // The cohort is the still-active window's; the root adapter proves equality.
+  p.release.runtime.cohortUserIds = testers.map((t) => t.userId);
+  return p;
+}
+test('the schema upgrade is exactly 038 to 039 and carries no allowance, window, cohort or readers', () => {
+  const p = schemaProof();
+  assert.equal(successorReleaseEvidence(p).target.imageId, image);
+  assert.equal(validateSchemaSelection(p.selection), p.selection);
+  assert.throws(() => validateOwnerSelection(p.selection));
+  assert.throws(() => validateReaderSelection(p.selection));
+  for (const change of [
+    (s) => (s.fromSchema = 37),
+    (s) => (s.fromSchema = 39),
+    (s) => (s.toSchema = 40),
+    (s) => (s.toSchema = 38),
+    (s) => (s.toSchema = '39'),
+    (s) => delete s.fromSchema,
+    (s) => (s.previousTermsSha256 = 'xyz'),
+    (s) => (s.next = {}),
+    (s) => (s.readers = { allowedEmails: [] }),
+    (s) => (s.projectUsd = '10'),
+    (s) => (s.closePreviousAt = '2026-01-01T00:00:00Z'),
+    (s) => (s.purpose = 'schema-040'),
+  ]) {
+    const s = schemaProof().selection;
+    change(s);
+    assert.throws(() => validateSuccessorSelection(s));
+  }
+  for (const change of [
+    (r) => (r.cohortUserIds = []),
+    (r) => (r.maxRequestBytes = 100000),
+    (r) => (r.timeoutMs = 180000),
+  ]) {
+    const bad = schemaProof();
+    change(bad.release.runtime);
+    assert.throws(() => successorReleaseEvidence(bad));
+  }
+});
+test('the schema checks are mandatory in the fixture contract', () => {
+  for (const name of [
+    'schemaMigration',
+    'schemaRecovery',
+    'billingDefaultsGuard',
+  ])
+    assert.ok(successorChecks.includes(name));
+  const p = schemaProof();
+  delete p.successorFixture.checks.schemaMigration;
+  assert.throws(() => successorReleaseEvidence(p));
 });
 test('the fixture contract demands the chained-generation checks', () => {
   for (const name of [

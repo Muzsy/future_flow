@@ -13,6 +13,10 @@ import {
   assertReviewedFundedPre039Schema,
 } from '../scripts/lib/privacy-recovery-schema';
 import { assertPrivacySecurityCatalog } from '../scripts/lib/privacy-security-catalog';
+import {
+  billingFoundationState,
+  downgradeFixtureTo038,
+} from '../scripts/ops/funded-upgrade-fixture-schema';
 
 // The observed production state is 001–038. This is the dedicated 038→039
 // upgrade lane: exact preflight, append-only step, empty billing foundation.
@@ -171,3 +175,41 @@ it('rolls back completely if the billing step fails halfway', async () => {
     ).rows,
   ).toEqual([]);
 });
+it('the fixture-only inverse returns a migrated database to the exact reviewed 038 state, repeatably', async () => {
+  await rollback(async (d) => {
+    const before = await captureFundedRuntime(d, input);
+    expect(before.schema).toBe(38);
+    const migrated = await migrateFundedRuntime(d, input, before);
+    expect(await billingFoundationState(d)).toHaveLength(4);
+    await downgradeFixtureTo038(d);
+    expect(await billingFoundationState(d)).toEqual([]);
+    const back = await captureFundedRuntime(d, input);
+    expect(back).toEqual(before);
+    expect(back.catalogSha256).not.toBe(migrated.catalogSha256);
+    // The real migration applies again, with the same protected-data result.
+    const again = await migrateFundedRuntime(d, input, back);
+    expect(again).toEqual(migrated);
+    expect(await billingFoundationState(d)).toEqual(
+      [
+        'aw_billing_events',
+        'aw_billing_grants',
+        'aw_billing_reservations',
+        'aw_billing_subscriptions',
+      ].map((name) => ({ name, rls: true, populated: false })),
+    );
+  });
+}, 120000);
+it('the fixture-only inverse refuses a non-039 or populated billing foundation', async () => {
+  await rollback(async (d) => {
+    await expect(downgradeFixtureTo038(d)).rejects.toThrow(
+      /exactly schema 039/,
+    );
+    const before = await captureFundedRuntime(d, input);
+    await migrateFundedRuntime(d, input, before);
+    await d.query(
+      "INSERT INTO aw_billing_subscriptions(subscription_id,user_id,customer_id,status,last_state_event_created) VALUES('sub_x',$1,'cus_x','active',1)",
+      [user],
+    );
+    await expect(downgradeFixtureTo038(d)).rejects.toThrow(/empty billing/);
+  });
+}, 120000);
