@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-10-31
 ---
 
 # Testing és quality gates
@@ -40,6 +40,17 @@ Merge csak a releváns kötelező ellenőrzések sikeres lefutása után.
 A `smoke-deployment.mjs` izolált, root jogosultságú funded fixture-je fizikai mentést/visszaállítást és successor-várakozásokat is végrehajt. A teljes gyermekfolyamat CI-kerete15perc, a külön image-rehearsalt és építést is futtató Container job felső határa40perc. A sikeres fixture tényleges `fundedFixtureElapsedMs` időtartama a CI-naplóba kerül; a mérés nem elfogadási proof. Az egyedi parancsok határai, watchdogok, ellenőrzések és a production/provider időkorlátok változatlanok. Nincs automatikus retry vagy sikertelen ellenőrzés átugrása.
 
 Indok: a89aa943 main [CI40463665750](https://github.com/Muzsy/future_flow/actions/runs/40463665750) első Container-kísérletét a korábbi600000ms külső keret megszakította (`spawnSync sudo ETIMEDOUT`), miközben a Verify sikeres. Az egyező tracked tree korábbi sikeres PR-smoke-ja kb.9m11s volt. Ez szűk időtartalékot jelez, de az eredeti timeout mélyebb oka nem bizonyított; az eredeti failure megmarad. A módosított keret elfogadásához saját tényleges Container CI szükséges, nem elég a konfiguráció ellenőrzése. Célgépes művelet továbbra csak a konkrét main saját sikeres CI-je és az arra érvényes tulajdonosi felhatalmazás mellett indulhat.
+
+### Párhuzamos CI-jobok — 2026-10-31
+
+A CI három, egymástól független jobból áll, amelyek párhuzamosan futnak: `verify`, `container` és `image-rehearsal`. Korábban az image-rehearsal a `container` job második, a smoke után következő lépése volt, ezért a teljes futás ≈ 44 perc volt. Most mindkét container-szintű job a saját image-buildjét használja:
+
+- `container`: image build, `verify-deployment.mjs`, `age` telepítés, `smoke-deployment.mjs`; artifact: `funded-upgrade-ci-proof`.
+- `image-rehearsal`: image build, `age` telepítés, a rehearsal-szkript által rögzített PostgreSQL digest előzetes `docker pull`-ja (a rehearsal maga szándékosan nem húz le semmit), majd a változatlan rehearsal és proof-validáció; artifact: `funded-image-rehearsal-proof`.
+
+Egyetlen ellenőrzés sem esett ki, a timeoutok jobonként 45 percesek (a smoke-fixture külső 30 perces határa változatlan). A successor-fixture ablakainak kezdési előnye 10 percről 4 percre csökkent (`START_LEAD` a `contabo-beta-successor-fixture.py`-ban); a lánc ettől függetlenül ténylegesen megvárja az owner-ablak indulását. Mért tartalék (két valódi CI-job, PR #119): az indulási feltétel ellenőrzésekor 143–168 s maradt a 240 s-ból, vagyis a prepare, a fizikai mentés, a 60 s-os zárási késleltetés és a stop/restore/stage együtt legfeljebb ≈ 100 s volt.
+
+A release-kapuk (`assertExactFenceCiJobs` a `scripts/contabo-fence-operator.mjs`-ben, amelyet a fence/funded/personal-beta/successor operátorok használnak) pontosan a három jobot követelik meg sikeresen; a régi, kétjobos futás már nem fogadható el. Ha a GitHubban kötelező státuszellenőrzés (branch protection) van beállítva, annak az `image-rehearsal` nevet is tartalmaznia kell; a `container` név változatlan.
 
 ## Célzott tesztek
 
