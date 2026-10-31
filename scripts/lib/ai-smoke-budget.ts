@@ -1,6 +1,6 @@
 import { DomainError } from '@future-flow/core';
 
-// Standard short-context prices, checked on 2026-10-02. Reserve the more
+// Standard short-context prices, checked on 2026-10-31. Reserve the more
 // expensive cache-write input rate and all allowed output tokens before a call.
 export const smokePrices = {
   input: 2,

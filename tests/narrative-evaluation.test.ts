@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { LifeRepository, type Database } from '@future-flow/database';
 import { hash } from '@future-flow/core';
@@ -7,8 +7,16 @@ import {
   parseEvaluationOptions,
   evaluationTimeouts,
   evaluationApprovedCumulativeBudgetUsd,
+  evaluationFlexPriceEvidence,
+  evaluationPriceEvidence,
   verifyEvaluationAuthorization,
 } from '../scripts/lib/narrative-evaluation-options';
+// The price evidence expires after a week, so paid gates are tested relative to
+// the recorded check date instead of a fixed calendar day or the real clock.
+const priceDay = (days: number) =>
+  Date.parse(`${evaluationPriceEvidence.checkedOn}T12:00:00Z`) +
+  days * 86400000;
+
 import {
   assessHumanRatings,
   blindOrder,
@@ -110,6 +118,12 @@ describe('bounded and independently assessed narrative experiment', () => {
       '3',
       '--no-forks',
     ];
+    const clock = vi
+      .spyOn(Date, 'now')
+      .mockReturnValue(
+        Date.parse(`${evaluationFlexPriceEvidence.checkedOn}T12:00:00Z`),
+      );
+    onTestFinished(() => clock.mockRestore());
     const options = parseEvaluationOptions(args, {});
     expect(options.serviceTier).toBe('flex');
     // Product provider config keeps its existing <=300s validation. Only the
@@ -191,9 +205,7 @@ describe('bounded and independently assessed narrative experiment', () => {
         NARRATIVE_EVAL_API_KEY: 'other-vendor-sensitive-credential',
       }),
     ).toThrow();
-    const clock = vi
-      .spyOn(Date, 'now')
-      .mockReturnValue(Date.parse('2026-10-18T12:00:00Z'));
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(priceDay(0));
     try {
       const options = parseEvaluationOptions(paid, development);
       expect(options.budgetUsd).toBe(5);
@@ -217,7 +229,7 @@ describe('bounded and independently assessed narrative experiment', () => {
           development,
         ),
       ).toThrow();
-      clock.mockReturnValue(Date.parse('2026-10-30T12:00:00Z'));
+      clock.mockReturnValue(priceDay(8));
       expect(() => parseEvaluationOptions(paid, development)).toThrow();
     } finally {
       clock.mockRestore();

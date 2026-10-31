@@ -6,7 +6,6 @@
 
 **Aktuális, 2026-10-10:** a tulajdonosi oldal és a napi titkosított mentés a Contabón aktív; tesztelő/paid inaktív. A [friss privacy-visszaállítási terv](CONTABO_PRIVACY_RESTORE_PLAN_HU.md) rögzíti, hogy az account recovery marker és az élettörlési nyugta nem független, törlést túlélő napló. A valódi régi-mentés/replay és a Shared/személyes próza retentionhatára még nyitott. A későbbi részek a saját dátumozott checkpointjukat őrzik.
 
-
 ## 2026-10-08-i katalógus-checkpoint
 
 2026-10-08, 2026-10-08T15:05:17.691Z: elkészült a 15 angol Official élet / 45 valódi AI-fejezet és az öt public Official Scenario staging-kiadása, minden példány külön preview/Confirm és tényleges DB-reader hash-ellenőrzés után. Mind a 15 eredeti élet Sonnet-auditált; 11 további teljes copy-audit és külön szerkesztői döntések készültek, a negatív reportok és indokolt egyedi lezárásuk megmaradtak. Külön fork-engedély 15 élethez / 45 ellenőrzött döntési ponthoz, 15 kurált Featured life és tényleges Discovery-visszaolvasás kész; öt Scenario külön personalization consentet kapott. Normál serving és fizetett start flag-ek false, béta keret inaktív, Contabo-deploy nincs. Kizárólag angol termék, magyar rejtve. 194 valódi providerhívás, konzervatív elszámolás 4.668157 USD (3.730325 OpenAI + 0.937832 Claude), ismeretlen usage 0; a tesztelői 3 USD tartalék érintetlen. Ez helyi költségőr-elszámolás, nem szolgáltatói számla/egyenleg. Jóváhagyott összesen 10 USD, 8 + 2 providerplafon, seed 6 + 1 / béta 2 + 1; legfeljebb 10 tesztelő, tényleges kezdéstől 30 nap, közös 0,50 USD/user plafon. Angol Scenario-lista, keresés, lapozás és navigáció implementált; mind az öt valódi public forrás visszaolvasása és hat literal keresés ellenőrzött, új paid AI 0. A teljes helyi check 655 teszt / 61 fájl és production build sikeres; 167 séma: két új public-origin report/query contract, a korábbi 165 és 001–036 változatlan. A megelőző b839ecb3 pontos verify/container CI sikeres (650/60/165, ismételt migrációk, PostgreSQL/HTTPS/DB TLS, 0 fizetett CI-AI). A katalógus olvasható dokumentumai elkészültek. Személyes Scenario saját profilos valódi háromfejezetes Sol + Sonnet próbája és actual Auth/DB-cleanup sikeres; 0,228975 USD a külön régi fejlesztési keretből, béta-keret érintetlen. Claude canon/nyelv tiszta, curiosity 3/5 és ismétlődő tempó további minőségi mérési pont. P13 privát, identitás/szöveg nélküli start/első–harmadik eredeti branch-periódus operátori kohorszriport implementált; ez túlélő operatív rekordok összesítése, click/referral és read→start konverzió még külön feladat. Következő: pozitív interaktív UI, további P13 mérés, retention/backup/restore/email/ops, üzemeltetői kapcsolat-email, tényleges tesztelőlista és teljes webhely-zárás, majd engedélyezett Contabo-indulás. P01–P13 és Shared S0–S7 kombinált terve megmarad; 50–100 élet / 20–30 Scenario béta utáni bővítés, teljes nyilvános indulás külön lépés. [Olvasható angol kínálat](beta-catalog/README.md) · [Bizonyíték és határok](CLOSED_BETA_CATALOG_REPORT_HU.md) · [Keret](AI_PRODUCTION_BUDGET_HU.md).
@@ -49,36 +48,29 @@ A struktúra nullázása nem távolítja el a nevet a korábban generált próz�
 
 Completed Shared job inputja commitkor törlődik; deleting marker a failed/cancelled input és raw-output checkpointot is tisztítja, korábbi left tagot is beleértve. Nincs receiptben teljes prompt/profil; hash/token/model meta megmarad. A már elküldött provider-hívás költsége a guardban elszámolandó, a késői canon commit lease/member/user ellenőrzéssel tiltott. A retained canon próza teljes redakciója és valódi Shared Auth/AI recovery S3 gate. [S2 riport](SHARED_CONTEXT_S2_REPORT_HU.md).
 
-
 ## 2026-10-05: közös szövegprojekció és frissebb job védelme
 
 A felhasználó az érintett közös próza elrejtését, dátum és eredmény megtartását választotta. 013 már deleting markerre vetületet ad és scrub/cancel védi a régi Shared/személyes inputot. Privacy miatti explicit retry friss jobot kap; a már megtisztított jobot a fizikai törlés megőrzi. Export/pending/emlék/fork ugyanígy projected. Nyers canon/hash és régi személyes fejezet nem íródik át; nyers/backup-retention és régi személyes próza további kapu. Teljes valódi kétfiókos Auth/Shared/saját AI és kontrollált recovery sikeres; migráció utáni valódi Auth/DB technikai proof nulla provider-hívással. [Bizonyíték](SHARED_CONTEXT_S3_PRIVACY_AUTH_REPORT_HU.md).
-
 
 ## 2026-10-05: felületről indítható privát AI-review
 
 A felületről indítható P09 fizetett AI-review elkészült: explicit hozzájárulás, tartós queue/lease, egy attempt/immutable copy, közös projekt/user költségőr, egy pending job/user és gördülő napi kvóta. Újraolvasás/dupla kérés ingyenes, elveszett lease és provider-hiba nem indít automatikus fizetett retryt. 015 alkalmazva/ismételve a fejlesztői DB-n; English/Shared/tulajdonosi/hash/revision kapu és export/törlés integrált. Main CI sikeres: 324 teszt/28 fájl, 50 séma; a korábbi 48 és 001–014 változatlan. A normál feature false, éles allowance 0; publicationApproved false. Következő curator/ScenarioVersion/sanitized fork-checkpoint/Publication/Confirm/Official seed, majd P10–P13; S3 retention, S4–S7 és Contabo/Cloudflare élesítés megmarad. [Megvalósítás és pontos korlátok](PUBLIC_REVIEW_JOB_REPORT_HU.md).
 
-
 ## 2026-10-05: tulajdonosi beküldés és text-curation
 
 A P09 tulajdonosi beküldés és trusted text-curation nyilvántartás elkészült: explicit consent, aktuális immutable copy és no_findings AI-review, idempotens beküldés, védett operatori lista/döntésfájl, egyszeri változatlan döntés, English/Shared/ownership/revision/hash/expiry/törlés kapu, export/cascade és 016 RLS-migráció. Scope text_only, publicationApproved false. Teljes ScenarioVersion/sanitized fork-checkpoint és azok ellenőrzése, Publication/Confirm/Official eredetengedély/seed még hátravan; majd P10–P13. Main CI `4d66981` sikeres: 336 teszt/29 fájl, formázás, típusellenőrzés, API/worker/Next production build és 52 séma-drift. Izolált valódi PostgreSQL/TLS: 001–016 + ismétlés, párhuzamos curation-submit és versengő döntés → egy nyertes, azonos apply újrahasználata, revision/törlés/RLS/export/cascade és publication=false; minden korábbi P09/S0–S3 proof megmarad. Konténeres web/API/worker/Caddy verified HTTPS/DB TLS, üres queue és tiszta worker-leállás, nulla provider-AI/valódi CI-kulcs, egress tiltva. [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37358126556). 52 séma, a korábbi 50 és 001–015 változatlan; fejlesztői DB 001–016 alkalmazva/ismételve, 19 ff_ és 36 aw_/36 RLS. Új AI-hívás nincs; a közös OpenAI/Claude keretek, S3 retention/S4–S7 és Contabo/Cloudflare kapuk megmaradnak. [Kurátori szövegellenőrzés és pontos korlátok](PUBLIC_TEXT_CURATION_REPORT_HU.md).
-
 
 ## 2026-10-05: teljes ScenarioVersion foundation
 
 A P09 teljes angol ScenarioVersion foundation elkészült: külön zárt scenario-1 sablon, immutable/hash/verziózott saját tárolás, friss belső ID-k és teljes cél/állapot/korlát-hivatkozások, explicit indításból normál AI-job és közös kvóták, export/cascade. 017 alkalmazva/ismételve, 19 ff_ és 39 aw_/39 RLS; 354 helyi teszt/30 fájl és teljes check/build, 57 séma, a korábbi 52 és 001–016 változatlan. Két valódi szintetikus Auth/DB HTTP-fiók: ownership/anon, verzió/replay/start és három technikai időszak, export/tényleges törlés sikeres; új paid AI 0. Normál/deploy SCENARIO_VERSIONS_ENABLED=false, publicationApproved=false, saját előkészítő API, scenario UI/public permission még nincs. Következő sanitized fork-checkpoint, teljes structured preview/review, Publication/Confirm/Official seed, majd P10–P13. A három forrás minden követelménye, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret, S3 retention/S4–S7 és Contabo/Cloudflare kiadási kapuk megmaradnak. [Részletes megvalósítás](SCENARIO_VERSION_REPORT_HU.md).
 
-
 ## 2026-10-05: sanitized döntési checkpoint foundation
 
 A P09 sanitized döntési checkpoint foundation elkészült: külön fork-checkpoint-1, teljes típusos állapot/korlát/előfeltétel/hatás és helyettesítő kulcskatalógus, exact canon/copy/opció binding, minden opció végrehajtható, új ID-s privát kezdőállapot motor. Saját candidate/save/read API, immutable hash/dedupe/default-off és privacy-fail-closed, export/cascade, 018 alkalmazva/ismételve; 19 ff_ és 40 aw_/40 RLS. Teljes helyi check/build: 372 teszt/32 fájl, 62 séma; a korábbi 57 és 001–017 változatlan. Valódi kétfiókos Auth/DB HTTP-próba: három párhuzamos save egy rekord, source-advance tiltás, három technikai időszak, export/tényleges Auth/DB cleanup; új paid AI 0. A régi coarse readyForFork=false változatlan, új record publicationApproved=false/readyForPublicFork=false/full review required. Következő teljes strukturált Privacy/Content Preview UI és új teljes-scope hash/AI/curator, majd Publication/Confirm/Official seed és P10–P13. A külön 5–5 USD keret, a három forrás teljes scope-ja és 50–100 élet/20–30 scenario cél, S3 retention/S4–S7 és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Megvalósítás és pontos korlátok](PUBLIC_FORK_CHECKPOINT_REPORT_HU.md).
 
-
 ## 2026-10-06: döntési előnézet és leírásszerkesztő
 
 Az angol saját döntési előnézet és leírásszerkesztő elkészült: tényleges választás előtti állapot/cél/korlát/előfeltétel/hatás, egyértelmű objektumsorszámok, forráskötés mellett javítható prose, immutable saját mentés/verziómegtekintés és ingyenes visszatöltés. Helyi teljes check: 375 teszt/32 fájl, API/worker/Next build; végleges textarea-címkézés után format/Next build ismét sikeres. 62 schema és 001–018 változatlan. Valódi Auth-böngésző/DB próba: két mentés, régi verzió/reload/azonos reuse/dirty-copy elrejtés, export és tényleges cleanup; új paid AI 0. A megtekintett verzió még nem kiadási pontlista. Következő immutable szöveg+választott checkpoint tartalomcsomag/közös hash, új teljes-scope AI/curator, majd Publication/Confirm/Official seed és P10–P13. A korábbi 5d29fcf CI-jobok indítás előtt cancelled, ezért az új 017/018 konténeres proof még nyitott. A teljes korábbi P/S-terv, 50–100 élet/20–30 scenario cél, külön 5–5 USD keret és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Aktuális bizonyíték](PUBLIC_FORK_PREVIEW_REPORT_HU.md).
-
 
 ## 2026-10-06: teljes előnézeti tartalomcsomag
 
@@ -90,47 +82,42 @@ Valódi kétfiókos Supabase Auth/HTTP: párhuzamos három csomagmentés egy rek
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37412306422), runtime `8868a34cc079fccbc1df42dc767e4c65cd4666dd`: verify és container sikeres. 390 teszt/33 fájl, format/types/API/worker/Next production build és 68 séma-drift. Izolált valódi PostgreSQL/TLS: 001–019 és ismétlés, három párhuzamos csomagmentés egy rekord, immutable/free reuse/source-advance/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres négy queue és worker tiszta leállás, nulla paid AI/valódi CI-kulcs, hálózati egress tiltva. A 019 runtime-kapu lezárult; teljes-scope AI-job/worker/curator és kiadás továbbra következik. Ez nem éles Contabo-telepítés.
 
-
 ## 2026-10-06: teljes tartalom AI-job és költségőr
 
 Elkészült a külön public-content-review-1 teljes történet+explicit checkpoint AI-job, tartós egyszeri attempt, worker ötödik fair queue, receipt/hash/source/owner/lease guard és angol hozzájárulás/eredménypanel. Text-only eredmény nem öröklődik; nincs automatikus fizetős retry. Közös text/full napi/pending/projekt/user korlát, max 2200 output token és 70 000 byte teljes scan-input. 020 additív/RLS, export/cancel/cascade; default PUBLIC_CONTENT_REVIEW_JOBS_ENABLED=false. Helyi check 402 teszt/34 fájl, 70 séma; régi 68 és 001–019 változatlan. Supabase 001–020 alkalmazva/ismételve, 19 ff_ és 43 aw_/43 RLS, verified TLS. Valódi Auth/HTTP és tényleges cleanup kész; angol böngészős consent/finding/csomagváltás/dirty/source-reload/reuse/export/tényleges cleanup kész; e1067dd verify/container CI sikeres, 001–020 és ismétlés/konkurencia/source/deletion/export/RLS/TLS/HTTPS proof, paid AI 0. Egyetlen valódi checkerhívás a meglévő angol mintán: checkpoint embedded-instruction észlelve, 11 finding/review_required, 0,036611 USD becslés; OpenAI guard 2,470485875 USD, maradék 2,529514125 USD; Claude guard 2,338015 USD változatlan. Következő a külön teljes-scope curator, majd Publication/Confirm/Official source grant/kis valódi AI seed/P10–P13. PublicationApproved=false. P01–P13/S0–S7, S3 retention/korábbi személyes próza, S4–S7, 50–100 élet/20–30 scenario és Contabo/Cloudflare/backup/email kapuk megmaradnak. [Riport és következő kapuk](PUBLIC_CONTENT_REVIEW_JOB_REPORT_HU.md).
-
 
 ## 2026-10-06: teljes tartalom AI-job CI-bizonyítéka
 
 [Main CI](https://github.com/Muzsy/future_flow/actions/runs/37447883609), runtime `e1067ddbb958f2402b88f84b7c2206c3ac8efc69`: verify és container sikeres. 402 teszt/34 fájl, format/types/API/worker/Next production build és 70 séma-drift. Izolált PostgreSQL/TLS: 001–020 és ismétlés, párhuzamos teljes-scope enqueue/claim egy attempt, immutable receipt/result, nincs automatikus paid retry, source-change/törlési marker/export/cascade/RLS; minden korábbi P09/S0–S3 proof megmarad. Web/API/Caddy verified HTTPS, üres review queue-k és tiszta worker-leállás, nulla paid AI/valódi CI-kulcs, egress tiltva. A 020 runtime-kapu lezárult; külön full-scope curator és kiadási kapuk következnek. Ez nem éles Contabo-telepítés.
 
-
 ## 2026-10-07: mentési és megosztási szelet
 
 026 a saját mentési pointereket usertörlésnél és az idegen publication fizikai törlésénél kaszkáddal törli; a deleting/withdraw/hidden/revoked példányok mentettlistája addig sem mutat tartalmat. Valódi kétfiókos friss Auth HTTP-delete, tényleges Auth/DB/cascade cleanup sikeres.
-
 
 ## 2026-10-07: bejelentési és safety szelet
 
 027 report data saját reporter/publication cascade; már kiadott publisher-warning report FK-ja nullázódik reporter-delete után, a warning és explicit restriction az érintett publishernek megmarad. Publisher own-delete warning/restriction/audit cascade. Valódi friss Auth HTTP mindkét deletion/DB cleanup és genuine seed változatlanság bizonyított.
 
-
 ## 2026-10-07: public aktivitásmérés
 
 028 daily aggregate/raw reading session nem tartalmaz saját reader-azonosítást. Reader/reporter törlése nem vonja vissza másik publisher névtelen darabszámát; publisher/publication physical delete mindkét FK-táblát kaszkáddal törli. Saját export csak own publication slug/day/kind/total. Valódi Auth-delete/cascade ellenőrzött; Unsave/publisher physical-delete verseny külön real-PG CI proof. [Bizonyíték](PUBLIC_ACTIVITY_METRICS_REPORT_HU.md).
-
 
 ## 2026-10-07: kurált gyűjtemények
 
 029 selected publication pointer physical source/account-delete cascade. Deleting marker/new reader 404 már a fizikai törlés előtt; nincs cached card story. Platform-curation audit nem tartalmaz publisher/user ID-t vagy storyt, own exportba nem kerül; protected hash/actor/time megmarad. Actual Auth cleanup és active curation-versus-physical-delete PG CI proof integrált. [Bizonyíték](CURATED_PUBLIC_COLLECTIONS_REPORT_HU.md).
 
-
 ## 2026-10-07: külön külső előnézet és indexelés
 
 030 permission és immutable actions a publikáció/forrás/fiók fizikai törlésével cascade. Deleting/withdrawn/hidden/source-revoked állapotban új HTML-story metadata, image és sitemap nem készül. Recovery nem újraaktiválás; own-view friss bindinggel none revoke akkor is, ha feature-off. Real Auth DELETE/DB/PNG/sitemap proof kész; backup/retention/éles proxy cache ellenőrzés megmarad. [Bizonyíték](EXTERNAL_PUBLIC_EXPOSURE_REPORT_HU.md).
-
 
 ## 2026-10-07: explicit új snapshot és korábbi visszavonás
 
 031 refresh history old/new publication/source/account delete cascade; nem őriz törölt copy-szöveget. Real Auth HTTP-delete és DB cleanup kész; egyetlen élet owner-delete következik, nyers/backup-retention külön kapu. [Bizonyíték](PUBLICATION_SNAPSHOT_REFRESH_REPORT_HU.md).
 
-
 ## 2026-10-07: saját élet törlése és kvótamegőrzés
 
 Külön saját whole-life delete nem törli az Auth-accountot: friss sign-in, DELETE LIFE, aktuális branch/revision. Shared tagság/prose/input/lease leválasztás, public graph source cascade; kvóták rövid admission metaadata marad csak. Account delete ezt is cascade törli. 26 actual Auth/HTTP/TLS +cleanup, seed/ledgers unchanged. [Bizonyíték](SELECTIVE_LIFE_DELETION_REPORT_HU.md).
+
+### Billing sorok (B01, 2026-10-31)
+
+A 039-es migráció négy táblája (`aw_billing_subscriptions`, `aw_billing_grants`, `aw_billing_reservations`, `aw_billing_events`) az `ff_users` gyökérre cascade-del hivatkozik, így a belső adatgráf törlése eltávolítja őket; a coverage-registry és a restore-bizonyíték ezt ellenőrzi (cascade-táblák száma 81 → 85). A szolgáltatói előfizetés lemondása a fióktörlés részeként kész (PR-3b): a `deleteAccount`/`recoverAccountDeletion` opcionális `billing` horga a `markDeleting` után, az Auth- és adattörlés előtt a felhasználói zár alatt listázza és mondja le az előfizetéseket (a terminális `canceled`/`incomplete_expired` állapotot átugorja); hiba esetén a törlés függőben marad és újrapróbálható. A horog app-bekötése a 3c-ben történik, és ott addig kötelező marad, amíg bármely `aw_billing_subscriptions` sor létezhet (a billing későbbi kikapcsolása után is); amíg nincs bekötve, nincs szolgáltatói előfizetés.

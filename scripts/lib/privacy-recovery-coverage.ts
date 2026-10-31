@@ -45,7 +45,7 @@ export async function assertPrivacyRecoveryCoverage(tx: Database) {
     FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_class p ON p.oid=k.confrelid
     JOIN pg_namespace n ON n.oid=t.relnamespace JOIN pg_namespace pn ON pn.oid=p.relnamespace
     WHERE n.nspname='public' AND pn.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname`);
-  if (keys.length !== 219)
+  if (keys.length !== 225)
     throw Error('Reviewed foreign-key coverage required');
   const cascaded = new Set(['ff_users']);
   let changed = true;

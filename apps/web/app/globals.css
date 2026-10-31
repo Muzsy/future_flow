@@ -838,6 +838,21 @@ footer {
   margin: 25px 0 12px;
   font-size: 20px;
 }
+.privacy-copy ul {
+  margin: 0 0 15px;
+  padding-left: 22px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.privacy-copy li {
+  margin-bottom: 8px;
+}
+.legal-placeholder {
+  background: #fdf6e9;
+  color: #766139;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1327,4 +1342,7 @@ progress {
 }
 .public-report-controls textarea {
   min-height: 7rem;
+}
+footer a {
+  color: var(--green);
 }

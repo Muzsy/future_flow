@@ -47,7 +47,7 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
 
             def probe(self,image,mode,expected=None):
                 if image != ctx['image'] or mode != 'capture' or expected is not None:
-                    raise ValueError('Only actual synthetic038 capture supported')
+                    raise ValueError('Only actual synthetic039 capture supported')
                 return db('capture',database)
 
             def accounting(self,image,mode,expected=None):
@@ -243,7 +243,7 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
 
             def probe(self,image,mode,expected=None):
                 if image != ctx['image'] or mode != 'capture' or expected is not None:
-                    raise ValueError('Only actual synthetic038 capture supported')
+                    raise ValueError('Only actual synthetic039 capture supported')
                 return db('capture',database)
 
             def accounting(self,image,mode,expected=None):

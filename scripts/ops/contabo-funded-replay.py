@@ -78,7 +78,7 @@ def active_funded_runtime(daily, original):
     if (readback.get('version') != candidate['version'] or
             readback.get('sourceCommit') != candidate['sourceCommit'] or
             readback.get('preparedSha256') != prepared_sha or
-            readback.get('imageId') != build['imageId'] or readback.get('schema') != 38 or
+            readback.get('imageId') != build['imageId'] or readback.get('schema') not in (38, 39) or
             readback.get('protectedDataUnchanged') is not True or
             readback.get('paidAiCalls') != 0 or readback.get('operationPaidAiCalls') != 0 or
             readback.get('databaseRestored') is not False):

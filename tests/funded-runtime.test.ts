@@ -40,12 +40,17 @@ const input = {
   connectionHostname: 'synthetic-postgres',
   databaseIdentitySha256: hash(['synthetic-postgres', 'template1', 'postgres']),
 };
-function adapter(e: Pick<PGlite, 'query'>): Database {
+function adapter(e: Pick<PGlite, 'query' | 'exec'>): Database {
   const db: Database = {
+    // Like the real client, a statement without parameters runs through the
+    // simple protocol, so a multi-statement migration file is accepted.
     query: async <T extends Record<string, unknown>>(
       sql: string,
       values: unknown[] = [],
-    ) => (await e.query<T>(sql, values)).rows,
+    ) =>
+      values.length
+        ? (await e.query<T>(sql, values)).rows
+        : (((await e.exec(sql)).at(-1)?.rows ?? []) as T[]),
     transaction: async (run) => run(db),
   };
   return db;
@@ -59,7 +64,10 @@ beforeAll(async () => {
     'CREATE ROLE anon;CREATE ROLE authenticated;CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());',
   );
   for (const name of readdirSync('database/migrations')
-    .filter((n) => n.endsWith('.sql') && !n.startsWith('038_'))
+    .filter(
+      (n) =>
+        n.endsWith('.sql') && !n.startsWith('038_') && !n.startsWith('039_'),
+    )
     .sort()) {
     const sql = readFileSync('database/migrations/' + name, 'utf8').replace(
       /\r\n/g,
@@ -99,7 +107,7 @@ describe('funded runtime schema and accounting boundary', () => {
   it('normal recovery still rejects 037; dedicated preflight accepts the exact 855-column catalog', async () => {
     await expect(
       tx((d) => assertReviewedPrivacyRecoverySchema(d)),
-    ).rejects.toThrow(/columns/);
+    ).rejects.toThrow(/table set/);
     const before = await tx((d) => captureFundedRuntime(d, input));
     expect(before.schema).toBe(37);
     expect(before.drained).toBe(true);
@@ -222,10 +230,10 @@ describe('funded runtime schema and accounting boundary', () => {
     ).rejects.toThrow('rollback synthetic job inventory');
     expect(observed).toBe(13);
   });
-  it('appends only migration 038 and preserves every existing data/accounting row', async () => {
+  it('appends only migrations 038 and 039 and preserves every existing data/accounting row', async () => {
     const before = await tx((d) => captureFundedRuntime(d, input));
     const after = await tx((d) => migrateFundedRuntime(d, input, before));
-    expect(after.schema).toBe(38);
+    expect(after.schema).toBe(39);
     expect(after.dataSha256).toBe(before.dataSha256);
     expect(after.artifactSha256).toBe(before.artifactSha256);
     const accounts = await engine.query(
@@ -313,7 +321,7 @@ describe('funded runtime schema and accounting boundary', () => {
           );
           expect(inserted.length).toBeGreaterThan(0);
           if (valid)
-            expect((await captureFundedRuntime(d, input)).schema).toBe(38);
+            expect((await captureFundedRuntime(d, input)).schema).toBe(39);
           else
             await expect(captureFundedRuntime(d, input)).rejects.toThrow(
               /character/,
@@ -333,5 +341,29 @@ describe('funded runtime schema and accounting boundary', () => {
         await migrateFundedRuntime(adapter(e), input, before);
       }),
     ).rejects.toThrow(/source drift/);
+  });
+  it('rejects a tampered 039 receipt and keeps the observation shape unchanged', async () => {
+    const observed = await tx((d) => captureFundedRuntime(d, input));
+    expect(observed.schema).toBe(39);
+    // The operator lanes validate this exact key set.
+    expect(Object.keys(observed).sort()).toEqual([
+      'artifactSha256',
+      'catalogSha256',
+      'dataSha256',
+      'drained',
+      'identityBindingSha256',
+      'policiesSha256',
+      'providerApiCalls',
+      'schema',
+      'version',
+    ]);
+    await expect(
+      engine.transaction(async (e) => {
+        await e.query(
+          "UPDATE ff_migrations SET checksum='tampered' WHERE name LIKE '039%'",
+        );
+        await captureFundedRuntime(adapter(e), input);
+      }),
+    ).rejects.toThrow(/checksums/);
   });
 });

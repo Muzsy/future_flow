@@ -9,6 +9,7 @@ import { narrativeDimensions } from '@future-flow/contracts';
 import { hash } from '@future-flow/core';
 import {
   evaluationApprovedCumulativeBudgetUsd,
+  evaluationPriceEvidence,
   parseEvaluationOptions,
   verifyEvaluationAuthorization,
 } from '../scripts/lib/narrative-evaluation-options';
@@ -259,7 +260,9 @@ describe('v6 creative-only base-window evaluation options, budget authority, and
 
     const clock = vi
       .spyOn(Date, 'now')
-      .mockReturnValue(Date.parse('2026-10-18T00:00:00Z'));
+      .mockReturnValue(
+        Date.parse(`${evaluationPriceEvidence.checkedOn}T00:00:00Z`),
+      );
     const dir = await mkdtemp(join(tmpdir(), 'alterward-v6-budget-'));
     try {
       const stageAPaid = parseEvaluationOptions(

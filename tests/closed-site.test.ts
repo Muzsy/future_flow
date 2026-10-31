@@ -200,6 +200,10 @@ describe('closed-site origin proof', () => {
       '/discover',
       '/account-access/story',
       '/privacy-notice/',
+      '/terms/',
+      '/Terms',
+      '/terms/story',
+      '/terms/../login',
       '/_next/image',
       '/_next/data/build/discover.json',
       '/_next/static/%2e%2e/data',
@@ -208,6 +212,9 @@ describe('closed-site origin proof', () => {
     ])
       expect(publicWebException('GET', path)).toBe(false);
     expect(publicWebException('POST', '/account-access')).toBe(false);
+    expect(publicWebException('GET', '/terms')).toBe(true);
+    expect(publicWebException('HEAD', '/terms')).toBe(true);
+    expect(publicWebException('POST', '/terms')).toBe(false);
     expect(
       externalWebConfig({
         ...env,
@@ -248,6 +255,7 @@ describe('Next origin gate', () => {
     for (const path of [
       '/account-access',
       '/privacy-notice',
+      '/terms',
       '/healthz',
       '/_next/static/chunks/example.js',
     ])
