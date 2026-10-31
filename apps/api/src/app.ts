@@ -1,6 +1,15 @@
 import 'reflect-metadata';
 import { ClosedBetaGeneration, CLOSED_BETA_GENERATION } from './closed-beta';
 import {
+  BILLING_WEBHOOK_LIMIT,
+  BILLING_WEBHOOK_PATH,
+  accountDeletionBilling,
+  createBillingController,
+  createBillingRuntime,
+  describeBilling,
+  type BillingRuntime,
+} from './billing';
+import {
   closedBetaConfigFromEnv,
   validateClosedBetaConfig,
   assertClosedBetaAdmission,
@@ -40,7 +49,7 @@ import {
   DocumentBuilder,
   SwaggerModule,
 } from '@nestjs/swagger';
-import { json, type Request, type Response } from 'express';
+import { json, raw, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
@@ -179,7 +188,8 @@ import {
 } from './content-language';
 
 const REPOSITORY = Symbol('REPOSITORY'),
-  AUTH = Symbol('AUTH');
+  AUTH = Symbol('AUTH'),
+  BILLING = Symbol('BILLING');
 type AuthRequest = Request & {
   locale: Locale;
   userId: string;
@@ -257,6 +267,7 @@ class ApiController {
   constructor(
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject(AUTH) private readonly auth: AuthProvider,
+    @Inject(BILLING) private readonly billing: BillingRuntime,
   ) {}
   @Get('me')
   @ApiOperation({ summary: 'Authenticated account' })
@@ -435,7 +446,12 @@ class ApiController {
       .strict()
       .parse(body);
     requireRecentAuthentication(req.token);
-    return deleteAccount(this.repo, this.auth, req.userId);
+    return deleteAccount(
+      this.repo,
+      this.auth,
+      req.userId,
+      accountDeletionBilling(this.billing),
+    );
   }
 }
 @Controller('api/v2')
@@ -977,6 +993,7 @@ export async function createApp(
   personalScenarioConfig: PersonalScenarioConfig = personalScenarioConfigFromEnv(),
   closedBetaConfig: ClosedBetaConfig = closedBetaConfigFromEnv(),
   closedSiteGate: ClosedSiteGate = createClosedSiteGate(),
+  billing: BillingRuntime = createBillingRuntime(repo.db),
 ) {
   const generationLimits = Object.freeze({
     daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
@@ -1077,6 +1094,7 @@ export async function createApp(
         officialPublicationConfig,
         publicMetricsConfig,
       ),
+      createBillingController(AuthGuard, billing),
       ApiController,
       LifeController,
       SharedContextController,
@@ -1085,6 +1103,7 @@ export async function createApp(
     providers: [
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
+      { provide: BILLING, useValue: billing },
       { provide: 'GENERATION_LIMITS', useValue: generationLimits },
       { provide: 'NARRATIVE_CONFIG', useValue: narrativeConfig },
       {
@@ -1136,7 +1155,33 @@ export async function createApp(
     response.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
   });
+  // The Stripe signature covers the exact raw bytes, so this one path is read
+  // raw (with its own limit) before the JSON parser, which then skips it.
+  app.use(
+    BILLING_WEBHOOK_PATH,
+    raw({ type: () => true, limit: BILLING_WEBHOOK_LIMIT }),
+  );
   app.use(json({ limit: '64kb' }));
+  // Checkout holds the user lock and a pool connection across the provider call.
+  app.use(
+    '/api/v1/billing/checkout',
+    rateLimit({
+      windowMs: 60000,
+      limit: 10,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      handler: (request, response) =>
+        response.status(429).json({
+          error: {
+            code: 'RATE_LIMIT',
+            message: errorMessage(
+              (request as AuthRequest).locale,
+              'RATE_LIMIT',
+            ),
+          },
+        }),
+    }),
+  );
   app.use(
     '/api',
     rateLimit({
@@ -1200,6 +1245,7 @@ export async function createApp(
   SwaggerModule.setup('api/docs', app, document, {
     jsonDocumentUrl: 'api/openapi.json',
   });
+  if (billing.config.enabled) console.log(describeBilling(billing));
   app.enableShutdownHooks();
   return app;
 }

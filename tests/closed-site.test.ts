@@ -178,6 +178,10 @@ describe('closed-site origin proof', () => {
   it('allows only exact own-rights endpoints and inert assets, without method or prefix bypasses', () => {
     expect(publicApiException('GET', '/api/v1/me/export')).toBe(true);
     expect(publicApiException('DELETE', '/api/v1/me')).toBe(true);
+    expect(publicApiException('POST', '/api/v1/billing/webhook')).toBe(true);
+    expect(publicApiException('GET', '/api/v1/billing/webhook')).toBe(false);
+    expect(publicApiException('POST', '/api/v1/billing/checkout')).toBe(false);
+    expect(publicApiException('POST', '/api/v1/billing/webhook/')).toBe(false);
     for (const [method, path] of [
       ['GET', '/api/v1/me'],
       ['GET', '/api/v1/me/consent'],

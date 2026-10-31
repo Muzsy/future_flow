@@ -39,7 +39,7 @@ const { createApp } =
   require('../apps/api/dist/app.js') as typeof import('../apps/api/src/app');
 const { SupabaseAuthProvider } =
   require('../apps/api/dist/auth.js') as typeof import('../apps/api/src/auth');
-const { deleteAccount, recoverAccountDeletion } =
+const { deleteAccount, recoverAccountDeletion, noAccountDeletionBilling } =
   require('../apps/api/dist/account-deletion.js') as typeof import('../apps/api/src/account-deletion');
 const mode = process.argv[2];
 const foundationOnly = mode === '--preflight' || mode === '--cleanup-preflight';
@@ -164,10 +164,15 @@ async function main() {
           id,
         ]);
         if (rows[0]?.status === 'deleting')
-          await recoverAccountDeletion(repo, auth, id);
+          await recoverAccountDeletion(
+            repo,
+            auth,
+            id,
+            noAccountDeletionBilling,
+          );
         else if (rows.length || exists) {
           if (!rows.length) await repo.ensureUser(id);
-          await deleteAccount(repo, auth, id);
+          await deleteAccount(repo, auth, id, noAccountDeletionBilling);
         }
         if (await auth.userExists!(id)) throw Error('Auth remains');
         assert.equal(

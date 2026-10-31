@@ -283,3 +283,21 @@ export async function releaseStaleBillingReservations(
     });
   return { released };
 }
+
+// For the account-deletion guard when billing is switched off or misconfigured:
+// does the account still have a subscription that may be charging? Safe on a
+// database that has no billing tables yet (before migration 039).
+export async function hasLiveBillingSubscription(db: Database, userId: string) {
+  const [present] = await db.query<{ present: boolean }>(
+    "SELECT to_regclass('public.aw_billing_subscriptions') IS NOT NULL AS present",
+  );
+  if (present?.present !== true) return false;
+  return (
+    (
+      await db.query(
+        "SELECT 1 FROM aw_billing_subscriptions WHERE user_id=$1 AND (cancel_pending OR status NOT IN ('canceled','incomplete_expired')) LIMIT 1",
+        [userId],
+      )
+    ).length > 0
+  );
+}
