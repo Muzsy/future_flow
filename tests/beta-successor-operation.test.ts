@@ -130,13 +130,13 @@ async function ready(i: ReturnType<typeof input>) {
   );
 }
 
-it('binds schema038, actual Auth identities and all non-account rows around the accounting mutation', async () => {
+it('binds schema039, actual Auth identities and all non-account rows around the accounting mutation', async () => {
   const i = input();
   await seed(adapter(engine), i);
   const expected = await tx((d) =>
     captureSuccessorOperation(d, i.previous, i.selection, identity),
   );
-  expect(expected.runtime.schema).toBe(38);
+  expect(expected.runtime.schema).toBe(39);
   expect(expected.runtime.drained).toBe(true);
   const history = (await engine.query('SELECT * FROM aw_budget_reservations'))
     .rows;

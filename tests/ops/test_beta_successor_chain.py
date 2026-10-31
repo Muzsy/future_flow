@@ -137,7 +137,7 @@ class Chain:
         fx.write(root / 'readback.json', encoded({
             'version': daily.SUCCESSOR_VERSION, 'preparedSha256': daily.digest(encoded(value)),
             'sourceCommit': value['sourceCommit'], 'imageId': value['release']['target']['imageId'],
-            'schema': 38, 'protectedDataUnchanged': True, 'previousSpendPreserved': True,
+            'schema': 39, 'protectedDataUnchanged': True, 'previousSpendPreserved': True,
             'previousAllowanceClosed': window_changed, 'browserJourneyPassed': False,
             'operationSha256': hashed(value['operation']), 'operationPaidAiCalls': 0,
             'paidAiCalls': 0, 'databaseRestored': False}))

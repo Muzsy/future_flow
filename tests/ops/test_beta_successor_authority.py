@@ -149,7 +149,7 @@ class SuccessorAuthorityTests(unittest.TestCase):
         self.journal(self.root,daily.SUCCESSOR_VERSION,['apply-intent','held','database-intent','accounts-committed','authority-staged','exposure-intent','applied'])
         proof={'version':daily.SUCCESSOR_VERSION,'preparedSha256':daily.digest(encoded(value)),
                'sourceCommit':value['sourceCommit'],'imageId':value['release']['target']['imageId'],
-               'schema':38,'protectedDataUnchanged':True,'previousSpendPreserved':True,
+               'schema':39,'protectedDataUnchanged':True,'previousSpendPreserved':True,
                'previousAllowanceClosed':True,'browserJourneyPassed':False,
                'operationSha256':hashed(value['operation']),'operationPaidAiCalls':0,'paidAiCalls':0,'databaseRestored':False}
         self.write(self.root/'readback.json',encoded(proof))

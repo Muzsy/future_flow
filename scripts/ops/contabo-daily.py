@@ -1052,7 +1052,7 @@ def successor_effective_role(value, root=None):
     proof = json.loads(regular(root / 'readback.json'))
     if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
             or proof.get('sourceCommit') != value['sourceCommit']
-            or proof.get('imageId') != value['release'][role]['imageId'] or proof.get('schema') != 38
+            or proof.get('imageId') != value['release'][role]['imageId'] or proof.get('schema') not in (38, 39)
             or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
             or proof.get('previousAllowanceClosed') is not (
                 json.loads(regular(root / 'selection.json')).get('purpose') != SUCCESSOR_READER_PURPOSE)
@@ -1146,7 +1146,7 @@ def funded_upgrade_healthy(mode):
         expected = digest(regular(root / 'prepared.json'))
         role = 'recovery' if state == 'recovered' else 'target'
         parent_valid = (intent.get('preparedSha256') == expected == proof.get('preparedSha256') and
-                proof.get('schema') == 38 and proof.get('protectedDataUnchanged') is True and
+                proof.get('schema') in (38, 39) and proof.get('protectedDataUnchanged') is True and
                 proof.get('imageId') == prepared['release'][role]['imageId'])
         if not parent_valid:
             return False

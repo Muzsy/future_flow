@@ -6,7 +6,15 @@ import { createRequire } from 'node:module';
 import type OpenAI from 'openai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomainError, fictionFactsOnlyEligible } from '@future-flow/core';
-import { parseEvaluationOptions } from '../scripts/lib/narrative-evaluation-options';
+import {
+  evaluationPriceEvidence,
+  parseEvaluationOptions,
+} from '../scripts/lib/narrative-evaluation-options';
+// Price evidence expires after a week; gates are tested relative to its date.
+const priceDay = (days: number) =>
+  Date.parse(`${evaluationPriceEvidence.checkedOn}T12:00:00Z`) +
+  days * 86400000;
+
 import { runNarrativeEvaluation } from '../scripts/lib/narrative-evaluation-runner';
 import { verifyEvaluationAuthorization } from '../scripts/lib/narrative-evaluation-options';
 import {
@@ -131,7 +139,7 @@ describe('paid probe environment', () => {
     NARRATIVE_EVAL_PROJECT_ID: 'proj_abc123',
     NARRATIVE_EVAL_PROJECT_CONFIRMATION: 'dedicated-development',
   };
-  const today = Date.parse('2026-10-22T12:00:00Z');
+  const today = priceDay(1);
   it('needs the dedicated development key, project and confirmation', () => {
     expect(paidProbeEnvironment(env, today).project).toBe('proj_abc123');
     expect(() =>
@@ -142,9 +150,7 @@ describe('paid probe environment', () => {
     ).toThrow(/evaluation key/);
   });
   it('refuses prices older than a week', () => {
-    expect(() =>
-      paidProbeEnvironment(env, Date.parse('2026-10-26T12:00:00Z')),
-    ).toThrow(/prices/);
+    expect(() => paidProbeEnvironment(env, priceDay(8))).toThrow(/prices/);
   });
 });
 
@@ -677,7 +683,7 @@ describe('the paid v9 gate of the evaluation options', () => {
   beforeEach(() =>
     vi.useFakeTimers({
       toFake: ['Date'],
-      now: Date.parse('2026-10-19T12:00:00Z'),
+      now: priceDay(1),
     }),
   );
   afterEach(() => vi.useRealTimers());
@@ -865,7 +871,7 @@ describe('the runner holds a paid v9 run to the approval (wiring)', () => {
   beforeEach(() =>
     vi.useFakeTimers({
       toFake: ['Date'],
-      now: Date.parse('2026-10-19T12:00:00Z'),
+      now: priceDay(1),
     }),
   );
   afterEach(() => vi.useRealTimers());

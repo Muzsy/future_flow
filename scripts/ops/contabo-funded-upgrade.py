@@ -123,7 +123,7 @@ def normalized_configuration(config, runtime=None):
 
 
 def same_funded(before, after):
-    # Catalog/schema may change only through the guarded 038 migration. Every
+    # Catalog/schema may change only through the guarded 039 migration. Every
     # existing application row (including costs/leases) and artifact must match.
     keys = (
         'version',
@@ -186,6 +186,8 @@ def transition(system, candidate, *, recovery=False):
         system.capabilities(candidate)
         system.record('migration-intent', candidate)
         system.migrate(candidate)
+        # 'schema-038' is the historical journal label of the post-migration
+        # state; it is kept so recorded journals stay valid (now: schema 039).
         system.record('schema-038', candidate)
         system.stage(candidate, recovery=recovery)
         system.record('staged', candidate)
@@ -573,7 +575,7 @@ class System:
         capability = json.loads(result.stdout)
         if (
             capability.get('version') != 'alterward-funded-runtime-1'
-            or capability.get('schema') != 38
+            or capability.get('schema') != 39
             or len(capability.get('policies', [])) != 19
             or 'fiction-v9' not in capability.get('policies', [])
             or capability.get('characterStateVersion') != '1.0.0'
@@ -1030,8 +1032,8 @@ class System:
             candidate['release']['target']['imageId'], 'migrate', current
         )
         same_funded(candidate['database'], result)
-        if result['schema'] != 38:
-            raise ValueError('Reviewed 038 catalog required')
+        if result['schema'] != 39:
+            raise ValueError('Reviewed 039 catalog required')
 
     def stage(self, candidate, *, recovery=False):
         role = 'recovery' if recovery else 'target'
@@ -1179,7 +1181,7 @@ class System:
         after = self.probe(expected, 'capture')
         same_funded(candidate['database'], after)
         if (
-            after['schema'] != 38
+            after['schema'] != 39
             or upgrade.foreign_state() != candidate['baseline']['foreign']
         ):
             raise ValueError('Funded staged state changed')
@@ -1231,7 +1233,7 @@ class System:
             'preparedSha256': sha(encoded(candidate)),
             'sourceCommit': candidate['sourceCommit'],
             'imageId': candidate['release'][role]['imageId'],
-            'schema': 38,
+            'schema': 39,
             'fundedStateSha256': sha(encoded(after)),
             'protectedDataUnchanged': True,
             'paidAiCalls': 0,

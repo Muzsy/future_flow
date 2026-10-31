@@ -10,6 +10,7 @@ import {
 } from '../scripts/lib/funded-runtime';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre039Schema,
   assertReviewedFundedPre038Schema,
 } from '../scripts/lib/privacy-recovery-schema';
 let engine: PGlite;
@@ -89,6 +90,9 @@ it('recognizes only the exact036 funded baseline while normal recovery and037 gu
   await rollback(async (d) => {
     expect((await captureFundedRuntime(d, input)).schema).toBe(36);
     await expect(assertReviewedPrivacyRecoverySchema(d)).rejects.toThrow(
+      /table set/,
+    );
+    await expect(assertReviewedFundedPre039Schema(d)).rejects.toThrow(
       /columns/,
     );
     await expect(assertReviewedFundedPre038Schema(d)).rejects.toThrow(
@@ -96,11 +100,11 @@ it('recognizes only the exact036 funded baseline while normal recovery and037 gu
     );
   });
 });
-it('applies the two exact source migrations atomically and preserves history, cost and existing membership semantics', async () => {
+it('applies the three exact source migrations atomically and preserves history, cost and existing membership semantics', async () => {
   await rollback(async (d) => {
     const before = await captureFundedRuntime(d, input);
     const result = await migrateFundedRuntime(d, input, before);
-    expect(result.schema).toBe(38);
+    expect(result.schema).toBe(39);
     expect(result.dataSha256).toBe(before.dataSha256);
     expect(result.artifactSha256).toBe(before.artifactSha256);
     expect(
@@ -122,10 +126,11 @@ it('applies the two exact source migrations atomically and preserves history, co
       (await d.query('SELECT name FROM ff_migrations ORDER BY name'))
         .slice(-2)
         .map((r) => r.name),
-    ).toEqual([
-      '037_shared_sponsored_guest_seats.sql',
-      '038_narrative_artifacts.sql',
-    ]);
+    ).toEqual(['038_narrative_artifacts.sql', '039_billing_foundation.sql']);
+    // The billing foundation starts empty and normal recovery now accepts it.
+    expect(
+      (await d.query('SELECT 1 FROM aw_billing_subscriptions')).length,
+    ).toBe(0);
     await assertReviewedPrivacyRecoverySchema(d);
   });
 });
@@ -207,4 +212,35 @@ it('refuses any non-default entitlement change during the036 upgrade rather than
     (await engine.query('SELECT count(*)::int AS n FROM ff_migrations'))
       .rows[0]!.n,
   ).toBe(36);
+});
+it('rolls the whole upgrade back when 039 fails, leaving no billing table behind', async () => {
+  await expect(
+    engine.transaction(async (e) => {
+      const d = adapter(e),
+        before = await captureFundedRuntime(d, input);
+      const injected = {
+        ...d,
+        query: async <T extends Record<string, unknown>>(
+          sql: string,
+          values: unknown[] = [],
+        ) => {
+          if (sql.includes('CREATE TABLE aw_billing_events'))
+            throw Error('injected039 failure');
+          return d.query<T>(sql, values);
+        },
+      };
+      await migrateFundedRuntime(injected, input, before);
+    }),
+  ).rejects.toThrow('injected039 failure');
+  expect(
+    (await engine.query('SELECT count(*)::int AS n FROM ff_migrations'))
+      .rows[0]!.n,
+  ).toBe(36);
+  expect(
+    (
+      await engine.query(
+        "SELECT 1 FROM information_schema.tables WHERE table_name LIKE 'aw_billing_%'",
+      )
+    ).rows,
+  ).toEqual([]);
 });

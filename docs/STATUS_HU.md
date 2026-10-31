@@ -39,7 +39,7 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
 | Shared Context | foundation kész, első személyes körben OFF | owner downgrade kontroll és kétfős friend beta |
 | Sponsored Guest | targeted friend részvétel implementált | host/participant és privacy feltételek megtartása |
-| Előfizetés / billing | nincs kész fizetési rendszer | B01: provider, lifecycle és szerveres entitlement |
+| Előfizetés / billing | nincs kész fizetési rendszer; ADR-010 javasolt; billing domainlogika és szolgáltatásréteg (`packages/core`, #116/#117 mergelve) memóriás tárolóval tesztelve; a 039-es migráció és recovery-baseline PR-3a-ban review alatt (nincs éles upgrade, az éles DB 038-as; **az új `main`-ből az éles ellen futtatott Daily/rehearsal/successor/funded parancs zártan megáll**, lásd RECOVERY_HU); sandboxban és SQL tárolóval igazolatlan | B01: migráció 039 + recovery-baseline, SQL tároló, route-ok, generálási kapu, Stripe sandbox próba |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
 ## Történetminőség — beolvadt v9 C5, 2026-10-25

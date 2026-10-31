@@ -43,7 +43,7 @@ class ActiveFundedReplayTests(unittest.TestCase):
         self.row['sha256'] = replay.sha(replay.encoded(self.row))
         self.journal = {'version': self.candidate['version'], 'preparedSha256': self.candidate_sha, 'states': [self.row]}
         self.readback = {'version': self.candidate['version'], 'sourceCommit': 'a' * 40,
-                         'preparedSha256': self.candidate_sha, 'imageId': build['imageId'], 'schema': 38,
+                         'preparedSha256': self.candidate_sha, 'imageId': build['imageId'], 'schema': 39,
                          'protectedDataUnchanged': True, 'paidAiCalls': 0, 'operationPaidAiCalls': 0,
                          'databaseRestored': False}
         self.services = {role: {'Id': str(i) * 64, 'Image': build['imageId'],
@@ -69,6 +69,13 @@ class ActiveFundedReplayTests(unittest.TestCase):
         self.assertEqual(proof['role'], 'target')
         replay.require_funded_runtime(self.daily, lambda p: p.read_bytes(), proof)
         self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
+
+    def test_recorded_038_readback_of_an_earlier_upgrade_stays_valid(self):
+        # The production host holds the proof of the 036->038 upgrade; only the
+        # schema-39 target (new upgrades) is required of a new observation.
+        self.readback['schema'] = 38
+        self.save()
+        self.assertEqual(self.proof()['role'], 'target')
 
     def test_image_only_default_off_keeps_exact_bound_replay_authority(self):
         del self.candidate['release']['runtime']

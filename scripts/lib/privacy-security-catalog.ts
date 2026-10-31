@@ -3,6 +3,7 @@ import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre039Schema,
   assertReviewedFundedPre038Schema,
   assertReviewedFundedPre037Schema,
 } from './privacy-recovery-schema';
@@ -53,6 +54,9 @@ export const privacySecurityCatalogSql = Object.freeze({
     "SELECT CASE WHEN s.setdatabase=0 THEN '*' ELSE 'current' END AS database,CASE WHEN s.setrole=0 THEN '*' ELSE pg_catalog.pg_get_userbyid(s.setrole) END AS role,pg_catalog.md5(s.setconfig::text) AS settings_digest FROM pg_catalog.pg_db_role_setting s WHERE s.setdatabase=0 OR s.setdatabase=(SELECT oid FROM pg_catalog.pg_database WHERE datname=current_database()) ORDER BY database,role",
 });
 
+// The audited 001–038 executable catalog. 039 changes only constraints,
+// indexes and defaults (four billing tables, no function, trigger, policy,
+// sequence, rule or type); those three are overridden below.
 const immutable = {
   constraints: [
     712,
@@ -89,6 +93,20 @@ const immutable = {
   customTypes: [
     0,
     '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+  ],
+} as const;
+const billing039 = {
+  constraints: [
+    739,
+    '4cd5259468da0d59212a9031c01df6306029710e46a67ca2f7e44f50218e30e4',
+  ],
+  indexes: [
+    265,
+    'c083c905fce3246de41db5e28ef9c82d2b1bea913bd03f35a2352d5b0f35bc0c',
+  ],
+  defaults: [
+    892,
+    '32e16aec3e2acd806cb1d846ba9df28942bdc9a4d0b6bd8cb0935ea2ff1e13ce',
   ],
 } as const;
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -178,7 +196,13 @@ export async function assertPrivacySecurityCatalog(
   mode: 'source' | 'quarantine' = 'source',
   expected?: PrivacySecurityCatalog,
 ) {
-  return assertCatalog(tx, mode, expected, 38);
+  return assertCatalog(tx, mode, expected, 39);
+}
+
+// No caller-supplied expected hashes or permissive catalog fallback. This is
+// the exact audited 038 baseline, used only before the append-only 039 step.
+export async function assertFundedPre039SecurityCatalog(tx: Database) {
+  return assertCatalog(tx, 'source', undefined, 38);
 }
 
 // No caller-supplied expected hashes or permissive catalog fallback. This is
@@ -193,7 +217,7 @@ async function assertCatalog(
   tx: Database,
   mode: 'source' | 'quarantine',
   expected: PrivacySecurityCatalog | undefined,
-  baselineSchema: 36 | 37 | 38,
+  baselineSchema: 36 | 37 | 38 | 39,
 ) {
   z.enum(['source', 'quarantine']).parse(mode);
   const schema =
@@ -201,7 +225,9 @@ async function assertCatalog(
       ? await assertReviewedFundedPre037Schema(tx)
       : baselineSchema === 37
         ? await assertReviewedFundedPre038Schema(tx)
-        : await assertReviewedPrivacyRecoverySchema(tx);
+        : baselineSchema === 38
+          ? await assertReviewedFundedPre039Schema(tx)
+          : await assertReviewedPrivacyRecoverySchema(tx);
   for (const name of ['constraints', 'indexes', 'defaults'] as const) {
     const sql = privacySecurityCatalogSql[name].replace(
       "c.relname<>'ff_migrations'",
@@ -242,7 +268,9 @@ async function assertCatalog(
                 855,
                 '14d330c4c1bd7a2aacbfa26bc86ccbaeeabaa9000980089e27592cb07aaa9759',
               ] as const)
-            : immutable[name as keyof typeof immutable];
+            : baselineSchema === 39 && name in billing039
+              ? billing039[name as keyof typeof billing039]
+              : immutable[name as keyof typeof immutable];
       if (rows.length !== baseline[0] || hash(rows) !== baseline[1])
         throw Error('Unreviewed privacy recovery executable catalog');
     }
