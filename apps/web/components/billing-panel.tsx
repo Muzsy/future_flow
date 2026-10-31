@@ -71,6 +71,9 @@ export function BillingPanel() {
   // Reads the status, then (only after the answer) schedules the next read while
   // the webhook is still expected: a slow API cannot starve the polling.
   useEffect(() => {
+    // Another account must never see the previous one's state.
+    setStatus(null);
+    setAttempts(0);
     if (!userId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -130,7 +133,7 @@ export function BillingPanel() {
         error instanceof ClientError &&
         error.code === 'BILLING_ALREADY_SUBSCRIBED'
       )
-        setAttempts((n) => n + 1);
+        window.location.reload();
     }
   }
 

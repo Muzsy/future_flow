@@ -6,7 +6,7 @@ import { recoverAccountDeletion } from '../apps/api/src/account-deletion';
 import {
   accountDeletionBilling,
   createBillingRuntime,
-} from '../apps/api/src/billing';
+} from '../apps/api/src/billing-runtime';
 
 async function main() {
   const db = connectDatabase(
