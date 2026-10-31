@@ -102,6 +102,16 @@ export type BillingProvider = {
   }): Promise<{ url: string }>;
   // Idempotent: an already cancelled or missing subscription is success.
   cancelSubscription(subscriptionId: string): Promise<void>;
+  // Reads the subscription from the provider, as a subscription_synced event
+  // stamped with the triggering event's id and time. Used when a paid invoice
+  // arrives before its subscription was ever seen (Stripe does not order events):
+  // activating from the invoice at once instead of waiting for a redelivery.
+  // null = not usable (stays unresolved and is retried). Optional: a provider
+  // without it keeps the redelivery behaviour.
+  fetchSubscription?(
+    subscriptionId: string,
+    stamp: { eventId: string; created: number },
+  ): Promise<Extract<BillingEvent, { type: 'subscription_synced' }> | null>;
   // Resolves charge/payment-intent identifiers to an invoice and subscription.
   // 'not_ours' = positively established to belong to no Alterward subscription
   // (acknowledged and ignored). null = could not be traced (stays unresolved,
@@ -452,11 +462,39 @@ export async function handleStripeWebhook(
       }
       event = resolved;
     }
-    const result = await processBillingEvent(deps.store, event, deps.provider, {
+    const options = {
       offer: deps.offer,
       entitlement: deps.entitlement,
       designatedUserIds: deps.designatedUserIds,
-    });
+    };
+    let result = await processBillingEvent(
+      deps.store,
+      event,
+      deps.provider,
+      options,
+    );
+    if (
+      !result.processed &&
+      result.outcome === 'unknown_subscription' &&
+      event.type === 'invoice_paid' &&
+      deps.provider.fetchSubscription
+    ) {
+      // The invoice outran its subscription: read the subscription now, store
+      // it, and apply the invoice once more. A failure is a retry (500).
+      const synced = await deps.provider.fetchSubscription(
+        event.subscriptionId,
+        { eventId: `fetch_${event.eventId}`, created: event.created },
+      );
+      if (synced) {
+        await processBillingEvent(deps.store, synced, deps.provider, options);
+        result = await processBillingEvent(
+          deps.store,
+          event,
+          deps.provider,
+          options,
+        );
+      }
+    }
     for (const anomaly of result.anomalies)
       alert({ kind: anomaly, eventId: event.eventId, eventType: event.type });
     if (result.outcome === 'noted')

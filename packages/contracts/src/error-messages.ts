@@ -257,6 +257,10 @@ const errors: Record<string, readonly [string, string]> = {
     'Choose an option before continuing this life.',
     'Válassz a döntési lehetőségek közül a folytatás előtt.',
   ],
+  BILLING_ALREADY_SUBSCRIBED: [
+    'You already have a subscription. Reload this page to see its current state.',
+    'Már van előfizetésed. Töltsd újra az oldalt, hogy lásd az aktuális állapotát.',
+  ],
   BILLING_NO_ENTITLEMENT: [
     'A subscription is required to continue your story. Your saved story stays available.',
     'A történeted folytatásához előfizetés kell. A mentett történeted továbbra is elérhető.',

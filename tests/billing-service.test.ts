@@ -9,6 +9,7 @@ import {
   defaultEntitlementConfig,
   entitlementOfSubscriptions,
   handleStripeWebhook,
+  normalizeStripeEvent,
   redactBillingConfig,
   releaseChapterForUser,
   retryPendingCancellations,
@@ -387,6 +388,66 @@ describe('webhook handling', () => {
       outcome: 'applied',
     });
     expect(h.peek().grants.size).toBe(1);
+  });
+  it('an invoice that outruns its subscription activates at once when the provider can read the subscription', async () => {
+    const fetched: {
+      id: string;
+      stamp: { eventId: string; created: number };
+    }[] = [];
+    const h = harness(
+      fakeProvider({
+        fetchSubscription: async (id, stamp) => {
+          fetched.push({ id, stamp });
+          const normalised = normalizeStripeEvent(
+            {
+              id: stamp.eventId,
+              type: 'customer.subscription.updated',
+              created: stamp.created,
+              data: { object: subscriptionEvent().data.object },
+            },
+            { priceId: PRICE },
+          );
+          return normalised?.type === 'subscription_synced' ? normalised : null;
+        },
+      }),
+    );
+    const inv = invoiceEvent(1);
+    expect(await h.send(inv)).toMatchObject({
+      status: 200,
+      outcome: 'applied',
+    });
+    expect(fetched).toEqual([
+      {
+        id: 'sub_1',
+        stamp: { eventId: `fetch_${inv.id}`, created: inv.created },
+      },
+    ]);
+    expect(h.subs()).toHaveLength(1);
+    expect(h.peek().grants.size).toBe(1);
+    // The real subscription event that arrives afterwards changes nothing, and a
+    // redelivery of the invoice is a duplicate.
+    expect(await h.send(subscriptionEvent())).toMatchObject({ status: 200 });
+    expect(await h.send(inv)).toMatchObject({
+      status: 200,
+      outcome: 'duplicate',
+    });
+    expect(h.peek().grants.size).toBe(1);
+  });
+  it('an unreadable or foreign subscription keeps the retry behaviour', async () => {
+    for (const result of [null, 'throw'] as const) {
+      const h = harness(
+        fakeProvider({
+          fetchSubscription: async () => {
+            if (result === 'throw') throw new Error('provider down');
+            return null;
+          },
+        }),
+      );
+      const first = await h.send(invoiceEvent(1));
+      expect(first.status).toBe(500);
+      expect(h.peek().events.size).toBe(0);
+      expect(h.peek().grants.size).toBe(0);
+    }
   });
   it('a subscription whose owner cannot be verified is not stored', async () => {
     const h = harness();
@@ -1055,6 +1116,60 @@ describe('stripe provider', () => {
     expect(headers['Idempotency-Key']).toMatch(
       /^alterward-checkout-[a-f0-9]{32}$/,
     );
+  });
+  it('reads a subscription and normalises it like a webhook event', async () => {
+    const f = fakeFetch(() => ({
+      body: {
+        id: 'sub_1',
+        customer: 'cus_1',
+        status: 'active',
+        cancel_at_period_end: false,
+        metadata: { user_id: USER, offer_version: 'standard_v1' },
+        items: {
+          data: [
+            {
+              price: { id: PRICE },
+              current_period_start: sec(T0),
+              current_period_end: sec(T0 + 30 * day),
+            },
+          ],
+        },
+      },
+    }));
+    const p = createStripeProvider({ ...base, fetch: f.impl });
+    const event = await p.fetchSubscription!('sub_1', {
+      eventId: 'fetch_evt_9',
+      created: 1234,
+    });
+    expect(f.calls[0].url).toBe(
+      'https://api.stripe.com/v1/subscriptions/sub_1',
+    );
+    expect(f.calls[0].init.method).toBe('GET');
+    expect(event).toMatchObject({
+      type: 'subscription_synced',
+      eventId: 'fetch_evt_9',
+      created: 1234,
+      subscriptionId: 'sub_1',
+      userId: USER,
+      status: 'active',
+      discounted: false,
+    });
+    // Another product, a malformed id or a malformed body give nothing.
+    expect(
+      await p.fetchSubscription!('not-an-id', { eventId: 'x', created: 1 }),
+    ).toBeNull();
+    const other = fakeFetch(() => ({
+      body: {
+        id: 'sub_2',
+        customer: 'cus_1',
+        status: 'active',
+        items: { data: [{ price: { id: 'price_other' } }] },
+      },
+    }));
+    expect(
+      await createStripeProvider({ ...base, fetch: other.impl })
+        .fetchSubscription!('sub_2', { eventId: 'x', created: 1 }),
+    ).toBeNull();
   });
   it('attaches the coupon only for a discounted checkout', async () => {
     const f = fakeFetch(() => ({

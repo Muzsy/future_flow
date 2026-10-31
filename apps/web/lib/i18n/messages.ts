@@ -215,6 +215,36 @@ export const en = {
   'terms.paymentTitle': '8. Payment, renewal and withdrawal',
   'terms.payment1':
     'The service is currently free of charge and there are no paid plans. If paid plans are introduced, these terms and the privacy notice will be updated first, and the price, billing, automatic renewal, cancellation, refund and withdrawal terms will be shown to you before you buy anything.',
+  'billing.title': 'Subscription',
+  'billing.notConfigured':
+    'Sign-in is not configured yet. Contact info@alterward.com.',
+  'billing.signIn': 'Sign in to alterward first, then open this page again.',
+  'billing.unavailable': 'Subscriptions are not available yet.',
+  'billing.loading': 'Loading your subscription…',
+  'billing.banner.cancelled':
+    'The payment was not completed and you were not charged.',
+  'billing.banner.activating':
+    'Payment received. Activating your subscription…',
+  'billing.banner.slow':
+    'Activation is taking longer than usual. Your payment is safe, please do not pay again: refresh this page in a minute, or write to info@alterward.com.',
+  'billing.state.none': 'You have no subscription.',
+  'billing.state.active': 'Your subscription is active.',
+  'billing.state.canceling':
+    'Your subscription is cancelled and runs until the end of the paid period.',
+  'billing.state.past_due':
+    'The last payment failed. To update your payment method and keep the subscription, write to info@alterward.com.',
+  'billing.state.ended': 'Your subscription has ended.',
+  'billing.state.revoked': 'Your subscription was cancelled and refunded.',
+  'billing.chapters':
+    'Chapters available: {paid} from your subscription, {taster} free taster.',
+  'billing.offerTitle': 'Monthly subscription',
+  'billing.offer':
+    '8 chapters per month for 14.99 USD per month, VAT included.',
+  'billing.offerTerms':
+    'The subscription renews automatically every month until you cancel it. Invited testers get their launch discount automatically at checkout. You see the final price at checkout before you pay.',
+  'billing.refresh': 'Refresh',
+  'billing.subscribe': 'Subscribe',
+  'billing.manage': 'To cancel or change your subscription, write to',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
     'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends.',
@@ -532,6 +562,37 @@ export const hu: Record<MessageKey, string> = {
   'terms.paymentTitle': '8. Fizetés, megújítás és elállás',
   'terms.payment1':
     'A szolgáltatás jelenleg ingyenes, fizetős csomag nincs. Ha fizetős csomagot vezetünk be, előbb ezeket a feltételeket és az adatkezelési tájékoztatót frissítjük, és a vásárlás előtt megmutatjuk az árat, a számlázást, az automatikus megújítást, a lemondás, a visszatérítés és az elállás feltételeit.',
+  'billing.title': 'Előfizetés',
+  'billing.notConfigured':
+    'A bejelentkezés még nincs beállítva. Írj az info@alterward.com címre.',
+  'billing.signIn':
+    'Előbb jelentkezz be az alterwardba, aztán nyisd meg újra ezt az oldalt.',
+  'billing.unavailable': 'Az előfizetés még nem érhető el.',
+  'billing.loading': 'Az előfizetésed betöltése…',
+  'billing.banner.cancelled':
+    'A fizetés nem fejeződött be, nem terheltünk meg.',
+  'billing.banner.activating':
+    'A fizetés megérkezett. Az előfizetésed aktiválása folyamatban van…',
+  'billing.banner.slow':
+    'Az aktiválás a szokásosnál tovább tart. A fizetésed biztonságban van, ne fizess újra: frissítsd az oldalt egy perc múlva, vagy írj az info@alterward.com címre.',
+  'billing.state.none': 'Nincs előfizetésed.',
+  'billing.state.active': 'Az előfizetésed aktív.',
+  'billing.state.canceling':
+    'Az előfizetésed le van mondva, a kifizetett időszak végéig tart.',
+  'billing.state.past_due':
+    'Az utolsó fizetés nem sikerült. A fizetési mód frissítéséhez és az előfizetés megtartásához írj az info@alterward.com címre.',
+  'billing.state.ended': 'Az előfizetésed véget ért.',
+  'billing.state.revoked':
+    'Az előfizetésed le lett mondva és visszatérítettük.',
+  'billing.chapters':
+    'Elérhető fejezetek: {paid} az előfizetésedből, {taster} ingyenes ízelítő.',
+  'billing.offerTitle': 'Havi előfizetés',
+  'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
+  'billing.offerTerms':
+    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A meghívott tesztelők kedvezménye automatikusan érvényesül a fizetésnél. A végső árat a fizetés előtt látod.',
+  'billing.refresh': 'Frissítés',
+  'billing.subscribe': 'Előfizetek',
+  'billing.manage': 'Az előfizetés lemondásához vagy módosításához írj ide:',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
     'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén.',
