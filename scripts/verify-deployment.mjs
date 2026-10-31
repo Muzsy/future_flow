@@ -107,6 +107,34 @@ try {
     config.services.web.environment.NARRATIVE_FICTION_GENERATION,
     undefined,
   );
+  // Billing (ADR-010): default-off, and the Stripe secrets never reach web.
+  for (const name of ['api', 'worker']) {
+    const environment = config.services[name].environment;
+    assert.equal(environment.BILLING_ENABLED, 'false');
+    assert.equal(environment.BILLING_ENFORCEMENT, 'false');
+    for (const key of [
+      'STRIPE_SECRET_KEY',
+      'STRIPE_WEBHOOK_SECRET',
+      'STRIPE_PRICE_ID',
+      'STRIPE_FOUNDER_COUPON_ID',
+      'STRIPE_API_VERSION',
+      'BILLING_SUCCESS_URL',
+      'BILLING_CANCEL_URL',
+      'BILLING_FOUNDER_USER_IDS',
+    ])
+      assert.equal(environment[key], '');
+    assert.equal(environment.BILLING_RESERVATION_TTL_SECONDS, '7200');
+  }
+  for (const key of Object.keys(config.services.web.environment))
+    assert(
+      !/^(BILLING|STRIPE)_/.test(key),
+      'Billing setting reaches the web service',
+    );
+  for (const key of Object.keys(config.services.web.build.args ?? {}))
+    assert(
+      !/^(BILLING|STRIPE)_/.test(key),
+      'Billing setting reaches the web build',
+    );
   assert.equal(config.services.web.environment.CLOSED_SITE_ENABLED, 'false');
   assert(config.services.web.healthcheck.test.at(-1).includes('/healthz'));
   assert.equal(
