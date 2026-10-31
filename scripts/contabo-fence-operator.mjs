@@ -468,20 +468,23 @@ export function exactFenceCiRuns(listing, sourceCommit) {
     throw Error('Every exact main verification run must succeed');
   return runs;
 }
+// .github/workflows/ci.yml: the image rehearsal is its own job so that it runs
+// in parallel with the deployment smoke; all three must have succeeded.
+const FENCE_CI_JOBS = ['verify', 'container', 'image-rehearsal'];
 export function assertExactFenceCiJobs(detail, sourceCommit) {
   if (
-    detail.total_count !== 2 ||
-    detail.jobs.length !== 2 ||
+    detail.total_count !== FENCE_CI_JOBS.length ||
+    detail.jobs.length !== FENCE_CI_JOBS.length ||
     detail.jobs.some(
       (job) =>
-        !['verify', 'container'].includes(job.name) ||
+        !FENCE_CI_JOBS.includes(job.name) ||
         job.head_sha !== sourceCommit ||
         job.status !== 'completed' ||
         job.conclusion !== 'success',
     ) ||
-    new Set(detail.jobs.map((job) => job.name)).size !== 2
+    new Set(detail.jobs.map((job) => job.name)).size !== FENCE_CI_JOBS.length
   )
-    throw Error('Exact verify and container jobs required');
+    throw Error('Exact verify, container and image-rehearsal jobs required');
 }
 async function main() {
   const selectedMode = process.argv[2]?.replace(/^--/, '');
