@@ -429,6 +429,11 @@ describe('billing enabled (test mode, fake provider)', () => {
       ),
     );
     expect(followUp.status).toBe(200);
+    // Any follow-up, including a stale `updated` with the owner's id in its
+    // metadata, is acknowledged for a subscription cancelled by the deletion.
+    expect(
+      (await webhook(h, subscriptionEvent(user, 'sub_life1'))).status,
+    ).toBe(200);
     // An unrelated unknown subscription is still not acknowledged.
     expect((await webhook(h, invoiceEvent('sub_never_seen'))).status).toBe(500);
     expect(

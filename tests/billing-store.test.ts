@@ -465,6 +465,56 @@ describe('SQL billing store', () => {
   });
 });
 
+describe('pending cancellations', () => {
+  it('does not let a few permanently failing cancellations starve the rest', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const u = await user();
+      const w = world(u);
+      ids.push(w.sub);
+      await store.transaction((tx) =>
+        tx.saveSubscription({
+          subscriptionId: w.sub,
+          customerId: w.cus,
+          userId: u,
+          status: 'canceled',
+          periodStart: null,
+          periodEnd: null,
+          cancelAtPeriodEnd: false,
+          discounted: false,
+          paidInvoiceIds: [],
+          refundedInvoiceIds: [],
+          revoked: 'refund',
+          lastStateEventCreated: 1,
+          reconcileRequired: false,
+          cancelPending: true,
+        }),
+      );
+      await db.query(
+        "UPDATE aw_billing_subscriptions SET updated_at=now()+($2 || ' seconds')::interval WHERE subscription_id=$1",
+        [w.sub, String(i - 100)],
+      );
+    }
+    const stuck = new Set(ids.slice(0, 5));
+    const attempted: string[] = [];
+    const provider = {
+      cancelSubscription: async (id: string) => {
+        attempted.push(id);
+        if (stuck.has(id)) throw Error('provider rejects');
+      },
+    };
+    await retryPendingCancellations(store, provider, 5);
+    await retryPendingCancellations(store, provider, 5);
+    expect(attempted).toContain(ids[5]);
+    expect(attempted).toContain(ids[6]);
+    const [pending] = await db.query<{ n: string }>(
+      'SELECT count(*) n FROM aw_billing_subscriptions WHERE subscription_id=ANY($1) AND cancel_pending',
+      [ids],
+    );
+    expect(Number(pending!.n)).toBe(5);
+  });
+});
+
 describe('reservation reaper and retries', () => {
   it('does not free a reservation that was released and reserved again', async () => {
     const u = await user();

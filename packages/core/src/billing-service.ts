@@ -186,6 +186,23 @@ export async function processBillingEvent(
         true,
         prev?.cancelPending ? prev.subscriptionId : null,
       );
+    // A subscription cancelled by an account deletion is gone locally; the
+    // provider's follow-up events for it (deleted, updated, invoice, refund) are
+    // acknowledged, not retried for days. Checked before any owner lookup, as
+    // the deleted account no longer exists.
+    if (
+      !prev &&
+      subscriptionId &&
+      (await tx.hasEvent(deletedSubscriptionMarker(subscriptionId)))
+    ) {
+      await tx.recordEvent(
+        event.eventId,
+        eventTypeLabel[event.type],
+        null,
+        'ignored',
+      );
+      return result('ignored', true);
+    }
     let applied: BillingEvent = event;
     // A new subscription needs an owner we can verify; otherwise it cannot be
     // stored yet.
@@ -220,24 +237,8 @@ export async function processBillingEvent(
     if (
       transition.outcome === 'unknown_subscription' ||
       transition.outcome === 'unresolved'
-    ) {
-      // A subscription cancelled by an account deletion is gone locally; the
-      // provider's follow-up events for it are acknowledged, not retried for days.
-      if (
-        transition.outcome === 'unknown_subscription' &&
-        subscriptionId &&
-        (await tx.hasEvent(deletedSubscriptionMarker(subscriptionId)))
-      ) {
-        await tx.recordEvent(
-          event.eventId,
-          eventTypeLabel[event.type],
-          null,
-          'ignored',
-        );
-        return result('ignored', true);
-      }
+    )
       return result(transition.outcome, false);
-    }
     if (transition.next && transition.next !== prev) {
       const userId = prev?.userId ?? transition.next.userId;
       if (!userId) return result('unresolved', false);
@@ -282,6 +283,21 @@ async function settleCancellation(
   try {
     await provider.cancelSubscription(subscriptionId);
   } catch {
+    // Move this subscription behind the others in the retry order, so a few
+    // permanently failing cancellations cannot starve the rest.
+    await store
+      .transaction(async (tx) => {
+        const owner = await tx.ownerOf({ subscriptionId, customerId: null });
+        if (!owner) return;
+        await tx.lockUser(owner);
+        const sub = await tx.findSubscription({
+          subscriptionId,
+          customerId: null,
+        });
+        if (sub?.userId && sub.cancelPending)
+          await tx.saveSubscription({ ...sub, userId: sub.userId });
+      })
+      .catch(() => undefined);
     return { cancelFailed: true };
   }
   await store.transaction(async (tx) => {
