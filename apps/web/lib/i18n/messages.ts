@@ -257,7 +257,7 @@ export const en = {
     'Payments: not applicable during the free test. This section will be extended before any paid plan exists.',
   'privacy.processorsTitle': 'Service providers that process data for us',
   'privacy.processorsNote':
-    'Each provider processes data for us under its data processing terms. [TO BE CONFIRMED: the data processing terms are accepted in each provider account.]',
+    'Each provider processes data for us under its data processing terms.',
   'privacy.processor1': 'OpenAI: AI story generation.',
   'privacy.processor2': 'Supabase: hosted authentication and database.',
   'privacy.processor3': 'Cloudflare: access protection, DNS and proxy.',
@@ -575,7 +575,7 @@ export const hu: Record<MessageKey, string> = {
     'Fizetés: az ingyenes teszt alatt nem releváns. Ezt a részt bármely fizetős csomag bevezetése előtt kiegészítjük.',
   'privacy.processorsTitle': 'Szolgáltatók, akik nevünkben kezelnek adatot',
   'privacy.processorsNote':
-    'Mindegyik szolgáltató a saját adatfeldolgozási feltételei szerint kezel adatot a nevünkben. [ERŐSÍTENDŐ MEG: az adatfeldolgozási feltételek elfogadása minden szolgáltatói fiókban.]',
+    'Mindegyik szolgáltató a saját adatfeldolgozási feltételei szerint kezel adatot a nevünkben.',
   'privacy.processor1': 'OpenAI: az AI-történetek generálása.',
   'privacy.processor2': 'Supabase: hosztolt hitelesítés és adatbázis.',
   'privacy.processor3': 'Cloudflare: hozzáférés-védelem, DNS és proxy.',

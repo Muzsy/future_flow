@@ -59,7 +59,6 @@ describe('legal pages (draft pending legal review)', () => {
   it('keeps every undecided policy item as a marked placeholder, in both languages', () => {
     for (const locale of ['en', 'hu'] as const) {
       for (const key of [
-        'privacy.processorsNote',
         'privacy.retention2',
         'privacy.retention3',
         'privacy.retention4',
