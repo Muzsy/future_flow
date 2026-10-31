@@ -259,6 +259,32 @@ try {
   assert.equal(sharedFoundation.delayedSharedResolution, true);
   assert.equal(sharedFoundation.concurrentPersonalMemoryOnce, true);
   assert.equal(sharedFoundation.personalMemoryDeletionRace, true);
+  const billing = JSON.parse(
+    compose(
+      'run',
+      '--rm',
+      '--no-deps',
+      '-e',
+      'CI=true',
+      '-e',
+      'GITHUB_ACTIONS=true',
+      'api',
+      'node',
+      'scripts/smoke-billing.mjs',
+    ).trim(),
+  );
+  assert.equal(billing.billingPostgres, 'passed');
+  for (const check of [
+    'concurrentDuplicateWebhookOnce',
+    'concurrentReservationsWithinAllowance',
+    'concurrentSameKeyOnce',
+    'reaperRacingConsumeConsistent',
+    'refundOutageRetried',
+    'founderDiscountOnceUnderRace',
+    'deletionLeavesNoBillingRows',
+    'billingTablesClosedToApiRoles',
+  ])
+    assert.equal(billing[check], true, check);
   const privacyRestore = JSON.parse(
     compose(
       'run',

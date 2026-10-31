@@ -715,3 +715,23 @@ export const checkoutIdempotencyKey = (userId: string, now: Date) =>
     .update(`${userId}:${Math.floor(now.getTime() / 60_000)}`)
     .digest('hex')
     .slice(0, 32);
+
+// Account deletion: every provider subscription of the user must be cancelled
+// before the account data goes, otherwise the customer would keep being charged
+// for an account that no longer exists. Cancelling is idempotent at the
+// provider; a failure is thrown so the deletion stays pending (fail closed) and
+// can be retried. Subscriptions already cancelled are skipped.
+export async function cancelProviderSubscriptionsForUser(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  userId: string,
+): Promise<{ cancelled: number }> {
+  const subs = await store.transaction((tx) => tx.listSubscriptions(userId));
+  let cancelled = 0;
+  for (const sub of subs) {
+    if (sub.status === 'canceled' && !sub.cancelPending) continue;
+    await provider.cancelSubscription(sub.subscriptionId);
+    cancelled++;
+  }
+  return { cancelled };
+}
