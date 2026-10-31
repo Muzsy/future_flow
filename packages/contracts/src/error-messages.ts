@@ -257,6 +257,14 @@ const errors: Record<string, readonly [string, string]> = {
     'Choose an option before continuing this life.',
     'Válassz a döntési lehetőségek közül a folytatás előtt.',
   ],
+  BILLING_NO_ENTITLEMENT: [
+    'A subscription is required to continue your story. Your saved story stays available.',
+    'A történeted folytatásához előfizetés kell. A mentett történeted továbbra is elérhető.',
+  ],
+  BILLING_ALLOWANCE_EXHAUSTED: [
+    'You have used this period’s chapters. Your saved story stays available.',
+    'Ebben az időszakban elfogytak a fejezeteid. A mentett történeted továbbra is elérhető.',
+  ],
   LIFE_GENERATION_ACTIVE: [
     'This life already has an active generation task.',
     'Ehhez az élethez már fut generálás.',
