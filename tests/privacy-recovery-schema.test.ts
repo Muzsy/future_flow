@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import type { Database } from '@future-flow/database';
@@ -88,6 +89,40 @@ describe('reviewed schema before privacy capture/replay', () => {
       'table set',
     );
     expect((await check()).reviewedForeignKeys).toBe(225);
+  });
+  it('keeps billing children on the same account as their parent', async () => {
+    const [a, b] = [randomUUID(), randomUUID()];
+    const run = (sql: string) =>
+      engine.transaction(async (tx) => {
+        await tx.query('INSERT INTO ff_users(id) VALUES($1),($2)', [a, b]);
+        await tx.query(
+          "INSERT INTO aw_billing_subscriptions(subscription_id,user_id,customer_id,status,last_state_event_created) VALUES('sub_a',$1,'cus_a','active',1)",
+          [a],
+        );
+        await tx.query(
+          "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES('in_a','sub_a',$1,1,5,now())",
+          [a],
+        );
+        await tx.query(sql, [b]);
+        throw Error('rollback');
+      });
+    // A grant of another account's subscription, and a reservation that draws
+    // on another account's grant, are both refused by the schema itself.
+    await expect(
+      run(
+        "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES('in_x','sub_a',$1,1,5,now())",
+      ),
+    ).rejects.toThrow(/foreign key/);
+    await expect(
+      run(
+        "INSERT INTO aw_billing_reservations(user_id,key,bucket,grant_key,state) VALUES($1,'k1','paid','in_a','reserved')",
+      ),
+    ).rejects.toThrow(/foreign key/);
+    await expect(
+      run(
+        "INSERT INTO aw_billing_reservations(user_id,key,bucket,state) VALUES($1,'k1','taster','reserved')",
+      ),
+    ).rejects.toThrow('rollback');
   });
   it('permits only the optional three-column metadata ledger', async () => {
     await engine.exec(

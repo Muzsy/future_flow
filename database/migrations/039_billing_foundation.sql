@@ -23,7 +23,10 @@ CREATE TABLE aw_billing_subscriptions (
   -- (re)tried; closed access never depends on it.
   cancel_pending boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- Target of the composite references below: a child row can only point at a
+  -- parent of the same account.
+  UNIQUE(subscription_id, user_id)
 );
 CREATE INDEX aw_billing_subscriptions_user ON aw_billing_subscriptions(user_id);
 CREATE INDEX aw_billing_subscriptions_customer ON aw_billing_subscriptions(customer_id);
@@ -31,13 +34,15 @@ CREATE INDEX aw_billing_subscriptions_customer ON aw_billing_subscriptions(custo
 -- One chapter allowance per paid invoice (key = provider invoice id).
 CREATE TABLE aw_billing_grants (
   key text PRIMARY KEY CHECK(length(key) BETWEEN 1 AND 255),
-  subscription_id text NOT NULL REFERENCES aw_billing_subscriptions ON DELETE CASCADE,
+  subscription_id text NOT NULL,
   user_id uuid NOT NULL REFERENCES ff_users ON DELETE CASCADE,
   cycle_index integer NOT NULL CHECK(cycle_index >= 1),
   amount integer NOT NULL CHECK(amount BETWEEN 1 AND 100),
   expires_at timestamptz NOT NULL,
   revoked boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY(subscription_id, user_id) REFERENCES aw_billing_subscriptions(subscription_id, user_id) ON DELETE CASCADE,
+  UNIQUE(key, user_id)
 );
 CREATE INDEX aw_billing_grants_user ON aw_billing_grants(user_id);
 CREATE INDEX aw_billing_grants_subscription ON aw_billing_grants(subscription_id);
@@ -48,11 +53,12 @@ CREATE TABLE aw_billing_reservations (
   user_id uuid NOT NULL REFERENCES ff_users ON DELETE CASCADE,
   key text NOT NULL CHECK(length(key) BETWEEN 1 AND 200),
   bucket text NOT NULL CHECK(bucket IN ('paid','taster')),
-  grant_key text REFERENCES aw_billing_grants ON DELETE CASCADE,
+  grant_key text,
   state text NOT NULL CHECK(state IN ('reserved','consumed','released')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY(user_id, key),
+  FOREIGN KEY(grant_key, user_id) REFERENCES aw_billing_grants(key, user_id) ON DELETE CASCADE,
   CHECK((bucket = 'paid') = (grant_key IS NOT NULL))
 );
 CREATE INDEX aw_billing_reservations_grant ON aw_billing_reservations(grant_key) WHERE state <> 'released';
