@@ -18,6 +18,7 @@ import {
   validatedFictionCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
+import { consumeGenerationChapter, releaseGenerationChapter } from './billing';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
 import { personalPrivacyEventIds } from './shared-privacy';
 import {
@@ -121,6 +122,7 @@ export class LifeJobRepository {
           "UPDATE aw_branches SET status='failed' WHERE id=$1 AND user_id=$2",
           [job.branch_id, job.user_id],
         );
+        await releaseGenerationChapter(tx, job.user_id, job.id);
         return null;
       }
       return lifeRow(
@@ -457,6 +459,8 @@ export class LifeJobRepository {
         ],
       );
       if (!completed.length) lost();
+      // Only a durably saved chapter consumes the allowance, atomically with it.
+      await consumeGenerationChapter(tx, job.user_id, job.id);
     });
   }
   async fail(job: LifeJob, error: unknown) {
@@ -469,11 +473,13 @@ export class LifeJobRepository {
           error instanceof DomainError ? error.code : 'JOB_FAILED',
         ],
       );
-      if (rows.length)
+      if (rows.length) {
         await tx.query(
           "UPDATE aw_branches SET status='failed' WHERE id=$1 AND user_id=$2 AND status='generating'",
           [job.branch_id, job.user_id],
         );
+        await releaseGenerationChapter(tx, job.user_id, job.id);
+      }
     });
   }
 }

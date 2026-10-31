@@ -1,4 +1,6 @@
 import {
+  configureGenerationGate,
+  createGenerationGate,
   connectDatabase,
   JobRepository,
   LifeJobRepository,
@@ -15,6 +17,7 @@ import {
   narrativeConfigFromEnv,
   fictionMaxRequestBytesFromEnv,
 } from '@future-flow/database';
+import { billingConfigFromEnv } from '@future-flow/core';
 import {
   OpenAiProvider,
   ExperimentAiBudget,
@@ -71,6 +74,18 @@ async function main() {
     process.env.SHARED_CONTEXTS_ENABLED === 'true' &&
     process.env.SHARED_FRIEND_ENABLED === 'true';
   // Null (and never touched) unless billing is explicitly and fully configured.
+  // Settles chapter reservations (consume on save, release on failure) only when
+  // enforcement is on; the exempt list matters to the API, which reserves.
+  const billingConfig = billingConfigFromEnv();
+  configureGenerationGate(
+    billingConfig.enforcement
+      ? createGenerationGate({
+          ready: billingConfig.enabled,
+          exemptUserIds: [],
+          entitlement: billingConfig.entitlement,
+        })
+      : null,
+  );
   const billingMaintenance = createBillingMaintenance(db);
   let nextBillingMaintenance = 0;
   let queueStart = 0;

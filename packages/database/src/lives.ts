@@ -31,6 +31,7 @@ import {
   type instantiateForkCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
+import { releaseGenerationChapter, reserveGenerationChapter } from './billing';
 import { activitySession } from './beta';
 import {
   legacyNarrativeConfig,
@@ -670,6 +671,9 @@ export class LifeRepository {
         await ownedNarrativeReferences(tx, userId, branch.id),
       );
     const jobId = randomUUID();
+    // Billing gate (no-op unless enforcement is configured): one chapter, one
+    // reservation keyed by the job id, in this same transaction.
+    await reserveGenerationChapter(tx, userId, jobId);
     const metadata = await privacyJobMetadataPresent(tx);
     await tx.query(
       `INSERT INTO aw_jobs(id,user_id,life_id,branch_id,base_revision,payload${metadata ? ',shared_privacy_event_ids' : ''}) VALUES($1,$2,$3,$4,$5,$6${metadata ? ',$7' : ''})`,
@@ -942,6 +946,8 @@ export class LifeRepository {
           job.error_code === 'SHARED_PRIVACY_CHANGED'
         ) {
           await materializeSharedMemories(tx, branch);
+          // The new job gets its own key; the old job's reservation goes back.
+          await releaseGenerationChapter(tx, userId, jobId);
           return this.queue(tx, userId, branch);
         }
         const [active] = await tx.query<{ count: number }>(
@@ -954,6 +960,8 @@ export class LifeRepository {
             'Concurrent generation limit reached.',
             429,
           );
+        // The failed attempt released its reservation; the retry reserves again.
+        await reserveGenerationChapter(tx, userId, jobId);
         await tx.query(
           "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",
           [jobId, userId],

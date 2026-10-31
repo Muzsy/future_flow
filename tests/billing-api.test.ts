@@ -10,7 +10,12 @@ import {
   type BillingAlert,
   type BillingProvider,
 } from '@future-flow/core';
-import { Repository, type Database } from '@future-flow/database';
+import {
+  LifeRepository,
+  Repository,
+  type Database,
+} from '@future-flow/database';
+import { setupFixture } from './life-fixtures';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { createApp } from '../apps/api/src/app';
 import {
@@ -66,6 +71,7 @@ const createAppLoose = createApp as unknown as (
 async function boot(
   config: ReturnType<typeof billingConfigFromEnv>,
   gate?: Gate,
+  closedBeta?: { enabled: boolean; userIds: string[] },
 ) {
   const engine = new PGlite();
   await applyMigrations(engine);
@@ -102,7 +108,7 @@ async function boot(
       },
       deleteUser: async () => {},
     },
-    ...pad,
+    ...pad.map((_, index) => (index === 22 ? closedBeta : undefined)),
     gate,
     runtime,
   );
@@ -525,6 +531,76 @@ describe('checkout rate limit', () => {
       );
     expect(statuses.slice(0, 10).every((x) => x === 201)).toBe(true);
     expect(statuses.slice(10)).toEqual([429, 429]);
+  });
+});
+
+describe('generation gate wiring in createApp', () => {
+  const lifeFor = async (h: Harness, user: string, key: string) => {
+    const repo = new Repository(h.db);
+    await repo.ensureUser(user);
+    await repo.acceptPrivacy(user);
+    return new LifeRepository(h.db, { daily: 100, concurrent: 10 }).create(
+      user,
+      setupFixture(),
+      key,
+    );
+  };
+  it('stays off by default, closes when enforced without usable billing, and exempts the closed-beta list', async () => {
+    const off = await boot(billingConfigFromEnv({}));
+    try {
+      await expect(
+        lifeFor(off, randomUUID(), 'gate-off'),
+      ).resolves.toBeTruthy();
+    } finally {
+      await close(off);
+    }
+    const enforced = await boot(
+      billingConfigFromEnv({ BILLING_ENFORCEMENT: 'true' }),
+    );
+    try {
+      await expect(
+        lifeFor(enforced, randomUUID(), 'gate-closed'),
+      ).rejects.toMatchObject({ code: 'BILLING_UNAVAILABLE', status: 503 });
+    } finally {
+      await close(enforced);
+    }
+    // The exemption belongs to the running closed beta, not to a leftover list.
+    const member = randomUUID();
+    const beta = await boot(
+      billingConfigFromEnv({ BILLING_ENFORCEMENT: 'true' }),
+      undefined,
+      { enabled: true, userIds: [member] },
+    );
+    try {
+      await expect(
+        lifeFor(beta, member, 'beta-on-key-0001'),
+      ).resolves.toBeTruthy();
+    } finally {
+      await close(beta);
+    }
+    const ended = await boot(
+      billingConfigFromEnv({ BILLING_ENFORCEMENT: 'true' }),
+      undefined,
+      { enabled: false, userIds: [member] },
+    );
+    try {
+      await expect(
+        lifeFor(ended, member, 'beta-off-key-0001'),
+      ).rejects.toMatchObject({
+        code: 'BILLING_UNAVAILABLE',
+      });
+    } finally {
+      await close(ended);
+    }
+    // A later app without enforcement resets the process-wide gate.
+    const again = await boot(billingConfigFromEnv({}));
+    try {
+      await expect(
+        lifeFor(again, randomUUID(), 'gate-reset'),
+      ).resolves.toBeTruthy();
+    } finally {
+      await close(again);
+    }
   });
 });
 

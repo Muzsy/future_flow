@@ -1,5 +1,10 @@
 import {
+  DomainError,
   FREE_TASTER_CHAPTERS,
+  defaultEntitlementConfig,
+  entitlementOfSubscriptions,
+  reserveChapter,
+  type EntitlementConfig,
   type BillingStore,
   type BillingSubscription,
   type BillingTx,
@@ -55,7 +60,7 @@ function subscription(row: SubscriptionRow): BillingSubscription {
   };
 }
 
-function billingTx(db: Database): BillingTx {
+export function billingTx(db: Database): BillingTx {
   return {
     lockUser: async (userId) => {
       await db.query(
@@ -300,4 +305,161 @@ export async function hasLiveBillingSubscription(db: Database, userId: string) {
       )
     ).length > 0
   );
+}
+
+// ---- generation gate (BILLING_ENFORCEMENT) ----
+//
+// Reserving is off unless configured: with no gate registered it issues no
+// query and the beta behaves exactly as before. Settling (consume/release) does
+// NOT depend on the gate: the API and the worker are separate processes, and a
+// worker without the gate must still settle what the API reserved, otherwise
+// the reaper hands the quota back after the timeout and the paywall leaks. The
+// settle statements touch no row when no reservation exists (beta accounts,
+// enforcement off), and are skipped on a database without migration 039.
+// One chapter = one life job. The reservation key is the job id: reserved when
+// the job is queued (or retried), consumed in the transaction that durably saves
+// the chapter, released when the job fails. The reaper is the safety net.
+//
+// No advisory lock is taken here on purpose: every caller already holds the
+// account row lock (FOR UPDATE on ff_users), which serialises one account's
+// queueing and completion, and taking the billing advisory lock after it would
+// invert the webhook's order (advisory lock, then a row share on ff_users).
+
+export type GenerationGate = Readonly<{
+  // false: enforcement is on but billing is not usable (invalid or disabled
+  // configuration). The gate then refuses everyone but the exempt accounts.
+  ready: boolean;
+  entitlement: EntitlementConfig;
+  // Closed-beta accounts: never reserved, never consumed.
+  exemptUserIds: ReadonlySet<string>;
+}>;
+
+let activeGate: GenerationGate | null = null;
+
+// Process-wide on purpose: chapter jobs are queued from many repositories that
+// are constructed per request. createApp and the worker set it once at startup.
+export function configureGenerationGate(gate: GenerationGate | null) {
+  activeGate = gate;
+}
+
+export function createGenerationGate(options: {
+  ready: boolean;
+  exemptUserIds: readonly string[];
+  entitlement?: EntitlementConfig;
+}): GenerationGate {
+  return {
+    ready: options.ready,
+    entitlement: options.entitlement ?? defaultEntitlementConfig,
+    exemptUserIds: new Set(options.exemptUserIds.map((id) => id.toLowerCase())),
+  };
+}
+
+export async function reserveGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+  now: Date = new Date(),
+) {
+  const gate = activeGate;
+  if (!gate || gate.exemptUserIds.has(userId.toLowerCase())) return;
+  if (!gate.ready)
+    throw new DomainError(
+      'BILLING_UNAVAILABLE',
+      'Billing is not available.',
+      503,
+    );
+  const bt = billingTx(tx);
+  const entitlement = entitlementOfSubscriptions(
+    await bt.listSubscriptions(userId),
+    now,
+    gate.entitlement,
+  );
+  const result = reserveChapter(
+    await bt.loadLedger(userId),
+    key,
+    entitlement,
+    now,
+  );
+  if (!result.ok)
+    throw new DomainError(
+      result.reason === 'allowance_exhausted'
+        ? 'BILLING_ALLOWANCE_EXHAUSTED'
+        : result.reason === 'no_entitlement'
+          ? 'BILLING_NO_ENTITLEMENT'
+          : 'BILLING_INVALID_KEY',
+      result.reason === 'allowance_exhausted'
+        ? 'The chapter allowance is used up.'
+        : 'A subscription is required to generate a chapter.',
+      result.reason === 'invalid_key' ? 500 : 402,
+    );
+  if (result.created) await bt.saveReservation(userId, result.reservation);
+}
+
+let reservationsTableKnown = false;
+
+// Positive answers are cached for the process; a database that still lacks the
+// table (before migration 039) is asked again, so the upgrade needs no restart.
+async function reservationsTablePresent(tx: Database) {
+  if (reservationsTableKnown) return true;
+  const [row] = await tx.query<{ present: boolean }>(
+    "SELECT to_regclass('public.aw_billing_reservations') IS NOT NULL AS present",
+  );
+  reservationsTableKnown = row?.present === true;
+  return reservationsTableKnown;
+}
+
+// A saved chapter always consumes: also a reservation the reaper handed back in
+// the meantime (a generation longer than the timeout), never a free chapter.
+export async function consumeGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+) {
+  if (!(await reservationsTablePresent(tx))) return;
+  await tx.query(
+    "UPDATE aw_billing_reservations SET state='consumed',updated_at=now() WHERE user_id=$1 AND key=$2 AND state IN ('reserved','released')",
+    [userId, key],
+  );
+}
+
+export async function releaseGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+) {
+  if (!(await reservationsTablePresent(tx))) return;
+  await tx.query(
+    "UPDATE aw_billing_reservations SET state='released',updated_at=now() WHERE user_id=$1 AND key=$2 AND state='reserved'",
+    [userId, key],
+  );
+}
+
+// Reservations whose job can no longer consume: it was cancelled (shared privacy
+// change, account or life invalidation), failed without going through fail(), or
+// vanished with its life. Released without waiting for the stale timeout, so a
+// first-chapter failure does not lock the taster out for hours. A failed job may
+// still be retried: retry() reserves the same key again. Worker maintenance only.
+export async function releaseSettledBillingReservations(db: Database) {
+  if (!(await reservationsTablePresent(db))) return { released: 0 };
+  const users = await db.query<{ user_id: string }>(
+    `SELECT DISTINCT r.user_id FROM aw_billing_reservations r
+     WHERE r.state='reserved' AND r.created_at<now()-interval '1 minute'
+       AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+     ORDER BY r.user_id LIMIT 200`,
+  );
+  let released = 0;
+  for (const { user_id } of users)
+    released += await db.transaction(async (tx) => {
+      await billingTx(tx).lockUser(user_id);
+      return (
+        await tx.query(
+          `UPDATE aw_billing_reservations r SET state='released',updated_at=now()
+           WHERE r.user_id=$1 AND r.state='reserved' AND r.created_at<now()-interval '1 minute'
+             AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+           RETURNING key`,
+          [user_id],
+        )
+      ).length;
+    });
+  return { released };
 }

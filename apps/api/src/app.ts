@@ -10,6 +10,8 @@ import {
   type BillingRuntime,
 } from './billing';
 import {
+  configureGenerationGate,
+  createGenerationGate,
   closedBetaConfigFromEnv,
   validateClosedBetaConfig,
   assertClosedBetaAdmission,
@@ -995,6 +997,22 @@ export async function createApp(
   closedSiteGate: ClosedSiteGate = createClosedSiteGate(),
   billing: BillingRuntime = createBillingRuntime(repo.db),
 ) {
+  // Chapter allowance gate: off unless BILLING_ENFORCEMENT is set. When it is on
+  // but billing is not usable, everyone except the closed-beta accounts is
+  // refused (a broken setup closes the gate, never opens it).
+  configureGenerationGate(
+    billing.config.enforcement
+      ? createGenerationGate({
+          ready: billing.config.enabled,
+          // The exemption belongs to the running closed beta: with
+          // CLOSED_BETA_ENABLED=false a leftover list does not give free chapters.
+          exemptUserIds: closedBetaConfig.enabled
+            ? closedBetaConfig.userIds
+            : [],
+          entitlement: billing.config.entitlement,
+        })
+      : null,
+  );
   const generationLimits = Object.freeze({
     daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
     concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
