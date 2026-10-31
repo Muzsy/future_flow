@@ -672,7 +672,7 @@ def exercise(context, *, scope='ci'):
                     'version': funded.VERSION,
                     'sourceCommit': candidate['sourceCommit'],
                     'paidAiCalls': 0, 'operationPaidAiCalls': 0, 'databaseRestored': False,
-                    'schema': 38,
+                    'schema': 39,
                     'preparedSha256': sha(encoded(candidate)),
                     'imageId': context['image'],
                     'protectedDataUnchanged': True,
@@ -1126,7 +1126,7 @@ def exercise(context, *, scope='ci'):
                         raise AssertionError('Incompatible image accepted')
                 funded.transition(system, candidate)
                 checks['success'] = True
-                assert db('capture', database)['schema'] == 38
+                assert db('capture', database)['schema'] == 39
                 try:
                     system.image(
                         {**release['recovery'], 'imageId': oldImage, 'imageTag': oldTag}
@@ -1134,7 +1134,7 @@ def exercise(context, *, scope='ci'):
                 except (ValueError, RuntimeError):
                     pass
                 else:
-                    raise AssertionError('Pre-038 rollback image accepted after 038')
+                    raise AssertionError('Pre-039 rollback image accepted after 039')
             elif label == 'image-only':
                 funded.transition(system, candidate)
             elif label == 'postcheck':
@@ -1211,7 +1211,7 @@ def exercise(context, *, scope='ci'):
                 assert actual['worker']['environment']['AI_FICTION_MAX_REQUEST_BYTES'] == '196608'
             after = db('capture', database)
             funded.same_funded(before, after)
-            assert after['schema'] == 38
+            assert after['schema'] == 39
             assert initialAuthority == {
                 p: sha(Path(p).read_bytes()) for p in initialAuthority
             }

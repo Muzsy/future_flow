@@ -172,7 +172,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
                 raise ValueError('Data-only loaded rows differ from original manifest')
         proof=node('replay')
         if (proof.get('independentReadOnlyPostReplayVerified') is not True or proof.get('reviewedSecurityCatalog') is not True or
-                proof.get('reviewedTables')!=96 or proof.get('reviewedForeignKeys')!=219 or
+                proof.get('reviewedTables')!=100 or proof.get('reviewedForeignKeys')!=225 or
                 proof.get('paidAiCalls')!=0 or proof.get('authProviderWrites') is not False):
             raise ValueError('Committed replay needs independent complete verification')
         return {**proof,'cleanCatalogHardenedBeforeDataLoad':True,'dataOnlyOriginalBackupLoaded':True,

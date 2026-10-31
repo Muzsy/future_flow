@@ -185,8 +185,8 @@ describe('independent authority and quarantined privacy restore', () => {
     expect(result).toMatchObject({
       action: 'replay',
       independentReadOnlyPostReplayVerified: true,
-      reviewedTables: 96,
-      reviewedForeignKeys: 219,
+      reviewedTables: 100,
+      reviewedForeignKeys: 225,
       reviewedSecurityCatalog: true,
       serviceActivationAllowed: false,
       paidAiCalls: 0,
@@ -328,6 +328,17 @@ describe('independent authority and quarantined privacy restore', () => {
       verifyPrivacyRestore(db, authority, proofBinding()),
     ).rejects.toThrow('verification failed');
     await db.query("UPDATE aw_user_entitlements SET tier='free'");
+    // A restored billing projection that was reopened (or never closed) is
+    // refused: it must stay closed until reconciled with the provider.
+    await db.query(
+      'UPDATE aw_billing_subscriptions SET reconcile_required=false',
+    );
+    await expect(
+      verifyPrivacyRestore(db, authority, proofBinding()),
+    ).rejects.toThrow('verification failed');
+    await db.query(
+      'UPDATE aw_billing_subscriptions SET reconcile_required=true',
+    );
     await db.query('DELETE FROM aw_publication_restrictions WHERE user_id=$1', [
       a,
     ]);
@@ -384,8 +395,8 @@ describe('independent authority and quarantined privacy restore', () => {
     await replayPrivacyRestore(db, authority, proofBinding());
     const verified = await verifyPrivacyRestore(db, authority, proofBinding());
     expect(verified).toMatchObject({
-      reviewedTables: 96,
-      reviewedForeignKeys: 219,
+      reviewedTables: 100,
+      reviewedForeignKeys: 225,
       serviceActivationAllowed: false,
       liveWrites: false,
       paidAiCalls: 0,

@@ -54,7 +54,7 @@ export async function verifyPrivacyRestore(
       "SELECT 1 FROM ff_users WHERE status<>'active' OR NOT(id=ANY($1::uuid[]))",
       [authority.activeUserIds],
     );
-    // Check all 219 relationships, including indirect children and SET NULL
+    // Check every reviewed relationship, including indirect children and SET NULL
     // retention. A valid FK declaration alone does not prove old data is clean.
     let userReferenceChecks = 0;
     for (const key of coverage.keys) {
@@ -161,6 +161,9 @@ export async function verifyPrivacyRestore(
       "SELECT 1 FROM aw_social_profiles WHERE discoverability<>'private'",
     );
     await empty("SELECT 1 FROM aw_user_entitlements WHERE tier<>'free'");
+    await empty(
+      'SELECT 1 FROM aw_billing_subscriptions WHERE NOT reconcile_required',
+    );
     await empty(
       'SELECT 1 FROM ff_users u WHERE NOT EXISTS(SELECT 1 FROM aw_publication_restrictions r WHERE r.user_id=u.id AND r.active)',
     );

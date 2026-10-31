@@ -25,10 +25,14 @@ import {
 import type { Database } from '@future-flow/database';
 import {
   assertPrivacySecurityCatalog,
+  assertFundedPre039SecurityCatalog,
   assertFundedPre038SecurityCatalog,
   assertFundedPre037SecurityCatalog,
 } from './privacy-security-catalog';
-import { reviewedPrivacyRecoveryTables } from './privacy-recovery-schema';
+import {
+  reviewedPre039PrivacyRecoveryTables,
+  reviewedPrivacyRecoveryTables,
+} from './privacy-recovery-schema';
 import {
   validateIdentityRecords,
   validateParticipants,
@@ -43,7 +47,8 @@ const jobTables = [
   'aw_public_content_reviews',
   'aw_scenario_reviews',
 ] as const;
-const migrationName = '038_narrative_artifacts.sql';
+const migrationName = '039_billing_foundation.sql';
+export type FundedSchema = 36 | 37 | 38 | 39;
 
 // Exercise the image's installed contracts, rather than accepting a capability
 // label from an operator JSON file. No AI provider is loaded or constructed.
@@ -96,7 +101,7 @@ export function fundedRuntimeCapabilities() {
   });
   return {
     version: FUNDED_CAPABILITY,
-    schema: 38,
+    schema: 39,
     legacy: true,
     context: contextNarrativePolicy().promptVersions,
     policies: supported,
@@ -122,7 +127,7 @@ function assertStoredPolicy(policy: unknown) {
 
 export async function assertFundedStoredNarrativeState(
   tx: Database,
-  schema: 36 | 37 | 38 = 38,
+  schema: FundedSchema = 39,
 ) {
   // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
   // policy snapshots; every one must be interpretable by this image.
@@ -135,7 +140,7 @@ export async function assertFundedStoredNarrativeState(
       policy: unknown;
     }>(`SELECT checkpoints->'policy' AS policy FROM public.aw_jobs
     WHERE checkpoints->'policy' IS NOT NULL ORDER BY id LIMIT 1001`),
-    schema === 38
+    schema >= 38
       ? await tx.query<{
           policy: unknown;
         }>(`SELECT narrative_artifact->'policy' AS policy FROM public.aw_periods
@@ -147,7 +152,7 @@ export async function assertFundedStoredNarrativeState(
     throw Error('Bounded stored policy inventory required');
   const policies = inventory.flat();
   for (const { policy } of policies) assertStoredPolicy(policy);
-  if (schema === 38) {
+  if (schema >= 38) {
     const artifacts = await tx.query<{ artifact: unknown }>(
       'SELECT narrative_artifact AS artifact FROM public.aw_periods WHERE narrative_artifact IS NOT NULL LIMIT 1001',
     );
@@ -168,8 +173,8 @@ function migrationPlan() {
   const files = readdirSync('database/migrations')
     .filter((f) => f.endsWith('.sql'))
     .sort();
-  if (files.length !== 38 || files.at(-1) !== migrationName)
-    throw Error('Exactly reviewed 001–038 source required');
+  if (files.length !== 39 || files.at(-1) !== migrationName)
+    throw Error('Exactly reviewed 001–039 source required');
   return files.map((name) => ({
     name,
     sql: readFileSync(`database/migrations/${name}`, 'utf8').replace(
@@ -184,14 +189,14 @@ async function migrationState(tx: Database) {
     'SELECT name,checksum FROM public.ff_migrations ORDER BY name',
   );
   if (
-    ![36, 37, 38].includes(applied.length) ||
+    ![36, 37, 38, 39].includes(applied.length) ||
     applied.some(
       (row, i) =>
         row.name !== plan[i]?.name || row.checksum !== hash(plan[i]!.sql),
     )
   )
-    throw Error('Exact 036/037/038 migration checksums required');
-  return applied.length as 36 | 37 | 38;
+    throw Error('Exact 036/037/038/039 migration checksums required');
+  return applied.length as FundedSchema;
 }
 
 export async function captureFundedRuntime(
@@ -210,7 +215,9 @@ export async function captureFundedRuntime(
       ? await assertFundedPre037SecurityCatalog(tx)
       : schema === 37
         ? await assertFundedPre038SecurityCatalog(tx)
-        : await assertPrivacySecurityCatalog(tx);
+        : schema === 38
+          ? await assertFundedPre039SecurityCatalog(tx)
+          : await assertPrivacySecurityCatalog(tx);
   const [clock] = await tx.query<{ db: string; role: string; now: Date }>(
     'SELECT current_database() AS db,session_user AS role,clock_timestamp() AS now',
   );
@@ -267,17 +274,24 @@ export async function captureFundedRuntime(
   // covered. The 036 projection adds exactly the future subscriber default;
   // existing 037/038 entitlement values remain fully protected. The nullable
   // artifact column is separately hashed. No application row may be rewritten.
-  const data = await tx.query<{ table: string; count: string; digest: string }>(
-    reviewedPrivacyRecoveryTables
-      .map(
-        (table) =>
-          `SELECT '${table}' AS "table",count(*)::text AS count,md5(coalesce(string_agg(h,'' ORDER BY h),'')) AS digest FROM
+  const digestOf = (tables: readonly string[]) =>
+    tx.query<{ table: string; count: string; digest: string }>(
+      tables
+        .map(
+          (table) =>
+            `SELECT '${table}' AS "table",count(*)::text AS count,md5(coalesce(string_agg(h,'' ORDER BY h),'')) AS digest FROM
       (SELECT md5((${table === 'aw_periods' ? "to_jsonb(t)-'narrative_artifact'" : table === 'aw_shared_members' && schema === 36 ? "to_jsonb(t)||jsonb_build_object('entitlement_mode','subscriber')" : 'to_jsonb(t)'})::text) AS h FROM public.${table} t) v`,
-      )
-      .join(' UNION ALL ') + ' ORDER BY \"table\"',
-  );
+        )
+        .join(' UNION ALL ') + ' ORDER BY "table"',
+    );
+  // The 96 pre-039 tables are hashed the same way at every schema, so the
+  // 038→039 step can prove they were not touched and the observation keeps its
+  // exact, already-recorded shape. The billing tables are not part of this
+  // observation: they are empty right after the upgrade (checked in
+  // migrateFundedRuntime) and change with live webhooks afterwards.
+  const data = await digestOf(reviewedPre039PrivacyRecoveryTables);
   const artifacts =
-    schema === 38
+    schema >= 38
       ? await tx.query(`SELECT count(*)::text AS count,md5(coalesce(string_agg(h,'' ORDER BY h),'')) AS digest FROM
     (SELECT md5(narrative_artifact::text) AS h FROM public.aw_periods WHERE narrative_artifact IS NOT NULL) v`)
       : [{ count: '0', digest: 'd41d8cd98f00b204e9800998ecf8427e' }];
@@ -304,6 +318,10 @@ export async function migrateFundedRuntime(
   const before = await captureFundedRuntime(tx, input);
   if (hash(before) !== hash(expected))
     throw Error('Funded source drift before migration');
+  // The capture pins search_path to pg_catalog first, which would make an
+  // unqualified CREATE TABLE target the system catalog. Migration files create
+  // objects in public only; the pin is restored by the next capture.
+  await tx.query("SET LOCAL search_path='public'");
   for (const step of migrationPlan().slice(before.schema)) {
     await tx.query(step.sql);
     await tx.query(
@@ -313,12 +331,25 @@ export async function migrateFundedRuntime(
   }
   const after = await captureFundedRuntime(tx, input);
   if (
-    after.schema !== 38 ||
+    after.schema !== 39 ||
     after.dataSha256 !== before.dataSha256 ||
     after.artifactSha256 !== before.artifactSha256 ||
     after.identityBindingSha256 !== before.identityBindingSha256 ||
     after.policiesSha256 !== before.policiesSha256
   )
     throw Error('Funded authority/data changed during append-only migration');
+  // A fresh billing foundation starts empty.
+  if (before.schema < 39)
+    for (const table of reviewedPrivacyRecoveryTables.filter((t) =>
+      t.startsWith('aw_billing_'),
+    ))
+      if (
+        (
+          await tx.query<{ populated: boolean }>(
+            `SELECT EXISTS(SELECT 1 FROM public.${table}) AS populated`,
+          )
+        )[0]?.populated !== false
+      )
+        throw Error('Billing foundation must start empty');
   return after;
 }

@@ -236,7 +236,7 @@ class System(funded.System):
             raise ValueError('Completed original funded parent required')
         role = 'recovery' if journal['states'][-1]['state'] == 'recovered' else 'target'
         proof = json.loads(fence.original(root / 'readback.json'))
-        if (proof.get('version') != 'alterward-funded-upgrade-1' or proof.get('schema') != 38
+        if (proof.get('version') != 'alterward-funded-upgrade-1' or proof.get('schema') not in (38, 39)
                 or proof.get('preparedSha256') != sha(encoded(value))
                 or proof.get('sourceCommit') != value['sourceCommit']
                 or proof.get('imageId') != value['release'][role]['imageId']
@@ -268,7 +268,7 @@ class System(funded.System):
         if (proof.get('version') != VERSION or proof.get('preparedSha256') != sha(encoded(value))
                 or proof.get('sourceCommit') != value['sourceCommit']
                 or proof.get('imageId') != value['release'][role]['imageId']
-                or proof.get('schema') != 38 or proof.get('protectedDataUnchanged') is not True
+                or proof.get('schema') not in (38, 39) or proof.get('protectedDataUnchanged') is not True
                 or proof.get('operationPaidAiCalls') != 0 or proof.get('databaseRestored') is not False
                 or self.hashes(root / role) != value['files'][role]
                 or value['files'][role] != context['files']):
@@ -342,9 +342,9 @@ class System(funded.System):
         value = self.raw_probe(image, {'mode':'capture','participants':unique,'expected':None})
         funded.exact(value, {'version','schema','identityBindingSha256','dataSha256','artifactSha256',
                              'catalogSha256','policiesSha256','drained','providerApiCalls'})
-        if (value['version'] != 'alterward-funded-runtime-1' or value['schema'] != 38
+        if (value['version'] != 'alterward-funded-runtime-1' or value['schema'] != 39
                 or value['providerApiCalls'] != 0 or value['drained'] is not True):
-            raise ValueError('Exact drained schema038 observation required')
+            raise ValueError('Exact drained schema039 observation required')
         return value
 
     def accounting(self, image, mode, expected=None):
@@ -647,7 +647,7 @@ class System(funded.System):
         self.require_future_start(candidate)
         self.proof = {'version':VERSION,'preparedSha256':sha(encoded(candidate)),
             'sourceCommit':candidate['sourceCommit'],'imageId':candidate['release'][role]['imageId'],
-            'schema':38,'protectedDataUnchanged':True,'previousSpendPreserved':True,
+            'schema':39,'protectedDataUnchanged':True,'previousSpendPreserved':True,
             'previousAllowanceClosed':not self.is_reader(),'operationSha256':canonical_sha(candidate['operation']),
             'fundedStateSha256':sha(encoded(self.after)), 'browserJourneyPassed':False,
             'paidAiCalls':0,'operationPaidAiCalls':0,'databaseRestored':False}

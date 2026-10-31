@@ -294,7 +294,7 @@ class ReaderAccountingTests(ChainRootBase):
 
     def test_reader_admission_never_applies_or_replays_database_changes(self):
         selection, value = self.prepared()
-        database = {'version': 'alterward-funded-runtime-1', 'schema': 38, 'identityBindingSha256': 'a' * 64,
+        database = {'version': 'alterward-funded-runtime-1', 'schema': 39, 'identityBindingSha256': 'a' * 64,
                     'dataSha256': 'b' * 64, 'artifactSha256': 'c' * 64, 'catalogSha256': 'd' * 64,
                     'policiesSha256': 'e' * 64, 'drained': True, 'providerApiCalls': 0}
         value = {**value, 'database': database}
@@ -356,7 +356,7 @@ class TesterBeta(ChainRootBase):
     def test_database_capture_authenticates_previous_and_new_participants_once(self):
         self.chain.admit_readers()
         system = self.system(selection=self.beta_selection())
-        system.raw_probe = Mock(return_value={'version': 'alterward-funded-runtime-1', 'schema': 38,
+        system.raw_probe = Mock(return_value={'version': 'alterward-funded-runtime-1', 'schema': 39,
                                               'identityBindingSha256': 'a' * 64, 'dataSha256': 'b' * 64,
                                               'artifactSha256': 'c' * 64, 'catalogSha256': 'd' * 64,
                                               'policiesSha256': 'e' * 64, 'drained': True, 'providerApiCalls': 0})

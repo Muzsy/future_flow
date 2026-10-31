@@ -134,3 +134,7 @@ Elkészült a külön public-content-review-1 teljes történet+explicit checkpo
 ## 2026-10-07: saját élet törlése és kvótamegőrzés
 
 Külön saját whole-life delete nem törli az Auth-accountot: friss sign-in, DELETE LIFE, aktuális branch/revision. Shared tagság/prose/input/lease leválasztás, public graph source cascade; kvóták rövid admission metaadata marad csak. Account delete ezt is cascade törli. 26 actual Auth/HTTP/TLS +cleanup, seed/ledgers unchanged. [Bizonyíték](SELECTIVE_LIFE_DELETION_REPORT_HU.md).
+
+### Billing sorok (B01, 2026-10-31)
+
+A 039-es migráció négy táblája (`aw_billing_subscriptions`, `aw_billing_grants`, `aw_billing_reservations`, `aw_billing_events`) az `ff_users` gyökérre cascade-del hivatkozik, így a belső adatgráf törlése eltávolítja őket; a coverage-registry és a restore-bizonyíték ezt ellenőrzi (cascade-táblák száma 81 → 85). A szolgáltatói előfizetés lemondása a fióktörlés részeként a billing bekötésének csomagjában (PR-3b) készül; amíg a billing kikapcsolt, nincs szolgáltatói előfizetés.
