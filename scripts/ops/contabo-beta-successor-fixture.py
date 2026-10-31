@@ -16,7 +16,10 @@ from unittest.mock import patch
 # prepare, the physical candidate backup, the 60 s close delay and the
 # stop/restore/stage steps that run before the future-start check. The chained
 # cases then really wait for the owner window, so the lead is wall-clock CI time.
-START_LEAD = dt.timedelta(minutes=4)
+# Measured: ~100 s of work on a hosted CI runner, but the single-CPU target
+# machine needed more than 240 s (a 4 minute lead failed there with "Owner trial
+# start already reached"), so the lead stays at the long-proven 10 minutes.
+START_LEAD = dt.timedelta(minutes=10)
 
 
 def exercise(engine, ctx, *, label, system, database, owner, project, terms, release,
