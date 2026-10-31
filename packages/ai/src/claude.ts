@@ -4,7 +4,7 @@ import { DomainError, hash } from '@future-flow/core';
 import type { AiRequestGuard, AiResult } from './index';
 import type { ExperimentTokenPrices } from './experiment-budget';
 
-// Standard global Claude API prices verified 2026-10-03. No fast mode or 1h cache.
+// Standard global Claude API prices verified 2026-10-31. No fast mode or 1h cache.
 export const claudeExperimentPrices: ExperimentTokenPrices = {
   'claude-haiku-4-5-20251001': {
     input: 1,
@@ -14,7 +14,7 @@ export const claudeExperimentPrices: ExperimentTokenPrices = {
   },
   'claude-sonnet-5-5': {
     input: 2,
-    cachedInput: 0.2,
+    cachedInput: 0.1,
     inputCeiling: 2.5,
     output: 10,
   },
