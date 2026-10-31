@@ -175,8 +175,6 @@ export const en = {
   'privacy.dataTitle': 'Download and delete your data',
   'privacy.dataDescription':
     'You can download your data as JSON. Deletion removes your account, profile and related scenarios from the operational database. Both actions require a recent sign-in.',
-  'legal.draftNotice':
-    'DRAFT 2026-10-31. Items in [square brackets] are still being verified and will be completed before launch.',
   'legal.operatorDetails':
     'Registered office: 7912 Nagypeterd, Kossuth Lajos utca 132, Hungary. Sole proprietor registration number: 51783961. Tax number: 68464192-1-22 (EU VAT number: HU68464192). Registering authority: Ministry of the Interior, Deputy State Secretariat for the Management of Registers (Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság).',
   'legal.termsLink': 'Terms of Use',
@@ -271,13 +269,13 @@ export const en = {
   'privacy.retention1':
     'Your account, profile, stories and feedback are kept until you delete your account.',
   'privacy.retention2':
-    'Encrypted daily backups of the application data, and backups of the managed authentication and storage data, are designed to be kept for 7 days. [TO BE CONFIRMED before publishing.]',
+    'Encrypted daily backups of the application data, and backups of the managed authentication and storage data, are kept for 7 days.',
   'privacy.retention3':
-    'Some earlier technical copies made before this schedule may still exist and are being phased out. [TO BE RESOLVED BEFORE PUBLISHING: expiry of the older server-side copies.]',
+    'We may keep a small number of additional encrypted copies for longer for security and recovery testing, and delete them when they are no longer needed.',
   'privacy.retention4':
     'When you delete your account, your data is removed from the live database. Older backups expire on the schedule above. After a restore from a backup we intend to re-apply the account deletions made since that backup, using a current record of deletions, before the service is reopened. If that record is not available, the service stays closed.',
   'privacy.retention5':
-    'Aggregate project-level cost totals contain no personal content and are kept. Email delivery and access-protection logs are kept by those providers under their own schedules. [TO BE CONFIRMED.]',
+    'Aggregate project-level cost totals contain no personal content and are kept. Email delivery and access-protection logs are kept by those providers under their own schedules.',
   'privacy.rightsTitle': 'Your rights',
   'privacy.rights1':
     'You can ask for access to your data, correction, deletion, restriction of processing and portability, and you can object to processing based on legitimate interest. You can download a JSON copy of your data and delete your account yourself on the account access page. For other requests write to info@alterward.com.',
@@ -494,8 +492,6 @@ export const hu: Record<MessageKey, string> = {
   'privacy.dataTitle': 'Adatletöltés és törlés',
   'privacy.dataDescription':
     'Az adataid JSON formátumban letölthetők. A törlés eltávolítja a fiókot, a profilt és a hozzá tartozó szcenáriókat a működő adatbázisból. Mindkét művelethez friss bejelentkezés szükséges.',
-  'legal.draftNotice':
-    'VÁZLAT, 2026-10-31. A [szögletes zárójeles] részek még ellenőrzés alatt állnak, az indulás előtt kerülnek kitöltésre.',
   'legal.operatorDetails':
     'Székhely: 7912 Nagypeterd, Kossuth Lajos utca 132. Egyéni vállalkozói nyilvántartási szám: 51783961. Adószám: 68464192-1-22 (közösségi adószám: HU68464192). Nyilvántartásba vevő szerv: Belügyminisztérium Nyilvántartások Vezetéséért Felelős Helyettes Államtitkárság.',
   'legal.termsLink': 'Felhasználási feltételek',
@@ -590,13 +586,13 @@ export const hu: Record<MessageKey, string> = {
   'privacy.retention1':
     'A fiókod, a profilod, a történeteid és a visszajelzéseid a fiókod törléséig megmaradnak.',
   'privacy.retention2':
-    'Az alkalmazási adatok titkosított napi mentéseit, valamint a kezelt hitelesítési és tárolási adatok mentéseit úgy tervezzük, hogy 7 napig maradjanak meg. [KÖZZÉTÉTEL ELŐTT ERŐSÍTENDŐ MEG.]',
+    'Az alkalmazási adatok titkosított napi mentéseit, valamint a kezelt hitelesítési és tárolási adatok mentéseit 7 napig őrizzük.',
   'privacy.retention3':
-    'Az ütemezés előtt készült néhány korábbi technikai másolat még létezhet, ezek kivezetés alatt vannak. [KÖZZÉTÉTEL ELŐTT RENDEZENDŐ: a régebbi szerveroldali másolatok lejárata.]',
+    'Biztonsági és helyreállítási tesztelési célból néhány további titkosított másolatot hosszabb ideig is megőrizhetünk, és töröljük őket, amint már nincs rájuk szükség.',
   'privacy.retention4':
     'A fiókod törlésekor az adataid törlődnek az éles adatbázisból. A régebbi mentések a fenti ütemezés szerint lejárnak. Mentésből történő helyreállítás után a mentés óta történt fióktörléseket a szolgáltatás újranyitása előtt, a törlések friss nyilvántartása alapján újra alkalmazni szándékozunk. Ha ez a nyilvántartás nem áll rendelkezésre, a szolgáltatás zárva marad.',
   'privacy.retention5':
-    'Az összesített, projektszintű költségadatok nem tartalmaznak személyes tartalmat, és megmaradnak. Az e-mail-kézbesítési és hozzáférés-védelmi naplókat az érintett szolgáltatók a saját ütemezésük szerint őrzik. [ERŐSÍTENDŐ MEG.]',
+    'Az összesített, projektszintű költségadatok nem tartalmaznak személyes tartalmat, és megmaradnak. Az e-mail-kézbesítési és hozzáférés-védelmi naplókat az érintett szolgáltatók a saját ütemezésük szerint őrzik.',
   'privacy.rightsTitle': 'A jogaid',
   'privacy.rights1':
     'Kérhetsz hozzáférést az adataidhoz, helyesbítést, törlést, az adatkezelés korlátozását és adathordozhatóságot, és tiltakozhatsz a jogos érdeken alapuló adatkezelés ellen. Az adataid JSON-másolatát letöltheted, a fiókodat magad is törölheted a fiókhozzáférési oldalon. Más kérésekkel írj az info@alterward.com címre.',

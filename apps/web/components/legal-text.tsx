@@ -17,15 +17,6 @@ export function LegalText({ text }: { text: string }) {
   );
 }
 
-export function LegalDraftNotice() {
-  const { t } = useLanguage();
-  return (
-    <p className="notice" role="note">
-      {t('legal.draftNotice')}
-    </p>
-  );
-}
-
 export function LegalSection({
   title,
   paragraphs,

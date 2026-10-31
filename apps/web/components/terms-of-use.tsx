@@ -1,5 +1,5 @@
 'use client';
-import { LegalDraftNotice, LegalSection, LegalText } from './legal-text';
+import { LegalSection, LegalText } from './legal-text';
 import { useLanguage } from './language-provider';
 
 export function TermsOfUse() {
@@ -7,7 +7,6 @@ export function TermsOfUse() {
   return (
     <>
       <h1>{t('terms.title')}</h1>
-      <LegalDraftNotice />
       <LegalSection title="terms.operatorTitle">
         <p>{t('privacy.operator')}</p>
         <p>

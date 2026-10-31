@@ -42,7 +42,7 @@ async function render(locale: 'en' | 'hu', page: 'terms' | 'privacy') {
   );
 }
 
-describe('legal pages (draft pending legal review)', () => {
+describe('legal pages', () => {
   it('has a complete English and Hungarian catalog without unbalanced placeholders', () => {
     expect(legalKeys.length).toBeGreaterThan(60);
     for (const key of legalKeys)
@@ -56,22 +56,18 @@ describe('legal pages (draft pending legal review)', () => {
       }
   });
 
-  it('keeps every undecided policy item as a marked placeholder, in both languages', () => {
-    for (const locale of ['en', 'hu'] as const) {
-      for (const key of [
-        'privacy.retention2',
-        'privacy.retention3',
-        'privacy.retention5',
-      ] as const)
-        expect(messages[locale][key], `${locale}:${key}`).toMatch(/\[.+\]/);
-    }
+  it('has no unresolved [bracket] placeholder or draft banner left, in both languages', () => {
+    for (const locale of ['en', 'hu'] as const)
+      for (const key of legalKeys)
+        expect(messages[locale][key], `${locale}:${key}`).not.toMatch(/[[\]]/);
+    expect(Object.keys(messages.en)).not.toContain('legal.draftNotice');
   });
 
-  it('renders the terms page with every section, the draft banner and highlighted placeholders', async () => {
+  it('renders the terms page with every section and no draft banner', async () => {
     // Hungarian is stored but not enabled yet, so the page renders English.
     const html = await render('en', 'terms');
     expect(html).toContain('<h1>Terms of Use</h1>');
-    expect(html).toContain('role="note"');
+    expect(html).not.toContain('role="note"');
     expect(html.match(/<h2>/g)).toHaveLength(11);
     expect(html).toContain('Nagypeterd');
     expect(html).toContain('at least 18 years old');
@@ -96,7 +92,7 @@ describe('legal pages (draft pending legal review)', () => {
     expect(html).toContain('withdraw it at any time');
     expect(html).toContain('href="/account-access"');
     expect(html).toContain('href="/terms"');
-    expect(html).toContain('class="legal-placeholder"');
+    expect(html).not.toContain('legal-placeholder');
     expect(messages.hu['privacy.rights2']).toContain('visszavonhatod');
   });
 
