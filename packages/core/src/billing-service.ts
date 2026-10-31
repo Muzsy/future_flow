@@ -726,10 +726,21 @@ export async function cancelProviderSubscriptionsForUser(
   provider: Pick<BillingProvider, 'cancelSubscription'>,
   userId: string,
 ): Promise<{ cancelled: number }> {
-  const subs = await store.transaction((tx) => tx.listSubscriptions(userId));
+  // Under the user lock: a webhook that saved a subscription before the account
+  // was marked deleting has committed by now and is listed; a later one sees the
+  // deleting account and cannot attach state.
+  const subs = await store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    return tx.listSubscriptions(userId);
+  });
   let cancelled = 0;
   for (const sub of subs) {
-    if (sub.status === 'canceled' && !sub.cancelPending) continue;
+    // Terminal states have nothing left to cancel at the provider.
+    if (
+      (sub.status === 'canceled' || sub.status === 'incomplete_expired') &&
+      !sub.cancelPending
+    )
+      continue;
     await provider.cancelSubscription(sub.subscriptionId);
     cancelled++;
   }

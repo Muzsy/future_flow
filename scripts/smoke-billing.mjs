@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { setTimeout } from 'node:timers/promises';
 
 // Real-PostgreSQL proof of the billing store (ADR-010, migration 039). Runs only
 // inside the ephemeral, egress-disabled CI PostgreSQL network with a fake
@@ -350,6 +351,55 @@ try {
       0,
     );
     checks.deletionLeavesNoBillingRows = true;
+  }
+
+  // 7b. A subscription save in flight when the account is marked deleting is
+  // seen and cancelled by the deletion (no orphaned, still-charging provider
+  // subscription).
+  {
+    const p = await person();
+    let release;
+    const gate = new Promise((resolve) => (release = resolve));
+    let saved;
+    const savedSignal = new Promise((resolve) => (saved = resolve));
+    const inFlight = store.transaction(async (tx) => {
+      await tx.lockUser(p.id);
+      assert.equal(await tx.userExists(p.id), true);
+      await tx.saveSubscription({
+        subscriptionId: p.sub,
+        customerId: p.customer,
+        userId: p.id,
+        status: 'active',
+        periodStart: null,
+        periodEnd: null,
+        cancelAtPeriodEnd: false,
+        discounted: false,
+        paidInvoiceIds: [],
+        refundedInvoiceIds: [],
+        revoked: null,
+        lastStateEventCreated: 1,
+        reconcileRequired: false,
+        cancelPending: false,
+      });
+      saved();
+      await gate;
+    });
+    await savedSignal;
+    // markDeleting takes the account row lock, which the in-flight save's
+    // foreign key already holds shared: marking waits for the commit, so the
+    // deletion afterwards lists (and cancels) the committed subscription.
+    let marked = false;
+    const marking = repo.markDeleting(p.id).then(() => (marked = true));
+    await setTimeout(300);
+    assert.equal(marked, false);
+    release();
+    await inFlight;
+    await marking;
+    const deletion = cancelProviderSubscriptionsForUser(store, provider, p.id);
+    assert.equal((await deletion).cancelled, 1);
+    assert.ok(cancelled.includes(p.sub));
+    await repo.deleteAccountData(p.id);
+    checks.deletionSeesInFlightSubscription = true;
   }
 
   // 8. Row level security stays on and API roles cannot read billing tables.

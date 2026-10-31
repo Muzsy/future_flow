@@ -465,6 +465,34 @@ describe('SQL billing store', () => {
   });
 });
 
+describe('reservation reaper and retries', () => {
+  it('does not free a reservation that was released and reserved again', async () => {
+    const u = await user();
+    await reserveChapterForUser(store, u, 'retry', now);
+    await db.query(
+      "UPDATE aw_billing_reservations SET created_at=now()-interval '3 hours' WHERE user_id=$1",
+      [u],
+    );
+    await releaseChapterForUser(store, u, 'retry');
+    expect(await reserveChapterForUser(store, u, 'retry', now)).toMatchObject({
+      ok: true,
+      created: true,
+    });
+    const { released } = await releaseStaleBillingReservations(db, {
+      olderThanMs: 60 * 60_000,
+    });
+    expect(released).toBe(0);
+    await expect(
+      consumeChapterForUser(store, u, 'retry'),
+    ).resolves.toBeUndefined();
+    const [row] = await db.query<{ state: string }>(
+      "SELECT state FROM aw_billing_reservations WHERE user_id=$1 AND key='retry'",
+      [u],
+    );
+    expect(row!.state).toBe('consumed');
+  });
+});
+
 describe('account deletion with billing', () => {
   const auth = {
     assertDeletionConfigured: () => undefined,
@@ -494,6 +522,21 @@ describe('account deletion with billing', () => {
     expect(
       await count('SELECT count(*) n FROM ff_users WHERE id=$1', [u]),
     ).toBe(0);
+  });
+
+  it('skips terminal subscriptions and cancels the others', async () => {
+    const u = await user();
+    const { provider, cancelled } = fakeProvider();
+    const live = world(u);
+    const expired = world(u);
+    await send(subscriptionEvent(live), provider);
+    await send(
+      subscriptionEvent(expired, { status: 'incomplete_expired' }),
+      provider,
+    );
+    await cancelProviderSubscriptionsForUser(store, provider, u);
+    expect(cancelled).toContain(live.sub);
+    expect(cancelled).not.toContain(expired.sub);
   });
 
   it('keeps the account and its billing state when cancelling fails (fail closed)', async () => {

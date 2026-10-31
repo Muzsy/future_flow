@@ -212,10 +212,14 @@ function billingTx(db: Database): BillingTx {
         tasterAmount: FREE_TASTER_CHAPTERS,
       };
     },
+    // A released key that is reserved again (a retry after a failure) is a new
+    // reservation: its age restarts, so the reaper never frees a live one.
     saveReservation: async (userId, reservation) => {
       await db.query(
         `INSERT INTO aw_billing_reservations(user_id,key,bucket,grant_key,state) VALUES($1,$2,$3,$4,$5)
-         ON CONFLICT(user_id,key) DO UPDATE SET bucket=EXCLUDED.bucket,grant_key=EXCLUDED.grant_key,state=EXCLUDED.state,updated_at=now()`,
+         ON CONFLICT(user_id,key) DO UPDATE SET bucket=EXCLUDED.bucket,grant_key=EXCLUDED.grant_key,state=EXCLUDED.state,
+           created_at=CASE WHEN EXCLUDED.state='reserved' AND aw_billing_reservations.state<>'reserved' THEN now() ELSE aw_billing_reservations.created_at END,
+           updated_at=now()`,
         [
           userId,
           reservation.key,

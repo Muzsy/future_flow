@@ -282,6 +282,7 @@ try {
     'refundOutageRetried',
     'founderDiscountOnceUnderRace',
     'deletionLeavesNoBillingRows',
+    'deletionSeesInFlightSubscription',
     'billingTablesClosedToApiRoles',
   ])
     assert.equal(billing[check], true, check);
