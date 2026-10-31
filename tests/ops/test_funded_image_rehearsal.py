@@ -76,8 +76,9 @@ class ImageRehearsalBoundaries(unittest.TestCase):
         names={'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
                'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
                'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
-               'readerAdmission','testerBetaWindow','chainedAuthority'}
-        proof={'version':'alterward-beta-successor-fixture-2',**BINDING,
+               'readerAdmission','testerBetaWindow','chainedAuthority',
+               'schemaMigration','schemaRecovery','billingDefaultsGuard'}
+        proof={'version':'alterward-beta-successor-fixture-3',**BINDING,
                'targetImage':IMAGE,'recoveryImage':IMAGE,'checks':dict.fromkeys(names,True),'paidAiCalls':0}
         r.require_successor_proof(proof,IMAGE,BINDING)
         for wrong in (None,{}, {**proof,'sourceCommit':'f'*40}, {**proof,'checks':dict.fromkeys(r.CHECKS,True)}):

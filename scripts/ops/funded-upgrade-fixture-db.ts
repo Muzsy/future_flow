@@ -10,6 +10,11 @@ import {
 } from '../lib/funded-runtime';
 import { successorDatabaseRequest } from '../lib/beta-successor-operation';
 import { successorPlan } from '../lib/beta-successor';
+import {
+  billingFoundationState,
+  billingFoundationTables,
+  downgradeFixtureTo038,
+} from './funded-upgrade-fixture-schema';
 
 async function main() {
   assert.equal(process.env.ALTERWARD_FUNDED_FIXTURE, 'true');
@@ -40,6 +45,8 @@ async function main() {
       'successor-verify',
       'successor-tester-setup',
       'successor-tester-verify',
+      'schema-downgrade',
+      'schema-verify',
     ].includes(request.mode),
   );
   const admin = connectDatabase(url.href, true);
@@ -59,6 +66,25 @@ async function main() {
       await admin.query(`CREATE DATABASE ${request.database}`);
     url.pathname = '/' + request.database;
     db = connectDatabase(url.href, true);
+    if (request.mode === 'schema-downgrade') {
+      // Synthetic only: the production controller never removes a migration.
+      await db.transaction((tx) => downgradeFixtureTo038(tx));
+      return { downgraded: true };
+    }
+    if (request.mode === 'schema-verify') {
+      // After the real 038 to 039 migration of the fixture database.
+      const rows = await db.transaction((tx) => billingFoundationState(tx));
+      assert.deepEqual(
+        rows.map((r) => r.name),
+        [...billingFoundationTables].sort(),
+      );
+      assert(rows.every((r) => r.rls && !r.populated));
+      const applied = await db.query<{ name: string }>(
+        'SELECT name FROM ff_migrations ORDER BY name',
+      );
+      assert.equal(applied.length, 39);
+      return { schemaMigration: true };
+    }
     if (request.mode.startsWith('successor-')) {
       const { previous, selection, expected } = request.expected;
       const owner = {

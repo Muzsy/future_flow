@@ -20,6 +20,13 @@ def transition(system, candidate, *, recovery=False):
         if not recovery:
             system.record('database-intent', candidate)
             system.apply_accounts(candidate)
+        elif getattr(system, 'database_pending', lambda candidate: False)(candidate) is True:
+            # Only a generation whose database step is idempotent by construction
+            # (the schema migration: one serializable transaction that re-checks the
+            # exact expected state and skips steps already applied) may finish an
+            # interrupted attempt here. Accounting SQL is never repeated by recovery.
+            system.record('database-intent', candidate)
+            system.apply_accounts(candidate)
         # Always observe the committed state independently. Lost COMMIT output
         # is reconciled on explicit recovery; SQL is NEVER repeated by recovery.
         result = system.reconcile_accounts(candidate)

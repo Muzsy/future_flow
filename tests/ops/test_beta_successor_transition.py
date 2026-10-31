@@ -146,5 +146,47 @@ class SuccessorTransitionTests(unittest.TestCase):
         self.assertNotIn('held-after-failure', a.events)
 
 
+class IdempotentDatabaseAdapter(Adapter):
+    """A schema migration: one transaction that either committed or did not."""
+
+    def database_pending(self, candidate):
+        return self.commit == 'uncommitted'
+
+
+class IdempotentDatabaseTransitionTests(unittest.TestCase):
+    def test_recovery_finishes_an_uncommitted_idempotent_database_step(self):
+        a = IdempotentDatabaseAdapter(fail='database-intent')
+        with self.assertRaises(InterruptedError):
+            module.transition(a, {})
+        self.assertEqual((a.sql_applications, a.commit), (0, 'uncommitted'))
+        a.fail = None
+        module.transition(a, {}, recovery=True)
+        self.assertEqual(a.sql_applications, 1)
+        self.assertLess(a.events.index('candidate-restore', a.events.index('preflight-recovery')),
+                        a.events.index('apply-accounts'))
+        self.assertEqual(a.events[-3:], ['recovered', 'restart-restored', 'watch-finish'])
+        # The attempt that is replayed records its intent first, in order.
+        tail = a.events[a.events.index('recovery-intent'):]
+        self.assertLess(tail.index('database-intent'), tail.index('apply-accounts'))
+
+    def test_recovery_after_a_committed_step_never_repeats_it(self):
+        a = IdempotentDatabaseAdapter(fail='apply-accounts')
+        with self.assertRaises(InterruptedError):
+            module.transition(a, {})
+        a.fail = None
+        module.transition(a, {}, recovery=True)
+        self.assertEqual(a.sql_applications, 1)
+        self.assertEqual(a.events[a.events.index('recovery-intent'):].count('database-intent'), 0)
+
+    def test_an_adapter_without_the_hook_or_with_a_non_boolean_answer_never_replays(self):
+        class Loose(Adapter):
+            def database_pending(self, candidate):
+                return 'yes'
+        a = Loose(commit='uncommitted')
+        with self.assertRaises(ValueError):
+            module.transition(a, {}, recovery=True)
+        self.assertEqual(a.sql_applications, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

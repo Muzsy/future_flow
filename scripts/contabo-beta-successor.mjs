@@ -1,6 +1,7 @@
 // Explicit successor-generation transition: owner-e2e (first), then reader
-// admission and the tester window, each chained to the previous exposed one.
-// No provider call, migration or implicit rollout. Verify the committed helpers
+// admission and the tester window, each chained to the previous exposed one, and
+// the one-time schema-039 upgrade (database 038 to 039 and the reviewed image).
+// No provider call or implicit rollout; only schema-039 migrates, only once. Verify the committed helpers
 // before importing any of them.
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -34,11 +35,13 @@ async function main() {
     owner: 'owner-e2e',
     reader: 'reader-admission',
     tester: 'tester-beta',
+    schema: 'schema-039',
   };
   const prefixes = {
     'owner-e2e': '',
     'reader-admission': 'reader-',
     'tester-beta': 'tester-',
+    'schema-039': 'schema-',
   };
   let purpose = 'owner-e2e';
   if (mode !== 'prepare' && process.argv[3] !== undefined) {
