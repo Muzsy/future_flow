@@ -116,7 +116,7 @@ try {
     assert.match(await response.text(), /Access is by invitation/, path);
     checks++;
   }
-  for (const path of ['/account-access', '/privacy-notice']) {
+  for (const path of ['/account-access', '/privacy-notice', '/terms']) {
     const response = await request(path);
     assert.equal(response.status, 200, path);
     const html = await response.text();
@@ -126,7 +126,11 @@ try {
     );
     assert(
       html.includes(
-        path === '/account-access' ? 'Account access' : 'Privacy and your data',
+        path === '/account-access'
+          ? 'Account access'
+          : path === '/terms'
+            ? 'Terms of Use'
+            : 'Privacy and your data',
       ),
       path,
     );
@@ -181,7 +185,11 @@ try {
   checks++;
   assert.deepEqual(await health.json(), { status: 'ok' });
   checks++;
-  for (const path of ['/account-access/story', '/privacy-notice/story']) {
+  for (const path of [
+    '/account-access/story',
+    '/privacy-notice/story',
+    '/terms/story',
+  ]) {
     assert.equal((await request(path)).status, 403, path);
     checks++;
   }
