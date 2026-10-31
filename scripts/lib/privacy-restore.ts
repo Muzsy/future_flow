@@ -533,6 +533,12 @@ export async function replayPrivacyRestore(
     await tx.query(
       "UPDATE aw_user_entitlements SET tier='free',valid_until=now(),updated_at=now() WHERE tier<>'free'",
     );
+    // The billing projection of an old backup is never trusted: every
+    // subscription stays closed until a newer provider event (or an operator
+    // reconcile) has been applied (ADR-010 §3).
+    await tx.query(
+      'UPDATE aw_billing_subscriptions SET reconcile_required=true,updated_at=now() WHERE NOT reconcile_required',
+    );
     for (const block of a.blocks)
       await tx.query(
         'INSERT INTO aw_user_blocks(user_id,blocked_user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',

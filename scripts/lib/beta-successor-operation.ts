@@ -38,7 +38,7 @@ function participants(previous: BetaTerms, selection: SuccessorSelection) {
 }
 async function protectedState(tx: Database, identity: Identity) {
   const full = await captureFundedRuntime(tx, identity);
-  if (full.schema !== 38) refuse();
+  if (full.schema !== 39) refuse();
   // Budget accounts are the ONLY intentionally changed table, validated in full
   // by the accounting primitive. Reservations/usage/history/artifacts stay here.
   const tables = reviewedPrivacyRecoveryTables.filter(

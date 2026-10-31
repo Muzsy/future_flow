@@ -199,7 +199,7 @@ async function main() {
       }
       if (request.mode === 'successor-setup') {
         // This synthetic seed is NEVER part of the production controller. It
-        // starts from the fixture's completed038 database and retains history.
+        // starts from the fixture's completed 039 database and retains history.
         const plan = successorPlan(
           previous,
           selection,

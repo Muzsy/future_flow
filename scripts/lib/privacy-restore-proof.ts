@@ -171,6 +171,29 @@ export async function preparePrivacyRestoreFixture(
   await db.query(
     "INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES('privacy-project',1000000,100)",
   );
+  // Billing state is part of the backup: the kept account's projection must
+  // come back closed, the deleted account's rows must not come back at all.
+  for (const [user, tag] of [
+    [a, 'kept'],
+    [b, 'gone'],
+  ] as const) {
+    await db.query(
+      "INSERT INTO aw_billing_subscriptions(subscription_id,user_id,customer_id,status,period_start,period_end,last_state_event_created,paid_invoice_ids) VALUES($1,$2,$3,'active',now(),now()+interval '30 days',1,ARRAY[$4]::text[])",
+      [`sub_${tag}`, user, `cus_${tag}`, `in_${tag}`],
+    );
+    await db.query(
+      "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES($1,$2,$3,1,5,now()+interval '30 days')",
+      [`in_${tag}`, `sub_${tag}`, user],
+    );
+    await db.query(
+      "INSERT INTO aw_billing_reservations(user_id,key,bucket,grant_key,state) VALUES($1,'chapter-1','paid',$2,'consumed')",
+      [user, `in_${tag}`],
+    );
+    await db.query(
+      "INSERT INTO aw_billing_events(event_id,subscription_id,event_type,outcome) VALUES($1,$2,'invoice_paid','applied')",
+      [`evt_${tag}`, `sub_${tag}`],
+    );
+  }
   const backupCapturedAt = new Date().toISOString();
   await snapshot();
   await new Repository(db).markDeleting(b);
@@ -338,14 +361,32 @@ export async function verifyPrivacyRestoreFixture(
   );
   assert.equal(again.deletedAccounts, 0);
   assert.equal(again.deletedLives, 0);
+  // Account deletion removed the deleted account's billing rows (cascade); the
+  // kept account's projection is closed pending reconcile, its ledger intact.
+  assert.deepEqual(
+    await db.query(
+      'SELECT subscription_id,reconcile_required FROM aw_billing_subscriptions ORDER BY subscription_id',
+    ),
+    [{ subscription_id: 'sub_kept', reconcile_required: true }],
+  );
+  for (const table of [
+    'aw_billing_grants',
+    'aw_billing_reservations',
+    'aw_billing_events',
+  ])
+    assert.equal(
+      (await db.query(`SELECT 1 FROM ${table}`)).length,
+      1,
+      `${table} must keep only the kept account's row`,
+    );
   const verified = await verifyPrivacyRestore(
     db,
     f.authority,
     privacyFixtureBinding(f, targetName),
   );
-  assert.equal(verified.reviewedTables, 96);
-  assert.equal(verified.reviewedForeignKeys, 219);
-  assert.equal(verified.accountCascadeTables, 81);
+  assert.equal(verified.reviewedTables, 100);
+  assert.equal(verified.reviewedForeignKeys, 225);
+  assert.equal(verified.accountCascadeTables, 85);
   assert.equal(verified.heldSharedTables, 11);
   assert.equal(verified.operatorMetadataTables, 3);
   assert.equal(verified.serviceActivationAllowed, false);

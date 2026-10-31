@@ -33,10 +33,10 @@ const changed = (sql: string) =>
 describe('reviewed schema before privacy capture/replay', () => {
   it('accepts the actual immutable migration baseline', async () => {
     expect(await check()).toEqual({
-      reviewedTables: 96,
+      reviewedTables: 100,
       migrationLedgerPresent: false,
-      reviewedColumns: 856,
-      reviewedForeignKeys: 219,
+      reviewedColumns: 892,
+      reviewedForeignKeys: 225,
     });
   });
   it('rejects an unclassified user-data table even outside aw/ff prefixes', async () => {
@@ -45,7 +45,7 @@ describe('reviewed schema before privacy capture/replay', () => {
         'CREATE TABLE hidden_personal_data(owner_id uuid REFERENCES ff_users(id),private_text text)',
       ),
     ).rejects.toThrow('table set');
-    expect((await check()).reviewedTables).toBe(96); // Failed DDL transaction rolled back.
+    expect((await check()).reviewedTables).toBe(100); // Failed DDL transaction rolled back.
   });
   it('rejects a catalog-shadowing view and materialized personal data', async () => {
     await expect(
@@ -58,7 +58,7 @@ describe('reviewed schema before privacy capture/replay', () => {
         'CREATE MATERIALIZED VIEW retained_user_data AS SELECT id,status FROM ff_users',
       ),
     ).rejects.toThrow('table set');
-    expect((await check()).reviewedTables).toBe(96);
+    expect((await check()).reviewedTables).toBe(100);
   });
   it('rejects new data on a known table and a changed deletion graph', async () => {
     await expect(
@@ -71,7 +71,23 @@ describe('reviewed schema before privacy capture/replay', () => {
         'ALTER TABLE aw_feedback DROP CONSTRAINT aw_feedback_user_id_fkey',
       ),
     ).rejects.toThrow('columns or foreign-key');
-    expect((await check()).reviewedForeignKeys).toBe(219);
+    expect((await check()).reviewedForeignKeys).toBe(225);
+  });
+  it('pins the billing tables: extra data, a missing account link and a missing table are all rejected', async () => {
+    await expect(
+      changed(
+        'ALTER TABLE aw_billing_subscriptions ADD COLUMN customer_email text',
+      ),
+    ).rejects.toThrow('columns or foreign-key');
+    await expect(
+      changed(
+        'ALTER TABLE aw_billing_subscriptions DROP CONSTRAINT aw_billing_subscriptions_user_id_fkey',
+      ),
+    ).rejects.toThrow('columns or foreign-key');
+    await expect(changed('DROP TABLE aw_billing_events')).rejects.toThrow(
+      'table set',
+    );
+    expect((await check()).reviewedForeignKeys).toBe(225);
   });
   it('permits only the optional three-column metadata ledger', async () => {
     await engine.exec(
@@ -81,6 +97,6 @@ describe('reviewed schema before privacy capture/replay', () => {
     await expect(
       changed('ALTER TABLE ff_migrations ADD COLUMN hidden_personal_text text'),
     ).rejects.toThrow('migration ledger');
-    expect((await check()).reviewedTables).toBe(96);
+    expect((await check()).reviewedTables).toBe(100);
   });
 });

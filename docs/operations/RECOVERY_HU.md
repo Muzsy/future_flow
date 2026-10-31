@@ -115,3 +115,7 @@ A [standalone image-futtató](FUNDED_RUNTIME_UPGRADE_HU.md#önálló-kiadási-im
 
 
 A #81 teljes kiadási review-jának javítása a production image-capability one-offra is tartós, source/bundle/input/parancs/image/nonce kötött intentet vezet be. Timeout után finally-cleanup, SIGKILL után a meglévő `--cleanup-probe` egyeztet; a tényleges ID a törlés előtt rögzül, ismeretlen vagy lecserélt konténer megmarad, pending intent mellett nincs aktív proof. Daily v4 foglalja a capability-receiptet a titkosított backupba és a lezárt preparation-archívumba. A runtime nélküli image-only átállás aktív funded replay útja az explicit v9 módhoz hasonlóan az eredeti completed journal/readback/source/image/038/authority kötésekkel működik; az image tényleges v9/frozen-policy képességellenőrzése megmarad. [Részletes javítás és regressziós határ](FUNDED_RUNTIME_UPGRADE_HU.md#teljes-kiadási-review-javításai--8081-2026-10-25).
+
+### Billing-vetület helyreállítás után (B01, 2026-10-31)
+
+A karanténos replay a visszaállított `aw_billing_subscriptions` minden sorát `reconcile_required = true` állapotba teszi, a független verifier ezt ellenőrzi (`NOT reconcile_required` sor esetén a verifikáció elbukik). Zárt marad a jogosultság, amíg újabb szolgáltatói állapot-esemény vagy operátori reconcile meg nem érkezik (ADR-010 §3). A törölt fiók billing sorai a fiókgyökér cascade-jével nem térnek vissza; a fejezet-főkönyv és a feldolgozott események a megmaradt fióknál érintetlenek. A bizonyíték-fixture mindkét esetet fedi.

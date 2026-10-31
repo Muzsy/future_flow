@@ -1,10 +1,10 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 
-// Explicit immutable 001–038 baseline, never derived from the current database
+// Explicit immutable 001–039 baseline, never derived from the current database
 // or automatically extended when a new migration appears. This is a schema
 // drift guard, not proof that every retained text is safe to serve.
-export const reviewedPrivacyRecoveryTables = `
+const reviewedPre039Tables = `
 aw_account_deletions aw_activity_sessions aw_ai_runs aw_branches
 aw_budget_accounts aw_budget_reservations aw_choices aw_deleted_life_admissions
 aw_drafts aw_feedback aw_history aw_initial_choices aw_interactions aw_jobs
@@ -36,29 +36,91 @@ ff_profile_versions ff_questionnaires ff_users ff_world_versions
   .trim()
   .split(/\s+/)
   .sort();
-const columnsDigest =
-  '37519bd15ef5d42b9ea1ef6486dc00a3ddf43582c589d718a01355701de1b31c';
-const foreignKeysDigest =
-  '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e';
+// 039 adds exactly the billing foundation (ADR-010): provider identifiers,
+// derived entitlement state, chapter ledger and processed event ids.
+const billingTables = [
+  'aw_billing_events',
+  'aw_billing_grants',
+  'aw_billing_reservations',
+  'aw_billing_subscriptions',
+];
+export const reviewedPrivacyRecoveryTables = [
+  ...reviewedPre039Tables,
+  ...billingTables,
+].sort();
+export const reviewedPre039PrivacyRecoveryTables = reviewedPre039Tables;
+// Per baseline: application table set, column count and digest, foreign-key
+// count and digest. 036–038 share the 96 tables and the 219-key graph.
+const baselines = {
+  36: {
+    tables: reviewedPre039Tables,
+    columns: [
+      854,
+      'c5ac8bcddfc2a635b3923f8be73790d78ff6909734e0b6aaa3b1351be88a7af2',
+    ],
+    foreignKeys: [
+      219,
+      '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e',
+    ],
+  },
+  37: {
+    tables: reviewedPre039Tables,
+    columns: [
+      855,
+      '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50',
+    ],
+    foreignKeys: [
+      219,
+      '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e',
+    ],
+  },
+  38: {
+    tables: reviewedPre039Tables,
+    columns: [
+      856,
+      '37519bd15ef5d42b9ea1ef6486dc00a3ddf43582c589d718a01355701de1b31c',
+    ],
+    foreignKeys: [
+      219,
+      '9f6ee97448b7fc65777e28126d41f38b463696d71ce7a979076e9ee711025b4e',
+    ],
+  },
+  39: {
+    tables: reviewedPrivacyRecoveryTables,
+    columns: [
+      892,
+      'f924ba13249f8a0b2e24ef829023308ce61dbf667b1f32f6196c3d441d4367bb',
+    ],
+    foreignKeys: [
+      225,
+      '86239a66ef4892994b51777bd6b77c2f9f9e020e18975359cb4e69e8c681b685',
+    ],
+  },
+} as const;
+export type PrivacyRecoveryBaseline = keyof typeof baselines;
 const columnsSql =
   "SELECT table_name,column_name,data_type,udt_name,is_nullable,ordinal_position FROM information_schema.columns WHERE table_schema='public' AND table_name<>'ff_migrations' ORDER BY table_name,ordinal_position";
 const foreignKeysSql =
   "SELECT t.relname AS table_name,k.conname AS constraint_name,pg_get_constraintdef(k.oid) AS definition FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname";
 
-// Explicit historical 001–037 entry point is restricted to the funded upgrade
-// preflight. Normal recovery stays pinned to 001–038 and still rejects 037.
+// Explicit historical entry points are restricted to the funded upgrade
+// preflight. Normal recovery stays pinned to 001–039 and still rejects 038.
+export async function assertReviewedFundedPre039Schema(tx: Database) {
+  return assertSchema(tx, 38);
+}
 export async function assertReviewedFundedPre038Schema(tx: Database) {
   return assertSchema(tx, 37);
 }
 // Dedicated funded upgrade entry for the observed 001–036 production baseline.
-// Normal recovery is still strictly 038; no caller-supplied catalog is accepted.
+// No caller-supplied catalog is accepted.
 export async function assertReviewedFundedPre037Schema(tx: Database) {
   return assertSchema(tx, 36);
 }
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
-  return assertSchema(tx, 38);
+  return assertSchema(tx, 39);
 }
-async function assertSchema(tx: Database, baseline: 36 | 37 | 38) {
+async function assertSchema(tx: Database, level: PrivacyRecoveryBaseline) {
+  const baseline = baselines[level];
   await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
   const tables = (
     await tx.query<{ name: string }>(
@@ -67,8 +129,8 @@ async function assertSchema(tx: Database, baseline: 36 | 37 | 38) {
   ).map((r) => r.name);
   const application = tables.filter((name) => name !== 'ff_migrations');
   if (
-    reviewedPrivacyRecoveryTables.length !== 96 ||
-    hash(application) !== hash(reviewedPrivacyRecoveryTables)
+    baseline.tables.length !== (level === 39 ? 100 : 96) ||
+    hash(application) !== hash(baseline.tables)
   )
     throw Error('Unreviewed privacy recovery table set');
   const columns = await tx.query(columnsSql),
@@ -77,7 +139,7 @@ async function assertSchema(tx: Database, baseline: 36 | 37 | 38) {
     "SELECT c.relname::text AS table_name,a.attname::text AS column_name,a.attnum::int AS ordinal_position FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'ff_migrations' AND c.relkind IN('r','p') AND a.attnum>0 AND NOT a.attisdropped ORDER BY c.relname,a.attnum",
   );
   if (
-    columns.length !== { 36: 854, 37: 855, 38: 856 }[baseline] ||
+    columns.length !== baseline.columns[0] ||
     hash(catalogColumns) !==
       hash(
         columns.map(({ table_name, column_name, ordinal_position }) => ({
@@ -86,14 +148,9 @@ async function assertSchema(tx: Database, baseline: 36 | 37 | 38) {
           ordinal_position,
         })),
       ) ||
-    hash(columns) !==
-      (baseline === 36
-        ? 'c5ac8bcddfc2a635b3923f8be73790d78ff6909734e0b6aaa3b1351be88a7af2'
-        : baseline === 37
-          ? '336b477e65a6d9e4db124d42375298c64270d98bbad340dcf54f61ac404b8c50'
-          : columnsDigest) ||
-    foreignKeys.length !== 219 ||
-    hash(foreignKeys) !== foreignKeysDigest
+    hash(columns) !== baseline.columns[1] ||
+    foreignKeys.length !== baseline.foreignKeys[0] ||
+    hash(foreignKeys) !== baseline.foreignKeys[1]
   )
     throw Error('Unreviewed privacy recovery columns or foreign-key graph');
   if (tables.includes('ff_migrations')) {
