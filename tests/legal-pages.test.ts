@@ -60,12 +60,12 @@ describe('legal pages (draft pending legal review)', () => {
     for (const locale of ['en', 'hu'] as const) {
       for (const key of [
         'legal.operatorDetails',
-        'terms.payment2',
-        'terms.payment3',
-        'terms.liability1',
-        'terms.changes2',
-        'privacy.purposesNote',
+        'privacy.processorsNote',
         'privacy.transfers',
+        'privacy.retention2',
+        'privacy.retention3',
+        'privacy.retention4',
+        'privacy.retention5',
       ] as const)
         expect(messages[locale][key], `${locale}:${key}`).toMatch(/\[.+\]/);
     }

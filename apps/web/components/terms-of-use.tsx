@@ -52,7 +52,7 @@ export function TermsOfUse() {
       />
       <LegalSection
         title="terms.paymentTitle"
-        paragraphs={['terms.payment1', 'terms.payment2', 'terms.payment3']}
+        paragraphs={['terms.payment1']}
       />
       <LegalSection
         title="terms.endTitle"
