@@ -61,7 +61,6 @@ describe('legal pages (draft pending legal review)', () => {
       for (const key of [
         'privacy.retention2',
         'privacy.retention3',
-        'privacy.retention4',
         'privacy.retention5',
       ] as const)
         expect(messages[locale][key], `${locale}:${key}`).toMatch(/\[.+\]/);

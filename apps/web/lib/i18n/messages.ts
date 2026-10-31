@@ -271,11 +271,11 @@ export const en = {
   'privacy.retention1':
     'Your account, profile, stories and feedback are kept until you delete your account.',
   'privacy.retention2':
-    'Encrypted daily backups of the application data are kept for 7 days, and backups of the managed authentication and storage data for 7 days. [TO BE CONFIRMED before publishing.]',
+    'Encrypted daily backups of the application data, and backups of the managed authentication and storage data, are designed to be kept for 7 days. [TO BE CONFIRMED before publishing.]',
   'privacy.retention3':
     'Some earlier technical copies made before this schedule may still exist and are being phased out. [TO BE RESOLVED BEFORE PUBLISHING: expiry of the older server-side copies.]',
   'privacy.retention4':
-    'When you delete your account, your data is removed from the live database. Older backups expire on the schedule above. Our restore procedure is designed to re-apply recorded deletions after any restore. [TO BE CONFIRMED before publishing.]',
+    'When you delete your account, your data is removed from the live database. Older backups expire on the schedule above. After a restore from a backup we intend to re-apply the account deletions made since that backup, using a current record of deletions, before the service is reopened. If that record is not available, the service stays closed.',
   'privacy.retention5':
     'Aggregate project-level cost totals contain no personal content and are kept. Email delivery and access-protection logs are kept by those providers under their own schedules. [TO BE CONFIRMED.]',
   'privacy.rightsTitle': 'Your rights',
@@ -590,11 +590,11 @@ export const hu: Record<MessageKey, string> = {
   'privacy.retention1':
     'A fiókod, a profilod, a történeteid és a visszajelzéseid a fiókod törléséig megmaradnak.',
   'privacy.retention2':
-    'Az alkalmazási adatok titkosított napi mentései 7 napig, a kezelt hitelesítési és tárolási adatok mentései szintén 7 napig maradnak meg. [KÖZZÉTÉTEL ELŐTT ERŐSÍTENDŐ MEG.]',
+    'Az alkalmazási adatok titkosított napi mentéseit, valamint a kezelt hitelesítési és tárolási adatok mentéseit úgy tervezzük, hogy 7 napig maradjanak meg. [KÖZZÉTÉTEL ELŐTT ERŐSÍTENDŐ MEG.]',
   'privacy.retention3':
     'Az ütemezés előtt készült néhány korábbi technikai másolat még létezhet, ezek kivezetés alatt vannak. [KÖZZÉTÉTEL ELŐTT RENDEZENDŐ: a régebbi szerveroldali másolatok lejárata.]',
   'privacy.retention4':
-    'A fiókod törlésekor az adataid törlődnek az éles adatbázisból. A régebbi mentések a fenti ütemezés szerint lejárnak. A helyreállítási eljárásunk úgy készült, hogy bármely visszaállítás után újra alkalmazza a rögzített törléseket. [KÖZZÉTÉTEL ELŐTT ERŐSÍTENDŐ MEG.]',
+    'A fiókod törlésekor az adataid törlődnek az éles adatbázisból. A régebbi mentések a fenti ütemezés szerint lejárnak. Mentésből történő helyreállítás után a mentés óta történt fióktörléseket a szolgáltatás újranyitása előtt, a törlések friss nyilvántartása alapján újra alkalmazni szándékozunk. Ha ez a nyilvántartás nem áll rendelkezésre, a szolgáltatás zárva marad.',
   'privacy.retention5':
     'Az összesített, projektszintű költségadatok nem tartalmaznak személyes tartalmat, és megmaradnak. Az e-mail-kézbesítési és hozzáférés-védelmi naplókat az érintett szolgáltatók a saját ütemezésük szerint őrzik. [ERŐSÍTENDŐ MEG.]',
   'privacy.rightsTitle': 'A jogaid',
