@@ -123,6 +123,13 @@ export type BillingSubscription = Readonly<{
   // (no automatic reopening, a won dispute needs a manual owner decision).
   revoked: BillingRevocation | null;
   lastStateEventCreated: number;
+  // Set by recovery: closed until a newer provider state event is applied.
+  reconcileRequired: boolean;
+  // The provider subscription still has to be cancelled (refund of the current
+  // cycle or a dispute). The revocation itself is already committed; the
+  // cancellation is a retried side effect, so a provider outage never leaves a
+  // refunded customer with access.
+  cancelPending: boolean;
 }>;
 
 export type BillingEvent =
@@ -207,6 +214,16 @@ export type BillingTransition = Readonly<{
     | 'unresolved';
 }>;
 
+const statusRank: Record<BillingStatus, number> = {
+  incomplete: 0,
+  incomplete_expired: 1,
+  trialing: 2,
+  active: 3,
+  past_due: 3,
+  paused: 4,
+  unpaid: 4,
+  canceled: 5,
+};
 const grantingReasons = new Set(['subscription_create', 'subscription_cycle']);
 const unchanged = (
   prev: BillingSubscription | null,
@@ -231,7 +248,15 @@ export function applyBillingEvent(
   if (event.type === 'subscription_synced') {
     if (prev && prev.subscriptionId !== event.subscriptionId)
       return unchanged(prev, 'unknown_subscription');
-    if (prev && event.created < prev.lastStateEventCreated)
+    // `created` has one-second resolution: for events of the same second the
+    // later lifecycle state wins, so a re-ordered `incomplete` never overwrites
+    // an `active` subscription.
+    if (
+      prev &&
+      (event.created < prev.lastStateEventCreated ||
+        (event.created === prev.lastStateEventCreated &&
+          statusRank[event.status] < statusRank[prev.status]))
+    )
       return unchanged(prev, 'stale');
     return {
       next: {
@@ -248,6 +273,8 @@ export function applyBillingEvent(
         refundedInvoiceIds: prev?.refundedInvoiceIds ?? [],
         revoked: prev?.revoked ?? null,
         lastStateEventCreated: event.created,
+        reconcileRequired: false,
+        cancelPending: prev?.cancelPending ?? false,
       },
       grant: null,
       revokeGrantKeys: [],
@@ -291,7 +318,7 @@ export function applyBillingEvent(
     if (event.reason === 'dispute') {
       if (prev.revoked) return unchanged(prev, 'duplicate');
       return {
-        next: { ...prev, revoked: 'dispute' },
+        next: { ...prev, revoked: 'dispute', cancelPending: true },
         grant: null,
         revokeGrantKeys: prev.paidInvoiceIds,
         cancelSubscription: true,
@@ -318,7 +345,12 @@ export function applyBillingEvent(
         outcome: 'applied',
       };
     return {
-      next: { ...prev, refundedInvoiceIds, revoked: prev.revoked ?? 'refund' },
+      next: {
+        ...prev,
+        refundedInvoiceIds,
+        revoked: prev.revoked ?? 'refund',
+        cancelPending: prev.cancelPending || !prev.revoked,
+      },
       grant: null,
       revokeGrantKeys: prev.paidInvoiceIds,
       cancelSubscription: !prev.revoked,
@@ -390,6 +422,7 @@ export function deriveEntitlement(
 ): Entitlement {
   if (!sub) return deny('none');
   if (sub.revoked) return deny('revoked');
+  if (sub.reconcileRequired) return deny('none');
   const end = sub.periodEnd ? Date.parse(sub.periodEnd) : Number.NaN;
   const start = sub.periodStart ? Date.parse(sub.periodStart) : Number.NaN;
   const t = now.getTime();

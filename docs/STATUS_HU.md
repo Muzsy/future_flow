@@ -37,7 +37,7 @@ A webhely továbbra zárt személyes béta; Shared és nyilvános/community laun
 | Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
 | Shared Context | foundation kész, első személyes körben OFF | owner downgrade kontroll és kétfős friend beta |
 | Sponsored Guest | targeted friend részvétel implementált | host/participant és privacy feltételek megtartása |
-| Előfizetés / billing | nincs kész fizetési rendszer; ADR-010 javasolt, tiszta billing domainlogika (`packages/core`) review alatt, nincs migráció/route/éles hatás | B01: migráció, Checkout, webhook, generálási kapu, Stripe sandbox próba |
+| Előfizetés / billing | nincs kész fizetési rendszer; ADR-010 javasolt; billing domainlogika és szolgáltatásréteg (`packages/core`) implementálva, memóriás tárolóval tesztelve; sandboxban és SQL tárolóval igazolatlan; nincs migráció/route/éles hatás | B01: migráció 039 + recovery-baseline, SQL tároló, route-ok, generálási kapu, Stripe sandbox próba |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
 ## Történetminőség — beolvadt v9 C5, 2026-10-25
