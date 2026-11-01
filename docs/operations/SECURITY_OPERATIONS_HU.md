@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-12
+last_reviewed: 2026-11-01
 related:
   - ../PRIVACY_SECURITY_CATALOG_HU.md
   - ../WRITER_FENCE_TRANSPORT_HU.md
@@ -14,6 +14,12 @@ related:
 ## 1. Operátori alapelv
 
 Security/privacy műveletek fail-closed módon működnek. Ismeretlen authority, hiányzó proof vagy hibás health esetén a feature/szolgáltatás nem nyílik ki automatikusan.
+
+### Meghívásos személyes éles hozzáférés — fejlesztési határ, 2026-11-01
+
+Az [ADR-011](../decisions/ADR-011-invitation-service-access.md) szerinti első kódszelet különválasztja a hitelesített Cloudflare-identitást és az alkalmazás-admissiont. A tiszta service-policy külön kezeli a meghívás/nyílt módot, az új generálás és Checkout szünetét; lookup-hiba vagy hibás snapshot zárt. A kupon, a fejezetledger és az USD-budget ettől független. Saját user_metadata vagy aláíratlan email-header nem jogosultság.
+
+A runtime-integráció még nincs kész: a jelenlegi statikus kapu és 11-es címlimit megmarad. A következő tartós store/migráció/privacy-recovery, API/web és operátori szeleteknek együtt kell megőrizniük az Auth/ownership/reauth, data-control és writer-fence védelmeket. Az új tiszta policy nem állítja le önmagában a workert, nem nyitja meg a regisztrációt, és nem váltja ki a későbbi éles auditot vagy aktiválási engedélyt.
 
 ## 2. Fő védelmi rétegek
 

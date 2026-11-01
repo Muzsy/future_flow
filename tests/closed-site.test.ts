@@ -3,6 +3,7 @@ import { exportJWK, generateKeyPair, SignJWT, type JWK } from 'jose';
 import {
   closedSiteConfigFromEnv,
   createClosedSiteGate,
+  createAccessIdentityVerifier,
   publicWebException,
   publicApiException,
 } from '@future-flow/access';
@@ -71,6 +72,68 @@ function certs(keys: JWK[] = [jwk]) {
   });
 }
 describe('closed-site origin proof', () => {
+  it('separates a verified Access identity from application admission and pins configuration', async () => {
+    const config = {
+      issuer: 'https://fixture.cloudflareaccess.com',
+      audience: env.CLOUDFLARE_ACCESS_AUD,
+    };
+    const verify = createAccessIdentityVerifier(config, certs());
+    config.issuer = 'https://attacker.invalid';
+    config.audience = 'b'.repeat(64);
+    const token = await signed({ email: 'NEW-READER@example.invalid' });
+    const identity = await verify(token);
+    expect(identity).toEqual({
+      subject: 'fixture-subject',
+      email: 'new-reader@example.invalid',
+      expiresAt: expect.any(Number),
+    });
+    expect(Object.isFrozen(identity)).toBe(true);
+    expect(await createClosedSiteGate(env, certs()).verify(token)).toBe(false);
+    for (const claims of [
+      { email: 'bad' },
+      { email: ' owner@example.invalid' },
+      { email: 'owner@example.invalid\n' },
+      { type: 'service' },
+      { sub: '' },
+      { exp: 0 },
+      { iat: Math.floor(Date.now() / 1000) + 10 },
+    ])
+      expect(await verify(await signed(claims))).toBeNull();
+    expect(await verify(await signed({}, rotated))).toBeNull();
+    expect(await verify(undefined)).toBeNull();
+    expect(await verify('x'.repeat(16385))).toBeNull();
+  });
+  it('never builds a key endpoint from an arbitrary issuer or audience', () => {
+    for (const issuer of [
+      'http://fixture.cloudflareaccess.com',
+      'https://fixture.cloudflareaccess.com/path',
+      'https://fixture.cloudflareaccess.com.attacker.invalid',
+      'https://fixture.cloudflareaccess.com:443',
+      'https://127.0.0.1',
+      'https://fixture.cloudflareaccess.com\n',
+    ])
+      expect(() =>
+        createAccessIdentityVerifier(
+          { issuer, audience: env.CLOUDFLARE_ACCESS_AUD },
+          certs(),
+        ),
+      ).toThrow();
+    expect(() =>
+      createAccessIdentityVerifier(
+        { issuer: 'https://fixture.cloudflareaccess.com', audience: '' },
+        certs(),
+      ),
+    ).toThrow();
+    expect(() =>
+      createAccessIdentityVerifier(
+        {
+          issuer: 'https://fixture.cloudflareaccess.com',
+          audience: env.CLOUDFLARE_ACCESS_AUD + '\n',
+        },
+        certs(),
+      ),
+    ).toThrow();
+  });
   it('rejects ambiguous flags and incomplete, arbitrary-host or URL-based configuration', () => {
     expect(closedSiteConfigFromEnv({})).toEqual({ enabled: false });
     for (const change of [
