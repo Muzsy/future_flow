@@ -397,6 +397,79 @@ export async function reserveGenerationChapter(
 
 let reservationsTableKnown = false;
 
+// Recheck immediately before a physical provider request, not during durable
+// save/settlement. A queued old job is not itself a chapter reservation. Read
+// reservation, grant and subscription projection in one database snapshot;
+// never create a reservation or fall back to a free taster here.
+export async function assertGenerationChapterDispatch(
+  tx: Database,
+  userId: string,
+  key: string,
+  leaseToken: string,
+) {
+  const gate = activeGate;
+  if (!gate || gate.exemptUserIds.has(userId.toLowerCase())) return;
+  if (!gate.ready)
+    throw new DomainError(
+      'BILLING_UNAVAILABLE',
+      'Billing is not available.',
+      503,
+    );
+  const [row] = await tx.query<{
+    bucket: string | null;
+    state: string | null;
+    grant_key: string | null;
+    paid_key: string | null;
+    paid_owner: string | null;
+    paid_revoked: boolean | null;
+    subscription_id: string | null;
+    subscription_owner: string | null;
+    subscription_revoked: string | null;
+    reconcile_required: boolean | null;
+  }>(
+    `SELECT r.bucket,r.state,r.grant_key,g.key AS paid_key,g.user_id AS paid_owner,g.revoked AS paid_revoked,
+       s.subscription_id,s.user_id AS subscription_owner,s.revoked AS subscription_revoked,s.reconcile_required
+     FROM aw_jobs j
+     JOIN ff_users u ON u.id=j.user_id AND u.status='active'
+     LEFT JOIN aw_billing_reservations r ON r.user_id=j.user_id AND r.key=j.id::text
+     LEFT JOIN aw_billing_grants g ON g.key=r.grant_key AND g.user_id=r.user_id
+     LEFT JOIN aw_billing_subscriptions s ON s.subscription_id=g.subscription_id AND s.user_id=r.user_id
+     WHERE j.user_id=$1 AND j.id=$2::uuid AND j.lease_token=$3 AND j.status='running' AND j.lease_until>clock_timestamp()`,
+    [userId, key, leaseToken],
+  );
+  const denied = () => {
+    throw new DomainError(
+      'BILLING_RESERVATION_REQUIRED',
+      'A valid chapter reservation is required before generation.',
+      503,
+    );
+  };
+  if (!row)
+    throw new DomainError(
+      'JOB_LEASE_LOST',
+      'The job lease is no longer valid.',
+      409,
+    );
+  if (row.state !== 'reserved') return denied();
+  if (row.bucket === 'taster' && row.grant_key === null) return;
+  // reserveChapter honours an already-held reservation before checking current
+  // eligibility. Natural cycle expiry/cancellation does not unreserve earned
+  // work. Explicit revocation and unverified restored projections still close
+  // new provider requests. No new quota is allocated in this check.
+  if (
+    row.bucket !== 'paid' ||
+    row.grant_key === null ||
+    row.paid_key !== row.grant_key ||
+    row.paid_owner?.toLowerCase() !== userId.toLowerCase() ||
+    row.paid_revoked !== false ||
+    !row.subscription_id ||
+    row.subscription_owner?.toLowerCase() !== userId.toLowerCase() ||
+    row.subscription_revoked !== null ||
+    row.reconcile_required !== false
+  )
+    return denied();
+}
+
 // Positive answers are cached for the process; a database that still lacks the
 // table (before migration 039) is asked again, so the upgrade needs no restart.
 async function reservationsTablePresent(tx: Database) {

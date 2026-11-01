@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-31
+last_reviewed: 2026-11-01
 ---
 
 # Testing és quality gates
@@ -59,6 +59,12 @@ A #128 merge utáni `03d8d81` főági [CI41262355164](https://github.com/Muzsy/f
 A javított PostgreSQL-próba ezt az éles elszámolási függvényt ellenőrzi: terhelés → takarítás, takarítás → terhelés és valódi párhuzamos végrehajtás, majd azonos mentés ismétlése. A két mentett fejezet foglalásának mindenképpen `consumed`, a két érintetlenének `released` állapotban kell végződnie; a korábbi megengedő „consumed vagy released” állítás helyett. A `billing-gate.test.ts` külön, valódi fejezetmentéssel igazolja, hogy a korábban visszaadott ízelítő egyszer elfogy, az azonos kérés nem terhel újra, és a következő fejezet már előfizetést igényel. Nincs hibanyelés, őrlazítás vagy alkalmazáskód-változás; a teljes PostgreSQL/fixture bizonyítékot a javítás saját CI-je adja.
 
 **Helyi célzott bizonyítás:** a CI-vel egyező digestű PostgreSQL 17 képen, külön `internal` Docker-hálózaton a javított negyedik eset változatlan törzse mindhárom sorrendben, tíz ismétléssel (30 eset) PASS. A korábbi `consumeChapterForUser` visszahelyettesítése determinisztikusan `BILLING_RESERVATION_MISSING` hibát adott a takarítás-először esetben. A próba nem állított be CI-identitást, nem hívott szolgáltatót; az ideiglenes adatbázis és hálózat takarítása sikeres. A billing-gate/store és a pool-hibakezelés célzott tesztjei 29/29 PASS. Ez nem a teljes konténeres CI vagy a célgépes release-próba helyettesítése.
+
+### Személyes worker-dispatch fejezetkapuja — #140
+
+A `billing-dispatch.test.ts` a valódi 039 migráción, PGlite SQL-tárolóval és a tényleges OpenAI provider-wrapperrel fut; csak az SDK kliens válasza helyettesített. Külső AI-hívás vagy költés nincs. A teszt a worker saját konfigurációját és guard-összeillesztését használja. Negatív eseteknél igazolja a nulla fizikai SDK-hívást, korai elutasításnál a nulla USD-előfoglalást is. A foglalás hiánya/idegen tulajdonosa/feloldása/fogyasztása, a job-lease lejárata/cseréje, visszatérítés/reconcile, adatbázishiba és az alkalmazásszintű retry közbeni visszavonás külön eset. A valódi `DatabaseAiBudget` foglalása utáni visszavonás/lease-lejárat nulla használattal rendezi a ticketet, nem hoz létre fejezetfogyasztást. A pozitív eset valódi USD-settlementet is ellenőriz.
+
+Külön regresszió őrzi a természetes ciklusvég után már meglévő fizetett foglalást, a kanonikus UUID-re történő explicit retry-t és annak friss TTL-jét, az OFF módot, a régi béta szűk mentességét és ettől független USD-ablakát. A C5 physical-request számláló foglalás hiányában nem lép tovább; a már kész C5 kimenet billing-kiesés és korábbi TTL-feloldás mellett is menthető és egyszer elszámolható, új AI-kérés nélkül. A számlázási ellenőrzés nem jelent mért szolgáltatói vagy éles operátori próbát.
 
 ## Célzott tesztek
 
