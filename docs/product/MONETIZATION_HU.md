@@ -137,11 +137,11 @@ Payment provider közvetlenül ne módosítson Shared vagy life state-et; csak e
 
 ## 10. Árazás
 
-**Végleges havi ár jelenleg nincs kanonikusan elfogadva.**
+**A későbbi Shared-csomagok havi ára még nincs elfogadva.** A személyes induló ajánlat elfogadott bruttó árait és fejezetkereteit az 1. szakasz rögzíti.
 
-A korábban felmerült konkrét dollárárak ötletek, nem implementációs contractok.
+A korábban felmerült Shared-csomagárak ötletek, nem implementációs contractok.
 
-Árazási döntés előtt mérendő:
+Shared-árazási döntés előtt mérendő:
 
 - personal AI cost/user;
 - Shared AI cost/context és event;
@@ -199,4 +199,4 @@ A [2026-10-15-i gazdaságossági javaslat](../plans/PERSONAL_STORY_ECONOMICS_PRO
 
 ## V6: csomagtól független történetminőség
 
-A nyolc új személyes fejezet továbbra csak termék-/gazdaságossági és megtartási vizsgálati ablak. Nem jelent nyolc lépéses dramaturgiát vagy csomagonként kötelező fordulatot. Minden személyes olvasó ugyanazt a legjobb igazolt történetmotort kapja; érdemi, kiérdemelt életfejlődés nem prémium képesség. Billingadat nem kerül a generálási bemenetbe. A Free / Explorer / Connected / World továbbra Shared-nevek, nem személyes történetcsomagok. Ez a történeti V6-minőségelv nem írja felül az 1. szakasz elfogadott személyes ajánlatát. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+A történeti V6-terv nyolc új személyes fejezete termék-/gazdaságossági és megtartási vizsgálati ablak volt. Az aktuális normál csomag nyolc fejezete havi termékkeret; ez nem jelent nyolc lépéses dramaturgiát vagy csomagonként kötelező fordulatot. Minden személyes olvasó ugyanazt a legjobb igazolt történetmotort kapja; érdemi, kiérdemelt életfejlődés nem prémium képesség. Billingadat nem kerül a generálási bemenetbe. A Free / Explorer / Connected / World továbbra Shared-nevek, nem személyes történetcsomagok. Ez a történeti V6-minőségelv nem írja felül az 1. szakasz elfogadott személyes ajánlatát. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
