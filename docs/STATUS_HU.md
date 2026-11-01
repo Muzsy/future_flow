@@ -48,7 +48,7 @@ A legutóbb megőrzött serving-állapot a fenti háromfős személyes béta, v9
 | Community / Public | jelentős foundation kész, release-gated | privacy/moderation/cohort és explicit launch |
 | Shared Context | foundation kész, első személyes körben OFF | owner downgrade kontroll és kétfős friend beta |
 | Sponsored Guest | targeted friend részvétel implementált | host/participant és privacy feltételek megtartása |
-| Előfizetés / billing | Implementált mag, SQL ledger/039, Checkout/webhook, generálási kapu, billing oldal és konfigurációbeviteli eszköz; #128/#129/#130 mainen, saját CI-k zöldek; éles billing OFF | I01–I06: tartós meghívás, teljes fizetési/lemondási út, minden generálás kapuzása, kikapcsolás/költségvédelem, élő Stripe/feltételek és mért rollout/E2E |
+| Előfizetés / billing | Implementált mag, SQL ledger/039, Checkout/webhook, generálási kapu, billing oldal és konfigurációbeviteli eszköz; #128/#129/#130 mainen, saját CI-k zöldek; éles billing OFF | I02 első UI-szelet fejlesztési ágon: kerethiányból előfizetés, fiókhoz kötött notice/egyenleg. Hátra I01–I06: tartós meghívás, teljes fizetési/lemondási út, minden generálás kapuzása, kikapcsolás/költségvédelem, élő Stripe/feltételek és mért rollout/E2E |
 | Magyar termékkiadás | halasztott | angol UI és történet az induló scope |
 
 ## Történetminőség — beolvadt v9 C5, 2026-10-25

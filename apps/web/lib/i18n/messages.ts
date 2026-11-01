@@ -216,6 +216,12 @@ export const en = {
   'terms.payment1':
     'The service is currently free of charge and there are no paid plans. If paid plans are introduced, these terms and the privacy notice will be updated first, and the price, billing, automatic renewal, cancellation, refund and withdrawal terms will be shown to you before you buy anything.',
   'billing.title': 'Subscription',
+  'billing.view': 'View subscription and chapter balance',
+  'billing.returnToStories': 'Return to your stories',
+  'billing.needSubscription':
+    'You need an active subscription to create another chapter.',
+  'billing.allowanceExhausted':
+    'You have used the chapters available for this billing period.',
   'billing.notConfigured':
     'Sign-in is not configured yet. Contact info@alterward.com.',
   'billing.signIn': 'Sign in to alterward first, then open this page again.',
@@ -241,7 +247,7 @@ export const en = {
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
   'billing.offerTerms':
-    'The subscription renews automatically every month until you cancel it. Invited testers get their launch discount automatically at checkout. You see the final price at checkout before you pay.',
+    'The subscription renews automatically every month until you cancel it. The ten selected launch accounts get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
   'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
   'billing.manage': 'To cancel or change your subscription, write to',
@@ -563,6 +569,12 @@ export const hu: Record<MessageKey, string> = {
   'terms.payment1':
     'A szolgáltatás jelenleg ingyenes, fizetős csomag nincs. Ha fizetős csomagot vezetünk be, előbb ezeket a feltételeket és az adatkezelési tájékoztatót frissítjük, és a vásárlás előtt megmutatjuk az árat, a számlázást, az automatikus megújítást, a lemondás, a visszatérítés és az elállás feltételeit.',
   'billing.title': 'Előfizetés',
+  'billing.view': 'Előfizetés és fejezetegyenleg megtekintése',
+  'billing.returnToStories': 'Vissza a történeteidhez',
+  'billing.needSubscription':
+    'Újabb fejezet készítéséhez aktív előfizetés szükséges.',
+  'billing.allowanceExhausted':
+    'Felhasználtad az erre a számlázási időszakra elérhető fejezeteket.',
   'billing.notConfigured':
     'A bejelentkezés még nincs beállítva. Írj az info@alterward.com címre.',
   'billing.signIn':
@@ -589,7 +601,7 @@ export const hu: Record<MessageKey, string> = {
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
-    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A meghívott tesztelők kedvezménye automatikusan érvényesül a fizetésnél. A végső árat a fizetés előtt látod.',
+    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A tíz kijelölt induló fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
   'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
   'billing.manage': 'Az előfizetés lemondásához vagy módosításához írj ide:',
