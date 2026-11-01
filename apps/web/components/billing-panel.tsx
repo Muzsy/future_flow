@@ -11,11 +11,13 @@ import {
 import {
   POLL_INTERVAL_MS,
   billingView,
+  billingStatusForAccount,
   checkoutResult,
   isBillingStatus,
   safeCheckoutUrl,
   shouldPoll,
   type BillingStatus,
+  type AccountBillingStatus,
   type CheckoutResult,
 } from '../lib/billing';
 import { useLanguage } from './language-provider';
@@ -26,8 +28,8 @@ export function BillingPanel() {
   const { t } = useLanguage();
   const [userId, setUserId] = useState<string | null>(null),
     [authReady, setAuthReady] = useState(false),
-    [status, setStatus] = useState<BillingStatus | null>(null),
-    [unavailable, setUnavailable] = useState(false),
+    [status, setStatus] = useState<AccountBillingStatus | null>(null),
+    [unavailable, setUnavailable] = useState<string | null>(null),
     [result, setResult] = useState<CheckoutResult>(null),
     [attempts, setAttempts] = useState(0),
     [notice, setNotice] = useState(''),
@@ -73,6 +75,7 @@ export function BillingPanel() {
   useEffect(() => {
     // Another account must never see the previous one's state.
     setStatus(null);
+    setUnavailable(null);
     setAttempts(0);
     if (!userId) return;
     let cancelled = false;
@@ -84,7 +87,7 @@ export function BillingPanel() {
         if (!isBillingStatus(body)) throw new ClientError('REQUEST_FAILED');
         next = body;
         if (!cancelled) {
-          setStatus(body);
+          setStatus({ userId, status: body });
           setNotice('');
         }
       } catch (error) {
@@ -94,7 +97,7 @@ export function BillingPanel() {
           error instanceof ClientError &&
           error.code === 'BILLING_UNAVAILABLE'
         ) {
-          setUnavailable(true);
+          setUnavailable(userId);
           return;
         }
         setNotice(clientErrorMessage(error));
@@ -141,8 +144,8 @@ export function BillingPanel() {
     authConfigured,
     authReady,
     userId,
-    unavailable,
-    status,
+    unavailable: unavailable !== null && unavailable === userId,
+    status: billingStatusForAccount(status, userId),
     failed: Boolean(notice),
     result,
     attempts,
@@ -156,7 +159,11 @@ export function BillingPanel() {
         </p>
       )}
       {view.kind === 'not-configured' && <p>{t('billing.notConfigured')}</p>}
-      {view.kind === 'sign-in' && <p>{t('billing.signIn')}</p>}
+      {view.kind === 'sign-in' && (
+        <p>
+          {t('billing.signIn')} <a href="/login">{t('auth.signInShort')}</a>
+        </p>
+      )}
       {view.kind === 'unavailable' && <p>{t('billing.unavailable')}</p>}
       {view.kind === 'loading' && <p role="status">{t('billing.loading')}</p>}
       {view.kind === 'ready' && (
@@ -172,6 +179,9 @@ export function BillingPanel() {
               paid: view.status.paidChaptersAvailable,
               taster: view.status.tasterChaptersAvailable,
             })}
+          </p>
+          <p>
+            <a href="/lives">{t('billing.returnToStories')}</a>
           </p>
           {view.offerCheckout && (
             <>
