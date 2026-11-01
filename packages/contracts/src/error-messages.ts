@@ -1,6 +1,10 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  BILLING_RESERVATION_REQUIRED: [
+    'We could not verify the chapter allowance for this attempt. Your saved stories remain available. Retry from the story page.',
+    'Ehhez a próbálkozáshoz nem sikerült igazolni a fejezetfoglalást. A mentett történeteid elérhetők maradnak. A történet oldaláról próbálhatod újra.',
+  ],
   GENERATION_ROUTE_UNAVAILABLE: [
     'Story creation is not available from this page. Your saved stories remain available.',
     'Erről az oldalról most nem indítható történetkészítés. A mentett történeteid továbbra is elérhetők.',

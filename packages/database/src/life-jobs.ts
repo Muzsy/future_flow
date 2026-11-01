@@ -18,7 +18,11 @@ import {
   validatedFictionCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
-import { consumeGenerationChapter, releaseGenerationChapter } from './billing';
+import {
+  assertGenerationChapterDispatch,
+  consumeGenerationChapter,
+  releaseGenerationChapter,
+} from './billing';
 import { LifeRepository, lifeRow, type LifePeriodInput } from './lives';
 import { personalPrivacyEventIds } from './shared-privacy';
 import {
@@ -144,6 +148,14 @@ export class LifeJobRepository {
     )
       lost();
   }
+  async verifyChapterReservation(job: LifeJob) {
+    await assertGenerationChapterDispatch(
+      this.db,
+      job.user_id,
+      job.id,
+      job.lease_token,
+    );
+  }
   async admitNarrativeRequest(job: LifeJob) {
     const count = await this.db.transaction(async (tx) => {
       if (
@@ -200,6 +212,12 @@ export class LifeJobRepository {
           'NARRATIVE_CONTEXT_INVALID',
           'Narrative request policy is invalid.',
         );
+      await assertGenerationChapterDispatch(
+        tx,
+        job.user_id,
+        job.id,
+        job.lease_token,
+      );
       const limit = policy.data.maxPhysicalRequests;
       const used =
         current.checkpoints.providerRequestCount === undefined

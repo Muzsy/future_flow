@@ -920,6 +920,7 @@ export class LifeRepository {
         const job = lifeRow(
           await tx.query<
             Row & {
+              id: string;
               branch_id: string;
               status: string;
               attempt: number;
@@ -928,7 +929,7 @@ export class LifeRepository {
               error_code: string | null;
             }
           >(
-            'SELECT branch_id,status,attempt,checkpoints,payload,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
+            'SELECT id,branch_id,status,attempt,checkpoints,payload,error_code FROM aw_jobs WHERE id=$1 AND user_id=$2 FOR UPDATE',
             [jobId, userId],
           ),
         );
@@ -947,7 +948,7 @@ export class LifeRepository {
         ) {
           await materializeSharedMemories(tx, branch);
           // The new job gets its own key; the old job's reservation goes back.
-          await releaseGenerationChapter(tx, userId, jobId);
+          await releaseGenerationChapter(tx, userId, job.id);
           return this.queue(tx, userId, branch);
         }
         const [active] = await tx.query<{ count: number }>(
@@ -961,7 +962,9 @@ export class LifeRepository {
             429,
           );
         // The failed attempt released its reservation; the retry reserves again.
-        await reserveGenerationChapter(tx, userId, jobId);
+        // UUID path casing is not another reservation key. Keep the existing
+        // idempotency namespace, but use the canonical database job identity.
+        await reserveGenerationChapter(tx, userId, job.id);
         await tx.query(
           "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",
           [jobId, userId],

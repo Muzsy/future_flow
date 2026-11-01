@@ -21,9 +21,17 @@ Az [ADR-011](../decisions/ADR-011-invitation-service-access.md) szerinti első k
 
 A runtime-integráció még nincs kész: a jelenlegi statikus kapu és 11-es címlimit megmarad. A következő tartós store/migráció/privacy-recovery, API/web és operátori szeleteknek együtt kell megőrizniük az Auth/ownership/reauth, data-control és writer-fence védelmeket. Az új tiszta policy nem állítja le önmagában a workert, nem nyitja meg a regisztrációt, és nem váltja ki a későbbi éles auditot vagy aktiválási engedélyt.
 
-### Fizetős személyes generálás határa — fejlesztési jelölt, #138
+### Fizetős személyes generálás határa — main, #138/#139
 
-Az API közös Auth-guardja enforce módban az ellenőrzött handler szerveroldali `ChapterBilledGeneration` metadata-ját igényli a generálási műveleteknél. Kliensbody, útvonalszöveg vagy user_metadata nem állítja ezt. A meglévő béta-admission és a személyes foglalás/fogyasztás továbbra külön kapu. Az ismeretlenül jelölt generálás zárt; a v1/Shared/review sorokat a tényleges worker nem claimeli ebben a módban. A sorok nem törlődnek és nem válnak személyes fejezetté. Aktiválás előtt az érintett régi függő munkákat külön ellenőrizni kell; a kapcsoló önmagában nem rendezi el őket. A személyes provider-dispatch USD/pause fence, a tartós admission és a mért kiadás még külön feladat.
+Az API közös Auth-guardja enforce módban az ellenőrzött handler szerveroldali `ChapterBilledGeneration` metadata-ját igényli a generálási műveleteknél. Kliensbody, útvonalszöveg vagy user_metadata nem állítja ezt. A meglévő béta-admission és a személyes foglalás/fogyasztás továbbra külön kapu. Az ismeretlenül jelölt generálás zárt; a v1/Shared/review sorokat a tényleges worker nem claimeli ebben a módban. A sorok nem törlődnek és nem válnak személyes fejezetté. Aktiválás előtt az érintett régi függő munkákat külön ellenőrizni kell; a kapcsoló önmagában nem rendezi el őket. A folyamatos szolgáltatói USD-budget/pause, a tartós admission és a mért kiadás még külön feladat.
+
+### Személyes provider-dispatch — fejlesztési jelölt, #140
+
+Enforcement mellett a foglalás, paid grant és subscription projection egy SQL-snapshotból olvasható, aktív fiókhoz és tényleges futó job/élő lease-hez kötve. Hiányzó, idegen, feloldott vagy elfogyasztott foglalás zárt; refund/revocation/reconcile új kérést tilt. A korábbi béta explicit mentessége az API-éval azonos, nem származhat kuponból vagy a külön USD-budget ügyféllistájából. Enforcement OFF esetén az új billing-ellenőrzés lekérdezés nélküli no-op.
+
+A valódi provider-wrapper minden alkalmazásszintű retry előtt újra ellenőriz. A második ellenőrzés az USD-budget előfoglalása után történik, így az annak várakozása alatt megváltozott jogosultság vagy lejárt lease sem jut új szolgáltatói kéréshez. Az összeillesztett guard ekkor a már ismerten fel nem használt USD-ticketet nulla tokennel rendezi; a finanszírozott próbálkozás metaadatai és a nulla költségű ticket megmaradnak. Nem a teljes attempt-történet nullázódik. A már elindult kérés visszamenőleges megszakítása nem garantált; ez nem globális, azonnali pause.
+
+Az ellenőrzés nem módosít ledger-/költséglimitet és nem váltja ki a writer/privacy védelmeket. A már kész kimenet durabilis mentése és a reserved/released foglalás fogyasztása változatlan. A retry a PostgreSQL által visszaadott kanonikus jobazonosítóra foglal; régi, nem kanonikus kulcsok aktiválás előtti egyeztetése külön kontroll, nincs automatikus átírás/reset. A tartós service-policy/admission még nincs runtime-ba kötve, ennek pause/resume kapuja külön feladat.
 
 ## 2. Fő védelmi rétegek
 
