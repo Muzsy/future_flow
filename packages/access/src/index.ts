@@ -36,8 +36,75 @@ export type ClosedSiteGate = {
   verify: (assertion: string | undefined) => Promise<boolean>;
 };
 
-// Only the server-owned configuration determines the key endpoint. The optional
-// transport is for deterministic tests, never an environment/request override.
+export type VerifiedAccessIdentity = Readonly<{
+  subject: string;
+  email: string;
+  expiresAt: number;
+}>;
+
+// Proves identity only. Admission must be checked separately against trusted
+// application state; a valid Access token is not itself an invitation.
+export function createAccessIdentityVerifier(
+  config: Readonly<{ issuer: string; audience: string }>,
+  transport?: typeof fetch,
+): (assertion: string | undefined) => Promise<VerifiedAccessIdentity | null> {
+  const { issuer, audience } = config;
+  // Only server-owned, constrained configuration determines the key endpoint.
+  // Never follow a URL supplied by the token, headers, or a caller's request.
+  if (
+    typeof issuer !== 'string' ||
+    typeof audience !== 'string' ||
+    issuer.trim() !== issuer ||
+    audience.length !== 64 ||
+    !/^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.cloudflareaccess\.com$/.test(
+      issuer,
+    ) ||
+    !/^[a-f0-9]{64}$/.test(audience)
+  )
+    throw Error('A pinned Cloudflare issuer and audience are required');
+  const keys = createRemoteJWKSet(new URL('/cdn-cgi/access/certs', issuer), {
+    timeoutDuration: 3000,
+    cooldownDuration: 30000,
+    cacheMaxAge: 300000,
+    ...(transport ? { [customFetch]: transport } : {}),
+  });
+  return async (assertion) => {
+    if (!assertion || assertion.length > 16384 || /[\s,]/.test(assertion))
+      return null;
+    try {
+      const { payload } = await jwtVerify(assertion, keys, {
+        algorithms: ['RS256'],
+        issuer,
+        audience,
+        requiredClaims: ['exp', 'iat', 'sub', 'email', 'type'],
+        clockTolerance: 0,
+      });
+      const valid =
+        payload.type === 'app' &&
+        typeof payload.email === 'string' &&
+        payload.email.length > 0 &&
+        payload.email.trim() === payload.email &&
+        /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(payload.email) &&
+        typeof payload.sub === 'string' &&
+        payload.sub.length > 0 &&
+        typeof payload.iat === 'number' &&
+        payload.iat <= Math.floor(Date.now() / 1000);
+      return valid && typeof payload.exp === 'number'
+        ? Object.freeze({
+            subject: payload.sub as string,
+            email: (payload.email as string).toLowerCase(),
+            expiresAt: payload.exp,
+          })
+        : null;
+    } catch {
+      // Do not log credentials, email, attacker-controlled errors or claims.
+      return null;
+    }
+  };
+}
+
+// Legacy static admission remains unchanged until the durable registry and
+// API/web callers are integrated in a separately reviewed activation.
 export function createClosedSiteGate(
   env: NodeJS.ProcessEnv = process.env,
   transport?: typeof fetch,
@@ -45,42 +112,12 @@ export function createClosedSiteGate(
   const config = closedSiteConfigFromEnv(env);
   if (!config.enabled) return { enabled: false, verify: async () => true };
   const allowedEmails = new Set(config.emails);
-  const keys = createRemoteJWKSet(
-    new URL('/cdn-cgi/access/certs', config.issuer),
-    {
-      timeoutDuration: 3000,
-      cooldownDuration: 30000,
-      cacheMaxAge: 300000,
-      ...(transport ? { [customFetch]: transport } : {}),
-    },
-  );
+  const identity = createAccessIdentityVerifier(config, transport);
   return {
     enabled: true,
     async verify(assertion) {
-      if (!assertion || assertion.length > 16384 || /[\s,]/.test(assertion))
-        return false;
-      try {
-        const { payload } = await jwtVerify(assertion, keys, {
-          algorithms: ['RS256'],
-          issuer: config.issuer,
-          audience: config.audience,
-          requiredClaims: ['exp', 'iat', 'sub', 'email', 'type'],
-          clockTolerance: 0,
-        });
-        return (
-          payload.type === 'app' &&
-          typeof payload.email === 'string' &&
-          payload.email.length > 0 &&
-          allowedEmails.has(payload.email.toLowerCase()) &&
-          typeof payload.sub === 'string' &&
-          payload.sub.length > 0 &&
-          typeof payload.iat === 'number' &&
-          payload.iat <= Math.floor(Date.now() / 1000)
-        );
-      } catch {
-        // Do not log credentials, email, attacker-controlled errors or claims.
-        return false;
-      }
+      const verified = await identity(assertion);
+      return verified !== null && allowedEmails.has(verified.email);
     },
   };
 }

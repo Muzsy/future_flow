@@ -19,6 +19,7 @@ import { DomainError } from './errors';
 import { addMonths } from './dates';
 export { DomainError } from './errors';
 export { addMonths } from './dates';
+export * from './service-access';
 export * from './life-v2';
 export * from './narrative';
 export * from './narrative-requests';
