@@ -111,6 +111,8 @@ A személyes indulás alkalmazandó P13 privacy/security/data-control követelm�
 
 **I01/I04 első implementációs szelet — fejlesztési jelölt, #133:** a tiszta hozzáférési policy és a külön Cloudflare-identitás-ellenőrző elkészült, az [ADR-011](decisions/ADR-011-invitation-service-access.md) a következő tároló/runtime/operátori szeletek szerződését rögzíti. A legacy kapu és 11-es címlimit változatlan, az új policy még nincs az alkalmazásba kötve. Tartós admission, schema/recovery, új fiókok beléptetése és pause/resume operátor még nincs kész; I01/I04 marad PARTIAL.
 
+**I02 generálási határ — fejlesztési jelölt, #138:** `BILLING_ENFORCEMENT=true` mellett a központi fejezetfoglalásra jutó hét személyes start/folytatás/fork/retry handler explicit szerveroldali jelölést kap. A két v1, a Shared continue és a két AI-review indítás zárt; a worker másik négy sora claim nélkül megőrzi a munkákat. Enforcement OFF esetén a korábbi működés marad. Ez nem teljes I02/I03/I04, nincs éles aktiválás; a személyes worker USD/pause és a teljes életciklus/rollout továbbra nyitott.
+
 **Sorrend:** I01 és I04 tervezése először; I02/I03/I05 a közös jogosultsági és üzemeltetési szerződéshez igazodik; I06 csak a végleges integráción és minden kapuval; I07 az igazolt működés után. Shared-, prompt-, archetípus- vagy motorbővítés nincs ebben a scope-ban. A konkrét implementáció és minden éles művelet a meglévő Issue → branch → PR → review → CI és operátori jóváhagyási rendben történik.
 
 ## 3. Personal / public execution plan — L01, P01–P13

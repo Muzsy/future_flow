@@ -21,6 +21,10 @@ Az [ADR-011](../decisions/ADR-011-invitation-service-access.md) szerinti első k
 
 A runtime-integráció még nincs kész: a jelenlegi statikus kapu és 11-es címlimit megmarad. A következő tartós store/migráció/privacy-recovery, API/web és operátori szeleteknek együtt kell megőrizniük az Auth/ownership/reauth, data-control és writer-fence védelmeket. Az új tiszta policy nem állítja le önmagában a workert, nem nyitja meg a regisztrációt, és nem váltja ki a későbbi éles auditot vagy aktiválási engedélyt.
 
+### Fizetős személyes generálás határa — fejlesztési jelölt, #138
+
+Az API közös Auth-guardja enforce módban az ellenőrzött handler szerveroldali `ChapterBilledGeneration` metadata-ját igényli a generálási műveleteknél. Kliensbody, útvonalszöveg vagy user_metadata nem állítja ezt. A meglévő béta-admission és a személyes foglalás/fogyasztás továbbra külön kapu. Az ismeretlenül jelölt generálás zárt; a v1/Shared/review sorokat a tényleges worker nem claimeli ebben a módban. A sorok nem törlődnek és nem válnak személyes fejezetté. Aktiválás előtt az érintett régi függő munkákat külön ellenőrizni kell; a kapcsoló önmagában nem rendezi el őket. A személyes provider-dispatch USD/pause fence, a tartós admission és a mért kiadás még külön feladat.
+
 ## 2. Fő védelmi rétegek
 
 - Cloudflare Access és origin boundary;

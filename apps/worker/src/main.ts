@@ -1,3 +1,4 @@
+import { generationQueueClaim } from './billing-queues';
 import {
   configureGenerationGate,
   createGenerationGate,
@@ -139,11 +140,23 @@ async function main() {
         | import('@future-flow/database').Job;
       const selection = await claimFairQueue<Claimed>(
         [
-          () => lifeJobs.claim(),
-          () => (sharedEnabled ? sharedJobs.claim() : Promise.resolve(null)),
-          () => jobs.claim(),
-          () => publicReviews.claim(),
-          () => contentReviews.claim(),
+          generationQueueClaim(billingConfig.enforcement, 'personal', () =>
+            lifeJobs.claim(),
+          ),
+          generationQueueClaim(billingConfig.enforcement, 'shared', () =>
+            sharedEnabled ? sharedJobs.claim() : Promise.resolve(null),
+          ),
+          generationQueueClaim(billingConfig.enforcement, 'legacy', () =>
+            jobs.claim(),
+          ),
+          generationQueueClaim(billingConfig.enforcement, 'public-review', () =>
+            publicReviews.claim(),
+          ),
+          generationQueueClaim(
+            billingConfig.enforcement,
+            'content-review',
+            () => contentReviews.claim(),
+          ),
         ],
         queueStart,
       );

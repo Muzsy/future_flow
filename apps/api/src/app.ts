@@ -1,6 +1,10 @@
 import 'reflect-metadata';
 import { ClosedBetaGeneration, CLOSED_BETA_GENERATION } from './closed-beta';
 import {
+  ChapterBilledGeneration,
+  CHAPTER_BILLED_GENERATION,
+} from './billing-generation';
+import {
   BILLING_WEBHOOK_LIMIT,
   BILLING_WEBHOOK_PATH,
   accountDeletionBilling,
@@ -204,6 +208,7 @@ class AuthGuard implements CanActivate {
     @Inject(AUTH) private readonly auth: AuthProvider,
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('CLOSED_BETA_CONFIG') private readonly beta: ClosedBetaConfig,
+    @Inject(BILLING) private readonly billing: BillingRuntime,
   ) {}
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthRequest>();
@@ -220,8 +225,19 @@ class AuthGuard implements CanActivate {
     request.userId = (await this.auth.verify(request.token)).id;
     if (
       Reflect.getMetadata(CLOSED_BETA_GENERATION, context.getHandler()) === true
-    )
+    ) {
       assertClosedBetaAdmission(this.beta, request.userId);
+      if (
+        this.billing.config.enforcement &&
+        Reflect.getMetadata(CHAPTER_BILLED_GENERATION, context.getHandler()) !==
+          true
+      )
+        throw new DomainError(
+          'GENERATION_ROUTE_UNAVAILABLE',
+          'This generation route is unavailable.',
+          404,
+        );
+    }
     await this.repo.ensureUser(request.userId);
     return true;
   }
@@ -696,6 +712,7 @@ class LifeController {
     );
   }
   @ClosedBetaGeneration()
+  @ChapterBilledGeneration()
   @Post('scenario-versions/:id/start')
   @ApiBody({ schema: z.toJSONSchema(scenarioStartRequestSchema) as never })
   scenarioStart(
@@ -725,6 +742,7 @@ class LifeController {
     return this.lives.saveDraft(req.userId, input.revision, input.payload);
   }
   @ClosedBetaGeneration()
+  @ChapterBilledGeneration()
   @Post('lives')
   create(
     @Req() req: AuthRequest,
@@ -908,6 +926,7 @@ class LifeController {
     );
   }
   @ClosedBetaGeneration()
+  @ChapterBilledGeneration()
   @Post('branches/:id/continue')
   async continue(
     @Req() req: AuthRequest,
@@ -926,6 +945,7 @@ class LifeController {
     );
   }
   @ClosedBetaGeneration()
+  @ChapterBilledGeneration()
   @Post('branches/:id/periods/:periodId/fork')
   async fork(
     @Req() req: AuthRequest,
@@ -949,6 +969,7 @@ class LifeController {
     );
   }
   @ClosedBetaGeneration()
+  @ChapterBilledGeneration()
   @Post('jobs/:id/retry')
   async retry(
     @Req() req: AuthRequest,

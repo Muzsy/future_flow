@@ -32,6 +32,8 @@ Az első tíz új ember körébe a már meglévő három béta-résztvevő nem s
 
 **Fejezetegyenleg és költségvédelem:** az előfizetési fejezetledger és a szolgáltatói USD-budget külön főkönyv. A safety limitek és a fizetett jogosultság együtt működnek, az új csoport egyik könyvelést sem nullázza. A meglévő béta 10 USD-je nem a végleges szolgáltatás automatikusan elfogadott budgetje, és nem helyettesíti az 1/5/8-as termékegyenleget; konkrét új költési limit külön tulajdonosi döntés.
 
+**Fejezetelszámolási útvonalhatár — #138 fejlesztési jelölt:** enforcement mellett az API a fejezetledgeren áthaladó személyes generálást engedi a már meglévő Auth/béta/entitlement védelmekhez. V1 futures/decision, Shared AI és public-review AI indítás `GENERATION_ROUTE_UNAVAILABLE`/404; ebből nincs fizetési felszólítás. A worker csak a személyes sort claimeli, a többi függő munka megmarad. Olvasás, adatkontroll, már mentett választás és webhook saját védelme változatlan. Ez nem automatikus jóváírás, ledger-reset vagy a régi béta-mentesség kiterjesztése. Enforcement OFF viselkedése változatlan.
+
 ### Megvalósítás és szolgáltatói határ
 
 Cél: Stripe Managed Payments, az élő fiókjogosultság megerősítésével; Paddle a tartalék. A fizetési adat- és felelősségi határok tervezési forrása [ADR-010](../decisions/ADR-010-payment-data-and-responsibility-boundaries.md); az ottani döntési státuszt ez a terv nem címkézi át automatikusan. Az 5→8 átállást a saját fizetettszámla-számláló adja, nem a kupon eltűnése. A vita és az aktuális ciklus teljes visszatérítése visszavonja a jogosultságot és lemondja az előfizetést; a régi ciklus teljes visszatérítése az akkori grantot zárja, részleges visszatérítés naplózást és riasztást ad. A kupon fiókonként egyszer jár.
