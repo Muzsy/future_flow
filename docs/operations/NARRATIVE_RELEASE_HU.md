@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-10-27
+last_reviewed: 2026-11-01
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -1112,3 +1112,10 @@ Az éles 038→039 lépéshez (a #124/#125 `main` fe67d94 kiadása) nem volt def
 
 **Ellenőrzés (helyi):** Python ops teszt 541 PASS, a CI-ben listázott Node ops tesztek, vitest 142 fájl/1730 teszt, typecheck, docs:check és Prettier PASS. A Docker/PostgreSQL fixture (16 funded + 20 successor check, köztük `schemaMigration`, `schemaRecovery`, `billingDefaultsGuard`) csak a CI-ben futtatható. **Határ:** semmi sem lett éles szerveren vagy az eszközön futtatva; nincs merge, deploy, Cloudflare/Stripe változás, paid hívás vagy tesztelői ablak-módosítás. A célgépes próba és az éles futás külön tulajdonosi engedélyt igényel.
 
+## Éles 038→039 upgrade lefutott — 2026-11-01 00:48 CET
+
+A fent leírt `schema-039` successor-generáció (#126, e08fffe) a tulajdonos külön jóváhagyásával lefutott az éles szerveren. **Eredmény:** production `main` e8693158 (#127-tel), schema 039, a journal `applied`. A meglévő adatok változatlanok, a tesztelői ablak (2026-10-29 01:17:38 – 2026-11-28 01:17:38 CET) és a keret (10 USD projekt / 3,33 USD felhasználó) érintetlen, a billing ki van kapcsolva, az upgrade utáni backup és izolált restore zöld. Új paid hívás, ablak- vagy keretmódosítás nem történt. Az éles egyedi azonosítók, journal- és proofhash-ek a privát kliens-evidenciában maradnak, nem kerülnek a repóba.
+
+**API-összeomlás (üzemeltetési megfigyelés).** Az API konténer 2026-10-27-én és 2026-10-29-én kilépett (exit 1): a `pg-pool` idle kliense `read ETIMEDOUT` hibát kapott a Supabase pooler felé, és mivel a pool `error` eseményére nem volt kezelő, a Node-folyamat kezeletlen eseményhibával leállt. A Docker újraindította, a nem nulla RestartCount viszont a successor-baseline-t blokkolta. Az API-only recreate karbantartás tulajdonosi jóváhagyással történt. A kódjavítás (a pool és a tranzakciós kliens hibájának naplózása, a törött kapcsolat eldobása, a folyamat leállítása nélkül) külön PR-ban készült a `packages/database` egyetlen `Pool`-jára; ez csak merge és következő kiadás után fut élesben, a motor/alkalmazás-forrás befagyasztása miatt a változás szándékosan minimális.
+
+**Következő:** Cloudflare-kivétel (`/api/v1/billing/webhook`, `/terms`) és szerveres Stripe sandbox-próba a billing szálon; a billing éles bekapcsolásának útja és az ÁSZF fizetős csomagra frissítése továbbra is nyitott.
