@@ -18,6 +18,7 @@ import {
   createBillingStore,
   createGenerationGate,
   releaseSettledBillingReservations,
+  releaseStaleBillingReservations,
   type Database,
 } from '@future-flow/database';
 import { applyMigrations } from '../scripts/lib/migrations';
@@ -210,6 +211,34 @@ describe.sequential('generation gate', () => {
       { key: job.id, state: 'consumed' },
     ]);
     expect(created.jobId).toBe(job.id);
+  });
+
+  it('debits a durably saved chapter once even if its reservation was already reaped', async () => {
+    configureGenerationGate(
+      createGenerationGate({ ready: true, exemptUserIds: [] }),
+    );
+    const u = await person();
+    const created = await lives.create(u, setupFixture(), 'reaped-create');
+    await db.query(
+      "UPDATE aw_billing_reservations SET created_at=now()-interval '3 hours' WHERE user_id=$1",
+      [u],
+    );
+    await releaseStaleBillingReservations(db, { olderThanMs: 60 * 60_000 });
+    expect(await reservations(u)).toMatchObject([
+      { key: created.jobId, state: 'released' },
+    ]);
+    await finishNext();
+    expect(await reservations(u)).toMatchObject([
+      { key: created.jobId, state: 'consumed' },
+    ]);
+    expect((await lives.detail(u, created.branchId)).periods).toHaveLength(1);
+    expect(await lives.create(u, setupFixture(), 'reaped-create')).toEqual(
+      created,
+    );
+    expect(await reservations(u)).toHaveLength(1);
+    await expect(
+      nextChapter(u, created.branchId, 'reaped-over'),
+    ).rejects.toMatchObject({ code: 'BILLING_NO_ENTITLEMENT' });
   });
 
   it('never gates or debits the closed-beta accounts', async () => {

@@ -52,6 +52,14 @@ Egyetlen ellenőrzés sem esett ki, a timeoutok jobonként 45 percesek (a smoke-
 
 A release-kapuk (`assertExactFenceCiJobs` a `scripts/contabo-fence-operator.mjs`-ben, amelyet a fence/funded/personal-beta/successor operátorok használnak) pontosan a három jobot követelik meg sikeresen; a régi, kétjobos futás már nem fogadható el. Ha a GitHubban kötelező státuszellenőrzés (branch protection) van beállítva, annak az `image-rehearsal` nevet is tartalmaznia kell; a `container` név változatlan.
 
+### Billing-foglalás és TTL-takarítás sorrendje — 2026-11-01
+
+A #128 merge utáni `03d8d81` főági [CI41262355164](https://github.com/Muzsy/future_flow/actions/runs/41262355164) konténeres próbája a `smoke-billing.mjs` negyedik esetében `BILLING_RESERVATION_MISSING` hibával megállt. A próba a szigorú, önálló `consumeChapterForUser` segédfüggvényt versenyeztette a TTL-takarítással: ha a takarítás futott előbb, a felszabadított foglalást ez a függvény elutasította. A sikeres éles fejezetmentés a `consumeGenerationChapter` függvényt használja, amely a felszabadított foglalást is elfogyasztja a mentés tranzakciójában.
+
+A javított PostgreSQL-próba ezt az éles elszámolási függvényt ellenőrzi: terhelés → takarítás, takarítás → terhelés és valódi párhuzamos végrehajtás, majd azonos mentés ismétlése. A két mentett fejezet foglalásának mindenképpen `consumed`, a két érintetlenének `released` állapotban kell végződnie; a korábbi megengedő „consumed vagy released” állítás helyett. A `billing-gate.test.ts` külön, valódi fejezetmentéssel igazolja, hogy a korábban visszaadott ízelítő egyszer elfogy, az azonos kérés nem terhel újra, és a következő fejezet már előfizetést igényel. Nincs hibanyelés, őrlazítás vagy alkalmazáskód-változás; a teljes PostgreSQL/fixture bizonyítékot a javítás saját CI-je adja.
+
+**Helyi célzott bizonyítás:** a CI-vel egyező digestű PostgreSQL 17 képen, külön `internal` Docker-hálózaton a javított negyedik eset változatlan törzse mindhárom sorrendben, tíz ismétléssel (30 eset) PASS. A korábbi `consumeChapterForUser` visszahelyettesítése determinisztikusan `BILLING_RESERVATION_MISSING` hibát adott a takarítás-először esetben. A próba nem állított be CI-identitást, nem hívott szolgáltatót; az ideiglenes adatbázis és hálózat takarítása sikeres. A billing-gate/store és a pool-hibakezelés célzott tesztjei 29/29 PASS. Ez nem a teljes konténeres CI vagy a célgépes release-próba helyettesítése.
+
 ## Célzott tesztek
 
 Az alap suite nem helyettesíti a domain-specifikus próbát.
