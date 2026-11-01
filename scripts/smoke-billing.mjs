@@ -19,6 +19,7 @@ const {
   Repository,
   createBillingStore,
   releaseStaleBillingReservations,
+  consumeGenerationChapter,
 } = require('@future-flow/database');
 const {
   handleStripeWebhook,
@@ -215,8 +216,10 @@ try {
     checks.concurrentSameKeyOnce = true;
   }
 
-  // 4. A reaper sweep racing a consume never loses a consumed chapter.
-  {
+  // 4. Use the worker's durable-save settlement, not the stricter standalone
+  // service helper: a saved chapter must consume even after its TTL was reaped.
+  // Exercise both serial orders deterministically, then genuine PG concurrency.
+  for (const order of ['consume-first', 'reaper-first', 'parallel']) {
     const p = await person();
     await subscribed(p);
     for (let i = 0; i < 4; i++)
@@ -225,11 +228,25 @@ try {
       "UPDATE aw_billing_reservations SET created_at=now()-interval '3 hours' WHERE user_id=$1",
       [p.id],
     );
-    await Promise.all([
-      consumeChapterForUser(store, p.id, 's0'),
-      consumeChapterForUser(store, p.id, 's1'),
-      releaseStaleBillingReservations(db, { olderThanMs: 60 * 60_000 }),
-    ]);
+    const consume = () =>
+      Promise.all(
+        ['s0', 's1'].map((key) =>
+          db.transaction((tx) => consumeGenerationChapter(tx, p.id, key)),
+        ),
+      );
+    const reap = () =>
+      releaseStaleBillingReservations(db, { olderThanMs: 60 * 60_000 });
+    if (order === 'consume-first') {
+      await consume();
+      await reap();
+    } else if (order === 'reaper-first') {
+      await reap();
+      await consume();
+    } else {
+      await Promise.all([consume(), reap()]);
+    }
+    // An identical saved-job retry is also idempotent after either ordering.
+    await consume();
     const states = Object.fromEntries(
       (
         await db.query(
@@ -238,12 +255,11 @@ try {
         )
       ).map((r) => [r.key, r.state]),
     );
-    // Each reservation ends consumed or released, never both, never lost; the
-    // two untouched ones were reclaimed.
+    // Saved chapters always debit once; only untouched reservations are reclaimed.
     assert.equal(states.s2, 'released');
     assert.equal(states.s3, 'released');
-    assert.ok(['consumed', 'released'].includes(states.s0));
-    assert.ok(['consumed', 'released'].includes(states.s1));
+    assert.equal(states.s0, 'consumed', order);
+    assert.equal(states.s1, 'consumed', order);
     checks.reaperRacingConsumeConsistent = true;
   }
 
