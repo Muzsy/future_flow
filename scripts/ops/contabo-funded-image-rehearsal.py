@@ -139,10 +139,11 @@ def require_successor_proof(proof, image, binding):
         'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
         'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
         'readerAdmission','testerBetaWindow','chainedAuthority',
-            'schemaMigration','schemaRecovery','billingDefaultsGuard'}
+            'schemaMigration','schemaRecovery','billingDefaultsGuard',
+            'billingConfigStages','billingSecretGuard','billingConfigRefusals'}
     if (not isinstance(proof,dict) or set(proof) != {'version','sourceCommit','bundleSha256',
             'targetImage','recoveryImage','checks','paidAiCalls'}
-            or proof['version'] != 'alterward-beta-successor-fixture-3'
+            or proof['version'] != 'alterward-beta-successor-fixture-4'
             or proof['sourceCommit'] != binding['sourceCommit'] or proof['bundleSha256'] != binding['bundleSha256']
             or proof['targetImage'] != image or proof['recoveryImage'] != image or proof['paidAiCalls'] != 0
             or set(proof['checks']) != checks or any(v is not True for v in proof['checks'].values())):

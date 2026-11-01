@@ -1119,3 +1119,11 @@ A fent leírt `schema-039` successor-generáció (#126, e08fffe) a tulajdonos k�
 **API-összeomlás (üzemeltetési megfigyelés).** Az API konténer 2026-10-27-én és 2026-10-29-én kilépett (exit 1): a `pg-pool` idle kliense `read ETIMEDOUT` hibát kapott a Supabase pooler felé, és mivel a pool `error` eseményére nem volt kezelő, a Node-folyamat kezeletlen eseményhibával leállt. A Docker újraindította, a nem nulla RestartCount viszont a successor-baseline-t blokkolta. Az API-only recreate karbantartás tulajdonosi jóváhagyással történt. A kódjavítás (a pool és a tranzakciós kliens hibájának naplózása, a törött kapcsolat eldobása, a folyamat leállítása nélkül) külön PR-ban készült a `packages/database` egyetlen `Pool`-jára; ez csak merge és következő kiadás után fut élesben, a motor/alkalmazás-forrás befagyasztása miatt a változás szándékosan minimális.
 
 **Következő:** Cloudflare-kivétel (`/api/v1/billing/webhook`, `/terms`) és szerveres Stripe sandbox-próba a billing szálon; a billing éles bekapcsolásának útja és az ÁSZF fizetős csomagra frissítése továbbra is nyitott.
+
+## `billing-config` successor-cél — 2026-11-01
+
+A billing éles bekapcsolásához nem volt definiált út (a `server.env` csak az `ALTERWARD_TAG`-gal változhatott, a lánc a negyedik gyökérrel megtelt). A PR a successor-láncot bővíti a `billing-config` céllal (sandbox → live → enforce szintek, 5–7. gyökér), a Daily, a Python adapter, a Node kliens/release-lib és a Docker-fixture (`alterward-beta-successor-fixture-4`) együtt, a titkokat csak hash-ként kezelve, a pg-pool út hash-kötött engedélylistájával. Részletek: [FUNDED_RUNTIME_UPGRADE_HU](FUNDED_RUNTIME_UPGRADE_HU.md#billing-config-successor-cél-a-stripe-beállítások-útja-az-éles-szerverre--2026-11-01).
+
+**Ellenőrzés (helyi):** 585 Python ops teszt, a CI-ben listázott Node ops tesztek, docs:check és Prettier PASS. A fixture csak a CI-ben fut.
+
+**Határ:** semmi sem lett éles szerveren futtatva; nincs Cloudflare-módosítás, nincs Stripe-kulcs a szerveren, nincs merge Ákos jóváhagyása nélkül. Az éles használathoz telepített Daily-frissítés, új release-inputok és Ákos privát titokfájlja kell.

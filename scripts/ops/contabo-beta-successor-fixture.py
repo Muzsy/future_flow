@@ -284,6 +284,13 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                         svc['environment'].update({k:v for k,v in runtime.items() if name=='worker' or k in funded.NARRATIVE_DEFAULTS})
                     if self.is_reader() and name in {'web','api'}:
                         svc['environment']['CLOSED_SITE_ALLOWED_EMAILS']=','.join(successor.reader_emails(selection))
+                if self.is_billing():
+                    # Billing reaches api and worker only; its values are digest-bound to the selection.
+                    billing=successor.billing_values(selection,upgrade.server_environment(old['server.env'].decode()),
+                                                     self.billing_secrets())
+                    for name in ('api','worker'):
+                        new['services'][name]['environment'].update(billing)
+                    assert not any(k in new['services']['web']['environment'] for k in successor.BILLING_KEYS)
                 if self.is_schema():
                     # The new image brings billing at its compose defaults (off).
                     for name in ('api','worker'):
@@ -296,7 +303,8 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                     assert successor.normalized(stripe,selection,previous)!=successor.normalized(config,selection,previous)
                     checks['billingDefaultsGuard']=True
                 assert successor.normalized(new,selection,previous)==successor.normalized(config,selection,previous)
-                private(path/'server.env',successor.candidate_environment(old['server.env'].decode(),selection,build['imageTag'],previous))
+                private(path/'server.env',successor.candidate_environment(old['server.env'].decode(),selection,build['imageTag'],previous,
+                                                                         self.billing_secrets()))
                 private(path/'pinned-image.json',encoded({'services':{n:{'image':build['imageId'],'pull_policy':'never'} for n in new['services']}}))
                 private(path/'effective-compose.json',frozen(new))
                 manifest={**json.loads(old['manifest.json']),
@@ -309,10 +317,12 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 return self.hashes(path)
         return ChainSystem()
 
-    def advance(selection, previous, *, emails, interrupted=False):
+    def advance(selection, previous, *, emails, interrupted=False, secrets=None):
         req=copy.deepcopy(request)
         for key in ('preparedSha256','restoreProof'):
             req.pop(key,None)
+        if secrets is not None:
+            req['billingSecrets']=secrets
         req.update(mode='prepare',selection=selection,release={**release,
             'runtime':successor.runtime_selection(selection,previous),'successorFixtureSha256':'b'*64})
         # External Access always leads the origin: it already shows the new list.
@@ -430,3 +440,102 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     state=daily.successor_active_state()
     assert state['generation']==4 and state['directory'].name=='beta-successor-4'
     checks.update(schemaMigration=True,schemaRecovery=True)
+
+    # Billing configuration: three ordered, once-only generations on the real chain (the Stripe test
+    # configuration, the live configuration, then the enforcement flag). No allowance, window, cohort,
+    # reader or database change. The two Stripe secrets reach only the candidate environment: every
+    # other file of the generation carries digests only.
+    host=upgrade.server_environment((owner/'server.env').read_text())['PUBLIC_HOST']
+    key_test,key_live,webhook='sk_test_'+'a'*24,'sk_live_'+'c'*24,'whsec_'+'b'*24
+    founders=sorted(t['userId'] for t in TESTERS[1:])
+
+    def billing_selection(stage, key, hook=webhook, **changes):
+        value={'stage':stage,'mode':'test' if stage=='sandbox' else 'live','enabled':True,'enforcement':stage=='enforce',
+               'priceId':'price_1UWNsNCWOhXvgM2cIrs1enen','couponId':'qPTsipIs','apiVersion':'2026-09-30.endive',
+               'successUrl':'https://'+host+'/billing?checkout=success','cancelUrl':'https://'+host+'/billing?checkout=cancel',
+               'founderUserIds':founders,'reservationTtlSeconds':7200,
+               'secretKeySha256':sha(key.encode()),'webhookSecretSha256':sha(hook.encode()),**changes}
+        return {'purpose':'billing-config','previousTermsSha256':successor.canonical_sha(active_terms),'billing':value}
+
+    def refused(selection, secrets=None):
+        """A preparation the real adapter must refuse before it writes anything."""
+        req=copy.deepcopy(request)
+        for key in ('preparedSha256','restoreProof'):
+            req.pop(key,None)
+        req.update(mode='prepare',selection=selection,release={**release,
+            'runtime':successor.runtime_selection(selection,active_terms),'successorFixtureSha256':'b'*64})
+        req['accessSnapshot']={**req['accessSnapshot'],'allowedEmails':sorted(READERS),'checkedAt':utc().isoformat()}
+        if secrets is not None:
+            req['billingSecrets']=secrets
+        trial=fixture_system(req,selection,active_terms)
+        def runtime():
+            manifest=json.loads((owner/'manifest.json').read_bytes())
+            roles=trial.roles()
+            config=trial.configuration(owner)
+            engine.activation.validate_running(list(roles.values()),config,manifest['imageId'])
+            return manifest,roles
+        with patch.object(daily,'owner_runtime',runtime):
+            try:trial.prepare()
+            except ValueError:pass
+            else:raise AssertionError('The adapter accepted a refused billing preparation')
+        assert not trial.root.exists() and daily.funded_upgrade_healthy('personal-beta')
+
+    sandbox_secrets={'secretKey':key_test,'webhookSecret':webhook}
+    sandbox,sandbox_candidate=advance(billing_selection('sandbox',key_test),active_terms,emails=sorted(READERS),
+                                      secrets=sandbox_secrets)
+    assert sandbox.generation==5 and sandbox.root.name=='beta-successor-5'
+    assert (sandbox.root/'terms.json').read_bytes()==encoded(active_terms)
+    proof=json.loads((sandbox.root/'readback.json').read_bytes())
+    assert proof['schema']==39 and 'fromSchema' not in proof and proof['previousAllowanceClosed'] is False
+    config=sandbox.configuration(owner)
+    for name in ('api','worker'):
+        env=config['services'][name]['environment']
+        assert (env['BILLING_ENABLED'],env['BILLING_ENFORCEMENT'],env['STRIPE_SECRET_KEY'])==('true','false',key_test)
+        assert env['BILLING_FOUNDER_USER_IDS']==','.join(founders)
+    assert not any(k in config['services']['web']['environment'] for k in successor.BILLING_KEYS)
+    assert config['services']['api']['environment']['CLOSED_BETA_USER_IDS']==','.join(p['userId'] for p in TESTERS)
+    assert sandbox_candidate['parentPreparedSha256']==sha(encoded(schema_candidate))
+    # The secrets live only in the candidate environment (and the frozen render of it); selection, plan,
+    # prepared evidence, journal and readback carry digests.
+    for path in sorted(sandbox.root.rglob('*')):
+        if not path.is_file():continue
+        data=path.read_bytes()
+        if key_test.encode() in data or webhook.encode() in data:
+            assert path.parent.name in {'target','recovery'} and path.name in {'server.env','effective-compose.json'},path.name
+    assert not any(key_test.encode() in p.read_bytes() or webhook.encode() in p.read_bytes()
+                   for p in (sandbox.root/'previous').iterdir())
+    checks['billingSecretGuard']=True
+
+    # Ordered and once-only, and bound to the exact secrets, before anything is written.
+    refused(billing_selection('sandbox',key_test),sandbox_secrets)                     # the sandbox stage is once only
+    refused(billing_selection('enforce',key_live),None)                                # enforcement needs the live stage
+    refused(billing_selection('live',key_live,hook='whsec_'+'d'*24),
+            {'secretKey':key_live,'webhookSecret':webhook})                            # secrets differ from the digests
+    refused(billing_selection('live',key_test),{'secretKey':key_test,'webhookSecret':webhook})  # a test key is not live
+    bad=billing_selection('sandbox',key_test)
+    bad['billing']['enforcement']=True
+    refused(bad,sandbox_secrets)                                                       # a test key never enforces
+    web=billing_selection('live',key_live)
+    web['billing']['successUrl']='https://elsewhere.example.invalid/billing'
+    refused(web,{'secretKey':key_live,'webhookSecret':webhook})                        # return addresses stay on the host
+    checks['billingConfigRefusals']=True
+
+    live_secrets={'secretKey':key_live,'webhookSecret':webhook}
+    live,live_candidate=advance(billing_selection('live',key_live),active_terms,emails=sorted(READERS),secrets=live_secrets)
+    assert live.generation==6 and live.root.name=='beta-successor-6'
+    assert live_candidate['parentPreparedSha256']==sha(encoded(sandbox_candidate))
+    # Enforcement changes only the flag; the secrets are the ones already in the protected environment.
+    enforce,enforce_candidate=advance(billing_selection('enforce',key_live),active_terms,emails=sorted(READERS))
+    assert enforce.generation==7 and enforce.root.name=='beta-successor-7'
+    config=enforce.configuration(owner)
+    for name in ('api','worker'):
+        env=config['services'][name]['environment']
+        assert (env['BILLING_ENABLED'],env['BILLING_ENFORCEMENT'],env['STRIPE_SECRET_KEY'])==('true','true',key_live)
+    state=daily.successor_active_state()
+    assert state['generation']==7 and state['directory'].name=='beta-successor-7'
+    assert state['terms']==active_terms
+    # The chain is full: nothing further can be prepared.
+    try:fixture_system({**request,'mode':'prepare'},billing_selection('enforce',key_live),active_terms)
+    except ValueError:pass
+    else:raise AssertionError('A generation beyond the shipped chain was accepted')
+    checks['billingConfigStages']=True

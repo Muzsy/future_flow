@@ -620,7 +620,8 @@ SUCCESSOR_PLAN_VERSION = 'alterward-beta-successor-plan-2'
 # One finite directory per separately authorized transition. The first is the
 # owner-e2e window; each later one has the previous FULLY exposed generation as
 # its parent and may never be prepared while an earlier one is still unfinished.
-SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4')
+SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4',
+                        'beta-successor-5', 'beta-successor-6', 'beta-successor-7')
 # purpose -> (participants, projectUsd, userUsd) for allowance-changing purposes.
 SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
@@ -633,6 +634,22 @@ SUCCESSOR_BILLING_DEFAULTS = {
     'STRIPE_WEBHOOK_SECRET': '', 'STRIPE_PRICE_ID': '', 'STRIPE_FOUNDER_COUPON_ID': '',
     'STRIPE_API_VERSION': '', 'BILLING_SUCCESS_URL': '', 'BILLING_CANCEL_URL': '',
     'BILLING_FOUNDER_USER_IDS': '', 'BILLING_RESERVATION_TTL_SECONDS': '7200'}
+# Billing configuration: the eleven BILLING_*/STRIPE_* values reach api and worker only, in at most
+# three ordered, once-only stages (Stripe test, live, enforcement). No allowance, window, cohort,
+# reader or database change; the secrets exist only as SHA-256 digests in the selection.
+SUCCESSOR_BILLING_PURPOSE = 'billing-config'
+SUCCESSOR_BILLING_STAGES = ('sandbox', 'live', 'enforce')
+# Mirror of the root adapter's list (a test keeps all copies equal): the one reviewed path that may
+# differ from the serving image in a billing-config generation (pg-pool idle error handling).
+SUCCESSOR_BILLING_ALLOWED_CHANGES = ('packages/database/src/index.ts',)
+SUCCESSOR_BILLING_SECRET_KEY = re.compile(r'(?:sk|rk)_(test|live)_[A-Za-z0-9]{8,}')
+SUCCESSOR_BILLING_WEBHOOK = re.compile(r'whsec_[A-Za-z0-9]{8,}')
+SUCCESSOR_BILLING_PATTERNS = {
+    'priceId': re.compile(r'price_[A-Za-z0-9]+'), 'couponId': re.compile(r'[A-Za-z0-9_-]{1,100}'),
+    'apiVersion': re.compile(r'\d{4}-\d{2}-\d{2}(?:\.[a-z]+)?'),
+    'successUrl': re.compile(r'https://([a-z0-9][a-z0-9.-]*[a-z0-9])(?:/[A-Za-z0-9._~/%?=&:-]{0,200})?'),
+    'cancelUrl': re.compile(r'https://([a-z0-9][a-z0-9.-]*[a-z0-9])(?:/[A-Za-z0-9._~/%?=&:-]{0,200})?'),
+    'secretKeySha256': re.compile(r'[a-f0-9]{64}'), 'webhookSecretSha256': re.compile(r'[a-f0-9]{64}')}
 # The ONLY application sources that may differ between the serving image and the
 # schema-039 target image (909ae28..fe67d94: billing, legal pages, the closed-site
 # webhook/terms exception and the default-off generation-gate hooks). Everything
@@ -674,6 +691,41 @@ SUCCESSOR_SCHEMA_ALLOWED_CHANGES = (
     'packages/database/src/lives.ts',
 )
 SUCCESSOR_EMAIL = re.compile(r'[-a-z0-9._+]+@[-a-z0-9.]+')
+
+
+def successor_billing_selection(selection):
+    """The exact non-secret billing selection (the root adapter validates the same shape)."""
+    keys = {'stage', 'mode', 'enabled', 'enforcement', 'priceId', 'couponId', 'apiVersion', 'successUrl',
+            'cancelUrl', 'founderUserIds', 'reservationTtlSeconds', 'secretKeySha256', 'webhookSecretSha256'}
+    if (not isinstance(selection, dict) or set(selection) != {'purpose', 'previousTermsSha256', 'billing'}
+            or selection['purpose'] != SUCCESSOR_BILLING_PURPOSE
+            or not isinstance(selection['billing'], dict) or set(selection['billing']) != keys):
+        raise ValueError('Exact billing-config selection required')
+    value = selection['billing']
+    founders = value['founderUserIds']
+    stage, mode = value['stage'], value['mode']
+    if (stage not in SUCCESSOR_BILLING_STAGES or mode not in {'test', 'live'}
+            or value['enabled'] is not True or type(value['enforcement']) is not bool
+            or (stage == 'sandbox' and (mode != 'test' or value['enforcement']))
+            or (stage == 'live' and (mode != 'live' or value['enforcement']))
+            or (stage == 'enforce' and (mode != 'live' or not value['enforcement']))
+            or any(not isinstance(value[k], str) or not pattern.fullmatch(value[k])
+                   for k, pattern in SUCCESSOR_BILLING_PATTERNS.items())
+            or not isinstance(founders, list) or founders != sorted(set(founders)) or len(founders) > 10
+            or any(not isinstance(u, str) or not ADMISSION_UUID.fullmatch(u) for u in founders)
+            or type(value['reservationTtlSeconds']) is not int
+            or not 600 <= value['reservationTtlSeconds'] <= 86400):
+        raise ValueError('Exact billing-config selection required')
+    return value
+
+
+def successor_billing_environment(value):
+    """The api/worker values a billing selection must produce, except the two secrets."""
+    return {'BILLING_ENABLED': 'true', 'BILLING_ENFORCEMENT': 'true' if value['enforcement'] else 'false',
+            'STRIPE_PRICE_ID': value['priceId'], 'STRIPE_FOUNDER_COUPON_ID': value['couponId'],
+            'STRIPE_API_VERSION': value['apiVersion'], 'BILLING_SUCCESS_URL': value['successUrl'],
+            'BILLING_CANCEL_URL': value['cancelUrl'], 'BILLING_FOUNDER_USER_IDS': ','.join(value['founderUserIds']),
+            'BILLING_RESERVATION_TTL_SECONDS': str(value['reservationTtlSeconds'])}
 
 
 def successor_json(value):
@@ -828,13 +880,24 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
     access = context['access']
     purpose = selection.get('purpose') if isinstance(selection, dict) else None
     allowed = ({'owner-e2e'} if generation == 1
-               else {SUCCESSOR_READER_PURPOSE, 'tester-beta', SUCCESSOR_SCHEMA_PURPOSE})
+               else {SUCCESSOR_READER_PURPOSE, 'tester-beta', SUCCESSOR_SCHEMA_PURPOSE,
+                     SUCCESSOR_BILLING_PURPOSE})
     if purpose not in allowed or plan.get('purpose') != purpose:
         raise ValueError('Approved successor purpose for this generation required')
     if purpose == 'tester-beta' and 'tester-beta' in context.get('purposes', ()):
         raise ValueError('The tester window may be opened at most once')
     if purpose == SUCCESSOR_SCHEMA_PURPOSE and SUCCESSOR_SCHEMA_PURPOSE in context.get('purposes', ()):
         raise ValueError('The schema upgrade may be applied at most once')
+    if purpose == SUCCESSOR_BILLING_PURPOSE:
+        stage = successor_billing_selection(selection)['stage']
+        done = context.get('purposes', ())
+        prefix = SUCCESSOR_BILLING_PURPOSE + ':'
+        # Ordered and once-only: sandbox, live, enforce; enforcement needs the live stage before it.
+        if (prefix + stage in done
+                or (stage == 'sandbox' and prefix + 'live' in done)
+                or (stage == 'live' and prefix + 'enforce' in done)
+                or (stage == 'enforce' and prefix + 'live' not in done)):
+            raise ValueError('The billing stage order and once-only rule are required')
     prepared_at, expires = [dt.datetime.fromisoformat(value[k].replace('Z', '+00:00'))
                             for k in ('preparedAt', 'expiresAt')]
     prior_start, prior_end = [dt.datetime.fromisoformat(prior[k].replace('Z', '+00:00')) for k in ('startsAt', 'endsAt')]
@@ -894,6 +957,33 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
                 or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
             raise ValueError('Bounded schema-upgrade preparation required')
+    elif purpose == SUCCESSOR_BILLING_PURPOSE:
+        # Billing configuration changes only the eleven api/worker values: terms, readers, cohort,
+        # allowance and every account stay byte-identical, and the database is untouched.
+        successor_billing_selection(selection)
+        if (terms != prior
+                or set(plan) != {'version', 'purpose', 'stage', 'observedAt', 'expiresAt',
+                                 'previousTermsSha256', 'selectionSha256', 'allowedChanges', 'allowedChangeHashes'}
+                or plan['version'] != SUCCESSOR_PLAN_VERSION
+                or plan['stage'] != selection['billing']['stage']
+                # The exact reviewed list of sources allowed to differ from the serving image, with
+                # the hash each had in the prepared bundle.
+                or plan['allowedChanges'] != list(SUCCESSOR_BILLING_ALLOWED_CHANGES)
+                or not isinstance(plan['allowedChangeHashes'], dict)
+                or set(plan['allowedChangeHashes']) != set(SUCCESSOR_BILLING_ALLOWED_CHANGES)
+                or any(not isinstance(h, str) or not re.fullmatch(r'[a-f0-9]{64}', h)
+                       for h in plan['allowedChangeHashes'].values())
+                or selection['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['previousTermsSha256'] != successor_canonical_hash(prior)
+                or plan['selectionSha256'] != successor_canonical_hash(selection)
+                or has_receipt):
+            raise ValueError('Only the exact approved billing-config selection is supported')
+        # Like the schema upgrade, no dependency on the funded window; still a fresh 900 s candidate.
+        if (any(t.utcoffset() != dt.timedelta(0) for t in (prepared_at, expires))
+                or (expires - prepared_at).total_seconds() != 900
+                or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
+            raise ValueError('Bounded billing-config preparation required')
     else:
         count, project_usd, user_usd = SUCCESSOR_WINDOW_PURPOSES[purpose]
         participants = terms['participants'] if isinstance(terms.get('participants'), list) else []
@@ -948,6 +1038,21 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 if any(config['services'][service]['environment'].get(k) != v
                        for k, v in SUCCESSOR_BILLING_DEFAULTS.items()):
                     raise ValueError('Schema upgrade must keep billing at its default-off configuration')
+            if any(k in config['services']['web']['environment'] for k in SUCCESSOR_BILLING_DEFAULTS):
+                raise ValueError('Billing configuration must not reach the web service')
+        if purpose == SUCCESSOR_BILLING_PURPOSE:
+            billing = selection['billing']
+            wanted = successor_billing_environment(billing)
+            for service in ('api', 'worker'):
+                env = config['services'][service]['environment']
+                key, webhook = env.get('STRIPE_SECRET_KEY', ''), env.get('STRIPE_WEBHOOK_SECRET', '')
+                if (any(env.get(k) != v for k, v in wanted.items())
+                        or not SUCCESSOR_BILLING_SECRET_KEY.fullmatch(key)
+                        or SUCCESSOR_BILLING_SECRET_KEY.fullmatch(key)[1] != billing['mode']
+                        or digest(key.encode()) != billing['secretKeySha256']
+                        or not SUCCESSOR_BILLING_WEBHOOK.fullmatch(webhook)
+                        or digest(webhook.encode()) != billing['webhookSecretSha256']):
+                    raise ValueError('Billing runtime differs from the selection')
             if any(k in config['services']['web']['environment'] for k in SUCCESSOR_BILLING_DEFAULTS):
                 raise ValueError('Billing configuration must not reach the web service')
         # The reader boundary belongs to ingress web/API. Compose deliberately
@@ -1011,7 +1116,11 @@ def successor_chain_contexts():
 def successor_next_context(number, root, value, role, context):
     receipt = root / 'access.json'
     access = (json.loads(regular(receipt)) if receipt.exists() or receipt.is_symlink() else context['access'])
-    purpose = json.loads(regular(root / 'selection.json')).get('purpose')
+    selection = json.loads(regular(root / 'selection.json'))
+    purpose = selection.get('purpose')
+    if purpose == SUCCESSOR_BILLING_PURPOSE:
+        # Each billing stage is remembered separately (ordered, once only).
+        purpose += ':' + successor_billing_selection(selection)['stage']
     return successor_context(number, root, value['files'][role],
                              json.loads(regular(root / 'terms.json')), access,
                              context.get('purposes', ()) + (purpose,))
@@ -1147,14 +1256,16 @@ def successor_effective_role(value, root=None):
     # The schema upgrade must read back schema 039 reached FROM 038; every other
     # generation keeps the recorded 038/039 acceptance and carries no such field.
     schema_ok = ((proof.get('schema') == SUCCESSOR_SCHEMA_STEP[1] and proof.get('fromSchema') == SUCCESSOR_SCHEMA_STEP[0])
-                 if schema_step else (proof.get('schema') in (38, 39) and 'fromSchema' not in proof))
+                 if schema_step else
+                 (proof.get('schema') == 39 and 'fromSchema' not in proof) if purpose == SUCCESSOR_BILLING_PURPOSE
+                 else (proof.get('schema') in (38, 39) and 'fromSchema' not in proof))
     if (proof.get('version') != SUCCESSOR_VERSION or proof.get('preparedSha256') != intent['preparedSha256']
             or proof.get('sourceCommit') != value['sourceCommit']
             or proof.get('imageId') != value['release'][role]['imageId']
             or not schema_ok
             or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
             or proof.get('previousAllowanceClosed') is not (
-                purpose not in {SUCCESSOR_READER_PURPOSE, SUCCESSOR_SCHEMA_PURPOSE})
+                purpose not in {SUCCESSOR_READER_PURPOSE, SUCCESSOR_SCHEMA_PURPOSE, SUCCESSOR_BILLING_PURPOSE})
             or proof.get('browserJourneyPassed') is not False
             or proof.get('operationSha256') != digest(json.dumps(value['operation'],sort_keys=True,separators=(',', ':')).encode())
             or proof.get('operationPaidAiCalls') != 0 or proof.get('paidAiCalls') != 0

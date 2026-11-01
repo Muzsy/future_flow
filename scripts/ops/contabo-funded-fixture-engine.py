@@ -504,7 +504,7 @@ def exercise(context, *, scope='ci'):
             ).stdout
         )
         initialFiles = {
-            'server.env': ("ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n"
+            'server.env': ("ALTERWARD_TAG='contabo-000000000000'\nSYNTHETIC_FUNDED='unchanged'\nPUBLIC_HOST='alterward.com'\nCLOSED_BETA_USER_IDS='11111111-1111-4111-8111-111111111111'\n"
                 + "CLOSED_SITE_ALLOWED_EMAILS='funded@example.invalid,owner@example.invalid'\n"
                 + "AI_PROJECT_BUDGET_USD='2'\nAI_USER_BUDGET_USD='0.5'\n"
                 + "AI_BUDGET_WINDOW_START='"+terms['startsAt']+"'\nAI_BUDGET_WINDOW_END='"+terms['endsAt']+"'\n").encode(),
@@ -1260,12 +1260,13 @@ def exercise(context, *, scope='ci'):
             'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
             'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
             'readerAdmission','testerBetaWindow','chainedAuthority',
-            'schemaMigration','schemaRecovery','billingDefaultsGuard'}
+            'schemaMigration','schemaRecovery','billingDefaultsGuard',
+            'billingConfigStages','billingSecretGuard','billingConfigRefusals'}
         assert set(successor_checks)==expected_successor and all(v is True for v in successor_checks.values())
         # Consumed ONLY after exercise() returns through the verified finally
         # cleanup. Never published by a failed or interrupted fixture.
         global SUCCESSOR_PROOF
-        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-3',
+        SUCCESSOR_PROOF = {'version':'alterward-beta-successor-fixture-4',
             'sourceCommit':context['sourceCommit'],'bundleSha256':context['bundleSha256'],
             'targetImage':context['image'],'recoveryImage':context['image'],
             'checks':successor_checks,'paidAiCalls':0}

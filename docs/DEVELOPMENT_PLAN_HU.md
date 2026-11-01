@@ -194,6 +194,8 @@ Harmadik lépés, 3d rész (PR-3d, #124, mergelve): webes előfizetési oldal a 
 
 Éles 038→039 upgrade-eszköz (tulajdonosi jóváhagyás: 2026-10-31, #126 mergelve e08fffe; **az éles futás 2026-11-01 00:48 CET-kor lefutott, journal `applied`, billing ki**): a `schema-039` successor-generáció (`beta-successor-4`) a meglévő successor-gépezeten (drain/writer-hold, jelölt-kötött restore, hash-láncolt journal, kerített recovery) emeli az éles adatbázist 038-ról 039-re, a 96 meglévő tábla adat-hash-ének változatlanságát bizonyítva, a `BILLING_*`/`STRIPE_*` alapértékeket (kikapcsolva) a „csak `ALTERWARD_TAG` változhat” védelem gyengítése nélkül fogadva el. Nem futott `pnpm db:migrate`; az éles futás, a célgépes próba, a Daily-telepítés és a release-inputok külön tulajdonosi engedélyhez kötöttek, és megtörténtek. Részletek: [FUNDED_RUNTIME_UPGRADE_HU](operations/FUNDED_RUNTIME_UPGRADE_HU.md#journalozott-kerített-038039-éles-upgrade-eszköz-schema-039-successor-generáció--2026-10-31).
 
+`billing-config` successor-cél (2026-11-01, PR review alatt): a Stripe-értékek éles szerverre vitelének kerített útja a successor-láncban (sandbox → live → enforce, hash-kötött titkok, a pg-pool út engedélylistája, fixture-4); semmi sem fut élesben, a sandbox/live/enforce lépések külön tulajdonosi engedélyt igényelnek. [Részletek](operations/FUNDED_RUNTIME_UPGRADE_HU.md#billing-config-successor-cél-a-stripe-beállítások-útja-az-éles-szerverre--2026-11-01).
+
 Kell:
 
 - payment provider döntés;
