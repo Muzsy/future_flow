@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-25
+last_reviewed: 2026-11-01
 related:
   - STATUS_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -27,27 +27,19 @@ Elkészült:
 - dokumentációs CI;
 - az eredeti P01–P13 + Shared S0–S7 részletes terv kanonikus migrációja `DEVELOPMENT_PLAN_HU.md`-be.
 
-## P1 — Personal beta értékelés és történetminőség
+## P1 — Meghívásos személyes éles indulás
 
-Az első személyes tesztelő aktiválása, a 30 napos ablak és háromfejezetes paid E2E megtörtént. A 2026-10-24-i tulajdonosi prioritás a v9 motor befagyasztása, technikai stabilizálása és a kis zárt béta kiadása; a történetminőség további javítását a valós olvasói visszajelzés irányítja. A legfeljebb 10 fős korlát megmarad; bővítés nem automatikus.
+**Tulajdonosi döntés — 2026-11-01:** végleges működésű személyes éles szolgáltatást készítünk, eleinte 10 új meghívottal, majd további tízfős csoportokkal. A teljes ingyenes/fizetős működés az első csoport előtt készül el; a nyílt önregisztráció szerveroldalon zárt marad. További csoport hozzáadása ugyanazon alkalmazás rendes felhasználókezelése, új bétaablak vagy keretreset nélkül.
 
-Az elfogadott 2026-10-20-i prioritás szerint az élő világ **v9 fejlesztése a következő zárt narratív béta elé kerül**. A C5 review és mérési checkpoint elkészült. A 2026-10-24-i döntéssel a közeli sorrend: motorbefagyasztás → PR-integráció és kiadást akadályozó technikai hibák javítása → v9-kompatibilis N09 üzemeltetés és tesztelői E2E → kis zárt béta. További editor-/history-kalibráció, új promptfinomítás és archetípus-fejlesztés DEFERRED; ezek nem új béta-előfeltételek. A részletes státuszokat és teljesülési feltételeket a [master plan V9-1–V9-5](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23) tartja nyilván.
+A v9 C5 motor befagyasztott. Meglévő alap: teljes saját fiókos történetút PASS, működő háromfős béta, schema039 és backup/restore bizonyítékok, implementált billing-mag, a #128/#130/#129 main-integrációja saját zöld CI-kkel. Az utóbbi integrációs alap `a7b5296`; a legutóbb megőrzött serving-proof továbbra `e8693158`/schema039, billing OFF. A két állapot nem azonos.
 
-A PR-integráció 2026-10-25-én a [#81](https://github.com/Muzsy/future_flow/pull/81) merge-dzsel megtörtént (`4fb7b489`), a C5 alkalmazáskód változatlan. A teljes source-review APPROVE; a main saját CI-je külön követett. A közvetlen feladat a célgépes N09 bizonyíték és a tesztelői használati út előkészítése.
+A sorrend: tartós meghívás/admission és üzemeltetési kikapcsolás → teljes fizetési/felhasználói út, USD-költségvédelem és végleges feltételek → pontos forrás rolloutja és mért E2E → első tíz → mérés alapján következő tíz. Az elfogadott ajánlat 1 ingyenes fejezet, normál 14,99 USD bruttó/8 fejezet; az első tíz kijelölt fióknak három ciklusig 9,99 USD bruttó/5 fejezet. Későbbi csoportnak nincs automatikus kupon.
 
-Nyitott kapuk:
+Az alkalmazandó N08-minőségi, privacy/security, költség- és recovery-kapuk érvényesek. A fizetős scope-ra a korábbi béta-helyettesítés nem automatikus; új API-méréshez külön számszerű engedély kell. A motor további finomítása és az archetípus-fejlesztés DEFERRED. A régi béta története és ledgerje változatlanul megőrzendő, átvezetése külön végrehajtási lépés.
 
-- érdemi döntéskövetkezmény és alternatív ág; teljes N08 paid/human benchmark nyilvános/fizetős kiadás előtt, zárt bétára az elfogadott [helyettesítő kapurend](operations/NARRATIVE_RELEASE_HU.md#zárt-narratív-béta-kapurend--tulajdonosi-döntés-2026-10-19);
-- N09 Linux funded-runtime upgrade (Issue #34), audit/CI/recovery és kontrollált target/apply;
-- későbbi sessionből sikeres folytatás, olvasói feedback és retention;
-- további résztvevő pontos Auth/reader admissionje, új candidate-hoz kötött backup/restore;
-- eredeti budget/window és monitor/rollback megőrzése; nincs újraaktiválás vagy ledger-reset.
+Részletes munkacsomagok és acceptance: [master plan I01–I07](DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01), P08 és B01. A nyílt önregisztráció később ugyanennek a szolgáltatásnak a hozzáférés-bővítése; nem Community/Shared aktiválás.
 
-Shared minden flagje ebben a körben maradjon kikapcsolva.
-
-Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` V9-1–V9-5, N08/N09 és P08.
-
-## P2 — Shared friend beta
+## P2 — Shared friend beta — a személyes indulás után
 
 Cél: valós kétfős/baráti interakció tesztje, első körben öt baráti pár, legfeljebb 10 személy.
 
@@ -63,24 +55,13 @@ A Shared beta első terméktípusa `friend_group`.
 
 Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` S3 + S7 sponsored Guest része + D01.
 
-## P3 — Billing foundation
+## P3 — Billing és személyes éles működés — P1 előfeltétele
 
-Cél: a meglévő entitlement modell mögé tényleges fizetési lifecycle.
+Cél: a meglévő billing-alapot teljes személyes éles előfizetési szolgáltatássá integrálni. Ez a P1 előfeltétele, nem a Shared beta után következő munka.
 
-Scope:
+A provider/fejezetmodell, SQL tároló, Checkout/webhook és generálási kapu alapja kész; a következő feladatok a felhasználói bekötés, minden elérhető generálás kapuzása, lemondás/visszatérítés, tartós konfigurációkezelés/kikapcsolás, élő Stripe/feltételek és a teljes mért út. A személyes árak elfogadottak; gazdaságossági feltevések továbbra méréssel ellenőrizendők. A billing az olvasást és az adatkontrollt nem teszi fizetési túszzá. A Shared tier és slot nem személyes fejezetkvóta.
 
-- payment provider döntés;
-- checkout;
-- subscription state/webhook;
-- entitlement szinkron;
-- upgrade/downgrade/cancel/grace szabályok;
-- failure/retry/idempotency;
-- invoice/tax/legal integrációs határok;
-- billing és AI költségtelemetria.
-
-A billing nem módosíthatja csendben a privacy/data-control jogokat. A [személyes gazdaságossági javaslat](plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült; fejezetmennyiségei/árai még nem elfogadott szabályok. Előbb minőség és használat/költség/fizetési hajlandóság mérendő, utána külön csomagdöntés és termékegyenleg/billing fejlesztés. Shared tier enum és slot nem személyes havi fejezetkvóta.
-
-Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` B01.
+Részletes végrehajtás: `DEVELOPMENT_PLAN_HU.md` B01 és I01–I06; termékszabály: [MONETIZATION_HU](product/MONETIZATION_HU.md).
 
 ## P4 — Shared relationship expansion
 

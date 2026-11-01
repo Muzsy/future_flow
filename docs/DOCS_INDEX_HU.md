@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: documentation
-last_reviewed: 2026-10-27
+last_reviewed: 2026-11-01
 related:
   - ../AGENTS.md
   - DOCUMENTATION_GOVERNANCE_HU.md
@@ -41,9 +41,13 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `plans/046_fiction_v7_narrative_economy.md`; `plans/047_fiction_v8_series_evidence.md`; `plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md` (élő világ terv, a C függelék a tulajdonosi döntéseket rögzíti; [ADR-009](decisions/ADR-009-character-state-artifact-fold.md) elfogadva); `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
 
-## Aktív történetminőségi munka
+## Aktív indulási fókusz — 2026-11-01
 
-**Aktuális fókusz — 2026-10-24:** befagyasztott v9 C5 motor → technikai stabilizálás/integráció → N09 → kis zárt béta. Az editor/history további finomítása DEFERRED. Első kiadási olvasás: [bétafókuszú lezárás](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24), majd a master plan.
+A teljes személyes éles szolgáltatás készül, kezdetben 10 új meghívottal, majd további tízfős csoportokkal. A nyílt önregisztráció szerveroldalon zárt; nincs csoportonkénti bétaablak vagy keretreset. Első olvasás: [master plan aktív sorrend és I01–I07](DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01) → [termék](product/PRODUCT_HU.md#7-nyelv-és-piacra-lépés) → [elfogadott személyes ajánlat](product/MONETIZATION_HU.md#1-hatókör). A v9 C5 motor befagyasztott; Shared/Community későbbi, külön scope. A jelenlegi forrás/serving eltérést a [STATUS](STATUS_HU.md) rögzíti; a későbbi aktiválásra a meglévő operátori release-kapuk érvényesek.
+
+## Történetminőségi és béta-előzmények (történeti checkpointok)
+
+**Korábbi fókusz — 2026-10-24:** befagyasztott v9 C5 motor → technikai stabilizálás/integráció → N09 → kis zárt béta. Az editor/history további finomítása DEFERRED. Első kiadási olvasás: [bétafókuszú lezárás](operations/NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24), majd a master plan.
 
 Az aktív részletes végrehajtási terv a [master plan V9-1–V9-5 sora](DEVELOPMENT_PLAN_HU.md#21-v9-következő-végrehajtási-lépései--2026-10-23). A **v9 C5** a [#81](https://github.com/Muzsy/future_flow/pull/81) merge-dzsel a `main` része (`4fb7b489`, 2026-10-25); a motoralap `7bd4d42`. Az integráció és a későbbi operátori javítások saját review/CI-eredménye külön követett. A #88 utáni `adf2b95` saját main CI-je és tényleges célgépes image-fixture próbája 16/16 + cleanup PASS. A #90 engedélyezett Daily v4/friss backup/offsite/97-táblás izolált restore/monitor/aktiválás lánca PASS. A 2026-10-26 readonly DB/drain/Auth/runtime és Access felmérés után az éles exact036 séma miatti #92 javítás beolvadt (`6d17fda`), teljes review és saját main CI40251518673 SUCCESS. Új célgépes build és standalone próba 16/16 + cleanup PASS; a későbbi jóváhagyott éles recovery6d17fda/schema038 és a candidate mentése/restore-ja PASS. A #96 reviewed9088275 Daily-javítás engedélyezett éles lánca az új038 mentéssel/offsite/izolált restore-ral/monitorral/timeraktiválással és független readbackkel PASS; #95/#34 technikai kész, V9-4 DONE. A serving app6d17fda image-en fut, legacy/üres cohorttal; a Daily9088275 és a régi active-proof újrakiadási korlát külön dokumentált. Utána V9-5 tesztelői alapút. Production utolsó igazolt állapota legacy; az implementáció, review, mérés és élesítés külön státusz.
 
