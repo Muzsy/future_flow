@@ -124,6 +124,16 @@ SCHEMA_039_ALLOWED_CHANGES = (
 )
 
 
+# The ONLY application source that may differ between the serving image and a billing-config
+# target image: the pg-pool error handling fix (PR 128, an idle database client error must not
+# end the API process). Everything else in the frozen scope, above all the narrative engine, must
+# stay byte-identical to the serving image. Reviewed with the diff; recorded, with the path's
+# exact hash, in the plan that Daily demands. Adding a path is a code change with its own review.
+BILLING_CONFIG_ALLOWED_CHANGES = (
+    'packages/database/src/index.ts',
+)
+
+
 def narrative_runtime_values(runtime):
     exact(runtime, {'mode', 'generation', 'cohortUserIds', 'timeoutMs', 'maxRequestBytes'})
     users = runtime['cohortUserIds']

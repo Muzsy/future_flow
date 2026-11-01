@@ -66,6 +66,12 @@ class GenerationSelectionTests(ChainRootBase):
         self.assertEqual(self.system('archive-expired').root, self.chain.root(2))
 
     def test_generation_limit_and_gaps_are_refused(self):
+        # The limit is the length of the shipped chain; four names keep this case small.
+        names = daily.SUCCESSOR_ROOT_NAMES[:4]
+        for module, attribute in ((root, 'ROOT_NAMES'), (daily, 'SUCCESSOR_ROOT_NAMES')):
+            p = patch.object(module, attribute, names)
+            p.start()
+            self.addCleanup(p.stop)
         self.chain.admit_readers()
         value = self.chain.prepare(3, 'tester-beta', participants=self.chain.testers())
         self.chain.expose(3, value, window_changed=True)

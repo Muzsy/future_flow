@@ -1112,3 +1112,10 @@ Az éles 038→039 lépéshez (a #124/#125 `main` fe67d94 kiadása) nem volt def
 
 **Ellenőrzés (helyi):** Python ops teszt 541 PASS, a CI-ben listázott Node ops tesztek, vitest 142 fájl/1730 teszt, typecheck, docs:check és Prettier PASS. A Docker/PostgreSQL fixture (16 funded + 20 successor check, köztük `schemaMigration`, `schemaRecovery`, `billingDefaultsGuard`) csak a CI-ben futtatható. **Határ:** semmi sem lett éles szerveren vagy az eszközön futtatva; nincs merge, deploy, Cloudflare/Stripe változás, paid hívás vagy tesztelői ablak-módosítás. A célgépes próba és az éles futás külön tulajdonosi engedélyt igényel.
 
+## `billing-config` successor-cél — 2026-11-01
+
+A billing éles bekapcsolásához nem volt definiált út (a `server.env` csak az `ALTERWARD_TAG`-gal változhatott, a lánc a negyedik gyökérrel megtelt). A PR a successor-láncot bővíti a `billing-config` céllal (sandbox → live → enforce szintek, 5–7. gyökér), a Daily, a Python adapter, a Node kliens/release-lib és a Docker-fixture (`alterward-beta-successor-fixture-4`) együtt, a titkokat csak hash-ként kezelve, a pg-pool út hash-kötött engedélylistájával. Részletek: [FUNDED_RUNTIME_UPGRADE_HU](FUNDED_RUNTIME_UPGRADE_HU.md#billing-config-successor-cél-a-stripe-beállítások-útja-az-éles-szerverre--2026-11-01).
+
+**Ellenőrzés (helyi):** 585 Python ops teszt, a CI-ben listázott Node ops tesztek, docs:check és Prettier PASS. A fixture csak a CI-ben fut.
+
+**Határ:** semmi sem lett éles szerveren futtatva; nincs Cloudflare-módosítás, nincs Stripe-kulcs a szerveren, nincs merge Ákos jóváhagyása nélkül. Az éles használathoz telepített Daily-frissítés, új release-inputok és Ákos privát titokfájlja kell.

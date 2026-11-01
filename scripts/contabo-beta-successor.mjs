@@ -1,9 +1,11 @@
 // Explicit successor-generation transition: owner-e2e (first), then reader
 // admission and the tester window, each chained to the previous exposed one, and
-// the one-time schema-039 upgrade (database 038 to 039 and the reviewed image).
+// the one-time schema-039 upgrade (database 038 to 039 and the reviewed image) and the
+// ordered billing-config stages (Stripe test, live, enforcement; api and worker only).
 // No provider call or implicit rollout; only schema-039 migrates, only once. Verify the committed helpers
 // before importing any of them.
 import { execFile, execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { readFileSync, lstatSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -31,11 +33,16 @@ async function main() {
     throw Error('Explicit Linux beta-successor mode required');
   // Every generation keeps its own receipts; a later one never overwrites an
   // earlier proof. The first (owner) generation keeps its original names.
-  const purposes = {
-    owner: 'owner-e2e',
-    reader: 'reader-admission',
-    tester: 'tester-beta',
-    schema: 'schema-039',
+  // Billing stages keep one receipt set each (sandbox, live, enforce), so no stage ever
+  // overwrites another's proof.
+  const slots = {
+    owner: ['owner-e2e', ''],
+    reader: ['reader-admission', 'reader-'],
+    tester: ['tester-beta', 'tester-'],
+    schema: ['schema-039', 'schema-'],
+    'billing-sandbox': ['billing-config', 'billing-sandbox-'],
+    'billing-live': ['billing-config', 'billing-live-'],
+    'billing-enforce': ['billing-config', 'billing-enforce-'],
   };
   const prefixes = {
     'owner-e2e': '',
@@ -44,11 +51,13 @@ async function main() {
     'schema-039': 'schema-',
   };
   let purpose = 'owner-e2e';
+  let prefix = '';
   if (mode !== 'prepare' && process.argv[3] !== undefined) {
-    purpose = purposes[process.argv[3]];
-    if (!purpose) throw Error('Explicit successor generation required');
+    if (!Object.hasOwn(slots, process.argv[3]))
+      throw Error('Explicit successor generation required');
+    [purpose, prefix] = slots[process.argv[3]];
   }
-  const receipt = (kind) => `beta-successor-${prefixes[purpose]}${kind}.json`;
+  const receipt = (kind) => `beta-successor-${prefix}${kind}.json`;
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
@@ -158,9 +167,22 @@ async function main() {
     exactObject(packet, ['selection', 'release']);
     if (mode === 'prepare') {
       purpose = packet.selection?.purpose;
-      if (!(purpose in prefixes))
-        throw Error('Approved successor purpose required');
-    } else if (packet.selection?.purpose !== purpose)
+      if (purpose === 'billing-config') {
+        // The stage is validated below (successorReleaseEvidence) before the receipt is written.
+        const stage = packet.selection?.billing?.stage;
+        if (!['sandbox', 'live', 'enforce'].includes(stage))
+          throw Error('Approved billing stage required');
+        prefix = `billing-${stage}-`;
+      } else {
+        if (!Object.hasOwn(prefixes, purpose))
+          throw Error('Approved successor purpose required');
+        prefix = prefixes[purpose];
+      }
+    } else if (
+      packet.selection?.purpose !== purpose ||
+      (purpose === 'billing-config' &&
+        `billing-${packet.selection.billing?.stage}-` !== prefix)
+    )
       throw Error('Receipt belongs to another successor generation');
     const release = successorReleaseEvidence({
       commit,
@@ -174,6 +196,34 @@ async function main() {
     });
     request.release = release;
     request.selection = packet.selection;
+    if (
+      mode === 'prepare' &&
+      purpose === 'billing-config' &&
+      packet.selection.billing.stage !== 'enforce'
+    ) {
+      // The two Stripe secrets never enter a packet, receipt or report: they come from their own
+      // private operator file, are checked against the selection's digests here and again on the
+      // server, and reach only the candidate environment through the SSH stdin.
+      const secrets = read(
+        join(operatorSecretsDirectory(), 'stripe-billing-secrets.json'),
+      );
+      exactObject(secrets, ['secretKey', 'webhookSecret']);
+      const digest = (value) =>
+        createHash('sha256')
+          .update(String(value ?? ''))
+          .digest('hex');
+      if (
+        digest(secrets.secretKey) !==
+          packet.selection.billing.secretKeySha256 ||
+        digest(secrets.webhookSecret) !==
+          packet.selection.billing.webhookSecretSha256
+      )
+        throw Error('Exact approved Stripe secrets required');
+      request.billingSecrets = {
+        secretKey: secrets.secretKey,
+        webhookSecret: secrets.webhookSecret,
+      };
+    }
     const { readFundedAccess } = await import('./lib/funded-access.mjs');
     request.accessSnapshot = await readFundedAccess(
       read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),

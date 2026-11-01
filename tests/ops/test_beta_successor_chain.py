@@ -14,6 +14,32 @@ daily = authority.daily
 encoded = authority.encoded
 hashed = authority.hashed
 TESTERS = ['tester-one@example.invalid', 'tester-two@example.invalid']
+TEST_KEY = 'sk_test_' + 'a' * 24
+LIVE_KEY = 'sk_live_' + 'c' * 24
+WEBHOOK = 'whsec_' + 'b' * 24
+FOUNDERS = ['11111111-1111-4111-8111-111111111111', '33333333-3333-4333-8333-333333333333']
+
+
+def billing_selection(previous_terms_sha256, stage='sandbox', *, mode=None, enforcement=None, key=None, webhook=WEBHOOK,
+                      **changes):
+    """A billing-config selection; the secrets appear only as digests."""
+    mode = mode or ('test' if stage == 'sandbox' else 'live')
+    key = key or (TEST_KEY if mode == 'test' else LIVE_KEY)
+    billing = {'stage': stage, 'mode': mode, 'enabled': True,
+               'enforcement': (stage == 'enforce') if enforcement is None else enforcement,
+               'priceId': 'price_1UWNsNCWOhXvgM2cIrs1enen', 'couponId': 'qPTsipIs',
+               'apiVersion': '2026-09-30.endive', 'successUrl': 'https://alterward.com/billing?checkout=success',
+               'cancelUrl': 'https://alterward.com/billing?checkout=cancel', 'founderUserIds': FOUNDERS,
+               'reservationTtlSeconds': 7200, 'secretKeySha256': daily.digest(key.encode()),
+               'webhookSecretSha256': daily.digest(webhook.encode()), **changes}
+    return {'purpose': 'billing-config', 'previousTermsSha256': previous_terms_sha256, 'billing': billing}
+
+
+def billing_environment(selection, key=None, webhook=WEBHOOK):
+    """What the compose renders into api and worker for this selection."""
+    value = selection['billing']
+    key = key or (TEST_KEY if value['mode'] == 'test' else LIVE_KEY)
+    return {**daily.successor_billing_environment(value), 'STRIPE_SECRET_KEY': key, 'STRIPE_WEBHOOK_SECRET': webhook}
 
 
 def iso(value, milliseconds=False):
@@ -45,7 +71,7 @@ class Chain:
     def root(self, number):
         return self.fixture.owner / daily.SUCCESSOR_ROOT_NAMES[number - 1]
 
-    def runtime(self, root, terms, emails, billing=False):
+    def runtime(self, root, terms, emails, billing=False, billing_env=None):
         fx = self.fixture
         ids = ','.join(p['userId'] for p in terms['participants'])
         env = {'AI_PROJECT_BUDGET_USD': terms['projectUsd'], 'AI_USER_BUDGET_USD': terms['userUsd'],
@@ -56,6 +82,8 @@ class Chain:
                'AI_BUDGET_WINDOW_START': terms['startsAt'], 'AI_BUDGET_WINDOW_END': terms['endsAt']}
         if billing:  # compose default-off values reach api and worker only
             env.update(daily.SUCCESSOR_BILLING_DEFAULTS)
+        if billing_env is not None:
+            env.update(billing_env)
         files, release = {}, {}
         for role in ('target', 'recovery'):
             cfg = {'services': {'web': {'environment': {'CLOSED_SITE_ALLOWED_EMAILS': env['CLOSED_SITE_ALLOWED_EMAILS']}},
@@ -73,7 +101,8 @@ class Chain:
             release[role] = {'commit': 'b' * 40, 'imageId': 'sha256:' + 'b' * 64}
         return files, release
 
-    def prepare(self, number, purpose, *, emails=None, participants=None, project='10', user='3.33'):
+    def prepare(self, number, purpose, *, emails=None, participants=None, project='10', user='3.33', selection=None,
+                billing_env=None, plan_changes=None):
         fx, prior = self.fixture, self.terms
         root = self.root(number)
         at = self.at
@@ -95,6 +124,18 @@ class Chain:
                     'fromSchema': 38, 'toSchema': 39,
                     'allowedChanges': list(daily.SUCCESSOR_SCHEMA_ALLOWED_CHANGES)}
             readers = self.active_access['allowedEmails']
+        elif purpose == 'billing-config':
+            terms = prior
+            selection = selection or billing_selection(hashed(prior))
+            plan = {'version': 'alterward-beta-successor-plan-2', 'purpose': purpose,
+                    'stage': selection['billing']['stage'], 'observedAt': iso(at, True),
+                    'expiresAt': iso(at + dt.timedelta(minutes=15), True),
+                    'previousTermsSha256': hashed(prior), 'selectionSha256': hashed(selection),
+                    'allowedChanges': list(daily.SUCCESSOR_BILLING_ALLOWED_CHANGES),
+                    'allowedChangeHashes': {p: 'a' * 64 for p in daily.SUCCESSOR_BILLING_ALLOWED_CHANGES},
+                    **(plan_changes or {})}
+            readers = self.active_access['allowedEmails']
+            billing_env = billing_environment(selection) if billing_env is None else billing_env
         else:
             terms = {'participants': participants, 'projectUsd': project, 'userUsd': user,
                      'startsAt': iso(at + dt.timedelta(minutes=10)),
@@ -112,7 +153,8 @@ class Chain:
         fx.write(root / 'selection.json', encoded(selection))
         for name in daily.RUNTIME_NAMES:
             fx.write(root / 'previous' / name, (fx.owner / name).read_bytes())
-        files, release = self.runtime(root, terms, readers, billing=purpose == 'schema-039')
+        files, release = self.runtime(root, terms, readers, billing=purpose == 'schema-039',
+                                      billing_env=billing_env if purpose == 'billing-config' else None)
         files['previous'] = self.active_role_files
         authority_paths = (daily.reader_config_paths() + daily.personal_config_paths()
                            + daily.funded_tree_paths(fx.parent)
@@ -392,21 +434,19 @@ class ChainTests(unittest.TestCase):
         first = chain.prepare(4, 'schema-039')
         chain.expose(4, first, window_changed=False, schema=True)
         self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
-        # The shipped chain has no fifth directory; give the validator room to prove
-        # the rule itself rather than the directory limit.
-        with patch.object(daily, 'SUCCESSOR_ROOT_NAMES', daily.SUCCESSOR_ROOT_NAMES + ('beta-successor-5',)):
-            chain.prepare(5, 'schema-039')
-            self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
-            for path in sorted(chain.root(5).rglob('*'), reverse=True):
-                path.unlink() if path.is_file() else path.rmdir()
-            chain.root(5).rmdir()
-            self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
-            emails = sorted(set(chain.active_access['allowedEmails']) | {'late-reader@example.invalid'})
-            reader = chain.prepare(5, 'reader-admission', emails=emails)
-            chain.expose(5, reader, window_changed=False)
-            self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
-            self.assertEqual(daily.successor_active_state()['generation'], 5)
-            self.assertEqual(daily.successor_parent_context(5)[2]['purposes'][-1], 'schema-039')
+        # A fifth directory exists in the shipped chain; the rule itself is what is proven here.
+        chain.prepare(5, 'schema-039')
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        for path in sorted(chain.root(5).rglob('*'), reverse=True):
+            path.unlink() if path.is_file() else path.rmdir()
+        chain.root(5).rmdir()
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        emails = sorted(set(chain.active_access['allowedEmails']) | {'late-reader@example.invalid'})
+        reader = chain.prepare(5, 'reader-admission', emails=emails)
+        chain.expose(5, reader, window_changed=False)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        self.assertEqual(daily.successor_active_state()['generation'], 5)
+        self.assertEqual(daily.successor_parent_context(5)[2]['purposes'][-1], 'schema-039')
 
     def test_schema_upgrade_cannot_change_terms_readers_selection_or_plan(self):
         chain = self.chain

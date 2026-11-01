@@ -6,6 +6,7 @@ import {
   validateOwnerSelection,
   validateReaderSelection,
   validateSchemaSelection,
+  validateBillingSelection,
   validateSuccessorSelection,
   successorChecks,
   successorModules,
@@ -86,7 +87,7 @@ function proof() {
       ),
     },
     successorFixture: {
-      version: 'alterward-beta-successor-fixture-3',
+      version: 'alterward-beta-successor-fixture-4',
       sourceCommit: commit,
       bundleSha256,
       targetImage: image,
@@ -316,4 +317,86 @@ test('privileged imports are finite and leave the original CLI mode contract unc
       'beta-successor',
     ),
   );
+});
+
+const founders = [
+  '11111111-1111-4111-8111-111111111111',
+  '33333333-3333-4333-8333-333333333333',
+];
+function billingSelection(stage = 'sandbox', changes = {}) {
+  const mode = stage === 'sandbox' ? 'test' : 'live';
+  return {
+    purpose: 'billing-config',
+    previousTermsSha256: 'd'.repeat(64),
+    billing: {
+      stage,
+      mode,
+      enabled: true,
+      enforcement: stage === 'enforce',
+      priceId: 'price_1UWNsNCWOhXvgM2cIrs1enen',
+      couponId: 'qPTsipIs',
+      apiVersion: '2026-09-30.endive',
+      successUrl: 'https://alterward.com/billing?checkout=success',
+      cancelUrl: 'https://alterward.com/billing?checkout=cancel',
+      founderUserIds: founders,
+      reservationTtlSeconds: 7200,
+      secretKeySha256: 'e'.repeat(64),
+      webhookSecretSha256: 'f'.repeat(64),
+      ...changes,
+    },
+  };
+}
+test('the billing-config selection is exact, ordered by stage and never carries a secret', () => {
+  for (const stage of ['sandbox', 'live', 'enforce']) {
+    const selection = billingSelection(stage);
+    assert.equal(validateBillingSelection(selection), selection);
+    assert.equal(validateSuccessorSelection(selection), selection);
+  }
+  const refused = {
+    'test mode enforcing': { enforcement: true },
+    'live mode in the sandbox stage': { mode: 'live' },
+    disabled: { enabled: false },
+    'unknown stage': { stage: 'later' },
+    price: { priceId: 'prod_x' },
+    coupon: { couponId: 'bad coupon' },
+    'api version': { apiVersion: 'latest' },
+    'http address': { successUrl: 'http://alterward.com/b' },
+    'address with credentials': { cancelUrl: 'https://u@alterward.com/b' },
+    'address with a port': { cancelUrl: 'https://alterward.com:444/b' },
+    'unsorted founders': { founderUserIds: [...founders].reverse() },
+    'duplicate founders': { founderUserIds: [founders[0], founders[0]] },
+    'not a uuid': { founderUserIds: ['x'] },
+    'ttl too short': { reservationTtlSeconds: 599 },
+    'ttl as string': { reservationTtlSeconds: '7200' },
+    'secret digest': { secretKeySha256: 'x' },
+    'a secret itself': { secretKeySha256: 'sk_test_' + 'a'.repeat(24) },
+  };
+  for (const [label, changes] of Object.entries(refused))
+    assert.throws(
+      () => validateBillingSelection(billingSelection('sandbox', changes)),
+      undefined,
+      label,
+    );
+  assert.throws(() =>
+    validateBillingSelection(billingSelection('live', { enforcement: true })),
+  );
+  assert.throws(() =>
+    validateBillingSelection(
+      billingSelection('enforce', { enforcement: false }),
+    ),
+  );
+  const extra = billingSelection();
+  extra.billing.secretKey = 'sk_test_' + 'a'.repeat(24);
+  assert.throws(() => validateBillingSelection(extra));
+  assert.throws(() =>
+    validateBillingSelection({ ...billingSelection(), next: {} }),
+  );
+});
+test('the billing fixture checks are mandatory in the fixture contract', () => {
+  for (const name of [
+    'billingConfigStages',
+    'billingSecretGuard',
+    'billingConfigRefusals',
+  ])
+    assert.ok(successorChecks.includes(name));
 });

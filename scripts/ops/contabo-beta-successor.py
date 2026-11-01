@@ -31,7 +31,8 @@ from alterward_successor_transition import transition
 
 VERSION = 'alterward-beta-successor-1'
 STATE_NAME = 'beta-successor'  # the first generation; later ones are chained, see System
-ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4')
+ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4',
+              'beta-successor-5', 'beta-successor-6', 'beta-successor-7')
 PLAN_VERSION = 'alterward-beta-successor-plan-2'
 # The six files the audit-driven dependency update (#110) changed; any other
 # manifest, even a sibling workspace package, stays frozen until a reviewed change names it.
@@ -42,6 +43,18 @@ ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDG
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
 READER_PURPOSE = 'reader-admission'
 SCHEMA_PURPOSE = 'schema-039'
+BILLING_PURPOSE = 'billing-config'
+# Billing configuration is rolled out in at most three ordered, once-only stages:
+# a Stripe TEST configuration, the LIVE configuration, and finally the enforcement flag.
+BILLING_STAGES = ('sandbox', 'live', 'enforce')
+BILLING_KEYS = tuple(funded.BILLING_DEFAULTS)
+SECRET_KEY = re.compile(r'(?:sk|rk)_(test|live)_[A-Za-z0-9]{8,}')
+WEBHOOK_SECRET = re.compile(r'whsec_[A-Za-z0-9]{8,}')
+PRICE_ID = re.compile(r'price_[A-Za-z0-9]+')
+COUPON_ID = re.compile(r'[A-Za-z0-9_-]{1,100}')
+API_VERSION = re.compile(r'\d{4}-\d{2}-\d{2}(?:\.[a-z]+)?')
+# One https origin with a short bounded path/query; no credentials, port, quote or backslash.
+RETURN_URL = re.compile(r'https://([a-z0-9][a-z0-9.-]*[a-z0-9])(?:/[A-Za-z0-9._~/%?=&:-]{0,200})?')
 # The only supported database step: the live 038 production database to the
 # reviewed 001-039 baseline. No caller-supplied schema, catalog or file list.
 SCHEMA_FROM, SCHEMA_TO = 38, 39
@@ -65,7 +78,7 @@ def allowed_purposes(generation):
     # generations first admit readers (no money), then open the tester window; the
     # schema upgrade is allowed once, behind any fully exposed generation.
     return ({'owner-e2e'} if generation == 1
-            else {READER_PURPOSE, 'tester-beta', SCHEMA_PURPOSE})
+            else {READER_PURPOSE, 'tester-beta', SCHEMA_PURPOSE, BILLING_PURPOSE})
 
 
 def is_tester_window(terms):
@@ -97,9 +110,108 @@ def schema_selection(selection):
     return selection
 
 
+def billing_selection(selection):
+    """Exact non-secret billing selection. Secrets appear only as SHA-256 digests."""
+    funded.exact(selection, {'purpose', 'previousTermsSha256', 'billing'})
+    value = funded.exact(selection['billing'], {
+        'stage', 'mode', 'enabled', 'enforcement', 'priceId', 'couponId', 'apiVersion', 'successUrl',
+        'cancelUrl', 'founderUserIds', 'reservationTtlSeconds', 'secretKeySha256', 'webhookSecretSha256'})
+    founders = value['founderUserIds']
+    stage, mode = value['stage'], value['mode']
+    if (selection['purpose'] != BILLING_PURPOSE or not isinstance(selection['previousTermsSha256'], str)
+            or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])
+            or stage not in BILLING_STAGES or mode not in {'test', 'live'}
+            or value['enabled'] is not True or type(value['enforcement']) is not bool
+            # Test keys can never enforce payment; the live stages are separate and ordered.
+            or (stage == 'sandbox' and (mode != 'test' or value['enforcement']))
+            or (stage == 'live' and (mode != 'live' or value['enforcement']))
+            or (stage == 'enforce' and (mode != 'live' or not value['enforcement']))
+            or any(not isinstance(value[k], str) or not pattern.fullmatch(value[k]) for k, pattern in (
+                ('priceId', PRICE_ID), ('couponId', COUPON_ID), ('apiVersion', API_VERSION),
+                ('successUrl', RETURN_URL), ('cancelUrl', RETURN_URL),
+                ('secretKeySha256', funded.DIGEST), ('webhookSecretSha256', funded.DIGEST)))
+            or not isinstance(founders, list) or founders != sorted(set(founders)) or len(founders) > 10
+            or any(not isinstance(u, str) or not USER_ID.fullmatch(u) for u in founders)
+            or type(value['reservationTtlSeconds']) is not int
+            or not 600 <= value['reservationTtlSeconds'] <= 86400):
+        raise ValueError('Exact approved billing-config selection required')
+    return value
+
+
+def billing_secrets(supplied, selection):
+    """Validate the two Stripe secrets against the selection digests; never stored or logged."""
+    value = billing_selection(selection)
+    funded.exact(supplied, {'secretKey', 'webhookSecret'})
+    key, webhook = supplied['secretKey'], supplied['webhookSecret']
+    if (not isinstance(key, str) or not isinstance(webhook, str)
+            or not (match := SECRET_KEY.fullmatch(key)) or not WEBHOOK_SECRET.fullmatch(webhook)
+            or match[1] != value['mode']
+            or sha(key.encode()) != value['secretKeySha256']
+            or sha(webhook.encode()) != value['webhookSecretSha256']):
+        raise ValueError('Exact approved Stripe secrets required')
+    return key, webhook
+
+
+def billing_values(selection, before, secrets=None):
+    """The exact eleven BILLING_*/STRIPE_* environment values this selection sets.
+
+    Without supplied secrets the ones already in the protected environment must be the
+    selected ones (digest-bound), so a later stage can change one flag without a resend.
+    """
+    value = billing_selection(selection)
+    if secrets is not None:
+        key, webhook = billing_secrets(secrets, selection)
+    else:
+        key, webhook = (before.get('STRIPE_SECRET_KEY', ''), before.get('STRIPE_WEBHOOK_SECRET', ''))
+        if (not SECRET_KEY.fullmatch(key) or not WEBHOOK_SECRET.fullmatch(webhook)
+                or sha(key.encode()) != value['secretKeySha256']
+                or sha(webhook.encode()) != value['webhookSecretSha256']
+                or SECRET_KEY.fullmatch(key)[1] != value['mode']):
+            raise ValueError('Selected Stripe secrets are not in the protected environment')
+    host = before.get('PUBLIC_HOST', '')
+    for name in ('successUrl', 'cancelUrl'):
+        if not host or RETURN_URL.fullmatch(value[name])[1] != host:
+            raise ValueError('Return addresses must use the production host')
+    return {'BILLING_ENABLED': 'true', 'BILLING_ENFORCEMENT': 'true' if value['enforcement'] else 'false',
+            'STRIPE_SECRET_KEY': key, 'STRIPE_WEBHOOK_SECRET': webhook, 'STRIPE_PRICE_ID': value['priceId'],
+            'STRIPE_FOUNDER_COUPON_ID': value['couponId'], 'STRIPE_API_VERSION': value['apiVersion'],
+            'BILLING_SUCCESS_URL': value['successUrl'], 'BILLING_CANCEL_URL': value['cancelUrl'],
+            'BILLING_FOUNDER_USER_IDS': ','.join(value['founderUserIds']),
+            'BILLING_RESERVATION_TTL_SECONDS': str(value['reservationTtlSeconds'])}
+
+
+def billing_stage_key(selection):
+    return BILLING_PURPOSE + ':' + billing_selection(selection)['stage']
+
+
+def require_billing_stage(selection, before, purposes):
+    """Ordered, once-only stages, each starting from exactly the state it expects."""
+    stage = billing_selection(selection)['stage']
+    done = {p for p in purposes if isinstance(p, str) and p.startswith(BILLING_PURPOSE + ':')}
+    if billing_stage_key(selection) in done:
+        raise ValueError('This billing stage may be applied at most once')
+    default = all(before.get(k, v) == v for k, v in funded.BILLING_DEFAULTS.items())
+    current_key = before.get('STRIPE_SECRET_KEY', '')
+    live = bool(SECRET_KEY.fullmatch(current_key)) and SECRET_KEY.fullmatch(current_key)[1] == 'live'
+    if stage == 'sandbox':
+        if not default or BILLING_PURPOSE + ':live' in done:
+            raise ValueError('The sandbox stage requires the default-off billing configuration')
+    elif stage == 'live':
+        if live or BILLING_PURPOSE + ':enforce' in done:
+            raise ValueError('The live stage requires a default-off or sandbox billing configuration')
+    else:
+        # Enforcement flips exactly one flag of an already live, enabled, non-enforcing configuration.
+        value = billing_selection(selection)
+        expected = {k: v for k, v in billing_values(selection, before).items()}
+        if (BILLING_PURPOSE + ':live' not in done or not live
+                or any(before.get(k) != v for k, v in expected.items() if k != 'BILLING_ENFORCEMENT')
+                or before.get('BILLING_ENFORCEMENT') != 'false' or value['mode'] != 'live'):
+            raise ValueError('Enforcement requires the unchanged live configuration')
+
+
 def keeps_window(selection):
-    """Reader admission and the schema upgrade never change the funded window."""
-    return purpose_of(selection) in {READER_PURPOSE, SCHEMA_PURPOSE}
+    """Reader admission, the schema upgrade and billing configuration never change the funded window."""
+    return purpose_of(selection) in {READER_PURPOSE, SCHEMA_PURPOSE, BILLING_PURPOSE}
 
 
 def selection_values(selection):
@@ -110,6 +222,9 @@ def selection_values(selection):
         return {}
     if purpose == SCHEMA_PURPOSE:
         schema_selection(selection)
+        return {}
+    if purpose == BILLING_PURPOSE:
+        billing_selection(selection)
         return {}
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'})
     terms = selection['next']
@@ -152,7 +267,7 @@ def runtime_selection(selection, previous=None):
             'timeoutMs': 300000, 'maxRequestBytes': 196608}
 
 
-def candidate_environment(text, selection, image_tag, previous=None):
+def candidate_environment(text, selection, image_tag, previous=None, secrets=None):
     values = selection_values(selection)
     before = upgrade.server_environment(text)
     text = upgrade.image_only_environment(text, image_tag)
@@ -170,6 +285,18 @@ def candidate_environment(text, selection, image_tag, previous=None):
         if count != 1:
             raise ValueError('One original reader line required')
         extra.add('CLOSED_SITE_ALLOWED_EMAILS')
+    if purpose_of(selection) == BILLING_PURPOSE:
+        # Existing lines are replaced in place, missing ones appended; nothing else may move.
+        billing = billing_values(selection, before, secrets)
+        for key, value in billing.items():
+            if key in before:
+                text, count = re.subn(r"^" + key + r"='[^'\r\n]*'$", lambda _m, k=key, v=value: k + "='" + v + "'",
+                                      text, flags=re.MULTILINE)
+                if count != 1:
+                    raise ValueError('One original billing line required')
+            else:
+                text = text.rstrip('\n') + "\n" + key + "='" + value + "'\n"
+        extra |= set(billing)
     runtime = runtime_selection(selection, previous)
     text = funded.narrative_environment(text, runtime)
     changed = set(values) | set(funded.narrative_runtime_values(runtime)) | {'ALTERWARD_TAG'} | extra
@@ -190,6 +317,13 @@ def normalized(config, selection, previous=None):
     if purpose_of(selection) == READER_PURPOSE:
         for role in ('web', 'api'):
             result['services'][role]['environment']['CLOSED_SITE_ALLOWED_EMAILS'] = ','.join(reader_emails(selection))
+    if purpose_of(selection) == BILLING_PURPOSE:
+        # The delta is the eleven billing values on api and worker only; their exact content is
+        # authenticated separately (digests here, Daily on the frozen candidate). The web service
+        # must carry none of them, on either side.
+        for role in ('api', 'worker'):
+            for key in BILLING_KEYS:
+                result['services'][role]['environment'][key] = '<billing-delta>'
     return result
 
 
@@ -228,9 +362,20 @@ class System(funded.System):
     def is_schema(self):
         return purpose_of(self.selected()) == SCHEMA_PURPOSE
 
+    def is_billing(self):
+        return purpose_of(self.selected()) == BILLING_PURPOSE
+
+    def no_database_write(self):
+        """Reader admission and billing configuration never write the database."""
+        return self.is_reader() or self.is_billing()
+
     def is_window(self):
         """An allowance-changing generation: owner-e2e or tester-beta."""
         return not keeps_window(self.selected())
+
+    def billing_secrets(self):
+        """The two Stripe secrets of a prepare request; only in memory, never persisted."""
+        return self.request.get('billingSecrets') if self.is_billing() else None
 
     def chain(self):
         """Funded parent, its role and the context this generation is bound to."""
@@ -265,6 +410,8 @@ class System(funded.System):
         # The filtered scope exists only once a schema selection has been recorded.
         if (self.root / 'selection.json').exists() and self.is_schema():
             accepted |= {sha(encoded(self.schema_frozen_source_hashes()))}
+        elif (self.root / 'selection.json').exists() and self.is_billing():
+            accepted |= {sha(encoded(self.billing_frozen_source_hashes()))}
         return accepted
 
     def schema_frozen_source_hashes(self):
@@ -273,6 +420,12 @@ class System(funded.System):
         # must still match it byte for byte inside the SERVING image.
         return {p:h for p,h in self.frozen_source_hashes().items()
                 if p not in funded.SCHEMA_039_ALLOWED_CHANGES}
+
+    def billing_frozen_source_hashes(self):
+        # A billing-config generation may carry exactly the reviewed pg-pool path; everything
+        # else (above all the narrative engine) must still match the SERVING image.
+        return {p:h for p,h in self.frozen_source_hashes().items()
+                if p not in funded.BILLING_CONFIG_ALLOWED_CHANGES}
 
     def parent(self):
         _, _, context = self.chain()
@@ -362,9 +515,10 @@ class System(funded.System):
 
     def baseline(self, *, require_active=None):
         # The schema upgrade does not depend on a running funded window: an ended
-        # window only means nothing can be generating, which the drain proves.
+        # window only means nothing can be generating, which the drain proves. Billing
+        # configuration does not depend on the window either.
         if require_active is None:
-            require_active = not self.is_schema()
+            require_active = not (self.is_schema() or self.is_billing())
         parent, role, _ = self.parent()
         if self.hashes(DIRECTORY) != parent['files'][role]:
             raise ValueError('Active parent runtime files required')
@@ -406,7 +560,7 @@ class System(funded.System):
         if mode != 'capture' or expected is not None:
             raise ValueError('Successor cannot migrate a database')
         participants = list(self.original_terms()['participants'])
-        if not self.is_reader():
+        if self.is_window():
             participants += self.selected()['next']['participants']
         unique = list({p['userId']:p for p in participants}.values())
         value = self.raw_probe(image, {'mode':'capture','participants':unique,'expected':None})
@@ -444,6 +598,25 @@ class System(funded.System):
                          # Recorded evidence of the only sources allowed to differ from the serving image.
                          'allowedChanges': list(funded.SCHEMA_039_ALLOWED_CHANGES)}}
 
+    def billing_operation(self):
+        now = self.now()
+        stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        selected = self.selected()
+        return {'plan': {'version': PLAN_VERSION, 'purpose': BILLING_PURPOSE,
+                         'stage': billing_selection(selected)['stage'],
+                         'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
+                         'previousTermsSha256': canonical_sha(self.original_terms()),
+                         'selectionSha256': canonical_sha(selected),
+                         # Recorded evidence of the only source allowed to differ from the serving image.
+                         'allowedChanges': list(funded.BILLING_CONFIG_ALLOWED_CHANGES),
+                         'allowedChangeHashes': self.allowed_change_hashes()}}
+
+    def allowed_change_hashes(self):
+        hashes = {p: self.request['sourceHashes'].get(p) for p in funded.BILLING_CONFIG_ALLOWED_CHANGES}
+        if any(not isinstance(h, str) or not funded.DIGEST.fullmatch(h) for h in hashes.values()):
+            raise ValueError('Exact bundle hash of every allowed change required')
+        return hashes
+
     def reader_receipt(self):
         previous = self.active_access()
         return encoded({'allowedEmails': reader_emails(self.selected()),
@@ -456,7 +629,7 @@ class System(funded.System):
         old = self.files(DIRECTORY)
         previous = self.original_terms()
         readers.durable_file(path / 'server.env', candidate_environment(
-            old['server.env'].decode(), self.selected(), build['imageTag'], previous))
+            old['server.env'].decode(), self.selected(), build['imageTag'], previous, self.billing_secrets()))
         readers.durable_file(path / 'pinned-image.json', encoded({'services':{
             r:{'image':build['imageId'],'pull_policy':'never'} for r in ('web','api','worker')}}))
         source = Path(build['sourceDirectory'])
@@ -476,6 +649,16 @@ class System(funded.System):
                     raise ValueError('Billing must stay at its default-off configuration')
             if any(k in rendered['services']['web']['environment'] for k in funded.BILLING_DEFAULTS):
                 raise ValueError('Billing configuration must not reach the web service')
+        if self.is_billing():
+            # Billing reaches api and worker only; the web service carries none of it.
+            if any(k in rendered['services']['web']['environment'] for k in BILLING_KEYS):
+                raise ValueError('Billing configuration must not reach the web service')
+            for role in ('api', 'worker'):
+                env = rendered['services'][role]['environment']
+                if {k: env.get(k) for k in BILLING_KEYS} != billing_values(
+                        self.selected(), upgrade.server_environment(
+                            (path / 'server.env').read_text()), self.billing_secrets()):
+                    raise ValueError('Rendered billing configuration differs from the selection')
         readers.durable_file(path / 'effective-compose.json', frozen(rendered))
         manifest = json.loads(old['manifest.json'])
         manifest.update(commit=build['commit'],imageId=build['imageId'],
@@ -497,14 +680,18 @@ class System(funded.System):
         target image is built from the exact committed bundle and the audit records
         the full source diff.
         """
-        frozen_hashes = self.schema_frozen_source_hashes() if self.is_schema() else self.frozen_source_hashes()
+        frozen_hashes = (self.schema_frozen_source_hashes() if self.is_schema()
+                         else self.billing_frozen_source_hashes() if self.is_billing()
+                         else self.frozen_source_hashes())
         if not frozen_hashes or self.capability(serving_image, frozen_hashes).returncode:
             raise ValueError('Original serving engine sources must remain unchanged')
 
     def prepare(self):
-        self.archive_support()
         selected = self.selected()
         selection_values(selected)
+        if 'billingSecrets' in self.request and not self.is_billing():
+            raise ValueError('Stripe secrets belong only to a billing-config preparation')
+        self.archive_support()
         if self.root.exists() or self.root.is_symlink():
             raise ValueError('Existing successor evidence requires explicit inspection/archive')
         if self.daily.funded_upgrade_healthy('personal-beta') is not True:
@@ -523,6 +710,8 @@ class System(funded.System):
         elif self.is_schema():
             if SCHEMA_PURPOSE in self.chain()[2].get('purposes', ()):
                 raise ValueError('The schema upgrade may be applied at most once')
+        elif self.is_billing():
+            pass  # the ordered once-only stage rules are checked below, against the candidate environment
         elif any(p['email'] not in access['allowedEmails'] for p in selected['next']['participants']):
             raise ValueError('Every participant must already be a readable, signed-in account')
         release = copy.deepcopy(self.request['release'])
@@ -531,6 +720,13 @@ class System(funded.System):
                 not isinstance(release[k], str) or not funded.DIGEST.fullmatch(release[k])
                 for k in ('auditSha256','fixtureSha256','privacyFixtureSha256','ciSha256','successorFixtureSha256')):
             raise ValueError('Exact interpreted source/fixture/CI and v9 runtime required')
+        if self.is_billing():
+            # Dry run before anything is written: stage order, expected starting state, the
+            # digest-bound secrets and the exact environment delta (nothing else may move).
+            old_text = self.files(DIRECTORY)['server.env'].decode()
+            require_billing_stage(selected, upgrade.server_environment(old_text),
+                                  self.chain()[2].get('purposes', ()))
+            candidate_environment(old_text, selected, release['target']['imageTag'], previous, self.billing_secrets())
         from alterward_backup import private_directory
         private_directory(self.root)
         readers.durable_file(self.root / 'selection.json', encoded(selected))
@@ -541,6 +737,7 @@ class System(funded.System):
             release[role + 'CapabilitySha256'] = self.image(release[role])
         self.require_engine_freeze(parent['release'][parent_role]['imageId'])
         operation = (self.reader_operation() if self.is_reader() else self.schema_operation() if self.is_schema()
+                     else self.billing_operation() if self.is_billing()
                      else self.accounting(release['target']['imageId'], 'capture'))
         database = self.probe(release['target']['imageId'], 'capture')
         if self.is_schema() and database['schema'] != SCHEMA_FROM:
@@ -708,8 +905,8 @@ class System(funded.System):
     def apply_accounts(self, candidate):
         # No polling/retry around the financial write. A lost output is reconciled
         # only by a separately invoked --recover, never by running apply again.
-        if self.is_reader():
-            return {'accountsChanged': False}  # reader admission never writes the database
+        if self.no_database_write():
+            return {'accountsChanged': False}  # reader admission and billing never write the database
         if self.is_schema():
             return self.migrate_schema(candidate)
         return self.accounting(candidate['release']['target']['imageId'], 'apply', candidate['operation'])
@@ -740,7 +937,7 @@ class System(funded.System):
             return {'state': 'committed' if current['schema'] == SCHEMA_TO else 'uncommitted',
                     'operationSha256': canonical_sha(candidate['operation']),
                     'protectedDataUnchanged': True, 'paidAiCalls': 0}
-        if self.is_reader():
+        if self.no_database_write():
             # No account may change. "Committed" only means the durable database
             # intent was reached, so recovery and replay follow the same order.
             current = self.probe(candidate['release']['target']['imageId'], 'capture')
@@ -808,7 +1005,8 @@ def main(request):
     base = {'mode','sourceCommit','bundleSha256','sourceHashes'}
     modes = {'inspect':set(), 'cleanup-probe':set(),
              'archive-expired':{'preparedSha256','accessSnapshot'},
-             'prepare':{'selection','release','accessSnapshot'},
+             # Only a billing-config preparation may carry the two Stripe secrets (checked there).
+             'prepare':{'selection','release','accessSnapshot'} | ({'billingSecrets'} if 'billingSecrets' in request else set()),
              'apply':{'selection','release','accessSnapshot','preparedSha256','restoreProof'},
              'recover':{'selection','release','accessSnapshot','preparedSha256','restoreProof'}}
     mode = request.get('mode')

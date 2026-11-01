@@ -36,12 +36,23 @@ export const successorChecks = [
   'schemaMigration',
   'schemaRecovery',
   'billingDefaultsGuard',
+  // The billing-config generation: ordered once-only stages applied to the real chain
+  // (sandbox, live, enforcement), the Stripe secrets bound to their digests and kept out of
+  // every receipt, and test keys, a wrong digest or a billing value on web refused.
+  'billingConfigStages',
+  'billingSecretGuard',
+  'billingConfigRefusals',
 ];
-export const successorFixtureVersion = 'alterward-beta-successor-fixture-3';
+export const successorFixtureVersion = 'alterward-beta-successor-fixture-4';
 
 const READER_PURPOSE = 'reader-admission';
 // The database and application upgrade: no allowance, window, cohort or reader change.
 const SCHEMA_PURPOSE = 'schema-039';
+// Billing configuration (api and worker only): no allowance, window, cohort, reader or database
+// change. Three ordered, once-only stages; the Stripe secrets are never part of a selection, only
+// their SHA-256 digests.
+const BILLING_PURPOSE = 'billing-config';
+const billingStages = ['sandbox', 'live', 'enforce'];
 // purpose -> [participants, projectUsd, userUsd]; the only allowance-changing selections.
 const windowPurposes = {
   'owner-e2e': [1, '3', '3'],
@@ -142,6 +153,69 @@ export function validateSchemaSelection(selection) {
   return selection;
 }
 
+const billingPatterns = {
+  priceId: /^price_[A-Za-z0-9]+$/,
+  couponId: /^[A-Za-z0-9_-]{1,100}$/,
+  apiVersion: /^\d{4}-\d{2}-\d{2}(?:\.[a-z]+)?$/,
+  successUrl:
+    /^https:\/\/[a-z0-9][a-z0-9.-]*[a-z0-9](?:\/[A-Za-z0-9._~/%?=&:-]{0,200})?$/,
+  cancelUrl:
+    /^https:\/\/[a-z0-9][a-z0-9.-]*[a-z0-9](?:\/[A-Za-z0-9._~/%?=&:-]{0,200})?$/,
+  secretKeySha256: digestPattern,
+  webhookSecretSha256: digestPattern,
+};
+const founderId =
+  /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+
+// A test key can never enforce payment; the live stages are separate and ordered.
+export function validateBillingSelection(selection) {
+  exactObject(selection, ['purpose', 'previousTermsSha256', 'billing']);
+  const billing = exactObject(selection.billing, [
+    'stage',
+    'mode',
+    'enabled',
+    'enforcement',
+    'priceId',
+    'couponId',
+    'apiVersion',
+    'successUrl',
+    'cancelUrl',
+    'founderUserIds',
+    'reservationTtlSeconds',
+    'secretKeySha256',
+    'webhookSecretSha256',
+  ]);
+  const { stage, mode, founderUserIds: founders } = billing;
+  if (
+    selection.purpose !== BILLING_PURPOSE ||
+    !digestPattern.test(selection.previousTermsSha256) ||
+    !billingStages.includes(stage) ||
+    !['test', 'live'].includes(mode) ||
+    billing.enabled !== true ||
+    typeof billing.enforcement !== 'boolean' ||
+    (stage === 'sandbox' && (mode !== 'test' || billing.enforcement)) ||
+    (stage === 'live' && (mode !== 'live' || billing.enforcement)) ||
+    (stage === 'enforce' && (mode !== 'live' || !billing.enforcement)) ||
+    Object.entries(billingPatterns).some(
+      ([key, pattern]) =>
+        typeof billing[key] !== 'string' || !pattern.test(billing[key]),
+    ) ||
+    !Array.isArray(founders) ||
+    founders.length > 10 ||
+    founders.some(
+      (id, i) =>
+        typeof id !== 'string' ||
+        !founderId.test(id) ||
+        (i > 0 && founders[i - 1] >= id),
+    ) ||
+    !Number.isInteger(billing.reservationTtlSeconds) ||
+    billing.reservationTtlSeconds < 600 ||
+    billing.reservationTtlSeconds > 86400
+  )
+    throw Error('Exact approved billing-config selection required');
+  return selection;
+}
+
 // Dispatches on the explicit purpose. The generation a purpose is allowed in is
 // enforced where the chain is known (Daily authority and the root adapter).
 export function validateSuccessorSelection(selection) {
@@ -149,6 +223,8 @@ export function validateSuccessorSelection(selection) {
     return validateReaderSelection(selection);
   if (selection?.purpose === SCHEMA_PURPOSE)
     return validateSchemaSelection(selection);
+  if (selection?.purpose === BILLING_PURPOSE)
+    return validateBillingSelection(selection);
   return validateWindowSelection(selection, ['owner-e2e', 'tester-beta']);
 }
 
@@ -166,7 +242,8 @@ export function successorReleaseEvidence({
   // still-active window's.
   if (
     (selection.purpose === READER_PURPOSE ||
-    selection.purpose === SCHEMA_PURPOSE
+    selection.purpose === SCHEMA_PURPOSE ||
+    selection.purpose === BILLING_PURPOSE
       ? !Array.isArray(cohort) || cohort.length < 1 || cohort.length > 10
       : JSON.stringify(cohort) !==
         JSON.stringify(selection.next.participants.map((p) => p.userId))) ||
