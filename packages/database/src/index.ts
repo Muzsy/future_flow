@@ -62,6 +62,20 @@ function clientDatabase(client: PoolClient): Database {
     transaction: (run) => run(clientDatabase(client)),
   };
 }
+// An idle pooled connection can be reset or time out (e.g. `read ETIMEDOUT`
+// to the Supabase pooler). `pg` re-emits that on the pool/client, and an
+// unhandled 'error' event would kill the whole process. Log a generic,
+// credential-free line (error code only); `pg` discards the broken client.
+function logConnectionError(scope: 'idle' | 'transaction', error: unknown) {
+  const code = (error as { code?: unknown } | null)?.code;
+  console.error(
+    `Database ${scope} connection error${
+      typeof code === 'string' && /^[A-Za-z0-9_]{1,40}$/.test(code)
+        ? ` (${code})`
+        : ''
+    }; connection discarded.`,
+  );
+}
 export function connectDatabase(
   connectionString: string,
   ssl: boolean,
@@ -82,6 +96,7 @@ export function connectDatabase(
     connectionTimeoutMillis: 10000,
     idleTimeoutMillis: 30000,
   });
+  pool.on('error', (error) => logConnectionError('idle', error));
   return {
     query: async <T extends Record<string, unknown>>(
       text: string,
@@ -89,6 +104,10 @@ export function connectDatabase(
     ) => (await pool.query<T>(text, values)).rows,
     transaction: async (run) => {
       const client = await pool.connect();
+      // A checked-out client is no longer covered by the pool-level handler.
+      const onClientError = (error: Error) =>
+        logConnectionError('transaction', error);
+      client.on('error', onClientError);
       try {
         await client.query('BEGIN');
         const result = await run(clientDatabase(client));
@@ -98,6 +117,7 @@ export function connectDatabase(
         await client.query('ROLLBACK');
         throw error;
       } finally {
+        client.off('error', onClientError);
         client.release();
       }
     },
