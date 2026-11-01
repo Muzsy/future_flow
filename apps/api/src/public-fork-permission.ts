@@ -1,3 +1,4 @@
+import { ChapterBilledGeneration } from './billing-generation';
 import {
   Body,
   Controller,
@@ -117,6 +118,7 @@ export function createPublicForkPermissionControllers(
     @Post(':slug')
     @ApiBody({ schema: z.toJSONSchema(publicForkStartRequestSchema) as never })
     @ClosedBetaGeneration()
+    @ChapterBilledGeneration()
     @ApiOkResponse({
       schema: z.toJSONSchema(publicForkStartReceiptSchema) as never,
     })

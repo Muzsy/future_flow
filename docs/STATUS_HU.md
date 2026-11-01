@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**I02 generálási útvonalhatár — fejlesztési jelölt, #138:** enforce módban csak a központi fejezetledgerre jutó személyes generálás engedhető tovább; a v1/Shared/review indítás zárt, a worker e sorok munkáit claim nélkül megőrzi. A jelölt külön ágon készül; nem új éles állapot, I02/I03/I04 továbbra PARTIAL.
+
 **I01/I04 fejlesztési jelölt — 2026-11-01, #133:** elkészült a tiszta service-admission/pause modell és a Cloudflare-identitás-ellenőrzés külön alapja ([ADR-011](decisions/ADR-011-invitation-service-access.md)). A mai statikus kapu és 11-es címlimit megmarad, az új policy-t az alkalmazás még nem használja; nincs új meghívott vagy éles aktiválás. A tartós store/migráció/recovery, az API/web bekötés és az operátori pause/admission a következő szeletek. Ez nem I01/I04 DONE.
 
 **Aktuális terv és főági checkpoint — 2026-11-01:** a tulajdonos a teljes személyes éles szolgáltatás előkészítését kérte, elsőként 10 új meghívottal, majd további tízfős csoportokkal. A nyílt önregisztráció zárt marad; a termék, előfizetés és egyenleg csoportbővítéskor folyamatos. Elfogadott ajánlat: fiókonként 1 külön ingyenes fejezet; normál 14,99 USD bruttó/hó és 8 fejezet; az első tíz kijelölt fióknak három fizetett ciklusig 9,99 USD bruttó/hó és 5 fejezet. Ez kívánt működés, nem már végrehajtott admission vagy fizetési aktiválás. [Aktív sorrend és I01–I07](DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).

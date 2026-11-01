@@ -1,3 +1,4 @@
+import { ChapterBilledGeneration } from './billing-generation';
 import {
   Body,
   Controller,
@@ -81,6 +82,7 @@ export function createPersonalScenarioController(
     }
     @Post('sources/:slug/start')
     @ClosedBetaGeneration()
+    @ChapterBilledGeneration()
     @ApiBody({
       schema: z.toJSONSchema(personalScenarioStartRequestSchema) as never,
     })

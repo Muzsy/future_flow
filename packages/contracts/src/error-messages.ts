@@ -1,6 +1,10 @@
 import type { Locale } from './locales';
 import { sharedErrorMessages } from './shared-context';
 const errors: Record<string, readonly [string, string]> = {
+  GENERATION_ROUTE_UNAVAILABLE: [
+    'Story creation is not available from this page. Your saved stories remain available.',
+    'Erről az oldalról most nem indítható történetkészítés. A mentett történeteid továbbra is elérhetők.',
+  ],
   NARRATIVE_QUALITY_FAILED: [
     "We couldn't complete this chapter to the required quality. Your previous chapters and choices are saved.",
     'A fejezet nem érte el az elvárt minőséget. Korábbi fejezeteid és választásaid megmaradtak.',
