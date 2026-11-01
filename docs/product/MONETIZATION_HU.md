@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-15
+last_reviewed: 2026-11-01
 supersedes:
   - ../SHARED_SPONSORED_GUEST_PAYMENT_MODEL_HU.md
 related:
@@ -13,11 +13,32 @@ related:
 
 ## 1. Hatókör
 
-Ez a dokumentum a termékcsomagok logikai entitlement modelljét rögzíti. A végleges árak, payment provider, checkout, webhook és számlázási megvalósítás még nincs lezárva.
+Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement modell kanonikus forrása. A tulajdonos 2026-11-01-i döntése szerint a teljes személyes éles szolgáltatás készül el, eleinte meghívással, 10 új emberrel, majd további tízfős csoportokkal. A nyílt önregisztráció egyelőre szerveroldalon zárt. A terv végrehajtása: [I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
 
-**Entitlement modell ≠ kész billing rendszer.**
+### Elfogadott személyes ajánlat
 
-**Személyes előfizetés (B01, 2026-10-30, [ADR-010](../decisions/ADR-010-payment-data-and-responsibility-boundaries.md), javasolt):** a tulajdonos döntése a Stripe Managed Payments (a Stripe a merchant of record) és egy induló csomag: 14,99 USD/hó, ciklusonként 8 fejezet; a kijelölt tesztelői fiókokra az első 3 ciklusban 9,99 USD és 5 fejezet; 1 külön ingyenes ízelítő fejezet. Az alapító kedvezmény mértéke nyitott. A számok konfiguráció (`launch_v1`, `standard_v1`), mérések után finomíthatók. Az 5→8 átállást a saját, fiókonkénti fizetettszámla-számláló adja, nem a szolgáltatói kupon. Csak új, tartósan mentett fejezet fogyaszt keretet; a keret nem görgetődik át; a vita és az aktuális ciklus teljes visszatérítése azonnal visszavonja a jogosultságot (nullázza a fel nem használt keretet, lemondja az előfizetést); régebbi ciklus teljes visszatérítése csak az akkori keretet zárja le; részleges visszatérítésnek nincs automatikus hatása (napló és riasztás); a kedvezmény fiókonként egyszer jár. Állapot: a tiszta domainlogika és a szolgáltatásréteg (webhook-feldolgozás, Checkout-összeállítás, fejezetkapu, Stripe adapter, konfiguráció) a `packages/core`-ban kész, memóriás tárolóval tesztelve; tartós tároló (migráció 039), route-ok és a generálási kapu bekötése még nincs, a kapcsolók alapból kikapcsoltak.
+| Tétel | Szabály |
+| --- | --- |
+| Ingyenes ízelítő | Fiókonként egyszer 1 fejezet, külön a fizetett kerettől; a végleges termékben is megmarad. |
+| Normál csomag | 14,99 USD bruttó/hó, 8 fejezet számlázási ciklusonként. |
+| Induló kedvezmény | Az első tíz kijelölt új meghívott fiók első három fizetett ciklusában 9,99 USD bruttó/hó, 5 fejezet; utána normál csomag. Ők ugyanaz a tíz ember, akik a meghívásos indulás első új csoportját alkotják. |
+| Megújulás | Az előfizetés fordulónapján; nincs fejezet-rollover. |
+| Kupon/admission | A meghívási és a kuponjog külön nyilvántartás. Az alkalmazás fiókhoz köti a kedvezményt; a Stripe legfeljebb tíz beváltása önmagában nem személyazonosítás. További csoportnak nincs automatikus kedvezmény. |
+| Csoportbővítés | Ugyanaz a termék és ledger, nincs új bétaablak, ízelítő-, ciklus-, kupon- vagy USD-költésreset. |
+
+Az első tíz új ember körébe a már meglévő három béta-résztvevő nem számít bele automatikusan. Az ő korábbi történeteik, költésük és jogosultságaik megőrzésével külön átvezetési terv szükséges. Egy esetleges további alapító kedvezmény nincs automatikusan hozzáadva az elfogadott kuponhoz.
+
+**Egy fejezet:** egy új, sikeresen és tartósan mentett időszak a felhasználó ágán, a hozzá tartozó döntési ponttal. Új élet első fejezete, folytatás és alternatív ág első új fejezete fogyaszt; a kért teljesen új változat fogyasztását előre jelezni kell. Ágöröklés, olvasás, visszatérés, már mentett eredmény ismételt visszaadása, hálózati újrapróba, export és törlés nem új fogyasztás. A sikertelen generálás/belső javítás/minőségkapu-elutasítás költségét az üzemeltető viseli. Generáláskor foglalás, csak tartós mentéskor fogyasztás; azonos kérés nem terhelhet kétszer. A panaszkezelés és az esetleges kézi jóváírás végleges folyamata még lezárandó; nincs elfogadott korlátlan ingyenes újraírás.
+
+**Fejezetegyenleg és költségvédelem:** az előfizetési fejezetledger és a szolgáltatói USD-budget külön főkönyv. A safety limitek és a fizetett jogosultság együtt működnek, az új csoport egyik könyvelést sem nullázza. A meglévő béta 10 USD-je nem a végleges szolgáltatás automatikusan elfogadott budgetje, és nem helyettesíti az 1/5/8-as termékegyenleget; konkrét új költési limit külön tulajdonosi döntés.
+
+### Megvalósítás és szolgáltatói határ
+
+Cél: Stripe Managed Payments, az élő fiókjogosultság megerősítésével; Paddle a tartalék. A fizetési adat- és felelősségi határok tervezési forrása [ADR-010](../decisions/ADR-010-payment-data-and-responsibility-boundaries.md); az ottani döntési státuszt ez a terv nem címkézi át automatikusan. Az 5→8 átállást a saját fizetettszámla-számláló adja, nem a kupon eltűnése. A vita és az aktuális ciklus teljes visszatérítése visszavonja a jogosultságot és lemondja az előfizetést; a régi ciklus teljes visszatérítése az akkori grantot zárja, részleges visszatérítés naplózást és riasztást ad. A kupon fiókonként egyszer jár.
+
+A billing-mag, SQL tároló (039), route-ok, generálási kapu és `/billing` oldal implementált, a kapcsolók alapból kikapcsoltak. A #129 bekapcsolási út és a #130 versenyteszt-javítás is mainen van (`a7b5296`, saját main CI SUCCESS). Ez nem azonos az éles fizetés aktiválásával. Nyitott: a teljes felhasználói út és lemondás, minden elérhető generálás kapuzása, meghívásos admission, tartós konfigurációkezelés/kikapcsolás, élő Stripe/feltételek és mért end-to-end kiadás.
+
+A Shared-specifikus szakaszok a későbbi közös modellt részletezik; annak enumjai, slotjai és Guest-szabályai nem változnak a személyes induló ajánlattól.
 
 ## 2. Alapelv
 
@@ -153,11 +174,11 @@ Ez **nincs jelenleg implementálva vagy elfogadva**.
 
 ## 13. Release sorrend
 
-1. personal beta — Shared OFF;
-2. friend Shared beta — entitled host + targeted Free Guest;
-3. billing foundation;
-4. valós usage alapján tier/price finomítás;
-5. később romantic/work/hobby/sports monetizáció.
+1. Végleges személyes éles működés befejezése: meghívás, ízelítő, billing, adatkontroll, költség- és üzemeltetési védelem.
+2. Igazolt rollout és teljes mért fizetési/történeti alapút után az első tíz új meghívott.
+3. Mérések alapján további tízfős csoportok ugyanabban a szolgáltatásban, új ablak vagy egyenlegreset nélkül.
+4. Nyílt önregisztráció később külön biztonsági és kapacitási elfogadással; a személyes ajánlat változatlan maradhat.
+5. Shared friend beta, majd később romantic/work/hobby/sports külön release-döntésekkel. Shared nem előfeltétele a személyes fizetős indulásnak.
 
 ## 14. Nem kanonikus állítások
 
@@ -167,19 +188,15 @@ Bizonyíték nélkül ne kezeljük tényként:
 - „0 USD CAC”;
 - garantált Shared run költség;
 - garantált conversion rate;
-- végleges havi ár.
+- garantált fedezet vagy konverzió az elfogadott személyes ár mellett.
 
 Ezeket valós termékhasználatból kell mérni.
 
 
-## 15. Személyes történetgazdaságosság – döntésre előkészített javaslat
+## 15. Személyes történetgazdaságosság — történeti javaslat
 
-A [részletes személyes fejezetmodell](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) elkészült a 2026-10-15-i valós mérések alapján. Státusza **nem elfogadott üzleti szabály**: havi 8 fejezet, 4-es kiegészítő, egyszeri 3-as próba és rollover vizsgálandó hipotézis. A 0,70 USD teljes fejezetköltség / 18 USD megtartott havi bevétel óvatos tervezési forgatókönyv; egyik sem végleges ár vagy garantált költség. A 12/24 fejezetes változat tartósan igazolt kisebb egységköltség és olvasói érdeklődés mellett vizsgálandó.
-
-Egy jóváhagyandó személyes termékegység egy új, mentett fejezet lenne. A belső javítás/elutasítás költsége az üzemeltetőnél maradna; újraolvasás, ágöröklés és adatkontroll nem lenne új fejezet. A termékegyenleg és az USD AI-budget külön főkönyv; ilyen személyes számlázási egyenleg ma nincs implementálva. A javaslat nem változtatja meg a meglévő Shared tier/slot/Guest contractokat vagy a béta keretét.
-
-A legutóbbi két első fejezet automatikus kapun átment költségátlaga 0,13373125 USD, de két első időszak nem teljes minőség- vagy üzemi egységárbizonyíték. A korábbi elutasítások, külön fix-kánon hibák és kutatási költségek megmaradnak; mérési authority: [NARRATIVE_EVALUATION_HU.md](../operations/NARRATIVE_EVALUATION_HU.md). Árazás előtt többfejezetes/humán minőség, teljes kihasználás melletti költség, próbából konverzió, retention, adó/fizetési levonások és nem-AI működési költség szükséges.
+A [2026-10-15-i gazdaságossági javaslat](../plans/PERSONAL_STORY_ECONOMICS_PROPOSAL_HU.md) mérési és tervezési előzmény. A három ingyenes fejezet, a négyes kiegészítő és a rollover ottani vizsgálata nem az aktuális ajánlat. A jelenlegi elfogadott 1/5/8-as szabályokat és bruttó árakat az 1. szakasz rögzíti; a tartós személyes fejezetledger már implementált. A régi költségminták és fedezetfeltevések nem garantált üzemi egységárak. Mérési authority: [NARRATIVE_EVALUATION_HU](../operations/NARRATIVE_EVALUATION_HU.md).
 
 ## V6: csomagtól független történetminőség
 
-A nyolc új személyes fejezet továbbra csak termék-/gazdaságossági és megtartási vizsgálati ablak. Nem jelent nyolc lépéses dramaturgiát vagy csomagonként kötelező fordulatot. Minden személyes olvasó ugyanazt a legjobb igazolt történetmotort kapja; érdemi, kiérdemelt életfejlődés nem prémium képesség. Billingadat nem kerül a generálási bemenetbe. A Free / Explorer / Connected / World továbbra Shared-nevek, nem személyes történetcsomagok. Nincs új billingimplementáció vagy elfogadott személyes ár. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).
+A nyolc új személyes fejezet továbbra csak termék-/gazdaságossági és megtartási vizsgálati ablak. Nem jelent nyolc lépéses dramaturgiát vagy csomagonként kötelező fordulatot. Minden személyes olvasó ugyanazt a legjobb igazolt történetmotort kapja; érdemi, kiérdemelt életfejlődés nem prémium képesség. Billingadat nem kerül a generálási bemenetbe. A Free / Explorer / Connected / World továbbra Shared-nevek, nem személyes történetcsomagok. Ez a történeti V6-minőségelv nem írja felül az 1. szakasz elfogadott személyes ajánlatát. [V6 terv](../plans/045_fiction_v6_earned_life_evolution.md).

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-27
+last_reviewed: 2026-11-01
 related:
   - ../PERSONAL_BETA_ACTIVATION_PLAN_HU.md
   - ../PERSONAL_BETA_OPERATOR_HU.md
@@ -11,13 +11,19 @@ related:
 
 # Beta operations
 
-## Aktuális kiadási fókusz — 2026-10-24
+## Aktív következő cél — meghívásos személyes éles szolgáltatás, 2026-11-01
+
+Tulajdonosi döntés: a végleges működésű személyes éles terméket készítjük el, elsőként 10 új meghívottal, majd további tízfős csoportokkal. Minden csoport ugyanazt az 1 ingyenes fejezetet és teljes előfizetési rendszert használja; a nyílt önregisztráció szerveroldalon zárt marad. A további admission rendes, tartós felhasználókezelés; nem csoportonkénti bétaablak, ledger-reset vagy image/env-csere. Az induló kedvezmény külön, az első tíz kijelölt új fiókhoz kötött jogosultság. Végrehajtás és release-kapuk: [master plan I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
+
+A meglévő háromfős béta megőrzött állapot; átvezetése külön tervvel, eredeti adatok/költés/jogosultságok megtartásával történik. A személyes fizetős indulás kapui az első tíz előtt teljesítendők, Shared/Community OFF. A régi egyszeri aktiválási parancsok, budgetek és határidők ettől nem változnak és nem ismételhetők meg. A következő történeti béta-sorrend az eredeti végrehajtásokra vonatkozik; az új cél nem kapott vele automatikus éles felhatalmazást.
+
+## Korábbi kiadási fókusz — 2026-10-24 (történeti béta)
 
 Tulajdonosi döntés: a v9 motor további finomítása helyett annak befagyasztása, technikai stabilizálása és a kis zárt béta előkészítése az elsődleges. Végrehajtás: integrált jelölt → v9-kompatibilis N09/backup/recovery → teljes tesztelői alapút → konkrét engedélyezett indulás. További editor/history-kutatás és archetípus-fejlesztés DEFERRED. A meglévő helyettesítő zártbéta-minőségkapuk érvényesek; adat-, költség-, privacy- és helyreállítási védelem nem halasztható. A konkrét lezárási feltételeket a [narratív kiadási runbook](NARRATIVE_RELEASE_HU.md#bétafókusz-és-motorbefagyasztás--2026-10-24) tartalmazza.
 
 A #81 2026-10-25-én tulajdonosi engedéllyel beolvadt a mainbe (`4fb7b489`), a teljes diff független review-ja APPROVE. A main saját CI-je és az aktuális [célgépes előkészítés](NARRATIVE_RELEASE_HU.md#main-utáni-célgépes-előkészítés--2026-10-25) külön követett. A beolvasztás nem indított új bétaablakot vagy szolgáltatást.
 
-## 1. Release sorrend
+## 1. Korábbi béta release sorrend (történeti)
 
 ### Első kör — Personal beta
 

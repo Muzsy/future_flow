@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: product
-last_reviewed: 2026-10-17
+last_reviewed: 2026-11-01
 supersedes:
   - ../PRODUCT_PLAN_HU.md
   - ../PROJECT_POSITIONING_AND_GOAL_DEFINITION_HU.md
@@ -50,7 +50,7 @@ A pontos technikai contract: `../V2_SIMULATION_CONTRACT_HU.md` és a gépi contr
 
 ### Private Personal Simulation
 
-A felhasználó saját, privát alternatív élete. Ez az elsődleges termék és az első valódi béta fókusza.
+A felhasználó saját, privát alternatív élete. Ez az elsődleges termék és a meghívásos személyes éles indulás fókusza.
 
 ### Official Lives / Scenarios
 
@@ -106,7 +106,11 @@ Első kiadás:
 - angol UI;
 - angol AI-történetek;
 - 18+ célközönség;
-- korlátozott béta a nyilvános release előtt.
+- végleges működésű éles személyes szolgáltatás, kezdetben meghívással;
+- elsőként 10 új meghívott, majd további tízfős csoportok, mérések alapján;
+- nyílt önregisztráció később, külön aktiválással.
+
+Tulajdonosi döntés — 2026-11-01: a meghívásos időszakban már a teljes, végleges személyes termék működik, valódi ingyenes ízelítővel és előfizetéssel. A szerveroldali meghívási jogosultság a közvetlen regisztrációs/Auth/API utakra is kiterjed; a regisztrációs gomb elrejtése önmagában nem védelem. A meghívás és a kedvezmény külön jogosultság. A további csoportok ugyanazt a szolgáltatást használják, fiókjaik, történeteik és előfizetéseik megmaradnak; csoportbővítés nem újítja meg az ízelítőt vagy a kupont, és nem indít új bétaablakot. A tíz fő nyitási lépcső, nem végleges létszámmaximum. A nyílt regisztráció nem aktiválja a Shared/Community funkciókat. Végrehajtás: [master plan I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
 
 A magyar felület és további nyelvek későbbi bővítések.
 
@@ -125,7 +129,9 @@ Az első Shared release `friend_group` fókuszú.
 
 ## 9. Monetizációs alapelv
 
-A fizetési modell a létrehozás/kezdeményezés értékét monetizálja, nem minden meghívott jelenlétet.
+A személyes induló termékben fiókonként egyszer 1 ingyenes ízelítő fejezet jár. A normál csomag 14,99 USD bruttó/hó, ciklusonként 8 fejezettel. Az első tíz kijelölt új meghívott fióknak az első három fizetett ciklusban 9,99 USD bruttó/hó és 5 fejezet jár; később a normál csomag. Az ízelítő a fizetett kereten felüli, a kedvezmény további csoportnak nem automatikus. A fejezet tartós mentésekor történik a fogyasztás; a sikertelen generálás, hálózati ismétlés, olvasás és adatkontroll nem új terhelés. Részletes szabályok: [monetizáció](MONETIZATION_HU.md).
+
+A későbbi Shared fizetési modell a létrehozás/kezdeményezés értékét monetizálja, nem minden meghívott jelenlétet.
 
 Jelenlegi entitlement-logika:
 
@@ -134,7 +140,7 @@ Jelenlegi entitlement-logika:
 - Connected: több, személyesebb/kollaboratív context;
 - World: legnagyobb context-keret és sports team.
 
-A végleges árak és payment provider külön döntés. Az entitlement-modell megléte nem jelenti, hogy billing már kész.
+A személyes árak elfogadott szabályok; a szolgáltatói cél Stripe Managed Payments, élő fiókjogosultságának igazolása még nyitott. A teljes meghívásos éles működés és a billing aktiválása külön fejlesztési/kiadási kapu. A Shared tier-nevek nem személyes fejezetcsomagok.
 
 ## 10. Privacy és data ownership
 
