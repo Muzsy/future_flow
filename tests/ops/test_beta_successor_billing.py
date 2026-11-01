@@ -81,6 +81,10 @@ class BillingChainTests(unittest.TestCase):
         self.expose(6, 'enforce')
         self.refused(7, selection=self.selection('enforce'))
 
+    def test_a_test_configuration_is_refused_after_the_live_stage_even_when_the_sandbox_never_ran(self):
+        self.expose(4, 'live')
+        self.refused(5, selection=self.selection('sandbox'))
+
     def test_the_selection_shape_is_exact_and_test_keys_never_enforce(self):
         previous = hashed(self.chain.terms)
         mutations = {
@@ -277,6 +281,23 @@ class BillingRootTests(ChainRootBase):
         }.items():
             with self.subTest(label), self.assertRaises(ValueError):
                 self.candidate(secrets=secrets)
+
+    def test_the_key_mode_must_equal_the_selected_mode_even_when_the_digests_match(self):
+        # The selection is internally consistent about the live key's digest but says "test".
+        selection = self.selection('sandbox', key=LIVE_KEY)
+        self.assertEqual(selection['billing']['mode'], 'test')
+        with self.assertRaises(ValueError):
+            root.billing_secrets({'secretKey': LIVE_KEY, 'webhookSecret': WEBHOOK}, selection)
+        live = self.selection('live', key=TEST_KEY)
+        self.assertEqual(live['billing']['mode'], 'live')
+        with self.assertRaises(ValueError):
+            root.billing_secrets({'secretKey': TEST_KEY, 'webhookSecret': WEBHOOK}, live)
+
+    def test_the_adapter_never_accepts_an_enforcing_selection_in_test_mode(self):
+        for stage in ('sandbox', 'live', 'enforce'):
+            with self.subTest(stage), self.assertRaises(ValueError):
+                root.billing_selection(self.selection(stage, mode='test', enforcement=True))
+        root.billing_selection(self.selection('enforce'))  # the genuine live enforcing selection stays valid
 
     def test_the_return_addresses_must_use_the_production_host(self):
         for host in ('beta.example.com', ''):
