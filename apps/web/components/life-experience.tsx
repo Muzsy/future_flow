@@ -14,6 +14,12 @@ import {
   type PublicForkInitialChoice,
 } from '@future-flow/contracts';
 import { api, lifeApi, ClientError, clientErrorMessage } from '../lib/client';
+import {
+  lifeNoticeForError,
+  visibleLifeNotice,
+  type LifeNotice,
+} from '../lib/life-notice';
+import { LifeErrorNotice } from './life-error-notice';
 import { lifeMessages } from '../lib/life-messages';
 import { useLanguage } from './language-provider';
 import { trackLife, lifeSessionId } from '../lib/life-analytics';
@@ -115,8 +121,14 @@ export function LifeExperience({
     m = lifeMessages[locale],
     router = useRouter();
   const [loading, setLoading] = useState(true),
-    [notice, setNotice] = useState(''),
+    [noticeState, setNoticeState] = useState<LifeNotice | null>(null),
     [busy, setBusy] = useState(false);
+  const notice = visibleLifeNotice(noticeState, user)?.message ?? '';
+  function setNotice(message: string) {
+    setNoticeState(
+      message ? { userId: user, message, billingReason: null } : null,
+    );
+  }
   const [list, setList] = useState<Summary[]>([]),
     [detail, setDetail] = useState<Detail | null>(null);
   const [sharedUpdates, setSharedUpdates] = useState<
@@ -392,7 +404,7 @@ export function LifeExperience({
     try {
       await run();
     } catch (error) {
-      setNotice(clientErrorMessage(error));
+      setNoticeState(lifeNoticeForError(error, user));
     } finally {
       setBusy(false);
     }
@@ -425,10 +437,8 @@ export function LifeExperience({
         <p>{m.loading}</p>
       </div>
     );
-  const error = notice && (
-    <div className="notice error" role="alert">
-      {notice}
-    </div>
+  const error = (
+    <LifeErrorNotice notice={noticeState} userId={user} locale={locale} />
   );
   if (page === 'lives')
     return (

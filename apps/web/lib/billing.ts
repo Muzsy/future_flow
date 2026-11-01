@@ -13,6 +13,17 @@ export type BillingStatus = {
 
 export type CheckoutResult = 'success' | 'cancel' | null;
 
+export type AccountBillingStatus = Readonly<{
+  userId: string;
+  status: BillingStatus;
+}>;
+export function billingStatusForAccount(
+  snapshot: AccountBillingStatus | null,
+  userId: string | null,
+): BillingStatus | null {
+  return userId && snapshot?.userId === userId ? snapshot.status : null;
+}
+
 export function checkoutResult(search: string): CheckoutResult {
   const value = new URLSearchParams(search).get('checkout');
   return value === 'success' || value === 'cancel' ? value : null;
