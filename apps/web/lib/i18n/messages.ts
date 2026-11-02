@@ -250,7 +250,10 @@ export const en = {
     'The subscription renews automatically every month until you cancel it. The ten selected launch accounts get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
   'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
-  'billing.manage': 'To cancel or change your subscription, write to',
+  'billing.manage': 'Manage subscription',
+  'billing.manageTerms':
+    'Manage your subscription securely on Stripe. Cancellation stops the next renewal; your paid access continues until the end of the current billing period.',
+  'billing.support': 'If you need help, contact',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
     'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends.',
@@ -604,7 +607,10 @@ export const hu: Record<MessageKey, string> = {
     'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A tíz kijelölt induló fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
   'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
-  'billing.manage': 'Az előfizetés lemondásához vagy módosításához írj ide:',
+  'billing.manage': 'Előfizetés kezelése',
+  'billing.manageTerms':
+    'Az előfizetésedet biztonságosan a Stripe felületén kezelheted. A lemondás a következő megújulást állítja le; a kifizetett hozzáférés az aktuális ciklus végéig megmarad.',
+  'billing.support': 'Ha segítség kell, írj ide:',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
     'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén.',
