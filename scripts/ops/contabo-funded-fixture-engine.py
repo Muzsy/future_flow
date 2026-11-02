@@ -762,11 +762,19 @@ def exercise(context, *, scope='ci'):
             restoredDB = 'aw_restore_' + uuid.uuid4().hex[:24]
             databases.add(restoredDB)
             sql('postgres', 'CREATE DATABASE ' + restoredDB)
+            restore_list = None
             if registry:
-                # pg_dump --schema=public explicitly recreates the schema. Only
-                # this newly created nonce-owned empty comparison DB is changed;
-                # the production data-only quarantine retains its clean catalog.
-                sql(restoredDB, 'DROP SCHEMA public')
+                # Preserve the fresh DB's original default public-schema ACL.
+                # A schema-filtered dump explicitly CREATEs public; replay every
+                # other archive entry, then require the entire v2 catalog to match.
+                toc = run(['docker','exec','-i',context['postgres'],'pg_restore','--list'],restored['application.dump.age'])
+                lines = toc.decode().splitlines()
+                schema = [line for line in lines if re.fullmatch(r'[0-9]+; [0-9]+ [0-9]+ SCHEMA - public [a-zA-Z_][a-zA-Z0-9_]*',line)]
+                if len(schema) != 1:
+                    raise ValueError('One exact public-schema TOC entry required')
+                restore_list = '/tmp/'+restoredDB+'-public.list'
+                listing = ('\n'.join(line for line in lines if line not in schema)+'\n').encode()
+                run(['docker','exec','-i',context['postgres'],'sh','-c','umask 077; cat > '+restore_list],listing)
             run(
                 [
                     'docker',
@@ -777,11 +785,14 @@ def exercise(context, *, scope='ci'):
                     '-U',
                     'postgres',
                     '--single-transaction',
+                    *(['--use-list='+restore_list] if restore_list else []),
                     '-d',
                     restoredDB,
                 ],
                 restored['application.dump.age'],
             )
+            if restore_list:
+                run(['docker','exec',context['postgres'],'rm','-f',restore_list])
             if registry:
                 # The production archive is public-only. Restore the fixture's
                 # synthetic Auth schema separately solely for identity comparison;
@@ -792,13 +803,11 @@ def exercise(context, *, scope='ci'):
             capture_args = {'participants':system.original_terms()['participants']} if registry else None
             current = db(capture_mode, system.database, capture_args)
             restoredState = db(capture_mode, restoredDB, capture_args)
-            (daily.same_registry_runtime if registry else funded.same_funded)(
-                {
-                    **current,
-                    'identityBindingSha256': restoredState['identityBindingSha256'],
-                },
-                restoredState,
-            )
+            compared = {**current,'identityBindingSha256':restoredState['identityBindingSha256']}
+            if registry and compared != restoredState:
+                changed = sorted(k for k in compared if compared[k] != restoredState.get(k))
+                print('Synthetic registry binary restore drift fields: '+','.join(changed),file=sys.stderr)
+            (daily.same_registry_runtime if registry else funded.same_funded)(compared,restoredState)
             tables = (
                 sql(
                     system.database,
