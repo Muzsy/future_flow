@@ -451,7 +451,8 @@ class System(funded.System):
         # Authenticate a real fresh candidate restore before any new SQL attempt.
         # Retain the measured evidence once; later Daily status refreshes must not
         # silently rebind an already journaled intent to another backup.
-        self.backup(candidate)
+        if persist:
+            self.backup(candidate)  # freshness applies to preparation, never to read-only recovery
         path = self.root / 'registry-evidence.json'
         if path.exists() or path.is_symlink():
             evidence = json.loads(fence.original(path))
@@ -459,6 +460,8 @@ class System(funded.System):
             if evidence['candidateSha256'] != canonical_sha(candidate):
                 raise ValueError('Original registry backup evidence required')
         else:
+            if not persist:
+                raise ValueError('Durable registry backup evidence required')
             restore = json.loads(self.daily.regular(self.daily.ROOT / 'status' / 'restore.json'))
             records = self.daily.completed_archives(self.daily.ROOT / 'backups')
             record = next((r['manifest'] for r in records if r['manifest']['runId'] == restore['runId']), None)
@@ -488,11 +491,17 @@ class System(funded.System):
             raise ValueError('Registry intent must match its durable journal binding')
         return intent
 
-    def registry_database_request(self, candidate, mode, intent=None):
-        expected = {'context': self.registry_context(candidate)}
+    def registry_database_request(self, candidate, mode):
+        if mode not in {'registry-prepare', 'registry-apply', 'registry-reconcile'}:
+            raise ValueError('Explicit registry controller mode required')
+        if mode == 'registry-prepare' and ((self.root / 'registry-intent.json').exists()
+                or (self.root / 'registry-intent.json').is_symlink()):
+            raise ValueError('Existing registry intent requires read-only reconciliation')
+        expected = {'context': self.registry_context(candidate, persist=mode == 'registry-prepare')}
         if mode != 'registry-prepare':
-            if intent is None:
-                intent = self.registry_intent(candidate)
+            # Never hash a caller-supplied intent as if it proved persistence.
+            # The only authority is the original root file plus its journal row.
+            intent = self.registry_intent(candidate)
             expected.update(intent=intent, persistedIntentSha256=canonical_sha(intent))
         return self.raw_probe(candidate['release']['target']['imageId'], {
             'mode': mode, 'participants': list(self.original_terms()['participants']), 'expected': expected})

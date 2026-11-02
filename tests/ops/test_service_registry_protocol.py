@@ -117,10 +117,40 @@ class RegistryEvidenceTests(ChainRootBase):
             self.assertEqual(before['backupManifestSha256'], root.canonical_sha(manifest))
             self.assertEqual(before['restoreProofSha256'], root.canonical_sha(proof))
             self.fixture.write(state / 'status' / 'restore.json', root.encoded({'runId': 'later-backup'}))
+            system.backup.side_effect = ValueError('Synthetic fresh gate now belongs to backup B')
             self.assertEqual(system.registry_context(candidate), before)
-            self.assertEqual(system.backup.call_count, 2)
+            self.assertEqual(system.backup.call_count, 1)
             with self.assertRaisesRegex(ValueError, 'Original registry backup'):
                 system.registry_context({**candidate, 'sourceCommit': 'f' * 40})
+
+    def test_prepare_must_persist_evidence_and_cannot_replace_an_existing_intent(self):
+        system = self.system()
+        system.root.mkdir(mode=0o700)
+        system.registry_context = Mock(side_effect=ValueError('Synthetic persistence refused'))
+        system.raw_probe = Mock()
+        candidate = {'release': {'target': {'imageId': 'sha256:' + 'b' * 64}}}
+        with self.assertRaisesRegex(ValueError, 'persistence refused'):
+            system.registry_database_request(candidate, 'registry-prepare')
+        system.registry_context.assert_called_once_with(candidate, persist=True)
+        self.fixture.write(system.root / 'registry-intent.json', root.encoded({'synthetic': 'preserved'}))
+        with self.assertRaisesRegex(ValueError, 'Existing registry intent'):
+            system.registry_database_request(candidate, 'registry-prepare')
+        system.raw_probe.assert_not_called()
+        self.assertEqual(system.registry_context.call_count, 1)
+
+    def test_apply_and_reconcile_cannot_bypass_the_durable_journal_binding(self):
+        system = self.system()
+        system.registry_context = Mock(return_value={'synthetic': 'measured'})
+        system.registry_intent = Mock(side_effect=ValueError('Synthetic invalid durable intent'))
+        system.raw_probe = Mock()
+        candidate = {'release': {'target': {'imageId': 'sha256:' + 'b' * 64}}}
+        for mode in ('registry-apply', 'registry-reconcile'):
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, 'invalid durable'):
+                system.registry_database_request(candidate, mode)
+        with self.assertRaisesRegex(ValueError, 'Explicit registry controller'):
+            system.registry_database_request(candidate, 'migrate')
+        system.raw_probe.assert_not_called()
+        self.assertEqual(system.registry_intent.call_count, 2)
 
     def test_registry_intent_is_bound_to_a_hashed_journal_row(self):
         system = self.system()
