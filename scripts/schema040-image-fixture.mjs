@@ -6,6 +6,7 @@ import {
   registryImageFixtureVersion,
   registryImageFixtureChecks,
   schema040FixtureNames,
+  schema040FixtureNetworkNames,
 } from './lib/schema040-fixture-contract.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
@@ -38,7 +39,42 @@ export function runRegistryImageFixture(context, scope) {
   const postgres = JSON.parse(call(['inspect', context.postgres]))[0];
   assert.equal(network.Internal, true);
   assert.equal(postgres.State.Running, true);
-  assert.equal(Object.keys(postgres.NetworkSettings.Networks).length, 1);
+  const expectedNetworks = schema040FixtureNetworkNames(
+    scope,
+    context.databaseNetwork,
+  );
+  assert.deepEqual(
+    Object.keys(postgres.NetworkSettings.Networks).sort(),
+    [...expectedNetworks].sort(),
+  );
+  for (const name of expectedNetworks) {
+    const actual =
+      name === context.databaseNetwork
+        ? network
+        : JSON.parse(call(['network', 'inspect', name]))[0];
+    assert.equal(actual.Internal, true);
+    assert.equal(postgres.NetworkSettings.Networks[name].NetworkID, actual.Id);
+    if (scope === 'ci') {
+      const project = context.databaseNetwork.slice(0, -6);
+      assert.equal(
+        postgres.Config.Labels['com.docker.compose.project'],
+        project,
+      );
+      if (name !== context.databaseNetwork) {
+        assert.equal(actual.Labels['com.docker.compose.project'], project);
+        assert.equal(actual.Labels['com.docker.compose.network'], 'worker');
+      }
+    } else {
+      assert.equal(
+        actual.Labels['com.alterward.image-rehearsal'],
+        context.databaseNetwork,
+      );
+      assert.equal(
+        postgres.Config.Labels['com.alterward.image-rehearsal'],
+        context.databaseNetwork,
+      );
+    }
+  }
   assert(postgres.NetworkSettings.Networks[context.databaseNetwork]);
   assert.equal(
     postgres.Config.Labels['com.docker.compose.service'],

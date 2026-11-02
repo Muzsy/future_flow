@@ -28,3 +28,16 @@ export function schema040FixtureNames(nonce) {
     target: 'aw_restore_' + nonce,
   };
 }
+
+export function schema040FixtureNetworkNames(scope, name) {
+  if (typeof name !== 'string')
+    throw Error('Exact owned fixture network profile required');
+  if (scope === 'ci' && /^alterward-ci-[0-9]+-proxy$/.test(name))
+    return [name, name.slice(0, -6) + '_worker'];
+  if (
+    scope === 'image-rehearsal' &&
+    /^alterward-image-rehearsal-[a-f0-9]{24}$/.test(name)
+  )
+    return [name];
+  throw Error('Exact owned fixture network profile required');
+}

@@ -5,3 +5,8 @@ export function schema040FixtureNames(nonce: unknown): {
   snapshot: string;
   target: string;
 };
+
+export function schema040FixtureNetworkNames(
+  scope: unknown,
+  name: unknown,
+): string[];
