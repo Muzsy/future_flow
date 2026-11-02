@@ -1168,6 +1168,13 @@ class System(funded.System):
         readers.update_durable(self.root / 'database-after.json', encoded(self.after))
         self.stage(candidate, recovery=self.recovery)
 
+    def verify_staged_database(self, candidate, observed):
+        if not self.registry_profile():
+            return super().verify_staged_database(candidate, observed)
+        self.daily.same_registry_runtime(candidate['database'], observed)
+        if observed['schema'] != 40:
+            raise ValueError('Registry staged database must remain schema040')
+
     def verify_staged(self, candidate):
         after = {**candidate,'database':self.after}
         self.postcheck(after, recovery=self.recovery)

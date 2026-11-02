@@ -18,6 +18,32 @@ def observed(schema=39):
 
 
 class RegistryProtocolTests(unittest.TestCase):
+    def test_staged_registry_uses_complete_v2_guard_and_explicit040_schema(self):
+        from test_beta_successor_chain_root import root, funded
+        system = object.__new__(root.System)
+        system.request = {'selection':{'purpose':'schema-040'}}
+        system.generation = 2
+        system.daily = daily
+        before = observed(40)
+        candidate = {'database':before}
+        for purpose in ('schema-040','billing-config-040'):
+            system.request['selection']['purpose'] = purpose
+            system.verify_staged_database(candidate,copy.deepcopy(before))
+            for key,value in before.items():
+                changed = copy.deepcopy(before)
+                changed[key] = not value if isinstance(value,bool) else 'drift'
+                with self.subTest(purpose=purpose,key=key), self.assertRaises(ValueError):
+                    system.verify_staged_database(candidate,changed)
+            with self.assertRaises(ValueError):
+                system.verify_staged_database({'database':observed(39)},observed(39))
+        legacy = {**observed(39),'version':'alterward-funded-runtime-1'}
+        system.request['selection']['purpose'] = 'reader-admission'
+        system.verify_staged_database({'database':legacy},legacy)
+        with self.assertRaises(ValueError):
+            system.verify_staged_database({'database':legacy},{**legacy,'schema':40})
+        with self.assertRaises(ValueError):
+            funded.System.verify_staged_database(system,{'database':legacy},{**legacy,'schema':40})
+
     def test_only_the_new_schema_and_exact_reviewed_source_can_be_planned(self):
         previous = {'synthetic': 'unchanged terms and accounts'}
         selection = {'purpose': 'schema-040', 'previousTermsSha256': daily.successor_canonical_hash(previous),

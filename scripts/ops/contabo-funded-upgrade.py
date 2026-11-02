@@ -1228,6 +1228,11 @@ class System:
         ):
             raise ValueError('Private staging network contains a foreign workload')
 
+    def verify_staged_database(self, candidate, observed):
+        same_funded(candidate['database'], observed)
+        if observed['schema'] != 39:
+            raise ValueError('Funded staged database schema changed')
+
     def postcheck(self, candidate, *, recovery=False):
         roles = self.roles()
         if any(
@@ -1270,11 +1275,8 @@ class System:
         if checks.get('anonymousDenied') != 4:
             raise ValueError('Candidate origin boundary incomplete')
         after = self.probe(expected, 'capture')
-        same_funded(candidate['database'], after)
-        if (
-            after['schema'] != 39
-            or upgrade.foreign_state() != candidate['baseline']['foreign']
-        ):
+        self.verify_staged_database(candidate, after)
+        if upgrade.foreign_state() != candidate['baseline']['foreign']:
             raise ValueError('Funded staged state changed')
 
     def promote(self, candidate, *, recovery=False):

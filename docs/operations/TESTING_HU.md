@@ -128,6 +128,8 @@ A `alterward-beta-successor-fixture-5` külön registry receipt: a korábbi23 su
 
 A fixture a production `quarantine.replay()` transportot használja valódi publikus PostgreSQL dump-pal, adat-only clean restore-ral, TLS-sel, actual image-dzsel és ellenőrzött cleanup-pal. A hosted Auth-inventory csak itt szintetikus, az éles verified observer határa változatlan. A postcheck-recovery eset újabb tízperces várakozás nélkül, változatlan jövőbeli funded window mellett járja végig a040 → sandbox → live → enforce ágat. A másik lánc a már érvényesített039 billing felett migrál, és elveszett COMMIT-kimenetből SQL-ismétlés nélkül áll helyre.
 
+A staged alkalmazás DB-postcheckje verzióhoz kötött: a régi funded/successor út039-et és a változatlan v1 megőrzési szabályt, a két explicit registry purpose040-et és a teljes v2 runtime pontos egyezését követeli. A hálózati, worker-stop, újraindítási, konfigurációs, origin- és idegenkonténer-kapuk közösek és változatlanok. A protokollregresszió minden v2 mező driftjét és mindkét irányú hibás sémát elutasítja.
+
 Az aktuális kód CI child-kerete30perc, Container job45perc; a fenti korábbi15/40perces bejegyzés történeti. Az új source-hoz a konkrét saját CI és exact-source review eredménye kell; a fixture-protokoll léte nem sikeres futás vagy éles engedély. A mért futásidőt a CI rögzíti, provider/AI hívás nincs.
 
 
