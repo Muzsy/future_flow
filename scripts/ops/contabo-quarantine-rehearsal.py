@@ -39,6 +39,19 @@ def selected_table_data(toc, tables, *, recovery_profile=None):
     return ('\n'.join(entries)+'\n').encode()
 
 
+def same_migration_verification(applied, verified):
+    # The raw verifier receipt contains the time of this independent observation.
+    # Compare all measured state (including its full verifier-state hash), while
+    # retaining both well-formed per-observation receipt hashes unchanged.
+    for proof in (applied, verified):
+        for key in ('postVerificationSha256', 'postVerificationStateSha256'):
+            if not isinstance(proof.get(key), str) or not re.fullmatch(r'[a-f0-9]{64}', proof[key]):
+                raise ValueError('Complete independently measured migration verification required')
+    if ({k:v for k,v in applied.items() if k != 'postVerificationSha256'} !=
+            {k:v for k,v in verified.items() if k != 'postVerificationSha256'}):
+        raise ValueError('Independent migrated quarantine verification differs')
+
+
 def prepare_backup(daily, request, scratch, *, reviewed_releases=None):
     identity = request.get('recoveryIdentity')
     if not isinstance(identity, str) or len(identity) > 4096 or '\0' in identity:
@@ -212,8 +225,9 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
             except Exception:
                 pass
             migration_proof = node('registry-verify', payload)['proof']
-            if applied is not None and applied != migration_proof:
-                raise ValueError('Independent migrated quarantine verification differs')
+            same_migration_verification(migration_proof, migration_proof)
+            if applied is not None:
+                same_migration_verification(applied, migration_proof)
             if (migration_proof.get('version') != 'alterward-registry-migration-restore-proof-1'
                     or migration_proof.get('profile') != 'historical039-to-registry040'
                     or migration_proof.get('context') != context or migration_proof.get('intentSha256') != persisted

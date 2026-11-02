@@ -44,6 +44,30 @@ class DataOnlyArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Complete'):
             quarantine.selected_table_data(b'1; 1 2 TABLE public ff_users postgres\n',['ff_users'])
 
+class MigrationVerificationTests(unittest.TestCase):
+    def proof(self):
+        return {'postVerificationSha256':'a'*64, 'postVerificationStateSha256':'b'*64,
+                'context':{'quarantineDatabase':'aw_restore_'+'a'*24},
+                'intentSha256':'c'*64, 'after':{'schema':40}, 'providerApiCalls':0}
+
+    def test_independent_receipt_time_may_differ_but_complete_state_must_match(self):
+        applied = self.proof()
+        verified = {**applied, 'postVerificationSha256':'d'*64}
+        quarantine.same_migration_verification(applied, verified)
+        for key,value in [('postVerificationStateSha256','e'*64),('context',{}),
+                          ('intentSha256','f'*64),('after',{'schema':39}),('providerApiCalls',1),
+                          ('unexpected','ignored')]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                quarantine.same_migration_verification(applied,{**verified,key:value})
+
+    def test_missing_or_invalid_observation_or_state_hash_fails_even_without_apply_output(self):
+        for key in ('postVerificationSha256','postVerificationStateSha256'):
+            for value in (None, '', 'unverified', 1):
+                proof = {**self.proof(), key:value}
+                with self.subTest(key=key,value=value), self.assertRaises(ValueError):
+                    quarantine.same_migration_verification(proof,proof)
+
+
 class FundedReplaySelectionTests(unittest.TestCase):
     def test_wrong_funded_backup_pair_is_rejected_before_any_container_or_key_operation(self):
         from unittest.mock import Mock

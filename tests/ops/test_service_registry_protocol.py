@@ -364,6 +364,11 @@ class RegistryRestoreProofTests(unittest.TestCase):
     def test_only_a_source_archive_candidate_bound_actual_migration_receipt_is_accepted(self):
         candidate, manifest, proof = self.fixture()
         self.assertEqual(daily.validate_registry_restore_proof(candidate,manifest,proof,migration=True),proof)
+        for value in (None, '', 'unverified', 1):
+            changed = copy.deepcopy(proof)
+            changed['registryMigrationRestore']['postVerificationStateSha256'] = value
+            with self.subTest(state_hash=value), self.assertRaises(ValueError):
+                daily.validate_registry_restore_proof(candidate,manifest,changed,migration=True)
         for key, value in {'sourceCommit':'f'*40,'backupRunId':'foreign',
             'ownerManifestDigest':'f'*64,'backupManifestCanonicalSha256':'f'*64,
             'dataOnlyOriginalBackupLoaded':False,'freshStateEqualBeforeAndAfterReplay':False,

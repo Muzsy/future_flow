@@ -35,7 +35,7 @@ def registry_replay(candidate, manifest=None, *, migration=True):
             'sourceTables':100,'reviewedTables':102,'reviewedForeignKeys':226,'newRegistryEmpty':True,
             'replayedDataPreserved':True,'serviceActivationAllowed':False,'authProviderWrites':False,'providerApiCalls':0,
             **{k:'c'*64 for k in ('intentSha256','sourceAuthoritySha256','historicalReplayProofSha256',
-                'historicalVerificationSha256','postVerificationSha256')}}
+                'historicalVerificationSha256','postVerificationSha256','postVerificationStateSha256')}}
     else:
         proof['fundedRuntime'].update(schema=40,recoveryProfile='registry040')
         proof.update(reviewedTables=102,reviewedForeignKeys=226,independentReadOnlyPostReplayVerified=True,

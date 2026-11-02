@@ -138,6 +138,8 @@ A #137 külön039/040 schema/security/replay profilt és könyvtári039→040 br
 
 A bridge sorrendje: tényleges039 replay → független039 read-only ellenőrzés → mért intent →100 régi tábla és39 receipt megőrzésével atomikus040 SQL → független040 read-only ellenőrzés, az új2tábla üres. A privilegizált production-hívónak intentet a SQL előtt tartósan kell mentenie. Commit utáni elveszett válasz külön read-only verify-val egyeztethető; nincs SQL újrafuttatás. A tényleges schema40 nem fogadható el a régi039 guard lazításával.
 
+Az apply és a külön verify saját megfigyelési idővel készít receiptet, ezért a teljes `postVerificationSha256` eltérhet. A receipt hashét nem írjuk át; a `postVerificationStateSha256` a teljes verifier-eredményt köti kizárólag a `verifiedAt` nélkül. A host minden további proof-mező és ezen teljes állapothash pontos egyezését követeli; hiányos hash vagy bármely állapot-/authority-/intent-eltérés megállítja a próbát. Elveszett apply-kimenetnél is teljes, új read-only verify szükséges.
+
 A képhez/source-hoz kötött `alterward-service-registry-image-fixture-1` szintetikus PostgreSQL-próba külön bizonyíték; nem offsite/éles backup, fennálló production fence, operátori audit vagy promotion. A korábbi funded v1/038→039 szerződés megmarad. Production040 successor, Daily/monitor/restore és billing-config040 támogatás [#142](https://github.com/Muzsy/future_flow/issues/142) alatt készítendő; addig nincs040 rollout. Sem API/web hozzáférési bekötés, sem új admission/pause/reconcile operátor nem következik pusztán a tároló létezéséből.
 
 

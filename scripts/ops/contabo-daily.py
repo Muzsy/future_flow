@@ -851,7 +851,7 @@ def validate_registry_restore_proof(candidate, manifest, proof, *, migration):
                 or type(step.get('providerApiCalls')) is not int or step['providerApiCalls'] != 0
                 or any(not isinstance(h,str) or not re.fullmatch(r'[a-f0-9]{64}',h) for h in
                     [context.get('quarantineInstanceSha256')] + [step.get(k) for k in ('intentSha256',
-                        'sourceAuthoritySha256','historicalReplayProofSha256','historicalVerificationSha256','postVerificationSha256')])):
+                        'sourceAuthoritySha256','historicalReplayProofSha256','historicalVerificationSha256','postVerificationSha256','postVerificationStateSha256')])):
             raise ValueError('Measured independently verified historical039 to040 restore required')
     elif (active.get('version') != 'alterward-funded-replay-2' or active.get('schema') != 40
             or active.get('recoveryProfile') != 'registry040' or proof.get('reviewedTables') != 102
