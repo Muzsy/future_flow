@@ -66,15 +66,33 @@ A `service-registry-upgrade.ts` a meglévő v2 capture/migrate primitívet expli
 
 Prepare/reconcile konzisztens READ ONLY tranzakciót kér. Apply a DB órájából ellenőrzött900másodperces intentet és a mentett intent hashét kéri, majd a serializable, zárolt primitív újra ellenőrzi a teljes039 alapot. A read-only reconcile lejárt intentnél is megfigyelheti a már commitolt040-et; soha nem indít SQL-ismétlést. Nem ígér automatikus retry-t vagy alkalmazásaktiválást. A forrás/image-kötött szintetikus PG-fixture ugyanezt a transportot ellenőrzi; nem igazol éles backupot vagy operátori auditot.
 
-A teljes #142 successor/Daily/native040 recovery és konfigurációs controller még hiányzik; a forrásból nem készülhet éles040 csomag ezek nélkül.
+A teljes #142 elfogadása külön kapu: a host integráció fejlesztői jelöltje még nem főági vagy éles release. A következő szakasz a jelölt szerződését írja le; az audit, saját CI és a tényleges célgépes próba eredménye nem következik a forrás meglétéből.
 
 A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
+
+### Operátori integráció — #142, fejlesztői jelölt
+
+A040 plan előkészítése csak39→40 selectiont, változatlan korábbi termseket és33 konkrét reviewed alkalmazásút pontos SHA-256 értékét fogadhatja el. A v2 snapshot összehasonlítása stabil állapotnál a catalog/registry és billing hashét is köti; csak a migráció ismert39→40 átmenete enged üres új registryt és eltérő katalógust. A Compose új `SERVICE_ACCESS_ENFORCEMENT=false` értéke a korábbi renderből hiányozhat, de true/üres/hibás érték nem normalizálható el.
+
+Az image-capability külön fix parancsot kap: az eredeti v1 parancs és command-hash megmarad; a registry parancsot csak explicit támogató controller engedheti. A cleanup továbbra tényleges image/name/label/command/input hash és erőforráshatárok szerint ellenőriz. A root helper az eredeti candidate backup/restore bizonyítékát külön tartja meg, és az intentet a journal hashéhez ellenőrzi; későbbi Daily státuszfrissítés nem kötheti át.
+
+A prepare helper kötelezően tartósítja a mért backup-evidence-t, és meglévő intentet nem készíthet újra. Apply/reconcile csak a root fájlból és a journalhoz kötve olvashat intentet, közvetlenül átadott intent nincs. A read-only visszaolvasás az eredeti tartós evidence-t használja, nem követeli meg az azóta megváltozott Daily restore-pointer régi értékét.
+
+A root/Daily/funded-replay journal-validátorok külön, célhoz kötött `registryIntentSha256` rowsémát kaptak. A root valódi privát fájljain futó regresszió a hash-lánc és az intent/evidence sértetlenségét ellenőrzi; a migráció SQL-hashét a Python és TypeScript ugyanahhoz a reviewed forráshoz köti. A később létrehozott evidence/intent fájlokat a korábbi backupA immutable coverage-e nem követelheti visszamenőleg; az eredeti kötést a journal védi, a következő normál backup pedig már ezeket is menti. A finite fájlkatalógus és az archívum-kezelés együtt változik.
+
+A jelölt explicit `schema-040` és `billing-config-040` plan3 műveleteket használ. A schema intentet `registryIntentSha256`, a konfiguráció tartós restore-evidence-ét `registryEvidenceSha256` köti a saját `database-intent` journal-sorhoz; a régi protokollok ezeket nem fogadják el. Az eredeti, 900másodperces SQL-érvényesség csak az új alkalmazást engedi; commitolt állapot késői, csak olvasó egyeztetése az eredeti bizonyítékot használja, mutable Daily-pointer vagy újraidőzítés nélkül.
+
+A `migration-plan` / `migration-rehearsal` a még039-es serving mellé kizárólag a már előkészített040 candidate ellenőrzött image-ét használhatja observernek. Az eredeti backup/authority provenance megmarad. A valódi101 publikus táblás039 dump adat-only betöltését követő privacy replay és független ellenőrzés után tartós, konkrét quarantine-instance-hez kötött intent készül, majd egyszeri040 SQL és külön read-only verify. Az éles SQL kapuja ezt a konkrét source/image/candidate/archive bizonyítékot kéri. Natív040 esetben külön v2 active proof és103 publikus táblás replay van,102 alkalmazástáblás/226 FK-s ellenőrzéssel; a registry és billing reconcile a quarantine-ban zárt marad.
+
+A Daily monitor külön `registry_restore_unverified` jelzést ad hiányzó/idegen natív proofra; timeraktiválás a legfrissebb mentés hatórán belüli natív privacy-próbáját is kéri. Az új backup önmagában nem értelmezi át a korábbi replay-t. A `billing-config-040` kizárólag040 után futhat; a sandbox/live/enforce történet ugyanazt a három egyszeri státuszt használja, mint039-en. Alkalmazásút-kivétel itt nincs, a teljes app/engine fagyasztott.
+
+A version5 successor fixture a korábbi23 kaput és hat új registry-kaput kéri, köztük a valódi candidate privacy/migrációs és natív privacy restore-t, valamint az elveszett COMMIT-kimenet utáni, SQL-ismétlés nélküli helyreállítást. Ez fejlesztői elfogadási szerződés; a tényleges futás eredményét a CI/PR rögzíti. Nincs éles aktiválás vagy operátori audit pusztán a jelölt lététől.
 
 ## Következő integrációs szeletek és elfogadás
 
 1. Tartós tároló és operátori műveletek: schema/migráció, RLS és anon/authenticated tiltás, privacy-katalógus/megőrzés/export/törlés, recovery-baseline, writer-fence és revízió/CAS együtt. Az adatminimalizált email/identitás-kötést még rögzíteni kell; a tartós regiszter nem lehet fiókmanipulációval írható.
 2. API/web: minden elérhető alkalmazásút, a közvetlen Auth/API kérések és a pre-login kapu lefedése; nincs rövidre zárt „Cloudflare hitelesített = meghívott” vagy sessionben örökre tárolt admission. A Supabase önregisztráció zárt marad. A backend csak ellenőrzött provider-identitást használ; a saját adatkontroll kivételei nem bővülnek termék-API bypassra.
-3. Operátori tartós működés: új csoport felvétele normál, ellenőrzött adatkezelés legyen image/env/új béta-window nélkül; policy/konfigurációváltás és pause/resume auditálható, forrás- és recovery-kapuhoz kötött. A mostani hétgyökeres lánc bővítése/kiváltása külön reviewed változás, nem tetszőleges fájl vagy baseline-őr megkerülése.
+3. Operátori tartós működés: új csoport felvétele normál, ellenőrzött adatkezelés legyen image/env/új béta-window nélkül; policy/konfigurációváltás és pause/resume auditálható, forrás- és recovery-kapuhoz kötött. A verziózott nyolcgyökeres lánc bővítése/kiváltása külön reviewed változás, nem tetszőleges fájl vagy baseline-őr megkerülése.
 4. Célzott integrációs, race és mért böngészős bizonyíték, majd I06 szerint konkrét éles felhatalmazás. Az új modul nem lazítja a befagyasztott motor ellenőrzését: a későbbi kiadásban minden auth/billing kivétel pontos reviewed hash-hez kötendő.
 
 ## Források és határ

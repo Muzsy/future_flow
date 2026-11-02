@@ -32,7 +32,7 @@ from alterward_successor_transition import transition
 VERSION = 'alterward-beta-successor-1'
 STATE_NAME = 'beta-successor'  # the first generation; later ones are chained, see System
 ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4',
-              'beta-successor-5', 'beta-successor-6', 'beta-successor-7')
+              'beta-successor-5', 'beta-successor-6', 'beta-successor-7', 'beta-successor-8')
 PLAN_VERSION = 'alterward-beta-successor-plan-2'
 # The six files the audit-driven dependency update (#110) changed; any other
 # manifest, even a sibling workspace package, stays frozen until a reviewed change names it.
@@ -43,6 +43,8 @@ ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDG
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
 READER_PURPOSE = 'reader-admission'
 SCHEMA_PURPOSE = 'schema-039'
+REGISTRY_PURPOSE = 'schema-040'
+REGISTRY_BILLING_PURPOSE = 'billing-config-040'
 BILLING_PURPOSE = 'billing-config'
 # Billing configuration is rolled out in at most three ordered, once-only stages:
 # a Stripe TEST configuration, the LIVE configuration, and finally the enforcement flag.
@@ -78,7 +80,7 @@ def allowed_purposes(generation):
     # generations first admit readers (no money), then open the tester window; the
     # schema upgrade is allowed once, behind any fully exposed generation.
     return ({'owner-e2e'} if generation == 1
-            else {READER_PURPOSE, 'tester-beta', SCHEMA_PURPOSE, BILLING_PURPOSE})
+            else {READER_PURPOSE, 'tester-beta', SCHEMA_PURPOSE, BILLING_PURPOSE, REGISTRY_PURPOSE, REGISTRY_BILLING_PURPOSE})
 
 
 def is_tester_window(terms):
@@ -101,9 +103,9 @@ def reader_emails(selection):
 
 def schema_selection(selection):
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'})
-    if (selection['purpose'] != SCHEMA_PURPOSE or type(selection['fromSchema']) is not int
+    if (selection['purpose'] not in {SCHEMA_PURPOSE, REGISTRY_PURPOSE} or type(selection['fromSchema']) is not int
             or type(selection['toSchema']) is not int
-            or (selection['fromSchema'], selection['toSchema']) != (SCHEMA_FROM, SCHEMA_TO)
+            or (selection['fromSchema'], selection['toSchema']) != ((39, 40) if selection['purpose'] == REGISTRY_PURPOSE else (SCHEMA_FROM, SCHEMA_TO))
             or not isinstance(selection['previousTermsSha256'], str)
             or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])):
         raise ValueError('Exact approved schema 038 to 039 selection required')
@@ -118,7 +120,7 @@ def billing_selection(selection):
         'cancelUrl', 'founderUserIds', 'reservationTtlSeconds', 'secretKeySha256', 'webhookSecretSha256'})
     founders = value['founderUserIds']
     stage, mode = value['stage'], value['mode']
-    if (selection['purpose'] != BILLING_PURPOSE or not isinstance(selection['previousTermsSha256'], str)
+    if (selection['purpose'] not in {BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE} or not isinstance(selection['previousTermsSha256'], str)
             or not funded.DIGEST.fullmatch(selection['previousTermsSha256'])
             or stage not in BILLING_STAGES or mode not in {'test', 'live'}
             or value['enabled'] is not True or type(value['enforcement']) is not bool
@@ -211,7 +213,7 @@ def require_billing_stage(selection, before, purposes):
 
 def keeps_window(selection):
     """Reader admission, the schema upgrade and billing configuration never change the funded window."""
-    return purpose_of(selection) in {READER_PURPOSE, SCHEMA_PURPOSE, BILLING_PURPOSE}
+    return purpose_of(selection) in {READER_PURPOSE, SCHEMA_PURPOSE, BILLING_PURPOSE, REGISTRY_PURPOSE, REGISTRY_BILLING_PURPOSE}
 
 
 def selection_values(selection):
@@ -220,10 +222,10 @@ def selection_values(selection):
     if purpose == READER_PURPOSE:
         reader_emails(selection)
         return {}
-    if purpose == SCHEMA_PURPOSE:
+    if purpose in {SCHEMA_PURPOSE, REGISTRY_PURPOSE}:
         schema_selection(selection)
         return {}
-    if purpose == BILLING_PURPOSE:
+    if purpose in {BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE}:
         billing_selection(selection)
         return {}
     funded.exact(selection, {'purpose', 'previousTermsSha256', 'closePreviousAt', 'next'})
@@ -285,7 +287,7 @@ def candidate_environment(text, selection, image_tag, previous=None, secrets=Non
         if count != 1:
             raise ValueError('One original reader line required')
         extra.add('CLOSED_SITE_ALLOWED_EMAILS')
-    if purpose_of(selection) == BILLING_PURPOSE:
+    if purpose_of(selection) in {BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE}:
         # Existing lines are replaced in place, missing ones appended; nothing else may move.
         billing = billing_values(selection, before, secrets)
         for key, value in billing.items():
@@ -317,7 +319,7 @@ def normalized(config, selection, previous=None):
     if purpose_of(selection) == READER_PURPOSE:
         for role in ('web', 'api'):
             result['services'][role]['environment']['CLOSED_SITE_ALLOWED_EMAILS'] = ','.join(reader_emails(selection))
-    if purpose_of(selection) == BILLING_PURPOSE:
+    if purpose_of(selection) in {BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE}:
         # The delta is the eleven billing values on api and worker only; their exact content is
         # authenticated separately (digests here, Daily on the frozen candidate). The web service
         # must carry none of them, on either side.
@@ -360,10 +362,27 @@ class System(funded.System):
         return purpose_of(self.selected()) == READER_PURPOSE
 
     def is_schema(self):
-        return purpose_of(self.selected()) == SCHEMA_PURPOSE
+        return purpose_of(self.selected()) in {SCHEMA_PURPOSE, REGISTRY_PURPOSE}
+
+    def is_registry_schema(self):
+        return purpose_of(self.selected()) == REGISTRY_PURPOSE
 
     def is_billing(self):
-        return purpose_of(self.selected()) == BILLING_PURPOSE
+        return purpose_of(self.selected()) in {BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE}
+
+    def registry_profile(self):
+        if ('selection' not in self.request and not (self.root / 'selection.json').exists()
+                and not (self.root / 'selection.json').is_symlink()):
+            return False  # the original engine-freeze capability can precede selection creation
+        return purpose_of(self.selected()) in {REGISTRY_PURPOSE, REGISTRY_BILLING_PURPOSE}
+
+    def allowed_capability_commands(self):
+        return ((funded.CAPABILITY_COMMAND, funded.REGISTRY_CAPABILITY_COMMAND) if self.registry_profile()
+                else super().allowed_capability_commands())
+
+    def image_capability_profile(self):
+        return (('alterward-funded-runtime-2', 40, 'service-registry-040') if self.registry_profile()
+                else super().image_capability_profile())
 
     def no_database_write(self):
         """Reader admission and billing configuration never write the database."""
@@ -414,7 +433,76 @@ class System(funded.System):
             accepted |= {sha(encoded(self.billing_frozen_source_hashes()))}
         return accepted
 
+    def registry_operation(self):
+        return {'plan': self.daily.registry_schema_plan(self.selected(), self.original_terms(),
+            self.now(), self.request['sourceHashes'])}
+
+    def registry_frozen_source_hashes(self):
+        approved = self.daily.REGISTRY_040_CHANGE_HASHES
+        if any(self.request['sourceHashes'].get(p) != h for p, h in approved.items()):
+            raise ValueError('Exact reviewed040 application exceptions required')
+        return {p: h for p, h in self.frozen_source_hashes().items() if p not in approved}
+
+    def registry_probe(self, image):
+        value = self.raw_probe(image, {'mode': 'registry-capture', 'expected': None,
+            'participants': list(self.original_terms()['participants'])})
+        return self.daily.parse_registry_runtime(value)
+
+    def registry_context(self, candidate, *, persist=False):
+        # Authenticate a real fresh candidate restore before any new SQL attempt.
+        # Retain the measured evidence once; later Daily status refreshes must not
+        # silently rebind an already journaled intent to another backup.
+        if persist:
+            self.backup(candidate)  # freshness applies to preparation, never to read-only recovery
+        path = self.root / 'registry-evidence.json'
+        if path.exists() or path.is_symlink():
+            evidence = json.loads(fence.original(path))
+            funded.exact(evidence, {'candidateSha256', 'backupManifest', 'restoreProof'})
+            if evidence['candidateSha256'] != canonical_sha(candidate):
+                raise ValueError('Original registry backup evidence required')
+        else:
+            if not persist:
+                raise ValueError('Durable registry backup evidence required')
+            restore = json.loads(self.daily.regular(self.daily.ROOT / 'status' / 'restore.json'))
+            records = self.daily.completed_archives(self.daily.ROOT / 'backups')
+            record = next((r['manifest'] for r in records if r['manifest']['runId'] == restore['runId']), None)
+            if record is None:
+                raise ValueError('Measured candidate backup and restore required')
+            replay = self.registry_restore(candidate, record)
+            evidence = {'candidateSha256': canonical_sha(candidate),
+                        'backupManifest': record, 'restoreProof': {**restore,'registryReplay':replay}}
+            if persist:
+                readers.durable_file(path, encoded(evidence))
+        return {'sourceCommit': candidate['sourceCommit'],
+            'imageId': candidate['release']['target']['imageId'],
+            'candidateSha256': canonical_sha(candidate),
+            'parentAuthoritySha256': canonical_sha({k: candidate[k] for k in (
+                'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256')}),
+            'backupManifestSha256': canonical_sha(evidence['backupManifest']),
+            'restoreProofSha256': canonical_sha(evidence['restoreProof'])}
+
+    def registry_intent(self, candidate):
+        return self.daily.registry_bound_intent(self.root, candidate,
+            self.journal(candidate)['states'], read=fence.original)
+
+    def registry_database_request(self, candidate, mode):
+        if mode not in {'registry-prepare', 'registry-apply', 'registry-reconcile'}:
+            raise ValueError('Explicit registry controller mode required')
+        if mode == 'registry-prepare' and ((self.root / 'registry-intent.json').exists()
+                or (self.root / 'registry-intent.json').is_symlink()):
+            raise ValueError('Existing registry intent requires read-only reconciliation')
+        expected = {'context': self.registry_context(candidate, persist=mode == 'registry-prepare')}
+        if mode != 'registry-prepare':
+            # Never hash a caller-supplied intent as if it proved persistence.
+            # The only authority is the original root file plus its journal row.
+            intent = self.registry_intent(candidate)
+            expected.update(intent=intent, persistedIntentSha256=canonical_sha(intent))
+        return self.raw_probe(candidate['release']['target']['imageId'], {
+            'mode': mode, 'participants': list(self.original_terms()['participants']), 'expected': expected})
+
     def schema_frozen_source_hashes(self):
+        if self.is_registry_schema():
+            return self.registry_frozen_source_hashes()
         # The schema upgrade ships billing, so exactly the reviewed allow-list may differ
         # from the serving image. Every other frozen path (above all the narrative engine)
         # must still match it byte for byte inside the SERVING image.
@@ -425,7 +513,7 @@ class System(funded.System):
         # A billing-config generation may carry exactly the reviewed pg-pool path; everything
         # else (above all the narrative engine) must still match the SERVING image.
         return {p:h for p,h in self.frozen_source_hashes().items()
-                if p not in funded.BILLING_CONFIG_ALLOWED_CHANGES}
+                if p not in (() if self.registry_profile() else funded.BILLING_CONFIG_ALLOWED_CHANGES)}
 
     def parent(self):
         _, _, context = self.chain()
@@ -471,7 +559,7 @@ class System(funded.System):
         if (proof.get('version') != VERSION or proof.get('preparedSha256') != sha(encoded(value))
                 or proof.get('sourceCommit') != value['sourceCommit']
                 or proof.get('imageId') != value['release'][role]['imageId']
-                or proof.get('schema') not in (38, 39) or proof.get('protectedDataUnchanged') is not True
+                or proof.get('schema') not in ((40,) if REGISTRY_PURPOSE in context.get('purposes', ()) else (38, 39)) or proof.get('protectedDataUnchanged') is not True
                 or proof.get('operationPaidAiCalls') != 0 or proof.get('databaseRestored') is not False
                 or self.hashes(root / role) != value['files'][role]
                 or value['files'][role] != context['files']):
@@ -541,6 +629,10 @@ class System(funded.System):
                 'foreign': upgrade.foreign_state()}
 
     def schema_probe(self, image, mode, expected=None):
+        if self.is_registry_schema():
+            if mode != 'capture' or expected is not None:
+                raise ValueError('Registry migration requires its journal-bound operation')
+            return self.registry_probe(image)
         """Capture (038 or 039) or the single reviewed 038 to 039 migration."""
         if mode not in {'capture', 'migrate'} or (mode == 'migrate') != (expected is not None):
             raise ValueError('Fixed schema database mode required')
@@ -555,6 +647,10 @@ class System(funded.System):
         return value
 
     def probe(self, image, mode, expected=None):
+        if self.registry_profile():
+            if mode != 'capture' or expected is not None:
+                raise ValueError('Registry writes require their journal-bound operation')
+            return self.registry_probe(image)
         if self.is_schema():
             return self.schema_probe(image, mode, expected)
         if mode != 'capture' or expected is not None:
@@ -587,6 +683,8 @@ class System(funded.System):
                          'selectionSha256': canonical_sha(selected)}}
 
     def schema_operation(self):
+        if self.is_registry_schema():
+            return self.registry_operation()
         now = self.now()
         stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         selected = self.selected()
@@ -602,16 +700,19 @@ class System(funded.System):
         now = self.now()
         stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         selected = self.selected()
-        return {'plan': {'version': PLAN_VERSION, 'purpose': BILLING_PURPOSE,
+        return {'plan': {'version': self.daily.SUCCESSOR_REGISTRY_PLAN_VERSION if self.registry_profile() else PLAN_VERSION,
+                         'purpose': purpose_of(selected),
                          'stage': billing_selection(selected)['stage'],
                          'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
                          'previousTermsSha256': canonical_sha(self.original_terms()),
                          'selectionSha256': canonical_sha(selected),
                          # Recorded evidence of the only source allowed to differ from the serving image.
-                         'allowedChanges': list(funded.BILLING_CONFIG_ALLOWED_CHANGES),
+                         'allowedChanges': [] if self.registry_profile() else list(funded.BILLING_CONFIG_ALLOWED_CHANGES),
                          'allowedChangeHashes': self.allowed_change_hashes()}}
 
     def allowed_change_hashes(self):
+        if self.registry_profile():
+            return {}  # configuration only: every application byte stays frozen
         hashes = {p: self.request['sourceHashes'].get(p) for p in funded.BILLING_CONFIG_ALLOWED_CHANGES}
         if any(not isinstance(h, str) or not funded.DIGEST.fullmatch(h) for h in hashes.values()):
             raise ValueError('Exact bundle hash of every allowed change required')
@@ -636,11 +737,15 @@ class System(funded.System):
         rendered = json.loads(upgrade.run(['docker','compose','--project-name',upgrade.PROJECT,
             '--env-file',str(path / 'server.env'),'-f',str(source / 'deploy/compose.contabo.yaml'),
             '-f',str(path / 'pinned-image.json'),'config','--format','json']).stdout)
+        original = self.configuration(DIRECTORY)
+        if self.is_registry_schema():
+            rendered = self.daily.registry_profile_default(rendered)
+            original = self.daily.registry_profile_default(original)
         if (normalized(rendered, self.selected(), previous)
-                != normalized(self.configuration(DIRECTORY), self.selected(), previous)):
+                != normalized(original, self.selected(), previous)):
             raise ValueError('Runtime delta exceeds selected allowance, readers and v9 configuration')
         self.daily.personal_runtime_policy({k:v['environment'] for k,v in rendered['services'].items()}, self.now())
-        if self.is_schema():
+        if self.is_schema() and not self.is_registry_schema():
             # Billing arrives with this image but stays at its compose default (off).
             # Enabling it, or any Stripe value, is a separate reviewed step.
             for role in ('api', 'worker'):
@@ -689,6 +794,9 @@ class System(funded.System):
     def prepare(self):
         selected = self.selected()
         selection_values(selected)
+        has_registry = REGISTRY_PURPOSE in self.chain()[2].get('purposes', ())
+        if has_registry != (purpose_of(selected) == REGISTRY_BILLING_PURPOSE):
+            raise ValueError('After registry040 only the versioned billing-config-040 continuation is allowed')
         if 'billingSecrets' in self.request and not self.is_billing():
             raise ValueError('Stripe secrets belong only to a billing-config preparation')
         self.archive_support()
@@ -708,7 +816,7 @@ class System(funded.System):
             if not set(access['allowedEmails']) < set(reader_emails(selected)):
                 raise ValueError('Reader admission may only add readers')
         elif self.is_schema():
-            if SCHEMA_PURPOSE in self.chain()[2].get('purposes', ()):
+            if purpose_of(selected) in self.chain()[2].get('purposes', ()):
                 raise ValueError('The schema upgrade may be applied at most once')
         elif self.is_billing():
             pass  # the ordered once-only stage rules are checked below, against the candidate environment
@@ -740,8 +848,10 @@ class System(funded.System):
                      else self.billing_operation() if self.is_billing()
                      else self.accounting(release['target']['imageId'], 'capture'))
         database = self.probe(release['target']['imageId'], 'capture')
-        if self.is_schema() and database['schema'] != SCHEMA_FROM:
+        if self.is_schema() and database['schema'] != (39 if self.is_registry_schema() else SCHEMA_FROM):
             raise ValueError('Live schema 038 database required before the upgrade')
+        if purpose_of(selected) == REGISTRY_BILLING_PURPOSE and database['schema'] != 40:
+            raise ValueError('Billing-config-040 requires the unchanged native040 database')
         plan = operation['plan']
         value = {'version':VERSION,'sourceCommit':self.request['sourceCommit'],
             'bundleSha256':self.request['bundleSha256'],'preparedAt':plan['observedAt'],
@@ -827,11 +937,18 @@ class System(funded.System):
             raise ValueError('Bounded successor journal bound to original preparation required')
         previous = None
         for row in value['states']:
-            funded.exact(row, {'state','changedAt','previousSha256','sha256'})
+            self.daily.registry_journal_fields(row, registry=self.is_registry_schema(),
+                registry_config=self.registry_profile() and self.is_billing())
             if row['previousSha256'] != previous or row['sha256'] != sha(encoded({k:v for k,v in row.items() if k != 'sha256'})):
                 raise ValueError('Successor journal chain changed')
             funded.stamp(row['changedAt'])
             previous = row['sha256']
+        if (candidate is not None and self.is_registry_schema()
+                and any(row['state'] == 'database-intent' for row in value['states'])):
+            self.daily.registry_bound_intent(self.root, candidate, value['states'], read=fence.original)
+        if (candidate is not None and self.registry_profile() and self.is_billing()
+                and any(row['state'] == 'database-intent' for row in value['states'])):
+            self.daily.registry_bound_config_evidence(self.root,candidate,value['states'],read=fence.original)
         return value
 
     def record(self, state, candidate):
@@ -841,6 +958,26 @@ class System(funded.System):
             raise ValueError('Journal requires scoped inspection')
         row = {'state':state,'changedAt':self.now().isoformat(),
                'previousSha256':value['states'][-1]['sha256'] if value['states'] else None}
+        if self.is_registry_schema() and state == 'database-intent':
+            intent_path = self.root / 'registry-intent.json'
+            if intent_path.exists() or intent_path.is_symlink():
+                # Existing intents are never retimed/replaced. A missing journal
+                # binding is an inspection boundary, not permission to invent one.
+                intent = self.registry_intent(candidate)
+            else:
+                intent = self.registry_database_request(candidate, 'registry-prepare')
+                evidence = json.loads(fence.original(self.root / 'registry-evidence.json'))
+                self.daily.validate_registry_intent_payload(intent, candidate, evidence)
+                readers.durable_file(intent_path, encoded(intent))
+            row['registryIntentSha256'] = canonical_sha(intent)
+        if self.registry_profile() and self.is_billing() and state == 'database-intent':
+            evidence_path = self.root/'registry-evidence.json'
+            if evidence_path.exists() or evidence_path.is_symlink():
+                evidence = self.daily.registry_bound_config_evidence(self.root,candidate,value['states'],read=fence.original)
+            else:
+                self.registry_context(candidate,persist=True)
+                evidence = json.loads(fence.original(evidence_path))
+            row['registryEvidenceSha256'] = canonical_sha(evidence)
         row['sha256'] = sha(encoded(row))
         value['states'].append(row)
         readers.update_durable(path, encoded(value))
@@ -869,7 +1006,7 @@ class System(funded.System):
         result = self.reconcile_accounts(candidate)
         if result['state'] not in self.expected_states(recovery):
             raise ValueError('Exact unused accounting state required')
-        self.backup(candidate)
+        self.require_candidate_restore(candidate)
 
     def stop_and_hold(self, candidate):
         for number in upgrade.INTERRUPTION_SIGNALS:
@@ -899,8 +1036,34 @@ class System(funded.System):
         if result['state'] not in self.expected_states():
             raise ValueError('Exact drained accounting state required')
 
+    def registry_restore(self, candidate, manifest):
+        name = 'registry-migration-restore.json' if self.is_registry_schema() else 'registry-restore.json'
+        proof = json.loads(self.daily.regular(self.daily.ROOT/'status'/name))
+        self.daily.validate_registry_restore_proof(candidate, manifest, proof, migration=self.is_registry_schema())
+        records = self.daily.completed_archives(self.daily.ROOT/'backups')
+        record = next((r for r in records if r['manifest'] == manifest), None)
+        if record is None or record['files']['manifest.json']['sha256'] != proof.get('backupManifestSha256'):
+            raise ValueError('Original archive manifest bytes must match registry replay')
+        if not 0 <= (self.now() - funded.stamp(proof['capturedAt'])).total_seconds() <= 900:
+            raise ValueError('Fresh original registry replay proof required')
+        return proof
+
     def require_candidate_restore(self, candidate):
+        if self.recovery and self.registry_profile():
+            if self.is_registry_schema() and (self.root/'registry-intent.json').exists():
+                self.registry_intent(candidate)  # retained A: no mutable B pointer or freshness reset
+                return
+            if self.is_billing() and (self.root/'registry-evidence.json').exists():
+                self.daily.registry_bound_config_evidence(self.root,candidate,self.journal(candidate)['states'],read=fence.original)
+                return
         self.backup(candidate)
+        if self.registry_profile():
+            restore = json.loads(self.daily.regular(self.daily.ROOT/'status'/'restore.json'))
+            records = self.daily.completed_archives(self.daily.ROOT/'backups')
+            manifest = next((r['manifest'] for r in records if r['manifest']['runId'] == restore['runId']), None)
+            if manifest is None:
+                raise ValueError('Exact registry candidate archive required')
+            self.registry_restore(candidate, manifest)
 
     def apply_accounts(self, candidate):
         # No polling/retry around the financial write. A lost output is reconciled
@@ -911,7 +1074,31 @@ class System(funded.System):
             return self.migrate_schema(candidate)
         return self.accounting(candidate['release']['target']['imageId'], 'apply', candidate['operation'])
 
+    def registry_result(self, candidate, value):
+        funded.exact(value, {'version', 'intentSha256', 'state', 'observation',
+            'protectedDataUnchanged', 'serviceActivationAllowed', 'providerApiCalls', 'authProviderWrites'})
+        intent = self.registry_intent(candidate)
+        observed = self.daily.parse_registry_runtime(value['observation'])
+        if (value['version'] != 'alterward-registry-upgrade-result-1'
+                or value['intentSha256'] != canonical_sha(intent)
+                or value['state'] not in {'committed', 'uncommitted'}
+                or value['protectedDataUnchanged'] is not True or value['serviceActivationAllowed'] is not False
+                or value['authProviderWrites'] is not False or type(value['providerApiCalls']) is not int
+                or value['providerApiCalls'] != 0):
+            raise ValueError('Exact journal-bound registry result required')
+        self.daily.same_registry_runtime(candidate['database'], observed,
+            migration=value['state'] == 'committed')
+        if observed['schema'] != (40 if value['state'] == 'committed' else 39):
+            raise ValueError('Registry result state/schema mismatch')
+        return value
+
     def migrate_schema(self, candidate):
+        if self.is_registry_schema():
+            result = self.registry_result(candidate, self.registry_database_request(candidate, 'registry-apply'))
+            if result['state'] != 'committed':
+                raise ValueError('Committed registry migration required')
+            return {'migrated': True, 'schema': 40}
+
         """The one database write of the schema generation, never polled or retried.
 
         Exact image capability, drain and protected-data identity were proven before
@@ -931,6 +1118,21 @@ class System(funded.System):
         return {'migrated': True, 'schema': result['schema']}
 
     def reconcile_accounts(self, candidate):
+        if self.is_registry_schema():
+            path = self.root / 'registry-intent.json'
+            if path.exists() or path.is_symlink():
+                result = self.registry_result(candidate,
+                    self.registry_database_request(candidate, 'registry-reconcile'))
+                state = result['state']
+            else:
+                current = self.registry_probe(candidate['release']['target']['imageId'])
+                self.daily.same_registry_runtime(candidate['database'], current)
+                if current['schema'] != 39:
+                    raise ValueError('Unjournaled registry migration cannot be adopted')
+                state = 'uncommitted'
+            return {'state': state, 'operationSha256': canonical_sha(candidate['operation']),
+                'protectedDataUnchanged': True, 'paidAiCalls': 0}
+
         if self.is_schema():
             current = self.probe(candidate['release']['target']['imageId'], 'capture')
             funded.same_funded(candidate['database'], current)
@@ -941,7 +1143,10 @@ class System(funded.System):
             # No account may change. "Committed" only means the durable database
             # intent was reached, so recovery and replay follow the same order.
             current = self.probe(candidate['release']['target']['imageId'], 'capture')
-            funded.same_funded(candidate['database'], current)
+            if self.registry_profile():
+                self.daily.same_registry_runtime(candidate['database'], current)
+            else:
+                funded.same_funded(candidate['database'], current)
             journal = self.root / 'journal.json'
             intended = journal.exists() and any(
                 row['state'] == 'database-intent' for row in self.journal(candidate)['states'])
@@ -962,6 +1167,13 @@ class System(funded.System):
         self.after = self.probe(candidate['release']['target']['imageId'], 'capture')
         readers.update_durable(self.root / 'database-after.json', encoded(self.after))
         self.stage(candidate, recovery=self.recovery)
+
+    def verify_staged_database(self, candidate, observed):
+        if not self.registry_profile():
+            return super().verify_staged_database(candidate, observed)
+        self.daily.same_registry_runtime(candidate['database'], observed)
+        if observed['schema'] != 40:
+            raise ValueError('Registry staged database must remain schema040')
 
     def verify_staged(self, candidate):
         after = {**candidate,'database':self.after}
@@ -987,17 +1199,25 @@ class System(funded.System):
                                                   'foreignContainers':candidate['baseline']['foreign']})
         if result.get('existingForeignContainersUnchanged') is not True:
             raise ValueError('Foreign workload changed')
-        funded.same_funded(self.after, self.probe(candidate['release'][role]['imageId'], 'capture'))
+        observed = self.probe(candidate['release'][role]['imageId'], 'capture')
+        if self.registry_profile():
+            self.daily.same_registry_runtime(self.after, observed)
+        else:
+            funded.same_funded(self.after, observed)
         if self.reconcile_accounts(candidate)['state'] != 'committed':
             raise ValueError('Owner allowance used before host post-check completed')
         self.require_future_start(candidate)
         self.proof = {'version':VERSION,'preparedSha256':sha(encoded(candidate)),
             'sourceCommit':candidate['sourceCommit'],'imageId':candidate['release'][role]['imageId'],
-            'schema':39,'protectedDataUnchanged':True,'previousSpendPreserved':True,
-            **({'fromSchema':SCHEMA_FROM} if self.is_schema() else {}),
+            'schema':40 if self.registry_profile() else 39,'protectedDataUnchanged':True,'previousSpendPreserved':True,
+            **({'fromSchema':39 if self.is_registry_schema() else SCHEMA_FROM} if self.is_schema() else {}),
             'previousAllowanceClosed':self.is_window(),'operationSha256':canonical_sha(candidate['operation']),
             'fundedStateSha256':sha(encoded(self.after)), 'browserJourneyPassed':False,
             'paidAiCalls':0,'operationPaidAiCalls':0,'databaseRestored':False}
+        if self.registry_profile():
+            self.proof['runtimeProfile'] = 'service-registry-040'
+        if self.is_registry_schema():
+            self.proof['registryIntentSha256'] = canonical_sha(self.registry_intent(candidate))
         readers.update_durable(self.root / 'readback.json', encoded(self.proof))
 
 

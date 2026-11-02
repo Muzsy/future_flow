@@ -230,6 +230,8 @@ def main(request):
                     not recorded.get('temporaryContainersRemoved') or not recorded.get('temporaryPlaintextRemoved')):
                 raise ValueError('Fresh current-source capture, monitor and server-recorded offsite restore required')
             daily.owner_runtime()
+            if not daily.registry_restore_healthy(value, latest=True):
+                raise ValueError('Fresh native040 privacy restore of the latest archive required')
             baseline = daily.stable_state()
             run(['systemctl', 'enable', '--now', 'alterward-backup.timer', 'alterward-monitor.timer'])
             if daily.stable_state() != baseline:

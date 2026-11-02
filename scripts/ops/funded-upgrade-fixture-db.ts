@@ -6,8 +6,10 @@ import { connectDatabase } from '@future-flow/database';
 import { hash } from '@future-flow/core';
 import {
   captureFundedRuntime,
+  captureServiceRegistryRuntime,
   migrateFundedRuntime,
 } from '../lib/funded-runtime';
+import { registryUpgradeRequest } from '../lib/service-registry-upgrade';
 import { successorDatabaseRequest } from '../lib/beta-successor-operation';
 import { successorPlan } from '../lib/beta-successor';
 import {
@@ -47,6 +49,12 @@ async function main() {
       'successor-tester-verify',
       'schema-downgrade',
       'schema-verify',
+      'registry-capture',
+      'privacy-envelope',
+      'catalog-semantics',
+      'registry-prepare',
+      'registry-apply',
+      'registry-reconcile',
     ].includes(request.mode),
   );
   const admin = connectDatabase(url.href, true);
@@ -66,6 +74,70 @@ async function main() {
       await admin.query(`CREATE DATABASE ${request.database}`);
     url.pathname = '/' + request.database;
     db = connectDatabase(url.href, true);
+    if (request.mode === 'catalog-semantics') {
+      const { fixtureRestoreCatalog } =
+        await import('./funded-upgrade-fixture-catalog');
+      return db.transaction(async (tx) => {
+        await tx.query(
+          'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+        );
+        return fixtureRestoreCatalog(tx);
+      });
+    }
+    if (request.mode === 'privacy-envelope') {
+      // Synthetic Auth evidence only; production uses independently verified
+      // Admin/DB inventories while its root writer fence is physically held.
+      const {
+        capturePrivacyRestoreAuthority,
+        captureHistorical039PrivacyRestoreAuthority,
+      } = await import('../lib/privacy-restore');
+      const { createPrivacyFenceEnvelope } =
+        await import('../lib/privacy-fence-envelope');
+      const frame = request.expected;
+      const auth = await db.query<{ id: string }>(
+        'SELECT id FROM auth.users ORDER BY id',
+      );
+      const capture =
+        frame.recoveryProfile === 'registry040'
+          ? capturePrivacyRestoreAuthority
+          : captureHistorical039PrivacyRestoreAuthority;
+      const authority = await capture(db, {
+        projectBinding: frame.binding.projectBinding,
+        writerFenceDigest: frame.binding.writerFenceDigest,
+        authVerifiedAt: new Date().toISOString(),
+        authUserIds: auth.map((row) => row.id),
+      });
+      const envelope = createPrivacyFenceEnvelope(
+        authority,
+        hash(auth),
+        frame.binding,
+      );
+      return {
+        envelope,
+        held: { ...frame.binding, stateDigest: envelope.stateDigest },
+      };
+    }
+    if (request.mode.startsWith('registry-')) {
+      const identity = {
+        ...input,
+        participants: request.expected.participants,
+      };
+      return db.transaction(async (tx) => {
+        await tx.query(
+          request.mode === 'registry-apply'
+            ? 'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE'
+            : 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+        );
+        return request.mode === 'registry-capture'
+          ? captureServiceRegistryRuntime(tx, identity)
+          : registryUpgradeRequest(
+              tx,
+              identity,
+              request.mode,
+              request.expected.request,
+            );
+      });
+    }
     if (request.mode === 'schema-downgrade') {
       // Synthetic only: the production controller never removes a migration.
       await db.transaction((tx) => downgradeFixtureTo038(tx));

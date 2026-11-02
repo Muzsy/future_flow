@@ -485,3 +485,20 @@ Ez az adatbázisoldali rész nem telepíti a production040 successor/Daily/nativ
 A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
 
 Az új registry probe-módok privát hibadiagnosztikája csak az előre engedélyezett fázisnevet, SQLSTATE-et és a rögzített script-forráshelyeket adhatja vissza; nyers hibaüzenet, SQL, paraméter vagy credential továbbra sem kerül a diagnosztikába.
+
+
+## Production040 jelölt — #142, 2026-11-02
+
+Fejlesztői integráció, **nem végrehajtási engedély**. A main DB-transport #148 után külön reviewed host változás és saját Verify/Container/Image-rehearsal SUCCESS szükséges. A régi039 proofok és receiptek nem címkézhetők át. A teljes kiadási diff és a pontos forrás/image/engedély ellenőrzése megelőzi a célgépes lépéseket.
+
+A tervezett sorrend az éles039 szülő felett:
+
+1. Új mainből image, saját29-kapus registry successor fixture és a meglévő16 funded kapu; privát audit/release input, külön célgépes próba. A `registry-successor-fixture-proof.json` version5; a korábbi version4 változatlanul a régi műveleteké.
+2. Jóváhagyott Daily/kliens-frissítés és két saját timer kontrollja; `schema-040` selectionnel successor prepare. Változatlan keret, cohort, résztvevők, olvasók és számlázási értékek; csak az új profil hiányzó/false defaultja normalizálható.
+3. Friss candidate backup → offsite sync → generikus izolált restore; friss eredeti `--active-proof`. Ezután a fence operator külön `--migration-plan`, majd jóváhagyott audit/CI/plan mellett `--migration-rehearsal`: a root a valódi függő candidate-et és ellenőrzött target040 image-et olvassa, a serving039 image-et nem nevezi át.
+4. A039 backup101 publikus táblája tiszta, hálózatilag izolált PostgreSQL-be, kizárólag adatként kerül. A történeti privacy replay és független039 verify után mért intent tartósítása, egyszeri040 migráció, külön read-only verify. Az eredeti authority, dump, archive, quarantine-instance és candidate kötés megmarad; a serving a próba után változatlan image/ID-kkel tér vissza. A root saját `registry-migration-restore.json` státusza kell a későbbi éles applyhoz.
+5. Külön jóváhagyott successor apply; drain/hold/watchdog, eredeti backup+replay evidence és intent tartósan a journalhoz kötve, egyszeri élő039→040 SQL, független readback, target/recovery stage és expose. Elveszett kimenetnél külön recover: csak olvasó egyeztetés; lejárt intentből új SQL nem indul, a régi bizonyítékot nem időzítjük át és nem kötjük új Daily-pointerhez.
+6. Új040 backup/offsite/generikus restore, külön `--registry-active-proof`, fence `--registry-plan` / `--registry-rehearsal`. A103 publikus táblás natív replay102 alkalmazástábla/226 FK ellenőrzésével ad rootoldali `registry-restore.json` bizonyítékot. Csak ezután monitor és guarded timeraktiválás. A szolgáltatási reconcile és a billing reconcile a helyreállított quarantine-ban zárt, ebből éles aktiválás nem készül.
+7. Billing konfiguráció már040-en kizárólag `billing-config-040` selectionnel, külön `billing-registry-sandbox`, `billing-registry-live`, `billing-registry-enforce` receipt-csoporttal. A039-en már teljesített szint nem ismételhető, a konfiguráció nem módosít adatot, ablakot, allowance-t vagy admissiont. Minden új candidate saját backup/native replay/apply kaput kér; titkok csak privát fájlból/stdinből jöhetnek.
+
+A source/image jelölt nem kapcsolja be a service-profilt, nem hív Auth invite-ot, nem nyit signupot és nem küld emailt. A tartós admission/pause/reconcile operátor, a három meglévő fiók megőrző átvezetése és a teljes fizetési/böngészős út külön indulási feladat. A mostani régi háromfős ablak nem a10 új meghívott induló kerete; nincs reset vagy új bétaablak csoportonként.

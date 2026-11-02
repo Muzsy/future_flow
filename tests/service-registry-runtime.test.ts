@@ -112,6 +112,10 @@ describe('explicit registry040 runtime profile alongside the unchanged legacy039
       fromSchema: 39,
       schema: 40,
     });
+    const python = readFileSync('scripts/ops/contabo-daily.py', 'utf8');
+    expect(
+      python.match(/REGISTRY_040_MIGRATION_SHA256 = '([a-f0-9]{64})'/)?.[1],
+    ).toBe(hash(reviewedMigrationManifest()[39]!.sql));
     const names = readdirSync('database/migrations');
     vi.mocked(readdirSync).mockReturnValueOnce([
       ...names,

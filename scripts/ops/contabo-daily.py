@@ -612,7 +612,7 @@ RUNTIME_NAMES = {'server.env', 'effective-compose.json', 'pinned-image.json', 'm
 SUCCESSOR_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'journal.json',
                    'readback.json', 'database-after.json', 'probe-compose.json',
                    'probe.json', 'capability.json', 'watchdog.json', 'archive.json',
-                   'access.json'}
+                   'access.json', 'registry-evidence.json', 'registry-intent.json'}
 SUCCESSOR_IMMUTABLE_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'archive.json', 'access.json'}
 SUCCESSOR_ARCHIVE_NAME = 'beta-successor-archive'
 SUCCESSOR_ARCHIVE_VERSION = 'alterward-beta-successor-archive-1'
@@ -621,9 +621,49 @@ SUCCESSOR_PLAN_VERSION = 'alterward-beta-successor-plan-2'
 # owner-e2e window; each later one has the previous FULLY exposed generation as
 # its parent and may never be prepared while an earlier one is still unfinished.
 SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4',
-                        'beta-successor-5', 'beta-successor-6', 'beta-successor-7')
+                        'beta-successor-5', 'beta-successor-6', 'beta-successor-7', 'beta-successor-8')
 # purpose -> (participants, projectUsd, userUsd) for allowance-changing purposes.
 SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
+# Explicit040 profile; none of these labels relax the historical039 validators.
+SUCCESSOR_REGISTRY_PURPOSE = 'schema-040'
+SUCCESSOR_REGISTRY_BILLING_PURPOSE = 'billing-config-040'
+SUCCESSOR_REGISTRY_PLAN_VERSION = 'alterward-beta-successor-plan-3'
+REGISTRY_040_CHANGE_HASHES = {
+    'apps/api/src/app.ts': '8d619ac8ae4da5378ae9a210833f228760b48c7da6e0beae214fb3cc3904d9b0',
+    'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
+    'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
+    'apps/api/src/billing.ts': 'af8c39115b02523afcd3da39d20069e18173f900da0c639ee9eea8a8a4cae5b3',
+    'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
+    'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
+    'apps/api/src/service-access.ts': '1f32c69a7e07ff1894b1b89ec95266f48a2568cdfa20955712d527dc29622106',
+    'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
+    'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
+    'apps/web/components/life-experience.tsx': '8a62f161f5fcaf0877929b905a2f9d558be03dcb0f12a83a5e0c5b6ba1a8a49c',
+    'apps/web/lib/billing.ts': 'b1d875729517a96776086624ce9463cf015dcfcc53218b99b6d7130b07b49e46',
+    'apps/web/lib/i18n/messages.ts': '642686072a3cb0b738f75b35dc4b7e847c1f61c9ebd8966dc3f047e3c4cfd4ea',
+    'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
+    'apps/web/proxy.ts': '5d6188280d6d0c94e719d02df3a3bca541251d5d7659f383eb1136cd5129ae29',
+    'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
+    'apps/worker/src/chapter-billing.ts': '6ee53efd50efb86bc44eb727fdbdb8abc17b6fdc16fbbc6b85a7f08261047593',
+    'apps/worker/src/main.ts': '6adb7581bf7309f9ba19549e9f433482779b5ce7ae8f197fa90a8227f3617bd8',
+    'database/migrations/040_service_access_registry.sql': 'd52965052872352f3fe83e95fb8d7d2abff9611cffaaa5b580b7320d240fb938',
+    'deploy/compose.yaml': '54d0170b7974a46432b3a4993c527ec8e8626ad7e18ad53a8c563f102edb4fea',
+    'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
+    'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
+    'packages/contracts/src/error-messages.ts': '5a607d0c996842a6b96c4774a30ee34e59f997bf7135557f3009eb6c723e8424',
+    'packages/core/src/billing-service.ts': '391e35b4c3866b52cd84a323e0b8491be75e5af60788fff3468279ae12a8bac1',
+    'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
+    'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
+    'packages/core/src/service-access.ts': '04a403fb0c0064012e2828d2b769aba890f99e99ffbfc3c77aa35ed8c0c1a856',
+    'packages/database/src/billing.ts': 'e216d311ef8b3f787934af4a5cf192422b23b87cb9e6619858a4136c610874e8',
+    'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
+    'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
+    'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
+    'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
+    'packages/database/src/repository.ts': 'e05ee22ccd8f226e96aa64f7ab9d0714a3ff5ae79183330ccc46a6f07d557487',
+    'packages/database/src/service-access.ts': '4f6134a61b83b168e07370a4064b7059c00f0413beff6ad32217d66bc14dc8a4',
+}
+
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
 # The 038 to 039 database and application upgrade: no allowance, window, cohort or reader change.
 SUCCESSOR_SCHEMA_PURPOSE = 'schema-039'
@@ -698,7 +738,7 @@ def successor_billing_selection(selection):
     keys = {'stage', 'mode', 'enabled', 'enforcement', 'priceId', 'couponId', 'apiVersion', 'successUrl',
             'cancelUrl', 'founderUserIds', 'reservationTtlSeconds', 'secretKeySha256', 'webhookSecretSha256'}
     if (not isinstance(selection, dict) or set(selection) != {'purpose', 'previousTermsSha256', 'billing'}
-            or selection['purpose'] != SUCCESSOR_BILLING_PURPOSE
+            or selection['purpose'] not in {SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}
             or not isinstance(selection['billing'], dict) or set(selection['billing']) != keys):
         raise ValueError('Exact billing-config selection required')
     value = selection['billing']
@@ -731,6 +771,249 @@ def successor_billing_environment(value):
 def successor_json(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
 
+
+
+
+
+REGISTRY_040_MIGRATION_SHA256 = '9f0a7438e84b9367bc6e4f5a6e2319fefaf50fe49ee2a195c9cd6c09a2eaf613'
+
+
+def registry_journal_fields(row, *, registry=False, registry_config=False):
+    keys = {'state', 'changedAt', 'previousSha256', 'sha256'}
+    if registry and row.get('state') == 'database-intent':
+        keys.add('registryIntentSha256')
+        h = row.get('registryIntentSha256')
+        if not isinstance(h, str) or not re.fullmatch(r'[a-f0-9]{64}', h):
+            raise ValueError('Exact registry intent journal hash required')
+    if registry_config and row.get('state') == 'database-intent':
+        keys.add('registryEvidenceSha256')
+        if not isinstance(row.get('registryEvidenceSha256'),str) or not re.fullmatch(r'[a-f0-9]{64}',row['registryEvidenceSha256']):
+            raise ValueError('Exact native040 configuration evidence hash required')
+    if set(row) != keys:
+        raise ValueError('Exact profile-bound journal row required')
+    return keys
+
+
+def validate_registry_restore_proof(candidate, manifest, proof, *, migration):
+    """A root-produced, held-writer replay receipt, never a caller boolean.
+
+    Callers authenticate the original root-only file. This validates its source,
+    image, actual archive and immutable predecessor before it can authorize SQL.
+    """
+    if not isinstance(proof, dict) or not isinstance(manifest, dict):
+        raise ValueError('Measured registry restore proof required')
+    positive = ('originalIdsImagesPreserved','foreignContainersUnchanged','freshStateEqualBeforeAndAfterReplay',
+                'ownerOriginBoundaryVerified','dataOnlyOriginalBackupLoaded','cleanCatalogHardenedBeforeDataLoad',
+                'networkHasNoExternalInterface','temporaryContainersAndPlaintextRemoved')
+    negative = ('writerFenceStillHeld','replayAllowed','serviceActivationAllowed','liveDatabaseWrites',
+                'authProviderWrites','externalMessagesSent')
+    if (proof.get('sourceCommit') != candidate['sourceCommit'] or proof.get('mode') != 'rehearsal'
+            or proof.get('ownerManifestDigest') != candidate['files']['previous']['manifest.json']
+            or proof.get('backupRunId') != manifest.get('runId')
+            or proof.get('backupManifestCanonicalSha256') != successor_canonical_hash(manifest)
+            or proof.get('backupCipherSha256') != manifest.get('encryptedFiles',{}).get('application.dump.age',{}).get('sha256')
+            or proof.get('tablesMatchedBeforeReplay') != (101 if migration else 103)
+            or proof.get('servicesStoppedAndResumed') != 3 or proof.get('publicPorts') != 0
+            or type(proof.get('paidAiCalls')) is not int or proof['paidAiCalls'] != 0
+            or any(proof.get(k) is not True for k in positive)
+            or any(proof.get(k) is not False for k in negative)):
+        raise ValueError('Exact candidate archive, held replay, source and predecessor required')
+    try:
+        at = dt.datetime.fromisoformat(proof['capturedAt'].replace('Z','+00:00'))
+        prepared = dt.datetime.fromisoformat(candidate['preparedAt'].replace('Z','+00:00'))
+        expires = dt.datetime.fromisoformat(candidate['expiresAt'].replace('Z','+00:00'))
+        if at.utcoffset() != dt.timedelta(0) or not prepared <= at < expires:
+            raise ValueError('Restore must follow preparation inside its original window')
+    except (KeyError, TypeError, AttributeError) as error:
+        raise ValueError('Exact registry restore timestamp required') from error
+    active = proof.get('fundedRuntime', {})
+    if (active.get('sourceCommit') != manifest.get('ownerCommit') or active.get('imageId') != manifest.get('ownerImage')
+            or active.get('ownerManifestDigest') != proof['ownerManifestDigest']):
+        raise ValueError('Original backup owner authority must remain distinct')
+    if migration:
+        step = proof.get('registryMigrationRestore', {})
+        context = step.get('context', {})
+        if (proof.get('registryCandidate') != {'preparedSha256':digest(successor_json(candidate)),
+                'targetImage':candidate['release']['target']['imageId']}
+                or active.get('version') != 'alterward-funded-replay-1'
+                or step.get('version') != 'alterward-registry-migration-restore-proof-1'
+                or step.get('profile') != 'historical039-to-registry040'
+                or context.get('sourceCommit') != candidate['sourceCommit']
+                or context.get('imageId') != candidate['release']['target']['imageId']
+                or context.get('backupRunId') != manifest['runId']
+                or context.get('backupDumpSha256') != manifest.get('dumpSha256')
+                or context.get('backupCapturedAt') != manifest.get('capturedAt','').replace('+00:00','Z')
+                or not re.fullmatch(r'aw_restore_[a-f0-9]{24}',context.get('quarantineDatabase',''))
+                or step.get('sourceTables') != 100 or step.get('reviewedTables') != 102
+                or step.get('reviewedForeignKeys') != 226 or step.get('newRegistryEmpty') is not True
+                or step.get('replayedDataPreserved') is not True
+                or step.get('serviceActivationAllowed') is not False or step.get('authProviderWrites') is not False
+                or type(step.get('providerApiCalls')) is not int or step['providerApiCalls'] != 0
+                or any(not isinstance(h,str) or not re.fullmatch(r'[a-f0-9]{64}',h) for h in
+                    [context.get('quarantineInstanceSha256')] + [step.get(k) for k in ('intentSha256',
+                        'sourceAuthoritySha256','historicalReplayProofSha256','historicalVerificationSha256','postVerificationSha256','postVerificationStateSha256')])):
+            raise ValueError('Measured independently verified historical039 to040 restore required')
+    elif (active.get('version') != 'alterward-funded-replay-2' or active.get('schema') != 40
+            or active.get('recoveryProfile') != 'registry040' or proof.get('reviewedTables') != 102
+            or proof.get('reviewedForeignKeys') != 226 or proof.get('independentReadOnlyPostReplayVerified') is not True
+            or proof.get('reviewedSecurityCatalog') is not True):
+        raise ValueError('Native040 independent privacy replay required')
+    return proof
+
+
+def validate_registry_intent_payload(intent, candidate, evidence):
+    keys = {'version', 'purpose', 'context', 'observedAt', 'expiresAt', 'before',
+            'migrationSha256', 'serviceActivationAllowed', 'providerApiCalls', 'authProviderWrites'}
+    plan = candidate.get('operation', {}).get('plan', {})
+    if (not isinstance(intent, dict) or set(intent) != keys
+            or intent['version'] != 'alterward-registry-upgrade-intent-1'
+            or intent['purpose'] != SUCCESSOR_REGISTRY_PURPOSE
+            or plan.get('purpose') != SUCCESSOR_REGISTRY_PURPOSE
+            or plan.get('version') != SUCCESSOR_REGISTRY_PLAN_VERSION
+            or intent['serviceActivationAllowed'] is not False
+            or intent['authProviderWrites'] is not False
+            or type(intent['providerApiCalls']) is not int or intent['providerApiCalls'] != 0
+            or intent['migrationSha256'] != REGISTRY_040_MIGRATION_SHA256):
+        raise ValueError('Exact registry migration intent required')
+    before = parse_registry_runtime(intent['before'])
+    if before['schema'] != 39 or before != parse_registry_runtime(candidate['database']):
+        raise ValueError('Original registry039 baseline required')
+    if (not isinstance(evidence, dict)
+            or set(evidence) != {'candidateSha256', 'backupManifest', 'restoreProof'}
+            or evidence['candidateSha256'] != successor_canonical_hash(candidate)
+            or not isinstance(evidence['backupManifest'], dict) or not isinstance(evidence['restoreProof'], dict)
+            or not isinstance(evidence['backupManifest'].get('runId'), str)
+            or not RUN_ID.fullmatch(evidence['backupManifest']['runId'])
+            or evidence['backupManifest']['runId'] != evidence['restoreProof'].get('runId')):
+        raise ValueError('Original registry backup evidence required')
+    validate_registry_restore_proof(candidate, evidence['backupManifest'],
+        evidence['restoreProof'].get('registryReplay'), migration=True)
+    expected = {'sourceCommit': candidate['sourceCommit'],
+        'imageId': candidate['release']['target']['imageId'],
+        'candidateSha256': successor_canonical_hash(candidate),
+        'parentAuthoritySha256': successor_canonical_hash({k: candidate[k] for k in (
+            'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256')}),
+        'backupManifestSha256': successor_canonical_hash(evidence['backupManifest']),
+        'restoreProofSha256': successor_canonical_hash(evidence['restoreProof'])}
+    if intent['context'] != expected:
+        raise ValueError('Registry intent context binding mismatch')
+    if any(not isinstance(intent[k], str) or not re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z', intent[k])
+            for k in ('observedAt', 'expiresAt')):
+        raise ValueError('Exact UTC registry intent timestamps required')
+    observed, expires = (dt.datetime.fromisoformat(intent[k].replace('Z', '+00:00'))
+                         for k in ('observedAt', 'expiresAt'))
+    if (any(t.utcoffset() != dt.timedelta(0) for t in (observed, expires))
+            or (expires - observed).total_seconds() != 900):
+        raise ValueError('Exact bounded UTC registry intent required')
+    return intent
+
+
+def registry_bound_config_evidence(root, candidate, rows, *, read=None):
+    read = regular if read is None else read
+    evidence = json.loads(read(root/'registry-evidence.json'))
+    if (set(evidence) != {'candidateSha256','backupManifest','restoreProof'}
+            or evidence['candidateSha256'] != successor_canonical_hash(candidate)
+            or evidence['backupManifest']['runId'] != evidence['restoreProof']['runId']):
+        raise ValueError('Original native040 configuration restore evidence required')
+    validate_registry_restore_proof(candidate,evidence['backupManifest'],evidence['restoreProof']['registryReplay'],migration=False)
+    hashes = []
+    for row in rows:
+        registry_journal_fields(row,registry_config=True)
+        if row['state'] == 'database-intent':
+            hashes.append(row['registryEvidenceSha256'])
+    if not hashes or set(hashes) != {successor_canonical_hash(evidence)}:
+        raise ValueError('Native040 evidence must match its durable journal binding')
+    return evidence
+
+
+def registry_bound_intent(root, candidate, rows, *, read=None):
+    read = regular if read is None else read
+    evidence = json.loads(read(root / 'registry-evidence.json'))
+    intent = validate_registry_intent_payload(json.loads(read(root / 'registry-intent.json')), candidate, evidence)
+    hashes = []
+    for row in rows:
+        registry_journal_fields(row, registry=True)
+        if row['state'] == 'database-intent':
+            hashes.append(row['registryIntentSha256'])
+    if not hashes or set(hashes) != {successor_canonical_hash(intent)}:
+        raise ValueError('Registry intent must match its durable journal binding')
+    return intent
+
+def registry_schema_selection(selection, previous_terms):
+    if (not isinstance(selection, dict)
+            or set(selection) != {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'}
+            or selection['purpose'] != SUCCESSOR_REGISTRY_PURPOSE
+            or type(selection['fromSchema']) is not int or type(selection['toSchema']) is not int
+            or (selection['fromSchema'], selection['toSchema']) != (39, 40)
+            or selection['previousTermsSha256'] != successor_canonical_hash(previous_terms)):
+        raise ValueError('Exact039 to040 selection preserving previous terms required')
+    return selection
+
+
+def registry_schema_plan(selection, previous_terms, now, source_hashes):
+    registry_schema_selection(selection, previous_terms)
+    if (now.utcoffset() != dt.timedelta(0)
+            or any(source_hashes.get(p) != h for p, h in REGISTRY_040_CHANGE_HASHES.items())):
+        raise ValueError('Exact UTC clock and reviewed040 source hashes required')
+    stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    return {'version': SUCCESSOR_REGISTRY_PLAN_VERSION, 'purpose': SUCCESSOR_REGISTRY_PURPOSE,
+        'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
+        'previousTermsSha256': successor_canonical_hash(previous_terms),
+        'selectionSha256': successor_canonical_hash(selection), 'fromSchema': 39, 'toSchema': 40,
+        'allowedChanges': list(REGISTRY_040_CHANGE_HASHES),
+        'allowedChangeHashes': dict(REGISTRY_040_CHANGE_HASHES)}
+
+def parse_registry_runtime(value):
+    keys = {'version', 'profile', 'schema', 'identityBindingSha256', 'dataSha256',
+            'artifactSha256', 'catalogSha256', 'policiesSha256', 'drained', 'providerApiCalls',
+            'billingDataSha256', 'migrationPrefixSha256', 'registryDataSha256', 'registryRows'}
+    hashes = ('identityBindingSha256', 'dataSha256', 'artifactSha256', 'catalogSha256',
+              'policiesSha256', 'billingDataSha256', 'migrationPrefixSha256')
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['version'] != 'alterward-funded-runtime-2'
+            or value['profile'] != 'service-registry-040'
+            or type(value['schema']) is not int or value['schema'] not in (39, 40)
+            or value['drained'] is not True or type(value['providerApiCalls']) is not int
+            or value['providerApiCalls'] != 0
+            or any(not isinstance(value[k], str) or not re.fullmatch(r'[a-f0-9]{64}', value[k]) for k in hashes)):
+        raise ValueError('Exact drained registry v2 observation required')
+    rows, registry = value['registryRows'], value['registryDataSha256']
+    if value['schema'] == 39:
+        if rows is not None or registry is not None:
+            raise ValueError('Schema039 cannot carry registry authority')
+    elif (not isinstance(rows, dict) or set(rows) != {'policy', 'admissions'}
+            or type(rows['policy']) is not int or not 0 <= rows['policy'] <= 1
+            or type(rows['admissions']) is not int or not 0 <= rows['admissions'] <= 100000
+            or not isinstance(registry, str) or not re.fullmatch(r'[a-f0-9]{64}', registry)):
+        raise ValueError('Exact schema040 registry observation required')
+    return value
+
+
+def same_registry_runtime(before, after, *, migration=False):
+    before, after = parse_registry_runtime(before), parse_registry_runtime(after)
+    if not migration:
+        if before != after:
+            raise ValueError('Protected registry runtime changed')
+        return
+    keys = ('identityBindingSha256', 'dataSha256', 'artifactSha256', 'policiesSha256',
+            'billingDataSha256', 'migrationPrefixSha256')
+    if (before['schema'] != 39 or after['schema'] != 40
+            or after['registryRows'] != {'policy': 0, 'admissions': 0}
+            or any(before[k] != after[k] for k in keys)):
+        raise ValueError('Registry migration changed protected data or receipts')
+
+
+def registry_profile_default(config):
+    # A newly introduced false value may be absent in the original039 render.
+    # True/unknown values are never normalized away during an OFF-profile upgrade.
+    result = json.loads(json.dumps(config))
+    for role in ('web', 'api', 'worker'):
+        env = result['services'][role]['environment']
+        if env.get('SERVICE_ACCESS_ENFORCEMENT', 'false') != 'false':
+            raise ValueError('Registry schema upgrade must leave service profile OFF')
+        env['SERVICE_ACCESS_ENFORCEMENT'] = 'false'
+    return result
 
 def successor_roots():
     """Existing generation roots in order; a gap is invalid, not skipped."""
@@ -772,6 +1055,11 @@ def successor_tree_paths(root, *, immutable_only=False):
         else:
             if path.name not in SUCCESSOR_NAMES:
                 raise ValueError('Unknown successor evidence')
+            if path.name in {'registry-evidence.json', 'registry-intent.json'}:
+                selection = json.loads(regular(root / 'selection.json'))
+                if (selection.get('purpose') != SUCCESSOR_REGISTRY_PURPOSE
+                        and not (path.name == 'registry-evidence.json' and selection.get('purpose') == SUCCESSOR_REGISTRY_BILLING_PURPOSE)):
+                    raise ValueError('Registry evidence requires its explicit successor purpose')
             regular(path)
             if not immutable_only or path.name in SUCCESSOR_IMMUTABLE_NAMES:
                 result.append(path)
@@ -881,14 +1169,19 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
     purpose = selection.get('purpose') if isinstance(selection, dict) else None
     allowed = ({'owner-e2e'} if generation == 1
                else {SUCCESSOR_READER_PURPOSE, 'tester-beta', SUCCESSOR_SCHEMA_PURPOSE,
-                     SUCCESSOR_BILLING_PURPOSE})
+                     SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE})
     if purpose not in allowed or plan.get('purpose') != purpose:
         raise ValueError('Approved successor purpose for this generation required')
+    has_registry = SUCCESSOR_REGISTRY_PURPOSE in context.get('purposes', ())
+    if has_registry != (purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE):
+        raise ValueError('Only the explicit040 billing continuation may follow the registry upgrade')
     if purpose == 'tester-beta' and 'tester-beta' in context.get('purposes', ()):
         raise ValueError('The tester window may be opened at most once')
     if purpose == SUCCESSOR_SCHEMA_PURPOSE and SUCCESSOR_SCHEMA_PURPOSE in context.get('purposes', ()):
         raise ValueError('The schema upgrade may be applied at most once')
-    if purpose == SUCCESSOR_BILLING_PURPOSE:
+    if purpose == SUCCESSOR_REGISTRY_PURPOSE and SUCCESSOR_REGISTRY_PURPOSE in context.get('purposes', ()):
+        raise ValueError('The registry upgrade may be applied at most once')
+    if purpose in {SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}:
         stage = successor_billing_selection(selection)['stage']
         done = context.get('purposes', ())
         prefix = SUCCESSOR_BILLING_PURPOSE + ':'
@@ -957,20 +1250,29 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                 or plan['observedAt'] != prepared_at.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
                 or plan['expiresAt'] != expires.isoformat(timespec='milliseconds').replace('+00:00', 'Z')):
             raise ValueError('Bounded schema-upgrade preparation required')
-    elif purpose == SUCCESSOR_BILLING_PURPOSE:
+    elif purpose == SUCCESSOR_REGISTRY_PURPOSE:
+        registry_schema_selection(selection, prior)
+        expected = registry_schema_plan(selection, prior, prepared_at, REGISTRY_040_CHANGE_HASHES)
+        before = parse_registry_runtime(value['database'])
+        if (terms != prior or has_receipt or plan != expected or before['schema'] != 39
+                or expires != prepared_at + dt.timedelta(seconds=900)):
+            raise ValueError('Exact bounded source-bound039 to040 plan required')
+    elif purpose in {SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}:
         # Billing configuration changes only the eleven api/worker values: terms, readers, cohort,
         # allowance and every account stay byte-identical, and the database is untouched.
         successor_billing_selection(selection)
+        if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE and parse_registry_runtime(value['database'])['schema'] != 40:
+            raise ValueError('Native040 billing configuration requires a typed040 baseline')
         if (terms != prior
                 or set(plan) != {'version', 'purpose', 'stage', 'observedAt', 'expiresAt',
                                  'previousTermsSha256', 'selectionSha256', 'allowedChanges', 'allowedChangeHashes'}
-                or plan['version'] != SUCCESSOR_PLAN_VERSION
+                or plan['version'] != (SUCCESSOR_REGISTRY_PLAN_VERSION if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE else SUCCESSOR_PLAN_VERSION)
                 or plan['stage'] != selection['billing']['stage']
                 # The exact reviewed list of sources allowed to differ from the serving image, with
                 # the hash each had in the prepared bundle.
-                or plan['allowedChanges'] != list(SUCCESSOR_BILLING_ALLOWED_CHANGES)
+                or plan['allowedChanges'] != ([] if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE else list(SUCCESSOR_BILLING_ALLOWED_CHANGES))
                 or not isinstance(plan['allowedChangeHashes'], dict)
-                or set(plan['allowedChangeHashes']) != set(SUCCESSOR_BILLING_ALLOWED_CHANGES)
+                or set(plan['allowedChangeHashes']) != (set() if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE else set(SUCCESSOR_BILLING_ALLOWED_CHANGES))
                 or any(not isinstance(h, str) or not re.fullmatch(r'[a-f0-9]{64}', h)
                        for h in plan['allowedChangeHashes'].values())
                 or selection['previousTermsSha256'] != successor_canonical_hash(prior)
@@ -1040,7 +1342,17 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
                     raise ValueError('Schema upgrade must keep billing at its default-off configuration')
             if any(k in config['services']['web']['environment'] for k in SUCCESSOR_BILLING_DEFAULTS):
                 raise ValueError('Billing configuration must not reach the web service')
-        if purpose == SUCCESSOR_BILLING_PURPOSE:
+        if purpose == SUCCESSOR_REGISTRY_PURPOSE:
+            registry_profile_default(config)  # only an absent/false service flag is allowed
+            previous_config = json.loads(regular(root / 'previous' / 'effective-compose.json'))
+            for service in ('api', 'worker'):
+                before_env = previous_config['services'][service]['environment']
+                wanted = {k: before_env.get(k, v) for k, v in SUCCESSOR_BILLING_DEFAULTS.items()}
+                if any(config['services'][service]['environment'].get(k) != v for k, v in wanted.items()):
+                    raise ValueError('Registry upgrade must preserve billing configuration')
+            if any(k in config['services']['web']['environment'] for k in SUCCESSOR_BILLING_DEFAULTS):
+                raise ValueError('Billing configuration must not reach web')
+        if purpose in {SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}:
             billing = selection['billing']
             wanted = successor_billing_environment(billing)
             for service in ('api', 'worker'):
@@ -1118,9 +1430,9 @@ def successor_next_context(number, root, value, role, context):
     access = (json.loads(regular(receipt)) if receipt.exists() or receipt.is_symlink() else context['access'])
     selection = json.loads(regular(root / 'selection.json'))
     purpose = selection.get('purpose')
-    if purpose == SUCCESSOR_BILLING_PURPOSE:
+    if purpose in {SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}:
         # Each billing stage is remembered separately (ordered, once only).
-        purpose += ':' + successor_billing_selection(selection)['stage']
+        purpose = SUCCESSOR_BILLING_PURPOSE + ':' + successor_billing_selection(selection)['stage']
     return successor_context(number, root, value['files'][role],
                              json.loads(regular(root / 'terms.json')), access,
                              context.get('purposes', ()) + (purpose,))
@@ -1197,6 +1509,9 @@ def successor_effective_role(value, root=None):
             or not isinstance(intent['states'], list) or not 1 <= len(intent['states']) <= 32):
         raise ValueError('Bounded original successor journal required')
     purpose = json.loads(regular(root / 'selection.json')).get('purpose')
+    registry = (purpose == SUCCESSOR_REGISTRY_PURPOSE and
+                value['operation']['plan'].get('version') == SUCCESSOR_REGISTRY_PLAN_VERSION)
+    registry_config = purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE
     previous = None
     known = {'apply-intent', 'recovery-intent', 'held', 'database-intent', 'accounts-committed',
              'authority-staged', 'exposure-intent', 'applied', 'recovered', 'held-after-failure',
@@ -1215,7 +1530,8 @@ def successor_effective_role(value, root=None):
     }
     failures = {'held-after-failure', 'stop-unverified', 'watchdog-stop-intent', 'closed'}
     for row in intent['states']:
-        if set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'} or row['previousSha256'] != previous:
+        registry_journal_fields(row, registry=registry,registry_config=registry_config)
+        if row['previousSha256'] != previous:
             raise ValueError('Successor journal chain changed')
         data = (json.dumps({k:v for k,v in row.items() if k != 'sha256'},sort_keys=True,separators=(',', ':'))+'\n').encode()
         if row['sha256'] != digest(data):
@@ -1237,7 +1553,7 @@ def successor_effective_role(value, root=None):
         # one idempotent database step: a recovery may finish it, but only if the
         # database still has to be migrated (the adapter observes this first).
         if (not valid or (state == 'database-intent' and attempt != 'apply-intent'
-                          and not (purpose == SUCCESSOR_SCHEMA_PURPOSE and attempt == 'recovery-intent'))
+                          and not (purpose in {SUCCESSOR_SCHEMA_PURPOSE,SUCCESSOR_REGISTRY_PURPOSE} and attempt == 'recovery-intent'))
                 or (last_state == 'held' and state == 'accounts-committed' and attempt != 'recovery-intent')
                 or (state == 'applied' and attempt != 'apply-intent')
                 or (state == 'recovered' and attempt != 'recovery-intent')):
@@ -1247,6 +1563,10 @@ def successor_effective_role(value, root=None):
         last_state = state
         last_time = changed
         previous = row['sha256']
+    if registry and any(row['state'] == 'database-intent' for row in intent['states']):
+        registry_bound_intent(root, value, intent['states'])
+    if registry_config and any(row['state'] == 'database-intent' for row in intent['states']):
+        registry_bound_config_evidence(root,value,intent['states'])
     state = intent['states'][-1]['state']
     if state not in {'applied', 'recovered'}:
         raise SuccessorNotExposed('Successor not fully exposed; keep held')
@@ -1255,7 +1575,9 @@ def successor_effective_role(value, root=None):
     schema_step = purpose == SUCCESSOR_SCHEMA_PURPOSE
     # The schema upgrade must read back schema 039 reached FROM 038; every other
     # generation keeps the recorded 038/039 acceptance and carries no such field.
-    schema_ok = ((proof.get('schema') == SUCCESSOR_SCHEMA_STEP[1] and proof.get('fromSchema') == SUCCESSOR_SCHEMA_STEP[0])
+    schema_ok = ((proof.get('schema') == 40 and 'fromSchema' not in proof) if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE else
+                 (proof.get('schema') == 40 and proof.get('fromSchema') == 39) if registry else
+                 (proof.get('schema') == SUCCESSOR_SCHEMA_STEP[1] and proof.get('fromSchema') == SUCCESSOR_SCHEMA_STEP[0])
                  if schema_step else
                  (proof.get('schema') == 39 and 'fromSchema' not in proof) if purpose == SUCCESSOR_BILLING_PURPOSE
                  else (proof.get('schema') in (38, 39) and 'fromSchema' not in proof))
@@ -1265,12 +1587,27 @@ def successor_effective_role(value, root=None):
             or not schema_ok
             or proof.get('protectedDataUnchanged') is not True or proof.get('previousSpendPreserved') is not True
             or proof.get('previousAllowanceClosed') is not (
-                purpose not in {SUCCESSOR_READER_PURPOSE, SUCCESSOR_SCHEMA_PURPOSE, SUCCESSOR_BILLING_PURPOSE})
+                purpose not in {SUCCESSOR_READER_PURPOSE, SUCCESSOR_SCHEMA_PURPOSE, SUCCESSOR_BILLING_PURPOSE, SUCCESSOR_REGISTRY_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE})
             or proof.get('browserJourneyPassed') is not False
             or proof.get('operationSha256') != digest(json.dumps(value['operation'],sort_keys=True,separators=(',', ':')).encode())
             or proof.get('operationPaidAiCalls') != 0 or proof.get('paidAiCalls') != 0
             or proof.get('databaseRestored') is not False):
         raise ValueError('Original successor commit/readback proof required')
+    if registry:
+        bound = registry_bound_intent(root, value, intent['states'])
+        after = parse_registry_runtime(json.loads(regular(root / 'database-after.json')))
+        same_registry_runtime(value['database'], after, migration=True)
+        if (proof.get('runtimeProfile') != 'service-registry-040'
+                or proof.get('registryIntentSha256') != successor_canonical_hash(bound)
+                or proof.get('fundedStateSha256') != digest(regular(root / 'database-after.json'))):
+            raise ValueError('Exact registry040 result and journal readback required')
+    if purpose == SUCCESSOR_REGISTRY_BILLING_PURPOSE:
+        after = parse_registry_runtime(json.loads(regular(root / 'database-after.json')))
+        same_registry_runtime(value['database'], after)
+        if (proof.get('runtimeProfile') != 'service-registry-040'
+                or 'registryIntentSha256' in proof
+                or proof.get('fundedStateSha256') != digest(regular(root / 'database-after.json'))):
+            raise ValueError('Unchanged native040 configuration result required')
     return role
 
 
@@ -1865,6 +2202,50 @@ def edge_closed(team):
             error.close()
 
 
+def registry_restore_healthy(value, *, latest=False):
+    """Native040 restore evidence is separate from the generic binary restore.
+
+    Legacy serving authority retains its original checks. A native proof must
+    match the actual completed root/image and a still-retained archive. Timer
+    activation additionally requires today's latest capture and a fresh proof.
+    """
+    try:
+        state = successor_active_state() if successor_roots() else None
+        if state is None:
+            return True
+        candidate = json.loads(regular(state['directory']/'prepared.json'))
+        if candidate['operation']['plan']['purpose'] not in {SUCCESSOR_REGISTRY_PURPOSE, SUCCESSOR_REGISTRY_BILLING_PURPOSE}:
+            return True
+        proof = json.loads(regular(ROOT/'status'/'registry-restore.json'))
+        active = proof.get('fundedRuntime', {})
+        records = completed_archives(ROOT/'backups')
+        record = next((r for r in records if r['manifest']['runId'] == proof.get('backupRunId')), None)
+        if (record is None or state['pending'] is not None or proof.get('sourceCommit') != value['sourceCommit']
+                or active.get('version') != 'alterward-funded-replay-2' or active.get('schema') != 40
+                or active.get('recoveryProfile') != 'registry040'
+                or active.get('preparedSha256') != digest(regular(state['directory']/'prepared.json'))
+                or active.get('ownerManifestDigest') != digest(regular(OWNER/'manifest.json'))
+                or active.get('sourceCommit') != record['manifest'].get('ownerCommit')
+                or active.get('imageId') != record['manifest'].get('ownerImage')
+                or proof.get('backupManifestSha256') != record['files']['manifest.json']['sha256']
+                or proof.get('backupManifestCanonicalSha256') != successor_canonical_hash(record['manifest'])
+                or proof.get('tablesMatchedBeforeReplay') != 103 or proof.get('reviewedTables') != 102
+                or proof.get('reviewedForeignKeys') != 226 or proof.get('paidAiCalls') != 0
+                or any(proof.get(k) is not True for k in ('independentReadOnlyPostReplayVerified',
+                    'reviewedSecurityCatalog','dataOnlyOriginalBackupLoaded','temporaryContainersAndPlaintextRemoved',
+                    'freshStateEqualBeforeAndAfterReplay','originalIdsImagesPreserved','foreignContainersUnchanged'))
+                or any(proof.get(k) is not False for k in ('writerFenceStillHeld','serviceActivationAllowed',
+                    'liveDatabaseWrites','authProviderWrites','externalMessagesSent'))):
+            return False
+        if latest:
+            age = (utcnow()-dt.datetime.fromisoformat(proof['capturedAt'].replace('Z','+00:00'))).total_seconds()
+            return (0 <= age <= 6*3600 and records
+                    and max(records,key=lambda r:r['created'])['manifest']['runId'] == proof['backupRunId'])
+        return True
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def alerts_for(health, now):
     alerts = []
     if not health['ownerHealthy']:
@@ -1884,6 +2265,8 @@ def alerts_for(health, now):
         alerts.append('backup_stale')
     if health.get('backupFailed'):
         alerts.append('backup_failed')
+    if health.get('registryRestoreHealthy', True) is not True:
+        alerts.append('registry_restore_unverified')
     if health.get('personalTransitionHealthy', True) is not True:
         alerts.append('personal_transition_incomplete')
     return alerts
@@ -1942,6 +2325,7 @@ def monitor(value):
         now = utcnow()
         health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin,
             'personalTransitionHealthy': personal_transition_healthy(policy['mode']),
+            'registryRestoreHealthy': registry_restore_healthy(value),
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}

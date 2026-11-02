@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 VERSION = 'alterward-funded-replay-1'
+REGISTRY_VERSION = 'alterward-funded-replay-2'
 PROJECT = 'alterward-owner'
 STATES = {'apply-intent', 'recovery-intent', 'held', 'migration-intent', 'schema-038',
           'staged', 'verified-staged', 'exposure-intent', 'applied', 'recovered',
@@ -43,10 +44,16 @@ def active_funded_runtime(daily, original):
             journal.get('preparedSha256') != prepared_sha or
             not isinstance(journal.get('states'), list) or not 1 <= len(journal['states']) <= 32):
         raise ValueError('Original complete funded transition required')
+    registry_profile = (successor and candidate.get('operation', {}).get('plan', {}).get('purpose')
+                        in {'schema-040', 'billing-config-040'}
+                        and candidate['operation']['plan'].get('version') == 'alterward-beta-successor-plan-3')
+    registry = registry_profile and candidate['operation']['plan']['purpose'] == 'schema-040'
     previous = None
     known_states = STATES | {'database-intent', 'accounts-committed', 'authority-staged', 'held-after-failure'} if successor else STATES
     for row in journal['states']:
-        if (set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'} or
+        if registry_profile:
+            daily.registry_journal_fields(row, registry=registry,registry_config=not registry)
+        if ((not registry_profile and set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'}) or
                 row['previousSha256'] != previous or
                 row['sha256'] != sha(encoded({k: v for k, v in row.items() if k != 'sha256'}))):
             raise ValueError('Original funded journal chain required')
@@ -54,6 +61,10 @@ def active_funded_runtime(daily, original):
                 dt.datetime.fromisoformat(row['changedAt'].replace('Z', '+00:00')).utcoffset() != dt.timedelta(0)):
             raise ValueError('Known UTC journal state required')
         previous = row['sha256']
+    if registry:
+        daily.registry_bound_intent(root, candidate, journal['states'], read=original)
+    if registry_profile and not registry:
+        daily.registry_bound_config_evidence(root,candidate,journal['states'],read=original)
     terminal = journal['states'][-1]['state']
     if terminal not in ('applied', 'recovered'):
         raise ValueError('Incomplete funded transition cannot issue active replay authority')
@@ -78,7 +89,7 @@ def active_funded_runtime(daily, original):
     if (readback.get('version') != candidate['version'] or
             readback.get('sourceCommit') != candidate['sourceCommit'] or
             readback.get('preparedSha256') != prepared_sha or
-            readback.get('imageId') != build['imageId'] or readback.get('schema') not in (38, 39) or
+            readback.get('imageId') != build['imageId'] or readback.get('schema') not in ((40,) if registry_profile else (38, 39)) or
             readback.get('protectedDataUnchanged') is not True or
             readback.get('paidAiCalls') != 0 or readback.get('operationPaidAiCalls') != 0 or
             readback.get('databaseRestored') is not False):
@@ -92,7 +103,9 @@ def active_funded_runtime(daily, original):
              if c['Config'].get('Labels', {}).get('com.docker.compose.project') == PROJECT]
     if len(owned) != 3 or {c['Id'] for c in owned} != {c['Id'] for c in services.values()}:
         raise ValueError('Exactly three active funded services, no extra one-off required')
-    return {'version': VERSION, 'sourceCommit': candidate['sourceCommit'],
+    return {'version': REGISTRY_VERSION if registry_profile else VERSION,
+            **({'schema': 40, 'recoveryProfile': 'registry040'} if registry_profile else {}),
+            'sourceCommit': candidate['sourceCommit'],
             'bundleSha256': candidate['bundleSha256'], 'preparedSha256': prepared_sha,
             'imageId': build['imageId'], 'role': role,
             'ownerManifestDigest': sha(original(daily.OWNER / 'manifest.json')),
@@ -100,7 +113,10 @@ def active_funded_runtime(daily, original):
 
 
 def require_funded_runtime(daily, original, expected):
-    if not isinstance(expected, dict) or set(expected) != FIELDS:
+    registry = isinstance(expected, dict) and expected.get('version') == REGISTRY_VERSION
+    if (not isinstance(expected, dict) or set(expected) != (FIELDS | {'schema', 'recoveryProfile'} if registry else FIELDS)
+            or (registry and (type(expected['schema']) is not int or expected['schema'] != 40
+                              or expected['recoveryProfile'] != 'registry040'))):
         raise ValueError('Exact funded runtime proof shape required')
     actual = active_funded_runtime(daily, original)
     if expected != actual:

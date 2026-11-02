@@ -15,9 +15,13 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**Főági DB-transport integráció — 2026-11-02:** #148 reviewed3015585 tulajdonosi engedéllyel beolvadt (`4590e35`), reviewed tree-egyezés igazolt. Saját [CI41449700546](https://github.com/Muzsy/future_flow/actions/runs/41449700546) verify/container/image-rehearsal SUCCESS. Ez nem éles040 átállás; a teljes operátori #142 nyitott.
+
+**#142 operátori integráció — fejlesztői jelölt, még nem kiadható:** a host branch beköti a külön `schema-040` / `billing-config-040` plan3 protokollt, a tartós intent/evidence-journal kötést, a target040 image-en végzett történeti039 backup privacy replay → izolált040 migrációt és a külön native040 restore-utat. A számlázási sandbox/live/enforce történet közös marad a039-es úttal, nincs újrafuttatható szint vagy keretreset. A restore-bizonyíték a konkrét archive/candidate/szülő/source/image mezőkhöz kötött; a késői recovery az eredeti tartós bizonyítékot olvassa. A version5 valós PostgreSQL/image-fixture és teljes review/CI még elfogadási kapu. Ez nem főági vagy éles040 aktiválás; I04/I06 nem DONE.
+
 **Főági integráció — 2026-11-02:** #143 → #145 → #147 tulajdonosi engedéllyel, merge commitokkal beolvadt. A főág `1e8d26f`, fája a reviewed `8460c2f` jelöltével azonos; saját [CI41410625967](https://github.com/Muzsy/future_flow/actions/runs/41410625967) mindhárom ellenőrzése SUCCESS. A szolgáló rendszer nem változott; az alábbi november1-i főági checkpointok történeti előzmények.
 
-**#142 adatbázis-végrehajtó — fejlesztés alatt:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent készül. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
+**#142 adatbázis-végrehajtó — main, #148:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent elkészült. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
 
 **I02 önkiszolgáló előfizetéskezelés — main, #144/#145:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés elkészült. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
 

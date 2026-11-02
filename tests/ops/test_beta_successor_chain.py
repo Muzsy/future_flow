@@ -102,7 +102,7 @@ class Chain:
         return files, release
 
     def prepare(self, number, purpose, *, emails=None, participants=None, project='10', user='3.33', selection=None,
-                billing_env=None, plan_changes=None):
+                billing_env=None, plan_changes=None, database=None):
         fx, prior = self.fixture, self.terms
         root = self.root(number)
         at = self.at
@@ -124,15 +124,21 @@ class Chain:
                     'fromSchema': 38, 'toSchema': 39,
                     'allowedChanges': list(daily.SUCCESSOR_SCHEMA_ALLOWED_CHANGES)}
             readers = self.active_access['allowedEmails']
-        elif purpose == 'billing-config':
+        elif purpose == 'schema-040':
+            terms = prior
+            selection = {'purpose': purpose, 'previousTermsSha256': hashed(prior), 'fromSchema': 39, 'toSchema': 40}
+            plan = daily.registry_schema_plan(selection, prior, at, daily.REGISTRY_040_CHANGE_HASHES)
+            readers = self.active_access['allowedEmails']
+        elif purpose in {'billing-config', 'billing-config-040'}:
             terms = prior
             selection = selection or billing_selection(hashed(prior))
-            plan = {'version': 'alterward-beta-successor-plan-2', 'purpose': purpose,
+            registry = purpose == 'billing-config-040'
+            plan = {'version': 'alterward-beta-successor-plan-3' if registry else 'alterward-beta-successor-plan-2', 'purpose': purpose,
                     'stage': selection['billing']['stage'], 'observedAt': iso(at, True),
                     'expiresAt': iso(at + dt.timedelta(minutes=15), True),
                     'previousTermsSha256': hashed(prior), 'selectionSha256': hashed(selection),
-                    'allowedChanges': list(daily.SUCCESSOR_BILLING_ALLOWED_CHANGES),
-                    'allowedChangeHashes': {p: 'a' * 64 for p in daily.SUCCESSOR_BILLING_ALLOWED_CHANGES},
+                    'allowedChanges': [] if registry else list(daily.SUCCESSOR_BILLING_ALLOWED_CHANGES),
+                    'allowedChangeHashes': {} if registry else {p: 'a' * 64 for p in daily.SUCCESSOR_BILLING_ALLOWED_CHANGES},
                     **(plan_changes or {})}
             readers = self.active_access['allowedEmails']
             billing_env = billing_environment(selection) if billing_env is None else billing_env
@@ -153,8 +159,8 @@ class Chain:
         fx.write(root / 'selection.json', encoded(selection))
         for name in daily.RUNTIME_NAMES:
             fx.write(root / 'previous' / name, (fx.owner / name).read_bytes())
-        files, release = self.runtime(root, terms, readers, billing=purpose == 'schema-039',
-                                      billing_env=billing_env if purpose == 'billing-config' else None)
+        files, release = self.runtime(root, terms, readers, billing=purpose in {'schema-039', 'schema-040'},
+                                      billing_env=billing_env if purpose in {'billing-config', 'billing-config-040'} else None)
         files['previous'] = self.active_role_files
         authority_paths = (daily.reader_config_paths() + daily.personal_config_paths()
                            + daily.funded_tree_paths(fx.parent)
@@ -164,7 +170,7 @@ class Chain:
                  'preparedAt': iso(at, True), 'expiresAt': iso(at + dt.timedelta(minutes=15), True),
                  'baseline': {'files': self.active_role_files,
                               'authority': {str(p): daily.digest(p.read_bytes()) for p in authority_paths}},
-                 'release': release, 'files': files, 'database': {}, 'operation': {'plan': plan},
+                 'release': release, 'files': files, 'database': database if database is not None else {}, 'operation': {'plan': plan},
                  'parentPreparedSha256': daily.digest((parent / 'prepared.json').read_bytes()),
                  'parentJournalSha256': daily.digest((parent / 'journal.json').read_bytes()),
                  'parentReadbackSha256': daily.digest((parent / 'readback.json').read_bytes()),
@@ -177,6 +183,10 @@ class Chain:
         rows, previous = [], None
         for state in states:
             row = {'state': state, 'changedAt': iso(self.at + dt.timedelta(seconds=30), True), 'previousSha256': previous}
+            if state == 'database-intent' and (root / 'registry-evidence.json').exists() and not (root/'registry-intent.json').exists():
+                row['registryEvidenceSha256'] = hashed(json.loads((root/'registry-evidence.json').read_bytes()))
+            if state == 'database-intent' and (root / 'registry-intent.json').exists():
+                row['registryIntentSha256'] = hashed(json.loads((root / 'registry-intent.json').read_bytes()))
             row['sha256'] = daily.digest(encoded(row))
             previous = row['sha256']
             rows.append(row)
@@ -186,14 +196,45 @@ class Chain:
 
     def expose(self, number, value, *, window_changed, schema=False):
         fx, root = self.fixture, self.root(number)
+        registry_config = value['operation']['plan']['purpose'] == 'billing-config-040'
+        registry = value['operation']['plan']['purpose'] == 'schema-040'
+        if registry:
+            from registry_test_proof import registry_replay
+            manifest, proof = registry_replay(value)
+            evidence = {'candidateSha256':hashed(value),'backupManifest':manifest,
+                        'restoreProof':{'runId':manifest['runId'],'registryReplay':proof}}
+            context = {'sourceCommit': value['sourceCommit'], 'imageId': value['release']['target']['imageId'],
+                       'candidateSha256': hashed(value), 'parentAuthoritySha256': hashed({k:value[k] for k in (
+                           'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256')}),
+                       'backupManifestSha256': hashed(evidence['backupManifest']),
+                       'restoreProofSha256': hashed(evidence['restoreProof'])}
+            intent = {'version': 'alterward-registry-upgrade-intent-1', 'purpose': 'schema-040',
+                      'context': context, 'observedAt': value['preparedAt'], 'expiresAt': value['expiresAt'],
+                      'before': value['database'], 'migrationSha256': daily.REGISTRY_040_MIGRATION_SHA256,
+                      'serviceActivationAllowed': False, 'providerApiCalls': 0, 'authProviderWrites': False}
+            fx.write(root / 'registry-evidence.json', encoded(evidence))
+            fx.write(root / 'registry-intent.json', encoded(intent))
+            after = {**value['database'], 'schema': 40, 'catalogSha256': 'e' * 64,
+                     'registryRows': {'policy': 0, 'admissions': 0}, 'registryDataSha256': 'f' * 64}
+            fx.write(root / 'database-after.json', encoded(after))
+        if registry_config:
+            from registry_test_proof import registry_replay
+            manifest, proof = registry_replay(value,migration=False)
+            fx.write(root/'registry-evidence.json',encoded({'candidateSha256':hashed(value),
+                'backupManifest':manifest,'restoreProof':{'runId':manifest['runId'],'registryReplay':proof}}))
+            after = value['database']
+            fx.write(root / 'database-after.json', encoded(after))
         self.journal(number, ['apply-intent', 'held', 'database-intent', 'accounts-committed',
                               'authority-staged', 'exposure-intent', 'applied'])
         fx.write(root / 'readback.json', encoded({
             'version': daily.SUCCESSOR_VERSION, 'preparedSha256': daily.digest(encoded(value)),
             'sourceCommit': value['sourceCommit'], 'imageId': value['release']['target']['imageId'],
-            'schema': 39, 'protectedDataUnchanged': True, 'previousSpendPreserved': True,
+            'schema': 40 if registry or registry_config else 39, 'protectedDataUnchanged': True, 'previousSpendPreserved': True,
             'previousAllowanceClosed': window_changed, 'browserJourneyPassed': False,
-            **({'fromSchema': 38} if schema else {}),
+            **({'fromSchema': 39, 'runtimeProfile': 'service-registry-040',
+                'registryIntentSha256': hashed(intent), 'fundedStateSha256': daily.digest(encoded(after))} if registry
+                else {'runtimeProfile': 'service-registry-040', 'fundedStateSha256': daily.digest(encoded(after))} if registry_config
+                else {'fromSchema': 38} if schema else {}),
             'operationSha256': hashed(value['operation']), 'operationPaidAiCalls': 0,
             'paidAiCalls': 0, 'databaseRestored': False}))
         for name in daily.RUNTIME_NAMES:

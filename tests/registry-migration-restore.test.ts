@@ -157,7 +157,14 @@ describe('versioned039 backup → replayed039 → registry040 migration restore 
         f.request,
         f.context,
       );
-    await applyRegistryMigrationRestore(f.db, f.request, intent, f.context); // output deliberately not adopted
+    const appliedAt = new Date();
+    const applied = await applyRegistryMigrationRestore(
+      f.db,
+      f.request,
+      intent,
+      f.context,
+      appliedAt,
+    );
     const [receipt] = await f.db.query(
       "SELECT (applied_at AT TIME ZONE 'UTC')::text AS at FROM ff_migrations WHERE name='040_service_access_registry.sql'",
     );
@@ -182,8 +189,20 @@ describe('versioned039 backup → replayed039 → registry040 migration restore 
       f.request,
       intent,
       f.context,
+      new Date(appliedAt.getTime() + 1000),
     );
     expect(writes).toEqual([]);
+    expect(recovered.postVerificationSha256).not.toBe(
+      applied.postVerificationSha256,
+    );
+    expect(recovered.postVerificationStateSha256).toBe(
+      applied.postVerificationStateSha256,
+    );
+    const { postVerificationSha256: _appliedReceipt, ...appliedState } =
+      applied;
+    const { postVerificationSha256: _recoveredReceipt, ...recoveredState } =
+      recovered;
+    expect(recoveredState).toEqual(appliedState);
     expect(recovered).toMatchObject({
       version: 'alterward-registry-migration-restore-proof-1',
       replayedDataPreserved: true,

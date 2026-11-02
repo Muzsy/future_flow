@@ -56,7 +56,7 @@ class BillingChainTests(unittest.TestCase):
         self.assertEqual(daily.successor_parent_context(5)[2]['purposes'][-1], 'billing-config:sandbox')
 
     def test_the_shipped_chain_has_room_for_the_three_billing_stages(self):
-        self.assertEqual(len(daily.SUCCESSOR_ROOT_NAMES), 7)
+        self.assertEqual(len(daily.SUCCESSOR_ROOT_NAMES), 8)
         self.assertEqual(tuple(root.ROOT_NAMES), tuple(daily.SUCCESSOR_ROOT_NAMES))
         self.expose(4, 'sandbox')
         self.expose(5, 'live')

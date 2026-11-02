@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   activeFundedReplayProof,
+  activeRegistryReplayProof,
   assertFundedReplayInputsUnchanged,
 } from '../../scripts/lib/funded-replay.mjs';
 const now = Date.parse('2026-10-24T20:00:00Z');
@@ -60,4 +61,25 @@ test('the funded dependency guard compares to the actual active source, never le
     assert.throws(() =>
       assertFundedReplayInputsUnchanged(proof, 'd'.repeat(40), () => changed),
     );
+});
+
+test('registry040 has a separate v2 proof and cannot be consumed as a legacy receipt', () => {
+  const native = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+  };
+  const proof = activeRegistryReplayProof(native, now);
+  assert.equal(proof.schema, 40);
+  assert.equal(proof.recoveryProfile, 'registry040');
+  assert(!('capturedAt' in proof));
+  assert.throws(() => activeFundedReplayProof(native, now));
+  assert.throws(() => activeRegistryReplayProof(receipt, now));
+  for (const bad of [
+    { ...native, schema: 39 },
+    { ...native, recoveryProfile: 'historical039' },
+    { ...native, capturedAt: new Date(now - 900001).toISOString() },
+  ])
+    assert.throws(() => activeRegistryReplayProof(bad, now));
 });

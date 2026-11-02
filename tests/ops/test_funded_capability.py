@@ -65,6 +65,33 @@ class FundedCapabilityTests(unittest.TestCase):
             self.assertEqual(daily.funded_capability_state(self.root)['state'], 'cleaned')
             self.assertEqual(daily.funded_capability_state(self.root)['containerId'], 'e'*64)
 
+    def test_original_capability_cannot_implicitly_select_the_registry_profile(self):
+        self.system.request['sourceHashes'] = {}
+        with patch.object(funded.upgrade, 'run') as execute:
+            with self.assertRaisesRegex(ValueError, 'Explicit reviewed'):
+                self.system.capability('sha256:' + 'd' * 64, {}, registry=True)
+            execute.assert_not_called()
+        self.assertFalse((self.root / 'capability.json').exists())
+
+    def test_explicit_registry_capability_keeps_exact_command_and_cleanup_identity(self):
+        self.system.request['sourceHashes'] = {}
+        def execute(args, **kwargs):
+            record = daily.funded_capability_state(self.root)
+            self.assertEqual(record['commandSha256'], funded.sha(funded.encoded(funded.REGISTRY_CAPABILITY_COMMAND)))
+            self.assertEqual(args[-len(funded.REGISTRY_CAPABILITY_COMMAND):], funded.REGISTRY_CAPABILITY_COMMAND)
+            self.assertIn('--network', args)
+            self.assertIn('none', args)
+            self.assertIn('--read-only', args)
+            self.running(record)
+            self.container['Config']['Cmd'] = funded.REGISTRY_CAPABILITY_COMMAND
+            return self.result(b'{}')
+        with patch.object(self.system, 'allowed_capability_commands', return_value=(
+                funded.CAPABILITY_COMMAND, funded.REGISTRY_CAPABILITY_COMMAND)), patch.object(
+                funded.upgrade, 'run', side_effect=execute):
+            self.system.capability('sha256:' + 'd' * 64, {}, registry=True)
+        self.assertIsNone(self.container)
+        self.assertEqual(daily.funded_capability_state(self.root)['state'], 'cleaned')
+
     def test_original_upgrade_refuses_partial_input_before_creating_any_intent_or_container(self):
         self.system.request['sourceHashes']={'apps/frozen.ts':'a'*64,'scripts/operator.ts':'b'*64}
         with patch.object(funded.upgrade,'run') as execute:

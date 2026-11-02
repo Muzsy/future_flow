@@ -172,6 +172,9 @@ export async function verifyRegistryMigrationRestore(
     verification.reviewedForeignKeys !== 226
   )
     throw Error('Complete registry040 restore verification required');
+  // Each independent observation has its own verifiedAt. Preserve its raw
+  // receipt hash, and compare every measured state field separately across runs.
+  const { verifiedAt: _verifiedAt, ...verifiedState } = verification;
   return {
     version: 'alterward-registry-migration-restore-proof-1',
     profile: 'historical039-to-registry040',
@@ -183,6 +186,7 @@ export async function verifyRegistryMigrationRestore(
     before: intent.before,
     after: verification.registryMigrationState,
     postVerificationSha256: hash(verification),
+    postVerificationStateSha256: hash(verifiedState),
     replayedDataPreserved: true,
     sourceTables: 100,
     newRegistryEmpty: true,
