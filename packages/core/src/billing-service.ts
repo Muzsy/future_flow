@@ -36,6 +36,7 @@ export type BillingTx = {
   // Serialises all billing writes of one user. Lock order is always
   // user -> subscription row, in every operation, to rule out deadlocks.
   lockUser(userId: string): Promise<void>;
+  assertServiceCheckout?(userId: string): Promise<void>;
   // Non-locking owner lookup, used to take the user lock before the row lock.
   ownerOf(by: {
     subscriptionId: string | null;
@@ -557,6 +558,7 @@ export async function createCheckoutSession(
     store: BillingStore;
     provider: BillingProvider;
     config: Pick<BillingConfig, 'designatedUserIds' | 'entitlement'>;
+    serviceAccessEnforced?: boolean;
   },
 ): Promise<{ url: string }> {
   // The user lock is held across the provider call so two checkouts of the same
@@ -581,6 +583,17 @@ export async function createCheckoutSession(
       userId,
       redeemed,
     );
+    if (deps.serviceAccessEnforced) {
+      if (!tx.assertServiceCheckout)
+        throw new DomainError(
+          'SERVICE_ACCESS_UNAVAILABLE',
+          'Current service access could not be verified.',
+          503,
+        );
+      // The per-user lock may have waited. Read the current policy/admission
+      // in this same transaction immediately before the provider call.
+      await tx.assertServiceCheckout(userId);
+    }
     return deps.provider.createCheckoutSession({
       userId,
       offerVersion: discounted ? 'launch_v1' : 'standard_v1',

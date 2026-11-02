@@ -1,7 +1,9 @@
+import { assertServiceGeneration } from './service-access';
 import { validateFictionCommit, type FictionCommit } from './fiction-memory';
 import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
+  fictionV9Policy,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -11,6 +13,7 @@ import type {
 } from '@future-flow/contracts';
 import {
   DomainError,
+  serviceAccessEnforcementFromEnv,
   hash,
   simulatePeriodV2,
   validatePeriodChapterV2,
@@ -52,6 +55,18 @@ function lost(): never {
     'The job lease is no longer valid.',
     409,
   );
+}
+function assertServiceJobPolicy(job: LifeJob) {
+  if (
+    serviceAccessEnforcementFromEnv() &&
+    hash(job.payload.narrativeContext?.policy ?? null) !==
+      hash(fictionV9Policy())
+  )
+    throw new DomainError(
+      'NARRATIVE_CONTEXT_INVALID',
+      'Service generation requires the frozen v9 job policy.',
+      409,
+    );
 }
 export class LifeJobRepository {
   constructor(
@@ -149,6 +164,8 @@ export class LifeJobRepository {
       lost();
   }
   async verifyChapterReservation(job: LifeJob) {
+    assertServiceJobPolicy(job);
+    await assertServiceGeneration(this.db, job.user_id);
     await assertGenerationChapterDispatch(
       this.db,
       job.user_id,
@@ -157,6 +174,7 @@ export class LifeJobRepository {
     );
   }
   async admitNarrativeRequest(job: LifeJob) {
+    assertServiceJobPolicy(job);
     const count = await this.db.transaction(async (tx) => {
       if (
         !(
@@ -212,6 +230,7 @@ export class LifeJobRepository {
           'NARRATIVE_CONTEXT_INVALID',
           'Narrative request policy is invalid.',
         );
+      await assertServiceGeneration(tx, job.user_id);
       await assertGenerationChapterDispatch(
         tx,
         job.user_id,

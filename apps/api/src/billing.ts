@@ -37,6 +37,7 @@ export const BILLING_WEBHOOK_LIMIT = '256kb';
 export function createBillingController(
   guard: Type<CanActivate>,
   runtime: BillingRuntime,
+  serviceAccessEnforced = false,
 ): Type {
   @Controller('api/v1/billing')
   class BillingController {
@@ -52,6 +53,7 @@ export function createBillingController(
         store: runtime.store,
         provider: runtime.provider,
         config: runtime.config,
+        serviceAccessEnforced,
       });
     }
 

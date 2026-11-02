@@ -1,10 +1,13 @@
 import {
   DomainError,
+  evaluateServiceAccess,
+  serviceAccessEnforcementFromEnv,
   parseServiceAccessPolicy,
   parseServiceAdmissionLookup,
   type ServiceAccessPolicy,
   type ServiceAdmission,
   type ServiceAdmissionLookup,
+  type ServiceAction,
 } from '@future-flow/core';
 import type { Database } from './index';
 
@@ -209,4 +212,32 @@ export class ServiceAccessRepository {
       return value;
     });
   }
+}
+
+// Shared API/queue/worker boundary. This never creates a root or admission.
+export async function assertStoredServiceAccess(
+  db: Database,
+  userId: string,
+  action: ServiceAction,
+  enabled = serviceAccessEnforcementFromEnv(),
+) {
+  if (!enabled) return;
+  const { policy, admission } =
+    action === 'account-control'
+      ? { policy: null, admission: null }
+      : await new ServiceAccessRepository(db).snapshot(userId);
+  const decision = evaluateServiceAccess(policy, userId, admission, action);
+  if (!decision.allowed)
+    throw new DomainError(
+      decision.code,
+      'Service access is not currently available.',
+      decision.status,
+    );
+}
+export async function assertServiceGeneration(
+  db: Database,
+  userId: string,
+  enabled = serviceAccessEnforcementFromEnv(),
+) {
+  await assertStoredServiceAccess(db, userId, 'generate', enabled);
 }

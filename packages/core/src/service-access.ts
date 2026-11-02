@@ -145,3 +145,13 @@ export function evaluateServiceAccess(
     return { allowed: false, code: 'SERVICE_CHECKOUT_PAUSED', status: 503 };
   return { allowed: true };
 }
+
+// Explicit rollout profile. Invalid values cannot quietly select legacy mode.
+export function serviceAccessEnforcementFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const value = env.SERVICE_ACCESS_ENFORCEMENT ?? 'false';
+  if (!['true', 'false'].includes(value))
+    throw Error('SERVICE_ACCESS_ENFORCEMENT must be true or false');
+  return value === 'true';
+}

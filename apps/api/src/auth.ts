@@ -2,7 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { DomainError } from '@future-flow/core';
 
 export interface AuthProvider {
-  verify(token: string): Promise<{ id: string }>;
+  verify(
+    token: string,
+  ): Promise<{ id: string; email?: string | null; emailConfirmed?: boolean }>;
   deleteUser(id: string): Promise<void>;
   assertDeletionConfigured?(): void;
   userExists?(id: string): Promise<boolean>;
@@ -23,7 +25,17 @@ export class SupabaseAuthProvider implements AuthProvider {
     const { data, error } = await this.client.auth.getUser(token);
     if (error || !data.user || data.user.is_anonymous)
       throw new DomainError('AUTH_INVALID_TOKEN', 'Jelentkezz be újra.', 401);
-    return { id: data.user.id };
+    return {
+      id: data.user.id,
+      email:
+        typeof data.user.email === 'string'
+          ? data.user.email.toLowerCase()
+          : null,
+      emailConfirmed:
+        typeof data.user.email_confirmed_at === 'string' &&
+        Number.isFinite(Date.parse(data.user.email_confirmed_at)) &&
+        Date.parse(data.user.email_confirmed_at) <= Date.now() + 30000,
+    };
   }
   async deleteUser(id: string) {
     this.assertDeletionConfigured();

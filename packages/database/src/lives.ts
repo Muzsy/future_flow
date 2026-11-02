@@ -14,6 +14,7 @@ import {
   periodCandidateV2Schema,
   publicForkInitialChoiceSchema,
   supportedLocales,
+  fictionV9Policy,
   type LifeInputV2,
   type LifeSetupV2,
   type LifeStateV2,
@@ -23,6 +24,7 @@ import {
 } from '@future-flow/contracts';
 import {
   DomainError,
+  serviceAccessEnforcementFromEnv,
   addMonths,
   applyFactChangesV2,
   hash,
@@ -31,10 +33,12 @@ import {
   type instantiateForkCheckpoint,
 } from '@future-flow/core';
 import type { Database } from './index';
+import { assertServiceGeneration } from './service-access';
 import { releaseGenerationChapter, reserveGenerationChapter } from './billing';
 import { activitySession } from './beta';
 import {
   legacyNarrativeConfig,
+  narrativeConfigFromEnv,
   personalNarrativeMemory,
   type NarrativeConfig,
 } from './narrative-memory';
@@ -189,8 +193,19 @@ export class LifeRepository {
   constructor(
     public readonly db: Database,
     private readonly limits = { daily: 10, concurrent: 2 },
-    private readonly narrative: NarrativeConfig = legacyNarrativeConfig,
+    private readonly narrative: NarrativeConfig = serviceAccessEnforcementFromEnv()
+      ? narrativeConfigFromEnv()
+      : legacyNarrativeConfig,
   ) {
+    if (
+      narrative.accessMode === 'service-admission' &&
+      (narrative.mode !== 'narrative-fiction-v2' ||
+        narrative.fictionGeneration !== 'v9')
+    )
+      throw new DomainError(
+        'NARRATIVE_CONFIG_INVALID',
+        'Service admission requires the frozen v9 pipeline.',
+      );
     if (
       ![limits.daily, limits.concurrent].every(
         (n) => Number.isInteger(n) && n > 0,
@@ -200,6 +215,12 @@ export class LifeRepository {
         'GENERATION_LIMIT_CONFIG',
         'Invalid generation limits.',
       );
+  }
+  private serviceAdmissionEnabled() {
+    return (
+      this.narrative.accessMode === 'service-admission' ||
+      serviceAccessEnforcementFromEnv()
+    );
   }
   private async lock(tx: Database, userId: string) {
     const user = lifeRow(
@@ -506,6 +527,18 @@ export class LifeRepository {
     );
   }
   private async queue(tx: Database, userId: string, branch: LifeBranch) {
+    if (
+      this.serviceAdmissionEnabled() &&
+      (this.narrative.mode !== 'narrative-fiction-v2' ||
+        this.narrative.fictionGeneration !== 'v9')
+    )
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'Service generation requires the frozen v9 pipeline.',
+        409,
+      );
+
+    await assertServiceGeneration(tx, userId, this.serviceAdmissionEnabled());
     if (branch.pending_decision)
       throw new DomainError(
         'LIFE_PENDING_DECISION',
@@ -604,7 +637,10 @@ export class LifeRepository {
     if (
       creativeHistory?.present &&
       (this.narrative.mode !== 'narrative-fiction-v2' ||
-        !this.narrative.cohortUserIds.includes(userId))
+        !(
+          this.serviceAdmissionEnabled() ||
+          this.narrative.cohortUserIds.includes(userId)
+        ))
     )
       throw new DomainError(
         'NARRATIVE_CONTEXT_INVALID',
@@ -625,7 +661,8 @@ export class LifeRepository {
     }
     if (
       this.narrative.mode !== 'legacy' &&
-      this.narrative.cohortUserIds.includes(userId)
+      (this.serviceAdmissionEnabled() ||
+        this.narrative.cohortUserIds.includes(userId))
     ) {
       const memory = await personalNarrativeMemory(
         tx,
@@ -964,6 +1001,21 @@ export class LifeRepository {
         // The failed attempt released its reservation; the retry reserves again.
         // UUID path casing is not another reservation key. Keep the existing
         // idempotency namespace, but use the canonical database job identity.
+        await assertServiceGeneration(
+          tx,
+          userId,
+          this.serviceAdmissionEnabled(),
+        );
+        if (
+          this.serviceAdmissionEnabled() &&
+          hash(job.payload.narrativeContext?.policy ?? null) !==
+            hash(fictionV9Policy())
+        )
+          throw new DomainError(
+            'NARRATIVE_CONTEXT_INVALID',
+            'This historical job cannot be retried under the service profile.',
+            409,
+          );
         await reserveGenerationChapter(tx, userId, job.id);
         await tx.query(
           "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",

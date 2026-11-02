@@ -265,6 +265,26 @@ const errors: Record<string, readonly [string, string]> = {
     'Choose an option before continuing this life.',
     'Válassz a döntési lehetőségek közül a folytatás előtt.',
   ],
+  SERVICE_IDENTITY_MISMATCH: [
+    'Sign in with the same invited email in both login steps.',
+    'Mindkét belépésnél ugyanazzal a meghívott email-címmel jelentkezz be.',
+  ],
+  SERVICE_ACCESS_UNAVAILABLE: [
+    'Access cannot be verified right now. Please try again later.',
+    'A hozzáférés most nem ellenőrizhető. Próbáld újra később.',
+  ],
+  SERVICE_INVITATION_REQUIRED: [
+    'Access is by invitation. Contact info@alterward.com for help.',
+    'A hozzáférés meghíváshoz kötött. Segítség: info@alterward.com.',
+  ],
+  SERVICE_GENERATION_PAUSED: [
+    'New chapters are temporarily paused. Your saved stories remain available.',
+    'Az új fejezetek készítése átmenetileg szünetel. A mentett történeteid elérhetők.',
+  ],
+  SERVICE_CHECKOUT_PAUSED: [
+    'New subscriptions are temporarily paused. You can still manage an existing subscription.',
+    'Az új előfizetések indítása átmenetileg szünetel. A meglévő előfizetésed továbbra is kezelheted.',
+  ],
   BILLING_MANAGEMENT_UNAVAILABLE: [
     'Subscription management is unavailable. Please contact info@alterward.com.',
     'Az előfizetéskezelés most nem érhető el. Kérjük, írj az info@alterward.com címre.',

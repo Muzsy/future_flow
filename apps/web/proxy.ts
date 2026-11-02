@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   createClosedSiteGate,
+  createServiceSiteGate,
   publicWebException,
   closedSiteResponseHeaders,
 } from '@future-flow/access';
 
-const gate = createClosedSiteGate();
+const service = createServiceSiteGate();
+const gate = service.enabled
+  ? {
+      enabled: true,
+      verify: async (assertion: string | undefined) =>
+        (await service.identity(assertion)) !== null,
+    }
+  : createClosedSiteGate();
 export async function proxy(request: NextRequest) {
   if (!gate.enabled) return NextResponse.next();
   const headers = closedSiteResponseHeaders;
@@ -21,7 +29,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
   return new NextResponse(
-    '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Private beta · alterward</title><h1>alterward is in private beta</h1><p>Access is by invitation.</p><p><a href="/account-access">Download or delete your own account data</a></p><p><a href="/privacy-notice">Privacy and contact</a></p></html>',
+    '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Invitation access · alterward</title><h1>alterward · invitation access</h1><p>Access is by invitation.</p><p><a href="/account-access">Download or delete your own account data</a></p><p><a href="/privacy-notice">Privacy and contact</a></p></html>',
     {
       status: 403,
       headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },
