@@ -24,6 +24,11 @@ import {
   migrateServiceRegistryRuntime,
   assertServiceRegistryMigration,
 } from '../lib/funded-runtime';
+import {
+  prepareRegistryUpgrade,
+  applyRegistryUpgrade,
+  reconcileRegistryUpgrade,
+} from '../lib/service-registry-upgrade';
 import { captureRegistry039SchemaState } from '../lib/service-registry-schema-migration';
 
 let phase = 'precondition';
@@ -196,18 +201,80 @@ async function main() {
         ),
         before,
       );
-      const after = await db!.transaction(async (tx) => {
-        await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
-        return migrateServiceRegistryRuntime(tx, identity, before);
-      });
-      assertServiceRegistryMigration(before, after);
-      const again = await db!.transaction(async (tx) => {
+      // Bind the production database protocol to this actual source/image fixture.
+      // The host controller's real backup/restore gates remain outside this synthetic proof.
+      const upgradeContext = {
+        sourceCommit: binding.sourceCommit,
+        imageId: binding.image,
+        candidateSha256: hash({ nonce: request.nonce, binding }),
+        parentAuthoritySha256: hash(fixture.authority),
+        backupManifestSha256: hash({
+          synthetic: 'registry-runtime-backup',
+          nonce: request.nonce,
+        }),
+        restoreProofSha256: hash({
+          synthetic: 'registry-runtime-restore',
+          nonce: request.nonce,
+        }),
+      };
+      const intent = await db!.transaction(async (tx) => {
         await tx.query(
           'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
         );
-        return captureServiceRegistryRuntime(tx, identity);
+        return prepareRegistryUpgrade(tx, identity, upgradeContext);
       });
-      assert.deepEqual(again, after);
+      assert.deepEqual(intent.before, before);
+      await assert.rejects(
+        db!.transaction(async (tx) => {
+          await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          return applyRegistryUpgrade(
+            tx,
+            identity,
+            intent,
+            { ...upgradeContext, candidateSha256: hash('foreign candidate') },
+            hash(intent),
+          );
+        }),
+        /binding mismatch/,
+      );
+      const applied = await db!.transaction(async (tx) => {
+        await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        return applyRegistryUpgrade(
+          tx,
+          identity,
+          intent,
+          upgradeContext,
+          hash(intent),
+        );
+      });
+      const after = applied.observation;
+      assertServiceRegistryMigration(before, after);
+      const recovered = await db!.transaction(async (tx) => {
+        await tx.query(
+          'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+        );
+        return reconcileRegistryUpgrade(
+          tx,
+          identity,
+          intent,
+          upgradeContext,
+          hash(intent),
+        );
+      });
+      assert.deepEqual(recovered, applied);
+      await assert.rejects(
+        db!.transaction(async (tx) => {
+          await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+          return applyRegistryUpgrade(
+            tx,
+            identity,
+            intent,
+            upgradeContext,
+            hash(intent),
+          );
+        }),
+        /source drift/,
+      );
       return {
         source: {
           authority: fixture.authority,

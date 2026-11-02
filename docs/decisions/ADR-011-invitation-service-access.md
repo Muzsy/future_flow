@@ -38,7 +38,7 @@ A meglévő backend a Supabase `getUser(token)` eredményével igazolja a nem an
 
 Ez **nem kész I01/I04**, és nem tesz tizenhárom embert beengedhetővé a mostani éles konfigurációban. Az alkalmazás még nem használja az új policy-t. Az első szelet nem hozott létre új signupot, táblát, meghívó emailt vagy éles konfigurációt. A következő fejlesztési tárolószeletet az alábbi külön szerződés írja le.
 
-## Tartós tároló és recovery-alap — #137, fejlesztés alatt
+## Tartós tároló és recovery-alap — main, #137/#143
 
 A `040_service_access_registry.sql` a singleton `aw_service_policy` és az `ff_users` UUID-gyökérhez cascade-del kötött `aw_service_admissions` táblát adja. Nem tárol emailt, JWT-t, kupont vagy kliensmetadata-másolatot; nincs seed vagy automatikus régi admission. RLS aktív, PUBLIC/anon/authenticated jog nincs. A `ServiceAccessRepository` kizárólag szerveroldali primitív; nem Auth-ellenőrző, meghívó vagy operátori felhatalmazás. A policy/admission szigorúan validált, pozitív safe-integer revíziójú; expectedRevision=0 csak létrehozás, pozitív érték csak azonos revízió frissítése. A konkurens stale írás konfliktus. Az admission író zárolja az aktív fiókgyökeret; törlés alatt nincs feltámasztás. A snapshot egy SQL-olvasásból áll, hiányzó policy/fiók, DB-hiba vagy reconcile-hiány nem ad jogot. Saját export csak saját admissiont tartalmaz; a globális policy nem személyes export.
 
@@ -48,7 +48,7 @@ A recovery profilok explicit `historical039` és `registry040`, nincs automatiku
 
 A v1 funded-runtime és a régi038→039 protokoll változatlan. A v2 új capability, teljes billing- és receipt-hash és szigorú migráció-összevetés. Production040 successor/Daily/config és a fennálló fence-hez kötött orchestration [#142](https://github.com/Muzsy/future_flow/issues/142) feladata; enélkül040 nem telepíthető. A teljes serving→jelölt diff, exact-source audit, CI, célgépes és éles felhatalmazás későbbi kapu.
 
-## Web/API/worker runtime — #146, fejlesztési jelölt, 2026-11-02
+## Web/API/worker runtime — main, #146/#147, 2026-11-02
 
 A `SERVICE_ACCESS_ENFORCEMENT` szigorú true/false profilkapcsoló, alapból false. A Compose ugyanazt a runtime-értéket adja a web/API/worker szolgáltatásnak, web build-arg nélkül; az izolált deployment-preflight a false és true átadást is ellenőrzi, konténerindítás nélkül. OFF mellett a legacy statikus kapu és11-es limit változatlan. ON esetén CLOSED_SITE_ENABLED=true és rögzített Cloudflare issuer/AUD szükséges; a web csak a hitelesített pre-login alkalmazáshéjat engedi tovább. A legacy email-lista nem indul és nem admission-forrás. Az API minden nem kivételes kérésnél ellenőrzi az Access-aláírást, a Supabase `getUser` nem anonim UUID-ját és ellenőrzött emailjét, a két email egyezését és a registry aktuális read-jogát. A getUser eredményét csak az adott kérés belső Symbol-mezője hordozza; kliensheader/metadata nem állíthatja, admission nem kerül sessioncache-be. A route-guard generálásnál és Checkoutnál külön friss policy-akciót ellenőriz az alkalmazási írás előtt.
 
@@ -59,6 +59,16 @@ Az új profil kötelezően a befagyasztott narrative-fiction-v2/v9-et és fejeze
 A queue/retry a saját tranzakciójában friss admission/generation-pause ellenőrzést végez. A személyes worker minden új fizikai providerkérés előtt és az USD-foglalás után is újra ellenőriz; visszautasításkor az ismerten fel nem használt USD-jegyet a meglévő guard nulla használattal rendezi. Már kész eredmény mentése és chapter-consume változatlan, új ízelítő/kupon/keret nincs. Checkoutnál a user-billing-lock megszerzése után, ugyanazon BillingTx kapcsolaton történik az utolsó policy-check; hiányzó hook zártan megáll, második poolkapcsolatot nem foglal.
 
 Ez a forrás nem aktivál éles profilt, nem hív Auth-invite-ot, nem küld emailt és nem enged fizetős próbát. Az operátori admission/pause/reconcile, a három meglévő fiók jogmegőrző átvezetése, az összes szolgáltatás egyező profilja és a production040 release/Daily/recovery #142/I04 feltétele. A teljes meghívás→belépés→fizetett folytatás mért böngészős bizonyítéka I06 kapu; I01/I04/I06 marad PARTIAL.
+
+## Production040 adatbázis-transport — #142, fejlesztés alatt
+
+A `service-registry-upgrade.ts` a meglévő v2 capture/migrate primitívet explicit `registry-prepare` / `registry-apply` / `registry-reconcile` transporttal veszi körül. A verziózott intent az executor sourceCommit/imageId, candidate, szülő-authority, backup-manifest és restore-proof hashét köti az élő039 megfigyeléshez és a reviewed040 SQL-hez. A digest önmagában nem hostoldali attesztáció: a privilegizált controllernek kell a valódi kapukat ellenőriznie és az intentet tartósan, hash-kötötten mentenie az SQL előtt. A meglévő privacy-restore intent és régi authority provenance változatlan, nem címkézhető át.
+
+Prepare/reconcile konzisztens READ ONLY tranzakciót kér. Apply a DB órájából ellenőrzött900másodperces intentet és a mentett intent hashét kéri, majd a serializable, zárolt primitív újra ellenőrzi a teljes039 alapot. A read-only reconcile lejárt intentnél is megfigyelheti a már commitolt040-et; soha nem indít SQL-ismétlést. Nem ígér automatikus retry-t vagy alkalmazásaktiválást. A forrás/image-kötött szintetikus PG-fixture ugyanezt a transportot ellenőrzi; nem igazol éles backupot vagy operátori auditot.
+
+A teljes #142 successor/Daily/native040 recovery és konfigurációs controller még hiányzik; a forrásból nem készülhet éles040 csomag ezek nélkül.
+
+A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
 
 ## Következő integrációs szeletek és elfogadás
 

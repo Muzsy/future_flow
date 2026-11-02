@@ -23,6 +23,40 @@ describe('private funded-probe failure evidence', () => {
     expect(JSON.stringify(result)).not.toMatch(/person|secret|private\/db/);
   });
 
+  it.each([
+    'registry-capture',
+    'registry-migrate',
+    'registry-prepare',
+    'registry-apply',
+    'registry-reconcile',
+  ])(
+    'identifies %s using bounded source metadata without private content',
+    (phase) => {
+      const error = new Error(
+        'postgres://secret-user:private-password@private-host/db',
+      );
+      error.stack =
+        'Error: private-content\n    at migrate (/app/scripts/lib/service-registry-schema-migration.ts:130:4)\n    at apply (/app/scripts/lib/service-registry-upgrade.ts:120:7)';
+      const result = privateProbeFailure(error, phase);
+      expect(result.phase).toBe(phase);
+      expect(result.frames).toEqual([
+        {
+          source: 'scripts/lib/service-registry-schema-migration.ts',
+          line: 130,
+          column: 4,
+        },
+        {
+          source: 'scripts/lib/service-registry-upgrade.ts',
+          line: 120,
+          column: 7,
+        },
+      ]);
+      expect(JSON.stringify(result)).not.toMatch(
+        /secret-user|private-password|private-host|private-content/,
+      );
+    },
+  );
+
   it('rejects arbitrary phase, error type, code and source names', () => {
     const result = privateProbeFailure(
       {

@@ -13,6 +13,7 @@ import {
   serviceRegistryRuntimeCapabilities,
   type ServiceRegistryRuntimeObservation,
 } from '../scripts/lib/funded-runtime';
+import { registryUpgradeRequest } from '../scripts/lib/service-registry-upgrade';
 import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
 
 vi.mock('node:fs', async () => {
@@ -276,5 +277,189 @@ describe('explicit registry040 runtime profile alongside the unchanged legacy039
     expect(await tx((db) => captureServiceRegistryRuntime(db, input))).toEqual(
       before,
     );
+  });
+});
+
+describe('source-bound production040 database transport', () => {
+  const context = {
+    sourceCommit: 'a'.repeat(40),
+    imageId: 'sha256:' + 'b'.repeat(64),
+    candidateSha256: 'c'.repeat(64),
+    parentAuthoritySha256: 'd'.repeat(64),
+    backupManifestSha256: 'e'.repeat(64),
+    restoreProofSha256: 'f'.repeat(64),
+  };
+  const read = <T>(run: (db: Database) => Promise<T>) =>
+    engine.transaction(async (client) => {
+      await client.exec(
+        'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+      );
+      return run(adapter(client));
+    });
+  it('requires a durable exact intent, preserves both ledgers and reconciles a lost COMMIT response without writes', async () => {
+    const intent = await read((db) =>
+      registryUpgradeRequest(db, input, 'registry-prepare', { context }),
+    );
+    expect(intent).toMatchObject({
+      version: 'alterward-registry-upgrade-intent-1',
+      purpose: 'schema-040',
+      before: { schema: 39 },
+      serviceActivationAllowed: false,
+    });
+    expect(
+      await read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent,
+          persistedIntentSha256: hash(intent),
+        }),
+      ),
+    ).toMatchObject({ state: 'uncommitted', protectedDataUnchanged: true });
+    const apply = (
+      db: Database,
+      candidate = intent,
+      bound = context,
+      persistedIntentSha256 = hash(candidate),
+    ) =>
+      registryUpgradeRequest(db, input, 'registry-apply', {
+        context: bound,
+        intent: candidate,
+        persistedIntentSha256,
+      });
+    for (const key of Object.keys(context) as (keyof typeof context)[]) {
+      const changed = {
+        ...context,
+        [key]:
+          key === 'sourceCommit'
+            ? '0'.repeat(40)
+            : key === 'imageId'
+              ? 'sha256:' + '0'.repeat(64)
+              : '0'.repeat(64),
+      };
+      await expect(tx((db) => apply(db, intent, changed))).rejects.toThrow(
+        'binding mismatch',
+      );
+    }
+    await expect(
+      tx((db) => apply(db, intent, context, '0'.repeat(64))),
+    ).rejects.toThrow('Durable exact');
+    const expired = {
+      ...intent,
+      observedAt: '2020-01-01T00:00:00.000Z',
+      expiresAt: '2020-01-01T00:15:00.000Z',
+    };
+    await expect(tx((db) => apply(db, expired))).rejects.toThrow('Unexpired');
+    await expect(
+      tx((db) =>
+        registryUpgradeRequest(db, input, 'registry-prepare', { context }),
+      ),
+    ).rejects.toThrow('Read-only');
+    await expect(
+      read((db) =>
+        registryUpgradeRequest(db, input, 'registry-prepare', {
+          context,
+          ignored: true,
+        }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      tx(async (db) => {
+        await db.query(
+          "UPDATE aw_billing_grants SET revoked=true WHERE key='in_registry'",
+        );
+        await apply(db);
+      }),
+    ).rejects.toThrow('source drift');
+    // All negative attempts rolled back and left039 intact.
+    expect(
+      await read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent,
+          persistedIntentSha256: hash(intent),
+        }),
+      ),
+    ).toMatchObject({ state: 'uncommitted' });
+    await expect(
+      tx(async (db) => {
+        const query = db.query.bind(db);
+        db.query = async (sql, values = []) => {
+          if (
+            sql.startsWith('INSERT INTO public.ff_migrations') &&
+            values[0] === '040_service_access_registry.sql'
+          )
+            throw Error('Synthetic upgrade transport interruption');
+          return query(sql, values);
+        };
+        await apply(db);
+      }),
+    ).rejects.toThrow('Synthetic upgrade transport interruption');
+    expect(
+      await read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent,
+          persistedIntentSha256: hash(intent),
+        }),
+      ),
+    ).toMatchObject({ state: 'uncommitted' });
+    // Persisted intent hash is supplied only after the root caller stored it.
+    const applied = await tx((db) => apply(db));
+    expect(applied).toMatchObject({
+      state: 'committed',
+      intentSha256: hash(intent),
+      observation: { schema: 40, registryRows: { policy: 0, admissions: 0 } },
+      protectedDataUnchanged: true,
+      providerApiCalls: 0,
+      authProviderWrites: false,
+    });
+    await expect(
+      read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent,
+          persistedIntentSha256: '0'.repeat(64),
+        }),
+      ),
+    ).rejects.toThrow('Durable exact');
+    const changedIntent = {
+      ...intent,
+      observedAt: '2020-01-01T00:00:00.000Z',
+      expiresAt: '2020-01-01T00:15:00.000Z',
+    };
+    await expect(
+      read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent: changedIntent,
+          persistedIntentSha256: hash(intent),
+        }),
+      ),
+    ).rejects.toThrow('Durable exact');
+    const statements: string[] = [];
+    const recovered = await read((db) => {
+      const query = db.query.bind(db);
+      db.query = async (sql, values = []) => {
+        statements.push(sql);
+        return query(sql, values);
+      };
+      return registryUpgradeRequest(db, input, 'registry-reconcile', {
+        context,
+        intent,
+        persistedIntentSha256: hash(intent),
+      });
+    });
+    expect(recovered).toEqual(applied);
+    expect(
+      statements.every((sql) => /^(SELECT|SHOW|SET LOCAL)/i.test(sql)),
+    ).toBe(true);
+    await expect(tx((db) => apply(db))).rejects.toThrow('source drift');
+    expect(
+      (
+        await engine.query(
+          "SELECT name FROM ff_migrations WHERE name LIKE '040_%'",
+        )
+      ).rows,
+    ).toHaveLength(1);
   });
 });
