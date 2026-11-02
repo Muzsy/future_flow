@@ -10,6 +10,8 @@ import {
   validateSuccessorSelection,
   successorChecks,
   successorModules,
+  registrySuccessorChecks,
+  registrySuccessorFixtureVersion,
 } from '../../scripts/lib/beta-successor-release.mjs';
 
 const commit = 'a'.repeat(40),
@@ -399,4 +401,35 @@ test('the billing fixture checks are mandatory in the fixture contract', () => {
     'billingConfigRefusals',
   ])
     assert.ok(successorChecks.includes(name));
+});
+
+test('schema040 requires its complete version5 source-image fixture and cannot relabel a legacy proof', () => {
+  const p = proof();
+  p.selection = {
+    purpose: 'schema-040',
+    previousTermsSha256: 'd'.repeat(64),
+    fromSchema: 39,
+    toSchema: 40,
+  };
+  assert.throws(() => successorReleaseEvidence(p));
+  p.successorFixture = {
+    ...p.successorFixture,
+    version: registrySuccessorFixtureVersion,
+    checks: Object.fromEntries(registrySuccessorChecks.map((k) => [k, true])),
+  };
+  assert.equal(successorReleaseEvidence(p).target.imageId, image);
+  for (const key of registrySuccessorChecks) {
+    const bad = structuredClone(p);
+    delete bad.successorFixture.checks[key];
+    assert.throws(() => successorReleaseEvidence(bad));
+  }
+  for (const change of [
+    { fromSchema: 38 },
+    { toSchema: 39 },
+    { fromSchema: true },
+    { unknown: true },
+  ])
+    assert.throws(() =>
+      validateSuccessorSelection({ ...p.selection, ...change }),
+    );
 });

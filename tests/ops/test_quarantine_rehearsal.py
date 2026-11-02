@@ -31,6 +31,15 @@ class DataOnlyArchiveTests(unittest.TestCase):
             with self.subTest(toc=toc[:80],tables=tables),self.assertRaises(ValueError):
                 quarantine.selected_table_data(toc,tables)
 
+    def test_native040_has_explicit103_table_coverage_without_reinterpreting_legacy(self):
+        tables = ['aw_table_%d' % n for n in range(103)]
+        toc = ''.join('%d; 0 %d TABLE DATA public %s postgres\n' % (i+1,i+100,t) for i,t in enumerate(tables)).encode()
+        self.assertEqual(quarantine.selected_table_data(toc,tables,recovery_profile='registry040'),toc)
+        with self.assertRaises(ValueError):
+            quarantine.selected_table_data(toc,tables)
+        with self.assertRaises(ValueError):
+            quarantine.selected_table_data(toc,tables,recovery_profile='historical039')
+
     def test_schema_definitions_do_not_count_as_missing_table_data(self):
         with self.assertRaisesRegex(ValueError,'Complete'):
             quarantine.selected_table_data(b'1; 1 2 TABLE public ff_users postgres\n',['ff_users'])

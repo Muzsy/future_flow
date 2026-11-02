@@ -110,12 +110,14 @@ class RegistryEvidenceTests(ChainRootBase):
         state = system.root / 'synthetic-daily'
         proof = {'runId': 'synthetic-original', 'sourceCommit': 'a' * 40}
         manifest = {'runId': proof['runId'], 'synthetic': 'original-backup'}
+        replay = {'synthetic':'verified boundary'}
+        system.registry_restore = Mock(return_value=replay)
         self.fixture.write(state / 'status' / 'restore.json', root.encoded(proof))
         with patch.object(root.readers, 'durable_file', side_effect=self.fixture.write), patch.object(daily, 'ROOT', state), patch.object(daily, 'completed_archives',
                 return_value=[{'manifest': manifest}]):
             before = system.registry_context(candidate, persist=True)
             self.assertEqual(before['backupManifestSha256'], root.canonical_sha(manifest))
-            self.assertEqual(before['restoreProofSha256'], root.canonical_sha(proof))
+            self.assertEqual(before['restoreProofSha256'], root.canonical_sha({**proof,'registryReplay':replay}))
             self.fixture.write(state / 'status' / 'restore.json', root.encoded({'runId': 'later-backup'}))
             system.backup.side_effect = ValueError('Synthetic fresh gate now belongs to backup B')
             self.assertEqual(system.registry_context(candidate), before)
@@ -167,6 +169,8 @@ class RegistryEvidenceTests(ChainRootBase):
     def test_real_root_journal_binds_persisted_intent_and_rejects_tampering(self):
         system = self.system()
         system.root.mkdir(mode=0o700)
+        system.is_registry_schema = Mock(return_value=True)
+        system.is_billing = Mock(return_value=False)
         system.registry_profile = Mock(return_value=True)  # the future purpose remains disabled outside this unit
         system.backup = Mock()
         system.original_terms = Mock(return_value={'participants': []})
@@ -175,10 +179,14 @@ class RegistryEvidenceTests(ChainRootBase):
             'parentPreparedSha256': 'c' * 64, 'parentJournalSha256': 'd' * 64,
             'parentReadbackSha256': 'e' * 64,
             'operation': {'plan': {'purpose': 'schema-040', 'version': daily.SUCCESSOR_REGISTRY_PLAN_VERSION}},
-            'database': observed()}
+            'preparedAt':'2026-11-02T10:00:00.000Z','expiresAt':'2026-11-02T10:15:00.000Z',
+            'files':{'previous':{'manifest.json':'f'*64}}, 'database': observed()}
         state = system.root / 'synthetic-daily'
-        proof = {'runId': '20261102T100000Z-12345678'}
-        manifest = {'runId': proof['runId']}
+        from registry_test_proof import registry_replay
+        manifest, replay = registry_replay(candidate)
+        proof = {'runId': manifest['runId']}
+        self.fixture.write(state / 'status' / 'registry-migration-restore.json', root.encoded(replay))
+        system.now = Mock(return_value=__import__('datetime').datetime(2026,11,2,10,2,tzinfo=__import__('datetime').timezone.utc))
         self.fixture.write(state / 'status' / 'restore.json', root.encoded(proof))
         def prepare(image, payload):
             self.assertEqual(payload['mode'], 'registry-prepare')
@@ -189,7 +197,7 @@ class RegistryEvidenceTests(ChainRootBase):
                 'serviceActivationAllowed': False, 'providerApiCalls': 0, 'authProviderWrites': False}
         system.raw_probe = Mock(side_effect=prepare)
         with patch.object(daily, 'ROOT', state), patch.object(daily, 'completed_archives',
-                return_value=[{'manifest': manifest}]), patch.object(root.readers, 'durable_file',
+                return_value=[{'manifest': manifest,'files':{'manifest.json':{'sha256':replay['backupManifestSha256']}}}]), patch.object(root.readers, 'durable_file',
                 side_effect=self.fixture.write), patch.object(root.readers, 'update_durable',
                 side_effect=self.fixture.write):
             for tag in ('apply-intent', 'held', 'database-intent'):
@@ -231,3 +239,161 @@ class RegistryEvidenceTests(ChainRootBase):
             daily.registry_journal_fields(row)
         with self.assertRaises(ValueError):
             daily.registry_journal_fields({**row, 'state': 'held'}, registry=True)
+
+
+class RegistryChainTests(ChainRootBase):
+    def schema039(self):
+        self.chain.admit_readers()
+        value = self.chain.prepare(3, 'tester-beta', participants=self.chain.testers())
+        self.chain.expose(3, value, window_changed=True)
+        value = self.chain.prepare(4, 'schema-039')
+        self.chain.expose(4, value, window_changed=False, schema=True)
+
+    def test_registry_generation_keeps_terms_and_requires_the_bound040_readback(self):
+        self.schema039()
+        before = daily.successor_active_state()
+        value = self.chain.prepare(5, 'schema-040', database=observed())
+        self.assertEqual(daily.successor_active_state()['directory'], self.chain.root(4))
+        self.chain.expose(5, value, window_changed=False)
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        after = daily.successor_active_state()
+        self.assertEqual(after['directory'], self.chain.root(5))
+        from test_funded_replay import replay
+        proof = replay.active_funded_runtime(daily, root.fence.original)
+        self.assertEqual((proof['version'], proof['schema'], proof['recoveryProfile']),
+                         ('alterward-funded-replay-2', 40, 'registry040'))
+        self.assertEqual(replay.require_funded_runtime(daily, root.fence.original, proof), proof)
+        with self.assertRaises(ValueError):
+            replay.require_funded_runtime(daily, root.fence.original, {
+                k: ('alterward-funded-replay-1' if k == 'version' else v)
+                for k,v in proof.items() if k not in {'schema', 'recoveryProfile'}})
+        self.assertEqual((after['terms'], after['access']), (before['terms'], before['access']))
+        path = self.chain.root(5) / 'database-after.json'
+        import json
+        changed = json.loads(path.read_bytes())
+        changed['billingDataSha256'] = '0' * 64
+        self.fixture.write(path, root.encoded(changed))
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_a_second_registry_or_legacy_config_transition_stops_before_preparation_files(self):
+        self.schema039()
+        value = self.chain.prepare(5, 'schema-040', database=observed())
+        self.chain.expose(5, value, window_changed=False)
+        selection = {'purpose': 'schema-040', 'previousTermsSha256': root.canonical_sha(self.chain.terms),
+                     'fromSchema': 39, 'toSchema': 40}
+        system = self.system(selection=selection)
+        with self.assertRaisesRegex(ValueError, 'versioned billing-config-040'):
+            system.prepare()
+        self.assertFalse(system.root.exists())
+
+
+class RegistryBillingChainTests(ChainRootBase):
+    def setUp(self):
+        super().setUp()
+        candidate = self.chain.prepare(2, 'schema-040', database=observed())
+        self.chain.expose(2, candidate, window_changed=False)
+        self.before = observed(40)
+        self.before['catalogSha256'] = 'e' * 64
+        self.before['registryDataSha256'] = 'f' * 64
+
+    def selection(self, stage):
+        from test_beta_successor_chain import billing_selection
+        return {**billing_selection(root.canonical_sha(self.chain.terms), stage, founderUserIds=[]),
+                'purpose': 'billing-config-040'}
+
+    def test_native_stages_preserve_full_database_and_original_once_only_history(self):
+        before = daily.successor_active_state()
+        for number, stage in enumerate(('sandbox', 'live', 'enforce'), 3):
+            selection = self.selection(stage)
+            candidate = self.chain.prepare(number, selection['purpose'], selection=selection, database=self.before)
+            self.chain.expose(number, candidate, window_changed=False)
+            self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+            active = daily.successor_active_state()
+            self.assertEqual((active['terms'], active['access']), (before['terms'], before['access']))
+            context = daily.successor_parent_context(number + 1)[2]
+            self.assertEqual(context['purposes'][-1], 'billing-config:' + stage)
+            self.assertEqual(candidate['operation']['plan']['allowedChanges'], [])
+            self.assertEqual(candidate['operation']['plan']['allowedChangeHashes'], {})
+        duplicate = self.chain.prepare(6, 'billing-config-040', selection=self.selection('live'), database=self.before)
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_native_config_cannot_adopt_a_039_snapshot_or_omit_the_native_proof(self):
+        candidate = self.chain.prepare(3, 'billing-config-040', selection=self.selection('sandbox'), database=observed())
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_native_configuration_never_relaxes_registry_or_ledger_preservation(self):
+        import json
+        candidate = self.chain.prepare(3, 'billing-config-040', selection=self.selection('sandbox'), database=self.before)
+        self.chain.expose(3, candidate, window_changed=False)
+        path = self.chain.root(3) / 'database-after.json'
+        for field in ('billingDataSha256', 'migrationPrefixSha256', 'registryDataSha256', 'catalogSha256'):
+            changed = {**self.before, field: '0' * 64}
+            self.fixture.write(path, root.encoded(changed))
+            self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+            self.fixture.write(path, root.encoded(self.before))
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+
+    def test_legacy_config_is_refused_after_040_and_native_is_refused_before_it(self):
+        selection = self.selection('sandbox')
+        system = self.system(selection={**selection, 'purpose': 'billing-config'})
+        with self.assertRaisesRegex(ValueError, 'versioned billing-config-040'):
+            system.prepare()
+        self.assertFalse(system.root.exists())
+
+
+class RegistryRestoreProofTests(unittest.TestCase):
+    def fixture(self, migration=True):
+        from registry_test_proof import registry_replay
+        candidate = {'sourceCommit':'a'*40,'preparedAt':'2026-11-02T10:00:00.000Z',
+            'expiresAt':'2026-11-02T10:15:00.000Z','files':{'previous':{'manifest.json':'b'*64}},
+            'release':{'target':{'imageId':'sha256:'+'c'*64}}}
+        manifest, proof = registry_replay(candidate,migration=migration)
+        return candidate, manifest, proof
+
+    def test_only_a_source_archive_candidate_bound_actual_migration_receipt_is_accepted(self):
+        candidate, manifest, proof = self.fixture()
+        self.assertEqual(daily.validate_registry_restore_proof(candidate,manifest,proof,migration=True),proof)
+        for key, value in {'sourceCommit':'f'*40,'backupRunId':'foreign',
+            'ownerManifestDigest':'f'*64,'backupManifestCanonicalSha256':'f'*64,
+            'dataOnlyOriginalBackupLoaded':False,'freshStateEqualBeforeAndAfterReplay':False,
+            'tablesMatchedBeforeReplay':103,'paidAiCalls':True,'serviceActivationAllowed':True,
+            'capturedAt':'2026-11-02T10:15:00.000Z'}.items():
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                daily.validate_registry_restore_proof(candidate,manifest,{**proof,key:value},migration=True)
+        for key, value in {'imageId':'sha256:'+'f'*64,'backupDumpSha256':'d'*64,
+                           'backupRunId':'foreign','quarantineInstanceSha256':'broken'}.items():
+            changed = copy.deepcopy(proof)
+            changed['registryMigrationRestore']['context'][key] = value
+            with self.subTest(context=key), self.assertRaises(ValueError):
+                daily.validate_registry_restore_proof(candidate,manifest,changed,migration=True)
+        for absent in ('registryCandidate','registryMigrationRestore','fundedRuntime'):
+            with self.subTest(absent=absent), self.assertRaises(ValueError):
+                daily.validate_registry_restore_proof(candidate,manifest,{k:v for k,v in proof.items() if k!=absent},migration=True)
+
+    def test_native040_receipts_are_separate_from_historical_migration_receipts(self):
+        candidate, manifest, proof = self.fixture(migration=False)
+        daily.validate_registry_restore_proof(candidate,manifest,proof,migration=False)
+        with self.assertRaises(ValueError):
+            daily.validate_registry_restore_proof(candidate,manifest,proof,migration=True)
+        for change in ({'schema':39},{'version':'alterward-funded-replay-1'},{'recoveryProfile':'historical039'}):
+            with self.assertRaises(ValueError):
+                daily.validate_registry_restore_proof(candidate,manifest,
+                    {**proof,'fundedRuntime':{**proof['fundedRuntime'],**change}},migration=False)
+
+
+class RegistryLateRecoveryTests(ChainRootBase):
+    def test_late_committed_recovery_uses_journal_bound_A_without_fresh_mutable_B(self):
+        system = self.system(mode='recover',selection={'purpose':'schema-040'})
+        system.root = self.chain.root(2)
+        system.registry_profile = Mock(return_value=True)
+        system.is_registry_schema = Mock(return_value=True)
+        system.root.mkdir(mode=0o700)
+        self.fixture.write(system.root/'registry-intent.json',root.encoded({'synthetic':'retained'}))
+        system.registry_intent = Mock(return_value={'synthetic':'original journal-bound intent'})
+        system.backup = Mock(side_effect=AssertionError('Mutable B gate must not run'))
+        system.registry_restore = Mock(side_effect=AssertionError('Expired A must not be retimed'))
+        system.now = Mock(return_value=self.chain.at+dt.timedelta(days=1))
+        system.require_candidate_restore({'synthetic':'same original candidate'})
+        system.registry_intent.assert_called_once()
+        system.backup.assert_not_called()
+        system.registry_restore.assert_not_called()

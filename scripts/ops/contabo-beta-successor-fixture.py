@@ -210,10 +210,10 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
             checks.update(db('successor-verify',database,{'previous':terms,'selection':selection,'expected':candidate['operation']}))
             checks.update(historyPreserved=True,stagedIngress=True,effectiveAuthority=True)
             assert trial.proof['browserJourneyPassed'] is False
-            if label=='success':
+            if label in {'success', 'postcheck'}:
                 chain(engine,successor,ctx,request=request,release=release,owner=owner,project=project,
                       database=database,window=selection['next'],db=db,make_archive=make_archive,
-                      private=private,checks=checks)
+                      private=private,checks=checks,registry_config_only=label=='postcheck')
 
 
 READERS = ['funded@example.invalid','owner@example.invalid','tester-one@example.invalid','tester-two@example.invalid']
@@ -224,7 +224,7 @@ TESTERS = [OWNER,
 
 
 def chain(engine, successor, ctx, *, request, release, owner, project, database, window, db,
-          make_archive, private, checks):
+          make_archive, private, checks, registry_config_only=False):
     """The two separately authorized generations that follow the owner trial.
 
     The owner window must be running first (a real wait, no clock seam), then
@@ -245,16 +245,27 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 self.staging_network=project+'-stage'
                 self.applications=0
                 self.interrupt_first=False
+                self.lose_registry_output=False
 
             def probe(self,image,mode,expected=None):
                 if image != ctx['image']:
                     raise ValueError('Only the actual fixture image supported')
+                if self.registry_profile():
+                    if mode != 'capture' or expected is not None:
+                        raise ValueError('Journal-bound registry operation required')
+                    return self.registry_probe(image)
                 if self.is_schema() and mode == 'migrate' and expected is not None:
                     # The real image-side migration against the real PostgreSQL.
                     return db('migrate',database,expected)
                 if mode != 'capture' or expected is not None:
                     raise ValueError('Only actual synthetic039 capture supported')
                 return db('capture',database)
+
+            def raw_probe(self, image, payload):
+                if image == ctx['image'] and payload['mode'].startswith('registry-'):
+                    return db(payload['mode'], database, {'participants': payload['participants'],
+                        'request': payload['expected']})
+                return super().raw_probe(image, payload)
 
             def accounting(self,image,mode,expected=None):
                 if not self.is_window() or image != ctx['image'] or mode not in {'capture','apply','reconcile'}:
@@ -266,7 +277,67 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 if self.interrupt_first and self.applications == 1:
                     # Dies BEFORE any database write: the migration stays uncommitted.
                     raise InterruptedError('Synthetic interruption before the schema migration')
-                return super().apply_accounts(candidate)
+                result = super().apply_accounts(candidate)
+                if self.lose_registry_output and self.applications == 1:
+                    raise InterruptedError('Synthetic lost registry COMMIT stdout')
+                return result
+
+            def prepare_registry_replay(self, candidate, manifest, dump, cipher_sha, manifest_sha):
+                # Actual production data-only quarantine transport and actual image,
+                # driven by synthetic local Auth evidence instead of a hosted provider.
+                quarantine = engine.load('fixture_registry_quarantine','contabo-quarantine-rehearsal.py')
+                drill = engine.load('fixture_registry_drill','contabo-fence-drill.py')
+                nonce = os.urandom(12).hex()
+                services = self.roles()
+                active = engine.replay.active_funded_runtime(daily, funded.fence.original)
+                migration = self.is_registry_schema()
+                node_files = drill.NODE_FILES | drill.FUNDED_NODE_FILES | drill.REGISTRY_NODE_FILES
+                if migration:
+                    node_files |= drill.MIGRATION_NODE_FILES
+                files = {name:(engine.REPO/name).read_bytes() for name in node_files}
+                frame = {'mode':'recovery','nonce':nonce,'sourceCommit':candidate['sourceCommit'],
+                    'sourceFilesDigest':ctx['bundleSha256'],'ownerManifestDigest':sha((owner/'manifest.json').read_bytes()),
+                    'projectBinding':successor.canonical_sha(['isolated-fixture', database]),
+                    'writerFenceDigest':successor.canonical_sha({r:v['Id'] for r,v in services.items()}),
+                    'expiresAt':iso(utc()+dt.timedelta(minutes=15))}
+                self.stop()
+                assert not any(v['State']['Running'] for v in self.roles().values())
+                captured = db('privacy-envelope', database, {'binding':frame,
+                    'recoveryProfile':'historical039' if migration else 'registry040'})
+                archive = {'dump':dump, 'manifest':manifest, 'runId':manifest['runId'],
+                    'cipherSha256':cipher_sha,'backupManifestSha256':manifest_sha}
+                def persist(intent):
+                    path = daily.ROOT/'status'/('fixture-registry-intent-'+nonce+'.json')
+                    private(path, encoded(intent))
+                    retained = json.loads(path.read_bytes())
+                    assert retained == intent
+                    return successor.canonical_sha(retained)
+                from contextlib import nullcontext
+                with engine.tempfile.TemporaryDirectory(prefix='registry-quarantine-', dir=engine.Path(ctx['ca']).parent) as scratch:
+                    result = quarantine.replay(daily,engine.Path(scratch),files,node_files,nonce,archive,
+                        captured['envelope'],captured['held'],lambda names:None,nullcontext,
+                        funded_runtime=active,
+                        **({'migration_executor':{'sourceCommit':candidate['sourceCommit'],'imageId':ctx['image']},
+                            'persist_migration_intent':persist} if migration else {}))
+                again = db('privacy-envelope', database, {'binding':frame,
+                    'recoveryProfile':'historical039' if migration else 'registry040'})
+                assert again['envelope']['stateDigest'] == captured['envelope']['stateDigest']
+                for role, original in services.items():
+                    upgrade.docker('start', original['Id'])
+                resumed = self.roles()
+                assert {r:(v['Id'],v['Image']) for r,v in resumed.items()} == {r:(v['Id'],v['Image']) for r,v in services.items()}
+                completed = {**result,'fundedRuntime':active,'sourceCommit':candidate['sourceCommit'],
+                    'ownerManifestDigest':frame['ownerManifestDigest'],'mode':'rehearsal','servicesStoppedAndResumed':3,
+                    'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
+                    'freshStateEqualBeforeAndAfterReplay':True,'independentEncryptedCaptures':2,
+                    'writerFenceStillHeld':False,'replayAllowed':False,'serviceActivationAllowed':False,
+                    'ownerOriginBoundaryVerified':True,'liveDatabaseWrites':False,'authProviderWrites':False,
+                    'externalMessagesSent':False,'paidAiCalls':0,'capturedAt':utc().isoformat(),
+                    **({'registryCandidate':{'preparedSha256':sha(encoded(candidate)),'targetImage':ctx['image']}} if migration else {})}
+                name = 'registry-migration-restore.json' if migration else 'registry-restore.json'
+                private(daily.ROOT/'status'/name,encoded(completed))
+                self.registry_restore(candidate, manifest)
+                checks['registryCandidatePrivacyRestore' if migration else 'registryNativePrivacyRestore'] = True
 
             def build_files(self,role,build,baseline):
                 path=self.root/role
@@ -291,7 +362,7 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                     for name in ('api','worker'):
                         new['services'][name]['environment'].update(billing)
                     assert not any(k in new['services']['web']['environment'] for k in successor.BILLING_KEYS)
-                if self.is_schema():
+                if self.is_schema() and not self.is_registry_schema():
                     # The new image brings billing at its compose defaults (off).
                     for name in ('api','worker'):
                         new['services'][name]['environment'].update(funded.BILLING_DEFAULTS)
@@ -317,7 +388,7 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 return self.hashes(path)
         return ChainSystem()
 
-    def advance(selection, previous, *, emails, interrupted=False, secrets=None):
+    def advance(selection, previous, *, emails, interrupted=False, secrets=None, registry_lost_output=False):
         req=copy.deepcopy(request)
         for key in ('preparedSha256','restoreProof'):
             req.pop(key,None)
@@ -349,7 +420,19 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 while trial.now()<until:
                     time.sleep(min(1,(until-trial.now()).total_seconds()))
             req['accessSnapshot']['checkedAt']=utc().isoformat()
-            if interrupted:
+            if registry_lost_output:
+                trial.lose_registry_output = True
+                try: successor.transition(trial, candidate)
+                except InterruptedError: pass
+                else: raise AssertionError('Registry lost-output fault did not stop')
+                assert trial.applications == 1 and not any(v['State']['Running'] for v in trial.roles().values())
+                assert trial.reconcile_accounts(candidate)['state'] == 'committed'
+                trial.recovery = True
+                req['mode'] = 'recover'
+                req['accessSnapshot']['checkedAt'] = utc().isoformat()
+                successor.transition(trial, candidate, recovery=True)
+                assert trial.applications == 1  # read-only reconciliation, no second SQL application
+            elif interrupted:
                 trial.interrupt_first=True
                 try:successor.transition(trial,candidate)
                 except InterruptedError:pass
@@ -373,6 +456,41 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
             assert trial.reconcile_accounts(candidate)['protectedDataUnchanged'] is True
             assert trial.proof['browserJourneyPassed'] is False
         return trial,candidate
+
+    if registry_config_only:
+        # Reuse the real postcheck-recovery case. No funded-window change is needed,
+        # so the040 migration and configuration run before its future start, without
+        # editing clocks or old authority or adding another ten-minute wait.
+        emails = request['accessSnapshot']['allowedEmails']
+        selection = {'purpose':'schema-040', 'previousTermsSha256':successor.canonical_sha(window),
+                     'fromSchema':39, 'toSchema':40}
+        registry, candidate = advance(selection, window, emails=emails)
+        before = registry.probe(ctx['image'], 'capture')
+        assert registry.generation == 2 and before['schema'] == 40
+        host = upgrade.server_environment((owner/'server.env').read_text())['PUBLIC_HOST']
+        webhook = 'whsec_'+'b'*24
+        for number, stage in enumerate(('sandbox', 'live', 'enforce'), 3):
+            key = ('sk_test_'+'a'*24) if stage == 'sandbox' else ('sk_live_'+'c'*24)
+            selection = {'purpose':'billing-config-040', 'previousTermsSha256':successor.canonical_sha(window),
+                'billing':{'stage':stage,'mode':'test' if stage=='sandbox' else 'live','enabled':True,
+                'enforcement':stage=='enforce','priceId':'price_fixtureNative040','couponId':'fixtureNative040',
+                'apiVersion':'2026-09-30.endive','successUrl':'https://'+host+'/billing?checkout=success',
+                'cancelUrl':'https://'+host+'/billing?checkout=cancel','founderUserIds':[],
+                'reservationTtlSeconds':7200,'secretKeySha256':sha(key.encode()),
+                'webhookSecretSha256':sha(webhook.encode())}}
+            secrets = None if stage == 'enforce' else {'secretKey':key,'webhookSecret':webhook}
+            configured, candidate = advance(selection, window, emails=emails, secrets=secrets)
+            assert configured.generation == number
+            assert candidate['operation']['plan']['allowedChanges'] == []
+            assert candidate['operation']['plan']['allowedChangeHashes'] == {}
+            daily.same_registry_runtime(before, configured.probe(ctx['image'], 'capture'))
+            assert (configured.root/'terms.json').read_bytes() == encoded(window)
+            env = configured.configuration(owner)['services']['api']['environment']
+            assert env['BILLING_ENFORCEMENT'] == ('true' if stage == 'enforce' else 'false')
+            assert env['STRIPE_SECRET_KEY'] == key and env['BILLING_FOUNDER_USER_IDS'] == ''
+            assert daily.successor_parent_context(number+1)[2]['purposes'][-1] == 'billing-config:'+stage
+        checks['registryBillingConfigStages'] = True
+        return
 
     # The owner window is part of the baseline of both later generations and must
     # be the running window: wait for its real start instead of moving a clock.
@@ -534,6 +652,30 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     state=daily.successor_active_state()
     assert state['generation']==7 and state['directory'].name=='beta-successor-7'
     assert state['terms']==active_terms
+    checks['billingConfigStages']=True
+    # Explicit040 migration preserves the already enforced billing stage and all
+    # previous windows/readers. Its COMMIT response is lost; recovery never reruns SQL.
+    registry_selection={'purpose':'schema-040','previousTermsSha256':successor.canonical_sha(active_terms),
+                        'fromSchema':39,'toSchema':40}
+    registry,registry_candidate=advance(registry_selection,active_terms,emails=sorted(READERS),registry_lost_output=True)
+    assert registry.generation == 8 and registry.root.name == 'beta-successor-8'
+    assert (registry.root/'terms.json').read_bytes() == encoded(active_terms)
+    current = registry.probe(ctx['image'], 'capture')
+    assert current['schema'] == 40 and current['registryRows'] == {'policy':0,'admissions':0}
+    daily.same_registry_runtime(registry_candidate['database'], current, migration=True)
+    assert registry.applications == 1
+    journal=registry.journal(registry_candidate)
+    intent=registry.registry_intent(registry_candidate)
+    assert {row['registryIntentSha256'] for row in journal['states'] if row['state']=='database-intent'} == {successor.canonical_sha(intent)}
+    proof=json.loads((registry.root/'readback.json').read_bytes())
+    assert proof['schema']==40 and proof['fromSchema']==39 and proof['runtimeProfile']=='service-registry-040'
+    for role in ('api','worker'):
+        env=registry.configuration(owner)['services'][role]['environment']
+        assert env['BILLING_ENABLED']=='true' and env['BILLING_ENFORCEMENT']=='true' and env['STRIPE_SECRET_KEY']==key_live
+    try: registry.registry_database_request(registry_candidate, 'registry-prepare')
+    except ValueError: pass
+    else: raise AssertionError('Existing journaled registry intent was replaced')
+    checks.update(registryMigration=True,registryLostOutputRecovery=True,registryIntentBound=True)
     # The chain is full: nothing further can be prepared.
     try:fixture_system({**request,'mode':'prepare'},billing_selection('enforce',key_live),active_terms)
     except ValueError:pass

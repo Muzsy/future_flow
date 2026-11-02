@@ -40,6 +40,16 @@ async function main() {
     reader: ['reader-admission', 'reader-'],
     tester: ['tester-beta', 'tester-'],
     schema: ['schema-039', 'schema-'],
+    'schema-040': ['schema-040', 'registry-schema-'],
+    'billing-registry-sandbox': [
+      'billing-config-040',
+      'billing-registry-sandbox-',
+    ],
+    'billing-registry-live': ['billing-config-040', 'billing-registry-live-'],
+    'billing-registry-enforce': [
+      'billing-config-040',
+      'billing-registry-enforce-',
+    ],
     'billing-sandbox': ['billing-config', 'billing-sandbox-'],
     'billing-live': ['billing-config', 'billing-live-'],
     'billing-enforce': ['billing-config', 'billing-enforce-'],
@@ -49,6 +59,7 @@ async function main() {
     'reader-admission': 'reader-',
     'tester-beta': 'tester-',
     'schema-039': 'schema-',
+    'schema-040': 'registry-schema-',
   };
   let purpose = 'owner-e2e';
   let prefix = '';
@@ -167,12 +178,12 @@ async function main() {
     exactObject(packet, ['selection', 'release']);
     if (mode === 'prepare') {
       purpose = packet.selection?.purpose;
-      if (purpose === 'billing-config') {
+      if (['billing-config', 'billing-config-040'].includes(purpose)) {
         // The stage is validated below (successorReleaseEvidence) before the receipt is written.
         const stage = packet.selection?.billing?.stage;
         if (!['sandbox', 'live', 'enforce'].includes(stage))
           throw Error('Approved billing stage required');
-        prefix = `billing-${stage}-`;
+        prefix = `${purpose === 'billing-config-040' ? 'billing-registry' : 'billing'}-${stage}-`;
       } else {
         if (!Object.hasOwn(prefixes, purpose))
           throw Error('Approved successor purpose required');
@@ -180,8 +191,9 @@ async function main() {
       }
     } else if (
       packet.selection?.purpose !== purpose ||
-      (purpose === 'billing-config' &&
-        `billing-${packet.selection.billing?.stage}-` !== prefix)
+      (['billing-config', 'billing-config-040'].includes(purpose) &&
+        `${purpose === 'billing-config-040' ? 'billing-registry' : 'billing'}-${packet.selection.billing?.stage}-` !==
+          prefix)
     )
       throw Error('Receipt belongs to another successor generation');
     const release = successorReleaseEvidence({
@@ -189,7 +201,11 @@ async function main() {
       bundleSha256,
       selection: packet.selection,
       release: packet.release,
-      successorFixture: report('beta-successor-fixture-proof.json'),
+      successorFixture: report(
+        ['schema-040', 'billing-config-040'].includes(purpose)
+          ? 'registry-successor-fixture-proof.json'
+          : 'beta-successor-fixture-proof.json',
+      ),
       audit: report('beta-successor-audit-proof.json'),
       fixture: report('funded-upgrade-fixture-proof.json'),
       ci: runs,
@@ -198,7 +214,7 @@ async function main() {
     request.selection = packet.selection;
     if (
       mode === 'prepare' &&
-      purpose === 'billing-config' &&
+      ['billing-config', 'billing-config-040'].includes(purpose) &&
       packet.selection.billing.stage !== 'enforce'
     ) {
       // The two Stripe secrets never enter a packet, receipt or report: they come from their own

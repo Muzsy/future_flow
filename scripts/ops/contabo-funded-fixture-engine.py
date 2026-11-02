@@ -705,6 +705,7 @@ def exercise(context, *, scope='ci'):
             with tarfile.open(fileobj=payload, mode='w') as tar:
                 for path in paths:
                     tar.add(path, arcname=str(path).lstrip('/'), recursive=False)
+            registry = getattr(system, 'registry_profile', lambda:False)()
             dump = run(
                 [
                     'docker',
@@ -714,6 +715,7 @@ def exercise(context, *, scope='ci'):
                     '-U',
                     'postgres',
                     '-Fc',
+                    *(['--schema=public'] if registry else []),
                     system.database,
                 ]
             )
@@ -775,9 +777,17 @@ def exercise(context, *, scope='ci'):
                 ],
                 restored['application.dump.age'],
             )
-            current = db('capture', system.database)
-            restoredState = db('capture', restoredDB)
-            funded.same_funded(
+            if registry:
+                # The production archive is public-only. Restore the fixture's
+                # synthetic Auth schema separately solely for identity comparison;
+                # the clean privacy quarantine below never receives it.
+                auth = run(['docker','exec',context['postgres'],'pg_dump','-U','postgres','-Fc','--schema=auth',system.database])
+                run(['docker','exec','-i',context['postgres'],'pg_restore','-U','postgres','--single-transaction','-d',restoredDB],auth)
+            capture_mode = 'registry-capture' if registry else 'capture'
+            capture_args = {'participants':system.original_terms()['participants']} if registry else None
+            current = db(capture_mode, system.database, capture_args)
+            restoredState = db(capture_mode, restoredDB, capture_args)
+            (daily.same_registry_runtime if registry else funded.same_funded)(
                 {
                     **current,
                     'identityBindingSha256': restoredState['identityBindingSha256'],
@@ -787,7 +797,7 @@ def exercise(context, *, scope='ci'):
             tables = (
                 sql(
                     system.database,
-                    "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'ff_migrations' ORDER BY tablename",
+                    "SELECT tablename FROM pg_tables WHERE schemaname='public'" + ("" if registry else " AND tablename<>'ff_migrations'") + " ORDER BY tablename",
                 )
                 .decode()
                 .splitlines()
@@ -825,6 +835,16 @@ def exercise(context, *, scope='ci'):
                 'configFiles': {str(p).lstrip('/'): sha(p.read_bytes()) for p in paths},
                 'expectedTables': counts,
             }
+            if registry:
+                active_manifest = json.loads((owner/'manifest.json').read_bytes())
+                manifest.update(ownerCommit=active_manifest['commit'],ownerImage=active_manifest['imageId'],
+                    dumpSha256=sha(dump),postgresImage=json.loads(run(['docker','inspect',context['postgres']]))[0]['Image'])
+                detailed = []
+                for table in tables:
+                    result = sql(system.database, "SET timezone='UTC'; SELECT count(*)::int,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) FROM public.\""+table+'\" t;').decode().strip().splitlines()[-1]
+                    count, row_digest = result.split('|')
+                    detailed.append({'name':table,'count':int(count),'digest':row_digest})
+                manifest['expectedTables'] = detailed
             private(archive / 'manifest.json', encoded(manifest))
             proof = {
                 **sourceBinding,
@@ -861,6 +881,8 @@ def exercise(context, *, scope='ci'):
             }
             # Mutation of a copied proof/config cannot pass the real gate.
             system.backup(candidate)
+            if registry:
+                system.prepare_registry_replay(candidate, manifest, dump, encrypted['application.dump.age']['sha256'], sha(encoded(manifest)))
 
         for label in (
             'probe-cleanup',
@@ -1263,6 +1285,9 @@ def exercise(context, *, scope='ci'):
             'readerAdmission','testerBetaWindow','chainedAuthority',
             'schemaMigration','schemaRecovery','billingDefaultsGuard',
             'billingConfigStages','billingSecretGuard','billingConfigRefusals'}
+        registry_names = {'registryMigration', 'registryLostOutputRecovery', 'registryIntentBound', 'registryBillingConfigStages', 'registryCandidatePrivacyRestore', 'registryNativePrivacyRestore'}
+        registry_checks = {k: successor_checks.pop(k) for k in registry_names}
+        assert all(v is True for v in registry_checks.values())
         assert set(successor_checks)==expected_successor and all(v is True for v in successor_checks.values())
         # Consumed ONLY after exercise() returns through the verified finally
         # cleanup. Never published by a failed or interrupted fixture.
@@ -1271,6 +1296,9 @@ def exercise(context, *, scope='ci'):
             'sourceCommit':context['sourceCommit'],'bundleSha256':context['bundleSha256'],
             'targetImage':context['image'],'recoveryImage':context['image'],
             'checks':successor_checks,'paidAiCalls':0}
+        global REGISTRY_SUCCESSOR_PROOF
+        REGISTRY_SUCCESSOR_PROOF = {**SUCCESSOR_PROOF, 'version':'alterward-beta-successor-fixture-5',
+            'checks':{**successor_checks, **registry_checks}}
         # Reservation and lease/queue failures are exercised against real SQL by
         # the companion below, not simulated booleans in this controller.
         database = 'aw_fixture_' + uuid.uuid4().hex[:24]

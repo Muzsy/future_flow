@@ -44,10 +44,23 @@ export const successorChecks = [
   'billingConfigRefusals',
 ];
 export const successorFixtureVersion = 'alterward-beta-successor-fixture-4';
+export const registrySuccessorChecks = [
+  ...successorChecks,
+  'registryMigration',
+  'registryLostOutputRecovery',
+  'registryIntentBound',
+  'registryBillingConfigStages',
+  'registryCandidatePrivacyRestore',
+  'registryNativePrivacyRestore',
+];
+export const registrySuccessorFixtureVersion =
+  'alterward-beta-successor-fixture-5';
 
 const READER_PURPOSE = 'reader-admission';
 // The database and application upgrade: no allowance, window, cohort or reader change.
 const SCHEMA_PURPOSE = 'schema-039';
+const REGISTRY_PURPOSE = 'schema-040';
+const REGISTRY_BILLING_PURPOSE = 'billing-config-040';
 // Billing configuration (api and worker only): no allowance, window, cohort, reader or database
 // change. Three ordered, once-only stages; the Stripe secrets are never part of a selection, only
 // their SHA-256 digests.
@@ -187,7 +200,7 @@ export function validateBillingSelection(selection) {
   ]);
   const { stage, mode, founderUserIds: founders } = billing;
   if (
-    selection.purpose !== BILLING_PURPOSE ||
+    ![BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE].includes(selection.purpose) ||
     !digestPattern.test(selection.previousTermsSha256) ||
     !billingStages.includes(stage) ||
     !['test', 'live'].includes(mode) ||
@@ -218,12 +231,31 @@ export function validateBillingSelection(selection) {
 
 // Dispatches on the explicit purpose. The generation a purpose is allowed in is
 // enforced where the chain is known (Daily authority and the root adapter).
+export function validateRegistrySchemaSelection(selection) {
+  exactObject(selection, [
+    'purpose',
+    'previousTermsSha256',
+    'fromSchema',
+    'toSchema',
+  ]);
+  if (
+    selection.purpose !== REGISTRY_PURPOSE ||
+    !digestPattern.test(selection.previousTermsSha256) ||
+    selection.fromSchema !== 39 ||
+    selection.toSchema !== 40
+  )
+    throw Error('Exact registry039 to040 selection required');
+  return selection;
+}
+
 export function validateSuccessorSelection(selection) {
+  if (selection?.purpose === REGISTRY_PURPOSE)
+    return validateRegistrySchemaSelection(selection);
   if (selection?.purpose === READER_PURPOSE)
     return validateReaderSelection(selection);
   if (selection?.purpose === SCHEMA_PURPOSE)
     return validateSchemaSelection(selection);
-  if (selection?.purpose === BILLING_PURPOSE)
+  if ([BILLING_PURPOSE, REGISTRY_BILLING_PURPOSE].includes(selection?.purpose))
     return validateBillingSelection(selection);
   return validateWindowSelection(selection, ['owner-e2e', 'tester-beta']);
 }
@@ -243,6 +275,8 @@ export function successorReleaseEvidence({
   if (
     (selection.purpose === READER_PURPOSE ||
     selection.purpose === SCHEMA_PURPOSE ||
+    selection.purpose === REGISTRY_PURPOSE ||
+    selection.purpose === REGISTRY_BILLING_PURPOSE ||
     selection.purpose === BILLING_PURPOSE
       ? !Array.isArray(cohort) || cohort.length < 1 || cohort.length > 10
       : JSON.stringify(cohort) !==
@@ -260,15 +294,20 @@ export function successorReleaseEvidence({
     'checks',
     'paidAiCalls',
   ]);
-  exactObject(successorFixture.checks, successorChecks);
+  const registry = [REGISTRY_PURPOSE, REGISTRY_BILLING_PURPOSE].includes(
+    selection.purpose,
+  );
+  const checks = registry ? registrySuccessorChecks : successorChecks;
+  exactObject(successorFixture.checks, checks);
   if (
-    successorFixture.version !== successorFixtureVersion ||
+    successorFixture.version !==
+      (registry ? registrySuccessorFixtureVersion : successorFixtureVersion) ||
     successorFixture.sourceCommit !== original.commit ||
     successorFixture.bundleSha256 !== original.bundleSha256 ||
     successorFixture.targetImage !== release.target.imageId ||
     successorFixture.recoveryImage !== release.recovery.imageId ||
     successorFixture.paidAiCalls !== 0 ||
-    successorChecks.some((k) => successorFixture.checks[k] !== true)
+    checks.some((k) => successorFixture.checks[k] !== true)
   )
     throw Error('Actual source/image-bound successor fixture required');
   return {

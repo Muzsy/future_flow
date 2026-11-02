@@ -157,16 +157,18 @@ def require_proof(proof, image, binding):
         raise ValueError('Complete actual image/source-bound fixture proof required')
 
 
-def require_successor_proof(proof, image, binding):
+def require_successor_proof(proof, image, binding, *, registry=False):
     checks = {'oldAllowanceClosed','historyPreserved','differentOwner','ownerCap',
         'lostCommitRecovery','noSqlReplay','interruptionHeld','stagedIngress','watchdog',
         'effectiveAuthority','candidateBackup','expiredArchive','foreignStable','cleanup',
         'readerAdmission','testerBetaWindow','chainedAuthority',
             'schemaMigration','schemaRecovery','billingDefaultsGuard',
             'billingConfigStages','billingSecretGuard','billingConfigRefusals'}
+    if registry:
+        checks |= {'registryMigration','registryLostOutputRecovery','registryIntentBound','registryBillingConfigStages','registryCandidatePrivacyRestore','registryNativePrivacyRestore'}
     if (not isinstance(proof,dict) or set(proof) != {'version','sourceCommit','bundleSha256',
             'targetImage','recoveryImage','checks','paidAiCalls'}
-            or proof['version'] != 'alterward-beta-successor-fixture-4'
+            or proof['version'] != ('alterward-beta-successor-fixture-5' if registry else 'alterward-beta-successor-fixture-4')
             or proof['sourceCommit'] != binding['sourceCommit'] or proof['bundleSha256'] != binding['bundleSha256']
             or proof['targetImage'] != image or proof['recoveryImage'] != image or proof['paidAiCalls'] != 0
             or set(proof['checks']) != checks or any(v is not True for v in proof['checks'].values())):
@@ -352,7 +354,9 @@ def isolated_owned(image, output, binding):
     require_proof(proof, image, binding)
     successor = getattr(engine,'SUCCESSOR_PROOF',None)
     require_successor_proof(successor,image,binding)
-    for filename, value in [('registry040-image-fixture.json', registry), ('funded-upgrade-fixture-proof.json', proof), ('beta-successor-fixture-proof.json',successor), ('image-rehearsal-receipt.json', {
+    registry_successor = getattr(engine, 'REGISTRY_SUCCESSOR_PROOF', None)
+    require_successor_proof(registry_successor, image, binding, registry=True)
+    for filename, value in [('registry-successor-fixture-proof.json', registry_successor), ('registry040-image-fixture.json', registry), ('funded-upgrade-fixture-proof.json', proof), ('beta-successor-fixture-proof.json',successor), ('image-rehearsal-receipt.json', {
             'version': 'alterward-image-rehearsal-1', 'sourceCommit': binding['sourceCommit'], 'imageId': image,
             'capturedAt': dt.datetime.now(dt.timezone.utc).isoformat(), 'syntheticDataOnly': True,
             'cleanupVerified': True, 'foreignContainersUnchanged': True, 'paidAiCalls': 0,

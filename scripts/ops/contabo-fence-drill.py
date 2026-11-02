@@ -31,6 +31,9 @@ NODE_FILES = {
 }
 FUNDED_HELPER = 'scripts/ops/contabo-funded-replay.py'
 FUNDED_NODE_FILES = {'scripts/lib/funded-runtime.ts', 'scripts/lib/personal-beta-admission-observation.mjs'}
+REGISTRY_NODE_FILES = {'scripts/lib/privacy-recovery-profile.ts', 'scripts/lib/registry-restore-intent.ts',
+    'scripts/lib/reviewed-migration-manifest.ts', 'scripts/lib/service-registry-schema-migration.ts'}
+MIGRATION_NODE_FILES = {'scripts/lib/registry-migration-restore.ts'}
 REGISTRY = 'deploy/reviewed-recovery-images.json'
 PHASE = 'validation'
 FAILURE_PHASE = None
@@ -110,6 +113,10 @@ def original_services(services):
 
 def sources(request):
     extra = FUNDED_NODE_FILES | {FUNDED_HELPER} if 'fundedRuntime' in request else set()
+    if request.get('fundedRuntime', {}).get('version') == 'alterward-funded-replay-2' or 'registryCandidate' in request:
+        extra |= REGISTRY_NODE_FILES
+    if 'registryCandidate' in request:
+        extra |= MIGRATION_NODE_FILES
     if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE, REGISTRY} | extra:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
@@ -160,9 +167,19 @@ def main(request):
     os.umask(0o077)
     funded = 'fundedRuntime' in request
     node_files = NODE_FILES | FUNDED_NODE_FILES if funded else NODE_FILES
+    registry_recovery = request.get('fundedRuntime', {}).get('version') == 'alterward-funded-replay-2'
+    registry_migration = 'registryCandidate' in request
+    if registry_recovery or registry_migration:
+        node_files |= REGISTRY_NODE_FILES
+    if registry_migration:
+        node_files |= MIGRATION_NODE_FILES
     expected = {'mode', 'sourceCommit', 'ownerManifestDigest', 'files'}
     if funded:
         expected.add('fundedRuntime')
+    if registry_migration:
+        expected.add('registryCandidate')
+        if not funded or registry_recovery or request.get('mode') not in {'plan','rehearsal'}:
+            raise ValueError('Explicit039 funded candidate migration rehearsal required')
     if request.get('mode')=='rehearsal':
         expected.add('recoveryIdentity')
     if (os.geteuid() != 0 or set(request) != expected or
@@ -202,6 +219,29 @@ def main(request):
         if (manifest['commit'],manifest['imageId']) not in releases:
             raise ValueError('Reviewed active image required')
         owner_image=manifest['imageId']
+        observer_image = owner_image
+        migration_executor = None
+        if registry_migration:
+            binding = request['registryCandidate']
+            if not isinstance(binding, dict) or set(binding) != {'preparedSha256','targetImage'}:
+                raise ValueError('Exact040 candidate image binding required')
+            active = daily.successor_active_state()
+            pending = active['pending']
+            if pending is None:
+                raise ValueError('Actual prepared040 candidate required')
+            candidate = json.loads(fence.original(pending/'prepared.json'))
+            plan = candidate.get('operation', {}).get('plan', {})
+            if (binding['preparedSha256'] != hashlib.sha256(fence.original(pending/'prepared.json')).hexdigest()
+                    or binding['targetImage'] != candidate['release']['target']['imageId']
+                    or request['sourceCommit'] != candidate['sourceCommit']
+                    or plan.get('purpose') != 'schema-040' or plan.get('version') != 'alterward-beta-successor-plan-3'
+                    or candidate.get('database',{}).get('schema') != 39
+                    or (pending/'journal.json').exists()
+                    or not dt.datetime.now(dt.timezone.utc) < dt.datetime.fromisoformat(candidate['expiresAt'].replace('Z','+00:00'))):
+                raise ValueError('Fresh never-attempted039 to040 candidate required')
+            observer_image = binding['targetImage']
+            migration_executor = {'sourceCommit':candidate['sourceCommit'],'imageId':observer_image}
+            daily.command(['docker','image','inspect',observer_image],timeout=10)
         fence.validate_services(services)
         baseline = {c['Id']: c for c in daily.containers()}
         if any(re.search('watchtower|autoheal', c['Config'].get('Image', ''), re.I) or
@@ -259,6 +299,7 @@ def main(request):
                 'sourceFilesDigest':digest({k:hashlib.sha256(v).hexdigest() for k,v in files.items()}),
                 'ownerManifestDigest':request['ownerManifestDigest'],
                 **({'fundedRuntime':request['fundedRuntime']} if funded else {}),
+                **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
                 'projectBinding':digest(project_host),
                 'createdAt':started.isoformat().replace('+00:00','Z'),
                 'expiresAt':expires.isoformat().replace('+00:00','Z'),
@@ -291,6 +332,8 @@ def main(request):
                             ALTERWARD_FENCE_OPERATOR='true',AI_PROJECT_BUDGET_USD='0',AI_USER_BUDGET_USD='0')
             if funded:
                 selected['ALTERWARD_FUNDED_REPLAY'] = 'v9'
+                if registry_recovery or registry_migration:
+                    selected['ALTERWARD_RECOVERY_PROFILE'] = 'registry040' if registry_recovery else 'historical039'
             client_env=scratch/'client.env'
             client_env.write_text(''.join(key+'='+value+'\n' for key,value in selected.items()))
             client_env.chmod(0o600)
@@ -327,7 +370,7 @@ def main(request):
                 wrapper="""const {spawnSync}=require('node:child_process');
 const r=spawnSync(process.execPath,['node_modules/tsx/dist/cli.mjs','--tsconfig','tsconfig.scripts.json','scripts/capture-privacy-authority.ts',process.argv[1]],{stdio:['inherit','pipe','pipe'],encoding:'utf8',timeout:120000,maxBuffer:26*1024**2});
 if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.stdout);}catch{};const phases=['precondition','database-connection','capture-input','authority-verification','envelope-verification'];process.stdout.write(JSON.stringify({observationFailed:true,phase:phases.includes(v?.phase)?v.phase:'observer-process',fields:Array.isArray(v?.fields)?v.fields.filter(x=>typeof x==='string'&&x.length<512&&/^[a-zA-Z_.#?]*$/.test(x)).slice(0,8):[]}));}"""
-                args += capture_command(owner_image,wrapper,mode)
+                args += capture_command(observer_image,wrapper,mode)
                 try:
                     data=daily.command(args,input=json.dumps(payload).encode() if payload is not None else None,timeout=135)
                     if not 0 < len(data) <= 32*1024**2:
@@ -344,7 +387,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                         observed = daily.command(['docker','inspect',name],timeout=10) if name in [c['Name'].lstrip('/') for c in daily.containers()] else None
                         if observed:
                             item=json.loads(observed)[0]
-                            if not capture_identity(item,name,owner_image,nonce):
+                            if not capture_identity(item,name,observer_image,nonce):
                                 raise ValueError('Helper cleanup identity differs')
                             daily.command(['docker','rm','-f',item['Id']])
                         record.pop('temporaryHelperName',None)
@@ -401,12 +444,22 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     daily.atomic(pointer,record)
                 def quarantine_phase(value):
                     global PHASE
-                    if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay'}:
+                    if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay','quarantine-registry-prepare','quarantine-registry-apply','quarantine-registry-verify'}:
                         raise ValueError('Fixed quarantine phase required')
                     PHASE=value
+                def persist_intent(intent):
+                    path = STATE/('registry-migration-intent-'+nonce+'.json')
+                    daily.durable_file(path, (json.dumps(intent,sort_keys=True,separators=(',',':'),ensure_ascii=False)+'\n').encode())
+                    retained = json.loads(fence.original(path))
+                    if retained != intent:
+                        raise ValueError('Durable quarantine migration intent changed')
+                    record['registryMigrationIntentSha256'] = digest(intent)
+                    daily.atomic(pointer, record)
+                    return digest(retained)
                 rehearsal_proof=quarantine.replay(daily,scratch,files,node_files,nonce,backup,last_envelope,
                     {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup,quarantine_phase,
-                    **({'funded_runtime':request['fundedRuntime']} if funded else {}))
+                    **({'funded_runtime':request['fundedRuntime']} if funded else {}),
+                    **({'migration_executor':migration_executor,'persist_migration_intent':persist_intent} if registry_migration else {}))
                 check()
                 after=capture('recovery')
                 if after['stateDigest']!=bundle['stateDigest']:
@@ -496,7 +549,9 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     raise
                 record.update(stage='plan-complete',checkedAt=dt.datetime.now(dt.timezone.utc).isoformat())
                 daily.atomic(pointer,record)
-                return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+                return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),
+                        **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
+                        'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                         'ownerManifestDigest':request['ownerManifestDigest'],'planNonce':nonce,
                         'mode':'plan','sourceFilesVerified':len(files),'servicesStopped':0,
                         'originalOwnerEgressNetworkVerified':True,'dockerLoggingDisabled':True,
@@ -515,13 +570,18 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     settle=settle,checkpoint=checkpoint,cleanup=resume_cleanup,
                     while_held=while_held if request['mode']=='rehearsal' else None)
         if request['mode']=='rehearsal':
-            return {**rehearsal_proof,**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
+            completed = {**rehearsal_proof,**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'mode':'rehearsal','servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,
                 'foreignContainersUnchanged':True,'freshStateEqualBeforeAndAfterReplay':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],
                 'writerFenceStillHeld':False,'replayAllowed':False,'serviceActivationAllowed':False,
                 'ownerOriginBoundaryVerified':True,'liveDatabaseWrites':False,'authProviderWrites':False,
-                'externalMessagesSent':False,'paidAiCalls':0}
+                'externalMessagesSent':False,'paidAiCalls':0,
+                **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
+                'ownerManifestDigest':request['ownerManifestDigest'],'capturedAt':daily.utcnow().isoformat()}
+            if registry_migration or registry_recovery:
+                daily.atomic(daily.ROOT/'status'/('registry-migration-restore.json' if registry_migration else 'registry-restore.json'), completed)
+            return completed
         return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                 'servicesStoppedAndResumed':3,'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,
                 'independentEncryptedCaptures':len(captures),'matchingStateDigest':result['stateDigest'],

@@ -133,6 +133,7 @@ jobs:
           sudo env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -B scripts/ops/contabo-funded-image-rehearsal.py --image "$image" --output-directory "$proof_dir"
           sudo install -m 644 "$proof_dir/funded-upgrade-fixture-proof.json" test-results/funded-image-fixture-proof.json
           sudo install -m 644 "$proof_dir/beta-successor-fixture-proof.json" test-results/beta-successor-fixture-proof.json
+          sudo install -m 644 "$proof_dir/registry-successor-fixture-proof.json" test-results/registry-successor-fixture-proof.json
           sudo install -m 644 "$proof_dir/registry040-image-fixture.json" test-results/registry040-image-fixture.json
           sudo install -m 644 "$proof_dir/image-rehearsal-receipt.json" test-results/funded-image-rehearsal-receipt.json
           node --input-type=module <<'JS'
@@ -152,7 +153,11 @@ jobs:
           const ownerRelease={...input.selection,runtime:{mode:'narrative-fiction-v2',generation:'v9',cohortUserIds:[owner],timeoutMs:300000,maxRequestBytes:196608}};
           assert.equal(successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture}).target.imageId,fixture.targetImage);
           assert.throws(()=>successorReleaseEvidence({...input,selection,release:ownerRelease,successorFixture:{...successorFixture,sourceCommit:'f'.repeat(40)}}));
-          console.log('Actual isolated image proof accepted; foreign image rejected; no release authorization.');
+          const registrySuccessor=JSON.parse(readFileSync('test-results/registry-successor-fixture-proof.json','utf8'));
+          const registrySelection={purpose:'schema-040',previousTermsSha256:'a'.repeat(64),fromSchema:39,toSchema:40};
+          assert.equal(successorReleaseEvidence({...input,selection:registrySelection,release:ownerRelease,successorFixture:registrySuccessor}).target.imageId,fixture.targetImage);
+          assert.throws(()=>successorReleaseEvidence({...input,selection:registrySelection,release:ownerRelease,successorFixture}));
+          console.log('Actual isolated image and registry proofs accepted; foreign image and legacy registry proof rejected; no release authorization.');
           JS
       - name: Retain standalone image rehearsal evidence
         uses: actions/upload-artifact@v4
@@ -163,5 +168,6 @@ jobs:
             test-results/beta-successor-fixture-proof.json
             test-results/funded-image-rehearsal-receipt.json
             test-results/registry040-image-fixture.json
+            test-results/registry-successor-fixture-proof.json
           if-no-files-found: error
           retention-days: 7

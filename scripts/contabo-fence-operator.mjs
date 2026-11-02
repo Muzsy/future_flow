@@ -488,12 +488,24 @@ export function assertExactFenceCiJobs(detail, sourceCommit) {
 }
 async function main() {
   const selectedMode = process.argv[2]?.replace(/^--/, '');
-  const funded = selectedMode?.startsWith('funded-') === true;
-  const mode = funded ? selectedMode.slice(7) : selectedMode;
+  const registryMigration = selectedMode?.startsWith('migration-') === true;
+  const registryRecovery = selectedMode?.startsWith('registry-') === true;
+  const funded =
+    registryMigration ||
+    registryRecovery ||
+    selectedMode?.startsWith('funded-') === true;
+  const mode = registryMigration
+    ? selectedMode.slice(10)
+    : registryRecovery
+      ? selectedMode.slice(9)
+      : funded
+        ? selectedMode.slice(7)
+        : selectedMode;
   if (
     !['win32', 'linux'].includes(process.platform) ||
     !['plan', 'drill', 'rehearsal'].includes(mode) ||
-    process.argv.length !== 3
+    process.argv.length !== 3 ||
+    (registryMigration && !['plan', 'rehearsal'].includes(mode))
   )
     throw Error(
       'Explicit operator --plan, reviewed --drill or --rehearsal required',
@@ -558,6 +570,7 @@ async function main() {
   // impossible. Derive its canonical manifest only from the active receipts;
   // the root executor independently compares it to the real protected bytes.
   let fundedRuntime;
+  let registryCandidate;
   let ownerManifestDigest;
   if (funded) {
     const name = 'scripts/lib/funded-replay.mjs';
@@ -569,22 +582,51 @@ async function main() {
       !readFileSync(name).equals(source(name))
     )
       throw Error('Exact funded replay helper required');
-    const { activeFundedReplayProof, assertFundedReplayInputsUnchanged } =
-      await import('./lib/funded-replay.mjs');
-    fundedRuntime = activeFundedReplayProof(
-      report('funded-upgrade-active-proof-proof.json'),
+    const {
+      activeFundedReplayProof,
+      activeRegistryReplayProof,
+      assertFundedReplayInputsUnchanged,
+    } = await import('./lib/funded-replay.mjs');
+    fundedRuntime = (
+      registryRecovery ? activeRegistryReplayProof : activeFundedReplayProof
+    )(
+      report(
+        registryRecovery
+          ? 'funded-upgrade-registry-active-proof-proof.json'
+          : 'funded-upgrade-active-proof-proof.json',
+      ),
     );
     ownerManifestDigest = fundedRuntime.ownerManifestDigest;
-    assertFundedReplayInputsUnchanged(
-      fundedRuntime,
-      sourceCommit,
-      (base, commit, paths) =>
-        execFileSync(
-          'git',
-          ['diff', '--name-only', base, commit, '--', ...paths],
-          { encoding: 'utf8' },
-        ),
-    );
+    if (registryMigration) {
+      const prepared = report(
+        'beta-successor-registry-schema-prepare-proof.json',
+      );
+      const packet = report('beta-successor-registry-schema-release.json');
+      if (
+        prepared.preparedOnly !== true ||
+        !/^[a-f0-9]{64}$/.test(prepared.preparedSha256 ?? '') ||
+        packet.selection?.purpose !== 'schema-040' ||
+        packet.selection.fromSchema !== 39 ||
+        packet.selection.toSchema !== 40 ||
+        !/^sha256:[a-f0-9]{64}$/.test(packet.release?.target?.imageId ?? '') ||
+        Date.parse(prepared.expiresAt) <= Date.now()
+      )
+        throw Error('Fresh explicit039 to040 candidate required');
+      registryCandidate = {
+        preparedSha256: prepared.preparedSha256,
+        targetImage: packet.release.target.imageId,
+      };
+    } else
+      assertFundedReplayInputsUnchanged(
+        fundedRuntime,
+        sourceCommit,
+        (base, commit, paths) =>
+          execFileSync(
+            'git',
+            ['diff', '--name-only', base, commit, '--', ...paths],
+            { encoding: 'utf8' },
+          ),
+      );
   } else {
     ownerManifestDigest = activeRecoveryManifest(
       report('owner-stage-proof.json'),
@@ -599,7 +641,13 @@ async function main() {
       ),
     );
   }
-  const receiptPrefix = funded ? 'funded-fence' : 'fence';
+  const receiptPrefix = registryMigration
+    ? 'registry-migration-fence'
+    : registryRecovery
+      ? 'registry-fence'
+      : funded
+        ? 'funded-fence'
+        : 'fence';
   if (mode === 'drill' || mode === 'rehearsal') {
     const audit = report('fence-transport-audit-proof.json'),
       plan = report(`${receiptPrefix}-transport-plan-proof.json`);
@@ -607,11 +655,17 @@ async function main() {
     if (
       audit.sourceCommit !== sourceCommit ||
       audit.operatorApprovedDrill !== true ||
-      (funded && audit.operatorApprovedFundedReplay !== true) ||
+      (registryMigration
+        ? audit.operatorApprovedRegistryMigrationReplay !== true
+        : registryRecovery
+          ? audit.operatorApprovedRegistryReplay !== true
+          : funded && audit.operatorApprovedFundedReplay !== true) ||
       (mode === 'rehearsal' && audit.operatorApprovedRehearsal !== true) ||
       plan.sourceCommit !== sourceCommit ||
       plan.ownerManifestDigest !== ownerManifestDigest ||
       (funded && !isDeepStrictEqual(plan.fundedRuntime, fundedRuntime)) ||
+      (registryMigration &&
+        !isDeepStrictEqual(plan.registryCandidate, registryCandidate)) ||
       !/^[a-f0-9]{24}$/.test(plan.planNonce) ||
       plan.mode !== 'plan' ||
       !Number.isFinite(age) ||
@@ -698,6 +752,15 @@ async function main() {
       'scripts/lib/funded-runtime.ts',
       'scripts/lib/personal-beta-admission-observation.mjs',
     );
+  if (registryRecovery || registryMigration)
+    names.push(
+      'scripts/lib/privacy-recovery-profile.ts',
+      'scripts/lib/registry-restore-intent.ts',
+      'scripts/lib/reviewed-migration-manifest.ts',
+      'scripts/lib/service-registry-schema-migration.ts',
+    );
+  if (registryMigration)
+    names.push('scripts/lib/registry-migration-restore.ts');
   for (const name of names) {
     const data = source(name);
     files[name] = { data: data.toString('base64'), sha256: sha(data) };
@@ -720,6 +783,7 @@ async function main() {
       ownerManifestDigest,
       files,
       ...(funded ? { fundedRuntime } : {}),
+      ...(registryMigration ? { registryCandidate } : {}),
     },
     script: files['scripts/ops/contabo-fence-drill.py'].data,
     clientSha256: sha(clientBytes),
@@ -779,7 +843,10 @@ async function main() {
       output.result.sourceCommit !== sourceCommit ||
       output.result.mode !== mode ||
       output.result.serviceActivationAllowed !== false ||
-      (funded && !isDeepStrictEqual(output.result.fundedRuntime, fundedRuntime))
+      (funded &&
+        !isDeepStrictEqual(output.result.fundedRuntime, fundedRuntime)) ||
+      (registryMigration &&
+        !isDeepStrictEqual(output.result.registryCandidate, registryCandidate))
     )
       throw Error('Root result binding differs');
     privateReportFile(dir, `${receiptPrefix}-transport-${mode}-proof.json`, {

@@ -5,6 +5,7 @@ import { TLSSocket } from 'node:tls';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import type { Database } from '@future-flow/database';
+import { hash } from '@future-flow/core';
 import { applyMigrations } from './lib/migrations';
 import {
   quarantineReplayRequest,
@@ -29,7 +30,13 @@ const { Client } = createRequire(resolve('packages/database/package.json'))(
 async function main() {
   assert.equal(process.platform, 'linux');
   assert.equal(process.argv.length, 3);
-  assert(['--prepare', '--replay'].includes(process.argv[2]!));
+  const mode = process.argv[2]!;
+  const registryMigration = [
+    '--registry-prepare',
+    '--registry-apply',
+    '--registry-verify',
+  ].includes(mode);
+  assert(registryMigration || ['--prepare', '--replay'].includes(mode));
   assert.equal(process.env.ALTERWARD_QUARANTINE_REHEARSAL, 'true');
   assert.equal(process.env.AI_PROJECT_BUDGET_USD, '0');
   assert.equal(process.env.AI_USER_BUDGET_USD, '0');
@@ -44,8 +51,23 @@ async function main() {
     parts.push(part);
   }
   const raw = JSON.parse(Buffer.concat(parts).toString('utf8'));
-  const { request } = quarantineReplayRequest(raw);
-  assert.equal('--' + request.action, process.argv[2]);
+  if (registryMigration) {
+    assert.deepEqual(
+      Object.keys(raw).sort(),
+      (mode === '--registry-prepare'
+        ? ['context', 'request']
+        : ['context', 'intent', 'persistedIntentSha256', 'request']
+      ).sort(),
+    );
+    assert.equal(raw.request.recoveryProfile, 'historical039');
+    assert.equal(raw.request.action, 'replay');
+    if (mode !== '--registry-prepare')
+      assert.equal(hash(raw.intent), raw.persistedIntentSha256);
+  }
+  const { request } = quarantineReplayRequest(
+    registryMigration ? raw.request : raw,
+  );
+  if (!registryMigration) assert.equal('--' + request.action, mode);
   const url = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(url.protocol, 'postgresql:');
   assert.equal(url.hostname, 'postgres');
@@ -94,6 +116,45 @@ async function main() {
     };
     await query('SET search_path=pg_catalog,public');
     await query("SET statement_timeout='15s'");
+    if (registryMigration) {
+      const bridge = await import('./lib/registry-migration-restore');
+      const result =
+        mode === '--registry-prepare'
+          ? {
+              intent: await bridge.prepareRegistryMigrationRestore(
+                db,
+                raw.request,
+                raw.context,
+              ),
+            }
+          : mode === '--registry-apply'
+            ? {
+                proof: await bridge.applyRegistryMigrationRestore(
+                  db,
+                  raw.request,
+                  raw.intent,
+                  raw.context,
+                ),
+              }
+            : {
+                proof: await bridge.verifyRegistryMigrationRestore(
+                  db,
+                  raw.request,
+                  raw.intent,
+                  raw.context,
+                ),
+              };
+      console.log(
+        JSON.stringify({
+          ...result,
+          action: mode.slice(2),
+          databaseTlsVerified: true,
+          liveDatabaseWrites: false,
+          serviceActivationAllowed: false,
+        }),
+      );
+      return;
+    }
     if (request.action === 'prepare') {
       const [row] = await query<{ count: string }>(
         "SELECT count(*)::text AS count FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'",
@@ -102,7 +163,15 @@ async function main() {
       // SQL is from the original pinned, reviewed application image, never the
       // old archive. Public executable catalog must pass BEFORE loading data.
       await query('SET search_path=public,pg_catalog');
-      await applyMigrations({ exec: (sql) => query(sql) });
+      if (request.recoveryProfile) {
+        const { reviewedMigrationManifest } =
+          await import('./lib/reviewed-migration-manifest');
+        for (const step of reviewedMigrationManifest().slice(
+          0,
+          request.recoveryProfile === 'registry040' ? 40 : 39,
+        ))
+          await query(step.sql);
+      } else await applyMigrations({ exec: (sql) => query(sql) });
       await query('SET search_path=pg_catalog,public');
       await query(
         'CREATE TABLE public.ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',

@@ -1,6 +1,6 @@
 // A separate proof contract: never reinterpret original owner/zero receipts.
 const digest = /^[a-f0-9]{64}$/;
-export function activeFundedReplayProof(receipt, now = Date.now()) {
+function activeReplayProof(receipt, now, registry) {
   const keys = [
     'version',
     'sourceCommit',
@@ -12,9 +12,13 @@ export function activeFundedReplayProof(receipt, now = Date.now()) {
     'runtimeFilesSha256',
     'authoritySha256',
   ];
+  if (registry) keys.push('schema', 'recoveryProfile');
   const age = now - Date.parse(receipt?.capturedAt);
   if (
-    receipt?.version !== 'alterward-funded-replay-1' ||
+    receipt?.version !==
+      (registry ? 'alterward-funded-replay-2' : 'alterward-funded-replay-1') ||
+    (registry &&
+      (receipt.schema !== 40 || receipt.recoveryProfile !== 'registry040')) ||
     !/^[a-f0-9]{40}$/.test(receipt.sourceCommit ?? '') ||
     !/^sha256:[a-f0-9]{64}$/.test(receipt.imageId ?? '') ||
     !['target', 'recovery'].includes(receipt.role) ||
@@ -27,6 +31,14 @@ export function activeFundedReplayProof(receipt, now = Date.now()) {
   )
     throw Error('Fresh original active funded replay proof required');
   return Object.fromEntries(keys.map((k) => [k, receipt[k]]));
+}
+
+export function activeFundedReplayProof(receipt, now = Date.now()) {
+  return activeReplayProof(receipt, now, false);
+}
+
+export function activeRegistryReplayProof(receipt, now = Date.now()) {
+  return activeReplayProof(receipt, now, true);
 }
 
 export function assertFundedReplayInputsUnchanged(

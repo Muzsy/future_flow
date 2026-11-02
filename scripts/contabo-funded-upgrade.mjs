@@ -12,6 +12,7 @@ async function main() {
     ![
       'inspect',
       'active-proof',
+      'registry-active-proof',
       'prepare',
       'apply',
       'recover',
@@ -89,7 +90,12 @@ async function main() {
   for (const [, file] of fundedUpgradeModules)
     if (!('scripts/ops/' + file in sourceHashes))
       throw Error('Incomplete privileged bundle');
-  const request = { mode, sourceCommit: commit, bundleSha256, sourceHashes };
+  const request = {
+    mode: mode === 'registry-active-proof' ? 'active-proof' : mode,
+    sourceCommit: commit,
+    bundleSha256,
+    sourceHashes,
+  };
   const directory = privateReportDirectory('contabo-release');
   const read = (p) => {
     assertLinuxPrivatePath(p);
@@ -230,6 +236,14 @@ except BaseException:
   pending.child.stdin.end(JSON.stringify({ modules, request }));
   const output = JSON.parse((await pending).stdout);
   if (output.ok !== true) throw Error('Funded transition refused');
+  if (
+    ['active-proof', 'registry-active-proof'].includes(mode) &&
+    output.result?.version !==
+      (mode === 'registry-active-proof'
+        ? 'alterward-funded-replay-2'
+        : 'alterward-funded-replay-1')
+  )
+    throw Error('Explicit active recovery profile required');
   privateReportFile(directory, `funded-upgrade-${mode}-proof.json`, {
     ...output.result,
     opsCommit: commit,

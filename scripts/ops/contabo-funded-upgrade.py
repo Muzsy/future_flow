@@ -666,6 +666,7 @@ class System:
             capability.get('version') != version
             or capability.get('schema') != schema
             or capability.get('profile') != profile
+            or (profile == 'service-registry-040' and capability.get('fromSchema') != 39)
             or len(capability.get('policies', [])) != 19
             or 'fiction-v9' not in capability.get('policies', [])
             or capability.get('characterStateVersion') != '1.0.0'
