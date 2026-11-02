@@ -44,6 +44,7 @@ const actors = new Map<
   { id: string; email: string; emailConfirmed: boolean }
 >();
 let checkoutCalls = 0;
+let portalCustomers: string[] = [];
 const env = {
   SERVICE_ACCESS_ENFORCEMENT: 'true',
   CLOSED_SITE_ENABLED: 'true',
@@ -172,6 +173,10 @@ beforeAll(async () => {
         checkoutCalls++;
         return { url: 'https://checkout.stripe.com/c/pay/synthetic' };
       },
+      createPortalSession: async ({ customerId }) => {
+        portalCustomers.push(customerId);
+        return { url: 'https://billing.stripe.com/p/session/synthetic' };
+      },
       cancelSubscription: async () => {},
       resolveRevocation: async (e) => e,
     },
@@ -206,6 +211,7 @@ beforeAll(async () => {
 }, 60000);
 beforeEach(async () => {
   checkoutCalls = 0;
+  portalCustomers = [];
   await db.query(
     "UPDATE aw_service_policy SET mode='invitation',generation_enabled=true,checkout_enabled=true,reconcile_required=false",
   );
@@ -575,4 +581,32 @@ it('refuses a historical weaker job policy without a raw hashing error or provid
     (await db.query('SELECT checkpoints FROM aw_jobs WHERE id=$1', [job.id]))[0]
       ?.checkpoints,
   ).toEqual(before);
+});
+
+it('retains own subscription management without Access or admission while service policy is quarantined', async () => {
+  const id = await actor();
+  await db.query(
+    "INSERT INTO aw_billing_subscriptions(subscription_id,user_id,customer_id,status,period_start,period_end,last_state_event_created) VALUES('sub_serviceportal',$1,'cus_serviceportal','active',now(),now()+interval '30 days',1)",
+    [id],
+  );
+  await store.replaceAdmission(id, 1, 'revoked');
+  await db.query(
+    'UPDATE aw_service_policy SET generation_enabled=false,checkout_enabled=false,reconcile_required=true',
+  );
+  const response = await request(id, '/api/v1/billing/portal', {
+    method: 'POST',
+    body: {},
+    assertion: null,
+  });
+  expect(response.status).toBe(201);
+  expect(await response.json()).toEqual({
+    url: 'https://billing.stripe.com/p/session/synthetic',
+  });
+  expect(portalCustomers).toEqual(['cus_serviceportal']);
+  expect(checkoutCalls).toBe(0);
+  expect(
+    await db.query('SELECT * FROM aw_billing_reservations WHERE user_id=$1', [
+      id,
+    ]),
+  ).toEqual([]);
 });
