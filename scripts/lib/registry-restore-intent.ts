@@ -5,6 +5,9 @@ import { reviewedPrivacySecurityImmutableDigest } from './privacy-security-catal
 import type { PrivacyRestoreAuthority, ReplayBinding } from './privacy-restore';
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
+// sourceCommit/imageId identify the040 executor. The original held-fence
+// controller provenance stays separately pinned inside historicalRequestSha256;
+// it may differ and must not be rewritten to label an old authority as040.
 export const registryRestoreContextSchema = z
   .object({
     sourceCommit: z.string().regex(/^[a-f0-9]{40}$/),

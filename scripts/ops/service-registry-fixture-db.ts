@@ -72,7 +72,7 @@ async function main() {
     assert(required in binding.sourceHashes);
   for (const [path, digest] of Object.entries(binding.sourceHashes)) {
     assert(
-      /^(?:apps|packages|scripts|tests|database|deploy)\/[A-Za-z0-9_./-]+$|^(?:Dockerfile|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig.base.json|tsconfig.scripts.json|\.dockerignore|\.nvmrc)$/.test(
+      /^(?:apps|packages|scripts|tests|database|deploy)\/[A-Za-z0-9_./\[\]-]+$|^(?:Dockerfile|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig.base.json|tsconfig.scripts.json|\.dockerignore|\.nvmrc)$/.test(
         path,
       ),
     );

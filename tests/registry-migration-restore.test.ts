@@ -90,7 +90,8 @@ async function restored() {
   const binding = {
     mode: 'recovery' as const,
     nonce: randomUUID().replaceAll('-', '').slice(0, 24),
-    sourceCommit: context.sourceCommit,
+    // Held039 capture/replay controller and040 image have separate provenance.
+    sourceCommit: 'b'.repeat(40),
     sourceFilesDigest: hash('unit-reviewed-source'),
     ownerManifestDigest: hash('unit-owner-manifest'),
     projectBinding: fixture.projectBinding,
@@ -118,6 +119,9 @@ describe('versioned039 backup → replayed039 → registry040 migration restore 
   it('measures a source/image/instance-bound intent after real039 replay without changing the original authority', async () => {
     const f = await restored(),
       original = hash(fixture.authority);
+    expect(f.request.envelope.binding.sourceCommit).not.toBe(
+      f.context.sourceCommit,
+    );
     const intent = await prepareRegistryMigrationRestore(
       f.db,
       f.request,
