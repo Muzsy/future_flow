@@ -4,6 +4,7 @@ import {
   closedSiteConfigFromEnv,
   createClosedSiteGate,
   createAccessIdentityVerifier,
+  createServiceSiteGate,
   publicWebException,
   publicApiException,
 } from '@future-flow/access';
@@ -72,6 +73,59 @@ function certs(keys: JWK[] = [jwk]) {
   });
 }
 describe('closed-site origin proof', () => {
+  it('uses signed identity for the service shell while the legacy eleven-address limit remains separate', async () => {
+    const expanded = {
+      ...env,
+      SERVICE_ACCESS_ENFORCEMENT: 'true',
+      CLOSED_SITE_ALLOWED_EMAILS: Array.from(
+        { length: 13 },
+        (_, i) => `reader${i}@example.invalid`,
+      ).join(','),
+    };
+    const service = createServiceSiteGate(expanded, certs());
+    expect(service.enabled).toBe(true);
+    expect(
+      await service.identity(
+        await signed({ email: 'reader12@example.invalid' }),
+      ),
+    ).toMatchObject({ email: 'reader12@example.invalid' });
+    expect(() => createClosedSiteGate(expanded, certs())).toThrow('eleven');
+    expect(await service.identity('unsigned.jwt.attacker')).toBeNull();
+    for (const bad of [
+      { SERVICE_ACCESS_ENFORCEMENT: 'yes' },
+      { CLOSED_SITE_ENABLED: 'false' },
+      { CLOUDFLARE_ACCESS_AUD: 'bad' },
+      { CLOUDFLARE_ACCESS_TEAM_DOMAIN: 'attacker.invalid' },
+    ])
+      expect(() =>
+        createServiceSiteGate({ ...expanded, ...bad }, certs()),
+      ).toThrow();
+  });
+  it('opens only an authenticated pre-login shell in the new proxy profile and retains public account controls', async () => {
+    for (const [key, value] of Object.entries({
+      ...env,
+      SERVICE_ACCESS_ENFORCEMENT: 'true',
+    }))
+      vi.stubEnv(key, value);
+    vi.stubGlobal('fetch', certs());
+    const { proxy } = await import('../apps/web/proxy');
+    const good = new NextRequest('https://alterward.example/start', {
+      headers: {
+        'cf-access-jwt-assertion': await signed({
+          email: 'new-reader@example.invalid',
+        }),
+      },
+    });
+    expect((await proxy(good)).status).toBe(200);
+    expect(
+      (await proxy(new NextRequest('https://alterward.example/start'))).status,
+    ).toBe(403);
+    expect(
+      (await proxy(new NextRequest('https://alterward.example/account-access')))
+        .status,
+    ).toBe(200);
+  });
+
   it('separates a verified Access identity from application admission and pins configuration', async () => {
     const config = {
       issuer: 'https://fixture.cloudflareaccess.com',

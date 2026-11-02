@@ -1,3 +1,4 @@
+import { assertStoredServiceAccess } from './service-access';
 import {
   DomainError,
   FREE_TASTER_CHAPTERS,
@@ -62,6 +63,8 @@ function subscription(row: SubscriptionRow): BillingSubscription {
 
 export function billingTx(db: Database): BillingTx {
   return {
+    assertServiceCheckout: async (userId) =>
+      assertStoredServiceAccess(db, userId, 'checkout', true),
     lockUser: async (userId) => {
       await db.query(
         "SELECT pg_advisory_xact_lock(hashtextextended('alterward-billing:'||$1::text,0))",

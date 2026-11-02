@@ -8,7 +8,10 @@ import {
   narrativeMemoryDeltaSchema,
   type NarrativeMemoryDelta,
 } from '@future-flow/contracts';
-import { DomainError } from '@future-flow/core';
+import {
+  DomainError,
+  serviceAccessEnforcementFromEnv,
+} from '@future-flow/core';
 import type { Database } from './index';
 import { ownedNarrativeReferences } from './narrative-artifact';
 
@@ -17,6 +20,7 @@ export type NarrativeConfig = Readonly<{
   cohortUserIds: readonly string[];
   // Living-world generation selection; absent means v8 (frozen default).
   fictionGeneration?: 'v9';
+  accessMode?: 'service-admission';
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
   mode: 'legacy',
@@ -61,7 +65,14 @@ export function narrativeConfigFromEnv(
       'NARRATIVE_CONFIG_INVALID',
       'Fiction generation v9 requires narrative-fiction-v2.',
     );
+  const service = serviceAccessEnforcementFromEnv(env);
+  if (service && (mode !== 'narrative-fiction-v2' || generation !== 'v9'))
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Service admission requires the frozen v9 pipeline.',
+    );
   return Object.freeze({
+    ...(service ? { accessMode: 'service-admission' as const } : {}),
     mode,
     cohortUserIds: Object.freeze(ids),
     ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),

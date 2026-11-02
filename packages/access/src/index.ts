@@ -158,3 +158,42 @@ export const closedSiteResponseHeaders = {
   'X-Robots-Tag': 'noindex, nofollow, noarchive',
   'Referrer-Policy': 'no-referrer',
 } as const;
+
+// In the service profile Access authenticates the pre-login shell. The API
+// independently binds that identity to getUser() and the durable UUID registry.
+export function createServiceSiteGate(
+  env: NodeJS.ProcessEnv = process.env,
+  transport?: typeof fetch,
+): {
+  enabled: boolean;
+  identity: (
+    assertion: string | undefined,
+  ) => Promise<VerifiedAccessIdentity | null>;
+} {
+  const value = env.SERVICE_ACCESS_ENFORCEMENT ?? 'false';
+  if (!['true', 'false'].includes(value))
+    throw Error('SERVICE_ACCESS_ENFORCEMENT must be true or false');
+  if (value === 'false') return { enabled: false, identity: async () => null };
+  if (env.CLOSED_SITE_ENABLED !== 'true')
+    throw Error('Service admission requires closed-site identity enforcement');
+  const identity = createAccessIdentityVerifier(
+    {
+      issuer: `https://${env.CLOUDFLARE_ACCESS_TEAM_DOMAIN ?? ''}`,
+      audience: env.CLOUDFLARE_ACCESS_AUD ?? '',
+    },
+    transport,
+  );
+  return { enabled: true, identity };
+}
+
+export function serviceAccountControlException(
+  method: string,
+  path: string,
+): boolean {
+  return (
+    (['GET', 'HEAD'].includes(method) &&
+      ['/api/v1/me/export', '/api/v1/billing/status'].includes(path)) ||
+    (method === 'DELETE' && path === '/api/v1/me') ||
+    (method === 'POST' && path === '/api/v1/billing/portal')
+  );
+}

@@ -101,3 +101,11 @@ Audit/report csak azt bizonyítja, hogy egy adott source/state mellett egy adott
 ## 9. Access rights és onboarding útvonalhatár
 
 A saját export/delete rights edge-kivétel nem fedheti el a védett onboarding hozzájárulást. A `/api/v1/me` public destination leszármazottakat is érinthet; az apex és www `/api/v1/me/consent` útvonalait ugyanazon fő béta-alkalmazás specifikus destinationjeivel kell védeni, megőrizve annak AUD-ját és Allow policyját. Az origin assertion-, method-, ownership- és friss-auth ellenőrzése változatlan. A konkrét konfiguráció, readback, utópróba és rollback: [Cloudflare Access runbook](../CLOUDFLARE_ACCESS_CONFIGURATION_HU.md#onboarding-consent-útvonal-ütközésének-javítása--2026-10-13).
+
+## Meghívásos runtime profil — #146, fejlesztési határ
+
+SERVICE_ACCESS_ENFORCEMENT alapból false. Az új profilhoz ugyanazon reviewed source/image, minden web/API/worker folyamatban egyező flag, CLOSED_SITE_ENABLED=true + pinned issuer/AUD, fejezetelszámolás és frozen v9 szükséges. A legacy11-címes lista OFF profilban marad; a flag nem állítja át a Cloudflare policyt vagy a Supabase signupot. Aktív profilban a backend az Access-aláírást és a getUser által ellenőrzött email/UUID-t köti össze, majd friss szerver-registryt kér. Metadata/email-header vagy kupon nem authority; identitás csak request-local Symbolban él.
+
+Saját export/teljes fióktörlés/billing-management Auth/ownership/reauth útja admission- vagy registrykiesésben megmarad, a provider webhook aláírása külön kötelező. Új generálás/Checkout pause és visszavonás esetén költés előtt zárt; a kész eredmény elszámolása megmarad. A régi failed nem-v9 job újrapróbálása aktív profilban nem futhat gyengébb policyval. A három régi béta-fiók és a régi jobok átvezetése külön leltár/operátori jóváhagyás.
+
+A production040, a tartós admission/pause/reconcile operátor és a tényleges provider-policy módosítás #142/I04 és I06 külön kapu. Ez nem éles aktiválás. Referencia: ADR-011; Cloudflare JWT validation és Supabase getUser aktuális hivatalos dokumentációja ellenőrizve2026-11-02.

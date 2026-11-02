@@ -1,4 +1,7 @@
-import { billingConfigFromEnv } from '@future-flow/core';
+import {
+  billingConfigFromEnv,
+  serviceAccessEnforcementFromEnv,
+} from '@future-flow/core';
 import { combineAiGuards, type AiRequestGuard } from '@future-flow/ai';
 import {
   closedBetaConfigFromEnv,
@@ -15,6 +18,8 @@ export function configureWorkerChapterBilling(
 ) {
   const config = billingConfigFromEnv(env);
   const beta = closedBetaConfigFromEnv(env);
+  if (serviceAccessEnforcementFromEnv(env) && !config.enforcement)
+    throw Error('Service admission requires chapter billing enforcement');
   configureGenerationGate(
     config.enforcement
       ? createGenerationGate({

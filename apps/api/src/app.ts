@@ -1,3 +1,16 @@
+import {
+  createServiceAccessRuntime,
+  REQUEST_SERVICE_IDENTITY,
+  REQUEST_SERVICE_USER,
+  serviceAction,
+  verifiedServiceBearer,
+  type ServiceAccessRuntime,
+  type ServiceVerifiedUser,
+} from './service-access';
+import {
+  serviceAccountControlException,
+  type VerifiedAccessIdentity,
+} from '@future-flow/access';
 import 'reflect-metadata';
 import { ClosedBetaGeneration, CLOSED_BETA_GENERATION } from './closed-beta';
 import {
@@ -195,12 +208,15 @@ import {
 
 const REPOSITORY = Symbol('REPOSITORY'),
   AUTH = Symbol('AUTH'),
-  BILLING = Symbol('BILLING');
+  BILLING = Symbol('BILLING'),
+  SERVICE_ACCESS = Symbol('SERVICE_ACCESS');
 type AuthRequest = Request & {
   locale: Locale;
   userId: string;
   token: string;
   requestId: string;
+  [REQUEST_SERVICE_IDENTITY]?: VerifiedAccessIdentity;
+  [REQUEST_SERVICE_USER]?: ServiceVerifiedUser;
 };
 @Injectable()
 class AuthGuard implements CanActivate {
@@ -209,24 +225,28 @@ class AuthGuard implements CanActivate {
     @Inject(REPOSITORY) private readonly repo: Repository,
     @Inject('CLOSED_BETA_CONFIG') private readonly beta: ClosedBetaConfig,
     @Inject(BILLING) private readonly billing: BillingRuntime,
+    @Inject(SERVICE_ACCESS) private readonly service: ServiceAccessRuntime,
   ) {}
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<AuthRequest>();
-    const match = /^Bearer ([A-Za-z0-9_.-]{20,6000})$/.exec(
-      request.headers.authorization ?? '',
+    const verified = request[REQUEST_SERVICE_USER]
+      ? { user: request[REQUEST_SERVICE_USER]!, token: request.token }
+      : await verifiedServiceBearer(this.auth, request.headers.authorization);
+    request.token = verified.token;
+    request.userId = verified.user.id;
+    const generation =
+      Reflect.getMetadata(CLOSED_BETA_GENERATION, context.getHandler()) ===
+      true;
+    await this.service.assert(
+      verified.user,
+      request[REQUEST_SERVICE_IDENTITY],
+      serviceAction(request.method, request.path, generation),
     );
-    if (!match?.[1])
-      throw new DomainError(
-        'AUTH_REQUIRED',
-        'A művelethez bejelentkezés szükséges.',
-        401,
-      );
-    request.token = match[1];
-    request.userId = (await this.auth.verify(request.token)).id;
     if (
       Reflect.getMetadata(CLOSED_BETA_GENERATION, context.getHandler()) === true
     ) {
-      assertClosedBetaAdmission(this.beta, request.userId);
+      if (!this.service.enabled)
+        assertClosedBetaAdmission(this.beta, request.userId);
       if (
         this.billing.config.enforcement &&
         Reflect.getMetadata(CHAPTER_BILLED_GENERATION, context.getHandler()) !==
@@ -1015,9 +1035,20 @@ export async function createApp(
   publicScenarioConfig: PublicScenarioConfig = publicScenarioConfigFromEnv(),
   personalScenarioConfig: PersonalScenarioConfig = personalScenarioConfigFromEnv(),
   closedBetaConfig: ClosedBetaConfig = closedBetaConfigFromEnv(),
-  closedSiteGate: ClosedSiteGate = createClosedSiteGate(),
+  closedSiteGate: ClosedSiteGate | undefined = undefined,
   billing: BillingRuntime = createBillingRuntime(repo.db),
+  service: ServiceAccessRuntime = createServiceAccessRuntime(
+    repo.db,
+    billing.config.enforcement,
+  ),
 ) {
+  const effectiveClosedSiteGate =
+    closedSiteGate ??
+    (service.enabled
+      ? { enabled: true, verify: async () => false }
+      : createClosedSiteGate());
+  if (service.enabled && !billing.config.enforcement)
+    throw Error('Service admission requires chapter billing enforcement');
   // Chapter allowance gate: off unless BILLING_ENFORCEMENT is set. When it is on
   // but billing is not usable, everyone except the closed-beta accounts is
   // refused (a broken setup closes the gate, never opens it).
@@ -1038,7 +1069,18 @@ export async function createApp(
     daily: Number(process.env.GENERATION_DAILY_LIMIT ?? 10),
     concurrent: Number(process.env.GENERATION_CONCURRENT_LIMIT ?? 2),
   });
-  const narrativeConfig = narrativeConfigFromEnv();
+  let narrativeConfig = narrativeConfigFromEnv();
+  if (service.enabled) {
+    if (
+      narrativeConfig.mode !== 'narrative-fiction-v2' ||
+      narrativeConfig.fictionGeneration !== 'v9'
+    )
+      throw Error('Service admission requires the frozen v9 pipeline');
+    narrativeConfig = Object.freeze({
+      ...narrativeConfig,
+      accessMode: 'service-admission',
+    });
+  }
   const SharedContextController = createSharedContextController(
     AuthGuard,
     REPOSITORY,
@@ -1133,7 +1175,7 @@ export async function createApp(
         officialPublicationConfig,
         publicMetricsConfig,
       ),
-      createBillingController(AuthGuard, billing),
+      createBillingController(AuthGuard, billing, service.enabled),
       ApiController,
       LifeController,
       SharedContextController,
@@ -1143,6 +1185,7 @@ export async function createApp(
       { provide: REPOSITORY, useValue: repo },
       { provide: AUTH, useValue: auth },
       { provide: BILLING, useValue: billing },
+      { provide: SERVICE_ACCESS, useValue: service },
       { provide: 'GENERATION_LIMITS', useValue: generationLimits },
       { provide: 'NARRATIVE_CONFIG', useValue: narrativeConfig },
       {
@@ -1242,10 +1285,65 @@ export async function createApp(
   );
   app.use(
     async (request: AuthRequest, response: Response, next: () => void) => {
+      if (service.enabled) {
+        // CORS handles preflight without serving application data. Actual
+        // requests still pass both identity and application admission.
+        if (request.method === 'OPTIONS') {
+          next();
+          return;
+        }
+        // Own data rights and existing subscription management retain their
+        // separate bearer/ownership/re-auth guards, even if Access is down.
+        if (
+          publicApiException(request.method, request.path) ||
+          serviceAccountControlException(request.method, request.path)
+        ) {
+          next();
+          return;
+        }
+        try {
+          const identity = await service.identity(
+            typeof request.headers['cf-access-jwt-assertion'] === 'string'
+              ? request.headers['cf-access-jwt-assertion']
+              : undefined,
+          );
+          if (!identity)
+            throw new DomainError(
+              'CLOSED_SITE_ACCESS_REQUIRED',
+              'Access is by invitation.',
+              403,
+            );
+          const verified = await verifiedServiceBearer(
+            auth,
+            request.headers.authorization,
+          );
+          await service.assert(verified.user, identity, 'read');
+          request[REQUEST_SERVICE_IDENTITY] = identity;
+          request[REQUEST_SERVICE_USER] = verified.user;
+          request.token = verified.token;
+        } catch (error) {
+          const code =
+            error instanceof DomainError
+              ? error.code
+              : 'SERVICE_ACCESS_UNAVAILABLE';
+          response
+            .status(error instanceof DomainError ? error.status : 503)
+            .json({
+              error: {
+                code,
+                message: errorMessage(request.locale, code),
+                requestId: request.requestId,
+              },
+            });
+          return;
+        }
+        next();
+        return;
+      }
       if (
-        !closedSiteGate.enabled ||
+        !effectiveClosedSiteGate.enabled ||
         publicApiException(request.method, request.path) ||
-        (await closedSiteGate.verify(
+        (await effectiveClosedSiteGate.verify(
           typeof request.headers['cf-access-jwt-assertion'] === 'string'
             ? request.headers['cf-access-jwt-assertion']
             : undefined,
