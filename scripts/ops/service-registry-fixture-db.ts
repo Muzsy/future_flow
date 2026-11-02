@@ -253,7 +253,13 @@ async function main() {
         await tx.query(
           'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
         );
-        return reconcileRegistryUpgrade(tx, identity, intent, upgradeContext);
+        return reconcileRegistryUpgrade(
+          tx,
+          identity,
+          intent,
+          upgradeContext,
+          hash(intent),
+        );
       });
       assert.deepEqual(recovered, applied);
       await assert.rejects(

@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**Főági integráció — 2026-11-02:** #143 → #145 → #147 tulajdonosi engedéllyel, merge commitokkal beolvadt. A főág `1e8d26f`, fája a reviewed `8460c2f` jelöltével azonos; saját [CI41410625967](https://github.com/Muzsy/future_flow/actions/runs/41410625967) mindhárom ellenőrzése SUCCESS. A szolgáló rendszer nem változott; az alábbi november1-i főági checkpointok történeti előzmények.
+
 **#142 adatbázis-végrehajtó — fejlesztés alatt:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent készül. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
 
 **I02 önkiszolgáló előfizetéskezelés — main, #144/#145:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés elkészült. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.

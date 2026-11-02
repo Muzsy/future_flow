@@ -481,3 +481,5 @@ A belső `funded-runtime-probe.ts` külön `registry-prepare`, `registry-apply` 
 A prepare és reconcile konzisztens READ ONLY tranzakció. Az apply kizárólag a900másodperces intenthez, mentett intent-hashhez és változatlan teljes039 megfigyeléshez kötött serializable migráció; mindkét ledger és39 eredeti receipt megmarad, a két új tábla üres. Elveszett COMMIT-kimenetnél read-only reconcile, nem vak apply: committed040-nél az apply elutasít. Az intent lejárata nem akadályozza a csak olvasó hibavizsgálatot.
 
 Ez az adatbázisoldali rész nem telepíti a production040 successor/Daily/native restore/config protokollt. A régi039 runbook és őrök változatlanul elutasítják040-et; nincs éles csomag vagy új költési felhatalmazás. #142 a teljes integrációig nyitott.
+
+A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.

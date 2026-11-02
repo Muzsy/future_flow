@@ -68,6 +68,8 @@ Prepare/reconcile konzisztens READ ONLY tranzakciót kér. Apply a DB órájáb�
 
 A teljes #142 successor/Daily/native040 recovery és konfigurációs controller még hiányzik; a forrásból nem készülhet éles040 csomag ezek nélkül.
 
+A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
+
 ## Következő integrációs szeletek és elfogadás
 
 1. Tartós tároló és operátori műveletek: schema/migráció, RLS és anon/authenticated tiltás, privacy-katalógus/megőrzés/export/törlés, recovery-baseline, writer-fence és revízió/CAS együtt. Az adatminimalizált email/identitás-kötést még rögzíteni kell; a tartós regiszter nem lehet fiókmanipulációval írható.
@@ -80,3 +82,4 @@ A teljes #142 successor/Daily/native040 recovery és konfigurációs controller 
 - [Cloudflare: Validate JWTs](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/): ellenőrzött alkalmazástoken, issuer/audience és szerver által ismert kulcsforrás. A példákból token vagy személyes adat nem kerül a repóba.
 - [Supabase: inviteUserByEmail](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail) és [Before User Created Hook](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook): a jövőbeli meghívásos Auth-folyamat tervezési forrásai, nem ebben a szeletben telepített hívások/hookok.
 - A főág/CI, a célgépes source/image próba, az éles operátori audit és az aktiválás külön eredmény. Ez az ADR nem kiadási waiver és nem új költési engedély.
+

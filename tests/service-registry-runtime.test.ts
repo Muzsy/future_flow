@@ -311,6 +311,7 @@ describe('source-bound production040 database transport', () => {
         registryUpgradeRequest(db, input, 'registry-reconcile', {
           context,
           intent,
+          persistedIntentSha256: hash(intent),
         }),
       ),
     ).toMatchObject({ state: 'uncommitted', protectedDataUnchanged: true });
@@ -375,6 +376,7 @@ describe('source-bound production040 database transport', () => {
         registryUpgradeRequest(db, input, 'registry-reconcile', {
           context,
           intent,
+          persistedIntentSha256: hash(intent),
         }),
       ),
     ).toMatchObject({ state: 'uncommitted' });
@@ -397,6 +399,7 @@ describe('source-bound production040 database transport', () => {
         registryUpgradeRequest(db, input, 'registry-reconcile', {
           context,
           intent,
+          persistedIntentSha256: hash(intent),
         }),
       ),
     ).toMatchObject({ state: 'uncommitted' });
@@ -410,6 +413,29 @@ describe('source-bound production040 database transport', () => {
       providerApiCalls: 0,
       authProviderWrites: false,
     });
+    await expect(
+      read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent,
+          persistedIntentSha256: '0'.repeat(64),
+        }),
+      ),
+    ).rejects.toThrow('Durable exact');
+    const changedIntent = {
+      ...intent,
+      observedAt: '2020-01-01T00:00:00.000Z',
+      expiresAt: '2020-01-01T00:15:00.000Z',
+    };
+    await expect(
+      read((db) =>
+        registryUpgradeRequest(db, input, 'registry-reconcile', {
+          context,
+          intent: changedIntent,
+          persistedIntentSha256: hash(intent),
+        }),
+      ),
+    ).rejects.toThrow('Durable exact');
     const statements: string[] = [];
     const recovered = await read((db) => {
       const query = db.query.bind(db);
@@ -420,6 +446,7 @@ describe('source-bound production040 database transport', () => {
       return registryUpgradeRequest(db, input, 'registry-reconcile', {
         context,
         intent,
+        persistedIntentSha256: hash(intent),
       });
     });
     expect(recovered).toEqual(applied);

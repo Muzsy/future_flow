@@ -146,9 +146,12 @@ export async function reconcileRegistryUpgrade(
   identity: Identity,
   rawIntent: unknown,
   context: unknown,
+  persistedIntentSha256: string,
 ) {
   await readonly(tx);
   const intent = validate(rawIntent, context);
+  if (persistedIntentSha256 !== hash(intent))
+    throw Error('Durable exact registry upgrade intent required');
   const current = parseServiceRegistryRuntime(
     await captureServiceRegistryRuntime(tx, identity),
   );
@@ -193,7 +196,11 @@ export async function registryUpgradeRequest(
   }
   if (mode === 'registry-reconcile') {
     const request = z
-      .object({ context: registryUpgradeContextSchema, intent: intentSchema })
+      .object({
+        context: registryUpgradeContextSchema,
+        intent: intentSchema,
+        persistedIntentSha256: digest,
+      })
       .strict()
       .parse(raw);
     return reconcileRegistryUpgrade(
@@ -201,6 +208,7 @@ export async function registryUpgradeRequest(
       identity,
       request.intent,
       request.context,
+      request.persistedIntentSha256,
     );
   }
   throw Error('Explicit registry upgrade mode required');
