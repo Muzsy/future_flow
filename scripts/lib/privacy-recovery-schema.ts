@@ -1,7 +1,7 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 
-// Explicit immutable 001–039 baseline, never derived from the current database
+// Explicit immutable 001–040 baselines, never derived from the current database
 // or automatically extended when a new migration appears. This is a schema
 // drift guard, not proof that every retained text is safe to serve.
 const reviewedPre039Tables = `
@@ -44,9 +44,14 @@ const billingTables = [
   'aw_billing_reservations',
   'aw_billing_subscriptions',
 ];
-export const reviewedPrivacyRecoveryTables = [
+export const reviewedPre040PrivacyRecoveryTables = [
   ...reviewedPre039Tables,
   ...billingTables,
+].sort();
+export const reviewedPrivacyRecoveryTables = [
+  ...reviewedPre040PrivacyRecoveryTables,
+  'aw_service_policy',
+  'aw_service_admissions',
 ].sort();
 export const reviewedPre039PrivacyRecoveryTables = reviewedPre039Tables;
 // Per baseline: application table set, column count and digest, foreign-key
@@ -86,7 +91,7 @@ const baselines = {
     ],
   },
   39: {
-    tables: reviewedPrivacyRecoveryTables,
+    tables: reviewedPre040PrivacyRecoveryTables,
     columns: [
       892,
       'f924ba13249f8a0b2e24ef829023308ce61dbf667b1f32f6196c3d441d4367bb',
@@ -94,6 +99,17 @@ const baselines = {
     foreignKeys: [
       225,
       'bdf387672ca01e3ed64ac7dfbfa92e0c792f5d7c937264c750a69b7110735e04',
+    ],
+  },
+  40: {
+    tables: reviewedPrivacyRecoveryTables,
+    columns: [
+      906,
+      '045b9dcfa8938a9ba0120ffb252da073655bbdf35bd082aa86677eb33f2b6d63',
+    ],
+    foreignKeys: [
+      226,
+      '9badaebaa01f279f9e5063e316f43deaa24629532441a15f7fa64d46b85e03aa',
     ],
   },
 } as const;
@@ -104,7 +120,10 @@ const foreignKeysSql =
   "SELECT t.relname AS table_name,k.conname AS constraint_name,pg_get_constraintdef(k.oid) AS definition FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname";
 
 // Explicit historical entry points are restricted to the funded upgrade
-// preflight. Normal recovery stays pinned to 001–039 and still rejects 038.
+// preflight. Normal recovery stays pinned to 001–040 and rejects older schemas.
+export async function assertReviewedFundedPre040Schema(tx: Database) {
+  return assertSchema(tx, 39);
+}
 export async function assertReviewedFundedPre039Schema(tx: Database) {
   return assertSchema(tx, 38);
 }
@@ -117,7 +136,7 @@ export async function assertReviewedFundedPre037Schema(tx: Database) {
   return assertSchema(tx, 36);
 }
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
-  return assertSchema(tx, 39);
+  return assertSchema(tx, 40);
 }
 async function assertSchema(tx: Database, level: PrivacyRecoveryBaseline) {
   const baseline = baselines[level];
@@ -129,7 +148,7 @@ async function assertSchema(tx: Database, level: PrivacyRecoveryBaseline) {
   ).map((r) => r.name);
   const application = tables.filter((name) => name !== 'ff_migrations');
   if (
-    baseline.tables.length !== (level === 39 ? 100 : 96) ||
+    baseline.tables.length !== (level === 40 ? 102 : level === 39 ? 100 : 96) ||
     hash(application) !== hash(baseline.tables)
   )
     throw Error('Unreviewed privacy recovery table set');

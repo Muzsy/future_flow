@@ -1,10 +1,17 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
-import { assertPrivacySecurityCatalog } from './privacy-security-catalog';
 import {
-  assertPrivacyRecoveryCoverage,
-  privacyRecoveryIdentifier as q,
-} from './privacy-recovery-coverage';
+  validateRegistryRestoreIntent,
+  type RegistryRestoreIntent,
+} from './registry-restore-intent';
+import { captureRegistry040SchemaState } from './service-registry-schema-migration';
+import { reviewedPrivacySecurityImmutableDigest } from './privacy-security-catalog';
+import {
+  historical039RecoveryProfile,
+  registry040RecoveryProfile,
+  type PrivacyRecoveryProfile,
+} from './privacy-recovery-profile';
+import { privacyRecoveryIdentifier as q } from './privacy-recovery-coverage';
 import {
   assertPrivacyRestoreBinding,
   privacyRestoreSchemaSql,
@@ -20,6 +27,61 @@ export async function verifyPrivacyRestore(
   binding: ReplayBinding,
   now = new Date(),
 ) {
+  return verifyRestore(db, raw, binding, now, registry040RecoveryProfile);
+}
+export async function verifyHistorical039PrivacyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now = new Date(),
+) {
+  return verifyRestore(db, raw, binding, now, historical039RecoveryProfile);
+}
+// A separate versioned composition: the original039 authority stays unchanged.
+// A source/image/backup-bound intent and actual100-row-set/receipt preservation
+// permit only the newly empty registry to be added. This is not a native040
+// source capture, production migration proof or an activation permission.
+export async function verifyPrivacyRestoreAfterRegistryMigration(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  rawIntent: unknown,
+  expectedContext: unknown,
+  requestSha256: string,
+  now = new Date(),
+) {
+  const authority = assertPrivacyRestoreBinding(raw, binding, now);
+  const intent = validateRegistryRestoreIntent(
+    rawIntent,
+    authority,
+    binding,
+    expectedContext,
+    requestSha256,
+  );
+  const verified = await verifyRestore(
+    db,
+    raw,
+    binding,
+    now,
+    registry040RecoveryProfile,
+    intent,
+  );
+  return {
+    ...verified,
+    schemaVersion: 'privacy-registry-migration-verification-1',
+    intentSha256: hash(intent),
+    sourceSchema: 39 as const,
+    targetSchema: 40 as const,
+  };
+}
+async function verifyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now: Date,
+  profile: PrivacyRecoveryProfile,
+  migrationIntent?: RegistryRestoreIntent,
+) {
   const authority = assertPrivacyRestoreBinding(raw, binding, now);
   return db.transaction(async (tx) => {
     await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
@@ -31,15 +93,33 @@ export async function verifyPrivacyRestore(
     );
     if (
       target?.name !== binding.quarantineDatabase ||
-      hash(await tx.query(privacyRestoreSchemaSql)) !== authority.schemaDigest
+      (!migrationIntent &&
+        hash(await tx.query(privacyRestoreSchemaSql)) !==
+          authority.schemaDigest)
     )
       throw Error('Dedicated matching-schema quarantine required');
-    const coverage = await assertPrivacyRecoveryCoverage(tx);
-    await assertPrivacySecurityCatalog(
-      tx,
-      'quarantine',
-      authority.securityCatalog,
-    );
+    const coverage = await profile.coverage(tx);
+    let expectedCatalog = authority.securityCatalog;
+    let registryMigrationState:
+      Awaited<ReturnType<typeof captureRegistry040SchemaState>> | undefined;
+    if (migrationIntent) {
+      const state = await captureRegistry040SchemaState(tx);
+      registryMigrationState = state;
+      if (
+        state.applicationDataSha256 !==
+          migrationIntent.before.applicationDataSha256 ||
+        state.migrationPrefixSha256 !==
+          migrationIntent.before.migrationPrefixSha256 ||
+        state.registryEmpty !== true
+      )
+        throw Error('Registry migration restore data or receipts changed');
+      // Only a target expectation is derived; no authority field is rewritten.
+      expectedCatalog = {
+        ...authority.securityCatalog,
+        immutableDigest: reviewedPrivacySecurityImmutableDigest(40),
+      };
+    }
+    await profile.catalog(tx, 'quarantine', expectedCatalog);
     let zeroChecks = 0;
     const empty = async (sql: string, values: unknown[] = []) => {
       const [row] = await tx.query<{ violations: string | number }>(
@@ -50,6 +130,10 @@ export async function verifyPrivacyRestore(
         throw Error('Quarantined privacy verification failed');
       zeroChecks++;
     };
+    if (migrationIntent) {
+      await empty('SELECT 1 FROM aw_service_policy');
+      await empty('SELECT 1 FROM aw_service_admissions');
+    }
     await empty(
       "SELECT 1 FROM ff_users WHERE status<>'active' OR NOT(id=ANY($1::uuid[]))",
       [authority.activeUserIds],
@@ -164,6 +248,10 @@ export async function verifyPrivacyRestore(
     await empty(
       'SELECT 1 FROM aw_billing_subscriptions WHERE NOT reconcile_required',
     );
+    if (profile.schema === 40)
+      await empty(
+        'SELECT 1 FROM aw_service_policy WHERE NOT reconcile_required',
+      );
     await empty(
       'SELECT 1 FROM ff_users u WHERE NOT EXISTS(SELECT 1 FROM aw_publication_restrictions r WHERE r.user_id=u.id AND r.active)',
     );
@@ -214,6 +302,7 @@ export async function verifyPrivacyRestore(
       userReferenceChecks,
       zeroChecks,
       personalHistoryRequiresReview,
+      ...(migrationIntent ? { registryMigrationState } : {}),
       liveWrites: false,
       authProviderWrites: false,
       serviceActivationAllowed: false,

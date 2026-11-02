@@ -208,6 +208,7 @@ async function main() {
     await runQuarantinedReplay(target, {
       action: 'replay',
       fundedRuntime: 'v9',
+      recoveryProfile: 'registry040',
       quarantineDatabase: targetName,
       backupCapturedAt: f.backupCapturedAt,
       backupDumpSha256: hash('synthetic-physical-snapshot'),

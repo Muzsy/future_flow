@@ -84,7 +84,9 @@ export function parseServiceAccessPolicy(
   });
 }
 
-function parseLookup(value: unknown): ServiceAdmissionLookup | null {
+export function parseServiceAdmissionLookup(
+  value: unknown,
+): ServiceAdmissionLookup | null {
   if (!record(value)) return null;
   if (value.status === 'not-found' || value.status === 'unavailable')
     return exact(value, ['status']) ? { status: value.status } : null;
@@ -123,7 +125,7 @@ export function evaluateServiceAccess(
   // an admission/policy outage. It still performs ownership and recent auth.
   if (action === 'account-control') return { allowed: true };
   const policy = parseServiceAccessPolicy(policySnapshot);
-  const lookup = parseLookup(admissionSnapshot);
+  const lookup = parseServiceAdmissionLookup(admissionSnapshot);
   if (
     !policy ||
     !lookup ||

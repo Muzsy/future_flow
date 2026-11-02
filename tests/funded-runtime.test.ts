@@ -31,7 +31,10 @@ import {
   migrateFundedRuntime,
   fundedRuntimeCapabilities,
 } from '../scripts/lib/funded-runtime';
-import { assertReviewedPrivacyRecoverySchema } from '../scripts/lib/privacy-recovery-schema';
+import {
+  assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre040Schema,
+} from '../scripts/lib/privacy-recovery-schema';
 
 let engine: PGlite;
 const user = randomUUID();
@@ -66,7 +69,10 @@ beforeAll(async () => {
   for (const name of readdirSync('database/migrations')
     .filter(
       (n) =>
-        n.endsWith('.sql') && !n.startsWith('038_') && !n.startsWith('039_'),
+        n.endsWith('.sql') &&
+        !n.startsWith('038_') &&
+        !n.startsWith('039_') &&
+        !n.startsWith('040_'),
     )
     .sort()) {
     const sql = readFileSync('database/migrations/' + name, 'utf8').replace(
@@ -257,7 +263,10 @@ describe('funded runtime schema and accounting boundary', () => {
         status: 'completed',
       },
     ]);
-    await tx((d) => assertReviewedPrivacyRecoverySchema(d));
+    await tx((d) => assertReviewedFundedPre040Schema(d));
+    await expect(
+      tx((d) => assertReviewedPrivacyRecoverySchema(d)),
+    ).rejects.toThrow('table set');
   });
   it('captures a stored v9 artifact and refuses missing character state without discarding history', async () => {
     const base = fictionFixture().input;

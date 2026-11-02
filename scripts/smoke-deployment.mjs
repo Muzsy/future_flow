@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
+import { runRegistryImageFixture } from './schema040-image-fixture.mjs';
 import { fundedSourceBundle } from './lib/funded-upgrade.mjs';
 
 // Never point this test at the user's VPS, database, or experimental API budget.
@@ -314,6 +315,7 @@ try {
     'sharedTextHiddenDateOutcomePreserved',
     'newerBlockRetained',
     'budgetNotReducedAndPaidDisabled',
+    'serviceAccessQuarantined',
     'oldJobsCancelledAndScrubbed',
     'idempotentReplay',
     'physicalOldSnapshot',
@@ -398,6 +400,12 @@ try {
     join(root, 'test-results/funded-upgrade-ci-proof.json'),
     JSON.stringify(fundedProof, null, 2) + '\n',
     { mode: 0o600 },
+  );
+  const registryProof = runRegistryImageFixture(fundedContext, 'ci');
+  writeFileSync(
+    join(root, 'test-results/registry040-ci-proof.json'),
+    JSON.stringify(registryProof, null, 2) + '\n',
+    { mode: 0o600, flag: 'wx' },
   );
   const officialLife = JSON.parse(
     compose(

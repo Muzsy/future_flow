@@ -7,6 +7,7 @@ import {
   LifeJobRepository,
   PublicationRepository,
   Repository,
+  ServiceAccessRepository,
   SharedJobRepository,
   type Database,
 } from '@future-flow/database';
@@ -14,6 +15,7 @@ import { hash } from '@future-flow/core';
 import { verifyPrivacyRestore } from './privacy-restore-verifier';
 import {
   capturePrivacyRestoreAuthority,
+  captureHistorical039PrivacyRestoreAuthority,
   replayPrivacyRestore,
 } from './privacy-restore';
 import { sharedAiGroup } from '../../tests/shared-ai-fixtures';
@@ -35,6 +37,7 @@ export const privacyFixtureConfig = {
 export async function preparePrivacyRestoreFixture(
   db: Database,
   snapshot: () => Promise<void>,
+  schema: 39 | 40 = 40,
 ) {
   const [source] = await db.query<{ name: string }>(
     'SELECT current_database() AS name',
@@ -194,6 +197,23 @@ export async function preparePrivacyRestoreFixture(
       [`evt_${tag}`, `sub_${tag}`],
     );
   }
+  if (schema === 40) {
+    const service = new ServiceAccessRepository(db);
+    await service.replacePolicy(0, {
+      mode: 'invitation',
+      generationEnabled: true,
+      checkoutEnabled: true,
+    });
+    await service.replacePolicy(1, {
+      mode: 'invitation',
+      generationEnabled: true,
+      checkoutEnabled: true,
+    });
+    await service.replaceAdmission(a, 0, 'active');
+    await service.replaceAdmission(b, 0, 'active');
+    await service.replaceAdmission(c, 0, 'active');
+    await service.replaceAdmission(c, 1, 'revoked');
+  }
   const backupCapturedAt = new Date().toISOString();
   await snapshot();
   await new Repository(db).markDeleting(b);
@@ -229,13 +249,18 @@ export async function preparePrivacyRestoreFixture(
   );
   const projectBinding = hash('isolated-privacy-project'),
     writerFenceDigest = hash('stopped-synthetic-writers');
-  const authority = await capturePrivacyRestoreAuthority(db, {
+  const authority = await (
+    schema === 40
+      ? capturePrivacyRestoreAuthority
+      : captureHistorical039PrivacyRestoreAuthority
+  )(db, {
     projectBinding,
     writerFenceDigest,
     authVerifiedAt: new Date().toISOString(),
     authUserIds: [a, c],
   });
   return {
+    schema,
     a,
     b,
     c,
@@ -274,6 +299,11 @@ export async function verifyPrivacyRestoreFixture(
   f: PrivacyRestoreFixture,
   targetName: string,
 ) {
+  assert.equal(
+    f.schema,
+    40,
+    'Native040 fixture verification requires its own040 authority',
+  );
   const pubs = new PublicationRepository(db, privacyFixtureConfig),
     shared = new SharedJobRepository(db, testInviteSecret);
   assert.equal(
@@ -379,16 +409,53 @@ export async function verifyPrivacyRestoreFixture(
       1,
       `${table} must keep only the kept account's row`,
     );
+  assert.deepEqual(
+    await db.query(
+      'SELECT revision::int,reconcile_required FROM aw_service_policy',
+    ),
+    [{ revision: 2, reconcile_required: true }],
+  );
+  assert.deepEqual(
+    await db.query(
+      'SELECT revision::int,state FROM aw_service_admissions WHERE user_id=$1',
+      [f.a],
+    ),
+    [{ revision: 1, state: 'active' }],
+  );
+  assert.deepEqual(
+    await db.query(
+      'SELECT revision::int,state FROM aw_service_admissions WHERE user_id=$1',
+      [f.c],
+    ),
+    [{ revision: 2, state: 'revoked' }],
+  );
+  assert.equal(
+    (
+      await db.query('SELECT 1 FROM aw_service_admissions WHERE user_id=$1', [
+        f.b,
+      ])
+    ).length,
+    0,
+  );
+  const service = new ServiceAccessRepository(db);
+  assert.deepEqual(await service.snapshot(f.a), {
+    policy: null,
+    admission: { status: 'unavailable' },
+  });
+  assert.deepEqual(await service.snapshot(f.c), {
+    policy: null,
+    admission: { status: 'unavailable' },
+  });
   const verified = await verifyPrivacyRestore(
     db,
     f.authority,
     privacyFixtureBinding(f, targetName),
   );
-  assert.equal(verified.reviewedTables, 100);
-  assert.equal(verified.reviewedForeignKeys, 225);
-  assert.equal(verified.accountCascadeTables, 85);
+  assert.equal(verified.reviewedTables, 102);
+  assert.equal(verified.reviewedForeignKeys, 226);
+  assert.equal(verified.accountCascadeTables, 86);
   assert.equal(verified.heldSharedTables, 11);
-  assert.equal(verified.operatorMetadataTables, 3);
+  assert.equal(verified.operatorMetadataTables, 4);
   assert.equal(verified.serviceActivationAllowed, false);
   return {
     deletedAccountNotRestored: true,
@@ -398,6 +465,7 @@ export async function verifyPrivacyRestoreFixture(
     sharedTextHiddenDateOutcomePreserved: true,
     newerBlockRetained: true,
     budgetNotReducedAndPaidDisabled: true,
+    serviceAccessQuarantined: true,
     oldJobsCancelledAndScrubbed: true,
     idempotentReplay: true,
     independentReadOnlyPostReplayVerified: true,

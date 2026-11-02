@@ -125,6 +125,29 @@ def reserve_output(path):
     return path
 
 
+REGISTRY_CHECKS = {'runtime039To040', 'billingLedgerPreserved', 'migrationReceiptsPreserved',
+    'interruptedMigrationRolledBack', 'physical039DumpRestored', 'historicalPrivacyVerified',
+    'registryPrivacyVerified', 'lostOutputReadOnlyRecovery', 'noSqlReplay', 'driftRefused',
+    'native040PrivacyProofBound', 'cleanup'}
+
+def require_registry_proof(proof, image, binding):
+    if (not isinstance(proof, dict) or
+            proof.get('version') != 'alterward-service-registry-image-fixture-1' or
+            proof.get('profile') != 'historical039-to-registry040' or
+            proof.get('scope') != 'image-rehearsal' or
+            proof.get('sourceCommit') != binding['sourceCommit'] or proof.get('imageId') != image or
+            proof.get('bundleSha256') != binding['bundleSha256'] or
+            proof.get('serviceActivationAllowed') is not False or
+            type(proof.get('providerApiCalls')) is not int or proof['providerApiCalls'] != 0 or
+            proof.get('operatorAudit') is not False or proof.get('syntheticFixture') is not True or
+            not isinstance(proof.get('checks'), dict) or set(proof['checks']) != REGISTRY_CHECKS or
+            any(v is not True for v in proof['checks'].values()) or
+            any(not isinstance(proof.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', proof[k])
+                for k in ('backupDumpSha256', 'instanceSha256', 'native040PrivacyFixtureSha256',
+                    'intentSha256', 'migrationRestoreProofSha256'))):
+        raise ValueError('Exact registry image fixture required')
+
+
 def require_proof(proof, image, binding):
     if (set(proof) != {'sourceCommit', 'bundleSha256', 'targetImage', 'recoveryImage', 'checks', 'privacyFixtureSha256', 'paidAiCalls'} or
             proof['sourceCommit'] != binding['sourceCommit'] or proof['bundleSha256'] != binding['bundleSha256'] or
@@ -303,6 +326,9 @@ def isolated_owned(image, output, binding):
         with contextlib.redirect_stderr(io.StringIO()):
             proof = engine.exercise(context, scope='image-rehearsal')
         require_proof(proof, image, binding)
+        registry = json.loads(run(['node', 'scripts/schema040-image-fixture.mjs'],
+            json.dumps({'context': context, 'scope': 'image-rehearsal'}).encode(), timeout=900))
+        require_registry_proof(registry, image, binding)
         if source_binding() != binding:
             raise ValueError('Rehearsal source changed while running')
     finally:
@@ -326,7 +352,7 @@ def isolated_owned(image, output, binding):
     require_proof(proof, image, binding)
     successor = getattr(engine,'SUCCESSOR_PROOF',None)
     require_successor_proof(successor,image,binding)
-    for filename, value in [('funded-upgrade-fixture-proof.json', proof), ('beta-successor-fixture-proof.json',successor), ('image-rehearsal-receipt.json', {
+    for filename, value in [('registry040-image-fixture.json', registry), ('funded-upgrade-fixture-proof.json', proof), ('beta-successor-fixture-proof.json',successor), ('image-rehearsal-receipt.json', {
             'version': 'alterward-image-rehearsal-1', 'sourceCommit': binding['sourceCommit'], 'imageId': image,
             'capturedAt': dt.datetime.now(dt.timezone.utc).isoformat(), 'syntheticDataOnly': True,
             'cleanupVerified': True, 'foreignContainersUnchanged': True, 'paidAiCalls': 0,

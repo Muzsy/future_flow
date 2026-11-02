@@ -119,6 +119,7 @@ describe('independent authority and quarantined privacy restore', () => {
     );
     return {
       action: 'replay',
+      recoveryProfile: 'registry040',
       quarantineDatabase: targetName,
       backupCapturedAt,
       backupDumpSha256: hash('synthetic-original-dump'),
@@ -185,8 +186,8 @@ describe('independent authority and quarantined privacy restore', () => {
     expect(result).toMatchObject({
       action: 'replay',
       independentReadOnlyPostReplayVerified: true,
-      reviewedTables: 100,
-      reviewedForeignKeys: 225,
+      reviewedTables: 102,
+      reviewedForeignKeys: 226,
       reviewedSecurityCatalog: true,
       serviceActivationAllowed: false,
       paidAiCalls: 0,
@@ -395,8 +396,8 @@ describe('independent authority and quarantined privacy restore', () => {
     await replayPrivacyRestore(db, authority, proofBinding());
     const verified = await verifyPrivacyRestore(db, authority, proofBinding());
     expect(verified).toMatchObject({
-      reviewedTables: 100,
-      reviewedForeignKeys: 225,
+      reviewedTables: 102,
+      reviewedForeignKeys: 226,
       serviceActivationAllowed: false,
       liveWrites: false,
       paidAiCalls: 0,

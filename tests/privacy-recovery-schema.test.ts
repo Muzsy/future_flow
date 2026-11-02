@@ -34,10 +34,10 @@ const changed = (sql: string) =>
 describe('reviewed schema before privacy capture/replay', () => {
   it('accepts the actual immutable migration baseline', async () => {
     expect(await check()).toEqual({
-      reviewedTables: 100,
+      reviewedTables: 102,
       migrationLedgerPresent: false,
-      reviewedColumns: 892,
-      reviewedForeignKeys: 225,
+      reviewedColumns: 906,
+      reviewedForeignKeys: 226,
     });
   });
   it('rejects an unclassified user-data table even outside aw/ff prefixes', async () => {
@@ -46,7 +46,7 @@ describe('reviewed schema before privacy capture/replay', () => {
         'CREATE TABLE hidden_personal_data(owner_id uuid REFERENCES ff_users(id),private_text text)',
       ),
     ).rejects.toThrow('table set');
-    expect((await check()).reviewedTables).toBe(100); // Failed DDL transaction rolled back.
+    expect((await check()).reviewedTables).toBe(102); // Failed DDL transaction rolled back.
   });
   it('rejects a catalog-shadowing view and materialized personal data', async () => {
     await expect(
@@ -59,7 +59,7 @@ describe('reviewed schema before privacy capture/replay', () => {
         'CREATE MATERIALIZED VIEW retained_user_data AS SELECT id,status FROM ff_users',
       ),
     ).rejects.toThrow('table set');
-    expect((await check()).reviewedTables).toBe(100);
+    expect((await check()).reviewedTables).toBe(102);
   });
   it('rejects new data on a known table and a changed deletion graph', async () => {
     await expect(
@@ -72,7 +72,7 @@ describe('reviewed schema before privacy capture/replay', () => {
         'ALTER TABLE aw_feedback DROP CONSTRAINT aw_feedback_user_id_fkey',
       ),
     ).rejects.toThrow('columns or foreign-key');
-    expect((await check()).reviewedForeignKeys).toBe(225);
+    expect((await check()).reviewedForeignKeys).toBe(226);
   });
   it('pins the billing tables: extra data, a missing account link and a missing table are all rejected', async () => {
     await expect(
@@ -88,7 +88,7 @@ describe('reviewed schema before privacy capture/replay', () => {
     await expect(changed('DROP TABLE aw_billing_events')).rejects.toThrow(
       'table set',
     );
-    expect((await check()).reviewedForeignKeys).toBe(225);
+    expect((await check()).reviewedForeignKeys).toBe(226);
   });
   it('keeps billing children on the same account as their parent', async () => {
     const [a, b] = [randomUUID(), randomUUID()];
@@ -132,6 +132,6 @@ describe('reviewed schema before privacy capture/replay', () => {
     await expect(
       changed('ALTER TABLE ff_migrations ADD COLUMN hidden_personal_text text'),
     ).rejects.toThrow('migration ledger');
-    expect((await check()).reviewedTables).toBe(100);
+    expect((await check()).reviewedTables).toBe(102);
   });
 });

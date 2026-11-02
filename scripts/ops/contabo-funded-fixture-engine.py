@@ -141,6 +141,7 @@ def exercise(context, *, scope='ci'):
         'privateArtifactExcludedFromLifeDto',
         'idempotentReplay',
         'budgetNotReducedAndPaidDisabled',
+        'serviceAccessQuarantined',
     ):
         if context['privacy'].get(key) is not True:
             raise ValueError('Actual preceding PostgreSQL privacy fixture required')

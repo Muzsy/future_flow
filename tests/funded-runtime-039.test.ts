@@ -10,15 +10,19 @@ import {
 } from '../scripts/lib/funded-runtime';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre040Schema,
   assertReviewedFundedPre039Schema,
 } from '../scripts/lib/privacy-recovery-schema';
-import { assertPrivacySecurityCatalog } from '../scripts/lib/privacy-security-catalog';
+import {
+  assertPrivacySecurityCatalog,
+  assertFundedPre040SecurityCatalog,
+} from '../scripts/lib/privacy-security-catalog';
 import {
   billingFoundationState,
   downgradeFixtureTo038,
 } from '../scripts/ops/funded-upgrade-fixture-schema';
 
-// The observed production state is 001–038. This is the dedicated 038→039
+// Historical001–038 fixture: this is the dedicated038→039
 // upgrade lane: exact preflight, append-only step, empty billing foundation.
 let engine: PGlite;
 const user = randomUUID();
@@ -127,8 +131,12 @@ it('appends only 039, keeps every pre-039 row and leaves the billing tables empt
         authenticated: false,
       })),
     );
-    await assertReviewedPrivacyRecoverySchema(d);
-    await assertPrivacySecurityCatalog(d);
+    await assertReviewedFundedPre040Schema(d);
+    await assertFundedPre040SecurityCatalog(d);
+    await expect(assertReviewedPrivacyRecoverySchema(d)).rejects.toThrow(
+      /table set/,
+    );
+    await expect(assertPrivacySecurityCatalog(d)).rejects.toThrow(/table set/);
   });
 });
 it('refuses a source that drifted between preflight and migration', async () => {

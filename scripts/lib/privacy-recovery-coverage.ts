@@ -1,12 +1,15 @@
 import type { Database } from '@future-flow/database';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre040Schema,
+  reviewedPre040PrivacyRecoveryTables,
   reviewedPrivacyRecoveryTables,
 } from './privacy-recovery-schema';
 
 // Semantic exceptions to account-root cascade deletion. Never inferred from
 // an unreviewed live schema. The immutable column/FK guard is checked first.
 const operatorMetadata = new Set([
+  'aw_service_policy',
   'ff_questionnaires',
   'aw_public_collections',
   'aw_public_collection_actions',
@@ -37,7 +40,24 @@ export function privacyRecoveryIdentifier(name: string) {
   return '"' + name + '"';
 }
 export async function assertPrivacyRecoveryCoverage(tx: Database) {
-  const schema = await assertReviewedPrivacyRecoverySchema(tx);
+  return assertCoverage(tx, 40);
+}
+export async function assertHistorical039PrivacyRecoveryCoverage(tx: Database) {
+  return assertCoverage(tx, 39);
+}
+async function assertCoverage(tx: Database, baseline: 39 | 40) {
+  const schema =
+    baseline === 40
+      ? await assertReviewedPrivacyRecoverySchema(tx)
+      : await assertReviewedFundedPre040Schema(tx);
+  const tables =
+    baseline === 40
+      ? reviewedPrivacyRecoveryTables
+      : reviewedPre040PrivacyRecoveryTables;
+  const metadata =
+    baseline === 40
+      ? operatorMetadata
+      : new Set([...operatorMetadata].filter((t) => t !== 'aw_service_policy'));
   const keys =
     await tx.query<ForeignKey>(`SELECT t.relname AS table_name,p.relname AS parent,k.confdeltype::text AS action,
     ARRAY(SELECT a.attname::text FROM unnest(k.conkey) WITH ORDINALITY c(num,ord) JOIN pg_attribute a ON a.attrelid=k.conrelid AND a.attnum=c.num ORDER BY c.ord) AS columns,
@@ -45,7 +65,7 @@ export async function assertPrivacyRecoveryCoverage(tx: Database) {
     FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_class p ON p.oid=k.confrelid
     JOIN pg_namespace n ON n.oid=t.relnamespace JOIN pg_namespace pn ON pn.oid=p.relnamespace
     WHERE n.nspname='public' AND pn.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname`);
-  if (keys.length !== 225)
+  if (keys.length !== (baseline === 40 ? 226 : 225))
     throw Error('Reviewed foreign-key coverage required');
   const cascaded = new Set(['ff_users']);
   let changed = true;
@@ -61,18 +81,18 @@ export async function assertPrivacyRecoveryCoverage(tx: Database) {
         changed = true;
       }
   }
-  for (const table of reviewedPrivacyRecoveryTables) {
+  for (const table of tables) {
     const categories =
       Number(cascaded.has(table)) +
-      Number(operatorMetadata.has(table)) +
+      Number(metadata.has(table)) +
       Number(heldSharedCanon.has(table));
     if (categories !== 1)
       throw Error('Unclassified or overlapping privacy recovery table');
   }
   for (const key of keys) {
     if (
-      !reviewedPrivacyRecoveryTables.includes(key.table_name) ||
-      !reviewedPrivacyRecoveryTables.includes(key.parent) ||
+      !tables.includes(key.table_name) ||
+      !tables.includes(key.parent) ||
       !key.columns.length ||
       key.columns.length !== key.parent_columns.length
     )
@@ -86,6 +106,6 @@ export async function assertPrivacyRecoveryCoverage(tx: Database) {
     keys,
     accountCascadeTables: cascaded.size - 1,
     heldSharedTables: heldSharedCanon.size,
-    operatorMetadataTables: operatorMetadata.size,
+    operatorMetadataTables: metadata.size,
   };
 }

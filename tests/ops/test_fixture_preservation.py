@@ -149,7 +149,8 @@ class FixturePreservation(unittest.TestCase):
                            'fundedV9ReplayAndCharacterStateVerified',
                            'narrativeArtifactsSurvivedPhysicalRestore',
                            'legacyNullArtifactsReadable', 'privateArtifactExcludedFromLifeDto',
-                           'idempotentReplay', 'budgetNotReducedAndPaidDisabled'), True)}
+                           'idempotentReplay', 'budgetNotReducedAndPaidDisabled',
+                           'serviceAccessQuarantined'), True)}
             with patch.object(engine.os, 'geteuid', return_value=0), \
                     patch.dict(engine.os.environ, {'CI': 'true', 'GITHUB_ACTIONS': 'true'}), \
                     patch.object(engine.activation, 'PROJECT', self.original), \
