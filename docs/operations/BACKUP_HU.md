@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-26
+last_reviewed: 2026-11-02
 related:
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
   - RECOVERY_HU.md
@@ -100,3 +100,10 @@ A v3 policy az aktív `probe.json` intent/cleanup evidence-t is menti; pending �
 Lezárt, egészséges funded transition után az eredeti legacy upgrade könyvtárát a preparationben byte-hash-sel kötött eredeti personal-beta manifest commitja jelöli ki; az aktív runtime commitja ehhez nem használható. A jelenlegi runtime négy fájlja és a funded target/recovery bizonyítékok ugyanabba a titkosított config archívumba kerülnek. Ismeretlen/módosult/hiányzó authority és részleges transition elutasított; történeti upgrade könyvtár nem gyártható utólag.
 
 A #96 javítás9088275 Daily-forrásának jóváhagyott éles mentése és izolált restore-ja2026-10-26-án PASS:97tábla/1711sor/107config; a runtime külön6d17fda/schema038 maradt. A backup manifest külön rögzíti a Daily sourceCommit és a runtime ownerCommit/ownerImage értékeit. A régi funded CLI active-proof újrakiadási korlátja ettől nem lazul. [Tényleges bizonyíték és megőrzött korlát](NARRATIVE_RELEASE_HU.md#95-lezárva-éles-daily-mentés-és-restore--2026-10-26).
+
+
+## Registry040 candidate és natív restore — #142 jelölt
+
+A #149 source-jelölt a039 candidate mentés generikus offsite restore-ja mellé tényleges, held-writer adatvédelmi replay → izolált040 migráció → független verify bizonyítékot kér. A101/103 publikus tábla a migration-receipt táblát is tartalmazza; a100/102 alkalmazástáblás privacy-katalógus ettől külön fogalom. Archive SQL/ACL/schema nem kerül a tiszta adat-only privacy quarantine-ba, Auth/Storage mentése nem feltételezhető.
+
+A migráció SQL-intentje előtt készült archive nem tartalmazhatja visszamenőleg a későbbi intent/evidence fájlt. Az eredeti backup/restore kötést a root journal őrzi, a következő normál backup már az új véges sidecarokat is menti. A natív040 restore külön v2 source/image/authority bizonyítékot ad; régi039 receipt nem címkézhető át. A proof és a megőrzött eredeti archive összetartozását a Daily ellenőrzi, az automatikus új backup önmagában nem új privacy-replay. [Recovery és fejlesztői/éles határ](RECOVERY_HU.md#142-host-jelölt-külön-történeti-és-natív040-proof).

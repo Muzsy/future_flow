@@ -167,6 +167,7 @@ export function fundedSourceBundle(paths, read) {
       (p) =>
         p === 'Dockerfile' ||
         p === '.dockerignore' ||
+        p === 'deploy/server.env.example' ||
         /^(scripts\/|tests\/|apps\/|packages\/|database\/migrations\/|deploy\/compose|(?:pnpm-|package|tsconfig))/.test(
           p,
         ),
@@ -175,6 +176,7 @@ export function fundedSourceBundle(paths, read) {
       (p) =>
         p === 'Dockerfile' ||
         p === '.dockerignore' ||
+        p === 'deploy/server.env.example' ||
         /\.(?:ts|tsx|mts|mjs|cjs|py|json|yaml|sql|sh|css)$/.test(p),
     )
     .sort();

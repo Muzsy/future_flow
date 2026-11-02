@@ -139,3 +139,12 @@ A #137 külön039/040 schema/security/replay profilt és könyvtári039→040 br
 A bridge sorrendje: tényleges039 replay → független039 read-only ellenőrzés → mért intent →100 régi tábla és39 receipt megőrzésével atomikus040 SQL → független040 read-only ellenőrzés, az új2tábla üres. A privilegizált production-hívónak intentet a SQL előtt tartósan kell mentenie. Commit utáni elveszett válasz külön read-only verify-val egyeztethető; nincs SQL újrafuttatás. A tényleges schema40 nem fogadható el a régi039 guard lazításával.
 
 A képhez/source-hoz kötött `alterward-service-registry-image-fixture-1` szintetikus PostgreSQL-próba külön bizonyíték; nem offsite/éles backup, fennálló production fence, operátori audit vagy promotion. A korábbi funded v1/038→039 szerződés megmarad. Production040 successor, Daily/monitor/restore és billing-config040 támogatás [#142](https://github.com/Muzsy/future_flow/issues/142) alatt készítendő; addig nincs040 rollout. Sem API/web hozzáférési bekötés, sem új admission/pause/reconcile operátor nem következik pusztán a tároló létezéséből.
+
+
+### #142 host jelölt: külön történeti és natív040 proof
+
+A #149 fejlesztői jelölt a fenti bridge-et a root successor/Daily/fence útba köti. A `migration-rehearsal` a valódi039 archive-ot101 publikus táblával tölti be, az eredeti authority alatt visszajátssza és függetlenül ellenőrzi, majd konkrét quarantine-instance-hez kötött tartós intent után migrál040-re és külön read-only verify-t végez. Az új observer/executor image az előkészített040 candidate-ből jön; a backup régi source/image és authority provenance-e megmarad. Az élő SQL kapuja ennek a konkrét backup/candidate/parent/source/image eredményét kéri.
+
+Natív040-nél külön `alterward-funded-replay-2` / `registry040` proof és103 publikus táblás data-only replay kötelező,102 alkalmazástábla/226 FK ellenőrzésével. A régi v1 receipt nem írható felül vagy értelmezhető át. A monitor hiányzó/idegen natív bizonyítéknál jelez; timeraktiválás a legfrissebb mentés friss natív privacy-próbáját is ellenőrzi.
+
+A schema040 intent és a config040 restore-evidence külön journal-hashhez kötött. Késői recovery az eredeti tartós bizonyítékot ellenőrzi, nem a mutable Daily-pointert és nem újraidőzített proofot. Az új SQL900másodperces korlátja megmarad; commitolt állapot csak olvasó egyeztetése nem indít SQL-ismétlést. Ez a fejlesztői szerződés nem éles rollout, operátori audit vagy meghívási/pause aktiválás. [Sorrend és engedélyhatár](FUNDED_RUNTIME_UPGRADE_HU.md#production040-jelölt--142-2026-11-02).

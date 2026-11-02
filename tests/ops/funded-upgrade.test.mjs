@@ -89,6 +89,9 @@ test('source bundle binds Docker inputs and executable sources while excluding p
     'scripts/test.py',
     'packages/a/src/test.ts',
     'env/private.env',
+    'deploy/server.env.example',
+    'deploy/server.env',
+    'deploy/other.env.example',
     '.local/receipt.json',
     'docs/note.md',
   ];
@@ -98,6 +101,7 @@ test('source bundle binds Docker inputs and executable sources while excluding p
   assert.deepEqual(Object.keys(bundle.sourceHashes), [
     '.dockerignore',
     'Dockerfile',
+    'deploy/server.env.example',
     'packages/a/src/test.ts',
     'scripts/test.py',
   ]);

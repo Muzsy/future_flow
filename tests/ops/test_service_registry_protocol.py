@@ -85,6 +85,17 @@ class RegistryProtocolTests(unittest.TestCase):
                 with self.subTest(role=role, bad=bad), self.assertRaises(ValueError):
                     daily.registry_profile_default(changed)
 
+    def test_committed_image_bundle_actually_covers_all33_required_registry_inputs(self):
+        import json
+        import subprocess
+        root_path = Path(__file__).resolve().parents[2]
+        code = "import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';import{fundedSourceBundle}from'./scripts/lib/funded-upgrade.mjs';const paths=execFileSync('git',['ls-files'],{encoding:'utf8'}).trim().split('\\n');console.log(JSON.stringify(fundedSourceBundle(paths,p=>readFileSync(p)).sourceHashes));"
+        result = subprocess.run(['node','--input-type=module','-e',code],cwd=root_path,
+            check=True,capture_output=True,text=True,timeout=15)
+        hashes = json.loads(result.stdout)
+        self.assertEqual({p:hashes.get(p) for p in daily.REGISTRY_040_CHANGE_HASHES},daily.REGISTRY_040_CHANGE_HASHES)
+        self.assertNotIn('deploy/server.env',hashes)
+
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
         root = Path(__file__).resolve().parents[2]
         expected = daily.REGISTRY_040_CHANGE_HASHES
@@ -397,3 +408,52 @@ class RegistryLateRecoveryTests(ChainRootBase):
         system.registry_intent.assert_called_once()
         system.backup.assert_not_called()
         system.registry_restore.assert_not_called()
+
+
+class RegistryDailyProofTests(ChainRootBase):
+    def setUp(self):
+        super().setUp()
+        import json
+        from registry_test_proof import registry_replay
+        candidate = self.chain.prepare(2,'schema-040',database=observed())
+        self.chain.expose(2,candidate,window_changed=False)
+        self.candidate = candidate
+        self.state = self.fixture.owner/'daily-native-proof'
+        parent_hash = daily.digest((self.fixture.owner/'manifest.json').read_bytes())
+        bound = {**candidate,'files':{**candidate['files'],'previous':{'manifest.json':parent_hash}}}
+        manifest = {'runId':'20261102T100000Z-12345678','ownerCommit':candidate['sourceCommit'],
+            'ownerImage':candidate['release']['target']['imageId'],'dumpSha256':'a'*64,
+            'capturedAt':candidate['preparedAt'],'encryptedFiles':{'application.dump.age':{'sha256':'b'*64,'bytes':100}}}
+        _, self.proof = registry_replay(bound,manifest,migration=False)
+        self.proof['fundedRuntime']['preparedSha256'] = daily.digest(daily.successor_json(candidate))
+        self.records = [{'manifest':manifest,'files':{'manifest.json':{'sha256':self.proof['backupManifestSha256']}},
+                         'created':daily.utcnow()-dt.timedelta(minutes=2)}]
+        self.path = self.state/'status'/'registry-restore.json'
+        self.fixture.write(self.path,root.encoded(self.proof))
+        for mock in (patch.object(daily,'ROOT',self.state),
+                     patch.object(daily,'completed_archives',return_value=self.records)):
+            mock.start()
+            self.addCleanup(mock.stop)
+        self.value = {'sourceCommit':candidate['sourceCommit']}
+
+    def test_native_monitor_and_timer_gate_require_actual_profile_and_archive_binding(self):
+        self.assertTrue(daily.registry_restore_healthy(self.value))
+        self.assertTrue(daily.registry_restore_healthy(self.value,latest=True))
+        for key, change in {'sourceCommit':'f'*40,'backupManifestSha256':'f'*64,
+            'reviewedTables':100,'independentReadOnlyPostReplayVerified':False,
+            'freshStateEqualBeforeAndAfterReplay':False,'writerFenceStillHeld':True}.items():
+            self.fixture.write(self.path,root.encoded({**self.proof,key:change}))
+            with self.subTest(key=key):
+                self.assertFalse(daily.registry_restore_healthy(self.value))
+        self.path.unlink()
+        self.assertFalse(daily.registry_restore_healthy(self.value))  # generic restore.json cannot substitute
+
+    def test_new_backup_does_not_relabel_a_previous_replay_and_timer_activation_needs_the_latest(self):
+        newer = copy.deepcopy(self.records[0])
+        newer['manifest']['runId'] = '20261102T110000Z-87654321'
+        newer['created'] = daily.utcnow()-dt.timedelta(minutes=1)
+        self.records.append(newer)
+        self.assertTrue(daily.registry_restore_healthy(self.value))
+        self.assertFalse(daily.registry_restore_healthy(self.value,latest=True))
+        self.records.pop(0)  # after original archive retention, monitor must also refuse
+        self.assertFalse(daily.registry_restore_healthy(self.value))

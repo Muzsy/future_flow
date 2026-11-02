@@ -314,6 +314,13 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                     return successor.canonical_sha(retained)
                 from contextlib import nullcontext
                 with engine.tempfile.TemporaryDirectory(prefix='registry-quarantine-', dir=engine.Path(ctx['ca']).parent) as scratch:
+                    # Match the production fence transport's staging contract:
+                    # node() bind-mounts these exact scratch files into the image.
+                    for name, data in files.items():
+                        destination = engine.Path(scratch)/name
+                        destination.parent.mkdir(parents=True,exist_ok=True,mode=0o755)
+                        destination.write_bytes(data)
+                        destination.chmod(0o644)
                     result = quarantine.replay(daily,engine.Path(scratch),files,node_files,nonce,archive,
                         captured['envelope'],captured['held'],lambda names:None,nullcontext,
                         funded_runtime=active,
