@@ -483,3 +483,5 @@ A prepare és reconcile konzisztens READ ONLY tranzakció. Az apply kizárólag 
 Ez az adatbázisoldali rész nem telepíti a production040 successor/Daily/native restore/config protokollt. A régi039 runbook és őrök változatlanul elutasítják040-et; nincs éles csomag vagy új költési felhatalmazás. #142 a teljes integrációig nyitott.
 
 A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
+
+Az új registry probe-módok privát hibadiagnosztikája csak az előre engedélyezett fázisnevet, SQLSTATE-et és a rögzített script-forráshelyeket adhatja vissza; nyers hibaüzenet, SQL, paraméter vagy credential továbbra sem kerül a diagnosztikába.
