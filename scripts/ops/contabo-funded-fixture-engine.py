@@ -804,6 +804,18 @@ def exercise(context, *, scope='ci'):
             current = db(capture_mode, system.database, capture_args)
             restoredState = db(capture_mode, restoredDB, capture_args)
             compared = {**current,'identityBindingSha256':restoredState['identityBindingSha256']}
+            if registry:
+                # Both captures already passed the unchanged reviewed catalog.
+                # Require every catalog component and expanded effective ACL to
+                # match before normalizing the raw ACL representation hash ONLY
+                # for this separate-database binary-restore comparison.
+                source_catalog = db('catalog-semantics',system.database)
+                restored_catalog = db('catalog-semantics',restoredDB)
+                if source_catalog != restored_catalog:
+                    changed = sorted(k for k,v in source_catalog['summaries'].items()
+                                     if v != restored_catalog['summaries'].get(k))
+                    raise AssertionError('Physical restore effective catalog drift: '+','.join(changed))
+                compared['catalogSha256'] = restoredState['catalogSha256']
             if registry and compared != restoredState:
                 changed = sorted(k for k in compared if compared[k] != restoredState.get(k))
                 print('Synthetic registry binary restore drift fields: '+','.join(changed),file=sys.stderr)

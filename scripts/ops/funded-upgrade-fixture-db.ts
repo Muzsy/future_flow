@@ -51,6 +51,7 @@ async function main() {
       'schema-verify',
       'registry-capture',
       'privacy-envelope',
+      'catalog-semantics',
       'registry-prepare',
       'registry-apply',
       'registry-reconcile',
@@ -73,6 +74,16 @@ async function main() {
       await admin.query(`CREATE DATABASE ${request.database}`);
     url.pathname = '/' + request.database;
     db = connectDatabase(url.href, true);
+    if (request.mode === 'catalog-semantics') {
+      const { fixtureRestoreCatalog } =
+        await import('./funded-upgrade-fixture-catalog');
+      return db.transaction(async (tx) => {
+        await tx.query(
+          'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY',
+        );
+        return fixtureRestoreCatalog(tx);
+      });
+    }
     if (request.mode === 'privacy-envelope') {
       // Synthetic Auth evidence only; production uses independently verified
       // Admin/DB inventories while its root writer fence is physically held.
