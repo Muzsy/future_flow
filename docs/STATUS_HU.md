@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**I02 önkiszolgáló előfizetéskezelés — #144, fejlesztés alatt:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés készül. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
+
 **I02 generálási útvonalhatár — main, #138/#139:** enforce módban csak a központi fejezetledgerre jutó személyes generálás engedhető tovább; a v1/Shared/review indítás zárt, a worker e sorok munkáit claim nélkül megőrzi. A #139 beolvadt a főágba; ez nem új éles állapot, I02/I03/I04 továbbra PARTIAL.
 
 **I01 belépési runtime — #146, fejlesztés alatt:** a profil beköti az Access + ellenőrzött Supabase-fiók + tartós admission láncot, saját account-control kivételekkel; új kéréseknél queue/worker/Checkout újraellenőrzés. Az új meghívottak a változatlan v9 policyt kapják, a statikus cohort nem ad új jogosultságot. A kapcsoló OFF, nincs éles profil/admission/signup/meghívó vagy költés. I01/I04/I06 továbbra PARTIAL; operátori átvezetés/#142 és teljes mért út még hátra van.

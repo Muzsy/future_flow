@@ -119,6 +119,8 @@ A személyes indulás alkalmazandó P13 privacy/security/data-control követelm�
 
 **I01 runtime — #146, fejlesztés alatt:** az új profilban Access-identitás + Supabase getUser ellenőrzött email/UUID + friss registry dönt minden alkalmazáskérésről. Saját account-control megmarad; queue/worker/Checkout új költés előtt újra ellenőriz. Új meghívott a befagyasztott v9-et kapja, nem a kísérleti cohorton kívüli legacy motort; egyszeri ízelítőt a meglévő ledger számol. A profil alapból OFF, legacy működés megmarad; nincs signup/meghívó/éles apply vagy budgetreset. Hátra az I04 operátori admission/átvezetés és #142 rollout, majd I05/I06 teljes fizetési/böngészős bizonyíték. I01/I04/I06 nem DONE.
 
+**I02 önkiszolgáló előfizetéskezelés — #144, fejlesztés alatt:** a `/billing` oldalról saját fiókhoz kötött Stripe hosted portal, ciklusvégi lemondási és csomag-/kuponváltoztatást tiltó konfigurációellenőrzéssel. Nem módosít fejezet-/USD-ledgert, schema-t vagy a régi béta feltételeit; új Checkoutot nem indít. Külön ellenőrzendő a providerzavar, sessionváltás, idegen/restore-reconcile fiók és visszatérés. I02 továbbra PARTIAL; a hiányzó meghívási/éles integrációt és I05/I06 mért próbakapuit nem helyettesíti.
+
 **Sorrend:** I01 és I04 tervezése először; I02/I03/I05 a közös jogosultsági és üzemeltetési szerződéshez igazodik; I06 csak a végleges integráción és minden kapuval; I07 az igazolt működés után. Shared-, prompt-, archetípus- vagy motorbővítés nincs ebben a scope-ban. A konkrét implementáció és minden éles művelet a meglévő Issue → branch → PR → review → CI és operátori jóváhagyási rendben történik.
 
 ## 3. Personal / public execution plan — L01, P01–P13

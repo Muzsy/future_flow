@@ -285,6 +285,10 @@ const errors: Record<string, readonly [string, string]> = {
     'New subscriptions are temporarily paused. You can still manage an existing subscription.',
     'Az új előfizetések indítása átmenetileg szünetel. A meglévő előfizetésed továbbra is kezelheted.',
   ],
+  BILLING_MANAGEMENT_UNAVAILABLE: [
+    'Subscription management is unavailable. Please contact info@alterward.com.',
+    'Az előfizetéskezelés most nem érhető el. Kérjük, írj az info@alterward.com címre.',
+  ],
   BILLING_ALREADY_SUBSCRIBED: [
     'You already have a subscription. Reload this page to see its current state.',
     'Már van előfizetésed. Töltsd újra az oldalt, hogy lásd az aktuális állapotát.',

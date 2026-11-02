@@ -81,11 +81,16 @@ async function boot(
     [questionnaire.version, JSON.stringify(questionnaire), hash(questionnaire)],
   );
   const cancelled: string[] = [];
+  const portalCustomers: string[] = [];
   const alerts: BillingAlert[] = [];
   const provider: BillingProvider = {
     createCheckoutSession: async () => ({
       url: 'https://checkout.stripe.com/c/pay/cs_test_1',
     }),
+    createPortalSession: async ({ customerId }) => {
+      portalCustomers.push(customerId);
+      return { url: 'https://billing.stripe.com/p/session/synthetic' };
+    },
     cancelSubscription: async (id) => {
       cancelled.push(id);
     },
@@ -120,6 +125,7 @@ async function boot(
     base: await app.getUrl(),
     runtime,
     cancelled,
+    portalCustomers,
     alerts,
   };
 }
@@ -205,6 +211,7 @@ describe('billing disabled (the default)', () => {
     expect((await webhook(h, subscriptionEvent(user))).status).toBe(404);
     for (const [method, path] of [
       ['POST', '/api/v1/billing/checkout'],
+      ['POST', '/api/v1/billing/portal'],
       ['GET', '/api/v1/billing/status'],
     ] as const)
       expect(
@@ -474,6 +481,94 @@ describe('billing enabled (test mode, fake provider)', () => {
         [user],
       ),
     ).toHaveLength(1);
+  });
+});
+
+describe('own-account subscription management', () => {
+  let h: Harness;
+  const user = randomUUID(),
+    other = randomUUID();
+  beforeAll(async () => {
+    h = await boot(billingConfigFromEnv(env()));
+    await new Repository(h.db).ensureUser(user);
+    await new Repository(h.db).ensureUser(other);
+    const event = subscriptionEvent(user, 'sub_portal');
+    event.data.object.customer = 'cus_portalown';
+    expect((await webhook(h, event)).status).toBe(200);
+  });
+  afterAll(() => close(h));
+  const portal = (id?: string, body: unknown = {}) =>
+    fetch(`${h.base}/api/v1/billing/portal`, {
+      method: 'POST',
+      headers: id ? authed(id) : { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  it('creates only the authenticated customer session without changing any billing rows', async () => {
+    const before = await h.db.query(
+      'SELECT * FROM aw_billing_subscriptions ORDER BY subscription_id',
+    );
+    expect((await portal()).status).toBe(401);
+    expect((await portal(other)).status).toBe(409);
+    for (const body of [
+      { customerId: 'cus_foreign' },
+      { subscriptionId: 'sub_foreign' },
+      { returnUrl: 'https://evil.invalid' },
+    ])
+      expect((await portal(user, body)).status).toBe(422);
+    expect(h.portalCustomers).toEqual([]);
+    const response = await portal(user);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      url: 'https://billing.stripe.com/p/session/synthetic',
+    });
+    expect(h.portalCustomers).toEqual(['cus_portalown']);
+    expect(
+      await h.db.query(
+        'SELECT * FROM aw_billing_subscriptions ORDER BY subscription_id',
+      ),
+    ).toEqual(before);
+    expect(await h.db.query('SELECT * FROM aw_billing_grants')).toEqual([]);
+  });
+  it('refuses an unreconciled snapshot and a customer shared with another account', async () => {
+    const count = h.portalCustomers.length;
+    await h.db.query(
+      "UPDATE aw_billing_subscriptions SET reconcile_required=true WHERE subscription_id='sub_portal'",
+    );
+    expect((await portal(user)).status).toBe(409);
+    await h.db.query(
+      "UPDATE aw_billing_subscriptions SET reconcile_required=false WHERE subscription_id='sub_portal'",
+    );
+    const event = subscriptionEvent(other, 'sub_portalother');
+    event.data.object.customer = 'cus_portalown';
+    expect((await webhook(h, event)).status).toBe(200);
+    expect((await portal(user)).status).toBe(409);
+    expect(h.portalCustomers.length).toBe(count);
+    await h.db.query(
+      "DELETE FROM aw_billing_subscriptions WHERE subscription_id='sub_portalother'",
+    );
+  });
+  it('does not report cancellation when the provider is unavailable', async () => {
+    const provider = h.runtime.provider!;
+    const original = provider.createPortalSession;
+    provider.createPortalSession = async () => {
+      throw Error('synthetic provider failure');
+    };
+    try {
+      const response = await portal(user);
+      expect(response.status).toBe(500);
+      expect(JSON.stringify(await response.json())).not.toContain(
+        'synthetic provider failure',
+      );
+      expect(
+        (
+          await h.db.query(
+            "SELECT status,cancel_at_period_end FROM aw_billing_subscriptions WHERE subscription_id='sub_portal'",
+          )
+        )[0],
+      ).toEqual({ status: 'active', cancel_at_period_end: false });
+    } finally {
+      provider.createPortalSession = original;
+    }
   });
 });
 
