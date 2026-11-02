@@ -21,6 +21,7 @@ const env = {
   AI_BUDGET_WINDOW_START: '',
   AI_BUDGET_WINDOW_END: '',
   // Pinned so an operator's exported shell values cannot change the preflight.
+  SERVICE_ACCESS_ENFORCEMENT: 'false',
   BILLING_ENABLED: 'false',
   BILLING_ENFORCEMENT: 'false',
   STRIPE_SECRET_KEY: '',
@@ -54,6 +55,41 @@ try {
     'web',
     'worker',
   ]);
+  // The admission profile must reach all three runtimes, never the web build.
+  // Parsing the enabled profile starts no services and uses no credentials.
+  const serviceAccessConfig = JSON.parse(
+    execFileSync(
+      'docker',
+      [
+        'compose',
+        '-f',
+        resolve(root, 'deploy/compose.contabo.yaml'),
+        'config',
+        '--format',
+        'json',
+      ],
+      {
+        env: { ...env, SERVICE_ACCESS_ENFORCEMENT: 'true' },
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    ),
+  );
+  for (const name of ['web', 'api', 'worker']) {
+    assert.equal(
+      config.services[name].environment.SERVICE_ACCESS_ENFORCEMENT,
+      'false',
+    );
+    assert.equal(
+      serviceAccessConfig.services[name].environment.SERVICE_ACCESS_ENFORCEMENT,
+      'true',
+    );
+    assert.equal(
+      serviceAccessConfig.services[name].build?.args
+        ?.SERVICE_ACCESS_ENFORCEMENT,
+      undefined,
+    );
+  }
   let totalMemory = 0;
   for (const service of Object.values(config.services)) {
     assert.equal(service.ports?.length ?? 0, 0, 'Application port is public');

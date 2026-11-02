@@ -72,6 +72,7 @@ services:
     <<: *runtime
     environment:
       <<: *access
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
       PUBLIC_EXTERNAL_EXPOSURE_ENABLED: ${PUBLIC_EXTERNAL_EXPOSURE_ENABLED:-false}
       PUBLIC_SITE_URL: https://${PUBLIC_HOST:?Set the public hostname}
       API_INTERNAL_URL: http://api:4000/api/public
@@ -109,6 +110,7 @@ services:
     command: [pnpm, --filter, '@future-flow/api', start]
     environment:
       <<: [*database, *shared, *review, *access, *narrative, *billing]
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
       SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
       WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
@@ -141,6 +143,7 @@ services:
     command: [node, apps/worker/dist/main.js]
     environment:
       <<: [*database, *shared, *review, *narrative, *billing]
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
       AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
       AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}
