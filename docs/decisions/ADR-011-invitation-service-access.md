@@ -82,4 +82,3 @@ A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent 
 - [Cloudflare: Validate JWTs](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/): ellenőrzött alkalmazástoken, issuer/audience és szerver által ismert kulcsforrás. A példákból token vagy személyes adat nem kerül a repóba.
 - [Supabase: inviteUserByEmail](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail) és [Before User Created Hook](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook): a jövőbeli meghívásos Auth-folyamat tervezési forrásai, nem ebben a szeletben telepített hívások/hookok.
 - A főág/CI, a célgépes source/image próba, az éles operátori audit és az aktiválás külön eredmény. Ez az ADR nem kiadási waiver és nem új költési engedély.
-
