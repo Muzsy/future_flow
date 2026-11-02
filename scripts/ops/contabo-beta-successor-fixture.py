@@ -331,8 +331,17 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                 assert again['envelope']['stateDigest'] == captured['envelope']['stateDigest']
                 for role, original in services.items():
                     upgrade.docker('start', original['Id'])
-                resumed = self.roles()
-                assert {r:(v['Id'],v['Image']) for r,v in resumed.items()} == {r:(v['Id'],v['Image']) for r,v in services.items()}
+                until = time.monotonic()+60
+                while True:
+                    resumed = self.roles()
+                    assert {r:(v['Id'],v['Image']) for r,v in resumed.items()} == {r:(v['Id'],v['Image']) for r,v in services.items()}
+                    if all(v['State']['Running'] and (r == 'worker' or v['State'].get('Health',{}).get('Status') == 'healthy')
+                           for r,v in resumed.items()):
+                        engine.activation.validate_running(list(resumed.values()),self.configuration(owner),ctx['image'])
+                        break
+                    if time.monotonic() >= until:
+                        raise AssertionError('Original fixture services did not become healthy after replay')
+                    time.sleep(0.2)
                 completed = {**result,'fundedRuntime':active,'sourceCommit':candidate['sourceCommit'],
                     'ownerManifestDigest':frame['ownerManifestDigest'],'mode':'rehearsal','servicesStoppedAndResumed':3,
                     'originalIdsImagesPreserved':True,'foreignContainersUnchanged':True,

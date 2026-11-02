@@ -887,9 +887,11 @@ def exercise(context, *, scope='ci'):
         for label in (
             'probe-cleanup',
             'expired-archive',
+            # Exercise native040 before the success case's real ten-minute wait.
+            # Cases own separate databases/runtime trees; every old case still runs.
+            'postcheck',
             'success',
             'image-only',
-            'postcheck',
             'interruption-intent',
             'interruption-held',
             'interruption-schema',
