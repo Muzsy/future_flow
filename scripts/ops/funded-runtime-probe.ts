@@ -16,6 +16,7 @@ import {
 } from '../lib/funded-runtime';
 import { DATABASE_IDENTITY_SHA256 } from '../lib/personal-beta-admission-observation.mjs';
 import { successorDatabaseRequest } from '../lib/beta-successor-operation';
+import { registryUpgradeRequest } from '../lib/service-registry-upgrade';
 import { privateProbeFailure } from '../lib/funded-probe-diagnostics';
 
 let phase = 'input';
@@ -33,6 +34,9 @@ async function main() {
       'successor',
       'registry-capture',
       'registry-migrate',
+      'registry-prepare',
+      'registry-apply',
+      'registry-reconcile',
     ].includes(input.mode)
   )
     throw Error('Exact probe input required');
@@ -69,6 +73,8 @@ async function main() {
     await client.query(
       input.mode === 'capture' ||
         input.mode === 'registry-capture' ||
+        input.mode === 'registry-prepare' ||
+        input.mode === 'registry-reconcile' ||
         (input.mode === 'successor' &&
           ['capture', 'reconcile'].includes(input.expected?.mode))
         ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'
@@ -84,7 +90,7 @@ async function main() {
       connectionHostname: host,
     };
     phase = 'capabilities';
-    if (input.mode === 'registry-capture' || input.mode === 'registry-migrate')
+    if (input.mode.startsWith('registry-'))
       serviceRegistryRuntimeCapabilities();
     else fundedRuntimeCapabilities();
     phase =
@@ -99,13 +105,26 @@ async function main() {
             databaseIdentitySha256: DATABASE_IDENTITY_SHA256,
             connectionHostname: host,
           })
-        : input.mode === 'registry-capture'
-          ? await captureServiceRegistryRuntime(tx, selected)
-          : input.mode === 'registry-migrate'
-            ? await migrateServiceRegistryRuntime(tx, selected, input.expected)
-            : input.mode === 'capture'
-              ? await captureFundedRuntime(tx, selected)
-              : await migrateFundedRuntime(tx, selected, input.expected);
+        : ['registry-prepare', 'registry-apply', 'registry-reconcile'].includes(
+              input.mode,
+            )
+          ? await registryUpgradeRequest(
+              tx,
+              selected,
+              input.mode,
+              input.expected,
+            )
+          : input.mode === 'registry-capture'
+            ? await captureServiceRegistryRuntime(tx, selected)
+            : input.mode === 'registry-migrate'
+              ? await migrateServiceRegistryRuntime(
+                  tx,
+                  selected,
+                  input.expected,
+                )
+              : input.mode === 'capture'
+                ? await captureFundedRuntime(tx, selected)
+                : await migrateFundedRuntime(tx, selected, input.expected);
     phase = 'commit';
     await client.query('COMMIT');
     console.log(JSON.stringify(result));

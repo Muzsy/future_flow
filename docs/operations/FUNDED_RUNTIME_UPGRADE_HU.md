@@ -472,3 +472,12 @@ Javított hiba az új lépéshez: a capture a `search_path`-t `pg_catalog, publi
 **Fixture:** `alterward-beta-successor-fixture-4`: a lánc a G5 sandbox, elutasítások (sandbox live után, enforce élő szint nélkül, kulcs-minta/PUBLIC_HOST eltérés, extra kulcs), G6 live, G7 enforce lépésekkel bővül, három új check (`billingSecretGuard`, `billingConfigRefusals`, `billingConfigStages`), a titok-szivárgás keresés a receiptekben és a lánc betelt-ellenőrzése. A fixture helyben nem futtatható; tényleges futása a CI-ben lesz. A release-inputokat (audit-proof, fixture-proof) minden új commitra újra kell készíteni.
 
 **Üzemeltetési sorrend (nem futtatva, külön tulajdonosi engedélyhez kötött):** Daily-frissítés → release-inputok → `--prepare` (a privát titokfájllal) → jelölt-kötött backup → offsite → izolált restore PASS → apply a tartással → Stripe-oldali lépések (webhook, próbafizetés) Ákos által. A Cloudflare-kivétel (`POST /api/v1/billing/webhook`, `GET /terms`) külön, a kiadási szál által futtatott lépés.
+
+
+### #142 — forráskötött040 adatbázis-intent (fejlesztés alatt, 2026-11-02)
+
+A belső `funded-runtime-probe.ts` külön `registry-prepare`, `registry-apply` és `registry-reconcile` módot kap. Ezek nem új publikus vagy közvetlenül támogatott operátori parancsok. A root hívó felelőssége az exact-source/image/candidate/parent és tényleges backup/restore kapuk ellenőrzése, majd a prepare kimenetének tartós megőrzése és hashének ellenőrzése a write előtt. A contextben lévő hashformátum nem bizonyítja, hogy a művelet megtörtént.
+
+A prepare és reconcile konzisztens READ ONLY tranzakció. Az apply kizárólag a900másodperces intenthez, mentett intent-hashhez és változatlan teljes039 megfigyeléshez kötött serializable migráció; mindkét ledger és39 eredeti receipt megmarad, a két új tábla üres. Elveszett COMMIT-kimenetnél read-only reconcile, nem vak apply: committed040-nél az apply elutasít. Az intent lejárata nem akadályozza a csak olvasó hibavizsgálatot.
+
+Ez az adatbázisoldali rész nem telepíti a production040 successor/Daily/native restore/config protokollt. A régi039 runbook és őrök változatlanul elutasítják040-et; nincs éles csomag vagy új költési felhatalmazás. #142 a teljes integrációig nyitott.

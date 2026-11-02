@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-02
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -15,19 +15,21 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
-**I02 önkiszolgáló előfizetéskezelés — #144, fejlesztés alatt:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés készül. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
+**#142 adatbázis-végrehajtó — fejlesztés alatt:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent készül. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
+
+**I02 önkiszolgáló előfizetéskezelés — main, #144/#145:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés elkészült. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
 
 **I02 generálási útvonalhatár — main, #138/#139:** enforce módban csak a központi fejezetledgerre jutó személyes generálás engedhető tovább; a v1/Shared/review indítás zárt, a worker e sorok munkáit claim nélkül megőrzi. A #139 beolvadt a főágba; ez nem új éles állapot, I02/I03/I04 továbbra PARTIAL.
 
-**I01 belépési runtime — #146, fejlesztés alatt:** a profil beköti az Access + ellenőrzött Supabase-fiók + tartós admission láncot, saját account-control kivételekkel; új kéréseknél queue/worker/Checkout újraellenőrzés. Az új meghívottak a változatlan v9 policyt kapják, a statikus cohort nem ad új jogosultságot. A kapcsoló OFF, nincs éles profil/admission/signup/meghívó vagy költés. I01/I04/I06 továbbra PARTIAL; operátori átvezetés/#142 és teljes mért út még hátra van.
+**I01 belépési runtime — main, #146/#147:** a profil beköti az Access + ellenőrzött Supabase-fiók + tartós admission láncot, saját account-control kivételekkel; új kéréseknél queue/worker/Checkout újraellenőrzés. Az új meghívottak a változatlan v9 policyt kapják, a statikus cohort nem ad új jogosultságot. A kapcsoló OFF, nincs éles profil/admission/signup/meghívó vagy költés. I01/I04/I06 továbbra PARTIAL; operátori átvezetés/#142 és teljes mért út még hátra van.
 
-**I01/I04 fejlesztési alap a főágon — 2026-11-01, #133/#134:** elkészült a tiszta service-admission/pause modell és a Cloudflare-identitás-ellenőrzés külön alapja ([ADR-011](decisions/ADR-011-invitation-service-access.md)). A mai statikus kapu és 11-es címlimit megmarad, az új policy-t az alkalmazás még nem használja; nincs új meghívott vagy éles aktiválás. A tartós store/migráció/recovery, az API/web bekötés és az operátori pause/admission a következő szeletek. Ez nem I01/I04 DONE.
+**I01/I04 fejlesztési alap a főágon — 2026-11-01, #133/#134:** elkészült a tiszta service-admission/pause modell és a Cloudflare-identitás-ellenőrzés külön alapja ([ADR-011](decisions/ADR-011-invitation-service-access.md)). A mai statikus kapu és 11-es címlimit megmarad, az új policy-t ebben az első szeletben az alkalmazás még nem használta; nincs új meghívott vagy éles aktiválás. A tartós store/migráció/recovery, az API/web bekötés és az operátori pause/admission a következő szeletek. Ez nem I01/I04 DONE.
 
 **I02/I04 személyes worker-dispatch — main, #140/#141:** minden új személyes szolgáltatói kérés előtt aktív fiókhoz, futó jobhoz és élő lease-hez kötött fejezetfoglalás ellenőrzése; USD-foglalás után ismételt ellenőrzés. Hiányzó/feloldott/fogyasztott foglalás, explicit visszavonás vagy reconcile-hiány nem indít új AI-kérést. A már kész eredmény mentése/elszámolása megmarad; nincs automatikus ízelítő vagy keretreset. A régi béta explicit mentessége nem új ügyféljog. A tartós admission/pause és az éles rollout továbbra külön feladat.
 
 **Friss főági integráció — 2026-11-01:** #132 → #134 → #136 → #139 → #141 tulajdonosi engedéllyel beolvadt, eredeti commitok megőrzésével. A legutóbbi főág `f2d12d7`, reviewed tree-egyezés és saját [CI41336194563](https://github.com/Muzsy/future_flow/actions/runs/41336194563) mindhárom jobja SUCCESS, 148 fájl / 1809 teszt PASS. A #141 pontos `498f782` jelöltje független APPROVE és saját teljes CI után került be. Ebből nincs éles build, átállítás vagy API-költés. Az alábbi régi serving-checkpoint nem friss szerveres felmérés.
 
-**I01/I04 tároló és recovery-alap — fejlesztés alatt, #137:** append-only040 migráció, szerveroldali CAS policy/admission, saját export/cascade és explicit039/040 schema/security profil készül. A102 alkalmazástáblás alap nem éles állapot. A restore egyeztetési zászlóval a teljes szolgáltatási snapshotot zárja; normál policy-frissítés ezt nem oldja fel. A könyvtári039→040 út megőrzi a100 régi táblát és39 receiptet; a valós képfuttatási fixture külön szintetikus bizonyíték. A production successor/Daily/billing-konfiguráció040 protokoll [#142](https://github.com/Muzsy/future_flow/issues/142) alatt marad: nincs kiadható040 operátori csomag, API/web admission, pause-operátor vagy meghívás. I01/I04/I06 továbbra PARTIAL.
+**I01/I04 tároló és recovery-alap — main, #137/#143:** append-only040 migráció, szerveroldali CAS policy/admission, saját export/cascade és explicit039/040 schema/security profil elkészült. A102 alkalmazástáblás alap nem éles állapot. A restore egyeztetési zászlóval a teljes szolgáltatási snapshotot zárja; normál policy-frissítés ezt nem oldja fel. A könyvtári039→040 út megőrzi a100 régi táblát és39 receiptet; a valós képfuttatási fixture külön szintetikus bizonyíték. A production successor/Daily/billing-konfiguráció040 protokoll [#142](https://github.com/Muzsy/future_flow/issues/142) alatt marad: nincs kiadható040 operátori csomag, pause-operátor vagy meghívás; az API/web bekötés a #147-ben elkészült, alapból OFF. I01/I04/I06 továbbra PARTIAL.
 
 **Aktuális terv és főági checkpoint — 2026-11-01:** a tulajdonos a teljes személyes éles szolgáltatás előkészítését kérte, elsőként 10 új meghívottal, majd további tízfős csoportokkal. A nyílt önregisztráció zárt marad; a termék, előfizetés és egyenleg csoportbővítéskor folyamatos. Elfogadott ajánlat: fiókonként 1 külön ingyenes fejezet; normál 14,99 USD bruttó/hó és 8 fejezet; az első tíz kijelölt fióknak három fizetett ciklusig 9,99 USD bruttó/hó és 5 fejezet. Ez kívánt működés, nem már végrehajtott admission vagy fizetési aktiválás. [Aktív sorrend és I01–I07](DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
 
