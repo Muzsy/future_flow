@@ -867,6 +867,15 @@ export class Repository {
         [userId],
       );
       result.sharedContextContractVersion = '1.0.0';
+      const [serviceStorage] = await tx.query<{ present: boolean }>(
+        "SELECT to_regclass('public.aw_service_admissions') IS NOT NULL AS present",
+      );
+      result.aw_service_admissions = serviceStorage?.present
+        ? await tx.query(
+            'SELECT revision,state,created_at,updated_at FROM aw_service_admissions WHERE user_id=$1',
+            [userId],
+          )
+        : [];
       result.shared = await exportSharedAccount(tx, userId);
       result.sharedSafety = await exportSharedSafety(tx, userId);
       return result;

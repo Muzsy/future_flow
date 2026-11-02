@@ -7,12 +7,12 @@ import {
   type Database,
 } from '@future-flow/database';
 import { cancelPendingSharedDecision } from '../../packages/database/src/shared-canon';
-import { assertPrivacyRecoveryCoverage } from './privacy-recovery-coverage';
 import {
-  assertPrivacySecurityCatalog,
-  privacySecurityCatalogSchema,
-  hardenPrivacyQuarantine,
-} from './privacy-security-catalog';
+  historical039RecoveryProfile,
+  registry040RecoveryProfile,
+  type PrivacyRecoveryProfile,
+} from './privacy-recovery-profile';
+import { privacySecurityCatalogSchema } from './privacy-security-catalog';
 import {
   assertVerifiedRecoveryAuth,
   readRecoveryAuthInventory,
@@ -142,12 +142,27 @@ export async function capturePrivacyRestoreAuthority(
   evidence: SourceEvidence,
   now = new Date(),
 ) {
+  return captureAuthority(db, evidence, now, registry040RecoveryProfile);
+}
+export async function captureHistorical039PrivacyRestoreAuthority(
+  db: Database,
+  evidence: SourceEvidence,
+  now = new Date(),
+) {
+  return captureAuthority(db, evidence, now, historical039RecoveryProfile);
+}
+async function captureAuthority(
+  db: Database,
+  evidence: SourceEvidence,
+  now: Date,
+  profile: PrivacyRecoveryProfile,
+) {
   // Legacy synthetic fixture boundary; the production observer uses the
   // separately verified runtime Auth object in the same source transaction.
   return db.transaction(async (tx) => {
     await tx.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
     await tx.query("SET LOCAL TIME ZONE 'UTC'");
-    return readPrivacyRestoreAuthoritySnapshot(tx, evidence, now);
+    return readPrivacyRestoreAuthoritySnapshot(tx, evidence, now, profile);
   });
 }
 // Keep Auth observation and application authority paired inside this module.
@@ -160,6 +175,39 @@ export async function captureVerifiedPrivacyRestoreAuthority(
     writerFenceDigest: string;
     fundedRuntime?: 'v9';
   },
+) {
+  return captureVerifiedAuthority(
+    db,
+    readPage,
+    binding,
+    registry040RecoveryProfile,
+  );
+}
+export async function captureVerifiedHistorical039PrivacyRestoreAuthority(
+  db: Database,
+  readPage: (page: number) => Promise<unknown>,
+  binding: {
+    projectBinding: string;
+    writerFenceDigest: string;
+    fundedRuntime?: 'v9';
+  },
+) {
+  return captureVerifiedAuthority(
+    db,
+    readPage,
+    binding,
+    historical039RecoveryProfile,
+  );
+}
+async function captureVerifiedAuthority(
+  db: Database,
+  readPage: (page: number) => Promise<unknown>,
+  binding: {
+    projectBinding: string;
+    writerFenceDigest: string;
+    fundedRuntime?: 'v9';
+  },
+  profile: PrivacyRecoveryProfile,
 ) {
   const deadline = Date.now() + 60000;
   const readInventory = async () => {
@@ -198,7 +246,7 @@ export async function captureVerifiedPrivacyRestoreAuthority(
     if (binding.fundedRuntime === 'v9') {
       const { assertFundedStoredNarrativeState } =
         await import('./funded-runtime');
-      await assertFundedStoredNarrativeState(tx);
+      await assertFundedStoredNarrativeState(tx, profile.schema);
     }
     const localStartedAt = new Date().toISOString();
     const [clock] = await tx.query<{ observed_at: string }>(
@@ -219,6 +267,7 @@ export async function captureVerifiedPrivacyRestoreAuthority(
       tx,
       auth,
       binding,
+      profile,
     );
     const final = await readInventory();
     assertRecoveryAuthStable(before, final);
@@ -235,6 +284,7 @@ async function readVerifiedPrivacyRestoreAuthoritySnapshot(
   tx: Database,
   auth: VerifiedRecoveryAuth,
   binding: { projectBinding: string; writerFenceDigest: string },
+  profile: PrivacyRecoveryProfile,
   now = new Date(),
 ) {
   assertVerifiedRecoveryAuth(auth);
@@ -255,20 +305,22 @@ async function readVerifiedPrivacyRestoreAuthoritySnapshot(
       authUserIds: auth.eligibleUserIds,
     },
     now,
+    profile,
   );
 }
 async function readPrivacyRestoreAuthoritySnapshot(
   tx: Database,
   evidence: SourceEvidence,
   now: Date,
+  profile: PrivacyRecoveryProfile,
 ) {
   digest.parse(evidence.projectBinding);
   digest.parse(evidence.writerFenceDigest);
   freshness(evidence.authVerifiedAt, now);
   unique(evidence.authUserIds);
   evidence.authUserIds.forEach((id) => uuid.parse(id));
-  await assertPrivacyRecoveryCoverage(tx);
-  const securityCatalog = await assertPrivacySecurityCatalog(tx);
+  await profile.coverage(tx);
+  const securityCatalog = await profile.catalog(tx);
   const auth = new Set(evidence.authUserIds);
   const activeUserIds = (
     await tx.query<{ id: string }>(
@@ -357,6 +409,23 @@ export async function replayPrivacyRestore(
   binding: ReplayBinding,
   now = new Date(),
 ) {
+  return replayRestore(db, raw, binding, now, registry040RecoveryProfile);
+}
+export async function replayHistorical039PrivacyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now = new Date(),
+) {
+  return replayRestore(db, raw, binding, now, historical039RecoveryProfile);
+}
+async function replayRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now: Date,
+  profile: PrivacyRecoveryProfile,
+) {
   const a = assertPrivacyRestoreBinding(raw, binding, now);
   return db.transaction(async (tx) => {
     await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
@@ -370,14 +439,14 @@ export async function replayPrivacyRestore(
       hash(await tx.query(privacyRestoreSchemaSql)) !== a.schemaDigest
     )
       throw Error('Dedicated matching-schema quarantine required');
-    await assertPrivacyRecoveryCoverage(tx);
+    await profile.coverage(tx);
     // Validate executable definitions and ownership before touching old rows.
     // Privilege reconstruction only revokes access in this named quarantine.
-    const catalog = await assertPrivacySecurityCatalog(tx);
+    const catalog = await profile.catalog(tx);
     if (catalog.immutableDigest !== a.securityCatalog.immutableDigest)
       throw Error('Fresh source executable catalog mismatch');
-    await hardenPrivacyQuarantine(tx, binding.quarantineDatabase);
-    await assertPrivacySecurityCatalog(tx, 'quarantine', a.securityCatalog);
+    await profile.harden(tx, binding.quarantineDatabase);
+    await profile.catalog(tx, 'quarantine', a.securityCatalog);
     const budgetIds = new Set(
       (await tx.query<{ id: string }>('SELECT id FROM aw_budget_accounts')).map(
         (r) => r.id,
@@ -539,6 +608,13 @@ export async function replayPrivacyRestore(
     await tx.query(
       'UPDATE aw_billing_subscriptions SET reconcile_required=true,updated_at=now() WHERE NOT reconcile_required',
     );
+    // An old snapshot may predate a service revoke or pause. Until the latest
+    // authority has been reconciled, close the complete service snapshot, not
+    // just new generation/checkout. Normal policy CAS cannot clear this flag.
+    if (profile.schema === 40)
+      await tx.query(
+        'UPDATE aw_service_policy SET reconcile_required=true,updated_at=now() WHERE NOT reconcile_required',
+      );
     for (const block of a.blocks)
       await tx.query(
         'INSERT INTO aw_user_blocks(user_id,blocked_user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',

@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-10-24
+last_reviewed: 2026-11-01
 related:
   - BACKUP_HU.md
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
@@ -131,3 +131,11 @@ A karanténos replay a visszaállított `aw_billing_subscriptions` minden sorát
 Az I06 új kiadása előtt, kerített/drain állapotban a személyes sor és a reservation-ledger owner/job/kanonikus kulcs/bucket/state/grant/reconcile összerendelését frissen kell ellenőrizni. Minden függő régi munkának dokumentált sorsa szükséges: érvényes foglalás; eredeti scope szerinti explicit régi béta-mentesség; vagy új provider-dispatch nélkül megőrzött/elutasított munka, amelyet a felhasználó később explicit retry-jal foglalhat. A hiányos vagy nem kanonikus kulcsú régi ledger-sor nem írható át, törölhető vagy váltható automatikusan új ízelítőre. Az eredeti payload, korábbi költés és mentett történet megmarad. Aktiválás előtt a bizonytalan tételeket operátori értelmezéssel rendezni kell; a forrásjavítás önmagában nem bizonyítja a konkrét céladatbázis tisztaságát.
 
 Restore után a paid subscription `reconcile_required` jelzője a már foglalt személyes munka új fizikai AI-kérését is zárja. A kész kimenet mentése és a reserved/released fejezetfoglalás elszámolása ettől külön, továbbra végrehajtható. Az új image izolált próbájában és a forráshoz kötött release/readback során külön ellenőrizendő a nulla provider-call a hiányzó/released/consumed/idegen és nem egyeztetett állapotokban, illetve az érvényes út egyszeri tartós fogyasztása. A helyi SQL/SDK-wrapper teszt nem célgépes restore- vagy aktiválási proof. Régi image bizonyítéka nem címkézhető át; új élő művelet és költés külön felhatalmazást igényel.
+
+## 10. Service registry040 — fejlesztési integrációs határ
+
+A #137 külön039/040 schema/security/replay profilt és könyvtári039→040 bridge-et ad. A natív040 replay a policy `reconcile_required=true` értékével az egész szolgáltatási snapshotot zárja; ezzel a régebbi backup nem adhat vissza azóta visszavont admissiont. A registry tartalma/revíziói megmaradnak, a törölt fiók admissionje cascade-del törlődik. A normál policy-frissítés nem reconcile és nem nyit újra.
+
+A bridge sorrendje: tényleges039 replay → független039 read-only ellenőrzés → mért intent →100 régi tábla és39 receipt megőrzésével atomikus040 SQL → független040 read-only ellenőrzés, az új2tábla üres. A privilegizált production-hívónak intentet a SQL előtt tartósan kell mentenie. Commit utáni elveszett válasz külön read-only verify-val egyeztethető; nincs SQL újrafuttatás. A tényleges schema40 nem fogadható el a régi039 guard lazításával.
+
+A képhez/source-hoz kötött `alterward-service-registry-image-fixture-1` szintetikus PostgreSQL-próba külön bizonyíték; nem offsite/éles backup, fennálló production fence, operátori audit vagy promotion. A korábbi funded v1/038→039 szerződés megmarad. Production040 successor, Daily/monitor/restore és billing-config040 támogatás [#142](https://github.com/Muzsy/future_flow/issues/142) alatt készítendő; addig nincs040 rollout. Sem API/web hozzáférési bekötés, sem új admission/pause/reconcile operátor nem következik pusztán a tároló létezéséből.

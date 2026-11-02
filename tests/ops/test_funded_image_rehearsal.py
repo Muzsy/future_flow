@@ -61,6 +61,27 @@ class ImageRehearsalBoundaries(unittest.TestCase):
             with self.subTest(check=check), self.assertRaises(ValueError):
                 r.require_proof({**proof, 'checks': {**proof['checks'], check: False}}, IMAGE, BINDING)
 
+    def test_registry_proof_is_complete_and_exactly_bound(self):
+        proof = {**BINDING, 'version': 'alterward-service-registry-image-fixture-1',
+            'profile': 'historical039-to-registry040', 'scope': 'image-rehearsal', 'imageId': IMAGE,
+            'checks': dict.fromkeys(r.REGISTRY_CHECKS, True), 'syntheticFixture': True,
+            'operatorAudit': False, 'serviceActivationAllowed': False, 'providerApiCalls': 0,
+            **dict.fromkeys(('backupDumpSha256', 'instanceSha256', 'native040PrivacyFixtureSha256',
+                'intentSha256', 'migrationRestoreProofSha256'), 'e'*64)}
+        r.require_registry_proof(proof, IMAGE, BINDING)
+        for key in proof:
+            changed = {k:v for k,v in proof.items() if k != key}
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                r.require_registry_proof(changed, IMAGE, BINDING)
+        for key in r.REGISTRY_CHECKS:
+            with self.subTest(check=key), self.assertRaises(ValueError):
+                r.require_registry_proof({**proof, 'checks': {**proof['checks'], key: False}}, IMAGE, BINDING)
+        for key, value in [('imageId', 'sha256:'+'0'*64), ('sourceCommit', '0'*40),
+                ('operatorAudit', True), ('serviceActivationAllowed', True), ('providerApiCalls', False),
+                ('scope', 'ci'), ('checks', {'cleanup': True})]:
+            with self.subTest(field=key), self.assertRaises(ValueError):
+                r.require_registry_proof({**proof, key:value}, IMAGE, BINDING)
+
     def test_cleanup_uses_actual_id_and_refuses_foreign_image_label_or_name(self):
         name, owner = 'owned-postgres', 'nonce-owner'
         info = {'Id': '1'*64, 'Name': '/'+name, 'Image': IMAGE, 'Config': {'Labels': {r.LABEL: owner}}}

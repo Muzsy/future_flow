@@ -4,7 +4,7 @@
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import { captureFundedRuntime } from './funded-runtime';
-import { reviewedPrivacyRecoveryTables } from './privacy-recovery-schema';
+import { reviewedPre040PrivacyRecoveryTables } from './privacy-recovery-schema';
 import { validateParticipants } from './personal-beta-admission-observation.mjs';
 import {
   successorPlan,
@@ -41,7 +41,7 @@ async function protectedState(tx: Database, identity: Identity) {
   if (full.schema !== 39) refuse();
   // Budget accounts are the ONLY intentionally changed table, validated in full
   // by the accounting primitive. Reservations/usage/history/artifacts stay here.
-  const tables = reviewedPrivacyRecoveryTables.filter(
+  const tables = reviewedPre040PrivacyRecoveryTables.filter(
     (t) => t !== 'aw_budget_accounts',
   );
   const records = await tx.query(

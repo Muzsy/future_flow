@@ -10,6 +10,7 @@ import {
 } from '../scripts/lib/funded-runtime';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre040Schema,
   assertReviewedFundedPre039Schema,
   assertReviewedFundedPre038Schema,
 } from '../scripts/lib/privacy-recovery-schema';
@@ -127,11 +128,14 @@ it('applies the three exact source migrations atomically and preserves history, 
         .slice(-2)
         .map((r) => r.name),
     ).toEqual(['038_narrative_artifacts.sql', '039_billing_foundation.sql']);
-    // The billing foundation starts empty and normal recovery now accepts it.
+    // The legacy upgrade ends at039; the explicit039 recovery accepts it.
     expect(
       (await d.query('SELECT 1 FROM aw_billing_subscriptions')).length,
     ).toBe(0);
-    await assertReviewedPrivacyRecoverySchema(d);
+    await assertReviewedFundedPre040Schema(d);
+    await expect(assertReviewedPrivacyRecoverySchema(d)).rejects.toThrow(
+      /table set/,
+    );
   });
 });
 it('rejects checksum, column and index drift instead of deriving a permissive expected catalog', async () => {

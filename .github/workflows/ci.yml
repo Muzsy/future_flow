@@ -100,7 +100,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: funded-upgrade-ci-proof
-          path: test-results/funded-upgrade-ci-proof.json
+          path: |
+            test-results/funded-upgrade-ci-proof.json
+            test-results/registry040-ci-proof.json
           if-no-files-found: error
           retention-days: 7
   image-rehearsal:
@@ -131,6 +133,7 @@ jobs:
           sudo env -i PATH=/usr/local/bin:/usr/bin:/bin python3 -B scripts/ops/contabo-funded-image-rehearsal.py --image "$image" --output-directory "$proof_dir"
           sudo install -m 644 "$proof_dir/funded-upgrade-fixture-proof.json" test-results/funded-image-fixture-proof.json
           sudo install -m 644 "$proof_dir/beta-successor-fixture-proof.json" test-results/beta-successor-fixture-proof.json
+          sudo install -m 644 "$proof_dir/registry040-image-fixture.json" test-results/registry040-image-fixture.json
           sudo install -m 644 "$proof_dir/image-rehearsal-receipt.json" test-results/funded-image-rehearsal-receipt.json
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
@@ -159,5 +162,6 @@ jobs:
             test-results/funded-image-fixture-proof.json
             test-results/beta-successor-fixture-proof.json
             test-results/funded-image-rehearsal-receipt.json
+            test-results/registry040-image-fixture.json
           if-no-files-found: error
           retention-days: 7

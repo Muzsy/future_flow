@@ -3,6 +3,7 @@ import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedFundedPre040Schema,
   assertReviewedFundedPre039Schema,
   assertReviewedFundedPre038Schema,
   assertReviewedFundedPre037Schema,
@@ -109,6 +110,37 @@ const billing039 = {
     '32e16aec3e2acd806cb1d846ba9df28942bdc9a4d0b6bd8cb0935ea2ff1e13ce',
   ],
 } as const;
+// Measured from the explicit append-only 040 fixture, never learned from a
+// serving database. Original039 remains a separate historical baseline.
+const service040 = {
+  constraints: [
+    748,
+    '2d419bfa9b2d013288557eac2cb26b39d5279ee24ea64ea06442077cbaa2eccd',
+  ],
+  indexes: [
+    267,
+    '29092549af792c15d9467ae827081705f1ead9c441b9b9cfbd7561d3986870ca',
+  ],
+  defaults: [
+    906,
+    'ac421cf6037f3583ac8a67c621bcb7e2013f7286f59c8ba95b69e6d9f3e1be2c',
+  ],
+} as const;
+// Derived only from source-owned immutable expectations, never from a database.
+export function reviewedPrivacySecurityImmutableDigest(baseline: 39 | 40) {
+  const overrides = baseline === 39 ? billing039 : service040;
+  return hash(
+    Object.fromEntries(
+      Object.keys(immutable).map((name) => {
+        const [count, digest] =
+          name in overrides
+            ? overrides[name as keyof typeof overrides]
+            : immutable[name as keyof typeof immutable];
+        return [name, { count, digest }];
+      }),
+    ),
+  );
+}
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const ledger = {
   constraints: [
@@ -196,6 +228,17 @@ export async function assertPrivacySecurityCatalog(
   mode: 'source' | 'quarantine' = 'source',
   expected?: PrivacySecurityCatalog,
 ) {
+  return assertCatalog(tx, mode, expected, 40);
+}
+
+export async function assertFundedPre040SecurityCatalog(tx: Database) {
+  return assertCatalog(tx, 'source', undefined, 39);
+}
+export async function assertHistorical039PrivacySecurityCatalog(
+  tx: Database,
+  mode: 'source' | 'quarantine' = 'source',
+  expected?: PrivacySecurityCatalog,
+) {
   return assertCatalog(tx, mode, expected, 39);
 }
 
@@ -217,7 +260,7 @@ async function assertCatalog(
   tx: Database,
   mode: 'source' | 'quarantine',
   expected: PrivacySecurityCatalog | undefined,
-  baselineSchema: 36 | 37 | 38 | 39,
+  baselineSchema: 36 | 37 | 38 | 39 | 40,
 ) {
   z.enum(['source', 'quarantine']).parse(mode);
   const schema =
@@ -227,7 +270,9 @@ async function assertCatalog(
         ? await assertReviewedFundedPre038Schema(tx)
         : baselineSchema === 38
           ? await assertReviewedFundedPre039Schema(tx)
-          : await assertReviewedPrivacyRecoverySchema(tx);
+          : baselineSchema === 39
+            ? await assertReviewedFundedPre040Schema(tx)
+            : await assertReviewedPrivacyRecoverySchema(tx);
   for (const name of ['constraints', 'indexes', 'defaults'] as const) {
     const sql = privacySecurityCatalogSql[name].replace(
       "c.relname<>'ff_migrations'",
@@ -270,7 +315,9 @@ async function assertCatalog(
               ] as const)
             : baselineSchema === 39 && name in billing039
               ? billing039[name as keyof typeof billing039]
-              : immutable[name as keyof typeof immutable];
+              : baselineSchema === 40 && name in service040
+                ? service040[name as keyof typeof service040]
+                : immutable[name as keyof typeof immutable];
       if (rows.length !== baseline[0] || hash(rows) !== baseline[1])
         throw Error('Unreviewed privacy recovery executable catalog');
     }
@@ -400,6 +447,19 @@ export async function hardenPrivacyQuarantine(
   tx: Database,
   quarantineDatabase: string,
 ) {
+  return hardenQuarantine(tx, quarantineDatabase, 40);
+}
+export async function hardenHistorical039PrivacyQuarantine(
+  tx: Database,
+  quarantineDatabase: string,
+) {
+  return hardenQuarantine(tx, quarantineDatabase, 39);
+}
+async function hardenQuarantine(
+  tx: Database,
+  quarantineDatabase: string,
+  baseline: 39 | 40,
+) {
   const [target] = await tx.query<{ name: string }>(
     'SELECT current_database() AS name',
   );
@@ -420,7 +480,7 @@ export async function hardenPrivacyQuarantine(
   // Event triggers could react to the following REVOKE DDL. Reject them and
   // global/current-DB settings before any privilege change is attempted.
   await assertQuarantineGlobalControls(tx);
-  await assertPrivacySecurityCatalog(tx);
+  await assertCatalog(tx, 'source', undefined, baseline);
   await tx.query(
     'REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC,anon,authenticated',
   );

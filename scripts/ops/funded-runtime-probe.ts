@@ -10,6 +10,9 @@ import {
   captureFundedRuntime,
   migrateFundedRuntime,
   fundedRuntimeCapabilities,
+  captureServiceRegistryRuntime,
+  migrateServiceRegistryRuntime,
+  serviceRegistryRuntimeCapabilities,
 } from '../lib/funded-runtime';
 import { DATABASE_IDENTITY_SHA256 } from '../lib/personal-beta-admission-observation.mjs';
 import { successorDatabaseRequest } from '../lib/beta-successor-operation';
@@ -24,7 +27,13 @@ async function main() {
   const input = JSON.parse(raw);
   if (
     Object.keys(input).sort().join(',') !== 'expected,mode,participants' ||
-    !['capture', 'migrate', 'successor'].includes(input.mode)
+    ![
+      'capture',
+      'migrate',
+      'successor',
+      'registry-capture',
+      'registry-migrate',
+    ].includes(input.mode)
   )
     throw Error('Exact probe input required');
   phase = 'database-config';
@@ -59,6 +68,7 @@ async function main() {
     phase = 'begin';
     await client.query(
       input.mode === 'capture' ||
+        input.mode === 'registry-capture' ||
         (input.mode === 'successor' &&
           ['capture', 'reconcile'].includes(input.expected?.mode))
         ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'
@@ -74,7 +84,9 @@ async function main() {
       connectionHostname: host,
     };
     phase = 'capabilities';
-    fundedRuntimeCapabilities();
+    if (input.mode === 'registry-capture' || input.mode === 'registry-migrate')
+      serviceRegistryRuntimeCapabilities();
+    else fundedRuntimeCapabilities();
     phase =
       input.mode === 'successor'
         ? ['capture', 'apply', 'reconcile'].includes(input.expected?.mode)
@@ -87,9 +99,13 @@ async function main() {
             databaseIdentitySha256: DATABASE_IDENTITY_SHA256,
             connectionHostname: host,
           })
-        : input.mode === 'capture'
-          ? await captureFundedRuntime(tx, selected)
-          : await migrateFundedRuntime(tx, selected, input.expected);
+        : input.mode === 'registry-capture'
+          ? await captureServiceRegistryRuntime(tx, selected)
+          : input.mode === 'registry-migrate'
+            ? await migrateServiceRegistryRuntime(tx, selected, input.expected)
+            : input.mode === 'capture'
+              ? await captureFundedRuntime(tx, selected)
+              : await migrateFundedRuntime(tx, selected, input.expected);
     phase = 'commit';
     await client.query('COMMIT');
     console.log(JSON.stringify(result));

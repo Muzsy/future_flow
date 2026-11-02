@@ -6,7 +6,10 @@ import { X509Certificate } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
-import { captureVerifiedPrivacyRestoreAuthority } from './lib/verified-privacy-authority';
+import {
+  captureVerifiedPrivacyRestoreAuthority,
+  captureVerifiedHistorical039PrivacyRestoreAuthority,
+} from './lib/verified-privacy-authority';
 import {
   createPrivacyFenceEnvelope,
   type PrivacyFenceBinding,
@@ -31,6 +34,12 @@ const { Client } = createRequire(resolve('packages/database/package.json'))(
 // to encryption in memory with Docker logging disabled. No file/report is made.
 let observationPhase = 'precondition';
 async function main() {
+  const recoveryProfile = process.env.ALTERWARD_RECOVERY_PROFILE;
+  if (
+    recoveryProfile !== undefined &&
+    !['historical039', 'registry040'].includes(recoveryProfile)
+  )
+    throw Error('Explicit reviewed recovery profile required');
   if (
     !['--observe', '--capture'].includes(process.argv[2] ?? '') ||
     process.env.ALTERWARD_FENCE_OPERATOR !== 'true' ||
@@ -177,7 +186,11 @@ async function main() {
         },
       );
       observationPhase = 'authority-verification';
-      const result = await captureVerifiedPrivacyRestoreAuthority(
+      const capture =
+        recoveryProfile === 'registry040'
+          ? captureVerifiedPrivacyRestoreAuthority
+          : captureVerifiedHistorical039PrivacyRestoreAuthority;
+      const result = await capture(
         db,
         (page) => admin.auth.admin.listUsers({ page, perPage: 1000 }),
         {

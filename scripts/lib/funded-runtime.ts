@@ -1,4 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { reviewedMigrationManifest } from './reviewed-migration-manifest';
+import { z } from 'zod';
+import {
+  applyServiceRegistrySchemaMigration,
+  captureMigrationPrefixSha256,
+} from './service-registry-schema-migration';
 import { hash, emptyFictionCharacterState } from '@future-flow/core';
 import {
   fictionArtifactSchema,
@@ -25,13 +30,14 @@ import {
 import type { Database } from '@future-flow/database';
 import {
   assertPrivacySecurityCatalog,
+  assertFundedPre040SecurityCatalog,
   assertFundedPre039SecurityCatalog,
   assertFundedPre038SecurityCatalog,
   assertFundedPre037SecurityCatalog,
 } from './privacy-security-catalog';
 import {
   reviewedPre039PrivacyRecoveryTables,
-  reviewedPrivacyRecoveryTables,
+  reviewedPre040PrivacyRecoveryTables,
 } from './privacy-recovery-schema';
 import {
   validateIdentityRecords,
@@ -39,6 +45,8 @@ import {
 } from './personal-beta-admission-observation.mjs';
 
 export const FUNDED_CAPABILITY = 'alterward-funded-runtime-1';
+export const SERVICE_REGISTRY_CAPABILITY = 'alterward-funded-runtime-2';
+export const SERVICE_REGISTRY_PROFILE = 'service-registry-040';
 const jobTables = [
   'ff_jobs',
   'aw_jobs',
@@ -47,8 +55,13 @@ const jobTables = [
   'aw_public_content_reviews',
   'aw_scenario_reviews',
 ] as const;
-const migrationName = '039_billing_foundation.sql';
 export type FundedSchema = 36 | 37 | 38 | 39;
+type RuntimeProfile = 'legacy039' | 'registry040';
+type RuntimeIdentity = {
+  participants: unknown;
+  databaseIdentitySha256: string;
+  connectionHostname: string;
+};
 
 // Exercise the image's installed contracts, rather than accepting a capability
 // label from an operator JSON file. No AI provider is loaded or constructed.
@@ -127,7 +140,7 @@ function assertStoredPolicy(policy: unknown) {
 
 export async function assertFundedStoredNarrativeState(
   tx: Database,
-  schema: FundedSchema = 39,
+  schema: FundedSchema | 40 = 39,
 ) {
   // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
   // policy snapshots; every one must be interpretable by this image.
@@ -169,47 +182,46 @@ export async function assertFundedStoredNarrativeState(
   return policies;
 }
 
-function migrationPlan() {
-  const files = readdirSync('database/migrations')
-    .filter((f) => f.endsWith('.sql'))
-    .sort();
-  if (files.length !== 39 || files.at(-1) !== migrationName)
-    throw Error('Exactly reviewed 001–039 source required');
-  return files.map((name) => ({
-    name,
-    sql: readFileSync(`database/migrations/${name}`, 'utf8').replace(
-      /\r\n/g,
-      '\n',
-    ),
-  }));
+function migrationPlan(profile: RuntimeProfile = 'legacy039') {
+  const full = reviewedMigrationManifest();
+  return profile === 'legacy039' ? full.slice(0, 39) : full;
 }
-async function migrationState(tx: Database) {
-  const plan = migrationPlan();
+async function migrationState(tx: Database, profile: RuntimeProfile) {
+  const plan = migrationPlan(profile);
   const applied = await tx.query<{ name: string; checksum: string }>(
     'SELECT name,checksum FROM public.ff_migrations ORDER BY name',
   );
   if (
-    ![36, 37, 38, 39].includes(applied.length) ||
+    !(profile === 'legacy039' ? [36, 37, 38, 39] : [39, 40]).includes(
+      applied.length,
+    ) ||
     applied.some(
       (row, i) =>
         row.name !== plan[i]?.name || row.checksum !== hash(plan[i]!.sql),
     )
   )
     throw Error('Exact 036/037/038/039 migration checksums required');
-  return applied.length as FundedSchema;
+  return applied.length as FundedSchema | 40;
 }
 
 export async function captureFundedRuntime(
   tx: Database,
-  input: {
-    participants: unknown;
-    databaseIdentitySha256: string;
-    connectionHostname: string;
-  },
+  input: RuntimeIdentity,
+) {
+  const result = await captureRuntime(tx, input, 'legacy039');
+  if (result.schema === 40)
+    throw Error('Legacy runtime cannot observe schema040');
+  return { ...result, schema: result.schema as FundedSchema };
+}
+
+async function captureRuntime(
+  tx: Database,
+  input: RuntimeIdentity,
+  profile: RuntimeProfile,
 ) {
   await tx.query("SET LOCAL timezone='UTC'");
   await tx.query("SET LOCAL statement_timeout='15s'");
-  const schema = await migrationState(tx);
+  const schema = await migrationState(tx, profile);
   const catalog =
     schema === 36
       ? await assertFundedPre037SecurityCatalog(tx)
@@ -217,7 +229,9 @@ export async function captureFundedRuntime(
         ? await assertFundedPre038SecurityCatalog(tx)
         : schema === 38
           ? await assertFundedPre039SecurityCatalog(tx)
-          : await assertPrivacySecurityCatalog(tx);
+          : schema === 39
+            ? await assertFundedPre040SecurityCatalog(tx)
+            : await assertPrivacySecurityCatalog(tx);
   const [clock] = await tx.query<{ db: string; role: string; now: Date }>(
     'SELECT current_database() AS db,session_user AS role,clock_timestamp() AS now',
   );
@@ -340,7 +354,7 @@ export async function migrateFundedRuntime(
     throw Error('Funded authority/data changed during append-only migration');
   // A fresh billing foundation starts empty.
   if (before.schema < 39)
-    for (const table of reviewedPrivacyRecoveryTables.filter((t) =>
+    for (const table of reviewedPre040PrivacyRecoveryTables.filter((t) =>
       t.startsWith('aw_billing_'),
     ))
       if (
@@ -351,5 +365,176 @@ export async function migrateFundedRuntime(
         )[0]?.populated !== false
       )
         throw Error('Billing foundation must start empty');
+  return after;
+}
+
+// Separate protocol: v1 keeps exactly its historical shape and96-table digest.
+// New transports must select this profile explicitly; there is no fallback.
+export function serviceRegistryRuntimeCapabilities() {
+  reviewedMigrationManifest();
+  return {
+    ...fundedRuntimeCapabilities(),
+    version: SERVICE_REGISTRY_CAPABILITY,
+    profile: SERVICE_REGISTRY_PROFILE,
+    schema: 40,
+    fromSchema: 39,
+  };
+}
+const billingRuntimeTables = [
+  'aw_billing_events',
+  'aw_billing_grants',
+  'aw_billing_reservations',
+  'aw_billing_subscriptions',
+] as const;
+const registryRuntimeTables = [
+  'aw_service_policy',
+  'aw_service_admissions',
+] as const;
+async function completeTableDigests(tx: Database, tables: readonly string[]) {
+  return tx.query<{ table: string; count: string; digest: string }>(
+    tables
+      .map(
+        (table) => `SELECT '${table}' AS "table",count(*)::text AS count,
+      md5(coalesce(string_agg(h,'' ORDER BY h),'')) AS digest FROM
+      (SELECT md5(to_jsonb(t)::text) AS h FROM public.${table} t) v`,
+      )
+      .join(' UNION ALL ') + ' ORDER BY "table"',
+  );
+}
+export async function captureServiceRegistryRuntime(
+  tx: Database,
+  input: RuntimeIdentity,
+) {
+  const base = await captureRuntime(tx, input, 'registry040');
+  if (base.schema !== 39 && base.schema !== 40)
+    throw Error('Service registry runtime requires exact039 or040');
+  const billing = await completeTableDigests(tx, billingRuntimeTables);
+  const registry =
+    base.schema === 40
+      ? await completeTableDigests(tx, registryRuntimeTables)
+      : null;
+  return {
+    ...base,
+    version: SERVICE_REGISTRY_CAPABILITY,
+    profile: SERVICE_REGISTRY_PROFILE,
+    schema: base.schema as 39 | 40,
+    billingDataSha256: hash(billing),
+    migrationPrefixSha256: await captureMigrationPrefixSha256(tx),
+    registryDataSha256: registry ? hash(registry) : null,
+    registryRows: registry
+      ? {
+          policy: Number(
+            registry.find((r) => r.table === 'aw_service_policy')!.count,
+          ),
+          admissions: Number(
+            registry.find((r) => r.table === 'aw_service_admissions')!.count,
+          ),
+        }
+      : null,
+  };
+}
+export type ServiceRegistryRuntimeObservation = Awaited<
+  ReturnType<typeof captureServiceRegistryRuntime>
+>;
+
+const runtimeDigest = z.string().regex(/^[a-f0-9]{64}$/);
+const serviceRegistryObservationSchema = z
+  .object({
+    version: z.literal(SERVICE_REGISTRY_CAPABILITY),
+    profile: z.literal(SERVICE_REGISTRY_PROFILE),
+    schema: z.union([z.literal(39), z.literal(40)]),
+    identityBindingSha256: runtimeDigest,
+    dataSha256: runtimeDigest,
+    artifactSha256: runtimeDigest,
+    catalogSha256: runtimeDigest,
+    policiesSha256: runtimeDigest,
+    drained: z.literal(true),
+    providerApiCalls: z.literal(0),
+    billingDataSha256: runtimeDigest,
+    migrationPrefixSha256: runtimeDigest,
+    registryDataSha256: runtimeDigest.nullable(),
+    registryRows: z
+      .object({
+        policy: z.number().int().min(0).max(1),
+        admissions: z.number().int().min(0).max(100000),
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.schema === 39
+        ? value.registryDataSha256 === null && value.registryRows === null
+        : value.registryDataSha256 !== null && value.registryRows !== null,
+    { message: 'Exact schema-specific registry observation required' },
+  );
+
+export function parseServiceRegistryRuntime(value: unknown) {
+  return serviceRegistryObservationSchema.parse(value);
+}
+
+export function assertServiceRegistryMigration(
+  before: ServiceRegistryRuntimeObservation,
+  after: ServiceRegistryRuntimeObservation,
+) {
+  before = parseServiceRegistryRuntime(before);
+  after = parseServiceRegistryRuntime(after);
+  const protectedFields = [
+    'identityBindingSha256',
+    'dataSha256',
+    'artifactSha256',
+    'policiesSha256',
+    'billingDataSha256',
+    'migrationPrefixSha256',
+  ] as const;
+  if (
+    before.version !== SERVICE_REGISTRY_CAPABILITY ||
+    after.version !== SERVICE_REGISTRY_CAPABILITY ||
+    before.profile !== SERVICE_REGISTRY_PROFILE ||
+    after.profile !== SERVICE_REGISTRY_PROFILE ||
+    before.schema !== 39 ||
+    after.schema !== 40 ||
+    before.registryDataSha256 !== null ||
+    before.registryRows !== null ||
+    after.registryRows?.policy !== 0 ||
+    after.registryRows?.admissions !== 0 ||
+    typeof after.registryDataSha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(after.registryDataSha256) ||
+    before.drained !== true ||
+    after.drained !== true ||
+    before.providerApiCalls !== 0 ||
+    after.providerApiCalls !== 0 ||
+    protectedFields.some(
+      (k) =>
+        typeof before[k] !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(before[k]) ||
+        before[k] !== after[k],
+    )
+  )
+    throw Error(
+      'Service registry migration changed protected data or authority',
+    );
+}
+export async function migrateServiceRegistryRuntime(
+  tx: Database,
+  input: RuntimeIdentity,
+  expected: ServiceRegistryRuntimeObservation,
+) {
+  if (
+    !expected ||
+    expected.version !== SERVICE_REGISTRY_CAPABILITY ||
+    expected.profile !== SERVICE_REGISTRY_PROFILE ||
+    expected.schema !== 39
+  )
+    throw Error('Exact039 service registry baseline required');
+  await tx.query("SET LOCAL lock_timeout='5s'");
+  await tx.query('SELECT pg_advisory_xact_lock(704203)');
+  const before = await captureServiceRegistryRuntime(tx, input);
+  if (hash(before) !== hash(expected))
+    throw Error('Service registry source drift before migration');
+  await applyServiceRegistrySchemaMigration(tx);
+  const after = await captureServiceRegistryRuntime(tx, input);
+  assertServiceRegistryMigration(before, after);
   return after;
 }

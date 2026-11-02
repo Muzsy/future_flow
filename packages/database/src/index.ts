@@ -34,6 +34,7 @@ export * from './public-fork-starts';
 export * from './ai-budget';
 export * from './metrics';
 export * from './billing';
+export * from './service-access';
 export * from './public-drafts';
 export * from './public-reviews';
 export * from './public-review-jobs';
