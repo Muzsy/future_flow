@@ -371,6 +371,12 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
                         svc['environment'].update({k:v for k,v in runtime.items() if name=='worker' or k in funded.NARRATIVE_DEFAULTS})
                     if self.is_reader() and name in {'web','api'}:
                         svc['environment']['CLOSED_SITE_ALLOWED_EMAILS']=','.join(successor.reader_emails(selection))
+                if self.is_registry_schema():
+                    # Match the target Compose: absent billing keys render their
+                    # default-off values; explicit sandbox/live values stay exact.
+                    for name in ('api','worker'):
+                        for key, value in funded.BILLING_DEFAULTS.items():
+                            new['services'][name]['environment'].setdefault(key,value)
                 if self.is_billing():
                     # Billing reaches api and worker only; its values are digest-bound to the selection.
                     billing=successor.billing_values(selection,upgrade.server_environment(old['server.env'].decode()),
