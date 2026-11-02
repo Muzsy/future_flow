@@ -78,7 +78,7 @@ Az image-capability külön fix parancsot kap: az eredeti v1 parancs és command
 
 A prepare helper kötelezően tartósítja a mért backup-evidence-t, és meglévő intentet nem készíthet újra. Apply/reconcile csak a root fájlból és a journalhoz kötve olvashat intentet, közvetlenül átadott intent nincs. A read-only visszaolvasás az eredeti tartós evidence-t használja, nem követeli meg az azóta megváltozott Daily restore-pointer régi értékét.
 
-Az aktív bekötés előtt a root/Daily/funded-replay journal-validátorokat együtt kell bővíteni a célhoz kötött `registryIntentSha256` rowsémával. A később létrehozott evidence/intent fájlokat a korábbi backupA immutable coverage-e nem követelheti visszamenőleg; az eredeti kötést a journal védi, a következő normál backup pedig már ezeket is menti. A finite fájlkatalógus és az archívum-kezelés együtt változik.
+A root/Daily/funded-replay journal-validátorok külön, célhoz kötött `registryIntentSha256` rowsémát kaptak. A root valódi privát fájljain futó regresszió a hash-lánc és az intent/evidence sértetlenségét ellenőrzi; a migráció SQL-hashét a Python és TypeScript ugyanahhoz a reviewed forráshoz köti. A később létrehozott evidence/intent fájlokat a korábbi backupA immutable coverage-e nem követelheti visszamenőleg; az eredeti kötést a journal védi, a következő normál backup pedig már ezeket is menti. A finite fájlkatalógus és az archívum-kezelés együtt változik.
 
 Ezek előkészítő helper API-k. A `schema-040` / `billing-config-040` purpose még nem engedélyezett, a teljes successor/Daily/journal/native040 replay és konfigurációs protokoll hiányzik. A régi v1/039 műveletek elfogadási köre változatlan. Ez a checkpoint nem deployolható040 csomag vagy operátori audit.
 

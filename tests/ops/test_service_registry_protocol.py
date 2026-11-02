@@ -152,16 +152,82 @@ class RegistryEvidenceTests(ChainRootBase):
         system.raw_probe.assert_not_called()
         self.assertEqual(system.registry_intent.call_count, 2)
 
-    def test_registry_intent_is_bound_to_a_hashed_journal_row(self):
+    def test_registry_sidecars_are_finite_and_never_retroactively_required_in_the_old_backup(self):
+        system = self.system()
+        self.fixture.write(system.root / 'selection.json', root.encoded({'purpose': 'schema-040'}))
+        for name in ('registry-evidence.json', 'registry-intent.json'):
+            self.fixture.write(system.root / name, root.encoded({'synthetic': name}))
+        names = lambda immutable: {p.name for p in daily.successor_tree_paths(system.root, immutable_only=immutable)}
+        self.assertEqual(names(False), {'selection.json', 'registry-evidence.json', 'registry-intent.json'})
+        self.assertEqual(names(True), {'selection.json'})
+        self.fixture.write(system.root / 'selection.json', root.encoded({'purpose': 'schema-039'}))
+        with self.assertRaisesRegex(ValueError, 'explicit successor purpose'):
+            names(False)
+
+    def test_real_root_journal_binds_persisted_intent_and_rejects_tampering(self):
         system = self.system()
         system.root.mkdir(mode=0o700)
-        context = {'synthetic': 'measured-context'}
-        system.registry_context = Mock(return_value=context)
-        intent = {'version': 'alterward-registry-upgrade-intent-1', 'context': context}
-        self.fixture.write(system.root / 'registry-intent.json', root.encoded(intent))
-        system.journal = Mock(return_value={'states': [{'state': 'database-intent',
-            'registryIntentSha256': root.canonical_sha(intent)}]})
-        self.assertEqual(system.registry_intent({}), intent)
-        system.journal.return_value['states'][0]['registryIntentSha256'] = '0' * 64
+        system.registry_profile = Mock(return_value=True)  # the future purpose remains disabled outside this unit
+        system.backup = Mock()
+        system.original_terms = Mock(return_value={'participants': []})
+        candidate = {'sourceCommit': system.request['sourceCommit'],
+            'release': {'target': {'imageId': 'sha256:' + 'b' * 64}},
+            'parentPreparedSha256': 'c' * 64, 'parentJournalSha256': 'd' * 64,
+            'parentReadbackSha256': 'e' * 64,
+            'operation': {'plan': {'purpose': 'schema-040', 'version': daily.SUCCESSOR_REGISTRY_PLAN_VERSION}},
+            'database': observed()}
+        state = system.root / 'synthetic-daily'
+        proof = {'runId': '20261102T100000Z-12345678'}
+        manifest = {'runId': proof['runId']}
+        self.fixture.write(state / 'status' / 'restore.json', root.encoded(proof))
+        def prepare(image, payload):
+            self.assertEqual(payload['mode'], 'registry-prepare')
+            return {'version': 'alterward-registry-upgrade-intent-1', 'purpose': 'schema-040',
+                'context': payload['expected']['context'], 'before': candidate['database'],
+                'migrationSha256': daily.REGISTRY_040_MIGRATION_SHA256,
+                'observedAt': '2026-11-02T10:00:00.000Z', 'expiresAt': '2026-11-02T10:15:00.000Z',
+                'serviceActivationAllowed': False, 'providerApiCalls': 0, 'authProviderWrites': False}
+        system.raw_probe = Mock(side_effect=prepare)
+        with patch.object(daily, 'ROOT', state), patch.object(daily, 'completed_archives',
+                return_value=[{'manifest': manifest}]), patch.object(root.readers, 'durable_file',
+                side_effect=self.fixture.write), patch.object(root.readers, 'update_durable',
+                side_effect=self.fixture.write):
+            for tag in ('apply-intent', 'held', 'database-intent'):
+                system.record(tag, candidate)
+        journal = system.journal(candidate)
+        intent = system.registry_intent(candidate)
+        self.assertEqual(journal['states'][-1]['registryIntentSha256'], root.canonical_sha(intent))
+        self.assertEqual(system.raw_probe.call_count, 1)
+        self.assertEqual(system.backup.call_count, 1)
+        self.assertEqual(intent['version'], 'alterward-registry-upgrade-intent-1')
+        original_evidence = __import__('json').loads((system.root / 'registry-evidence.json').read_bytes())
+        for bad in (None, True, 900, '2026-11-02 10:00:00'):
+            with self.subTest(timestamp=bad), self.assertRaises(ValueError):
+                daily.validate_registry_intent_payload({**intent, 'observedAt': bad}, candidate, original_evidence)
+        with self.assertRaises(ValueError):
+            daily.validate_registry_intent_payload(intent, candidate, {**original_evidence,
+                'restoreProof': {'runId': '20261102T100000Z-ffffffff'}})
+        changed = {**intent, 'observedAt': '2020-01-01T00:00:00.000Z', 'expiresAt': '2020-01-01T00:15:00.000Z'}
+        self.fixture.write(system.root / 'registry-intent.json', root.encoded(changed))
         with self.assertRaisesRegex(ValueError, 'durable journal'):
-            system.registry_intent({})
+            system.journal(candidate)
+        self.fixture.write(system.root / 'registry-intent.json', root.encoded(intent))
+        row = journal['states'][-1]
+        row['registryIntentSha256'] = '0' * 64
+        row['sha256'] = root.sha(root.encoded({k:v for k,v in row.items() if k != 'sha256'}))
+        self.fixture.write(system.root / 'journal.json', root.encoded(journal))
+        with self.assertRaisesRegex(ValueError, 'durable journal'):
+            system.registry_intent(candidate)
+
+    def test_registry_journal_hash_field_never_expands_a_legacy_row(self):
+        row = {'state': 'database-intent', 'changedAt': '2026-11-02T10:00:00Z',
+               'previousSha256': None, 'sha256': 'a' * 64}
+        daily.registry_journal_fields(row)
+        with self.assertRaises(ValueError):
+            daily.registry_journal_fields(row, registry=True)
+        row['registryIntentSha256'] = 'b' * 64
+        daily.registry_journal_fields(row, registry=True)
+        with self.assertRaises(ValueError):
+            daily.registry_journal_fields(row)
+        with self.assertRaises(ValueError):
+            daily.registry_journal_fields({**row, 'state': 'held'}, registry=True)

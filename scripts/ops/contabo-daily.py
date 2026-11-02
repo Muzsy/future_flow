@@ -612,7 +612,7 @@ RUNTIME_NAMES = {'server.env', 'effective-compose.json', 'pinned-image.json', 'm
 SUCCESSOR_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'journal.json',
                    'readback.json', 'database-after.json', 'probe-compose.json',
                    'probe.json', 'capability.json', 'watchdog.json', 'archive.json',
-                   'access.json'}
+                   'access.json', 'registry-evidence.json', 'registry-intent.json'}
 SUCCESSOR_IMMUTABLE_NAMES = {'prepared.json', 'selection.json', 'terms.json', 'archive.json', 'access.json'}
 SUCCESSOR_ARCHIVE_NAME = 'beta-successor-archive'
 SUCCESSOR_ARCHIVE_VERSION = 'alterward-beta-successor-archive-1'
@@ -774,6 +774,81 @@ def successor_json(value):
 
 
 
+
+REGISTRY_040_MIGRATION_SHA256 = '9f0a7438e84b9367bc6e4f5a6e2319fefaf50fe49ee2a195c9cd6c09a2eaf613'
+
+
+def registry_journal_fields(row, *, registry=False):
+    keys = {'state', 'changedAt', 'previousSha256', 'sha256'}
+    if registry and row.get('state') == 'database-intent':
+        keys.add('registryIntentSha256')
+        h = row.get('registryIntentSha256')
+        if not isinstance(h, str) or not re.fullmatch(r'[a-f0-9]{64}', h):
+            raise ValueError('Exact registry intent journal hash required')
+    if set(row) != keys:
+        raise ValueError('Exact profile-bound journal row required')
+    return keys
+
+
+def validate_registry_intent_payload(intent, candidate, evidence):
+    keys = {'version', 'purpose', 'context', 'observedAt', 'expiresAt', 'before',
+            'migrationSha256', 'serviceActivationAllowed', 'providerApiCalls', 'authProviderWrites'}
+    plan = candidate.get('operation', {}).get('plan', {})
+    if (not isinstance(intent, dict) or set(intent) != keys
+            or intent['version'] != 'alterward-registry-upgrade-intent-1'
+            or intent['purpose'] != SUCCESSOR_REGISTRY_PURPOSE
+            or plan.get('purpose') != SUCCESSOR_REGISTRY_PURPOSE
+            or plan.get('version') != SUCCESSOR_REGISTRY_PLAN_VERSION
+            or intent['serviceActivationAllowed'] is not False
+            or intent['authProviderWrites'] is not False
+            or type(intent['providerApiCalls']) is not int or intent['providerApiCalls'] != 0
+            or intent['migrationSha256'] != REGISTRY_040_MIGRATION_SHA256):
+        raise ValueError('Exact registry migration intent required')
+    before = parse_registry_runtime(intent['before'])
+    if before['schema'] != 39 or before != parse_registry_runtime(candidate['database']):
+        raise ValueError('Original registry039 baseline required')
+    if (not isinstance(evidence, dict)
+            or set(evidence) != {'candidateSha256', 'backupManifest', 'restoreProof'}
+            or evidence['candidateSha256'] != successor_canonical_hash(candidate)
+            or not isinstance(evidence['backupManifest'], dict) or not isinstance(evidence['restoreProof'], dict)
+            or not isinstance(evidence['backupManifest'].get('runId'), str)
+            or not RUN_ID.fullmatch(evidence['backupManifest']['runId'])
+            or evidence['backupManifest']['runId'] != evidence['restoreProof'].get('runId')):
+        raise ValueError('Original registry backup evidence required')
+    expected = {'sourceCommit': candidate['sourceCommit'],
+        'imageId': candidate['release']['target']['imageId'],
+        'candidateSha256': successor_canonical_hash(candidate),
+        'parentAuthoritySha256': successor_canonical_hash({k: candidate[k] for k in (
+            'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256')}),
+        'backupManifestSha256': successor_canonical_hash(evidence['backupManifest']),
+        'restoreProofSha256': successor_canonical_hash(evidence['restoreProof'])}
+    if intent['context'] != expected:
+        raise ValueError('Registry intent context binding mismatch')
+    if any(not isinstance(intent[k], str) or not re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z', intent[k])
+            for k in ('observedAt', 'expiresAt')):
+        raise ValueError('Exact UTC registry intent timestamps required')
+    observed, expires = (dt.datetime.fromisoformat(intent[k].replace('Z', '+00:00'))
+                         for k in ('observedAt', 'expiresAt'))
+    if (any(t.utcoffset() != dt.timedelta(0) for t in (observed, expires))
+            or (expires - observed).total_seconds() != 900):
+        raise ValueError('Exact bounded UTC registry intent required')
+    return intent
+
+
+def registry_bound_intent(root, candidate, rows, *, read=None):
+    read = regular if read is None else read
+    evidence = json.loads(read(root / 'registry-evidence.json'))
+    intent = validate_registry_intent_payload(json.loads(read(root / 'registry-intent.json')), candidate, evidence)
+    hashes = []
+    for row in rows:
+        registry_journal_fields(row, registry=True)
+        if row['state'] == 'database-intent':
+            hashes.append(row['registryIntentSha256'])
+    if not hashes or set(hashes) != {successor_canonical_hash(intent)}:
+        raise ValueError('Registry intent must match its durable journal binding')
+    return intent
+
 def registry_schema_selection(selection, previous_terms):
     if (not isinstance(selection, dict)
             or set(selection) != {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'}
@@ -889,6 +964,10 @@ def successor_tree_paths(root, *, immutable_only=False):
         else:
             if path.name not in SUCCESSOR_NAMES:
                 raise ValueError('Unknown successor evidence')
+            if path.name in {'registry-evidence.json', 'registry-intent.json'}:
+                selection = json.loads(regular(root / 'selection.json'))
+                if selection.get('purpose') != SUCCESSOR_REGISTRY_PURPOSE:
+                    raise ValueError('Registry evidence requires its explicit successor purpose')
             regular(path)
             if not immutable_only or path.name in SUCCESSOR_IMMUTABLE_NAMES:
                 result.append(path)
@@ -1314,6 +1393,8 @@ def successor_effective_role(value, root=None):
             or not isinstance(intent['states'], list) or not 1 <= len(intent['states']) <= 32):
         raise ValueError('Bounded original successor journal required')
     purpose = json.loads(regular(root / 'selection.json')).get('purpose')
+    registry = (purpose == SUCCESSOR_REGISTRY_PURPOSE and
+                value['operation']['plan'].get('version') == SUCCESSOR_REGISTRY_PLAN_VERSION)
     previous = None
     known = {'apply-intent', 'recovery-intent', 'held', 'database-intent', 'accounts-committed',
              'authority-staged', 'exposure-intent', 'applied', 'recovered', 'held-after-failure',
@@ -1332,7 +1413,8 @@ def successor_effective_role(value, root=None):
     }
     failures = {'held-after-failure', 'stop-unverified', 'watchdog-stop-intent', 'closed'}
     for row in intent['states']:
-        if set(row) != {'state', 'changedAt', 'previousSha256', 'sha256'} or row['previousSha256'] != previous:
+        registry_journal_fields(row, registry=registry)
+        if row['previousSha256'] != previous:
             raise ValueError('Successor journal chain changed')
         data = (json.dumps({k:v for k,v in row.items() if k != 'sha256'},sort_keys=True,separators=(',', ':'))+'\n').encode()
         if row['sha256'] != digest(data):
@@ -1364,6 +1446,8 @@ def successor_effective_role(value, root=None):
         last_state = state
         last_time = changed
         previous = row['sha256']
+    if registry and any(row['state'] == 'database-intent' for row in intent['states']):
+        registry_bound_intent(root, value, intent['states'])
     state = intent['states'][-1]['state']
     if state not in {'applied', 'recovered'}:
         raise SuccessorNotExposed('Successor not fully exposed; keep held')

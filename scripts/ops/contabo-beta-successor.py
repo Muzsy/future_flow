@@ -480,16 +480,8 @@ class System(funded.System):
             'restoreProofSha256': canonical_sha(evidence['restoreProof'])}
 
     def registry_intent(self, candidate):
-        path = self.root / 'registry-intent.json'
-        intent = json.loads(fence.original(path))
-        if (intent.get('version') != 'alterward-registry-upgrade-intent-1'
-                or intent.get('context') != self.registry_context(candidate)):
-            raise ValueError('Original candidate-bound registry intent required')
-        rows = self.journal(candidate)['states']
-        hashes = {row.get('registryIntentSha256') for row in rows if row['state'] == 'database-intent'}
-        if hashes != {canonical_sha(intent)}:
-            raise ValueError('Registry intent must match its durable journal binding')
-        return intent
+        return self.daily.registry_bound_intent(self.root, candidate,
+            self.journal(candidate)['states'], read=fence.original)
 
     def registry_database_request(self, candidate, mode):
         if mode not in {'registry-prepare', 'registry-apply', 'registry-reconcile'}:
@@ -919,11 +911,14 @@ class System(funded.System):
             raise ValueError('Bounded successor journal bound to original preparation required')
         previous = None
         for row in value['states']:
-            funded.exact(row, {'state','changedAt','previousSha256','sha256'})
+            self.daily.registry_journal_fields(row, registry=self.registry_profile())
             if row['previousSha256'] != previous or row['sha256'] != sha(encoded({k:v for k,v in row.items() if k != 'sha256'})):
                 raise ValueError('Successor journal chain changed')
             funded.stamp(row['changedAt'])
             previous = row['sha256']
+        if (candidate is not None and self.registry_profile()
+                and any(row['state'] == 'database-intent' for row in value['states'])):
+            self.daily.registry_bound_intent(self.root, candidate, value['states'], read=fence.original)
         return value
 
     def record(self, state, candidate):
@@ -933,6 +928,18 @@ class System(funded.System):
             raise ValueError('Journal requires scoped inspection')
         row = {'state':state,'changedAt':self.now().isoformat(),
                'previousSha256':value['states'][-1]['sha256'] if value['states'] else None}
+        if self.registry_profile() and state == 'database-intent':
+            intent_path = self.root / 'registry-intent.json'
+            if intent_path.exists() or intent_path.is_symlink():
+                # Existing intents are never retimed/replaced. A missing journal
+                # binding is an inspection boundary, not permission to invent one.
+                intent = self.registry_intent(candidate)
+            else:
+                intent = self.registry_database_request(candidate, 'registry-prepare')
+                evidence = json.loads(fence.original(self.root / 'registry-evidence.json'))
+                self.daily.validate_registry_intent_payload(intent, candidate, evidence)
+                readers.durable_file(intent_path, encoded(intent))
+            row['registryIntentSha256'] = canonical_sha(intent)
         row['sha256'] = sha(encoded(row))
         value['states'].append(row)
         readers.update_durable(path, encoded(value))

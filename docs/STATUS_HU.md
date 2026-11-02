@@ -15,11 +15,13 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**Főági DB-transport integráció — 2026-11-02:** #148 reviewed3015585 tulajdonosi engedéllyel beolvadt (`4590e35`), reviewed tree-egyezés igazolt. Saját [CI41449700546](https://github.com/Muzsy/future_flow/actions/runs/41449700546) verify/container/image-rehearsal SUCCESS. Ez nem éles040 átállás; a teljes operátori #142 nyitott.
+
 **#142 operátori előkészítés — fejlesztés alatt:** a következő forrásszelet explicit040 selection/plan- és v2 snapshot-validátort,33 hash-kötött alkalmazás-kivételt, külön registry image-capabilityt és eredeti backup/restore intent-kötési segédeket készít elő. Az új purpose-ok még nincsenek az engedélyezett successor-műveletek közé kötve; a teljes root/Daily/native040 restore/config út nem kész, új éles parancs nem használható. A #148 az ettől külön review-zott adatbázis-transport.
 
 **Főági integráció — 2026-11-02:** #143 → #145 → #147 tulajdonosi engedéllyel, merge commitokkal beolvadt. A főág `1e8d26f`, fája a reviewed `8460c2f` jelöltével azonos; saját [CI41410625967](https://github.com/Muzsy/future_flow/actions/runs/41410625967) mindhárom ellenőrzése SUCCESS. A szolgáló rendszer nem változott; az alábbi november1-i főági checkpointok történeti előzmények.
 
-**#142 adatbázis-végrehajtó — fejlesztés alatt:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent készül. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
+**#142 adatbázis-végrehajtó — main, #148:** új, szigorú forrás/image/candidate/szülő/backup/restore kötésű intent elkészült. A `registry-prepare` és `registry-reconcile` csak olvasó, konzisztens tranzakció; a `registry-apply` a tartós intent hashét és900másodperces érvényességét kéri, majd a meglévő serializable039→040 primitívet hívja. Ez belső adatbázis-transport, nem a még hiányzó privilegizált host-controller, Daily vagy éles engedély. A teljes #142 nyitott.
 
 **I02 önkiszolgáló előfizetéskezelés — main, #144/#145:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés elkészült. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
 
