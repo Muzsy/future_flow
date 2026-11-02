@@ -762,6 +762,11 @@ def exercise(context, *, scope='ci'):
             restoredDB = 'aw_restore_' + uuid.uuid4().hex[:24]
             databases.add(restoredDB)
             sql('postgres', 'CREATE DATABASE ' + restoredDB)
+            if registry:
+                # pg_dump --schema=public explicitly recreates the schema. Only
+                # this newly created nonce-owned empty comparison DB is changed;
+                # the production data-only quarantine retains its clean catalog.
+                sql(restoredDB, 'DROP SCHEMA public')
             run(
                 [
                     'docker',
