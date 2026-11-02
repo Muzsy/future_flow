@@ -207,6 +207,74 @@ export function createStripeProvider(
       return { url: parsed.toString() };
     },
 
+    async createPortalSession({ customerId }) {
+      if (!isCustomerId(customerId)) throw Error('Invalid customer id');
+      // Use the actual pinned configuration, not an unchecked dashboard default.
+      const { body: listed } = await call(
+        'GET',
+        '/v1/billing_portal/configurations',
+        new URLSearchParams({ active: 'true', is_default: 'true', limit: '2' }),
+      );
+      const configurations = Array.isArray(listed.data) ? listed.data : [];
+      const config = configurations[0];
+      const features =
+        isObj(config) && isObj(config.features) ? config.features : {};
+      const cancellation = isObj(features.subscription_cancel)
+        ? features.subscription_cancel
+        : {};
+      const update = isObj(features.subscription_update)
+        ? features.subscription_update
+        : {};
+      if (
+        listed.has_more !== false ||
+        configurations.length !== 1 ||
+        !isObj(config) ||
+        !idPattern('bpc').test(String(config.id)) ||
+        config.active !== true ||
+        config.is_default !== true ||
+        config.livemode !== /^(sk|rk)_live_/.test(options.secretKey) ||
+        cancellation.enabled !== true ||
+        cancellation.mode !== 'at_period_end' ||
+        cancellation.retention != null ||
+        update.enabled !== false
+      )
+        throw Error(
+          'A verified cycle-end cancellation portal configuration is required',
+        );
+      const returnUrl = new URL('/billing', options.cancelUrl);
+      if (
+        returnUrl.protocol !== 'https:' ||
+        returnUrl.username ||
+        returnUrl.password
+      )
+        throw Error('A fixed HTTPS return URL is required');
+      const { body } = await call(
+        'POST',
+        '/v1/billing_portal/sessions',
+        new URLSearchParams({
+          customer: customerId,
+          configuration: String(config.id),
+          return_url: returnUrl.toString(),
+        }),
+      );
+      if (
+        body.customer !== customerId ||
+        body.configuration !== config.id ||
+        body.livemode !== config.livemode
+      )
+        throw Error('Portal session binding mismatch');
+      const url = new URL(typeof body.url === 'string' ? body.url : '');
+      if (
+        url.protocol !== 'https:' ||
+        url.hostname !== 'billing.stripe.com' ||
+        url.username ||
+        url.password ||
+        url.port
+      )
+        throw Error('Portal session has no usable URL');
+      return { url: url.toString() };
+    },
+
     async cancelSubscription(subscriptionId) {
       if (!isSubscriptionId(subscriptionId))
         throw new Error('Invalid subscription id');

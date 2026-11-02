@@ -66,3 +66,11 @@ A refund or dispute carries only charge/payment-intent identifiers, so it is res
 - [DEVELOPMENT_PLAN_HU](../DEVELOPMENT_PLAN_HU.md) B01
 - [SECURITY_OPERATIONS_HU](../operations/SECURITY_OPERATIONS_HU.md)
 - `packages/core/src/billing.ts`, `packages/core/src/billing-stripe.ts`
+
+## Self-service management implementation — #144 (development candidate, 2026-11-02)
+
+The billing page opens a short-lived Stripe customer portal session for the authenticated account's persisted customer only. The request accepts no customer/subscription identifier or return URL. Unreconciled restored projections, inactive accounts and customers linked to multiple Alterward users are refused. The temporary URL is neither stored nor logged. The browser checks the current account again after the response and refreshes status when returning.
+
+The adapter reads and pins the actual active default portal configuration, matching test/live mode. Cancellation must occur at period end; subscription updates and retention coupons are disabled. The return address uses the existing configured billing origin and fixed `/billing` path. Existing chapter/USD accounting and signed-webhook ownership remain unchanged. No portal configuration is created or modified by this source change. Sandbox and live portal configuration/E2E are still I05/I06 release gates.
+
+Official references verified 2026-11-02: [Managed Payments-compatible customer portal](https://docs.stripe.com/customer-management), [session creation](https://docs.stripe.com/api/customer_portal/sessions/create), [configuration list](https://docs.stripe.com/api/customer_portal/configurations/list). The existing Stripe API version stays pinned; no hosted request or paid API call was made.

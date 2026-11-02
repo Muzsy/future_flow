@@ -11,6 +11,7 @@ import {
 import {
   POLL_INTERVAL_MS,
   billingView,
+  billingPortalDestination,
   billingStatusForAccount,
   checkoutResult,
   isBillingStatus,
@@ -40,7 +41,7 @@ export function BillingPanel() {
     // Coming back with the browser's back button from Stripe restores the page
     // from the back/forward cache with the button still disabled.
     const restored = (event: PageTransitionEvent) => {
-      if (event.persisted) setBusy(false);
+      if (event.persisted) window.location.reload();
     };
     window.addEventListener('pageshow', restored);
     if (!authConfigured) {
@@ -140,6 +141,33 @@ export function BillingPanel() {
     }
   }
 
+  async function manageSubscription() {
+    if (!userId) return;
+    setBusy(true);
+    setNotice('');
+    try {
+      const url = await billingPortalDestination(
+        userId,
+        () =>
+          api<{ url?: unknown }>(
+            '/billing/portal',
+            { method: 'POST', body: '{}' },
+            'v1',
+            userId,
+          ),
+        async () => {
+          const { data, error } = await supabase().auth.getSession();
+          return error ? null : (data.session?.user.id ?? null);
+        },
+      );
+      if (!url) throw new ClientError('REQUEST_FAILED');
+      window.location.assign(url);
+    } catch (error) {
+      setNotice(clientErrorMessage(error));
+      setBusy(false);
+    }
+  }
+
   const view = billingView({
     authConfigured,
     authReady,
@@ -211,10 +239,20 @@ export function BillingPanel() {
             </button>
           )}
           {view.manage && (
-            <p>
-              {t('billing.manage')}{' '}
-              <a href="mailto:info@alterward.com">info@alterward.com</a>
-            </p>
+            <>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => void manageSubscription()}
+              >
+                {t('billing.manage')}
+              </button>
+              <p>{t('billing.manageTerms')}</p>
+              <p>
+                {t('billing.support')}{' '}
+                <a href="mailto:info@alterward.com">info@alterward.com</a>
+              </p>
+            </>
           )}
         </>
       )}

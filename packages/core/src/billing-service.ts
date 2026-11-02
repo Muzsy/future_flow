@@ -54,6 +54,7 @@ export type BillingTx = {
     customerId: string | null;
   }): Promise<BillingSubscription | null>;
   listSubscriptions(userId: string): Promise<BillingSubscription[]>;
+  customerOwnedOnlyBy?(customerId: string, userId: string): Promise<boolean>;
   listCancelPending(limit: number): Promise<string[]>;
   saveSubscription(
     sub: BillingSubscription & { userId: string },
@@ -100,6 +101,7 @@ export type BillingProvider = {
     discounted: boolean;
     now: Date;
   }): Promise<{ url: string }>;
+  createPortalSession?(input: { customerId: string }): Promise<{ url: string }>;
   // Idempotent: an already cancelled or missing subscription is success.
   cancelSubscription(subscriptionId: string): Promise<void>;
   // Reads the subscription from the provider, as a subscription_synced event
@@ -585,6 +587,52 @@ export async function createCheckoutSession(
       discounted,
       now,
     });
+  });
+}
+
+// Management creates only a temporary provider session. Entitlement and chapter
+// accounting still change exclusively through the existing signed webhook path.
+export async function createBillingPortalSession(
+  userId: string,
+  deps: {
+    store: BillingStore;
+    provider: Pick<BillingProvider, 'createPortalSession'>;
+  },
+): Promise<{ url: string }> {
+  return deps.store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    if (!(await tx.userExists(userId)))
+      throw new DomainError('ACCOUNT_INACTIVE', 'Account is not active.', 409);
+    const subs = await tx.listSubscriptions(userId);
+    const live = subs.filter(
+      (s) => !['canceled', 'incomplete_expired'].includes(s.status),
+    );
+    const customers = [...new Set(live.map((s) => s.customerId))];
+    if (
+      !live.length ||
+      live.some((s) => s.userId !== userId || s.reconcileRequired) ||
+      customers.length !== 1 ||
+      !deps.provider.createPortalSession ||
+      !tx.customerOwnedOnlyBy ||
+      !(await tx.customerOwnedOnlyBy(customers[0]!, userId))
+    )
+      throw new DomainError(
+        'BILLING_MANAGEMENT_UNAVAILABLE',
+        'Subscription management is not available.',
+        409,
+      );
+    const session = await deps.provider.createPortalSession({
+      customerId: customers[0]!,
+    });
+    if (!(await tx.userExists(userId)))
+      throw new DomainError('ACCOUNT_INACTIVE', 'Account is not active.', 409);
+    if (!(await tx.customerOwnedOnlyBy(customers[0]!, userId)))
+      throw new DomainError(
+        'BILLING_MANAGEMENT_UNAVAILABLE',
+        'Subscription management is not available.',
+        409,
+      );
+    return session;
   });
 }
 

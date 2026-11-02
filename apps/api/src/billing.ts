@@ -16,6 +16,7 @@ import { z } from 'zod';
 import {
   DomainError,
   createCheckoutSession,
+  createBillingPortalSession,
   entitlementOfSubscriptions,
   handleStripeWebhook,
   paidChaptersAvailable,
@@ -51,6 +52,20 @@ export function createBillingController(
         store: runtime.store,
         provider: runtime.provider,
         config: runtime.config,
+      });
+    }
+
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Post('portal')
+    async portal(@Req() req: { userId: string }, @Body() body: unknown) {
+      z.object({})
+        .strict()
+        .parse(body ?? {});
+      if (!runtime.config.enabled || !runtime.provider) throw unavailable();
+      return createBillingPortalSession(req.userId, {
+        store: runtime.store,
+        provider: runtime.provider,
       });
     }
 

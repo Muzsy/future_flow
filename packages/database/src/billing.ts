@@ -114,6 +114,15 @@ export function billingTx(db: Database): BillingTx {
       );
       return row ? subscription(row) : null;
     },
+    customerOwnedOnlyBy: async (customerId, userId) => {
+      // Read-only ownership check; do not introduce advisory→root row locks
+      // opposite to chapter completion's existing root→billing lock order.
+      const owners = await db.query<{ user_id: string }>(
+        'SELECT DISTINCT user_id FROM aw_billing_subscriptions WHERE customer_id=$1',
+        [customerId],
+      );
+      return owners.length === 1 && owners[0]!.user_id === userId;
+    },
     listSubscriptions: async (userId) =>
       (
         await db.query<SubscriptionRow>(

@@ -265,6 +265,10 @@ const errors: Record<string, readonly [string, string]> = {
     'Choose an option before continuing this life.',
     'Válassz a döntési lehetőségek közül a folytatás előtt.',
   ],
+  BILLING_MANAGEMENT_UNAVAILABLE: [
+    'Az előfizetéskezelés most nem érhető el. Kérjük, írj az info@alterward.com címre.',
+    'Subscription management is unavailable. Please contact info@alterward.com.',
+  ],
   BILLING_ALREADY_SUBSCRIBED: [
     'You already have a subscription. Reload this page to see its current state.',
     'Már van előfizetésed. Töltsd újra az oldalt, hogy lásd az aktuális állapotát.',

@@ -15,6 +15,8 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 ## Kiadási és bétaállapot
 
+**I02 önkiszolgáló előfizetéskezelés — #144, fejlesztés alatt:** a korábbi emailes segítség mellé saját fiókhoz kötött Stripe-kezelőgomb és ciklusvégi lemondási konfigurációellenőrzés készül. Nincs új schema, ledger-/kuponreset, éles Stripe-művelet vagy aktiválás. A fejlesztési teszt és a későbbi sandbox/live végigpróba külön eredmény; I02/I05/I06 nem DONE.
+
 **I02 generálási útvonalhatár — main, #138/#139:** enforce módban csak a központi fejezetledgerre jutó személyes generálás engedhető tovább; a v1/Shared/review indítás zárt, a worker e sorok munkáit claim nélkül megőrzi. A #139 beolvadt a főágba; ez nem új éles állapot, I02/I03/I04 továbbra PARTIAL.
 
 **I01/I04 fejlesztési alap a főágon — 2026-11-01, #133/#134:** elkészült a tiszta service-admission/pause modell és a Cloudflare-identitás-ellenőrzés külön alapja ([ADR-011](decisions/ADR-011-invitation-service-access.md)). A mai statikus kapu és 11-es címlimit megmarad, az új policy-t az alkalmazás még nem használja; nincs új meghívott vagy éles aktiválás. A tartós store/migráció/recovery, az API/web bekötés és az operátori pause/admission a következő szeletek. Ez nem I01/I04 DONE.

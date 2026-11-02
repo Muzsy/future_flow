@@ -151,3 +151,16 @@ export function isBillingStatus(value: unknown): value is BillingStatus {
     Number.isInteger(v.tasterChaptersAvailable)
   );
 }
+
+// Resolve only after the response and a fresh current-account read: signing out
+// or changing accounts while the request is pending cannot open an old portal.
+export async function billingPortalDestination(
+  expectedUserId: string,
+  request: () => Promise<{ url?: unknown }>,
+  currentUserId: () => Promise<string | null>,
+): Promise<string | null> {
+  const body = await request();
+  if ((await currentUserId()) !== expectedUserId) return null;
+  const url = safeCheckoutUrl(body.url);
+  return url && new URL(url).hostname === 'billing.stripe.com' ? url : null;
+}
