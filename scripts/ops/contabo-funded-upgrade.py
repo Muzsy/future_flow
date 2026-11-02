@@ -32,6 +32,8 @@ const hashes=JSON.parse(readFileSync(0,'utf8'));
 for(const[p,h]of Object.entries(hashes))if(createHash('sha256').update(readFileSync('/app/'+p)).digest('hex')!==h)throw Error('Image source mismatch');
 const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.ts');console.log(JSON.stringify(fundedRuntimeCapabilities()));"""
 CAPABILITY_COMMAND = ['--import', 'tsx', '--input-type=module', '-e', CAPABILITY_CODE]
+REGISTRY_CAPABILITY_COMMAND = ['--import', 'tsx', '--input-type=module', '-e',
+    CAPABILITY_CODE.replace('fundedRuntimeCapabilities', 'serviceRegistryRuntimeCapabilities')]
 
 
 def exact(value, keys):
@@ -536,18 +538,27 @@ class System:
         # Original image upgrades accept ONLY the complete committed bundle.
         return {sha(encoded(self.request['sourceHashes']))}
 
+    def allowed_capability_commands(self):
+        return (CAPABILITY_COMMAND,)
+
+    def image_capability_profile(self):
+        return ('alterward-funded-runtime-1', 39, None)
+
     def cleanup_capability(self):
         self.archive_support()
         record = self.daily.funded_capability_state(self.root)
         result = {'capabilityRemoved': False, 'capabilityContainerId': None}
         if record is None:
             return result
+        commands = [c for c in self.allowed_capability_commands()
+                    if record['commandSha256'] == sha(encoded(c))]
         if (record['sourceCommit'] != self.request['sourceCommit']
                 or record['bundleSha256'] != self.request['bundleSha256']
                 or record['inputSha256'] not in self.capability_input_hashes()
-                or record['commandSha256'] != sha(encoded(CAPABILITY_COMMAND))
+                or not commands
                 or not re.fullmatch(re.escape(upgrade.PROJECT) + r'-funded-capability-[a-f0-9]{32}', record['name'])):
             raise ValueError('Exact original funded capability evidence required')
+        command = commands[0]
         def lookup():
             ids = upgrade.docker('ps', '-aq', '--no-trunc', '--filter',
                                  'name=^/' + record['name'] + '$').stdout.decode().split()
@@ -562,7 +573,7 @@ class System:
                     or value['Name'] != '/' + record['name'] or value['Image'] != record['imageId']
                     or (record['containerId'] is not None and record['containerId'] != ids[0])
                     or config.get('Labels', {}).get('com.alterward.funded-capability') != probe_identity(record)
-                    or config.get('Entrypoint') != ['node'] or config.get('Cmd') != CAPABILITY_COMMAND
+                    or config.get('Entrypoint') != ['node'] or config.get('Cmd') != command
                     or config.get('User') != 'node' or config.get('WorkingDir') != '/app'
                     or not host.get('AutoRemove') or not host.get('ReadonlyRootfs')
                     or host.get('NetworkMode') != 'none' or host.get('Privileged') or host.get('PortBindings')
@@ -583,14 +594,17 @@ class System:
             readers.update_durable(self.root / 'capability.json', encoded({**record, 'state': 'cleaned'}))
         return result
 
-    def capability(self, image, hashes):
+    def capability(self, image, hashes, *, registry=False):
         if sha(encoded(hashes)) not in self.capability_input_hashes():
             raise ValueError('Exact committed capability input required before creation')
+        command = REGISTRY_CAPABILITY_COMMAND if registry else CAPABILITY_COMMAND
+        if command not in self.allowed_capability_commands():
+            raise ValueError('Explicit reviewed image capability profile required')
         self.cleanup_capability()
         record = {'version': self.daily.FUNDED_CAPABILITY_VERSION,
                   'sourceCommit': self.request['sourceCommit'], 'bundleSha256': self.request['bundleSha256'],
                   'name': upgrade.PROJECT + '-funded-capability-' + os.urandom(16).hex(),
-                  'imageId': image, 'commandSha256': sha(encoded(CAPABILITY_COMMAND)),
+                  'imageId': image, 'commandSha256': sha(encoded(command)),
                   'inputSha256': sha(encoded(hashes)), 'state': 'pending', 'containerId': None}
         readers.update_durable(self.root / 'capability.json', encoded(record))
         try:
@@ -599,7 +613,7 @@ class System:
                 '--network', 'none', '--user', 'node', '--read-only', '--cap-drop', 'ALL',
                 '--security-opt', 'no-new-privileges:true', '--memory', '512m', '--cpus', '1',
                 '--pids-limit', '128', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
-                '--entrypoint', 'node', image, *CAPABILITY_COMMAND], input=encoded(hashes), timeout=60)
+                '--entrypoint', 'node', image, *command], input=encoded(hashes), timeout=60)
         finally:
             self.cleanup_capability()
 
@@ -644,11 +658,14 @@ class System:
                 raise ValueError('Build source differs from reviewed Git bundle')
         # Compare files INSIDE the actual image before importing any capability
         # implementation. The image digest alone is not a self-declared version.
-        result = self.capability(build['imageId'], hashes)
+        version, schema, profile = self.image_capability_profile()
+        result = (self.capability(build['imageId'], hashes, registry=True) if profile == 'service-registry-040'
+                  else self.capability(build['imageId'], hashes))
         capability = json.loads(result.stdout)
         if (
-            capability.get('version') != 'alterward-funded-runtime-1'
-            or capability.get('schema') != 39
+            capability.get('version') != version
+            or capability.get('schema') != schema
+            or capability.get('profile') != profile
             or len(capability.get('policies', [])) != 19
             or 'fiction-v9' not in capability.get('policies', [])
             or capability.get('characterStateVersion') != '1.0.0'

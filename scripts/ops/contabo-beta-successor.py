@@ -43,6 +43,8 @@ ALLOWANCE_KEYS = {'CLOSED_BETA_USER_IDS', 'AI_PROJECT_BUDGET_USD', 'AI_USER_BUDG
                   'AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'}
 READER_PURPOSE = 'reader-admission'
 SCHEMA_PURPOSE = 'schema-039'
+REGISTRY_PURPOSE = 'schema-040'
+REGISTRY_BILLING_PURPOSE = 'billing-config-040'
 BILLING_PURPOSE = 'billing-config'
 # Billing configuration is rolled out in at most three ordered, once-only stages:
 # a Stripe TEST configuration, the LIVE configuration, and finally the enforcement flag.
@@ -365,6 +367,22 @@ class System(funded.System):
     def is_billing(self):
         return purpose_of(self.selected()) == BILLING_PURPOSE
 
+    def registry_profile(self):
+        # The new purposes are intentionally not admitted by allowed_purposes
+        # until their full prepare/Daily/recovery protocol is wired and tested.
+        if ('selection' not in self.request and not (self.root / 'selection.json').exists()
+                and not (self.root / 'selection.json').is_symlink()):
+            return False  # the original engine-freeze capability can precede selection creation
+        return purpose_of(self.selected()) in {REGISTRY_PURPOSE, REGISTRY_BILLING_PURPOSE}
+
+    def allowed_capability_commands(self):
+        return ((funded.CAPABILITY_COMMAND, funded.REGISTRY_CAPABILITY_COMMAND) if self.registry_profile()
+                else super().allowed_capability_commands())
+
+    def image_capability_profile(self):
+        return (('alterward-funded-runtime-2', 40, 'service-registry-040') if self.registry_profile()
+                else super().image_capability_profile())
+
     def no_database_write(self):
         """Reader admission and billing configuration never write the database."""
         return self.is_reader() or self.is_billing()
@@ -413,6 +431,71 @@ class System(funded.System):
         elif (self.root / 'selection.json').exists() and self.is_billing():
             accepted |= {sha(encoded(self.billing_frozen_source_hashes()))}
         return accepted
+
+    def registry_operation(self):
+        return {'plan': self.daily.registry_schema_plan(self.selected(), self.original_terms(),
+            self.now(), self.request['sourceHashes'])}
+
+    def registry_frozen_source_hashes(self):
+        approved = self.daily.REGISTRY_040_CHANGE_HASHES
+        if any(self.request['sourceHashes'].get(p) != h for p, h in approved.items()):
+            raise ValueError('Exact reviewed040 application exceptions required')
+        return {p: h for p, h in self.frozen_source_hashes().items() if p not in approved}
+
+    def registry_probe(self, image):
+        value = self.raw_probe(image, {'mode': 'registry-capture', 'expected': None,
+            'participants': list(self.original_terms()['participants'])})
+        return self.daily.parse_registry_runtime(value)
+
+    def registry_context(self, candidate, *, persist=False):
+        # Authenticate a real fresh candidate restore before any new SQL attempt.
+        # Retain the measured evidence once; later Daily status refreshes must not
+        # silently rebind an already journaled intent to another backup.
+        self.backup(candidate)
+        path = self.root / 'registry-evidence.json'
+        if path.exists() or path.is_symlink():
+            evidence = json.loads(fence.original(path))
+            funded.exact(evidence, {'candidateSha256', 'backupManifest', 'restoreProof'})
+            if evidence['candidateSha256'] != canonical_sha(candidate):
+                raise ValueError('Original registry backup evidence required')
+        else:
+            restore = json.loads(self.daily.regular(self.daily.ROOT / 'status' / 'restore.json'))
+            records = self.daily.completed_archives(self.daily.ROOT / 'backups')
+            record = next((r['manifest'] for r in records if r['manifest']['runId'] == restore['runId']), None)
+            if record is None:
+                raise ValueError('Measured candidate backup and restore required')
+            evidence = {'candidateSha256': canonical_sha(candidate),
+                        'backupManifest': record, 'restoreProof': restore}
+            if persist:
+                readers.durable_file(path, encoded(evidence))
+        return {'sourceCommit': candidate['sourceCommit'],
+            'imageId': candidate['release']['target']['imageId'],
+            'candidateSha256': canonical_sha(candidate),
+            'parentAuthoritySha256': canonical_sha({k: candidate[k] for k in (
+                'parentPreparedSha256', 'parentJournalSha256', 'parentReadbackSha256')}),
+            'backupManifestSha256': canonical_sha(evidence['backupManifest']),
+            'restoreProofSha256': canonical_sha(evidence['restoreProof'])}
+
+    def registry_intent(self, candidate):
+        path = self.root / 'registry-intent.json'
+        intent = json.loads(fence.original(path))
+        if (intent.get('version') != 'alterward-registry-upgrade-intent-1'
+                or intent.get('context') != self.registry_context(candidate)):
+            raise ValueError('Original candidate-bound registry intent required')
+        rows = self.journal(candidate)['states']
+        hashes = {row.get('registryIntentSha256') for row in rows if row['state'] == 'database-intent'}
+        if hashes != {canonical_sha(intent)}:
+            raise ValueError('Registry intent must match its durable journal binding')
+        return intent
+
+    def registry_database_request(self, candidate, mode, intent=None):
+        expected = {'context': self.registry_context(candidate)}
+        if mode != 'registry-prepare':
+            if intent is None:
+                intent = self.registry_intent(candidate)
+            expected.update(intent=intent, persistedIntentSha256=canonical_sha(intent))
+        return self.raw_probe(candidate['release']['target']['imageId'], {
+            'mode': mode, 'participants': list(self.original_terms()['participants']), 'expected': expected})
 
     def schema_frozen_source_hashes(self):
         # The schema upgrade ships billing, so exactly the reviewed allow-list may differ

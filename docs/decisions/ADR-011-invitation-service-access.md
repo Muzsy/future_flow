@@ -70,6 +70,14 @@ A teljes #142 successor/Daily/native040 recovery és konfigurációs controller 
 
 A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
 
+### Operátori előkészítő segédek — #142, nem aktivált út
+
+A040 plan előkészítése csak39→40 selectiont, változatlan korábbi termseket és33 konkrét reviewed alkalmazásút pontos SHA-256 értékét fogadhatja el. A v2 snapshot összehasonlítása stabil állapotnál a catalog/registry és billing hashét is köti; csak a migráció ismert39→40 átmenete enged üres új registryt és eltérő katalógust. A Compose új `SERVICE_ACCESS_ENFORCEMENT=false` értéke a korábbi renderből hiányozhat, de true/üres/hibás érték nem normalizálható el.
+
+Az image-capability külön fix parancsot kap: az eredeti v1 parancs és command-hash megmarad; a registry parancsot csak explicit támogató controller engedheti. A cleanup továbbra tényleges image/name/label/command/input hash és erőforráshatárok szerint ellenőriz. A root helper az eredeti candidate backup/restore bizonyítékát külön tartja meg, és az intentet a journal hashéhez ellenőrzi; későbbi Daily státuszfrissítés nem kötheti át.
+
+Ezek előkészítő helper API-k. A `schema-040` / `billing-config-040` purpose még nem engedélyezett, a teljes successor/Daily/journal/native040 replay és konfigurációs protokoll hiányzik. A régi v1/039 műveletek elfogadási köre változatlan. Ez a checkpoint nem deployolható040 csomag vagy operátori audit.
+
 ## Következő integrációs szeletek és elfogadás
 
 1. Tartós tároló és operátori műveletek: schema/migráció, RLS és anon/authenticated tiltás, privacy-katalógus/megőrzés/export/törlés, recovery-baseline, writer-fence és revízió/CAS együtt. Az adatminimalizált email/identitás-kötést még rögzíteni kell; a tartós regiszter nem lehet fiókmanipulációval írható.

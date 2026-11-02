@@ -624,6 +624,46 @@ SUCCESSOR_ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3'
                         'beta-successor-5', 'beta-successor-6', 'beta-successor-7')
 # purpose -> (participants, projectUsd, userUsd) for allowance-changing purposes.
 SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10', '3.33')}
+# Explicit040 profile; none of these labels relax the historical039 validators.
+SUCCESSOR_REGISTRY_PURPOSE = 'schema-040'
+SUCCESSOR_REGISTRY_BILLING_PURPOSE = 'billing-config-040'
+SUCCESSOR_REGISTRY_PLAN_VERSION = 'alterward-beta-successor-plan-3'
+REGISTRY_040_CHANGE_HASHES = {
+    'apps/api/src/app.ts': '8d619ac8ae4da5378ae9a210833f228760b48c7da6e0beae214fb3cc3904d9b0',
+    'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
+    'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
+    'apps/api/src/billing.ts': 'af8c39115b02523afcd3da39d20069e18173f900da0c639ee9eea8a8a4cae5b3',
+    'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
+    'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
+    'apps/api/src/service-access.ts': '1f32c69a7e07ff1894b1b89ec95266f48a2568cdfa20955712d527dc29622106',
+    'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
+    'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
+    'apps/web/components/life-experience.tsx': '8a62f161f5fcaf0877929b905a2f9d558be03dcb0f12a83a5e0c5b6ba1a8a49c',
+    'apps/web/lib/billing.ts': 'b1d875729517a96776086624ce9463cf015dcfcc53218b99b6d7130b07b49e46',
+    'apps/web/lib/i18n/messages.ts': '642686072a3cb0b738f75b35dc4b7e847c1f61c9ebd8966dc3f047e3c4cfd4ea',
+    'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
+    'apps/web/proxy.ts': '5d6188280d6d0c94e719d02df3a3bca541251d5d7659f383eb1136cd5129ae29',
+    'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
+    'apps/worker/src/chapter-billing.ts': '6ee53efd50efb86bc44eb727fdbdb8abc17b6fdc16fbbc6b85a7f08261047593',
+    'apps/worker/src/main.ts': '6adb7581bf7309f9ba19549e9f433482779b5ce7ae8f197fa90a8227f3617bd8',
+    'database/migrations/040_service_access_registry.sql': 'd52965052872352f3fe83e95fb8d7d2abff9611cffaaa5b580b7320d240fb938',
+    'deploy/compose.yaml': '54d0170b7974a46432b3a4993c527ec8e8626ad7e18ad53a8c563f102edb4fea',
+    'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
+    'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
+    'packages/contracts/src/error-messages.ts': '5a607d0c996842a6b96c4774a30ee34e59f997bf7135557f3009eb6c723e8424',
+    'packages/core/src/billing-service.ts': '391e35b4c3866b52cd84a323e0b8491be75e5af60788fff3468279ae12a8bac1',
+    'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
+    'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
+    'packages/core/src/service-access.ts': '04a403fb0c0064012e2828d2b769aba890f99e99ffbfc3c77aa35ed8c0c1a856',
+    'packages/database/src/billing.ts': 'e216d311ef8b3f787934af4a5cf192422b23b87cb9e6619858a4136c610874e8',
+    'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
+    'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
+    'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
+    'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
+    'packages/database/src/repository.ts': 'e05ee22ccd8f226e96aa64f7ab9d0714a3ff5ae79183330ccc46a6f07d557487',
+    'packages/database/src/service-access.ts': '4f6134a61b83b168e07370a4064b7059c00f0413beff6ad32217d66bc14dc8a4',
+}
+
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
 # The 038 to 039 database and application upgrade: no allowance, window, cohort or reader change.
 SUCCESSOR_SCHEMA_PURPOSE = 'schema-039'
@@ -731,6 +771,83 @@ def successor_billing_environment(value):
 def successor_json(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
 
+
+
+
+def registry_schema_selection(selection, previous_terms):
+    if (not isinstance(selection, dict)
+            or set(selection) != {'purpose', 'previousTermsSha256', 'fromSchema', 'toSchema'}
+            or selection['purpose'] != SUCCESSOR_REGISTRY_PURPOSE
+            or type(selection['fromSchema']) is not int or type(selection['toSchema']) is not int
+            or (selection['fromSchema'], selection['toSchema']) != (39, 40)
+            or selection['previousTermsSha256'] != successor_canonical_hash(previous_terms)):
+        raise ValueError('Exact039 to040 selection preserving previous terms required')
+    return selection
+
+
+def registry_schema_plan(selection, previous_terms, now, source_hashes):
+    registry_schema_selection(selection, previous_terms)
+    if (now.utcoffset() != dt.timedelta(0)
+            or any(source_hashes.get(p) != h for p, h in REGISTRY_040_CHANGE_HASHES.items())):
+        raise ValueError('Exact UTC clock and reviewed040 source hashes required')
+    stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    return {'version': SUCCESSOR_REGISTRY_PLAN_VERSION, 'purpose': SUCCESSOR_REGISTRY_PURPOSE,
+        'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
+        'previousTermsSha256': successor_canonical_hash(previous_terms),
+        'selectionSha256': successor_canonical_hash(selection), 'fromSchema': 39, 'toSchema': 40,
+        'allowedChanges': list(REGISTRY_040_CHANGE_HASHES),
+        'allowedChangeHashes': dict(REGISTRY_040_CHANGE_HASHES)}
+
+def parse_registry_runtime(value):
+    keys = {'version', 'profile', 'schema', 'identityBindingSha256', 'dataSha256',
+            'artifactSha256', 'catalogSha256', 'policiesSha256', 'drained', 'providerApiCalls',
+            'billingDataSha256', 'migrationPrefixSha256', 'registryDataSha256', 'registryRows'}
+    hashes = ('identityBindingSha256', 'dataSha256', 'artifactSha256', 'catalogSha256',
+              'policiesSha256', 'billingDataSha256', 'migrationPrefixSha256')
+    if (not isinstance(value, dict) or set(value) != keys
+            or value['version'] != 'alterward-funded-runtime-2'
+            or value['profile'] != 'service-registry-040'
+            or type(value['schema']) is not int or value['schema'] not in (39, 40)
+            or value['drained'] is not True or type(value['providerApiCalls']) is not int
+            or value['providerApiCalls'] != 0
+            or any(not isinstance(value[k], str) or not re.fullmatch(r'[a-f0-9]{64}', value[k]) for k in hashes)):
+        raise ValueError('Exact drained registry v2 observation required')
+    rows, registry = value['registryRows'], value['registryDataSha256']
+    if value['schema'] == 39:
+        if rows is not None or registry is not None:
+            raise ValueError('Schema039 cannot carry registry authority')
+    elif (not isinstance(rows, dict) or set(rows) != {'policy', 'admissions'}
+            or type(rows['policy']) is not int or not 0 <= rows['policy'] <= 1
+            or type(rows['admissions']) is not int or not 0 <= rows['admissions'] <= 100000
+            or not isinstance(registry, str) or not re.fullmatch(r'[a-f0-9]{64}', registry)):
+        raise ValueError('Exact schema040 registry observation required')
+    return value
+
+
+def same_registry_runtime(before, after, *, migration=False):
+    before, after = parse_registry_runtime(before), parse_registry_runtime(after)
+    if not migration:
+        if before != after:
+            raise ValueError('Protected registry runtime changed')
+        return
+    keys = ('identityBindingSha256', 'dataSha256', 'artifactSha256', 'policiesSha256',
+            'billingDataSha256', 'migrationPrefixSha256')
+    if (before['schema'] != 39 or after['schema'] != 40
+            or after['registryRows'] != {'policy': 0, 'admissions': 0}
+            or any(before[k] != after[k] for k in keys)):
+        raise ValueError('Registry migration changed protected data or receipts')
+
+
+def registry_profile_default(config):
+    # A newly introduced false value may be absent in the original039 render.
+    # True/unknown values are never normalized away during an OFF-profile upgrade.
+    result = json.loads(json.dumps(config))
+    for role in ('web', 'api', 'worker'):
+        env = result['services'][role]['environment']
+        if env.get('SERVICE_ACCESS_ENFORCEMENT', 'false') != 'false':
+            raise ValueError('Registry schema upgrade must leave service profile OFF')
+        env['SERVICE_ACCESS_ENFORCEMENT'] = 'false'
+    return result
 
 def successor_roots():
     """Existing generation roots in order; a gap is invalid, not skipped."""
