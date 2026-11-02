@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { errorMessage } from '@future-flow/contracts';
 import {
   createStripeProvider,
   createBillingPortalSession,
@@ -49,6 +50,15 @@ function provider(
   return { p, calls };
 }
 describe('restricted subscription management portal', () => {
+  it('reports management failures in the selected language', () => {
+    expect(errorMessage('en', 'BILLING_MANAGEMENT_UNAVAILABLE')).toMatch(
+      /^Subscription management/,
+    );
+    expect(errorMessage('hu', 'BILLING_MANAGEMENT_UNAVAILABLE')).toMatch(
+      /^Az előfizetéskezelés/,
+    );
+  });
+
   it('pins the verified configuration and own customer, returning only to billing', async () => {
     const { p, calls } = provider();
     expect(await p.createPortalSession!({ customerId: 'cus_own' })).toEqual({
