@@ -38,6 +38,7 @@ jobs:
           node --test tests/ops/operator-transfer.test.mjs
           node --test tests/ops/funded-replay.test.mjs
           node --test tests/ops/funded-upgrade.test.mjs
+          node --test tests/ops/ci-fixture-cleanup.test.mjs
           node --test tests/ops/funded-access.test.mjs
           node --test tests/ops/beta-successor-release.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
@@ -81,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     # Build, complete funded fixture (including the chained successor case that
     # really waits for the owner window to start) and cleanup.
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Build the Contabo image without credentials

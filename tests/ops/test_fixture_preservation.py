@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import json
+import io
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -12,6 +13,18 @@ path = Path(__file__).resolve().parents[2] / 'scripts/ops/contabo-funded-fixture
 spec = importlib.util.spec_from_file_location('preservation_engine', path)
 engine = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(engine)
+
+
+class FixtureProgress(unittest.TestCase):
+    def test_progress_contains_only_fixed_case_event_and_monotonic_duration(self):
+        output = io.StringIO()
+        with patch.object(engine.time,'monotonic',return_value=12.5), patch.object(engine.sys,'stderr',output):
+            engine.fixture_progress('postcheck','complete',10.0)
+        self.assertEqual(json.loads(output.getvalue()),
+                         {'fundedFixtureCase':'postcheck','event':'complete','elapsedMs':2500})
+        for label,event in [('private-or-user-controlled','start'),('success','secret-value')]:
+            with self.subTest(label=label,event=event), self.assertRaises(ValueError):
+                engine.fixture_progress(label,event,10.0)
 
 
 class FixturePreservation(unittest.TestCase):

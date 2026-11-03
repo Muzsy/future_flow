@@ -25,6 +25,17 @@ import uuid
 from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
+FIXTURE_CASES = (
+    'probe-cleanup', 'expired-archive', 'postcheck', 'success', 'image-only',
+    'interruption-intent', 'interruption-held', 'interruption-schema', 'interruption-staged',
+)
+
+
+def fixture_progress(label, event, began):
+    if label not in FIXTURE_CASES or event not in {'start', 'complete'}:
+        raise ValueError('Fixed synthetic fixture progress phase required')
+    print(json.dumps({'fundedFixtureCase':label,'event':event,
+        'elapsedMs':round((time.monotonic()-began)*1000)}),file=sys.stderr,flush=True)
 
 
 def load(name, file):
@@ -100,6 +111,7 @@ def preserved_containers(before, project=None, sentinel=None):
 
 
 def exercise(context, *, scope='ci'):
+    began = time.monotonic()
     run = globals()['run']
     if os.geteuid() != 0 or scope not in {'ci', 'image-rehearsal'}:
         raise ValueError('Explicit Linux/root isolated fixture scope required')
@@ -910,19 +922,10 @@ def exercise(context, *, scope='ci'):
             if registry:
                 system.prepare_registry_replay(candidate, manifest, dump, encrypted['application.dump.age']['sha256'], sha(encoded(manifest)))
 
-        for label in (
-            'probe-cleanup',
-            'expired-archive',
-            # Exercise native040 before the success case's real ten-minute wait.
-            # Cases own separate databases/runtime trees; every old case still runs.
-            'postcheck',
-            'success',
-            'image-only',
-            'interruption-intent',
-            'interruption-held',
-            'interruption-schema',
-            'interruption-staged',
-        ):
+        # Native040 still precedes the success case's real ten-minute wait;
+        # every case keeps its own database/runtime tree and original checks.
+        for label in FIXTURE_CASES:
+            fixture_progress(label, 'start', began)
             # Test-owned cleanup between independent cases, never a production
             # journal deletion/retry path.
             if (owner / 'funded-runtime-upgrade').exists():
@@ -1304,6 +1307,7 @@ def exercise(context, *, scope='ci'):
             system.stop()
             db('drop', database)
             databases.remove(database)
+            fixture_progress(label, 'complete', began)
         checks['foreign'] = preserved_containers(all_before, project, foreign_id)
         assert checks['foreign']
         successor_checks.update(foreignStable=checks['foreign'],cleanup=True)

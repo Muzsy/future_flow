@@ -6,7 +6,6 @@ import {
   mkdtempSync,
   readdirSync,
   realpathSync,
-  rmSync,
   writeFileSync,
   readFileSync,
 } from 'node:fs';
@@ -16,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout } from 'node:timers/promises';
 import { runRegistryImageFixture } from './schema040-image-fixture.mjs';
 import { fundedSourceBundle } from './lib/funded-upgrade.mjs';
+import { cleanupCiFixture } from './lib/ci-fixture-cleanup.mjs';
 
 // Never point this test at the user's VPS, database, or experimental API budget.
 assert.equal(process.platform, 'linux');
@@ -365,7 +365,7 @@ try {
         encoding: 'utf8',
         // Physical backup/restore and successor waits share this CI-only budget.
         // Individual operation deadlines and every acceptance check stay intact.
-        timeout: 30 * 60 * 1000,
+        timeout: 40 * 60 * 1000,
         maxBuffer: 8 * 1024 * 1024,
       },
     ),
@@ -769,5 +769,5 @@ try {
   }
   const withinTemp = relative(temporaryRoot, realpathSync(fixture));
   assert(withinTemp.startsWith('alterward-ci-') && !withinTemp.includes('..'));
-  rmSync(fixture, { recursive: true, force: true });
+  if (!cleanupCiFixture(fixture)) process.exitCode = 1;
 }
