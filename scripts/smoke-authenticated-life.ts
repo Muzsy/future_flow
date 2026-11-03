@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -116,6 +117,7 @@ async function main() {
     await request('/api/v1/me/consent', 'POST', {
       adult: true,
       acknowledged: true,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
     });
     const setup: LifeSetupV2 = {
       locale: 'en',

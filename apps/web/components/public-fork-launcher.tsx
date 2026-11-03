@@ -1,4 +1,5 @@
 'use client';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -168,7 +169,11 @@ function ForkLauncher({ slug }: { slug: string }) {
           '/me/consent',
           {
             method: 'POST',
-            body: JSON.stringify({ adult: true, acknowledged: true }),
+            body: JSON.stringify({
+              adult: true,
+              acknowledged: true,
+              termsVersion: TERMS_ACCEPTANCE_VERSION,
+            }),
           },
           'v1',
           user,

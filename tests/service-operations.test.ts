@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
@@ -483,7 +484,10 @@ describe('privileged service operations on actual SQL, without host authority im
       ).map((r) => ({ used: Number(r.used), capacity: Number(r.capacity) }))[0];
     async function register(id = randomUUID()) {
       const { ServiceAccessRepository } = await import('@future-flow/database');
-      return new ServiceAccessRepository(db).admitOpenAccount(id);
+      return new ServiceAccessRepository(db).admitOpenAccount(
+        id,
+        TERMS_ACCEPTANCE_VERSION,
+      );
     }
 
     it('opens, closes and raises a wave by revision, without any provider call', async () => {

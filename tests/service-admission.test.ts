@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
@@ -42,7 +43,11 @@ const env = {
   CLOUDFLARE_ACCESS_AUD: 'a'.repeat(64),
   CLOSED_SITE_ALLOWED_EMAILS: 'legacy@example.invalid',
 };
-const ACK = { adult: true, acknowledged: true };
+const ACK = {
+  adult: true,
+  acknowledged: true,
+  termsVersion: TERMS_ACCEPTANCE_VERSION,
+};
 function adapter(client: Pick<PGlite, 'query' | 'transaction'>): Database {
   return {
     query: async <T extends Record<string, unknown>>(
@@ -248,6 +253,14 @@ describe('bounded open admission over HTTP', () => {
 
   it('admits on the 18+/AI acknowledgement, atomically creating root, consent and admission', async () => {
     const id = newAccount();
+    // A stale or missing terms version is refused before anything is written.
+    for (const body of [
+      { ...ACK, termsVersion: 'terms-2020-01' },
+      { adult: true, acknowledged: true },
+    ])
+      expect((await accept(id, body)).status).toBe(422);
+    expect(await rows('ff_consents')).toBe(0);
+    expect((await policy()).admission_used).toBe(0);
     const response = await accept(id);
     expect(response.status).toBe(201);
     expect(await response.json()).toEqual({
@@ -257,7 +270,21 @@ describe('bounded open admission over HTTP', () => {
     expect(
       await db.query('SELECT status FROM ff_users WHERE id=$1', [id]),
     ).toEqual([{ status: 'active' }]);
-    expect(await rows('ff_consents')).toBe(1);
+    expect(
+      await db.query(
+        'SELECT policy_version,consent_type FROM ff_consents WHERE user_id=$1 ORDER BY consent_type',
+        [id],
+      ),
+    ).toEqual([
+      {
+        policy_version: 'alpha-privacy-v1',
+        consent_type: 'adult_and_ai_acknowledgement',
+      },
+      {
+        policy_version: TERMS_ACCEPTANCE_VERSION,
+        consent_type: 'terms_and_privacy_acceptance',
+      },
+    ]);
     expect(
       await db.query(
         'SELECT revision::int,state FROM aw_service_admissions WHERE user_id=$1',
@@ -294,6 +321,38 @@ describe('bounded open admission over HTTP', () => {
     expect((await policy()).admission_used).toBe(0);
   });
 
+  it('refuses to admit at the database layer without the current terms version, writing nothing', async () => {
+    const store = new ServiceAccessRepository(db);
+    for (const version of [undefined, '', 'stale', null])
+      await expect(
+        store.admitOpenAccount(newAccount(), version),
+      ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+    expect(await rows('ff_users')).toBe(0);
+    expect(await rows('ff_consents')).toBe(0);
+    expect((await policy()).admission_used).toBe(0);
+  });
+
+  it('records both consent rows through the regular consent route and refuses a stale version there', async () => {
+    const repo = new Repository(db);
+    const id = newAccount();
+    await db.query('INSERT INTO ff_users(id) VALUES($1)', [id]);
+    for (const version of [undefined, '', 'stale', null])
+      await expect(repo.acceptConsent(id, version)).rejects.toMatchObject({
+        code: 'VALIDATION_FAILED',
+      });
+    expect(await rows('ff_consents')).toBe(0);
+    await repo.acceptConsent(id, TERMS_ACCEPTANCE_VERSION);
+    await repo.acceptConsent(id, TERMS_ACCEPTANCE_VERSION);
+    expect(
+      (
+        await db.query<{ consent_type: string }>(
+          'SELECT consent_type FROM ff_consents WHERE user_id=$1 ORDER BY consent_type',
+          [id],
+        )
+      ).map((r) => r.consent_type),
+    ).toEqual(['adult_and_ai_acknowledgement', 'terms_and_privacy_acceptance']);
+  });
+
   it('closes automatically on the last slot and shows the full message without storing the account', async () => {
     const ids = [newAccount(), newAccount(), newAccount()];
     for (const id of ids) expect((await accept(id)).status).toBe(201);
@@ -316,7 +375,7 @@ describe('bounded open admission over HTTP', () => {
     expect(
       await db.query('SELECT 1 FROM ff_users WHERE id=$1', [late]),
     ).toHaveLength(0);
-    expect(await rows('ff_consents')).toBe(3);
+    expect(await rows('ff_consents')).toBe(6);
     // Earlier admissions are not affected by the close.
     for (const id of ids)
       expect((await call(id, '/api/v2/lives')).status).toBe(200);
@@ -331,7 +390,7 @@ describe('bounded open admission over HTTP', () => {
     expect(statuses.filter((s) => s === 403)).toHaveLength(9);
     expect(await rows('aw_service_admissions')).toBe(5);
     expect(await rows('ff_users')).toBe(5);
-    expect(await rows('ff_consents')).toBe(5);
+    expect(await rows('ff_consents')).toBe(10);
     expect(await policy()).toMatchObject({
       mode: 'invitation',
       admission_used: 5,

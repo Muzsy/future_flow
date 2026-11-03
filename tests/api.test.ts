@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { applyMigrations } from '../scripts/lib/migrations';
@@ -79,7 +80,11 @@ describe('API ownership boundary', () => {
         fetch(`${base}/api/v1/me/consent`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ adult: true, acknowledged: true }),
+          body: JSON.stringify({
+            adult: true,
+            acknowledged: true,
+            termsVersion: TERMS_ACCEPTANCE_VERSION,
+          }),
         }),
       ),
     );
