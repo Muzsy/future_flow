@@ -611,9 +611,12 @@ async function replayRestore(
     // An old snapshot may predate a service revoke or pause. Until the latest
     // authority has been reconciled, close the complete service snapshot, not
     // just new generation/checkout. Normal policy CAS cannot clear this flag.
+    // A restored bounded-open wave is closed as well: its counter may predate
+    // admissions that were later lost, so reconcile must reopen it explicitly
+    // (revision untouched; the quarantine flag already fences every writer).
     if (profile.schema === 40)
       await tx.query(
-        'UPDATE aw_service_policy SET reconcile_required=true,updated_at=now() WHERE NOT reconcile_required',
+        "UPDATE aw_service_policy SET reconcile_required=true,mode='invitation',updated_at=now() WHERE NOT reconcile_required OR mode<>'invitation'",
       );
     for (const block of a.blocks)
       await tx.query(

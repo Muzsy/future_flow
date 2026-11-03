@@ -1,4 +1,5 @@
 'use client';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -506,7 +507,11 @@ export function LifeExperience({
               void act(async () => {
                 await api('/me/consent', {
                   method: 'POST',
-                  body: JSON.stringify({ adult, acknowledged: ack }),
+                  body: JSON.stringify({
+                    adult,
+                    acknowledged: ack,
+                    termsVersion: TERMS_ACCEPTANCE_VERSION,
+                  }),
                 });
                 setConsent(true);
               })

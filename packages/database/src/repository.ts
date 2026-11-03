@@ -15,7 +15,9 @@ import {
   languages,
   supportedLocales,
   type Locale,
+  TERMS_ACCEPTANCE_CONSENT_TYPE,
 } from '@future-flow/contracts';
+import { assertTermsVersion } from './service-access';
 import {
   DomainError,
   buildProfile,
@@ -113,6 +115,21 @@ export class Repository {
       "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
       [randomUUID(), userId],
     );
+  }
+  // Regular consent route: the 18+/AI acknowledgement and the versioned
+  // terms/privacy acceptance are recorded together or not at all.
+  async acceptConsent(userId: string, termsVersion: unknown) {
+    const version = assertTermsVersion(termsVersion);
+    await this.db.transaction(async (tx) => {
+      await tx.query(
+        "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
+        [randomUUID(), userId],
+      );
+      await tx.query(
+        'INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [randomUUID(), userId, version, TERMS_ACCEPTANCE_CONSENT_TYPE],
+      );
+    });
   }
   async privacyStatus(userId: string) {
     const row = requireRow(

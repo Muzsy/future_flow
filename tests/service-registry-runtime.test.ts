@@ -252,7 +252,7 @@ describe('explicit registry040 runtime profile alongside the unchanged legacy039
           kind === 'billing'
             ? "UPDATE aw_billing_reservations SET state='released' WHERE key='existing-consumed-chapter'"
             : kind === 'registry'
-              ? "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled) VALUES(1,1,1,'open',true,true)"
+              ? "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled,admission_capacity) VALUES(1,1,1,'open',true,true,10)"
               : "UPDATE ff_migrations SET applied_at=applied_at+interval '1 second' WHERE name LIKE '039_%'",
         );
         const after = await captureServiceRegistryRuntime(db, input);

@@ -250,7 +250,7 @@ async function verifyRestore(
     );
     if (profile.schema === 40)
       await empty(
-        'SELECT 1 FROM aw_service_policy WHERE NOT reconcile_required',
+        "SELECT 1 FROM aw_service_policy WHERE NOT reconcile_required OR mode<>'invitation'",
       );
     await empty(
       'SELECT 1 FROM ff_users u WHERE NOT EXISTS(SELECT 1 FROM aw_publication_restrictions r WHERE r.user_id=u.id AND r.active)',

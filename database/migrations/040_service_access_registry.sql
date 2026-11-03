@@ -10,13 +10,26 @@ CREATE TABLE aw_service_policy (
   checkout_enabled boolean NOT NULL,
   reconcile_required boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- Bounded open admission: a monotone counter of accounts admitted through
+  -- the open path (operator-created admissions never count). Deleting an
+  -- account or revoking an admission never frees a slot. Open mode requires a
+  -- remaining slot, so the policy cannot be left open once capacity is spent.
+  admission_capacity bigint NOT NULL DEFAULT 0 CHECK(admission_capacity BETWEEN 0 AND 100000),
+  admission_used bigint NOT NULL DEFAULT 0 CHECK(admission_used>=0),
+  CHECK(admission_used<=admission_capacity),
+  CHECK(mode<>'open' OR admission_used<admission_capacity)
 );
 
 CREATE TABLE aw_service_admissions (
   user_id uuid PRIMARY KEY REFERENCES ff_users(id) ON DELETE CASCADE,
   revision bigint NOT NULL CHECK(revision BETWEEN 1 AND 9007199254740991),
   state text NOT NULL CHECK(state IN ('active','revoked')),
+  -- Set once, in the same transaction as an open admission, when the account
+  -- took one of the first ten open slots (admission_used <= 10). Operator
+  -- admissions are never eligible. Revocation/deletion never moves it to
+  -- another account. Billing reads it; nothing here grants or applies a price.
+  launch_discount_eligible boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

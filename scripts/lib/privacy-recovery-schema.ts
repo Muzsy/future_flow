@@ -104,8 +104,8 @@ const baselines = {
   40: {
     tables: reviewedPrivacyRecoveryTables,
     columns: [
-      906,
-      '045b9dcfa8938a9ba0120ffb252da073655bbdf35bd082aa86677eb33f2b6d63',
+      909,
+      '1b34f34b714b94dbff42996b8c2d61042539dc5e118ff5297413de41b612478a',
     ],
     foreignKeys: [
       226,

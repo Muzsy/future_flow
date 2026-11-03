@@ -3,6 +3,8 @@ import {
   assertStoredServiceAccess,
   type Database,
 } from '@future-flow/database';
+import { handlePreAdmission, preAdmissionRoute } from './service-admission';
+import type { Request, Response } from 'express';
 import {
   createServiceSiteGate,
   serviceAccountControlException,
@@ -25,7 +27,32 @@ export type ServiceAccessRuntime = Readonly<{
     identity: VerifiedAccessIdentity | undefined,
     action: ServiceAction,
   ) => Promise<void>;
+  // Bounded open admission (see service-admission.ts). Returns true when the
+  // request was answered here; false means continue with the regular checks.
+  preAdmission: (
+    user: ServiceVerifiedUser,
+    identity: VerifiedAccessIdentity | undefined,
+    request: Pick<Request, 'method' | 'path' | 'body'>,
+    response: Pick<Response, 'status' | 'json'>,
+  ) => Promise<boolean>;
 }>;
+function assertVerifiedIdentity(
+  user: ServiceVerifiedUser,
+  identity: VerifiedAccessIdentity | undefined,
+) {
+  if (
+    !identity ||
+    user.emailConfirmed !== true ||
+    !user.email ||
+    user.email.toLowerCase() !== identity.email ||
+    identity.expiresAt <= Date.now() / 1000
+  )
+    throw new DomainError(
+      'SERVICE_IDENTITY_MISMATCH',
+      'Sign in with the same confirmed email in both login steps.',
+      403,
+    );
+}
 export function serviceAction(
   method: string,
   path: string,
@@ -51,20 +78,16 @@ export function createServiceAccessRuntime(
     identity: site.identity,
     async assert(user, identity, action) {
       if (!site.enabled) return;
-      if (
-        action !== 'account-control' &&
-        (!identity ||
-          user.emailConfirmed !== true ||
-          !user.email ||
-          user.email.toLowerCase() !== identity.email ||
-          identity.expiresAt <= Date.now() / 1000)
-      )
-        throw new DomainError(
-          'SERVICE_IDENTITY_MISMATCH',
-          'Sign in with the invited account.',
-          403,
-        );
+      if (action !== 'account-control') assertVerifiedIdentity(user, identity);
       await assertStoredServiceAccess(db, user.id, action, true);
+    },
+    async preAdmission(user, identity, request, response) {
+      if (!site.enabled) return false;
+      // Only the pre-admission routes need the extra work; keep every other
+      // request off this path before touching the database.
+      if (!preAdmissionRoute(request.method, request.path)) return false;
+      assertVerifiedIdentity(user, identity);
+      return handlePreAdmission(db, user.id, request, response);
     },
   };
 }

@@ -68,6 +68,14 @@ jobs:
           assert result.wasSuccessful() and result.testsRun == 10 and not result.skipped
           PY
       - run: pnpm typecheck
+      - name: Start a disposable local PostgreSQL for the admission concurrency proof
+        run: |
+          sudo systemctl start postgresql
+          password=$(openssl rand -hex 16)
+          echo "::add-mask::$password"
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ff_admission_ci LOGIN SUPERUSER PASSWORD '$password'"
+          sudo -u postgres createdb -O ff_admission_ci ff_admission_test
+          echo "SERVICE_ADMISSION_PG_URL=postgres://ff_admission_ci:$password@127.0.0.1/ff_admission_test" >> "$GITHUB_ENV"
       - run: pnpm test
       - run: pnpm build
       - name: Verify closed-site production web without live credentials

@@ -209,6 +209,8 @@ export async function preparePrivacyRestoreFixture(
       generationEnabled: true,
       checkoutEnabled: true,
     });
+    // An open bounded-admission wave in the backup must come back closed.
+    await service.configureAdmission(2, { capacity: 10, open: true });
     await service.replaceAdmission(a, 0, 'active');
     await service.replaceAdmission(b, 0, 'active');
     await service.replaceAdmission(c, 0, 'active');
@@ -411,9 +413,9 @@ export async function verifyPrivacyRestoreFixture(
     );
   assert.deepEqual(
     await db.query(
-      'SELECT revision::int,reconcile_required FROM aw_service_policy',
+      'SELECT revision::int,mode,reconcile_required FROM aw_service_policy',
     ),
-    [{ revision: 2, reconcile_required: true }],
+    [{ revision: 3, mode: 'invitation', reconcile_required: true }],
   );
   assert.deepEqual(
     await db.query(
