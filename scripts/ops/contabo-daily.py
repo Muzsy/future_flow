@@ -70,7 +70,7 @@ const client=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUn
 const mode=process.argv[1];let watchdog;try{await client.connect();const socket=client.connection.stream;const host=new URL(process.env.DATABASE_URL).hostname;if(!(socket instanceof TLSSocket)||!socket.encrypted||socket.authorized!==true||!new X509Certificate(socket.getPeerCertificate().raw).checkHost(host))throw Error('TLS');
 await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await client.query("SET LOCAL statement_timeout='15s'");await client.query("SET LOCAL timezone='UTC'");const version=(await client.query('SHOW server_version_num')).rows[0].server_version_num;if(Math.floor(Number(version)/10000)!==17)throw Error('Major');
 if(mode==='snapshot'){const snapshot=(await client.query('SELECT pg_export_snapshot() AS id')).rows[0].id;const names=(await client.query("SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;if(!names.length||names.length>1000||names.some(t=>!/^(aw_|ff_)[a-z0-9_]+$/.test(t.name)))throw Error('Schema');const tables=[];for(const{name}of names){const row=(await client.query(`SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM public."${name}" t`)).rows[0];tables.push({name,...row});}console.log(JSON.stringify({databaseTlsVerified:true,snapshot,tables}));await new Promise(resolve=>{watchdog=setTimeout(resolve,240000);process.stdin.once('data',resolve);process.stdin.once('end',resolve);});clearTimeout(watchdog);
-}else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);console.log(JSON.stringify({databaseTlsVerified:true,...queue}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
+}else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);const table=(await client.query("SELECT to_regclass('public.aw_service_policy') AS name")).rows[0].name!==null;let servicePolicy=null;if(table){const row=(await client.query('SELECT mode,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1')).rows[0];if(row)servicePolicy={mode:row.mode,reconcileRequired:row.reconcile_required===true,capacity:Number(row.admission_capacity),used:Number(row.admission_used)};}console.log(JSON.stringify({databaseTlsVerified:true,...queue,servicePolicyTable:table,servicePolicy}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
 
 ORIGIN_PROBE = """let denied=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover','http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++}console.log(JSON.stringify({anonymousDenied:denied}));"""
 
@@ -395,6 +395,7 @@ def extended_config_archive(proxy):
     paths += reader_config_paths()
     paths += personal_config_paths()
     paths += funded_upgrade_config_paths()
+    paths += service_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -453,6 +454,164 @@ def personal_config_paths():
         regular(item)
         files.append(item)
     return sorted(files)
+
+
+# Service-admission operator evidence (ADR-011 service-profile record and the
+# root service operator journal). Independent policy version: it never changes
+# how any earlier archive is read. Daily is installed as exactly three files, so
+# the light verification below deliberately duplicates the record format instead
+# of importing the operator modules; a parity test keeps the two in step.
+SERVICE_ARCHIVE_POLICY_VERSION = 1
+SERVICE_PROFILE_DIR = ORIGINAL_ROOT / 'service-profile'
+SERVICE_OPERATION_DIR = Path('/var/lib/alterward/service-operations')
+SERVICE_PROFILE_VERSION = 'alterward-service-profile-1'
+SERVICE_HEAD_VERSION = 'alterward-service-profile-head-1'
+SERVICE_PROFILE_JOURNAL_VERSION = 'alterward-service-profile-journal-1'
+SERVICE_OPERATOR_JOURNAL_VERSION = 'alterward-service-operator-journal-1'
+SERVICE_PROFILE_FILE = re.compile(r'[1-9][0-9]{0,3}\.json')
+SERVICE_OPERATION_ID = re.compile(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}')
+SERVICE_OPERATION_NAMES = {'intent.json', 'readback.json'}
+SERVICE_OPERATION_LIMIT = 256
+SERVICE_PROFILE_LIMIT = 64
+SERVICE_UNFINISHED_GRACE_SECONDS = 1800
+
+
+def service_regular(path, modes=(0o400, 0o600)):
+    value = path.lstat()
+    if (not stat.S_ISREG(value.st_mode) or value.st_nlink != 1 or
+            value.st_uid != UID or stat.S_IMODE(value.st_mode) not in modes):
+        raise ValueError('Private service evidence file required')
+    return path.read_bytes()
+
+
+def service_directory(path):
+    info = path.lstat()
+    if (stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Private service evidence directory required')
+
+
+def service_config_paths():
+    """Exact finite service-record and operation-journal files; [] before first use.
+
+    Unknown names, aliases, hardlinks or public modes fail the whole capture
+    closed. Profile generations are immutable (0400); everything else is 0600.
+    """
+    files = []
+    if SERVICE_PROFILE_DIR.exists() or SERVICE_PROFILE_DIR.is_symlink():
+        service_directory(SERVICE_PROFILE_DIR)
+        for item in SERVICE_PROFILE_DIR.iterdir():
+            if item.name == 'profiles':
+                service_directory(item)
+                children = list(item.iterdir())
+                if len(children) > SERVICE_PROFILE_LIMIT or any(
+                        not SERVICE_PROFILE_FILE.fullmatch(c.name) for c in children):
+                    raise ValueError('Unknown service profile evidence')
+                for child in children:
+                    service_regular(child)
+                    files.append(child)
+            elif item.name in {'journal.jsonl', 'head.json'}:
+                service_regular(item)
+                files.append(item)
+            elif item.name not in {'.lock'} and not re.fullmatch(r'\.(head\.json|journal\.jsonl)\.new', item.name):
+                raise ValueError('Unknown service profile evidence')
+    if SERVICE_OPERATION_DIR.exists() or SERVICE_OPERATION_DIR.is_symlink():
+        service_directory(SERVICE_OPERATION_DIR)
+        operations = 0
+        for item in SERVICE_OPERATION_DIR.iterdir():
+            if item.name == 'journal.jsonl':
+                service_regular(item, (0o600,))
+                files.append(item)
+            elif item.name == '.lock':
+                continue
+            elif SERVICE_OPERATION_ID.fullmatch(item.name):
+                operations += 1
+                if operations > SERVICE_OPERATION_LIMIT:
+                    raise ValueError('Too many service operations to archive')
+                service_directory(item)
+                for child in item.iterdir():
+                    if child.name not in SERVICE_OPERATION_NAMES:
+                        raise ValueError('Unknown service operation evidence')
+                    service_regular(child, (0o600,))
+                    files.append(child)
+            else:
+                raise ValueError('Unknown service operation evidence')
+    return sorted(files)
+
+
+def service_canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode()
+
+
+def service_chain(data, version, keys, events):
+    rows, previous = [], '0' * 64
+    for number, line in enumerate(data.splitlines(), 1):
+        row = json.loads(line)
+        if not isinstance(row, dict) or not keys <= set(row):
+            raise ValueError('Service journal row invalid')
+        body = {k: v for k, v in row.items() if k != 'sha256'}
+        if (row.get('version') != version or row['sequence'] != number or row['event'] not in events or
+                row['previousSha256'] != previous or
+                row['sha256'] != digest(service_canonical(body)) or line != service_canonical(row).rstrip(b'\n')):
+            raise ValueError('Service journal chain broken')
+        previous = row['sha256']
+        rows.append(row)
+    return rows
+
+
+def service_record_health(environments, images, now):
+    """Host-only facts about the service-profile record and the operator journal.
+
+    Returns {'profile': 'absent'|'verified'|'mismatch'|'unverified',
+    'journal': 'absent'|'verified'|'unverified', 'unfinished': bool}. Nothing here
+    reads the database, writes anything or reveals profile content.
+    """
+    enforced = any(env.get('SERVICE_ACCESS_ENFORCEMENT') == 'true' for env in environments.values())
+    result = {'profile': 'absent', 'journal': 'absent', 'unfinished': False, 'enforced': enforced}
+    if SERVICE_PROFILE_DIR.exists() or SERVICE_PROFILE_DIR.is_symlink():
+        try:
+            service_directory(SERVICE_PROFILE_DIR)
+            service_directory(SERVICE_PROFILE_DIR / 'profiles')
+            rows = service_chain(service_regular(SERVICE_PROFILE_DIR / 'journal.jsonl'),
+                                 SERVICE_PROFILE_JOURNAL_VERSION,
+                                 {'version', 'sequence', 'event', 'generation', 'profileSha256', 'at',
+                                  'previousSha256', 'sha256'}, {'profile-activated', 'profile-superseded'})
+            head = json.loads(service_regular(SERVICE_PROFILE_DIR / 'head.json'))
+            last = rows[-1]
+            active = last['generation'] if last['event'] == 'profile-activated' else None
+            profile = json.loads(service_regular(SERVICE_PROFILE_DIR / 'profiles' / f'{active}.json')) if active else None
+            if (profile is None or head.get('version') != SERVICE_HEAD_VERSION or head.get('generation') != active or
+                    head.get('profileSha256') != last['profileSha256'] or head.get('journalSha256') != last['sha256'] or
+                    digest(service_canonical(profile)) != last['profileSha256'] or
+                    profile.get('version') != SERVICE_PROFILE_VERSION or profile.get('generation') != active):
+                raise ValueError('Service profile head mismatch')
+            running = all(images.get(name) == profile.get('imageId') for name in ('api', 'worker', 'web'))
+            result['profile'] = 'verified' if running and enforced and profile.get('serviceAccessEnforcement') is True else 'mismatch'
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            result['profile'] = 'unverified'
+    if SERVICE_OPERATION_DIR.exists() or SERVICE_OPERATION_DIR.is_symlink():
+        try:
+            service_directory(SERVICE_OPERATION_DIR)
+            path = SERVICE_OPERATION_DIR / 'journal.jsonl'
+            if path.exists() or path.is_symlink():
+                rows = service_chain(service_regular(path, (0o600,)), SERVICE_OPERATOR_JOURNAL_VERSION,
+                                     {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
+                                     {'intent-persisted', 'apply-started', 'applied', 'apply-unknown',
+                                      'reconciled-committed', 'reconciled-uncommitted', 'drift-accepted'})
+                state = {}
+                for row in rows:
+                    if row['event'] in ('apply-started', 'apply-unknown'):
+                        state[row['operationId']] = row
+                    elif row['event'] != 'intent-persisted':
+                        state.pop(row['operationId'], None)
+                result['journal'] = 'verified'
+                result['unfinished'] = any(
+                    r['event'] == 'apply-unknown' or
+                    (now - dt.datetime.fromisoformat(r['at'].replace('Z', '+00:00'))).total_seconds() >
+                    SERVICE_UNFINISHED_GRACE_SECONDS for r in state.values())
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            result['journal'] = 'unverified'
+    return result
 
 
 # Independent policy version: do not reinterpret the original personal/reader
@@ -2280,6 +2439,33 @@ def alerts_for(health, now):
         alerts.append('registry_restore_unverified')
     if health.get('personalTransitionHealthy', True) is not True:
         alerts.append('personal_transition_incomplete')
+    alerts += service_alerts(health)
+    return alerts
+
+
+def service_alerts(health):
+    """Service-admission alerts. Absent keys mean the legacy beta: no alert."""
+    service = health.get('service')
+    if not isinstance(service, dict):
+        return []
+    alerts = []
+    profile, enforced = service.get('profile', 'absent'), service.get('enforced') is True
+    if enforced and profile == 'absent':
+        alerts.append('service_profile_missing')
+    elif profile in {'mismatch', 'unverified'}:
+        alerts.append('service_profile_mismatch')
+    if service.get('journal') == 'unverified':
+        alerts.append('service_journal_unverified')
+    if service.get('unfinished') is True:
+        alerts.append('service_operation_unreconciled')
+    policy = service.get('policy')
+    if enforced and policy is None:
+        alerts.append('service_policy_missing')
+    elif isinstance(policy, dict):
+        if policy.get('reconcileRequired') is True:
+            alerts.append('service_reconcile_required')
+        if policy.get('mode') == 'open' and policy.get('used', 0) >= policy.get('capacity', 0):
+            alerts.append('service_wave_over_capacity')
     return alerts
 
 
@@ -2334,7 +2520,12 @@ def monitor(value):
                                '-noout', '-enddate']).decode().strip().removeprefix('notAfter=')
         expires = dt.datetime.strptime(certificate, '%b %d %H:%M:%S %Y %Z').replace(tzinfo=dt.timezone.utc)
         now = utcnow()
-        health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin,
+        service = service_record_health(
+            {name: dict(item.split('=', 1) for item in v['Config']['Env']) for name, v in services.items()},
+            {name: v['Image'] for name, v in services.items()}, now)
+        service['policy'] = database.pop('servicePolicy', None)
+        database.pop('servicePolicyTable', None)
+        health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin, 'service': service,
             'personalTransitionHealthy': personal_transition_healthy(policy['mode']),
             'registryRestoreHealthy': registry_restore_healthy(value),
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,

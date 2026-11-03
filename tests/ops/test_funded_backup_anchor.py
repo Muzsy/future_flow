@@ -109,6 +109,7 @@ class FundedBackupAnchorTests(unittest.TestCase):
                 self.write(self.owner / directory / name)
         self.write(self.daily / 'config.json')
         self.start_patch('config', return_value={'scriptHashes': {}})
+        self.start_patch('service_config_paths', return_value=[])
         self.start_patch('reader_config_paths', return_value=[])
         self.start_patch('personal_config_paths', return_value=[self.original])
         self.write(self.funded / 'target' / 'server.env', b'funded target')
