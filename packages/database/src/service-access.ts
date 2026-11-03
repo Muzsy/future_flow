@@ -11,7 +11,23 @@ import {
   type ServiceAdmissionLookup,
   type ServiceAction,
 } from '@future-flow/core';
+import {
+  TERMS_ACCEPTANCE_CONSENT_TYPE,
+  TERMS_ACCEPTANCE_VERSION,
+} from '@future-flow/contracts';
 import type { Database } from './index';
+
+// Fails closed before any write: acceptance is only ever recorded against the
+// current, non-empty terms text version.
+export function assertTermsVersion(version: unknown): string {
+  if (
+    typeof version !== 'string' ||
+    !version ||
+    version !== TERMS_ACCEPTANCE_VERSION
+  )
+    throw new DomainError('VALIDATION_FAILED', 'Invalid request.', 422);
+  return version;
+}
 
 export type ServiceAccessSnapshot = Readonly<{
   policy: ServiceAccessPolicy | null;
@@ -288,7 +304,9 @@ export class ServiceAccessRepository {
   // before calling this. Operator-created admissions never touch the counter.
   async admitOpenAccount(
     verifiedUserId: unknown,
+    termsVersion: unknown,
   ): Promise<OpenAdmissionOutcome> {
+    const terms = assertTermsVersion(termsVersion);
     const userId = accountId(verifiedUserId);
     if (!userId) return { status: 'unavailable' };
     return this.db.transaction(async (tx) => {
@@ -335,6 +353,10 @@ export class ServiceAccessRepository {
       await tx.query(
         "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
         [randomUUID(), userId],
+      );
+      await tx.query(
+        'INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [randomUUID(), userId, terms, TERMS_ACCEPTANCE_CONSENT_TYPE],
       );
       // The slot number is final under the policy-row lock. Eligibility is
       // fixed here, in the same transaction, and never recomputed.
