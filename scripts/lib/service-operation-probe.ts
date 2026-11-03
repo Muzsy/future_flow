@@ -11,6 +11,8 @@
 import { z } from 'zod';
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
+import { captureMigrationPrefixSha256 } from './service-registry-schema-migration';
+import { reviewedMigrationManifest } from './reviewed-migration-manifest';
 import {
   applyServiceOperation,
   prepareServiceOperation,
@@ -19,6 +21,7 @@ import {
 } from './service-operations';
 
 export const SERVICE_PROBE_MODES = [
+  'service-status',
   'service-prepare',
   'service-apply',
   'service-reconcile',
@@ -30,6 +33,16 @@ const digest = z.string().regex(/^[a-f0-9]{64}$/);
 // A raw JSON request is only the transport shape here; the DB core owns the
 // exact request/intent schemas and re-validates everything.
 const record = z.record(z.string(), z.unknown());
+// Read-only observation for the host helper: the 040 migration receipt of the
+// reviewed image, the singleton policy and, optionally, up to ten accounts'
+// admission state (needed for revocation). No personal data beyond the
+// requested account ids is returned.
+const statusInput = z
+  .object({
+    mode: z.literal('service-status'),
+    accounts: z.array(z.string().uuid()).max(10),
+  })
+  .strict();
 const prepareInput = z
   .object({
     mode: z.literal('service-prepare'),
@@ -46,7 +59,9 @@ const followInput = z
   })
   .strict();
 export type ServiceProbeInput =
-  z.infer<typeof prepareInput> | z.infer<typeof followInput>;
+  | z.infer<typeof statusInput>
+  | z.infer<typeof prepareInput>
+  | z.infer<typeof followInput>;
 
 // Only auth-free, exposure-neutral or exposure-reducing kinds may use the host
 // path. Everything else (granting an account) needs a provider verifier that
@@ -82,6 +97,7 @@ export function parseServiceProbeInput(raw: string): ServiceProbeInput {
       : undefined;
   if (!SERVICE_PROBE_MODES.includes(mode as ServiceProbeMode))
     throw Error('Exact service probe input required');
+  if (mode === 'service-status') return statusInput.parse(value);
   const input =
     mode === 'service-prepare'
       ? prepareInput.parse(value)
@@ -130,11 +146,85 @@ const noProvider = async () => {
   throw Error('Auth provider verification is not available on the host path');
 };
 
+export async function serviceStatus(tx: Database, accounts: string[]) {
+  const reviewed = reviewedMigrationManifest();
+  const applied = await tx.query<{ name: string; checksum: string }>(
+    'SELECT name,checksum FROM public.ff_migrations ORDER BY name',
+  );
+  if (
+    applied.length !== 40 ||
+    reviewed.length !== 40 ||
+    applied.some(
+      (row, i) =>
+        row.name !== reviewed[i]!.name ||
+        row.checksum !== hash(reviewed[i]!.sql),
+    )
+  )
+    throw Error('Exact reviewed 001–040 migration receipt required');
+  const [policy] = await tx.query<{
+    revision: string | number;
+    mode: string;
+    generation_enabled: boolean;
+    checkout_enabled: boolean;
+    reconcile_required: boolean;
+    admission_capacity: string | number;
+    admission_used: string | number;
+  }>(
+    'SELECT revision,mode,generation_enabled,checkout_enabled,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1',
+  );
+  const states = [];
+  for (const userId of accounts) {
+    const [row] = await tx.query<{ revision: string | number; state: string }>(
+      'SELECT revision,state FROM aw_service_admissions WHERE user_id=$1',
+      [userId],
+    );
+    states.push({
+      userId,
+      admission: row
+        ? { revision: Number(row.revision), state: row.state }
+        : null,
+    });
+  }
+  return {
+    version: 'alterward-service-status-1' as const,
+    schema: 40 as const,
+    migrationPrefixSha256: await captureMigrationPrefixSha256(tx),
+    policy: policy
+      ? {
+          revision: Number(policy.revision),
+          mode: policy.mode,
+          generationEnabled: policy.generation_enabled,
+          checkoutEnabled: policy.checkout_enabled,
+          reconcileRequired: policy.reconcile_required,
+          admissionCapacity: Number(policy.admission_capacity),
+          admissionUsed: Number(policy.admission_used),
+        }
+      : null,
+    accounts: states,
+    paidAiCalls: 0 as const,
+    authProviderWrites: false as const,
+  };
+}
+
 export async function runServiceProbe(
   session: ProbeSession,
   input: ServiceProbeInput,
 ) {
   const db = bound(session);
+  if (input.mode === 'service-status') {
+    await session.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    try {
+      const result = await serviceStatus(
+        db,
+        (input as z.infer<typeof statusInput>).accounts,
+      );
+      await session.query('COMMIT');
+      return result;
+    } catch (error) {
+      await session.query('ROLLBACK').catch(() => {});
+      throw error;
+    }
+  }
   if (input.mode === 'service-apply') {
     const intent = await applyServiceOperation(
       db,

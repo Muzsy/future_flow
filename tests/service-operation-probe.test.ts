@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { hash } from '@future-flow/core';
 import { ServiceAccessRepository, type Database } from '@future-flow/database';
+import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
 import {
   SERVICE_PROBE_MAX_INPUT_BYTES,
   parseServiceProbeInput,
@@ -66,11 +67,18 @@ const revision = async () => Number((await policy()).revision);
 
 beforeAll(async () => {
   engine = new PGlite();
-  await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated');
+  await engine.exec(
+    'CREATE ROLE anon;CREATE ROLE authenticated;CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());',
+  );
   for (const name of readdirSync('database/migrations')
     .filter((name) => name.endsWith('.sql'))
     .sort())
     await engine.exec(readFileSync('database/migrations/' + name, 'utf8'));
+  for (const m of reviewedMigrationManifest())
+    await engine.query(
+      'INSERT INTO ff_migrations(name,checksum) VALUES($1,$2) ON CONFLICT DO NOTHING',
+      [m.name, hash(m.sql)],
+    );
   session = {
     query: async (sql, values) =>
       (await engine.query(sql, values)) as {
@@ -197,6 +205,81 @@ describe('service operation probe input', () => {
         intentSha256: 'a'.repeat(64),
       }),
     ).toThrow('not permitted');
+  });
+});
+
+describe('service status observation', () => {
+  const status = (accounts: string[] = []) =>
+    runServiceProbe(
+      session,
+      parse({ mode: 'service-status', accounts }),
+    ) as Promise<{
+      version: string;
+      schema: number;
+      migrationPrefixSha256: string;
+      policy: Record<string, unknown> | null;
+      accounts: { userId: string; admission: unknown }[];
+      paidAiCalls: number;
+      authProviderWrites: boolean;
+    }>;
+  it('accepts only the exact status input', () => {
+    for (const bad of [
+      { mode: 'service-status' },
+      { mode: 'service-status', accounts: ['x'] },
+      { mode: 'service-status', accounts: [], extra: 1 },
+      {
+        mode: 'service-status',
+        accounts: Array.from({ length: 11 }, () => randomUUID()),
+      },
+    ])
+      expect(() => parse(bad)).toThrow();
+  });
+  it('reports the exact migration receipt, the policy and requested admissions read-only', async () => {
+    const empty = await status();
+    expect(empty).toMatchObject({
+      version: 'alterward-service-status-1',
+      schema: 40,
+      policy: null,
+      paidAiCalls: 0,
+      authProviderWrites: false,
+    });
+    expect(empty.migrationPrefixSha256).toMatch(/^[a-f0-9]{64}$/);
+    const boot = await plan({ kind: 'bootstrap', members: [] });
+    await apply(boot);
+    const id = randomUUID(),
+      other = randomUUID();
+    await db.query('INSERT INTO ff_users(id) VALUES($1)', [id]);
+    await new ServiceAccessRepository(db).replaceAdmission(id, 0, 'active');
+    const value = await status([id, other]);
+    expect(value.policy).toMatchObject({
+      mode: 'invitation',
+      generationEnabled: false,
+      reconcileRequired: false,
+      admissionCapacity: 0,
+      admissionUsed: 0,
+    });
+    expect(value.accounts).toEqual([
+      { userId: id, admission: { revision: 1, state: 'active' } },
+      { userId: other, admission: null },
+    ]);
+    // Read-only: the session is left outside any transaction.
+    expect((await session.query('SHOW transaction_read_only')).rows).toEqual([
+      { transaction_read_only: 'off' },
+    ]);
+  });
+  it('refuses a database whose migration receipt is not the reviewed one', async () => {
+    await db.query(
+      "UPDATE ff_migrations SET checksum='0' WHERE name LIKE '040%'",
+    );
+    try {
+      await expect(status()).rejects.toThrow('migration receipt');
+    } finally {
+      const m = reviewedMigrationManifest()[39]!;
+      await db.query('UPDATE ff_migrations SET checksum=$1 WHERE name=$2', [
+        hash(m.sql),
+        m.name,
+      ]);
+    }
   });
 });
 

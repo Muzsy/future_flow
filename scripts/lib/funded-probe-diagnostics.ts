@@ -16,6 +16,7 @@ const phases = new Set([
   'registry-prepare',
   'registry-apply',
   'registry-reconcile',
+  'service-status',
   'service-prepare',
   'service-apply',
   'service-reconcile',
