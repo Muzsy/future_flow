@@ -25,6 +25,11 @@ CREATE TABLE aw_service_admissions (
   user_id uuid PRIMARY KEY REFERENCES ff_users(id) ON DELETE CASCADE,
   revision bigint NOT NULL CHECK(revision BETWEEN 1 AND 9007199254740991),
   state text NOT NULL CHECK(state IN ('active','revoked')),
+  -- Set once, in the same transaction as an open admission, when the account
+  -- took one of the first ten open slots (admission_used <= 10). Operator
+  -- admissions are never eligible. Revocation/deletion never moves it to
+  -- another account. Billing reads it; nothing here grants or applies a price.
+  launch_discount_eligible boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

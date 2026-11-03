@@ -442,6 +442,73 @@ describe('bounded open admission over HTTP', () => {
   });
 });
 
+describe('launch discount eligibility is fixed at admission', () => {
+  const eligible = async () =>
+    (
+      await db.query<{ user_id: string; launch_discount_eligible: boolean }>(
+        'SELECT user_id,launch_discount_eligible FROM aw_service_admissions',
+      )
+    ).filter((r) => r.launch_discount_eligible).length;
+  it('marks exactly the first ten open admissions and no later one', async () => {
+    await wave(14);
+    const ids = Array.from({ length: 14 }, () => newAccount());
+    // Sequential, so the order is known; parallel exactness is proven on PostgreSQL.
+    for (const id of ids) expect((await accept(id)).status).toBe(201);
+    expect(await eligible()).toBe(10);
+    for (const [index, id] of ids.entries())
+      expect(await store.launchDiscountEligible(id)).toBe(index < 10);
+  });
+
+  it('gives a later wave no automatic eligibility, even after reopening', async () => {
+    await wave(10);
+    for (let i = 0; i < 10; i++) await accept(newAccount());
+    expect(await eligible()).toBe(10);
+    const state = (await store.admissionCapacity())!;
+    await store.configureAdmission(state.revision, {
+      capacity: 20,
+      open: true,
+    });
+    const later = newAccount();
+    await accept(later);
+    expect(await store.launchDiscountEligible(later)).toBe(false);
+    expect(await eligible()).toBe(10);
+  });
+
+  it('never makes an operator-created admission eligible', async () => {
+    const operator = newAccount();
+    await new Repository(db).ensureUser(operator);
+    await store.replaceAdmission(operator, 0, 'active');
+    expect(await store.launchDiscountEligible(operator)).toBe(false);
+    expect(await store.launchDiscountEligible(randomUUID())).toBe(false);
+    expect(await store.launchDiscountEligible('not-a-uuid')).toBe(false);
+  });
+
+  it('keeps eligibility on revocation and does not hand it to another account', async () => {
+    await wave(12);
+    const first = newAccount();
+    await accept(first);
+    await store.replaceAdmission(first, 1, 'revoked');
+    expect(await store.launchDiscountEligible(first)).toBe(true);
+    const others = Array.from({ length: 11 }, () => newAccount());
+    for (const id of others) await accept(id);
+    // The revoked first account still holds its place: only nine others fit.
+    expect(await eligible()).toBe(10);
+    expect(await store.launchDiscountEligible(others[8]!)).toBe(true);
+    expect(await store.launchDiscountEligible(others[9]!)).toBe(false);
+  });
+
+  it("does not give a deleted account's place to anyone else", async () => {
+    await wave(11);
+    const first = newAccount();
+    await accept(first);
+    await db.query('DELETE FROM ff_users WHERE id=$1', [first]);
+    const rest = Array.from({ length: 10 }, () => newAccount());
+    for (const id of rest) await accept(id);
+    expect(await eligible()).toBe(9);
+    expect(await store.launchDiscountEligible(rest[9]!)).toBe(false);
+  });
+});
+
 describe('operator wave control and policy interplay', () => {
   it('bumps the policy revision on the automatic close so a stale operator write conflicts', async () => {
     const before = (await policy()).revision;

@@ -106,6 +106,11 @@ describe.skipIf(!disposable)(
         roots: 10,
         consents: 10,
       });
+      // Capacity 10: all ten are the first ten, exactly.
+      const [flags] = await admin.query<{ n: number }>(
+        'SELECT count(*) FILTER (WHERE launch_discount_eligible)::int AS n FROM aw_service_admissions',
+      );
+      expect(flags!.n).toBe(10);
     }, 60000);
 
     it('counts the same account once when it arrives on several connections at once', async () => {
@@ -175,6 +180,22 @@ describe.skipIf(!disposable)(
       );
       expect(orphans!.n).toBe(0);
     }, 90000);
+
+    it('marks exactly ten accounts launch-discount eligible under a larger wave of parallel registrations', async () => {
+      await wave(25);
+      const available = stores();
+      const outcomes = await Promise.all(
+        Array.from({ length: 60 }, (_, i) =>
+          available[i % available.length]!.admitOpenAccount(randomUUID()),
+        ),
+      );
+      expect(outcomes.filter((o) => o.status === 'admitted')).toHaveLength(25);
+      const rows = await admin.query<{ eligible: boolean }>(
+        'SELECT launch_discount_eligible AS eligible FROM aw_service_admissions',
+      );
+      expect(rows).toHaveLength(25);
+      expect(rows.filter((r) => r.eligible)).toHaveLength(10);
+    }, 60000);
 
     it('does not admit anyone while a restore quarantine is set and reopens only through an explicit wave', async () => {
       await admin.query('UPDATE aw_service_policy SET reconcile_required=true');

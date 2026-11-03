@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   DomainError,
+  FOUNDER_DISCOUNT_MAX_ACCOUNTS,
   evaluateServiceAccess,
   serviceAccessEnforcementFromEnv,
   parseServiceAccessPolicy,
@@ -203,6 +204,18 @@ export class ServiceAccessRepository {
     return result;
   }
 
+  // Persisted at admission time (one of the first ten open slots). A pure read
+  // for billing; false for an unknown, operator-created or later account.
+  async launchDiscountEligible(verifiedUserId: unknown): Promise<boolean> {
+    const userId = accountId(verifiedUserId);
+    if (!userId) return false;
+    const [row] = await this.db.query<{ eligible: boolean }>(
+      'SELECT launch_discount_eligible AS eligible FROM aw_service_admissions WHERE user_id=$1',
+      [userId],
+    );
+    return row?.eligible === true;
+  }
+
   // Classification for the pre-admission routes. It writes nothing.
   async admissionStatus(verifiedUserId: unknown): Promise<AdmissionStatus> {
     const userId = accountId(verifiedUserId);
@@ -323,9 +336,11 @@ export class ServiceAccessRepository {
         "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
         [randomUUID(), userId],
       );
+      // The slot number is final under the policy-row lock. Eligibility is
+      // fixed here, in the same transaction, and never recomputed.
       await tx.query(
-        "INSERT INTO aw_service_admissions(user_id,revision,state) VALUES($1,1,'active')",
-        [userId],
+        "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',$2)",
+        [userId, used + 1 <= FOUNDER_DISCOUNT_MAX_ACCOUNTS],
       );
       const [after] = await tx.query<{
         admission_used: string | number;
