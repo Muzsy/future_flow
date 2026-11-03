@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
   return new NextResponse(
-    '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Invitation access · alterward</title><h1>alterward · invitation access</h1><p>Access is by invitation.</p><p><a href="/account-access">Download or delete your own account data</a></p><p><a href="/privacy-notice">Privacy and contact</a></p></html>',
+    '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>Access required · alterward</title><h1>alterward · access required</h1><p>Access to this site is restricted. Sign in through the access page to continue.</p><p><a href="/account-access">Download or delete your own account data</a></p><p><a href="/privacy-notice">Privacy and contact</a></p></html>',
     {
       status: 403,
       headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },

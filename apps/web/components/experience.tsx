@@ -907,9 +907,7 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
                     {signup ? t('auth.haveAccount') : t('auth.needAccount')}
                   </button>
                 )}
-                {!allowSignup && (
-                  <p>Accounts are created by invitation during private beta.</p>
-                )}
+                {!allowSignup && <p>{t('auth.registrationClosed')}</p>}
                 <p>
                   <a href="/account-access">
                     Account access and password recovery
