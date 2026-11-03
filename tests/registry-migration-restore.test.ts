@@ -345,7 +345,7 @@ describe('versioned039 backup → replayed039 → registry040 migration restore 
         billing:
           "UPDATE aw_billing_grants SET revoked=true WHERE key='in_kept'",
         registry:
-          "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled) VALUES(1,1,1,'open',true,true)",
+          "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled,admission_capacity) VALUES(1,1,1,'open',true,true,10)",
         receipt:
           "UPDATE ff_migrations SET checksum='tampered' WHERE name LIKE '040_%'",
         prefix:

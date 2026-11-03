@@ -3,6 +3,7 @@ import {
   personalRequestAdmission,
   personalChapterGuard,
 } from './chapter-billing';
+import { withServiceUsdAlerts } from './service-budget';
 import { generationQueueClaim } from './billing-queues';
 import {
   connectDatabase,
@@ -52,7 +53,7 @@ async function main() {
   // Validate configuration before accepting jobs. Actual calls always reserve
   // the shared application budget, including legacy generation and SDK retries.
   new OpenAiProvider(aiConfig);
-  const budgetConfig = applicationAiBudgetConfigFromEnv();
+  const budgetConfig = withServiceUsdAlerts(applicationAiBudgetConfigFromEnv());
   const fictionMaxRequestBytes = fictionMaxRequestBytesFromEnv();
   const leaseSeconds = Number(process.env.JOB_LEASE_SECONDS ?? 180);
   if (!Number.isFinite(leaseSeconds) || leaseSeconds < 60)

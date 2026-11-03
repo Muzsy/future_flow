@@ -145,6 +145,18 @@ const reservations = (owner: string) =>
     'SELECT * FROM aw_billing_reservations WHERE user_id=$1 ORDER BY key',
     [owner],
   );
+// The old-beta exemption ends at a fixed instant (2026-11-28 01:17:38 CET). Tests
+// that need it to be live pin the clock inside the original window, so they do
+// not start failing once the real date passes it. PGlite reads the same Date.
+async function insideOriginalBetaWindow<T>(run: () => Promise<T>) {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-10T12:00:00Z'));
+  try {
+    return await run();
+  } finally {
+    vi.useRealTimers();
+  }
+}
 async function blocked(
   f: Awaited<ReturnType<typeof fixture>>,
   code = 'BILLING_RESERVATION_REQUIRED',
@@ -445,12 +457,13 @@ describe('personal provider dispatch checks over migration039 and the actual SDK
       expect(await reservations(f.owner)).toEqual(before);
     },
   );
-  it('founder discount eligibility does not grant a reservation exemption', async () => {
+  it('a leftover founder list neither grants a reservation exemption nor a discount', async () => {
     const f = await fixture();
     const config = configureWorkerChapterBilling(
       enabled({ BILLING_FOUNDER_USER_IDS: f.owner }),
     );
-    expect(config.designatedUserIds).toEqual([f.owner]);
+    expect(config.enabled).toBe(true);
+    expect(config).not.toHaveProperty('designatedUserIds');
     await blocked(f);
   });
   it('enforcement OFF makes the added billing check a query-free no-op', async () => {
@@ -464,23 +477,27 @@ describe('personal provider dispatch checks over migration039 and the actual SDK
     expect(query).not.toHaveBeenCalled();
     expect(p.parse).toHaveBeenCalledTimes(1);
   });
-  it('retains the API-equivalent explicit old-beta exemption even with unusable billing', async () => {
-    const f = await fixture();
-    configureWorkerChapterBilling(
-      enabled({
-        BILLING_ENABLED: 'false',
-        CLOSED_BETA_ENABLED: 'true',
-        CLOSED_BETA_USER_IDS: f.owner,
-      }),
-    );
-    const query = vi.spyOn(db, 'query'),
-      p = provider(f.job);
-    await expect(p.ai.period(f.job.payload)).rejects.toMatchObject({
-      code: 'TEST_VENDOR_REACHED',
-    });
-    expect(query).not.toHaveBeenCalled();
-    expect(p.parse).toHaveBeenCalledTimes(1);
-  });
+  it('retains the API-equivalent explicit old-beta exemption inside the original window even with unusable billing', () =>
+    insideOriginalBetaWindow(async () => {
+      const f = await fixture();
+      configureWorkerChapterBilling(
+        enabled({
+          BILLING_ENABLED: 'false',
+          CLOSED_BETA_ENABLED: 'true',
+          CLOSED_BETA_USER_IDS: f.owner,
+        }),
+      );
+      const query = vi.spyOn(db, 'query'),
+        p = provider(f.job);
+      await expect(p.ai.period(f.job.payload)).rejects.toMatchObject({
+        code: 'TEST_VENDOR_REACHED',
+      });
+      // Only the database-clock read of the time-bounded exemption, no billing query.
+      expect(new Set(query.mock.calls.map((call) => call[0]))).toEqual(
+        new Set(['SELECT clock_timestamp() AS billing_now']),
+      );
+      expect(p.parse).toHaveBeenCalledTimes(1);
+    }));
   it.each([false, true])(
     'does not grant exemption from a leftover or different beta list (enabled=%s)',
     async (on) => {
@@ -494,43 +511,44 @@ describe('personal provider dispatch checks over migration039 and the actual SDK
       await blocked(f);
     },
   );
-  it('the old-beta exemption does not waive the independent original USD window', async () => {
-    const f = await fixture();
-    configureWorkerChapterBilling(
-      enabled({ CLOSED_BETA_ENABLED: 'true', CLOSED_BETA_USER_IDS: f.owner }),
-    );
-    const p = provider(f.job),
-      end = new Date(Date.now() - 60000),
-      start = new Date(end.getTime() - 30 * 86400000);
-    const budget = new DatabaseAiBudget(
-      db,
-      f.owner,
-      f.job.id,
-      {
-        projectUsd: 10,
-        userUsd: 3.34,
-        closedBetaUserIds: [f.owner],
-        window: { startsAt: start.toISOString(), endsAt: end.toISOString() },
-      },
-      f.job.lease_token,
-    );
-    const ai = new OpenAiProvider(
-      {
-        apiKey: 'test-only-key',
-        eventModel: 'gpt-6.1-sol',
-        storyModel: 'gpt-6.1-sol',
-        timeoutMs: 1000,
-        maxOutputTokens: 12000,
-        guard: budget,
-        beforePhysicalRequest: personalRequestAdmission(jobs, f.job, false),
-      },
-      { responses: { parse: p.parse } } as unknown as OpenAIClient,
-    );
-    await expect(ai.period(f.job.payload)).rejects.toMatchObject({
-      code: 'AI_BUDGET_WINDOW_CLOSED',
-    });
-    expect(p.parse).not.toHaveBeenCalled();
-  });
+  it('the old-beta exemption does not waive the independent original USD window', () =>
+    insideOriginalBetaWindow(async () => {
+      const f = await fixture();
+      configureWorkerChapterBilling(
+        enabled({ CLOSED_BETA_ENABLED: 'true', CLOSED_BETA_USER_IDS: f.owner }),
+      );
+      const p = provider(f.job),
+        end = new Date(Date.now() - 60000),
+        start = new Date(end.getTime() - 30 * 86400000);
+      const budget = new DatabaseAiBudget(
+        db,
+        f.owner,
+        f.job.id,
+        {
+          projectUsd: 10,
+          userUsd: 3.34,
+          closedBetaUserIds: [f.owner],
+          window: { startsAt: start.toISOString(), endsAt: end.toISOString() },
+        },
+        f.job.lease_token,
+      );
+      const ai = new OpenAiProvider(
+        {
+          apiKey: 'test-only-key',
+          eventModel: 'gpt-6.1-sol',
+          storyModel: 'gpt-6.1-sol',
+          timeoutMs: 1000,
+          maxOutputTokens: 12000,
+          guard: budget,
+          beforePhysicalRequest: personalRequestAdmission(jobs, f.job, false),
+        },
+        { responses: { parse: p.parse } } as unknown as OpenAIClient,
+      );
+      await expect(ai.period(f.job.payload)).rejects.toMatchObject({
+        code: 'AI_BUDGET_WINDOW_CLOSED',
+      });
+      expect(p.parse).not.toHaveBeenCalled();
+    }));
   it('rejects an unreserved C5 job without advancing the physical-request counter', async () => {
     const f = await fixture('old', true);
     configureWorkerChapterBilling(enabled());

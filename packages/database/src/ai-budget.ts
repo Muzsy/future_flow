@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { DomainError } from '@future-flow/core';
+import {
+  DomainError,
+  serviceAccessEnforcementFromEnv,
+} from '@future-flow/core';
 import type { Database } from './index';
 import { lifeRow } from './lives';
 import {
@@ -25,6 +28,16 @@ export const applicationModelPrices: Record<
   'claude-haiku-4-5-20251001': { inputCeiling: 1.25, output: 5 },
 };
 type Usage = { input_tokens: number; output_tokens: number };
+// Default alert lines as fractions of the effective limit (owner decision D3
+// pending: they only matter once a positive limit is configured).
+export const SERVICE_USD_ALERT_THRESHOLDS: readonly number[] = [0.5, 0.8];
+export type ServiceUsdAlert = {
+  scope: 'project' | 'user';
+  threshold: number;
+  limitMicro: number;
+  accountedMicro: number;
+  window: { startsAt: string; endsAt: string };
+};
 export type ApplicationAiBudgetConfig = {
   provider?: 'openai' | 'anthropic';
   projectUsd: number;
@@ -33,6 +46,13 @@ export type ApplicationAiBudgetConfig = {
   // A fixed, explicitly approved period. It never rolls over automatically.
   window?: { startsAt: string; endsAt: string };
   closedBetaUserIds?: string[];
+  // Service profile: project, per-user and period limits that do not depend on
+  // the closed-beta list, its 10/3.34 USD caps or its 30-day period. Zero limits
+  // spend nothing; a positive limit without a fixed period is a configuration
+  // error. Alerts fire when a reservation crosses a threshold of a limit.
+  serviceProfile?: true;
+  alertThresholds?: readonly number[];
+  onAlert?: (alert: ServiceUsdAlert) => void;
 };
 function invalidBudgetConfig(): never {
   throw new DomainError(
@@ -50,6 +70,29 @@ function inactiveClosedBeta(config: ApplicationAiBudgetConfig) {
     config.userUsd === 0 &&
     (config.initialProjectSpentUsd ?? 0) === 0
   );
+}
+// Strictly ascending fractions in (0,1), at most four; absent means the default.
+function alertThresholds(raw: readonly number[] | undefined) {
+  const list = raw ?? SERVICE_USD_ALERT_THRESHOLDS;
+  if (
+    !Array.isArray(list) ||
+    list.length > 4 ||
+    list.some(
+      (t, i) =>
+        typeof t !== 'number' ||
+        !Number.isFinite(t) ||
+        t <= 0 ||
+        t >= 1 ||
+        (i > 0 && t <= list[i - 1]!),
+    )
+  )
+    return invalidBudgetConfig();
+  return [...list];
+}
+// A service-profile budget must be bounded in time as soon as it can spend.
+function assertServiceProfileBounded(config: ApplicationAiBudgetConfig) {
+  if ((config.projectUsd > 0 || config.userUsd > 0) && !config.window)
+    invalidBudgetConfig();
 }
 function budgetWindow(window: ApplicationAiBudgetConfig['window']) {
   if (!window) return undefined;
@@ -129,6 +172,14 @@ export function applicationAiBudgetConfigFromEnv(
   ])
     if (!Number.isFinite(value) || value < 0 || value > 100000)
       return invalidBudgetConfig();
+  // The service profile has its own budget contract. The closed-beta list stays
+  // only a chapter-exemption source (billing.ts) and neither caps nor admits
+  // spending here; the 30-day period and 10/3.34 USD caps belong to the old beta.
+  if (serviceAccessEnforcementFromEnv(env)) {
+    config.serviceProfile = true;
+    assertServiceProfileBounded(config);
+    return config;
+  }
   const beta = closedBetaConfigFromEnv(env);
   if (beta.enabled) {
     config.closedBetaUserIds = beta.userIds;
@@ -152,6 +203,7 @@ export class DatabaseAiBudget {
   private readonly projectKey: string;
   private readonly userKey: string;
   private readonly config: ApplicationAiBudgetConfig;
+  private readonly thresholds: readonly number[];
   constructor(
     private readonly db: Database,
     private readonly userId: string,
@@ -169,6 +221,21 @@ export class DatabaseAiBudget {
     )
       invalidBudgetConfig();
     this.config = { ...config, window: budgetWindow(config.window) };
+    if (config.serviceProfile !== undefined) {
+      if (
+        config.serviceProfile !== true ||
+        config.closedBetaUserIds !== undefined
+      )
+        invalidBudgetConfig();
+      assertServiceProfileBounded(this.config);
+    } else if (
+      config.alertThresholds !== undefined ||
+      config.onAlert !== undefined
+    )
+      invalidBudgetConfig();
+    this.thresholds = config.serviceProfile
+      ? alertThresholds(config.alertThresholds)
+      : [];
     if (config.closedBetaUserIds !== undefined) {
       this.config.closedBetaUserIds = validateClosedBetaConfig({
         enabled: true,
@@ -259,7 +326,7 @@ export class DatabaseAiBudget {
     const reserved = Math.ceil(
       inputBound * rates.inputCeiling + p.max_output_tokens * rates.output,
     );
-    return this.db.transaction(async (tx) => {
+    const { id, alerts } = await this.db.transaction(async (tx) => {
       const user = lifeRow(
         await tx.query('SELECT status FROM ff_users WHERE id=$1 FOR UPDATE', [
           this.userId,
@@ -327,19 +394,35 @@ export class DatabaseAiBudget {
             503,
           );
       }
-      for (const [account, configured] of [
-        [project, this.config.projectUsd],
-        [personal, this.config.userUsd],
-      ] as const)
-        if (
-          Number(account.accounted_micro) + reserved >
-          Math.min(Number(account.limit_micro), Math.floor(configured * 1e6))
-        )
+      const alerts: ServiceUsdAlert[] = [];
+      for (const [scope, account, configured] of [
+        ['project', project, this.config.projectUsd],
+        ['user', personal, this.config.userUsd],
+      ] as const) {
+        const limit = Math.min(
+            Number(account.limit_micro),
+            Math.floor(configured * 1e6),
+          ),
+          before = Number(account.accounted_micro);
+        if (before + reserved > limit)
           throw new DomainError(
             'AI_BUDGET_EXCEEDED',
             'AI budget exhausted.',
             503,
           );
+        // Pessimistic: the reservation is the ceiling that is accounted now.
+        for (const threshold of this.thresholds) {
+          const line = Math.ceil(limit * threshold);
+          if (before < line && before + reserved >= line)
+            alerts.push({
+              scope,
+              threshold,
+              limitMicro: limit,
+              accountedMicro: before + reserved,
+              window: this.config.window!,
+            });
+        }
+      }
       if (this.lifeJobLeaseToken !== undefined) {
         // Recheck the wall clock after budget locks. Count a processing attempt
         // only on its first funded call; rejected budgets and restarts are free.
@@ -372,8 +455,17 @@ export class DatabaseAiBudget {
           reserved,
         ],
       );
-      return id;
+      return { id, alerts };
     });
+    // After commit only: a rolled-back reservation raises no alert, and a failing
+    // sink never blocks or reverses the (already fail-closed) spending path.
+    for (const alert of alerts)
+      try {
+        this.config.onAlert?.(alert);
+      } catch {
+        /* alerting must not change the budget decision */
+      }
+    return id;
   }
   async settle(id: string, usage: Usage | null): Promise<void> {
     await this.db.transaction(async (tx) => {
@@ -433,4 +525,60 @@ export class DatabaseAiBudget {
       );
     });
   }
+}
+
+// Read-only view for the operator monitor: usage of the service-profile period
+// against its effective limits and which alert lines are already crossed. It
+// changes nothing and needs no provider call.
+export async function serviceUsdBudgetStatus(
+  db: Database,
+  config: ApplicationAiBudgetConfig,
+) {
+  const window = budgetWindow(config.window);
+  if (config.serviceProfile !== true || !window) return invalidBudgetConfig();
+  assertServiceProfileBounded({ ...config, window });
+  const thresholds = alertThresholds(config.alertThresholds);
+  const projectKey = `project:${config.provider === 'anthropic' ? 'anthropic:' : ''}window:${window.startsAt}:${window.endsAt}`;
+  const [project] = await db.query<{
+    limit_micro: string | number;
+    accounted_micro: string | number;
+  }>('SELECT limit_micro,accounted_micro FROM aw_budget_accounts WHERE id=$1', [
+    projectKey,
+  ]);
+  const limit = (configured: number, stored: number) =>
+    Math.min(stored, Math.floor(configured * 1e6));
+  const projectLimit = project
+    ? limit(config.projectUsd, Number(project.limit_micro))
+    : Math.floor(config.projectUsd * 1e6);
+  const projectAccounted = project ? Number(project.accounted_micro) : 0;
+  const users = await db.query<{
+    limit_micro: string | number;
+    accounted_micro: string | number;
+  }>(
+    "SELECT limit_micro,accounted_micro FROM aw_budget_accounts WHERE user_id IS NOT NULL AND id LIKE 'user:%' || $1",
+    [`:window:${window.startsAt}:${window.endsAt}`],
+  );
+  const userFractions = users.map((u) => {
+    const cap = limit(config.userUsd, Number(u.limit_micro));
+    return cap > 0 ? Number(u.accounted_micro) / cap : 1;
+  });
+  return {
+    window,
+    spendCapable: config.projectUsd > 0 && config.userUsd > 0,
+    project: {
+      limitMicro: projectLimit,
+      accountedMicro: projectAccounted,
+      fraction: projectLimit > 0 ? projectAccounted / projectLimit : 1,
+      crossed: thresholds.filter(
+        (t) => projectAccounted >= Math.ceil(projectLimit * t),
+      ),
+    },
+    users: {
+      accounts: users.length,
+      atOrAbove: thresholds.map((threshold) => ({
+        threshold,
+        count: userFractions.filter((f) => f >= threshold).length,
+      })),
+    },
+  };
 }

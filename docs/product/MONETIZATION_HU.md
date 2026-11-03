@@ -13,7 +13,7 @@ related:
 
 ## 1. Hatókör
 
-Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement modell kanonikus forrása. A tulajdonos 2026-11-01-i döntése szerint a teljes személyes éles szolgáltatás készül el, eleinte meghívással, 10 új emberrel, majd további tízfős csoportokkal. A nyílt önregisztráció egyelőre szerveroldalon zárt. A terv végrehajtása: [I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
+Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement modell kanonikus forrása. A tulajdonos 2026-11-01-i döntése szerint a teljes személyes éles szolgáltatás készül el, eleinte nyílt regisztrációval, amely az első 10 admission után automatikusan ideiglenesen zár, majd megbeszélt időben újabb tízfős hullámmal nyílik (tulajdonosi döntés: 2026-11-03; ez felváltja a 2026-11-01-i meghívásos modellt). A Supabase signup bekapcsolása éles konfiguráció, a tulajdonos külön aktiválása előtt szerveroldalon zárt. A terv végrehajtása: [I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
 
 ### Elfogadott személyes ajánlat
 
@@ -21,9 +21,9 @@ Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement
 | --- | --- |
 | Ingyenes ízelítő | Fiókonként egyszer 1 fejezet, külön a fizetett kerettől; a végleges termékben is megmarad. |
 | Normál csomag | 14,99 USD bruttó/hó, 8 fejezet számlázási ciklusonként. |
-| Induló kedvezmény | Az első tíz kijelölt új meghívott fiók első három fizetett ciklusában 9,99 USD bruttó/hó, 5 fejezet; utána normál csomag. Ők ugyanaz a tíz ember, akik a meghívásos indulás első új csoportját alkotják. |
+| Induló kedvezmény | Az első tíz beengedett (admission-sorrend szerinti) új fiók első három fizetett ciklusában 9,99 USD bruttó/hó, 5 fejezet; utána normál csomag. Későbbi hullám nem kap automatikus kedvezményt. |
 | Megújulás | Az előfizetés fordulónapján; nincs fejezet-rollover. |
-| Kupon/admission | A meghívási és a kuponjog külön nyilvántartás. Az alkalmazás fiókhoz köti a kedvezményt; a Stripe legfeljebb tíz beváltása önmagában nem személyazonosítás. További csoportnak nincs automatikus kedvezmény. |
+| Kupon/admission | Az admission és a kuponjog külön nyilvántartás. A „regisztráció” a 10-be az admission: megerősített email + 18+/ÁSZF-nyilatkozat + első sikeres belépés; megerősítetlen Auth-fiók nem számít. A zárás automatikus és atomikus, várólista nincs. **A kedvezményre való jogosultság az admission sorában tárolt `launch_discount_eligible` jelző**, amelyet a nyílt admission ugyanabban a tranzakcióban állít igazra, ha a fiók az első tíz nyílt hely egyikét kapta (`admission_used <= 10`); operátori admission sosem jogosult, a visszavonás és a törlés nem ad át jogosultságot másik fióknak, későbbi hullám nem kap automatikusat. A checkout és az aláírt webhook ezt a jelzőt olvassa (`ServiceAccessRepository.launchDiscountEligible`), a fiókzár alatt, ugyanabban a tranzakcióban, mint a szolgáltatói hívás vagy az előfizetés mentése; a `BILLING_FOUNDER_USER_IDS` env-lista már semmit nem dönt el (elavult: értéke még validálódik, hogy a hibás beállítás ne nyissa ki a billinget, de nem ad és nem von meg kedvezményt, és nem kell kitölteni). Két külön eset: (1) a jelző *értéke* nem jogosít (hiányzó admission-sor, operátori vagy későbbi hullámú fiók, érvénytelen azonosító, bármi, ami nem pontosan `true`): a checkout standard ajánlatot ad, a webhookban a szolgáltató által állított kedvezmény lekerül és `ineligible_discount` riasztás keletkezik (az már beváltott fiók ismételt igénye továbbra is `duplicate_discount`); (2) a jelző *nem olvasható* (adatbázis- vagy registry-hiba): a checkout egészében leáll, nem esik vissza standard árra, nem hoz létre munkamenetet (nincs árlöket, nincs terhelés), és átmeneti hiba alatt senki sem tud fizetni, kedvezmény nélkül sem; a felhasználó később újrapróbálhatja. A webhook ilyenkor újrapróbálható hibát ad és semmit nem ment. A 040 sémánál régebbi adatbázison az admission-tábla hiányzik: a checkout olvasható `SERVICE_ACCESS_UNAVAILABLE` (503) hibával áll le, ezért a telepítési sorrend kötelezően **040 séma először, utána a #157 kódja** (a billing bekapcsolása előtt). Fiókonként egyszeri beváltás marad (`hasRedeemedFounderDiscount`). A Stripe-kupon `max_redemptions = 10` plafonja kiegészítő védőháló marad, nem azonosítás: az élő kupon létrehozása külön, engedélyezett lépés. A jogosultság nem jár le (tulajdonosi döntés, D8, 2026-11-03 17:43 CET): az első tíz beengedett fiók bármikor élhet vele, az ajánlat szövege nem ígér határidőt. Az alkalmazás fiókhoz köti a kedvezményt; a Stripe legfeljebb tíz beváltása önmagában nem személyazonosítás. További csoportnak nincs automatikus kedvezmény. |
 | Csoportbővítés | Ugyanaz a termék és ledger, nincs új bétaablak, ízelítő-, ciklus-, kupon- vagy USD-költésreset. |
 
 Az első tíz új ember körébe a már meglévő három béta-résztvevő nem számít bele automatikusan. Az ő korábbi történeteik, költésük és jogosultságaik megőrzésével külön átvezetési terv szükséges. Egy esetleges további alapító kedvezmény nincs automatikusan hozzáadva az elfogadott kuponhoz.
@@ -35,6 +35,10 @@ Az első tíz új ember körébe a már meglévő három béta-résztvevő nem s
 **Fejezetelszámolási útvonalhatár — #138/#139 a főágon:** enforcement mellett az API a fejezetledgeren áthaladó személyes generálást engedi a már meglévő Auth/béta/entitlement védelmekhez. V1 futures/decision, Shared AI és public-review AI indítás `GENERATION_ROUTE_UNAVAILABLE`/404; ebből nincs fizetési felszólítás. A worker csak a személyes sort claimeli, a többi függő munka megmarad. Olvasás, adatkontroll, már mentett választás és webhook saját védelme változatlan. Ez nem automatikus jóváírás, ledger-reset vagy a régi béta-mentesség kiterjesztése. Enforcement OFF viselkedése változatlan.
 
 **Személyes worker-fejezetkapu — #140 fejlesztési jelölt:** új szolgáltatói kérés csak a futó munkához és fiókhoz tartozó, még foglalt fejezettel indulhat. A kapu nem oszt új ízelítőt vagy fizetett keretet; foglalás nélküli régi munkánál explicit felhasználói retry szükséges. A már korábban érvényesen lefoglalt fizetett munka a természetes cikluslejárat vagy lemondás után is feldolgozható a meglévő foglalási szabály szerint: ez nem a fel nem használt kvóta továbbvitele. Explicit grant-visszavonás, refund/dispute vagy restore utáni rendezetlen projection új kérést tilt. A TTL által feloldott foglalás új kérést nem enged, de a már kész eredmény tartós mentése továbbra elszámolható. A korábbi béta explicit mentessége és eredeti USD-ablaka külön kapu; új meghívott/kuponos ügyfél nem válik mentessé. A szolgáltatói USD-foglalás utáni tiltás nulla használattal visszaadja az ismerten fel nem használt összeget; a fejezetet továbbra csak a tartós mentés fogyasztja.
+
+**Régi béta-mentesség időkorlátja és szolgáltatási USD-védelem — fejlesztési jelölt, B4/B5:** a három régi béta-fiók fejezetmentessége (`GenerationGate.exemptUserIds`) már nem időfeltétel nélküli: a bizonyított eredeti tesztelői ablak végéig (2026-11-28 01:17:38 CET = 00:17:38 UTC, kizárólagos határ) él, a határ kódkonstans (`LEGACY_BETA_CHAPTER_EXEMPTION_ENDS_AT`). Új USD-időszak, utódgeneráció, env-érték vagy kupon nem hosszabbíthatja; nincs olyan kapuépítés, ami mentességet végpont nélkül hozna létre. Az API a sorba állításkor a saját órájával, a worker minden fizikai szolgáltatói kérés előtt az adatbázis falióráján (`clock_timestamp()`) újraellenőrzi; hibás, olvashatatlan vagy hiányzó óra sosem mentes. A határ után a fiók közönséges felhasználó: foglalás nélkül nincs dispatch, használhatatlan billingnél `BILLING_UNAVAILABLE`, a normál ledger-szabályok (köztük az ízelítő) érvényesek. A korábbi fejezeteinek ízelítőbe sorolása (B6, D2) nincs eldöntve és nem része ennek.
+
+Szolgáltatási profilban (`SERVICE_ACCESS_ENFORCEMENT=true`) az USD-budget önálló szerződés: projekt- és felhasználói limit, kötelező rögzített időszak (pozitív limitnél a `AI_BUDGET_WINDOW_START/END` hiánya konfigurációs hiba, tetszőleges hosszal, legfeljebb 366 nap), nincs 10/3,34 USD-s béta-plafon, 30 napos kötöttség vagy béta-ügyféllista. Nulla limit nem költ; a worker és a guard is zárt marad (`AI_BUDGET_EXCEEDED`), az időszakon kívül `AI_BUDGET_WINDOW_CLOSED`, nincs automatikus gördülés. Riasztási vonalak (alapból 50% és 80%, a D3 döntésig ajánlás) a foglalás commitja után jeleznek projekt és felhasználó szinten, mindig akkor, amikor egy foglalás (a plafon-összeggel számolva) átlép egy vonalat. Ha a `settle` után az elszámolt összeg a vonal alá csökken, egy későbbi foglalás újra átléphet és újra riaszthat, tehát a riasztás átlépésenként ismétlődhet, nem szintenként egyszeri. A worker egyetlen strukturált `service_usd_alert` stderr-sort ír felhasználói azonosító nélkül (értesítési csatorna a D3/B3 része). A csak olvasó `serviceUsdBudgetStatus` az időszak felhasználását és a már átlépett vonalakat adja; a monitor (B3) még nem használja. A határ előtt indult, többkérésű job a mentesség végén a következő fizikai kérésnél `BILLING_RESERVATION_REQUIRED`-ot kap (nincs ingyen fejezet, az addigi kérések költsége elvész), ezért a 2026-11-28 éjszakai idősávban ne induljon fejezet. A konkrét éles limitszámok tulajdonosi döntés (D3), a kód nem állít be élő értéket.
 
 ### Megvalósítás és szolgáltatói határ
 
@@ -61,12 +65,12 @@ A meghívott Friend részvételt nem kell minden esetben külön előfizetéssel
 
 ## 3. Jelenlegi Shared tier modell
 
-| Tier | Saját subscriber Shared slot | Engedélyezett típusok |
-|---|---:|---|
-| Free | 0 | nincs |
-| Explorer | 1 | friend_group |
-| Connected | 3 | friend_group, romantic_relationship, work_project, hobby_group |
-| World | 5 | mind az öt, sports_team is |
+| Tier      | Saját subscriber Shared slot | Engedélyezett típusok                                          |
+| --------- | ---------------------------: | -------------------------------------------------------------- |
+| Free      |                            0 | nincs                                                          |
+| Explorer  |                            1 | friend_group                                                   |
+| Connected |                            3 | friend_group, romantic_relationship, work_project, hobby_group |
+| World     |                            5 | mind az öt, sports_team is                                     |
 
 A tier-nevek a jelenlegi domain contract részei. A marketingnevek később változhatnak, de code migration nélkül ne nevezzük át a domain enumokat.
 
@@ -180,10 +184,10 @@ Ez **nincs jelenleg implementálva vagy elfogadva**.
 
 ## 13. Release sorrend
 
-1. Végleges személyes éles működés befejezése: meghívás, ízelítő, billing, adatkontroll, költség- és üzemeltetési védelem.
-2. Igazolt rollout és teljes mért fizetési/történeti alapút után az első tíz új meghívott.
-3. Mérések alapján további tízfős csoportok ugyanabban a szolgáltatásban, új ablak vagy egyenlegreset nélkül.
-4. Nyílt önregisztráció később külön biztonsági és kapacitási elfogadással; a személyes ajánlat változatlan maradhat.
+1. Végleges személyes éles működés befejezése: korlátos nyílt admission, ízelítő, billing, adatkontroll, költség- és üzemeltetési védelem.
+2. Igazolt rollout, regisztrációvédelem és teljes mért fizetési/történeti alapút után az első tíz nyílt regisztráló (automatikus zárással).
+3. Mérések alapján további tízfős hullámok ugyanabban a szolgáltatásban, új ablak vagy egyenlegreset nélkül (az operátor emeli a kapacitást).
+4. Korlátlan nyílt önregisztráció később külön biztonsági és kapacitási elfogadással; a személyes ajánlat változatlan maradhat.
 5. Shared friend beta, majd később romantic/work/hobby/sports külön release-döntésekkel. Shared nem előfeltétele a személyes fizetős indulásnak.
 
 ## 14. Nem kanonikus állítások
@@ -197,7 +201,6 @@ Bizonyíték nélkül ne kezeljük tényként:
 - garantált fedezet vagy konverzió az elfogadott személyes ár mellett.
 
 Ezeket valós termékhasználatból kell mérni.
-
 
 ## 15. Személyes történetgazdaságosság — történeti javaslat
 

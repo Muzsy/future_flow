@@ -70,7 +70,7 @@ const client=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUn
 const mode=process.argv[1];let watchdog;try{await client.connect();const socket=client.connection.stream;const host=new URL(process.env.DATABASE_URL).hostname;if(!(socket instanceof TLSSocket)||!socket.encrypted||socket.authorized!==true||!new X509Certificate(socket.getPeerCertificate().raw).checkHost(host))throw Error('TLS');
 await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await client.query("SET LOCAL statement_timeout='15s'");await client.query("SET LOCAL timezone='UTC'");const version=(await client.query('SHOW server_version_num')).rows[0].server_version_num;if(Math.floor(Number(version)/10000)!==17)throw Error('Major');
 if(mode==='snapshot'){const snapshot=(await client.query('SELECT pg_export_snapshot() AS id')).rows[0].id;const names=(await client.query("SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;if(!names.length||names.length>1000||names.some(t=>!/^(aw_|ff_)[a-z0-9_]+$/.test(t.name)))throw Error('Schema');const tables=[];for(const{name}of names){const row=(await client.query(`SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM public."${name}" t`)).rows[0];tables.push({name,...row});}console.log(JSON.stringify({databaseTlsVerified:true,snapshot,tables}));await new Promise(resolve=>{watchdog=setTimeout(resolve,240000);process.stdin.once('data',resolve);process.stdin.once('end',resolve);});clearTimeout(watchdog);
-}else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);console.log(JSON.stringify({databaseTlsVerified:true,...queue}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
+}else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);const table=(await client.query("SELECT to_regclass('public.aw_service_policy') AS name")).rows[0].name!==null;let servicePolicy=null;if(table){const row=(await client.query('SELECT mode,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1')).rows[0];if(row)servicePolicy={mode:row.mode,reconcileRequired:row.reconcile_required===true,capacity:Number(row.admission_capacity),used:Number(row.admission_used)};}console.log(JSON.stringify({databaseTlsVerified:true,...queue,servicePolicyTable:table,servicePolicy}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
 
 ORIGIN_PROBE = """let denied=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover','http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++}console.log(JSON.stringify({anonymousDenied:denied}));"""
 
@@ -395,6 +395,7 @@ def extended_config_archive(proxy):
     paths += reader_config_paths()
     paths += personal_config_paths()
     paths += funded_upgrade_config_paths()
+    paths += service_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
         files[str(path).lstrip('/')] = regular(path)
@@ -453,6 +454,164 @@ def personal_config_paths():
         regular(item)
         files.append(item)
     return sorted(files)
+
+
+# Service-admission operator evidence (ADR-011 service-profile record and the
+# root service operator journal). Independent policy version: it never changes
+# how any earlier archive is read. Daily is installed as exactly three files, so
+# the light verification below deliberately duplicates the record format instead
+# of importing the operator modules; a parity test keeps the two in step.
+SERVICE_ARCHIVE_POLICY_VERSION = 1
+SERVICE_PROFILE_DIR = ORIGINAL_ROOT / 'service-profile'
+SERVICE_OPERATION_DIR = Path('/var/lib/alterward/service-operations')
+SERVICE_PROFILE_VERSION = 'alterward-service-profile-1'
+SERVICE_HEAD_VERSION = 'alterward-service-profile-head-1'
+SERVICE_PROFILE_JOURNAL_VERSION = 'alterward-service-profile-journal-1'
+SERVICE_OPERATOR_JOURNAL_VERSION = 'alterward-service-operator-journal-1'
+SERVICE_PROFILE_FILE = re.compile(r'[1-9][0-9]{0,3}\.json')
+SERVICE_OPERATION_ID = re.compile(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}')
+SERVICE_OPERATION_NAMES = {'intent.json', 'readback.json'}
+SERVICE_OPERATION_LIMIT = 256
+SERVICE_PROFILE_LIMIT = 64
+SERVICE_UNFINISHED_GRACE_SECONDS = 1800
+
+
+def service_regular(path, modes=(0o400, 0o600)):
+    value = path.lstat()
+    if (not stat.S_ISREG(value.st_mode) or value.st_nlink != 1 or
+            value.st_uid != UID or stat.S_IMODE(value.st_mode) not in modes):
+        raise ValueError('Private service evidence file required')
+    return path.read_bytes()
+
+
+def service_directory(path):
+    info = path.lstat()
+    if (stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or
+            info.st_uid != UID or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Private service evidence directory required')
+
+
+def service_config_paths():
+    """Exact finite service-record and operation-journal files; [] before first use.
+
+    Unknown names, aliases, hardlinks or public modes fail the whole capture
+    closed. Profile generations are immutable (0400); everything else is 0600.
+    """
+    files = []
+    if SERVICE_PROFILE_DIR.exists() or SERVICE_PROFILE_DIR.is_symlink():
+        service_directory(SERVICE_PROFILE_DIR)
+        for item in SERVICE_PROFILE_DIR.iterdir():
+            if item.name == 'profiles':
+                service_directory(item)
+                children = list(item.iterdir())
+                if len(children) > SERVICE_PROFILE_LIMIT or any(
+                        not SERVICE_PROFILE_FILE.fullmatch(c.name) for c in children):
+                    raise ValueError('Unknown service profile evidence')
+                for child in children:
+                    service_regular(child)
+                    files.append(child)
+            elif item.name in {'journal.jsonl', 'head.json'}:
+                service_regular(item)
+                files.append(item)
+            elif item.name not in {'.lock'} and not re.fullmatch(r'\.(head\.json|journal\.jsonl)\.new', item.name):
+                raise ValueError('Unknown service profile evidence')
+    if SERVICE_OPERATION_DIR.exists() or SERVICE_OPERATION_DIR.is_symlink():
+        service_directory(SERVICE_OPERATION_DIR)
+        operations = 0
+        for item in SERVICE_OPERATION_DIR.iterdir():
+            if item.name == 'journal.jsonl':
+                service_regular(item, (0o600,))
+                files.append(item)
+            elif item.name == '.lock':
+                continue
+            elif SERVICE_OPERATION_ID.fullmatch(item.name):
+                operations += 1
+                if operations > SERVICE_OPERATION_LIMIT:
+                    raise ValueError('Too many service operations to archive')
+                service_directory(item)
+                for child in item.iterdir():
+                    if child.name not in SERVICE_OPERATION_NAMES:
+                        raise ValueError('Unknown service operation evidence')
+                    service_regular(child, (0o600,))
+                    files.append(child)
+            else:
+                raise ValueError('Unknown service operation evidence')
+    return sorted(files)
+
+
+def service_canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode()
+
+
+def service_chain(data, version, keys, events):
+    rows, previous = [], '0' * 64
+    for number, line in enumerate(data.splitlines(), 1):
+        row = json.loads(line)
+        if not isinstance(row, dict) or not keys <= set(row):
+            raise ValueError('Service journal row invalid')
+        body = {k: v for k, v in row.items() if k != 'sha256'}
+        if (row.get('version') != version or row['sequence'] != number or row['event'] not in events or
+                row['previousSha256'] != previous or
+                row['sha256'] != digest(service_canonical(body)) or line != service_canonical(row).rstrip(b'\n')):
+            raise ValueError('Service journal chain broken')
+        previous = row['sha256']
+        rows.append(row)
+    return rows
+
+
+def service_record_health(environments, images, now):
+    """Host-only facts about the service-profile record and the operator journal.
+
+    Returns {'profile': 'absent'|'verified'|'mismatch'|'unverified',
+    'journal': 'absent'|'verified'|'unverified', 'unfinished': bool}. Nothing here
+    reads the database, writes anything or reveals profile content.
+    """
+    enforced = any(env.get('SERVICE_ACCESS_ENFORCEMENT') == 'true' for env in environments.values())
+    result = {'profile': 'absent', 'journal': 'absent', 'unfinished': False, 'enforced': enforced}
+    if SERVICE_PROFILE_DIR.exists() or SERVICE_PROFILE_DIR.is_symlink():
+        try:
+            service_directory(SERVICE_PROFILE_DIR)
+            service_directory(SERVICE_PROFILE_DIR / 'profiles')
+            rows = service_chain(service_regular(SERVICE_PROFILE_DIR / 'journal.jsonl'),
+                                 SERVICE_PROFILE_JOURNAL_VERSION,
+                                 {'version', 'sequence', 'event', 'generation', 'profileSha256', 'at',
+                                  'previousSha256', 'sha256'}, {'profile-activated', 'profile-superseded'})
+            head = json.loads(service_regular(SERVICE_PROFILE_DIR / 'head.json'))
+            last = rows[-1]
+            active = last['generation'] if last['event'] == 'profile-activated' else None
+            profile = json.loads(service_regular(SERVICE_PROFILE_DIR / 'profiles' / f'{active}.json')) if active else None
+            if (profile is None or head.get('version') != SERVICE_HEAD_VERSION or head.get('generation') != active or
+                    head.get('profileSha256') != last['profileSha256'] or head.get('journalSha256') != last['sha256'] or
+                    digest(service_canonical(profile)) != last['profileSha256'] or
+                    profile.get('version') != SERVICE_PROFILE_VERSION or profile.get('generation') != active):
+                raise ValueError('Service profile head mismatch')
+            running = all(images.get(name) == profile.get('imageId') for name in ('api', 'worker', 'web'))
+            result['profile'] = 'verified' if running and enforced and profile.get('serviceAccessEnforcement') is True else 'mismatch'
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            result['profile'] = 'unverified'
+    if SERVICE_OPERATION_DIR.exists() or SERVICE_OPERATION_DIR.is_symlink():
+        try:
+            service_directory(SERVICE_OPERATION_DIR)
+            path = SERVICE_OPERATION_DIR / 'journal.jsonl'
+            if path.exists() or path.is_symlink():
+                rows = service_chain(service_regular(path, (0o600,)), SERVICE_OPERATOR_JOURNAL_VERSION,
+                                     {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
+                                     {'intent-persisted', 'apply-started', 'applied', 'apply-unknown',
+                                      'reconciled-committed', 'reconciled-uncommitted', 'drift-accepted'})
+                state = {}
+                for row in rows:
+                    if row['event'] in ('apply-started', 'apply-unknown'):
+                        state[row['operationId']] = row
+                    elif row['event'] != 'intent-persisted':
+                        state.pop(row['operationId'], None)
+                result['journal'] = 'verified'
+                result['unfinished'] = any(
+                    r['event'] == 'apply-unknown' or
+                    (now - dt.datetime.fromisoformat(r['at'].replace('Z', '+00:00'))).total_seconds() >
+                    SERVICE_UNFINISHED_GRACE_SECONDS for r in state.values())
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            result['journal'] = 'unverified'
+    return result
 
 
 # Independent policy version: do not reinterpret the original personal/reader
@@ -629,39 +788,58 @@ SUCCESSOR_REGISTRY_PURPOSE = 'schema-040'
 SUCCESSOR_REGISTRY_BILLING_PURPOSE = 'billing-config-040'
 SUCCESSOR_REGISTRY_PLAN_VERSION = 'alterward-beta-successor-plan-3'
 REGISTRY_040_CHANGE_HASHES = {
-    'apps/api/src/app.ts': '8d619ac8ae4da5378ae9a210833f228760b48c7da6e0beae214fb3cc3904d9b0',
+    'apps/api/src/app.ts': '0dffa7d41eab837323ff5444568b9464350ae8e72dae1168c3bc87c5c3911d52',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
     'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
-    'apps/api/src/billing.ts': 'af8c39115b02523afcd3da39d20069e18173f900da0c639ee9eea8a8a4cae5b3',
+    'apps/api/src/billing.ts': '382ba90fb5219470d393cef8415209953278ee1e41c463340d6f337cb575c3f0',
     'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
     'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
-    'apps/api/src/service-access.ts': '1f32c69a7e07ff1894b1b89ec95266f48a2568cdfa20955712d527dc29622106',
+    'apps/api/src/service-access.ts': '3cd270e384b5e5e949882bb36484a9f7af563748969a0eb8dcadde2dfb325009',
+    'apps/api/src/service-admission.ts': 'c47fc49078afb4662880ce9020d456c1a838c01586fcf4ee62aa4c369107f991',
+    'apps/web/app/[...route]/page.tsx': '89a6aa7daa187a1413189c36f34b471aee1335a7b43b6d66512acfd043e0ff6c',
+    'apps/web/app/page.tsx': 'b529d8d4a43b510af0c521b863e993f98f50f467eca14181298159426c497fe6',
+    'apps/web/app/preview/[id]/page.tsx': '0ad4077975354f1efec97870c13ebac0b4b0d37bdcb3df931abcdd4690eddb0d',
+    'apps/web/components/account-access.tsx': '17ab1f62a6f6fa9d0fe2d02725731cdc082c427c1bc2c282ea89221e41d3d2de',
+    'apps/web/components/admission-gate.tsx': 'c8303ffbdbcf76c8521039edfd257a818b6d338d5cf67c532058809ac9d3d156',
     'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
+    'apps/web/components/experience.tsx': 'c4c089783e9311d88c7734b2e00a182be2b3ffcdce30e0eea818503bae931d0e',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': '8a62f161f5fcaf0877929b905a2f9d558be03dcb0f12a83a5e0c5b6ba1a8a49c',
+    'apps/web/components/life-experience.tsx': '3084f90363549a8d382751cabd0f5d971504fd291a04f0cfad7370919a087e1d',
+    'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
+    'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
+    'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
+    'apps/web/components/terms-of-use.tsx': '124098b76534a1823b280b67ad956c89c39af341ebe9b4e134d851db49fd97ec',
+    'apps/web/lib/admission.ts': 'c92d1637cca27f06e0529c2ffe028b1b4dec6ba227fcdae403ace13ae78bdc2a',
     'apps/web/lib/billing.ts': 'b1d875729517a96776086624ce9463cf015dcfcc53218b99b6d7130b07b49e46',
-    'apps/web/lib/i18n/messages.ts': '642686072a3cb0b738f75b35dc4b7e847c1f61c9ebd8966dc3f047e3c4cfd4ea',
+    'apps/web/lib/i18n/messages.ts': '7a37a60a47654f08cb10f6360a0eea182efc2a6db32b94cf4fb2212c6b9b7226',
     'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
-    'apps/web/proxy.ts': '5d6188280d6d0c94e719d02df3a3bca541251d5d7659f383eb1136cd5129ae29',
+    'apps/web/lib/signup.ts': 'e8b8d43704d63c281ffba1e935800934d3154eeb76c351996ddf69a1472fb052',
+    'apps/web/proxy.ts': 'c308349d244f7d2e956c0b9e77e818f906aa1ef6c2bb0405e8bcf08552860291',
     'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
-    'apps/worker/src/chapter-billing.ts': '6ee53efd50efb86bc44eb727fdbdb8abc17b6fdc16fbbc6b85a7f08261047593',
-    'apps/worker/src/main.ts': '6adb7581bf7309f9ba19549e9f433482779b5ce7ae8f197fa90a8227f3617bd8',
-    'database/migrations/040_service_access_registry.sql': 'd52965052872352f3fe83e95fb8d7d2abff9611cffaaa5b580b7320d240fb938',
+    'apps/worker/src/chapter-billing.ts': '07e5a49cf1d5352a7f28ff32fa864489e99a3acca6d9f7321552139f87200245',
+    'apps/worker/src/main.ts': '10134cf57123abc8d6f7cf1f1f31a37197280ecb80f148a8a956d185ce9b4fae',
+    'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
+    'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
     'deploy/compose.yaml': '54d0170b7974a46432b3a4993c527ec8e8626ad7e18ad53a8c563f102edb4fea',
     'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
     'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
-    'packages/contracts/src/error-messages.ts': '5a607d0c996842a6b96c4774a30ee34e59f997bf7135557f3009eb6c723e8424',
-    'packages/core/src/billing-service.ts': '391e35b4c3866b52cd84a323e0b8491be75e5af60788fff3468279ae12a8bac1',
+    'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
+    'packages/contracts/src/error-messages.ts': '586e6aa7f3538d5c362d29b0520a1f4095df3498319b8b9071f4f91dff7c8ec8',
+    'packages/contracts/src/privacy-consent.ts': '9f03be8e713c2f60aaf86fa5251accd3a86d011395cc284c6dd7a2f22e11a624',
+    'packages/core/src/billing-service.ts': '3826bf6fe5f55ab6ecdb2837d5a68c54454990319213f01e465378fd1ecc7703',
     'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
+    'packages/core/src/billing.ts': 'af3cfe5a84b21765d049bc5b13c8f71e4ed8eafa649b7e088b0ec0af169f1b5b',
     'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
-    'packages/core/src/service-access.ts': '04a403fb0c0064012e2828d2b769aba890f99e99ffbfc3c77aa35ed8c0c1a856',
-    'packages/database/src/billing.ts': 'e216d311ef8b3f787934af4a5cf192422b23b87cb9e6619858a4136c610874e8',
+    'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
+    'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
+    'packages/database/src/billing.ts': 'ee4424f5496ac027f6967f07702dbe54daaab26dceba7a207171870493b7883b',
+    'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
     'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
     'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
     'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
     'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
-    'packages/database/src/repository.ts': 'e05ee22ccd8f226e96aa64f7ab9d0714a3ff5ae79183330ccc46a6f07d557487',
-    'packages/database/src/service-access.ts': '4f6134a61b83b168e07370a4064b7059c00f0413beff6ad32217d66bc14dc8a4',
+    'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
+    'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6'
 }
 
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
@@ -775,7 +953,7 @@ def successor_json(value):
 
 
 
-REGISTRY_040_MIGRATION_SHA256 = '9f0a7438e84b9367bc6e4f5a6e2319fefaf50fe49ee2a195c9cd6c09a2eaf613'
+REGISTRY_040_MIGRATION_SHA256 = '0186a292a524ed9e0de5238aa3ebe8c966c29d8a48bb1ecaf694045ad03bd5d8'
 
 
 def registry_journal_fields(row, *, registry=False, registry_config=False):
@@ -2269,6 +2447,33 @@ def alerts_for(health, now):
         alerts.append('registry_restore_unverified')
     if health.get('personalTransitionHealthy', True) is not True:
         alerts.append('personal_transition_incomplete')
+    alerts += service_alerts(health)
+    return alerts
+
+
+def service_alerts(health):
+    """Service-admission alerts. Absent keys mean the legacy beta: no alert."""
+    service = health.get('service')
+    if not isinstance(service, dict):
+        return []
+    alerts = []
+    profile, enforced = service.get('profile', 'absent'), service.get('enforced') is True
+    if enforced and profile == 'absent':
+        alerts.append('service_profile_missing')
+    elif profile in {'mismatch', 'unverified'}:
+        alerts.append('service_profile_mismatch')
+    if service.get('journal') == 'unverified':
+        alerts.append('service_journal_unverified')
+    if service.get('unfinished') is True:
+        alerts.append('service_operation_unreconciled')
+    policy = service.get('policy')
+    if enforced and policy is None:
+        alerts.append('service_policy_missing')
+    elif isinstance(policy, dict):
+        if policy.get('reconcileRequired') is True:
+            alerts.append('service_reconcile_required')
+        if policy.get('mode') == 'open' and policy.get('used', 0) >= policy.get('capacity', 0):
+            alerts.append('service_wave_over_capacity')
     return alerts
 
 
@@ -2323,7 +2528,12 @@ def monitor(value):
                                '-noout', '-enddate']).decode().strip().removeprefix('notAfter=')
         expires = dt.datetime.strptime(certificate, '%b %d %H:%M:%S %Y %Z').replace(tzinfo=dt.timezone.utc)
         now = utcnow()
-        health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin,
+        service = service_record_health(
+            {name: dict(item.split('=', 1) for item in v['Config']['Env']) for name, v in services.items()},
+            {name: v['Image'] for name, v in services.items()}, now)
+        service['policy'] = database.pop('servicePolicy', None)
+        database.pop('servicePolicyTable', None)
+        health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin, 'service': service,
             'personalTransitionHealthy': personal_transition_healthy(policy['mode']),
             'registryRestoreHealthy': registry_restore_healthy(value),
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,

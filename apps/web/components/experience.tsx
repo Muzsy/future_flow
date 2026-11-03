@@ -1,4 +1,5 @@
 'use client';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { publicReturnPath } from '../lib/public-return';
@@ -36,6 +37,8 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { LifeExperience } from './life-experience';
+import { AdmissionPanel, useAdmission } from './admission-gate';
+import { admissionGated, showsContent } from '../lib/admission';
 import { PublicPreviewEditor } from './public-preview-editor';
 import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
@@ -128,6 +131,10 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   const [user, setUser] = useState<string | null>(null),
     [authReady, setAuthReady] = useState(false);
   const [sharedEnabled, setSharedEnabled] = useState(false);
+  // Bounded open admission: pages that use the generation or personal-data API
+  // render only for an admitted account that gave the 18+/terms consent.
+  const gated = admissionGated(page);
+  const admission = useAdmission(user, gated);
   const [inviteCode, setInviteCode] = useState('');
   useEffect(() => {
     if (page !== 'connections' || id !== 'invite') {
@@ -340,7 +347,11 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   async function save() {
     await api('/me/consent', {
       method: 'POST',
-      body: JSON.stringify({ adult, acknowledged }),
+      body: JSON.stringify({
+        adult,
+        acknowledged,
+        termsVersion: TERMS_ACCEPTANCE_VERSION,
+      }),
     });
     const saved = await api<{ revision: number }>('/profile/draft', {
       method: 'PATCH',
@@ -684,6 +695,16 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
               <ArrowRight size={16} />
             </button>
           </div>
+        ) : protectedPage && gated && user && !showsContent(admission.state) ? (
+          <AdmissionPanel
+            admission={admission}
+            onSignOut={() => {
+              void action(async () => {
+                await supabase().auth.signOut();
+                navigate('/');
+              });
+            }}
+          />
         ) : (
           <>
             {['lives', 'start', 'life'].includes(page) && (
@@ -886,9 +907,7 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
                     {signup ? t('auth.haveAccount') : t('auth.needAccount')}
                   </button>
                 )}
-                {!allowSignup && (
-                  <p>Accounts are created by invitation during private beta.</p>
-                )}
+                {!allowSignup && <p>{t('auth.registrationClosed')}</p>}
                 <p>
                   <a href="/account-access">
                     Account access and password recovery

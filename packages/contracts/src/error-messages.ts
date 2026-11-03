@@ -266,16 +266,24 @@ const errors: Record<string, readonly [string, string]> = {
     'Válassz a döntési lehetőségek közül a folytatás előtt.',
   ],
   SERVICE_IDENTITY_MISMATCH: [
-    'Sign in with the same invited email in both login steps.',
-    'Mindkét belépésnél ugyanazzal a meghívott email-címmel jelentkezz be.',
+    'Sign in with the same confirmed email in both login steps.',
+    'Mindkét belépésnél ugyanazzal a megerősített email-címmel jelentkezz be.',
   ],
   SERVICE_ACCESS_UNAVAILABLE: [
     'Access cannot be verified right now. Please try again later.',
     'A hozzáférés most nem ellenőrizhető. Próbáld újra később.',
   ],
   SERVICE_INVITATION_REQUIRED: [
-    'Access is by invitation. Contact info@alterward.com for help.',
-    'A hozzáférés meghíváshoz kötött. Segítség: info@alterward.com.',
+    'This account does not currently have access. Contact info@alterward.com for help.',
+    'Ehhez a fiókhoz most nincs hozzáférés. Segítség: info@alterward.com.',
+  ],
+  SERVICE_ADMISSION_REQUIRED: [
+    'Confirm that you are 18 or older and accept the terms to start using the service.',
+    'A használat megkezdéséhez erősítsd meg, hogy elmúltál 18 éves, és fogadd el a feltételeket.',
+  ],
+  SERVICE_ADMISSION_CLOSED: [
+    'Registration is full for now. We open new places later. Nothing was saved about you.',
+    'Egyelőre megtelt, később nyitunk új helyeket. Rólad nem mentettünk semmit.',
   ],
   SERVICE_GENERATION_PAUSED: [
     'New chapters are temporarily paused. Your saved stories remain available.',

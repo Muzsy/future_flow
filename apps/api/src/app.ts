@@ -30,6 +30,7 @@ import {
   configureGenerationGate,
   createGenerationGate,
   closedBetaConfigFromEnv,
+  legacyBetaChapterExemption,
   validateClosedBetaConfig,
   assertClosedBetaAdmission,
   type ClosedBetaConfig,
@@ -75,6 +76,8 @@ import { z } from 'zod';
 import {
   getQuestionnaire,
   privacyConsentStatusSchema,
+  privacyConsentRequestSchema,
+  TERMS_ACCEPTANCE_VERSION,
   localeFromAcceptLanguage,
   errorMessage,
   type Locale,
@@ -319,16 +322,15 @@ class ApiController {
       properties: {
         adult: { type: 'boolean', enum: [true] },
         acknowledged: { type: 'boolean', enum: [true] },
+        termsVersion: { type: 'string', enum: [TERMS_ACCEPTANCE_VERSION] },
       },
-      required: ['adult', 'acknowledged'],
+      required: ['adult', 'acknowledged', 'termsVersion'],
       additionalProperties: false,
     },
   })
   async consent(@Req() req: AuthRequest, @Body() body: unknown) {
-    z.object({ adult: z.literal(true), acknowledged: z.literal(true) })
-      .strict()
-      .parse(body);
-    await this.repo.acceptPrivacy(req.userId);
+    const accepted = privacyConsentRequestSchema.parse(body);
+    await this.repo.acceptConsent(req.userId, accepted.termsVersion);
     return { accepted: true, policyVersion: 'alpha-privacy-v1' };
   }
   @Get('me/consent')
@@ -1056,11 +1058,10 @@ export async function createApp(
     billing.config.enforcement
       ? createGenerationGate({
           ready: billing.config.enabled,
-          // The exemption belongs to the running closed beta: with
+          // The exemption belongs to the running closed beta and ends with the
+          // proven original tester window (closed-beta.ts); with
           // CLOSED_BETA_ENABLED=false a leftover list does not give free chapters.
-          exemptUserIds: closedBetaConfig.enabled
-            ? closedBetaConfig.userIds
-            : [],
+          ...legacyBetaChapterExemption(closedBetaConfig),
           entitlement: billing.config.entitlement,
         })
       : null,
@@ -1310,13 +1311,22 @@ export async function createApp(
           if (!identity)
             throw new DomainError(
               'CLOSED_SITE_ACCESS_REQUIRED',
-              'Access is by invitation.',
+              'Access to this service is restricted.',
               403,
             );
           const verified = await verifiedServiceBearer(
             auth,
             request.headers.authorization,
           );
+          if (
+            await service.preAdmission(
+              verified.user,
+              identity,
+              request,
+              response,
+            )
+          )
+            return;
           await service.assert(verified.user, identity, 'read');
           request[REQUEST_SERVICE_IDENTITY] = identity;
           request[REQUEST_SERVICE_USER] = verified.user;
@@ -1355,7 +1365,7 @@ export async function createApp(
       response.status(403).json({
         error: {
           code: 'CLOSED_SITE_ACCESS_REQUIRED',
-          message: 'Access is by invitation.',
+          message: 'Access to this service is restricted.',
         },
       });
     },

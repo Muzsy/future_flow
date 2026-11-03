@@ -114,16 +114,16 @@ const billing039 = {
 // serving database. Original039 remains a separate historical baseline.
 const service040 = {
   constraints: [
-    748,
-    '2d419bfa9b2d013288557eac2cb26b39d5279ee24ea64ea06442077cbaa2eccd',
+    752,
+    '40e048de67d5b0054da2d42aa2a577a622f9bc40221721ff28153b27c17660ed',
   ],
   indexes: [
     267,
     '29092549af792c15d9467ae827081705f1ead9c441b9b9cfbd7561d3986870ca',
   ],
   defaults: [
-    906,
-    'ac421cf6037f3583ac8a67c621bcb7e2013f7286f59c8ba95b69e6d9f3e1be2c',
+    909,
+    '0f7fd72fd2c7d860653b563e2eb1a86586bf54c46396112216f277776b5ead2b',
   ],
 } as const;
 // Derived only from source-owned immutable expectations, never from a database.

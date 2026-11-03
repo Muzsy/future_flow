@@ -236,7 +236,9 @@ it('admits thirteen independent invited UUIDs without the legacy email/cohort li
 it('does not create application roots or jobs for an authenticated but unknown/uninvited account', async () => {
   const unknown = await actor(false, false),
     uninvited = await actor(false);
-  expect((await request(unknown)).status).toBe(503);
+  // Neither is admitted and the policy is closed: both get the same 403 and
+  // an unknown account is not given a root as a side effect of asking.
+  expect((await request(unknown)).status).toBe(403);
   expect((await request(uninvited)).status).toBe(403);
   expect(
     await db.query('SELECT id FROM ff_users WHERE id=$1', [unknown]),
@@ -499,7 +501,7 @@ it('uses the same service admission and frozen v9 policy through internal person
   const other = await actor(false);
   await expect(
     internal.create(other, setupFixture(), randomUUID()),
-  ).rejects.toMatchObject({ code: 'SERVICE_INVITATION_REQUIRED' });
+  ).rejects.toMatchObject({ code: 'SERVICE_ADMISSION_CLOSED' });
   const explicitLegacy = new LifeRepository(
     db,
     { daily: 10, concurrent: 2 },

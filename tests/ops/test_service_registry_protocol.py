@@ -111,7 +111,7 @@ class RegistryProtocolTests(unittest.TestCase):
                 with self.subTest(role=role, bad=bad), self.assertRaises(ValueError):
                     daily.registry_profile_default(changed)
 
-    def test_committed_image_bundle_actually_covers_all33_required_registry_inputs(self):
+    def test_committed_image_bundle_actually_covers_all52_required_registry_inputs(self):
         import json
         import subprocess
         root_path = Path(__file__).resolve().parents[2]
@@ -125,7 +125,7 @@ class RegistryProtocolTests(unittest.TestCase):
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
         root = Path(__file__).resolve().parents[2]
         expected = daily.REGISTRY_040_CHANGE_HASHES
-        self.assertEqual(len(expected), 33)
+        self.assertEqual(len(expected), 52)
         for name, digest in expected.items():
             with self.subTest(name=name):
                 self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)

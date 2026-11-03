@@ -77,8 +77,8 @@ export function AccountAccess() {
     <section className="panel narrow">
       <h1>Account access</h1>
       <p>
-        Download or delete your own data, including after private-beta access
-        ends. This page does not give access to stories or create an account.
+        Download or delete your own data, including after your access has ended.
+        This page does not give access to stories or create an account.
       </p>
       <p>
         <a href="/privacy-notice">Privacy and contact</a>

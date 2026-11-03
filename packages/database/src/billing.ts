@@ -1,4 +1,7 @@
-import { assertStoredServiceAccess } from './service-access';
+import {
+  ServiceAccessRepository,
+  assertStoredServiceAccess,
+} from './service-access';
 import {
   DomainError,
   FREE_TASTER_CHAPTERS,
@@ -246,6 +249,25 @@ export function billingTx(db: Database): BillingTx {
         ],
       );
     },
+    // The fact persisted at admission, read through the same transaction.
+    // A schema older than the registry (040) has no admission table: say so in
+    // a readable 503 instead of a raw SQL error. The checkout stops as a whole
+    // either way; the registry schema must be installed first.
+    launchDiscountEligible: async (userId) => {
+      try {
+        return await new ServiceAccessRepository(db).launchDiscountEligible(
+          userId,
+        );
+      } catch (error) {
+        if ((error as { code?: string }).code === '42P01')
+          throw new DomainError(
+            'SERVICE_ACCESS_UNAVAILABLE',
+            'Current service access could not be verified.',
+            503,
+          );
+        throw error;
+      }
+    },
     hasRedeemedFounderDiscount: async (userId) =>
       (
         await db.query(
@@ -342,8 +364,11 @@ export type GenerationGate = Readonly<{
   // configuration). The gate then refuses everyone but the exempt accounts.
   ready: boolean;
   entitlement: EntitlementConfig;
-  // Closed-beta accounts: never reserved, never consumed.
+  // Closed-beta accounts: never reserved, never consumed, but only before
+  // exemptEndsAtMs (epoch ms, exclusive). At and after it they are ordinary
+  // users; an unbounded exemption cannot be constructed.
   exemptUserIds: ReadonlySet<string>;
+  exemptEndsAtMs: number;
 }>;
 
 let activeGate: GenerationGate | null = null;
@@ -357,13 +382,37 @@ export function configureGenerationGate(gate: GenerationGate | null) {
 export function createGenerationGate(options: {
   ready: boolean;
   exemptUserIds: readonly string[];
+  // Required (ISO string or Date) whenever exemptUserIds is not empty.
+  exemptEndsAt?: string | Date;
   entitlement?: EntitlementConfig;
 }): GenerationGate {
+  const exemptUserIds = new Set(
+    options.exemptUserIds.map((id) => id.toLowerCase()),
+  );
+  let exemptEndsAtMs = 0;
+  if (exemptUserIds.size > 0) {
+    exemptEndsAtMs =
+      options.exemptEndsAt === undefined
+        ? NaN
+        : new Date(options.exemptEndsAt).getTime();
+    if (!Number.isFinite(exemptEndsAtMs))
+      throw Error('A chapter exemption needs a valid end');
+  }
   return {
     ready: options.ready,
     entitlement: options.entitlement ?? defaultEntitlementConfig,
-    exemptUserIds: new Set(options.exemptUserIds.map((id) => id.toLowerCase())),
+    exemptUserIds,
+    exemptEndsAtMs,
   };
+}
+
+// Exempt only strictly before the end; an invalid clock is never exempt.
+function chapterExempt(gate: GenerationGate, userId: string, nowMs: number) {
+  return (
+    gate.exemptUserIds.has(userId.toLowerCase()) &&
+    Number.isFinite(nowMs) &&
+    nowMs < gate.exemptEndsAtMs
+  );
 }
 
 export async function reserveGenerationChapter(
@@ -373,7 +422,7 @@ export async function reserveGenerationChapter(
   now: Date = new Date(),
 ) {
   const gate = activeGate;
-  if (!gate || gate.exemptUserIds.has(userId.toLowerCase())) return;
+  if (!gate || chapterExempt(gate, userId, now.getTime())) return;
   if (!gate.ready)
     throw new DomainError(
       'BILLING_UNAVAILABLE',
@@ -420,7 +469,20 @@ export async function assertGenerationChapterDispatch(
   leaseToken: string,
 ) {
   const gate = activeGate;
-  if (!gate || gate.exemptUserIds.has(userId.toLowerCase())) return;
+  if (!gate) return;
+  // The exemption is re-evaluated before every physical dispatch against the
+  // database wall clock (the same authority as the USD period), so a job queued
+  // or running inside the window cannot outlive it. After the end the account
+  // needs a real reservation like everyone else.
+  if (gate.exemptUserIds.has(userId.toLowerCase())) {
+    const [clock] = await tx.query<{ billing_now: Date | string }>(
+      'SELECT clock_timestamp() AS billing_now',
+    );
+    if (
+      chapterExempt(gate, userId, new Date(clock?.billing_now ?? NaN).getTime())
+    )
+      return;
+  }
   if (!gate.ready)
     throw new DomainError(
       'BILLING_UNAVAILABLE',
