@@ -8,10 +8,12 @@ export const privacyConsentStatusSchema = z
   .strict();
 
 // Acceptance of the terms of service and the privacy notice is recorded against
-// an explicit text version. The identifier is the one the final ÁSZF /
-// adatkezelési tájékoztató text sets before the service opens (owner decision
-// D4); a client that saw another text cannot accept this one.
-export const TERMS_ACCEPTANCE_VERSION = 'terms-pending-final-text';
+// an explicit text version. The identifier names the ÁSZF / adatkezelési
+// tájékoztató text of the paid, open-registration launch (owner-approved draft
+// of 2026-11-03, apps/web messages terms.* / privacy.*); change it together with
+// any change of that text, so a client that saw another text cannot accept this
+// one.
+export const TERMS_ACCEPTANCE_VERSION = 'terms-2026-11-03';
 export const TERMS_ACCEPTANCE_CONSENT_TYPE = 'terms_and_privacy_acceptance';
 export const privacyConsentRequestSchema = z
   .object({
