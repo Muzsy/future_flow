@@ -13,7 +13,7 @@ related:
 
 ## 1. Hatókör
 
-Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement modell kanonikus forrása. A tulajdonos 2026-11-01-i döntése szerint a teljes személyes éles szolgáltatás készül el, eleinte meghívással, 10 új emberrel, majd további tízfős csoportokkal. A nyílt önregisztráció egyelőre szerveroldalon zárt. A terv végrehajtása: [I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
+Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement modell kanonikus forrása. A tulajdonos 2026-11-01-i döntése szerint a teljes személyes éles szolgáltatás készül el, eleinte nyílt regisztrációval, amely az első 10 admission után automatikusan ideiglenesen zár, majd megbeszélt időben újabb tízfős hullámmal nyílik (tulajdonosi döntés: 2026-11-03; ez felváltja a 2026-11-01-i meghívásos modellt). A Supabase signup bekapcsolása éles konfiguráció, a tulajdonos külön aktiválása előtt szerveroldalon zárt. A terv végrehajtása: [I01–I07](../DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01).
 
 ### Elfogadott személyes ajánlat
 
@@ -21,9 +21,9 @@ Ez a dokumentum a személyes induló ajánlat és a későbbi Shared entitlement
 | --- | --- |
 | Ingyenes ízelítő | Fiókonként egyszer 1 fejezet, külön a fizetett kerettől; a végleges termékben is megmarad. |
 | Normál csomag | 14,99 USD bruttó/hó, 8 fejezet számlázási ciklusonként. |
-| Induló kedvezmény | Az első tíz kijelölt új meghívott fiók első három fizetett ciklusában 9,99 USD bruttó/hó, 5 fejezet; utána normál csomag. Ők ugyanaz a tíz ember, akik a meghívásos indulás első új csoportját alkotják. |
+| Induló kedvezmény | Az első tíz beengedett (admission-sorrend szerinti) új fiók első három fizetett ciklusában 9,99 USD bruttó/hó, 5 fejezet; utána normál csomag. Későbbi hullám nem kap automatikus kedvezményt. |
 | Megújulás | Az előfizetés fordulónapján; nincs fejezet-rollover. |
-| Kupon/admission | A meghívási és a kuponjog külön nyilvántartás. Az alkalmazás fiókhoz köti a kedvezményt; a Stripe legfeljebb tíz beváltása önmagában nem személyazonosítás. További csoportnak nincs automatikus kedvezmény. |
+| Kupon/admission | Az admission és a kuponjog külön nyilvántartás. A „regisztráció” a 10-be az admission: megerősített email + 18+/ÁSZF-nyilatkozat + első sikeres belépés; megerősítetlen Auth-fiók nem számít. A zárás automatikus és atomikus, várólista nincs. **A kedvezményre való jogosultság az admission sorában tárolt `launch_discount_eligible` jelző**, amelyet a nyílt admission ugyanabban a tranzakcióban állít igazra, ha a fiók az első tíz nyílt hely egyikét kapta (`admission_used <= 10`); operátori admission sosem jogosult, a visszavonás és a törlés nem ad át jogosultságot másik fióknak, későbbi hullám nem kap automatikusat. A checkout/webhook ennek olvasására áll át a `BILLING_FOUNDER_USER_IDS` env-lista helyett (külön, billing-szál által végzett változás; addig az env-lista marad az egyetlen alkalmazott forrás). Az alkalmazás fiókhoz köti a kedvezményt; a Stripe legfeljebb tíz beváltása önmagában nem személyazonosítás. További csoportnak nincs automatikus kedvezmény. |
 | Csoportbővítés | Ugyanaz a termék és ledger, nincs új bétaablak, ízelítő-, ciklus-, kupon- vagy USD-költésreset. |
 
 Az első tíz új ember körébe a már meglévő három béta-résztvevő nem számít bele automatikusan. Az ő korábbi történeteik, költésük és jogosultságaik megőrzésével külön átvezetési terv szükséges. Egy esetleges további alapító kedvezmény nincs automatikusan hozzáadva az elfogadott kuponhoz.
@@ -180,10 +180,10 @@ Ez **nincs jelenleg implementálva vagy elfogadva**.
 
 ## 13. Release sorrend
 
-1. Végleges személyes éles működés befejezése: meghívás, ízelítő, billing, adatkontroll, költség- és üzemeltetési védelem.
-2. Igazolt rollout és teljes mért fizetési/történeti alapút után az első tíz új meghívott.
-3. Mérések alapján további tízfős csoportok ugyanabban a szolgáltatásban, új ablak vagy egyenlegreset nélkül.
-4. Nyílt önregisztráció később külön biztonsági és kapacitási elfogadással; a személyes ajánlat változatlan maradhat.
+1. Végleges személyes éles működés befejezése: korlátos nyílt admission, ízelítő, billing, adatkontroll, költség- és üzemeltetési védelem.
+2. Igazolt rollout, regisztrációvédelem és teljes mért fizetési/történeti alapút után az első tíz nyílt regisztráló (automatikus zárással).
+3. Mérések alapján további tízfős hullámok ugyanabban a szolgáltatásban, új ablak vagy egyenlegreset nélkül (az operátor emeli a kapacitást).
+4. Korlátlan nyílt önregisztráció később külön biztonsági és kapacitási elfogadással; a személyes ajánlat változatlan maradhat.
 5. Shared friend beta, majd később romantic/work/hobby/sports külön release-döntésekkel. Shared nem előfeltétele a személyes fizetős indulásnak.
 
 ## 14. Nem kanonikus állítások

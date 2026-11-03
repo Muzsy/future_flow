@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-03
 related:
   - ../DEVELOPMENT_PLAN_HU.md
   - ../product/PRODUCT_HU.md
@@ -10,18 +10,18 @@ related:
   - ADR-010-payment-data-and-responsibility-boundaries.md
 ---
 
-# ADR-011 — Meghívásos személyes szolgáltatás hozzáférési határai
+# ADR-011 — Személyes szolgáltatás hozzáférési határai (meghívás és korlátos nyílt admission)
 
-**Status:** Proposed — implementációs szerződés; éles aktiválást nem engedélyez.  
-**Date:** 2026-11-01
+**Status:** Accepted — a tulajdonos 2026-11-03 17:44 CET-kor elfogadta (a korlátos nyílt admission módosítással és a service-profil rekorddal együtt). Implementációs szerződés; éles aktiválást nem engedélyez.  
+**Date:** 2026-11-01 (módosítva és elfogadva: 2026-11-03)
 
 ## Kontextus
 
-A tulajdonos végleges működésű személyes éles szolgáltatást kért, először tíz új meghívottal, majd további tízfős csoportokkal (#131/#132, I01–I07). A meglévő háromfős funded béta ablakát, történeteit és költését meg kell őrizni. A mai Cloudflare-origin kapu statikus, legfeljebb 11 email-címre korlátozott; ezt a `packages/access` kódja szabja meg, nem a Cloudflare szolgáltatói limitje. Három meglévő és tíz új fiók együtt már nem fér ebbe a formába. A kuponlista és a fejezetledger nem meghívási nyilvántartás.
+A tulajdonos végleges működésű személyes éles szolgáltatást kért (#131/#132, I01–I07). Az eredeti terv tíz új meghívott, majd további tízfős csoportok volt; ezt a tulajdonos 2026-11-03-i döntése korlátos nyílt regisztrációra cserélte (lásd a „Módosítás — 2026-11-03” szakaszt: az első tíz nem meghívott, az admission automatikusan zár, hullámokban nyílik újra). A meghívásos módszövegek az `invitation` (zárt/tele) módra és az operátori admissionre (például a régi béta-fiókok) érvényesek. A meglévő háromfős funded béta ablakát, történeteit és költését meg kell őrizni. A mai Cloudflare-origin kapu statikus, legfeljebb 11 email-címre korlátozott; ezt a `packages/access` kódja szabja meg, nem a Cloudflare szolgáltatói limitje. Három meglévő és tíz új fiók együtt már nem fér ebbe a formába. A kuponlista és a fejezetledger nem meghívási nyilvántartás.
 
 A meglévő backend a Supabase `getUser(token)` eredményével igazolja a nem anonim felhasználót. A web és az API külön Cloudflare Access aláírást ellenőriz. A későbbi tartós admissionnek mindkét határt, a saját adatokhoz való jogot és a pénzügyi elszámolást meg kell őriznie. Az eleven vagy lejárt béta-window nem használható csoportonként új termékjogosultságként.
 
-## Javasolt döntés
+## Döntés
 
 1. **Négy külön authority.** A szolgáltatás-admission, az induló kupon, a fejezetledger és az USD-budget külön marad. Meghívás nem ad kupont vagy korlátlan generálást. Új csoport, új belépés vagy új konfiguráció nem nulláz könyvelést és nem újítja meg az ízelítőt. A régi béta-fiókok átvezetése külön megőrzési terv; az új ügyfelek nem kerülnek a fejezetszámlálás alól mentes listára.
 2. **Szerver által birtokolt policy.** A szolgáltatás policy-ja verziózott, pozitív revíziójú snapshot: `version`, `revision`, `mode: invitation|open`, `generationEnabled`, `checkoutEnabled`. A tartós regiszter fiókazonosítóhoz kötött `active|revoked` admissiont és revíziót ad. A policy ismeretlen, hiányzó vagy hibás állapota zárt. A lookup `not-found` és `unavailable` külön eredmény; adatbázishiba nyílt módban sem válik jogosultsággá. A tároló a #137 fejlesztési szeletében készül; az operátori és runtime-bekötés külön következik.
@@ -29,6 +29,22 @@ A meglévő backend a Supabase `getUser(token)` eredményével igazolja a nem an
 4. **Visszavonás és nyitás.** Meghívásos módban a nem listázott felhasználó elutasított. Nyílt módban az ellenőrzött, nem listázott fiók beléphet, de a kifejezett visszavonás érvényes marad. Hiányzó vagy másik felhasználóhoz tartozó snapshot nem enged be. Az `open` modell nem kapcsolja be a Supabase signupot, nem módosít Cloudflare-policy-t, és nem aktív env-kapcsoló; ezek későbbi, külön igazolt műveletek.
 5. **Szüneteltetés nem paywall-kikapcsolás.** A generálás és az új Checkout külön szüneteltethető. A szokásos teljes költségstop mindkettőt atomikusan leállítja a későbbi operátori műveletben. A meglévő fejezetek olvasása a jogosult fióknak nem függ fizetéstől. A foglalás lezárása, webhook/reconcile és lemondás nem kapcsolható ki hallgatólagosan; a már megkezdett munkák tartós mentése/elszámolása rendezendő. A runtime-nak a queue és a worker indulási határán is kezelnie kell a pause-versenyt; a tiszta függvény önmagában nem tranzakciós fence.
 6. **Adatkontroll megmarad.** Az autentikált export/törlés/account-control jogosultsági út nem függ új admissiontől vagy a policy elérhetőségétől. A hívó továbbra is ellenőrzi az Auth-állapotot, ownershipöt, friss belépést, törlési/billing és writer-fence szabályokat. Az itt adott `allowed` nem kerüli meg ezeket, és nem garantál adatbázis-elérhetőséget kieséskor. Admission-visszavonás vagy sikertelen fizetés nem töröl történetet.
+
+## Módosítás — 2026-11-03: korlátos nyílt admission (tulajdonosi döntés)
+
+A tulajdonos (2026-11-03) döntése: az első tíz felhasználó nem meghívott. Az éles üzem nyílt regisztrációval indul, az első 10 admission után automatikusan ideiglenesen zár, megbeszélt idő után újranyit, és így tovább. Ez a fenti 2. és 4. pontot pontosítja; a többi (négy authority, hitelesítés ≠ admission, pause ≠ paywall, adatkontroll) változatlan.
+
+1. **„Regisztráció” = admission:** megerősített email, nem anonim Supabase-fiók (és az Access-identitás egyezése), 18+/AI-nyilatkozat és az első sikeres belépés utáni nyilatkozat-küldés. Megerősítetlen Auth-fiók nem számít. Megjegyzés: az ÁSZF/adatvédelmi szöveg a meglévő `adult_and_ai_acknowledgement` consentet használja; a jogi szöveg bővítése (C2) külön munka.
+2. **`open` jelentése megváltozott:** a nyílt mód nem engedi be a nem listázott fiókot; csak jogosulttá teszi az atomikus admission-lépésre. A tiszta döntés admission nélkül mindig zárt (`SERVICE_ADMISSION_REQUIRED` nyílt, `SERVICE_ADMISSION_CLOSED` zárt policynál), a visszavont admission változatlanul `SERVICE_INVITATION_REQUIRED`. Az `invitation` mód a „zárt/tele” állapot is: az automatikus zárás ide vált.
+3. **Kapacitás a policy-sorban:** monoton `admission_capacity` és `admission_used`; csak a nyílt úton beengedett fiók számít (operátori admission nem). Törlés, visszavonás és restore nem szabadít fel helyet. Adatbázis-invariáns: `used <= capacity`, és `open` csak `used < capacity` mellett érvényes. Az automatikus zárás a számlálóval azonos utasításban történik és növeli a policy-revíziót, így az elavult operátori írás konfliktust kap; a hely elfoglalása revíziót nem növel, így a pause/resume hullám közben használható.
+4. **Atomicitás:** a `admitOpenAccount` egy tranzakcióban zárolja a policy-sort (az operátori batch sorrendje: policy → gyökér), ellenőrzi a restore-karantént és a kapacitást, létrehozza a fiókgyökeret és a consentet, beírja az admissiont, növeli a számlálót és szükség esetén zár. Teli, zárt, karanténos vagy hibás tároló semmit nem ír: nincs gyökér, consent, várólista vagy új személyes adat.
+5. **Belépési útvonal:** admission nélküli, ellenőrzött fiók csak a `GET/POST /api/v1/me/consent` útvonalat érheti el (üres állapot, ill. admission-kérés); minden más kérés, és a worker/queue is, zárt marad. A `POST` 201-gyel válaszol, mint a rendes consent-útvonal.
+6. **Hullámvezérlés:** a `configureAdmission(expectedRevision, {capacity, open})` revízió-ellenőrzött (a `service-operations` `wave` művelete ezt hívja, a `restore-reconcile` művelet a `releaseRestoreQuarantine`-t: zárt és szüneteltetett állapotba oldja a karantént), a kapacitás nem mehet a használt hely alá, nyitáshoz szabad hely kell. A restore a nyitott hullámot is `invitation` módba teszi (a karanténjelző mellett), újranyitás csak explicit operátori hullámmal.
+7. **Kedvezmény-jogosultság az admission sorában:** a `launch_discount_eligible` jelzőt a nyílt admission ugyanabban a tranzakcióban rögzíti (`admission_used <= 10`), operátori admission nem jogosult; ez csak adat, árat vagy kupont nem alkalmaz. A billing olvasása külön változás.
+8. **Verziózott ÁSZF/adatkezelési elfogadás:** a `POST /api/v1/me/consent` (a nyílt admission kérése és a rendes consent-útvonal is) kötelezően `{adult:true, acknowledged:true, termsVersion}` törzset kér; a `termsVersion` pontosan a szerveroldali `TERMS_ACCEPTANCE_VERSION` konstans lehet (`packages/contracts/src/privacy-consent.ts`), hiányzó, üres vagy más érték 422, írás nélkül (zárt irányú; az adatbázisréteg is újra ellenőrzi). Az admission ugyanabban a tranzakcióban az eddigi `adult_and_ai_acknowledgement` sor mellé egy második `ff_consents` sort ír (`consent_type='terms_and_privacy_acceptance'`, `policy_version=<termsVersion>`); a rendes útvonal ugyanezt a kettőt együtt írja. Séma nem változik. A konstans mostani értéke helyőrző (`terms-pending-final-text`): a végleges ÁSZF/adatkezelési szöveg azonosítója (tulajdonosi döntés, D4) állítja be a nyitás előtt, ugyanabban a változásban, amely a szöveget is rögzíti. A korábbi admittált fiókok (például a három régi béta-fiók) nem kapnak visszamenőleges terms-sort; az ő elfogadásuk külön átvezetési kérdés. A web-oldalnak a konstanst a `@future-flow/contracts`-ból kell küldenie.
+9. **Nem része:** a Supabase signup bekapcsolása, a Turnstile/rate limit/captcha (C5), a Cloudflare Access tágítása, a web-oldali átirányítás és „megtelt” oldal, az operátori CLI/journal, és a régi három béta-fiók admissionje (az első hullám kapacitását ezek figyelembevételével kell kijelölni). Ezek éles konfiguráció vagy külön csomag.
+
+A módosítást a tulajdonos 2026-11-03-án elfogadta (a hullámok megnyitása, a Supabase signup, a Cloudflare Access és a Turnstile-védelem éles bekapcsolása azonban külön, igazolt tulajdonosi jóváhagyás). A módosítás önmagában nem aktivál éles profilt.
 
 ## Implementált első szelet
 
@@ -98,11 +114,25 @@ Elveszett apply-válasz után külön readonly reconcile csak a pontos before/af
 
 A20 PGlite/040 teszt a batch/CAS/rollback/lejárat/readonly és változatlan USD/taster-ledger határt ellenőrzi. Ez nem többkapcsolatos PostgreSQL-lockverseny, actual-image, root-journal, backup/restore vagy éles audit. Ezek és a külön service-budget/legacy-window átvezetés a teljes #150 további komponensei. A régi exemption alatt mentett fejezet tasternek minősítése nincs eldöntve a jelenlegi once/account szabályból; tulajdonosi válaszig egyik irányban sincs automatikus főkönyvírás.
 
+## Tartós service-profil rekord (SPR) — elfogadva 2026-11-03
+
+A tulajdonos a service-profil rekordra vonatkozó három kérdésre igennel válaszolt (2026-11-03), majd az ADR-011-et egészében elfogadta (17:44 CET). A service-művelet host-oldali authority-ja ezért nem a véges, egyszeri lépésekre épülő successor-lánc generációja, hanem egy tartós, ellenőrizhető rekord arról, melyik forrás/image/konfiguráció a jóváhagyott éles szolgáltatás. A successor-lánc és régi proofjai változatlanok maradnak.
+
+1. **Hely és tartalom:** `/root/alterward-ops/service-profile/` (0700, root), a meglévő `owner/` és `daily/` mellett. Generációnként változtathatatlan `profiles/<n>.json` (`version: alterward-service-profile-1`, `generation`, `parentProfileSha256` — az első generációnál a successor-lánc utolsó readbackjének hash-e —, `sourceCommit`, `imageId`, `effectiveComposeSha256`, `serverEnvSha256`, `pinnedImageSha256`, `schema: 40`, `serviceAccessEnforcement: true`, valamint az `activation` blokk: a tulajdonosi jóváhagyó mondat hash-e és CET-időpontja, a friss backup-manifest és natív restore-proof hash-e). A `server.env` tartalma sosem kerül bele, csak digest. Atomikus (rename+fsync) `head.json` és hash-láncolt, append-only `journal.jsonl` (`profile-activated`, `profile-superseded`). Az adatbázisban nincs profiltárolás, a 040 séma nem bővül.
+2. **Ki írja:** kizárólag egy külön, root `service-profile activate` parancs, a tulajdonos élesre vonatkozó jóváhagyása után. Az operátori helper csak olvassa. **Minden generáció** (első aktiválás, image- vagy konfigurációváltás, restore utáni új generáció) külön tulajdonosi jóváhagyást kér.
+3. **Ellenőrzés SQL előtt, minden hívásnál:** a lánc genezistől a fejig hash-ellenőrzött (pozitív generáció, egyező szülő-hash); a futó állapot egyezik (`owner/` fájlok digestjei, a futó api/worker/web image-azonosítója, az effective compose `SERVICE_ACCESS_ENFORCEMENT=true`); a readonly próba a 040 migrációs receipt és prefix-hash egyezését adja vissza. Az `authoritySha256 = hash(SPR-profil)` a művelet kontextusába kerül, így az intent a profilhoz kötött.
+4. **Hibára zárt:** hiányzó rekord, hibás lánc vagy eltérő futó állapot esetén a helper minden műveletet elutasít, kivéve a csak olvasó `status`-t; a Daily monitor `service_profile_missing|mismatch` jelzést ad. Az alkalmazás futásidejű admission-védelme nem függ az SPR-től.
+5. **Vészleállítási kivétel:** `pause --emergency` és `wave --close` root jogosultsággal SPR nélkül is fut, de kizárólag kitettséget csökkentő művelet (generation/Checkout szünet, nyitott hullám zárása), a journalban `unverifiedAuthority: true` jelöléssel. Nyitás, kapacitásemelés és `restore-reconcile` SPR nélkül nem fut.
+6. **Backup/restore:** az SPR könyvtár bekerül a véges backup-fájlkatalógusba és az offsite másolatba; restore soha nem állítja vissza élő fejként, új hoszton vagy restore után új generációt kell aktiválni (`restoredFrom` hivatkozással). A natív 040 replay után a `reconcile_required=true` állapotot csak a `restore-reconcile` oldja, az SPR ellenőrzésével együtt.
+7. **Nincs Supabase service key** a root-folyamatban (fiók-provisioning nincs).
+
+Megvalósítás (külön reviewed szeletek, a #155 beolvadása után): PR-A readonly service-operation próba, PR-B root helper + SPR-ellenőrzés + journal + CLI, PR-C Daily/backup-katalógus/monitor, PR-D rehearsal-fixture és CI. A host-kód addig nem készül, amíg a #155 reviewja le nem zárult.
+
 ## Következő integrációs szeletek és elfogadás
 
 1. Tartós tároló és operátori műveletek: schema/migráció, RLS és anon/authenticated tiltás, privacy-katalógus/megőrzés/export/törlés, recovery-baseline, writer-fence és revízió/CAS együtt. Az adatminimalizált email/identitás-kötést még rögzíteni kell; a tartós regiszter nem lehet fiókmanipulációval írható.
-2. API/web: minden elérhető alkalmazásút, a közvetlen Auth/API kérések és a pre-login kapu lefedése; nincs rövidre zárt „Cloudflare hitelesített = meghívott” vagy sessionben örökre tárolt admission. A Supabase önregisztráció zárt marad. A backend csak ellenőrzött provider-identitást használ; a saját adatkontroll kivételei nem bővülnek termék-API bypassra.
-3. Operátori tartós működés: új csoport felvétele normál, ellenőrzött adatkezelés legyen image/env/új béta-window nélkül; policy/konfigurációváltás és pause/resume auditálható, forrás- és recovery-kapuhoz kötött. A verziózott nyolcgyökeres lánc bővítése/kiváltása külön reviewed változás, nem tetszőleges fájl vagy baseline-őr megkerülése.
+2. API/web: minden elérhető alkalmazásút, a közvetlen Auth/API kérések és a pre-login kapu lefedése; nincs rövidre zárt „Cloudflare hitelesített = meghívott” vagy sessionben örökre tárolt admission. A Supabase önregisztráció zárt marad, amíg a tulajdonos külön, igazolt műveletben a nyílt indulást engedélyezi; a nyitás előtt kötelező az email-megerősítés, a Turnstile, a rate limit és a 18+ nyilatkozat. A backend csak ellenőrzött provider-identitást használ; a saját adatkontroll kivételei nem bővülnek termék-API bypassra.
+3. Operátori tartós működés: új csoport felvétele normál, ellenőrzött adatkezelés legyen image/env/új béta-window nélkül; policy/konfigurációváltás és pause/resume auditálható, forrás- és recovery-kapuhoz kötött. A verziózott nyolcgyökeres lánc helyett a tartós service-authority a fenti SPR (elfogadva 2026-11-03); bármely további bővítés/kiváltás külön reviewed változás, nem tetszőleges fájl vagy baseline-őr megkerülése.
 4. Célzott integrációs, race és mért böngészős bizonyíték, majd I06 szerint konkrét éles felhatalmazás. Az új modul nem lazítja a befagyasztott motor ellenőrzését: a későbbi kiadásban minden auth/billing kivétel pontos reviewed hash-hez kötendő.
 
 ## Források és határ

@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
@@ -82,6 +83,7 @@ describe.sequential('versioned private life API', () => {
         await request('/api/v1/me/consent', 'POST', {
           adult: true,
           acknowledged: true,
+          termsVersion: TERMS_ACCEPTANCE_VERSION,
         })
       ).status,
     ).toBe(201);
