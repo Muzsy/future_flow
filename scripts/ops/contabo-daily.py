@@ -597,7 +597,7 @@ def service_record_health(environments, images, now):
                 rows = service_chain(service_regular(path, (0o600,)), SERVICE_OPERATOR_JOURNAL_VERSION,
                                      {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
                                      {'intent-persisted', 'apply-started', 'applied', 'apply-unknown',
-                                      'reconciled-committed', 'reconciled-uncommitted'})
+                                      'reconciled-committed', 'reconciled-uncommitted', 'drift-accepted'})
                 state = {}
                 for row in rows:
                     if row['event'] in ('apply-started', 'apply-unknown'):

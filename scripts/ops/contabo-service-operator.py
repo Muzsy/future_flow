@@ -54,7 +54,7 @@ UNVERIFIED_COMMIT = '0' * 40
 EMERGENCY_KINDS = ('pause', 'wave-close')
 ROW_COMMON = {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'}
 EVENTS = {'intent-persisted', 'apply-started', 'applied', 'apply-unknown',
-          'reconciled-committed', 'reconciled-uncommitted'}
+          'reconciled-committed', 'reconciled-uncommitted', 'drift-accepted'}
 
 
 class Refusal(ValueError):
@@ -406,8 +406,7 @@ class Operator:
         return {'operationId': operation_id, 'kind': request['kind'], 'outcome': receipt.get('outcome'),
                 'unverifiedAuthority': unverified, 'paidAiCalls': 0, 'authProviderWrites': False}
 
-    def reconcile(self, operation_id):
-        """Read-only resolution of a lost apply. Never repeats SQL."""
+    def _unfinished(self, operation_id):
         if operation_id not in {r['operationId'] for r in self.journal.unfinished_all()}:
             raise Refusal('No unfinished operation with that id')
         started = self.journal.last(operation_id, 'apply-started')
@@ -423,8 +422,24 @@ class Operator:
         image_id = intent['context']['imageId']
         if not IMAGE.fullmatch(image_id):
             raise Refusal('Stored intent image invalid')
-        receipt = self._probe(image_id, {'mode': 'service-reconcile', 'context': intent['context'],
-                                         'intent': intent, 'intentSha256': persisted['intentSha256']}, directory)
+        return persisted, directory, intent, image_id
+
+    def reconcile(self, operation_id, *, accept_drift=False, confirm=None):
+        """Read-only resolution of a lost apply. Never repeats SQL."""
+        persisted, directory, intent, image_id = self._unfinished(operation_id)
+        if accept_drift:
+            return self._accept_drift(operation_id, persisted, directory, confirm)
+        try:
+            receipt = self._probe(image_id, {'mode': 'service-reconcile', 'context': intent['context'],
+                                             'intent': intent, 'intentSha256': persisted['intentSha256']},
+                                  directory)
+        except Refusal:
+            raise
+        except Exception:
+            phrase = self.accept_drift_phrase(operation_id, persisted['intentSha256'])
+            raise Refusal('The outcome could not be proven (the state moved on or the database is unreachable). '
+                          'If the state moved on, the owner may close it with: reconcile --operation-id '
+                          f'{operation_id} --accept-drift --confirm "{phrase}"') from None
         outcome = receipt.get('outcome')
         if outcome not in ('committed', 'uncommitted'):
             raise Refusal('Reconcile did not return an exact outcome')
@@ -435,6 +450,54 @@ class Operator:
                             readbackFileSha256=sha(receipt_bytes))
         return {'operationId': operation_id, 'outcome': outcome,
                 'next': None if outcome == 'committed' else 'start a new operation; the old one changed nothing'}
+
+    @staticmethod
+    def accept_drift_phrase(operation_id, intent_sha256):
+        return f'accept-drift {operation_id} {intent_sha256[:16]}'
+
+    def _accept_drift(self, operation_id, persisted, directory, confirm):
+        """Owner-confirmed, journaled close of an operation whose outcome can no longer be proven.
+
+        Used when the database moved on after a lost response (typically an emergency stop),
+        so the readback matches neither the intent's before nor its after state. It runs no
+        SQL, never raises capacity and never opens a wave: it needs the verified service
+        profile, a readable current status and a closed service (mode invitation), then it
+        only records that the owner accepted the unproven outcome together with the observed state.
+        """
+        expected = self.accept_drift_phrase(operation_id, persisted['intentSha256'])
+        if confirm != expected:
+            raise Refusal(f'Owner confirmation required: --confirm "{expected}"')
+        record = self.verified_profile()
+        image_id = record['profile']['imageId']
+        intent = json.loads(_private_read(directory / INTENT_NAME))
+        try:
+            self._probe(intent['context']['imageId'],
+                        {'mode': 'service-reconcile', 'context': intent['context'], 'intent': intent,
+                         'intentSha256': persisted['intentSha256']}, directory)
+        except Exception:
+            pass  # the drift this command exists for (or an unreachable database: status fails next)
+        else:
+            raise Refusal('The outcome is provable: run reconcile without --accept-drift')
+        try:
+            status = self._status_probe(image_id, [], directory)
+        except Refusal:
+            raise
+        except Exception:
+            raise Refusal('Current database status could not be read') from None
+        policy = status['policy']
+        if policy is None or policy['mode'] != 'invitation':
+            raise Refusal('Close the service first (wave --close): drift is only accepted while closed')
+        observed = {k: policy[k] for k in ('revision', 'mode', 'generationEnabled', 'checkoutEnabled',
+                                           'reconcileRequired', 'admissionCapacity', 'admissionUsed')}
+        user, host = self.identity()
+        self.journal.append('drift-accepted', operation_id, self.clock(),
+                            intentSha256=persisted['intentSha256'],
+                            observedPolicySha256=sha(canonical(observed)),
+                            confirmationSha256=sha(expected.encode()),
+                            operatorSha256=sha(canonical({'user': user, 'host': host})),
+                            profileGeneration=record['generation'], observedPolicy=observed)
+        return {'operationId': operation_id, 'outcome': 'drift-accepted', 'observedPolicy': observed,
+                'next': 'review the observed policy; nothing was changed, capacity and mode are untouched'}
 
 
 class HostRuntime:
@@ -515,6 +578,8 @@ def parser():
     sub.add_parser('restore-reconcile')
     reconcile = sub.add_parser('reconcile')
     reconcile.add_argument('--operation-id', required=True)
+    reconcile.add_argument('--accept-drift', action='store_true')
+    reconcile.add_argument('--confirm')
     return top
 
 
@@ -522,7 +587,10 @@ def run(arguments, operator, argv):
     if arguments.command == 'status':
         return operator.status(arguments.user)
     if arguments.command == 'reconcile':
-        return operator.reconcile(str(uuid.UUID(arguments.operation_id)))
+        if arguments.confirm is not None and not arguments.accept_drift:
+            raise Refusal('--confirm only belongs to --accept-drift')
+        return operator.reconcile(str(uuid.UUID(arguments.operation_id)),
+                                  accept_drift=arguments.accept_drift, confirm=arguments.confirm)
     if arguments.command == 'wave':
         if arguments.close and arguments.capacity is not None:
             raise Refusal('A wave close takes no capacity')
@@ -553,7 +621,7 @@ def main(argv=None):
         with operation_lock(STATE_DIR):
             print(json.dumps(run(arguments, operator, argv), sort_keys=True))
         return 0
-    except (Refusal, ValueError, OSError) as error:
+    except (Refusal, ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
         print('Service operation refused: ' + (str(error) if isinstance(error, Refusal) else 'invalid input'),
               file=sys.stderr)
         return 1

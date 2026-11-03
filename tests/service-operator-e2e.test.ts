@@ -101,7 +101,14 @@ const events = () =>
   readFileSync(join(base, 'service-operations', 'journal.jsonl'), 'utf8')
     .trim()
     .split('\n')
-    .map((line) => JSON.parse(line) as { event: string; operationId: string });
+    .map(
+      (line) =>
+        JSON.parse(line) as {
+          event: string;
+          operationId: string;
+          intentSha256?: string;
+        },
+    );
 
 async function admit(count: number) {
   const repo = new ServiceAccessRepository(db);
@@ -378,7 +385,7 @@ describe.skipIf(!posix)('service operator end to end (PGlite)', () => {
     expect(started).toHaveLength(1);
   }, 120000);
 
-  it('keeps emergency stops available while an unknown operation is pending, and refuses a drifted reconcile', async () => {
+  it('keeps emergency stops available while an unknown operation is pending; a drifted outcome is closed only by the confirmed, journaled acceptance', async () => {
     await operate(['bootstrap']);
     expect((await operate(['resume'], true)).code).toBe(1);
     const pending = events().find((r) => r.event === 'apply-unknown')!;
@@ -386,16 +393,54 @@ describe.skipIf(!posix)('service operator end to end (PGlite)', () => {
     expect(await policy()).toMatchObject({ generation_enabled: false });
     // The emergency stop changed the state after the unknown commit: the
     // readback matches neither side of the original intent, so the operator
-    // refuses to guess and everything except further emergency stops stays blocked.
+    // refuses to guess and everything except emergency stops stays blocked.
     const drifted = await operate([
       'reconcile',
       '--operation-id',
       pending.operationId,
     ]);
     expect(drifted.code).toBe(1);
+    expect(drifted.refused).toContain('--accept-drift --confirm');
     expect((await operate(['resume'])).code).toBe(1);
     expect((await operate(['pause', '--emergency'])).code).toBe(0);
-    expect(events().filter((r) => r.event === 'apply-started')).toHaveLength(4);
+    const accept = (confirm?: string) =>
+      operate([
+        'reconcile',
+        '--operation-id',
+        pending.operationId,
+        '--accept-drift',
+        ...(confirm ? ['--confirm', confirm] : []),
+      ]);
+    const intentSha = events().find(
+      (r) => r.operationId === pending.operationId && r.intentSha256,
+    )!.intentSha256!;
+    const phrase = `accept-drift ${pending.operationId} ${intentSha.slice(0, 16)}`;
+    // Without the exact owner confirmation nothing is closed.
+    expect((await accept()).code).toBe(1);
+    expect((await accept('yes')).code).toBe(1);
+    // Never while a wave is open: the owner closes first.
+    await db.query(
+      "UPDATE aw_service_policy SET mode='open',admission_capacity=2,revision=revision+1",
+    );
+    const open = await accept(phrase);
+    expect(open.code).toBe(1);
+    expect(open.refused).toContain('Close the service first');
+    await db.query(
+      "UPDATE aw_service_policy SET mode='invitation',revision=revision+1",
+    );
+    const before = await policy();
+    const done = await accept(phrase);
+    expect(done.refused).toBeUndefined();
+    expect(done.code).toBe(0);
+    // Journaled on the chain; no SQL: capacity, mode and counters untouched.
+    const last = events().at(-1)!;
+    expect(last).toMatchObject({
+      event: 'drift-accepted',
+      operationId: pending.operationId,
+    });
+    expect(await policy()).toEqual(before);
+    expect((await operate(['status'])).result.unfinishedOperations).toEqual([]);
+    expect((await operate(['resume'])).code).toBe(0);
   }, 120000);
 
   it('refuses to act when the service-profile record is tampered with', async () => {

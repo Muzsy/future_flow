@@ -140,6 +140,13 @@ class ServiceDailyEvidenceTests(unittest.TestCase):
         journal.append('reconciled-committed', OPERATION, NOW)
         self.assertEqual((self.health(now=NOW + dt.timedelta(hours=3))['unfinished'],
                           self.health()['journal']), (False, 'verified'))
+        other = '223e4567-e89b-42d3-a456-426614174000'
+        journal.append('intent-persisted', other, NOW)
+        journal.append('apply-started', other, NOW)
+        journal.append('apply-unknown', other, NOW)
+        self.assertTrue(self.health()['unfinished'])
+        journal.append('drift-accepted', other, NOW)  # the owner-confirmed close ends the alert
+        self.assertEqual((self.health()['unfinished'], self.health()['journal']), (False, 'verified'))
 
     def test_a_broken_operation_journal_is_unverified(self):
         journal = self.journal()

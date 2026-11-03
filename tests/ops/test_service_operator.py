@@ -47,6 +47,7 @@ class FakeRuntime:
         self.admissions = {}
         self.calls = []
         self.lose_apply = False      # SQL commits but the response is lost
+        self.drift = False           # the state moved on: reconcile can prove neither side
         self.fail_before_sql = False  # apply dies before the transaction commits
         self.on_apply = None
         self.applied = set()
@@ -99,6 +100,8 @@ class FakeRuntime:
                 raise RuntimeError('response lost after commit')
             return {'outcome': 'committed', 'authProviderWrites': False, 'paidAiCalls': 0}
         if mode == 'service-reconcile':
+            if self.drift:
+                raise RuntimeError('readback drift')
             return {'outcome': 'committed' if key in self.applied else 'uncommitted'}
         raise AssertionError(mode)
 
@@ -364,6 +367,79 @@ class OperatorTests(unittest.TestCase):
         with self.assertRaises(op.Refusal):
             operator.execute('pause')  # normal path waits for the reconcile
         self.assertEqual(operator.execute('pause', emergency=True)['outcome'], 'committed')
+        self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+
+    # ---- accepting an unprovable outcome ------------------------------------
+    def drifted(self):
+        """A lost resume, then an emergency stop: the readback matches neither side."""
+        self.runtime.lose_apply = True
+        operator = self.operator()
+        with self.assertRaises(op.Refusal):
+            operator.execute('resume')
+        self.runtime.lose_apply = False
+        operator.execute('pause', emergency=True)
+        self.runtime.drift = True
+        operation_id = op.Journal(self.state).unfinished_all()[0]['operationId']
+        phrase = operator.accept_drift_phrase(
+            operation_id, op.Journal(self.state).last(operation_id, 'intent-persisted')['intentSha256'])
+        return operator, operation_id, phrase
+
+    def test_accept_drift_needs_the_exact_owner_confirmation_for_that_operation(self):
+        operator, operation_id, phrase = self.drifted()
+        with self.assertRaisesRegex(op.Refusal, '--accept-drift --confirm'):
+            operator.reconcile(operation_id)  # plain reconcile cannot conclude and names the way out
+        for confirm in (None, '', 'yes', phrase.replace(operation_id[:4], '0000'), phrase + ' '):
+            with self.subTest(confirm), self.assertRaisesRegex(op.Refusal, 'Owner confirmation required'):
+                operator.reconcile(operation_id, accept_drift=True, confirm=confirm)
+        self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+        self.assertNotIn('drift-accepted', [r['event'] for r in self.rows()])
+
+    def test_accept_drift_journals_the_observed_state_and_changes_nothing_else(self):
+        operator, operation_id, phrase = self.drifted()
+        before = copy.deepcopy(self.runtime.policy)
+        applies = len(self.applies())
+        result = operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+        self.assertEqual(result['outcome'], 'drift-accepted')
+        row = self.rows()[-1]
+        self.assertEqual((row['event'], row['operationId']), ('drift-accepted', operation_id))
+        self.assertEqual(row['observedPolicy']['admissionCapacity'], before['admissionCapacity'])
+        self.assertEqual(row['observedPolicySha256'], op.sha(op.canonical(row['observedPolicy'])))
+        self.assertEqual(self.runtime.policy, before)          # no SQL, no capacity change, no opening
+        self.assertEqual(len(self.applies()), applies)
+        self.assertEqual(op.Journal(self.state).unfinished_all(), [])
+        self.runtime.drift = False
+        self.assertEqual(operator.execute('resume')['outcome'], 'committed')  # blocked no more
+        self.assertEqual(len(op.Journal(self.state).rows()), len(self.rows()))  # chain still verifies
+        with self.assertRaisesRegex(op.Refusal, 'No unfinished'):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+
+    def test_accept_drift_refuses_a_provable_outcome_an_open_wave_and_an_unverified_record(self):
+        operator, operation_id, phrase = self.drifted()
+        self.runtime.drift = False
+        with self.assertRaisesRegex(op.Refusal, 'provable'):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+        self.runtime.drift = True
+        self.runtime.policy.update(mode='open', admissionCapacity=3)
+        with self.assertRaisesRegex(op.Refusal, 'Close the service first'):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+        self.runtime.policy.update(mode='invitation')
+        self.runtime.observed['images']['api'] = 'sha256:' + '0' * 64  # running state no longer the profile
+        with self.assertRaises(op.Refusal):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+        self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+
+    def test_accept_drift_is_not_available_when_the_database_cannot_be_read(self):
+        operator, operation_id, phrase = self.drifted()
+        original = self.runtime.probe
+
+        def broken(image_id, data, directory):
+            if data['mode'] == 'service-status':
+                raise RuntimeError('database unreachable')
+            return original(image_id, data, directory)
+
+        self.runtime.probe = broken
+        with self.assertRaisesRegex(op.Refusal, 'could not be read'):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
         self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
 
     # ---- hygiene ---------------------------------------------------------

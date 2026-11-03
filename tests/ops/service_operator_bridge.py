@@ -54,7 +54,7 @@ class BridgeRuntime:
         if data['mode'] == 'service-apply' and self.lose_apply:
             raise RuntimeError('response lost after commit')  # the parent has already applied it
         if not answer.get('ok'):
-            raise op.Refusal('Probe failed')
+            raise RuntimeError('probe failed')  # like a failed one-off container
         return answer['value']
 
 
