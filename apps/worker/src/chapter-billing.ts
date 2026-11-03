@@ -6,13 +6,15 @@ import { combineAiGuards, type AiRequestGuard } from '@future-flow/ai';
 import {
   closedBetaConfigFromEnv,
   configureGenerationGate,
+  legacyBetaChapterExemption,
   createGenerationGate,
   type LifeJob,
   type LifeJobRepository,
 } from '@future-flow/database';
 
-// Match the API's existing, explicit closed-beta exemption. Admission, coupons
-// and the USD budget's customer set must never become free-chapter authority.
+// Match the API's explicit, time-bounded closed-beta exemption. Admission,
+// coupons and the USD budget's customer set must never become free-chapter
+// authority.
 export function configureWorkerChapterBilling(
   env: NodeJS.ProcessEnv = process.env,
 ) {
@@ -24,7 +26,7 @@ export function configureWorkerChapterBilling(
     config.enforcement
       ? createGenerationGate({
           ready: config.enabled,
-          exemptUserIds: beta.enabled ? beta.userIds : [],
+          ...legacyBetaChapterExemption(beta),
           entitlement: config.entitlement,
         })
       : null,

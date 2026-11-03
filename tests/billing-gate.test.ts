@@ -244,7 +244,11 @@ describe.sequential('generation gate', () => {
   it('never gates or debits the closed-beta accounts', async () => {
     const u = await person();
     configureGenerationGate(
-      createGenerationGate({ ready: false, exemptUserIds: [u.toUpperCase()] }),
+      createGenerationGate({
+        ready: false,
+        exemptUserIds: [u.toUpperCase()],
+        exemptEndsAt: new Date(Date.now() + 3600000),
+      }),
     );
     const created = await lives.create(u, setupFixture(), 'exempt-create');
     await finishNext();

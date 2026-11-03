@@ -1,6 +1,6 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { INestApplication } from '@nestjs/common';
 import { questionnaire } from '@future-flow/contracts';
 import {
@@ -667,10 +667,14 @@ describe('generation gate wiring in createApp', () => {
       { enabled: true, userIds: [member] },
     );
     try {
+      // Inside the original tester window (it ends 2026-11-28 01:17:38 CET).
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-10T12:00:00Z'));
       await expect(
         lifeFor(beta, member, 'beta-on-key-0001'),
       ).resolves.toBeTruthy();
     } finally {
+      vi.useRealTimers();
       await close(beta);
     }
     const ended = await boot(
