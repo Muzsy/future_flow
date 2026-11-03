@@ -629,39 +629,50 @@ SUCCESSOR_REGISTRY_PURPOSE = 'schema-040'
 SUCCESSOR_REGISTRY_BILLING_PURPOSE = 'billing-config-040'
 SUCCESSOR_REGISTRY_PLAN_VERSION = 'alterward-beta-successor-plan-3'
 REGISTRY_040_CHANGE_HASHES = {
-    'apps/api/src/app.ts': '8d619ac8ae4da5378ae9a210833f228760b48c7da6e0beae214fb3cc3904d9b0',
+    'apps/api/src/app.ts': 'add67bab0dbae4f95a257e5aed396ef8d96bd0cf8156e3aba8174b9712a3b270',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
     'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
-    'apps/api/src/billing.ts': 'af8c39115b02523afcd3da39d20069e18173f900da0c639ee9eea8a8a4cae5b3',
+    'apps/api/src/billing.ts': '382ba90fb5219470d393cef8415209953278ee1e41c463340d6f337cb575c3f0',
     'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
     'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
-    'apps/api/src/service-access.ts': '1f32c69a7e07ff1894b1b89ec95266f48a2568cdfa20955712d527dc29622106',
+    'apps/api/src/service-access.ts': '3cd270e384b5e5e949882bb36484a9f7af563748969a0eb8dcadde2dfb325009',
+    'apps/api/src/service-admission.ts': 'c47fc49078afb4662880ce9020d456c1a838c01586fcf4ee62aa4c369107f991',
+    'apps/web/components/admission-gate.tsx': 'c8303ffbdbcf76c8521039edfd257a818b6d338d5cf67c532058809ac9d3d156',
     'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
+    'apps/web/components/experience.tsx': '6679d36cd61bb11e171dd15fd23dacd084929a1ec71350014723f129c4f6ca86',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': '8a62f161f5fcaf0877929b905a2f9d558be03dcb0f12a83a5e0c5b6ba1a8a49c',
+    'apps/web/components/life-experience.tsx': '3084f90363549a8d382751cabd0f5d971504fd291a04f0cfad7370919a087e1d',
+    'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
+    'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
+    'apps/web/lib/admission.ts': 'c92d1637cca27f06e0529c2ffe028b1b4dec6ba227fcdae403ace13ae78bdc2a',
     'apps/web/lib/billing.ts': 'b1d875729517a96776086624ce9463cf015dcfcc53218b99b6d7130b07b49e46',
-    'apps/web/lib/i18n/messages.ts': '642686072a3cb0b738f75b35dc4b7e847c1f61c9ebd8966dc3f047e3c4cfd4ea',
+    'apps/web/lib/i18n/messages.ts': '43cd2b2bc4ddf5c48d30c43872e721e46e7780fc0df6cde2efe2287edc2ca8a4',
     'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
     'apps/web/proxy.ts': '5d6188280d6d0c94e719d02df3a3bca541251d5d7659f383eb1136cd5129ae29',
     'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
-    'apps/worker/src/chapter-billing.ts': '6ee53efd50efb86bc44eb727fdbdb8abc17b6fdc16fbbc6b85a7f08261047593',
-    'apps/worker/src/main.ts': '6adb7581bf7309f9ba19549e9f433482779b5ce7ae8f197fa90a8227f3617bd8',
-    'database/migrations/040_service_access_registry.sql': 'd52965052872352f3fe83e95fb8d7d2abff9611cffaaa5b580b7320d240fb938',
+    'apps/worker/src/chapter-billing.ts': '07e5a49cf1d5352a7f28ff32fa864489e99a3acca6d9f7321552139f87200245',
+    'apps/worker/src/main.ts': '10134cf57123abc8d6f7cf1f1f31a37197280ecb80f148a8a956d185ce9b4fae',
+    'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
+    'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
     'deploy/compose.yaml': '54d0170b7974a46432b3a4993c527ec8e8626ad7e18ad53a8c563f102edb4fea',
     'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
     'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
-    'packages/contracts/src/error-messages.ts': '5a607d0c996842a6b96c4774a30ee34e59f997bf7135557f3009eb6c723e8424',
-    'packages/core/src/billing-service.ts': '391e35b4c3866b52cd84a323e0b8491be75e5af60788fff3468279ae12a8bac1',
+    'packages/contracts/src/error-messages.ts': '586e6aa7f3538d5c362d29b0520a1f4095df3498319b8b9071f4f91dff7c8ec8',
+    'packages/contracts/src/privacy-consent.ts': '6f505e74c7994c744295cbc7ad1271dc982f7b23059303027d100f79f2fc6ac2',
+    'packages/core/src/billing-service.ts': '3826bf6fe5f55ab6ecdb2837d5a68c54454990319213f01e465378fd1ecc7703',
     'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
+    'packages/core/src/billing.ts': 'af3cfe5a84b21765d049bc5b13c8f71e4ed8eafa649b7e088b0ec0af169f1b5b',
     'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
-    'packages/core/src/service-access.ts': '04a403fb0c0064012e2828d2b769aba890f99e99ffbfc3c77aa35ed8c0c1a856',
-    'packages/database/src/billing.ts': 'e216d311ef8b3f787934af4a5cf192422b23b87cb9e6619858a4136c610874e8',
+    'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
+    'packages/database/src/ai-budget.ts': 'f0b09e219da55b16af941ba1d945b00ab662be994a92657f815afff026b20c5d',
+    'packages/database/src/billing.ts': 'ee4424f5496ac027f6967f07702dbe54daaab26dceba7a207171870493b7883b',
+    'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
     'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
     'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
     'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
     'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
-    'packages/database/src/repository.ts': 'e05ee22ccd8f226e96aa64f7ab9d0714a3ff5ae79183330ccc46a6f07d557487',
-    'packages/database/src/service-access.ts': '4f6134a61b83b168e07370a4064b7059c00f0413beff6ad32217d66bc14dc8a4',
+    'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
+    'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6'
 }
 
 SUCCESSOR_READER_PURPOSE = 'reader-admission'
@@ -775,7 +786,7 @@ def successor_json(value):
 
 
 
-REGISTRY_040_MIGRATION_SHA256 = '9f0a7438e84b9367bc6e4f5a6e2319fefaf50fe49ee2a195c9cd6c09a2eaf613'
+REGISTRY_040_MIGRATION_SHA256 = '0186a292a524ed9e0de5238aa3ebe8c966c29d8a48bb1ecaf694045ad03bd5d8'
 
 
 def registry_journal_fields(row, *, registry=False, registry_config=False):
