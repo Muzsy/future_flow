@@ -131,4 +131,36 @@ describe('private funded-probe failure evidence', () => {
       errorType: 'Error',
     });
   });
+  it('keeps the service operation probe nonzero, stdout empty and secret-free on rejected input', () => {
+    for (const input of [
+      JSON.stringify({ mode: 'person@example.invalid-secret' }),
+      JSON.stringify({
+        mode: 'service-prepare',
+        context: {},
+        request: { kind: 'sql', statement: 'invalid-secret' },
+      }),
+    ]) {
+      const child = spawnSync(
+        process.execPath,
+        ['--import', 'tsx', 'scripts/ops/service-operation-probe.ts'],
+        {
+          input,
+          encoding: 'utf8',
+          env: { PATH: process.env.PATH, NODE_ENV: 'test' },
+          timeout: 15000,
+        },
+      );
+      expect(child.error).toBeUndefined();
+      expect(child.status).toBe(1);
+      expect(child.stdout).toBe('');
+      expect(child.stderr).toContain('Service operation probe refused');
+      expect(child.stderr).not.toMatch(/person@example|invalid-secret/);
+      const line = child.stderr
+        .split('\n')
+        .find((v) => v.startsWith('ALTERWARD_PROBE_FAILURE '));
+      expect(
+        JSON.parse(line!.slice('ALTERWARD_PROBE_FAILURE '.length)),
+      ).toMatchObject({ phase: 'input' });
+    }
+  });
 });
