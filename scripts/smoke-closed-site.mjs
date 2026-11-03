@@ -113,7 +113,11 @@ try {
       /no-store/,
       path,
     );
-    assert.match(await response.text(), /Access to this site is restricted/, path);
+    assert.match(
+      await response.text(),
+      /Access to this site is restricted/,
+      path,
+    );
     checks++;
   }
   for (const path of ['/account-access', '/privacy-notice', '/terms']) {
