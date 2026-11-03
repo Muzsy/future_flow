@@ -17,9 +17,11 @@ export type ServiceAdmission = Readonly<{
   state: 'active' | 'revoked';
 }>;
 
-// A missing invitation and a failed database read are different. Open mode may
-// admit an unlisted verified account, but must never turn a failed lookup into
-// permission: that could ignore a revocation.
+// A missing admission and a failed database read are different, and neither is
+// permission. An account without a stored active admission is never allowed:
+// open mode only means the account may *obtain* one through the bounded,
+// atomic admission step (never from this pure function), and a failed lookup
+// must never turn into permission because that could ignore a revocation.
 export type ServiceAdmissionLookup =
   | Readonly<{ status: 'found'; admission: ServiceAdmission }>
   | Readonly<{ status: 'not-found' }>
@@ -35,6 +37,8 @@ export type ServiceAccessDecision =
         | 'AUTH_REQUIRED'
         | 'SERVICE_ACCESS_UNAVAILABLE'
         | 'SERVICE_INVITATION_REQUIRED'
+        | 'SERVICE_ADMISSION_REQUIRED'
+        | 'SERVICE_ADMISSION_CLOSED'
         | 'SERVICE_GENERATION_PAUSED'
         | 'SERVICE_CHECKOUT_PAUSED';
       status: 401 | 403 | 503;
@@ -134,11 +138,12 @@ export function evaluateServiceAccess(
       lookup.admission.userId !== verifiedUserId.toLowerCase())
   )
     return { allowed: false, code: 'SERVICE_ACCESS_UNAVAILABLE', status: 503 };
-  if (
-    (lookup.status === 'found' && lookup.admission.state === 'revoked') ||
-    (lookup.status === 'not-found' && policy.mode === 'invitation')
-  )
+  if (lookup.status === 'found' && lookup.admission.state === 'revoked')
     return { allowed: false, code: 'SERVICE_INVITATION_REQUIRED', status: 403 };
+  if (lookup.status === 'not-found')
+    return policy.mode === 'open'
+      ? { allowed: false, code: 'SERVICE_ADMISSION_REQUIRED', status: 403 }
+      : { allowed: false, code: 'SERVICE_ADMISSION_CLOSED', status: 403 };
   if (action === 'generate' && !policy.generationEnabled)
     return { allowed: false, code: 'SERVICE_GENERATION_PAUSED', status: 503 };
   if (action === 'checkout' && !policy.checkoutEnabled)

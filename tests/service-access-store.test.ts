@@ -129,7 +129,7 @@ beforeAll(async () => {
   await db.transaction(async (tx) => {
     expect(await assertReviewedPrivacyRecoverySchema(tx)).toMatchObject({
       reviewedTables: 102,
-      reviewedColumns: 906,
+      reviewedColumns: 908,
       reviewedForeignKeys: 226,
     });
     await assertPrivacySecurityCatalog(tx);
@@ -204,7 +204,7 @@ describe('durable server-owned service access over append-only migration040', ()
     await store.replacePolicy(0, invitation);
     expect(await decision()).toMatchObject({
       allowed: false,
-      code: 'SERVICE_INVITATION_REQUIRED',
+      code: 'SERVICE_ADMISSION_CLOSED',
     });
     expect(
       await store.replaceAdmission(owner.toUpperCase(), 0, 'active'),
@@ -212,12 +212,17 @@ describe('durable server-owned service access over append-only migration040', ()
     expect(await decision()).toEqual({ allowed: true });
     expect(await decision(other)).toMatchObject({ allowed: false });
     await store.replaceAdmission(owner, 1, 'revoked');
-    await store.replacePolicy(1, { ...invitation, mode: 'open' });
+    await store.configureAdmission(1, { capacity: 10, open: true });
     expect(await decision()).toMatchObject({
       allowed: false,
       code: 'SERVICE_INVITATION_REQUIRED',
     });
-    expect(await decision(other)).toEqual({ allowed: true });
+    // Open mode never lets an unlisted account act: it only makes the account
+    // eligible for the atomic admission step.
+    expect(await decision(other)).toMatchObject({
+      allowed: false,
+      code: 'SERVICE_ADMISSION_REQUIRED',
+    });
   });
   it('keeps generation/checkout pauses independent of reading and admission revisions', async () => {
     await store.replacePolicy(0, { ...invitation, generationEnabled: false });
@@ -307,7 +312,8 @@ describe('durable server-owned service access over append-only migration040', ()
     expect(await db.query('SELECT * FROM aw_service_policy')).toEqual([]);
   });
   it('fails closed on a read failure even in open mode', async () => {
-    await store.replacePolicy(0, { ...invitation, mode: 'open' });
+    await store.replacePolicy(0, invitation);
+    await store.configureAdmission(1, { capacity: 10, open: true });
     vi.spyOn(db, 'query').mockRejectedValueOnce(
       Error('Synthetic connection failure'),
     );
@@ -317,9 +323,10 @@ describe('durable server-owned service access over append-only migration040', ()
     });
   });
   it('does not clear restore quarantine through a normal policy update or new admission', async () => {
-    await store.replacePolicy(0, { ...invitation, mode: 'open' });
+    await store.replacePolicy(0, invitation);
+    await store.configureAdmission(1, { capacity: 10, open: true });
     await db.query('UPDATE aw_service_policy SET reconcile_required=true');
-    await store.replacePolicy(1, invitation);
+    await store.replacePolicy(2, invitation);
     await store.replaceAdmission(owner, 0, 'active');
     for (const action of ['read', 'generate', 'checkout'] as const)
       expect(await decision(owner, action)).toMatchObject({
@@ -347,11 +354,11 @@ describe('durable server-owned service access over append-only migration040', ()
     expect(await db.query('SELECT * FROM aw_service_admissions')).toEqual([]);
     expect(await decision()).toMatchObject({
       allowed: false,
-      code: 'SERVICE_ACCESS_UNAVAILABLE',
+      code: 'SERVICE_ADMISSION_CLOSED',
     });
     expect(await decision(other)).toMatchObject({
       allowed: false,
-      code: 'SERVICE_INVITATION_REQUIRED',
+      code: 'SERVICE_ADMISSION_CLOSED',
     });
   });
   it('does not change either financial ledger when invitation or pause changes', async () => {
@@ -389,7 +396,7 @@ describe('durable server-owned service access over append-only migration040', ()
       for (const statement of [
         'SELECT * FROM aw_service_policy',
         'SELECT * FROM aw_service_admissions',
-        "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled) VALUES(1,1,1,'open',true,true)",
+        "INSERT INTO aw_service_policy(id,version,revision,mode,generation_enabled,checkout_enabled,admission_capacity) VALUES(1,1,1,'open',true,true,10)",
         "INSERT INTO aw_service_admissions(user_id,revision,state) VALUES('" +
           other +
           "',1,'active')",

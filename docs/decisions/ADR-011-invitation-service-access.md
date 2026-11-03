@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: architecture
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-03
 related:
   - ../DEVELOPMENT_PLAN_HU.md
   - ../product/PRODUCT_HU.md
@@ -10,7 +10,7 @@ related:
   - ADR-010-payment-data-and-responsibility-boundaries.md
 ---
 
-# ADR-011 — Meghívásos személyes szolgáltatás hozzáférési határai
+# ADR-011 — Személyes szolgáltatás hozzáférési határai (meghívás és korlátos nyílt admission)
 
 **Status:** Proposed — implementációs szerződés; éles aktiválást nem engedélyez.  
 **Date:** 2026-11-01
@@ -29,6 +29,20 @@ A meglévő backend a Supabase `getUser(token)` eredményével igazolja a nem an
 4. **Visszavonás és nyitás.** Meghívásos módban a nem listázott felhasználó elutasított. Nyílt módban az ellenőrzött, nem listázott fiók beléphet, de a kifejezett visszavonás érvényes marad. Hiányzó vagy másik felhasználóhoz tartozó snapshot nem enged be. Az `open` modell nem kapcsolja be a Supabase signupot, nem módosít Cloudflare-policy-t, és nem aktív env-kapcsoló; ezek későbbi, külön igazolt műveletek.
 5. **Szüneteltetés nem paywall-kikapcsolás.** A generálás és az új Checkout külön szüneteltethető. A szokásos teljes költségstop mindkettőt atomikusan leállítja a későbbi operátori műveletben. A meglévő fejezetek olvasása a jogosult fióknak nem függ fizetéstől. A foglalás lezárása, webhook/reconcile és lemondás nem kapcsolható ki hallgatólagosan; a már megkezdett munkák tartós mentése/elszámolása rendezendő. A runtime-nak a queue és a worker indulási határán is kezelnie kell a pause-versenyt; a tiszta függvény önmagában nem tranzakciós fence.
 6. **Adatkontroll megmarad.** Az autentikált export/törlés/account-control jogosultsági út nem függ új admissiontől vagy a policy elérhetőségétől. A hívó továbbra is ellenőrzi az Auth-állapotot, ownershipöt, friss belépést, törlési/billing és writer-fence szabályokat. Az itt adott `allowed` nem kerüli meg ezeket, és nem garantál adatbázis-elérhetőséget kieséskor. Admission-visszavonás vagy sikertelen fizetés nem töröl történetet.
+
+## Módosítás — 2026-11-03: korlátos nyílt admission (tulajdonosi döntés)
+
+A tulajdonos (2026-11-03) döntése: az első tíz felhasználó nem meghívott. Az éles üzem nyílt regisztrációval indul, az első 10 admission után automatikusan ideiglenesen zár, megbeszélt idő után újranyit, és így tovább. Ez a fenti 2. és 4. pontot pontosítja; a többi (négy authority, hitelesítés ≠ admission, pause ≠ paywall, adatkontroll) változatlan.
+
+1. **„Regisztráció” = admission:** megerősített email, nem anonim Supabase-fiók (és az Access-identitás egyezése), 18+/AI-nyilatkozat és az első sikeres belépés utáni nyilatkozat-küldés. Megerősítetlen Auth-fiók nem számít. Megjegyzés: az ÁSZF/adatvédelmi szöveg a meglévő `adult_and_ai_acknowledgement` consentet használja; a jogi szöveg bővítése (C2) külön munka.
+2. **`open` jelentése megváltozott:** a nyílt mód nem engedi be a nem listázott fiókot; csak jogosulttá teszi az atomikus admission-lépésre. A tiszta döntés admission nélkül mindig zárt (`SERVICE_ADMISSION_REQUIRED` nyílt, `SERVICE_ADMISSION_CLOSED` zárt policynál), a visszavont admission változatlanul `SERVICE_INVITATION_REQUIRED`. Az `invitation` mód a „zárt/tele” állapot is: az automatikus zárás ide vált.
+3. **Kapacitás a policy-sorban:** monoton `admission_capacity` és `admission_used`; csak a nyílt úton beengedett fiók számít (operátori admission nem). Törlés, visszavonás és restore nem szabadít fel helyet. Adatbázis-invariáns: `used <= capacity`, és `open` csak `used < capacity` mellett érvényes. Az automatikus zárás a számlálóval azonos utasításban történik és növeli a policy-revíziót, így az elavult operátori írás konfliktust kap; a hely elfoglalása revíziót nem növel, így a pause/resume hullám közben használható.
+4. **Atomicitás:** a `admitOpenAccount` egy tranzakcióban zárolja a policy-sort (az operátori batch sorrendje: policy → gyökér), ellenőrzi a restore-karantént és a kapacitást, létrehozza a fiókgyökeret és a consentet, beírja az admissiont, növeli a számlálót és szükség esetén zár. Teli, zárt, karanténos vagy hibás tároló semmit nem ír: nincs gyökér, consent, várólista vagy új személyes adat.
+5. **Belépési útvonal:** admission nélküli, ellenőrzött fiók csak a `GET/POST /api/v1/me/consent` útvonalat érheti el (üres állapot, ill. admission-kérés); minden más kérés, és a worker/queue is, zárt marad. A `POST` 201-gyel válaszol, mint a rendes consent-útvonal.
+6. **Hullámvezérlés:** a `configureAdmission(expectedRevision, {capacity, open})` revízió-ellenőrzött, a kapacitás nem mehet a használt hely alá, nyitáshoz szabad hely kell. A restore a nyitott hullámot is `invitation` módba teszi (a karanténjelző mellett), újranyitás csak explicit operátori hullámmal.
+7. **Nem része:** a Supabase signup bekapcsolása, a Turnstile/rate limit/captcha (C5), a Cloudflare Access tágítása, a web-oldali átirányítás és „megtelt” oldal, az operátori CLI/journal, és a régi három béta-fiók admissionje (az első hullám kapacitását ezek figyelembevételével kell kijelölni). Ezek éles konfiguráció vagy külön csomag.
+
+Az **Elfogadva** státusz továbbra is tulajdonosi döntés; ez a módosítás nem aktivál éles profilt.
 
 ## Implementált első szelet
 

@@ -36,10 +36,22 @@ describe('service admission independent of billing and cohort size', () => {
     });
   });
   it.each(actions)(
-    'keeps explicit revocation effective in open mode for %s',
+    'keeps explicit revocation effective and never admits an unlisted account in open mode for %s',
     (action) => {
       const open = { ...policy, mode: 'open' };
-      expect(decide(open, absent, action)).toEqual({ allowed: true });
+      // Open mode only makes an account eligible for the atomic admission
+      // step; the pure decision never allows an account without a stored,
+      // active admission, and a closed policy says the service is full.
+      expect(decide(open, absent, action)).toMatchObject({
+        allowed: false,
+        code: 'SERVICE_ADMISSION_REQUIRED',
+        status: 403,
+      });
+      expect(decide(policy, absent, action)).toMatchObject({
+        allowed: false,
+        code: 'SERVICE_ADMISSION_CLOSED',
+        status: 403,
+      });
       expect(
         decide(
           open,

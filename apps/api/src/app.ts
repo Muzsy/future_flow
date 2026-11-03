@@ -1317,6 +1317,15 @@ export async function createApp(
             auth,
             request.headers.authorization,
           );
+          if (
+            await service.preAdmission(
+              verified.user,
+              identity,
+              request,
+              response,
+            )
+          )
+            return;
           await service.assert(verified.user, identity, 'read');
           request[REQUEST_SERVICE_IDENTITY] = identity;
           request[REQUEST_SERVICE_USER] = verified.user;
