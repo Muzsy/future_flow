@@ -230,7 +230,7 @@ export const en = {
   'terms.limits1':
     'Generation is limited by the chapters in your plan, the free taster chapter and technical limits such as queueing and rate limits. A chapter can take several minutes. We may pause generation or new registrations at any time, for example to protect the service, its budget or security. Reading, downloading and deleting your data stays available.',
   'terms.limits2':
-    'During the test the service is provided "as is", without a guarantee of uninterrupted or error-free operation.',
+    'The service is provided "as is", without a guarantee of uninterrupted or error-free operation.',
   'terms.paymentTitle': '8. Payment, renewal and withdrawal',
   'terms.payment1':
     'One free taster chapter is included per account. After that, creating chapters requires a paid monthly subscription: 8 chapters per billing cycle for 14.99 USD per month, VAT included. The ten first accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid billing cycles, then the standard plan. The discount belongs to the account, is applied automatically at checkout and is given once per account. Later waves do not receive it automatically.',
@@ -287,12 +287,12 @@ export const en = {
   'billing.support': 'If you need help, contact',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
-    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends.',
+    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or if we end the service.',
   'terms.end2':
-    'When a test phase ends, your account and stories stay available unless we tell you otherwise by email at least 14 days in advance. You can download or delete them at any time.',
+    'If we end the service, we tell you by email at least 14 days in advance; until then your account and stories stay available. You can download or delete them at any time.',
   'terms.liabilityTitle': '10. Liability',
   'terms.liability1':
-    'Nothing in these terms excludes or limits liability that cannot be excluded or limited by law, including liability for intentional damage, for damage to life, body or health, and your statutory consumer rights. During the test the service is free of charge and provided "as is". Stories are fiction, and the Operator is not responsible for decisions you make based on them.',
+    'Nothing in these terms excludes or limits liability that cannot be excluded or limited by law, including liability for intentional damage, for damage to life, body or health, and your statutory consumer rights. The service is provided "as is". Stories are fiction, and the Operator is not responsible for decisions you make based on them.',
   'terms.changesTitle': '11. Changes, governing law and disputes',
   'terms.changes1':
     'The Operator may update these terms. For material changes we will email the address on your account at least 14 days before they apply. If you do not accept the new terms, you can delete your account before they apply.',
@@ -322,7 +322,7 @@ export const en = {
   'privacy.purpose2':
     'Security, abuse prevention, cost control and operation (access protection, rate limits, the budget ledger, backups): our legitimate interest in running and protecting the service (Art. 6(1)(f)).',
   'privacy.purpose3':
-    'Optional feedback: your consent, which you give by sending it (Art. 6(1)(a)). Minimal activity records used to measure the test, without story or profile content: our legitimate interest in improving the service (Art. 6(1)(f)).',
+    'Optional feedback: your consent, which you give by sending it (Art. 6(1)(a)). Minimal activity records used to measure how the service is used, without story or profile content: our legitimate interest in improving the service (Art. 6(1)(f)).',
   'privacy.purpose4':
     'Payments: performance of the contract, that is, your purchase of a subscription (Art. 6(1)(b)). Stripe, as seller of record, decides independently on the processing of payment, tax and fraud-prevention data.',
   'privacy.processorsTitle': 'Service providers that process data for us',
@@ -359,17 +359,17 @@ export const en = {
     'You can lodge a complaint with the Hungarian data protection authority, the Nemzeti Adatvédelmi és Információszabadság Hatóság (NAIH, 1055 Budapest, Falk Miksa utca 9-11, https://naih.hu), or with the authority of your own country.',
   'privacy.cookiesTitle': 'Cookies and browser storage',
   'privacy.cookies':
-    "We set one first-party cookie, alterward_locale, to remember your language. Your signed-in session is kept in your browser's local storage, and an unfinished life setup is kept in session storage until you finish it or close the tab. Cloudflare Access sets its own cookie when it verifies your invitation. We do not use advertising or third-party tracking scripts.",
+    "We set one first-party cookie, alterward_locale, to remember your language. Your signed-in session is kept in your browser's local storage, and an unfinished life setup is kept in session storage until you finish it or close the tab. Cloudflare Access sets its own cookie when it checks your access. We do not use advertising or third-party tracking scripts.",
   'privacy.automatedTitle': 'Automated processing',
   'privacy.automated':
     'Stories are generated by AI as fiction. We do not use the output to make decisions about you that have legal or similarly significant effects.',
-  'privacy.betaAccessTitle': 'Private-beta access',
+  'privacy.betaAccessTitle': 'Access protection (Cloudflare)',
   'privacy.betaAccess':
-    'Cloudflare verifies approved email addresses to protect the private beta. It processes login and access information, including your email address, network address and request metadata. Access approval does not replace your alterward account.',
+    'Cloudflare protects access to the service. It processes login and access information, including your email address, network address and request metadata. Access protection does not replace your alterward account.',
   'privacy.activity':
     'Private feedback is included in your export and removed from the application database when you delete your account.',
   'privacy.accountLink': 'Download or delete your own account data',
-  'privacy.accountLinkSuffix': ', even after private-beta access ends.',
+  'privacy.accountLinkSuffix': ', even if your access has ended.',
   'privacy.download': 'Download my data',
   'privacy.deleteTitle': 'Permanently delete account',
   'privacy.deletePrompt': 'To delete your account, type: DELETE ACCOUNT',
@@ -621,7 +621,7 @@ export const hu: Record<MessageKey, string> = {
   'terms.limits1':
     'A generálást az előfizetésed fejezetkerete, az ingyenes ízelítő fejezet és technikai korlátok (várakozási sor, kérésszám-korlát) szabják meg. Egy fejezet több percig is tarthat. A generálást vagy az új regisztrációkat bármikor szüneteltethetjük, például a szolgáltatás, a költségkeret vagy a biztonság védelmében. Az adataid olvasása, letöltése és törlése ilyenkor is elérhető marad.',
   'terms.limits2':
-    'A teszt alatt a szolgáltatás „ahogy van” módon áll rendelkezésre, megszakítás- és hibamentes működés garanciája nélkül.',
+    'A szolgáltatás „ahogy van” módon áll rendelkezésre, megszakítás- és hibamentes működés garanciája nélkül.',
   'terms.paymentTitle': '8. Fizetés, megújítás és elállás',
   'terms.payment1':
     'Fiókonként egy ingyenes ízelítő fejezet jár. Utána új fejezetek készítéséhez fizetett havi előfizetés kell: számlázási ciklusonként 8 fejezet, havi 14,99 USD, az áfát tartalmazza. A kezdéskor beengedett első tíz fiók az első három fizetett ciklusában 5 fejezetet kap havi 9,99 USD áron, az áfát tartalmazza, utána a normál csomag érvényes. A kedvezmény a fiókhoz tartozik, fizetéskor automatikusan érvényesül és fiókonként egyszer jár. A későbbi hullámok nem kapják automatikusan.',
@@ -679,12 +679,12 @@ export const hu: Record<MessageKey, string> = {
   'billing.support': 'Ha segítség kell, írj ide:',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
-    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén.',
+    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy ha megszüntetjük a szolgáltatást.',
   'terms.end2':
-    'Egy tesztfázis végén a fiókod és a történeteid elérhetők maradnak, hacsak legalább 14 nappal előre e-mailben másképp nem értesítünk. Letöltheted vagy törölheted őket bármikor.',
+    'Ha megszüntetjük a szolgáltatást, erről legalább 14 nappal előre e-mailben értesítünk; addig a fiókod és a történeteid elérhetők maradnak. Letöltheted vagy törölheted őket bármikor.',
   'terms.liabilityTitle': '10. Felelősség',
   'terms.liability1':
-    'E feltételek semmi olyan felelősséget nem zárnak ki vagy korlátoznak, amelyet jogszabály nem enged kizárni vagy korlátozni, így a szándékos károkozásért, az életet, testi épséget vagy egészséget megkárosító felelősséget és a törvényes fogyasztói jogaidat sem. A teszt alatt a szolgáltatás ingyenes és „ahogy van” módon áll rendelkezésre. A történetek fikciók, és az Üzemeltető nem felel azokért a döntésekért, amelyeket a történetek alapján hozol.',
+    'E feltételek semmi olyan felelősséget nem zárnak ki vagy korlátoznak, amelyet jogszabály nem enged kizárni vagy korlátozni, így a szándékos károkozásért, az életet, testi épséget vagy egészséget megkárosító felelősséget és a törvényes fogyasztói jogaidat sem. A szolgáltatás „ahogy van” módon áll rendelkezésre. A történetek fikciók, és az Üzemeltető nem felel azokért a döntésekért, amelyeket a történetek alapján hozol.',
   'terms.changesTitle': '11. Módosítás, irányadó jog és jogviták',
   'terms.changes1':
     'Az Üzemeltető módosíthatja ezeket a feltételeket. Lényeges módosításról legalább 14 nappal a hatályba lépés előtt e-mailben értesítünk a fiókodhoz tartozó címen. Ha nem fogadod el az új feltételeket, a hatályba lépés előtt törölheted a fiókodat.',
@@ -713,7 +713,7 @@ export const hu: Record<MessageKey, string> = {
   'privacy.purpose2':
     'Biztonság, visszaélés elleni védelem, költségkontroll és üzemeltetés (hozzáférés-védelem, korlátok, költségkeret-elszámolás, mentések): a szolgáltatás működtetéséhez és védelméhez fűződő jogos érdekünk (6. cikk (1) f)).',
   'privacy.purpose3':
-    'Opcionális visszajelzés: a hozzájárulásod, amelyet a visszajelzés elküldésével adsz meg (6. cikk (1) a)). A teszt mérésére használt minimális aktivitásrekordok, a történet és a profil tartalma nélkül: a szolgáltatás fejlesztéséhez fűződő jogos érdekünk (6. cikk (1) f)).',
+    'Opcionális visszajelzés: a hozzájárulásod, amelyet a visszajelzés elküldésével adsz meg (6. cikk (1) a)). A szolgáltatás használatának mérésére szolgáló minimális aktivitásrekordok, a történet és a profil tartalma nélkül: a szolgáltatás fejlesztéséhez fűződő jogos érdekünk (6. cikk (1) f)).',
   'privacy.purpose4':
     'Fizetés: a szerződés teljesítése, vagyis az előfizetés megvásárlása (6. cikk (1) b)). A fizetési, adózási és csalásmegelőzési adatok kezeléséről a Stripe mint eladó önállóan dönt.',
   'privacy.processorsTitle': 'Szolgáltatók, akik nevünkben kezelnek adatot',
@@ -751,18 +751,17 @@ export const hu: Record<MessageKey, string> = {
     'Panaszt tehetsz a magyar adatvédelmi hatóságnál, a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH, 1055 Budapest, Falk Miksa utca 9-11, https://naih.hu), vagy a saját országod hatóságánál.',
   'privacy.cookiesTitle': 'Sütik és böngészőtárhely',
   'privacy.cookies':
-    'Egy saját sütit használunk, az alterward_locale-t, amely megjegyzi a nyelvedet. A bejelentkezett munkameneted a böngésző helyi tárhelyében marad, a befejezetlen élet-beállítás pedig a munkamenet-tárhelyben, amíg be nem fejezed vagy be nem zárod a lapot. A Cloudflare Access a meghívásod ellenőrzésekor saját sütit állít be. Nem használunk hirdetési vagy harmadik fél általi követőszkripteket.',
+    'Egy saját sütit használunk, az alterward_locale-t, amely megjegyzi a nyelvedet. A bejelentkezett munkameneted a böngésző helyi tárhelyében marad, a befejezetlen élet-beállítás pedig a munkamenet-tárhelyben, amíg be nem fejezed vagy be nem zárod a lapot. A Cloudflare Access a hozzáférésed ellenőrzésekor saját sütit állít be. Nem használunk hirdetési vagy harmadik fél általi követőszkripteket.',
   'privacy.automatedTitle': 'Automatizált feldolgozás',
   'privacy.automated':
     'A történeteket az AI fikcióként generálja. A kimenetet nem használjuk olyan döntések meghozatalára, amelyeknek jogi vagy hasonlóan jelentős hatása van rád.',
-  'privacy.betaAccessTitle': 'Privát béta hozzáférés',
+  'privacy.betaAccessTitle': 'Hozzáférés-védelem (Cloudflare)',
   'privacy.betaAccess':
-    'A Cloudflare a privát béta védelme érdekében ellenőrzi a jóváhagyott e-mail-címeket. Ennek során belépési és hozzáférési információkat kezel, többek között az e-mail-címedet, a hálózati címedet és a kérés metaadatait. A hozzáférés jóváhagyása nem helyettesíti az alterward-fiókodat.',
+    'A Cloudflare a szolgáltatás hozzáférés-védelme érdekében belépési és hozzáférési információkat kezel, többek között az e-mail-címedet, a hálózati címedet és a kérés metaadatait. A hozzáférés-védelem nem helyettesíti az alterward-fiókodat.',
   'privacy.activity':
     'A privát visszajelzés benne van az exportodban, és a fiókod törlésekor eltávolításra kerül az alkalmazási adatbázisból.',
   'privacy.accountLink': 'Töltsd le vagy töröld a saját fiókadataidat',
-  'privacy.accountLinkSuffix':
-    ', akkor is, ha a privát béta hozzáférésed már megszűnt.',
+  'privacy.accountLinkSuffix': ', akkor is, ha a hozzáférésed már megszűnt.',
   'privacy.download': 'Adataim letöltése',
   'privacy.deleteTitle': 'Fiók végleges törlése',
   'privacy.deletePrompt': 'A törléshez írd be: FIÓK TÖRLÉSE',
