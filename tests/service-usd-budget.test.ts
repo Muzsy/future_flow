@@ -415,6 +415,24 @@ describe('service-profile alert lines', () => {
     expect(raised).toHaveLength(1);
     expect(await ledger()).toEqual(before);
   });
+  it('alerts on each crossing, so a line crossed again after a settlement alerts again', async () => {
+    const owner = await user(),
+      { alerts, config } = collect({
+        projectUsd: usd(reserved * 4),
+        userUsd: 50,
+        window: await window(),
+        serviceProfile: true,
+        alertThresholds: [0.5],
+      });
+    const guard = () => new DatabaseAiBudget(db, owner, randomUUID(), config);
+    await guard().reserve(request);
+    const crossing = guard();
+    const id = await crossing.reserve(request); // reaches the 50 % line
+    expect(alerts).toHaveLength(1);
+    await crossing.settle(id, { input_tokens: 0, output_tokens: 0 }); // back below
+    await guard().reserve(request); // crosses the same line again
+    expect(alerts).toHaveLength(2);
+  });
   it('supports custom lines and does not alert the legacy profile', async () => {
     const owner = await user(),
       { alerts, config } = collect({
