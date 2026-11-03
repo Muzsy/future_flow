@@ -1,6 +1,7 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import {
   createCheckoutSession,
   defaultEntitlementConfig,
@@ -81,7 +82,9 @@ async function admit(count: number) {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const id = randomUUID();
-    expect(await access.admitOpenAccount(id)).toMatchObject({
+    expect(
+      await access.admitOpenAccount(id, TERMS_ACCEPTANCE_VERSION),
+    ).toMatchObject({
       status: 'admitted',
       position: i + 1,
     });
