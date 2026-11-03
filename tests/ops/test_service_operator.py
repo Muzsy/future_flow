@@ -348,7 +348,10 @@ class OperatorTests(unittest.TestCase):
         with self.assertRaisesRegex(op.Refusal, 'not expired yet'):
             operator.reconcile(operation_id)  # a still-running apply could yet commit
         self.assertEqual(op.Journal(self.state).unfinished_all()[0]['operationId'], operation_id)
-        self.tick = 1000                      # past the 15 minute validity of the intent
+        self.tick = 900 + 20                  # expired, but inside the 30 s clock margin
+        with self.assertRaisesRegex(op.Refusal, 'not expired yet'):
+            operator.reconcile(operation_id)
+        self.tick = 900 + 40
         result = operator.reconcile(operation_id)
         self.assertEqual(result['outcome'], 'uncommitted')
         self.assertEqual(self.runtime.policy, before)
@@ -526,6 +529,20 @@ class OperatorTests(unittest.TestCase):
                     operator.execute('resume')
                 self.assertEqual(self.rows()[-1]['event'], 'apply-unknown')
                 self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+                operation_id = op.Journal(self.state).unfinished_all()[0]['operationId']
+                self.assertFalse((self.state / operation_id / 'readback.json').exists())
+                # The later, proven outcome can still be recorded (no FileExistsError).
+                self.runtime.bad_receipt = None
+                self.runtime.applied.add(operation_id)
+                self.assertEqual(operator.reconcile(operation_id)['outcome'], 'committed')
+                self.assertEqual(op.Journal(self.state).unfinished_all(), [])
+
+    def test_write_once_accepts_identical_bytes_and_refuses_different_ones(self):
+        path = self.state / 'readback.json'
+        op._write_once(path, b'{"a":1}\n')
+        op._write_once(path, b'{"a":1}\n')
+        with self.assertRaisesRegex(op.Refusal, 'different readback'):
+            op._write_once(path, b'{"a":2}\n')
 
     # ---- hygiene ---------------------------------------------------------
     def test_a_prepared_intent_that_differs_from_the_request_is_refused_and_leaves_no_trace(self):

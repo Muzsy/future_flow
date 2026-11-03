@@ -51,6 +51,7 @@ ZERO = '0' * 64
 HEX64 = re.compile(r'[a-f0-9]{64}')
 IMAGE = re.compile(r'sha256:[a-f0-9]{64}')
 UNVERIFIED_COMMIT = '0' * 40
+EXPIRY_MARGIN_SECONDS = 30
 # Exposure-reducing operations that may run on emergency authority.
 EMERGENCY_KINDS = ('pause', 'wave-close')
 ROW_COMMON = {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'}
@@ -109,6 +110,15 @@ def _fsync_directory(path):
         os.fsync(fd)
     finally:
         os.close(fd)
+
+
+def _write_once(path, data):
+    """Create the file, or accept an already existing one with identical bytes."""
+    if path.exists() or path.is_symlink():
+        if _private_read(path) != data:
+            raise Refusal('A different readback already exists for this operation')
+        return
+    _create(path, data)
 
 
 def _create(path, data):
@@ -409,13 +419,14 @@ class Operator:
             self.journal.append('apply-unknown', operation_id, self.clock(), errorType=type(error).__name__)
             raise Refusal('Apply result unknown for ' + operation_id +
                           ': run reconcile --operation-id; SQL is never repeated') from None
-        receipt_bytes = canonical(receipt)
-        _create(directory / READBACK_NAME, receipt_bytes)
         if not isinstance(receipt, dict) or receipt.get('outcome') != 'committed':
-            # SQL may have run: never journal this as applied; the operation stays unfinished.
+            # SQL may have run: never journal this as applied; the operation stays unfinished. Nothing
+            # is written to the readback file, so a later reconcile can record the proven outcome.
             self.journal.append('apply-unknown', operation_id, self.clock(), errorType='UnexpectedReceipt')
             raise Refusal('Apply receipt was not an exact commit for ' + operation_id +
                           ': run reconcile --operation-id; SQL is never repeated')
+        receipt_bytes = canonical(receipt)
+        _create(directory / READBACK_NAME, receipt_bytes)
         self.journal.append('applied', operation_id, self.clock(), readbackFileSha256=sha(receipt_bytes),
                             outcome=receipt.get('outcome'))
         return {'operationId': operation_id, 'kind': request['kind'], 'outcome': receipt.get('outcome'),
@@ -462,12 +473,13 @@ class Operator:
         if outcome == 'uncommitted':
             # Only after the intent can no longer be applied (its 15 minute validity), so a late commit
             # of a still-running apply cannot make this journal row wrong.
-            if self._now() < self._expiry(intent):
+            # +30 s: the intent expires by the database clock, this check runs on the host clock.
+            if self._now() < self._expiry(intent) + dt.timedelta(seconds=EXPIRY_MARGIN_SECONDS):
                 raise Refusal('The intent has not expired yet (' + intent['expiresAt'] +
                               '): reconcile again after that')
         receipt_bytes = canonical(receipt)
         if outcome == 'committed':
-            _create(directory / READBACK_NAME, receipt_bytes)
+            _write_once(directory / READBACK_NAME, receipt_bytes)
         self.journal.append('reconciled-' + outcome, operation_id, self.clock(),
                             readbackFileSha256=sha(receipt_bytes))
         return {'operationId': operation_id, 'outcome': outcome,

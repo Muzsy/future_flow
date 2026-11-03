@@ -152,6 +152,45 @@ class ServiceProfileTests(unittest.TestCase):
                     (self.dir / 'profiles' / '3.json').unlink()
                 restore()
 
+    def test_documented_repair_paths_for_an_interrupted_activation(self):
+        """ADR-011 SPR repair: orphan profile file, stale head, torn last journal line."""
+        first = self.activate()
+        second_profile = profile(2, parent=first['profileSha256'])
+        # (a) the generation file was written, nothing else
+        orphan = self.dir / 'profiles' / '2.json'
+        orphan.write_bytes(spr.canonical(second_profile))
+        orphan.chmod(0o400)
+        with self.assertRaises(spr.ProfileError):
+            spr.verify(self.dir)
+        with self.assertRaises(spr.ProfileError):
+            self.activate(second_profile)
+        self.assertEqual(spr.profile_hash(json.loads(orphan.read_bytes())), spr.profile_hash(second_profile))
+        orphan.unlink()
+        self.assertEqual(self.activate(second_profile)['generation'], 2)
+        # (b) journal rows exist, the head is stale: rewrite it from the last row
+        head = self.dir / 'head.json'
+        stale = head.read_bytes()
+        last = json.loads((self.dir / 'journal.jsonl').read_text().splitlines()[-1])
+        head.write_bytes(spr.canonical({'version': 'alterward-service-profile-head-1', 'generation': 1,
+                                        'profileSha256': first['profileSha256'],
+                                        'journalSha256': '0' * 64}))
+        with self.assertRaises(spr.ProfileError):
+            spr.verify(self.dir)
+        head.write_bytes(spr.canonical({'version': 'alterward-service-profile-head-1',
+                                        'generation': last['generation'],
+                                        'profileSha256': last['profileSha256'],
+                                        'journalSha256': last['sha256']}))
+        self.assertEqual(head.read_bytes(), stale)
+        self.assertEqual(spr.verify(self.dir)['generation'], 2)
+        # (c) a torn trailing journal line: dropping only that line restores the chain
+        journal = self.dir / 'journal.jsonl'
+        good = journal.read_bytes()
+        journal.write_bytes(good + b'{"version":"alterward-service-profile-jour')
+        with self.assertRaises(spr.ProfileError):
+            spr.verify(self.dir)
+        journal.write_bytes(good)
+        self.assertEqual(spr.verify(self.dir)['generation'], 2)
+
     def test_a_broken_record_is_never_extended(self):
         first = self.activate()
         (self.dir / 'head.json').chmod(0o600)
