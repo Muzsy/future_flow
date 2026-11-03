@@ -1,4 +1,5 @@
 'use client';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Lock } from 'lucide-react';
 import { ClientError, api, clientErrorMessage } from '../lib/client';
@@ -152,6 +153,9 @@ export function AdmissionPanel({
             {t('admission.acceptSuffix')}
           </span>
         </label>
+        <p className="fineprint">
+          {t('admission.termsVersion')} {TERMS_ACCEPTANCE_VERSION}
+        </p>
         <button
           className="primary"
           disabled={!canSubmitConsent(adult, accepted, busy)}

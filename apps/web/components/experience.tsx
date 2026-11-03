@@ -1,4 +1,5 @@
 'use client';
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { publicReturnPath } from '../lib/public-return';
@@ -346,7 +347,11 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   async function save() {
     await api('/me/consent', {
       method: 'POST',
-      body: JSON.stringify({ adult, acknowledged }),
+      body: JSON.stringify({
+        adult,
+        acknowledged,
+        termsVersion: TERMS_ACCEPTANCE_VERSION,
+      }),
     });
     const saved = await api<{ revision: number }>('/profile/draft', {
       method: 'PATCH',

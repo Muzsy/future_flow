@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { z } from 'zod';
+import { privacyConsentRequestSchema } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
 import { ServiceAccessRepository, type Database } from '@future-flow/database';
 
@@ -7,15 +7,12 @@ import { ServiceAccessRepository, type Database } from '@future-flow/database';
 //
 // A verified account with no stored admission can do exactly one thing: read
 // its (empty) consent status and submit the 18+/AI acknowledgement. The
-// acknowledgement is the admission request: it atomically takes one of the
+// acknowledgement and the versioned terms acceptance are the admission request: it atomically takes one of the
 // remaining slots, creates the account root and the consent record, and closes
 // the open path when the last slot is taken. Everything else for such an
 // account is rejected by the regular admission check. A full or closed service
 // writes nothing for the account (no root, no consent, no waitlist entry).
 export const CONSENT_PATH = '/api/v1/me/consent';
-const acknowledgement = z
-  .object({ adult: z.literal(true), acknowledged: z.literal(true) })
-  .strict();
 
 export function preAdmissionRoute(
   method: string,
@@ -65,9 +62,15 @@ export async function handlePreAdmission(
     });
     return true;
   }
-  if (!acknowledgement.safeParse(request.body).success)
+  // The request must name the exact terms text version it accepts; a stale or
+  // missing version is rejected before anything is written.
+  const accepted = privacyConsentRequestSchema.safeParse(request.body);
+  if (!accepted.success)
     throw new DomainError('VALIDATION_FAILED', 'Invalid request.', 422);
-  const outcome = await store.admitOpenAccount(userId);
+  const outcome = await store.admitOpenAccount(
+    userId,
+    accepted.data.termsVersion,
+  );
   if (outcome.status === 'closed') throw closed();
   if (outcome.status === 'unavailable') throw unavailable();
   if (outcome.status === 'revoked')

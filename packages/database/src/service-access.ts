@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   DomainError,
+  FOUNDER_DISCOUNT_MAX_ACCOUNTS,
   evaluateServiceAccess,
   serviceAccessEnforcementFromEnv,
   parseServiceAccessPolicy,
@@ -10,7 +11,23 @@ import {
   type ServiceAdmissionLookup,
   type ServiceAction,
 } from '@future-flow/core';
+import {
+  TERMS_ACCEPTANCE_CONSENT_TYPE,
+  TERMS_ACCEPTANCE_VERSION,
+} from '@future-flow/contracts';
 import type { Database } from './index';
+
+// Fails closed before any write: acceptance is only ever recorded against the
+// current, non-empty terms text version.
+export function assertTermsVersion(version: unknown): string {
+  if (
+    typeof version !== 'string' ||
+    !version ||
+    version !== TERMS_ACCEPTANCE_VERSION
+  )
+    throw new DomainError('VALIDATION_FAILED', 'Invalid request.', 422);
+  return version;
+}
 
 export type ServiceAccessSnapshot = Readonly<{
   policy: ServiceAccessPolicy | null;
@@ -203,6 +220,18 @@ export class ServiceAccessRepository {
     return result;
   }
 
+  // Persisted at admission time (one of the first ten open slots). A pure read
+  // for billing; false for an unknown, operator-created or later account.
+  async launchDiscountEligible(verifiedUserId: unknown): Promise<boolean> {
+    const userId = accountId(verifiedUserId);
+    if (!userId) return false;
+    const [row] = await this.db.query<{ eligible: boolean }>(
+      'SELECT launch_discount_eligible AS eligible FROM aw_service_admissions WHERE user_id=$1',
+      [userId],
+    );
+    return row?.eligible === true;
+  }
+
   // Classification for the pre-admission routes. It writes nothing.
   async admissionStatus(verifiedUserId: unknown): Promise<AdmissionStatus> {
     const userId = accountId(verifiedUserId);
@@ -275,7 +304,9 @@ export class ServiceAccessRepository {
   // before calling this. Operator-created admissions never touch the counter.
   async admitOpenAccount(
     verifiedUserId: unknown,
+    termsVersion: unknown,
   ): Promise<OpenAdmissionOutcome> {
+    const terms = assertTermsVersion(termsVersion);
     const userId = accountId(verifiedUserId);
     if (!userId) return { status: 'unavailable' };
     return this.db.transaction(async (tx) => {
@@ -324,8 +355,14 @@ export class ServiceAccessRepository {
         [randomUUID(), userId],
       );
       await tx.query(
-        "INSERT INTO aw_service_admissions(user_id,revision,state) VALUES($1,1,'active')",
-        [userId],
+        'INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [randomUUID(), userId, terms, TERMS_ACCEPTANCE_CONSENT_TYPE],
+      );
+      // The slot number is final under the policy-row lock. Eligibility is
+      // fixed here, in the same transaction, and never recomputed.
+      await tx.query(
+        "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',$2)",
+        [userId, used + 1 <= FOUNDER_DISCOUNT_MAX_ACCOUNTS],
       );
       const [after] = await tx.query<{
         admission_used: string | number;
@@ -393,6 +430,49 @@ export class ServiceAccessRepository {
       );
       return {
         mode: open ? ('open' as const) : ('invitation' as const),
+        revision: expectedRevision + 1,
+        capacity,
+        used,
+        remaining: capacity - used,
+      };
+    });
+  }
+
+  // The only way out of a restore quarantine (ordinary policy changes never
+  // clear it). The service comes back CLOSED and paused: invitation mode,
+  // generation and Checkout off. The open counter is raised to every admission
+  // row that exists, capacity never below it, so a restored older counter can
+  // not hand out slots that were already used. Reopening is a separate,
+  // explicit wave (and pause release). Callers must have proven the restore
+  // authority; this is a database primitive, not an authorization.
+  async releaseRestoreQuarantine(
+    expectedRevision: number,
+  ): Promise<ServiceAdmissionCapacity> {
+    nextRevision(expectedRevision);
+    if (expectedRevision === 0) return inputError();
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx.query<
+        PolicyRow & {
+          admission_capacity: string | number;
+          admission_used: string | number;
+        }
+      >(
+        'SELECT revision,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1 FOR UPDATE',
+      );
+      if (!row || Number(row.revision) !== expectedRevision) return conflict();
+      if (row.reconcile_required !== true) return inputError();
+      const [rows] = await tx.query<{ n: string | number }>(
+        'SELECT count(*) AS n FROM aw_service_admissions',
+      );
+      const used = Math.max(Number(row.admission_used), Number(rows!.n)),
+        capacity = Math.max(Number(row.admission_capacity), used);
+      await tx.query(
+        `UPDATE aw_service_policy SET revision=revision+1,mode='invitation',generation_enabled=false,checkout_enabled=false,
+           admission_capacity=$1,admission_used=$2,reconcile_required=false,updated_at=now() WHERE id=1`,
+        [capacity, used],
+      );
+      return {
+        mode: 'invitation' as const,
         revision: expectedRevision + 1,
         capacity,
         used,

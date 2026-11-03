@@ -138,7 +138,7 @@ A külön adatbázisba történő bináris comparison restore nem in-place upgra
 
 ### Korlátos nyílt admission — valódi PostgreSQL próba
 
-A `tests/service-admission.test.ts` (PGlite + valódi HTTP-kapu) minden CI-futásban lefut. A `tests/service-admission-postgres.test.ts` csak akkor fut, ha a `SERVICE_ADMISSION_PG_URL` egy eldobható, helyi `ff_admission_test*` adatbázisra mutat (a séma törlődik): `createdb ff_admission_test && SERVICE_ADMISSION_PG_URL=postgres://localhost/ff_admission_test pnpm vitest run tests/service-admission-postgres.test.ts`. Négy független pool, 80 párhuzamos regisztráció: pontosan a kapacitásnyi admission, ugyanaz a fiók többszörös érkezésre egy hely, zár nélküli (mutált) kód elbukik. Ez nem image-rehearsal és nem éles audit.
+A `tests/service-admission.test.ts` (PGlite + valódi HTTP-kapu) minden CI-futásban lefut. A `tests/service-admission-postgres.test.ts` csak akkor fut, ha a `SERVICE_ADMISSION_PG_URL` egy eldobható, helyi `ff_admission_test*` adatbázisra mutat (a séma törlődik): `createdb ff_admission_test && SERVICE_ADMISSION_PG_URL=postgres://localhost/ff_admission_test pnpm vitest run tests/service-admission-postgres.test.ts`. Négy független pool, 80 párhuzamos regisztráció: pontosan a kapacitásnyi admission, ugyanaz a fiók többszörös érkezésre egy hely, zár nélküli (mutált) kód elbukik. A CI `verify` job a futó gépen előre telepített PostgreSQL-t indítja el egy eldobható szerepkörrel és adatbázissal (véletlen jelszó, nincs titok a repóban), így a próba CI-ben is lefut. Ez nem image-rehearsal és nem éles audit.
 
 ### #150 scoped service-operation prototípus
 

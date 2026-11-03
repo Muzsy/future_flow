@@ -129,7 +129,7 @@ beforeAll(async () => {
   await db.transaction(async (tx) => {
     expect(await assertReviewedPrivacyRecoverySchema(tx)).toMatchObject({
       reviewedTables: 102,
-      reviewedColumns: 908,
+      reviewedColumns: 909,
       reviewedForeignKeys: 226,
     });
     await assertPrivacySecurityCatalog(tx);

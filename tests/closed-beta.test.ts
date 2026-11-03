@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
@@ -776,7 +777,11 @@ describe('closed beta paid-boundary isolation', () => {
           await fetch(base + '/api/v1/me/consent', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ adult: true, acknowledged: true }),
+            body: JSON.stringify({
+              adult: true,
+              acknowledged: true,
+              termsVersion: TERMS_ACCEPTANCE_VERSION,
+            }),
           })
         ).status,
       ).toBe(201);

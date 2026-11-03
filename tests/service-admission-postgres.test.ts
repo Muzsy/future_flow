@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -87,7 +88,10 @@ describe.skipIf(!disposable)(
       const available = stores();
       const outcomes = await Promise.all(
         users.map((id, i) =>
-          available[i % available.length]!.admitOpenAccount(id),
+          available[i % available.length]!.admitOpenAccount(
+            id,
+            TERMS_ACCEPTANCE_VERSION,
+          ),
         ),
       );
       expect(outcomes.filter((o) => o.status === 'admitted')).toHaveLength(10);
@@ -104,8 +108,13 @@ describe.skipIf(!disposable)(
         capacity: 10,
         admissions: 10,
         roots: 10,
-        consents: 10,
+        consents: 20,
       });
+      // Capacity 10: all ten are the first ten, exactly.
+      const [flags] = await admin.query<{ n: number }>(
+        'SELECT count(*) FILTER (WHERE launch_discount_eligible)::int AS n FROM aw_service_admissions',
+      );
+      expect(flags!.n).toBe(10);
     }, 60000);
 
     it('counts the same account once when it arrives on several connections at once', async () => {
@@ -113,7 +122,10 @@ describe.skipIf(!disposable)(
       const available = stores();
       const outcomes = await Promise.all(
         Array.from({ length: 12 }, (_, i) =>
-          available[i % available.length]!.admitOpenAccount(id),
+          available[i % available.length]!.admitOpenAccount(
+            id,
+            TERMS_ACCEPTANCE_VERSION,
+          ),
         ),
       );
       expect(outcomes.filter((o) => o.status === 'admitted')).toHaveLength(1);
@@ -129,11 +141,15 @@ describe.skipIf(!disposable)(
 
     it('survives operator pause/resume, revoke, deletion and wave changes racing with registrations without deadlock or overshoot', async () => {
       const first = Array.from({ length: 4 }, () => randomUUID());
-      for (const id of first) await operator.admitOpenAccount(id);
+      for (const id of first)
+        await operator.admitOpenAccount(id, TERMS_ACCEPTANCE_VERSION);
       const newcomers = Array.from({ length: 40 }, () => randomUUID());
       const available = stores();
       const work: Array<Promise<unknown>> = newcomers.map((id, i) =>
-        available[i % available.length]!.admitOpenAccount(id),
+        available[i % available.length]!.admitOpenAccount(
+          id,
+          TERMS_ACCEPTANCE_VERSION,
+        ),
       );
       // Revoke and delete already admitted accounts while others register.
       work.push(
@@ -176,11 +192,33 @@ describe.skipIf(!disposable)(
       expect(orphans!.n).toBe(0);
     }, 90000);
 
+    it('marks exactly ten accounts launch-discount eligible under a larger wave of parallel registrations', async () => {
+      await wave(25);
+      const available = stores();
+      const outcomes = await Promise.all(
+        Array.from({ length: 60 }, (_, i) =>
+          available[i % available.length]!.admitOpenAccount(
+            randomUUID(),
+            TERMS_ACCEPTANCE_VERSION,
+          ),
+        ),
+      );
+      expect(outcomes.filter((o) => o.status === 'admitted')).toHaveLength(25);
+      const rows = await admin.query<{ eligible: boolean }>(
+        'SELECT launch_discount_eligible AS eligible FROM aw_service_admissions',
+      );
+      expect(rows).toHaveLength(25);
+      expect(rows.filter((r) => r.eligible)).toHaveLength(10);
+    }, 60000);
+
     it('does not admit anyone while a restore quarantine is set and reopens only through an explicit wave', async () => {
       await admin.query('UPDATE aw_service_policy SET reconcile_required=true');
       const outcomes = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          stores()[i % 4]!.admitOpenAccount(randomUUID()),
+          stores()[i % 4]!.admitOpenAccount(
+            randomUUID(),
+            TERMS_ACCEPTANCE_VERSION,
+          ),
         ),
       );
       expect(outcomes.every((o) => o.status === 'unavailable')).toBe(true);
@@ -207,7 +245,7 @@ describe.skipIf(!disposable)(
       });
       await lockTaken;
       const pending = Array.from({ length: 6 }, () =>
-        stores()[0]!.admitOpenAccount(randomUUID()),
+        stores()[0]!.admitOpenAccount(randomUUID(), TERMS_ACCEPTANCE_VERSION),
       );
       await new Promise((resolve) => setTimeout(resolve, 300));
       expect((await counts()).admissions).toBe(0);

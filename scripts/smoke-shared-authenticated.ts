@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
@@ -465,7 +466,11 @@ async function main() {
       await request(
         '/api/v1/me/consent',
         'POST',
-        { adult: true, acknowledged: true },
+        {
+          adult: true,
+          acknowledged: true,
+          termsVersion: TERMS_ACCEPTANCE_VERSION,
+        },
         i,
       );
       const alias = i === 0 ? 'Synthetic Rowan' : 'Synthetic Casey';

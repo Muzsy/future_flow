@@ -36,7 +36,7 @@ describe('reviewed schema before privacy capture/replay', () => {
     expect(await check()).toEqual({
       reviewedTables: 102,
       migrationLedgerPresent: false,
-      reviewedColumns: 908,
+      reviewedColumns: 909,
       reviewedForeignKeys: 226,
     });
   });

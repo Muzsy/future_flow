@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { createRequire } from 'node:module';
 import type { createElement as createElementType } from 'react';
 import type { renderToStaticMarkup as renderType } from 'react-dom/server';
@@ -102,7 +103,11 @@ describe('web side of bounded open admission: state mapping', () => {
       expect(admissionGated(page)).toBe(false);
   });
   it('submits only the two literals the API requires, and only when both are ticked and idle', () => {
-    expect(CONSENT_BODY).toEqual({ adult: true, acknowledged: true });
+    expect(CONSENT_BODY).toEqual({
+      adult: true,
+      acknowledged: true,
+      termsVersion: TERMS_ACCEPTANCE_VERSION,
+    });
     expect(canSubmitConsent(true, true, false)).toBe(true);
     expect(canSubmitConsent(true, false, false)).toBe(false);
     expect(canSubmitConsent(false, true, false)).toBe(false);
@@ -173,6 +178,8 @@ describe('web side of bounded open admission: texts and screens', () => {
     expect(html).toContain(messages.en['admission.adult']);
     expect(html).toContain('href="/terms"');
     expect(html).toContain('href="/privacy-notice"');
+    // The terms identifier shown is the one the API will accept.
+    expect(html).toContain(TERMS_ACCEPTANCE_VERSION);
     expect(html).toMatch(
       /<button[^>]*disabled=""[^>]*>[^<]*Accept and continue/,
     );

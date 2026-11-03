@@ -75,6 +75,8 @@ import { z } from 'zod';
 import {
   getQuestionnaire,
   privacyConsentStatusSchema,
+  privacyConsentRequestSchema,
+  TERMS_ACCEPTANCE_VERSION,
   localeFromAcceptLanguage,
   errorMessage,
   type Locale,
@@ -319,16 +321,15 @@ class ApiController {
       properties: {
         adult: { type: 'boolean', enum: [true] },
         acknowledged: { type: 'boolean', enum: [true] },
+        termsVersion: { type: 'string', enum: [TERMS_ACCEPTANCE_VERSION] },
       },
-      required: ['adult', 'acknowledged'],
+      required: ['adult', 'acknowledged', 'termsVersion'],
       additionalProperties: false,
     },
   })
   async consent(@Req() req: AuthRequest, @Body() body: unknown) {
-    z.object({ adult: z.literal(true), acknowledged: z.literal(true) })
-      .strict()
-      .parse(body);
-    await this.repo.acceptPrivacy(req.userId);
+    const accepted = privacyConsentRequestSchema.parse(body);
+    await this.repo.acceptConsent(req.userId, accepted.termsVersion);
     return { accepted: true, policyVersion: 'alpha-privacy-v1' };
   }
   @Get('me/consent')

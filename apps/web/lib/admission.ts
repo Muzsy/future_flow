@@ -3,6 +3,8 @@
 // consent step instead of the generation UI; a full service shows a plain
 // "full, opening later" page. The API stays the authority: this only routes the
 // screen, it never grants access and fails closed on anything it cannot read.
+import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
+
 export type AdmissionState =
   | { kind: 'checking' }
   | { kind: 'consent' }
@@ -10,11 +12,17 @@ export type AdmissionState =
   | { kind: 'full' }
   | { kind: 'error'; message: string };
 
-// The single request body of POST /me/consent (the API requires both literals).
+// The single request body of POST /me/consent: both literals and the terms
+// version the API accepts (the shared constant, never a string of the web's own).
 export const CONSENT_BODY = Object.freeze({
   adult: true,
   acknowledged: true,
-}) as { readonly adult: true; readonly acknowledged: true };
+  termsVersion: TERMS_ACCEPTANCE_VERSION,
+}) as {
+  readonly adult: true;
+  readonly acknowledged: true;
+  readonly termsVersion: typeof TERMS_ACCEPTANCE_VERSION;
+};
 
 // Pages that use the generation or personal-data API. The account-control pages
 // (settings: export and deletion, and the public privacy page) stay reachable
