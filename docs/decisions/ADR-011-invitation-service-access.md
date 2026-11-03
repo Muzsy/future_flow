@@ -60,17 +60,17 @@ A queue/retry a saját tranzakciójában friss admission/generation-pause ellen�
 
 Ez a forrás nem aktivál éles profilt, nem hív Auth-invite-ot, nem küld emailt és nem enged fizetős próbát. Az operátori admission/pause/reconcile, a három meglévő fiók jogmegőrző átvezetése, az összes szolgáltatás egyező profilja és a production040 release/Daily/recovery #142/I04 feltétele. A teljes meghívás→belépés→fizetett folytatás mért böngészős bizonyítéka I06 kapu; I01/I04/I06 marad PARTIAL.
 
-## Production040 adatbázis-transport — #142, fejlesztés alatt
+## Production040 adatbázis-transport — #142/#148/#149, főági forrás
 
 A `service-registry-upgrade.ts` a meglévő v2 capture/migrate primitívet explicit `registry-prepare` / `registry-apply` / `registry-reconcile` transporttal veszi körül. A verziózott intent az executor sourceCommit/imageId, candidate, szülő-authority, backup-manifest és restore-proof hashét köti az élő039 megfigyeléshez és a reviewed040 SQL-hez. A digest önmagában nem hostoldali attesztáció: a privilegizált controllernek kell a valódi kapukat ellenőriznie és az intentet tartósan, hash-kötötten mentenie az SQL előtt. A meglévő privacy-restore intent és régi authority provenance változatlan, nem címkézhető át.
 
 Prepare/reconcile konzisztens READ ONLY tranzakciót kér. Apply a DB órájából ellenőrzött900másodperces intentet és a mentett intent hashét kéri, majd a serializable, zárolt primitív újra ellenőrzi a teljes039 alapot. A read-only reconcile lejárt intentnél is megfigyelheti a már commitolt040-et; soha nem indít SQL-ismétlést. Nem ígér automatikus retry-t vagy alkalmazásaktiválást. A forrás/image-kötött szintetikus PG-fixture ugyanezt a transportot ellenőrzi; nem igazol éles backupot vagy operátori auditot.
 
-A teljes #142 elfogadása külön kapu: a host integráció fejlesztői jelöltje még nem főági vagy éles release. A következő szakasz a jelölt szerződését írja le; az audit, saját CI és a tényleges célgépes próba eredménye nem következik a forrás meglétéből.
+A #149 host integráció és a #151/#152 CI-javítás maina87109b-n van, exact-source review és saját mainCI41597629858 mindháromSUCCESS után. A teljes #142 elfogadása továbbra külön célgépes és éles kapu: a következő szakasz főági forrásszerződés, nem már végrehajtott deployment vagy operátori audit.
 
 A csak olvasó `registry-reconcile` is kötelezően ellenőrzi a tartós intent hashét; megváltozott vagy idegen intentből nem adhat ki helyreállítási bizonyítékot.
 
-### Operátori integráció — #142, fejlesztői jelölt
+### Operátori integráció — #142, főági forrás, még nem éles
 
 A040 plan előkészítése csak39→40 selectiont, változatlan korábbi termseket és33 konkrét reviewed alkalmazásút pontos SHA-256 értékét fogadhatja el. A v2 snapshot összehasonlítása stabil állapotnál a catalog/registry és billing hashét is köti; csak a migráció ismert39→40 átmenete enged üres új registryt és eltérő katalógust. A Compose új `SERVICE_ACCESS_ENFORCEMENT=false` értéke a korábbi renderből hiányozhat, de true/üres/hibás érték nem normalizálható el.
 
@@ -87,6 +87,16 @@ A `migration-plan` / `migration-rehearsal` a még039-es serving mellé kizáról
 A Daily monitor külön `registry_restore_unverified` jelzést ad hiányzó/idegen natív proofra; timeraktiválás a legfrissebb mentés hatórán belüli natív privacy-próbáját is kéri. Az új backup önmagában nem értelmezi át a korábbi replay-t. A `billing-config-040` kizárólag040 után futhat; a sandbox/live/enforce történet ugyanazt a három egyszeri státuszt használja, mint039-en. Alkalmazásút-kivétel itt nincs, a teljes app/engine fagyasztott.
 
 A version5 successor fixture a korábbi23 kaput és hat új registry-kaput kéri, köztük a valódi candidate privacy/migrációs és natív privacy restore-t, valamint az elveszett COMMIT-kimenet utáni, SQL-ismétlés nélküli helyreállítást. Ez fejlesztői elfogadási szerződés; a tényleges futás eredményét a CI/PR rögzíti. Nincs éles aktiválás vagy operátori audit pusztán a jelölt lététől.
+
+## Privilegizált service-operation DB-mag — #150, fejlesztési ág
+
+A `scripts/lib/service-operations.ts` kizárólag belső DB-transport, nem HTTP/Auth endpoint és nem éles root-controller. A strict context source/image/authority/operator/szülő-operation/UUID mezőket köt; a hash önmagában továbbra nem hostoldali attesztáció. A rootnak kell ezeket ténylegesen ellenőriznie, az intentet SQL előtt tartósítania és a journalt sorosítania. A bootstrap csak hiányzó policy és üres admission-regiszter mellett hozhat létre meghívásos, generation/Checkout szüneteltetett policyt. Normál policy-op nem válthat mode-ot, az explicit pause/resume mindkét flagjét és expected revisionjét kéri. Tíz célzott fiók adható át egy műveletben; ez nem globális felhasználólimit vagy új csoporthoz járó reset.
+
+Prepare/reconcile konzisztens READ ONLY megfigyelés, apply serializable tranzakció. A snapshot csak policyt és a célzott fiókgyökér/admission sorait tartalmazza; a hot művelet más ügyfél legitim adat-/elszámolási írását nem minősítheti driftnek. A900másodperces eredeti intent idejét a root-zárak után és a provider-válasz után is DB-órával ellenőrzi. Új gyökér csak a tranzakción belül jön létre, majd gyökérzár alatt kötelező friss, trusted szerveroldali provider-UUID/megerősített email/nem anonim/aktív állapot ellenőrzés következik. Hibánál a gyökér és a batch együtt rollbackel. A callback későbbi éles SDK-wrapperét nem helyettesíti JSON-ból hozott identity-állítás; email/metadata nem admission-authority. Revoke nem igényel működő Auth-readet. Normál operation nem old restore-reconcile zárat.
+
+Elveszett apply-válasz után külön readonly reconcile csak a pontos before/after állapotot fogadja el, nincs SQL-ismétlés, gyökérpótlás vagy újraidőzítés. Lejárt intent commitolt eredménye is megfigyelhető. Az `uncommitted` megfigyelés operátori értelmezése előtt a hostnak az eredeti helper/session megszűnését is bizonyítania kell; egy snapshot nem zár ki egy még futó tranzakciót. A törölt gyökér eltérés, nem újra-provisioning indoka.
+
+A20 PGlite/040 teszt a batch/CAS/rollback/lejárat/readonly és változatlan USD/taster-ledger határt ellenőrzi. Ez nem többkapcsolatos PostgreSQL-lockverseny, actual-image, root-journal, backup/restore vagy éles audit. Ezek és a külön service-budget/legacy-window átvezetés a teljes #150 további komponensei. A régi exemption alatt mentett fejezet tasternek minősítése nincs eldöntve a jelenlegi once/account szabályból; tulajdonosi válaszig egyik irányban sincs automatikus főkönyvírás.
 
 ## Következő integrációs szeletek és elfogadás
 
