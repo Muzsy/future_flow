@@ -36,6 +36,8 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { LifeExperience } from './life-experience';
+import { AdmissionPanel, useAdmission } from './admission-gate';
+import { admissionGated, showsContent } from '../lib/admission';
 import { PublicPreviewEditor } from './public-preview-editor';
 import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
@@ -128,6 +130,10 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   const [user, setUser] = useState<string | null>(null),
     [authReady, setAuthReady] = useState(false);
   const [sharedEnabled, setSharedEnabled] = useState(false);
+  // Bounded open admission: pages that use the generation or personal-data API
+  // render only for an admitted account that gave the 18+/terms consent.
+  const gated = admissionGated(page);
+  const admission = useAdmission(user, gated);
   const [inviteCode, setInviteCode] = useState('');
   useEffect(() => {
     if (page !== 'connections' || id !== 'invite') {
@@ -684,6 +690,16 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
               <ArrowRight size={16} />
             </button>
           </div>
+        ) : protectedPage && gated && user && !showsContent(admission.state) ? (
+          <AdmissionPanel
+            admission={admission}
+            onSignOut={() => {
+              void action(async () => {
+                await supabase().auth.signOut();
+                navigate('/');
+              });
+            }}
+          />
         ) : (
           <>
             {['lives', 'start', 'life'].includes(page) && (
