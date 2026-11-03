@@ -92,6 +92,7 @@ export type BillingAlert = Readonly<{
     | 'cancel_failed'
     | 'processing_failed'
     | 'duplicate_discount'
+    | 'ineligible_discount'
     | 'second_subscription'
     | 'foreign_object';
   eventId?: string;
@@ -141,7 +142,9 @@ export type ProcessedEvent = Readonly<{
   // The revocation is committed, but cancelling the provider subscription
   // failed; it stays pending and is retried (redelivery or the retry job).
   cancelFailed?: boolean;
-  anomalies: readonly ('duplicate_discount' | 'second_subscription')[];
+  anomalies: readonly (
+    'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+  )[];
 }>;
 
 export type ProcessOptions = Readonly<{
@@ -186,7 +189,9 @@ export async function processBillingEvent(
         : ((await tx.ownerOf(by)) ??
           (event.type === 'subscription_synced' ? event.userId : null));
     if (owner) await tx.lockUser(owner);
-    const anomalies: ('duplicate_discount' | 'second_subscription')[] = [];
+    const anomalies: (
+      'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+    )[] = [];
     const result = (
       outcome: ProcessedEvent['outcome'],
       processed: boolean,
@@ -229,13 +234,15 @@ export async function processBillingEvent(
         // before; any other state (no admission row, later wave, operator
         // admission) is "not eligible" and the subscription is stored at the
         // standard offer.
-        const honoured = mayAttachFounderDiscount(
-          await tx.launchDiscountEligible(event.userId),
-          await tx.hasRedeemedFounderDiscount(event.userId),
-        );
-        if (!honoured) {
+        const eligible = await tx.launchDiscountEligible(event.userId);
+        const redeemed = await tx.hasRedeemedFounderDiscount(event.userId);
+        if (!mayAttachFounderDiscount(eligible, redeemed)) {
           applied = { ...event, discounted: false };
-          anomalies.push('duplicate_discount');
+          // Not eligible (the claim is unfounded) is told apart from an
+          // eligible account that already redeemed (a repeat).
+          anomalies.push(
+            eligible === true ? 'duplicate_discount' : 'ineligible_discount',
+          );
         }
       }
       const others = await tx.listSubscriptions(event.userId);

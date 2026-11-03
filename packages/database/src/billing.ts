@@ -250,8 +250,24 @@ export function billingTx(db: Database): BillingTx {
       );
     },
     // The fact persisted at admission, read through the same transaction.
-    launchDiscountEligible: async (userId) =>
-      new ServiceAccessRepository(db).launchDiscountEligible(userId),
+    // A schema older than the registry (040) has no admission table: say so in
+    // a readable 503 instead of a raw SQL error. The checkout stops as a whole
+    // either way; the registry schema must be installed first.
+    launchDiscountEligible: async (userId) => {
+      try {
+        return await new ServiceAccessRepository(db).launchDiscountEligible(
+          userId,
+        );
+      } catch (error) {
+        if ((error as { code?: string }).code === '42P01')
+          throw new DomainError(
+            'SERVICE_ACCESS_UNAVAILABLE',
+            'Current service access could not be verified.',
+            503,
+          );
+        throw error;
+      }
+    },
     hasRedeemedFounderDiscount: async (userId) =>
       (
         await db.query(

@@ -280,9 +280,10 @@ describe('webhook honours the claim only for an eligible account', () => {
       );
       const honoured = index < 10;
       expect(await stored(id)).toEqual([{ discounted: honoured }]);
-      expect(alerts.map((a) => a.kind).includes('duplicate_discount')).toBe(
+      expect(alerts.map((a) => a.kind).includes('ineligible_discount')).toBe(
         !honoured,
       );
+      expect(alerts.map((a) => a.kind)).not.toContain('duplicate_discount');
     }
   });
 
@@ -293,7 +294,7 @@ describe('webhook honours the claim only for an eligible account', () => {
     const f = fakeProvider();
     await send(subscriptionEvent(world(stranger)), f.provider, alerts);
     expect(await stored(stranger)).toEqual([{ discounted: false }]);
-    expect(alerts.map((a) => a.kind)).toContain('duplicate_discount');
+    expect(alerts.map((a) => a.kind)).toContain('ineligible_discount');
   });
 
   it('strips it from an operator-created admission', async () => {
@@ -346,5 +347,31 @@ describe('webhook honours the claim only for an eligible account', () => {
     const f = fakeProvider();
     await send(subscriptionEvent(world(id!), 'standard_v1'), f.provider);
     expect(await stored(id!)).toEqual([{ discounted: false }]);
+  });
+});
+
+describe('a schema without the service access registry', () => {
+  it('stops the checkout with a readable 503, creating no session', async () => {
+    const old = new PGlite();
+    await old.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
+    await applyMigrations(old);
+    const oldDb = adapter(old);
+    // As before migration 040: no admission table at all.
+    await old.exec('DROP TABLE aw_service_admissions CASCADE');
+    const user = randomUUID();
+    await new Repository(oldDb).ensureUser(user);
+    const f = fakeProvider();
+    await expect(
+      createCheckoutSession(user, now, {
+        store: createBillingStore(oldDb),
+        provider: f.provider,
+        config,
+      }),
+    ).rejects.toMatchObject({
+      code: 'SERVICE_ACCESS_UNAVAILABLE',
+      status: 503,
+    });
+    expect(f.checkouts).toHaveLength(0);
+    await old.close();
   });
 });
