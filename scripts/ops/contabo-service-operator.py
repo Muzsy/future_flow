@@ -35,6 +35,7 @@ import socket
 import stat
 import subprocess
 import sys
+import tempfile
 import uuid
 
 OPS = Path('/root/alterward-ops')
@@ -311,7 +312,8 @@ class Operator:
                 raise Refusal('Capacity must exceed the used places')
             added = max(0, capacity - policy['admissionCapacity'])
             if args.get('approve_added') != added:
-                raise Refusal(f'Raising capacity adds {added} places; confirm with --approve-added {added}')
+                raise Refusal(f'Raising capacity adds {added} places and opens {capacity - policy["admissionUsed"]} '
+                              f'free places in total; confirm the added places with --approve-added {added}')
             return {'kind': 'wave', 'expectedPolicyRevision': revision, 'capacity': capacity, 'open': True}
         if command == 'restore-reconcile':
             if not policy['reconcileRequired']:
@@ -325,6 +327,16 @@ class Operator:
                     'members': [{'userId': args['user'], 'expectedRevision': account['admission']['revision'],
                                  'state': 'revoked'}]}
         raise Refusal('Unknown service operation')
+
+    def _emergency_api_image(self, cause):
+        try:
+            observe_api = getattr(self.runtime, 'observe_api_image', None)
+            image_id = observe_api() if observe_api else (self.runtime.observe().get('images') or {}).get('api')
+        except Exception:
+            image_id = None
+        if not isinstance(image_id, str) or not IMAGE.fullmatch(image_id):
+            raise Refusal('Running api image could not be observed') from cause
+        return image_id
 
     # ---- privileged operations -------------------------------------------
     def execute(self, command, args=None, *, emergency=False, argv=()):
@@ -343,14 +355,12 @@ class Operator:
             context_base = {'sourceCommit': record['profile']['sourceCommit'], 'imageId': image_id,
                             'authoritySha256': authority_sha(record['profileSha256'], record['profile'])}
             profile_generation = record['generation']
-        except Refusal as error:
+        except Exception as error:
             if not (emergency and command in EMERGENCY_KINDS):
                 raise
-            # Emergency: exposure-reducing only, against the observed api image.
-            observed = self.runtime.observe()
-            image_id = (observed.get('images') or {}).get('api') if isinstance(observed, dict) else None
-            if not isinstance(image_id, str) or not IMAGE.fullmatch(image_id):
-                raise Refusal('Running api image could not be observed') from error
+            # Emergency: exposure-reducing only, against the running api image alone. A crashed
+            # worker, a deploy with two containers or a damaged config must not block the stop.
+            image_id = self._emergency_api_image(error)
             context_base = {'sourceCommit': UNVERIFIED_COMMIT, 'imageId': image_id,
                             'authoritySha256': unverified_authority_sha(image_id)}
             profile_generation, unverified = None, True
@@ -401,6 +411,11 @@ class Operator:
                           ': run reconcile --operation-id; SQL is never repeated') from None
         receipt_bytes = canonical(receipt)
         _create(directory / READBACK_NAME, receipt_bytes)
+        if not isinstance(receipt, dict) or receipt.get('outcome') != 'committed':
+            # SQL may have run: never journal this as applied; the operation stays unfinished.
+            self.journal.append('apply-unknown', operation_id, self.clock(), errorType='UnexpectedReceipt')
+            raise Refusal('Apply receipt was not an exact commit for ' + operation_id +
+                          ': run reconcile --operation-id; SQL is never repeated')
         self.journal.append('applied', operation_id, self.clock(), readbackFileSha256=sha(receipt_bytes),
                             outcome=receipt.get('outcome'))
         return {'operationId': operation_id, 'kind': request['kind'], 'outcome': receipt.get('outcome'),
@@ -424,25 +439,32 @@ class Operator:
             raise Refusal('Stored intent image invalid')
         return persisted, directory, intent, image_id
 
+    def _no_probe_running(self):
+        """The apply runs in its own container: its end, not the helper's lock, proves it stopped."""
+        running = getattr(self.runtime, 'probes_running', None)
+        if running is not None and running():
+            raise Refusal('A service probe container is still running: wait until it ends, then reconcile')
+
     def reconcile(self, operation_id, *, accept_drift=False, confirm=None):
         """Read-only resolution of a lost apply. Never repeats SQL."""
         persisted, directory, intent, image_id = self._unfinished(operation_id)
         if accept_drift:
             return self._accept_drift(operation_id, persisted, directory, confirm)
-        try:
-            receipt = self._probe(image_id, {'mode': 'service-reconcile', 'context': intent['context'],
-                                             'intent': intent, 'intentSha256': persisted['intentSha256']},
-                                  directory)
-        except Refusal:
-            raise
-        except Exception:
-            phrase = self.accept_drift_phrase(operation_id, persisted['intentSha256'])
-            raise Refusal('The outcome could not be proven (the state moved on or the database is unreachable). '
-                          'If the state moved on, the owner may close it with: reconcile --operation-id '
-                          f'{operation_id} --accept-drift --confirm "{phrase}"') from None
+        self._no_probe_running()
+        receipt = self._reconcile_probe(image_id, intent, persisted, directory)
         outcome = receipt.get('outcome')
+        if outcome == 'drift':
+            phrase = self.accept_drift_phrase(operation_id, persisted['intentSha256'])
+            raise Refusal('The state moved on, so the outcome cannot be proven. If the owner accepts that, close it '
+                          f'with: reconcile --operation-id {operation_id} --accept-drift --confirm "{phrase}"')
         if outcome not in ('committed', 'uncommitted'):
             raise Refusal('Reconcile did not return an exact outcome')
+        if outcome == 'uncommitted':
+            # Only after the intent can no longer be applied (its 15 minute validity), so a late commit
+            # of a still-running apply cannot make this journal row wrong.
+            if self._now() < self._expiry(intent):
+                raise Refusal('The intent has not expired yet (' + intent['expiresAt'] +
+                              '): reconcile again after that')
         receipt_bytes = canonical(receipt)
         if outcome == 'committed':
             _create(directory / READBACK_NAME, receipt_bytes)
@@ -450,6 +472,26 @@ class Operator:
                             readbackFileSha256=sha(receipt_bytes))
         return {'operationId': operation_id, 'outcome': outcome,
                 'next': None if outcome == 'committed' else 'start a new operation; the old one changed nothing'}
+
+    def _now(self):
+        return self.clock()
+
+    @staticmethod
+    def _expiry(intent):
+        try:
+            return dt.datetime.fromisoformat(intent['expiresAt'].replace('Z', '+00:00'))
+        except (KeyError, ValueError, AttributeError):
+            raise Refusal('Stored intent has no valid expiry') from None
+
+    def _reconcile_probe(self, image_id, intent, persisted, directory):
+        try:
+            return self._probe(image_id, {'mode': 'service-reconcile', 'context': intent['context'],
+                                          'intent': intent, 'intentSha256': persisted['intentSha256']}, directory)
+        except Refusal:
+            raise
+        except Exception:
+            # A transient failure (container timeout, database unreachable) is NOT drift.
+            raise Refusal('Reconcile could not run (transient failure): try again') from None
 
     @staticmethod
     def accept_drift_phrase(operation_id, intent_sha256):
@@ -470,13 +512,9 @@ class Operator:
         record = self.verified_profile()
         image_id = record['profile']['imageId']
         intent = json.loads(_private_read(directory / INTENT_NAME))
-        try:
-            self._probe(intent['context']['imageId'],
-                        {'mode': 'service-reconcile', 'context': intent['context'], 'intent': intent,
-                         'intentSha256': persisted['intentSha256']}, directory)
-        except Exception:
-            pass  # the drift this command exists for (or an unreachable database: status fails next)
-        else:
+        self._no_probe_running()
+        receipt = self._reconcile_probe(intent['context']['imageId'], intent, persisted, directory)
+        if receipt.get('outcome') != 'drift':
             raise Refusal('The outcome is provable: run reconcile without --accept-drift')
         try:
             status = self._status_probe(image_id, [], directory)
@@ -537,22 +575,36 @@ class HostRuntime:
                 'pinnedImageSha256': sha(_private_read(self.owner / 'pinned-image.json')),
                 'serviceAccessEnforcement': enforcement}
 
+    def observe_api_image(self):
+        """Emergency stops need only the running api image."""
+        compose_path = self.owner / 'effective-compose.json'
+        ids = self.runner(self._compose(compose_path) + ['ps', '-q', 'api']).decode().split()
+        if len(ids) != 1:
+            raise Refusal('Exactly one running api container required')
+        return self.runner(['docker', 'inspect', '--format', '{{.Image}}', ids[0]]).decode().strip()
+
+    def probes_running(self):
+        listed = self.runner(['docker', 'ps', '-q', '--filter', f'name={self.project}-service-probe-'])
+        return bool(listed.decode().split())
+
     def probe(self, image_id, data, directory):
+        # The probe compose is a copy of the effective compose (it holds the service environment):
+        # it lives in a private temporary directory, never in the evidence root, and is always removed.
         config = json.loads(_private_read(self.owner / 'effective-compose.json'))
         config['services']['api']['image'] = image_id
-        path = Path(directory) / 'probe-compose.json'
-        if path.exists():
-            path.unlink()
-        _create(path, canonical(config))
         name = f'{self.project}-service-probe-{uuid.uuid4().hex}'
-        try:
-            output = self.runner(
-                self._compose(path) + ['run', '-T', '--rm', '--no-deps', '--pull', 'never', '--name', name,
-                                       '--entrypoint', 'node', 'api', *PROBE_COMMAND],
-                input=canonical(data).rstrip(b'\n'), timeout=200)
-        finally:
-            with contextlib.suppress(Exception):
-                self.runner(['docker', 'rm', '-f', name])
+        with tempfile.TemporaryDirectory(prefix='alterward-service-probe-',
+                                         dir='/run' if os.path.isdir('/run') else None) as scratch:
+            path = Path(scratch) / 'probe-compose.json'
+            _create(path, canonical(config))
+            try:
+                output = self.runner(
+                    self._compose(path) + ['run', '-T', '--rm', '--no-deps', '--pull', 'never', '--name', name,
+                                           '--entrypoint', 'node', 'api', *PROBE_COMMAND],
+                    input=canonical(data).rstrip(b'\n'), timeout=200)
+            finally:
+                with contextlib.suppress(Exception):
+                    self.runner(['docker', 'rm', '-f', name])
         return json.loads(output)
 
 

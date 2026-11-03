@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import tempfile
 import unittest
@@ -136,6 +137,9 @@ class ServiceProfileTests(unittest.TestCase):
             'journal row hash': lambda: edit(self.dir / 'journal.jsonl', lambda b: b.replace(b'profile-superseded', b'profile-activated')),
             'journal truncated': lambda: edit(self.dir / 'journal.jsonl', lambda b: b.splitlines(True)[0]),
             'head generation': lambda: edit(self.dir / 'head.json', lambda b: b.replace(b'"generation":2', b'"generation":1')),
+            'head profile hash': lambda: edit(self.dir / 'head.json', lambda b: re.sub(rb'("profileSha256":")[a-f0-9]{64}', rb'\g<1>' + b'0' * 64, b)),
+            'head journal hash': lambda: edit(self.dir / 'head.json', lambda b: re.sub(rb'("journalSha256":")[a-f0-9]{64}', rb'\g<1>' + b'0' * 64, b)),
+            'head version': lambda: edit(self.dir / 'head.json', lambda b: b.replace(b'profile-head-1', b'profile-head-9')),
             'extra profile file': lambda: (self.dir / 'profiles' / '3.json').write_bytes(b'{}'),
             'old profile removed': lambda: (self.dir / 'profiles' / '1.json').unlink(),
         }

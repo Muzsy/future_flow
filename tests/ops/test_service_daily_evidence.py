@@ -156,6 +156,24 @@ class ServiceDailyEvidenceTests(unittest.TestCase):
         path.write_bytes(path.read_bytes().replace(b'"sequence":2', b'"sequence":3'))
         self.assertEqual(self.health()['journal'], 'unverified')
 
+    def test_a_real_host_runtime_probe_leaves_nothing_the_catalog_refuses(self):
+        """The first `status` must not break the next configuration capture."""
+        owner = Path(self.temporary.name) / 'owner'
+        owner.mkdir(mode=0o700)
+        compose = {'services': {name: {'image': 'old', 'environment': {}} for name in ('api', 'worker', 'web')}}
+        (owner / 'effective-compose.json').write_bytes(operator.canonical(compose))
+        (owner / 'effective-compose.json').chmod(0o600)
+        self.state.mkdir(mode=0o700)
+        runtime = operator.HostRuntime(owner_dir=owner, runner=lambda args, *, input=None, timeout=60: b'{"ok":true}')
+        self.assertEqual(runtime.probe(IMAGE, {'mode': 'service-status', 'accounts': []}, self.state), {'ok': True})
+        self.assertEqual(list(self.state.iterdir()), [])
+        self.assertEqual(daily.service_config_paths(), [])
+        op_dir = self.state / OPERATION
+        op_dir.mkdir(mode=0o700)
+        runtime.probe(IMAGE, {'mode': 'service-prepare'}, op_dir)
+        self.assertEqual(list(op_dir.iterdir()), [])
+        self.assertEqual(daily.service_config_paths(), [])
+
     # ---- alerts -----------------------------------------------------------
     def test_service_alerts_cover_each_condition_and_stay_quiet_for_legacy_health(self):
         base = {'profile': 'verified', 'journal': 'verified', 'unfinished': False, 'enforced': True,

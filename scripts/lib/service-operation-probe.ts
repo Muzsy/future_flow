@@ -252,7 +252,16 @@ export async function runServiceProbe(
             (input as z.infer<typeof followInput>).intent,
             input.context,
             (input as z.infer<typeof followInput>).intentSha256,
-          );
+          ).catch((error: unknown) => {
+            // The readback matches neither side of the intent: an explicit,
+            // distinct result, so a transient failure is never taken for drift.
+            if (
+              error instanceof Error &&
+              error.message.includes('readback drift')
+            )
+              return { outcome: 'drift' as const };
+            throw error;
+          });
     await session.query('COMMIT');
     return result;
   } catch (error) {

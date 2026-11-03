@@ -48,9 +48,15 @@ class FakeRuntime:
         self.calls = []
         self.lose_apply = False      # SQL commits but the response is lost
         self.drift = False           # the state moved on: reconcile can prove neither side
+        self.transient = False       # reconcile fails for a transient reason (not drift)
+        self.bad_receipt = None      # apply returns this instead of a commit receipt
+        self.probe_containers = False
         self.fail_before_sql = False  # apply dies before the transaction commits
         self.on_apply = None
         self.applied = set()
+
+    def probes_running(self):
+        return self.probe_containers
 
     def observe(self):
         self.calls.append('observe')
@@ -66,7 +72,8 @@ class FakeRuntime:
                     'paidAiCalls': 0, 'authProviderWrites': False}
         if mode == 'service-prepare':
             intent = {'version': 'alterward-service-operation-intent-1', 'context': data['context'],
-                      'request': data['request'], 'before': copy.deepcopy(self.policy)}
+                      'request': data['request'], 'before': copy.deepcopy(self.policy),
+                      'expiresAt': (NOW + dt.timedelta(seconds=900)).isoformat().replace('+00:00', 'Z')}
             return {'intent': intent, 'intentSha256': hashlib.sha256(op.canonical(intent)).hexdigest()}
         intent = data['intent']
         key = intent['context']['operationId']
@@ -98,10 +105,14 @@ class FakeRuntime:
                 self.policy['revision'] += 1
             if self.lose_apply:
                 raise RuntimeError('response lost after commit')
+            if self.bad_receipt is not None:
+                return self.bad_receipt
             return {'outcome': 'committed', 'authProviderWrites': False, 'paidAiCalls': 0}
         if mode == 'service-reconcile':
+            if self.transient:
+                raise RuntimeError('probe container timed out')
             if self.drift:
-                raise RuntimeError('readback drift')
+                return {'outcome': 'drift'}
             return {'outcome': 'committed' if key in self.applied else 'uncommitted'}
         raise AssertionError(mode)
 
@@ -334,6 +345,10 @@ class OperatorTests(unittest.TestCase):
             operator.execute('resume')
         operation_id = op.Journal(self.state).unfinished_all()[0]['operationId']
         before = copy.deepcopy(self.runtime.policy)
+        with self.assertRaisesRegex(op.Refusal, 'not expired yet'):
+            operator.reconcile(operation_id)  # a still-running apply could yet commit
+        self.assertEqual(op.Journal(self.state).unfinished_all()[0]['operationId'], operation_id)
+        self.tick = 1000                      # past the 15 minute validity of the intent
         result = operator.reconcile(operation_id)
         self.assertEqual(result['outcome'], 'uncommitted')
         self.assertEqual(self.runtime.policy, before)
@@ -442,6 +457,76 @@ class OperatorTests(unittest.TestCase):
             operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
         self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
 
+    # ---- review hardening ------------------------------------------------
+    def test_an_emergency_stop_needs_only_the_api_image_not_a_perfect_runtime(self):
+        self.runtime.observe_api_image = lambda: IMAGE
+        for failure in (op.Refusal('Exactly one running container per service required'),
+                        FileNotFoundError('server.env'), RuntimeError('docker failed'), ValueError('bad')):
+            with self.subTest(type(failure).__name__):
+                def broken(failure=failure):
+                    raise failure
+                self.runtime.observe = broken
+                operator = self.operator()
+                with self.assertRaises(Exception):
+                    operator.execute('resume')              # normal operations still fail closed
+                result = operator.execute('pause', emergency=True)
+                self.assertEqual(result['outcome'], 'committed')
+                self.assertTrue(result['unverifiedAuthority'])
+        self.runtime.observe_api_image = lambda: (_ for _ in ()).throw(RuntimeError('no api'))
+        with self.assertRaisesRegex(op.Refusal, 'api image could not be observed'):
+            self.operator().execute('pause', emergency=True)
+
+    def test_emergency_authority_cannot_carry_an_exposure_increasing_command(self):
+        self.runtime.lose_apply = True
+        operator = self.operator()
+        with self.assertRaises(op.Refusal):
+            operator.execute('resume')
+        self.runtime.lose_apply = False
+        applies = len(self.applies())
+        for command, args in [('wave-open', {'capacity': 5, 'approve_added': 5}), ('resume', {}),
+                              ('revoke', {'user': USER}), ('restore-reconcile', {}), ('bootstrap', {})]:
+            with self.subTest(command), self.assertRaisesRegex(op.Refusal, 'limited to pause and wave close'):
+                operator.execute(command, args, emergency=True)
+        self.assertEqual(len(self.applies()), applies)
+        with self.assertRaisesRegex(op.Refusal, 'reconcile it first'):
+            operator.execute('wave-open', {'capacity': 5, 'approve_added': 5})  # the block stays in force
+
+    def test_reconcile_waits_for_a_running_probe_container(self):
+        self.runtime.lose_apply = True
+        operator = self.operator()
+        with self.assertRaises(op.Refusal):
+            operator.execute('resume')
+        operation_id = op.Journal(self.state).unfinished_all()[0]['operationId']
+        self.runtime.probe_containers = True
+        with self.assertRaisesRegex(op.Refusal, 'still running'):
+            operator.reconcile(operation_id)
+        self.assertNotIn('service-reconcile', [c[0] for c in self.runtime.calls if isinstance(c, tuple)])
+        self.runtime.probe_containers = False
+        self.assertEqual(operator.reconcile(operation_id)['outcome'], 'committed')
+
+    def test_a_transient_reconcile_failure_is_never_taken_for_drift(self):
+        operator, operation_id, phrase = self.drifted()
+        self.runtime.drift = False
+        self.runtime.transient = True
+        with self.assertRaises(op.Refusal) as plain:
+            operator.reconcile(operation_id)
+        self.assertNotIn('--accept-drift', str(plain.exception))
+        with self.assertRaisesRegex(op.Refusal, 'transient'):
+            operator.reconcile(operation_id, accept_drift=True, confirm=phrase)
+        self.assertNotIn('drift-accepted', [r['event'] for r in self.rows()])
+        self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+
+    def test_an_apply_receipt_that_is_not_an_exact_commit_leaves_the_operation_unfinished(self):
+        for receipt in ({'outcome': 'uncommitted'}, {'outcome': 'weird'}, {}):
+            with self.subTest(receipt):
+                self.setUp()
+                self.runtime.bad_receipt = receipt
+                operator = self.operator()
+                with self.assertRaisesRegex(op.Refusal, 'not an exact commit'):
+                    operator.execute('resume')
+                self.assertEqual(self.rows()[-1]['event'], 'apply-unknown')
+                self.assertEqual(len(op.Journal(self.state).unfinished_all()), 1)
+
     # ---- hygiene ---------------------------------------------------------
     def test_a_prepared_intent_that_differs_from_the_request_is_refused_and_leaves_no_trace(self):
         runtime = self.runtime
@@ -534,9 +619,13 @@ class OperatorTests(unittest.TestCase):
             os.write(fd, data)
             os.close(fd)
         calls = []
+        compose_files = []
 
         def runner(args, *, input=None, timeout=60):
             calls.append((args, input, timeout))
+            if 'run' in args:
+                path = Path(args[args.index('-f') + 1])
+                compose_files.append((path, json.loads(path.read_bytes()), stat.S_IMODE(path.stat().st_mode)))
             if args[:2] == ['docker', 'compose'] and 'ps' in args:
                 return (args[-1] + '-container\n').encode()
             if args[:2] == ['docker', 'inspect']:
@@ -558,8 +647,12 @@ class OperatorTests(unittest.TestCase):
         self.assertEqual(run[0][run[0].index('--pull') + 1], 'never')
         self.assertEqual(run[0][-3:], op.PROBE_COMMAND)
         self.assertEqual(json.loads(run[1]), {'mode': 'service-status', 'accounts': []})
-        override = json.loads((operation / 'probe-compose.json').read_bytes())
+        path, override, mode = compose_files[0]
         self.assertEqual(override['services']['api']['image'], IMAGE)
+        self.assertEqual(mode, 0o600)
+        # The compose copy holds the service environment: never left behind, never in the evidence root.
+        self.assertFalse(path.exists())
+        self.assertEqual(list(operation.iterdir()), [])
         self.assertTrue(any(c[0][:3] == ['docker', 'rm', '-f'] for c in calls))
         # The one-off never gets a shell and never an env/secret on the command line.
         self.assertFalse(any('sh' == a or '-c' == a for c in calls for a in c[0]))

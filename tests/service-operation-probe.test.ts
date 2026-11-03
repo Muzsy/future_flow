@@ -398,6 +398,38 @@ describe('service operation probe against the DB core', () => {
     await expect(apply(p)).rejects.toThrow();
     expect(await revision()).toBe(after);
   });
+  it('reports a state that moved on as an explicit drift result, not as an error', async () => {
+    await bootstrap();
+    const p = await plan({
+      kind: 'wave',
+      expectedPolicyRevision: await revision(),
+      capacity: 5,
+      open: true,
+    });
+    await apply(p);
+    const other = await plan({
+      kind: 'policy',
+      expectedPolicyRevision: await revision(),
+      generationEnabled: true,
+      checkoutEnabled: true,
+    });
+    await apply(other);
+    const before = await revision();
+    expect((await reconcile(p)).outcome).toBe('drift');
+    expect(await revision()).toBe(before);
+    // Any other failure stays an error: only a proven drift is a result.
+    await expect(
+      runServiceProbe(
+        session,
+        parse({
+          mode: 'service-reconcile',
+          context: p.ctx,
+          intent: p.intent,
+          intentSha256: 'f'.repeat(64),
+        }),
+      ),
+    ).rejects.toThrow('Original durable service intent');
+  });
   it('refuses a different persisted-intent hash and a changed context before SQL', async () => {
     await bootstrap();
     const p = await plan({
