@@ -30,6 +30,7 @@ import {
   configureGenerationGate,
   createGenerationGate,
   closedBetaConfigFromEnv,
+  legacyBetaChapterExemption,
   validateClosedBetaConfig,
   assertClosedBetaAdmission,
   type ClosedBetaConfig,
@@ -1057,11 +1058,10 @@ export async function createApp(
     billing.config.enforcement
       ? createGenerationGate({
           ready: billing.config.enabled,
-          // The exemption belongs to the running closed beta: with
+          // The exemption belongs to the running closed beta and ends with the
+          // proven original tester window (closed-beta.ts); with
           // CLOSED_BETA_ENABLED=false a leftover list does not give free chapters.
-          exemptUserIds: closedBetaConfig.enabled
-            ? closedBetaConfig.userIds
-            : [],
+          ...legacyBetaChapterExemption(closedBetaConfig),
           entitlement: billing.config.entitlement,
         })
       : null,

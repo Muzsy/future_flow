@@ -36,6 +36,10 @@ Az első tíz új ember körébe a már meglévő három béta-résztvevő nem s
 
 **Személyes worker-fejezetkapu — #140 fejlesztési jelölt:** új szolgáltatói kérés csak a futó munkához és fiókhoz tartozó, még foglalt fejezettel indulhat. A kapu nem oszt új ízelítőt vagy fizetett keretet; foglalás nélküli régi munkánál explicit felhasználói retry szükséges. A már korábban érvényesen lefoglalt fizetett munka a természetes cikluslejárat vagy lemondás után is feldolgozható a meglévő foglalási szabály szerint: ez nem a fel nem használt kvóta továbbvitele. Explicit grant-visszavonás, refund/dispute vagy restore utáni rendezetlen projection új kérést tilt. A TTL által feloldott foglalás új kérést nem enged, de a már kész eredmény tartós mentése továbbra elszámolható. A korábbi béta explicit mentessége és eredeti USD-ablaka külön kapu; új meghívott/kuponos ügyfél nem válik mentessé. A szolgáltatói USD-foglalás utáni tiltás nulla használattal visszaadja az ismerten fel nem használt összeget; a fejezetet továbbra csak a tartós mentés fogyasztja.
 
+**Régi béta-mentesség időkorlátja és szolgáltatási USD-védelem — fejlesztési jelölt, B4/B5:** a három régi béta-fiók fejezetmentessége (`GenerationGate.exemptUserIds`) már nem időfeltétel nélküli: a bizonyított eredeti tesztelői ablak végéig (2026-11-28 01:17:38 CET = 00:17:38 UTC, kizárólagos határ) él, a határ kódkonstans (`LEGACY_BETA_CHAPTER_EXEMPTION_ENDS_AT`). Új USD-időszak, utódgeneráció, env-érték vagy kupon nem hosszabbíthatja; nincs olyan kapuépítés, ami mentességet végpont nélkül hozna létre. Az API a sorba állításkor a saját órájával, a worker minden fizikai szolgáltatói kérés előtt az adatbázis falióráján (`clock_timestamp()`) újraellenőrzi; hibás, olvashatatlan vagy hiányzó óra sosem mentes. A határ után a fiók közönséges felhasználó: foglalás nélkül nincs dispatch, használhatatlan billingnél `BILLING_UNAVAILABLE`, a normál ledger-szabályok (köztük az ízelítő) érvényesek. A korábbi fejezeteinek ízelítőbe sorolása (B6, D2) nincs eldöntve és nem része ennek.
+
+Szolgáltatási profilban (`SERVICE_ACCESS_ENFORCEMENT=true`) az USD-budget önálló szerződés: projekt- és felhasználói limit, kötelező rögzített időszak (pozitív limitnél a `AI_BUDGET_WINDOW_START/END` hiánya konfigurációs hiba, tetszőleges hosszal, legfeljebb 366 nap), nincs 10/3,34 USD-s béta-plafon, 30 napos kötöttség vagy béta-ügyféllista. Nulla limit nem költ; a worker és a guard is zárt marad (`AI_BUDGET_EXCEEDED`), az időszakon kívül `AI_BUDGET_WINDOW_CLOSED`, nincs automatikus gördülés. Riasztási vonalak (alapból 50% és 80%, a D3 döntésig ajánlás) a foglalás commitja után jeleznek projekt és felhasználó szinten, mindig akkor, amikor egy foglalás (a plafon-összeggel számolva) átlép egy vonalat. Ha a `settle` után az elszámolt összeg a vonal alá csökken, egy későbbi foglalás újra átléphet és újra riaszthat, tehát a riasztás átlépésenként ismétlődhet, nem szintenként egyszeri. A worker egyetlen strukturált `service_usd_alert` stderr-sort ír felhasználói azonosító nélkül (értesítési csatorna a D3/B3 része). A csak olvasó `serviceUsdBudgetStatus` az időszak felhasználását és a már átlépett vonalakat adja; a monitor (B3) még nem használja. A határ előtt indult, többkérésű job a mentesség végén a következő fizikai kérésnél `BILLING_RESERVATION_REQUIRED`-ot kap (nincs ingyen fejezet, az addigi kérések költsége elvész), ezért a 2026-11-28 éjszakai idősávban ne induljon fejezet. A konkrét éles limitszámok tulajdonosi döntés (D3), a kód nem állít be élő értéket.
+
 ### Megvalósítás és szolgáltatói határ
 
 Cél: Stripe Managed Payments, az élő fiókjogosultság megerősítésével; Paddle a tartalék. A fizetési adat- és felelősségi határok tervezési forrása [ADR-010](../decisions/ADR-010-payment-data-and-responsibility-boundaries.md); az ottani döntési státuszt ez a terv nem címkézi át automatikusan. Az 5→8 átállást a saját fizetettszámla-számláló adja, nem a kupon eltűnése. A vita és az aktuális ciklus teljes visszatérítése visszavonja a jogosultságot és lemondja az előfizetést; a régi ciklus teljes visszatérítése az akkori grantot zárja, részleges visszatérítés naplózást és riasztást ad. A kupon fiókonként egyszer jár.
@@ -61,12 +65,12 @@ A meghívott Friend részvételt nem kell minden esetben külön előfizetéssel
 
 ## 3. Jelenlegi Shared tier modell
 
-| Tier | Saját subscriber Shared slot | Engedélyezett típusok |
-|---|---:|---|
-| Free | 0 | nincs |
-| Explorer | 1 | friend_group |
-| Connected | 3 | friend_group, romantic_relationship, work_project, hobby_group |
-| World | 5 | mind az öt, sports_team is |
+| Tier      | Saját subscriber Shared slot | Engedélyezett típusok                                          |
+| --------- | ---------------------------: | -------------------------------------------------------------- |
+| Free      |                            0 | nincs                                                          |
+| Explorer  |                            1 | friend_group                                                   |
+| Connected |                            3 | friend_group, romantic_relationship, work_project, hobby_group |
+| World     |                            5 | mind az öt, sports_team is                                     |
 
 A tier-nevek a jelenlegi domain contract részei. A marketingnevek később változhatnak, de code migration nélkül ne nevezzük át a domain enumokat.
 
@@ -197,7 +201,6 @@ Bizonyíték nélkül ne kezeljük tényként:
 - garantált fedezet vagy konverzió az elfogadott személyes ár mellett.
 
 Ezeket valós termékhasználatból kell mérni.
-
 
 ## 15. Személyes történetgazdaságosság — történeti javaslat
 
