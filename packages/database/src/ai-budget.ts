@@ -11,7 +11,7 @@ import {
   assertClosedBetaAdmission,
 } from './closed-beta';
 
-// Standard short-context ceilings, including cache writes. Checked 2026-10-31:
+// Standard short-context ceilings, including cache writes. Checked 2026-11-03:
 // https://developers.openai.com/api/docs/pricing
 export const applicationModelPrices: Record<
   string,
@@ -23,7 +23,7 @@ export const applicationModelPrices: Record<
   // https://platform.claude.com/docs/en/models/sonnet-5-5/overview
   'claude-sonnet-5-5': { inputCeiling: 2.5, output: 10 },
   // Explicit bounded editorial audits; no automatic model fallback.
-  // Standard Haiku 4.5, including 5m cache writes, checked 2026-10-31:
+  // Standard Haiku 4.5, including 5m cache writes, checked 2026-11-03:
   // https://platform.claude.com/docs/en/about-claude/pricing
   'claude-haiku-4-5-20251001': { inputCeiling: 1.25, output: 5 },
 };
