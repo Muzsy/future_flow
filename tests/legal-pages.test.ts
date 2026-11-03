@@ -98,7 +98,9 @@ describe('legal pages', () => {
 
   it('does not put personal data or secrets in the legal text', () => {
     const text = legalKeys.map((key) => en[key]).join('\n');
-    expect(text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g)).toEqual([
+    // The one contact address may appear in several places (privacy contact and
+    // the complaints clause); no other address may.
+    expect([...new Set(text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g))]).toEqual([
       'info@alterward.com',
     ]);
     expect(text).not.toMatch(/sk-|eyJ|api[_-]?key|password\s*[:=]/i);

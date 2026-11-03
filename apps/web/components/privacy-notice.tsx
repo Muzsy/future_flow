@@ -27,6 +27,7 @@ export function PrivacyNotice() {
           'privacy.collect4',
           'privacy.collect5',
           'privacy.collect6',
+          'privacy.collect7',
         ]}
       />
       <LegalSection
@@ -56,6 +57,7 @@ export function PrivacyNotice() {
           'privacy.processor3',
           'privacy.processor4',
           'privacy.processor5',
+          'privacy.processor6',
         ]}
       />
       <LegalSection
