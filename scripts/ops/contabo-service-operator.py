@@ -594,7 +594,7 @@ class HostRuntime:
         config['services']['api']['image'] = image_id
         name = f'{self.project}-service-probe-{uuid.uuid4().hex}'
         with tempfile.TemporaryDirectory(prefix='alterward-service-probe-',
-                                         dir='/run' if os.path.isdir('/run') else None) as scratch:
+                                         dir='/run' if os.access('/run', os.W_OK) else None) as scratch:
             path = Path(scratch) / 'probe-compose.json'
             _create(path, canonical(config))
             try:
