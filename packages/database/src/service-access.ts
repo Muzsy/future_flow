@@ -401,6 +401,49 @@ export class ServiceAccessRepository {
     });
   }
 
+  // The only way out of a restore quarantine (ordinary policy changes never
+  // clear it). The service comes back CLOSED and paused: invitation mode,
+  // generation and Checkout off. The open counter is raised to every admission
+  // row that exists, capacity never below it, so a restored older counter can
+  // not hand out slots that were already used. Reopening is a separate,
+  // explicit wave (and pause release). Callers must have proven the restore
+  // authority; this is a database primitive, not an authorization.
+  async releaseRestoreQuarantine(
+    expectedRevision: number,
+  ): Promise<ServiceAdmissionCapacity> {
+    nextRevision(expectedRevision);
+    if (expectedRevision === 0) return inputError();
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx.query<
+        PolicyRow & {
+          admission_capacity: string | number;
+          admission_used: string | number;
+        }
+      >(
+        'SELECT revision,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1 FOR UPDATE',
+      );
+      if (!row || Number(row.revision) !== expectedRevision) return conflict();
+      if (row.reconcile_required !== true) return inputError();
+      const [rows] = await tx.query<{ n: string | number }>(
+        'SELECT count(*) AS n FROM aw_service_admissions',
+      );
+      const used = Math.max(Number(row.admission_used), Number(rows!.n)),
+        capacity = Math.max(Number(row.admission_capacity), used);
+      await tx.query(
+        `UPDATE aw_service_policy SET revision=revision+1,mode='invitation',generation_enabled=false,checkout_enabled=false,
+           admission_capacity=$1,admission_used=$2,reconcile_required=false,updated_at=now() WHERE id=1`,
+        [capacity, used],
+      );
+      return {
+        mode: 'invitation' as const,
+        revision: expectedRevision + 1,
+        capacity,
+        used,
+        remaining: capacity - used,
+      };
+    });
+  }
+
   async replaceAdmission(
     userIdInput: unknown,
     expectedRevision: number,

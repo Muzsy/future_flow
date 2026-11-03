@@ -473,4 +473,252 @@ describe('privileged service operations on actual SQL, without host authority im
       ),
     ).rejects.toThrow('binding');
   });
+
+  describe('bounded open wave control and restore reconcile', () => {
+    const usedNow = async () =>
+      (
+        await db.query<{ used: string | number; capacity: string | number }>(
+          'SELECT admission_used AS used,admission_capacity AS capacity FROM aw_service_policy',
+        )
+      ).map((r) => ({ used: Number(r.used), capacity: Number(r.capacity) }))[0];
+    async function register(id = randomUUID()) {
+      const { ServiceAccessRepository } = await import('@future-flow/database');
+      return new ServiceAccessRepository(db).admitOpenAccount(id);
+    }
+
+    it('opens, closes and raises a wave by revision, without any provider call', async () => {
+      await bootstrap();
+      const calls: string[] = [];
+      const verify = async (id: string) => {
+        calls.push(id);
+        return provider(id);
+      };
+      const opened = await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 1,
+          capacity: 2,
+          open: true,
+        }),
+        verify,
+      );
+      expect(opened.state.policy).toMatchObject({
+        revision: 2,
+        mode: 'open',
+        admissionCapacity: 2,
+        generationEnabled: false,
+      });
+      expect(calls).toEqual([]);
+      expect((await register()).status).toBe('admitted');
+      // A registration below capacity does not move the observed revision.
+      const closed = await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 2,
+          capacity: 2,
+          open: false,
+        }),
+      );
+      expect(closed.state.policy).toMatchObject({
+        revision: 3,
+        mode: 'invitation',
+      });
+      expect((await register()).status).toBe('closed');
+      const next = await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 3,
+          capacity: 12,
+          open: true,
+        }),
+      );
+      expect(next.state.policy).toMatchObject({ mode: 'open' });
+      expect(await usedNow()).toEqual({ used: 1, capacity: 12 });
+    });
+
+    it('rejects a stale revision, a capacity below the used slots and a wave under quarantine', async () => {
+      await bootstrap();
+      await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 1,
+          capacity: 3,
+          open: true,
+        }),
+      );
+      await register();
+      await register();
+      await expect(
+        apply(
+          await plan({
+            kind: 'wave',
+            expectedPolicyRevision: 2,
+            capacity: 1,
+            open: false,
+          }),
+        ),
+      ).rejects.toMatchObject({ code: 'SERVICE_ACCESS_INPUT_INVALID' });
+      await expect(
+        apply(
+          await plan({
+            kind: 'wave',
+            expectedPolicyRevision: 2,
+            capacity: 2,
+            open: true,
+          }),
+        ),
+      ).rejects.toMatchObject({ code: 'SERVICE_ACCESS_INPUT_INVALID' });
+      expect(await usedNow()).toEqual({ used: 2, capacity: 3 });
+      await expect(
+        plan({
+          kind: 'wave',
+          expectedPolicyRevision: 1,
+          capacity: 3,
+          open: true,
+          extra: 1,
+        }),
+      ).rejects.toThrow();
+      await db.query('UPDATE aw_service_policy SET reconcile_required=true');
+      await expect(
+        plan({
+          kind: 'wave',
+          expectedPolicyRevision: 2,
+          capacity: 5,
+          open: true,
+        }),
+      ).rejects.toThrow('quarantine');
+    });
+
+    it('invalidates an older wave intent when the automatic close moves the revision', async () => {
+      await bootstrap();
+      await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 1,
+          capacity: 1,
+          open: true,
+        }),
+      );
+      const stale = await plan({
+        kind: 'policy',
+        expectedPolicyRevision: 2,
+        generationEnabled: true,
+        checkoutEnabled: true,
+      });
+      expect((await register()).status).toBe('admitted');
+      await expect(apply(stale)).rejects.toThrow('changed');
+    });
+
+    it('reconciles a lost wave output readonly without applying it again', async () => {
+      await bootstrap();
+      const value = await plan({
+        kind: 'wave',
+        expectedPolicyRevision: 1,
+        capacity: 4,
+        open: true,
+      });
+      const before = await ro((tx) =>
+        reconcileServiceOperation(
+          tx,
+          value.intent,
+          value.ctx,
+          hash(value.intent),
+        ),
+      );
+      expect(before.outcome).toBe('uncommitted');
+      await apply(value);
+      const after = await ro((tx) =>
+        reconcileServiceOperation(
+          tx,
+          value.intent,
+          value.ctx,
+          hash(value.intent),
+        ),
+      );
+      expect(after.outcome).toBe('committed');
+      await register();
+      // A registration after the commit is not drift for the receipt.
+      const later = await ro((tx) =>
+        reconcileServiceOperation(
+          tx,
+          value.intent,
+          value.ctx,
+          hash(value.intent),
+        ),
+      );
+      expect(later.outcome).toBe('committed');
+    });
+
+    it('releases a restore quarantine only through restore-reconcile, closed and paused', async () => {
+      await bootstrap();
+      await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 1,
+          capacity: 5,
+          open: true,
+        }),
+      );
+      await apply(
+        await plan({
+          kind: 'policy',
+          expectedPolicyRevision: 2,
+          generationEnabled: true,
+          checkoutEnabled: true,
+        }),
+      );
+      for (let i = 0; i < 3; i++) await register();
+      // Simulate a restore from an older backup: stale counter, open mode.
+      await db.query(
+        'UPDATE aw_service_policy SET reconcile_required=true,admission_used=1',
+      );
+      await expect(
+        plan({ kind: 'restore-reconcile', expectedPolicyRevision: 3 }),
+      ).resolves.toBeTruthy();
+      const result = await apply(
+        await plan({ kind: 'restore-reconcile', expectedPolicyRevision: 3 }),
+        async () => {
+          throw Error('No provider call expected');
+        },
+      );
+      expect(result.state.policy).toMatchObject({
+        revision: 4,
+        mode: 'invitation',
+        generationEnabled: false,
+        checkoutEnabled: false,
+        reconcileRequired: false,
+        admissionCapacity: 5,
+      });
+      // The stale counter is raised to the admissions that really exist.
+      expect(await usedNow()).toEqual({ used: 3, capacity: 5 });
+      expect((await register()).status).toBe('closed');
+      // Reopening needs an explicit wave.
+      await apply(
+        await plan({
+          kind: 'wave',
+          expectedPolicyRevision: 4,
+          capacity: 5,
+          open: true,
+        }),
+      );
+      expect((await register()).status).toBe('admitted');
+    });
+
+    it('refuses restore-reconcile without a quarantine or with a stale revision', async () => {
+      await bootstrap();
+      await expect(
+        plan({ kind: 'restore-reconcile', expectedPolicyRevision: 1 }),
+      ).rejects.toThrow('quarantine');
+      await db.query('UPDATE aw_service_policy SET reconcile_required=true');
+      const value = await plan({
+        kind: 'restore-reconcile',
+        expectedPolicyRevision: 1,
+      });
+      await db.query('UPDATE aw_service_policy SET revision=revision+1');
+      await expect(apply(value)).rejects.toThrow();
+      expect(
+        (await db.query('SELECT reconcile_required FROM aw_service_policy'))[0],
+      ).toEqual({ reconcile_required: true });
+    });
+  });
 });

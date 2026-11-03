@@ -51,6 +51,23 @@ const requestSchema = z.discriminatedUnion('kind', [
       checkoutEnabled: z.boolean(),
     })
     .strict(),
+  // Absolute capacity for the next bounded open wave (or a manual close).
+  z
+    .object({
+      kind: z.literal('wave'),
+      expectedPolicyRevision: revision.min(1),
+      capacity: z.number().int().min(0).max(100000),
+      open: z.boolean(),
+    })
+    .strict(),
+  // The only operation that releases a restore quarantine; the service
+  // returns closed and paused.
+  z
+    .object({
+      kind: z.literal('restore-reconcile'),
+      expectedPolicyRevision: revision.min(1),
+    })
+    .strict(),
 ]);
 export const serviceOperationContextSchema = z
   .object({
@@ -70,6 +87,11 @@ const policySchema = z
     generationEnabled: z.boolean(),
     checkoutEnabled: z.boolean(),
     reconcileRequired: z.boolean(),
+    // Capacity only changes by operator operations. The moving `used`
+    // counter is deliberately not part of the observed state: open
+    // registrations must not look like drift. The automatic close moves the
+    // revision, which does invalidate an older intent.
+    admissionCapacity: z.number().int().min(0).max(100000),
   })
   .strict();
 const accountSchema = z
@@ -89,6 +111,8 @@ const stateSchema = z
   .object({
     policy: policySchema.nullable(),
     accounts: z.array(accountSchema).max(10),
+    // Only observed for restore-reconcile (the service is quarantined then).
+    admissionRows: z.number().int().min(0).nullable(),
   })
   .strict();
 const intentSchema = z
@@ -110,7 +134,9 @@ export type ServiceOperationIntent = z.infer<typeof intentSchema>;
 export type VerifyServiceAccount = (userId: string) => Promise<unknown>;
 
 function targets(request: Request) {
-  return request.kind === 'policy'
+  return request.kind === 'policy' ||
+    request.kind === 'wave' ||
+    request.kind === 'restore-reconcile'
     ? []
     : [...request.members].sort((a, b) => a.userId.localeCompare(b.userId));
 }
@@ -134,7 +160,7 @@ async function readonly(tx: Database) {
 }
 async function capture(tx: Database, request: Request): Promise<State> {
   const rows = await tx.query(
-    'SELECT version,revision,mode,generation_enabled,checkout_enabled,reconcile_required FROM aw_service_policy WHERE id=1',
+    'SELECT version,revision,mode,generation_enabled,checkout_enabled,reconcile_required,admission_capacity FROM aw_service_policy WHERE id=1',
   );
   if (rows.length > 1) throw Error('Exact singleton service policy required');
   const row = rows[0];
@@ -146,6 +172,7 @@ async function capture(tx: Database, request: Request): Promise<State> {
         generationEnabled: row.generation_enabled,
         checkoutEnabled: row.checkout_enabled,
         reconcileRequired: row.reconcile_required,
+        admissionCapacity: Number(row.admission_capacity),
       })
     : null;
   const accounts: State['accounts'] = [];
@@ -168,7 +195,14 @@ async function capture(tx: Database, request: Request): Promise<State> {
       throw Error('Orphan service admission refused');
     accounts.push(value);
   }
-  return { policy, accounts };
+  const admissionRows =
+    request.kind === 'restore-reconcile'
+      ? Number(
+          (await tx.query('SELECT count(*) AS n FROM aw_service_admissions'))[0]
+            ?.n,
+        )
+      : null;
+  return { policy, accounts, admissionRows };
 }
 async function initialRegistry(tx: Database, request: Request) {
   if (
@@ -206,8 +240,43 @@ function afterState(before: State, request: Request): State {
           generationEnabled: false,
           checkoutEnabled: false,
           reconcileRequired: false,
+          admissionCapacity: 0,
         }
       : before.policy!;
+  if (request.kind === 'wave') {
+    if (policy.reconcileRequired && request.open)
+      throw Error('Wave operation cannot open under restore quarantine');
+    return stateSchema.parse({
+      policy: {
+        ...policy,
+        revision: policy.revision + 1,
+        mode: request.open ? 'open' : 'invitation',
+        admissionCapacity: request.capacity,
+      },
+      accounts: [],
+      admissionRows: null,
+    });
+  }
+  if (request.kind === 'restore-reconcile') {
+    if (!policy.reconcileRequired || before.admissionRows === null)
+      throw Error('Restore reconcile needs an active restore quarantine');
+    return stateSchema.parse({
+      policy: {
+        ...policy,
+        revision: policy.revision + 1,
+        mode: 'invitation',
+        generationEnabled: false,
+        checkoutEnabled: false,
+        reconcileRequired: false,
+        admissionCapacity: Math.max(
+          policy.admissionCapacity,
+          before.admissionRows,
+        ),
+      },
+      accounts: [],
+      admissionRows: before.admissionRows,
+    });
+  }
   if (request.kind === 'policy') {
     if (
       policy.reconcileRequired &&
@@ -224,10 +293,12 @@ function afterState(before: State, request: Request): State {
         checkoutEnabled: request.checkoutEnabled,
       },
       accounts: [],
+      admissionRows: null,
     });
   }
   return stateSchema.parse({
     policy,
+    admissionRows: null,
     accounts: targets(request).map((target, index) => {
       const account = before.accounts[index]!;
       if (
@@ -400,6 +471,15 @@ export async function applyServiceOperation(
         generationEnabled: false,
         checkoutEnabled: false,
       });
+    else if (intent.request.kind === 'wave')
+      await store.configureAdmission(intent.request.expectedPolicyRevision, {
+        capacity: intent.request.capacity,
+        open: intent.request.open,
+      });
+    else if (intent.request.kind === 'restore-reconcile')
+      await store.releaseRestoreQuarantine(
+        intent.request.expectedPolicyRevision,
+      );
     else if (intent.request.kind === 'policy')
       await store.replacePolicy(intent.request.expectedPolicyRevision, {
         mode: intent.before.policy!.mode,
