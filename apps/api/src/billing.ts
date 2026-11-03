@@ -125,7 +125,6 @@ export function createBillingController(
           provider: runtime.provider,
           offer: config.offer,
           entitlement: config.entitlement,
-          designatedUserIds: config.designatedUserIds,
           alert: runtime.alert,
         },
       );

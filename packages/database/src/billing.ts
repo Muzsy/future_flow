@@ -1,4 +1,7 @@
-import { assertStoredServiceAccess } from './service-access';
+import {
+  ServiceAccessRepository,
+  assertStoredServiceAccess,
+} from './service-access';
 import {
   DomainError,
   FREE_TASTER_CHAPTERS,
@@ -246,6 +249,9 @@ export function billingTx(db: Database): BillingTx {
         ],
       );
     },
+    // The fact persisted at admission, read through the same transaction.
+    launchDiscountEligible: async (userId) =>
+      new ServiceAccessRepository(db).launchDiscountEligible(userId),
     hasRedeemedFounderDiscount: async (userId) =>
       (
         await db.query(
