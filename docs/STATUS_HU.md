@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-11-02
+last_reviewed: 2026-11-03
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -17,7 +17,7 @@ Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operat�
 
 **Főági DB-transport integráció — 2026-11-02:** #148 reviewed3015585 tulajdonosi engedéllyel beolvadt (`4590e35`), reviewed tree-egyezés igazolt. Saját [CI41449700546](https://github.com/Muzsy/future_flow/actions/runs/41449700546) verify/container/image-rehearsal SUCCESS. Ez nem éles040 átállás; a teljes operátori #142 nyitott.
 
-**#142 operátori integráció — fejlesztői jelölt, még nem kiadható:** a host branch beköti a külön `schema-040` / `billing-config-040` plan3 protokollt, a tartós intent/evidence-journal kötést, a target040 image-en végzett történeti039 backup privacy replay → izolált040 migrációt és a külön native040 restore-utat. A számlázási sandbox/live/enforce történet közös marad a039-es úttal, nincs újrafuttatható szint vagy keretreset. A restore-bizonyíték a konkrét archive/candidate/szülő/source/image mezőkhöz kötött; a késői recovery az eredeti tartós bizonyítékot olvassa. A version5 valós PostgreSQL/image-fixture és teljes review/CI még elfogadási kapu. Ez nem főági vagy éles040 aktiválás; I04/I06 nem DONE.
+**#142 operátori integráció — main, #149, 2026-11-03:** reviewed3e96c77 → tulajdonos által jóváhagyott merge a6c4fba, azonos6d1bfa5 tree. A saját PR-CI41536381606 mindhárom SUCCESS:157fájl/1916PASS, successorv5 29/29, native040/039→040 image-próba és cleanupPASS. A főág saját CI41541171980 Verify és image-rehearsal SUCCESS, Container FAIL: a teljes smoke child30perces időkerete lejárt, majd a root0700 maradvány unprivileged takarítása EACCES hibával elfedte az eredeti időtúllépést. Ezért nincs új kiadható főági proof vagy célgépes csomag; a szűk #151 CI-javítás előzi a #150 tartós runtime/admission/pause fejlesztést. A040 root/Daily/backup/restore integráció forrása mainen van, de #142 az önálló mainCI, célgépes és éles elfogadásig nyitott. Nincs éles változás vagy költés.
 
 **Főági integráció — 2026-11-02:** #143 → #145 → #147 tulajdonosi engedéllyel, merge commitokkal beolvadt. A főág `1e8d26f`, fája a reviewed `8460c2f` jelöltével azonos; saját [CI41410625967](https://github.com/Muzsy/future_flow/actions/runs/41410625967) mindhárom ellenőrzése SUCCESS. A szolgáló rendszer nem változott; az alábbi november1-i főági checkpointok történeti előzmények.
 
