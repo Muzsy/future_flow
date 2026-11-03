@@ -77,6 +77,8 @@ export const en = {
   'auth.createAccount': 'Create account',
   'auth.haveAccount': 'I already have an account',
   'auth.needAccount': 'I do not have an account yet',
+  'auth.registrationClosed':
+    'Registration is not open on this site at the moment.',
   'profile.eyebrow': 'First, tell us about your present',
   'profile.title': 'The foundations of your story.',
   'profile.description':
@@ -204,10 +206,10 @@ export const en = {
   'terms.service1':
     'alterward creates fictional "alternate life" stories with the help of AI, based on the profile and choices you enter. The stories are entertainment and fiction. They are not predictions, and they are not financial, legal, medical, psychological, relationship or any other professional advice. Do not base real-life decisions on them.',
   'terms.service2':
-    'The service is currently a closed, invitation-only test (private beta). Features, limits and availability may change, and the service may contain errors.',
+    'alterward is currently open for registration in limited waves. A wave has a fixed number of places; when it is full, new accounts cannot start until the next opening. Features, limits and availability may change, and the service may contain errors.',
   'terms.accountTitle': '3. Your account',
   'terms.account1':
-    'During the private beta, access is by invitation. You need an account to use the service. One person, one account: keep your sign-in details safe and do not share them. You are responsible for activity under your account.',
+    'You need an account to use the service. Registration is possible only while a wave is open and requires a confirmed email address and your confirmation that you are at least 18 years old and that you understand the AI processing described in the privacy notice. One person, one account: keep your sign-in details safe and do not share them. You are responsible for activity under your account.',
   'terms.account2': 'You must be at least 18 years old to use alterward.',
   'terms.account3':
     'You can download your data or permanently delete your account at any time.',
@@ -228,12 +230,24 @@ export const en = {
     'The Operator may refuse requests, remove content and suspend or close accounts that breach these terms.',
   'terms.limitsTitle': '7. Limits and availability',
   'terms.limits1':
-    'Generation is limited by quotas, for example a daily number of chapters and a cost budget per account. The quotas can differ between test phases and may change at any time. A chapter can take several minutes and requests are processed in a queue.',
+    'Generation is limited by the chapters in your plan, the free taster chapter and technical limits such as queueing and rate limits. A chapter can take several minutes. We may pause generation or new registrations at any time, for example to protect the service, its budget or security. Reading, downloading and deleting your data stays available.',
   'terms.limits2':
-    'During the test the service is provided "as is", without a guarantee of uninterrupted or error-free operation.',
+    'The service is provided "as is", without a guarantee of uninterrupted or error-free operation.',
   'terms.paymentTitle': '8. Payment, renewal and withdrawal',
   'terms.payment1':
-    'The service is currently free of charge and there are no paid plans. If paid plans are introduced, these terms and the privacy notice will be updated first, and the price, billing, automatic renewal, cancellation, refund and withdrawal terms will be shown to you before you buy anything.',
+    'One free taster chapter is included per account. After that, creating chapters requires a paid monthly subscription: 8 chapters per billing cycle for 14.99 USD per month, VAT included. The ten first accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid billing cycles, then the standard plan. The discount belongs to the account, is applied automatically at checkout and is given once per account. Later waves do not receive it automatically.',
+  'terms.payment2':
+    'The subscription renews automatically each month on the day it started until you cancel. You can cancel at any time in the subscription page (Manage subscription). Cancellation stops the next renewal; your paid access and chapters continue until the end of the current billing period. Unused chapters do not roll over to the next period.',
+  'terms.payment3':
+    'Payments are processed by Stripe under its Managed Payments service. Stripe acts as the seller (merchant of record) for the purchase: it charges the price, handles taxes, issues the receipt and deals with payment disputes, and it is an independent controller of your payment data. alterward does not receive or store your card details.',
+  'terms.payment4':
+    'A chapter is used only when a new chapter is created and saved successfully. Reading, returning to a story, exports, deleting, repeating an identical request after a network error, a failed generation and our own internal repair attempts do not use a chapter.',
+  'terms.payment5':
+    'Refunds and withdrawal: digital service starts immediately after purchase. If no new paid chapter has been created in the paid period, you can ask for a full refund in writing within the first 14 days. If a paid chapter has already been created, we decide on the refund case by case.',
+  'terms.payment6':
+    'If a payment fails, we keep access for a short grace period, then generation is paused until the payment is fixed. Your stories stay readable and exportable. If a payment is refunded in full for the current period or a payment is disputed, access to creating new chapters ends immediately and the subscription is cancelled; chapters already created stay yours.',
+  'terms.payment7':
+    'Complaints: write to info@alterward.com. We answer within 14 days. We handle complaints individually; there is no unlimited free rewriting of chapters.',
   'billing.title': 'Subscription',
   'billing.view': 'View subscription and chapter balance',
   'billing.returnToStories': 'Return to your stories',
@@ -266,7 +280,7 @@ export const en = {
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
   'billing.offerTerms':
-    'The subscription renews automatically every month until you cancel it. The ten selected launch accounts get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
+    'The subscription renews automatically every month until you cancel it. The first ten accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
   'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
   'billing.manage': 'Manage subscription',
@@ -275,12 +289,12 @@ export const en = {
   'billing.support': 'If you need help, contact',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
-    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or when a test phase ends.',
+    'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or if we end the service.',
   'terms.end2':
-    'When a test phase ends, your account and stories stay available unless we tell you otherwise by email at least 14 days in advance. You can download or delete them at any time.',
+    'If we end the service, we tell you by email at least 14 days in advance; until then your account and stories stay available. You can download or delete them at any time.',
   'terms.liabilityTitle': '10. Liability',
   'terms.liability1':
-    'Nothing in these terms excludes or limits liability that cannot be excluded or limited by law, including liability for intentional damage, for damage to life, body or health, and your statutory consumer rights. During the test the service is free of charge and provided "as is". Stories are fiction, and the Operator is not responsible for decisions you make based on them.',
+    'Nothing in these terms excludes or limits liability that cannot be excluded or limited by law, including liability for intentional damage, for damage to life, body or health, and your statutory consumer rights. The service is provided "as is". Stories are fiction, and the Operator is not responsible for decisions you make based on them.',
   'terms.changesTitle': '11. Changes, governing law and disputes',
   'terms.changes1':
     'The Operator may update these terms. For material changes we will email the address on your account at least 14 days before they apply. If you do not accept the new terms, you can delete your account before they apply.',
@@ -300,6 +314,8 @@ export const en = {
     'Minimal activity records: account, life, chapter and session identifiers, event types and server timestamps, without your story or profile.',
   'privacy.collect6':
     'Technical, security and cost data: network address and request metadata handled by our hosting and access-protection providers, and per-account AI usage and cost accounting records.',
+  'privacy.collect7':
+    'Sign-up and admission: email address (sign-in and notices), confirmation of age and AI acknowledgement (time and policy version), account identifier, admission and wave status. Legal basis: contract (providing the account) and legal obligation/legitimate interest for age and abuse protection.',
   'privacy.purposesTitle': 'Why we process it, and the legal basis',
   'privacy.purposesNote':
     'We rely on the following legal bases under the GDPR.',
@@ -308,9 +324,9 @@ export const en = {
   'privacy.purpose2':
     'Security, abuse prevention, cost control and operation (access protection, rate limits, the budget ledger, backups): our legitimate interest in running and protecting the service (Art. 6(1)(f)).',
   'privacy.purpose3':
-    'Optional feedback: your consent, which you give by sending it (Art. 6(1)(a)). Minimal activity records used to measure the test, without story or profile content: our legitimate interest in improving the service (Art. 6(1)(f)).',
+    'Optional feedback: your consent, which you give by sending it (Art. 6(1)(a)). Minimal activity records used to measure how the service is used, without story or profile content: our legitimate interest in improving the service (Art. 6(1)(f)).',
   'privacy.purpose4':
-    'Payments: not applicable during the free test. This section will be extended before any paid plan exists.',
+    'Payments: performance of the contract, that is, your purchase of a subscription (Art. 6(1)(b)). Stripe, as seller of record, decides independently on the processing of payment, tax and fraud-prevention data.',
   'privacy.processorsTitle': 'Service providers that process data for us',
   'privacy.processorsNote':
     'Each provider processes data for us under its data processing terms.',
@@ -320,6 +336,8 @@ export const en = {
   'privacy.processor4': 'SMTP2GO (EU-region account): sending sign-in emails.',
   'privacy.processor5':
     'Contabo: server hosting for the application, the job queue and encrypted backups.',
+  'privacy.processor6':
+    'Stripe: payment processing under Managed Payments. Stripe is the seller of record and an independent controller of payment, tax and fraud-prevention data; alterward stores only the customer and subscription identifiers, status and billing period.',
   'privacy.transfersTitle': 'Transfers outside the EU/EEA',
   'privacy.transfers':
     'OpenAI and Cloudflare are US companies and may process data in the United States. In their data processing terms OpenAI and Supabase rely on the EU standard contractual clauses, and Cloudflare on the EU-US Data Privacy Framework and the standard contractual clauses. SMTP2GO is used with an EU-region account, and our Contabo server and our Supabase project (Ireland) are located in the EU.',
@@ -343,17 +361,17 @@ export const en = {
     'You can lodge a complaint with the Hungarian data protection authority, the Nemzeti Adatvédelmi és Információszabadság Hatóság (NAIH, 1055 Budapest, Falk Miksa utca 9-11, https://naih.hu), or with the authority of your own country.',
   'privacy.cookiesTitle': 'Cookies and browser storage',
   'privacy.cookies':
-    "We set one first-party cookie, alterward_locale, to remember your language. Your signed-in session is kept in your browser's local storage, and an unfinished life setup is kept in session storage until you finish it or close the tab. Cloudflare Access sets its own cookie when it verifies your invitation. We do not use advertising or third-party tracking scripts.",
+    "We set one first-party cookie, alterward_locale, to remember your language. Your signed-in session is kept in your browser's local storage, and an unfinished life setup is kept in session storage until you finish it or close the tab. Cloudflare Access sets its own cookie when it checks your access. We do not use advertising or third-party tracking scripts.",
   'privacy.automatedTitle': 'Automated processing',
   'privacy.automated':
     'Stories are generated by AI as fiction. We do not use the output to make decisions about you that have legal or similarly significant effects.',
-  'privacy.betaAccessTitle': 'Private-beta access',
+  'privacy.betaAccessTitle': 'Access protection (Cloudflare)',
   'privacy.betaAccess':
-    'Cloudflare verifies approved email addresses to protect the private beta. It processes login and access information, including your email address, network address and request metadata. Access approval does not replace your alterward account.',
+    'Cloudflare protects access to the service. It processes login and access information, including your email address, network address and request metadata. Access protection does not replace your alterward account.',
   'privacy.activity':
     'Private feedback is included in your export and removed from the application database when you delete your account.',
   'privacy.accountLink': 'Download or delete your own account data',
-  'privacy.accountLinkSuffix': ', even after private-beta access ends.',
+  'privacy.accountLinkSuffix': ', even if your access has ended.',
   'privacy.download': 'Download my data',
   'privacy.deleteTitle': 'Permanently delete account',
   'privacy.deletePrompt': 'To delete your account, type: DELETE ACCOUNT',
@@ -455,6 +473,8 @@ export const hu: Record<MessageKey, string> = {
   'auth.createAccount': 'Fiók létrehozása',
   'auth.haveAccount': 'Már van fiókom',
   'auth.needAccount': 'Még nincs fiókom',
+  'auth.registrationClosed':
+    'A regisztráció ezen az oldalon jelenleg nem nyitott.',
   'profile.eyebrow': 'Először ismerjük meg a jelened',
   'profile.title': 'A történeted alapjai.',
   'profile.description':
@@ -579,10 +599,10 @@ export const hu: Record<MessageKey, string> = {
   'terms.service1':
     'Az alterward AI segítségével fiktív „alternatív élet” történeteket készít az általad megadott profil és döntések alapján. A történetek szórakozás és fikció. Nem előrejelzések, és nem pénzügyi, jogi, egészségügyi, pszichológiai, párkapcsolati vagy más szakmai tanácsok. Valós életbeli döntéseidet ne ezekre alapozd.',
   'terms.service2':
-    'A szolgáltatás jelenleg zárt, meghívásos teszt (privát béta). A funkciók, korlátok és az elérhetőség változhatnak, és a szolgáltatás hibákat tartalmazhat.',
+    'Az alterward jelenleg korlátozott hullámokban nyitott a regisztrációra. Egy hullámban véges számú hely van; ha betelt, új fiók a következő nyitásig nem indítható. A funkciók, korlátok és az elérhetőség változhatnak, a szolgáltatás hibákat tartalmazhat.',
   'terms.accountTitle': '3. A fiókod',
   'terms.account1':
-    'A privát béta alatt a hozzáférés meghívással történik. A használathoz fiók kell. Egy ember, egy fiók: őrizd biztonságban a belépési adataidat, és ne add át másnak. A fiókod alatti tevékenységért te felelsz.',
+    'A szolgáltatáshoz fiók kell. Regisztrálni csak nyitott hullám alatt lehet, megerősített email-címmel, és annak megerősítésével, hogy elmúltál 18 éves, és tudomásul veszed az adatvédelmi tájékoztatóban leírt MI-feldolgozást. Egy személy, egy fiók: a belépési adataidat őrizd meg, ne add át. A fiókod alatti tevékenységért te felelsz.',
   'terms.account2': 'A használathoz legalább 18 évesnek kell lenned.',
   'terms.account3':
     'Az adataidat bármikor letöltheted, a fiókodat bármikor véglegesen törölheted.',
@@ -603,12 +623,24 @@ export const hu: Record<MessageKey, string> = {
     'Az Üzemeltető elutasíthat kéréseket, eltávolíthat tartalmat, és felfüggesztheti vagy megszüntetheti azokat a fiókokat, amelyek megsértik ezeket a feltételeket.',
   'terms.limitsTitle': '7. Korlátok és elérhetőség',
   'terms.limits1':
-    'A generálást kvóták korlátozzák, például napi fejezetszám és fiókonkénti költségkeret. A kvóták a tesztfázisonként eltérhetnek, és bármikor változhatnak. Egy fejezet elkészülte több percig tarthat, a kérések sorban állva dolgozódnak fel.',
+    'A generálást az előfizetésed fejezetkerete, az ingyenes ízelítő fejezet és technikai korlátok (várakozási sor, kérésszám-korlát) szabják meg. Egy fejezet több percig is tarthat. A generálást vagy az új regisztrációkat bármikor szüneteltethetjük, például a szolgáltatás, a költségkeret vagy a biztonság védelmében. Az adataid olvasása, letöltése és törlése ilyenkor is elérhető marad.',
   'terms.limits2':
-    'A teszt alatt a szolgáltatás „ahogy van” módon áll rendelkezésre, megszakítás- és hibamentes működés garanciája nélkül.',
+    'A szolgáltatás „ahogy van” módon áll rendelkezésre, megszakítás- és hibamentes működés garanciája nélkül.',
   'terms.paymentTitle': '8. Fizetés, megújítás és elállás',
   'terms.payment1':
-    'A szolgáltatás jelenleg ingyenes, fizetős csomag nincs. Ha fizetős csomagot vezetünk be, előbb ezeket a feltételeket és az adatkezelési tájékoztatót frissítjük, és a vásárlás előtt megmutatjuk az árat, a számlázást, az automatikus megújítást, a lemondás, a visszatérítés és az elállás feltételeit.',
+    'Fiókonként egy ingyenes ízelítő fejezet jár. Utána új fejezetek készítéséhez fizetett havi előfizetés kell: számlázási ciklusonként 8 fejezet, havi 14,99 USD, az áfát tartalmazza. A kezdéskor beengedett első tíz fiók az első három fizetett ciklusában 5 fejezetet kap havi 9,99 USD áron, az áfát tartalmazza, utána a normál csomag érvényes. A kedvezmény a fiókhoz tartozik, fizetéskor automatikusan érvényesül és fiókonként egyszer jár. A későbbi hullámok nem kapják automatikusan.',
+  'terms.payment2':
+    'Az előfizetés a kezdés napján havonta automatikusan megújul, amíg le nem mondod. A lemondás bármikor lehetséges az előfizetési oldalon (Előfizetés kezelése). A lemondás a következő megújítást állítja le; a fizetett hozzáférésed és fejezeteid az aktuális számlázási időszak végéig megmaradnak. Fel nem használt fejezet nem vihető át a következő időszakra.',
+  'terms.payment3':
+    'A fizetést a Stripe dolgozza fel a Managed Payments szolgáltatással. A vásárlásnál a Stripe az eladó (merchant of record): ő terheli meg az árat, kezeli az adókat, adja a nyugtát és a fizetési vitákat, és a fizetési adataidnak önálló adatkezelője. Az alterward a bankkártya-adataidat nem kapja meg és nem tárolja.',
+  'terms.payment4':
+    'Fejezetet csak az új, sikeresen elmentett fejezet használ fel. Az olvasás, a történethez való visszatérés, az export, a törlés, azonos kérés újraküldése hálózati hiba után, a sikertelen generálás és a saját belső javításaink nem használnak fel fejezetet.',
+  'terms.payment5':
+    'Visszatérítés és elállás: a digitális szolgáltatás a vásárlás után azonnal indul. Ha a fizetett időszakban még nem készült új fizetett fejezet, az első 14 napon belül írásban kérheted a teljes visszatérítést. Ha már készült fizetett fejezet, a visszatérítést egyedileg bíráljuk el.',
+  'terms.payment6':
+    'Sikertelen fizetésnél rövid türelmi ideig megtartjuk a hozzáférést, utána a generálás a fizetés rendezéséig szünetel. A történeteid olvashatók és exportálhatók maradnak. Ha az aktuális időszak díját teljes egészében visszatérítik, vagy a fizetést vitatják, az új fejezetek készítése azonnal megszűnik és az előfizetés megszűnik; a már elkészült fejezetek a tieid maradnak.',
+  'terms.payment7':
+    'Panasz: info@alterward.com. 14 napon belül válaszolunk. A panaszokat egyedileg kezeljük; korlátlan ingyenes újraírás nincs.',
   'billing.title': 'Előfizetés',
   'billing.view': 'Előfizetés és fejezetegyenleg megtekintése',
   'billing.returnToStories': 'Vissza a történeteidhez',
@@ -642,7 +674,7 @@ export const hu: Record<MessageKey, string> = {
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
-    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A tíz kijelölt induló fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
+    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. Az induláskor elsőként beengedett tíz fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
   'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
   'billing.manage': 'Előfizetés kezelése',
@@ -651,12 +683,12 @@ export const hu: Record<MessageKey, string> = {
   'billing.support': 'Ha segítség kell, írj ide:',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
-    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy egy tesztfázis végén.',
+    'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy ha megszüntetjük a szolgáltatást.',
   'terms.end2':
-    'Egy tesztfázis végén a fiókod és a történeteid elérhetők maradnak, hacsak legalább 14 nappal előre e-mailben másképp nem értesítünk. Letöltheted vagy törölheted őket bármikor.',
+    'Ha megszüntetjük a szolgáltatást, erről legalább 14 nappal előre e-mailben értesítünk; addig a fiókod és a történeteid elérhetők maradnak. Letöltheted vagy törölheted őket bármikor.',
   'terms.liabilityTitle': '10. Felelősség',
   'terms.liability1':
-    'E feltételek semmi olyan felelősséget nem zárnak ki vagy korlátoznak, amelyet jogszabály nem enged kizárni vagy korlátozni, így a szándékos károkozásért, az életet, testi épséget vagy egészséget megkárosító felelősséget és a törvényes fogyasztói jogaidat sem. A teszt alatt a szolgáltatás ingyenes és „ahogy van” módon áll rendelkezésre. A történetek fikciók, és az Üzemeltető nem felel azokért a döntésekért, amelyeket a történetek alapján hozol.',
+    'E feltételek semmi olyan felelősséget nem zárnak ki vagy korlátoznak, amelyet jogszabály nem enged kizárni vagy korlátozni, így a szándékos károkozásért, az életet, testi épséget vagy egészséget megkárosító felelősséget és a törvényes fogyasztói jogaidat sem. A szolgáltatás „ahogy van” módon áll rendelkezésre. A történetek fikciók, és az Üzemeltető nem felel azokért a döntésekért, amelyeket a történetek alapján hozol.',
   'terms.changesTitle': '11. Módosítás, irányadó jog és jogviták',
   'terms.changes1':
     'Az Üzemeltető módosíthatja ezeket a feltételeket. Lényeges módosításról legalább 14 nappal a hatályba lépés előtt e-mailben értesítünk a fiókodhoz tartozó címen. Ha nem fogadod el az új feltételeket, a hatályba lépés előtt törölheted a fiókodat.',
@@ -676,6 +708,8 @@ export const hu: Record<MessageKey, string> = {
     'Minimális aktivitásrekordok: fiók-, élet-, fejezet- és munkamenet-azonosítók, eseménytípusok és szerveroldali időbélyegek, a történeted és a profilod nélkül.',
   'privacy.collect6':
     'Technikai, biztonsági és költségadatok: a tárhely- és hozzáférés-védelmi szolgáltatóink által kezelt hálózati cím és kérésmetaadatok, valamint fiókonkénti AI-használati és költségelszámolási rekordok.',
+  'privacy.collect7':
+    'Regisztráció és beengedés: email-cím (belépés és értesítések), életkor- és MI-tudomásulvétel megerősítése (időpont és szabályzatverzió), fiókazonosító, beengedési és hullámállapot. Jogalap: szerződés (a fiók biztosítása), valamint törvényi kötelezettség/jogos érdek a korhatár és a visszaélések elleni védelemre.',
   'privacy.purposesTitle': 'Miért kezeljük, és mi a jogalap',
   'privacy.purposesNote': 'Az alábbi jogalapokra támaszkodunk a GDPR szerint.',
   'privacy.purpose1':
@@ -683,9 +717,9 @@ export const hu: Record<MessageKey, string> = {
   'privacy.purpose2':
     'Biztonság, visszaélés elleni védelem, költségkontroll és üzemeltetés (hozzáférés-védelem, korlátok, költségkeret-elszámolás, mentések): a szolgáltatás működtetéséhez és védelméhez fűződő jogos érdekünk (6. cikk (1) f)).',
   'privacy.purpose3':
-    'Opcionális visszajelzés: a hozzájárulásod, amelyet a visszajelzés elküldésével adsz meg (6. cikk (1) a)). A teszt mérésére használt minimális aktivitásrekordok, a történet és a profil tartalma nélkül: a szolgáltatás fejlesztéséhez fűződő jogos érdekünk (6. cikk (1) f)).',
+    'Opcionális visszajelzés: a hozzájárulásod, amelyet a visszajelzés elküldésével adsz meg (6. cikk (1) a)). A szolgáltatás használatának mérésére szolgáló minimális aktivitásrekordok, a történet és a profil tartalma nélkül: a szolgáltatás fejlesztéséhez fűződő jogos érdekünk (6. cikk (1) f)).',
   'privacy.purpose4':
-    'Fizetés: az ingyenes teszt alatt nem releváns. Ezt a részt bármely fizetős csomag bevezetése előtt kiegészítjük.',
+    'Fizetés: a szerződés teljesítése, vagyis az előfizetés megvásárlása (6. cikk (1) b)). A fizetési, adózási és csalásmegelőzési adatok kezeléséről a Stripe mint eladó önállóan dönt.',
   'privacy.processorsTitle': 'Szolgáltatók, akik nevünkben kezelnek adatot',
   'privacy.processorsNote':
     'Mindegyik szolgáltató a saját adatfeldolgozási feltételei szerint kezel adatot a nevünkben.',
@@ -696,6 +730,8 @@ export const hu: Record<MessageKey, string> = {
     'SMTP2GO (EU-régiós fiók): a belépési e-mailek küldése.',
   'privacy.processor5':
     'Contabo: az alkalmazás, a feladatsor és a titkosított mentések szerverhosztingja.',
+  'privacy.processor6':
+    'Stripe: fizetésfeldolgozás Managed Payments szolgáltatással. A Stripe az eladó (merchant of record), a fizetési, adózási és csalásmegelőzési adatok önálló adatkezelője; az alterward csak az ügyfél- és előfizetés-azonosítókat, az állapotot és a számlázási időszakot tárolja.',
   'privacy.transfersTitle': 'Az EU-n/EGT-n kívüli továbbítás',
   'privacy.transfers':
     'Az OpenAI és a Cloudflare amerikai cég, és az Egyesült Államokban is kezelhet adatot. Az adatfeldolgozási feltételeikben az OpenAI és a Supabase az uniós általános szerződési feltételekre (SCC), a Cloudflare az EU–USA adatvédelmi keretre és az SCC-re támaszkodik. Az SMTP2GO-t EU-régiós fiókkal használjuk, a Contabo-szerverünk és a Supabase-projektünk (Írország) pedig az EU-ban van.',
@@ -719,18 +755,17 @@ export const hu: Record<MessageKey, string> = {
     'Panaszt tehetsz a magyar adatvédelmi hatóságnál, a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH, 1055 Budapest, Falk Miksa utca 9-11, https://naih.hu), vagy a saját országod hatóságánál.',
   'privacy.cookiesTitle': 'Sütik és böngészőtárhely',
   'privacy.cookies':
-    'Egy saját sütit használunk, az alterward_locale-t, amely megjegyzi a nyelvedet. A bejelentkezett munkameneted a böngésző helyi tárhelyében marad, a befejezetlen élet-beállítás pedig a munkamenet-tárhelyben, amíg be nem fejezed vagy be nem zárod a lapot. A Cloudflare Access a meghívásod ellenőrzésekor saját sütit állít be. Nem használunk hirdetési vagy harmadik fél általi követőszkripteket.',
+    'Egy saját sütit használunk, az alterward_locale-t, amely megjegyzi a nyelvedet. A bejelentkezett munkameneted a böngésző helyi tárhelyében marad, a befejezetlen élet-beállítás pedig a munkamenet-tárhelyben, amíg be nem fejezed vagy be nem zárod a lapot. A Cloudflare Access a hozzáférésed ellenőrzésekor saját sütit állít be. Nem használunk hirdetési vagy harmadik fél általi követőszkripteket.',
   'privacy.automatedTitle': 'Automatizált feldolgozás',
   'privacy.automated':
     'A történeteket az AI fikcióként generálja. A kimenetet nem használjuk olyan döntések meghozatalára, amelyeknek jogi vagy hasonlóan jelentős hatása van rád.',
-  'privacy.betaAccessTitle': 'Privát béta hozzáférés',
+  'privacy.betaAccessTitle': 'Hozzáférés-védelem (Cloudflare)',
   'privacy.betaAccess':
-    'A Cloudflare a privát béta védelme érdekében ellenőrzi a jóváhagyott e-mail-címeket. Ennek során belépési és hozzáférési információkat kezel, többek között az e-mail-címedet, a hálózati címedet és a kérés metaadatait. A hozzáférés jóváhagyása nem helyettesíti az alterward-fiókodat.',
+    'A Cloudflare a szolgáltatás hozzáférés-védelme érdekében belépési és hozzáférési információkat kezel, többek között az e-mail-címedet, a hálózati címedet és a kérés metaadatait. A hozzáférés-védelem nem helyettesíti az alterward-fiókodat.',
   'privacy.activity':
     'A privát visszajelzés benne van az exportodban, és a fiókod törlésekor eltávolításra kerül az alkalmazási adatbázisból.',
   'privacy.accountLink': 'Töltsd le vagy töröld a saját fiókadataidat',
-  'privacy.accountLinkSuffix':
-    ', akkor is, ha a privát béta hozzáférésed már megszűnt.',
+  'privacy.accountLinkSuffix': ', akkor is, ha a hozzáférésed már megszűnt.',
   'privacy.download': 'Adataim letöltése',
   'privacy.deleteTitle': 'Fiók végleges törlése',
   'privacy.deletePrompt': 'A törléshez írd be: FIÓK TÖRLÉSE',

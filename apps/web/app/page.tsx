@@ -1,5 +1,5 @@
 import { Experience } from '../components/experience';
-import { closedSiteConfigFromEnv } from '@future-flow/access';
+import { signupUiAllowed } from '../lib/signup';
 export default function Home() {
-  return <Experience allowSignup={!closedSiteConfigFromEnv().enabled} />;
+  return <Experience allowSignup={signupUiAllowed()} />;
 }

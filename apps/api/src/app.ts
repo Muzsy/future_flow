@@ -1311,7 +1311,7 @@ export async function createApp(
           if (!identity)
             throw new DomainError(
               'CLOSED_SITE_ACCESS_REQUIRED',
-              'Access is by invitation.',
+              'Access to this service is restricted.',
               403,
             );
           const verified = await verifiedServiceBearer(
@@ -1365,7 +1365,7 @@ export async function createApp(
       response.status(403).json({
         error: {
           code: 'CLOSED_SITE_ACCESS_REQUIRED',
-          message: 'Access is by invitation.',
+          message: 'Access to this service is restricted.',
         },
       });
     },
