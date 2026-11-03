@@ -54,7 +54,14 @@ const clone = (s: State): State => ({
 
 // In-memory store with serialised, rollback-on-error transactions: the same
 // contract a SQL store has to honour.
-function memoryStore(users: string[] = [USER, OTHER]) {
+function memoryStore(
+  users: string[] = [USER, OTHER],
+  // The persisted admission fact (service access registry): by default only
+  // USER holds the launch-discount eligibility.
+  eligibleIds: string[] = [USER],
+) {
+  const eligible = new Set(eligibleIds);
+  const lookup = { fail: false };
   let state: State = {
     users: new Set(users),
     subs: new Map(),
@@ -129,6 +136,10 @@ function memoryStore(users: string[] = [USER, OTHER]) {
     },
     hasRedeemedFounderDiscount: async (userId) =>
       [...state.subs.values()].some((s) => s.userId === userId && s.discounted),
+    launchDiscountEligible: async (userId) => {
+      if (lookup.fail) throw Error('eligibility lookup down');
+      return eligible.has(userId);
+    },
     userExists: async (userId) => state.users.has(userId),
   });
   const store: BillingStore = {
@@ -146,7 +157,7 @@ function memoryStore(users: string[] = [USER, OTHER]) {
       return result;
     },
   };
-  return { store, peek: () => state };
+  return { store, peek: () => state, eligible, lookup };
 }
 
 function fakeProvider(over: Partial<BillingProvider> = {}) {
@@ -250,8 +261,12 @@ const refundEvent = (over: Record<string, unknown> = {}) =>
     ...over,
   });
 
-function harness(provider = fakeProvider(), users?: string[]) {
-  const m = memoryStore(users);
+function harness(
+  provider = fakeProvider(),
+  users?: string[],
+  eligibleIds?: string[],
+) {
+  const m = memoryStore(users, eligibleIds);
   const alerts: BillingAlert[] = [];
   const send = (body: unknown, opts: { secret?: string; ts?: number } = {}) => {
     const s = signed(body, opts.ts, opts.secret);
@@ -781,11 +796,8 @@ describe('webhook hardening', () => {
 });
 
 describe('checkout', () => {
-  const cfg = {
-    designatedUserIds: [USER],
-    entitlement: defaultEntitlementConfig,
-  };
-  it('offers the launch price only to a designated, not yet redeemed account', async () => {
+  const cfg = { entitlement: defaultEntitlementConfig };
+  it('offers the launch price only to an eligible, not yet redeemed account', async () => {
     const m = memoryStore();
     const p = fakeProvider();
     await createCheckoutSession(USER, now, {
@@ -965,11 +977,9 @@ describe('configuration', () => {
   });
   it('accepts a complete configuration and keeps enforcement separate', () => {
     const c = billingConfigFromEnv(valid);
-    expect(c).toMatchObject({
-      enabled: true,
-      enforcement: false,
-      designatedUserIds: [USER],
-    });
+    expect(c).toMatchObject({ enabled: true, enforcement: false });
+    // The environment list no longer carries any eligibility.
+    expect(c).not.toHaveProperty('designatedUserIds');
     expect(
       billingConfigFromEnv({ ...valid, BILLING_ENFORCEMENT: 'true' }),
     ).toMatchObject({ enabled: true, enforcement: true });
@@ -1016,11 +1026,7 @@ describe('configuration', () => {
     expect(text).not.toContain('sk_test');
     expect(text).not.toContain('whsec');
     expect(text).not.toContain(USER);
-    expect(JSON.parse(text)).toMatchObject({
-      enabled: true,
-      mode: 'test',
-      designatedAccounts: 1,
-    });
+    expect(JSON.parse(text)).toMatchObject({ enabled: true, mode: 'test' });
   });
   it('reads a restricted live key as live mode', () => {
     const c = billingConfigFromEnv({

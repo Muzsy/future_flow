@@ -445,12 +445,13 @@ describe('personal provider dispatch checks over migration039 and the actual SDK
       expect(await reservations(f.owner)).toEqual(before);
     },
   );
-  it('founder discount eligibility does not grant a reservation exemption', async () => {
+  it('a leftover founder list neither grants a reservation exemption nor a discount', async () => {
     const f = await fixture();
     const config = configureWorkerChapterBilling(
       enabled({ BILLING_FOUNDER_USER_IDS: f.owner }),
     );
-    expect(config.designatedUserIds).toEqual([f.owner]);
+    expect(config.enabled).toBe(true);
+    expect(config).not.toHaveProperty('designatedUserIds');
     await blocked(f);
   });
   it('enforcement OFF makes the added billing check a query-free no-op', async () => {

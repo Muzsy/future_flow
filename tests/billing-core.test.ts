@@ -129,17 +129,14 @@ describe('founder discount designation', () => {
     );
     expect(() => validateDiscountedUserIds(many)).toThrow();
   });
-  it('attaches only for a designated, not yet redeemed account', () => {
-    expect(mayAttachFounderDiscount([USER], USER, false)).toBe(true);
-    expect(mayAttachFounderDiscount([USER], USER, true)).toBe(false);
-    expect(
-      mayAttachFounderDiscount(
-        [USER],
-        '22222222-2222-4222-8222-222222222222',
-        false,
-      ),
-    ).toBe(false);
-    expect(mayAttachFounderDiscount([], USER, false)).toBe(false);
+  it('attaches only for an eligible, not yet redeemed account', () => {
+    expect(mayAttachFounderDiscount(true, false)).toBe(true);
+    expect(mayAttachFounderDiscount(true, true)).toBe(false);
+    expect(mayAttachFounderDiscount(false, false)).toBe(false);
+  });
+  it('treats anything but a literal true as not eligible', () => {
+    for (const bad of [undefined, null, 0, 1, 'true', 'yes', {}, []])
+      expect(mayAttachFounderDiscount(bad, false)).toBe(false);
   });
 });
 

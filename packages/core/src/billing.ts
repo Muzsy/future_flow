@@ -80,18 +80,16 @@ export function validateDiscountedUserIds(raw: readonly string[]): string[] {
   return ids;
 }
 
-// The coupon is attached server-side only. The provider-side redemption cap is
-// a safety net, not the identity check.
+// The coupon is attached server-side only. Eligibility is the account's own
+// persisted admission fact (one of the first ten open admissions), decided in
+// the database; nothing here can grant it. Anything but a literal `true` counts
+// as ineligible, and an account that already redeemed it never gets it again.
+// The provider-side redemption cap is a safety net, not the identity check.
 export function mayAttachFounderDiscount(
-  designated: readonly string[],
-  userId: string,
+  eligible: unknown,
   alreadyRedeemed: boolean,
 ): boolean {
-  return (
-    !alreadyRedeemed &&
-    typeof userId === 'string' &&
-    designated.includes(userId.toLowerCase())
-  );
+  return eligible === true && !alreadyRedeemed;
 }
 
 export const billingStatuses = [
