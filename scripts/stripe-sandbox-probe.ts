@@ -61,7 +61,6 @@ const parsedConfig = billingConfigFromEnv({
   STRIPE_API_VERSION: apiVersion,
   BILLING_SUCCESS_URL: 'https://alterward.com/billing?checkout=success',
   BILLING_CANCEL_URL: 'https://alterward.com/billing?checkout=cancel',
-  BILLING_FOUNDER_USER_IDS: withDiscount ? discountUser : '',
 });
 if (!parsedConfig.enabled)
   throw new Error(
@@ -153,6 +152,12 @@ async function main() {
     await repo.ensureUser(id);
     await repo.acceptPrivacy(id);
   }
+  if (withDiscount)
+    // Eligibility is the persisted admission fact, not an environment list.
+    await db.query(
+      "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',true)",
+      [discountUser],
+    );
   const received: string[] = [];
   const runtime = createBillingRuntime(db, config, {
     alert: (alert) =>
@@ -186,7 +191,6 @@ async function main() {
             provider: runtime.provider!,
             offer: config.offer,
             entitlement: config.entitlement,
-            designatedUserIds: config.designatedUserIds,
             alert: runtime.alert,
           },
         );

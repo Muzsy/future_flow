@@ -71,6 +71,9 @@ export type BillingTx = {
     reservation: ChapterReservation,
   ): Promise<void>;
   hasRedeemedFounderDiscount(userId: string): Promise<boolean>;
+  // The persisted launch-discount eligibility of the admitted account (service
+  // access registry). Unknown accounts are not eligible.
+  launchDiscountEligible(userId: string): Promise<boolean>;
   userExists(userId: string): Promise<boolean>;
 };
 export type BillingStore = {
@@ -89,6 +92,7 @@ export type BillingAlert = Readonly<{
     | 'cancel_failed'
     | 'processing_failed'
     | 'duplicate_discount'
+    | 'ineligible_discount'
     | 'second_subscription'
     | 'foreign_object';
   eventId?: string;
@@ -138,14 +142,14 @@ export type ProcessedEvent = Readonly<{
   // The revocation is committed, but cancelling the provider subscription
   // failed; it stays pending and is retried (redelivery or the retry job).
   cancelFailed?: boolean;
-  anomalies: readonly ('duplicate_discount' | 'second_subscription')[];
+  anomalies: readonly (
+    'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+  )[];
 }>;
 
 export type ProcessOptions = Readonly<{
   offer?: BillingOfferConfig;
   entitlement?: EntitlementConfig;
-  // When given, a launch discount on a non-designated account is not honoured.
-  designatedUserIds?: readonly string[];
 }>;
 
 // Survives the account's deletion (an event row with no subscription link holds
@@ -185,7 +189,9 @@ export async function processBillingEvent(
         : ((await tx.ownerOf(by)) ??
           (event.type === 'subscription_synced' ? event.userId : null));
     if (owner) await tx.lockUser(owner);
-    const anomalies: ('duplicate_discount' | 'second_subscription')[] = [];
+    const anomalies: (
+      'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+    )[] = [];
     const result = (
       outcome: ProcessedEvent['outcome'],
       processed: boolean,
@@ -223,13 +229,20 @@ export async function processBillingEvent(
       if (!event.userId || !(await tx.userExists(event.userId)))
         return result('unresolved', false);
       if (event.discounted) {
-        const honoured =
-          (!options.designatedUserIds ||
-            options.designatedUserIds.includes(event.userId)) &&
-          !(await tx.hasRedeemedFounderDiscount(event.userId));
-        if (!honoured) {
+        // The provider's coupon is only a claim. It is honoured when the
+        // account's persisted admission fact says so and it was not redeemed
+        // before; any other state (no admission row, later wave, operator
+        // admission) is "not eligible" and the subscription is stored at the
+        // standard offer.
+        const eligible = await tx.launchDiscountEligible(event.userId);
+        const redeemed = await tx.hasRedeemedFounderDiscount(event.userId);
+        if (!mayAttachFounderDiscount(eligible, redeemed)) {
           applied = { ...event, discounted: false };
-          anomalies.push('duplicate_discount');
+          // Not eligible (the claim is unfounded) is told apart from an
+          // eligible account that already redeemed (a repeat).
+          anomalies.push(
+            eligible === true ? 'duplicate_discount' : 'ineligible_discount',
+          );
         }
       }
       const others = await tx.listSubscriptions(event.userId);
@@ -380,7 +393,6 @@ export async function handleStripeWebhook(
     provider: BillingProvider;
     offer?: BillingOfferConfig;
     entitlement?: EntitlementConfig;
-    designatedUserIds?: readonly string[];
     alert?: (alert: BillingAlert) => void;
   },
 ): Promise<WebhookResult> {
@@ -468,7 +480,6 @@ export async function handleStripeWebhook(
     const options = {
       offer: deps.offer,
       entitlement: deps.entitlement,
-      designatedUserIds: deps.designatedUserIds,
     };
     let result = await processBillingEvent(
       deps.store,
@@ -531,7 +542,6 @@ export async function handleStripeWebhook(
 export type BillingConfig = Readonly<{
   enabled: boolean;
   enforcement: boolean;
-  designatedUserIds: readonly string[];
   offer: BillingOfferConfig;
   entitlement: EntitlementConfig;
 }>;
@@ -557,7 +567,7 @@ export async function createCheckoutSession(
   deps: {
     store: BillingStore;
     provider: BillingProvider;
-    config: Pick<BillingConfig, 'designatedUserIds' | 'entitlement'>;
+    config: Pick<BillingConfig, 'entitlement'>;
     serviceAccessEnforced?: boolean;
   },
 ): Promise<{ url: string }> {
@@ -565,7 +575,6 @@ export async function createCheckoutSession(
   // user cannot be created concurrently.
   return deps.store.transaction(async (tx) => {
     await tx.lockUser(userId);
-    const redeemed = await tx.hasRedeemedFounderDiscount(userId);
     const entitlement = entitlementOfSubscriptions(
       await tx.listSubscriptions(userId),
       now,
@@ -578,10 +587,12 @@ export async function createCheckoutSession(
         'An active subscription already exists.',
         409,
       );
+    // Read under the user lock, in the same transaction as the provider call.
+    // A lookup failure aborts the checkout (nothing is created, nothing is
+    // charged) rather than guessing a price; a missing row is "not eligible".
     const discounted = mayAttachFounderDiscount(
-      deps.config.designatedUserIds,
-      userId,
-      redeemed,
+      await tx.launchDiscountEligible(userId),
+      await tx.hasRedeemedFounderDiscount(userId),
     );
     if (deps.serviceAccessEnforced) {
       if (!tx.assertServiceCheckout)
@@ -746,7 +757,6 @@ export type BillingEnvConfig =
 const off = (reason: string, enforcement = false): BillingEnvConfig => ({
   enabled: false,
   enforcement,
-  designatedUserIds: [],
   offer: defaultBillingOfferConfig,
   entitlement: defaultEntitlementConfig,
   reason,
@@ -802,13 +812,14 @@ export function billingConfigFromEnv(
       !cancelUrl
     )
       return off('invalid configuration', enforcement);
+    // Deprecated: launch-discount eligibility is the persisted admission fact,
+    // not this list. The value is still validated (a malformed one keeps the
+    // billing closed, as before) but it never decides anything.
     const ids = env.BILLING_FOUNDER_USER_IDS?.trim() ?? '';
+    validateDiscountedUserIds(ids ? ids.split(',').map((id) => id.trim()) : []);
     const config = {
       enabled: true as const,
       enforcement,
-      designatedUserIds: validateDiscountedUserIds(
-        ids ? ids.split(',').map((id) => id.trim()) : [],
-      ),
       offer: validateBillingOfferConfig(defaultBillingOfferConfig),
       entitlement: defaultEntitlementConfig,
       priceId,
@@ -838,7 +849,6 @@ export function redactBillingConfig(config: BillingEnvConfig) {
   return {
     enabled: config.enabled,
     enforcement: config.enforcement,
-    designatedAccounts: config.designatedUserIds.length,
     ...(config.enabled
       ? { mode: /_live_/.test(config.secretKey) ? 'live' : 'test' }
       : { reason: config.reason }),

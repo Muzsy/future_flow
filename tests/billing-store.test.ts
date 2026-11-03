@@ -66,6 +66,17 @@ async function user() {
   return id;
 }
 
+// An account holding the persisted launch-discount eligibility, as one of the
+// first ten open admissions has it.
+async function eligibleUser() {
+  const u = await user();
+  await db.query(
+    "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',true)",
+    [u],
+  );
+  return u;
+}
+
 let seq = 0;
 const id = (prefix: string) => `${prefix}_${++seq}_${randomUUID().slice(0, 8)}`;
 function world(userId: string) {
@@ -154,7 +165,6 @@ function send(
   body: unknown,
   provider: BillingProvider,
   alerts: BillingAlert[] = [],
-  designatedUserIds?: string[],
 ) {
   const raw = JSON.stringify(body);
   const ts = sec(now.getTime());
@@ -167,7 +177,7 @@ function send(
       webhookSecret: SECRET,
       priceId: PRICE,
     },
-    { store, provider, alert: (a) => alerts.push(a), designatedUserIds },
+    { store, provider, alert: (a) => alerts.push(a) },
   );
 }
 const count = async (sql: string, values: unknown[]) =>
@@ -175,7 +185,7 @@ const count = async (sql: string, values: unknown[]) =>
 
 describe('SQL billing store', () => {
   it('runs a subscription lifecycle and grants the launch allowance', async () => {
-    const u = await user();
+    const u = await eligibleUser();
     const w = world(u);
     const { provider } = fakeProvider();
     expect((await send(subscriptionEvent(w), provider)).code).toBe('ok');
@@ -271,7 +281,7 @@ describe('SQL billing store', () => {
   });
 
   it('reserves, consumes and releases chapters with one taster and the allowance cap', async () => {
-    const u = await user();
+    const u = await eligibleUser();
     const w = world(u);
     const { provider } = fakeProvider();
     // No subscription: only the free taster is available, exactly once.
@@ -379,14 +389,18 @@ describe('SQL billing store', () => {
     ).toBe(0);
   });
 
-  it('honours the founder discount once and only for designated accounts', async () => {
+  it('honours the founder discount once and only for admission-eligible accounts', async () => {
     const a = await user();
     const b = await user();
+    await db.query(
+      "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',true),($2,1,'active',false)",
+      [a, b],
+    );
     const { provider } = fakeProvider();
     const wa = world(a);
     const wb = world(b);
-    await send(subscriptionEvent(wa), provider, [], [a]);
-    await send(subscriptionEvent(wb), provider, [], [a]);
+    await send(subscriptionEvent(wa), provider);
+    await send(subscriptionEvent(wb), provider);
     const rows = await db.query<{ user_id: string; discounted: boolean }>(
       'SELECT user_id,discounted FROM aw_billing_subscriptions WHERE user_id IN ($1,$2)',
       [a, b],
@@ -399,10 +413,7 @@ describe('SQL billing store', () => {
     const u = await user();
     const w = world(u);
     const { provider } = fakeProvider();
-    const config = {
-      designatedUserIds: [] as string[],
-      entitlement: defaultEntitlementConfig,
-    };
+    const config = { entitlement: defaultEntitlementConfig };
     await expect(
       createCheckoutSession(u, now, { store, provider, config }),
     ).resolves.toHaveProperty('url');

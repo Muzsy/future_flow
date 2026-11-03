@@ -122,7 +122,7 @@ const refundEvent = (p, n = 1) =>
     customer: p.customer,
     invoice: `in_${p.sub}_${n}`,
   });
-function deliver(body, designatedUserIds) {
+function deliver(body) {
   const rawBody = JSON.stringify(body);
   const ts = sec(NOW.getTime());
   const sig = createHmac('sha256', SECRET)
@@ -136,7 +136,7 @@ function deliver(body, designatedUserIds) {
       webhookSecret: SECRET,
       priceId: PRICE,
     },
-    { store, provider, designatedUserIds },
+    { store, provider },
   );
 }
 const one = async (sql, values) => Number((await db.query(sql, values))[0].n);
@@ -295,10 +295,13 @@ try {
   // the launch discount is honoured only once.
   {
     const p = await person();
-    const config = {
-      designatedUserIds: [p.id],
-      entitlement: defaultEntitlementConfig,
-    };
+    // The eligibility is the persisted admission fact (one of the first ten
+    // open admissions), not an environment list.
+    await db.query(
+      "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',true)",
+      [p.id],
+    );
+    const config = { entitlement: defaultEntitlementConfig };
     const urls = await Promise.all(
       Array.from({ length: 4 }, () =>
         createCheckoutSession(p.id, NOW, { store, provider, config }),
@@ -309,7 +312,7 @@ try {
     const second = {
       ...subscriptionEvent({ ...p, sub: `sub_${tag()}` }, true),
     };
-    await Promise.all([deliver(first, [p.id]), deliver(second, [p.id])]);
+    await Promise.all([deliver(first), deliver(second)]);
     assert.equal(
       await one(
         'SELECT count(*) n FROM aw_billing_subscriptions WHERE user_id=$1 AND discounted',
