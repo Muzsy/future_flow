@@ -16,10 +16,16 @@ const phases = new Set([
   'registry-prepare',
   'registry-apply',
   'registry-reconcile',
+  'service-prepare',
+  'service-apply',
+  'service-reconcile',
   'commit',
 ]);
 const sources = new Set([
   'scripts/ops/funded-runtime-probe.ts',
+  'scripts/ops/service-operation-probe.ts',
+  'scripts/lib/service-operation-probe.ts',
+  'scripts/lib/service-operations.ts',
   'scripts/lib/funded-runtime.ts',
   'scripts/lib/service-registry-upgrade.ts',
   'scripts/lib/service-registry-schema-migration.ts',
