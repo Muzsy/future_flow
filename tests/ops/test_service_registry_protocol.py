@@ -111,21 +111,50 @@ class RegistryProtocolTests(unittest.TestCase):
                 with self.subTest(role=role, bad=bad), self.assertRaises(ValueError):
                     daily.registry_profile_default(changed)
 
-    def test_committed_image_bundle_actually_covers_all52_required_registry_inputs(self):
+    @staticmethod
+    def committed_source_hashes():
         import json
         import subprocess
         root_path = Path(__file__).resolve().parents[2]
         code = "import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';import{fundedSourceBundle}from'./scripts/lib/funded-upgrade.mjs';const paths=execFileSync('git',['ls-files'],{encoding:'utf8'}).trim().split('\\n');console.log(JSON.stringify(fundedSourceBundle(paths,p=>readFileSync(p)).sourceHashes));"
         result = subprocess.run(['node','--input-type=module','-e',code],cwd=root_path,
             check=True,capture_output=True,text=True,timeout=15)
-        hashes = json.loads(result.stdout)
+        return json.loads(result.stdout)
+
+    def test_committed_image_bundle_actually_covers_all57_required_registry_inputs(self):
+        hashes = self.committed_source_hashes()
         self.assertEqual({p:hashes.get(p) for p in daily.REGISTRY_040_CHANGE_HASHES},daily.REGISTRY_040_CHANGE_HASHES)
         self.assertNotIn('deploy/server.env',hashes)
+
+    def test_every_changed_serving_engine_source_is_pinned_and_the_rest_matches_the_serving_image(self):
+        """Local run of the schema-040 prepare comparison (require_engine_freeze) against the 039 image.
+
+        The serving image is represented by the committed hashes of its source commit. A path of
+        the frozen scope that differs from it must be an exact reviewed pin, and every unpinned
+        path must still be byte-identical, otherwise the prepare would refuse the target.
+        """
+        import json
+        from test_beta_successor_chain_root import root
+        fixture = json.loads((Path(__file__).parent / 'fixtures/serving-image-039-source-hashes.json').read_text())
+        serving = fixture['sourceHashes']
+        hashes = self.committed_source_hashes()
+        system = object.__new__(root.System)
+        system.request = {'sourceHashes': hashes}
+        system.daily = daily
+        frozen = system.frozen_source_hashes()
+        changed = {p for p, h in frozen.items() if serving.get(p) != h}
+        pins = set(daily.REGISTRY_040_CHANGE_HASHES)
+        self.assertEqual(sorted(changed - pins), [], 'changed serving-engine sources without a reviewed pin')
+        self.assertEqual(sorted(pins - changed), [], 'pins for sources that do not differ from the serving image')
+        unpinned = system.registry_frozen_source_hashes()
+        self.assertEqual(sorted(p for p, h in unpinned.items() if serving.get(p) != h), [],
+                         'Original serving engine sources must remain unchanged')
+        self.assertTrue(unpinned)
 
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
         root = Path(__file__).resolve().parents[2]
         expected = daily.REGISTRY_040_CHANGE_HASHES
-        self.assertEqual(len(expected), 52)
+        self.assertEqual(len(expected), 57)
         for name, digest in expected.items():
             with self.subTest(name=name):
                 self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)
