@@ -738,11 +738,15 @@ class System(funded.System):
             '--env-file',str(path / 'server.env'),'-f',str(source / 'deploy/compose.contabo.yaml'),
             '-f',str(path / 'pinned-image.json'),'config','--format','json']).stdout)
         original = self.configuration(DIRECTORY)
+        compared = (rendered, original)
         if self.is_registry_schema():
-            rendered = self.daily.registry_profile_default(rendered)
-            original = self.daily.registry_profile_default(original)
-        if (normalized(rendered, self.selected(), previous)
-                != normalized(original, self.selected(), previous)):
+            # Only the comparison sees the profile/Turnstile defaults normalized. The raw render
+            # is what is checked below and persisted, so the next generation (billing-config-040)
+            # compares a fresh render against a stored compose that is rendered the same way.
+            compared = (self.daily.registry_profile_default(rendered),
+                        self.daily.registry_profile_default(original))
+        if (normalized(compared[0], self.selected(), previous)
+                != normalized(compared[1], self.selected(), previous)):
             raise ValueError('Runtime delta exceeds selected allowance, readers and v9 configuration')
         self.daily.personal_runtime_policy({k:v['environment'] for k,v in rendered['services'].items()}, self.now())
         if self.is_schema() and not self.is_registry_schema():
