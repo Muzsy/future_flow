@@ -57,7 +57,18 @@ ENV_LINE = re.compile(r"([A-Z][A-Z0-9_]*)='([^'\r\n\\]*)'")
 SAFE_VALUE = re.compile(r'[A-Za-z0-9_.,:\-]*')
 STAMP = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z')
 USD = re.compile(r'[0-9]{1,3}(\.[0-9]{1,2})?')
-REL_PATH = re.compile(r'[a-z0-9][a-z0-9._-]*(/[a-z0-9][a-z0-9._-]*){0,3}')
+BACKUP_MANIFEST_PATH = re.compile(r'daily/backups/[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}/manifest\.json')
+RESTORE_PROOF_PATH = 'daily/status/registry-restore.json'
+RUN_ID = re.compile(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}')
+# Same shape as the web's Turnstile site-key rule (a key the web would hide the form for must not pass here).
+TURNSTILE_KEY = re.compile(r'[0-3]x[A-Za-z0-9_-]{15,64}')
+MAX_BACKUP_AGE_SECONDS = 26 * 3600      # the Daily backup_stale threshold
+MAX_PROOF_AGE_SECONDS = 6 * 3600        # the Daily timer-activation freshness for the native proof
+PROOF_TRUE = ('independentReadOnlyPostReplayVerified', 'reviewedSecurityCatalog', 'dataOnlyOriginalBackupLoaded',
+              'temporaryContainersAndPlaintextRemoved', 'freshStateEqualBeforeAndAfterReplay',
+              'originalIdsImagesPreserved', 'foreignContainersUnchanged')
+PROOF_FALSE = ('writerFenceStillHeld', 'serviceActivationAllowed', 'liveDatabaseWrites', 'authProviderWrites',
+               'externalMessagesSent')
 
 # Hard ceilings agreed by the owner (first wave 45/6/2, later waves 100/8.50/3).
 MAX_PROJECT_USD = 100
@@ -81,9 +92,10 @@ ALLOWED = {
     'AI_BUDGET_WINDOW_END': lambda v: STAMP.fullmatch(v) is not None,
     'AI_BUDGET_WINDOW_REQUIRED': lambda v: v == 'true',
     # Public Turnstile site key (not a secret; the web container reads it at runtime). The secret
-    # key lives in the Supabase CAPTCHA settings, never in server.env. It must reach a service
-    # through the release's compose, otherwise the plan is refused (check_compose_delta).
-    'TURNSTILE_SITE_KEY': lambda v: re.fullmatch(r'[0-9A-Za-z_-]{16,64}', v) is not None,
+    # key lives in the Supabase CAPTCHA settings, never in server.env. It is mandatory in the
+    # service profile and must reach a service through the release's compose, otherwise the
+    # plan is refused (validate_after, check_compose_delta).
+    'TURNSTILE_SITE_KEY': lambda v: TURNSTILE_KEY.fullmatch(v) is not None,
 }
 PLACEHOLDER_PROVIDER = 'alterward_owner_provider_access_disabled'
 
@@ -221,20 +233,15 @@ def apply_env(text, changes):
 
 def validate_request(raw):
     if not isinstance(raw, dict) or set(raw) != {'version', 'imageId', 'sourceDirectory', 'values',
-                                                  'backupManifestPath', 'restoreProofPath',
-                                                  'parentReadbackPath'}:
+                                                  'backupManifestPath', 'restoreProofPath'}:
         raise Refusal('Exact request keys required')
     if raw['version'] != REQUEST_VERSION or not isinstance(raw['imageId'], str) or not IMAGE.fullmatch(raw['imageId']):
         raise Refusal('Exact request version and image required')
-    for key in ('sourceDirectory', 'backupManifestPath', 'restoreProofPath'):
-        value = raw[key]
-        if not isinstance(value, str) or '..' in value.split('/') or (key == 'sourceDirectory' and not value.startswith('/root/alterward-ops/')):
-            raise Refusal('Exact request paths required')
-    for key in ('backupManifestPath', 'restoreProofPath'):
-        if not REL_PATH.fullmatch(raw[key]):
-            raise Refusal('Exact request paths required')
-    parent = raw['parentReadbackPath']
-    if parent is not None and (not isinstance(parent, str) or not REL_PATH.fullmatch(parent)):
+    source = raw['sourceDirectory']
+    if (not isinstance(source, str) or '..' in source.split('/') or not source.startswith('/root/alterward-ops/')
+            or not isinstance(raw['backupManifestPath'], str)
+            or not BACKUP_MANIFEST_PATH.fullmatch(raw['backupManifestPath'])
+            or raw['restoreProofPath'] != RESTORE_PROOF_PATH):
         raise Refusal('Exact request paths required')
     values = raw['values']
     if not isinstance(values, dict) or not values:
@@ -268,6 +275,8 @@ def validate_after(env):
     if not ALLOWED['AI_PROJECT_BUDGET_USD'](project) or not ALLOWED['AI_USER_BUDGET_USD'](user) \
             or float(user) > float(project):
         raise Refusal('Resulting environment requires positive, ordered, ceiling-bound USD budgets')
+    if not ALLOWED['TURNSTILE_SITE_KEY'](env.get('TURNSTILE_SITE_KEY', '')):
+        raise Refusal('Resulting environment requires a valid Turnstile site key')
     if 'GENERATION_DAILY_LIMIT' in env and not ALLOWED['GENERATION_DAILY_LIMIT'](env['GENERATION_DAILY_LIMIT']):
         raise Refusal('Resulting environment requires a bounded daily generation limit')
     start, end = env.get('AI_BUDGET_WINDOW_START', ''), env.get('AI_BUDGET_WINDOW_END', '')
@@ -305,6 +314,55 @@ def check_compose_delta(old, new, changed):
             raise Refusal('Every service must run with service access enforcement')
     if seen != set(changed):
         raise Refusal('A planned key does not reach the rendered services')
+    if not any((new['services'][n].get('environment') or {}).get('TURNSTILE_SITE_KEY') for n in SERVICES):
+        raise Refusal('The Turnstile site key does not reach the rendered services')
+
+
+def _moment(value):
+    if not isinstance(value, str):
+        raise Refusal('Evidence timestamp missing')
+    try:
+        stamp = dt.datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        raise Refusal('Evidence timestamp invalid') from None
+    if stamp.tzinfo is None:
+        raise Refusal('Evidence timestamp invalid')
+    return stamp
+
+
+def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now):
+    """The backup manifest and the native 040 restore proof must be real, bound to each other
+    and to the running release, and fresh. Same facts the Daily registry_restore_healthy
+    verifies (without importing it); any missing field fails closed."""
+    try:
+        backup, proof = json.loads(manifest_bytes), json.loads(proof_bytes)
+    except ValueError:
+        raise Refusal('Backup manifest or restore proof is not JSON') from None
+    if not isinstance(backup, dict) or not isinstance(proof, dict):
+        raise Refusal('Backup manifest or restore proof has an unexpected shape')
+    run_id = backup.get('runId')
+    active = proof.get('fundedRuntime')
+    if (not isinstance(run_id, str) or not RUN_ID.fullmatch(run_id) or proof.get('backupRunId') != run_id
+            or proof.get('backupManifestSha256') != sha(manifest_bytes)):
+        raise Refusal('The restore proof is not bound to this backup manifest')
+    if (backup.get('ownerCommit') != owner_manifest.get('commit') or backup.get('ownerImage') != owner_manifest.get('imageId')
+            or proof.get('sourceCommit') != owner_manifest.get('commit')):
+        raise Refusal('The backup or restore proof is not of the running release')
+    if (not isinstance(active, dict) or active.get('version') != 'alterward-funded-replay-2'
+            or active.get('schema') != 40 or active.get('recoveryProfile') != 'registry040'
+            or active.get('sourceCommit') != backup.get('ownerCommit') or active.get('imageId') != backup.get('ownerImage')):
+        raise Refusal('The restore proof is not a native 040 proof')
+    if (proof.get('tablesMatchedBeforeReplay') != 103 or proof.get('reviewedTables') != 102
+            or proof.get('reviewedForeignKeys') != 226 or proof.get('paidAiCalls') != 0
+            or any(proof.get(k) is not True for k in PROOF_TRUE) or any(proof.get(k) is not False for k in PROOF_FALSE)):
+        raise Refusal('The native restore proof is incomplete')
+    backup_age = (now - _moment(backup.get('capturedAt'))).total_seconds()
+    proof_time = _moment(proof.get('capturedAt'))
+    proof_age = (now - proof_time).total_seconds()
+    if not 0 <= backup_age <= MAX_BACKUP_AGE_SECONDS:
+        raise Refusal('The backup manifest is not fresh')
+    if not 0 <= proof_age <= MAX_PROOF_AGE_SECONDS or proof_time < _moment(backup.get('capturedAt')):
+        raise Refusal('The native restore proof is not fresh')
 
 
 def authority_value(env, key):
@@ -413,6 +471,14 @@ class Stepper:
             raise Refusal('Owner files do not match their manifest')
         if manifest.get('imageId') != request['imageId']:
             raise Refusal('Requested image is not the pinned owner image')
+        old_config = json.loads(files['effective-compose.json'])
+        # The running containers must be exactly the stored configuration: a restart would
+        # otherwise also carry every unplanned drift, and the billing precondition must hold
+        # in the running state, not only in the files (read-only: inspect + anonymous probe).
+        try:
+            self.host.verify_running(unfrozen(old_config), request['imageId'])
+        except Refusal as error:
+            raise Refusal('Running services differ from the stored configuration: ' + str(error)) from None
         images = self.host.images()
         if set(images) != set(SERVICES) or any(images[s] != request['imageId'] for s in SERVICES):
             raise Refusal('Running services are not the requested image')
@@ -444,21 +510,28 @@ class Stepper:
             raise
         except Exception:
             raise Refusal('Rendering the new configuration failed') from None
-        old_config = json.loads(files['effective-compose.json'])
         new_frozen = frozen(config)
         check_compose_delta(old_config, json.loads(new_frozen), set(changes))
         # SPR parent and generation.
         current = self._spr_state()
+        successor = self.host.successor_state()
+        if successor.get('pending') is not False or successor.get('upgradeHealthy') is not True:
+            raise Refusal('A successor or upgrade state is still in progress')
         if current is None:
-            if request['parentReadbackPath'] is None:
-                raise Refusal('First generation needs the successor readback as its parent')
-            parent = sha(_private_read(ops_root(self.owner) / request['parentReadbackPath']))
-            generation = 1
+            # The first generation descends from the successor chain's last billing-enforce readback,
+            # computed from the chain itself, never named by the request.
+            if (successor.get('purpose') != 'billing-config-040' or successor.get('stage') != 'enforce'
+                    or not isinstance(successor.get('readbackSha256'), str)
+                    or not HEX64.fullmatch(successor['readbackSha256'])):
+                raise Refusal('The successor chain does not end at the billing enforce stage')
+            parent, generation = successor['readbackSha256'], 1
         else:
             parent, generation = current['profileSha256'], current['generation'] + 1
         evidence_root = ops_root(self.owner)
-        backup = sha(_private_read(evidence_root / request['backupManifestPath']))
-        restore = sha(_private_read(evidence_root / request['restoreProofPath']))
+        backup_bytes = _private_read(evidence_root / request['backupManifestPath'])
+        proof_bytes = _private_read(evidence_root / request['restoreProofPath'])
+        check_evidence(backup_bytes, proof_bytes, manifest, self.clock())
+        backup, restore = sha(backup_bytes), sha(proof_bytes)
         new_manifest = {**manifest, 'ownerEnvironmentSha256': sha(env_after_text.encode()),
                         'effectiveComposeSha256': sha(new_frozen)}
         plan = {
@@ -614,7 +687,11 @@ class Stepper:
             raise Refusal('Service profile record is incomplete: repair it per ADR-011, then resume') from None
 
     # ---- resume ---------------------------------------------------------------
-    def resume(self, operation_id):
+    @staticmethod
+    def rollback_phrase(operation_id):
+        return f'rollback-service-env {operation_id}'
+
+    def resume(self, operation_id, *, rollback=False, confirm=None):
         state = self.journal.state(operation_id)
         if state is None:
             raise Refusal('No such service-env operation')
@@ -624,6 +701,19 @@ class Stepper:
         _private_directory(directory)
         plan_file = json.loads(_private_read(directory / 'plan.json'))
         plan = {k: v for k, v in plan_file.items() if k not in ('approvalSha256', 'approvedAt')}
+        if rollback:
+            # Exit from a live-but-unprofiled environment: allowed only before this plan's SPR
+            # generation exists, and only with the owner's operation-specific sentence.
+            if state != 'env-applied':
+                raise Refusal('--rollback only applies to an applied environment; plain resume restores the rest')
+            if confirm != self.rollback_phrase(operation_id):
+                raise Refusal('Owner confirmation required: --confirm "' + self.rollback_phrase(operation_id) + '"')
+            current = self._spr_state_or_none()
+            if current is not None and current['generation'] >= plan['generation']:
+                raise Refusal('The service profile generation already exists: it cannot be rolled back here')
+            if not self._rollback(operation_id, directory, plan['imageId']):
+                raise Refusal('Rollback did not verify: service left as is; emergency stop is available')
+            return {'operationId': operation_id, 'outcome': 'rolled-back', 'paidAiCalls': 0}
         if state == 'env-applied':
             self._check_files(plan['after'])
             config = unfrozen(json.loads(_private_read(self.owner / 'effective-compose.json')))
@@ -648,7 +738,7 @@ class HostRuntime:
                    "const client=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:true,ca},"
                    "connectionTimeoutMillis:10000});try{await client.connect();await client.query('BEGIN READ ONLY');"
                    "let n=0;for(const table of ['ff_jobs','aw_jobs','aw_shared_jobs','aw_public_review_jobs',"
-                   "'aw_public_content_reviews']){const {rows}=await client.query(`SELECT count(*)::int AS pending "
+                   "'aw_public_content_reviews','aw_scenario_reviews']){const {rows}=await client.query(`SELECT count(*)::int AS pending "
                    "FROM ${table} WHERE status IN ('queued','running','validating')`);n+=rows[0].pending}"
                    "await client.query('COMMIT');console.log(JSON.stringify({pendingJobs:n}))}finally{await client.end()}")
 
@@ -659,10 +749,11 @@ class HostRuntime:
                        "throw Error('Origin access boundary failed');count++}"
                        "console.log(JSON.stringify({anonymousDenied:count}));")
 
-    def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None):
+    def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None, daily=None):
         self.owner = Path(owner_dir)
         self.runner = runner or self._run
         self.operator = operator
+        self.daily = daily
 
     @staticmethod
     def _run(args, *, input=None, timeout=60):
@@ -746,6 +837,24 @@ class HostRuntime:
     def observe(self):
         return self.operator.HostRuntime(owner_dir=self.owner).observe()
 
+    def successor_state(self):
+        """The successor chain's last fully exposed generation, read through Daily's own validators."""
+        daily = self.daily
+        try:
+            healthy = bool(daily.funded_upgrade_healthy('personal-beta'))
+            if not daily.successor_roots():
+                return {'pending': False, 'upgradeHealthy': healthy, 'purpose': None, 'stage': None,
+                        'readbackSha256': None}
+            state = daily.successor_active_state()
+            plan = json.loads(daily.regular(state['directory'] / 'prepared.json'))['operation']['plan']
+            readback = daily.regular(state['directory'] / 'readback.json')
+            return {'pending': state['pending'] is not None, 'upgradeHealthy': healthy,
+                    'purpose': plan.get('purpose'), 'stage': plan.get('stage'), 'readbackSha256': sha(readback)}
+        except Refusal:
+            raise
+        except Exception:
+            raise Refusal('The successor chain could not be read') from None
+
 
 def parser():
     top = argparse.ArgumentParser(prog='contabo-service-env')
@@ -758,12 +867,17 @@ def parser():
     apply.add_argument('--confirm', required=True)
     resume = sub.add_parser('resume')
     resume.add_argument('--operation-id', required=True)
+    resume.add_argument('--rollback', action='store_true')
+    resume.add_argument('--confirm')
     return top
 
 
 def run(arguments, stepper):
     if arguments.command == 'resume':
-        return stepper.resume(str(uuid.UUID(arguments.operation_id)))
+        if arguments.confirm is not None and not arguments.rollback:
+            raise Refusal('--confirm only belongs to --rollback')
+        return stepper.resume(str(uuid.UUID(arguments.operation_id)), rollback=arguments.rollback,
+                              confirm=arguments.confirm)
     request = json.loads(_private_read(Path(arguments.request)))
     if arguments.command == 'plan':
         return stepper.plan_report(request)
@@ -782,14 +896,14 @@ def main(argv=None):
         _private_directory(STATE_DIR, create=True)
         _private_directory(STEP_DIR, create=True)
         stepper = Stepper(owner_dir=OWNER_DIR, step_dir=STEP_DIR, profile_dir=PROFILE_DIR, state_dir=STATE_DIR,
-                          host=HostRuntime(operator=operator), clock=lambda: dt.datetime.now(dt.timezone.utc),
+                          host=HostRuntime(operator=operator, daily=_load('daily_for_env', 'contabo-daily.py')), clock=lambda: dt.datetime.now(dt.timezone.utc),
                           identity=lambda: (os.environ.get('SUDO_USER') or os.environ.get('USER') or 'root',
                                             socket.gethostname()))
         # The operator's lock keeps a service operation and this step from running together.
         with operator.operation_lock(STATE_DIR):
             print(json.dumps(run(arguments, stepper), sort_keys=True))
         return 0
-    except (Refusal, ValueError, OSError, RuntimeError, subprocess.SubprocessError) as error:
+    except (Refusal, ValueError, OSError, RuntimeError, ImportError, subprocess.SubprocessError) as error:
         print('Service env step refused: ' + (str(error) if type(error).__name__ == 'Refusal' else 'invalid input'),
               file=sys.stderr)
         return 1

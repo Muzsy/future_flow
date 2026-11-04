@@ -100,6 +100,16 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
             with self.subTest(name), self.assertRaises(ValueError):
                 daily.personal_runtime_policy(environments(**overrides), NOW)
 
+    def test_the_three_services_must_agree_on_service_access_enforcement(self):
+        for mixed in ({'web': 'false', 'api': 'true', 'worker': 'true'}, {'web': 'true', 'api': 'false', 'worker': 'true'},
+                      {'web': 'true', 'api': 'true', 'worker': 'false'}):
+            with self.subTest(mixed), self.assertRaisesRegex(ValueError, 'disagree'):
+                daily.service_profile_enforced({n: {'SERVICE_ACCESS_ENFORCEMENT': v} for n, v in mixed.items()})
+        self.assertTrue(daily.service_profile_enforced({n: {'SERVICE_ACCESS_ENFORCEMENT': 'true'} for n in ('web', 'api', 'worker')}))
+        self.assertFalse(daily.service_profile_enforced({n: {} for n in ('web', 'api', 'worker')}))
+        with self.assertRaises(ValueError):
+            daily.service_profile_enforced({n: {'SERVICE_ACCESS_ENFORCEMENT': 'yes'} for n in ('web', 'api', 'worker')})
+
     def test_the_legacy_beta_and_owner_matrices_are_unchanged_when_enforcement_is_off(self):
         owner = {name: {'SERVICE_ACCESS_ENFORCEMENT': 'false'} for name in ('web', 'api', 'worker')}
         with self.assertRaises(ValueError):          # the old matrix still demands the closed origin etc.

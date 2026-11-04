@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -69,10 +70,16 @@ class FakeHost:
         self.images_value = {s: IMAGE for s in env.SERVICES}
         self.source_digest = 'e' * 64
         self.extra_env = None          # a render that smuggles an extra variable
+        self.render_hook = None        # mutates the rendered services (beyond-environment drift)
         self.running = None
         self.restart_failures = 0      # remaining failing restarts
         self.verify_failures = 0
         self.calls = []
+        self.successor = {'pending': False, 'upgradeHealthy': True, 'purpose': 'billing-config-040',
+                          'stage': 'enforce', 'readbackSha256': sha(b'successor-readback')}
+
+    def successor_state(self):
+        return dict(self.successor)
 
     def images(self):
         return dict(self.images_value)
@@ -92,6 +99,8 @@ class FakeHost:
                 environment[self.extra_env] = 'x'
             services[name] = {'image': IMAGE, 'command': ['run', name], 'environment': environment,
                               'cap_drop': ['ALL']}
+        if self.render_hook:
+            self.render_hook(services)
         return {'services': services}
 
     def restart(self):
@@ -103,7 +112,7 @@ class FakeHost:
 
     def verify_running(self, config, image_id):
         self.calls.append('verify')
-        if self.verify_failures:
+        if self.verify_failures and 'restart' in self.calls:   # plan-time reads must pass
             self.verify_failures -= 1
             raise env.Refusal('unhealthy')
         for name in env.SERVICES:
@@ -147,11 +156,31 @@ class ServiceEnvTests(unittest.TestCase):
         for name, data in {'server.env': text.encode(), 'effective-compose.json': compose,
                            'pinned-image.json': pinned, 'manifest.json': env.encoded(manifest)}.items():
             env._create(self.owner / name, data)
-        for name in ('backup-manifest.json', 'restore-proof.json', 'parent-readback.json'):
-            env._create(self.ops / name, name.encode())
+        self.write_evidence()
         self.host.running = env.unfrozen(json.loads(compose))
         self.tick = 0
         self.stepper = self.make_stepper()
+
+    RUN = '20261104T080000Z-12345678'
+    BACKUP_PATH = f'daily/backups/{RUN}/manifest.json'
+
+    def write_evidence(self, backup=None, proof=None):
+        backup = {'runId': self.RUN, 'ownerCommit': COMMIT, 'ownerImage': IMAGE,
+                  'capturedAt': '2026-11-04T08:00:00Z', **(backup or {})}
+        backup_bytes = json.dumps(backup).encode()
+        proof = {'backupRunId': self.RUN, 'backupManifestSha256': sha(backup_bytes), 'sourceCommit': COMMIT,
+                 'fundedRuntime': {'version': 'alterward-funded-replay-2', 'schema': 40,
+                                   'recoveryProfile': 'registry040', 'sourceCommit': COMMIT, 'imageId': IMAGE},
+                 'tablesMatchedBeforeReplay': 103, 'reviewedTables': 102, 'reviewedForeignKeys': 226,
+                 'paidAiCalls': 0, 'capturedAt': '2026-11-04T08:30:00Z',
+                 **{k: True for k in env.PROOF_TRUE}, **{k: False for k in env.PROOF_FALSE}, **(proof or {})}
+        for relative, data in ((self.BACKUP_PATH, backup_bytes),
+                               (env.RESTORE_PROOF_PATH, json.dumps(proof).encode())):
+            path = self.ops / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path.exists():
+                path.unlink()
+            env._create(path, data)
 
     def make_stepper(self):
         return env.Stepper(owner_dir=self.owner, step_dir=self.step, profile_dir=self.profile_dir,
@@ -166,12 +195,12 @@ class ServiceEnvTests(unittest.TestCase):
         base = {'SERVICE_ACCESS_ENFORCEMENT': 'true', 'CLOSED_SITE_ENABLED': 'true',
                 'CLOUDFLARE_ACCESS_AUD': AUD, 'CLOSED_BETA_USER_IDS': '', 'NARRATIVE_COHORT_USER_IDS': '',
                 'AI_PROJECT_BUDGET_USD': '45', 'AI_USER_BUDGET_USD': '6', 'GENERATION_DAILY_LIMIT': '2',
-                'AI_BUDGET_WINDOW_START': '2026-11-05T00:00:00Z', 'AI_BUDGET_WINDOW_END': '2026-12-05T00:00:00Z'}
+                'AI_BUDGET_WINDOW_START': '2026-11-05T00:00:00Z', 'AI_BUDGET_WINDOW_END': '2026-12-05T00:00:00Z',
+                'TURNSTILE_SITE_KEY': '0x4AAAAAAAtestSiteKey0001'}
         base.update(values)
         return {'version': env.REQUEST_VERSION, 'imageId': IMAGE,
                 'sourceDirectory': '/root/alterward-ops/release/src', 'values': base,
-                'backupManifestPath': 'backup-manifest.json', 'restoreProofPath': 'restore-proof.json',
-                'parentReadbackPath': 'parent-readback.json'}
+                'backupManifestPath': self.BACKUP_PATH, 'restoreProofPath': env.RESTORE_PROOF_PATH}
 
     def snapshot(self):
         return {n: (self.owner / n).read_bytes() for n in env.OWNER_FILES}
@@ -239,14 +268,15 @@ class ServiceEnvTests(unittest.TestCase):
         record = self.stepper.profile.verify(self.profile_dir)
         profile = record['profile']
         self.assertEqual(profile['generation'], 1)
-        self.assertEqual(profile['parentProfileSha256'], sha(b'parent-readback.json'))
+        self.assertEqual(profile['parentProfileSha256'], sha(b'successor-readback'))
         self.assertEqual(profile['serverEnvSha256'], sha(new['server.env']))
         self.assertEqual(profile['effectiveComposeSha256'], sha(new['effective-compose.json']))
         self.assertEqual(profile['pinnedImageSha256'], sha(new['pinned-image.json']))
         self.assertEqual(profile['sourceCommit'], COMMIT)
-        self.assertEqual(profile['activation']['backupManifestSha256'], sha(b'backup-manifest.json'))
-        self.assertEqual(profile['activation']['restoreProofSha256'], sha(b'restore-proof.json'))
-        self.assertEqual(self.host.calls, ['restart', 'verify'])
+        self.assertEqual(profile['activation']['backupManifestSha256'], sha((self.ops / self.BACKUP_PATH).read_bytes()))
+        self.assertEqual(profile['activation']['restoreProofSha256'],
+                         sha((self.ops / env.RESTORE_PROOF_PATH).read_bytes()))
+        self.assertEqual(self.host.calls[self.host.calls.index('restart'):], ['restart', 'verify'])
 
     def test_journal_is_chained_and_records_value_digests_only(self):
         result = self.apply()
@@ -298,7 +328,7 @@ class ServiceEnvTests(unittest.TestCase):
             self.stepper.plan_report(request or self.request(**kwargs))
         self.assertEqual(before, self.snapshot())
         self.assertFalse(list(self.step.iterdir()))
-        self.assertFalse(self.host.calls)
+        self.assertNotIn('restart', self.host.calls)
 
     def test_keys_outside_the_closed_set_are_refused(self):
         for key in ('STRIPE_SECRET_KEY', 'BILLING_ENFORCEMENT', 'BILLING_ENABLED', 'OPENAI_API_KEY', 'DATABASE_URL',
@@ -317,24 +347,35 @@ class ServiceEnvTests(unittest.TestCase):
             with self.subTest(key):
                 self.assert_refused(self.request(**{key: value}), 'rejected|not in the allowed set')
 
-    def test_the_public_turnstile_site_key_may_be_set_and_reaches_only_the_web_service(self):
+    def test_the_public_turnstile_site_key_is_set_and_reaches_only_the_web_service(self):
         key = '0x4AAAAAAAtestSiteKey0001'
-        report = self.stepper.plan_report(self.request(TURNSTILE_SITE_KEY=key))
+        report = self.stepper.plan_report(self.request())
         self.assertIn('TURNSTILE_SITE_KEY', report['changedKeys'])
         self.assertIsNone(report['plan']['changes']['TURNSTILE_SITE_KEY']['beforeSha256'])
-        self.stepper.apply(self.request(TURNSTILE_SITE_KEY=key), plan_sha256=report['planSha256'],
-                           confirm=report['confirm'])
+        self.apply()
         self.assertEqual(self.host.running['services']['web']['environment']['TURNSTILE_SITE_KEY'], key)
         self.assertNotIn('TURNSTILE_SITE_KEY', self.host.running['services']['api']['environment'])
+
+    def test_the_turnstile_site_key_is_mandatory_in_the_resulting_environment(self):
+        request = self.request()
+        del request['values']['TURNSTILE_SITE_KEY']
+        self.assert_refused(request, 'Turnstile')
 
     def test_a_turnstile_key_the_release_compose_does_not_pass_on_is_refused(self):
         KEYS['web'].remove('TURNSTILE_SITE_KEY')
         self.addCleanup(KEYS['web'].append, 'TURNSTILE_SITE_KEY')
         self.setUp()  # rebuild the owner files from a release compose that lacks the variable
-        self.assert_refused(self.request(TURNSTILE_SITE_KEY='0x4AAAAAAAtestSiteKey0001'), 'does not reach')
+        self.assert_refused(pattern='does not reach')
 
-    def test_a_malformed_turnstile_key_is_refused(self):
-        for value in ('short', 'has space in it......', "quote'quote..........."):
+    def test_the_turnstile_rule_equals_the_web_rule(self):
+        # The web accepts ^[0-3]x[A-Za-z0-9_-]{15,64}$ (#161); anything else would hide the form silently.
+        good = ('0x4AAAAAAAtestSiteKey0001', '1x00000000000000000000AA', '3x' + 'a' * 15, '2x' + 'Z' * 64)
+        bad = ('short', 'abcdefghijklmnop', '5xAAAAAAAAAAAAAAAA', '0x' + 'a' * 14, '0x' + 'a' * 65,
+               "0x4AAAAAAA'quote0001", '0x4AAAAAAA space0001', 'x04AAAAAAAAAAAAAAAA')
+        for value in good:
+            self.assertTrue(env.ALLOWED['TURNSTILE_SITE_KEY'](value), value)
+        for value in bad:
+            self.assertFalse(env.ALLOWED['TURNSTILE_SITE_KEY'](value), value)
             with self.subTest(value):
                 self.assert_refused(self.request(TURNSTILE_SITE_KEY=value), 'rejected')
 
@@ -379,6 +420,7 @@ class ServiceEnvTests(unittest.TestCase):
         for name, data in {'server.env': text.encode(), 'effective-compose.json': compose,
                            'manifest.json': env.encoded(manifest)}.items():
             env._replace(self.owner / name, data)
+        self.host.running = env.unfrozen(json.loads(compose))
 
     def test_a_placeholder_provider_key_is_refused_for_a_positive_budget(self):
         self.rewrite_owner(lambda t: t.replace(SECRETS[2], env.PLACEHOLDER_PROVIDER))
@@ -407,13 +449,70 @@ class ServiceEnvTests(unittest.TestCase):
         self.host.extra_env = 'SMUGGLED_FLAG'
         self.assert_refused(pattern='outside the planned keys')
 
-    def test_a_missing_parent_or_evidence_is_refused(self):
+    def test_the_parent_comes_from_the_successor_chain_not_the_request(self):
         request = self.request()
-        request['parentReadbackPath'] = None
-        self.assert_refused(request, 'parent')
-        request = self.request()
-        request['restoreProofPath'] = 'missing.json'
-        self.assert_refused(request, 'missing')
+        request['parentReadbackPath'] = 'owner/manifest.json'
+        self.assert_refused(request, 'Exact request keys')
+        for change, pattern in (({'purpose': 'schema-040'}, 'enforce'), ({'stage': 'live'}, 'enforce'),
+                                ({'readbackSha256': None}, 'enforce'), ({'pending': True}, 'in progress'),
+                                ({'upgradeHealthy': False}, 'in progress')):
+            with self.subTest(change):
+                self.host.successor.update(change)
+                self.assert_refused(pattern=pattern)
+                self.host.successor.update(purpose='billing-config-040', stage='enforce', pending=False,
+                                           upgradeHealthy=True, readbackSha256=sha(b'successor-readback'))
+
+    def test_evidence_paths_are_fixed_shapes(self):
+        for key, value in (('backupManifestPath', '/etc/shadow'), ('backupManifestPath', '../x'),
+                           ('backupManifestPath', 'daily/backups/../../owner/server.env'),
+                           ('backupManifestPath', 'daily/backups/20261104T080000Z-12345678/other.json'),
+                           ('backupManifestPath', 'DAILY/backups/20261104T080000Z-12345678/manifest.json'),
+                           ('restoreProofPath', 'daily/status/other.json'), ('restoreProofPath', '/root/x')):
+            with self.subTest(value):
+                request = self.request()
+                request[key] = value
+                self.assert_refused(request, 'paths')
+
+    def test_evidence_must_exist_be_real_bound_and_fresh(self):
+        mutate = {
+            'foreign release commit': dict(backup={'ownerCommit': 'f' * 40}),
+            'foreign release image': dict(backup={'ownerImage': 'sha256:' + '1' * 64}),
+            'stale backup': dict(backup={'capturedAt': '2026-11-03T05:00:00Z'}),
+            'future backup': dict(backup={'capturedAt': '2026-11-04T23:00:00Z'}),
+            'bad run id': dict(backup={'runId': 'x'}),
+            'proof for another run': dict(proof={'backupRunId': '20261104T070000Z-aaaaaaaa'}),
+            'proof not bound to the manifest': dict(proof={'backupManifestSha256': '0' * 64}),
+            'stale proof': dict(proof={'capturedAt': '2026-11-04T02:00:00Z'}),
+            'proof older than the backup': dict(proof={'capturedAt': '2026-11-04T07:00:00Z'}),
+            'proof of another commit': dict(proof={'sourceCommit': 'e' * 40}),
+            'not a native proof': dict(proof={'fundedRuntime': {'version': 'alterward-funded-replay-1', 'schema': 40,
+                                                                'recoveryProfile': 'registry040', 'sourceCommit': COMMIT,
+                                                                'imageId': IMAGE}}),
+            'wrong table count': dict(proof={'tablesMatchedBeforeReplay': 101}),
+            'paid calls': dict(proof={'paidAiCalls': 1}),
+            'verification flag false': dict(proof={'independentReadOnlyPostReplayVerified': False}),
+            'activation allowed': dict(proof={'serviceActivationAllowed': True}),
+        }
+        for name, change in mutate.items():
+            with self.subTest(name):
+                self.write_evidence(**change)
+                if 'backup' in change and 'proof' not in change:
+                    # keep the proof bound to the (changed) manifest so only the changed fact is under test
+                    manifest = json.loads((self.ops / self.BACKUP_PATH).read_bytes())
+                    proof = json.loads((self.ops / env.RESTORE_PROOF_PATH).read_bytes())
+                    proof['backupManifestSha256'] = sha((self.ops / self.BACKUP_PATH).read_bytes())
+                    proof['backupRunId'] = manifest['runId']
+                    (self.ops / env.RESTORE_PROOF_PATH).unlink()
+                    env._create(self.ops / env.RESTORE_PROOF_PATH, json.dumps(proof).encode())
+                self.assert_refused(pattern='backup|proof|restore|Evidence')
+        self.write_evidence()
+        self.stepper.plan_report(self.request())      # the unchanged fixtures are accepted
+
+    def test_missing_or_non_json_evidence_is_refused(self):
+        (self.ops / env.RESTORE_PROOF_PATH).unlink()
+        self.assert_refused(pattern='missing')
+        env._create(self.ops / env.RESTORE_PROOF_PATH, b'not json')
+        self.assert_refused(pattern='JSON')
 
     def test_no_change_is_refused(self):
         self.apply()
@@ -444,7 +543,7 @@ class ServiceEnvTests(unittest.TestCase):
             self.stepper.apply(request, plan_sha256='0' * 64, confirm=report['confirm'])
         self.assertEqual(before, self.snapshot())
         self.assertFalse(list(self.step.iterdir()))
-        self.assertFalse(self.host.calls)
+        self.assertNotIn('restart', self.host.calls)
 
     def test_the_phrase_is_bound_to_the_exact_plan(self):
         first = self.stepper.plan_report(self.request())
@@ -471,7 +570,7 @@ class ServiceEnvTests(unittest.TestCase):
         self.assertEqual(old, self.snapshot())
         self.assertFalse(self.profile_dir.exists())
         # The rollback restarted and re-verified the old configuration.
-        self.assertEqual(self.host.calls, ['restart', 'verify', 'restart', 'verify'])
+        self.assertEqual(self.host.calls[self.host.calls.index('restart'):], ['restart', 'verify', 'restart', 'verify'])
 
     def test_a_failed_rollback_is_journaled_and_blocks_new_plans(self):
         self.host.restart_failures = 2
@@ -556,6 +655,159 @@ class ServiceEnvTests(unittest.TestCase):
         text = self.everything_written()
         for secret in SECRETS + [AUD, OLD_USER]:
             self.assertNotIn(secret, text)
+
+    # ---- review round: running state, beyond-environment drift, tamper, rollback exit ----
+    def test_a_running_stack_that_differs_from_the_stored_files_is_refused(self):
+        before = self.snapshot()
+        for service, key, value in (('api', 'BILLING_ENFORCEMENT', 'false'), ('worker', 'AI_PROJECT_BUDGET_USD', '999'),
+                                    ('web', 'CLOSED_SITE_ENABLED', 'false')):
+            with self.subTest(service, key=key):
+                self.setUp()
+                self.host.running['services'][service]['environment'][key] = value
+                with self.assertRaisesRegex(env.Refusal, 'Running services differ from the stored configuration'):
+                    self.stepper.plan_report(self.request())
+                self.assertEqual(before, self.snapshot())
+                self.assertNotIn('restart', self.host.calls)
+                self.assertFalse(list(self.step.iterdir()))
+
+    def test_plan_still_reads_only(self):
+        self.stepper.plan_report(self.request())
+        self.assertEqual(self.host.calls, ['verify'])          # inspect + anonymous probe only, no restart
+
+    def test_the_rendered_configuration_may_change_nothing_but_environment_values(self):
+        hooks = {
+            'command': lambda svc: svc['api'].update(command=['run', 'evil']),
+            'cap_drop': lambda svc: svc['worker'].update(cap_drop=[]),
+            'image': lambda svc: svc['web'].update(image='sha256:' + '7' * 64),
+            'volumes': lambda svc: svc['api'].update(volumes=['/:/host:rw']),
+            'ports': lambda svc: svc['web'].update(ports=['80:80']),
+        }
+        for name, hook in hooks.items():
+            with self.subTest(name):
+                self.setUp()
+                self.host.render_hook = hook
+                self.assert_refused(pattern='beyond the environment')
+
+    def test_every_service_must_run_with_service_access_enforcement(self):
+        self.host.render_hook = lambda svc: svc['web']['environment'].update(SERVICE_ACCESS_ENFORCEMENT='false')
+        self.assert_refused(pattern='service access enforcement')
+
+    def test_an_existing_unlisted_daily_limit_is_checked_in_the_resulting_environment(self):
+        self.rewrite_owner(lambda t: t + "GENERATION_DAILY_LIMIT='10'\n")
+        request = self.request()
+        del request['values']['GENERATION_DAILY_LIMIT']
+        self.assert_refused(request, 'daily generation limit')
+
+    def test_tampered_previous_files_block_the_rollback_and_nothing_is_overwritten(self):
+        class Interrupted(env.Stepper):
+            def _rollback(self, *args):
+                return False
+        stepper = Interrupted(owner_dir=self.owner, step_dir=self.step, profile_dir=self.profile_dir,
+                              state_dir=self.state, host=self.host, clock=self.clock,
+                              identity=lambda: ('operator', 'host'))
+        self.host.restart_failures = 1
+        with self.assertRaises(env.Refusal):
+            self.apply(stepper=stepper)
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        previous = self.step / operation / 'previous' / 'server.env'
+        previous.unlink()
+        env._create(previous, b"PUBLIC_HOST='evil'\n")
+        changed = self.snapshot()
+        with self.assertRaisesRegex(env.Refusal, 'Rollback did not verify'):
+            self.stepper.resume(operation)
+        self.assertEqual(changed, self.snapshot())
+        self.assertEqual(env.Journal(self.step).state(operation), 'rollback-failed')
+
+    def test_a_profile_generation_that_already_exists_with_other_content_is_refused(self):
+        real = self.stepper.profile.activate
+
+        def broken(*args, **kwargs):
+            raise self.stepper.profile.ProfileError('disk full')
+        self.stepper.profile.activate = broken
+        with self.assertRaises(env.Refusal):
+            self.apply()
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        plan = json.loads((self.step / operation / 'plan.json').read_bytes())
+        other = {'version': self.stepper.profile.PROFILE_VERSION, 'generation': 1,
+                 'parentProfileSha256': plan['parentProfileSha256'], 'sourceCommit': COMMIT, 'imageId': IMAGE,
+                 'effectiveComposeSha256': plan['after']['effectiveComposeSha256'],
+                 'serverEnvSha256': plan['after']['serverEnvSha256'],
+                 'pinnedImageSha256': plan['after']['pinnedImageSha256'], 'schema': 40,
+                 'serviceAccessEnforcement': True,
+                 'activation': {'approvalSha256': '9' * 64, 'approvedAt': '2026-11-04T09:00:00.000Z',
+                                'backupManifestSha256': '8' * 64, 'restoreProofSha256': '7' * 64},
+                 'restoredFrom': None}
+        real(self.profile_dir, other, now=NOW)
+        self.stepper.profile.activate = real
+        with self.assertRaisesRegex(env.Refusal, 'different service profile generation'):
+            self.stepper.resume(operation)
+        self.assertEqual(env.Journal(self.step).state(operation), 'env-applied')
+
+    def test_an_applied_environment_can_be_rolled_back_with_the_owners_sentence_until_its_profile_exists(self):
+        old = self.snapshot()
+
+        def broken(*args, **kwargs):
+            raise self.stepper.profile.ProfileError('disk full')
+        real = self.stepper.profile.activate
+        self.stepper.profile.activate = broken
+        with self.assertRaises(env.Refusal):
+            self.apply()
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        with self.assertRaisesRegex(env.Refusal, 'confirmation required'):
+            self.stepper.resume(operation, rollback=True)
+        with self.assertRaisesRegex(env.Refusal, 'confirmation required'):
+            self.stepper.resume(operation, rollback=True, confirm='rollback-service-env other')
+        self.assertNotEqual(old, self.snapshot())
+        result = self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
+        self.assertEqual(result['outcome'], 'rolled-back')
+        self.assertEqual(old, self.snapshot())
+        self.assertFalse(self.profile_dir.exists())
+        self.assertEqual(env.Journal(self.step).state(operation), 'rolled-back')
+        self.stepper.profile.activate = real
+        self.apply()   # a fresh generation 1 is possible afterwards
+
+    def test_a_rollback_is_refused_once_the_profile_generation_exists_or_outside_applied(self):
+        self.apply()
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        with self.assertRaisesRegex(env.Refusal, 'already ended'):
+            self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
+
+    def test_rollback_flag_does_not_apply_to_other_states(self):
+        class Interrupted(env.Stepper):
+            def _rollback(self, *args):
+                return False
+        stepper = Interrupted(owner_dir=self.owner, step_dir=self.step, profile_dir=self.profile_dir,
+                              state_dir=self.state, host=self.host, clock=self.clock,
+                              identity=lambda: ('operator', 'host'))
+        self.host.restart_failures = 1
+        with self.assertRaises(env.Refusal):
+            self.apply(stepper=stepper)
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        with self.assertRaisesRegex(env.Refusal, 'only applies to an applied environment'):
+            self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
+
+    def test_the_journal_chain_is_verified(self):
+        self.apply()
+        path = self.step / 'journal.jsonl'
+        rows = path.read_bytes().splitlines()
+        row = json.loads(rows[1])
+        row['previousSha256'] = '1' * 64
+        body = {k: v for k, v in row.items() if k != 'sha256'}
+        row['sha256'] = sha(env.canonical(body))
+        rows[1] = env.canonical(row).rstrip(b'\n')
+        os.chmod(path, 0o600)
+        path.write_bytes(b'\n'.join(rows) + b'\n')
+        with self.assertRaisesRegex(env.Refusal, 'chain broken'):
+            env.Journal(self.step).rows()
+
+    def test_the_queue_probe_covers_every_table_the_daily_probe_counts(self):
+        text = (directory / 'contabo-daily.py').read_text()
+        tables = re.findall(r"'((?:ff|aw)_[a-z_]+)'", text[text.index('PERSONAL_QUEUE_PROBE'):text.index('DATABASE_PROBE')])
+        wanted = {t for t in tables if t.endswith(('_jobs', '_reviews'))}
+        self.assertTrue({'ff_jobs', 'aw_scenario_reviews', 'aw_shared_jobs'} <= wanted)
+        for table in wanted | {'aw_jobs'}:
+            self.assertIn(f"'{table}'", env.HostRuntime.QUEUE_PROBE, table)
+
 
 
 class EnvEditingTests(unittest.TestCase):
