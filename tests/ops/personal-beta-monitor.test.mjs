@@ -87,6 +87,83 @@ test('read-only aggregate SQL accepts normal personal work and diagnoses stale, 
   }
 });
 
+test('service profile: queued work is healthy only for accounts with an active durable admission', async () => {
+  const db = new PGlite();
+  await db.waitReady;
+  try {
+    await db.exec(`CREATE TABLE ff_users(id uuid PRIMARY KEY,status text);
+      CREATE TABLE aw_service_admissions(user_id uuid PRIMARY KEY,state text);
+      CREATE TABLE aw_branches(id uuid PRIMARY KEY,user_id uuid,status text);
+      CREATE TABLE aw_jobs(user_id uuid,branch_id uuid,status text,created_at timestamptz,lease_token uuid,lease_until timestamptz);
+      CREATE TABLE aw_public_draft_reviews(status text);`);
+    for (const table of [
+      'ff_jobs',
+      'aw_shared_jobs',
+      'aw_public_review_jobs',
+      'aw_public_content_reviews',
+      'aw_scenario_reviews',
+    ])
+      await db.exec(`CREATE TABLE ${table}(status text)`);
+    await db.query("INSERT INTO ff_users VALUES($1,'active')", [user]);
+    await db.query("INSERT INTO aw_branches VALUES($1,$2,'generating')", [
+      branch,
+      user,
+    ]);
+    await db.query(
+      "INSERT INTO aw_jobs VALUES($1,$2,'queued',now(),NULL,NULL)",
+      [user, branch],
+    );
+    const run = async (
+      policy = { queueAllowed: true, userIds: [], serviceAdmission: true },
+    ) => {
+      await db.exec('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      try {
+        return await personalBetaQueueProbe(db, policy);
+      } finally {
+        await db.exec('ROLLBACK');
+      }
+    };
+    // No admission row: the job is unadmitted although the (empty) env list would have said the same.
+    assert.equal((await run()).unadmittedPersonal, 1);
+    assert.equal((await run()).queueHealthy, false);
+    await db.query("INSERT INTO aw_service_admissions VALUES($1,'active')", [
+      user,
+    ]);
+    const healthy = await run();
+    assert.equal(healthy.unadmittedPersonal, 0);
+    assert.equal(healthy.queueHealthy, true);
+    assert.ok(!JSON.stringify(healthy).includes(user));
+    await db.exec("UPDATE aw_service_admissions SET state='revoked'");
+    assert.equal((await run()).unadmittedPersonal, 1);
+    await db.exec(
+      "UPDATE aw_service_admissions SET state='active';UPDATE ff_users SET status='deleted'",
+    );
+    assert.equal((await run()).unadmittedPersonal, 1);
+    // The service flag never combines with an env account list.
+    const db2 = {
+      query: async () => {
+        throw Error('No query expected');
+      },
+    };
+    await assert.rejects(
+      personalBetaQueueProbe(db2, {
+        queueAllowed: true,
+        userIds: [user],
+        serviceAdmission: true,
+      }),
+    );
+    await assert.rejects(
+      personalBetaQueueProbe(db2, {
+        queueAllowed: true,
+        userIds: [],
+        serviceAdmission: 'true',
+      }),
+    );
+  } finally {
+    await db.close();
+  }
+});
+
 test('invalid admission metadata is refused before any database query', async () => {
   let calls = 0;
   const db = {

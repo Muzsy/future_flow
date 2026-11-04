@@ -73,6 +73,7 @@ services:
     environment:
       <<: *access
       SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       PUBLIC_EXTERNAL_EXPOSURE_ENABLED: ${PUBLIC_EXTERNAL_EXPOSURE_ENABLED:-false}
       PUBLIC_SITE_URL: https://${PUBLIC_HOST:?Set the public hostname}
       API_INTERNAL_URL: http://api:4000/api/public

@@ -44,7 +44,9 @@ EXPIRY_JOURNAL = '.expiry-journal'
 # This source is also exercised directly by the isolated SQL tests. The helper
 # receives bounded admission metadata in memory and emits only aggregate counts.
 PERSONAL_QUEUE_PROBE = r"""export async function personalBetaQueueProbe(client, policy) {
-  if (typeof policy?.queueAllowed !== 'boolean' || !Array.isArray(policy.userIds) || policy.userIds.length > 10 || new Set(policy.userIds).size !== policy.userIds.length || policy.userIds.some(id=>typeof id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id))) throw Error('Bounded monitor policy required');
+  if (typeof policy?.queueAllowed !== 'boolean' || !Array.isArray(policy.userIds) || policy.userIds.length > 10 || new Set(policy.userIds).size !== policy.userIds.length || policy.userIds.some(id=>typeof id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id)) || (policy.serviceAdmission!==undefined&&(policy.serviceAdmission!==true||policy.userIds.length!==0))) throw Error('Bounded monitor policy required');
+  // Service profile: jobs belong to accounts with an active durable admission (no env UUID list).
+  const admitted=policy.serviceAdmission===true?"NOT EXISTS(SELECT 1 FROM public.aw_service_admissions a WHERE a.user_id=j.user_id AND a.state='active')":"NOT(j.user_id=ANY($1::uuid[]))";
   let unexpectedPending=0;
   for (const table of ['ff_jobs','aw_shared_jobs','aw_public_review_jobs','aw_public_content_reviews','aw_scenario_reviews']) {
     unexpectedPending+=(await client.query(`SELECT count(*)::int AS n FROM public.${table} WHERE status IN ('queued','running','validating')`)).rows[0].n;
@@ -54,8 +56,8 @@ PERSONAL_QUEUE_PROBE = r"""export async function personalBetaQueueProbe(client, 
   const row=(await client.query(`SELECT count(*)::int AS "personalPending",
     count(*) FILTER(WHERE j.created_at<clock_timestamp()-interval '30 minutes')::int AS "stalePersonal",
     count(*) FILTER(WHERE (j.status='running' AND (j.lease_token IS NULL OR j.lease_until IS NULL OR j.lease_until<clock_timestamp()-interval '2 minutes')) OR (j.status='queued' AND (j.lease_token IS NOT NULL OR j.lease_until IS NOT NULL)))::int AS "expiredPersonal",
-    count(*) FILTER(WHERE u.id IS NULL OR u.status IS DISTINCT FROM 'active' OR NOT(j.user_id=ANY($1::uuid[])))::int AS "unadmittedPersonal"
-    FROM public.aw_jobs j LEFT JOIN public.ff_users u ON u.id=j.user_id WHERE j.status IN ('queued','running')`,[policy.userIds])).rows[0];
+    count(*) FILTER(WHERE u.id IS NULL OR u.status IS DISTINCT FROM 'active' OR ${admitted})::int AS "unadmittedPersonal"
+    FROM public.aw_jobs j LEFT JOIN public.ff_users u ON u.id=j.user_id WHERE j.status IN ('queued','running')`,policy.serviceAdmission===true?[]:[policy.userIds])).rows[0];
   const result={pendingJobs:row.personalPending+unexpectedPending,personalPending:row.personalPending,unexpectedPending,stalePersonal:row.stalePersonal,expiredPersonal:row.expiredPersonal,unadmittedPersonal:row.unadmittedPersonal};
   if (Object.values(result).some(v=>!Number.isSafeInteger(v)||v<0)) throw Error('Aggregate queue counts required');
   return {...result,queueHealthy:policy.queueAllowed?unexpectedPending===0&&row.stalePersonal===0&&row.expiredPersonal===0&&row.unadmittedPersonal===0:result.pendingJobs===0};
@@ -231,6 +233,84 @@ def bounded_budget(env, key, maximum):
     return amount
 
 
+# Service profile (ADR-011, P2): approved hard ceilings. They must equal the root
+# service-env step's ceilings; a parity test keeps the two in step.
+SERVICE_MAX_PROJECT_USD = 100
+SERVICE_MAX_USER_USD = 8.5
+SERVICE_MAX_DAILY_LIMIT = 3
+SERVICE_MAX_WINDOW_DAYS = 31
+
+
+def service_profile_enforced(environments):
+    values = [env.get('SERVICE_ACCESS_ENFORCEMENT', 'false') for env in environments.values()]
+    if any(v not in ('true', 'false') for v in values):
+        raise ValueError('Strict service access enforcement flag required')
+    if len(set(values)) != 1:
+        raise ValueError('Services disagree on service access enforcement')
+    return values[0] == 'true'
+
+
+def service_runtime_policy(environments, now):
+    """Validate the approved service profile (replaces the beta/owner matrix when enforced).
+
+    Admission comes from the durable registry, so the env carries no account list:
+    both beta lists must be empty. Budgets are bounded by the approved ceilings and
+    need a fixed UTC window. Returns the monitor policy; no UUID or provider value
+    leaves this function.
+    """
+    if set(environments) != {'web', 'api', 'worker'}:
+        raise ValueError('Three services required')
+    web, api, worker = (environments[k] for k in ('web', 'api', 'worker'))
+    for env in (web, api):
+        if env.get('CLOSED_SITE_ENABLED') != 'true' or env.get('OPENAI_API_KEY') or env.get('ANTHROPIC_API_KEY'):
+            raise ValueError('Closed origin and worker-only providers required')
+    if web.get('PUBLIC_EXTERNAL_EXPOSURE_ENABLED') != 'false':
+        raise ValueError('External exposure remains disabled')
+    for env in (api, worker):
+        if any(env.get(k) != 'false' for k in SHARED_FLAGS):
+            raise ValueError('Personal service only')
+        if env.get('CLOSED_BETA_USER_IDS', '') != '' or env.get('NARRATIVE_COHORT_USER_IDS', '') != '':
+            raise ValueError('Service profile admits through the registry, not an env list')
+        if env.get('BILLING_ENABLED') != 'true' or env.get('BILLING_ENFORCEMENT') != 'true':
+            raise ValueError('Service profile requires enforced chapter billing')
+    for key in ('AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD', 'NARRATIVE_PIPELINE_MODE',
+                'NARRATIVE_FICTION_GENERATION', 'AI_BUDGET_WINDOW_REQUIRED'):
+        if api.get(key, '') != worker.get(key, ''):
+            raise ValueError('API and worker budget or narrative mismatch')
+    if worker.get('NARRATIVE_PIPELINE_MODE') != 'narrative-fiction-v2' or \
+            worker.get('NARRATIVE_FICTION_GENERATION') != 'v9':
+        raise ValueError('Service profile requires the frozen v9 narrative')
+    for key, default, low, high in [('AI_FICTION_TIMEOUT_MS', '180000', 1000, 300000),
+                                   ('AI_FICTION_MAX_REQUEST_BYTES', '100000', 100000, 196608)]:
+        value = worker.get(key, default)
+        if not isinstance(value, str) or not re.fullmatch(r'\d+', value) or not low <= int(value) <= high:
+            raise ValueError('Bounded narrative worker runtime required')
+    project = bounded_budget(worker, 'AI_PROJECT_BUDGET_USD', SERVICE_MAX_PROJECT_USD)
+    user = bounded_budget(worker, 'AI_USER_BUDGET_USD', SERVICE_MAX_USER_USD)
+    if project <= 0 or user <= 0 or user > project:
+        raise ValueError('Positive ordered service budgets required')
+    if bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 0) != 0 or worker.get('ANTHROPIC_API_KEY'):
+        raise ValueError('No Claude production allowance in the service profile')
+    bounded_budget(worker, 'AI_PROJECT_INITIAL_SPENT_USD', 0)
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
+        raise ValueError('Fixed spending period required')
+    if worker.get('OPENAI_API_KEY') in (None, '', 'alterward_owner_provider_access_disabled'):
+        raise ValueError('Funded OpenAI worker requires its provider')
+    stamps = []
+    for key in ('AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'):
+        value = worker.get(key, '')
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z', value):
+            raise ValueError('Exact UTC budget window required')
+        stamps.append(dt.datetime.fromisoformat(value.replace('Z', '+00:00')))
+    if not 0 < (stamps[1] - stamps[0]).total_seconds() <= SERVICE_MAX_WINDOW_DAYS * 86400:
+        raise ValueError('Bounded service budget window required')
+    daily = api.get('GENERATION_DAILY_LIMIT', '3')
+    if not re.fullmatch(r'[1-9]', daily) or int(daily) > SERVICE_MAX_DAILY_LIMIT:
+        raise ValueError('Bounded daily generation limit required')
+    return {'mode': 'service', 'queueAllowed': stamps[0] <= now < stamps[1], 'userIds': [],
+            'serviceAdmission': True}
+
+
 def personal_runtime_policy(environments, now):
     """Validate only an inactive owner or the approved personal beta.
 
@@ -239,6 +319,8 @@ def personal_runtime_policy(environments, now):
     """
     if set(environments) != {'web', 'api', 'worker'}:
         raise ValueError('Three services required')
+    if service_profile_enforced(environments):
+        return service_runtime_policy(environments, now)
     web, api, worker = (environments[k] for k in ('web', 'api', 'worker'))
     for env in (web, api):
         if env.get('CLOSED_SITE_ENABLED') != 'true' or env.get('OPENAI_API_KEY') or env.get('ANTHROPIC_API_KEY'):
@@ -464,6 +546,9 @@ def personal_config_paths():
 SERVICE_ARCHIVE_POLICY_VERSION = 1
 SERVICE_PROFILE_DIR = ORIGINAL_ROOT / 'service-profile'
 SERVICE_OPERATION_DIR = Path('/var/lib/alterward/service-operations')
+SERVICE_ENV_DIR = ORIGINAL_ROOT / 'service-env'
+SERVICE_ENV_JOURNAL_VERSION = 'alterward-service-env-journal-1'
+SERVICE_ENV_PREVIOUS_NAMES = {'server.env', 'effective-compose.json', 'manifest.json', 'pinned-image.json'}
 SERVICE_PROFILE_VERSION = 'alterward-service-profile-1'
 SERVICE_HEAD_VERSION = 'alterward-service-profile-head-1'
 SERVICE_PROFILE_JOURNAL_VERSION = 'alterward-service-profile-journal-1'
@@ -536,6 +621,38 @@ def service_config_paths():
                     files.append(child)
             else:
                 raise ValueError('Unknown service operation evidence')
+    if SERVICE_ENV_DIR.exists() or SERVICE_ENV_DIR.is_symlink():
+        # Service-env step evidence (P2): journal, one directory per operation holding the
+        # approved plan and the previous owner files (they contain the old server.env, so
+        # the whole tree is root/0600 and only ever leaves the host inside the encrypted archive).
+        service_directory(SERVICE_ENV_DIR)
+        operations = 0
+        for item in SERVICE_ENV_DIR.iterdir():
+            if item.name == 'journal.jsonl':
+                service_regular(item, (0o600,))
+                files.append(item)
+            elif item.name == '.lock':
+                continue
+            elif SERVICE_OPERATION_ID.fullmatch(item.name):
+                operations += 1
+                if operations > SERVICE_OPERATION_LIMIT:
+                    raise ValueError('Too many service-env operations to archive')
+                service_directory(item)
+                for child in item.iterdir():
+                    if child.name == 'plan.json':
+                        service_regular(child, (0o600,))
+                        files.append(child)
+                    elif child.name == 'previous':
+                        service_directory(child)
+                        for old in child.iterdir():
+                            if old.name not in SERVICE_ENV_PREVIOUS_NAMES:
+                                raise ValueError('Unknown service-env evidence')
+                            service_regular(old, (0o600,))
+                            files.append(old)
+                    else:
+                        raise ValueError('Unknown service-env evidence')
+            else:
+                raise ValueError('Unknown service-env evidence')
     return sorted(files)
 
 
@@ -820,7 +937,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/worker/src/main.ts': '10134cf57123abc8d6f7cf1f1f31a37197280ecb80f148a8a956d185ce9b4fae',
     'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
     'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
-    'deploy/compose.yaml': '54d0170b7974a46432b3a4993c527ec8e8626ad7e18ad53a8c563f102edb4fea',
+    'deploy/compose.yaml': 'efedb9d45d192f8097e81df9dbeb8f4d98c2195cf2aee6c495db3a55e70cd751',
     'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
     'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
@@ -2431,7 +2548,7 @@ def alerts_for(health, now):
     if not health['databaseTlsVerified']:
         alerts.append('database_tls')
     if health.get('queueHealthy', health['pendingJobs'] == 0) is not True:
-        alerts.append('personal_queue_unhealthy' if health.get('runtimeMode') == 'personal-beta' else 'unexpected_owner_jobs')
+        alerts.append('personal_queue_unhealthy' if health.get('runtimeMode') in ('personal-beta', 'service') else 'unexpected_owner_jobs')
     if health['anonymousDenied'] != 4 or not health['edgeClosed']:
         alerts.append('access_boundary')
     if health['diskFreeBytes'] < 2 * 1024**3:
@@ -2517,7 +2634,8 @@ def monitor(value):
                                           for service, value in services.items()}, utcnow())
         database = json.loads(command(['docker', 'exec', '-i', services['api']['Id'], 'node',
             '--max-old-space-size=128', '--input-type=module', '-e', DATABASE_PROBE, 'monitor'],
-            input=json.dumps({'queueAllowed': policy['queueAllowed'], 'userIds': policy['userIds']}).encode()))
+            input=json.dumps({'queueAllowed': policy['queueAllowed'], 'userIds': policy['userIds'],
+                                **({'serviceAdmission': True} if policy.get('serviceAdmission') else {})}).encode()))
         origin = json.loads(command(['docker', 'exec', services['api']['Id'], 'node',
                                     '--input-type=module', '-e', ORIGIN_PROBE]))
         records = completed_archives(ROOT / 'backups')
@@ -2534,7 +2652,9 @@ def monitor(value):
         service['policy'] = database.pop('servicePolicy', None)
         database.pop('servicePolicyTable', None)
         health = {'ownerHealthy': True, 'runtimeMode': policy['mode'], **database, **origin, 'service': service,
-            'personalTransitionHealthy': personal_transition_healthy(policy['mode']),
+            # The service profile follows the funded personal beta: the transition evidence is unchanged.
+            'personalTransitionHealthy': personal_transition_healthy(
+                'personal-beta' if policy['mode'] == 'service' else policy['mode']),
             'registryRestoreHealthy': registry_restore_healthy(value),
             'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
