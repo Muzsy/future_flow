@@ -21,6 +21,7 @@ IMAGE = 'sha256:' + 'b' * 64
 COMMIT = 'a' * 40
 AUD = 'c' * 64
 SECRETS = ['sk_live_FAKESECRET', 'whsec_FAKEWEBHOOK', 'sk-real-fake-provider', 'postgresql://u:FAKEPASSWORD@h/db']
+PREPARED = hashlib.sha256(b'successor-prepared').hexdigest()
 OLD_USER = '11111111-1111-4111-8111-111111111111'
 
 SERVER_ENV = f"""# owner env (test)
@@ -79,7 +80,8 @@ class FakeHost:
         self.observed_override = {}    # what the running stack reports instead (profile check)
         self.calls = []
         self.successor = {'pending': False, 'upgradeHealthy': True, 'purpose': 'billing-config-040',
-                          'stage': 'enforce', 'readbackSha256': sha(b'successor-readback')}
+                          'stage': 'enforce', 'readbackSha256': sha(b'successor-readback'),
+                          'preparedSha256': PREPARED}
 
     def successor_state(self):
         return dict(self.successor)
@@ -167,13 +169,15 @@ class ServiceEnvTests(unittest.TestCase):
     RUN = '20261104T080000Z-12345678'
     BACKUP_PATH = f'daily/backups/{RUN}/manifest.json'
 
-    def write_evidence(self, backup=None, proof=None):
+    def write_evidence(self, backup=None, proof=None, funded=None):
         backup = {'runId': self.RUN, 'ownerCommit': COMMIT, 'ownerImage': IMAGE,
                   'capturedAt': '2026-11-04T08:00:00Z', **(backup or {})}
         backup_bytes = json.dumps(backup).encode()
         proof = {'backupRunId': self.RUN, 'backupManifestSha256': sha(backup_bytes), 'sourceCommit': COMMIT,
                  'fundedRuntime': {'version': 'alterward-funded-replay-2', 'schema': 40,
-                                   'recoveryProfile': 'registry040', 'sourceCommit': COMMIT, 'imageId': IMAGE},
+                                   'recoveryProfile': 'registry040', 'sourceCommit': COMMIT, 'imageId': IMAGE,
+                                   'ownerManifestDigest': sha((self.owner / 'manifest.json').read_bytes()),
+                                   'preparedSha256': PREPARED, **(funded or {})},
                  'tablesMatchedBeforeReplay': 103, 'reviewedTables': 102, 'reviewedForeignKeys': 226,
                  'paidAiCalls': 0, 'capturedAt': '2026-11-04T08:30:00Z',
                  **{k: True for k in env.PROOF_TRUE}, **{k: False for k in env.PROOF_FALSE}, **(proof or {})}
@@ -313,6 +317,10 @@ class ServiceEnvTests(unittest.TestCase):
     def test_a_second_generation_chains_to_the_first(self):
         self.apply()
         first = self.stepper.profile.verify(self.profile_dir)
+        # The first step rewrote the owner manifest, so the old proof no longer binds to it.
+        with self.assertRaisesRegex(env.Refusal, 'not bound to the current owner manifest'):
+            self.stepper.plan_report(self.request(AI_PROJECT_BUDGET_USD='100'))
+        self.write_evidence()
         request = self.request(AI_PROJECT_BUDGET_USD='100', AI_USER_BUDGET_USD='8.5', GENERATION_DAILY_LIMIT='3',
                                AI_BUDGET_WINDOW_START='2026-12-05T00:00:00Z', AI_BUDGET_WINDOW_END='2027-01-04T00:00:00Z')
         report = self.stepper.plan_report(request)
@@ -432,6 +440,7 @@ class ServiceEnvTests(unittest.TestCase):
                            'manifest.json': env.encoded(manifest)}.items():
             env._replace(self.owner / name, data)
         self.host.running = env.unfrozen(json.loads(compose))
+        self.write_evidence()      # the proof is bound to the owner manifest digest
 
     def test_a_placeholder_provider_key_is_refused_for_a_positive_budget(self):
         self.rewrite_owner(lambda t: t.replace(SECRETS[2], env.PLACEHOLDER_PROVIDER))
@@ -499,6 +508,10 @@ class ServiceEnvTests(unittest.TestCase):
             'not a native proof': dict(proof={'fundedRuntime': {'version': 'alterward-funded-replay-1', 'schema': 40,
                                                                 'recoveryProfile': 'registry040', 'sourceCommit': COMMIT,
                                                                 'imageId': IMAGE}}),
+            'proof of another owner manifest': dict(funded={'ownerManifestDigest': '0' * 64}),
+            'proof of another successor candidate': dict(funded={'preparedSha256': '1' * 64}),
+            'proof without the owner manifest digest': dict(funded={'ownerManifestDigest': None}),
+            'proof without the candidate digest': dict(funded={'preparedSha256': None}),
             'wrong table count': dict(proof={'tablesMatchedBeforeReplay': 101}),
             'paid calls': dict(proof={'paidAiCalls': 1}),
             'verification flag false': dict(proof={'independentReadOnlyPostReplayVerified': False}),
@@ -939,7 +952,7 @@ class DailyLoadingTests(unittest.TestCase):
         self.assertEqual(loads, [])                       # construction never loads Daily
         state = host.successor_state()
         self.assertEqual(state, {'pending': False, 'upgradeHealthy': True, 'purpose': None, 'stage': None,
-                                 'readbackSha256': None})
+                                 'readbackSha256': None, 'preparedSha256': None})
         host.successor_state()
         self.assertEqual(loads, [1])                      # and a second read reuses it
 

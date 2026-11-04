@@ -350,7 +350,7 @@ def _moment(value):
     return stamp
 
 
-def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now):
+def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now, *, owner_manifest_sha256, prepared_sha256):
     """The backup manifest and the native 040 restore proof must be real, bound to each other
     and to the running release, and fresh. Same facts the Daily registry_restore_healthy
     verifies (without importing it); any missing field fails closed."""
@@ -372,6 +372,10 @@ def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now):
             or active.get('schema') != 40 or active.get('recoveryProfile') != 'registry040'
             or active.get('sourceCommit') != backup.get('ownerCommit') or active.get('imageId') != backup.get('ownerImage')):
         raise Refusal('The restore proof is not a native 040 proof')
+    # Bound to the exact owner manifest and successor candidate the Daily compares it with.
+    if (not HEX64.fullmatch(str(active.get('ownerManifestDigest'))) or active.get('ownerManifestDigest') != owner_manifest_sha256
+            or not HEX64.fullmatch(str(active.get('preparedSha256'))) or active.get('preparedSha256') != prepared_sha256):
+        raise Refusal('The restore proof is not bound to the current owner manifest and successor candidate')
     if (proof.get('tablesMatchedBeforeReplay') != 103 or proof.get('reviewedTables') != 102
             or proof.get('reviewedForeignKeys') != 226 or proof.get('paidAiCalls') != 0
             or any(proof.get(k) is not True for k in PROOF_TRUE) or any(proof.get(k) is not False for k in PROOF_FALSE)):
@@ -550,7 +554,9 @@ class Stepper:
         evidence_root = ops_root(self.owner)
         backup_bytes = _private_read(evidence_root / request['backupManifestPath'])
         proof_bytes = _private_read(evidence_root / request['restoreProofPath'])
-        check_evidence(backup_bytes, proof_bytes, manifest, self.clock())
+        check_evidence(backup_bytes, proof_bytes, manifest, self.clock(),
+                       owner_manifest_sha256=sha(files['manifest.json']),
+                       prepared_sha256=successor.get('preparedSha256'))
         backup, restore = sha(backup_bytes), sha(proof_bytes)
         new_manifest = {**manifest, 'ownerEnvironmentSha256': sha(env_after_text.encode()),
                         'effectiveComposeSha256': sha(new_frozen)}
@@ -876,12 +882,14 @@ class HostRuntime:
             healthy = bool(daily.funded_upgrade_healthy('personal-beta'))
             if not daily.successor_roots():
                 return {'pending': False, 'upgradeHealthy': healthy, 'purpose': None, 'stage': None,
-                        'readbackSha256': None}
+                        'readbackSha256': None, 'preparedSha256': None}
             state = daily.successor_active_state()
-            plan = json.loads(daily.regular(state['directory'] / 'prepared.json'))['operation']['plan']
+            prepared = daily.regular(state['directory'] / 'prepared.json')
+            plan = json.loads(prepared)['operation']['plan']
             readback = daily.regular(state['directory'] / 'readback.json')
             return {'pending': state['pending'] is not None, 'upgradeHealthy': healthy,
-                    'purpose': plan.get('purpose'), 'stage': plan.get('stage'), 'readbackSha256': sha(readback)}
+                    'purpose': plan.get('purpose'), 'stage': plan.get('stage'), 'readbackSha256': sha(readback),
+                    'preparedSha256': sha(prepared)}
         except Refusal:
             raise
         except Exception:
