@@ -112,6 +112,26 @@ def _load(name, filename):
     return module
 
 
+DAILY_SCRIPTS = OPS / 'daily/scripts'
+
+
+def load_daily(directory=None):
+    """Load the installed Daily the way its own entry and the recovery tools do.
+
+    Daily imports the shared library as `alterward_backup`, so that module is registered first.
+    Only the paths that read the successor chain need it; the rest of this step never loads Daily.
+    """
+    directory = Path(directory) if directory is not None else DAILY_SCRIPTS
+    sys.dont_write_bytecode = True
+    for name, filename in (('alterward_backup', 'backup_lib.py'), ('alterward_daily', 'contabo-daily.py')):
+        spec = importlib.util.spec_from_file_location(name, directory / filename)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    module.config()  # Checks the installed Daily scripts against their recorded hashes.
+    return module
+
+
 def canonical(value):
     return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode()
 
@@ -314,8 +334,8 @@ def check_compose_delta(old, new, changed):
             raise Refusal('Every service must run with service access enforcement')
     if seen != set(changed):
         raise Refusal('A planned key does not reach the rendered services')
-    if not any((new['services'][n].get('environment') or {}).get('TURNSTILE_SITE_KEY') for n in SERVICES):
-        raise Refusal('The Turnstile site key does not reach the rendered services')
+    if not (new['services']['web'].get('environment') or {}).get('TURNSTILE_SITE_KEY'):
+        raise Refusal('The Turnstile site key does not reach the rendered web service')
 
 
 def _moment(value):
@@ -650,7 +670,13 @@ class Stepper:
                            'backupManifestSha256': plan['backupManifestSha256'],
                            'restoreProofSha256': plan['restoreProofSha256']},
             'restoredFrom': None}
-        expected_hash = self.profile.profile_hash(self.profile.parse_profile(profile))
+        parsed = self.profile.parse_profile(profile)
+        expected_hash = self.profile.profile_hash(parsed)
+        # The record is the root of trust for the running service: write it only for a service that already matches.
+        try:
+            self.operator.assert_running_matches(parsed, self.host.observe())
+        except self.operator.Refusal as error:
+            raise Refusal('Running service does not match the service profile to be activated: ' + str(error)) from None
         current = self._spr_state_or_none()
         if current is not None and current['generation'] == plan['generation']:
             if current['profileSha256'] != expected_hash:
@@ -665,10 +691,8 @@ class Stepper:
                 raise Refusal('Service profile activation failed (the environment is live): '
                               'run resume --operation-id ' + operation_id + ': ' + str(error)) from None
         record = self.profile.verify(self.profile_dir)
-        try:
-            self.operator.assert_running_matches(record['profile'], self.host.observe())
-        except self.operator.Refusal as error:
-            raise Refusal('Running service does not match the new service profile: ' + str(error)) from None
+        if record['profileSha256'] != expected_hash:
+            raise Refusal('The active service profile is not the planned generation')
         self.journal.append('completed', operation_id, self.clock(), generation=record['generation'],
                             profileSha256=record['profileSha256'])
         return {'operationId': operation_id, 'generation': record['generation'],
@@ -749,11 +773,19 @@ class HostRuntime:
                        "throw Error('Origin access boundary failed');count++}"
                        "console.log(JSON.stringify({anonymousDenied:count}));")
 
-    def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None, daily=None):
+    def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None, daily=None, daily_loader=None):
         self.owner = Path(owner_dir)
         self.runner = runner or self._run
         self.operator = operator
-        self.daily = daily
+        self._daily = daily
+        self._daily_loader = daily_loader or load_daily
+
+    @property
+    def daily(self):
+        """Daily is loaded on first use: rollback and the other host calls never touch it."""
+        if self._daily is None:
+            self._daily = self._daily_loader()
+        return self._daily
 
     @staticmethod
     def _run(args, *, input=None, timeout=60):
@@ -839,8 +871,8 @@ class HostRuntime:
 
     def successor_state(self):
         """The successor chain's last fully exposed generation, read through Daily's own validators."""
-        daily = self.daily
         try:
+            daily = self.daily
             healthy = bool(daily.funded_upgrade_healthy('personal-beta'))
             if not daily.successor_roots():
                 return {'pending': False, 'upgradeHealthy': healthy, 'purpose': None, 'stage': None,
@@ -886,19 +918,25 @@ def run(arguments, stepper):
     return stepper.apply(request, plan_sha256=arguments.plan_sha256, confirm=arguments.confirm)
 
 
+def build_stepper():
+    """Wire the step to the real host. Daily is not loaded here: only the plan path reads it, lazily."""
+    operator = _load('service_operator_for_env_main', 'contabo-service-operator.py')
+    _private_directory(STATE_DIR, create=True)
+    _private_directory(STEP_DIR, create=True)
+    stepper = Stepper(owner_dir=OWNER_DIR, step_dir=STEP_DIR, profile_dir=PROFILE_DIR, state_dir=STATE_DIR,
+                      host=HostRuntime(operator=operator), clock=lambda: dt.datetime.now(dt.timezone.utc),
+                      identity=lambda: (os.environ.get('SUDO_USER') or os.environ.get('USER') or 'root',
+                                        socket.gethostname()))
+    return operator, stepper
+
+
 def main(argv=None):
     arguments = parser().parse_args(sys.argv[1:] if argv is None else argv)
     if _uid() != 0:
         print('root required', file=sys.stderr)
         return 2
     try:
-        operator = _load('service_operator_for_env_main', 'contabo-service-operator.py')
-        _private_directory(STATE_DIR, create=True)
-        _private_directory(STEP_DIR, create=True)
-        stepper = Stepper(owner_dir=OWNER_DIR, step_dir=STEP_DIR, profile_dir=PROFILE_DIR, state_dir=STATE_DIR,
-                          host=HostRuntime(operator=operator, daily=_load('daily_for_env', 'contabo-daily.py')), clock=lambda: dt.datetime.now(dt.timezone.utc),
-                          identity=lambda: (os.environ.get('SUDO_USER') or os.environ.get('USER') or 'root',
-                                            socket.gethostname()))
+        operator, stepper = build_stepper()
         # The operator's lock keeps a service operation and this step from running together.
         with operator.operation_lock(STATE_DIR):
             print(json.dumps(run(arguments, stepper), sort_keys=True))

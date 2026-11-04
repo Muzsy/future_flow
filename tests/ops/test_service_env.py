@@ -5,9 +5,11 @@ import importlib.util
 import json
 import os
 import re
+import sys
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 directory = Path(__file__).resolve().parents[2] / 'scripts/ops'
 spec = importlib.util.spec_from_file_location('service_env', directory / 'contabo-service-env.py')
@@ -74,6 +76,7 @@ class FakeHost:
         self.running = None
         self.restart_failures = 0      # remaining failing restarts
         self.verify_failures = 0
+        self.observed_override = {}    # what the running stack reports instead (profile check)
         self.calls = []
         self.successor = {'pending': False, 'upgradeHealthy': True, 'purpose': 'billing-config-040',
                           'stage': 'enforce', 'readbackSha256': sha(b'successor-readback')}
@@ -126,7 +129,7 @@ class FakeHost:
                 'serverEnvSha256': sha(files['server.env']), 'pinnedImageSha256': sha(files['pinned-image.json']),
                 'serviceAccessEnforcement': all(
                     self.running['services'][s]['environment']['SERVICE_ACCESS_ENFORCEMENT'] == 'true'
-                    for s in env.SERVICES)}
+                    for s in env.SERVICES), **self.observed_override}
 
 
 def make_private(path):
@@ -366,6 +369,14 @@ class ServiceEnvTests(unittest.TestCase):
         self.addCleanup(KEYS['web'].append, 'TURNSTILE_SITE_KEY')
         self.setUp()  # rebuild the owner files from a release compose that lacks the variable
         self.assert_refused(pattern='does not reach')
+
+    def test_a_turnstile_key_that_only_reaches_another_service_is_refused(self):
+        KEYS['web'].remove('TURNSTILE_SITE_KEY')
+        KEYS['api'].append('TURNSTILE_SITE_KEY')
+        self.addCleanup(KEYS['web'].append, 'TURNSTILE_SITE_KEY')
+        self.addCleanup(KEYS['api'].remove, 'TURNSTILE_SITE_KEY')
+        self.setUp()
+        self.assert_refused(pattern='rendered web service')
 
     def test_the_turnstile_rule_equals_the_web_rule(self):
         # The web accepts ^[0-3]x[A-Za-z0-9_-]{15,64}$ (#161); anything else would hide the form silently.
@@ -786,6 +797,48 @@ class ServiceEnvTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'only applies to an applied environment'):
             self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
 
+    def test_a_running_stack_that_does_not_match_the_new_profile_gets_no_profile_record(self):
+        self.host.observed_override = {'images': {s: 'sha256:' + '9' * 64 for s in env.SERVICES}}
+        with self.assertRaisesRegex(env.Refusal, 'does not match the service profile to be activated'):
+            self.apply()
+        self.assertFalse(self.profile_dir.exists())              # the record is not written first
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        self.assertEqual(env.Journal(self.step).state(operation), 'env-applied')
+        self.host.observed_override = {}
+        self.assertEqual(self.stepper.resume(operation)['generation'], 1)
+
+    def test_a_rollback_is_refused_once_the_profile_record_exists_even_if_the_journal_lags(self):
+        real = self.stepper.profile.activate
+
+        def activate_then_die(*args, **kwargs):
+            real(*args, **kwargs)
+            raise self.stepper.profile.ProfileError('died after the write')
+        self.stepper.profile.activate = activate_then_die
+        with self.assertRaises(env.Refusal):
+            self.apply()
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        self.assertEqual(env.Journal(self.step).state(operation), 'env-applied')
+        after_apply = self.snapshot()
+        self.host.calls.clear()
+        with self.assertRaisesRegex(env.Refusal, 'generation already exists'):
+            self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
+        self.assertEqual(after_apply, self.snapshot())           # nothing was restored
+        self.assertNotIn('restart', self.host.calls)
+        self.assertEqual(env.Journal(self.step).state(operation), 'env-applied')
+
+    def test_a_rollback_that_does_not_verify_says_so_and_is_journaled(self):
+        def broken(*args, **kwargs):
+            raise self.stepper.profile.ProfileError('disk full')
+        self.stepper.profile.activate = broken
+        with self.assertRaises(env.Refusal):
+            self.apply()
+        operation = env.Journal(self.step).rows()[0]['operationId']
+        self.host.restart_failures = 1
+        with self.assertRaisesRegex(env.Refusal, 'Rollback did not verify: service left as is; emergency stop'):
+            self.stepper.resume(operation, rollback=True, confirm=f'rollback-service-env {operation}')
+        self.assertEqual(env.Journal(self.step).state(operation), 'rollback-failed')
+        self.assertFalse(self.profile_dir.exists())
+
     def test_the_journal_chain_is_verified(self):
         self.apply()
         path = self.step / 'journal.jsonl'
@@ -832,6 +885,80 @@ class EnvEditingTests(unittest.TestCase):
         for key in env.ALLOWED:
             self.assertFalse(any(part in key for part in ('SECRET', 'PASSWORD', 'TOKEN', 'STRIPE', 'BILLING_', 'DATABASE', 'OPENAI')),
                              key)
+
+
+DAILY_BACKUP_LIB = "MARK = 'backup-lib'\n"
+DAILY_SCRIPT = """import alterward_backup as backup  # as the real Daily: needs the registered library
+import json
+
+def config():
+    if backup.MARK != 'backup-lib':
+        raise ValueError('library missing')
+
+def regular(path):
+    return path.read_bytes()
+
+def funded_upgrade_healthy(mode):
+    return mode == 'personal-beta'
+
+def successor_roots():
+    return []
+"""
+
+
+@unittest.skipIf(os.name != 'posix', 'POSIX permission, ownership and lock checks')
+class DailyLoadingTests(unittest.TestCase):
+    """Daily is loaded the way its own entry does, and only by the paths that read the successor chain."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.scripts = self.root / 'daily/scripts'
+        self.scripts.mkdir(parents=True)
+        (self.scripts / 'backup_lib.py').write_text(DAILY_BACKUP_LIB)
+        (self.scripts / 'contabo-daily.py').write_text(DAILY_SCRIPT)
+        for name in ('alterward_backup', 'alterward_daily'):
+            saved = sys.modules.pop(name, None)
+            self.addCleanup(lambda n=name, m=saved: sys.modules.pop(n, None) if m is None
+                            else sys.modules.__setitem__(n, m))
+
+    def test_the_loader_registers_the_backup_library_before_daily(self):
+        daily = env.load_daily(self.scripts)
+        self.assertIs(sys.modules['alterward_daily'], daily)
+        self.assertEqual(sys.modules['alterward_backup'].MARK, 'backup-lib')
+
+    def test_a_daily_that_fails_its_own_check_is_refused_not_trusted(self):
+        (self.scripts / 'backup_lib.py').write_text("MARK = 'tampered'\n")
+        with self.assertRaises(ValueError):
+            env.load_daily(self.scripts)
+
+    def test_the_successor_state_loads_daily_lazily_and_reads_it(self):
+        loads = []
+        host = env.HostRuntime(daily_loader=lambda: loads.append(1) or env.load_daily(self.scripts))
+        self.assertEqual(loads, [])                       # construction never loads Daily
+        state = host.successor_state()
+        self.assertEqual(state, {'pending': False, 'upgradeHealthy': True, 'purpose': None, 'stage': None,
+                                 'readbackSha256': None})
+        host.successor_state()
+        self.assertEqual(loads, [1])                      # and a second read reuses it
+
+    def test_an_unloadable_daily_is_a_value_free_refusal(self):
+        (self.scripts / 'contabo-daily.py').unlink()
+        host = env.HostRuntime(daily_loader=lambda: env.load_daily(self.scripts))
+        with self.assertRaisesRegex(env.Refusal, 'successor chain could not be read'):
+            host.successor_state()
+
+    def test_building_the_step_does_not_load_daily_and_the_default_directory_is_the_installed_one(self):
+        self.assertEqual(env.DAILY_SCRIPTS, Path('/root/alterward-ops/daily/scripts'))
+        state, step = self.root / 'state', self.root / 'step'
+        loads = []
+        with mock.patch.object(env, 'STATE_DIR', state), mock.patch.object(env, 'STEP_DIR', step), \
+                mock.patch.object(env, 'load_daily', lambda *a: loads.append(1)):
+            operator, stepper = env.build_stepper()
+            self.assertIsNone(stepper.host._daily)
+            self.assertEqual(loads, [])
+            self.assertTrue(callable(operator.operation_lock))
 
 
 if __name__ == '__main__':
