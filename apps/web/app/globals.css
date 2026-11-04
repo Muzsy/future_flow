@@ -1346,3 +1346,7 @@ progress {
 footer a {
   color: var(--green);
 }
+.captcha {
+  margin: 14px 0 8px;
+  min-height: 65px;
+}

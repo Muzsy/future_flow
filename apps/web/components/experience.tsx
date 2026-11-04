@@ -36,6 +36,9 @@ import {
   clientErrorMessage,
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
+import { TurnstileWidget } from './turnstile-widget';
+import { captchaSatisfied } from '../lib/turnstile';
+import { signInWithPassword, signUpWithPassword } from '../lib/auth-requests';
 import { LifeExperience } from './life-experience';
 import { AdmissionPanel, useAdmission } from './admission-gate';
 import { admissionGated, showsContent } from '../lib/admission';
@@ -110,7 +113,13 @@ type Job = {
 };
 const message = clientErrorMessage;
 
-export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
+export function Experience({
+  allowSignup = true,
+  turnstileSiteKey = null,
+}: {
+  allowSignup?: boolean;
+  turnstileSiteKey?: string | null;
+}) {
   const { locale, t } = useLanguage();
   const questionnaire = getQuestionnaire(locale);
   const branchName = (item: {
@@ -161,6 +170,8 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [signup, setSignup] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(''),
+    [captchaReset, setCaptchaReset] = useState(0);
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState('');
   const [adult, setAdult] = useState(false),
@@ -315,34 +326,41 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
     const target = publicReturnPath(
       new URLSearchParams(window.location.search).get('returnTo'),
     );
+    // A Turnstile token is single-use: it goes to exactly one request.
+    const captcha = { siteKey: turnstileSiteKey, token: captchaToken };
+    setCaptchaToken('');
     await action(async () => {
       if (signup && allowSignup) {
-        const { data, error } = await supabase().auth.signUp({
-          email,
-          password,
-          options: {
+        const { data, error } = await signUpWithPassword(
+          supabase().auth,
+          {
+            email,
+            password,
             emailRedirectTo:
               window.location.origin +
               (target
                 ? '/login?returnTo=' + encodeURIComponent(target)
                 : '/login'),
           },
-        });
+          captcha,
+        );
         if (error) throw error;
         if (!data.session) {
           setNotice(t('auth.confirmationSent'));
           return;
         }
       } else {
-        const { error } = await supabase().auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await signInWithPassword(
+          supabase().auth,
+          { email, password },
+          captcha,
+        );
         if (error) throw error;
       }
       setPassword('');
       navigate(target ?? '/lives');
     });
+    setCaptchaReset((value) => value + 1);
   }
   async function save() {
     await api('/me/consent', {
@@ -888,7 +906,23 @@ export function Experience({ allowSignup = true }: { allowSignup?: boolean }) {
                         onChange={(e) => setPassword(e.target.value)}
                       />
                     </label>
-                    <button className="primary" disabled={busy}>
+                    {turnstileSiteKey !== null && (
+                      <>
+                        <TurnstileWidget
+                          siteKey={turnstileSiteKey}
+                          resetCounter={captchaReset}
+                          onToken={setCaptchaToken}
+                        />
+                        <p className="fineprint">{t('auth.captchaNote')}</p>
+                      </>
+                    )}
+                    <button
+                      className="primary"
+                      disabled={
+                        busy ||
+                        !captchaSatisfied(turnstileSiteKey, captchaToken)
+                      }
+                    >
                       {busy
                         ? t('common.pleaseWait')
                         : signup

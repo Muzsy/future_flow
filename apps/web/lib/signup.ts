@@ -1,4 +1,5 @@
 import { closedSiteConfigFromEnv } from '@future-flow/access';
+import { turnstileSiteKey } from './turnstile';
 
 // Whether the sign-in screen offers "create account". Server-side only.
 // The legacy closed beta (an Access gate, no durable service profile) keeps it
@@ -8,9 +9,11 @@ import { closedSiteConfigFromEnv } from '@future-flow/access';
 // registration there, and the API alone decides who is admitted (open wave,
 // capacity, confirmed email, 18+/terms acceptance). The screen never grants
 // anything; Supabase signup and the Access policy remain separate switches.
+// The service profile fails closed: without a valid Turnstile site key the
+// screen does not offer registration at all.
 export function signupUiAllowed(env: NodeJS.ProcessEnv = process.env) {
+  if (!closedSiteConfigFromEnv(env).enabled) return true;
   return (
-    !closedSiteConfigFromEnv(env).enabled ||
-    env.SERVICE_ACCESS_ENFORCEMENT === 'true'
+    env.SERVICE_ACCESS_ENFORCEMENT === 'true' && turnstileSiteKey(env) !== null
   );
 }

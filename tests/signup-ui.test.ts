@@ -8,6 +8,8 @@ const gate = {
   CLOSED_SITE_ALLOWED_EMAILS: 'legacy@example.invalid',
 };
 
+const key = { TURNSTILE_SITE_KEY: '1x00000000000000000000AA' };
+
 describe('registration on the sign-in screen', () => {
   it('is offered when there is no closed-site gate at all', () => {
     expect(signupUiAllowed({})).toBe(true);
@@ -23,14 +25,25 @@ describe('registration on the sign-in screen', () => {
 
   it('is offered in the service profile, where the Access gate is always on', () => {
     expect(
-      signupUiAllowed({ ...gate, SERVICE_ACCESS_ENFORCEMENT: 'true' }),
+      signupUiAllowed({ ...gate, ...key, SERVICE_ACCESS_ENFORCEMENT: 'true' }),
     ).toBe(true);
+  });
+
+  it('fails closed in the service profile without a valid Turnstile site key', () => {
+    for (const bad of [undefined, '', 'not-a-key', '1x'])
+      expect(
+        signupUiAllowed({
+          ...gate,
+          SERVICE_ACCESS_ENFORCEMENT: 'true',
+          TURNSTILE_SITE_KEY: bad,
+        }),
+      ).toBe(false);
   });
 
   it('never opens on an unreadable service flag', () => {
     for (const bad of ['', 'yes', 'TRUE', '1'])
       expect(
-        signupUiAllowed({ ...gate, SERVICE_ACCESS_ENFORCEMENT: bad }),
+        signupUiAllowed({ ...gate, ...key, SERVICE_ACCESS_ENFORCEMENT: bad }),
       ).toBe(false);
   });
 });
