@@ -54,6 +54,7 @@ class ServiceDailyEvidenceTests(unittest.TestCase):
         root = Path(self.temporary.name)
         self.record, self.state = root / 'service-profile', root / 'service-operations'
         for patcher in (patch.object(daily, 'SERVICE_PROFILE_DIR', self.record),
+                        patch.object(daily, 'SERVICE_ENV_DIR', root / 'service-env'),
                         patch.object(daily, 'SERVICE_OPERATION_DIR', self.state),
                         patch.object(daily, 'UID', os.geteuid())):
             patcher.start()
