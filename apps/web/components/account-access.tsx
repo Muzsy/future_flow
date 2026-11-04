@@ -1,7 +1,12 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
 import { initializeAuthSession } from '../lib/auth-session';
-import { captchaOptions, captchaSatisfied } from '../lib/turnstile';
+import {
+  sendPasswordRecovery,
+  signInWithPassword,
+  type Captcha,
+} from '../lib/auth-requests';
+import { captchaSatisfied } from '../lib/turnstile';
 import { useLanguage } from './language-provider';
 import { TurnstileWidget } from './turnstile-widget';
 import {
@@ -73,14 +78,8 @@ export function AccountAccess({
     }
   }
   // Runs a request that needs a Turnstile token, then renews the challenge.
-  function withCaptcha(
-    task: (captcha: { captchaToken?: string }) => Promise<void>,
-  ) {
-    if (!captchaOk) {
-      setNotice(t('auth.captchaRequired'));
-      return;
-    }
-    const captcha = captchaOptions(turnstileSiteKey, captchaToken);
+  function withCaptcha(task: (captcha: Captcha) => Promise<void>) {
+    const captcha = { siteKey: turnstileSiteKey, token: captchaToken };
     setCaptchaToken('');
     void run(() => task(captcha)).finally(() =>
       setCaptchaReset((value) => value + 1),
@@ -89,11 +88,11 @@ export function AccountAccess({
   function signIn(event: FormEvent) {
     event.preventDefault();
     withCaptcha(async (captcha) => {
-      const { error } = await supabase().auth.signInWithPassword({
-        email,
-        password,
-        options: captcha,
-      });
+      const { error } = await signInWithPassword(
+        supabase().auth,
+        { email, password },
+        captcha,
+      );
       if (error) throw error;
       setCallbackFailed(false);
       setPassword('');
@@ -165,12 +164,13 @@ export function AccountAccess({
             disabled={busy || !authReady || !email || !captchaOk}
             onClick={() =>
               withCaptcha(async (captcha) => {
-                const { error } = await supabase().auth.resetPasswordForEmail(
-                  email,
+                const { error } = await sendPasswordRecovery(
+                  supabase().auth,
                   {
+                    email,
                     redirectTo: window.location.origin + '/account-access',
-                    ...captcha,
                   },
+                  captcha,
                 );
                 if (error) throw error;
                 setNotice(

@@ -81,7 +81,6 @@ describe('captcha wording', () => {
   it('has the same user-facing keys in both locales without banned wording', () => {
     for (const key of [
       'auth.captchaFailed',
-      'auth.captchaRequired',
       'auth.captchaNote',
       'privacy.processor3',
       'privacy.collect6',

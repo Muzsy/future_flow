@@ -81,7 +81,6 @@ export const en = {
     'Registration is not open on this site at the moment.',
   'auth.captchaFailed':
     'The security check could not be completed. Reload the page or try again in a moment.',
-  'auth.captchaRequired': 'Complete the security check first, then try again.',
   'auth.captchaNote':
     'A Cloudflare Turnstile check protects registration and sign-in from automated abuse.',
   'profile.eyebrow': 'First, tell us about your present',
@@ -483,8 +482,6 @@ export const hu: Record<MessageKey, string> = {
     'A regisztráció ezen az oldalon jelenleg nem nyitott.',
   'auth.captchaFailed':
     'A biztonsági ellenőrzés nem sikerült. Töltsd újra az oldalt, vagy próbáld meg újra egy pillanat múlva.',
-  'auth.captchaRequired':
-    'Előbb végezd el a biztonsági ellenőrzést, utána próbáld újra.',
   'auth.captchaNote':
     'A regisztrációt és a belépést a Cloudflare Turnstile ellenőrzése védi az automatizált visszaélések ellen.',
   'profile.eyebrow': 'Először ismerjük meg a jelened',

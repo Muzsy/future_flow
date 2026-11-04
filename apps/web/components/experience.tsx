@@ -37,7 +37,8 @@ import {
 } from '../lib/client';
 import { LanguageSelect, useLanguage } from './language-provider';
 import { TurnstileWidget } from './turnstile-widget';
-import { captchaOptions, captchaSatisfied } from '../lib/turnstile';
+import { captchaSatisfied } from '../lib/turnstile';
+import { signInWithPassword, signUpWithPassword } from '../lib/auth-requests';
 import { LifeExperience } from './life-experience';
 import { AdmissionPanel, useAdmission } from './admission-gate';
 import { admissionGated, showsContent } from '../lib/admission';
@@ -325,38 +326,35 @@ export function Experience({
     const target = publicReturnPath(
       new URLSearchParams(window.location.search).get('returnTo'),
     );
-    if (!captchaSatisfied(turnstileSiteKey, captchaToken)) {
-      setNotice(t('auth.captchaRequired'));
-      return;
-    }
     // A Turnstile token is single-use: it goes to exactly one request.
-    const captcha = captchaOptions(turnstileSiteKey, captchaToken);
+    const captcha = { siteKey: turnstileSiteKey, token: captchaToken };
     setCaptchaToken('');
     await action(async () => {
       if (signup && allowSignup) {
-        const { data, error } = await supabase().auth.signUp({
-          email,
-          password,
-          options: {
-            ...captcha,
+        const { data, error } = await signUpWithPassword(
+          supabase().auth,
+          {
+            email,
+            password,
             emailRedirectTo:
               window.location.origin +
               (target
                 ? '/login?returnTo=' + encodeURIComponent(target)
                 : '/login'),
           },
-        });
+          captcha,
+        );
         if (error) throw error;
         if (!data.session) {
           setNotice(t('auth.confirmationSent'));
           return;
         }
       } else {
-        const { error } = await supabase().auth.signInWithPassword({
-          email,
-          password,
-          options: captcha,
-        });
+        const { error } = await signInWithPassword(
+          supabase().auth,
+          { email, password },
+          captcha,
+        );
         if (error) throw error;
       }
       setPassword('');
