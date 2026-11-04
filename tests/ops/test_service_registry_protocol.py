@@ -112,6 +112,119 @@ class RegistryProtocolTests(unittest.TestCase):
                     daily.registry_profile_default(changed)
 
     @staticmethod
+    def serving_039_and_candidate_compose():
+        """The 039 serving compose (no Turnstile key) and the 3166a34 candidate render (web key empty)."""
+        users = '5f0f2f4a-4b0e-4d7c-8a31-0a5a6a1d0001'
+        def service(extra=None):
+            return {'image': 'x', 'environment': {'AI_PROJECT_BUDGET_USD': '10', 'AI_USER_BUDGET_USD': '3',
+                                                  'CLOSED_BETA_USER_IDS': users, **(extra or {})}}
+        serving = {'services': {'web': {'image': 'x', 'environment': {'UNCHANGED': 'w'}},
+                                'api': service(), 'worker': service()}}
+        candidate = copy.deepcopy(serving)
+        candidate['services']['web']['environment']['TURNSTILE_SITE_KEY'] = ''
+        return serving, candidate, users
+
+    def prepare_comparison(self, rendered, original, users):
+        """build_files: the runtime-delta comparison of the schema-040 prepare."""
+        from test_beta_successor_chain_root import root
+        selection = {'purpose': 'schema-040', 'previousTermsSha256': 'a' * 64, 'fromSchema': 39, 'toSchema': 40}
+        previous = {'participants': [{'userId': users}]}
+        return (root.normalized(daily.registry_profile_default(rendered), selection, previous)
+                == root.normalized(daily.registry_profile_default(original), selection, previous))
+
+    def test_prepare_accepts_the_empty_web_turnstile_default_against_the_039_serving_compose(self):
+        serving, candidate, users = self.serving_039_and_candidate_compose()
+        self.assertTrue(self.prepare_comparison(candidate, serving, users))
+        self.assertIn('TURNSTILE_SITE_KEY', candidate['services']['web']['environment'])  # input not mutated
+        # Already identical renders (key absent on both sides, or empty on both) stay equal.
+        self.assertTrue(self.prepare_comparison(serving, serving, users))
+        self.assertTrue(self.prepare_comparison(candidate, candidate, users))
+
+    def test_prepare_still_refuses_every_other_turnstile_or_runtime_delta(self):
+        serving, candidate, users = self.serving_039_and_candidate_compose()
+        cases = []
+        for value in ('0x4AAAAAAA', ' ', 'false'):
+            changed = copy.deepcopy(candidate)
+            changed['services']['web']['environment']['TURNSTILE_SITE_KEY'] = value
+            cases.append(('web non-empty ' + repr(value), changed, serving))
+        live = copy.deepcopy(serving)
+        live['services']['web']['environment']['TURNSTILE_SITE_KEY'] = '0x4AAAAAAA'
+        cases.append(('039 serving already had a key, candidate empty', candidate, live))
+        for role in ('api', 'worker'):
+            for value in ('', '0x4AAAAAAA'):
+                changed = copy.deepcopy(candidate)
+                changed['services'][role]['environment']['TURNSTILE_SITE_KEY'] = value
+                cases.append((role + ' key ' + repr(value), changed, serving))
+        for key in ('TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'ANOTHER_NEW_KEY'):
+            for role in ('web', 'api', 'worker'):
+                for value in ('', 'x'):
+                    changed = copy.deepcopy(candidate)
+                    changed['services'][role]['environment'][key] = value
+                    cases.append((role + ' ' + key + ' ' + repr(value), changed, serving))
+        changed = copy.deepcopy(candidate)
+        changed['services']['web']['environment']['UNCHANGED'] = 'other'
+        cases.append(('changed existing web value', changed, serving))
+        for name, rendered, original in cases:
+            with self.subTest(name):
+                self.assertFalse(self.prepare_comparison(rendered, original, users))
+
+    def test_prepare_persists_the_raw_render_so_the_next_generation_compares_equal(self):
+        """The normalization is for the comparison only: a billing-config-040 prepare renders the
+        web key as "" again and compares it, unnormalized, with the stored schema-040 compose."""
+        import json
+        import tempfile
+        from unittest.mock import Mock, patch
+        from test_beta_successor_chain_root import root
+        serving, candidate, users = self.serving_039_and_candidate_compose()
+        selection = {'purpose': 'schema-040', 'previousTermsSha256': 'a' * 64, 'fromSchema': 39, 'toSchema': 40}
+        written = {}
+        with tempfile.TemporaryDirectory() as tmp:
+            system = object.__new__(root.System)
+            system.daily = daily
+            system.root = Path(tmp)
+            system.selected = Mock(return_value=selection)
+            system.files = Mock(return_value={'server.env': b'', 'manifest.json': b'{}'})
+            system.original_terms = Mock(return_value={'participants': [{'userId': users}]})
+            system.billing_secrets = Mock(return_value=None)
+            system.configuration = Mock(return_value=serving)
+            system.hashes = Mock(return_value={})
+            system.now = Mock(return_value=dt.datetime(2026, 11, 4, tzinfo=dt.timezone.utc))
+            private = Mock()
+            with patch.dict('sys.modules', {'alterward_backup': Mock(private_directory=private)}), \
+                    patch.object(root, 'candidate_environment', return_value=b''), \
+                    patch.object(root.readers, 'durable_file', side_effect=lambda path, data: written.update({path.name: data})), \
+                    patch.object(root.upgrade, 'run', return_value=Mock(stdout=json.dumps(candidate))), \
+                    patch.object(root.upgrade, 'source_hash', return_value='0' * 64), \
+                    patch.object(root.fence, 'original', return_value=b''), \
+                    patch.object(daily, 'personal_runtime_policy'):
+                system.build_files('target', {'imageTag': 't', 'imageId': 'sha256:' + 'b' * 64,
+                                              'sourceDirectory': tmp, 'commit': 'b' * 40}, {})
+        stored = json.loads(written['effective-compose.json'])
+        self.assertEqual(stored, candidate)
+        self.assertEqual(stored['services']['web']['environment']['TURNSTILE_SITE_KEY'], '')
+        # Next generation (no registry profile normalization): fresh render vs the stored 040 compose.
+        previous = {'participants': [{'userId': users}]}
+        self.assertEqual(json.loads(written['manifest.json'])['effectiveComposeSha256'],
+                         root.sha(root.frozen(candidate)))
+        self.assertEqual(root.normalized(candidate, selection, previous), root.normalized(stored, selection, previous))
+        # ... whereas the stored compose would no longer match a fresh render if it had been normalized.
+        self.assertNotEqual(root.normalized(daily.registry_profile_default(candidate), selection, previous),
+                            root.normalized(candidate, selection, previous))
+
+    def test_turnstile_default_normalization_touches_only_an_empty_web_key(self):
+        serving, candidate, _ = self.serving_039_and_candidate_compose()
+        self.assertEqual(daily.registry_profile_default(candidate), daily.registry_profile_default(serving))
+        for role in ('api', 'worker'):
+            changed = copy.deepcopy(candidate)
+            changed['services'][role]['environment']['TURNSTILE_SITE_KEY'] = ''
+            self.assertEqual(
+                daily.registry_profile_default(changed)['services'][role]['environment']['TURNSTILE_SITE_KEY'], '')
+        changed = copy.deepcopy(candidate)
+        changed['services']['web']['environment']['TURNSTILE_SITE_KEY'] = 'k'
+        self.assertEqual(
+            daily.registry_profile_default(changed)['services']['web']['environment']['TURNSTILE_SITE_KEY'], 'k')
+
+    @staticmethod
     def committed_source_hashes():
         import json
         import subprocess

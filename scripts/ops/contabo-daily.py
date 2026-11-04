@@ -1307,12 +1307,18 @@ def same_registry_runtime(before, after, *, migration=False):
 def registry_profile_default(config):
     # A newly introduced false value may be absent in the original039 render.
     # True/unknown values are never normalized away during an OFF-profile upgrade.
+    # The web compose (#161) also renders the public Turnstile site key with an empty
+    # default; an empty value equals an absent one. A non-empty key, or the key on any
+    # other service, is left in place so it stays a refused delta.
     result = json.loads(json.dumps(config))
     for role in ('web', 'api', 'worker'):
         env = result['services'][role]['environment']
         if env.get('SERVICE_ACCESS_ENFORCEMENT', 'false') != 'false':
             raise ValueError('Registry schema upgrade must leave service profile OFF')
         env['SERVICE_ACCESS_ENFORCEMENT'] = 'false'
+    web = result['services']['web']['environment']
+    if web.get('TURNSTILE_SITE_KEY') == '':
+        del web['TURNSTILE_SITE_KEY']
     return result
 
 def successor_roots():
