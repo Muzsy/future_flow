@@ -522,6 +522,10 @@ const errors: Record<string, readonly [string, string]> = {
     'Choose a different password. This is already your current password.',
     'Válassz másik jelszót. Ez már a jelenlegi jelszavad.',
   ],
+  captcha_failed: [
+    'The security check did not pass. Reload the check and try again.',
+    'A biztonsági ellenőrzés nem sikerült. Töltsd újra az ellenőrzést, és próbáld meg újra.',
+  ],
   signup_disabled: [
     'Registration is by invitation only. Contact info@alterward.com for help.',
     'Regisztrálni csak meghívással lehet. Segítség: info@alterward.com.',

@@ -79,6 +79,11 @@ export const en = {
   'auth.needAccount': 'I do not have an account yet',
   'auth.registrationClosed':
     'Registration is not open on this site at the moment.',
+  'auth.captchaFailed':
+    'The security check could not be completed. Reload the page or try again in a moment.',
+  'auth.captchaRequired': 'Complete the security check first, then try again.',
+  'auth.captchaNote':
+    'A Cloudflare Turnstile check protects registration and sign-in from automated abuse.',
   'profile.eyebrow': 'First, tell us about your present',
   'profile.title': 'The foundations of your story.',
   'profile.description':
@@ -313,7 +318,7 @@ export const en = {
   'privacy.collect5':
     'Minimal activity records: account, life, chapter and session identifiers, event types and server timestamps, without your story or profile.',
   'privacy.collect6':
-    'Technical, security and cost data: network address and request metadata handled by our hosting and access-protection providers, and per-account AI usage and cost accounting records.',
+    'Technical, security and cost data: network address and request metadata handled by our hosting and access-protection providers, the result of the Turnstile check on registration and sign-in, and per-account AI usage and cost accounting records.',
   'privacy.collect7':
     'Sign-up and admission: email address (sign-in and notices), confirmation of age and AI acknowledgement (time and policy version), account identifier, admission and wave status. Legal basis: contract (providing the account) and legal obligation/legitimate interest for age and abuse protection.',
   'privacy.purposesTitle': 'Why we process it, and the legal basis',
@@ -332,7 +337,8 @@ export const en = {
     'Each provider processes data for us under its data processing terms.',
   'privacy.processor1': 'OpenAI: AI story generation.',
   'privacy.processor2': 'Supabase: hosted authentication and database.',
-  'privacy.processor3': 'Cloudflare: access protection, DNS and proxy.',
+  'privacy.processor3':
+    'Cloudflare: access protection, DNS, proxy and the Turnstile check that protects registration and sign-in from automated abuse (it receives your network address and browser signals while you complete the check).',
   'privacy.processor4': 'SMTP2GO (EU-region account): sending sign-in emails.',
   'privacy.processor5':
     'Contabo: server hosting for the application, the job queue and encrypted backups.',
@@ -475,6 +481,12 @@ export const hu: Record<MessageKey, string> = {
   'auth.needAccount': 'Még nincs fiókom',
   'auth.registrationClosed':
     'A regisztráció ezen az oldalon jelenleg nem nyitott.',
+  'auth.captchaFailed':
+    'A biztonsági ellenőrzés nem sikerült. Töltsd újra az oldalt, vagy próbáld meg újra egy pillanat múlva.',
+  'auth.captchaRequired':
+    'Előbb végezd el a biztonsági ellenőrzést, utána próbáld újra.',
+  'auth.captchaNote':
+    'A regisztrációt és a belépést a Cloudflare Turnstile ellenőrzése védi az automatizált visszaélések ellen.',
   'profile.eyebrow': 'Először ismerjük meg a jelened',
   'profile.title': 'A történeted alapjai.',
   'profile.description':
@@ -707,7 +719,7 @@ export const hu: Record<MessageKey, string> = {
   'privacy.collect5':
     'Minimális aktivitásrekordok: fiók-, élet-, fejezet- és munkamenet-azonosítók, eseménytípusok és szerveroldali időbélyegek, a történeted és a profilod nélkül.',
   'privacy.collect6':
-    'Technikai, biztonsági és költségadatok: a tárhely- és hozzáférés-védelmi szolgáltatóink által kezelt hálózati cím és kérésmetaadatok, valamint fiókonkénti AI-használati és költségelszámolási rekordok.',
+    'Technikai, biztonsági és költségadatok: a tárhely- és hozzáférés-védelmi szolgáltatóink által kezelt hálózati cím és kérésmetaadatok, a regisztráció és a belépés Turnstile-ellenőrzésének eredménye, valamint fiókonkénti AI-használati és költségelszámolási rekordok.',
   'privacy.collect7':
     'Regisztráció és beengedés: email-cím (belépés és értesítések), életkor- és MI-tudomásulvétel megerősítése (időpont és szabályzatverzió), fiókazonosító, beengedési és hullámállapot. Jogalap: szerződés (a fiók biztosítása), valamint törvényi kötelezettség/jogos érdek a korhatár és a visszaélések elleni védelemre.',
   'privacy.purposesTitle': 'Miért kezeljük, és mi a jogalap',
@@ -725,7 +737,8 @@ export const hu: Record<MessageKey, string> = {
     'Mindegyik szolgáltató a saját adatfeldolgozási feltételei szerint kezel adatot a nevünkben.',
   'privacy.processor1': 'OpenAI: az AI-történetek generálása.',
   'privacy.processor2': 'Supabase: hosztolt hitelesítés és adatbázis.',
-  'privacy.processor3': 'Cloudflare: hozzáférés-védelem, DNS és proxy.',
+  'privacy.processor3':
+    'Cloudflare: hozzáférés-védelem, DNS, proxy, valamint a Turnstile-ellenőrzés, amely a regisztrációt és a belépést védi az automatizált visszaélésektől (az ellenőrzés kitöltése közben megkapja a hálózati címedet és a böngésződ jelzéseit).',
   'privacy.processor4':
     'SMTP2GO (EU-régiós fiók): a belépési e-mailek küldése.',
   'privacy.processor5':

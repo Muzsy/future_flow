@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
 import { initializeAuthSession } from '../lib/auth-session';
+import { captchaOptions, captchaSatisfied } from '../lib/turnstile';
+import { useLanguage } from './language-provider';
+import { TurnstileWidget } from './turnstile-widget';
 import {
   api,
   authConfigured,
@@ -9,7 +12,12 @@ import {
 } from '../lib/client';
 
 // Deliberately independent of Experience, story navigation and catalog queries.
-export function AccountAccess() {
+export function AccountAccess({
+  turnstileSiteKey = null,
+}: {
+  turnstileSiteKey?: string | null;
+}) {
+  const { t } = useLanguage();
   const [userId, setUserId] = useState<string | null>(null),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
@@ -18,7 +26,10 @@ export function AccountAccess() {
     [notice, setNotice] = useState(''),
     [callbackFailed, setCallbackFailed] = useState(false),
     [authReady, setAuthReady] = useState(false),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [captchaToken, setCaptchaToken] = useState(''),
+    [captchaReset, setCaptchaReset] = useState(0);
+  const captchaOk = captchaSatisfied(turnstileSiteKey, captchaToken);
   useEffect(() => {
     if (!authConfigured) return;
     let active = true;
@@ -49,6 +60,7 @@ export function AccountAccess() {
       subscription.subscription.unsubscribe();
     };
   }, []);
+  // A Turnstile token is single-use: `task` receives it for exactly one request.
   async function run(task: () => Promise<void>) {
     setBusy(true);
     setNotice('');
@@ -60,12 +72,27 @@ export function AccountAccess() {
       setBusy(false);
     }
   }
+  // Runs a request that needs a Turnstile token, then renews the challenge.
+  function withCaptcha(
+    task: (captcha: { captchaToken?: string }) => Promise<void>,
+  ) {
+    if (!captchaOk) {
+      setNotice(t('auth.captchaRequired'));
+      return;
+    }
+    const captcha = captchaOptions(turnstileSiteKey, captchaToken);
+    setCaptchaToken('');
+    void run(() => task(captcha)).finally(() =>
+      setCaptchaReset((value) => value + 1),
+    );
+  }
   function signIn(event: FormEvent) {
     event.preventDefault();
-    void run(async () => {
+    withCaptcha(async (captcha) => {
       const { error } = await supabase().auth.signInWithPassword({
         email,
         password,
+        options: captcha,
       });
       if (error) throw error;
       setCallbackFailed(false);
@@ -116,18 +143,34 @@ export function AccountAccess() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </label>
-            <button className="primary" disabled={busy || !authReady}>
+            {turnstileSiteKey !== null && (
+              <>
+                <TurnstileWidget
+                  siteKey={turnstileSiteKey}
+                  resetCounter={captchaReset}
+                  onToken={setCaptchaToken}
+                />
+                <p className="fineprint">{t('auth.captchaNote')}</p>
+              </>
+            )}
+            <button
+              className="primary"
+              disabled={busy || !authReady || !captchaOk}
+            >
               Sign in again
             </button>
           </form>
           <button
             className="text-button"
-            disabled={busy || !authReady || !email}
+            disabled={busy || !authReady || !email || !captchaOk}
             onClick={() =>
-              void run(async () => {
+              withCaptcha(async (captcha) => {
                 const { error } = await supabase().auth.resetPasswordForEmail(
                   email,
-                  { redirectTo: window.location.origin + '/account-access' },
+                  {
+                    redirectTo: window.location.origin + '/account-access',
+                    ...captcha,
+                  },
                 );
                 if (error) throw error;
                 setNotice(
