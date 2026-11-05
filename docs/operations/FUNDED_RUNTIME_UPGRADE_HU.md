@@ -246,6 +246,10 @@ Az image-kapu három esetet különböztet meg:
 
 A native 040 generáció aktívként a `registry040` profilt (`alterward-funded-runtime-2`, séma 40, `service-registry-040`) a **generáció saját evidence-éből** kapja, nem a kérésből vagy a checkoutból; a regisztrációs capability-parancs csak ekkor (és `cleanup-probe` módban a maradék takarításához) engedett. A proof sourceCommit/preparedSha256 mezője az aktív generáció értéke; a fence plan, a migration-rehearsal és a restore-proof ezt ugyanazzal a `require_funded_runtime` levezetéssel újra ellenőrzi. A teljes lánc fixture-regressziója (`tests/ops/test_funded_active_proof.py`): funded → owner-e2e → olvasók → tesztelők → schema-039 → schema-040, pozitív és negatív esetekkel.
 
+#### Lejárt, el nem indított utódelőkészítés archiválása — 2026-11-05
+
+Az `--archive-expired` korábban elakadt egy lejárt, journal nélküli utolsó gyökéren: az archiv-validátor (`successor_chain_contexts`) végigjárja az összes gyökeret, a lejárt gyökér `successor_effective_role` hibáját (`Expired successor preparation`) viszont nem kezelte, így az `archive.json` megíródott, a könyvtár nem mozdult, az újrapróbálás ugyanígy elakadt. Most a lejárt előkészítés külön `SuccessorExpired` (a `ValueError` leszármazottja) hibát ad: **csak** az archiv-validátor értelmezi a lánc végeként, minden más ellenőrzés (`funded_upgrade_healthy`, `successor_active_state`, szülő-kontextus, aktív könyvtár) változatlanul fail-closed marad, amíg az előkészítés nincs archiválva. Az archiválás feltételei változatlanok (pontos prepared hash, lejárt idő, journal hiánya, eredeti baseline, az `archivedAt` ≥ `expiresAt` eredeti receipt, a szülő a kitett lánc csúcsa). A részben archivált állapot (megírt `archive.json`, nem mozgatott könyvtár) az újrapróbálással lezárható; a receipt nem íródik újra. A backup/config-útvonal-levezetés a lejárt gyökérrel is működik; az egészség (`funded_upgrade_healthy`) az archiválásig piros. Regresszió: `tests/ops/test_successor_expired_archive.py`, a Daily órája is a lejárat utánra téve.
+
 ### Külön funded operátori módok
 
 A `scripts/contabo-fence-operator.mjs` új explicit módjai:
