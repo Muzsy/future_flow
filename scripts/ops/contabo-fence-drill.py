@@ -39,6 +39,12 @@ PHASE = 'validation'
 FAILURE_PHASE = None
 CANCELLED = False
 CLEANUP_DEPTH = 0
+# The api/web healthchecks use a 30 s interval and start period, so a healthy
+# resume can legitimately take ~70 s. Bounded, fail-closed; the SSH external
+# deadline in contabo-fence-operator.mjs accounts for this window.
+RESUME_VERIFY_SECONDS = 180
+RESUME_LABELS = {'owner-unhealthy': 'resume-owner-unhealthy', 'owner-runtime': 'resume-owner-runtime',
+                 'origin-probe': 'resume-origin-probe'}
 
 
 def interrupt_signals():
@@ -89,6 +95,26 @@ def verify_original_exit(original, inspect, *, seconds, clock=time.monotonic, wa
         if clock()>=until:
             raise ValueError('Original stop did not settle')
         wait(1)
+
+
+def verify_owner_resume(owner_runtime, origin_probe, *, seconds=RESUME_VERIFY_SECONDS, clock=time.monotonic,
+                        wait=time.sleep, label=lambda value: None):
+    """Wait a bounded time for the resumed owner; on timeout report only a fixed label."""
+    until=clock()+seconds
+    while True:
+        reason='owner-runtime'
+        try:
+            owner_runtime()
+            reason='origin-probe'
+            if origin_probe():
+                return True
+        except Exception as error:
+            if reason=='owner-runtime' and isinstance(error,ValueError) and str(error)=='Owner service unhealthy':
+                reason='owner-unhealthy'
+        if clock()>=until:
+            label(RESUME_LABELS[reason])
+            return False
+        wait(2)
 
 
 @contextlib.contextmanager
@@ -469,16 +495,13 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 return True
 
             def verify():
-                until=time.monotonic()+60
-                while True:
-                    try:
-                        daily.owner_runtime()
-                        proof=json.loads(daily.command(['docker','exec',services['api']['Id'],'node','-e',daily.ORIGIN_PROBE]))
-                        return proof.get('anonymousDenied')==4
-                    except Exception:
-                        if time.monotonic()>=until:
-                            return False
-                        time.sleep(2)
+                def set_label(value):
+                    global PHASE
+                    PHASE=value
+                def origin_probe():
+                    proof=json.loads(daily.command(['docker','exec',services['api']['Id'],'node','-e',daily.ORIGIN_PROBE]))
+                    return proof.get('anonymousDenied')==4
+                return verify_owner_resume(daily.owner_runtime,origin_probe,label=set_label)
 
             def stop_original(cid):
                 global PHASE

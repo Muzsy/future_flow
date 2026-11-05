@@ -146,6 +146,44 @@ except KeyboardInterrupt:
         with self.assertRaisesRegex(ValueError,'identity changed'):
             drill.verify_original_exit(original,lambda:{original['Id']:current},seconds=2,clock=lambda:tick[0],wait=wait)
 
+    def verify_resume(self,owner,probe,seconds=180):
+        tick=[0];labels=[]
+        def wait(value): tick[0]+=value
+        result=drill.verify_owner_resume(owner,probe,seconds=seconds,clock=lambda:tick[0],wait=wait,label=labels.append)
+        return result,tick[0],labels
+
+    def test_resume_verify_waits_past_the_healthcheck_interval_and_succeeds(self):
+        calls=[0]
+        def owner():
+            calls[0]+=1
+            if calls[0]<36: raise ValueError('Owner service unhealthy')  # healthy only at ~70 s
+        result,elapsed,labels=self.verify_resume(owner,lambda:True)
+        self.assertEqual((result,labels),(True,[]))
+        self.assertGreater(elapsed,60)
+        self.assertLess(elapsed,180)
+
+    def test_resume_verify_is_bounded_and_reports_fixed_labels(self):
+        def unhealthy(): raise ValueError('Owner service unhealthy')
+        def drift(): raise ValueError('Owner runtime drift')
+        result,elapsed,labels=self.verify_resume(unhealthy,lambda:True)
+        self.assertEqual((result,labels),(False,['resume-owner-unhealthy']))
+        self.assertGreaterEqual(elapsed,180)
+        self.assertLessEqual(elapsed,182)
+        self.assertEqual(self.verify_resume(drift,lambda:True)[2],['resume-owner-runtime'])
+        self.assertEqual(self.verify_resume(lambda:None,lambda:False)[2],['resume-origin-probe'])
+        def broken(): raise RuntimeError('Private operation failed')
+        result,_elapsed,labels=self.verify_resume(lambda:None,broken)
+        self.assertEqual((result,labels),(False,['resume-origin-probe']))
+        for value in labels+list(drill.RESUME_LABELS.values()):
+            self.assertRegex(value,r'^[a-z-]{2,50}$')
+
+    def test_resume_verify_window_fits_within_the_external_deadlines(self):
+        self.assertEqual(drill.RESUME_VERIFY_SECONDS,180)
+        client=(Path(__file__).resolve().parents[2]/'scripts/contabo-fence-operator.mjs').read_text()
+        self.assertIn("mode === 'rehearsal' ? 1320000 : 900000",client)
+        # 780 s operation alarm + three 30 s starts + verify window + one bounded probe round
+        self.assertLess(780+3*30+drill.RESUME_VERIFY_SECONDS+2*60,1320)
+
 
 if __name__=='__main__':
     unittest.main()
