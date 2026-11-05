@@ -2690,6 +2690,45 @@ def monitor(value):
         return result
 
 
+# Failure localisation for the operator. The status record used to carry only the backup phase, so a
+# refusal inside one phase could not be told from another. Only exception TYPE names, the line numbers of
+# the reviewed scripts and numeric codes are recorded: never a message, argument, path, value or output.
+FAILURE_SOURCES = {'contabo-daily.py': 'scripts/ops/contabo-daily.py', 'backup_lib.py': 'scripts/ops/contabo-backup.py',
+                   'contabo-backup.py': 'scripts/ops/contabo-backup.py', 'daily_entry.py': 'scripts/ops/contabo-daily-entry.py',
+                   'contabo-daily-entry.py': 'scripts/ops/contabo-daily-entry.py'}
+FAILURE_PROGRAMS = {'docker', 'git', 'openssl', 'age', 'age-keygen', 'systemctl', 'ssh', 'python3'}
+
+
+def failure_diagnostic(error):
+    result = {'version': 'alterward-daily-failure-1', 'exceptions': []}
+    try:
+        seen = set()
+        while error is not None and id(error) not in seen and len(result['exceptions']) < 8:
+            seen.add(id(error))
+            frames, trace = [], error.__traceback__
+            while trace is not None:
+                source = FAILURE_SOURCES.get(Path(trace.tb_frame.f_code.co_filename).name)
+                if source is not None:
+                    frames.append({'source': source, 'line': trace.tb_lineno})
+                trace = trace.tb_next
+            kind = type(error).__name__
+            item = {'type': kind if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,79}', kind) else 'Exception',
+                    'frames': frames[-16:]}
+            if isinstance(error, OSError) and type(error.errno) is int and 0 < error.errno < 200:
+                item['errno'] = error.errno
+            if isinstance(error, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+                command = error.cmd
+                program = Path(command[0]).name if isinstance(command, (list, tuple)) and command and isinstance(command[0], str) else None
+                item['program'] = program if program in FAILURE_PROGRAMS else 'other'
+                if isinstance(error, subprocess.CalledProcessError) and type(error.returncode) is int:
+                    item['exitCode'] = error.returncode
+            result['exceptions'].append(item)
+            error = error.__cause__ or error.__context__
+    except BaseException:
+        pass  # the diagnostic must never replace the actual failure
+    return result
+
+
 def run_operation(action):
     os.umask(0o077)
     if os.geteuid() != UID or action not in ['backup', 'monitor', 'status']:
@@ -2716,10 +2755,11 @@ def run_operation(action):
         except BlockingIOError:
             # Another guarded owner operation is running; defer without mutation.
             return {'ok': True, 'deferred': True, 'paidAiCalls': 0}
-        except Exception:
+        except Exception as error:
             result = {'ok': False, **source_binding(value), 'capturedAt': utcnow().isoformat(),
                       'alerts': [action + '_operation_failed'], 'paidAiCalls': 0,
                       'phase': backup.PHASE if action == 'backup' else 'monitor-checks',
+                      'failure': failure_diagnostic(error),
                       'externalMessageSent': False}
             atomic(ROOT / 'status' / (action + '.json'), result)
             return result

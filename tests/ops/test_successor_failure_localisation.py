@@ -6,8 +6,10 @@ type names and line numbers of the reviewed modules only. These tests drive the 
 over the production-shaped chain (four exposed generations, a prepared schema-040 fifth one).
 """
 import json
+import re
 import subprocess
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -208,6 +210,49 @@ class ApplyPhaseTests(base.ChainRootBase):
         def refuse(*args, **kwargs):
             raise ValueError(SECRET)
         return refuse
+
+
+class PreparePhaseTests(base.ChainRootBase):
+    """`--prepare` of the fifth generation: the refusal 41 s in names the step it stopped at."""
+
+    def setUp(self):
+        super().setUp()
+        root._phase[0] = 'start'
+        self.chain.admit_readers()
+        value = self.chain.prepare(3, 'tester-beta', participants=self.chain.testers())
+        self.chain.expose(3, value, window_changed=True)
+        value = self.chain.prepare(4, 'schema-039')
+        self.chain.expose(4, value, window_changed=False, schema=True)
+        self.selection = {'purpose': 'schema-040', 'previousTermsSha256': chained.hashed(self.chain.terms),
+                          'fromSchema': 39, 'toSchema': 40}
+        for module, name, value_ in [(root.System, 'archive_support', lambda self: None)]:
+            p = patch.object(module, name, value_)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def system(self, **changes):
+        selection = changes.pop('selection', self.selection)
+        return super().system('prepare', selection=selection, release={}, accessSnapshot={}, **changes)
+
+    def test_each_step_of_the_preparation_has_its_own_phase(self):
+        system = self.system()
+        self.assertEqual(system.root, self.chain.root(5))
+        with patch.object(root.System, 'baseline', side_effect=ValueError(SECRET)):
+            with self.assertRaises(ValueError) as caught:
+                system.prepare()
+        self.assertEqual(root.failure_diagnostic(caught.exception)['phase'], 'prepare-baseline')
+        self.assertFalse(system.root.exists())
+        # An unapproved selection stops before anything is read from the host.
+        root._phase[0] = 'start'
+        with self.assertRaises(ValueError) as caught:
+            self.system(selection={'purpose': 'bogus'}).prepare()
+        self.assertEqual(root.failure_diagnostic(caught.exception)['phase'], 'prepare-checks')
+        # Every label the preparation sets is a member of the fixed vocabulary.
+        source = (Path(__file__).resolve().parents[2] / 'scripts/ops/contabo-beta-successor.py').read_text()
+        labels = set(re.findall(r"at\('([a-z-]+)'\)", source))
+        self.assertGreaterEqual(len(labels), 20)
+        self.assertEqual(labels - set(root.FAILURE_PHASES), set())
+        self.assertEqual(set(root.FAILURE_PHASES) - labels - {'start'}, set())
 
 
 if __name__ == '__main__':

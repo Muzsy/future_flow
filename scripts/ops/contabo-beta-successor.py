@@ -38,7 +38,9 @@ VERSION = 'alterward-beta-successor-1'
 # leave the host: never a message, argument, value, path or environment content.
 FAILURE_PHASES = ('start', 'system', 'candidate', 'cleanup-probe', 'archive-support', 'freshness',
                   'baseline', 'window', 'parent', 'access', 'foreign-proxy', 'capabilities',
-                  'accounts', 'restore', 'transition')
+                  'accounts', 'restore', 'transition',
+                  'prepare-checks', 'prepare-baseline', 'prepare-files', 'prepare-images', 'prepare-engine-freeze',
+                  'prepare-database', 'prepare-build', 'prepare-final')
 _phase = ['start']
 
 
@@ -839,6 +841,7 @@ class System(funded.System):
             raise ValueError('Original serving engine sources must remain unchanged')
 
     def prepare(self):
+        at('prepare-checks')
         selected = self.selected()
         selection_values(selected)
         has_registry = REGISTRY_PURPOSE in self.chain()[2].get('purposes', ())
@@ -851,8 +854,10 @@ class System(funded.System):
             raise ValueError('Existing successor evidence requires explicit inspection/archive')
         if self.daily.funded_upgrade_healthy('personal-beta') is not True:
             raise ValueError('Healthy original funded runtime required')
+        at('prepare-baseline')
         before = self.baseline()
         parent, parent_role, parent_hashes = self.parent()
+        at('prepare-checks')
         previous = self.original_terms()
         access = self.active_access()
         if selected['previousTermsSha256'] != canonical_sha(previous):
@@ -882,15 +887,19 @@ class System(funded.System):
             require_billing_stage(selected, upgrade.server_environment(old_text),
                                   self.chain()[2].get('purposes', ()))
             candidate_environment(old_text, selected, release['target']['imageTag'], previous, self.billing_secrets())
+        at('prepare-files')
         from alterward_backup import private_directory
         private_directory(self.root)
         readers.durable_file(self.root / 'selection.json', encoded(selected))
         readers.durable_file(self.root / 'terms.json', encoded(previous if keeps_window(selected) else selected['next']))
         if self.is_reader():
             readers.durable_file(self.root / 'access.json', self.reader_receipt())
+        at('prepare-images')
         for role in ('target','recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
+        at('prepare-engine-freeze')
         self.require_engine_freeze(parent['release'][parent_role]['imageId'])
+        at('prepare-database')
         operation = (self.reader_operation() if self.is_reader() else self.schema_operation() if self.is_schema()
                      else self.billing_operation() if self.is_billing()
                      else self.accounting(release['target']['imageId'], 'capture'))
@@ -906,12 +915,15 @@ class System(funded.System):
             'operation':operation,'database':database, **parent_hashes,
             'termsSha256':sha(encoded(previous if keeps_window(selected) else selected['next'])),
             'selectionSha256':sha(encoded(selected))}
+        at('prepare-files')
         private_directory(self.root / 'previous')
         for name, data in self.files(DIRECTORY).items():
             readers.durable_file(self.root / 'previous' / name, data)
         value['files']['previous'] = self.hashes(self.root / 'previous')
+        at('prepare-build')
         for role in ('target','recovery'):
             value['files'][role] = self.build_files(role, release[role], before)
+        at('prepare-final')
         if self.baseline() != before:
             raise ValueError('Original runtime drift during successor preparation')
         readers.durable_file(self.root / 'prepared.json', encoded(value))
@@ -1064,6 +1076,7 @@ class System(funded.System):
             raise ValueError('Exact unused accounting state required')
         at('restore')
         self.require_candidate_restore(candidate)
+        at('transition')
 
     def stop_and_hold(self, candidate):
         for number in upgrade.INTERRUPTION_SIGNALS:

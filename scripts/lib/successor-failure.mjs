@@ -33,6 +33,14 @@ export const serverPhases = [
   'accounts',
   'restore',
   'transition',
+  'prepare-checks',
+  'prepare-baseline',
+  'prepare-files',
+  'prepare-images',
+  'prepare-engine-freeze',
+  'prepare-database',
+  'prepare-build',
+  'prepare-final',
   'unknown',
 ];
 const modes = new Set([
