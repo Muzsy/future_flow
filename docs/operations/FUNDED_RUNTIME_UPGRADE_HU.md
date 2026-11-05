@@ -234,6 +234,18 @@ Az upgrade eredeti, tiszta main forrásából `node --import tsx scripts/contabo
 
 Az eredeti source/bundle egyezés és a cached image belsejében lévő források hash/capability ellenőrzése is lefut, majd a root újraolvassa az aktív állapotot. Az image capability probe izolált, hálózat és szolgáltatásindítás nélküli folyamat; DB-írást vagy providerhívást nem végez. A normál alkalmazás futása nem változik. A privát kimenet `funded-upgrade-active-proof-proof.json`; ez külön fájl, az owner-stage/build/eredeti-zero proofot nem helyettesíti és nem írja át. Hiányos vagy régi átmenethez nem gyártunk pótló bizonyítékot.
 
+#### Utódgenerációk: az igazolás az éppen aktív generációhoz kötött — 2026-11-05
+
+A `--active-proof` (és a `--registry-active-proof`) az **éppen aktív generációt** igazolja, nem mindig az eredeti funded candidate-et. A rootoldali `active_funded_runtime` a Daily `active_funded_directory()` eredményéből indul: az eredeti funded upgrade → minden teljesen exponált utódgeneráció (`beta-successor`, `-2`, …) lánca a Daily saját hash-lánc ellenőrzésén megy át (szülő prepared/journal/readback hash, authority-fák, terms, olvasók), majd az aktív négy runtime-fájl, a readback, a három futó konténer és az authority bájtra egyeznek az aktív generáció `target`/`recovery` mappájával. Egy félkész (nem exponált) vagy lejárt következő generáció soha nem lesz igazolási forrás; törött lánc, megbontott bájt, korábbi generációra visszagörgetett runtime vagy idegen konténer esetén nem keletkezik proof.
+
+Az image-kapu három esetet különböztet meg:
+
+1. **Csak az eredeti funded generáció aktív** (nincs utód): változatlanul az eredeti exact committed source és bundle kell (`Use the original exact committed upgrade source for active proof`).
+2. **Utódgeneráció aktív, és az operátori checkout pontosan annak sourceCommit/bundleSha256 értéke:** a teljes eddigi source- és capability-ellenőrzés fut (cached build source hash, image-belső fájlhash, capability profil).
+3. **Utódgeneráció aktív, az operátori checkout újabb** (az éles 040 előkészítés után ez a szokásos): a checkout bundle-je nem hasonlítható az aktív image-hez, ezért az image-nek (a) pontosan a generáció prepared evidence-ében rögzített, változatlan Docker image ID-nak és címkének kell lennie (`node` felhasználó, `/app`, rögzített entrypoint), (b) át kell mennie ugyanazon a capability-profilellenőrzésen (19 policy, `fiction-v9`, artifact/character verzió, `maxPhysicalRequests` 8), és (c) a bemenet nélküli, hálózatmentes capability-probe kimenete bájtra egyezzen a `targetCapabilitySha256` / `recoveryCapabilitySha256` értékkel, amelyet a generáció prepare-ja source-hash ellenőrzéssel rögzített. Ez a bemenet nélküli probe csak `active-proof` és `cleanup-probe` módban engedett; upgrade-módban (`prepare`/`apply`/`recover`) az exact committed bundle továbbra is kötelező.
+
+A native 040 generáció aktívként a `registry040` profilt (`alterward-funded-runtime-2`, séma 40, `service-registry-040`) a **generáció saját evidence-éből** kapja, nem a kérésből vagy a checkoutból; a regisztrációs capability-parancs csak ekkor (és `cleanup-probe` módban a maradék takarításához) engedett. A proof sourceCommit/preparedSha256 mezője az aktív generáció értéke; a fence plan, a migration-rehearsal és a restore-proof ezt ugyanazzal a `require_funded_runtime` levezetéssel újra ellenőrzi. A teljes lánc fixture-regressziója (`tests/ops/test_funded_active_proof.py`): funded → owner-e2e → olvasók → tesztelők → schema-039 → schema-040, pozitív és negatív esetekkel.
+
 ### Külön funded operátori módok
 
 A `scripts/contabo-fence-operator.mjs` új explicit módjai:
