@@ -23,6 +23,10 @@ import alterward_personal_beta as beta
 
 VERSION = 'alterward-funded-upgrade-1'
 STATE_NAME = 'funded-runtime-upgrade'
+# Helper record of the input-free capability probe of a later active generation. It is a
+# scratch location outside every validated evidence tree: the original funded root keeps
+# its own, immutable capability record and no exposed generation root is ever written.
+ACTIVE_CAPABILITY_NAME = 'funded-active-proof-capability'
 DIGEST = re.compile(r'[a-f0-9]{64}')
 IMAGE = re.compile(r'sha256:[a-f0-9]{64}')
 COMMIT = re.compile(r'[a-f0-9]{40}')
@@ -327,6 +331,9 @@ class System:
                         and candidate['bundleSha256'] == self.request['bundleSha256'])
         if root == self.root and not exact_source:
             raise ValueError('Use the original exact committed upgrade source for active proof')
+        # Only the original generation owns funded-runtime-upgrade/capability.json. Any later
+        # generation probes through the scratch record, whatever source the checkout is.
+        self.capability_scratch = root != self.root
         role = proof['role']
         build = candidate['release'][role]
         self.active_registry = proof.get('recoveryProfile') == 'registry040'
@@ -563,6 +570,10 @@ class System:
 
     # Set by active_proof only, from the active generation's own evidence.
     active_registry = False
+    capability_scratch = False
+
+    def capability_home(self):
+        return DIRECTORY / ACTIVE_CAPABILITY_NAME if self.capability_scratch else self.root
 
     def capability_input_hashes(self):
         # Original image upgrades accept ONLY the complete committed bundle. The
@@ -586,7 +597,8 @@ class System:
 
     def cleanup_capability(self):
         self.archive_support()
-        record = self.daily.funded_capability_state(self.root)
+        home = self.capability_home()
+        record = self.daily.funded_capability_state(home)
         result = {'capabilityRemoved': False, 'capabilityContainerId': None}
         if record is None:
             return result
@@ -625,13 +637,13 @@ class System:
                 raise ValueError('Funded capability identity differs; no container changed')
             # Persist the observed immutable ID before removing this exact helper.
             record = {**record, 'containerId': ids[0]}
-            readers.update_durable(self.root / 'capability.json', encoded(record))
+            readers.update_durable(home / 'capability.json', encoded(record))
             upgrade.docker('rm', '--force', ids[0], timeout=45)
             if lookup():
                 raise ValueError('Funded capability removal unverified')
             result = {'capabilityRemoved': True, 'capabilityContainerId': ids[0]}
         if record['state'] == 'pending':
-            readers.update_durable(self.root / 'capability.json', encoded({**record, 'state': 'cleaned'}))
+            readers.update_durable(home / 'capability.json', encoded({**record, 'state': 'cleaned'}))
         return result
 
     def capability(self, image, hashes, *, registry=False):
@@ -641,12 +653,16 @@ class System:
         if command not in self.allowed_capability_commands():
             raise ValueError('Explicit reviewed image capability profile required')
         self.cleanup_capability()
+        home = self.capability_home()
+        if self.capability_scratch:
+            from alterward_backup import private_directory
+            private_directory(home)
         record = {'version': self.daily.FUNDED_CAPABILITY_VERSION,
                   'sourceCommit': self.request['sourceCommit'], 'bundleSha256': self.request['bundleSha256'],
                   'name': upgrade.PROJECT + '-funded-capability-' + os.urandom(16).hex(),
                   'imageId': image, 'commandSha256': sha(encoded(command)),
                   'inputSha256': sha(encoded(hashes)), 'state': 'pending', 'containerId': None}
-        readers.update_durable(self.root / 'capability.json', encoded(record))
+        readers.update_durable(home / 'capability.json', encoded(record))
         try:
             return upgrade.run(['docker', 'run', '--rm', '-i', '--pull', 'never',
                 '--name', record['name'], '--label', 'com.alterward.funded-capability=' + probe_identity(record),
