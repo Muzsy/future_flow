@@ -457,6 +457,45 @@ def legacy_upgrade_archive_directory(manifest):
     return OWNER / 'upgrades' / commit
 
 
+# The class of source a capture refused on: a fixed word, never a path. Files that arrive from the
+# proxy archive keep the class contabo-backup.py gave them; the Daily's own list is classified here.
+CONFIG_CLASSES = {'caddy-data', 'caddy-config', 'caddyfile', 'compose', 'ssh', 'proxy-lookup', 'owner',
+                  'reader', 'personal', 'funded', 'successor', 'service', 'daily', 'systemd', 'ca', 'other'}
+
+
+def config_class(path):
+    path = Path(path)
+
+    def under(base):
+        return path == base or base in path.parents
+    if under(OWNER):
+        name = path.relative_to(OWNER).parts[0] if path != OWNER else ''
+        if name.startswith('beta-successor'):
+            return 'successor'
+        if name.startswith('funded-runtime-upgrade') or name == 'upgrades':
+            return 'funded'
+        if name == 'personal-beta-readers':
+            return 'reader'
+        if name.startswith('personal-beta'):
+            return 'personal'
+        return 'owner'
+    if any(under(base) for base in (SERVICE_PROFILE_DIR, SERVICE_OPERATION_DIR, SERVICE_ENV_DIR)):
+        return 'service'
+    if under(ROOT):
+        return 'daily'
+    if under(Path('/etc/systemd')):
+        return 'systemd'
+    if under(Path('/etc/alterward')):
+        return 'ca'
+    if under(Path('/etc/ssh')) or under(Path('/root/.ssh')):
+        return 'ssh'
+    return 'other'
+
+
+def file_class(name):
+    return backup.LAST_KINDS.get(name) or config_class(Path('/' + name))
+
+
 def extended_config_archive(proxy):
     source, _ = original_config_archive(proxy)
     files = {}
@@ -480,11 +519,22 @@ def extended_config_archive(proxy):
     paths += service_config_paths()
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
-        files[str(path).lstrip('/')] = regular(path)
+        try:
+            files[str(path).lstrip('/')] = regular(path)
+        except Exception as error:
+            raise backup.tagged(config_class(path), error)
     ca = Path('/etc/alterward/supabase-ca.crt')
-    files[str(ca).lstrip('/')] = ca.read_bytes()
-    if any(Path('/' + name).read_bytes() != data for name, data in files.items()):
-        raise ValueError('Configuration changed during capture')
+    try:
+        files[str(ca).lstrip('/')] = ca.read_bytes()
+    except Exception as error:
+        raise backup.tagged(config_class(ca), error)
+    for name, data in files.items():
+        try:
+            changed = Path('/' + name).read_bytes() != data
+        except Exception as error:
+            raise backup.tagged(file_class(name), error)
+        if changed:
+            raise backup.tagged(file_class(name), ValueError('Configuration changed during capture'))
     if len(files) > 10000 or sum(map(len, files.values())) > 128 * 1024**2:
         raise ValueError('Configuration exceeds limit')
     output = io.BytesIO()
@@ -2716,6 +2766,9 @@ def failure_diagnostic(error):
                     'frames': frames[-16:]}
             if isinstance(error, OSError) and type(error.errno) is int and 0 < error.errno < 200:
                 item['errno'] = error.errno
+            marked = getattr(error, 'configClass', None)
+            if isinstance(marked, str) and marked in CONFIG_CLASSES:
+                item['configClass'] = marked
             if isinstance(error, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
                 command = error.cmd
                 program = Path(command[0]).name if isinstance(command, (list, tuple)) and command and isinstance(command[0], str) else None
