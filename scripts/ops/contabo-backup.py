@@ -96,6 +96,19 @@ def proxy_container():
     return matches[0]
 
 
+def caddy_runtime_lock(path, data):
+    """Caddy's own lock heartbeat: exactly `<data>/caddy/locks/<name>.lock`, one level deep.
+
+    Caddy rewrites these files every few seconds while a certificate renewal is stuck. They are
+    runtime state with no configuration or key material, and a restored Caddy recreates them, so
+    they are neither archived nor part of the consistency re-read. Anything else under /data
+    (certificates, keys, ACME accounts, OCSP, a lock in any other directory, a nested path or a
+    link) stays archived and byte-compared exactly as before.
+    """
+    return (path.parent == data / 'caddy' / 'locks' and path.suffix == '.lock'
+            and re.fullmatch(r'[A-Za-z0-9_.@+-]{1,200}', path.name) is not None)
+
+
 def config_archive(container):
     mounts = {m['Destination']: m for m in container['Mounts']}
     paths = []
@@ -104,6 +117,7 @@ def config_archive(container):
         if not mount or mount['Type'] != 'bind':
             raise ValueError('Unexpected proxy mount layout')
         paths.append(Path(mount['Source']))
+    caddy_data = paths[0]
     labels = container['Config'].get('Labels', {})
     directory = Path(labels['com.docker.compose.project.working_dir'])
     for name in labels['com.docker.compose.project.config_files'].split(','):
@@ -126,6 +140,8 @@ def config_archive(container):
                 continue
             if not path.is_file():
                 raise ValueError('Source is not a regular file')
+            if caddy_runtime_lock(path, caddy_data):
+                continue
             files[str(path).lstrip('/')] = path.read_bytes()
     if len(files) > 10000 or sum(map(len, files.values())) > 128 * 1024**2:
         raise ValueError('Config exceeds limits')
