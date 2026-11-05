@@ -41,6 +41,7 @@ jobs:
           node --test tests/ops/ci-fixture-cleanup.test.mjs
           node --test tests/ops/funded-access.test.mjs
           node --test tests/ops/beta-successor-release.test.mjs
+          node --test tests/ops/successor-failure.test.mjs
       - name: Verify root-only expired-preparation archive file contracts without services
         run: |
           sudo env PYTHONDONTWRITEBYTECODE=1 python3 -B - <<'PY'

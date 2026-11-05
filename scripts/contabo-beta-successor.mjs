@@ -10,8 +10,13 @@ import { promisify } from 'node:util';
 import { readFileSync, lstatSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+// Localisation of a refusal (see scripts/lib/successor-failure.mjs): a fixed phase label, error type
+// and source locations only. The helper is imported after its committed bytes are verified.
+const failure = { mode: undefined, phase: 'start', server: null };
+
 async function main() {
   const mode = process.argv[2]?.replace(/^--/, '');
+  failure.mode = mode;
   if (
     process.platform !== 'linux' ||
     ![
@@ -69,6 +74,7 @@ async function main() {
     [purpose, prefix] = slots[process.argv[3]];
   }
   const receipt = (kind) => `beta-successor-${prefix}${kind}.json`;
+  failure.phase = 'git-bundle';
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim();
@@ -92,6 +98,7 @@ async function main() {
     'scripts/lib/beta-successor-release.mjs',
     'scripts/lib/personal-beta-admission-observation.mjs',
     'scripts/lib/funded-upgrade.mjs',
+    'scripts/lib/successor-failure.mjs',
     'scripts/lib/funded-access.mjs',
     'scripts/lib/operator-platform.mjs',
     'scripts/lib/private-report.ts',
@@ -99,6 +106,12 @@ async function main() {
     'scripts/contabo-fence-operator.mjs',
   ])
     verify(p);
+  {
+    const { successorFailureReport, serverFailure } =
+      await import('./lib/successor-failure.mjs');
+    failure.report = successorFailureReport;
+    failure.parse = serverFailure;
+  }
   const { operatorChildEnvironment } =
     await import('./contabo-personal-beta.mjs');
   const childEnv = operatorChildEnvironment(process.env);
@@ -111,6 +124,12 @@ async function main() {
   } = await import('./lib/operator-platform.mjs');
   const { privateReportDirectory, privateReportFile } =
     await import('./lib/private-report.ts');
+  failure.write = (report) =>
+    privateReportFile(
+      privateReportDirectory('contabo-release'),
+      'beta-successor-last-failure.json',
+      report,
+    );
   const { exactObject, fundedSourceBundle } =
     await import('./lib/funded-upgrade.mjs');
   const { successorModules, successorReleaseEvidence } =
@@ -147,6 +166,7 @@ async function main() {
   };
   const report = (name) => read(join(directory, name));
   if (mode === 'prepare' || mode === 'apply' || mode === 'recover') {
+    failure.phase = 'ci-readback';
     const token = operatorCiReadToken();
     const get = async (path) => {
       const response = await fetch(
@@ -173,6 +193,7 @@ async function main() {
         await get(`actions/runs/${run.id}/jobs?per_page=100`),
         commit,
       );
+    failure.phase = 'receipts';
     const packet =
       mode === 'prepare' ? read(process.argv[3]) : report(receipt('release'));
     exactObject(packet, ['selection', 'release']);
@@ -196,6 +217,7 @@ async function main() {
           prefix)
     )
       throw Error('Receipt belongs to another successor generation');
+    failure.phase = 'release-evidence';
     const release = successorReleaseEvidence({
       commit,
       bundleSha256,
@@ -240,10 +262,12 @@ async function main() {
         webhookSecret: secrets.webhookSecret,
       };
     }
+    failure.phase = 'access-readback';
     const { readFundedAccess } = await import('./lib/funded-access.mjs');
     request.accessSnapshot = await readFundedAccess(
       read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),
     );
+    failure.phase = 'receipts';
     if (mode !== 'prepare') {
       request.preparedSha256 = report(receipt('prepare-proof')).preparedSha256;
       request.restoreProof = report(receipt('restore-proof'));
@@ -262,7 +286,9 @@ async function main() {
       privateReportFile(directory, receipt('release'), packet);
   }
   if (mode === 'archive-expired') {
+    failure.phase = 'receipts';
     request.preparedSha256 = report(receipt('prepare-proof')).preparedSha256;
+    failure.phase = 'access-readback';
     const { readFundedAccess } = await import('./lib/funded-access.mjs');
     request.accessSnapshot = await readFundedAccess(
       read(join(operatorSecretsDirectory(), 'cloudflare-access-read.json')),
@@ -289,9 +315,13 @@ try:
  for n in a.INTERRUPTION_SIGNALS:signal.signal(n,a.interrupted)
  result=sys.modules['alterward_beta_successor'].main(p['request'])
  print(json.dumps({'ok':True,'result':result}))
-except BaseException:
- print(json.dumps({'ok':False,'phase':'beta-successor'}));sys.exit(1)
+except BaseException as e:
+ d=None
+ try: d=sys.modules['alterward_beta_successor'].failure_diagnostic(e)
+ except BaseException: pass
+ print(json.dumps({'ok':False,'phase':'beta-successor','failure':d}));sys.exit(1)
 `;
+  failure.phase = 'ssh';
   const pending = promisify(execFile)(
     'ssh',
     [
@@ -326,7 +356,16 @@ except BaseException:
   );
   pending.child.stdin.on('error', () => {});
   pending.child.stdin.end(JSON.stringify({ modules, request }));
-  const output = JSON.parse((await pending).stdout);
+  let finished;
+  try {
+    finished = await pending;
+  } catch (error) {
+    // A refusal on the host exits non-zero with its allowlisted localisation on stdout.
+    failure.server = failure.parse(error?.stdout, successorModules);
+    throw error;
+  }
+  failure.phase = 'report';
+  const output = JSON.parse(finished.stdout);
   if (output.ok !== true) throw Error('Successor transition refused');
   privateReportFile(directory, receipt(`${mode}-proof`), {
     ...output.result,
@@ -337,9 +376,28 @@ except BaseException:
     JSON.stringify({ mode, ok: true, paidAiCalls: 0, receiptSaved: true }),
   );
 }
-main().catch(() => {
+main().catch((error) => {
   console.error(
     'Successor refused or incomplete. Keep serving closed and inspect the private journal before explicit recovery.',
   );
+  try {
+    if (!failure.report)
+      console.error(
+        'Failure localisation: ' +
+          JSON.stringify({ phase: failure.phase, helperNotLoaded: true }),
+      );
+    else {
+      const report = failure.report({
+        mode: failure.mode,
+        phase: failure.phase,
+        error,
+        server: failure.server,
+      });
+      console.error('Failure localisation: ' + JSON.stringify(report));
+      failure.write?.(report);
+    }
+  } catch {
+    // The localisation must never replace the actual refusal.
+  }
   process.exitCode = 1;
 });
