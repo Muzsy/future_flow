@@ -204,6 +204,59 @@ async function migrationState(tx: Database, profile: RuntimeProfile) {
   return applied.length as FundedSchema | 40;
 }
 
+// The five drain conditions, by fixed name. A failure carries ONLY these names (never a
+// count, table or row) so a refused probe says which condition tripped.
+export const drainConditions = [
+  'queue-pending',
+  'queue-lease',
+  'drafts',
+  'branches',
+  'reservations',
+  'foreign-sessions',
+] as const;
+export type DrainCondition = (typeof drainConditions)[number];
+export class NotDrainedError extends Error {
+  constructor(readonly conditions: readonly DrainCondition[]) {
+    super('Funded runtime is not drained; no flags-only shortcut');
+    this.name = 'Error';
+  }
+}
+async function observeDrain(tx: Database) {
+  const queues = [];
+  for (const table of jobTables) {
+    const [row] = await tx.query<{ pending: number; leases: number }>(`SELECT
+      count(*) FILTER(WHERE status IN('queued','running','validating'))::int AS pending,
+      count(*) FILTER(WHERE lease_token IS NOT NULL OR lease_until IS NOT NULL)::int AS leases FROM public.${table}`);
+    queues.push({ table, ...row });
+  }
+  const [other] = await tx.query<{
+    drafts: number;
+    branches: number;
+    reservations: number;
+    foreignSessions: number;
+  }>(`SELECT
+    (SELECT count(*)::int FROM public.aw_public_draft_reviews WHERE status='running') AS drafts,
+    (SELECT count(*)::int FROM public.aw_branches WHERE status='generating') AS branches,
+    (SELECT count(*)::int FROM public.aw_budget_reservations WHERE status IN('reserved','unknown') OR settled_at IS NULL) AS reservations,
+    (SELECT count(*)::int FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()
+      AND backend_type='client backend' AND state IS DISTINCT FROM 'idle') AS "foreignSessions"`);
+  if (!other) throw Error('Incomplete funded queue observation');
+  const conditions: DrainCondition[] = [];
+  if (queues.some((q) => q.pending !== 0)) conditions.push('queue-pending');
+  if (queues.some((q) => q.leases !== 0)) conditions.push('queue-lease');
+  if (other.drafts !== 0) conditions.push('drafts');
+  if (other.branches !== 0) conditions.push('branches');
+  if (other.reservations !== 0) conditions.push('reservations');
+  if (other.foreignSessions !== 0) conditions.push('foreign-sessions');
+  return conditions;
+}
+// The runtime passes only when ONE observation shows all conditions clear; any tripped
+// condition refuses at once, named, with no re-measuring and no shortcut.
+async function assertDrained(tx: Database) {
+  const conditions = await observeDrain(tx);
+  if (conditions.length) throw new NotDrainedError(conditions);
+}
+
 export async function captureFundedRuntime(
   tx: Database,
   input: RuntimeIdentity,
@@ -257,32 +310,9 @@ async function captureRuntime(
     identities,
     clock.now,
   );
-  const queues = [];
-  for (const table of jobTables) {
-    const [row] = await tx.query<{ pending: number; leases: number }>(`SELECT
-      count(*) FILTER(WHERE status IN('queued','running','validating'))::int AS pending,
-      count(*) FILTER(WHERE lease_token IS NOT NULL OR lease_until IS NOT NULL)::int AS leases FROM public.${table}`);
-    queues.push({ table, ...row });
-  }
-  const [other] = await tx.query<{
-    drafts: number;
-    branches: number;
-    reservations: number;
-    foreignSessions: number;
-  }>(`SELECT
-    (SELECT count(*)::int FROM public.aw_public_draft_reviews WHERE status='running') AS drafts,
-    (SELECT count(*)::int FROM public.aw_branches WHERE status='generating') AS branches,
-    (SELECT count(*)::int FROM public.aw_budget_reservations WHERE status IN('reserved','unknown') OR settled_at IS NULL) AS reservations,
-    (SELECT count(*)::int FROM pg_catalog.pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()
-      AND backend_type='client backend' AND state IS DISTINCT FROM 'idle') AS "foreignSessions"`);
-  if (!other) throw Error('Incomplete funded queue observation');
   // No manual ready-commit/cancel is hidden in an upgrade. Operators finish or
   // reconcile such work through its existing reviewed path BEFORE preparing.
-  if (
-    queues.some((q) => q.pending !== 0 || q.leases !== 0) ||
-    Object.values(other).some((v) => v !== 0)
-  )
-    throw Error('Funded runtime is not drained; no flags-only shortcut');
+  await assertDrained(tx);
   const policies = await assertFundedStoredNarrativeState(tx, schema);
   // Canonical data, accounting, job snapshots and privacy/control data are all
   // covered. The 036 projection adds exactly the future subscriber default;

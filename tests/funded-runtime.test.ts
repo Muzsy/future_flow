@@ -30,7 +30,9 @@ import {
   captureFundedRuntime,
   migrateFundedRuntime,
   fundedRuntimeCapabilities,
+  NotDrainedError,
 } from '../scripts/lib/funded-runtime';
+import { privateProbeFailure } from '../scripts/lib/funded-probe-diagnostics';
 import {
   assertReviewedPrivacyRecoverySchema,
   assertReviewedFundedPre040Schema,
@@ -157,6 +159,82 @@ describe('funded runtime schema and accounting boundary', () => {
           await captureFundedRuntime(adapter(e), input);
         }),
       ).rejects.toThrow(/not drained/);
+  });
+  describe('the refusal names the tripped drain conditions', () => {
+    // The same real queries run; only the pg_stat_activity count of OTHER sessions is scripted.
+    function withSessions(d: Database, count: number) {
+      const seen: number[] = [];
+      const wrapped: Database = {
+        ...d,
+        query: async <T extends Record<string, unknown>>(
+          sql: string,
+          values?: unknown[],
+        ) => {
+          const rows = await d.query<T>(sql, values);
+          if (!sql.includes('"foreignSessions"')) return rows;
+          seen.push(count);
+          return rows.map((r) => ({ ...r, foreignSessions: count }));
+        },
+      };
+      return { wrapped, seen };
+    }
+    async function refusal(prepare: string | null, sessions: number) {
+      let seen: number[] = [];
+      const failure = await engine
+        .transaction(async (e) => {
+          if (prepare) await e.exec(prepare);
+          const scripted = withSessions(adapter(e), sessions);
+          seen = scripted.seen;
+          return captureFundedRuntime(scripted.wrapped, input);
+        })
+        .catch((e: unknown) => e);
+      return { failure, seen };
+    }
+    it('a momentary other session refuses at once, by name, with a single observation', async () => {
+      const { failure, seen } = await refusal(null, 1);
+      expect(failure).toBeInstanceOf(NotDrainedError);
+      expect((failure as Error).message).toMatch(/not drained/);
+      expect((failure as NotDrainedError).conditions).toEqual([
+        'foreign-sessions',
+      ]);
+      expect(seen).toHaveLength(1); // no re-measuring: the gate is exactly as strict as before
+    });
+    it('passes only when one observation shows every condition clear', async () => {
+      const { failure, seen } = await refusal(null, 0);
+      expect(failure).toMatchObject({ drained: true });
+      expect(seen).toHaveLength(1);
+    });
+    it('names a durable condition together with a session', async () => {
+      const { failure } = await refusal(
+        `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status)
+         VALUES(gen_random_uuid(),'${user}','funded-project','funded-user',gen_random_uuid(),'m','t',123,123,'reserved')`,
+        1,
+      );
+      expect(failure).toBeInstanceOf(NotDrainedError);
+      expect((failure as NotDrainedError).conditions).toEqual([
+        'reservations',
+        'foreign-sessions',
+      ]);
+    });
+    it('reports only the fixed condition names in the private probe failure', () => {
+      const error = new NotDrainedError(['foreign-sessions', 'reservations']);
+      error.stack =
+        'Error: x\n    at capture (/app/scripts/lib/funded-runtime.ts:300:11)';
+      const result = privateProbeFailure(
+        new Error('wrapper', { cause: error }),
+        'registry-capture',
+      );
+      expect(result.drainConditions).toEqual([
+        'foreign-sessions',
+        'reservations',
+      ]);
+      const hostile = privateProbeFailure(
+        { conditions: ['drafts', 'secret-token', 42, 'drafts'] },
+        'capture',
+      );
+      expect(hostile.drainConditions).toEqual(['drafts']);
+      expect(JSON.stringify(hostile)).not.toContain('secret');
+    });
   });
   it('rejects tampered migration receipts before migration', async () => {
     await expect(

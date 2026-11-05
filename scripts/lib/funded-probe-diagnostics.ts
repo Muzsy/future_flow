@@ -36,6 +36,14 @@ const sources = new Set([
   'scripts/lib/privacy-security-catalog.ts',
   'scripts/lib/privacy-recovery-schema.ts',
 ]);
+const drainNames = new Set([
+  'queue-pending',
+  'queue-lease',
+  'drafts',
+  'branches',
+  'reservations',
+  'foreign-sessions',
+]);
 const sqlStates = new Set([
   '08000',
   '08001',
@@ -79,6 +87,7 @@ export function privateProbeFailure(error: unknown, phase: string) {
     phase: phases.has(phase) ? phase : 'unknown',
     errorType: 'UnknownError',
     sqlState: null as string | null,
+    drainConditions: [] as string[],
     frames: [] as { source: string; line: number; column: number }[],
   };
   try {
@@ -94,7 +103,17 @@ export function privateProbeFailure(error: unknown, phase: string) {
       name?: unknown;
       code?: unknown;
       stack?: unknown;
+      conditions?: unknown;
     };
+    // Only the fixed names of the tripped drain conditions, never a count or a row.
+    if (Array.isArray(value.conditions))
+      for (const name of value.conditions.slice(0, 6))
+        if (
+          typeof name === 'string' &&
+          drainNames.has(name) &&
+          !result.drainConditions.includes(name)
+        )
+          result.drainConditions.push(name);
     if (typeof value.code === 'string' && sqlStates.has(value.code))
       result.sqlState = value.code;
     if (
