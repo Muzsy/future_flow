@@ -160,10 +160,9 @@ describe('funded runtime schema and accounting boundary', () => {
         }),
       ).rejects.toThrow(/not drained/);
   });
-  describe('drain observation of other database sessions', () => {
-    const fast = { attempts: 5, delayMs: 0 };
+  describe('the refusal names the tripped drain conditions', () => {
     // The same real queries run; only the pg_stat_activity count of OTHER sessions is scripted.
-    function withSessions(d: Database, counts: number[]) {
+    function withSessions(d: Database, count: number) {
       const seen: number[] = [];
       const wrapped: Database = {
         ...d,
@@ -173,59 +172,49 @@ describe('funded runtime schema and accounting boundary', () => {
         ) => {
           const rows = await d.query<T>(sql, values);
           if (!sql.includes('"foreignSessions"')) return rows;
-          const next = counts[Math.min(seen.length, counts.length - 1)]!;
-          seen.push(next);
-          return rows.map((r) => ({ ...r, foreignSessions: next }));
+          seen.push(count);
+          return rows.map((r) => ({ ...r, foreignSessions: count }));
         },
       };
       return { wrapped, seen };
     }
-    it('passes when a momentary session is gone at the next observation of the same tx', async () => {
-      let seen: number[] = [];
-      const result = await engine.transaction(async (e) => {
-        const scripted = withSessions(adapter(e), [2, 1, 0]);
-        seen = scripted.seen;
-        return captureFundedRuntime(scripted.wrapped, input, fast);
-      });
-      expect(result.drained).toBe(true);
-      expect(seen).toEqual([2, 1, 0]);
-    });
-    it('still refuses a session that stays, after a bounded number of observations', async () => {
+    async function refusal(prepare: string | null, sessions: number) {
       let seen: number[] = [];
       const failure = await engine
         .transaction(async (e) => {
-          const scripted = withSessions(adapter(e), [1]);
+          if (prepare) await e.exec(prepare);
+          const scripted = withSessions(adapter(e), sessions);
           seen = scripted.seen;
-          return captureFundedRuntime(scripted.wrapped, input, fast);
+          return captureFundedRuntime(scripted.wrapped, input);
         })
         .catch((e: unknown) => e);
+      return { failure, seen };
+    }
+    it('a momentary other session refuses at once, by name, with a single observation', async () => {
+      const { failure, seen } = await refusal(null, 1);
       expect(failure).toBeInstanceOf(NotDrainedError);
       expect((failure as Error).message).toMatch(/not drained/);
       expect((failure as NotDrainedError).conditions).toEqual([
         'foreign-sessions',
       ]);
-      expect(seen).toHaveLength(fast.attempts);
+      expect(seen).toHaveLength(1); // no re-measuring: the gate is exactly as strict as before
     });
-    it('never measures again for a durable condition and names exactly the tripped ones', async () => {
-      let seen: number[] = [];
-      const failure = await engine
-        .transaction(async (e) => {
-          await e.query(
-            `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status)
-       VALUES($1,$2,'funded-project','funded-user',$3,'synthetic-model','synthetic-task',123,123,'reserved')`,
-            [randomUUID(), user, randomUUID()],
-          );
-          const scripted = withSessions(adapter(e), [1, 0]);
-          seen = scripted.seen;
-          return captureFundedRuntime(scripted.wrapped, input, fast);
-        })
-        .catch((e: unknown) => e);
+    it('passes only when one observation shows every condition clear', async () => {
+      const { failure, seen } = await refusal(null, 0);
+      expect(failure).toMatchObject({ drained: true });
+      expect(seen).toHaveLength(1);
+    });
+    it('names a durable condition together with a session', async () => {
+      const { failure } = await refusal(
+        `INSERT INTO aw_budget_reservations(id,user_id,project_key,user_key,job_id,model,task,reserved_micro,accounted_micro,status)
+         VALUES(gen_random_uuid(),'${user}','funded-project','funded-user',gen_random_uuid(),'m','t',123,123,'reserved')`,
+        1,
+      );
       expect(failure).toBeInstanceOf(NotDrainedError);
       expect((failure as NotDrainedError).conditions).toEqual([
         'reservations',
         'foreign-sessions',
       ]);
-      expect(seen).toHaveLength(1); // the durable condition refuses at once, with no waiting
     });
     it('reports only the fixed condition names in the private probe failure', () => {
       const error = new NotDrainedError(['foreign-sessions', 'reservations']);

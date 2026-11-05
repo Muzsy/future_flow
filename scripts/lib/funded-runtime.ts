@@ -221,12 +221,6 @@ export class NotDrainedError extends Error {
     this.name = 'Error';
   }
 }
-// A client backend of the same database that is momentarily not idle (a pooler, the
-// monitor or the app's own query) is an instant, not a durable state: only that condition
-// may be measured again, a bounded number of times. Every durable condition (queued or
-// leased job, running draft, generating branch, open budget reservation) refuses at once,
-// and the runtime passes only when ONE observation shows all conditions clear.
-export const defaultDrainRecheck = { attempts: 5, delayMs: 1000 };
 async function observeDrain(tx: Database) {
   const queues = [];
   for (const table of jobTables) {
@@ -256,25 +250,18 @@ async function observeDrain(tx: Database) {
   if (other.foreignSessions !== 0) conditions.push('foreign-sessions');
   return conditions;
 }
-async function assertDrained(tx: Database, recheck: DrainRecheck) {
-  for (let attempt = 1; ; attempt++) {
-    const conditions = await observeDrain(tx);
-    if (conditions.length === 0) return;
-    const onlySessions =
-      conditions.length === 1 && conditions[0] === 'foreign-sessions';
-    if (!onlySessions || attempt >= recheck.attempts)
-      throw new NotDrainedError(conditions);
-    await new Promise((resolve) => setTimeout(resolve, recheck.delayMs));
-  }
+// The runtime passes only when ONE observation shows all conditions clear; any tripped
+// condition refuses at once, named, with no re-measuring and no shortcut.
+async function assertDrained(tx: Database) {
+  const conditions = await observeDrain(tx);
+  if (conditions.length) throw new NotDrainedError(conditions);
 }
-type DrainRecheck = { attempts: number; delayMs: number };
 
 export async function captureFundedRuntime(
   tx: Database,
   input: RuntimeIdentity,
-  recheck: DrainRecheck = defaultDrainRecheck,
 ) {
-  const result = await captureRuntime(tx, input, 'legacy039', recheck);
+  const result = await captureRuntime(tx, input, 'legacy039');
   if (result.schema === 40)
     throw Error('Legacy runtime cannot observe schema040');
   return { ...result, schema: result.schema as FundedSchema };
@@ -284,7 +271,6 @@ async function captureRuntime(
   tx: Database,
   input: RuntimeIdentity,
   profile: RuntimeProfile,
-  recheck: DrainRecheck,
 ) {
   await tx.query("SET LOCAL timezone='UTC'");
   await tx.query("SET LOCAL statement_timeout='15s'");
@@ -326,7 +312,7 @@ async function captureRuntime(
   );
   // No manual ready-commit/cancel is hidden in an upgrade. Operators finish or
   // reconcile such work through its existing reviewed path BEFORE preparing.
-  await assertDrained(tx, recheck);
+  await assertDrained(tx);
   const policies = await assertFundedStoredNarrativeState(tx, schema);
   // Canonical data, accounting, job snapshots and privacy/control data are all
   // covered. The 036 projection adds exactly the future subscriber default;
@@ -448,9 +434,8 @@ async function completeTableDigests(tx: Database, tables: readonly string[]) {
 export async function captureServiceRegistryRuntime(
   tx: Database,
   input: RuntimeIdentity,
-  recheck: DrainRecheck = defaultDrainRecheck,
 ) {
-  const base = await captureRuntime(tx, input, 'registry040', recheck);
+  const base = await captureRuntime(tx, input, 'registry040');
   if (base.schema !== 39 && base.schema !== 40)
     throw Error('Service registry runtime requires exact039 or040');
   const billing = await completeTableDigests(tx, billingRuntimeTables);
