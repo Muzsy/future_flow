@@ -1708,6 +1708,16 @@ class SuccessorNotExposed(ValueError):
     """A generation exists but is not yet (or no longer) the fully exposed parent."""
 
 
+class SuccessorExpired(ValueError):
+    """A never-attempted preparation whose 900 s window has passed.
+
+    Still a plain ValueError for every health, parent and activation check, which
+    stay fail-closed until the preparation is archived. Only the archive validator
+    may treat it as the end of the exposed chain: an expired, journal-less root is
+    exactly what the explicit archive move is for.
+    """
+
+
 def successor_chain_contexts():
     """Contexts of every possible parent: the original funded upgrade, then each
     generation that is already fully exposed. Archived (never-applied) preparations
@@ -1719,10 +1729,11 @@ def successor_chain_contexts():
         value = successor_candidate(parent, parent_role, root=root, context=context)
         try:
             role = successor_effective_role(value, root)
-        except SuccessorNotExposed:
-            # An in-flight generation is never a parent of anything. Stopping here
-            # does not loosen health: successor_active_state still rejects a
-            # directory that follows an unfinished one.
+        except (SuccessorNotExposed, SuccessorExpired):
+            # An in-flight (or expired, never-attempted) generation is never a parent
+            # of anything. Stopping here does not loosen health: successor_active_state
+            # still rejects a directory that follows an unfinished one and an expired
+            # preparation stays unhealthy until it is archived.
             break
         if role == 'previous':
             break
@@ -1807,7 +1818,7 @@ def successor_effective_role(value, root=None):
     journal = root / 'journal.json'
     if not journal.exists() and not journal.is_symlink():
         if utcnow() >= dt.datetime.fromisoformat(value['expiresAt']):
-            raise ValueError('Expired successor preparation')
+            raise SuccessorExpired('Expired successor preparation')
         return 'previous'
     intent = json.loads(regular(journal))
     if (set(intent) != {'version', 'preparedSha256', 'states'} or intent['version'] != SUCCESSOR_VERSION

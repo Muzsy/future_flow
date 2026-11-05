@@ -31,6 +31,10 @@ CAPABILITY_CODE = """import{readFileSync}from'node:fs';import{createHash}from'no
 const hashes=JSON.parse(readFileSync(0,'utf8'));
 for(const[p,h]of Object.entries(hashes))if(createHash('sha256').update(readFileSync('/app/'+p)).digest('hex')!==h)throw Error('Image source mismatch');
 const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.ts');console.log(JSON.stringify(fundedRuntimeCapabilities()));"""
+# The recorded-evidence image check of an already exposed successor generation
+# probes the image's own capability and compares it with the digest stored in that
+# generation's prepared evidence; it carries no source-hash input.
+NO_CAPABILITY_INPUT = sha(encoded({}))
 CAPABILITY_COMMAND = ['--import', 'tsx', '--input-type=module', '-e', CAPABILITY_CODE]
 REGISTRY_CAPABILITY_COMMAND = ['--import', 'tsx', '--input-type=module', '-e',
     CAPABILITY_CODE.replace('fundedRuntimeCapabilities', 'serviceRegistryRuntimeCapabilities')]
@@ -300,13 +304,36 @@ class System:
         self.staging_network = 'alterward-funded-check-' + request['sourceCommit'][:12]
 
     def active_proof(self):
+        """Replay authority of the CURRENTLY active generation, never a registry guess.
+
+        The generation, its parent chain back to the original funded upgrade, the
+        exact runtime bytes, the authority files, the readback and the running
+        containers are all derived and verified by ``active_funded_runtime`` from
+        root state. The original funded generation still demands the exact
+        committed upgrade source. A later, fully exposed successor generation is
+        bound to its own immutable prepared evidence instead: when the operator
+        checkout is that generation's exact source the complete source/capability
+        check runs, otherwise the image must still be the recorded one and report
+        exactly the capability digest recorded when the generation was prepared.
+        """
         from alterward_funded_replay import active_funded_runtime
-        candidate = json.loads(fence.original(self.root / 'prepared.json'))
-        if (candidate['sourceCommit'] != self.request['sourceCommit'] or
-                candidate['bundleSha256'] != self.request['bundleSha256']):
-            raise ValueError('Use the original exact committed upgrade source for active proof')
         proof = active_funded_runtime(self.daily, fence.original)
-        self.image(candidate['release'][proof['role']])
+        root = (self.daily.active_funded_directory()
+                if hasattr(self.daily, 'active_funded_directory') else self.root)
+        candidate = json.loads(fence.original(root / 'prepared.json'))
+        if sha(encoded(candidate)) != proof['preparedSha256']:
+            raise ValueError('Active generation evidence changed during proof')
+        exact_source = (candidate['sourceCommit'] == self.request['sourceCommit']
+                        and candidate['bundleSha256'] == self.request['bundleSha256'])
+        if root == self.root and not exact_source:
+            raise ValueError('Use the original exact committed upgrade source for active proof')
+        role = proof['role']
+        build = candidate['release'][role]
+        self.active_registry = proof.get('recoveryProfile') == 'registry040'
+        if exact_source:
+            self.image(build)
+        else:
+            self.recorded_image(role, candidate)
         # Re-read after the image capability check; concurrent state cannot issue a proof.
         if active_funded_runtime(self.daily, fence.original) != proof:
             raise ValueError('Active runtime drift while validating image')
@@ -534,14 +561,27 @@ class System:
         return {**capability, 'probeRemoved': removed is not None, 'probeContainerId': removed,
                 'applicationContainersChanged': False, 'paidAiCalls': 0}
 
+    # Set by active_proof only, from the active generation's own evidence.
+    active_registry = False
+
     def capability_input_hashes(self):
-        # Original image upgrades accept ONLY the complete committed bundle.
-        return {sha(encoded(self.request['sourceHashes']))}
+        # Original image upgrades accept ONLY the complete committed bundle. The
+        # recorded-evidence probe of an active successor image (and the cleanup of
+        # its helper) is the one input-free operation; it exists only in these modes.
+        accepted = {sha(encoded(self.request['sourceHashes']))}
+        if self.request.get('mode') in {'active-proof', 'cleanup-probe'}:
+            accepted.add(NO_CAPABILITY_INPUT)
+        return accepted
 
     def allowed_capability_commands(self):
+        mode = self.request.get('mode')
+        if mode == 'cleanup-probe' or (mode == 'active-proof' and self.active_registry):
+            return (CAPABILITY_COMMAND, REGISTRY_CAPABILITY_COMMAND)
         return (CAPABILITY_COMMAND,)
 
     def image_capability_profile(self):
+        if self.active_registry:
+            return ('alterward-funded-runtime-2', 40, 'service-registry-040')
         return ('alterward-funded-runtime-1', 39, None)
 
     def cleanup_capability(self):
@@ -617,10 +657,11 @@ class System:
         finally:
             self.cleanup_capability()
 
-    def image(self, build):
+    def image_identity(self, build, commit):
+        """The cached image tag is the immutable image ID the evidence names."""
         exact(build, {'commit', 'imageId', 'imageTag', 'sourceDirectory'})
         if (
-            build['commit'] != self.request['sourceCommit']
+            build['commit'] != commit
             or not IMAGE.fullmatch(build['imageId'])
             or not re.fullmatch(r'alterward:contabo-[a-f0-9]{12}', build['imageTag'])
         ):
@@ -639,6 +680,26 @@ class System:
             or value['Config'].get('Entrypoint') != ['docker-entrypoint.sh']
         ):
             raise ValueError('Immutable cached image digest mismatch')
+
+    def require_capability(self, capability, version, schema, profile):
+        if (
+            capability.get('version') != version
+            or capability.get('schema') != schema
+            or capability.get('profile') != profile
+            or (profile == 'service-registry-040' and capability.get('fromSchema') != 39)
+            or len(capability.get('policies', [])) != 19
+            or 'fiction-v9' not in capability.get('policies', [])
+            or capability.get('characterStateVersion') != '1.0.0'
+            or capability.get('fictionArtifactVersion') != '2.0.0'
+            or capability.get('fictionV9Policy', {}).get('qualityPolicyVersion') != '2.8.0'
+            or capability.get('reviewedPolicy', {}).get('maxPhysicalRequests') != 8
+        ):
+            raise ValueError(
+                'Schema/prompt/artifact compatible image required before mutation'
+            )
+
+    def image(self, build):
+        self.image_identity(build, self.request['sourceCommit'])
         source = Path(build['sourceDirectory'])
         from alterward_backup import confined, ROOT
 
@@ -662,22 +723,28 @@ class System:
         result = (self.capability(build['imageId'], hashes, registry=True) if profile == 'service-registry-040'
                   else self.capability(build['imageId'], hashes))
         capability = json.loads(result.stdout)
-        if (
-            capability.get('version') != version
-            or capability.get('schema') != schema
-            or capability.get('profile') != profile
-            or (profile == 'service-registry-040' and capability.get('fromSchema') != 39)
-            or len(capability.get('policies', [])) != 19
-            or 'fiction-v9' not in capability.get('policies', [])
-            or capability.get('characterStateVersion') != '1.0.0'
-            or capability.get('fictionArtifactVersion') != '2.0.0'
-            or capability.get('fictionV9Policy', {}).get('qualityPolicyVersion') != '2.8.0'
-            or capability.get('reviewedPolicy', {}).get('maxPhysicalRequests') != 8
-        ):
-            raise ValueError(
-                'Schema/prompt/artifact compatible image required before mutation'
-            )
+        self.require_capability(capability, version, schema, profile)
         return sha(encoded(capability))
+
+    def recorded_image(self, role, candidate):
+        """Image of an already exposed successor generation, bound to ITS evidence.
+
+        The operator checkout is not that generation's source, so its bundle cannot
+        be compared with the image. The image must instead be the exact immutable
+        image the generation recorded, pass the same capability profile checks and
+        report byte-for-byte the capability digest stored in the prepared evidence.
+        """
+        build = candidate['release'][role]
+        recorded = candidate['release'].get(role + 'CapabilitySha256')
+        if not isinstance(recorded, str) or not DIGEST.fullmatch(recorded):
+            raise ValueError('Recorded image capability digest of the active generation required')
+        self.image_identity(build, candidate['sourceCommit'])
+        version, schema, profile = self.image_capability_profile()
+        result = self.capability(build['imageId'], {}, registry=profile == 'service-registry-040')
+        capability = json.loads(result.stdout)
+        self.require_capability(capability, version, schema, profile)
+        if sha(encoded(capability)) != recorded:
+            raise ValueError('Active image capability differs from its recorded evidence')
 
     def capabilities(self, candidate):
         for role in ('target', 'recovery'):
