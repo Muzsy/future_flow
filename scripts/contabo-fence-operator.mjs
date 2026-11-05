@@ -830,7 +830,7 @@ async function main() {
     ],
     {
       encoding: 'utf8',
-      timeout: mode === 'rehearsal' ? 1200000 : 900000,
+      timeout: mode === 'rehearsal' ? 1320000 : 900000,
       maxBuffer: 2 * 1024 ** 2,
     },
   );
