@@ -81,19 +81,34 @@ def safe_extract(data, destination):
             private_file(path, archive.extractfile(member).read())
 
 
+def tagged(kind, error):
+    """Name the class of source that failed (a fixed word, never the path) for the failure record."""
+    try:
+        error.configClass = kind
+    except Exception:
+        pass
+    return error
+
+
 def proxy_container():
-    ids = run(['docker', 'ps', '-q']).stdout.decode().split()
-    containers = json.loads(run(['docker', 'inspect', *ids]).stdout)
-    matches = []
-    for container in containers:
-        ports = container['NetworkSettings']['Ports'].get('443/tcp') or []
-        if 'caddy' in container['Config']['Image'] and any(
-            p['HostPort'] == '443' for p in ports
-        ):
-            matches.append(container)
-    if len(matches) != 1:
-        raise ValueError('Expected one existing public Caddy')
-    return matches[0]
+    try:
+        ids = run(['docker', 'ps', '-q']).stdout.decode().split()
+        containers = json.loads(run(['docker', 'inspect', *ids]).stdout)
+        matches = []
+        for container in containers:
+            ports = container['NetworkSettings']['Ports'].get('443/tcp') or []
+            if 'caddy' in container['Config']['Image'] and any(
+                p['HostPort'] == '443' for p in ports
+            ):
+                matches.append(container)
+        if len(matches) != 1:
+            raise ValueError('Expected one existing public Caddy')
+        return matches[0]
+    except Exception as error:
+        raise tagged('proxy-lookup', error)
+
+
+LAST_KINDS = {}
 
 
 def caddy_runtime_lock(path, data):
@@ -112,42 +127,54 @@ def caddy_runtime_lock(path, data):
 def config_archive(container):
     mounts = {m['Destination']: m for m in container['Mounts']}
     paths = []
-    for destination in ['/data', '/config', '/etc/caddy/Caddyfile']:
+    for destination, kind in [('/data', 'caddy-data'), ('/config', 'caddy-config'),
+                              ('/etc/caddy/Caddyfile', 'caddyfile')]:
         mount = mounts.get(destination)
         if not mount or mount['Type'] != 'bind':
-            raise ValueError('Unexpected proxy mount layout')
-        paths.append(Path(mount['Source']))
-    caddy_data = paths[0]
+            raise tagged(kind, ValueError('Unexpected proxy mount layout'))
+        paths.append((kind, Path(mount['Source'])))
+    caddy_data = paths[0][1]
     labels = container['Config'].get('Labels', {})
     directory = Path(labels['com.docker.compose.project.working_dir'])
     for name in labels['com.docker.compose.project.config_files'].split(','):
-        paths.append(directory / name)
+        paths.append(('compose', directory / name))
     if (directory / '.env').exists():
-        paths.append(directory / '.env')
+        paths.append(('compose', directory / '.env'))
     for name in ['/etc/ssh/sshd_config',
                  '/etc/ssh/sshd_config.d/00-alterward-ops.conf',
                  '/root/.ssh/authorized_keys']:
-        paths.append(Path(name))
-    files = {}
-    for source in paths:
-        if source.is_symlink():
-            raise ValueError('Source symlink rejected')
-        candidates = sorted(source.rglob('*')) if source.is_dir() else [source]
-        for path in candidates:
-            if path.is_symlink():
+        paths.append(('ssh', Path(name)))
+    files, kinds = {}, {}
+    for kind, source in paths:
+        try:
+            if source.is_symlink():
                 raise ValueError('Source symlink rejected')
-            if path.is_dir():
-                continue
-            if not path.is_file():
-                raise ValueError('Source is not a regular file')
-            if caddy_runtime_lock(path, caddy_data):
-                continue
-            files[str(path).lstrip('/')] = path.read_bytes()
+            candidates = sorted(source.rglob('*')) if source.is_dir() else [source]
+            for path in candidates:
+                if path.is_symlink():
+                    raise ValueError('Source symlink rejected')
+                if path.is_dir():
+                    continue
+                if not path.is_file():
+                    raise ValueError('Source is not a regular file')
+                if kind == 'caddy-data' and caddy_runtime_lock(path, caddy_data):
+                    continue
+                files[str(path).lstrip('/')] = path.read_bytes()
+                kinds[str(path).lstrip('/')] = kind
+        except Exception as error:
+            raise tagged(kind, error)
     if len(files) > 10000 or sum(map(len, files.values())) > 128 * 1024**2:
         raise ValueError('Config exceeds limits')
+    global LAST_KINDS
+    LAST_KINDS = dict(kinds)
     # Refuse a moving live file set. This is still a logical copy, not a VM snapshot.
-    if any(Path('/' + name).read_bytes() != data for name, data in files.items()):
-        raise ValueError('Configuration changed during capture')
+    for name, data in files.items():
+        try:
+            changed = Path('/' + name).read_bytes() != data
+        except Exception as error:
+            raise tagged(kinds[name], error)
+        if changed:
+            raise tagged(kinds[name], ValueError('Configuration changed during capture'))
     output = io.BytesIO()
     with tarfile.open(fileobj=output, mode='w:gz') as archive:
         for name, data in sorted(files.items()):

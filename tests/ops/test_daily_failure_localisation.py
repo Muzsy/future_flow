@@ -62,6 +62,85 @@ class FailureDiagnosticTests(unittest.TestCase):
         self.assertEqual(daily.failure_diagnostic(subprocess.TimeoutExpired([SECRET], 5))['exceptions'][0]['program'], 'other')
 
 
+class ConfigClassTests(unittest.TestCase):
+    """Which KIND of source a capture refused on is named by a fixed word, never a path."""
+
+    def test_the_class_vocabulary_is_fixed_and_a_foreign_value_is_dropped(self):
+        for word in ('caddy-data', 'successor', 'ssh', 'proxy-lookup'):
+            error = library.tagged(word, ValueError(SECRET))
+            self.assertEqual(daily.failure_diagnostic(error)['exceptions'][0]['configClass'], word)
+        for hostile in ('/root/' + SECRET, SECRET, '', None, 7, ['ssh']):
+            error = ValueError(SECRET)
+            error.configClass = hostile
+            result = daily.failure_diagnostic(error)
+            self.assertNotIn('configClass', result['exceptions'][0])
+            self.assertNotIn(SECRET, json.dumps(result))
+        self.assertEqual(daily.failure_diagnostic(ValueError('x'))['exceptions'], [{'type': 'ValueError', 'frames': []}])
+
+    def test_every_daily_source_gets_a_class_from_the_vocabulary(self):
+        owner, ops = daily.OWNER, daily.ORIGINAL_ROOT
+        for path, expected in [(owner / 'beta-successor-4' / 'prepared.json', 'successor'),
+                               (owner / 'beta-successor-archive' / ('a' * 64) / 'archive.json', 'successor'),
+                               (owner / 'funded-runtime-upgrade' / 'journal.json', 'funded'),
+                               (owner / 'upgrades' / ('b' * 40) / 'manifest.json', 'funded'),
+                               (owner / 'personal-beta-readers' / 'access.json', 'reader'),
+                               (owner / 'personal-beta' / 'terms.json', 'personal'),
+                               (owner / 'server.env', 'owner'),
+                               (ops / 'service-env' / 'journal.jsonl', 'service'),
+                               (Path('/var/lib/alterward/service-operations/journal.jsonl'), 'service'),
+                               (daily.ROOT / 'config.json', 'daily'),
+                               (Path('/etc/systemd/system/alterward-backup.timer'), 'systemd'),
+                               (Path('/etc/alterward/supabase-ca.crt'), 'ca'),
+                               (Path('/root/.ssh/authorized_keys'), 'ssh'),
+                               (Path('/somewhere/else'), 'other')]:
+            self.assertEqual(daily.config_class(path), expected, path)
+            self.assertIn(expected, daily.CONFIG_CLASSES)
+
+    def test_the_proxy_capture_names_the_class_that_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base_dir = Path(directory)
+            data, config, caddyfile, compose = (base_dir / n for n in ('data', 'config', 'Caddyfile', 'compose'))
+            data.mkdir(), config.mkdir(), compose.mkdir()
+            (data / 'cert').write_bytes(b'one'), caddyfile.write_bytes(b'c'), (compose / 'compose.yaml').write_bytes(b'y')
+            container = {'Mounts': [{'Destination': d, 'Type': 'bind', 'Source': str(s)} for d, s in
+                                    [('/data', data), ('/config', config), ('/etc/caddy/Caddyfile', caddyfile)]],
+                         'Config': {'Labels': {'com.docker.compose.project.working_dir': str(compose),
+                                               'com.docker.compose.project.config_files': 'compose.yaml'}}}
+            real_read, real_is_file = Path.read_bytes, Path.is_file
+            reads = {}
+
+            def read_bytes(path):
+                text = str(path)
+                if text.startswith(('/etc/ssh', '/root/.ssh')):
+                    return b'ssh'
+                reads[text] = reads.get(text, 0) + 1
+                return real_read(path) if not (text == str(data / 'cert') and reads[text] > 1) else b'moved'
+
+            def is_file(path):
+                return True if str(path).startswith(('/etc/ssh', '/root/.ssh')) else real_is_file(path)
+            with patch.object(Path, 'read_bytes', read_bytes), patch.object(Path, 'is_file', is_file), \
+                 patch.object(Path, 'is_symlink', lambda path: False), \
+                 patch.object(Path, 'is_dir', lambda path: not str(path).startswith(('/etc/ssh', '/root/.ssh')) and os.path.isdir(path)):
+                with self.assertRaisesRegex(ValueError, 'Configuration changed during capture') as moved:
+                    library.config_archive(container)
+            self.assertEqual(daily.failure_diagnostic(moved.exception)['exceptions'][0]['configClass'], 'caddy-data')
+            # An unreadable or missing source is classed the same way, whichever source it is.
+            broken = {**container, 'Mounts': [{**container['Mounts'][0], 'Source': str(base_dir / 'absent')}, *container['Mounts'][1:]]}
+            with self.assertRaises(ValueError) as absent:
+                library.config_archive(broken)
+            self.assertEqual(daily.failure_diagnostic(absent.exception)['exceptions'][0]['configClass'], 'caddy-data')
+            with self.assertRaises(ValueError) as layout:
+                library.config_archive({**container, 'Mounts': container['Mounts'][:1]})
+            self.assertEqual(daily.failure_diagnostic(layout.exception)['exceptions'][0]['configClass'], 'caddy-config')
+            self.assertNotIn(directory, json.dumps(daily.failure_diagnostic(moved.exception)))
+
+    def test_the_proxy_lookup_names_its_class(self):
+        with patch.object(library, 'run', side_effect=RuntimeError('Command failed')):
+            with self.assertRaises(RuntimeError) as failed:
+                library.proxy_container()
+        self.assertEqual(daily.failure_diagnostic(failed.exception)['exceptions'][0]['configClass'], 'proxy-lookup')
+
+
 class RecordedFailureTests(unittest.TestCase):
     def test_a_failed_backup_keeps_its_phase_and_gains_the_localisation(self):
         written = {}
