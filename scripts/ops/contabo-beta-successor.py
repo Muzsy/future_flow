@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import subprocess
 
 from alterward_activation import DIRECTORY, FILES, encoded, frozen, sha
 import alterward_fence as fence
@@ -30,6 +31,50 @@ import alterward_funded_upgrade as funded
 from alterward_successor_transition import transition
 
 VERSION = 'alterward-beta-successor-1'
+
+# Failure localisation for the operator. The CLI used to answer every refusal with one generic
+# line, so a refusal before the first journal row could not be told apart from any other. Only
+# a fixed phase label, the exception TYPE names and the line numbers of the reviewed modules
+# leave the host: never a message, argument, value, path or environment content.
+FAILURE_PHASES = ('start', 'system', 'candidate', 'cleanup-probe', 'archive-support', 'freshness',
+                  'baseline', 'window', 'parent', 'access', 'foreign-proxy', 'capabilities',
+                  'accounts', 'restore', 'transition',
+                  'prepare-checks', 'prepare-baseline', 'prepare-files', 'prepare-images', 'prepare-engine-freeze',
+                  'prepare-database', 'prepare-build', 'prepare-final')
+_phase = ['start']
+
+
+def at(name):
+    _phase[0] = name
+
+
+def failure_diagnostic(error):
+    result = {'version': 'alterward-successor-failure-1',
+              'phase': _phase[0] if _phase[0] in FAILURE_PHASES else 'unknown', 'exceptions': []}
+    try:
+        seen = set()
+        while error is not None and id(error) not in seen and len(result['exceptions']) < 8:
+            seen.add(id(error))
+            frames, trace = [], error.__traceback__
+            while trace is not None:
+                match = re.fullmatch(r'<reviewed-([a-z][a-z_]{0,59})>', trace.tb_frame.f_code.co_filename)
+                if match:
+                    frames.append({'module': match.group(1), 'line': trace.tb_lineno})
+                trace = trace.tb_next
+            kind = type(error).__name__
+            item = {'type': kind if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,79}', kind) else 'Exception',
+                    'frames': frames[-32:]}
+            if isinstance(error, (subprocess.CalledProcessError, subprocess.TimeoutExpired)):
+                command = error.cmd
+                program = Path(command[0]).name if isinstance(command, (list, tuple)) and command and isinstance(command[0], str) else None
+                item['program'] = program if program in {'docker', 'git', 'node', 'openssl', 'python3'} else 'other'
+                if isinstance(error, subprocess.CalledProcessError) and isinstance(error.returncode, int):
+                    item['exitCode'] = error.returncode
+            result['exceptions'].append(item)
+            error = error.__cause__ or error.__context__
+    except BaseException:
+        pass  # the diagnostic must never replace the actual refusal
+    return result
 STATE_NAME = 'beta-successor'  # the first generation; later ones are chained, see System
 ROOT_NAMES = ('beta-successor', 'beta-successor-2', 'beta-successor-3', 'beta-successor-4',
               'beta-successor-5', 'beta-successor-6', 'beta-successor-7', 'beta-successor-8')
@@ -796,6 +841,7 @@ class System(funded.System):
             raise ValueError('Original serving engine sources must remain unchanged')
 
     def prepare(self):
+        at('prepare-checks')
         selected = self.selected()
         selection_values(selected)
         has_registry = REGISTRY_PURPOSE in self.chain()[2].get('purposes', ())
@@ -808,8 +854,10 @@ class System(funded.System):
             raise ValueError('Existing successor evidence requires explicit inspection/archive')
         if self.daily.funded_upgrade_healthy('personal-beta') is not True:
             raise ValueError('Healthy original funded runtime required')
+        at('prepare-baseline')
         before = self.baseline()
         parent, parent_role, parent_hashes = self.parent()
+        at('prepare-checks')
         previous = self.original_terms()
         access = self.active_access()
         if selected['previousTermsSha256'] != canonical_sha(previous):
@@ -839,15 +887,19 @@ class System(funded.System):
             require_billing_stage(selected, upgrade.server_environment(old_text),
                                   self.chain()[2].get('purposes', ()))
             candidate_environment(old_text, selected, release['target']['imageTag'], previous, self.billing_secrets())
+        at('prepare-files')
         from alterward_backup import private_directory
         private_directory(self.root)
         readers.durable_file(self.root / 'selection.json', encoded(selected))
         readers.durable_file(self.root / 'terms.json', encoded(previous if keeps_window(selected) else selected['next']))
         if self.is_reader():
             readers.durable_file(self.root / 'access.json', self.reader_receipt())
+        at('prepare-images')
         for role in ('target','recovery'):
             release[role + 'CapabilitySha256'] = self.image(release[role])
+        at('prepare-engine-freeze')
         self.require_engine_freeze(parent['release'][parent_role]['imageId'])
+        at('prepare-database')
         operation = (self.reader_operation() if self.is_reader() else self.schema_operation() if self.is_schema()
                      else self.billing_operation() if self.is_billing()
                      else self.accounting(release['target']['imageId'], 'capture'))
@@ -863,12 +915,15 @@ class System(funded.System):
             'operation':operation,'database':database, **parent_hashes,
             'termsSha256':sha(encoded(previous if keeps_window(selected) else selected['next'])),
             'selectionSha256':sha(encoded(selected))}
+        at('prepare-files')
         private_directory(self.root / 'previous')
         for name, data in self.files(DIRECTORY).items():
             readers.durable_file(self.root / 'previous' / name, data)
         value['files']['previous'] = self.hashes(self.root / 'previous')
+        at('prepare-build')
         for role in ('target','recovery'):
             value['files'][role] = self.build_files(role, release[role], before)
+        at('prepare-final')
         if self.baseline() != before:
             raise ValueError('Original runtime drift during successor preparation')
         readers.durable_file(self.root / 'prepared.json', encoded(value))
@@ -987,7 +1042,9 @@ class System(funded.System):
         readers.update_durable(path, encoded(value))
 
     def preflight(self, candidate, *, recovery=False):
+        at('archive-support')
         self.archive_support()
+        at('freshness')
         if recovery:
             if self.journal(candidate)['states'][-1]['state'] in {'applied','recovered'}:
                 raise ValueError('Completed owner trial cannot be replayed')
@@ -997,20 +1054,29 @@ class System(funded.System):
         else:
             if (self.root / 'journal.json').exists() or not funded.stamp(candidate['preparedAt']) <= self.now() < funded.stamp(candidate['expiresAt']):
                 raise ValueError('Fresh never-attempted successor required')
+            at('baseline')
             if self.baseline() != candidate['baseline']:
                 raise ValueError('Original active funded baseline drift')
+            at('window')
             if self.is_window() and not funded.stamp(self.selected()['closePreviousAt']) <= self.now() < funded.stamp(self.selected()['next']['startsAt']):
                 raise ValueError('Selected closure time must have arrived before writer hold')
+        at('parent')
         self.parent()
+        at('access')
         self.access(candidate['baseline']['accessConfigurationSha256'])
+        at('foreign-proxy')
         if (upgrade.proxy_network() != candidate['baseline']['proxyNetwork']
                 or upgrade.foreign_state() != candidate['baseline']['foreign']):
             raise ValueError('Foreign/proxy drift')
+        at('capabilities')
         self.capabilities(candidate)
+        at('accounts')
         result = self.reconcile_accounts(candidate)
         if result['state'] not in self.expected_states(recovery):
             raise ValueError('Exact unused accounting state required')
+        at('restore')
         self.require_candidate_restore(candidate)
+        at('transition')
 
     def stop_and_hold(self, candidate):
         for number in upgrade.INTERRUPTION_SIGNALS:
@@ -1226,6 +1292,7 @@ class System(funded.System):
 
 
 def main(request):
+    at('start')
     base = {'mode','sourceCommit','bundleSha256','sourceHashes'}
     modes = {'inspect':set(), 'cleanup-probe':set(),
              'archive-expired':{'preparedSha256','accessSnapshot'},
@@ -1244,6 +1311,7 @@ def main(request):
     with (fence.DAILY / 'job.lock').open('rb') as job, (DIRECTORY / 'activation.lock').open('rb') as activation:
         readers.exclusive_lock(job,0)
         readers.exclusive_lock(activation,0)
+        at('system')
         system = System(request, fence.installed_daily())
         if mode == 'inspect':
             return {'version':VERSION,'successorPresent':system.root.exists(),
@@ -1257,6 +1325,7 @@ def main(request):
             return system.archive_expired()
         if mode == 'prepare':
             return system.prepare()
+        at('candidate')
         candidate = system.candidate()
         if mode == 'recover':
             if system.journal(candidate)['states'][-1]['state'] in {'applied','recovered'}:
@@ -1267,6 +1336,8 @@ def main(request):
             for number in upgrade.INTERRUPTION_SIGNALS:
                 signal.signal(number, signal.SIG_IGN)
             system.stop()
+        at('cleanup-probe')
         system.cleanup_probe()
+        at('transition')
         result = transition(system, candidate, recovery=mode=='recover')
         return {**result, **system.proof}
