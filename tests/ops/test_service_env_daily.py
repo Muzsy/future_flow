@@ -132,6 +132,9 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
         self.assertEqual(daily.SERVICE_MAX_WINDOW_DAYS, step.MAX_WINDOW_DAYS)
         self.assertEqual(daily.SERVICE_ENV_JOURNAL_VERSION, step.JOURNAL_VERSION)
         self.assertEqual(daily.SERVICE_ENV_PREVIOUS_NAMES, set(step.OWNER_FILES))
+        self.assertEqual(daily.SERVICE_ENV_EVENTS, step.EVENTS)
+        self.assertEqual(daily.SERVICE_ENV_PLAN_VERSION, step.PLAN_VERSION)
+        self.assertEqual(set(daily.SERVICE_ENV_FILE_KEYS), set(step.OWNER_FILES))
 
     def test_what_the_step_may_set_always_satisfies_the_policy_ceilings(self):
         top = {**both('AI_PROJECT_BUDGET_USD', str(step.MAX_PROJECT_USD)),

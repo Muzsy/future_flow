@@ -797,9 +797,10 @@ def service_active_files(base):
         if len(done) != 1 or not SERVICE_OPERATION_ID.fullmatch(done[0]['operationId']):
             raise ValueError('Exactly one completed service-env operation per generation required')
         operation = done[0]['operationId']
+        events = [r['event'] for r in journal if r['operationId'] == operation]
+        if events != ['intent-persisted', 'files-replaced', 'env-applied', 'completed']:
+            raise ValueError('An uninterrupted, never rolled back service-env operation is required')
         intent = [r for r in journal if r['event'] == 'intent-persisted' and r['operationId'] == operation]
-        if len(intent) != 1:
-            raise ValueError('Exactly one service-env intent per operation required')
         directory = env_dir / operation
         service_directory(directory)
         approved = json.loads(service_regular(directory / 'plan.json', (0o600,)))
@@ -813,6 +814,9 @@ def service_active_files(base):
                 or approved.get('sourceCommit') != profile['sourceCommit']
                 or approved.get('imageId') != profile['imageId']
                 or approval != profile['activation']['approvalSha256']
+                or approval != digest(f'activate-service-env {intent[0]["planSha256"][:16]} generation {generation}'.encode())
+                or approved.get('backupManifestSha256') != profile['activation']['backupManifestSha256']
+                or approved.get('restoreProofSha256') != profile['activation']['restoreProofSha256']
                 or before != files
                 or after['server.env'] != profile['serverEnvSha256']
                 or after['effective-compose.json'] != profile['effectiveComposeSha256']
@@ -2111,7 +2115,7 @@ def funded_upgrade_healthy(mode):
         # legitimately rewrite the owner files.
         expected_files = service_active_files(expected_files)
         return {name: digest(regular(OWNER / name)) for name in expected_files} == expected_files
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
 
 

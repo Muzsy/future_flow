@@ -20,6 +20,7 @@ from unittest.mock import patch
 import test_beta_successor_authority as authority
 from test_contabo_daily import daily
 import test_funded_replay as funded_replay
+import test_service_env as service_env_tests
 
 replay = funded_replay.replay
 directory = Path(__file__).resolve().parents[2] / 'scripts/ops'
@@ -81,8 +82,9 @@ class ServiceRecord:
                 'before': {KEYS[n]: h for n, h in self.files.items()},
                 'after': {KEYS[n]: h for n, h in after.items()}, 'changes': {},
                 'backupManifestSha256': '1' * 64, 'restoreProofSha256': '2' * 64}
-        approval = sha(f'activate-service-env {number}'.encode())
         plan = {**plan, **override.get('plan', {})}
+        approval = sha((override.get('approval') or
+                        f'activate-service-env {sha(canonical(plan))[:16]} generation {number}').encode())
         folder = self.env / operation
         (folder / 'previous').mkdir(mode=0o700, parents=True)
         os.chmod(folder, 0o700)
@@ -92,8 +94,11 @@ class ServiceRecord:
         self.journal('intent-persisted', operation, planSha256=sha(canonical(plan)), generation=number)
         for name, data in new.items():
             self.private(self.owner / name, data)
-        self.journal('files-replaced', operation)
-        self.journal('env-applied', operation, after=plan['after'])
+        skipped = override.get('skip', ())
+        if 'files-replaced' not in skipped:
+            self.journal('files-replaced', operation)
+        if 'env-applied' not in skipped:
+            self.journal('env-applied', operation, after=plan['after'])
         profile = {'version': 'alterward-service-profile-1', 'generation': number,
                    'parentProfileSha256': self.parent, 'sourceCommit': 'b' * 40, 'imageId': IMAGE,
                    'effectiveComposeSha256': after['effective-compose.json'],
@@ -216,6 +221,35 @@ class ServiceProfileFundedHealthTests(authority.SuccessorAuthorityTests):
         self.write(folder / 'plan.json', canonical(plan))
         self.assertFalse(self.healthy())
 
+    def test_the_approval_must_be_the_owner_sentence_of_this_plan(self):
+        self.record.apply(approval='activate-service-env 0000000000000000 generation 1')
+        self.assertFalse(self.healthy())
+
+    def test_an_operation_that_was_rolled_back_or_never_finished_is_not_accepted(self):
+        operation = self.record.apply()
+        self.assertTrue(self.healthy())
+        self.record.journal('rolled-back', operation)
+        self.assertFalse(self.healthy())
+
+    def test_a_completed_row_without_the_step_events_is_not_accepted(self):
+        self.record.apply(skip=('files-replaced', 'env-applied'))
+        self.assertFalse(self.healthy())
+
+    def test_wrong_typed_records_are_unhealthy_not_a_crash(self):
+        self.record.apply()
+        head = self.record.profiles / 'head.json'
+        original = head.read_bytes()
+        self.write(head, b'[]')
+        self.assertIs(self.healthy(), False)
+        self.write(head, original)
+        folder = self.record.env / self.record.operations[0]
+        self.write(folder / 'plan.json', b'"x"')
+        self.assertIs(self.healthy(), False)
+
+    def test_the_activation_evidence_must_be_the_plans(self):
+        self.record.apply(plan={'backupManifestSha256': '3' * 64})
+        self.assertFalse(self.healthy())
+
     def test_a_missing_or_foreign_operation_journal_fails_closed(self):
         self.record.apply()
         journal = self.record.env / 'journal.jsonl'
@@ -291,8 +325,23 @@ class ServiceProfileActiveProofTests(funded_replay.ActiveFundedReplayTests):
             self.proof()
 
 
+class RealStepTests(service_env_tests.ServiceEnvTests):
+    """The evidence is produced by the real root service-env step, not hand-built."""
+
+    def test_daily_derives_the_expected_owner_files_from_what_the_real_step_wrote(self):
+        base = {n: sha((self.owner / n).read_bytes()) for n in daily.RUNTIME_NAMES}
+        with patch.object(daily, 'OWNER', self.owner), patch.object(daily, 'UID', os.geteuid()):
+            self.assertEqual(daily.service_active_files(base), base)       # no profile yet
+            self.apply()
+            changed = {n: sha((self.owner / n).read_bytes()) for n in daily.RUNTIME_NAMES}
+            self.assertNotEqual(changed, base)
+            self.assertEqual(daily.service_active_files(base), changed)
+            with self.assertRaises(ValueError):                             # a different chain base
+                daily.service_active_files({**base, 'server.env': '0' * 64})
+
+
 # Only the new cases run here; the inherited fixtures are already exercised by their own modules.
-for _cls in (ServiceProfileFundedHealthTests, ServiceProfileActiveProofTests):
+for _cls in (ServiceProfileFundedHealthTests, ServiceProfileActiveProofTests, RealStepTests):
     for _parent in _cls.__mro__[1:]:
         for _name in list(vars(_parent)):
             if _name.startswith('test_') and _name not in vars(_cls):
