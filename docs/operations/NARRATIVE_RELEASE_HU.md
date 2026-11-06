@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-07
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -1219,3 +1219,16 @@ A tulajdonos a Stripe-on véglegesítette a fizetést, az alkalmazás `/billing?
 Közvetlen, kizárólag GET Stripe-readback a saját előfizetésből feloldott számlára: livemode=true, status=paid, currency=usd, amount_paid=999, total=999, amount_remaining=0. A titkos kulcs a meglévő 0600 privát fájlból csak az api.stripe.com felé ment, a kimenetből csak minimális számla-/előfizetés-mezők maradtak privátan. Kártya, cím, email, teljes számla és titok nem lett kiírva vagy commitolva; pénzügyi módosítást az operátor nem végzett.
 
 A változatlan saját branch az első fejezetet és a mentett „Reserve the summer mornings” döntést mutatta. A `Continue this life` gombot egyszer nyomtuk meg 00:24:52,488 CET-kor. A külön második job fut, a fejezetledgerben egy paid reservation reserved, az első taster változatlanul consumed; a történet előző periodja és választása megmaradt. A következő kapu a második period tartós mentése, az egyetlen paid consume és a költségek rendezése, majd friss session és a portál/refund/cancel. Új generálás vagy automatikus retry nem engedélyezett ezen felül. Privát readback: `s16-accounting-result.json`, `s17-payment-webhook-result.json`, `s19-stripe-provider-readback.json`, `s20-accounting-result.json` az A8-könyvtárban.
+
+
+### A8 fizetett fejezet és friss session PASS; ügyfélportál STOP — #184, 2026-11-07
+
+A második job completed, két period és egy választás tartósan mentve. Fizetett szerveridő 240320,543 ms; első rögzített UI-megjelenés a gombnyomás után 279839 ms (polling-felső becslés). A második fejezet saját API-költsége 0,344974 USD; két fejezet együtt 0,703616 USD, 13 completed API-task, reserved/unknown 0. Pontosan egy taster és egy paid consume, változatlan cycle-1 grant=5; a UI 4 fizetett / 0 ingyenes fejezetet mutat. További új fejezet nincs az engedélyben.
+
+A korábbi period/canon és a mentett választás változatlan; a második period start-state hash-e pontosan a választás state-after hash-e, az aktuális branch a második period end-state hash-ével egyezik. A második szöveg a kiválasztott lefoglalt nyári helyiségidőből folytatódik. Ez a megfigyelt saját út oksági/persistencia eredménye, nem új általános motorminőségi benchmark.
+
+00:30:36 CET kijelentkezés igazolt, majd új CAPTCHA-s saját belépés után az eredeti és az A8-történet is látszik, a két fejezet és a választás visszanyitható, a billing továbbra 4/0. Külön READ ONLY snapshot szerint a life, branch, periodok, choice, jobok, API/fejezet-/USD-ledger, előfizetés, grant, admission és policy megegyezik a kilépés előtti állapottal. Friss normál monitor PASS / alerts=[] / paidAiCalls=0, ops4f2380c; proof SHA `c07254854497468b491d3e1e002f80f228f902ef9fab6c45ea3c1574b6df2bdd`. Privát részkapuk: `s22-paid-chapter-result.json`, `s23-accounting-result.json`, `s24-monitor-result.json`, `s27-fresh-login-preservation.json`.
+
+**STOP:** a `/billing` Manage subscription gomb egyszeri kérése általános hibaüzenettel tért vissza. Nincs automatikus portál-/generálási retry. A Stripe olvasó API-ján az active=true/is_default=true/limit=2 query üres, és a teljes konfigurációs lista limit10 mellett is üres, has_more=false. A serving provider `createPortalSession` őre pontosan egy active/default/live konfigurációt kér: subscription_cancel.enabled=true, mode=at_period_end, retention nélkül; subscription_update.enabled=false. A hiányzó éles konfiguráció miatt ez a kapu nem teljesül. A forrás és az őr változatlan, nincs ellenőrizetlen portal-session vagy beállításmentés. A diagnózisok és a stop: `s25-portal-config-diagnostic.json`, `s26-portal-all-configs-readback.json`, `s28-portal-stop.json`.
+
+[Új operátori blokkoló #184](https://github.com/Muzsy/future_flow/issues/184): a konkrét éles alapértelmezett portálbeállítás előkészítése és külön jóváhagyása, readback, egy új engedélyezett saját portálpróba, majd tulajdonosi visszatérítés és lemondás, tényleges provider/webhook/ledger ellenőrzéssel. A próbaelőfizetés jelenleg aktív, a 9,99 USD még nincs visszatérítve, a megújulás nincs lemondva. A pénzügyi lezárás nem tekinthető késznek. A szükséges Stripe konzolbelépéshez külön próbalap nyílt, egyelőre csak olvasó előkészítésre. Teljes A8 és K-B nincs; signup, Access, kapacitás, runtime/Daily/image vagy budget nem változik ettől a stop utáni vizsgálattól.
