@@ -1127,3 +1127,30 @@ A billing éles bekapcsolásához nem volt definiált út (a `server.env` csak a
 **Ellenőrzés (helyi):** 585 Python ops teszt, a CI-ben listázott Node ops tesztek, docs:check és Prettier PASS. A fixture csak a CI-ben fut.
 
 **Határ:** semmi sem lett éles szerveren futtatva; nincs Cloudflare-módosítás, nincs Stripe-kulcs a szerveren, nincs merge Ákos jóváhagyása nélkül. Az éles használathoz telepített Daily-frissítés, új release-inputok és Ákos privát titokfájlja kell.
+
+
+## K-A üzemeltetési helyreállítás PASS — 2026-11-06
+
+A forrás és a futó alkalmazás külön azonosító marad. A serving app **1d312d29f203738c9f9d9a6e5338408c74b82f0b**, immutable image **sha256:2bc94ef68713c96f0fe46f5797e0368740d1da278f2eddb99994d86de3202050**; a telepített Daily/ops **4f2380cb2f05855b2fa9ee7f25f4cde5ecd71845**. Nem történt image-csere. A jelen dokumentáció későbbi commitja nem új deploy- vagy Daily-forrás.
+
+Az engedélyezett `9c07092` Daily-frissítés sikeres volt, de az első backup 18:58:49 CET-kor proxy-config-capture fázisban a generic `0600` readerrel elutasította a saját, szabályos `0400` profilgenerációját. Ez az eredeti FAIL megőrzött. A szűk #181/#182 javítás csak a validált profilgenerációs katalógusra használja a meglévő service readert, generic őr/chmod/archívumformátum-váltás nélkül. Tíz valódi archívumteszt (javítás nélkül ugyanazon hibaveremmel),856 Python-teszt OK / 11 meglévő SKIP, külön teljes diff-review APPROVE / 59 saját teszt, valamint a [saját CI 42267626224](https://github.com/Muzsy/future_flow/actions/runs/42267626224) sikeres. A tulajdonos feltételesen engedélyezte a konkrét `4a9b95d` merge-jét és azonos reviewed tree-vel az új main saját CI-je után a teljes helyreállítást. Merge `4f2380c`, reviewed / merged tree **773932b8c35acc5a228c0c3f2b4b5a43ea9a02fc**, [main CI 42272725638](https://github.com/Muzsy/future_flow/actions/runs/42272725638) mindhárom SUCCESS.
+
+| Művelet | Tényleges eredmény |
+| --- | --- |
+| Daily-frissítés | 4f2380c; meglévő konténerek változatlanok; timerek addig kikapcsolva |
+| Kezdeti mentés/offsite/restore | `20261106T191718Z-2bbf7d72`; 103 tábla, 338 konfigurációs fájl; minden adat/hash egyezik, plaintext és ideiglenes konténerek eltávolítva |
+| Bootstrap | Külön reviewed c82b627 klienssel committed; revision 1, invitation, generation=false, checkout=false, capacity 0/used 0, reconcileRequired=false; Auth-írás 0 / félbehagyott művelet 0 |
+| Végső mentés/offsite/restore | `20261106T192048Z-3957fd98`; 103 tábla, 341 konfigurációs fájl, az új operátori intent/readback/journal is mentve; teljes adategyezés |
+| Megőrzés | A két snapshot 102 táblájának sorszáma és adathash-e azonos; csak `aw_service_policy` 0→1 sor. Mindkét pénzügyi ledger és a történetek megmaradtak. 31 szerveres + 31 helyi archívum, a régi 29 megvan; retenciós törlés 0 |
+| Capability | Régi cleaned/null-container,545 bájtos rekord bájtmegőrző, atomi NOREPLACE áthelyezése két eredeti zár alatt, fsync/bájt/runtime-ellenőrzéssel, törlés 0. Az elkülönítés végrehajtójának külön read-only review-ja APPROVE / 8 hibainjektálási eset PASS |
+| Aktív proof és plan | Aktív runtime `1d312d2` / schema 040, ops `4f2380c`; friss planben pending job 0, live lease 0, foreign session 0; TLS és eldobható authority/encryption preflight PASS; a plan nem állított le szolgáltatást |
+| Natív040 rehearsal |20:29:57CET;103egyező/102 review-zott tábla / 226 FK; független verifier és fresh-live-state equality PASS; eredeti ID/image, foreign state, cleanup PASS; liveDatabaseWrites=false, paidAiCalls=0, serviceActivationAllowed=false |
+| Monitor és timerek | 20:31:47 CET normál monitor `alerts: []`; owner/TLS/queue/personalTransition/registryRestore zöld, edgeClosed=true. 20:33 CET külön végső státusz: mindkét timer enabled/active/Result=success, a service-k utolsó eredménye success |
+
+Az API konténer leállása 183,879 s, a webé 185,585 s, a workeré 166,190 s; az API első rögzített sikeres Docker-healthje 203,821 s múlva volt. Ez konténer/health-mérés, nem böngészős rendelkezésreállási vagy A8-mérés. Mindhárom eredeti ID/image megmaradt, restart 0; API/web healthy, worker running.
+
+Az auditértelmezés megőrizte a történeti alapauditot és korlátait, külön hivatkozta a tényleges #178/#180/#182 delta-review-kat és az aktuális tulajdonosi engedélyt. A régi audit e49ebd… bundle-mezője a `950817d` történeti attesztációjához tartozik; nem lett új forrásnak átcímkézve. Az új `4f2380c` bundle **48aaa10acecdd3524eaf1e16c5196a72153dcc28b62ee6c6439710382acfa391**, 841 fájl, csak számított forrásazonosító, nem új teljes korábbi-main audit. A rehearsal változatlan friss source/CI/plan/runtime/authority/TLS/replay/cleanup kapui ténylegesen lefutottak.
+
+A privát eredeti fájlok, kudarc- és siker-nyugták a `.local/operator-readiness/` alatt megőrzöttek. Lezárás SHA **bb7171cbbc046daad513d3777552dacdb403e0558d915a281bf16d492183416e**; natív proof SHA **945e627037c4af1cae7a16d4a1729a9865b33b5576c5a14afc391e30e957447c**; végső státusz SHA **eb9ad91e028433199ffd9be4fc6bbe340da423f6dd4fcca987ba76b575b94e63**. A titkok, sessionök, személyes résztvevőadatok és történetszövegek nem kerülnek a repóba. Részletes műveleti történet: [#142](https://github.com/Muzsy/future_flow/issues/142), javítás [#182](https://github.com/Muzsy/future_flow/pull/182).
+
+A szolgáltatás továbbra zárt és szüneteltetett, a CAPTCHA/nyílt signup/Access-tágítás/resume nem történt meg. Következő a CAPTCHA ellenőrzése és külön aktiválása, majd az egyhelyes, saját fiókos mért A8; K-B csak annak PASS eredménye után. Nincs új bétaablak, budget-/taster-/kuponreset, fizetősAI vagy nyilvános indulás igazolása.
