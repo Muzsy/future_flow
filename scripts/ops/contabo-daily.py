@@ -753,22 +753,25 @@ def service_active_files(base):
     service-env operation that replaced the files but has no activated generation
     leaves them unequal to this result, so it still reads as unhealthy.
     """
-    if not SERVICE_PROFILE_DIR.exists() and not SERVICE_PROFILE_DIR.is_symlink():
+    # The records sit next to owner/ (production: ORIGINAL_ROOT); deriving them from OWNER keeps a
+    # relocated owner tree (tests, rehearsals) from reading the host's real /root paths.
+    profile_dir, env_dir = OWNER.parent / SERVICE_PROFILE_DIR.name, OWNER.parent / SERVICE_ENV_DIR.name
+    if not profile_dir.exists() and not profile_dir.is_symlink():
         return base
     if set(base) != set(SERVICE_ENV_FILE_KEYS):
         raise ValueError('Exact runtime file set required')
-    service_directory(SERVICE_PROFILE_DIR)
-    service_directory(SERVICE_PROFILE_DIR / 'profiles')
-    rows = service_chain(service_regular(SERVICE_PROFILE_DIR / 'journal.jsonl'), SERVICE_PROFILE_JOURNAL_VERSION,
+    service_directory(profile_dir)
+    service_directory(profile_dir / 'profiles')
+    rows = service_chain(service_regular(profile_dir / 'journal.jsonl'), SERVICE_PROFILE_JOURNAL_VERSION,
                          {'version', 'sequence', 'event', 'generation', 'profileSha256', 'at',
                           'previousSha256', 'sha256'}, {'profile-activated', 'profile-superseded'})
-    head = json.loads(service_regular(SERVICE_PROFILE_DIR / 'head.json'))
+    head = json.loads(service_regular(profile_dir / 'head.json'))
     profiles, active, parent = {}, None, None
     for row in rows:
         if row['event'] == 'profile-activated':
             if row['generation'] != len(profiles) + 1 or active is not None:
                 raise ValueError('Service profile generations out of order')
-            profile = json.loads(service_regular(SERVICE_PROFILE_DIR / 'profiles' / f'{row["generation"]}.json'))
+            profile = json.loads(service_regular(profile_dir / 'profiles' / f'{row["generation"]}.json'))
             if (profile.get('version') != SERVICE_PROFILE_VERSION or profile.get('generation') != row['generation']
                     or digest(service_canonical(profile)) != row['profileSha256']
                     or (parent is not None and profile.get('parentProfileSha256') != parent)):
@@ -781,9 +784,9 @@ def service_active_files(base):
             active = None
     if (active is None or head.get('version') != SERVICE_HEAD_VERSION or head.get('generation') != active
             or head.get('profileSha256') != parent or head.get('journalSha256') != rows[-1]['sha256']
-            or {p.name for p in (SERVICE_PROFILE_DIR / 'profiles').iterdir()} != {f'{n}.json' for n in profiles}):
+            or {p.name for p in (profile_dir / 'profiles').iterdir()} != {f'{n}.json' for n in profiles}):
         raise ValueError('Service profile head mismatch')
-    journal = service_chain(service_regular(SERVICE_ENV_DIR / 'journal.jsonl', (0o600,)), SERVICE_ENV_JOURNAL_VERSION,
+    journal = service_chain(service_regular(env_dir / 'journal.jsonl', (0o600,)), SERVICE_ENV_JOURNAL_VERSION,
                             {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
                             SERVICE_ENV_EVENTS)
     files = dict(base)
@@ -797,7 +800,7 @@ def service_active_files(base):
         intent = [r for r in journal if r['event'] == 'intent-persisted' and r['operationId'] == operation]
         if len(intent) != 1:
             raise ValueError('Exactly one service-env intent per operation required')
-        directory = SERVICE_ENV_DIR / operation
+        directory = env_dir / operation
         service_directory(directory)
         approved = json.loads(service_regular(directory / 'plan.json', (0o600,)))
         approval = approved.pop('approvalSha256', None)

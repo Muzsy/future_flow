@@ -111,6 +111,10 @@ class ServiceRecord:
         return operation
 
 
+def root_of(case):
+    return Path(case.tmp.name).resolve()
+
+
 class ServiceProfileFundedHealthTests(authority.SuccessorAuthorityTests):
     def setUp(self):
         super().setUp()
@@ -118,14 +122,18 @@ class ServiceProfileFundedHealthTests(authority.SuccessorAuthorityTests):
         self.expose(self.value)
         self.base = {n: daily.digest((self.owner / n).read_bytes()) for n in daily.RUNTIME_NAMES}
         root = Path(self.tmp.name).resolve()
-        self.start_patch('SERVICE_PROFILE_DIR', root / 'service-profile')
-        self.start_patch('SERVICE_ENV_DIR', root / 'service-env')
         self.start_patch('UID', os.geteuid())
-        self.start_patch('SERVICE_OPERATION_DIR', root / 'service-operations')
         self.record = ServiceRecord(root, self.owner, self.base, os.geteuid())
 
     def healthy(self):
         return daily.funded_upgrade_healthy('personal-beta')
+
+    def test_the_records_are_located_next_to_the_owner_tree_like_the_production_constants(self):
+        self.assertEqual(daily.OWNER.parent, root_of(self))
+        self.assertEqual(daily.SERVICE_PROFILE_DIR, daily.ORIGINAL_ROOT / 'service-profile')
+        self.assertEqual(daily.SERVICE_ENV_DIR, daily.ORIGINAL_ROOT / 'service-env')
+        with patch.object(daily, 'OWNER', daily.ORIGINAL_ROOT / 'owner'):
+            self.assertEqual(daily.OWNER.parent, daily.ORIGINAL_ROOT)
 
     def test_the_legacy_funded_chain_is_healthy_before_the_service_profile_exists(self):
         self.assertTrue(self.healthy())
@@ -252,9 +260,8 @@ class ServiceProfileActiveProofTests(funded_replay.ActiveFundedReplayTests):
         super().setUp()
         root = Path(self.tmp.name).resolve() / 'records'
         root.mkdir(mode=0o700)
-        self.patches = [patch.object(daily, 'SERVICE_PROFILE_DIR', root / 'service-profile'),
-                        patch.object(daily, 'SERVICE_ENV_DIR', root / 'service-env'),
-                        patch.object(daily, 'UID', os.geteuid())]
+        # The real Daily locates the records next to its owner tree; the fake one above owns self.root.
+        self.patches = [patch.object(daily, 'OWNER', root / 'owner'), patch.object(daily, 'UID', os.geteuid())]
         for item in self.patches:
             item.start()
             self.addCleanup(item.stop)
