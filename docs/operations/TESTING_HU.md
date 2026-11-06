@@ -162,3 +162,8 @@ A `service-operations.test.ts` teljes040 sémás PGlite adatbázison20 esetet fu
 ## K-A tényleges célgépes elfogadás — 2026-11-06
 
 A #182 saját CI 42267626224 és a main `4f2380c` saját CI 42272725638 mindhárom jobja SUCCESS. A külön engedélyezett célgépes végrehajtásban mindkét backup/offsite/103-táblás izolált restore sikeres; a két mentés közt csak a külön jóváhagyott bootstrap policy-sora változott, másik 102 tábla sorszáma és adathash-e azonos. Natív040 rehearsal: 103 forrástábla egyezik,102 review-zott tábla / 226 FK, független post-replay verifier, eredeti ID/image, idegen konténerek állapota és cleanup PASS. Friss normálmonitor `alerts: []`, két timer enabled/active. Ez tényleges operátori bizonyíték, de nem mért böngészős A8, Stripe-fizetés vagy publikusnyitás. [Források, időpontok és korlátok](NARRATIVE_RELEASE_HU.md#k-a-üzemeltetési-helyreállítás-pass--2026-11-06).
+
+
+### Kedvezményes előfizetés lemondási ármegjelenítése — A8/#184
+
+Az éles 9,99 USD-s, 14,99 USD alapárból 5 USD kuponnal csökkentett előfizetésnél a tényleges számla és ledger mellett a teljes lemondási felületet is ellenőrizni kell. A hatályos díj legyen egyértelmű; az alapár csak világosan alapárként, a kedvezménnyel és fizetendő összeggel együtt fogadható el. A kizárólag „kiválasztott előfizetés 14,99 USD” értéket mutató Stripe okbekérő felugró ebben a helyzetben UX FAIL. Az opcionális okbekérés kikapcsolásának vizsgálata konfigurációs javítás, nem ár-, kupon- vagy előfizetés-átírás. A jóváhagyott mentés és változatlan kódőrök readbackje után egy friss saját portálmunkamenetben, tényleges lemondás véglegesítése előtt kell újra ellenőrizni. A helyes GET/ledger összeg önmagában nem UI PASS.
