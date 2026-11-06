@@ -478,10 +478,16 @@ def extended_config_archive(proxy):
     paths += reader_config_paths()
     paths += personal_config_paths()
     paths += funded_upgrade_config_paths()
-    paths += service_config_paths()
+    service_paths = service_config_paths()
+    paths += service_paths
+    # Only catalog-validated immutable SPR generations may be 0400. Every
+    # other owner, service, unit and legacy file keeps the exact 0600 reader.
+    service_generations = {p for p in service_paths
+                           if p.parent == SERVICE_PROFILE_DIR / 'profiles'
+                           and SERVICE_PROFILE_FILE.fullmatch(p.name)}
     paths += [Path('/etc/systemd/system') / n for n in ['alterward-backup.service', 'alterward-backup.timer', 'alterward-monitor.service', 'alterward-monitor.timer']]
     for path in paths:
-        files[str(path).lstrip('/')] = regular(path)
+        files[str(path).lstrip('/')] = service_regular(path) if path in service_generations else regular(path)
     ca = Path('/etc/alterward/supabase-ca.crt')
     files[str(ca).lstrip('/')] = ca.read_bytes()
     if any(Path('/' + name).read_bytes() != data for name, data in files.items()):
