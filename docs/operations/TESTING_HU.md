@@ -143,3 +143,10 @@ A `tests/service-admission.test.ts` (PGlite + valódi HTTP-kapu) minden CI-futá
 ### #150 scoped service-operation prototípus
 
 A `service-operations.test.ts` teljes040 sémás PGlite adatbázison20 esetet futtat: három meglévő+10+10 admission reset nélkül; paused bootstrap és Auth/root sorrend; stale és konkurens intent-CAS; teljes batch rollback; hibás provider-UUID/anonymous/email/ban/deleted/metadata; Auth-kiesés alatti revoke; restore-zár megőrzése; readonly committed/uncommitted/lost-output readback; törölt root nem támad fel; provider-várakozás alatti intentlejárat; context/hash/extra-field elutasítás. Minden eset után az eredeti USD-account és consumed taster sor változatlan. Ez célzott könyvtári bizonyíték: valódi többkapcsolatos PG/törlés-verseny, lockra várakozás alatti lejárat és actual-image/root-journal E2E továbbra a teljes #150 elfogadási feltétele, nincs belőle promotion-proof.
+
+
+## Service-operátor kliens — #179
+
+`node --test tests/ops/service-operator-client.test.mjs`: zárt argv, source/script/parancs-kötött jóváhagyás, abszolút kapacitás és explicit added-places, emergency csak pause/close, valódi Python-loader 0700/0600 fájlokkal/hash-sel/takarítással és scrubbed envvel, Python-parser paritás, pinned SSH, szigorú commit-válasz. Az eldobható committed main checkoutból futó tényleges CLI helyettesített SSH-val bizonyítja a privát intent/result/failure megőrzését, a raw stderr titok kizárását és a vak retry hiányát. Production/root/valódi SSH vagy AI-hívás nincs; ez nem A8 vagy célgépes bizonyíték. A Verify job külön futtatja. A meglévő `test_service_operator.py`, `service-operator-e2e.test.ts` és többkapcsolatos adatbázispróba a root/DB logika külön regressziója.
+
+2026-11-06 helyi célzott eredmény: az új kliens 13/13 Node-tesztje és a meglévő root operátor 37/37 Python-tesztje PASS. A helyi teljes suite, a PR saját CI-je és a későbbi main CI külön bizonyíték; a célzott eredmény nem éles jóváhagyás.
