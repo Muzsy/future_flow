@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: operations
-last_reviewed: 2026-11-02
+last_reviewed: 2026-11-06
 related:
   - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
   - RECOVERY_HU.md
@@ -107,3 +107,10 @@ A #96 javítás9088275 Daily-forrásának jóváhagyott éles mentése és izol�
 A #149 source-jelölt a039 candidate mentés generikus offsite restore-ja mellé tényleges, held-writer adatvédelmi replay → izolált040 migráció → független verify bizonyítékot kér. A101/103 publikus tábla a migration-receipt táblát is tartalmazza; a100/102 alkalmazástáblás privacy-katalógus ettől külön fogalom. Archive SQL/ACL/schema nem kerül a tiszta adat-only privacy quarantine-ba, Auth/Storage mentése nem feltételezhető.
 
 A migráció SQL-intentje előtt készült archive nem tartalmazhatja visszamenőleg a későbbi intent/evidence fájlt. Az eredeti backup/restore kötést a root journal őrzi, a következő normál backup már az új véges sidecarokat is menti. A natív040 restore külön v2 source/image/authority bizonyítékot ad; régi039 receipt nem címkézhető át. A proof és a megőrzött eredeti archive összetartozását a Daily ellenőrzi, az automatikus új backup önmagában nem új privacy-replay. [Recovery és fejlesztői/éles határ](RECOVERY_HU.md#142-host-jelölt-külön-történeti-és-natív040-proof).
+
+
+## Változatlan profilgenerációk mentése — #181
+
+Az SPR `service-profile/profiles/<pozitív generáció>.json` fájlja szándékosan root tulajdonú, egy linkű regular fájl, `0400` (a profilolvasó a korábbi privát `0600` alakot is elfogadja). A teljes `extended_config_archive` gyűjtő kizárólag a `service_config_paths()` által már validált véges profilgenerációs katalógushoz használja ezt az olvasót. Minden más owner-, legacy-, service- és unit-fájl továbbra pontos `0600`; a generic `regular()` változatlan. Nincs chmod vagy fájlkihagyás, az élő profil bájtjai és módja nem változnak. Az archívum meglévő privát `0600` entry-formátuma és a ciphertext/hash/restore ellenőrzés megmarad; a service-profile mentése nem automatikus élő SPR-aktiválás restore után.
+
+A hiba az engedélyezett `9c07092` Daily-frissítés utáni első valódi backupban jelentkezett (`proxy-config-capture`: generic reader, 484→92). A #178 SPR-láncjavítása külön marad: ezen a kapun a backup már túljutott. A #181 regresszió a valós profilíróval létrehozott `0400` generációt a teljes archívumgyűjtőn viszi át, és ellenőrzi a bájtokat/hash-eket, a változatlan élő módot, valamint a generic/nemprofile0400, public/group mód, idegen UID, symlink, hardlink és ismeretlen név elutasítását. A javítás nélküli kódon az archívumteszt ugyanazon a két soron bukik. Helyi/CI siker nem production-PASS; új forrás éles telepítése és új próbálkozás külön konkrét engedély.
