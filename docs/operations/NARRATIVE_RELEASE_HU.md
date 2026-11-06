@@ -1154,3 +1154,10 @@ Az auditértelmezés megőrizte a történeti alapauditot és korlátait, külö
 A privát eredeti fájlok, kudarc- és siker-nyugták a `.local/operator-readiness/` alatt megőrzöttek. Lezárás SHA **bb7171cbbc046daad513d3777552dacdb403e0558d915a281bf16d492183416e**; natív proof SHA **945e627037c4af1cae7a16d4a1729a9865b33b5576c5a14afc391e30e957447c**; végső státusz SHA **eb9ad91e028433199ffd9be4fc6bbe340da423f6dd4fcca987ba76b575b94e63**. A titkok, sessionök, személyes résztvevőadatok és történetszövegek nem kerülnek a repóba. Részletes műveleti történet: [#142](https://github.com/Muzsy/future_flow/issues/142), javítás [#182](https://github.com/Muzsy/future_flow/pull/182).
 
 A szolgáltatás továbbra zárt és szüneteltetett, a CAPTCHA/nyílt signup/Access-tágítás/resume nem történt meg. Következő a CAPTCHA ellenőrzése és külön aktiválása, majd az egyhelyes, saját fiókos mért A8; K-B csak annak PASS eredménye után. Nincs új bétaablak, budget-/taster-/kuponreset, fizetősAI vagy nyilvános indulás igazolása.
+
+
+### K-A utáni CAPTCHA-előellenőrzés — 2026-11-06, 20:51 CET
+
+A tulajdonos befejezte a Cloudflare Access belépést a vezérelt próbaböngészőben. A `/lives` admission nélküli, zárt állapota után az alkalmazásból történő kijelentkezéssel a `/login` űrlapot ellenőriztük. A Cloudflare Turnstile „Verify you are human” widget képernyőképen látható; a Sign in gomb a kihívás teljesítése előtt disabled. A CAPTCHA nem lett automatán megoldva. Ez a #161 frontend-widget megjelenési kapuja, nem bizonyíték a Supabase CAPTCHA aktiválására vagy tokenellenőrzésére.
+
+A Supabase-csatlakozó elérhető projektlistájában a production nincs jelen, ezért a megfelelő éles projekt Auth / Bot and Abuse Protection konzolja nyílt meg olvasásra. A konzol külön tulajdonosi belépést kér. A következő ellenőrzés a CAPTCHA provider/enable állapot, email-megerősítés, rate limit és signup readback; aktiválás csak a pontos művelet jóváhagyásával. Nincs Auth-beállítás-módosítás, új admission, resume, hullámnyitás, fizetés vagy AI-hívás. A titok- és személyesadat-mentes privát megfigyelési nyugta: `.local/operator-readiness/login-widget-readiness.json`.
