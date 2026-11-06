@@ -1161,3 +1161,10 @@ A szolgáltatás továbbra zárt és szüneteltetett, a CAPTCHA/nyílt signup/Ac
 A tulajdonos befejezte a Cloudflare Access belépést a vezérelt próbaböngészőben. A `/lives` admission nélküli, zárt állapota után az alkalmazásból történő kijelentkezéssel a `/login` űrlapot ellenőriztük. A Cloudflare Turnstile „Verify you are human” widget képernyőképen látható; a Sign in gomb a kihívás teljesítése előtt disabled. A CAPTCHA nem lett automatán megoldva. Ez a #161 frontend-widget megjelenési kapuja, nem bizonyíték a Supabase CAPTCHA aktiválására vagy tokenellenőrzésére.
 
 A Supabase-csatlakozó elérhető projektlistájában a production nincs jelen, ezért a megfelelő éles projekt Auth / Bot and Abuse Protection konzolja nyílt meg olvasásra. A konzol külön tulajdonosi belépést kér. A következő ellenőrzés a CAPTCHA provider/enable állapot, email-megerősítés, rate limit és signup readback; aktiválás csak a pontos művelet jóváhagyásával. Nincs Auth-beállítás-módosítás, új admission, resume, hullámnyitás, fizetés vagy AI-hívás. A titok- és személyesadat-mentes privát megfigyelési nyugta: `.local/operator-readiness/login-widget-readiness.json`.
+
+
+### Éles Supabase Auth-readback — 2026-11-06
+
+A tulajdonosi konzolbelépés után közvetlenül az éles future_flow projektben ellenőrzött állapot: CAPTCHA OFF; Email provider ON; Confirm email ON; Allow new users to sign up OFF; anonymous sign-in és manual linking OFF. Rate limitek: 30 email/óra, 150 token-refresh/5 perc/IP, 30 token-verification/5 perc/IP, 30 signup/sign-in/5 perc/IP; az ugyanazon felhasználónak küldött emailek minimum intervalluma 60 s. IP forwarding OFF. Nem történt Supabase-konfiguráció-változtatás.
+
+A frontend-widget megjelenése már igazolt, ezért a következő konkrét kapu a meglévő Turnstile titokkal a Supabase CAPTCHA bekapcsolása, majd valódi belépési ellenőrzés. A signup megnyitása és az A8-hoz szükséges wave/resume külön művelet; nem következik automatikusan a CAPTCHA-ból. A privát, titokmentes readback: `.local/operator-readiness/supabase-auth-readiness.json`.
