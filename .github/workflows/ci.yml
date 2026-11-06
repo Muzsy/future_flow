@@ -28,6 +28,7 @@ jobs:
           node --test tests/ops/external-monitor.test.mjs
           node --test tests/ops/private-health.test.mjs
           node --test tests/ops/fence-operator.test.mjs
+          node --test tests/ops/service-env-operator.test.mjs
           node --test tests/ops/personal-beta-monitor.test.mjs
           node --test tests/ops/personal-beta-admission-observation.test.mjs
           node --test tests/ops/personal-beta-operator.test.mjs
