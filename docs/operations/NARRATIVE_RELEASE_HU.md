@@ -1168,3 +1168,10 @@ A Supabase-csatlakozó elérhető projektlistájában a production nincs jelen, 
 A tulajdonosi konzolbelépés után közvetlenül az éles future_flow projektben ellenőrzött állapot: CAPTCHA OFF; Email provider ON; Confirm email ON; Allow new users to sign up OFF; anonymous sign-in és manual linking OFF. Rate limitek: 30 email/óra, 150 token-refresh/5 perc/IP, 30 token-verification/5 perc/IP, 30 signup/sign-in/5 perc/IP; az ugyanazon felhasználónak küldött emailek minimum intervalluma 60 s. IP forwarding OFF. Nem történt Supabase-konfiguráció-változtatás.
 
 A frontend-widget megjelenése már igazolt, ezért a következő konkrét kapu a meglévő Turnstile titokkal a Supabase CAPTCHA bekapcsolása, majd valódi belépési ellenőrzés. A signup megnyitása és az A8-hoz szükséges wave/resume külön művelet; nem következik automatikusan a CAPTCHA-ból. A privát, titokmentes readback: `.local/operator-readiness/supabase-auth-readiness.json`.
+
+
+### Éles Turnstile-aktiválás és tartós readback — 2026-11-06
+
+A tulajdonos külön jóváhagyta a meglévő Turnstile-titok kizárólag a production projekt CAPTCHA-beállításában történő használatát. Az operátor előkészítette az Enable Captcha protection / Turnstile by Cloudflare űrlapot; a titokbevitel és Save changes a tulajdonosi átadásban történt. A konzol teljes újratöltése után is a bekapcsolt CAPTCHA, Turnstile provider és disabled Save changes látható. A titok sem kiolvasásra, sem felfedésre, sem a repóba nem került.
+
+A mentett konfiguráció kapuja PASS; a valódi belépési kapu még PENDING. Az éles `/login` frissítése után a widget látható, a belépés a kihívás teljesítése előtt tiltott; a tulajdonos a kihívás teljesítését és saját belépését kapta feladatul. A zárt hullám miatti admission-elutasítás elvárt, nem CAPTCHA-hiba. Ez a lépés nem signup-nyitás, wave/resume vagy A8; fizetés és AI-hívás nem indult. Privát, titokmentes nyugta: `.local/operator-readiness/captcha-activation-readback.json`.
