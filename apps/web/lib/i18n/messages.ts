@@ -279,7 +279,7 @@ export const en = {
   'billing.state.ended': 'Your subscription has ended.',
   'billing.state.revoked': 'Your subscription was cancelled and refunded.',
   'billing.chapters':
-    'Chapters available: {paid} from your subscription, {taster} free taster.',
+    'Chapters available: {paid} from your subscription, {taster} first free chapter.',
   'billing.offerTitle': 'Monthly subscription',
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
@@ -679,7 +679,7 @@ export const hu: Record<MessageKey, string> = {
   'billing.state.revoked':
     'Az előfizetésed le lett mondva és visszatérítettük.',
   'billing.chapters':
-    'Elérhető fejezetek: {paid} az előfizetésedből, {taster} ingyenes ízelítő.',
+    'Elérhető fejezetek: {paid} az előfizetésedből, {taster} első ingyenes fejezet.',
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
