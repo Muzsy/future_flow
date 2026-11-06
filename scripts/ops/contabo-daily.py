@@ -273,8 +273,9 @@ def service_runtime_policy(environments, now):
             raise ValueError('Service profile admits through the registry, not an env list')
         if env.get('BILLING_ENABLED') != 'true' or env.get('BILLING_ENFORCEMENT') != 'true':
             raise ValueError('Service profile requires enforced chapter billing')
+    # AI_BUDGET_WINDOW_REQUIRED is worker-only in deploy/compose.yaml; it is checked below.
     for key in ('AI_PROJECT_BUDGET_USD', 'AI_USER_BUDGET_USD', 'NARRATIVE_PIPELINE_MODE',
-                'NARRATIVE_FICTION_GENERATION', 'AI_BUDGET_WINDOW_REQUIRED'):
+                'NARRATIVE_FICTION_GENERATION'):
         if api.get(key, '') != worker.get(key, ''):
             raise ValueError('API and worker budget or narrative mismatch')
     if worker.get('NARRATIVE_PIPELINE_MODE') != 'narrative-fiction-v2' or \
