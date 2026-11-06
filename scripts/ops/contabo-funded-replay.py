@@ -75,7 +75,11 @@ def active_funded_runtime(daily, original):
         raise ValueError('Exact committed funded image required')
     actual = {name: sha(original(daily.OWNER / name)) for name in FILES}
     retained = {name: sha(original(root / role / name)) for name in FILES}
-    if actual != retained or retained != candidate['files'][role]:
+    # The retained candidate stays byte-bound to its own preparation; the live owner files
+    # may differ from it only by owner-approved service-profile generations.
+    expected = (daily.service_active_files(candidate['files'][role]) if hasattr(daily, 'service_active_files')
+                else candidate['files'][role])
+    if actual != expected or retained != candidate['files'][role]:
         raise ValueError('Active and prepared runtime bytes differ')
     authority = {path: sha(original(Path(path)))
                  for path in candidate['baseline']['authority']}

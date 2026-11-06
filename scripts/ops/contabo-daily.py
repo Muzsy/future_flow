@@ -732,6 +732,101 @@ def service_record_health(environments, images, now):
     return result
 
 
+SERVICE_ENV_EVENTS = {'intent-persisted', 'files-replaced', 'env-applied', 'completed', 'rolled-back',
+                      'rollback-failed'}
+SERVICE_ENV_PLAN_VERSION = 'alterward-service-env-plan-1'
+SERVICE_ENV_FILE_KEYS = {'server.env': 'serverEnvSha256', 'effective-compose.json': 'effectiveComposeSha256',
+                         'manifest.json': 'manifestSha256', 'pinned-image.json': 'pinnedImageSha256'}
+
+
+def service_active_files(base):
+    """Owner runtime file hashes expected once the service profile (SPR) governs the host.
+
+    `base` is the chain authority's own runtime hashes (the last exposed successor
+    generation, or the original funded upgrade). Without a service-profile record
+    nothing is changed. With one, the owner files may differ from `base` only by the
+    owner-approved service-env generations: the whole SPR journal is replayed, and
+    for every generation the root step's journal row, its retained plan (hashed into
+    that row), the profile digests, the profile's approval and the previous
+    generation's resulting files must agree, starting from `base` itself. Any gap,
+    unknown value or mismatch raises ValueError, so the caller fails closed; a
+    service-env operation that replaced the files but has no activated generation
+    leaves them unequal to this result, so it still reads as unhealthy.
+    """
+    # The records sit next to owner/ (production: ORIGINAL_ROOT); deriving them from OWNER keeps a
+    # relocated owner tree (tests, rehearsals) from reading the host's real /root paths.
+    profile_dir, env_dir = OWNER.parent / SERVICE_PROFILE_DIR.name, OWNER.parent / SERVICE_ENV_DIR.name
+    if not profile_dir.exists() and not profile_dir.is_symlink():
+        return base
+    if set(base) != set(SERVICE_ENV_FILE_KEYS):
+        raise ValueError('Exact runtime file set required')
+    service_directory(profile_dir)
+    service_directory(profile_dir / 'profiles')
+    rows = service_chain(service_regular(profile_dir / 'journal.jsonl'), SERVICE_PROFILE_JOURNAL_VERSION,
+                         {'version', 'sequence', 'event', 'generation', 'profileSha256', 'at',
+                          'previousSha256', 'sha256'}, {'profile-activated', 'profile-superseded'})
+    head = json.loads(service_regular(profile_dir / 'head.json'))
+    profiles, active, parent = {}, None, None
+    for row in rows:
+        if row['event'] == 'profile-activated':
+            if row['generation'] != len(profiles) + 1 or active is not None:
+                raise ValueError('Service profile generations out of order')
+            profile = json.loads(service_regular(profile_dir / 'profiles' / f'{row["generation"]}.json'))
+            if (profile.get('version') != SERVICE_PROFILE_VERSION or profile.get('generation') != row['generation']
+                    or digest(service_canonical(profile)) != row['profileSha256']
+                    or (parent is not None and profile.get('parentProfileSha256') != parent)):
+                raise ValueError('Service profile generation does not match its journal')
+            profiles[row['generation']] = (profile, row['profileSha256'])
+            active, parent = row['generation'], row['profileSha256']
+        elif active is None or row['generation'] != active or row['profileSha256'] != parent:
+            raise ValueError('Service profile supersede out of order')
+        else:
+            active = None
+    if (active is None or head.get('version') != SERVICE_HEAD_VERSION or head.get('generation') != active
+            or head.get('profileSha256') != parent or head.get('journalSha256') != rows[-1]['sha256']
+            or {p.name for p in (profile_dir / 'profiles').iterdir()} != {f'{n}.json' for n in profiles}):
+        raise ValueError('Service profile head mismatch')
+    journal = service_chain(service_regular(env_dir / 'journal.jsonl', (0o600,)), SERVICE_ENV_JOURNAL_VERSION,
+                            {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
+                            SERVICE_ENV_EVENTS)
+    files = dict(base)
+    for generation in sorted(profiles):
+        profile, profile_sha = profiles[generation]
+        done = [r for r in journal if r['event'] == 'completed' and r.get('generation') == generation
+                and r.get('profileSha256') == profile_sha]
+        if len(done) != 1 or not SERVICE_OPERATION_ID.fullmatch(done[0]['operationId']):
+            raise ValueError('Exactly one completed service-env operation per generation required')
+        operation = done[0]['operationId']
+        events = [r['event'] for r in journal if r['operationId'] == operation]
+        if events != ['intent-persisted', 'files-replaced', 'env-applied', 'completed']:
+            raise ValueError('An uninterrupted, never rolled back service-env operation is required')
+        intent = [r for r in journal if r['event'] == 'intent-persisted' and r['operationId'] == operation]
+        directory = env_dir / operation
+        service_directory(directory)
+        approved = json.loads(service_regular(directory / 'plan.json', (0o600,)))
+        approval = approved.pop('approvalSha256', None)
+        approved.pop('approvedAt', None)
+        before = {name: approved['before'][key] for name, key in SERVICE_ENV_FILE_KEYS.items()}
+        after = {name: approved['after'][key] for name, key in SERVICE_ENV_FILE_KEYS.items()}
+        if (approved.get('version') != SERVICE_ENV_PLAN_VERSION or approved.get('generation') != generation
+                or digest(service_canonical(approved)) != intent[0].get('planSha256')
+                or approved.get('parentProfileSha256') != profile['parentProfileSha256']
+                or approved.get('sourceCommit') != profile['sourceCommit']
+                or approved.get('imageId') != profile['imageId']
+                or approval != profile['activation']['approvalSha256']
+                or approval != digest(f'activate-service-env {intent[0]["planSha256"][:16]} generation {generation}'.encode())
+                or approved.get('backupManifestSha256') != profile['activation']['backupManifestSha256']
+                or approved.get('restoreProofSha256') != profile['activation']['restoreProofSha256']
+                or before != files
+                or after['server.env'] != profile['serverEnvSha256']
+                or after['effective-compose.json'] != profile['effectiveComposeSha256']
+                or after['pinned-image.json'] != profile['pinnedImageSha256']
+                or not all(re.fullmatch(r'[a-f0-9]{64}', h) for h in after.values())):
+            raise ValueError('Service-env plan does not match the service profile chain')
+        files = after
+    return files
+
+
 # Independent policy version: do not reinterpret the original personal/reader
 # activation archives. Installing this reviewed Daily is a later release gate.
 FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 4
@@ -2016,8 +2111,11 @@ def funded_upgrade_healthy(mode):
         if not parent_valid:
             return False
         expected_files = successor_active_state()['files'] if successor_roots() else prepared['files'][role]
+        # Once the service profile governs the host, its approved generations (and only they)
+        # legitimately rewrite the owner files.
+        expected_files = service_active_files(expected_files)
         return {name: digest(regular(OWNER / name)) for name in expected_files} == expected_files
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
 
 
