@@ -1273,3 +1273,11 @@ Konkrét következő csomag: külön tulajdonosi engedély az egy mentésre, fri
 A külön jóváhagyott mentés 01:00:58 CET-kor kikapcsolta az opcionális okbekérést. A Stripe GET szerint ugyanaz az aktív, alapértelmezett éles konfiguráció maradt, és az okbekérésen kívüli funkciók, a ciklusvégi lemondás, a fejléc és a visszatérési cím egyeztek a mentés előtti adatokkal.
 
 Egy friss saját portálmunkamenetben a lemondási összegzés 9,99 USD/hó díjat és december 7-i ciklusvéget mutatott. A 14,99 USD-s okbekérő felugró eltűnt. A tulajdonos a javított képernyőn kapta meg a véglegesítés lehetőségét. Privát bizonyítékok: s37-reason-disable-authorization.json, s38-reason-disable-readback.json, s39-fresh-cancellation-ui-intent.json és s40-cancellation-ui-result.json.
+
+### #184 ciklusvégi lemondás és az Alterward állapoteltérése
+
+A tulajdonos az Alterwardból újranyitott Stripe ügyfélportálon véglegesítette a lemondást. A Stripe visszaigazolása és API-ja szerint a szolgáltatás 2026. december 7-én lejár. Flexible számlázási módban a `cancel_at` az egyetlen Alterward tétel ciklusvégével egyezik, a `cancel_at_period_end` értéke false. A Stripe dokumentációja mindkét számlázási módot leírja. [Ügyfélportál és webhookok](https://docs.stripe.com/customer-management/integrate-customer-portal#listen-to-webhooks)
+
+Az Alterward feldolgozta az új `subscription_synced` eseményt, de a normalizáló csak a klasszikus mezőt olvasta. A számlázási felület továbbra is aktívnak jelzi az előfizetést, és 4 fizetett, 0 ingyenes fejezetet mutat. A két fejezet, a mentett választás, a foglalások, az API-elszámolás és a grant a lemondás előtti adatokkal egyezik. Bizonyítékok a privát A8 könyvtárban, S41–S43.
+
+A következő kiadási kapu a flexible ciklusvégi jelzés javítása, majd az érintett előfizetés szinkronizálása és az alkalmazásban a ciklusvégi állapot igazolása 4/0 fejezetegyenleg mellett. Az alkalmazott esemény ismételt kézbesítését az eseményazonosító szerinti deduplikáció védi, így önmagában az nem javítja a korábbi állapotot. A már ütemezett lemondás megőrzése mellett külön felülvizsgált szinkronizálási lépés szükséges. A 9,99 USD-s visszatérítés addig függőben marad.
