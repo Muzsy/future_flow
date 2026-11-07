@@ -98,10 +98,12 @@ def clean_container(name, owner, image):
     run(['docker', 'rm', '-f', info['Id']])
 
 
-def verify_image_sources(image, binding):
+def verify_image_sources(image, binding, *, registry=False):
     code = """import{readFileSync}from'node:fs';import{createHash}from'node:crypto';
 const h=JSON.parse(readFileSync(0,'utf8'));for(const[p,v]of Object.entries(h))if(createHash('sha256').update(readFileSync('/app/'+p)).digest('hex')!==v)throw Error('Image source mismatch');
 const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.ts');console.log(JSON.stringify(fundedRuntimeCapabilities()));"""
+    if registry:
+        code = code.replace('fundedRuntimeCapabilities', 'serviceRegistryRuntimeCapabilities')
     # Explicit command, no image CMD/entrypoint execution, no network or secrets.
     owner = 'alterward-image-rehearsal-' + uuid.uuid4().hex[:24]
     name = owner + '-source'
@@ -113,9 +115,13 @@ const{fundedRuntimeCapabilities}=await import('/app/scripts/lib/funded-runtime.t
         '--import', 'tsx', '--input-type=module', '-e', code], json.dumps(binding['sourceHashes']).encode()))
     finally:
         clean_container(name, owner, image)
-    if capability.get('version') != 'alterward-funded-runtime-1' or 'fiction-v9' not in capability.get('policies', []):
+    version = 'alterward-funded-runtime-2' if registry else 'alterward-funded-runtime-1'
+    if (capability.get('version') != version or 'fiction-v9' not in capability.get('policies', [])
+            or (registry and (capability.get('profile') != 'service-registry-040' or capability.get('schema') != 40
+                              or capability.get('fromSchema') != 39))):
         # Keep exact capability shape interpretation in the production System.image too.
         raise ValueError('V9 runtime capability required')
+    return capability
 
 
 def reserve_output(path):

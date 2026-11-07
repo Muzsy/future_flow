@@ -741,17 +741,22 @@ def service_record_health(environments, images, now):
 SERVICE_ENV_EVENTS = {'intent-persisted', 'files-replaced', 'env-applied', 'completed', 'rolled-back',
                       'rollback-failed'}
 SERVICE_ENV_PLAN_VERSION = 'alterward-service-env-plan-1'
+SERVICE_IMAGE_PLAN_VERSION = 'alterward-service-image-plan-1'
 SERVICE_ENV_FILE_KEYS = {'server.env': 'serverEnvSha256', 'effective-compose.json': 'effectiveComposeSha256',
                          'manifest.json': 'manifestSha256', 'pinned-image.json': 'pinnedImageSha256'}
 
 
 def service_active_files(base):
-    """Owner runtime file hashes expected once the service profile (SPR) governs the host.
+    return service_active_runtime(base)[0]
+
+
+def service_active_runtime(base, *, native_anchor=None):
+    """Replay the expected owner file hashes and optional approved image release.
 
     `base` is the chain authority's own runtime hashes (the last exposed successor
     generation, or the original funded upgrade). Without a service-profile record
     nothing is changed. With one, the owner files may differ from `base` only by the
-    owner-approved service-env generations: the whole SPR journal is replayed, and
+    owner-approved service environment or image generations: the whole SPR journal is replayed, and
     for every generation the root step's journal row, its retained plan (hashed into
     that row), the profile digests, the profile's approval and the previous
     generation's resulting files must agree, starting from `base` itself. Any gap,
@@ -763,7 +768,7 @@ def service_active_files(base):
     # relocated owner tree (tests, rehearsals) from reading the host's real /root paths.
     profile_dir, env_dir = OWNER.parent / SERVICE_PROFILE_DIR.name, OWNER.parent / SERVICE_ENV_DIR.name
     if not profile_dir.exists() and not profile_dir.is_symlink():
-        return base
+        return base, None
     if set(base) != set(SERVICE_ENV_FILE_KEYS):
         raise ValueError('Exact runtime file set required')
     service_directory(profile_dir)
@@ -796,6 +801,7 @@ def service_active_files(base):
                             {'version', 'sequence', 'at', 'event', 'operationId', 'previousSha256', 'sha256'},
                             SERVICE_ENV_EVENTS)
     files = dict(base)
+    identity, release = native_anchor[:2] if native_anchor else None, None
     for generation in sorted(profiles):
         profile, profile_sha = profiles[generation]
         done = [r for r in journal if r['event'] == 'completed' and r.get('generation') == generation
@@ -814,13 +820,17 @@ def service_active_files(base):
         approved.pop('approvedAt', None)
         before = {name: approved['before'][key] for name, key in SERVICE_ENV_FILE_KEYS.items()}
         after = {name: approved['after'][key] for name, key in SERVICE_ENV_FILE_KEYS.items()}
-        if (approved.get('version') != SERVICE_ENV_PLAN_VERSION or approved.get('generation') != generation
-                or digest(service_canonical(approved)) != intent[0].get('planSha256')
+        image_release = approved.get('version') == SERVICE_IMAGE_PLAN_VERSION
+        phrase = 'activate-service-image' if image_release else 'activate-service-env'
+        plan_sha = digest(service_canonical(approved))
+        if (approved.get('version') not in {SERVICE_ENV_PLAN_VERSION, SERVICE_IMAGE_PLAN_VERSION}
+                or approved.get('generation') != generation
+                or plan_sha != intent[0].get('planSha256')
                 or approved.get('parentProfileSha256') != profile['parentProfileSha256']
                 or approved.get('sourceCommit') != profile['sourceCommit']
                 or approved.get('imageId') != profile['imageId']
                 or approval != profile['activation']['approvalSha256']
-                or approval != digest(f'activate-service-env {intent[0]["planSha256"][:16]} generation {generation}'.encode())
+                or approval != digest(f'{phrase} {plan_sha[:16]} generation {generation}'.encode())
                 or approved.get('backupManifestSha256') != profile['activation']['backupManifestSha256']
                 or approved.get('restoreProofSha256') != profile['activation']['restoreProofSha256']
                 or before != files
@@ -829,8 +839,55 @@ def service_active_files(base):
                 or after['pinned-image.json'] != profile['pinnedImageSha256']
                 or not all(re.fullmatch(r'[a-f0-9]{64}', h) for h in after.values())):
             raise ValueError('Service-env plan does not match the service profile chain')
+        next_identity = (profile['sourceCommit'], profile['imageId'])
+        if generation == 1 and native_anchor and profile['parentProfileSha256'] != native_anchor[2]:
+            raise ValueError('First service profile must descend from the native040 readback')
+        if image_release:
+            build = approved.get('build')
+            required = {'version', 'generation', 'parentProfileSha256', 'sourceCommit', 'imageId',
+                        'before', 'after', 'changes', 'backupManifestSha256', 'restoreProofSha256',
+                        'previousCommit', 'previousImageId', 'bundleSha256', 'capabilitySha256',
+                        'rehearsalSha256', 'build'}
+            if (set(approved) != required or generation < 2 or native_anchor is None
+                    or (approved.get('previousCommit'), approved.get('previousImageId')) != identity
+                    or any(a == b for a, b in zip(next_identity, identity))
+                    or approved['changes'] != {}
+                    or before['server.env'] != after['server.env']
+                    or before['pinned-image.json'] == after['pinned-image.json']
+                    or not isinstance(build, dict)
+                    or set(build) != {'commit', 'imageId', 'imageTag', 'sourceDirectory'}
+                    or (build['commit'], build['imageId']) != next_identity
+                    or build['imageTag'] != f'alterward:contabo-{build["commit"][:12]}'
+                    or not isinstance(build['sourceDirectory'], str)
+                    or not build['sourceDirectory'].startswith(str(OWNER.parent) + '/')
+                    or Path(build['sourceDirectory']).as_posix() != build['sourceDirectory']
+                    or '..' in Path(build['sourceDirectory']).parts
+                    or not all(isinstance(approved[k], str) and re.fullmatch(r'[a-f0-9]{64}', approved[k])
+                               for k in ('bundleSha256', 'capabilitySha256', 'rehearsalSha256'))
+                    or profile.get('schema') != 40 or profile.get('serviceAccessEnforcement') is not True):
+                raise ValueError('Image release does not extend the native040 service profile')
+            release = {'build': build, 'bundleSha256': approved['bundleSha256'],
+                       'capabilitySha256': approved['capabilitySha256'], 'planSha256': plan_sha}
+        elif identity is not None and next_identity != identity:
+            raise ValueError('Service environment plans cannot change the release identity')
+        identity = next_identity
         files = after
-    return files
+    return files, release
+
+
+def service_release_anchor(directory, candidate, role=None):
+    """Only a completed native040 billing-enforce generation can anchor an image release."""
+    if directory.name not in SUCCESSOR_ROOT_NAMES:
+        return None
+    plan = candidate.get('operation', {}).get('plan', {})
+    if (plan.get('version') != 'alterward-beta-successor-plan-3'
+            or plan.get('purpose') != SUCCESSOR_REGISTRY_BILLING_PURPOSE or plan.get('stage') != 'enforce'):
+        return None
+    if role is None:
+        role = successor_effective_role(candidate, directory)
+    if role not in ('target', 'recovery'):
+        raise ValueError('Exposed native040 release required')
+    return candidate['sourceCommit'], candidate['release'][role]['imageId'], digest(regular(directory / 'readback.json'))
 
 
 # Independent policy version: do not reinterpret the original personal/reader
@@ -2116,10 +2173,16 @@ def funded_upgrade_healthy(mode):
                 proof.get('imageId') == prepared['release'][role]['imageId'])
         if not parent_valid:
             return False
-        expected_files = successor_active_state()['files'] if successor_roots() else prepared['files'][role]
+        if successor_roots():
+            active = successor_active_state()
+            expected_files = active['files']
+            active_candidate = json.loads(regular(active['directory'] / 'prepared.json'))
+            anchor = service_release_anchor(active['directory'], active_candidate)
+        else:
+            expected_files, anchor = prepared['files'][role], None
         # Once the service profile governs the host, its approved generations (and only they)
         # legitimately rewrite the owner files.
-        expected_files = service_active_files(expected_files)
+        expected_files, _ = service_active_runtime(expected_files, native_anchor=anchor)
         return {name: digest(regular(OWNER / name)) for name in expected_files} == expected_files
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
@@ -2640,6 +2703,15 @@ def registry_restore_healthy(value, *, latest=False):
             return True
         proof = json.loads(regular(ROOT/'status'/'registry-restore.json'))
         active = proof.get('fundedRuntime', {})
+        anchor = service_release_anchor(state['directory'], candidate)
+        if anchor is not None:
+            files, release = service_active_runtime(state['files'], native_anchor=anchor)
+            if release is not None and (
+                    active.get('sourceCommit') != release['build']['commit']
+                    or active.get('imageId') != release['build']['imageId']
+                    or active.get('bundleSha256') != release['bundleSha256']
+                    or active.get('runtimeFilesSha256') != digest(service_canonical(files))):
+                return False
         records = completed_archives(ROOT/'backups')
         record = next((r for r in records if r['manifest']['runId'] == proof.get('backupRunId')), None)
         if (record is None or state['pending'] is not None or proof.get('sourceCommit') != value['sourceCommit']

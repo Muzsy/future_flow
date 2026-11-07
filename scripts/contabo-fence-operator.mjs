@@ -586,6 +586,7 @@ async function main() {
       activeFundedReplayProof,
       activeRegistryReplayProof,
       assertFundedReplayInputsUnchanged,
+      assertRegistryReplayInputsCompatible,
     } = await import('./lib/funded-replay.mjs');
     fundedRuntime = (
       registryRecovery ? activeRegistryReplayProof : activeFundedReplayProof
@@ -616,17 +617,30 @@ async function main() {
         preparedSha256: prepared.preparedSha256,
         targetImage: packet.release.target.imageId,
       };
-    } else
-      assertFundedReplayInputsUnchanged(
-        fundedRuntime,
-        sourceCommit,
-        (base, commit, paths) =>
-          execFileSync(
-            'git',
-            ['diff', '--name-only', base, commit, '--', ...paths],
-            { encoding: 'utf8' },
-          ),
-      );
+    } else {
+      const readChangedPaths = (base, commit, paths) =>
+        execFileSync(
+          'git',
+          ['diff', '--no-renames', '--name-only', base, commit, '--', ...paths],
+          { encoding: 'utf8' },
+        );
+      if (registryRecovery)
+        assertRegistryReplayInputsCompatible(
+          fundedRuntime,
+          sourceCommit,
+          readChangedPaths,
+          (commit, path) =>
+            createHash('sha256')
+              .update(execFileSync('git', ['show', `${commit}:${path}`]))
+              .digest('hex'),
+        );
+      else
+        assertFundedReplayInputsUnchanged(
+          fundedRuntime,
+          sourceCommit,
+          readChangedPaths,
+        );
+    }
   } else {
     ownerManifestDigest = activeRecoveryManifest(
       report('owner-stage-proof.json'),
