@@ -337,11 +337,12 @@ test('only the value-free refusal line of the step is ever shown', () => {
   );
 });
 
-test('the uploaded set is the three reviewed step files and nothing else', () => {
+test('the uploaded set is the reviewed step and its exact dependencies', () => {
   assert.deepEqual(SERVER_FILES, [
     'scripts/ops/contabo-service-env.py',
     'scripts/ops/contabo-service-operator.py',
     'scripts/ops/contabo-service-profile.py',
+    'scripts/ops/contabo-funded-image-rehearsal.py',
   ]);
   // Every module the step loads from its own directory is uploaded with it.
   const python = readFileSync('scripts/ops/contabo-service-env.py', 'utf8');
@@ -370,6 +371,7 @@ test('the uploaded set is the three reviewed step files and nothing else', () =>
     scripts: set,
   });
   assert.deepEqual(Object.keys(payload.files).sort(), [
+    'contabo-funded-image-rehearsal.py',
     'contabo-service-env.py',
     'contabo-service-operator.py',
     'contabo-service-profile.py',
@@ -410,6 +412,7 @@ print(json.dumps({"dir":d,"names":names,"mode":mode,"argv":sys.argv[1:],"request
   const files = (override = {}) =>
     Object.fromEntries(
       [
+        'contabo-funded-image-rehearsal.py',
         'contabo-service-env.py',
         'contabo-service-operator.py',
         'contabo-service-profile.py',
@@ -448,6 +451,7 @@ print(json.dumps({"dir":d,"names":names,"mode":mode,"argv":sys.argv[1:],"request
   assert.equal(done.status, 0, done.stderr);
   const seen = JSON.parse(done.stdout);
   assert.deepEqual(seen.names, [
+    'contabo-funded-image-rehearsal.py',
     'contabo-service-env.py',
     'contabo-service-operator.py',
     'contabo-service-profile.py',

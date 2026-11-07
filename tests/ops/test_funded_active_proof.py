@@ -7,6 +7,7 @@ preparation). Only the Docker boundary (image inspect and the in-image capabilit
 probe) is substituted. Adapter regression tests, NOT the Linux/root acceptance.
 """
 import json
+import os
 import sys
 import unittest
 from types import SimpleNamespace
@@ -45,7 +46,7 @@ class RecordingChain(chained.Chain):
 
     def runtime(self, root, terms, emails, **kwargs):
         files, release = super().runtime(root, terms, emails, **kwargs)
-        registry = root.name == daily.SUCCESSOR_ROOT_NAMES[4]
+        registry = root.name in daily.SUCCESSOR_ROOT_NAMES[4:]
         for role in ('target', 'recovery'):
             release[role] = {**release[role], 'imageTag': 'alterward:contabo-' + 'b' * 12,
                              'sourceDirectory': '/root/alterward-ops/build/' + 'b' * 40}
@@ -301,6 +302,99 @@ class ActiveRegistryProofTests(ActiveProofBase):
         self.assertEqual(system.active_proof()['version'], 'alterward-funded-replay-2')
         self.assertEqual(system.image_capability_profile(), ('alterward-funded-runtime-2', 40, 'service-registry-040'))
         self.assertEqual(system.allowed_capability_commands(), (funded.CAPABILITY_COMMAND, funded.REGISTRY_CAPABILITY_COMMAND))
+
+
+    def stage_service_image(self, *, change=None, finish=True, native_enforce=True):
+        from test_service_profile_funded_health import ServiceRecord
+        from test_beta_successor_chain import billing_selection, hashed
+        if native_enforce:
+            status = observed(40)
+            status.update(catalogSha256='e' * 64, registryDataSha256='f' * 64)
+            for number, stage in enumerate(('sandbox', 'live', 'enforce'), 6):
+                selection = {**billing_selection(hashed(self.chain.terms), stage, founderUserIds=[]),
+                             'purpose': 'billing-config-040'}
+                value = self.chain.prepare(number, selection['purpose'], selection=selection, database=status)
+                self.chain.expose(number, value, window_changed=False)
+        old = self.proof()
+        current = {n: (self.owner / n).read_bytes() for n in daily.RUNTIME_NAMES}
+        record = ServiceRecord(self.owner.parent, self.owner, {n: daily.digest(b) for n, b in current.items()},
+                               os.geteuid())
+        if native_enforce:
+            record.parent = daily.digest((self.chain.root(8) / 'readback.json').read_bytes())
+        record.apply(files=current, plan={'imageId': IMAGE})
+        if not finish:
+            return old
+        self.image_id = 'sha256:' + 'd' * 64
+        new_commit = 'd' * 40
+        build = {'commit': new_commit, 'imageId': self.image_id, 'imageTag': 'alterward:contabo-' + 'd' * 12,
+                 'sourceDirectory': str(self.owner.parent / 'release' / 'src')}
+        manifest = json.loads(current['manifest.json'])
+        manifest.update(commit=new_commit, imageId=self.image_id)
+        config = json.loads(current['effective-compose.json'])
+        for service in config['services'].values():
+            service['image'] = self.image_id
+        record.apply(files={**current, 'manifest.json': funded.encoded(manifest),
+                            'effective-compose.json': funded.encoded(config),
+                            'pinned-image.json': b'new image pin'},
+                     verb='activate-service-image',
+                     plan={'version': daily.SERVICE_IMAGE_PLAN_VERSION, 'sourceCommit': new_commit,
+                           'imageId': self.image_id, 'previousCommit': 'b' * 40, 'previousImageId': IMAGE,
+                           'build': build, 'bundleSha256': '2' * 64, 'capabilitySha256': recorded(True),
+                           'rehearsalSha256': '3' * 64, **(change or {})})
+        return old
+
+    def test_native_service_image_changes_recovery_authority_without_rewriting_successor(self):
+        old = self.stage_service_image()
+        self.assertTrue(daily.funded_upgrade_healthy('personal-beta'))
+        system = self.active()
+        proof = system.active_proof()
+        self.assertEqual(proof['preparedSha256'], old['preparedSha256'])
+        self.assertNotEqual(proof['authoritySha256'], old['authoritySha256'])
+        self.assertEqual((proof['sourceCommit'], proof['bundleSha256'], proof['imageId']),
+                         ('d' * 40, '2' * 64, self.image_id))
+        self.assertEqual(replay.require_funded_runtime(daily, base.funded.fence.original, proof), proof)
+        with self.assertRaises(ValueError):
+            replay.require_funded_runtime(daily, base.funded.fence.original, old)
+        system.capability.assert_called_once_with(self.image_id, {}, registry=True)
+        with self.assertRaisesRegex(ValueError, 'recorded evidence'):
+            self.proof(probe={**capability(registry=True), 'extra': True})
+        exact = self.active(sourceCommit=proof['sourceCommit'], bundleSha256=proof['bundleSha256'])
+        exact.image.return_value = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'recorded evidence'):
+            exact.active_proof()
+
+    def test_daily_only_accepts_a_new_restore_bound_to_the_released_image_and_bundle(self):
+        from test_service_env import env
+        old = self.stage_service_image()
+        active = self.proof()
+        run = {'runId': '20261107T165500Z-12345678', 'ownerCommit': active['sourceCommit'],
+               'ownerImage': active['imageId']}
+        captured = self.fixture.now.isoformat()
+        proof = {'capturedAt': captured, 'backupRunId': run['runId'], 'fundedRuntime': active,
+                 'sourceCommit': OPERATOR, 'backupManifestSha256': '2' * 64,
+                 'backupManifestCanonicalSha256': daily.successor_canonical_hash(run),
+                 'tablesMatchedBeforeReplay': 103, 'reviewedTables': 102, 'reviewedForeignKeys': 226,
+                 'paidAiCalls': 0, **dict.fromkeys(env.PROOF_TRUE, True), **dict.fromkeys(env.PROOF_FALSE, False)}
+        directory = self.owner.parent / 'daily'
+        path = directory / 'status' / 'registry-restore.json'
+        backup = {'manifest': run, 'files': {'manifest.json': {'sha256': '2' * 64}}, 'created': self.fixture.now}
+        with patch.object(daily, 'ROOT', directory), patch.object(daily, 'completed_archives', return_value=[backup]):
+            for funded_runtime in (old, {**active, 'bundleSha256': '0' * 64}, active):
+                self.fixture.write(path, funded.encoded({**proof, 'fundedRuntime': funded_runtime}))
+                self.assertEqual(daily.registry_restore_healthy({'sourceCommit': OPERATOR}, latest=True),
+                                 funded_runtime == active)
+
+    def test_native_service_image_refuses_wrong_predecessor(self):
+        self.stage_service_image(change={'previousImageId': 'sha256:' + '0' * 64})
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        with self.assertRaises(ValueError):
+            self.proof()
+
+    def test_native_service_image_requires_enforced_billing_anchor(self):
+        self.stage_service_image(native_enforce=False)
+        self.assertFalse(daily.funded_upgrade_healthy('personal-beta'))
+        with self.assertRaises(ValueError):
+            self.proof()
 
 
 class OriginalGenerationOnlyTests(unittest.TestCase):

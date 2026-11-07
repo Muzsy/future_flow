@@ -98,15 +98,35 @@ class FakeHost:
     def render(self, env_bytes, pinned_bytes, source):
         values = env.parse_env(env_bytes.decode())
         services = {}
+        pins = json.loads(pinned_bytes)['services']
         for name, keys in KEYS.items():
             environment = {k: values.get(k, DEFAULTS.get(k, '')) for k in keys}
             if self.extra_env and name == 'api':
                 environment[self.extra_env] = 'x'
-            services[name] = {'image': IMAGE, 'command': ['run', name], 'environment': environment,
+            services[name] = {**pins[name], 'command': ['run', name], 'environment': environment,
                               'cap_drop': ['ALL']}
         if self.render_hook:
             self.render_hook(services)
         return {'services': services}
+
+    def stop(self):
+        self.calls.append('stop')
+
+    def require_image_hold(self):
+        if getattr(self, 'hold_open', False):
+            raise env.Refusal('Service not paused')
+
+    def require_image_daily(self):
+        if getattr(self, 'daily_is_old', False):
+            raise env.Refusal('Reviewed Daily required')
+
+    def verify_latest_restore(self, request):
+        self.require_image_daily()
+        return 'd' * 40
+
+    def verify_image_release(self, request, previous_commit):
+        assert previous_commit == COMMIT
+        return {'bundleSha256': '1' * 64}, '2' * 64, '3' * 64
 
     def restart(self):
         self.calls.append('restart')
@@ -114,6 +134,7 @@ class FakeHost:
             self.restart_failures -= 1
             raise env.Refusal('restart failed')
         self.running = env.unfrozen(json.loads((self.owner / 'effective-compose.json').read_bytes()))
+        self.images_value = {name: svc['image'] for name, svc in self.running['services'].items()}
 
     def verify_running(self, config, image_id):
         self.calls.append('verify')
@@ -121,7 +142,8 @@ class FakeHost:
             self.verify_failures -= 1
             raise env.Refusal('unhealthy')
         for name in env.SERVICES:
-            if self.running['services'][name]['environment'] != config['services'][name]['environment']:
+            if (self.running['services'][name]['environment'] != config['services'][name]['environment']
+                    or self.running['services'][name]['image'] != image_id):
                 raise env.Refusal('running differs')
 
     def observe(self):
@@ -852,6 +874,87 @@ class ServiceEnvTests(unittest.TestCase):
         self.assertEqual(env.Journal(self.step).state(operation), 'rollback-failed')
         self.assertFalse(self.profile_dir.exists())
 
+    def image_request(self):
+        self.apply()
+        self.write_evidence(proof={'sourceCommit': 'd' * 40})
+        return {'version': env.IMAGE_REQUEST_VERSION,
+                'build': {'commit': 'd' * 40, 'imageId': 'sha256:' + 'd' * 64,
+                          'imageTag': 'alterward:contabo-' + 'd' * 12,
+                          'sourceDirectory': str(self.ops / 'new-build')},
+                'rehearsalDirectory': str(self.ops / 'image-rehearsal'),
+                'backupManifestPath': self.BACKUP_PATH, 'restoreProofPath': env.RESTORE_PROOF_PATH}
+
+    def test_image_apply_replaces_only_three_pins_preserving_environment_and_activation(self):
+        request = self.image_request()
+        before = self.stepper._owner_bytes()
+        report = self.stepper.plan_report(request, image=True)
+        self.assertEqual(before, self.stepper._owner_bytes())
+        self.assertEqual(report['plan']['previousImageId'], IMAGE)
+        self.assertEqual(report['plan']['before']['serverEnvSha256'], report['plan']['after']['serverEnvSha256'])
+        self.assertTrue(report['confirm'].startswith('activate-service-image '))
+        result = self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        after = self.stepper._owner_bytes()
+        self.assertEqual(after['server.env'], before['server.env'])
+        self.assertEqual(result['generation'], 2)
+        self.assertEqual(result['changedKeys'], [])
+        self.assertIs(result['databaseWrites'], False)
+        self.assertNotIn('databaseConnections', result)
+        self.assertEqual(self.host.images(), dict.fromkeys(env.SERVICES, request['build']['imageId']))
+        self.assertEqual(json.loads(after['effective-compose.json']), env.image_only_compose(
+            json.loads(before['effective-compose.json']), IMAGE, request['build']['imageId']))
+        self.assertEqual(json.loads(after['manifest.json'])['commit'], request['build']['commit'])
+
+    def test_image_plan_refuses_open_service_or_rendered_policy_change(self):
+        request = self.image_request()
+        before = self.stepper._owner_bytes()
+        self.host.calls.clear()
+        self.host.hold_open = True
+        with self.assertRaisesRegex(env.Refusal, 'not paused'):
+            self.stepper.plan_image(request)
+        self.host.hold_open = False
+        self.host.daily_is_old = True
+        with self.assertRaisesRegex(env.Refusal, 'Reviewed Daily required'):
+            self.stepper.plan_image(request)
+        self.host.daily_is_old = False
+        self.host.render_hook = lambda services: services['worker'].update(command=['another-worker'])
+        with self.assertRaisesRegex(env.Refusal, 'changes more than'):
+            self.stepper.plan_image(request)
+        self.assertEqual(before, self.stepper._owner_bytes())
+        self.assertNotIn('stop', self.host.calls)
+
+    def test_image_restart_failure_restores_prior_pins_files_and_profile(self):
+        request = self.image_request()
+        before = self.stepper._owner_bytes()
+        report = self.stepper.plan_report(request, image=True)
+        self.host.restart_failures = 1
+        with self.assertRaisesRegex(env.Refusal, 'previous files were restored'):
+            self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        self.assertEqual(self.stepper._owner_bytes(), before)
+        self.assertEqual(self.host.images(), dict.fromkeys(env.SERVICES, IMAGE))
+        self.assertEqual(self.stepper._spr_state()['generation'], 1)
+        self.assertEqual(self.stepper.journal.rows()[-1]['event'], 'rolled-back')
+
+    def test_interrupted_image_can_resume_only_the_journaled_plan(self):
+        request = self.image_request()
+        report = self.stepper.plan_report(request, image=True)
+        with mock.patch.object(self.stepper.profile, 'activate', side_effect=self.stepper.profile.ProfileError('interrupted')):
+            with self.assertRaisesRegex(env.Refusal, 'resume --operation-id'):
+                self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        operation = self.stepper.journal.rows()[-1]['operationId']
+        folder = self.step / operation
+        plan = env._private_read(folder / 'plan.json')
+        tampered = json.loads(plan)
+        tampered['rehearsalSha256'] = '0' * 64
+        env._replace(folder / 'plan.json', env.canonical(tampered))
+        with self.assertRaisesRegex(env.Refusal, 'journaled approval'):
+            self.stepper.resume(operation)
+        env._replace(folder / 'plan.json', plan)
+        self.host.daily_is_old = True
+        with self.assertRaisesRegex(env.Refusal, 'Reviewed Daily required'):
+            self.stepper.resume(operation)
+        self.host.daily_is_old = False
+        self.assertEqual(self.stepper.resume(operation)['generation'], 2)
+
     def test_the_journal_chain_is_verified(self):
         self.apply()
         path = self.step / 'journal.jsonl'
@@ -955,6 +1058,21 @@ class DailyLoadingTests(unittest.TestCase):
                                  'readbackSha256': None, 'preparedSha256': None})
         host.successor_state()
         self.assertEqual(loads, [1])                      # and a second read reuses it
+
+    def test_image_release_refuses_an_old_or_different_daily_before_restore(self):
+        daily = mock.Mock(spec=['config', 'registry_restore_healthy'])
+        reviewed = (directory / 'contabo-daily.py').read_bytes()
+        daily.config.return_value = {'scriptHashes': {'contabo-daily.py': sha(reviewed)}}
+        host = env.HostRuntime(daily=daily)
+        with self.assertRaisesRegex(env.Refusal, 'Install the reviewed Daily'):
+            host.verify_latest_restore({})
+        daily.SERVICE_IMAGE_PLAN_VERSION = env.IMAGE_PLAN_VERSION
+        daily.config.return_value['scriptHashes']['contabo-daily.py'] = '0' * 64
+        with self.assertRaisesRegex(env.Refusal, 'Install the reviewed Daily'):
+            host.verify_latest_restore({})
+        daily.registry_restore_healthy.assert_not_called()
+        daily.config.return_value['scriptHashes']['contabo-daily.py'] = sha(reviewed)
+        self.assertEqual(host.require_image_daily(), daily.config.return_value)
 
     def test_an_unloadable_daily_is_a_value_free_refusal(self):
         (self.scripts / 'contabo-daily.py').unlink()
