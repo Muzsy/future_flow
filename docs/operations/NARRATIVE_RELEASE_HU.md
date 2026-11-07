@@ -1266,3 +1266,10 @@ A tulajdonos a 14,99 USD-s kiválasztott előfizetést mutató okbekérő felugr
 A Stripe hivatalos [lemondási dokumentációja](https://docs.stripe.com/customer-management/cancellation-page) szerint az okbekérés opcionális, és a [konfiguráció](https://docs.stripe.com/api/customer_portal/configurations/update) külön cancellation_reason.enabled flaget használ. A változatlan alkalmazási pénzügyi/config őr ezt a flaget nem követeli meg. A meglévő éles konfigurációban az okbekérés továbbra ON; a UI-ban kizárólag a Collect a cancellation reason checkbox OFF állapota lett mentetlenül előkészítve. Lemondás enabled/at_period_end, retention nélkül, subscription_update OFF és minden más eddigi beállítás változatlan. Ár, kupon, előfizetés, ledger vagy kód nem módosult.
 
 Konkrét következő csomag: külön tulajdonosi engedély az egy mentésre, friss GET alapján okbekérés OFF és minden régi őr változatlan PASS; egy új saját portálmunkamenetben tényleges lemondási UI-ellenőrzés. Csak a 9,99 USD-s hatályos díj egyértelmű megjelenése és a félrevezető modal hiánya után folytatható a tulajdonosi véglegesítés/refund. Ha a konfiguráció nem oldja meg a megjelenítést, nincs újrapróbálás vagy ármodell-átírás; a tény és a következő szűk megoldás újraértékelendő. Privát mentetlen tervezet/baseline: `s36-cancellation-price-ux-proposal.json`. Nincs új díjterhelés vagy generálás.
+
+
+### #184 egyértelmű lemondási ár igazolva — 2026-11-07
+
+A külön jóváhagyott mentés 01:00:58 CET-kor kikapcsolta az opcionális okbekérést. A Stripe GET szerint ugyanaz az aktív, alapértelmezett éles konfiguráció maradt, és az okbekérésen kívüli funkciók, a ciklusvégi lemondás, a fejléc és a visszatérési cím egyeztek a mentés előtti adatokkal.
+
+Egy friss saját portálmunkamenetben a lemondási összegzés 9,99 USD/hó díjat és december 7-i ciklusvéget mutatott. A 14,99 USD-s okbekérő felugró eltűnt. A tulajdonos a javított képernyőn kapta meg a véglegesítés lehetőségét. Privát bizonyítékok: s37-reason-disable-authorization.json, s38-reason-disable-readback.json, s39-fresh-cancellation-ui-intent.json és s40-cancellation-ui-result.json.
