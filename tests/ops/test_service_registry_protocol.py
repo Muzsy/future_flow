@@ -225,12 +225,23 @@ class RegistryProtocolTests(unittest.TestCase):
             daily.registry_profile_default(changed)['services']['web']['environment']['TURNSTILE_SITE_KEY'], 'k')
 
     @staticmethod
-    def committed_source_hashes():
+    def committed_source_hashes(ref=None):
         import json
         import subprocess
         root_path = Path(__file__).resolve().parents[2]
-        code = "import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';import{fundedSourceBundle}from'./scripts/lib/funded-upgrade.mjs';const paths=execFileSync('git',['ls-files'],{encoding:'utf8'}).trim().split('\\n');console.log(JSON.stringify(fundedSourceBundle(paths,p=>readFileSync(p)).sourceHashes));"
-        result = subprocess.run(['node','--input-type=module','-e',code],cwd=root_path,
+        code = """
+            import { execFileSync } from 'node:child_process';
+            import { readFileSync } from 'node:fs';
+            import { fundedSourceBundle } from './scripts/lib/funded-upgrade.mjs';
+            const ref = process.argv[1];
+            const args = ref ? ['ls-tree', '-r', '--name-only', ref] : ['ls-files'];
+            const paths = execFileSync('git', args, { encoding: 'utf8' }).trim().split('\\n');
+            const read = ref
+                ? path => execFileSync('git', ['cat-file', 'blob', ref + ':' + path])
+                : path => readFileSync(path);
+            console.log(JSON.stringify(fundedSourceBundle(paths, read).sourceHashes));
+        """
+        result = subprocess.run(['node', '--input-type=module', '-e', code, *([ref] if ref else [])], cwd=root_path,
             check=True,capture_output=True,text=True,timeout=15)
         return json.loads(result.stdout)
 
@@ -242,15 +253,15 @@ class RegistryProtocolTests(unittest.TestCase):
     def test_every_changed_serving_engine_source_is_pinned_and_the_rest_matches_the_serving_image(self):
         """Local run of the schema-040 prepare comparison (require_engine_freeze) against the 039 image.
 
-        The serving image is represented by the committed hashes of its source commit. A path of
-        the frozen scope that differs from it must be an exact reviewed pin, and every unpinned
-        path must still be byte-identical, otherwise the prepare would refuse the target.
+        The fixture represents the 039 serving image. Compare against the retained 040
+        migration source, whose reviewed pins remain part of its durable evidence.
         """
         import json
         from test_beta_successor_chain_root import root
         fixture = json.loads((Path(__file__).parent / 'fixtures/serving-image-039-source-hashes.json').read_text())
         serving = fixture['sourceHashes']
-        hashes = self.committed_source_hashes()
+        migration_source = '1d312d29f203738c9f9d9a6e5338408c74b82f0b'
+        hashes = self.committed_source_hashes(migration_source)
         system = object.__new__(root.System)
         system.request = {'sourceHashes': hashes}
         system.daily = daily
@@ -263,6 +274,12 @@ class RegistryProtocolTests(unittest.TestCase):
         self.assertEqual(sorted(p for p, h in unpinned.items() if serving.get(p) != h), [],
                          'Original serving engine sources must remain unchanged')
         self.assertTrue(unpinned)
+        system.request = {'sourceHashes': self.committed_source_hashes()}
+        current = system.frozen_source_hashes()
+        current_delta = {path for path in frozen.keys() | current.keys()
+                         if frozen.get(path) != current.get(path)}
+        self.assertEqual(current_delta, {'packages/core/src/billing-stripe.ts'},
+                         'Only the cycle-end cancellation fix may differ from the 040 image')
 
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
         root = Path(__file__).resolve().parents[2]

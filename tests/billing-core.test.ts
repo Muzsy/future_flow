@@ -703,6 +703,47 @@ describe('stripe event normalisation', () => {
       customerId: 'cus_1',
     });
   });
+  it.each([
+    {
+      mode: 'flexible',
+      legacyFlag: false,
+      cancelAt: 1_802_592_000,
+      expected: true,
+    },
+    { mode: 'flexible', legacyFlag: false, cancelAt: null, expected: false },
+    {
+      mode: 'flexible',
+      legacyFlag: false,
+      cancelAt: 1_805_184_000,
+      expected: false,
+    },
+    { mode: 'classic', legacyFlag: true, cancelAt: null, expected: true },
+    { mode: 'classic', legacyFlag: false, cancelAt: null, expected: false },
+  ])(
+    'maps cycle-end cancellation from $mode mode ($legacyFlag, $cancelAt)',
+    ({ mode, legacyFlag, cancelAt, expected }) => {
+      const event = normalizeStripeEvent(
+        evt('customer.subscription.updated', {
+          id: 'sub_1',
+          customer: 'cus_1',
+          status: 'active',
+          billing_mode: { type: mode },
+          cancel_at_period_end: legacyFlag,
+          cancel_at: cancelAt,
+          items: {
+            data: [{ price: 'price_ours', current_period_end: 1_802_592_000 }],
+          },
+        }),
+        { priceId: 'price_ours' },
+      );
+      expect(event).toMatchObject({
+        type: 'subscription_synced',
+        status: 'active',
+        cancelAtPeriodEnd: expected,
+        periodEnd: new Date(1_802_592_000 * 1000).toISOString(),
+      });
+    },
+  );
   it('maps a deletion', () => {
     expect(
       normalizeStripeEvent(

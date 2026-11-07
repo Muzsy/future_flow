@@ -48,6 +48,8 @@ A billing-mag, SQL tároló (039), route-ok, generálási kapu és `/billing` ol
 
 **Önkiszolgáló előfizetéskezelés — #144, fejlesztési jelölt:** a `/billing` kezelőgomb saját Auth-fiókhoz tartozó Stripe customerhez nyit rövid életű hosted portal sessiont. Nincs kliensből elfogadott customer/subscription/return URL, ledgerírás vagy automatikus Checkout. Több fiókhoz kötött customer, törlés alatt álló fiók, rendezetlen restore-projection és hiányos provider elutasított. A provider aktuális, aktív és megfelelő test/live módú default portal konfigurációjában ciklusvégi lemondás kell; csomagváltás és megtartási kupon tiltott. A visszatérés a backend ismert originjén `/billing`, a link nem kerül tartós tárolóba. Késő válasz után friss session-fiókellenőrzés akadályozza meg az idegen portál megnyitását. Lemondásról/elszámolásról továbbra az aláírt webhook dönt; sikertelen portálnyitás nem sikeres lemondás. A kapcsolattartási cím megmarad hibára/segítségre. Ez source-szelet, sandbox/live konfiguráció és teljes böngészős I05/I06 bizonyíték még szükséges; nem éles aktiválás.
 
+A Stripe flexible számlázási módban a portál a lemondás időpontját a `cancel_at` mezőben küldi. Az alkalmazás ezt ciklusvégi lemondásként jelzi, ha az időpont az Alterward előfizetési tétel ciklusvégével egyezik. A fizetett hozzáférés és a fel nem használt fejezetek addig elérhetők. A klasszikus `cancel_at_period_end` jelzés kezelése is megmarad.
+
 A Shared-specifikus szakaszok a későbbi közös modellt részletezik; annak enumjai, slotjai és Guest-szabályai nem változnak a személyes induló ajánlattól.
 
 ## 2. Alapelv

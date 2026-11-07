@@ -167,6 +167,15 @@ export function normalizeStripeEvent(
     if (!status || !(billingStatuses as readonly string[]).includes(status))
       throw new BillingEventFormatError();
     const metadata = isObj(object.metadata) ? object.metadata : {};
+    const periodEndSeconds =
+      item?.current_period_end ?? object.current_period_end;
+    const periodEnd = iso(periodEndSeconds);
+    // The flexible-mode portal schedules cancellation with cancel_at.
+    const flexibleCycleEndCancellation =
+      isObj(object.billing_mode) &&
+      object.billing_mode.type === 'flexible' &&
+      periodEnd !== null &&
+      object.cancel_at === periodEndSeconds;
     return {
       type: 'subscription_synced',
       eventId,
@@ -178,8 +187,9 @@ export function normalizeStripeEvent(
       periodStart: iso(
         item?.current_period_start ?? object.current_period_start,
       ),
-      periodEnd: iso(item?.current_period_end ?? object.current_period_end),
-      cancelAtPeriodEnd: object.cancel_at_period_end === true,
+      periodEnd,
+      cancelAtPeriodEnd:
+        object.cancel_at_period_end === true || flexibleCycleEndCancellation,
       discounted: metadata[STRIPE_OFFER_METADATA_KEY] === 'launch_v1',
     };
   }
