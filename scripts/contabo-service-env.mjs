@@ -12,7 +12,7 @@ import {
 } from './lib/operator-platform.mjs';
 
 // ADR-011 P2 operator client: uploads the reviewed root step
-// (scripts/ops/contabo-service-env.py and the two modules it loads), asks the
+// (scripts/ops/contabo-service-env.py and its reviewed dependencies), asks the
 // server for a read-only `plan`, and applies it only with the owner's exact
 // sentence. The owner-chosen values are parameters of one private input file;
 // nothing here knows a budget, a window or a key. The server step stays the
@@ -27,6 +27,7 @@ export const SERVER_FILES = [
   'scripts/ops/contabo-service-env.py',
   'scripts/ops/contabo-service-operator.py',
   'scripts/ops/contabo-service-profile.py',
+  'scripts/ops/contabo-funded-image-rehearsal.py',
 ];
 const CLIENT_NAME = 'scripts/contabo-service-env.mjs';
 const PLATFORM_NAME = 'scripts/lib/operator-platform.mjs';
