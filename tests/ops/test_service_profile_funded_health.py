@@ -74,7 +74,7 @@ class ServiceRecord:
         self.generation += 1
         number = self.generation
         operation = f'123e4567-e89b-42d3-a456-42661417400{number}'
-        new = {name: f'service-{number}-{name}'.encode() for name in KEYS}
+        new = override.get('files') or {name: f'service-{number}-{name}'.encode() for name in KEYS}
         after = {name: sha(data) for name, data in new.items()}
         plan = {'version': 'alterward-service-env-plan-1', 'generation': number,
                 'parentProfileSha256': self.parent, 'sourceCommit': 'b' * 40, 'imageId': IMAGE,
@@ -83,8 +83,10 @@ class ServiceRecord:
                 'after': {KEYS[n]: h for n, h in after.items()}, 'changes': {},
                 'backupManifestSha256': '1' * 64, 'restoreProofSha256': '2' * 64}
         plan = {**plan, **override.get('plan', {})}
+        if plan['version'] == daily.SERVICE_IMAGE_PLAN_VERSION:
+            del plan['sourceDirectory']
         approval = sha((override.get('approval') or
-                        f'activate-service-env {sha(canonical(plan))[:16]} generation {number}').encode())
+                        f'{override.get("verb", "activate-service-env")} {sha(canonical(plan))[:16]} generation {number}').encode())
         folder = self.env / operation
         (folder / 'previous').mkdir(mode=0o700, parents=True)
         os.chmod(folder, 0o700)
@@ -100,7 +102,7 @@ class ServiceRecord:
         if 'env-applied' not in skipped:
             self.journal('env-applied', operation, after=plan['after'])
         profile = {'version': 'alterward-service-profile-1', 'generation': number,
-                   'parentProfileSha256': self.parent, 'sourceCommit': 'b' * 40, 'imageId': IMAGE,
+                   'parentProfileSha256': self.parent, 'sourceCommit': plan['sourceCommit'], 'imageId': plan['imageId'],
                    'effectiveComposeSha256': after['effective-compose.json'],
                    'serverEnvSha256': after['server.env'], 'pinnedImageSha256': after['pinned-image.json'],
                    'schema': 40, 'serviceAccessEnforcement': True,

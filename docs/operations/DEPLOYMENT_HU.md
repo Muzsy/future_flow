@@ -70,3 +70,6 @@ Külön gate:
 - public/community release.
 
 Feature csak a saját activation policy-ja szerint válik elérhetővé.
+
+A 040-es szolgáltatásprofil melletti, migráció nélküli Stripe image-váltás
+és a hozzá tartozó mentés/visszaállítás: [Native040 image-release runbook](NATIVE040_IMAGE_RELEASE_HU.md).
