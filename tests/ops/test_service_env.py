@@ -116,7 +116,12 @@ class FakeHost:
         if getattr(self, 'hold_open', False):
             raise env.Refusal('Service not paused')
 
+    def require_image_daily(self):
+        if getattr(self, 'daily_is_old', False):
+            raise env.Refusal('Reviewed Daily required')
+
     def verify_latest_restore(self, request):
+        self.require_image_daily()
         return 'd' * 40
 
     def verify_image_release(self, request, previous_commit):
@@ -892,6 +897,8 @@ class ServiceEnvTests(unittest.TestCase):
         self.assertEqual(after['server.env'], before['server.env'])
         self.assertEqual(result['generation'], 2)
         self.assertEqual(result['changedKeys'], [])
+        self.assertIs(result['databaseWrites'], False)
+        self.assertNotIn('databaseConnections', result)
         self.assertEqual(self.host.images(), dict.fromkeys(env.SERVICES, request['build']['imageId']))
         self.assertEqual(json.loads(after['effective-compose.json']), env.image_only_compose(
             json.loads(before['effective-compose.json']), IMAGE, request['build']['imageId']))
@@ -905,6 +912,10 @@ class ServiceEnvTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'not paused'):
             self.stepper.plan_image(request)
         self.host.hold_open = False
+        self.host.daily_is_old = True
+        with self.assertRaisesRegex(env.Refusal, 'Reviewed Daily required'):
+            self.stepper.plan_image(request)
+        self.host.daily_is_old = False
         self.host.render_hook = lambda services: services['worker'].update(command=['another-worker'])
         with self.assertRaisesRegex(env.Refusal, 'changes more than'):
             self.stepper.plan_image(request)
@@ -938,6 +949,10 @@ class ServiceEnvTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'journaled approval'):
             self.stepper.resume(operation)
         env._replace(folder / 'plan.json', plan)
+        self.host.daily_is_old = True
+        with self.assertRaisesRegex(env.Refusal, 'Reviewed Daily required'):
+            self.stepper.resume(operation)
+        self.host.daily_is_old = False
         self.assertEqual(self.stepper.resume(operation)['generation'], 2)
 
     def test_the_journal_chain_is_verified(self):
@@ -1043,6 +1058,21 @@ class DailyLoadingTests(unittest.TestCase):
                                  'readbackSha256': None, 'preparedSha256': None})
         host.successor_state()
         self.assertEqual(loads, [1])                      # and a second read reuses it
+
+    def test_image_release_refuses_an_old_or_different_daily_before_restore(self):
+        daily = mock.Mock(spec=['config', 'registry_restore_healthy'])
+        reviewed = (directory / 'contabo-daily.py').read_bytes()
+        daily.config.return_value = {'scriptHashes': {'contabo-daily.py': sha(reviewed)}}
+        host = env.HostRuntime(daily=daily)
+        with self.assertRaisesRegex(env.Refusal, 'Install the reviewed Daily'):
+            host.verify_latest_restore({})
+        daily.SERVICE_IMAGE_PLAN_VERSION = env.IMAGE_PLAN_VERSION
+        daily.config.return_value['scriptHashes']['contabo-daily.py'] = '0' * 64
+        with self.assertRaisesRegex(env.Refusal, 'Install the reviewed Daily'):
+            host.verify_latest_restore({})
+        daily.registry_restore_healthy.assert_not_called()
+        daily.config.return_value['scriptHashes']['contabo-daily.py'] = sha(reviewed)
+        self.assertEqual(host.require_image_daily(), daily.config.return_value)
 
     def test_an_unloadable_daily_is_a_value_free_refusal(self):
         (self.scripts / 'contabo-daily.py').unlink()

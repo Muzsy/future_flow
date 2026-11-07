@@ -861,7 +861,8 @@ class Stepper:
         return {'operationId': operation_id, 'generation': record['generation'],
                 'profileSha256': record['profileSha256'], 'planSha256': sha(canonical(plan)),
                 'changedKeys': sorted(plan['changes']), 'before': plan['before'], 'after': plan['after'],
-                'paidAiCalls': 0, 'databaseConnections': 0}
+                'paidAiCalls': 0, **({'databaseWrites': False} if plan['version'] == IMAGE_PLAN_VERSION
+                                     else {'databaseConnections': 0})}
 
     def _spr_state_or_none(self):
         directory = self.profile_dir
@@ -912,6 +913,8 @@ class Stepper:
                 raise Refusal('Rollback did not verify: service left as is; emergency stop is available')
             return {'operationId': operation_id, 'outcome': 'rolled-back', 'paidAiCalls': 0}
         if state == 'env-applied':
+            if image:
+                self.host.require_image_daily()
             self._check_files(plan['after'])
             config = unfrozen(json.loads(_private_read(self.owner / 'effective-compose.json')))
             self.host.verify_running(config, plan['imageId'])
@@ -1000,9 +1003,19 @@ class HostRuntime:
                 or policy.get('mode') != 'invitation' or policy.get('reconcileRequired') is not False):
             raise Refusal('Admission, generation and checkout must be paused before changing the image')
 
-    def verify_latest_restore(self, request):
+    def require_image_daily(self):
         daily = self.daily
         value = daily.config()
+        reviewed = Path(__file__).resolve().with_name('contabo-daily.py')
+        if (getattr(daily, 'SERVICE_IMAGE_PLAN_VERSION', None) != IMAGE_PLAN_VERSION
+                or not reviewed.is_file()
+                or value['scriptHashes'].get('contabo-daily.py') != sha(reviewed.read_bytes())):
+            raise Refusal('Install the reviewed Daily that understands service image releases first')
+        return value
+
+    def verify_latest_restore(self, request):
+        daily = self.daily
+        value = self.require_image_daily()
         if not daily.registry_restore_healthy(value, latest=True):
             raise Refusal('Fresh native040 restore of the latest backup required')
         proof = json.loads(_private_read(ops_root(self.owner) / request['restoreProofPath']))

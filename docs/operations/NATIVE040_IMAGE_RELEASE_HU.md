@@ -33,7 +33,10 @@ lépés és a szolgáltatásprofil története megmarad.
   szüneteltetett generálás és checkout, az üres feldolgozási sor, valamint
   a legfrissebb mentés és az ahhoz tartozó érvényes natív 040 restore. A
   szolgáltatásprofilra és a Compose konfigurációra vonatkozó ellenőrzés
-  minden futtatáskor megismétlődik.
+  minden futtatáskor megismétlődik. A váltás előtti restore még a régi
+  `1d312d2` image-et használja, de már az új operátorforrással. A replay
+  guard csak ennél a konkrét régi digestnél és csak a jóváhagyott Stripe-fájl
+  pontos eltérését fogadja el; a többi restore szabálya változatlan.
 - Az `image-apply` a tulajdonos által jóváhagyott teljes tervhash-t és
   a terv által kiírt `activate-service-image … generation …` mondatot
   kéri. A service-operator és a két Daily zár alatt dolgozik. Csak a három
@@ -60,8 +63,14 @@ lépés és a szolgáltatásprofil története megmarad.
    restore igazolása.
 3. A már létező, ciklus végére lemondott előfizetés állapotának újbóli
    ellenőrzése az Alterwardban és az elszámolás egyeztetése; az engedélyezett
-   próba pénzügyi lezárása. Új előfizetés vagy történetgenerálás a javítás
-   ellenőrzéséhez nem kell.
+   próba pénzügyi lezárása. A már sikeresen feldolgozott Stripe-esemény
+   ugyanazzal az ID-val duplikátum, így a kézi újraküldés nem frissíti a
+   tárolt státuszt. Először ellenőrizni kell, érkezett-e új, aláírt
+   előfizetési esemény. Ha nem, az operátori egyeztetéshez külön, pontosan
+   meghatározott, terhelés nélküli lépés kell. A helyi image-próba igazolta,
+   hogy egy új előfizetés-frissítési esemény a `canceling` státuszt adja,
+   számla, kupon és fejezetjóváírás változása nélkül. Új előfizetés vagy
+   történetgenerálás a javítás ellenőrzéséhez nem kell.
 4. A nyitási terv szerint A8 lezárása, a fennmaradó kilenc hely
    megnyitása, az éles regisztráció és a 24 órás figyelés.
 
