@@ -1,7 +1,7 @@
 ---
 status: active-supporting
 owner: operations
-last_reviewed: 2026-11-01
+last_reviewed: 2026-11-07
 related:
   - NARRATIVE_EVALUATION_HU.md
   - LINUX_OPERATOR_HU.md
@@ -1127,3 +1127,207 @@ A billing éles bekapcsolásához nem volt definiált út (a `server.env` csak a
 **Ellenőrzés (helyi):** 585 Python ops teszt, a CI-ben listázott Node ops tesztek, docs:check és Prettier PASS. A fixture csak a CI-ben fut.
 
 **Határ:** semmi sem lett éles szerveren futtatva; nincs Cloudflare-módosítás, nincs Stripe-kulcs a szerveren, nincs merge Ákos jóváhagyása nélkül. Az éles használathoz telepített Daily-frissítés, új release-inputok és Ákos privát titokfájlja kell.
+
+
+## K-A üzemeltetési helyreállítás PASS — 2026-11-06
+
+A forrás és a futó alkalmazás külön azonosító marad. A serving app **1d312d29f203738c9f9d9a6e5338408c74b82f0b**, immutable image **sha256:2bc94ef68713c96f0fe46f5797e0368740d1da278f2eddb99994d86de3202050**; a telepített Daily/ops **4f2380cb2f05855b2fa9ee7f25f4cde5ecd71845**. Nem történt image-csere. A jelen dokumentáció későbbi commitja nem új deploy- vagy Daily-forrás.
+
+Az engedélyezett `9c07092` Daily-frissítés sikeres volt, de az első backup 18:58:49 CET-kor proxy-config-capture fázisban a generic `0600` readerrel elutasította a saját, szabályos `0400` profilgenerációját. Ez az eredeti FAIL megőrzött. A szűk #181/#182 javítás csak a validált profilgenerációs katalógusra használja a meglévő service readert, generic őr/chmod/archívumformátum-váltás nélkül. Tíz valódi archívumteszt (javítás nélkül ugyanazon hibaveremmel),856 Python-teszt OK / 11 meglévő SKIP, külön teljes diff-review APPROVE / 59 saját teszt, valamint a [saját CI 42267626224](https://github.com/Muzsy/future_flow/actions/runs/42267626224) sikeres. A tulajdonos feltételesen engedélyezte a konkrét `4a9b95d` merge-jét és azonos reviewed tree-vel az új main saját CI-je után a teljes helyreállítást. Merge `4f2380c`, reviewed / merged tree **773932b8c35acc5a228c0c3f2b4b5a43ea9a02fc**, [main CI 42272725638](https://github.com/Muzsy/future_flow/actions/runs/42272725638) mindhárom SUCCESS.
+
+| Művelet | Tényleges eredmény |
+| --- | --- |
+| Daily-frissítés | 4f2380c; meglévő konténerek változatlanok; timerek addig kikapcsolva |
+| Kezdeti mentés/offsite/restore | `20261106T191718Z-2bbf7d72`; 103 tábla, 338 konfigurációs fájl; minden adat/hash egyezik, plaintext és ideiglenes konténerek eltávolítva |
+| Bootstrap | Külön reviewed c82b627 klienssel committed; revision 1, invitation, generation=false, checkout=false, capacity 0/used 0, reconcileRequired=false; Auth-írás 0 / félbehagyott művelet 0 |
+| Végső mentés/offsite/restore | `20261106T192048Z-3957fd98`; 103 tábla, 341 konfigurációs fájl, az új operátori intent/readback/journal is mentve; teljes adategyezés |
+| Megőrzés | A két snapshot 102 táblájának sorszáma és adathash-e azonos; csak `aw_service_policy` 0→1 sor. Mindkét pénzügyi ledger és a történetek megmaradtak. 31 szerveres + 31 helyi archívum, a régi 29 megvan; retenciós törlés 0 |
+| Capability | Régi cleaned/null-container,545 bájtos rekord bájtmegőrző, atomi NOREPLACE áthelyezése két eredeti zár alatt, fsync/bájt/runtime-ellenőrzéssel, törlés 0. Az elkülönítés végrehajtójának külön read-only review-ja APPROVE / 8 hibainjektálási eset PASS |
+| Aktív proof és plan | Aktív runtime `1d312d2` / schema 040, ops `4f2380c`; friss planben pending job 0, live lease 0, foreign session 0; TLS és eldobható authority/encryption preflight PASS; a plan nem állított le szolgáltatást |
+| Natív040 rehearsal |20:29:57CET;103egyező/102 review-zott tábla / 226 FK; független verifier és fresh-live-state equality PASS; eredeti ID/image, foreign state, cleanup PASS; liveDatabaseWrites=false, paidAiCalls=0, serviceActivationAllowed=false |
+| Monitor és timerek | 20:31:47 CET normál monitor `alerts: []`; owner/TLS/queue/personalTransition/registryRestore zöld, edgeClosed=true. 20:33 CET külön végső státusz: mindkét timer enabled/active/Result=success, a service-k utolsó eredménye success |
+
+Az API konténer leállása 183,879 s, a webé 185,585 s, a workeré 166,190 s; az API első rögzített sikeres Docker-healthje 203,821 s múlva volt. Ez konténer/health-mérés, nem böngészős rendelkezésreállási vagy A8-mérés. Mindhárom eredeti ID/image megmaradt, restart 0; API/web healthy, worker running.
+
+Az auditértelmezés megőrizte a történeti alapauditot és korlátait, külön hivatkozta a tényleges #178/#180/#182 delta-review-kat és az aktuális tulajdonosi engedélyt. A régi audit e49ebd… bundle-mezője a `950817d` történeti attesztációjához tartozik; nem lett új forrásnak átcímkézve. Az új `4f2380c` bundle **48aaa10acecdd3524eaf1e16c5196a72153dcc28b62ee6c6439710382acfa391**, 841 fájl, csak számított forrásazonosító, nem új teljes korábbi-main audit. A rehearsal változatlan friss source/CI/plan/runtime/authority/TLS/replay/cleanup kapui ténylegesen lefutottak.
+
+A privát eredeti fájlok, kudarc- és siker-nyugták a `.local/operator-readiness/` alatt megőrzöttek. Lezárás SHA **bb7171cbbc046daad513d3777552dacdb403e0558d915a281bf16d492183416e**; natív proof SHA **945e627037c4af1cae7a16d4a1729a9865b33b5576c5a14afc391e30e957447c**; végső státusz SHA **eb9ad91e028433199ffd9be4fc6bbe340da423f6dd4fcca987ba76b575b94e63**. A titkok, sessionök, személyes résztvevőadatok és történetszövegek nem kerülnek a repóba. Részletes műveleti történet: [#142](https://github.com/Muzsy/future_flow/issues/142), javítás [#182](https://github.com/Muzsy/future_flow/pull/182).
+
+A szolgáltatás továbbra zárt és szüneteltetett, a CAPTCHA/nyílt signup/Access-tágítás/resume nem történt meg. Következő a CAPTCHA ellenőrzése és külön aktiválása, majd az egyhelyes, saját fiókos mért A8; K-B csak annak PASS eredménye után. Nincs új bétaablak, budget-/taster-/kuponreset, fizetősAI vagy nyilvános indulás igazolása.
+
+
+### K-A utáni CAPTCHA-előellenőrzés — 2026-11-06, 20:51 CET
+
+A tulajdonos befejezte a Cloudflare Access belépést a vezérelt próbaböngészőben. A `/lives` admission nélküli, zárt állapota után az alkalmazásból történő kijelentkezéssel a `/login` űrlapot ellenőriztük. A Cloudflare Turnstile „Verify you are human” widget képernyőképen látható; a Sign in gomb a kihívás teljesítése előtt disabled. A CAPTCHA nem lett automatán megoldva. Ez a #161 frontend-widget megjelenési kapuja, nem bizonyíték a Supabase CAPTCHA aktiválására vagy tokenellenőrzésére.
+
+A Supabase-csatlakozó elérhető projektlistájában a production nincs jelen, ezért a megfelelő éles projekt Auth / Bot and Abuse Protection konzolja nyílt meg olvasásra. A konzol külön tulajdonosi belépést kér. A következő ellenőrzés a CAPTCHA provider/enable állapot, email-megerősítés, rate limit és signup readback; aktiválás csak a pontos művelet jóváhagyásával. Nincs Auth-beállítás-módosítás, új admission, resume, hullámnyitás, fizetés vagy AI-hívás. A titok- és személyesadat-mentes privát megfigyelési nyugta: `.local/operator-readiness/login-widget-readiness.json`.
+
+
+### Éles Supabase Auth-readback — 2026-11-06
+
+A tulajdonosi konzolbelépés után közvetlenül az éles future_flow projektben ellenőrzött állapot: CAPTCHA OFF; Email provider ON; Confirm email ON; Allow new users to sign up OFF; anonymous sign-in és manual linking OFF. Rate limitek: 30 email/óra, 150 token-refresh/5 perc/IP, 30 token-verification/5 perc/IP, 30 signup/sign-in/5 perc/IP; az ugyanazon felhasználónak küldött emailek minimum intervalluma 60 s. IP forwarding OFF. Nem történt Supabase-konfiguráció-változtatás.
+
+A frontend-widget megjelenése már igazolt, ezért a következő konkrét kapu a meglévő Turnstile titokkal a Supabase CAPTCHA bekapcsolása, majd valódi belépési ellenőrzés. A signup megnyitása és az A8-hoz szükséges wave/resume külön művelet; nem következik automatikusan a CAPTCHA-ból. A privát, titokmentes readback: `.local/operator-readiness/supabase-auth-readiness.json`.
+
+
+### Éles Turnstile-aktiválás és tartós readback — 2026-11-06
+
+A tulajdonos külön jóváhagyta a meglévő Turnstile-titok kizárólag a production projekt CAPTCHA-beállításában történő használatát. Az operátor előkészítette az Enable Captcha protection / Turnstile by Cloudflare űrlapot; a titokbevitel és Save changes a tulajdonosi átadásban történt. A konzol teljes újratöltése után is a bekapcsolt CAPTCHA, Turnstile provider és disabled Save changes látható. A titok sem kiolvasásra, sem felfedésre, sem a repóba nem került.
+
+A mentett konfiguráció kapuja PASS; a valódi belépési kapu még PENDING. Az éles `/login` frissítése után a widget látható, a belépés a kihívás teljesítése előtt tiltott; a tulajdonos a kihívás teljesítését és saját belépését kapta feladatul. A zárt hullám miatti admission-elutasítás elvárt, nem CAPTCHA-hiba. Ez a lépés nem signup-nyitás, wave/resume vagy A8; fizetés és AI-hívás nem indult. Privát, titokmentes nyugta: `.local/operator-readiness/captcha-activation-readback.json`.
+
+
+### CAPTCHA-s belépés PASS; egyhelyes A8 előkészítve — 2026-11-06
+
+A tulajdonos a mentett Turnstile-védelem mellett teljesítette a widgetet, majd saját fiókjával sikeresen belépett. A friss böngészős megfigyelés hitelesített `/lives` útvonalat, Sign out kontrollt és a zárt hullámnak megfelelő megtelt/admission nélküli oldalt mutatott. A `/billing` olvasó nézetben nincs előfizetés, 0 fizetett fejezet és 1 ingyenes ízelítő elérhető. Nem indult Checkout, generálás vagy új admission. A pozitív CAPTCHA-s belépési részkapu PASS; új Auth-regisztráció/email-megerősítés, password recovery és teljes A8 még nem igazolt.
+
+A reviewed c82b627 klienssel friss `status` készült: SPR generation 1 verified, runningMatchesProfile=true, félbehagyott művelet nincs; policy revision 1, invitation, capacity 0/used 0, generation/checkout false, reconcileRequired=false. A következő csomaghoz nincs új image/Daily deploy: külön jóváhagyott `resume` és readback, majd `wave --capacity 1 --open --approve-added 1` és readback kell. A saját fiók az első admission, utána automatikusan zárt hullám és used=1 szükséges.
+
+**Előkészített, még nem engedélyezett A8-csomag:** legfeljebb két új fejezet, a meglévő 6 USD-s felhasználói plafon fennmaradó részén belül (nem új 6 USD grant és nem reset); egy 9,99 USD bruttó éles Checkout, végleges fizetés és későbbi visszatérítés a tulajdonosnál. Első ingyenes fejezet → második ingyenes kérés elutasítása → Checkout/webhook → fizetett folytatás mentett választással → kilépés/visszatérés/azonos állapot és elszámolás → portál/visszatérítés. Egyértelműen fiktív történetprofil; a meglévő fiók/history megtartandó. A meglévő fiók újbóli regisztrációja nem email-megerősítési teszt: az új Auth-fiókos részpróbához külön saját tesztcím és tulajdonosi közreműködés kell, új admission vagy többletkapacitás nélkül. A CAPTCHA-s password recovery szintén tulajdonosi hitelesítőadat-kezeléssel történik.
+
+A parancsok megerősítése offline, SSH és írás nélkül számítva: resume `service-operation f80fbf2bde1a90db14b66132`; capacity-one wave `service-operation 693aabf5c1123efd24573182`; pause `service-operation affef1d12bd5144949b4d0f4`; close `service-operation 21b5489550f8925a01243f81`. Ezek nem tulajdonosi engedélyek. Minden írás előtt friss source/status/profile kapu kell; hibánál stop és az eredeti bizonyíték megőrzése, nincs vak retry. Access-tágítás, tízes kapacitás és K-B kizárólag később, a teljes A8 PASS után.
+
+A privát bizonyítékok: `.local/operator-readiness/captcha-login-result.json` és `a8-proposal-20261106.json`. A teljes A8 csak minden kötelező részpróba és a friss könyvelési/mentési/monitor eredmény után PASS; a jelen bejegyzés előkészítés, nem éles nyitás vagy költési engedély.
+
+
+### A8 saját fiókos aktiválás és automatikus zárás PASS — 2026-11-07
+
+A tulajdonos jóváhagyta a teljes, fent előkészített saját fiókos csomagot: változatlan reviewed c82b627 kliens, friss readback, resume, egyhelyes wave, legfeljebb két új fejezet és a meglévő felhasználói keret maradékából legfeljebb 6 USD API; egy 9,99 USD-s havi előfizetés próbája, pénzügyi véglegesítések/visszatérítés/lemondás a tulajdonosnál. Új signup, Access-tágítás, keret- vagy időablakreset nincs az engedélyben.
+
+Tényleges sorrend (CET): 00:01:42 friss státusz verified SPR / revision 1 / kapacitás 0; 00:02:11 resume committed, 00:02:21 revision 2 / generation és checkout true; 00:02:38 egyhelyes wave committed, 00:02:48 revision 3 / open / capacity 1 / used 0; tulajdonosi 18+/ÁSZF-elfogadás után 00:04:15 readback revision 4 / invitation / capacity 1 / used 1. Nincs félbehagyott művelet, a futó rendszer azonos a verified profillal, nem történt image/Daily csere. A saját fiók admissionje active, launch_discount_eligible=true. Az automatikus zárás és a régi történet megtartása igazolt.
+
+A fiktív A8-profil az új életet a korábbi történet megtartásával indította; az első ingyenes fejezet gombját egyszer nyomtuk meg 00:06:56 CET-kor. Az olvasó elszámolási ellenőrzés valós, ellenőrzött TLS-sel és READ ONLY repeatable-read tranzakcióval a böngészős branch azonosítót a hozzá tartozó saját life-rekordra oldja fel. A fejezet ízelítő-foglalása reserved; első megfigyeléskor a job fut, még nincs mentett period. A fizikai API-foglalás és a ténylegesen settled költség külön marad. Ez folyamatban lévő mérés, nem kész fejezet vagy A8 PASS; nincs generálási retry.
+
+Az eredeti privát authorization, intent/result/failure fájlok és a teljes SQL-readback a `.local/operator-readiness/a8-own-account-20261106/` alatt vannak; ez a csomagazonosító a november 7-i folytatás során sem lett átnevezve. Az első írásmentes SQL-probe a route-paramétert kezdetben life-idként kereste, majd a committed webkód szerinti branch→life feloldás után sikeres; az eredeti diagnózis is megmaradt. Ez nem éles generálási újrapróba vagy adatírás.
+
+
+### A8 első fejezet, döntés és ingyenes keretkorlát PASS — 2026-11-07
+
+Az egyszer indított fiktív első fejezet elkészült: egy új period, egy completed job, 232167,956 ms szerveres futásidő; az első rögzített böngészős megjelenés a gombnyomás után 249455 ms (polling miatti felső becslés, nem folyamatos render-mérés). Nyolc settled API-task, összesen 0,358642 USD, reserved/unknown 0. A fejezetledgerben az ízelítő pontosan egyszer consumed, előfizetés nincs.
+
+A két kínált döntés közül a műhelyidő lefoglalását választottuk. A UI a mentett választást mutatja; egy választássor és egy accepted decision van, a választás utáni állapothash megegyezik az aktuális branch állapotával. A `Continue this life` egyszeri, még előfizetés nélküli kérése ezt jelzi: „You need an active subscription to create another chapter.” Az előtte/utána készült, egymástól külön READ ONLY/TLS snapshotban változatlan az 1 job, 8 API-task, könyvelt összeg és a period/canon hash. Nincs második generálás, foglalás vagy díj.
+
+A keretelutasítás saját előfizetés/egyenleg linkje a `/billing` oldalra vezetett: 0 fizetett és 0 ízelítő. A Subscribe egyszeri kattintása valódi Stripe Checkoutot nyitott. A megjelenített alapár 14,99 USD, a kedvezményes fizetendő összeg 9,99 USD. A Stripe oldal natív, olvasó order-summary eszköze livemode=true, currency=usd, totalAmount=999, line item=1499 értékeket ad; ez nem webhook vagy sikeres fizetés. Az eredetileg felajánlott HUF-konverzió helyett a jóváhagyott USD lett kiválasztva. A fizetési adatbevitelt, banki jóváhagyást és előfizetés-véglegesítést a tulajdonos kapta meg; ezek még függőben vannak. Kártyaadatot, teljes Checkout-linket, sessiont vagy személyes fizetési adatot nem mentünk a repóba.
+
+Privát mérés/összevetés: `s11-accounting-result.json`, `s12-first-chapter-result.json`, `s13-accounting-result.json`, `s14-free-continuation-rejection.json`, `s15-checkout-preparation.json` az A8-könyvtárban. Az első fejezet és a kerettiltás részkapuja PASS, a fizetett A8-folyamat és a nyilvános indulás még nem.
+
+
+### A8 éles fizetés és webhook PASS; fizetett folytatás fut — 2026-11-07
+
+A tulajdonos a Stripe-on véglegesítette a fizetést, az alkalmazás `/billing?checkout=success` útvonalára visszatért. A UI active előfizetést, 5 fizetett és 0 ingyenes fejezetet mutat. A production READ ONLY snapshot szerint az előfizetés active/discounted, revoked=null, reconcileRequired=false, cancelPending=false; az első cycle grant összege 5 és nem revoked. Valódi `subscription_synced/applied`, egy régebbi `subscription_synced/stale`, majd `invoice_paid/applied` esemény rögzült (00:23:40–41 CET). A stale esemény nem írt felül frissebb állapotot.
+
+Közvetlen, kizárólag GET Stripe-readback a saját előfizetésből feloldott számlára: livemode=true, status=paid, currency=usd, amount_paid=999, total=999, amount_remaining=0. A titkos kulcs a meglévő 0600 privát fájlból csak az api.stripe.com felé ment, a kimenetből csak minimális számla-/előfizetés-mezők maradtak privátan. Kártya, cím, email, teljes számla és titok nem lett kiírva vagy commitolva; pénzügyi módosítást az operátor nem végzett.
+
+A változatlan saját branch az első fejezetet és a mentett „Reserve the summer mornings” döntést mutatta. A `Continue this life` gombot egyszer nyomtuk meg 00:24:52,488 CET-kor. A külön második job fut, a fejezetledgerben egy paid reservation reserved, az első taster változatlanul consumed; a történet előző periodja és választása megmaradt. A következő kapu a második period tartós mentése, az egyetlen paid consume és a költségek rendezése, majd friss session és a portál/refund/cancel. Új generálás vagy automatikus retry nem engedélyezett ezen felül. Privát readback: `s16-accounting-result.json`, `s17-payment-webhook-result.json`, `s19-stripe-provider-readback.json`, `s20-accounting-result.json` az A8-könyvtárban.
+
+
+### A8 fizetett fejezet és friss session PASS; ügyfélportál STOP — #184, 2026-11-07
+
+A második job completed, két period és egy választás tartósan mentve. Fizetett szerveridő 240320,543 ms; első rögzített UI-megjelenés a gombnyomás után 279839 ms (polling-felső becslés). A második fejezet saját API-költsége 0,344974 USD; két fejezet együtt 0,703616 USD, 13 completed API-task, reserved/unknown 0. Pontosan egy taster és egy paid consume, változatlan cycle-1 grant=5; a UI 4 fizetett / 0 ingyenes fejezetet mutat. További új fejezet nincs az engedélyben.
+
+A korábbi period/canon és a mentett választás változatlan; a második period start-state hash-e pontosan a választás state-after hash-e, az aktuális branch a második period end-state hash-ével egyezik. A második szöveg a kiválasztott lefoglalt nyári helyiségidőből folytatódik. Ez a megfigyelt saját út oksági/persistencia eredménye, nem új általános motorminőségi benchmark.
+
+00:30:36 CET kijelentkezés igazolt, majd új CAPTCHA-s saját belépés után az eredeti és az A8-történet is látszik, a két fejezet és a választás visszanyitható, a billing továbbra 4/0. Külön READ ONLY snapshot szerint a life, branch, periodok, choice, jobok, API/fejezet-/USD-ledger, előfizetés, grant, admission és policy megegyezik a kilépés előtti állapottal. Friss normál monitor PASS / alerts=[] / paidAiCalls=0, ops4f2380c; proof SHA `c07254854497468b491d3e1e002f80f228f902ef9fab6c45ea3c1574b6df2bdd`. Privát részkapuk: `s22-paid-chapter-result.json`, `s23-accounting-result.json`, `s24-monitor-result.json`, `s27-fresh-login-preservation.json`.
+
+**STOP:** a `/billing` Manage subscription gomb egyszeri kérése általános hibaüzenettel tért vissza. Nincs automatikus portál-/generálási retry. A Stripe olvasó API-ján az active=true/is_default=true/limit=2 query üres, és a teljes konfigurációs lista limit10 mellett is üres, has_more=false. A serving provider `createPortalSession` őre pontosan egy active/default/live konfigurációt kér: subscription_cancel.enabled=true, mode=at_period_end, retention nélkül; subscription_update.enabled=false. A hiányzó éles konfiguráció miatt ez a kapu nem teljesül. A forrás és az őr változatlan, nincs ellenőrizetlen portal-session vagy beállításmentés. A diagnózisok és a stop: `s25-portal-config-diagnostic.json`, `s26-portal-all-configs-readback.json`, `s28-portal-stop.json`.
+
+[Új operátori blokkoló #184](https://github.com/Muzsy/future_flow/issues/184): a konkrét éles alapértelmezett portálbeállítás előkészítése és külön jóváhagyása, readback, egy új engedélyezett saját portálpróba, majd tulajdonosi visszatérítés és lemondás, tényleges provider/webhook/ledger ellenőrzéssel. A próbaelőfizetés jelenleg aktív, a 9,99 USD még nincs visszatérítve, a megújulás nincs lemondva. A pénzügyi lezárás nem tekinthető késznek. A szükséges Stripe konzolbelépéshez külön próbalap nyílt, egyelőre csak olvasó előkészítésre. Teljes A8 és K-B nincs; signup, Access, kapacitás, runtime/Daily/image vagy budget nem változik ettől a stop utáni vizsgálattól.
+
+
+### #184 első éles portálkonfiguráció — mentetlen előkészítés, 2026-11-07
+
+A tulajdonos a megfelelő Muller Akos ev Stripe-konzolba belépett; a látható éles account megegyezik a Checkout során használt fiókkal. A Customer portal form alapértékei: cancellation enabled / at_period_end, cancellation reason ON, retention-kupon nincs kiválasztva; plan és quantity update OFF; invoice history, payment method update és customer billing information update ON. Új portál-preview OFF, külön nyilvános portal-login link nincs aktiválva. Az API teljes live konfigurációs listája a UI-előkészítés után is üres, tehát nem történt mentés.
+
+Két mentetlen mező kitöltve: Portal header = `Manage your Alterward subscription`; Redirect link = `https://alterward.com/billing`. Konkrét engedélykéréshez előkészített sorrend: első Save changes → tényleges GET readback alapján pontosan egy active/default/live konfiguráció, az összes változatlan alkalmazási guarddal → kizárólag PASS esetén egy új saját Manage subscription kérés → portálon tulajdonosi lemondás és visszatérítés előkészítése/véglegesítése, provider/webhook/ledger ellenőrzéssel. Nincs új fizetés, AI-hívás, rollout, signup vagy Access-tágítás. Hibánál megállás, nincs automatikus mentés- vagy portálretry.
+
+A globális Stripe Public business information felületről örökölt Terms/Privacy linkek itt még nem látszanak beállítva. Ezeket az előkészítés nem módosította; a meglévő alkalmazási /terms és /privacy-notice oldalak változatlanok, a Stripe globális jogi linkjeinek readbackje külön K-B előtti ellenőrzési pont marad. Privát konkrét tervezet: `s29-portal-repair-proposal.json`. Az előfizetés továbbra aktív, refund/cancel nincs kész. Ez az előkészítés nem az engedélyezett javítás végrehajtása, és nem törli a korábbi A8 STOP bizonyítékát.
+
+
+### #184 éles portálmentés és új saját portálpróba PASS — 2026-11-07
+
+Új, konkrét tulajdonosi engedély után 00:44:11,742 CET-kor a Save changes egyszeri kattintása létrehozta az első éles alapértelmezett konfigurációt. A UI Default konfigurációt és disabled Save changes állapotot mutatott. A külön GET readback szerint pontosan egy active/default/live konfiguráció van, has_more=false; cancellation enabled/at_period_end, retention=null, subscription_update=false, public login OFF, a jóváhagyott header/redirect értékekkel. Minden változatlan alkalmazási őr PASS. Nincs kódmódosítás vagy új fizetés.
+
+00:45:04,279 CET-kor az engedélyezett új Manage subscription kérés egyszer indult. A saját Stripe ügyfélportál megnyílt, a helyes 9,99 USD-s aktuális előfizetést és fizetett számlát mutatja, a következő számlázási dátum december 7. A ciklusvégi lemondási oldal szerint a kifizetett hozzáférés december 7-ig megmarad. A lemondás véglegesítése a tulajdonosi átadásban van; utána a provider/webhook/cancel_at_period_end és a változatlan 4/0 fejezetegyenleg ellenőrzése, majd a tulajdonosi teljes refund és következményeinek ellenőrzése kell. A refund/cancel és a teljes A8 még nem PASS.
+
+Az eredeti sikertelen portálkérés nem lett utólag sikernek minősítve; az új engedély és konfiguráció melletti új próba külön bizonyíték. Privát fájlok: `s30-portal-repair-authorization.json`, `s31-portal-config-readback.json`, `s32-portal-retest-intent.json`, `s33-portal-retest-result.json`. Portál-session/link, kártyaadat és személyes számlázási adat nincs a repóban vagy ezekben az összesítésekben. Új AI-hívás, signup, Access vagy éles alkalmazásforrás-váltás nem történt.
+
+
+### A8 lemondási oldalon látható alapár tisztázása — 2026-11-07
+
+A tulajdonos a Stripe lemondási okot kérő felugrójában a kiválasztott előfizetés 14,99 USD/month alapárát látta, ezért a véglegesítéssel megállt. A fő portál 9,99 USD aktuális és következő becsült díjat mutatott. Friss, kizárólag GET Stripe-readback: price.unit_amount=1499 USD-cent; a fizetett számla subtotal=1499, total_discount_amounts összesen500, total=amount_paid=999, amount_remaining=0. A kupon alkalmazása és a 9,99 USD tényleges fizetés igazolt, árat vagy kupont nem módosítottunk. A lemondás nem új díjterhelés; a felugró alapár-megjelenítése nem a fizetett összeg.
+
+A tisztázáskor subscription active / cancel_at_period_end=false, tehát a tulajdonosi lemondási véglegesítés még függőben van; refund sincs kész. Privát igazolás: `s35-price-discount-clarification.json`. A meglévő restricted kulccsal a külön kuponmetaadat-GET 403-at adott; jogosultság nem bővült, az engedélyezett invoice/subscription readback a tényleges ár ellenőrzéséhez elegendő volt. Ez nem új fizetési kísérlet, portálretry vagy módosítás.
+
+
+### #184 lemondási ármegjelenítés — tulajdonosi UX-kapu és mentetlen javítás
+
+A tulajdonos a 14,99 USD-s kiválasztott előfizetést mutató okbekérő felugrót félrevezetőnek minősítette. A közvetlen böngészős újraolvasás ugyanazon az oldalon egyszerre mutatja a 9,99 USD-s tényleges lemondási összegzést és a 14,99 USD-s okbekérő modalt. A korábbi ár-/számla-tisztázás nem oldotta meg ezt az UX-problémát; a lemondási elfogadás emiatt még nem PASS.
+
+A Stripe hivatalos [lemondási dokumentációja](https://docs.stripe.com/customer-management/cancellation-page) szerint az okbekérés opcionális, és a [konfiguráció](https://docs.stripe.com/api/customer_portal/configurations/update) külön cancellation_reason.enabled flaget használ. A változatlan alkalmazási pénzügyi/config őr ezt a flaget nem követeli meg. A meglévő éles konfigurációban az okbekérés továbbra ON; a UI-ban kizárólag a Collect a cancellation reason checkbox OFF állapota lett mentetlenül előkészítve. Lemondás enabled/at_period_end, retention nélkül, subscription_update OFF és minden más eddigi beállítás változatlan. Ár, kupon, előfizetés, ledger vagy kód nem módosult.
+
+Konkrét következő csomag: külön tulajdonosi engedély az egy mentésre, friss GET alapján okbekérés OFF és minden régi őr változatlan PASS; egy új saját portálmunkamenetben tényleges lemondási UI-ellenőrzés. Csak a 9,99 USD-s hatályos díj egyértelmű megjelenése és a félrevezető modal hiánya után folytatható a tulajdonosi véglegesítés/refund. Ha a konfiguráció nem oldja meg a megjelenítést, nincs újrapróbálás vagy ármodell-átírás; a tény és a következő szűk megoldás újraértékelendő. Privát mentetlen tervezet/baseline: `s36-cancellation-price-ux-proposal.json`. Nincs új díjterhelés vagy generálás.
+
+
+### #184 egyértelmű lemondási ár igazolva — 2026-11-07
+
+A külön jóváhagyott mentés 01:00:58 CET-kor kikapcsolta az opcionális okbekérést. A Stripe GET szerint ugyanaz az aktív, alapértelmezett éles konfiguráció maradt, és az okbekérésen kívüli funkciók, a ciklusvégi lemondás, a fejléc és a visszatérési cím egyeztek a mentés előtti adatokkal.
+
+Egy friss saját portálmunkamenetben a lemondási összegzés 9,99 USD/hó díjat és december 7-i ciklusvéget mutatott. A 14,99 USD-s okbekérő felugró eltűnt. A tulajdonos a javított képernyőn kapta meg a véglegesítés lehetőségét. Privát bizonyítékok: s37-reason-disable-authorization.json, s38-reason-disable-readback.json, s39-fresh-cancellation-ui-intent.json és s40-cancellation-ui-result.json.
+
+### #184 ciklusvégi lemondás és az Alterward állapoteltérése
+
+A tulajdonos az Alterwardból újranyitott Stripe ügyfélportálon véglegesítette a lemondást. A Stripe visszaigazolása és API-ja szerint a szolgáltatás 2026. december 7-én lejár. Flexible számlázási módban a `cancel_at` az egyetlen Alterward tétel ciklusvégével egyezik, a `cancel_at_period_end` értéke false. A Stripe dokumentációja mindkét számlázási módot leírja. [Ügyfélportál és webhookok](https://docs.stripe.com/customer-management/integrate-customer-portal#listen-to-webhooks)
+
+Az Alterward feldolgozta az új `subscription_synced` eseményt, de a normalizáló csak a klasszikus mezőt olvasta. A számlázási felület továbbra is aktívnak jelzi az előfizetést, és 4 fizetett, 0 ingyenes fejezetet mutat. A két fejezet, a mentett választás, a foglalások, az API-elszámolás és a grant a lemondás előtti adatokkal egyezik. Bizonyítékok a privát A8 könyvtárban, S41–S43.
+
+A következő kiadási kapu a flexible ciklusvégi jelzés javítása, majd az érintett előfizetés szinkronizálása és az alkalmazásban a ciklusvégi állapot igazolása 4/0 fejezetegyenleg mellett. Az alkalmazott esemény ismételt kézbesítését az eseményazonosító szerinti deduplikáció védi, így önmagában az nem javítja a korábbi állapotot. A már ütemezett lemondás megőrzése mellett külön felülvizsgált szinkronizálási lépés szükséges. A 9,99 USD-s visszatérítés addig függőben marad.
+
+### A8 párhuzamos előkészítés és 040 alkalmazásfrissítés — 2026-11-07
+
+A [#185 javítása](https://github.com/Muzsy/future_flow/pull/185) az előfizetési tétel ciklusvégével egyező flexible `cancel_at` jelzést is feldolgozza. A történeti 039 → 040 átállási próba a megőrzött `1d312d2` forrással és az eredeti 57 forráshash-sel fut. A jelölt alkalmazásfái ettől csak a Stripe-normalizáló fájlban térnek el. Helyben 188 számlázási teszt és 845 üzemeltetési próba sikeres, az utóbbi 11 környezeti kihagyással. A teljes helyi build sikerült.
+
+A futó 040-es kiadás aktív szolgáltatásprofilja az eredeti image-hez és a hozzá tartozó futásidejű fájlokhoz kötött. A következő alkalmazásimage-hez felülvizsgált, azonos sémájú kiadási művelet szükséges. A műveletnek az eredeti successor és SPR bizonyítékokat megőrizve kell az új source/image kötést, az új profilgenerációt és a mentési/visszaállítási levezetést együtt igazolnia. A friss mentés, izolált natív040 visszaállítás, a három szolgáltatás biztonságos átállítása és a zöld monitor a kiadás elfogadási része. Az érintett előfizetés szinkronja a Stripe aktuális lemondási időpontjához és a meglévő fiókhoz kötött, az eredeti webhook újrajátszása duplikátum. [Kiadási függőség #142](https://github.com/Muzsy/future_flow/issues/142)
+
+Az új Auth-fiókos próba előkészítése a számlázási javítástól függetlenül megtörtént. A Supabase email providere és az email-megerősítés aktív, az új regisztráció kapcsolója zárt. A weben az új fiók űrlap elérhető a jelenlegi Cloudflare Access mögött. A kijelölt saját tesztcím külön, privát operátori adat. Külön engedély esetén az új regisztráció legfeljebb ötperces Auth-ablakot kap, a próba beküldése után a kapcsoló visszazár. A betelt hullám megőrzi az egy már elfoglalt helyet. A megerősítő és jelszó-visszaállító email útját a felhasználó a saját postaládájában végzi, majd a friss belépés és az admission nélküli zárt oldal igazolja a próbát. A teljes A8 lezárásához a pénzügyi próba eredménye is szükséges.
+
+A jóváhagyott próba 10:00:02 és 10:01:41 CET között futott. Az Alterward megjelenítette a megerősítő email elküldését, a regisztráció 99 másodperc után visszazárt. A Supabase igazolta az új fiók 10:02-es email-megerősítését és 10:03-as belépését. A szerver az eltérő Cloudflare- és Auth-cím kombinációját elutasította. A jóváhagyott három Cloudflare olvasó között a próbacím nincs jelen. A szolgáltatás állapotának olvasása 1/1 férőhelyet, meghívásos módot és érvényes SPR-t mutatott. A jelszó-visszaállítási kérés sikeres UI-visszajelzést kapott, az új jelszó beállítása és a vele végzett friss belépés külön ellenőrzendő. A betelt hullám pozitív próbájához a két belépési címet egyeztetni kell. Privát bizonyíték S46 és az operátori status.
+
+A visszaállító link megnyitása után a Supabase 10:10-kor új belépést jelzett. A tulajdonos jelezte, hogy a jelszócsere lépése félreérthető. A jelenlegi `/account-access` lapon a levéllel létrejött munkamenet és a jelszómentés a közös fiókkezelő felületen jelenik meg. A jelszócsere elfogadásához a **Password updated** mentési visszajelzés és az új jelszóval végzett friss belépés ellenőrzése szükséges. A felület külön jelszómentési szakaszának fejlesztése helyi ágon készül.
+
+A tulajdonos a próba fiók új jelszavával a **Sign in again** űrlapot frissen beküldte. Az Alterward **Signed in** üzenete igazolta a belépést. A jelszó-visszaállítás és az új jelszóval végzett belépés sikeres. A következő részpróba a betelt hullám ellenőrzése azonos Cloudflare- és Alterward-címmel. A Cloudflare visszaolvasása egy meglévő, három email-címes, újrahasználható szabályt mutatott, a próbacím nélkül. A próba egy külön, csak erre az alkalmazásra csatolt és egyetlen címet engedő ideiglenes szabályt igényel. Utána a szabály leválasztását, a próba munkamenetének lezárását és az 1/1 kapacitást is ellenőrizni kell. Privát bizonyíték S47.
+
+A #185 `70cb734` jelöltjének Verify, Container és image-rehearsal ellenőrzése egyaránt sikeres. Az éles 040 alkalmazásfrissítés és a számlázási próba lezárása a #142 és #184 szerint következik. [CI](https://github.com/Muzsy/future_flow/actions/runs/42357051680)
+
+Az A8 új fiókos ága sikeres. A külön jóváhagyott Cloudflare-próbaszabály a kijelölt címnek adott hozzáférést, 17:04:08 és 17:07:35 CET között. Azonos email-címes Cloudflare- és Alterward-belépés után a felület a **We are full for now, we open later** üzenetet mutatta. A felület szerint nem jött létre admission vagy hozzájárulási rekord. A reviewed kliens továbbra is meghívásos módot, 1/1 kapacitást, 4-es revíziót és érvényes szolgáltatásprofilt igazolt. Az Alterward próba fiókból kijelentkeztünk, a Cloudflare próba tokeneit visszavontuk, az ideiglenes szabályt eltávolítottuk. A visszaolvasás ismét az eredeti három olvasót mutatta. Privát bizonyítékok S47–S49. A pénzügyi ág és az éles nyitás külön kapu.
+
+A #185 `70cb734` teljes diffjét külön, csak olvasó reviewer ellenőrizte, javítandó finding nélkül. A Verify, Container és image-rehearsal CI sikeres. Tulajdonosi engedéllyel a jelölt merge committal `878ec93` főágra került. A főág saját CI-je fut; az éles alkalmazás a korábbi image-en maradt. A következő megvalósítás a natív040 alkalmazásfrissítés és az SPR-hez kötött aktív image igazolásának összehangolása. Az eddigi forrásreview nem helyettesíti az új kiadási út és az érintett előfizetés szinkronjának önálló ellenőrzését.
+
+### A8 lezárás és a K-B nyitás előkészítése — 2026-11-08
+
+A [#186](https://github.com/Muzsy/future_flow/pull/186) utáni `efed82a` három saját főági ellenőrzése sikeres. A hosszabb célgépes próba eredeti bizonylatait és a takarítást külön ellenőrzés fogadta el. Az engedélyezett natív 040 image-váltás mindhárom szolgáltatást átállította a `sha256:0accd99109a3be56facb82f6090895b65ed7dd4036f21dad629a509c6ea31317` image-re és a szolgáltatásprofil második generációjára. Az átállítás utáni offsite mentés, izolált visszaállítás (103 tábla, 102 felülvizsgált tábla, 226 idegen kulcs), monitor és a két timer újraaktiválása sikeres. A friss operátori olvasás szerint a runtime egyezik a profillal, nincs félbehagyott művelet vagy reconcile; a policy 1/1, meghívásos, generálás és Checkout szünetel.
+
+Az engedélyezett saját Stripe-jelölő új szolgáltatói eseményt váltott ki. Az éles Alterward már ciklusvégi lemondást mutatott, az eredeti számla és fejezetjog változatlan maradt. A tulajdonos véglegesítette a teljes 9,99 USD visszatérítését. A Stripe pontosan 999 cent visszatérítést és lezárt előfizetést mutatott; az Alterwardban egy fizetett és egy visszatérített számla, lezárt előfizetés és nulla aktív grant látszott. Az alkalmazásban nincs függő lemondás vagy egyeztetési igény. A külön írásmentes adatbázis-összevetés szerint a történet, az ágak, a két fejezet és a mentett döntés a visszatérítés előtti állapottal egyezik. Új fizetés vagy generálás nem történt. Az S46–S49 új fiókos bizonyítékokkal együtt az A8 sikeres; a félreérthető jelszócsere-felület és a korábbi hibák történeti bizonyítékai megmaradtak.
+
+A K-B külön művelet. A Cloudflare fő alkalmazása jelenleg kizárólag az emailes egyszer használatos kódot engedi és a meglévő három címre korlátoz. Csak az `alterward.com` fő alkalmazásához tartozó új Allow-szabály tágíthatja a belépést; a meglévő újrahasználható szabály, a külön `/account-access` alkalmazás és az érvényes Cloudflare-azonosság ellenőrzése marad. A Supabase-ben a Turnstile, az email-megerősítés és a rate limitek friss visszaolvasása után kapcsolható be a signup. Az operátori kliens a generálást és a Checkoutot `resume`-mal állítja helyre, a `wave --capacity 10 --open --approve-added 9` a már foglalt tulajdonosi hely mellé kilenc újat nyit. Ellenőrizni kell az elutasítást Cloudflare-belépés nélkül és eltérő azonosítóval, az alkalmazás nyitott policyjét és az induláskori külső/privát health állapotot. Hiba esetén a hullám lezárható, a létrehozott Cloudflare-szabály leválasztható, a signup visszakapcsolható zártra, szükség esetén a generálás és Checkout szüneteltethető.
+
+Az adatbázis a tizedik sikeres beengedésnél atomikusan zárja az alkalmazáskaput. A külön Supabase Auth kapcsolót ez nem állítja át: önmagában a tíz férőhelyes kapu nem korlátozza az Auth-fiókok számát. A betelés megfigyelése és a külön signup kapcsoló visszazárása a nyitási üzemeltetés része; a már felvett felhasználók belépése és a rendes szolgáltatás megmarad. A nyitás után az első 24 órában a rendelkezésre állást, kapacitást, számlázást, mentést és költést figyelni kell.
+
+### Az első éles hullám nyitása — 2026-11-08
+
+A külön engedélyezett K-B csomagban a pontos `efed82a` operátori kliens 14:11:54 CET-kor visszakapcsolta a generálást és Checkoutot. A Supabase új fiókok kapcsolója mentve; teljes oldal-újratöltés után a signup és az email-megerősítés ON, az anonim belépés OFF. A korábban ellenőrzött Turnstile és limitek változatlanok. A Cloudflare a fő `alterward.com` Access alkalmazásához kapott külön, emailkódot továbbra is megkövetelő Allow-szabályt. A háromcímes régi szabály és a külön fiók-helyreállítási alkalmazás változatlan.
+
+14:13:20 CET-kor az operátori kliens a hullámnyitást commitolta. A független status-lekérdezésben policy revision 7, mode=open, capacity 10, used 1, generation/checkout ON, verified runtime, nulla félbehagyott művelet és nincs reconcile. Új tesztfiókot nem léptettünk be és nem fogyasztottunk férőhelyet. Az anonim főoldal, belépés és felfedezés a Cloudflare emailkód-kapujára irányít; a böngésző a kódkérést mutatja. A jogi oldalak és a fiók-helyreállítás bejelentkezés nélkül elérhetők, az anonim export 401. Az eltérő Cloudflare- és Auth-identitás elutasítását az A8 igazolta; a változatlan alkalmazáskód és az azonosító-ellenőrzés megmaradt. Az operáció nem indított fizetést vagy fizetős AI-hívást.
+
+Az egyszerre indított operátori status átmeneti próbakonténere mellett az első Daily monitor konténerállapot-változást jelzett. A külön futtatott következő mérés 14:14:40 CET-kor zöld, riasztás nélkül, nyitott 1/10 állapottal és négy igazolt anonim origin-tiltással. A további status és Daily ellenőrzés sorosan fusson. A két saját Contabo timer aktív. A GitHub óránkénti külső workflow-ja aktív, de a korábbi privát mentési projekció már a nyitás előtt jelzett. A jelenlegi közvetlen privát vetületben kilencből nyolc ellenőrzés zöld; a `backupFresh` hamis a régi, külön recovery-életciklus miatt. A recovery capture és a helyi sync utolsó sikere november 4-i; a helyi wrapper két megváltozott fájlpinnél megáll. Az éles Daily backup, az offsite másolat és a natív 040 izolált visszaállítás sikeres. A külön recovery-timer javítása nem történt meg ebben a nyitási csomagban.
+
+A 24 órás figyelés kezdete 2026-11-08 14:13 CET. A kapacitásellenőrzés és a beteléskor szükséges Supabase-zárás külön operátori teendő. A nyitáskor a Cloudflare-kódos képernyő még a korábbi „private beta” megnevezést használta; ez nem korlátozza a belépést a régi három címre.
+
+14:24 CET-kor a fő Cloudflare Access alkalmazás megjelenített neve **Alterward** lett. A friss éles belépőoldal „Log in to Alterward” címet és emailes kódkérést mutat. A mentés előtti és utáni API-visszaolvasásban az alkalmazás többi beállítása, a belépési mód és a két hozzáférési szabály megegyezett. A külső elérési próba sikeres.
+
+### Discover javítás élesítése — 2026-11-08
+
+A [#187](https://github.com/Muzsy/future_flow/pull/187) teljes `e15607c` változatát független reviewer jóváhagyta. A jelölt és a vele fára azonos `283e53e` merge commit három CI-ellenőrzése sikeres. A célgépen megépült a `sha256:a3a699f57e3f24dc043007b1a189b87ae9d31308d80c81dcebdffcc130591d05` image. Az izolált próba mind az öt eredeti bizonylatát és a takarítást a kiadási eszköz ellenőrizte.
+
+A váltás előtt friss mentés, offsite másolat és izolált natív 040 visszaállítás készült. A régi, takarított capability-rekord elkülönítve megmaradt. Az első olvasó fence plan megállt a végső ellenőrzésnél. Az üres sor és a futó szolgáltatás ellenőrzése után az új plan és a visszaállítás sikeres volt. A `988744e6…` terv a három szolgáltatást cserélte, a profil harmadik generációjára. Az új image mentése és offsite másolata sikeres. Az első visszaállítási hiba után a tiszta állapotot ellenőriztük, majd az ismételt izolált restore és a natív 040 próba egyezést igazolt (103 tábla, 102 felülvizsgált tábla, 226 idegen kulcs).
+
+A monitor zöld, a két Contabo timer aktív. Az üzemeltető visszaállította a generálást, a Checkoutot és a nyitott hullámot. A 10 férőhelyből 1 foglalt, nincs félbehagyott művelet. Az éles böngészőben 12 + 4 hivatalos történet jelent meg és a *The Price of a Next Step* három fejezete betöltött. A külső elérési próba sikeres. A műveletben fizetős AI-hívás és éles adatbázis-visszatöltés nem történt.
