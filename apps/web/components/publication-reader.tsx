@@ -1,4 +1,5 @@
 'use client';
+import { readPublishedLife } from '../lib/client';
 import { useEffect, useState, useRef } from 'react';
 import {
   publicationReaderSchema,
@@ -19,9 +20,6 @@ export function PublicationReader({ slug }: { slug?: string }) {
   useEffect(() => {
     let controller: AbortController | null = null,
       stopped = false;
-    const base = (
-      process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
-    ).replace(/\/v[12]\/?$/, '/public');
     async function read(clear = false) {
       controller?.abort();
       const abort = new AbortController();
@@ -34,14 +32,10 @@ export function PublicationReader({ slug }: { slug?: string }) {
         return;
       }
       try {
-        const response = await fetch(
-          `${base}/${slug ? `lives/${encodeURIComponent(slug)}` : 'unlisted'}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            cache: 'no-store',
-            referrerPolicy: 'no-referrer',
-            signal: abort.signal,
-          },
+        const response = await readPublishedLife(
+          slug ? `/lives/${encodeURIComponent(slug)}` : '/unlisted',
+          abort.signal,
+          token ?? undefined,
         );
         if (!response.ok) throw Error('Unavailable');
         const next = publicationReaderSchema.parse(await response.json());

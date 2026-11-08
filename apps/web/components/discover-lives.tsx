@@ -1,4 +1,5 @@
 'use client';
+import { readPublishedLife } from '../lib/client';
 import { useEffect, useState } from 'react';
 import {
   discoveryPageSchema,
@@ -27,9 +28,6 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
       );
       return;
     }
-    const base = (
-      process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
-    ).replace(/\/v[12]\/?$/, '/public');
     async function read(clear = false) {
       controller?.abort();
       const abort = new AbortController();
@@ -39,15 +37,9 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
         setNotice('Loading lives…');
       }
       try {
-        const response = await fetch(
-          `${base}/discovery${search ? '?' + search : ''}`,
-          {
-            cache: 'no-store',
-            credentials: 'same-origin',
-            referrerPolicy: 'no-referrer',
-            headers: { 'Accept-Language': 'en' },
-            signal: abort.signal,
-          },
+        const response = await readPublishedLife(
+          `/discovery${search ? '?' + search : ''}`,
+          abort.signal,
         );
         if (!response.ok) {
           if (response.status === 404) {
