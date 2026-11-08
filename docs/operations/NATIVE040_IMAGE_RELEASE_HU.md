@@ -95,3 +95,13 @@ visszanyitása az eredeti teljes kapacitással, nulla hozzáadott hellyel
 történhet, ha a váltás előtt nyitva volt és a visszaolvasáskor van szabad
 hely. Az éles próba egy meglévő fiókkal ellenőrzi a Discover listát és egy
 hivatalos történet megnyitását.
+
+## A Web UI javítások kiadása
+
+A [#188](https://github.com/Muzsy/future_flow/pull/188) a webes felület 14 fájlját
+változtatja meg (favicon, dinamikus bejelentkezési fejlécállapot és a történetoldali
+gombelrendezés). Az image-váltó ezeket kizárólag a futó `283e53e` forrás közvetlen
+kiadási utódjaként, a 14 fájl teljes listájának és SHA-256 lenyomatának egyezésekor
+fogadja el. A korábbi Discover- és Stripe-váltások engedélye a saját korábbi
+forrásához kötött. A 039 → 040 migráció történeti próbája az eredeti migrációt
+és az első natív 040 image-et a megőrzött commitokból ellenőrzi.

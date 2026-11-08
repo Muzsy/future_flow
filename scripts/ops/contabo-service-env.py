@@ -69,6 +69,36 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/lib/client.ts':
             '68f1447fcd795d2ca0a28c4fb7394d1294c46ae1f423b2543a263e0273ae2d74',
     },
+    '283e53ee673d78e4c5cef88a0e9cad876472c0a1': {
+        'apps/web/app/globals.css':
+            'f16b341d3b30bd9509f56a674cbd5236c6f7be56bc764d985f877cd30a7e2d99',
+        'apps/web/app/icon.svg':
+            '73a3687da2b52b7a311394f14b430d8fd5dd105b07c9a09ba7ac994651ce61f4',
+        'apps/web/app/layout.tsx':
+            'c7bb55b632d9386cc9b48604a9d167cdde5fac47dc65ad41ac332224c658e757',
+        'apps/web/components/curated-lives.tsx':
+            '0945f66461e93e678539436fe1b09fdfadcfdab59e33206cf5042a9ced8b7857',
+        'apps/web/components/discover-lives.tsx':
+            '5a9a7cc26f4b873a109a9f63ff61a0eabdc3f0d1d5ee00930535b2847858ff9f',
+        'apps/web/components/discover-scenarios.tsx':
+            '374f11f4ce126888965a453372bf1bc2a3737355a0b9f946ed5902b3a150d567',
+        'apps/web/components/life-deletion-control.tsx':
+            'd177517da1cb5cf5df5e2fcbdbe4a0b1144395e0e42631d98636bb66633936eb',
+        'apps/web/components/life-experience.tsx':
+            'a84e6fbf77755499255031f8754f6d6afc87c39f14b2100ccf022628bec1299d',
+        'apps/web/components/official-publication-reader.tsx':
+            'a317dbcd9a07bc534556185b10debf04f21544c2a344e4e20a44d849145d9e90',
+        'apps/web/components/owned-publications.tsx':
+            'bbed4c37f4dc4815d76b7244a759944df1bc92dd55a2c125c916ee8a5bc0cc58',
+        'apps/web/components/publication-reader.tsx':
+            '3bfae7b708d9b80d5bf928b29b38040fac407d7981f457bbf2c445edc918d470',
+        'apps/web/components/saved-lives.tsx':
+            '71881dd4ea8f11a715a0e8a2a2669d4d96100a5c469dd082c1f175fad452bcfd',
+        'apps/web/components/site-header.tsx':
+            '1cebfea63d42edd98d7a636470f59b92bd30505c6e23103cf00e72e7d04a2670',
+        'apps/web/public/icon.svg':
+            '73a3687da2b52b7a311394f14b430d8fd5dd105b07c9a09ba7ac994651ce61f4',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

@@ -1005,6 +1005,35 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+    def test_ui_release_accepts_only_the_pinned_product_files(self):
+        previous = '283e53ee673d78e4c5cef88a0e9cad876472c0a1'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/web/app/globals.css',
+            'apps/web/app/icon.svg',
+            'apps/web/app/layout.tsx',
+            'apps/web/components/curated-lives.tsx',
+            'apps/web/components/discover-lives.tsx',
+            'apps/web/components/discover-scenarios.tsx',
+            'apps/web/components/life-deletion-control.tsx',
+            'apps/web/components/life-experience.tsx',
+            'apps/web/components/official-publication-reader.tsx',
+            'apps/web/components/owned-publications.tsx',
+            'apps/web/components/publication-reader.tsx',
+            'apps/web/components/saved-lives.tsx',
+            'apps/web/components/site-header.tsx',
+            'apps/web/public/icon.svg',
+        ])
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'packages/core/src/extra.ts\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes('a' * 40, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
