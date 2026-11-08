@@ -177,7 +177,7 @@ export function fundedSourceBundle(paths, read) {
         p === 'Dockerfile' ||
         p === '.dockerignore' ||
         p === 'deploy/server.env.example' ||
-        /\.(?:ts|tsx|mts|mjs|cjs|py|json|yaml|sql|sh|css)$/.test(p),
+        /\.(?:ts|tsx|mts|mjs|cjs|py|json|yaml|sql|sh|css|svg)$/.test(p),
     )
     .sort();
   const sourceHashes = Object.fromEntries(

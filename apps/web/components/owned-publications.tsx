@@ -9,6 +9,7 @@ import { OfficialPublicationControls } from './official-publication-controls';
 import { lifeApi } from '../lib/client';
 import { verifiedOwnedPublication, publicationError } from '../lib/publication';
 import { PublicationControls } from './publication-controls';
+import { SiteHeader } from './site-header';
 export function OwnedPublications() {
   const [views, setViews] = useState<PublicationOwnerView[]>([]),
     [officialViews, setOfficialViews] = useState<
@@ -56,12 +57,7 @@ export function OwnedPublications() {
   }, []);
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <a href="/lives">My lives</a>
-      </header>
+      <SiteHeader />
       <main className="publication-page">
         <h1>My published copies</h1>
         <p>

@@ -390,5 +390,20 @@ if __name__ == '__main__':
     try:
         main()
     except Exception:
+        import traceback
+        tb_str = traceback.format_exc()
+        traceback.print_exc()
+        print('::error::' + tb_str.replace('\n', '%0A'), file=sys.stderr)
+        try:
+            for i, arg in enumerate(sys.argv):
+                if arg == '--output-directory' and i + 1 < len(sys.argv):
+                    fail_file = Path(sys.argv[i + 1]) / 'image-rehearsal-failure.json'
+                    if fail_file.exists():
+                        report = fail_file.read_text()
+                        print('--- REHEARSAL FAILURE REPORT ---', file=sys.stderr)
+                        print(report, file=sys.stderr)
+                        print('::error::' + report.replace('\n', '%0A'), file=sys.stderr)
+        except Exception:
+            pass
         print('Isolated image rehearsal failed; no release authorization.', file=sys.stderr)
         sys.exit(1)

@@ -1006,25 +1006,27 @@ export function LifeExperience({
           </div>
           <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
         </div>
-        <button className="secondary" onClick={() => router.push('/lives')}>
-          {m.lives}
-        </button>
-        {detail.periods.length > 0 &&
-          b.status !== 'generating' &&
-          b.status !== 'failed' && (
-            <Link className="secondary" href={`/preview/${b.id}`}>
-              Prepare a story copy
-            </Link>
-          )}
+        <div className="page-head-actions">
+          <button className="secondary" onClick={() => router.push('/lives')}>
+            {m.lives}
+          </button>
+          {detail.periods.length > 0 &&
+            b.status !== 'generating' &&
+            b.status !== 'failed' && (
+              <Link className="secondary" href={`/preview/${b.id}`}>
+                Prepare a story copy
+              </Link>
+            )}
+          <LifeDeletionControl
+            lifeId={b.life_id}
+            branchId={b.id}
+            revision={b.revision}
+            branchCount={detail.branches.length}
+            disabled={busy}
+            onDeleted={() => router.push('/lives')}
+          />
+        </div>
       </div>
-      <LifeDeletionControl
-        lifeId={b.life_id}
-        branchId={b.id}
-        revision={b.revision}
-        branchCount={detail.branches.length}
-        disabled={busy}
-        onDeleted={() => router.push('/lives')}
-      />
       {user && (
         <PersonalScenarioOrigin
           key={user + b.life_id}
@@ -1059,30 +1061,34 @@ export function LifeExperience({
           </ul>
         </aside>
       )}
-      <div className="tabs">
-        <button
-          className={tab === 'story' ? 'active' : ''}
-          onClick={() => setTab('story')}
-        >
-          {m.story}
-        </button>
-        <button
-          className={tab === 'timeline' ? 'active' : ''}
-          onClick={() => setTab('timeline')}
-        >
-          {m.timeline}
-        </button>
-      </div>
-      <div className="chips">
-        {detail.branches.map((branch) => (
+      <div className="story-nav-row">
+        <div className="tabs">
           <button
-            key={branch.id}
-            className={`chip ${branch.id === b.id ? 'selected' : ''}`}
-            onClick={() => router.push(`/life/${branch.id}`)}
+            className={tab === 'story' ? 'active' : ''}
+            onClick={() => setTab('story')}
           >
-            {branch.name}
+            {m.story}
           </button>
-        ))}
+          <button
+            className={tab === 'timeline' ? 'active' : ''}
+            onClick={() => setTab('timeline')}
+          >
+            {m.timeline}
+          </button>
+        </div>
+        {detail.branches.length > 1 && (
+          <div className="chips" aria-label="Life branches">
+            {detail.branches.map((branch) => (
+              <button
+                key={branch.id}
+                className={`chip ${branch.id === b.id ? 'selected' : ''}`}
+                onClick={() => router.push(`/life/${branch.id}`)}
+              >
+                {branch.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {b.status === 'generating' && (
         <div className="panel" role="status">

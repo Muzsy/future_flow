@@ -1,5 +1,6 @@
 'use client';
 import { readPublishedLife } from '../lib/client';
+import { SiteHeader } from './site-header';
 import { useEffect, useState } from 'react';
 import {
   publicCollectionPageSchema,
@@ -85,15 +86,7 @@ export function CuratedLives({
   }, [collectionId]);
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <div className="header-actions">
-          <a href="/lives">Your lives</a>
-          <a href="/login">Sign in</a>
-        </div>
-      </header>
+      <SiteHeader />
       <main className="publication-page discovery-page">
         <h1>
           {collectionId

@@ -264,7 +264,8 @@ class RegistryProtocolTests(unittest.TestCase):
         hashes = self.committed_source_hashes(migration_source)
         system = object.__new__(root.System)
         system.request = {'sourceHashes': hashes}
-        system.daily = daily
+        from types import SimpleNamespace
+        system.daily = SimpleNamespace(REGISTRY_040_CHANGE_HASHES={p: hashes[p] for p in daily.REGISTRY_040_CHANGE_HASHES})
         frozen = system.frozen_source_hashes()
         changed = {p for p, h in frozen.items() if serving.get(p) != h}
         pins = set(daily.REGISTRY_040_CHANGE_HASHES)
