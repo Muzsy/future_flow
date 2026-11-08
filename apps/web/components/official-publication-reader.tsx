@@ -1,5 +1,6 @@
 'use client';
 import { readPublishedLife } from '../lib/client';
+import { SiteHeader } from './site-header';
 import { useEffect, useState, useRef } from 'react';
 import {
   officialPublicationReaderSchema,
@@ -89,15 +90,7 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
   }, [slug]);
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <div className="header-actions">
-          <a href="/discover">Discover lives</a>
-          <a href="/login">Sign in</a>
-        </div>
-      </header>
+      <SiteHeader />
       <main className="publication-page">
         {slug && (
           <PublicReadingProgress

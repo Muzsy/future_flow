@@ -397,6 +397,29 @@ header {
   margin-bottom: 32px;
   gap: 20px;
 }
+.page-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.page-head-actions a.secondary {
+  text-decoration: none;
+}
+.page-head-actions .life-deletion-control {
+  display: inline-flex;
+}
+.page-head-actions .life-deletion-control.open {
+  display: block;
+  flex-basis: 100%;
+  width: 100%;
+}
+.page-head-actions .life-deletion-control.open .notice {
+  text-align: left;
+  margin-top: 12px;
+  width: 100%;
+}
 .page-head h1 {
   font-size: 34px;
   letter-spacing: -1.4px;
@@ -595,6 +618,20 @@ header {
   display: inline-block;
   padding: 6px 9px;
   border-radius: 7px;
+}
+.story-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.story-nav-row .tabs {
+  margin-bottom: 0;
+}
+.story-nav-row .chips {
+  margin-bottom: 0;
 }
 .tabs {
   display: flex;
@@ -908,6 +945,10 @@ footer {
   .page-head {
     align-items: start;
     flex-direction: column;
+  }
+  .page-head-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
 @media (max-width: 550px) {

@@ -1,5 +1,6 @@
 'use client';
 import { readPublishedLife } from '../lib/client';
+import { SiteHeader } from './site-header';
 import { useEffect, useState } from 'react';
 import {
   discoveryPageSchema,
@@ -100,15 +101,7 @@ export function DiscoverLives({ query }: { query: DiscoveryQuery | null }) {
   }, [search, query]);
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <nav className="nav" aria-label="Main navigation">
-          <a href="/lives">Your lives</a>
-          <a href="/login">Sign in</a>
-        </nav>
-      </header>
+      <SiteHeader current="discover" />
       <main className="publication-page discovery-page">
         <div>
           <span className="eyebrow">A choice. Another direction.</span>

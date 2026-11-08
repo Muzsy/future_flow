@@ -11,6 +11,7 @@ import {
   lifeApi,
   clientErrorMessage,
 } from '../lib/client';
+import { SiteHeader } from './site-header';
 import { discoveryLifeLink } from '../lib/discovery';
 export function SavedLives({ page }: { page: number | null }) {
   const [user, setUser] = useState<string | null>(null),
@@ -118,15 +119,7 @@ export function SavedLives({ page }: { page: number | null }) {
   }
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <div className="header-actions">
-          <a href="/discover">Discover lives</a>
-          <a href="/login">Sign in</a>
-        </div>
-      </header>
+      <SiteHeader current="saved" />
       <main className="publication-page">
         <h1>Saved lives</h1>
         <p>
