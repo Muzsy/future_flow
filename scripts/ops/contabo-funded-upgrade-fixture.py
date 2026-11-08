@@ -21,5 +21,7 @@ if __name__ == '__main__':
         print(json.dumps(main()))
     except Exception:
         import traceback
+        tb_str = traceback.format_exc()
         traceback.print_exc()
+        print('::error::' + tb_str.replace('\n', '%0A'), file=sys.stderr)
         raise

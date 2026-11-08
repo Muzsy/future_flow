@@ -377,6 +377,15 @@ try {
       console.error('funded-upgrade-fixture stderr:', error.stderr.toString());
     if (error.stdout)
       console.error('funded-upgrade-fixture stdout:', error.stdout.toString());
+    const fullErr = [
+      error.message,
+      error.stderr ? error.stderr.toString() : '',
+      error.stdout ? error.stdout.toString() : '',
+      error.stack || '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    console.error('::error::' + fullErr.replaceAll('\n', '%0A'));
     throw error;
   }
   console.log(
