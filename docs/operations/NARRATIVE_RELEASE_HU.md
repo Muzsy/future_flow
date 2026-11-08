@@ -1323,3 +1323,11 @@ Az egyszerre indított operátori status átmeneti próbakonténere mellett az e
 A 24 órás figyelés kezdete 2026-11-08 14:13 CET. A kapacitásellenőrzés és a beteléskor szükséges Supabase-zárás külön operátori teendő. A nyitáskor a Cloudflare-kódos képernyő még a korábbi „private beta” megnevezést használta; ez nem korlátozza a belépést a régi három címre.
 
 14:24 CET-kor a fő Cloudflare Access alkalmazás megjelenített neve **Alterward** lett. A friss éles belépőoldal „Log in to Alterward” címet és emailes kódkérést mutat. A mentés előtti és utáni API-visszaolvasásban az alkalmazás többi beállítása, a belépési mód és a két hozzáférési szabály megegyezett. A külső elérési próba sikeres.
+
+### Discover javítás élesítése — 2026-11-08
+
+A [#187](https://github.com/Muzsy/future_flow/pull/187) teljes `e15607c` változatát független reviewer jóváhagyta. A jelölt és a vele fára azonos `283e53e` merge commit három CI-ellenőrzése sikeres. A célgépen megépült a `sha256:a3a699f57e3f24dc043007b1a189b87ae9d31308d80c81dcebdffcc130591d05` image. Az izolált próba mind az öt eredeti bizonylatát és a takarítást a kiadási eszköz ellenőrizte.
+
+A váltás előtt friss mentés, offsite másolat és izolált natív 040 visszaállítás készült. A régi, takarított capability-rekord elkülönítve megmaradt. Az első olvasó fence plan megállt a végső ellenőrzésnél. Az üres sor és a futó szolgáltatás ellenőrzése után az új plan és a visszaállítás sikeres volt. A `988744e6…` terv a három szolgáltatást cserélte, a profil harmadik generációjára. Az új image mentése és offsite másolata sikeres. Az első visszaállítási hiba után a tiszta állapotot ellenőriztük, majd az ismételt izolált restore és a natív 040 próba egyezést igazolt (103 tábla, 102 felülvizsgált tábla, 226 idegen kulcs).
+
+A monitor zöld, a két Contabo timer aktív. Az üzemeltető visszaállította a generálást, a Checkoutot és a nyitott hullámot. A 10 férőhelyből 1 foglalt, nincs félbehagyott művelet. Az éles böngészőben 12 + 4 hivatalos történet jelent meg és a *The Price of a Next Step* három fejezete betöltött. A külső elérési próba sikeres. A műveletben fizetős AI-hívás és éles adatbázis-visszatöltés nem történt.
