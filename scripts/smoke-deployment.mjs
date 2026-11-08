@@ -346,30 +346,39 @@ try {
     privacy: privacyRestore,
   };
   const fundedStartedAt = performance.now();
-  const fundedProof = JSON.parse(
-    execFileSync(
-      'sudo',
-      [
-        '-n',
-        'env',
-        'CI=true',
-        'GITHUB_ACTIONS=true',
-        'PYTHONDONTWRITEBYTECODE=1',
-        'python3',
-        '-B',
-        'scripts/ops/contabo-funded-upgrade-fixture.py',
-      ],
-      {
-        cwd: root,
-        input: JSON.stringify(fundedContext),
-        encoding: 'utf8',
-        // Physical backup/restore and successor waits share this CI-only budget.
-        // Individual operation deadlines and every acceptance check stay intact.
-        timeout: 40 * 60 * 1000,
-        maxBuffer: 8 * 1024 * 1024,
-      },
-    ),
-  );
+  let fundedProof;
+  try {
+    fundedProof = JSON.parse(
+      execFileSync(
+        'sudo',
+        [
+          '-n',
+          'env',
+          'CI=true',
+          'GITHUB_ACTIONS=true',
+          'PYTHONDONTWRITEBYTECODE=1',
+          'python3',
+          '-B',
+          'scripts/ops/contabo-funded-upgrade-fixture.py',
+        ],
+        {
+          cwd: root,
+          input: JSON.stringify(fundedContext),
+          encoding: 'utf8',
+          // Physical backup/restore and successor waits share this CI-only budget.
+          // Individual operation deadlines and every acceptance check stay intact.
+          timeout: 40 * 60 * 1000,
+          maxBuffer: 8 * 1024 * 1024,
+        },
+      ),
+    );
+  } catch (error) {
+    if (error.stderr)
+      console.error('funded-upgrade-fixture stderr:', error.stderr.toString());
+    if (error.stdout)
+      console.error('funded-upgrade-fixture stdout:', error.stdout.toString());
+    throw error;
+  }
   console.log(
     JSON.stringify({
       fundedFixtureElapsedMs: Math.round(performance.now() - fundedStartedAt),

@@ -17,4 +17,9 @@ def main():
 
 
 if __name__ == '__main__':
-    print(json.dumps(main()))
+    try:
+        print(json.dumps(main()))
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
