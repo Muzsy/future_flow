@@ -979,6 +979,28 @@ class ServiceEnvTests(unittest.TestCase):
 
 
 
+class ReviewedImageChangesTests(unittest.TestCase):
+    def test_discover_release_accepts_only_the_pinned_product_files(self):
+        previous = 'efed82ab65f1dfd163c9b28f5da7ad4f99091636'
+        checkout = directory.parents[1]
+        paths = [
+            'apps/web/components/curated-lives.tsx',
+            'apps/web/components/discover-lives.tsx',
+            'apps/web/components/official-publication-reader.tsx',
+            'apps/web/components/publication-reader.tsx',
+            'apps/web/lib/client.ts',
+        ]
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'packages/core/src/extra.ts\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes('a' * 40, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"

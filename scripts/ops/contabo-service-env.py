@@ -51,10 +51,25 @@ PLAN_VERSION = 'alterward-service-env-plan-1'
 IMAGE_REQUEST_VERSION = 'alterward-service-image-request-1'
 IMAGE_PLAN_VERSION = 'alterward-service-image-plan-1'
 COMMIT = re.compile(r'[a-f0-9]{40}')
-# This first image release has one reviewed product change (#185). A future
-# broader release needs its own explicit compatibility rules.
-IMAGE_DELTA_PATH = 'packages/core/src/billing-stripe.ts'
-IMAGE_DELTA_SHA256 = 'e0b44f075357e86226f0b1bd671b8fc4b4ada074ea84b364bda3b75137a39b7a'
+# Each native040 release authorizes an exact predecessor and product delta.
+REVIEWED_IMAGE_CHANGES = {
+    '1d312d29f203738c9f9d9a6e5338408c74b82f0b': {
+        'packages/core/src/billing-stripe.ts':
+            'e0b44f075357e86226f0b1bd671b8fc4b4ada074ea84b364bda3b75137a39b7a',
+    },
+    'efed82ab65f1dfd163c9b28f5da7ad4f99091636': {
+        'apps/web/components/curated-lives.tsx':
+            'b3e938ab13ecf9b7689b5aab9883bffe410a43706c82c075f40528882f81f126',
+        'apps/web/components/discover-lives.tsx':
+            '309774a68051b459bd97677a0f64deae7b9f3ba13f92633725620a9dd86e2939',
+        'apps/web/components/official-publication-reader.tsx':
+            'add312c2dd264746b183930d351769f37ff98305d87ff423d75e20b43ce07bba',
+        'apps/web/components/publication-reader.tsx':
+            'a63e0242891496c1918682b5c5a56121f9bedc4615468c47a18347a8397ef161',
+        'apps/web/lib/client.ts':
+            '68f1447fcd795d2ca0a28c4fb7394d1294c46ae1f423b2543a263e0273ae2d74',
+    },
+}
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
 JOURNAL_VERSION = 'alterward-service-env-journal-1'
@@ -929,6 +944,14 @@ def ops_root(owner_dir):
     return Path(owner_dir).parent
 
 
+def require_reviewed_image_changes(previous_commit, delta, source_hashes):
+    expected = REVIEWED_IMAGE_CHANGES.get(previous_commit)
+    if expected is None or delta != b''.join(path.encode() + b'\0' for path in sorted(expected)):
+        raise Refusal('Product files differ from the reviewed image transition')
+    if any(source_hashes.get(path) != digest for path, digest in expected.items()):
+        raise Refusal('Product file bytes differ from the reviewed image transition')
+
+
 class HostRuntime:
     """Docker/compose adapter. Unverified on the target until the E2/E3 rehearsal."""
 
@@ -1036,12 +1059,10 @@ class HostRuntime:
         rehearsal.run(git + ['merge-base', '--is-ancestor', previous_commit, build['commit']])
         delta = rehearsal.run(git + ['diff', '--no-renames', '--name-only', '-z', previous_commit,
                                     build['commit'], '--', *IMAGE_SCOPE])
-        if delta != IMAGE_DELTA_PATH.encode() + b'\0':
-            raise Refusal('Only the reviewed Stripe cancellation correction may change')
         binding = rehearsal.source_binding()
-        if (binding['sourceCommit'] != build['commit']
-                or binding['sourceHashes'].get(IMAGE_DELTA_PATH) != IMAGE_DELTA_SHA256):
-            raise Refusal('The cancellation correction differs from the reviewed bytes')
+        if binding['sourceCommit'] != build['commit']:
+            raise Refusal('Release source binding does not match the build commit')
+        require_reviewed_image_changes(previous_commit, delta, binding['sourceHashes'])
         identity = json.loads(self.runner(['docker', 'image', 'inspect', build['imageTag']]))
         if len(identity) != 1:
             raise Refusal('Exact cached release image required')

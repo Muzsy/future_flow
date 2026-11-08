@@ -1,4 +1,5 @@
 'use client';
+import { readPublishedLife } from '../lib/client';
 import { useEffect, useState } from 'react';
 import {
   publicCollectionPageSchema,
@@ -23,23 +24,15 @@ export function CuratedLives({
     }
     let stopped = false,
       controller: AbortController | null = null;
-    const base = (
-      process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
-    ).replace(/\/v[12]\/?$/, '/public');
     async function read(clear = false) {
       controller?.abort();
       const abort = new AbortController();
       controller = abort;
       if (clear) setView(null);
       try {
-        const response = await fetch(
-          base + '/collections/' + encodeURIComponent(collectionId!),
-          {
-            credentials: 'same-origin',
-            cache: 'no-store',
-            referrerPolicy: 'no-referrer',
-            signal: abort.signal,
-          },
+        const response = await readPublishedLife(
+          `/collections/${encodeURIComponent(collectionId!)}`,
+          abort.signal,
         );
         if (!response.ok) {
           if (response.status === 404) {

@@ -476,6 +476,8 @@ Fő UI-elemek:
 
 # 11. Discovery oldal
 
+A beengedést ellenőrző éles szolgáltatásban a Discover, a kurált gyűjtemények és a katalógusból megnyitott olvasók a bejelentkezett Alterward-fiók munkamenetét küldik az API-nak. A szerver a meglévő Cloudflare-azonosítást és beengedést ellenőrzi. A titkos megosztási link a saját linkazonosítóját küldi.
+
 A Discovery ne klasszikus végtelen social feed legyen.
 
 Ajánlott modell:
