@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-11-07
+last_reviewed: 2026-11-08
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -14,6 +14,14 @@ related:
 Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operatív eredményt külön kezeli. A dokumentációfrissítés nem production deployment és nem friss élő health-ellenőrzés.
 
 ## Kiadási és bétaállapot
+
+**Éles állapot — 2026-11-08: natív 040, A8 PASS, a nyilvános hullám még zárt.** A Contabón a [#186](https://github.com/Muzsy/future_flow/pull/186) utáni `efed82a` fut mindhárom alkalmazásszolgáltatásban; a saját [főági CI](https://github.com/Muzsy/future_flow/actions/runs/42417770133), a célgépes próba, az átállítás utáni offsite mentés és izolált natív 040 visszaállítás sikeres. A monitor riasztás nélkül zárt és mindkét saját timer aktív. A legutóbbi operátori visszaolvasásban a futás egyezik az éles profillal, félbehagyott művelet nincs, a kapacitás 1/1, a generálás és a Checkout a karbantartás óta szünetel.
+
+**A8 lezárva.** Az új fiók email-megerősítése, jelszó-visszaállítása és új jelszavas belépése sikeres. Egyező Cloudflare- és Alterward-azonosítással a megtelt hullám nem vett fel új tagot. Az alkalmazás a javítás után helyesen jelezte a ciklusvégi lemondást. A tulajdonos által jóváhagyott és véglegesített teljes 9,99 USD-s visszatérítést a Stripe és az Alterward is könyvelte. Az előfizetés megszűnt, nincs belőle aktív fejezetkeret, a két mentett fejezet, a választás és a történet állapota változatlan. [Mérési és üzemeltetési részletek](operations/NARRATIVE_RELEASE_HU.md#a8-lezárás-és-a-k-b-nyitás-előkészítése--2026-11-08).
+
+**Következő éles lépés: K-B.** Az első hullám 10 férőhely összesen, a tulajdonosi hely már foglalt; 9 új felhasználó kerülhet be. A nyitás előtt az éles Supabase Auth védelmeit és hozzáférését kell visszaolvasni. A konkrét nyitási csomag a szolgáltatás visszakapcsolása, a Supabase-regisztráció engedélyezése, az Alterward Cloudflare-szabályának bővítése emailes egyszer használatos kód mellett, majd a 10 férőhelyes hullám megnyitása és visszaellenőrzése. A dokumentált A8-próba önmagában nem nyitotta meg a regisztrációt.
+
+### Korábbi checkpointok
 
 **A8 saját fiókos próba — 2026-11-07: alapút és portálnyitás PASS, lemondási ármegjelenítés igazolva (#184).** A reviewed c82b627 resume/wave és saját első admission után az automatikus zárás igazolt (capacity 1 / used 1, invitation, generation/checkout ON, verified SPR). Két új, fiktív fejezet tartósan mentve: szerveridő 232,168 és 240,321 s; összesen 13 settled API-task / 0,703616 USD, függő 0. Egy taster és egy paid consume, fizetett egyenleg 4 / ízelítő 0. Egy mentett döntésből indul a folytatás: a második period start-state hash-e a választás utáni állapottal egyezik; az első period és a választás változatlan. A második ingyenes kérés 0 új job/API/költséggel tiltva. Valódi Stripe 9,99 USD paid számla és invoice_paid webhook, cycle 1 / 5-fejezetes grant PASS. Kijelentkezés/friss CAPTCHA-s belépés után UI és teljes érintett ledger/state összevetés változatlan, a korábbi történet is megvan. Friss normál monitor alerts[]. A korábbi Manage subscription STOP oka a hiányzó live konfiguráció volt; külön engedéllyel az első active/default/live portálbeállítás mentve, minden változatlan kódőr PASS, egyetlen új portálpróba sikeres. A saját 9,99 USD-s előfizetés és számlatörténet látszik. A korábbi hiba megőrzött; további generálás nincs. A pénzügyi lezárás még nem kész. Az okbekérő felugró 14,99 USD-s megjelenítését a tulajdonos jelezte. Az opcionális lépés kikapcsolását a Stripe visszaolvasása igazolta. Az új portálmunkamenetben a lemondási oldal egyértelműen 9,99 USD/hó díjat és december 7-i ciklusvéget mutat. A tulajdonos lemondását a Stripe december 7-re rögzítette. Az Alterwardban 4/0 fejezet maradt, az elszámolás és a történet megőrzése igazolt. A feldolgozott Stripe-esemény ellenére az Alterward aktív státuszt mutat, mert csak a klasszikus lemondási mezőt olvassa. A Stripe flexible módban az előfizetési tétel ciklusvégével egyező `cancel_at` értéket küldte. Az alkalmazás állapotának javítása és ellenőrzése blokkolja a visszatérítést. Teljes A8, újregisztráció/jelszó-helyreállítás, signup/Access-tágítás/K-B még nem PASS. Nincs új deploy vagy ledger-/taster-reset. [Blokkoló és elfogadás](https://github.com/Muzsy/future_flow/issues/184).
 
