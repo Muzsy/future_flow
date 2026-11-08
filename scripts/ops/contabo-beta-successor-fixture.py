@@ -416,8 +416,6 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
             req.pop(key,None)
         if secrets is not None:
             req['billingSecrets']=secrets
-        if selection.get('purpose') == 'schema-040':
-            req['sourceHashes'] = {**req['sourceHashes'], **daily.REGISTRY_040_CHANGE_HASHES}
         req.update(mode='prepare',selection=selection,release={**release,
             'runtime':successor.runtime_selection(selection,previous),'successorFixtureSha256':'b'*64})
         # External Access always leads the origin: it already shows the new list.
@@ -609,8 +607,6 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
         req['accessSnapshot']={**req['accessSnapshot'],'allowedEmails':sorted(READERS),'checkedAt':utc().isoformat()}
         if secrets is not None:
             req['billingSecrets']=secrets
-        if selection.get('purpose') == 'schema-040':
-            req['sourceHashes'] = {**req['sourceHashes'], **daily.REGISTRY_040_CHANGE_HASHES}
         trial=fixture_system(req,selection,active_terms)
         def runtime():
             manifest=json.loads((owner/'manifest.json').read_bytes())

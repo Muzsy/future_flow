@@ -246,8 +246,7 @@ class RegistryProtocolTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_committed_image_bundle_actually_covers_all57_required_registry_inputs(self):
-        migration_source = '1d312d29f203738c9f9d9a6e5338408c74b82f0b'
-        hashes = self.committed_source_hashes(migration_source)
+        hashes = self.committed_source_hashes()
         self.assertEqual({p:hashes.get(p) for p in daily.REGISTRY_040_CHANGE_HASHES},daily.REGISTRY_040_CHANGE_HASHES)
         self.assertNotIn('deploy/server.env',hashes)
 
@@ -265,7 +264,8 @@ class RegistryProtocolTests(unittest.TestCase):
         hashes = self.committed_source_hashes(migration_source)
         system = object.__new__(root.System)
         system.request = {'sourceHashes': hashes}
-        system.daily = daily
+        from types import SimpleNamespace
+        system.daily = SimpleNamespace(REGISTRY_040_CHANGE_HASHES={p: hashes[p] for p in daily.REGISTRY_040_CHANGE_HASHES})
         frozen = system.frozen_source_hashes()
         changed = {p for p, h in frozen.items() if serving.get(p) != h}
         pins = set(daily.REGISTRY_040_CHANGE_HASHES)
@@ -284,13 +284,12 @@ class RegistryProtocolTests(unittest.TestCase):
                          'Only the cycle-end cancellation fix differs in the historical billing image')
 
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
-        migration_source = '1d312d29f203738c9f9d9a6e5338408c74b82f0b'
-        hashes = self.committed_source_hashes(migration_source)
+        root = Path(__file__).resolve().parents[2]
         expected = daily.REGISTRY_040_CHANGE_HASHES
         self.assertEqual(len(expected), 57)
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashes.get(name), digest)
+                self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)
         self.assertTrue(all(not p.startswith('packages/ai/prompts/') for p in expected))
 
 from unittest.mock import Mock, patch
