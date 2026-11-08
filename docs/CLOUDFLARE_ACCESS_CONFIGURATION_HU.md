@@ -2,6 +2,8 @@
 
 2026-10-09 (Europe/Budapest) · [Zárt kiadási terv](CLOSED_SITE_RELEASE_PLAN_HU.md) · [Originvédelem](CLOSED_SITE_IMPLEMENTATION_REPORT_HU.md) · [Következő lépések](NEXT_STEPS.md).
 
+2026-11-08-tól a fő Cloudflare Access alkalmazás neve **Alterward**. A belépőképernyő felirata „Log in to Alterward”. [Éles nyitás és ellenőrzések](operations/NARRATIVE_RELEASE_HU.md#az-első-éles-hullám-nyitása--2026-11-08).
+
 ## Eredeti, 2026-10-09-i konfigurációs checkpoint
 
 A Cloudflare-fiókban a felhasználó aktiválta a **Zero Trust Free** csomagot. A feltételek és az ingyenes keret feletti használat számlázásának elfogadását maga végezte el; Codex nem választott fizetős csomagot. A dashboard aktív Free állapotot mutatott. Az emailes **One-time PIN** külön hozzáadva.
