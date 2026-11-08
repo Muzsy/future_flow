@@ -981,7 +981,9 @@ class ServiceEnvTests(unittest.TestCase):
 
 class ReviewedImageChangesTests(unittest.TestCase):
     def test_discover_release_accepts_only_the_pinned_product_files(self):
+        import subprocess
         previous = 'efed82ab65f1dfd163c9b28f5da7ad4f99091636'
+        release = '283e53ee673d78e4c5cef88a0e9cad876472c0a1'
         checkout = directory.parents[1]
         paths = [
             'apps/web/components/curated-lives.tsx',
@@ -991,7 +993,10 @@ class ReviewedImageChangesTests(unittest.TestCase):
             'apps/web/lib/client.ts',
         ]
         delta = b''.join(path.encode() + b'\0' for path in paths)
-        hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
         env.require_reviewed_image_changes(previous, delta, hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product files'):
             env.require_reviewed_image_changes(previous, delta + b'packages/core/src/extra.ts\0', hashes)
