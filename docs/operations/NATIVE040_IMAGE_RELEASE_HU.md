@@ -76,3 +76,22 @@ lépés és a szolgáltatásprofil története megmarad.
 
 A tesztadatokkal készült helyi Docker-image ellenőrzési eszköz. Nem a célgépes
 kiadási image, és nem ad engedélyt az éles váltásra.
+
+## A Discover javítás kiadása
+
+A [#187](https://github.com/Muzsy/future_flow/pull/187) a katalógus és az olvasók öt
+webes fájlját változtatja meg. Az image-váltó ezeket kizárólag a futó
+`efed82a` forrás közvetlen kiadási utódjaként, az öt fájl teljes listájának és
+SHA-256 lenyomatának egyezésekor fogadja el. Az eredeti Stripe-váltás
+engedélye a saját korábbi forrásához kötött. A 039 → 040 migráció történeti
+próbája az eredeti migrációt és az első natív 040 image-et a megőrzött
+commitokból ellenőrzi.
+
+A kiadás előtt fel kell jegyezni az éles hullám aktuális kapacitását,
+foglalt helyeit és állapotát. A rövid váltáshoz a felvétel, a generálás és a
+Checkout szünetel. A jóváhagyott váltás, mentés, izolált restore és zöld
+monitor után az eredeti szolgáltatási állapotot kell helyreállítani. A hullám
+visszanyitása az eredeti teljes kapacitással, nulla hozzáadott hellyel
+történhet, ha a váltás előtt nyitva volt és a visszaolvasáskor van szabad
+hely. Az éles próba egy meglévő fiókkal ellenőrzi a Discover listát és egy
+hivatalos történet megnyitását.

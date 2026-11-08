@@ -274,12 +274,13 @@ class RegistryProtocolTests(unittest.TestCase):
         self.assertEqual(sorted(p for p, h in unpinned.items() if serving.get(p) != h), [],
                          'Original serving engine sources must remain unchanged')
         self.assertTrue(unpinned)
-        system.request = {'sourceHashes': self.committed_source_hashes()}
-        current = system.frozen_source_hashes()
-        current_delta = {path for path in frozen.keys() | current.keys()
-                         if frozen.get(path) != current.get(path)}
-        self.assertEqual(current_delta, {'packages/core/src/billing-stripe.ts'},
-                         'Only the cycle-end cancellation fix may differ from the 040 image')
+        billing_image_source = 'efed82ab65f1dfd163c9b28f5da7ad4f99091636'
+        system.request = {'sourceHashes': self.committed_source_hashes(billing_image_source)}
+        billing_image = system.frozen_source_hashes()
+        billing_delta = {path for path in frozen.keys() | billing_image.keys()
+                         if frozen.get(path) != billing_image.get(path)}
+        self.assertEqual(billing_delta, {'packages/core/src/billing-stripe.ts'},
+                         'Only the cycle-end cancellation fix differs in the historical billing image')
 
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
         root = Path(__file__).resolve().parents[2]
