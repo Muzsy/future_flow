@@ -1063,6 +1063,65 @@ SUCCESSOR_WINDOW_PURPOSES = {'owner-e2e': (1, '3', '3'), 'tester-beta': (3, '10'
 SUCCESSOR_REGISTRY_PURPOSE = 'schema-040'
 SUCCESSOR_REGISTRY_BILLING_PURPOSE = 'billing-config-040'
 SUCCESSOR_REGISTRY_PLAN_VERSION = 'alterward-beta-successor-plan-3'
+HISTORICAL_040_CHANGE_HASHES = {
+    'apps/api/src/app.ts': '0dffa7d41eab837323ff5444568b9464350ae8e72dae1168c3bc87c5c3911d52',
+    'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
+    'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
+    'apps/api/src/billing.ts': '382ba90fb5219470d393cef8415209953278ee1e41c463340d6f337cb575c3f0',
+    'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
+    'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
+    'apps/api/src/service-access.ts': '3cd270e384b5e5e949882bb36484a9f7af563748969a0eb8dcadde2dfb325009',
+    'apps/api/src/service-admission.ts': 'c47fc49078afb4662880ce9020d456c1a838c01586fcf4ee62aa4c369107f991',
+    'apps/web/app/[...route]/page.tsx': '48dfc179bfe775fc277c7dae641b1148d0185ad55bb650e86a4250ebb138fa60',
+    'apps/web/app/account-access/page.tsx': '61b75ec62f6f0c5fb70736df947003a53620f7cfb956ba651e51466b7ee4628f',
+    'apps/web/app/globals.css': '06c4cc44141ccb98c52a4b2731c86362f81ecdaa18c5a169f8bde40f7c84ce5f',
+    'apps/web/app/page.tsx': '1584f86355b304fa7dd8ae6cb24411c2e9959cd243b0e557d81a67f3c9bb155d',
+    'apps/web/app/preview/[id]/page.tsx': 'bd0e0c3116c3b70b759f1da456fecad8742b15d7dec664a9a63da402b8a75d72',
+    'apps/web/components/account-access.tsx': 'ff7535952d03aced5d5f462cbea0a735685cf11e3ad1d3456070b370900160c0',
+    'apps/web/components/admission-gate.tsx': 'c8303ffbdbcf76c8521039edfd257a818b6d338d5cf67c532058809ac9d3d156',
+    'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
+    'apps/web/components/experience.tsx': '89dfb31ffad4b860e3dc1c18d73fd0dc7ff50d1d85b8ce2619f8fce8125d95ad',
+    'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
+    'apps/web/components/life-experience.tsx': '3084f90363549a8d382751cabd0f5d971504fd291a04f0cfad7370919a087e1d',
+    'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
+    'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
+    'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
+    'apps/web/components/terms-of-use.tsx': '124098b76534a1823b280b67ad956c89c39af341ebe9b4e134d851db49fd97ec',
+    'apps/web/components/turnstile-widget.tsx': 'c52e39ef82600023f3fcfc401bf2dc9ec724d40dc9f9d6a232285b461b13ee86',
+    'apps/web/lib/admission.ts': 'c92d1637cca27f06e0529c2ffe028b1b4dec6ba227fcdae403ace13ae78bdc2a',
+    'apps/web/lib/auth-requests.ts': '9a1b783886da01760c9730cbbbd8dccb8e536a2e3692375737149093c872c9b9',
+    'apps/web/lib/billing.ts': 'b1d875729517a96776086624ce9463cf015dcfcc53218b99b6d7130b07b49e46',
+    'apps/web/lib/i18n/messages.ts': '6e737c78783a5ebaf12f7db71a7c9c86a652dbb005143792f00fcc4f9ad873e4',
+    'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
+    'apps/web/lib/signup.ts': 'a09fadd95482463188a266c46c3827ed2dcae0110e54f518f1d18f052d730c7d',
+    'apps/web/lib/turnstile.ts': '521386260240765d1d185e6acbe597ea905265673c99d12d78f54f59fefc9558',
+    'apps/web/proxy.ts': 'c308349d244f7d2e956c0b9e77e818f906aa1ef6c2bb0405e8bcf08552860291',
+    'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
+    'apps/worker/src/chapter-billing.ts': '07e5a49cf1d5352a7f28ff32fa864489e99a3acca6d9f7321552139f87200245',
+    'apps/worker/src/main.ts': '10134cf57123abc8d6f7cf1f1f31a37197280ecb80f148a8a956d185ce9b4fae',
+    'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
+    'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
+    'deploy/compose.yaml': 'efedb9d45d192f8097e81df9dbeb8f4d98c2195cf2aee6c495db3a55e70cd751',
+    'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
+    'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
+    'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
+    'packages/contracts/src/error-messages.ts': '02623644230f94b672314031566df300e5c3c9a74cfbf72f4ab31613e683559b',
+    'packages/contracts/src/privacy-consent.ts': '9f03be8e713c2f60aaf86fa5251accd3a86d011395cc284c6dd7a2f22e11a624',
+    'packages/core/src/billing-service.ts': '3826bf6fe5f55ab6ecdb2837d5a68c54454990319213f01e465378fd1ecc7703',
+    'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
+    'packages/core/src/billing.ts': 'af3cfe5a84b21765d049bc5b13c8f71e4ed8eafa649b7e088b0ec0af169f1b5b',
+    'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
+    'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
+    'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
+    'packages/database/src/billing.ts': 'ee4424f5496ac027f6967f07702dbe54daaab26dceba7a207171870493b7883b',
+    'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
+    'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
+    'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
+    'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
+    'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
+    'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
+    'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6',
+}
 REGISTRY_040_CHANGE_HASHES = {
     'apps/api/src/app.ts': '0dffa7d41eab837323ff5444568b9464350ae8e72dae1168c3bc87c5c3911d52',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
@@ -1412,16 +1471,19 @@ def registry_schema_selection(selection, previous_terms):
 
 def registry_schema_plan(selection, previous_terms, now, source_hashes):
     registry_schema_selection(selection, previous_terms)
+    expected_hashes = (HISTORICAL_040_CHANGE_HASHES
+                       if source_hashes == HISTORICAL_040_CHANGE_HASHES
+                       else REGISTRY_040_CHANGE_HASHES)
     if (now.utcoffset() != dt.timedelta(0)
-            or any(source_hashes.get(p) != h for p, h in REGISTRY_040_CHANGE_HASHES.items())):
+            or any(source_hashes.get(p) != h for p, h in expected_hashes.items())):
         raise ValueError('Exact UTC clock and reviewed040 source hashes required')
     stamp = lambda t: t.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     return {'version': SUCCESSOR_REGISTRY_PLAN_VERSION, 'purpose': SUCCESSOR_REGISTRY_PURPOSE,
         'observedAt': stamp(now), 'expiresAt': stamp(now + dt.timedelta(seconds=900)),
         'previousTermsSha256': successor_canonical_hash(previous_terms),
         'selectionSha256': successor_canonical_hash(selection), 'fromSchema': 39, 'toSchema': 40,
-        'allowedChanges': list(REGISTRY_040_CHANGE_HASHES),
-        'allowedChangeHashes': dict(REGISTRY_040_CHANGE_HASHES)}
+        'allowedChanges': list(expected_hashes),
+        'allowedChangeHashes': dict(expected_hashes)}
 
 def parse_registry_runtime(value):
     keys = {'version', 'profile', 'schema', 'identityBindingSha256', 'dataSha256',
@@ -1717,7 +1779,9 @@ def successor_candidate(parent, parent_role, *, root=None, check_oneoffs=True, c
             raise ValueError('Bounded schema-upgrade preparation required')
     elif purpose == SUCCESSOR_REGISTRY_PURPOSE:
         registry_schema_selection(selection, prior)
-        expected = registry_schema_plan(selection, prior, prepared_at, REGISTRY_040_CHANGE_HASHES)
+        historical = plan.get('allowedChangeHashes') == HISTORICAL_040_CHANGE_HASHES
+        expected = registry_schema_plan(selection, prior, prepared_at,
+                                        HISTORICAL_040_CHANGE_HASHES if historical else REGISTRY_040_CHANGE_HASHES)
         before = parse_registry_runtime(value['database'])
         if (terms != prior or has_receipt or plan != expected or before['schema'] != 39
                 or expires != prepared_at + dt.timedelta(seconds=900)):
