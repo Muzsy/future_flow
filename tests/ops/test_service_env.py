@@ -1040,7 +1040,9 @@ class ReviewedImageChangesTests(unittest.TestCase):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
     def test_mobile_ui_release_accepts_only_the_pinned_product_files(self):
+        import subprocess
         previous = '211eddf124b12633f979a21f5cfad273c955b6b9'
+        release = 'f88494f13afd1fb53e7be1e74e67b34692a714d7'
         checkout = directory.parents[1]
         paths = sorted([
             'apps/web/app/globals.css',
@@ -1048,6 +1050,21 @@ class ReviewedImageChangesTests(unittest.TestCase):
             'apps/web/components/site-header.tsx',
         ])
         delta = b''.join(path.encode() + b'\0' for path in paths)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'packages/core/src/extra.ts\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_discover_mobile_layout_release_accepts_only_the_pinned_product_files(self):
+        previous = 'f88494f13afd1fb53e7be1e74e67b34692a714d7'
+        checkout = directory.parents[1]
+        paths = ['apps/web/app/globals.css']
+        delta = b'apps/web/app/globals.css\0'
         hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
         env.require_reviewed_image_changes(previous, delta, hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product files'):

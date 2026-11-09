@@ -82,6 +82,7 @@ header {
   font-size: 21px;
   letter-spacing: -0.7px;
   color: var(--ink);
+  text-decoration: none;
 }
 .brand-icon {
   width: 35px;
@@ -1345,7 +1346,40 @@ progress {
   font: inherit;
 }
 .discovery-clear {
-  padding: 12px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 20px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+nav[aria-label='Life collections'] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+nav[aria-label='Life collections'] a {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 15px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+nav[aria-label='Life collections'] a[aria-current='page'] {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
 }
 .discovery-grid {
   display: grid;
@@ -1368,6 +1402,7 @@ progress {
 }
 .discovery-card h2 a {
   color: var(--ink);
+  text-decoration: none;
 }
 .discovery-card-meta,
 .discovery-pagination {
@@ -1383,6 +1418,9 @@ progress {
 .discovery-read {
   margin-top: auto;
   padding-top: 8px;
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
 }
 .discovery-pagination {
   align-items: center;
@@ -1517,5 +1555,14 @@ footer a {
   }
   .page-head-actions {
     justify-content: flex-start;
+  }
+  .discovery-filters label,
+  .discovery-filters label:first-child {
+    flex: 1 1 100%;
+  }
+  .discovery-filters .primary,
+  .discovery-filters .discovery-clear {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
   }
 }
