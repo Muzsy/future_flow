@@ -300,7 +300,7 @@ describe('bounded open admission over HTTP', () => {
     expect((await policy()).admission_used).toBe(1);
   });
 
-  it('refuses an incomplete acknowledgement and an unverified identity without writing anything', async () => {
+  it('refuses an incomplete acknowledgement and an unconfirmed email without writing anything', async () => {
     const id = newAccount();
     for (const body of [
       {},
@@ -309,11 +309,11 @@ describe('bounded open admission over HTTP', () => {
       { ...ACK, extra: 1 },
     ])
       expect((await accept(id, body)).status).toBe(422);
+    actors.get(id)!.emailConfirmed = false;
     expect((await accept(id, ACK, null)).status).toBe(403);
     expect((await accept(id, ACK, 'unsigned.jwt.attacker')).status).toBe(403);
     const mismatched = await access('someone-else@example.invalid');
     expect((await accept(id, ACK, mismatched)).status).toBe(403);
-    actors.get(id)!.emailConfirmed = false;
     expect((await accept(id)).status).toBe(403);
     expect(await rows('ff_users')).toBe(0);
     expect(await rows('ff_consents')).toBe(0);

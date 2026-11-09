@@ -47,6 +47,8 @@ A tulajdonos (2026-11-03) döntése: az első tíz felhasználó nem meghívott.
 
 A módosítást a tulajdonos 2026-11-03-án elfogadta (a hullámok megnyitása, a Supabase signup, a Cloudflare Access és a Turnstile-védelem éles bekapcsolása azonban külön, igazolt tulajdonosi jóváhagyás). A módosítás önmagában nem aktivál éles profilt.
 
+**Módosítás — 2026-11-09: egylépcsős belépés a service profilban (tulajdonosi döntés):** `SERVICE_ACCESS_ENFORCEMENT=true` mellett a web alkalmazáshéj (`apps/web/proxy.ts`) és az API (`apps/api/src/app.ts`, `apps/api/src/service-access.ts`) nem kér külön Cloudflare Access (`Cf-Access-Jwt-Assertion`) OTP-előbelépést; a pre-login felület közvetlenül, `private, no-store` fejlécekkel töltődik be, az API pedig kizárólag a verifikált Supabase Bearer tokenre, a megerősített email-címre (`emailConfirmed === true`) és a tartós `aw_service_admissions` adatbázis-regiszterre épít. A legacy `CLOSED_SITE_ENABLED=true` (`SERVICE_ACCESS_ENFORCEMENT=false`) út változatlan marad.
+
 ## Implementált első szelet
 
 - `packages/core/src/service-access.ts`: tiszta snapshot-validáció és döntési függvény olvasás/generálás/Checkout/adatkontroll műveletekre; nincs I/O, env-kapcsoló, költség- vagy fejezetmódosítás.

@@ -1303,17 +1303,6 @@ export async function createApp(
           return;
         }
         try {
-          const identity = await service.identity(
-            typeof request.headers['cf-access-jwt-assertion'] === 'string'
-              ? request.headers['cf-access-jwt-assertion']
-              : undefined,
-          );
-          if (!identity)
-            throw new DomainError(
-              'CLOSED_SITE_ACCESS_REQUIRED',
-              'Access to this service is restricted.',
-              403,
-            );
           const verified = await verifiedServiceBearer(
             auth,
             request.headers.authorization,
@@ -1321,14 +1310,13 @@ export async function createApp(
           if (
             await service.preAdmission(
               verified.user,
-              identity,
+              undefined,
               request,
               response,
             )
           )
             return;
-          await service.assert(verified.user, identity, 'read');
-          request[REQUEST_SERVICE_IDENTITY] = identity;
+          await service.assert(verified.user, undefined, 'read');
           request[REQUEST_SERVICE_USER] = verified.user;
           request.token = verified.token;
         } catch (error) {

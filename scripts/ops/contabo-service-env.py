@@ -111,6 +111,14 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/app/globals.css':
             '8dc72f1a80b8364b4b9aabfdbd44f79f5b5e7fdb3d538b2bda541294a00fb791',
     },
+    '698403f2a35395c16f4c92023672bd49626e67b0': {
+        'apps/api/src/app.ts':
+            '022d787782e6d63b01c53d05d5617d54502629a10f32a5fedcd241030c0715e0',
+        'apps/api/src/service-access.ts':
+            '9d19602bb8733fcd765408e47056d6c572295b4a6aca684d23268b4c8ead33e7',
+        'apps/web/proxy.ts':
+            'fec1f47c2d83e44de56aa086df23116c04d1429efd85b65f1881d6fc3b2ab4eb',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
@@ -1007,11 +1015,21 @@ class HostRuntime:
                    "FROM ${table} WHERE status IN ('queued','running','validating')`);n+=rows[0].pending}"
                    "await client.query('COMMIT');console.log(JSON.stringify({pendingJobs:n}))}finally{await client.end()}")
 
-    ANONYMOUS_PROBE = ("let count=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover',"
+    ANONYMOUS_PROBE = ("let count=0;if(process.env.SERVICE_ACCESS_ENFORCEMENT==='true'){"
+                       "for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover'])"
+                       "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
+                       "if(![200,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))"
+                       "throw Error('Origin access boundary failed');}"
+                       "for(const url of ['http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config',"
+                       "'http://127.0.0.1:4000/api/v1/profile','http://127.0.0.1:4000/api/v1/futures'])"
+                       "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
+                       "if(![401,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))"
+                       "throw Error('Origin access boundary failed');count++;}}else{"
+                       "for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover',"
                        "'http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config'])"
                        "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
                        "if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))"
-                       "throw Error('Origin access boundary failed');count++}"
+                       "throw Error('Origin access boundary failed');count++;}}"
                        "console.log(JSON.stringify({anonymousDenied:count}));")
 
     def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None, daily=None, daily_loader=None):

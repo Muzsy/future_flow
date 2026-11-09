@@ -74,7 +74,7 @@ await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await clie
 if(mode==='snapshot'){const snapshot=(await client.query('SELECT pg_export_snapshot() AS id')).rows[0].id;const names=(await client.query("SELECT tablename AS name FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;if(!names.length||names.length>1000||names.some(t=>!/^(aw_|ff_)[a-z0-9_]+$/.test(t.name)))throw Error('Schema');const tables=[];for(const{name}of names){const row=(await client.query(`SELECT count(*)::int AS count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) AS digest FROM public."${name}" t`)).rows[0];tables.push({name,...row});}console.log(JSON.stringify({databaseTlsVerified:true,snapshot,tables}));await new Promise(resolve=>{watchdog=setTimeout(resolve,240000);process.stdin.once('data',resolve);process.stdin.once('end',resolve);});clearTimeout(watchdog);
 }else if(mode==='monitor'){const raw=readFileSync(0,'utf8');if(Buffer.byteLength(raw)>8192)throw Error('Policy');const policy=JSON.parse(raw);if(JSON.stringify(policy.userIds)!==JSON.stringify(process.env.CLOSED_BETA_USER_IDS?process.env.CLOSED_BETA_USER_IDS.split(','):[]))throw Error('Admission');const queue=await personalBetaQueueProbe(client,policy);const table=(await client.query("SELECT to_regclass('public.aw_service_policy') AS name")).rows[0].name!==null;let servicePolicy=null;if(table){const row=(await client.query('SELECT mode,reconcile_required,admission_capacity,admission_used FROM aw_service_policy WHERE id=1')).rows[0];if(row)servicePolicy={mode:row.mode,reconcileRequired:row.reconcile_required===true,capacity:Number(row.admission_capacity),used:Number(row.admission_used)};}console.log(JSON.stringify({databaseTlsVerified:true,...queue,servicePolicyTable:table,servicePolicy}));}else throw Error('Mode');await client.query('COMMIT');}catch{process.exitCode=1;}finally{clearTimeout(watchdog);await client.end();}"""
 
-ORIGIN_PROBE = """let denied=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover','http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++}console.log(JSON.stringify({anonymousDenied:denied}));"""
+ORIGIN_PROBE = """let denied=0;if(process.env.SERVICE_ACCESS_ENFORCEMENT==='true'){for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(![200,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');}for(const url of ['http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config','http://127.0.0.1:4000/api/v1/profile','http://127.0.0.1:4000/api/v1/futures']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(![401,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++;}}else{for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover','http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config']){const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))throw Error('Origin boundary');denied++;}}console.log(JSON.stringify({anonymousDenied:denied}));"""
 
 
 def digest(data):
@@ -1123,13 +1123,13 @@ HISTORICAL_040_CHANGE_HASHES = {
     'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6',
 }
 REGISTRY_040_CHANGE_HASHES = {
-    'apps/api/src/app.ts': '0dffa7d41eab837323ff5444568b9464350ae8e72dae1168c3bc87c5c3911d52',
+    'apps/api/src/app.ts': '022d787782e6d63b01c53d05d5617d54502629a10f32a5fedcd241030c0715e0',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
     'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
     'apps/api/src/billing.ts': '382ba90fb5219470d393cef8415209953278ee1e41c463340d6f337cb575c3f0',
     'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
     'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
-    'apps/api/src/service-access.ts': '3cd270e384b5e5e949882bb36484a9f7af563748969a0eb8dcadde2dfb325009',
+    'apps/api/src/service-access.ts': '9d19602bb8733fcd765408e47056d6c572295b4a6aca684d23268b4c8ead33e7',
     'apps/api/src/service-admission.ts': 'c47fc49078afb4662880ce9020d456c1a838c01586fcf4ee62aa4c369107f991',
     'apps/web/app/[...route]/page.tsx': '48dfc179bfe775fc277c7dae641b1148d0185ad55bb650e86a4250ebb138fa60',
     'apps/web/app/account-access/page.tsx': '61b75ec62f6f0c5fb70736df947003a53620f7cfb956ba651e51466b7ee4628f',
@@ -1154,7 +1154,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
     'apps/web/lib/signup.ts': 'a09fadd95482463188a266c46c3827ed2dcae0110e54f518f1d18f052d730c7d',
     'apps/web/lib/turnstile.ts': '521386260240765d1d185e6acbe597ea905265673c99d12d78f54f59fefc9558',
-    'apps/web/proxy.ts': 'c308349d244f7d2e956c0b9e77e818f906aa1ef6c2bb0405e8bcf08552860291',
+    'apps/web/proxy.ts': 'fec1f47c2d83e44de56aa086df23116c04d1429efd85b65f1881d6fc3b2ab4eb',
     'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
     'apps/worker/src/chapter-billing.ts': '07e5a49cf1d5352a7f28ff32fa864489e99a3acca6d9f7321552139f87200245',
     'apps/worker/src/main.ts': '10134cf57123abc8d6f7cf1f1f31a37197280ecb80f148a8a956d185ce9b4fae',
@@ -2734,13 +2734,15 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def edge_closed(team):
+def edge_closed(team, *, service=False):
     opener = urllib.request.build_opener(NoRedirect())
     try:
         request = urllib.request.Request('https://alterward.com/discover',
             headers={'User-Agent': 'Alterward-Release-Verification/1'})
-        opener.open(request, timeout=15).close()
-        return False
+        with opener.open(request, timeout=15) as response:
+            return (service and response.status == 200 and
+                    'no-store' in response.headers.get('Cache-Control', '').lower() and
+                    response.headers.get('CF-Cache-Status', '').upper() != 'HIT')
     except urllib.error.HTTPError as error:
         try:
             location = urllib.parse.urlsplit(error.headers.get('Location', ''))
@@ -2919,7 +2921,7 @@ def monitor(value):
             'personalTransitionHealthy': personal_transition_healthy(
                 'personal-beta' if policy['mode'] == 'service' else policy['mode']),
             'registryRestoreHealthy': registry_restore_healthy(value),
-            'edgeClosed': edge_closed(value['teamDomain']), 'lastBackupAt': last,
+            'edgeClosed': edge_closed(value['teamDomain'], service=policy['mode'] == 'service'), 'lastBackupAt': last,
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}
         alerts = alerts_for(health, now)

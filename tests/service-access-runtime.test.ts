@@ -249,16 +249,16 @@ it('does not create application roots or jobs for an authenticated but unknown/u
     ]),
   ).toHaveLength(0);
 });
-it('refuses missing/forged Access, mismatched email and unconfirmed provider email', async () => {
+it('allows single-step Supabase sign-in without an Access assertion while refusing unconfirmed provider email', async () => {
   const id = await actor();
   for (const assertion of [null, 'unsigned.jwt.attacker'])
     expect((await request(id, '/api/v2/lives', { assertion })).status).toBe(
-      403,
+      200,
     );
   expect(
     (await request(id, '/api/v2/lives', { email: 'other@example.invalid' }))
       .status,
-  ).toBe(403);
+  ).toBe(200);
   actors.get(id)!.emailConfirmed = false;
   expect((await request(id)).status).toBe(403);
 });
@@ -412,7 +412,7 @@ it('allows a CORS preflight without authenticating or serving an application res
   });
   expect(response.status).toBe(204);
   expect(await response.text()).toBe('');
-  expect((await fetch(base + '/api/v2/lives')).status).toBe(403);
+  expect((await fetch(base + '/api/v2/lives')).status).toBe(401);
 });
 it('fails closed on a registry read error instead of treating it as an absent invitation', async () => {
   const id = await actor();
