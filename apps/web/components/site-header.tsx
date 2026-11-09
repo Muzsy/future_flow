@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, GitBranch, LogOut } from 'lucide-react';
+import { ArrowUpRight, GitBranch, LogOut, Menu, X } from 'lucide-react';
 import { authConfigured, supabase } from '../lib/client';
 
 export function SiteHeader({
@@ -9,6 +9,7 @@ export function SiteHeader({
   current?: 'discover' | 'scenarios' | 'saved' | 'lives';
 }) {
   const [user, setUser] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!authConfigured) return;
@@ -60,36 +61,54 @@ export function SiteHeader({
       </a>
       <div className="header-actions">
         <nav className="nav" aria-label="Main navigation">
-          <a
-            href="/discover"
-            className={current === 'discover' ? 'active' : ''}
-            aria-current={current === 'discover' ? 'page' : undefined}
+          <div
+            id="site-nav-links"
+            className={`nav-links${menuOpen ? ' open' : ''}`}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setMenuOpen(false);
+            }}
           >
-            Discover lives
-          </a>
-          <a
-            href="/scenarios"
-            className={current === 'scenarios' ? 'active' : ''}
-            aria-current={current === 'scenarios' ? 'page' : undefined}
-          >
-            Explore Scenarios
-          </a>
-          {user && (
             <a
-              href="/saved"
-              className={current === 'saved' ? 'active' : ''}
-              aria-current={current === 'saved' ? 'page' : undefined}
+              href="/discover"
+              className={current === 'discover' ? 'active' : ''}
+              aria-current={current === 'discover' ? 'page' : undefined}
             >
-              Saved lives
+              Discover lives
             </a>
-          )}
-          <a
-            href="/lives"
-            className={current === 'lives' ? 'active' : ''}
-            aria-current={current === 'lives' ? 'page' : undefined}
+            <a
+              href="/scenarios"
+              className={current === 'scenarios' ? 'active' : ''}
+              aria-current={current === 'scenarios' ? 'page' : undefined}
+            >
+              Explore Scenarios
+            </a>
+            {user && (
+              <a
+                href="/saved"
+                className={current === 'saved' ? 'active' : ''}
+                aria-current={current === 'saved' ? 'page' : undefined}
+              >
+                Saved lives
+              </a>
+            )}
+            <a
+              href="/lives"
+              className={current === 'lives' ? 'active' : ''}
+              aria-current={current === 'lives' ? 'page' : undefined}
+            >
+              My lives
+            </a>
+          </div>
+          <button
+            type="button"
+            className="menu-toggle"
+            aria-expanded={menuOpen}
+            aria-controls="site-nav-links"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            My lives
-          </a>
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
           {user ? (
             <button
               type="button"
@@ -99,6 +118,7 @@ export function SiteHeader({
               title="Sign out"
             >
               <LogOut size={15} />
+              <span className="login-label">Sign out</span>
             </button>
           ) : (
             <a className="login" href="/login">
