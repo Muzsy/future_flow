@@ -101,7 +101,7 @@ describe('closed-site origin proof', () => {
         createServiceSiteGate({ ...expanded, ...bad }, certs()),
       ).toThrow();
   });
-  it('opens only an authenticated pre-login shell in the new proxy profile and retains public account controls', async () => {
+  it('opens the pre-login shell in the service proxy profile without a separate Access assertion and retains private no-store headers', async () => {
     for (const [key, value] of Object.entries({
       ...env,
       SERVICE_ACCESS_ENFORCEMENT: 'true',
@@ -117,9 +117,11 @@ describe('closed-site origin proof', () => {
       },
     });
     expect((await proxy(good)).status).toBe(200);
-    expect(
-      (await proxy(new NextRequest('https://alterward.example/start'))).status,
-    ).toBe(403);
+    const direct = await proxy(
+      new NextRequest('https://alterward.example/start'),
+    );
+    expect(direct.status).toBe(200);
+    expect(direct.headers.get('Cache-Control')).toBe('private, no-store');
     expect(
       (await proxy(new NextRequest('https://alterward.example/account-access')))
         .status,
