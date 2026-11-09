@@ -99,6 +99,14 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/public/icon.svg':
             '73a3687da2b52b7a311394f14b430d8fd5dd105b07c9a09ba7ac994651ce61f4',
     },
+    '211eddf124b12633f979a21f5cfad273c955b6b9': {
+        'apps/web/app/globals.css':
+            'ab87420966dce19c406d28eb3f62d9afee1557b636b0c217be1774c7051ea090',
+        'apps/web/components/life-experience.tsx':
+            'fec4c267c665f860f1a3d5ca42b7b62c1d0185895327d4cd241d80585146d8ba',
+        'apps/web/components/site-header.tsx':
+            'cfe926931208afa6440931c4e9db0db1c16350127c9695cbe4062339e86a2785',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

@@ -1001,15 +1001,19 @@ export function LifeExperience({
       {error}
       <div className="page-head">
         <div>
+          <button
+            type="button"
+            className="back-link"
+            onClick={() => router.push('/lives')}
+          >
+            ← {m.lives}
+          </button>
           <div className="eyebrow">
             {m.private} · {languages[b.content_locale].nativeName}
           </div>
           <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
         </div>
         <div className="page-head-actions">
-          <button className="secondary" onClick={() => router.push('/lives')}>
-            {m.lives}
-          </button>
           {detail.periods.length > 0 &&
             b.status !== 'generating' &&
             b.status !== 'failed' && (
