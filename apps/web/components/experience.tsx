@@ -644,21 +644,25 @@ export function Experience({
         <div className="header-actions">
           <LanguageSelect />
           <nav className="nav" aria-label={t('nav.main')}>
-            <a href="/discover">Discover lives</a>
-            <a href="/scenarios">Explore Scenarios</a>
-            {user && <a href="/saved">Saved lives</a>}
-            <button
-              className={page === 'futures' ? 'active' : ''}
-              onClick={() => navigate(user ? '/lives' : '/login')}
-            >
-              {t('nav.lives')}
-            </button>
-            <button
-              className={page === 'onboarding' ? 'active' : ''}
-              onClick={() => navigate(user ? '/start' : '/login')}
-            >
-              {t('nav.profile')}
-            </button>
+            {user && (
+              <>
+                <a href="/discover">Discover lives</a>
+                <a href="/scenarios">Explore Scenarios</a>
+                <a href="/saved">Saved lives</a>
+                <button
+                  className={page === 'futures' ? 'active' : ''}
+                  onClick={() => navigate('/lives')}
+                >
+                  {t('nav.lives')}
+                </button>
+                <button
+                  className={page === 'onboarding' ? 'active' : ''}
+                  onClick={() => navigate('/start')}
+                >
+                  {t('nav.profile')}
+                </button>
+              </>
+            )}
             {user && sharedEnabled && (
               <button
                 className={page === 'connections' ? 'active' : ''}

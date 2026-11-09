@@ -1139,7 +1139,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/components/account-access.tsx': 'ff7535952d03aced5d5f462cbea0a735685cf11e3ad1d3456070b370900160c0',
     'apps/web/components/admission-gate.tsx': 'c8303ffbdbcf76c8521039edfd257a818b6d338d5cf67c532058809ac9d3d156',
     'apps/web/components/billing-panel.tsx': '5ffc3b3a1b52992f4f6163bbf7afc74575ecde109cd1d0de49d0068c0f5a1900',
-    'apps/web/components/experience.tsx': '89dfb31ffad4b860e3dc1c18d73fd0dc7ff50d1d85b8ce2619f8fce8125d95ad',
+    'apps/web/components/experience.tsx': '6b3de84851c452607416b5f171ade429d3fa3afd5009b060f0a57814265bb035',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
     'apps/web/components/life-experience.tsx': 'fec4c267c665f860f1a3d5ca42b7b62c1d0185895327d4cd241d80585146d8ba',
     'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
