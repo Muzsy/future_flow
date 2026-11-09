@@ -61,54 +61,56 @@ export function SiteHeader({
       </a>
       <div className="header-actions">
         <nav className="nav" aria-label="Main navigation">
-          <div
-            id="site-nav-links"
-            className={`nav-links${menuOpen ? ' open' : ''}`}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setMenuOpen(false);
-            }}
-          >
-            <a
-              href="/discover"
-              className={current === 'discover' ? 'active' : ''}
-              aria-current={current === 'discover' ? 'page' : undefined}
-            >
-              Discover lives
-            </a>
-            <a
-              href="/scenarios"
-              className={current === 'scenarios' ? 'active' : ''}
-              aria-current={current === 'scenarios' ? 'page' : undefined}
-            >
-              Explore Scenarios
-            </a>
-            {user && (
-              <a
-                href="/saved"
-                className={current === 'saved' ? 'active' : ''}
-                aria-current={current === 'saved' ? 'page' : undefined}
+          {user && (
+            <>
+              <div
+                id="site-nav-links"
+                className={`nav-links${menuOpen ? ' open' : ''}`}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setMenuOpen(false);
+                }}
               >
-                Saved lives
-              </a>
-            )}
-            <a
-              href="/lives"
-              className={current === 'lives' ? 'active' : ''}
-              aria-current={current === 'lives' ? 'page' : undefined}
-            >
-              My lives
-            </a>
-          </div>
-          <button
-            type="button"
-            className="menu-toggle"
-            aria-expanded={menuOpen}
-            aria-controls="site-nav-links"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+                <a
+                  href="/discover"
+                  className={current === 'discover' ? 'active' : ''}
+                  aria-current={current === 'discover' ? 'page' : undefined}
+                >
+                  Discover lives
+                </a>
+                <a
+                  href="/scenarios"
+                  className={current === 'scenarios' ? 'active' : ''}
+                  aria-current={current === 'scenarios' ? 'page' : undefined}
+                >
+                  Explore Scenarios
+                </a>
+                <a
+                  href="/saved"
+                  className={current === 'saved' ? 'active' : ''}
+                  aria-current={current === 'saved' ? 'page' : undefined}
+                >
+                  Saved lives
+                </a>
+                <a
+                  href="/lives"
+                  className={current === 'lives' ? 'active' : ''}
+                  aria-current={current === 'lives' ? 'page' : undefined}
+                >
+                  My lives
+                </a>
+              </div>
+              <button
+                type="button"
+                className="menu-toggle"
+                aria-expanded={menuOpen}
+                aria-controls="site-nav-links"
+                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </>
+          )}
           {user ? (
             <button
               type="button"

@@ -119,6 +119,12 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/proxy.ts':
             'fec1f47c2d83e44de56aa086df23116c04d1429efd85b65f1881d6fc3b2ab4eb',
     },
+    '4c5c79e25365d200e9d263a90b141d37b874f118': {
+        'apps/web/components/experience.tsx':
+            '6b3de84851c452607416b5f171ade429d3fa3afd5009b060f0a57814265bb035',
+        'apps/web/components/site-header.tsx':
+            'db3888e1f1c9082e467e45a78a515ca426863a328a5250ca0a6942fc90835e26',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
