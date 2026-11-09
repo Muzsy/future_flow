@@ -107,6 +107,10 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/components/site-header.tsx':
             'cfe926931208afa6440931c4e9db0db1c16350127c9695cbe4062339e86a2785',
     },
+    'f88494f13afd1fb53e7be1e74e67b34692a714d7': {
+        'apps/web/app/globals.css':
+            '8dc72f1a80b8364b4b9aabfdbd44f79f5b5e7fdb3d538b2bda541294a00fb791',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
