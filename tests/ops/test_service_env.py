@@ -1114,9 +1114,11 @@ class ReviewedImageChangesTests(unittest.TestCase):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
     def test_parallel_worker_release_accepts_only_the_pinned_product_files(self):
-        # Hashes are those of the reviewed worker-pool change on this branch; the next release's
-        # test must read its own pinned blobs (git cat-file) once these files move on.
+        import subprocess
         previous = '0bbdb063619e9d3a4a655f869ed5c604a3509386'
+        # The reviewed commit that carries these bytes; reading the working tree would
+        # break whenever a later change touches the same files.
+        release = 'a48024365b0ee0840a580bdb6e76826301ba1ec0'
         checkout = directory.parents[1]
         paths = sorted([
             'apps/worker/src/job-pool.ts',
@@ -1124,7 +1126,10 @@ class ReviewedImageChangesTests(unittest.TestCase):
             'packages/database/src/index.ts',
         ])
         delta = b''.join(path.encode() + b'\0' for path in paths)
-        hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
         env.require_reviewed_image_changes(previous, delta, hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product files'):
             env.require_reviewed_image_changes(previous, delta + b'packages/ai/src/index.ts\0', hashes)
