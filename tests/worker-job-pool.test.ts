@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   MAX_WORKER_CONCURRENCY,
+  createLeaseGuard,
+  describeError,
+  isLeaseLost,
+  startHeartbeat,
+  workerPollMsFromEnv,
   SERVICE_WORKER_CONCURRENCY,
   runJobPool,
   workerConcurrencyFromEnv,
@@ -163,7 +168,7 @@ describe('bounded job pool', () => {
     expect(completed).toBe(4);
   });
 
-  it('accounts for a re-claimed job id as a separate running task', async () => {
+  it('counts a re-claimed job id as a separate task (the lease guard, not the pool, prevents it)', async () => {
     const queue = ['a', 'a', 'b'];
     const gates = [deferred(), deferred(), deferred()];
     const order: string[] = [];
@@ -296,5 +301,171 @@ describe('bounded job pool', () => {
         run: async () => {},
       }),
     ).rejects.toThrow('Invalid worker concurrency');
+  });
+});
+
+describe('lease guard against an in-process re-claim', () => {
+  it('allows claims while every lease is fresh and pauses them after two missed heartbeats', () => {
+    let clock = 0;
+    const guard = createLeaseGuard(180_000, () => clock);
+    expect(guard.claimAllowed()).toBe(true);
+    const ticket = guard.begin();
+    clock = 119_000;
+    expect(guard.claimAllowed()).toBe(true);
+    clock = 121_000;
+    expect(guard.claimAllowed()).toBe(false);
+    expect(guard.atRisk()).toBe(1);
+    ticket.ok();
+    expect(guard.claimAllowed()).toBe(true);
+    ticket.end();
+    clock = 10_000_000;
+    expect(guard.claimAllowed()).toBe(true);
+  });
+
+  it('pauses claims for a lost lease until its task has ended', () => {
+    const guard = createLeaseGuard(180_000, () => 0);
+    const a = guard.begin();
+    const b = guard.begin();
+    b.lost();
+    expect(b.leaseLost).toBe(true);
+    expect(a.leaseLost).toBe(false);
+    expect(guard.claimAllowed()).toBe(false);
+    b.end();
+    expect(guard.claimAllowed()).toBe(true);
+  });
+
+  it('marks only a real lease loss as lost; a transient heartbeat error is retried', async () => {
+    vi.useFakeTimers();
+    try {
+      const guard = createLeaseGuard(30_000, () => Date.now());
+      const ticket = guard.begin();
+      const transient: unknown[] = [];
+      const errors = [
+        Object.assign(new Error('connect ETIMEDOUT secret-host'), {
+          code: 'ETIMEDOUT',
+        }),
+        Object.assign(new Error('x'), { code: 'JOB_LEASE_LOST' }),
+      ];
+      const beat = vi.fn(async () => {
+        const error = errors.shift();
+        if (error) throw error;
+      });
+      const stop = startHeartbeat(ticket, beat, 30_000, (e) =>
+        transient.push(e),
+      );
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(beat).toHaveBeenCalledTimes(1);
+      expect(ticket.leaseLost).toBe(false);
+      expect(transient).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(beat).toHaveBeenCalledTimes(2);
+      expect(ticket.leaseLost).toBe(true);
+      stop();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(beat).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not claim while claimAllowed is false, then resumes', async () => {
+    let allowed = false,
+      claims = 0,
+      stop = false;
+    const pool = runJobPool<number>({
+      concurrency: 2,
+      pollMs: 5,
+      stopping: () => stop,
+      claimAllowed: () => allowed,
+      claim: async () => {
+        claims++;
+        return null;
+      },
+      run: async () => {},
+    });
+    await tick(40);
+    expect(claims).toBe(0);
+    allowed = true;
+    await until(() => claims > 0, 'a claim once allowed');
+    stop = true;
+    await pool;
+  });
+
+  it('wakes on a job that ended while the loop was busy, not after a full poll interval', async () => {
+    const gate = deferred();
+    let claims = 0,
+      started = 0,
+      stop = false;
+    const pool = runJobPool<number>({
+      concurrency: 1,
+      pollMs: 60_000,
+      stopping: () => stop,
+      claim: async () => {
+        claims++;
+        if (claims === 1) return 1;
+        if (claims === 2) return 2;
+        return null;
+      },
+      run: async () => {
+        started++;
+        if (started === 1) await gate.promise;
+        else stop = true;
+      },
+    });
+    await until(() => started === 1, 'first job');
+    gate.resolve();
+    await until(
+      () => started === 2,
+      'second job without waiting the poll interval',
+    );
+    stop = true;
+    await pool;
+  });
+});
+
+describe('worker error reporting and poll interval', () => {
+  it('logs only a stable code or class name, never the message', () => {
+    expect(
+      describeError(
+        Object.assign(new Error('secret-host'), { code: 'ETIMEDOUT' }),
+      ),
+    ).toBe('ETIMEDOUT');
+    expect(describeError(new TypeError('postgres://user:pw@host'))).toBe(
+      'TypeError',
+    );
+    expect(
+      describeError(Object.assign(new Error('x'), { code: 'bad code!' })),
+    ).toBe('Error');
+    expect(describeError(null)).toBe('UnknownError');
+    expect(isLeaseLost({ code: 'JOB_LEASE_LOST' })).toBe(true);
+    expect(isLeaseLost(new Error('x'))).toBe(false);
+  });
+
+  it('validates the poll interval instead of becoming a hot loop', () => {
+    expect(workerPollMsFromEnv({})).toBe(2000);
+    expect(workerPollMsFromEnv({ WORKER_POLL_MS: '500' })).toBe(500);
+    for (const value of ['abc', '0', '99', '60001', '1.5', '-1'])
+      expect(() => workerPollMsFromEnv({ WORKER_POLL_MS: value })).toThrow(
+        'WORKER_POLL_MS',
+      );
+  });
+
+  it('reports consecutive claim failures to the caller', async () => {
+    const seen: number[] = [];
+    let calls = 0,
+      stop = false;
+    await runJobPool<number>({
+      concurrency: 1,
+      pollMs: 1,
+      stopping: () => stop,
+      claim: async () => {
+        if (++calls <= 3) throw new Error('blip');
+        stop = true;
+        return null;
+      },
+      run: async () => {},
+      onClaimError: (_error, failures) => seen.push(failures),
+    });
+    expect(seen).toEqual([1, 2, 3]);
   });
 });

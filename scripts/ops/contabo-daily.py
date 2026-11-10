@@ -1157,7 +1157,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/proxy.ts': 'fec1f47c2d83e44de56aa086df23116c04d1429efd85b65f1881d6fc3b2ab4eb',
     'apps/worker/src/billing-queues.ts': '8df63e8c787be10e12c8c93889894e6444a6e0a0f5ca6a2b66a06d665961a04b',
     'apps/worker/src/chapter-billing.ts': '07e5a49cf1d5352a7f28ff32fa864489e99a3acca6d9f7321552139f87200245',
-    'apps/worker/src/main.ts': 'd450ab1d4760c10710f5671ff8fd5ecb9c6482289d64e931f677dbf53e5d5ac9',
+    'apps/worker/src/main.ts': '1507e0c753309f1166c2da90fe350ee3008cfc02e53f78935a271a3ce72aa557',
     'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
     'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
     'deploy/compose.yaml': 'efedb9d45d192f8097e81df9dbeb8f4d98c2195cf2aee6c495db3a55e70cd751',

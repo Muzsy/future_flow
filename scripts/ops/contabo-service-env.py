@@ -127,9 +127,9 @@ REVIEWED_IMAGE_CHANGES = {
     },
     '0bbdb063619e9d3a4a655f869ed5c604a3509386': {
         'apps/worker/src/job-pool.ts':
-            '8f6150981e2e5a700e49895b064152d31edb8e1f6613e361e69494e6a9d4f970',
+            'e8d838f848d9d00b557507f06f6732ec67904ffd231530317f16504b1ccc261e',
         'apps/worker/src/main.ts':
-            'd450ab1d4760c10710f5671ff8fd5ecb9c6482289d64e931f677dbf53e5d5ac9',
+            '1507e0c753309f1166c2da90fe350ee3008cfc02e53f78935a271a3ce72aa557',
         'packages/database/src/index.ts':
             '8c74ebd8555b1164264352856a40997a80de5acacde662a91c1b28ba284c6d09',
     },

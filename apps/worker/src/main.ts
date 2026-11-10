@@ -7,6 +7,7 @@ import { withServiceUsdAlerts } from './service-budget';
 import { generationQueueClaim } from './billing-queues';
 import {
   connectDatabase,
+  databasePoolConfigFromEnv,
   JobRepository,
   LifeJobRepository,
   SharedJobRepository,
@@ -33,8 +34,12 @@ import { processLifeJob } from './life-processor';
 import { processSharedJob } from './shared-processor';
 import { claimFairQueue } from './fair-queue';
 import {
+  createLeaseGuard,
+  describeError,
   runJobPool,
+  startHeartbeat,
   workerConcurrencyFromEnv,
+  workerPollMsFromEnv,
   workerPoolDefault,
 } from './job-pool';
 import { processPublicReviewJob } from './public-review-processor';
@@ -43,6 +48,11 @@ import { processPublicContentReviewJob } from './public-content-review-processor
 async function main() {
   narrativeConfigFromEnv();
   const concurrency = workerConcurrencyFromEnv();
+  const pollMs = workerPollMsFromEnv();
+  // The experiment ledger takes an exclusive file lock per job: a measured
+  // paid run must stay serial.
+  if (concurrency > 1 && process.env.AI_EXPERIMENT_LEDGER_PATH)
+    throw new Error('AI_EXPERIMENT_LEDGER_PATH requires WORKER_CONCURRENCY=1');
   const db = connectDatabase(
     process.env.DATABASE_URL ?? '',
     process.env.DATABASE_SSL === 'true',
@@ -92,6 +102,8 @@ async function main() {
   let queueStart = 0;
   let nextReadingCleanup = 0;
   let maintenanceTask: Promise<void> | undefined;
+  let maintenanceStartedAt = 0;
+  let maintenanceStallReported = false;
   let stopping = false;
   process.on('SIGINT', () => {
     stopping = true;
@@ -100,7 +112,16 @@ async function main() {
     stopping = true;
   });
   console.log('AI worker started');
-  console.log(JSON.stringify({ workerConcurrency: concurrency }));
+  const poolMax = databasePoolConfigFromEnv(process.env, {
+    max: workerPoolDefault(concurrency),
+  }).max;
+  console.log(JSON.stringify({ workerConcurrency: concurrency, poolMax }));
+  if (poolMax < concurrency + 1)
+    console.error(
+      JSON.stringify({ warning: 'DATABASE_POOL_MAX is below concurrency + 1' }),
+    );
+  const leaseMs = leaseSeconds * 1000;
+  const leases = createLeaseGuard(leaseMs);
   // Cleanup and billing upkeep run beside the jobs and never delay claiming;
   // one task at a time, so freed slots cannot start duplicates.
   const runMaintenance = async () => {
@@ -137,15 +158,31 @@ async function main() {
     }
   };
   const maintenanceTick = () => {
+    if (maintenanceTask) {
+      // A hung database call would otherwise stop upkeep without any trace.
+      if (
+        !maintenanceStallReported &&
+        Date.now() - maintenanceStartedAt > 10 * 60 * 1000
+      ) {
+        maintenanceStallReported = true;
+        console.error('Worker maintenance has not returned for 10 minutes.');
+      }
+      return;
+    }
     if (
-      maintenanceTask ||
-      (Date.now() < nextReadingCleanup &&
-        !(billingMaintenance && Date.now() >= nextBillingMaintenance))
+      Date.now() < nextReadingCleanup &&
+      !(billingMaintenance && Date.now() >= nextBillingMaintenance)
     )
       return;
-    maintenanceTask = runMaintenance().finally(() => {
-      maintenanceTask = undefined;
-    });
+    maintenanceStartedAt = Date.now();
+    maintenanceStallReported = false;
+    maintenanceTask = runMaintenance()
+      .catch(() => {
+        console.error('Worker maintenance failed unexpectedly.');
+      })
+      .finally(() => {
+        maintenanceTask = undefined;
+      });
   };
   type Claimed =
     | import('@future-flow/database').LifeJob
@@ -187,7 +224,7 @@ async function main() {
       shared = index === 1,
       publicReview = index === 3,
       contentReview = index === 4;
-    let leaseLost = false;
+    const ticket = leases.begin();
     const claimed = job;
     const heartbeatJob = () =>
       contentReview
@@ -231,13 +268,18 @@ async function main() {
       narrative ? fictionMaxRequestBytes : undefined,
     );
     let experiment: ExperimentAiBudget | undefined;
-    const heartbeat = setInterval(
-      () => {
-        void heartbeatJob().catch(() => {
-          leaseLost = true;
-        });
-      },
-      Math.floor((leaseSeconds * 1000) / 3),
+    const stopHeartbeat = startHeartbeat(
+      ticket,
+      heartbeatJob,
+      leaseMs,
+      (error) =>
+        console.error(
+          JSON.stringify({
+            jobId: job.id,
+            status: 'heartbeat-retry',
+            error: describeError(error),
+          }),
+        ),
     );
     try {
       const path = process.env.AI_EXPERIMENT_LEDGER_PATH;
@@ -298,7 +340,7 @@ async function main() {
         await processJob(job as import('@future-flow/database').Job, jobs, ai);
       console.log(JSON.stringify({ jobId: job.id, status: 'completed' }));
     } catch (error) {
-      if (!leaseLost) {
+      if (!ticket.leaseLost) {
         if (contentReview)
           await contentReviews.fail(
             job as import('@future-flow/database').PublicContentReviewJob,
@@ -321,23 +363,36 @@ async function main() {
       }
       console.error(JSON.stringify({ jobId: job.id, status: 'failed' }));
     } finally {
-      clearInterval(heartbeat);
+      stopHeartbeat();
+      ticket.end();
       experiment?.close();
     }
   };
   try {
     await runJobPool<Selected>({
       concurrency,
-      pollMs: Number(process.env.WORKER_POLL_MS ?? 2000),
+      pollMs,
       stopping: () => stopping,
       claim: claimNext,
+      claimAllowed: leases.claimAllowed,
       run: runClaimed,
       tick: maintenanceTick,
-      onClaimError: () => {
-        console.error('Job claim failed; retry scheduled.');
+      onClaimError: (error, failures) => {
+        console.error(
+          JSON.stringify({
+            status: 'claim-failed',
+            error: describeError(error),
+            consecutiveFailures: failures,
+          }),
+        );
       },
-      onRunError: () => {
-        console.error('Job runner failed after its own error handling.');
+      onRunError: (error) => {
+        console.error(
+          JSON.stringify({
+            status: 'runner-failed',
+            error: describeError(error),
+          }),
+        );
       },
     });
   } finally {

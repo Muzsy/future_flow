@@ -13,7 +13,11 @@ import { DomainError } from '@future-flow/core';
 import { configureGenerationGate } from '@future-flow/database';
 import { configureWorkerChapterBilling } from '../apps/worker/src/chapter-billing';
 import { applyMigrations } from '../scripts/lib/migrations';
-import { runJobPool } from '../apps/worker/src/job-pool';
+import {
+  createLeaseGuard,
+  runJobPool,
+  startHeartbeat,
+} from '../apps/worker/src/job-pool';
 import { setupFixture } from './life-fixtures';
 
 // Real multi-connection PostgreSQL proof for the bounded worker pool. Skipped
@@ -234,6 +238,72 @@ describe.skipIf(!disposable)(
       } finally {
         configureGenerationGate(null);
       }
+    }, 60000);
+
+    it('never runs a job twice at the same time in one process, even when its lease expires under a failing heartbeat', async () => {
+      await queueJobs(2);
+      const jobs = new LifeJobRepository(workerDb, 1.5);
+      const leases = createLeaseGuard(1500);
+      const running = new Map<string, number>();
+      const runs = new Map<string, number>();
+      let overlap = 0,
+        stop = false,
+        done = 0;
+      const firstJob: { id?: string } = {};
+      await runJobPool<LifeJob>({
+        concurrency: 3,
+        pollMs: 20,
+        stopping: () => stop,
+        claimAllowed: leases.claimAllowed,
+        claim: () => jobs.claim(),
+        run: async (job) => {
+          const ticket = leases.begin();
+          firstJob.id ??= job.id;
+          const nth = (runs.get(job.id) ?? 0) + 1;
+          runs.set(job.id, nth);
+          if ((running.get(job.id) ?? 0) > 0) overlap++;
+          running.set(job.id, (running.get(job.id) ?? 0) + 1);
+          // The first run of the first job loses its database for longer than
+          // the lease: every heartbeat fails, like a pooler outage.
+          const outage = job.id === firstJob.id && nth === 1;
+          const stopBeat = startHeartbeat(
+            ticket,
+            outage
+              ? async () => {
+                  throw Object.assign(new Error('outage'), {
+                    code: 'ETIMEDOUT',
+                  });
+                }
+              : () => jobs.heartbeat(job),
+            1500,
+          );
+          try {
+            await new Promise((resolve) =>
+              setTimeout(resolve, outage ? 3000 : 100),
+            );
+            await workerDb.query(
+              "UPDATE aw_jobs SET status='completed',lease_token=NULL,lease_until=NULL WHERE id=$1 AND lease_token=$2",
+              [job.id, job.lease_token],
+            );
+          } finally {
+            stopBeat();
+            ticket.end();
+            running.set(job.id, running.get(job.id)! - 1);
+            done++;
+            if (done === 2) stop = true;
+          }
+        },
+      });
+      expect(overlap).toBe(0);
+      // Claims paused while the lease was at risk, so the expired job was not
+      // handed to this process a second time; its own task finished it.
+      expect(runs.get(firstJob.id!)).toBe(1);
+      const states = await admin.query<{ status: string; n: number }>(
+        "SELECT status, count(*)::int AS n FROM aw_jobs WHERE status IN ('queued','running','completed') GROUP BY status",
+      );
+      expect(states.filter((r) => r.status !== 'completed' && r.n > 0)).toEqual(
+        [],
+      );
     }, 60000);
   },
 );
