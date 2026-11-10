@@ -9,7 +9,8 @@ export type AdmissionState =
   | { kind: 'checking' }
   | { kind: 'consent' }
   | { kind: 'admitted' }
-  | { kind: 'full' }
+  // `notice` is set when a presented invitation was refused.
+  | { kind: 'full'; notice?: string }
   | { kind: 'error'; message: string };
 
 // The single request body of POST /me/consent: both literals and the terms
@@ -23,6 +24,11 @@ export const CONSENT_BODY = Object.freeze({
   readonly acknowledged: true;
   readonly termsVersion: typeof TERMS_ACCEPTANCE_VERSION;
 };
+
+// The consent submit body, with the invitation token when the person came with
+// a valid-looking one (the API verifies it; a wrong token is never a way in).
+export const consentBody = (inviteToken: string | null) =>
+  inviteToken ? { ...CONSENT_BODY, inviteToken } : CONSENT_BODY;
 
 // Pages that use the generation or personal-data API. The account-control pages
 // (settings: export and deletion, and the public privacy page) stay reachable
@@ -69,6 +75,8 @@ export function admissionFromError(
   message: string,
 ): AdmissionState {
   if (code === 'SERVICE_ADMISSION_CLOSED') return { kind: 'full' };
+  if (code === 'SERVICE_INVITE_INVALID')
+    return { kind: 'full', notice: message };
   if (code === 'SERVICE_ADMISSION_REQUIRED') return { kind: 'consent' };
   return { kind: 'error', message };
 }
@@ -89,7 +97,9 @@ export const showsContent = (state: AdmissionState) =>
 export function consentFailure(
   code: string | null,
   message: string,
-): { kind: 'full' } | { kind: 'notice'; message: string } {
+): { kind: 'full'; notice?: string } | { kind: 'notice'; message: string } {
+  if (code === 'SERVICE_INVITE_INVALID')
+    return { kind: 'full', notice: message };
   return code === 'SERVICE_ADMISSION_CLOSED'
     ? { kind: 'full' }
     : { kind: 'notice', message };

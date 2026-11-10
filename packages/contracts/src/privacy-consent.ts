@@ -21,5 +21,8 @@ export const privacyConsentRequestSchema = z
     adult: z.literal(true),
     acknowledged: z.literal(true),
     termsVersion: z.literal(TERMS_ACCEPTANCE_VERSION),
+    // A subscriber's signed invite link token (see core billing-referral). Only
+    // the pre-admission request uses it; the server verifies it, never trusts it.
+    inviteToken: z.string().min(1).max(64).optional(),
   })
   .strict();

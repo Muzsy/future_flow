@@ -41,6 +41,12 @@ import { captchaSatisfied } from '../lib/turnstile';
 import { signInWithPassword, signUpWithPassword } from '../lib/auth-requests';
 import { LifeExperience } from './life-experience';
 import { AdmissionPanel, useAdmission } from './admission-gate';
+import {
+  inviteFromSearch,
+  loginRedirectPath,
+  rememberInvite,
+  rememberedInvite,
+} from '../lib/referral-invite';
 import { admissionGated, showsContent } from '../lib/admission';
 import { PublicPreviewEditor } from './public-preview-editor';
 import { ConnectionsExperience } from './connections-dashboard';
@@ -169,7 +175,30 @@ export function Experience({
   }, [page, id]);
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
-    [signup, setSignup] = useState(false);
+    [signup, setSignup] = useState(false),
+    [invited, setInvited] = useState(false);
+  // An invite link (`/login?invite=`) is remembered, taken out of the address,
+  // and opens the sign-up view. The API verifies the token later; this only
+  // carries it.
+  useEffect(() => {
+    if (page !== 'login') return;
+    const params = new URLSearchParams(window.location.search);
+    const token = inviteFromSearch(window.location.search);
+    if (params.has('invite')) {
+      params.delete('invite');
+      const rest = params.toString();
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname + (rest ? '?' + rest : ''),
+      );
+      if (token) rememberInvite(token);
+    }
+    if (token && allowSignup) {
+      setInvited(true);
+      setSignup(true);
+    }
+  }, [page, allowSignup]);
   const [captchaToken, setCaptchaToken] = useState(''),
     [captchaReset, setCaptchaReset] = useState(0);
   const [email, setEmail] = useState(''),
@@ -338,9 +367,7 @@ export function Experience({
             password,
             emailRedirectTo:
               window.location.origin +
-              (target
-                ? '/login?returnTo=' + encodeURIComponent(target)
-                : '/login'),
+              loginRedirectPath(target, rememberedInvite()),
           },
           captcha,
         );
@@ -879,6 +906,11 @@ export function Experience({
                     ? t('auth.signUpDescription')
                     : t('auth.signInDescription')}
                 </p>
+                {signup && invited && (
+                  <p className="notice" role="status">
+                    {t('referral.signupNotice')}
+                  </p>
+                )}
                 {!authConfigured ? (
                   <div className="notice">{t('auth.notConfigured')}</div>
                 ) : (
