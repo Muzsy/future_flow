@@ -79,6 +79,8 @@ Külön ellenőrzés kell például:
 - AI routing/budget;
 - deployment/TLS/secret boundary.
 
+**Worker-pool (párhuzamos generálás).** `tests/worker-job-pool.test.ts` fake claim/run függvényekkel őrzi a korlátot, az azonnali slot-újratöltést, a soros (1) módot, az újra-claimelt azonos job elszámolását, a hibás job elszigetelését, a claim-hiba utáni folytatást, a leállítási megvárást és az env-validációt. `tests/database-pool-config.test.ts` a pool-alapértékeket és a szigorú env-validációt. `tests/worker-job-pool-postgres.test.ts` valódi többkapcsolatos PostgreSQL-en (a `SERVICE_ADMISSION_PG_URL` szerinti eldobható, helyi `ff_admission_test*` szerveren, saját `ff_admission_test_pool` adatbázisban) 14 valódi életjobot húz le hat slottal: mindegyik pontosan egyszer kerül claimre, a csúcs-egyidejűség ≤ 6, a valódi USD-reserve/settle és heartbeat fut, minden foglalás `completed`; egy további próba a valódi fejezet-dispatch ellenőrzést (taster és fizetett foglalás, élő gate) futtatja jobonként, és a foglalás nélküli job csak önmagát buktatja (`BILLING_RESERVATION_REQUIRED`). Egy további valódi PostgreSQL-próba a lease-védelmet igazolja: lejáró lease és hibázó heartbeat mellett ugyanazt a jobot ugyanaz a folyamat nem futtatja kétszer egyszerre (a `claimAllowed` nélküli mutáció átfedést mutat). A `tests/worker-pool-load-probe.test.ts` (csak `WORKER_LOAD_PROBE=1` és `SERVICE_ADMISSION_PG_URL` mellett fut) szintetikus terheléssel, szolgáltatói hívás nélkül méri 24 jobbal, 400 ms-os modellidőzítővel a `WORKER_CONCURRENCY` 1/6/12 értékét. 2026-11-10-i mérés (egy helyi gép, csúcs RSS, DB-művelet p95/max, eseményhurok-késleltetés p99): N=1: 120 MiB, 6/13 ms, 10,9 ms; N=6: 112 MiB, 8/28 ms, 10,7 ms; N=12: 115 MiB, 11/21 ms, 10,8 ms, mindegyiknél 24/24 job sikeres, a csúcs-egyidejűség a beállított érték. A hat slot tehát szintetikus terhelésnél nem emel memóriát vagy késleltetést érdemben; ez alsó korlát, mert a modellhívás itt időzítő és a kontextus kicsi. A meghívói ajándékfejezet (#193) esete a merge után kerül ide. Szolgáltatói hívás nincs (a „modell” időzítő). Nem mért: a worker memóriaigénye valódi, nagy kontextusú fejezeteknél, a Supabase-kapcsolatkorlát és az OpenAI-rate-limit; ezek célgépes/éles megfigyelést igényelnek.
+
 ## Paid AI
 
 CI alapértelmezésben nem költhet éles AI keretet. Valódi provider E2E csak explicit budgettel, dokumentált célból és megfelelő cleanup/receipt mellett engedett.
@@ -114,13 +116,11 @@ N07 proof: canon-dependent editorial failure négy hívás után megáll, koráb
 
 Withheld actor follow-up reprodukció: a korábbi core validátor elfogadott egy historical actor origin maphez kötött profil-deltát memory.withheld=true esetén (új negatív teszt a fix előtt hibázott). A javítás után ezt elutasítja, az aktuális periodban szabályosan bevezetett új fikciót engedi. A Shared deletion integráció ugyanilyen valós, tárolt actor_add/profil prefixből igazolja a delta tiltását és a PRIVATE_PROFILE_CUE kizárását az új requestből.
 
-
 ## Narrative quality workstream N08
 
 A `pnpm evaluate:narrative` alapból kizárólag offline kitalált profilokkal fut. A `tests/narrative-evaluation.test.ts` a teljes 68-fejezetes worker/fixed-canon/fork corpus, a provider-hívás nélküli resume, szemantikai review, blind snapshot, emberi értékelési küszöbök és tartós költségelszámolás regresszióját tartalmazza. A teljes corpus teszt explicit 180 másodperces timeoutot kap; ez nem növeli globálisan a suite limitjét. Mock szöveg/editor score nem minőségbizonyíték. Valódi paid benchmark és emberi review csak a [külön mérési runbook](NARRATIVE_EVALUATION_HU.md) szerint; a release kapukat a [kiadási előkészítés](NARRATIVE_RELEASE_HU.md) őrzi.
 
 A tervellenőrzött N08 út célzott tesztjei: narrative-plan-review (strict policy/max8 marker párosítás, computed négy dimenziós gate, foreign reference, withheld/inventory projekció, régi teljes prompt byte-hash, külön checker budget/receipt); narrative-worker új ág (öt hívás, writer előtti tervjavítás, második elutasításnál zero prose, stale/hamis review proof, mentett review és bound ready recovery, nyolcadik slot és kilencedik tiltás, változatlan régi hétkéréses ág). A teljes offline harness immár 248 mock transporttal futtatja a 68 fejezetet és 34 párt. Ez továbbra folyamat- és pénzügyi kontrollbizonyíték; tényleges történetminőséget csak valódi szövegmérés és független humán olvasás igazolhat.
-
 
 ### Registry040 host/image elfogadás — #142/#149 jelölt
 
@@ -132,9 +132,7 @@ A staged alkalmazás DB-postcheckje verzióhoz kötött: a régi funded/successo
 
 A #151 javítás CI smoke child-kerete40perc, Container job60perc; a standalone image-job45perc marad. A korábbi30/45 és15/40perces bejegyzések történetiek. A növelés oka: azonos reviewed tree-n a PR Container25,1perc után sikeres, a main Container30percnél időtúllépett, miközben a main standalone próba sikeres volt. Az egyedi műveleti határidők, watchdog és a valódi10perces várakozás változatlanok. A szintetikus fixture fix esetneves start/complete futásidőket ad kizárólag stderrre; külső timeoutnál ez lokalizálja az utolsó fázist. A szülő saját temp-takarításának hibája továbbra FAIL, de nem dob új kivételt az eredeti hiba helyére. Nincs sudo rm vagy root-jogosultság-lazítás: a megmaradt0700 könyvtár nem sikeres cleanup. Az új source-hoz a konkrét saját CI és exact-source review eredménye kell; a fixture-protokoll léte nem sikeres futás vagy éles engedély. A mért futásidőt a CI rögzíti, provider/AI hívás nincs.
 
-
 A külön adatbázisba történő bináris comparison restore nem in-place upgrade: a DB-identitás eltér, a PostgreSQL pedig a default ACL-t NULLként vagy explicit, más sorrendű bejegyzésekként tárolhatja. A fixture ezért mindkét példány változatlan reviewed runtime/catalog ellenőrzése után külön, konzisztens read-only megfigyelésben **minden** katalóguskomponenst és az összes kibontott jogosultságot összeveti (grantor, recipient, privilege, grant option; sorrendtől/default reprezentációtól függetlenül). Csak ennek teljes egyezése után normalizálja a bináris comparison nyers ACL-katalógushashét; az összes adat-, billing-, receipt-, registry- és policy-hash továbbra egyezik. Az éles v2 source/candidate/migration guard nyers katalógushashe és jelentése változatlan. A `fixture-restore-catalog.test.ts` a valódi SQL ACL-oda-vissza utat és sorrendet, valamint a megváltozott grantot, grant optiont, sequence/function/schema-jogot és RLS-t ellenőrzi; eltérés nem válhat egyenlővé. [PostgreSQL16 ACL-függvények](https://www.postgresql.org/docs/16/functions-info.html).
-
 
 ### Korlátos nyílt admission — valódi PostgreSQL próba
 
@@ -144,13 +142,11 @@ A `tests/service-admission.test.ts` (PGlite + valódi HTTP-kapu) minden CI-futá
 
 A `service-operations.test.ts` teljes040 sémás PGlite adatbázison20 esetet futtat: három meglévő+10+10 admission reset nélkül; paused bootstrap és Auth/root sorrend; stale és konkurens intent-CAS; teljes batch rollback; hibás provider-UUID/anonymous/email/ban/deleted/metadata; Auth-kiesés alatti revoke; restore-zár megőrzése; readonly committed/uncommitted/lost-output readback; törölt root nem támad fel; provider-várakozás alatti intentlejárat; context/hash/extra-field elutasítás. Minden eset után az eredeti USD-account és consumed taster sor változatlan. Ez célzott könyvtári bizonyíték: valódi többkapcsolatos PG/törlés-verseny, lockra várakozás alatti lejárat és actual-image/root-journal E2E továbbra a teljes #150 elfogadási feltétele, nincs belőle promotion-proof.
 
-
 ## Service-operátor kliens — #179
 
 `node --test tests/ops/service-operator-client.test.mjs`: zárt argv, source/script/parancs-kötött jóváhagyás, abszolút kapacitás és explicit added-places, emergency csak pause/close, valódi Python-loader 0700/0600 fájlokkal/hash-sel/takarítással és scrubbed envvel, Python-parser paritás, pinned SSH, szigorú commit-válasz. Az eldobható committed main checkoutból futó tényleges CLI helyettesített SSH-val bizonyítja a privát intent/result/failure megőrzését, a raw stderr titok kizárását és a vak retry hiányát. Production/root/valódi SSH vagy AI-hívás nincs; ez nem A8 vagy célgépes bizonyíték. A Verify job külön futtatja. A meglévő `test_service_operator.py`, `service-operator-e2e.test.ts` és többkapcsolatos adatbázispróba a root/DB logika külön regressziója.
 
 2026-11-06 helyi célzott eredmény: az új kliens 13/13 Node-tesztje és a meglévő root operátor 37/37 Python-tesztje PASS. A helyi teljes suite, a PR saját CI-je és a későbbi main CI külön bizonyíték; a célzott eredmény nem éles jóváhagyás.
-
 
 ## Teljes SPR-konfigurációs archívum — #181
 
