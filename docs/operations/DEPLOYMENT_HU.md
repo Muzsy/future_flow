@@ -25,6 +25,8 @@ Runtime felosztás:
 
 GPU nem szükséges.
 
+**Worker-párhuzamosság.** A worker szolgáltatási profilban (`SERVICE_ACCESS_ENFORCEMENT=true`) alapból hat jobot futtat egyszerre, máshol egyet. A `WORKER_CONCURRENCY` (1–20) és az adatbázis-pool `DATABASE_POOL_MAX` (1–30, alapból a workerben `concurrency + 4`, az API-ban 5) csak akkor hat, ha a futó Compose az env-t továbbítja; az éles, fagyasztott Compose ezt a kulcsot nem tartalmazza, ezért az érték a kód alapértéke, a konténer CPU/RAM-limitje változatlan (worker 1 GB, 512 MB heap). A Supabase Session pooler kapcsolatkorlátját az emelés előtt ellenőrizni kell; hat slotnál a worker legfeljebb 10, az API 5 kapcsolatot nyit. Az érték módosítása image-kiadás ([NATIVE040_IMAGE_RELEASE_HU](NATIVE040_IMAGE_RELEASE_HU.md)).
+
 ## Security boundary
 
 - csak a proxy 80/443 portja publikus;

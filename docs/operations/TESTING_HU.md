@@ -79,6 +79,8 @@ Külön ellenőrzés kell például:
 - AI routing/budget;
 - deployment/TLS/secret boundary.
 
+**Worker-pool (párhuzamos generálás).** `tests/worker-job-pool.test.ts` fake claim/run függvényekkel őrzi a korlátot, az azonnali slot-újratöltést, a soros (1) módot, az újra-claimelt azonos job elszámolását, a hibás job elszigetelését, a claim-hiba utáni folytatást, a leállítási megvárást és az env-validációt. `tests/database-pool-config.test.ts` a pool-alapértékeket és a szigorú env-validációt. `tests/worker-job-pool-postgres.test.ts` valódi többkapcsolatos PostgreSQL-en (a `SERVICE_ADMISSION_PG_URL` szerinti eldobható, helyi `ff_admission_test*` szerveren, saját `ff_admission_test_pool` adatbázisban) 14 valódi életjobot húz le hat slottal: mindegyik pontosan egyszer kerül claimre, a csúcs-egyidejűség ≤ 6, a valódi USD-reserve/settle és heartbeat fut, minden foglalás `completed`; egy további próba a valódi fejezet-dispatch ellenőrzést (taster és fizetett foglalás, élő gate) futtatja jobonként, és a foglalás nélküli job csak önmagát buktatja (`BILLING_RESERVATION_REQUIRED`). A meghívói ajándékfejezet (#193) esete a merge után kerül ide. Szolgáltatói hívás nincs (a „modell” időzítő). Nem mért: a worker memóriaigénye valódi, nagy kontextusú fejezeteknél, a Supabase-kapcsolatkorlát és az OpenAI-rate-limit; ezek célgépes/éles megfigyelést igényelnek.
+
 ## Paid AI
 
 CI alapértelmezésben nem költhet éles AI keretet. Valódi provider E2E csak explicit budgettel, dokumentált célból és megfelelő cleanup/receipt mellett engedett.

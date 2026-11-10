@@ -96,6 +96,10 @@ történhet, ha a váltás előtt nyitva volt és a visszaolvasáskor van szabad
 hely. Az éles próba egy meglévő fiókkal ellenőrzi a Discover listát és egy
 hivatalos történet megnyitását.
 
+## A párhuzamos fejezetgenerálás kiadása
+
+A worker egy folyamatban több, különböző felhasználóhoz tartozó jobot futtat (lásd [ARCHITECTURE_HU](../architecture/ARCHITECTURE_HU.md#appsworker)). A változás három termékfájlt érint: `apps/worker/src/main.ts`, az új `apps/worker/src/job-pool.ts` és `packages/database/src/index.ts`. Az image-váltó ezeket kizárólag a futó `0bbdb06` forrás közvetlen kiadási utódjaként, a három fájl teljes listájának és SHA-256 lenyomatának egyezésekor fogadja el (`REVIEWED_IMAGE_CHANGES`); a `REGISTRY_040_CHANGE_HASHES` két érintett, már pinelt fájlja (`main.ts`, `database/src/index.ts`) a mainnel egyezik. Compose- és env-változás nincs: a szolgáltatási profil alapértéke hat slot, a worker pool tíz kapcsolat, a konténerlimitek változatlanok, így a váltás a szokásos image-only út. Kiadás előtt a Supabase Session pooler kapcsolatkorlátját és az OpenAI-szervezet rate-limitjét ellenőrizni kell, a váltás után a worker naplóban a `{"workerConcurrency":6}` sort és az első napokban a `AI_RATE_LIMIT` hibakódú jobokat, valamint az `unknown` USD-foglalások számát kell figyelni. Visszaállítás: az előző image (`rollback-service-image …`).
+
 ## A Web UI javítások kiadása
 
 A [#188](https://github.com/Muzsy/future_flow/pull/188) a webes felület 14 fájlját

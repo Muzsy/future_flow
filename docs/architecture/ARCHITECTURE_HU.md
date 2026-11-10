@@ -51,6 +51,8 @@ HTTP/API boundary. Feladata többek között:
 
 Aszinkron munkák, különösen AI-generálás és háttérfeldolgozás. A worker nem kerülheti meg a queue/job, budget, lease vagy entitlement határokat.
 
+**Korlátos párhuzamosság (`apps/worker/src/job-pool.ts`):** a worker egy folyamatban legfeljebb `WORKER_CONCURRENCY` (1–20) jobot futtat egyszerre. Minden job külön, változatlan claim → heartbeat → feldolgozás → fail sorrendet kap; a lease-token, fejezetfoglalás-ellenőrzés és USD-reserve/settle minden fizikai kérés előtt jobonként érvényesül. A claim egyszerre egy hívás (a fair-queue sorrend megmarad), a karbantartás a jobokkal párhuzamosan, de egy példányban fut, a leállítás (SIGTERM) új claim nélkül megvárja a futó jobokat. Alapérték: 1; `SERVICE_ACCESS_ENFORCEMENT=true` (szolgáltatási profil) esetén 6, az env felülírja. Érvénytelen érték induláskor hiba. A párhuzamosság csak különböző felhasználók jobjai között él (ágonként és felhasználónként egy aktív job). Az adatbázis-pool alapértéke a workerben `WORKER_CONCURRENCY + 4` (soros: 5, hat slot: 10); `DATABASE_POOL_MAX` (1–30) és `DATABASE_CONNECTION_TIMEOUT_MS` (1000–60000) felülírja, az API alapértéke 5 és 10 s marad.
+
 ### `packages/contracts`
 
 Zod/TypeScript contractok és gépi sémák. Külső/belső payload formák elsődleges gépi leírása.

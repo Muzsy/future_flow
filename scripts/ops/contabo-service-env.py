@@ -125,6 +125,14 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/components/site-header.tsx':
             'db3888e1f1c9082e467e45a78a515ca426863a328a5250ca0a6942fc90835e26',
     },
+    '0bbdb063619e9d3a4a655f869ed5c604a3509386': {
+        'apps/worker/src/job-pool.ts':
+            '8f6150981e2e5a700e49895b064152d31edb8e1f6613e361e69494e6a9d4f970',
+        'apps/worker/src/main.ts':
+            'd450ab1d4760c10710f5671ff8fd5ecb9c6482289d64e931f677dbf53e5d5ac9',
+        'packages/database/src/index.ts':
+            '8c74ebd8555b1164264352856a40997a80de5acacde662a91c1b28ba284c6d09',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
