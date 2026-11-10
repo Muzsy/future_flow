@@ -1120,17 +1120,37 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
-    def test_parallel_worker_release_accepts_only_the_pinned_product_files(self):
+    def test_combined_worker_pool_terms_and_invite_release_accepts_only_the_pinned_product_files(self):
         import subprocess
         previous = '0bbdb063619e9d3a4a655f869ed5c604a3509386'
-        # The reviewed commit that carries these bytes; reading the working tree would
-        # break whenever a later change touches the same files.
-        release = 'a48024365b0ee0840a580bdb6e76826301ba1ec0'
+        # The reviewed merge commit that carries these bytes; reading the working tree
+        # would break whenever a later change touches the same files.
+        release = '5d2a9f7cdc56014ee02be75543b55988eac37a3c'
         checkout = directory.parents[1]
         paths = sorted([
+            'apps/api/src/app.ts',
+            'apps/api/src/billing.ts',
+            'apps/api/src/service-access.ts',
+            'apps/api/src/service-admission.ts',
+            'apps/web/components/admission-gate.tsx',
+            'apps/web/components/billing-panel.tsx',
+            'apps/web/components/experience.tsx',
+            'apps/web/components/terms-of-use.tsx',
+            'apps/web/lib/admission.ts',
+            'apps/web/lib/billing.ts',
+            'apps/web/lib/i18n/messages.ts',
+            'apps/web/lib/referral-invite.ts',
             'apps/worker/src/job-pool.ts',
             'apps/worker/src/main.ts',
+            'packages/contracts/src/error-messages.ts',
+            'packages/contracts/src/privacy-consent.ts',
+            'packages/core/src/billing-referral.ts',
+            'packages/core/src/billing.ts',
+            'packages/core/src/index.ts',
+            'packages/database/src/billing.ts',
             'packages/database/src/index.ts',
+            'packages/database/src/referral.ts',
+            'packages/database/src/service-access.ts',
         ])
         delta = b''.join(path.encode() + b'\0' for path in paths)
         hashes = {
@@ -1142,6 +1162,8 @@ class ReviewedImageChangesTests(unittest.TestCase):
             env.require_reviewed_image_changes(previous, delta + b'packages/ai/src/index.ts\0', hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product files'):
             env.require_reviewed_image_changes(previous, delta + b'deploy/compose.yaml\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
