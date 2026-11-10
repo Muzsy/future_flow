@@ -394,6 +394,10 @@ if (
     const { context, scope } = JSON.parse(raw);
     console.log(JSON.stringify(runRegistryImageFixture(context, scope)));
   } catch (error) {
+    const fullErr = [error.message, error.stack || '']
+      .filter(Boolean)
+      .join('\n');
+    console.error('::error::' + fullErr.replaceAll('\n', '%0A'));
     console.error(error.message);
     process.exitCode = 1;
   }

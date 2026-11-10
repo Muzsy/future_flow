@@ -50,7 +50,10 @@ export function LifeDeletionControl({
     }
   }
   return (
-    <section aria-label="Delete this private life">
+    <section
+      aria-label="Delete this private life"
+      className={`life-deletion-control ${open ? 'open' : ''}`}
+    >
       {!open ? (
         <button
           className="secondary"

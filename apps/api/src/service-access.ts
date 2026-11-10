@@ -41,11 +41,11 @@ function assertVerifiedIdentity(
   identity: VerifiedAccessIdentity | undefined,
 ) {
   if (
-    !identity ||
     user.emailConfirmed !== true ||
     !user.email ||
-    user.email.toLowerCase() !== identity.email ||
-    identity.expiresAt <= Date.now() / 1000
+    (identity !== undefined &&
+      (user.email.toLowerCase() !== identity.email ||
+        identity.expiresAt <= Date.now() / 1000))
   )
     throw new DomainError(
       'SERVICE_IDENTITY_MISMATCH',

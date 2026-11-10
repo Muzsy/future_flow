@@ -54,3 +54,29 @@ A konkrét eredeti `closed-beta-catalog/state.json` 8 MiB-ig vihető át és olv
 ## Aktív funded runtime új verziója
 
 A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.
+
+
+## Személyes éles hullámvezérlő kliens — #179, 2026-11-06
+
+A `scripts/contabo-service-operator.mjs` a meglévő root `contabo-service-operator.py` és `contabo-service-profile.py` commitolt bájtjait futtatja privát ideiglenes könyvtárból, a meglévő pinned SSH úton. Csak tiszta, commitolt `main` checkoutból használható Linuxon és Windowson; Linuxon az `ALTERWARD_SSH_SECRETS_DIR` explicit védett könyvtár. Nem telepít Daily-t, nem cserél image-et, nem módosít budgetet, Authot vagy billing-szintet. Az SPR, az eredeti intent/CAS/journal és a restore-karantén továbbra a root operátor hatásköre.
+
+Parancsok (az író példák először SSH nélkül kiírják a szükséges `--confirm` mondatot):
+
+```bash
+node scripts/contabo-service-operator.mjs status
+node scripts/contabo-service-operator.mjs bootstrap
+node scripts/contabo-service-operator.mjs wave --capacity 1 --open --approve-added 1
+node scripts/contabo-service-operator.mjs resume
+node scripts/contabo-service-operator.mjs pause
+node scripts/contabo-service-operator.mjs wave --close
+node scripts/contabo-service-operator.mjs pause --emergency
+node scripts/contabo-service-operator.mjs wave --close --emergency
+```
+
+Minden író futtatáshoz Ákos konkrét műveletre szóló jóváhagyása kell. A kliens által kiírt `service-operation <digest>` mondat a teljes kliens-commitot, a feltöltött Python-fájlok digestjét és a pontos parancsot/paramétereket köti; ezt kell `--confirm "<mondat>"` értékként hozzáadni. A mondat nem új kapacitás- vagy költési engedély, és nem helyettesíti a root friss állapotellenőrzését. A `status` alkalmazási/DB szempontból megfigyelés, de létrehozhatja az operátori állapotkönyvtárat/zárat, és átmeneti probe-konténert használ. `ok:true` státuszválasznál a lekérdezés sikerét jelenti, nem automatikusan egészséges szolgáltatást: a teljes privát eredményt ellenőrizni kell.
+
+A kapacitás **abszolút**: A8-hoz `capacity 1`, majd annak sikeres, egy helyet elfoglaló admissionje után `capacity 10 --approve-added 9` nyit kilenc szabad helyet. Más aktuális kapacitásnál a hozzáadott helyek száma más; a root operátor ezt friss adatbázis-státuszból ellenőrzi. `wave --open` nem engedélyezi a generálást vagy a Checkoutot. A bootstrap mindkettőt szüneteltetve indítja; A8 előtt külön, jóváhagyott `resume`, majd `status` visszaellenőrzés szükséges. Vészhelyzetben csak a `pause --emergency` és a `wave --close --emergency` csökkentheti a kitettséget igazolt SPR nélkül.
+
+Az egyedi UUID-val megőrzött, felül nem írt intent/result/failure bizonylatok a `.local/contabo-service-operator/` privát könyvtárban vannak; Linuxon 0700/0600. Teljes státusz/fiókazonosítók nem kerülnek konzolra vagy repóba. Az intent SSH előtt tartósul. Transporthiba, időtúllépés vagy hibás commit-válasz után az eredmény bizonytalan: **nincs automatikus újrapróba**. Meg kell vizsgálni a root `/var/lib/alterward/service-operations/journal.jsonl` naplóját, és az eredeti helper/probe megszűnésének igazolása után a meglévő root `reconcile` eljárással rendezni az eredeti operation-id-t; ezt a kliens szándékosan nem automatizálja. A helyi UUID nem a root operation-id.
+
+Forrásellenőrzés: `node --test tests/ops/service-operator-client.test.mjs`; a valódi Python-loader privát fájlokat, takarítást, hash- és argv-védelmet tesztel, a tényleges helyi CLI eldobható commitolt main checkoutban, helyettesített SSH-val fut. Ez nem célgépes/root/éles próba. A PR/független review/saját és main CI, majd a konkrét éles művelet engedélye külön kapu; a #179 implementáció nem indít hullámot.

@@ -320,25 +320,29 @@ class System:
         check runs, otherwise the image must still be the recorded one and report
         exactly the capability digest recorded when the generation was prepared.
         """
-        from alterward_funded_replay import active_funded_runtime
-        proof = active_funded_runtime(self.daily, fence.original)
+        from alterward_funded_replay import active_funded_authority, active_funded_runtime
+        proof, release = active_funded_authority(self.daily, fence.original)
         root = (self.daily.active_funded_directory()
                 if hasattr(self.daily, 'active_funded_directory') else self.root)
         candidate = json.loads(fence.original(root / 'prepared.json'))
         if sha(encoded(candidate)) != proof['preparedSha256']:
             raise ValueError('Active generation evidence changed during proof')
-        exact_source = (candidate['sourceCommit'] == self.request['sourceCommit']
-                        and candidate['bundleSha256'] == self.request['bundleSha256'])
+        exact_source = (proof['sourceCommit'] == self.request['sourceCommit']
+                        and proof['bundleSha256'] == self.request['bundleSha256'])
         if root == self.root and not exact_source:
             raise ValueError('Use the original exact committed upgrade source for active proof')
         # Only the original generation owns funded-runtime-upgrade/capability.json. Any later
         # generation probes through the scratch record, whatever source the checkout is.
         self.capability_scratch = root != self.root
         role = proof['role']
-        build = candidate['release'][role]
+        build = release['build'] if release else candidate['release'][role]
         self.active_registry = proof.get('recoveryProfile') == 'registry040'
         if exact_source:
-            self.image(build)
+            capability_sha = self.image(build)
+            if release and capability_sha != release['capabilitySha256']:
+                raise ValueError('Active image capability differs from its recorded evidence')
+        elif release:
+            self.check_recorded_image(build, proof['sourceCommit'], release['capabilitySha256'])
         else:
             self.recorded_image(role, candidate)
         # Re-read after the image capability check; concurrent state cannot issue a proof.
@@ -751,10 +755,12 @@ class System:
         report byte-for-byte the capability digest stored in the prepared evidence.
         """
         build = candidate['release'][role]
-        recorded = candidate['release'].get(role + 'CapabilitySha256')
+        self.check_recorded_image(build, candidate['sourceCommit'], candidate['release'].get(role + 'CapabilitySha256'))
+
+    def check_recorded_image(self, build, commit, recorded):
         if not isinstance(recorded, str) or not DIGEST.fullmatch(recorded):
             raise ValueError('Recorded image capability digest of the active generation required')
-        self.image_identity(build, candidate['sourceCommit'])
+        self.image_identity(build, commit)
         version, schema, profile = self.image_capability_profile()
         result = self.capability(build['imageId'], {}, registry=profile == 'service-registry-040')
         capability = json.loads(result.stdout)
