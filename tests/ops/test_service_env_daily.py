@@ -34,12 +34,12 @@ def environments(**overrides):
                   'CLOSED_BETA_USER_IDS': '', 'NARRATIVE_COHORT_USER_IDS': '',
                   'BILLING_ENABLED': 'true', 'BILLING_ENFORCEMENT': 'true',
                   'AI_PROJECT_BUDGET_USD': '45', 'AI_USER_BUDGET_USD': '6',
-                  'NARRATIVE_PIPELINE_MODE': 'narrative-fiction-v2', 'NARRATIVE_FICTION_GENERATION': 'v9',
-                  'AI_BUDGET_WINDOW_REQUIRED': 'true'}
+                  'NARRATIVE_PIPELINE_MODE': 'narrative-fiction-v2', 'NARRATIVE_FICTION_GENERATION': 'v9'}
     value = {
         'web': {**shared, 'CLOSED_SITE_ENABLED': 'true', 'PUBLIC_EXTERNAL_EXPOSURE_ENABLED': 'false'},
         'api': {**shared, **worker_api, 'CLOSED_SITE_ENABLED': 'true', 'GENERATION_DAILY_LIMIT': '2'},
-        'worker': {**shared, **worker_api, 'OPENAI_API_KEY': 'sk-test-not-a-secret',
+        # deploy/compose.yaml hands AI_BUDGET_WINDOW_REQUIRED to the worker only.
+        'worker': {**shared, **worker_api, 'OPENAI_API_KEY': 'sk-test-not-a-secret', 'AI_BUDGET_WINDOW_REQUIRED': 'true',
                    'AI_BUDGET_WINDOW_START': '2026-11-05T00:00:00Z', 'AI_BUDGET_WINDOW_END': '2026-12-05T00:00:00Z'},
     }
     for path, replacement in overrides.items():
@@ -59,6 +59,12 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
     def test_the_approved_first_wave_is_accepted_and_uses_the_registry(self):
         policy = daily.personal_runtime_policy(environments(), NOW)
         self.assertEqual(policy, {'mode': 'service', 'queueAllowed': True, 'userIds': [], 'serviceAdmission': True})
+
+    def test_the_window_flag_is_worker_only_as_in_compose(self):
+        env = environments()
+        self.assertNotIn('AI_BUDGET_WINDOW_REQUIRED', env['api'])
+        self.assertEqual(env['worker']['AI_BUDGET_WINDOW_REQUIRED'], 'true')
+        self.assertEqual(daily.personal_runtime_policy(env, NOW)['mode'], 'service')
 
     def test_the_queue_is_allowed_only_inside_the_window(self):
         later = dt.datetime(2026, 12, 6, tzinfo=dt.timezone.utc)
@@ -86,7 +92,8 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
             'window missing': {'worker.AI_BUDGET_WINDOW_START': None},
             'window too long': {'worker.AI_BUDGET_WINDOW_END': '2027-03-05T00:00:00Z'},
             'window reversed': {'worker.AI_BUDGET_WINDOW_END': '2026-11-04T00:00:00Z'},
-            'window not required': both('AI_BUDGET_WINDOW_REQUIRED', 'false'),
+            'window not required': {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false'},
+            'window flag missing on the worker': {'worker.AI_BUDGET_WINDOW_REQUIRED': None},
             'placeholder provider': {'worker.OPENAI_API_KEY': 'alterward_owner_provider_access_disabled'},
             'claude key': {'worker.ANTHROPIC_API_KEY': 'x'},
             'provider on api': {'api.OPENAI_API_KEY': 'x'},
@@ -125,6 +132,9 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
         self.assertEqual(daily.SERVICE_MAX_WINDOW_DAYS, step.MAX_WINDOW_DAYS)
         self.assertEqual(daily.SERVICE_ENV_JOURNAL_VERSION, step.JOURNAL_VERSION)
         self.assertEqual(daily.SERVICE_ENV_PREVIOUS_NAMES, set(step.OWNER_FILES))
+        self.assertEqual(daily.SERVICE_ENV_EVENTS, step.EVENTS)
+        self.assertEqual(daily.SERVICE_ENV_PLAN_VERSION, step.PLAN_VERSION)
+        self.assertEqual(set(daily.SERVICE_ENV_FILE_KEYS), set(step.OWNER_FILES))
 
     def test_what_the_step_may_set_always_satisfies_the_policy_ceilings(self):
         top = {**both('AI_PROJECT_BUDGET_USD', str(step.MAX_PROJECT_USD)),

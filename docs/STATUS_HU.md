@@ -1,7 +1,7 @@
 ---
 status: canonical
 owner: project
-last_reviewed: 2026-11-04
+last_reviewed: 2026-11-06
 related:
   - ROADMAP_HU.md
   - DEVELOPMENT_PLAN_HU.md
@@ -14,6 +14,12 @@ related:
 Ez a dokumentum a fejlesztési főág állapotát és az utolsó igazolt operatív eredményt külön kezeli. A dokumentációfrissítés nem production deployment és nem friss élő health-ellenőrzés.
 
 ## Kiadási és bétaállapot
+
+**Friss célgépes checkpoint — 2026-11-06, #142/#181:** a külön engedélyezett helyreállításban a Daily `8b3f63a → 9c07092` frissítése sikeres (18:58:15 CET), a meglévő konténerek változatlanok. A serving `1d312d2`/schema040, a szolgáltatási profil 1. generációja igazolt; a friss `c82b627` operátori status szerint policy nincs és félbehagyott művelet nincs. A #180 kliens mainen, saját főági CI42237561045 mindhárom SUCCESS. A következő backup 18:58:49 CET-kor `proxy-config-capture` fázisban megállt: a véges katalógus szabályos, szándékosan0400 profilját a generic0600 olvasó elutasítja. Root/regular/egylink/0400 profilmetadata és a 484→92 hibaverem közvetlenül ellenőrizve. A #181 ezt a pontos archívumolvasási hibát javítja fejlesztési ágon; nincs chmod vagy őrlazítás. Nincs vak újrapróba; bootstrap, native rehearsal és timeraktiválás nem történt. A két timer disabled/inactive; a 29 eredeti sikeres szerveres mentés megvan, pendingmentés0/plaintextwork0; API+web healthy, worker running, restart0. További backup/offsite/restore és éles folytatás a javított exact forrás review/CI/engedélye után. Ez a checkpoint az alábbi régebbi serving/kiadási bejegyzéseket időben felülírja, de nem igazol A8-at vagy nyilvános nyitást.
+
+
+**Operátori kliens — #179, fejlesztési ág, 2026-11-06:** az A8 előtti hiányzó helyi hullámvezérlő elkészül a `contabo-service-operator.mjs` belépési ponttal: status/bootstrap/wave/pause/resume, pontos source/parancs-megerősítés, privát bizonyíték, nincs vak retry. A root operátor változatlan. A bootstrap szüneteltetett generálása/Checkoutja külön `resume` után engedélyezett; a hullám kapacitása abszolút (A8 1, utána 10 összesen). [Használat és kapuk](operations/LINUX_OPERATOR_HU.md#személyes-éles-hullámvezérlő-kliens--179-2026-11-06). Ez forrásmunka, nem friss szerverállapot vagy éles végrehajtás; a lent megőrzött korábbi production-checkpointokat nem hitelesíti újra. Review/CI/merge és éles jóváhagyás még külön szükséges.
+
 
 **Főági integráció és K-A előtti állapot — 2026-11-04:** a B9 verem (#158, `2e43f7e`: 040 séma kapacitással, nyílt admission, verziózott ÁSZF-elfogadás, web-oldal, host-oldali operátor/SPR a #160-ból, véglegesített `REGISTRY_040_CHANGE_HASHES` pinek), az env-bekapcsolás és SPR-aktiválás egy lépésben (#162, `7af17cb`, `scripts/ops/contabo-service-env.py`) és a Turnstile-kód (#161, `2c77155`: a regisztráció, a jelszavas belépés és a jelszó-visszaállítás `captchaToken`-t küld, a `TURNSTILE_SITE_KEY` a web szolgáltatáshoz kerül, a pinek frissítve `ea808e0`) a `main`-en van. Az utolsó két merge saját main CI-eredménye ide nincs rögzítve. **Ez forráskészültség, nem éles állapot:** az utolsó megőrzött éles checkpoint változatlanul a lenti 2026-11-01-i (`e8693158`, schema 039, billing ki, nincs service-profil, Supabase signup zárt); azóta nem volt telepítés, apply, env-, Cloudflare- vagy Supabase-változtatás. A célgépes bizonyíték (rehearsal, SPR-javítási esetek), a 040-es éles apply, a Stripe live/enforce szintek, a P2 env-lépés és az SPR-aktiválás, a Supabase CAPTCHA/rate limit/signup, a Cloudflare Access tágítása és a hullámnyitás a K-A/K-B csomagban külön, megnevezett tulajdonosi jóváhagyással következnek. A K-A selectionjei (`schema-040`, `billing-config-040` live és enforce) előkészítése nem alkalmazás; a live Stripe/Supabase readback még nem készült el.
 

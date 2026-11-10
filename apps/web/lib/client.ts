@@ -48,6 +48,32 @@ export const authConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 );
+// Public story reads still pass the service admission check on the live site.
+// A secret unlisted link supplies its own bearer instead of the account token.
+export async function readPublishedLife(
+  path: `/${string}`,
+  signal: AbortSignal,
+  linkToken?: string,
+) {
+  const base = (
+    process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'
+  ).replace(/\/v[12]\/?$/, '/public');
+  const token =
+    linkToken ??
+    (authConfigured
+      ? (await supabase().auth.getSession()).data.session?.access_token
+      : undefined);
+  return fetch(base + path, {
+    headers: {
+      'Accept-Language': 'en',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: 'same-origin',
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
+    signal,
+  });
+}
 export async function api<T>(
   path: string,
   options: RequestInit = {},

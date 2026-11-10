@@ -1,9 +1,9 @@
-"""Root service-env step: enable the service profile's environment and activate
-the service-profile record (SPR) in one owner-approved session (ADR-011, P2).
+"""Root service-profile step for the restricted environment and image releases.
 
-This is NOT a general env editor and NOT a successor-chain generation. It may write
-only a closed key set into the owner's server.env, each key with its own value rule
-(secrets, billing keys and everything else stay byte-identical). One run:
+The environment path (ADR-011, P2) changes only a closed key set, each key with
+its own value rule. The separate native040 image path keeps server.env and the
+full Compose configuration, except the three pinned image IDs, unchanged.
+Neither path adds a historical successor-chain generation. One run:
 
   plan   (read-only)  validate request + host, print the plan hash, the per-key
                       before/after value digests and the approval sentence;
@@ -16,9 +16,10 @@ only a closed key set into the owner's server.env, each key with its own value r
                       the SPR step when the environment is proven live, otherwise
                       restore the previous files (hash-verified).
 
-Any failure before the SPR is written restores the previous files, restarts and
-re-verifies. Nothing here touches the database, Auth, Stripe, Cloudflare or any
-provider; no value of server.env is ever printed or journaled (digests only).
+A failed restart attempts to restore and re-verify the previous files and image.
+Profile activation interruptions are reconciled with resume. The image plan reads
+schema, queue and hold status; neither step performs database or provider writes.
+No value of server.env is ever printed or journaled (digests only).
 """
 
 import argparse
@@ -47,6 +48,86 @@ SERVICES = ('web', 'api', 'worker')
 OWNER_FILES = ('server.env', 'effective-compose.json', 'manifest.json', 'pinned-image.json')
 REQUEST_VERSION = 'alterward-service-env-request-1'
 PLAN_VERSION = 'alterward-service-env-plan-1'
+IMAGE_REQUEST_VERSION = 'alterward-service-image-request-1'
+IMAGE_PLAN_VERSION = 'alterward-service-image-plan-1'
+COMMIT = re.compile(r'[a-f0-9]{40}')
+# Each native040 release authorizes an exact predecessor and product delta.
+REVIEWED_IMAGE_CHANGES = {
+    '1d312d29f203738c9f9d9a6e5338408c74b82f0b': {
+        'packages/core/src/billing-stripe.ts':
+            'e0b44f075357e86226f0b1bd671b8fc4b4ada074ea84b364bda3b75137a39b7a',
+    },
+    'efed82ab65f1dfd163c9b28f5da7ad4f99091636': {
+        'apps/web/components/curated-lives.tsx':
+            'b3e938ab13ecf9b7689b5aab9883bffe410a43706c82c075f40528882f81f126',
+        'apps/web/components/discover-lives.tsx':
+            '309774a68051b459bd97677a0f64deae7b9f3ba13f92633725620a9dd86e2939',
+        'apps/web/components/official-publication-reader.tsx':
+            'add312c2dd264746b183930d351769f37ff98305d87ff423d75e20b43ce07bba',
+        'apps/web/components/publication-reader.tsx':
+            'a63e0242891496c1918682b5c5a56121f9bedc4615468c47a18347a8397ef161',
+        'apps/web/lib/client.ts':
+            '68f1447fcd795d2ca0a28c4fb7394d1294c46ae1f423b2543a263e0273ae2d74',
+    },
+    '283e53ee673d78e4c5cef88a0e9cad876472c0a1': {
+        'apps/web/app/globals.css':
+            'f16b341d3b30bd9509f56a674cbd5236c6f7be56bc764d985f877cd30a7e2d99',
+        'apps/web/app/icon.svg':
+            '73a3687da2b52b7a311394f14b430d8fd5dd105b07c9a09ba7ac994651ce61f4',
+        'apps/web/app/layout.tsx':
+            'c7bb55b632d9386cc9b48604a9d167cdde5fac47dc65ad41ac332224c658e757',
+        'apps/web/components/curated-lives.tsx':
+            '0945f66461e93e678539436fe1b09fdfadcfdab59e33206cf5042a9ced8b7857',
+        'apps/web/components/discover-lives.tsx':
+            '5a9a7cc26f4b873a109a9f63ff61a0eabdc3f0d1d5ee00930535b2847858ff9f',
+        'apps/web/components/discover-scenarios.tsx':
+            '374f11f4ce126888965a453372bf1bc2a3737355a0b9f946ed5902b3a150d567',
+        'apps/web/components/life-deletion-control.tsx':
+            'd177517da1cb5cf5df5e2fcbdbe4a0b1144395e0e42631d98636bb66633936eb',
+        'apps/web/components/life-experience.tsx':
+            'a84e6fbf77755499255031f8754f6d6afc87c39f14b2100ccf022628bec1299d',
+        'apps/web/components/official-publication-reader.tsx':
+            'a317dbcd9a07bc534556185b10debf04f21544c2a344e4e20a44d849145d9e90',
+        'apps/web/components/owned-publications.tsx':
+            'bbed4c37f4dc4815d76b7244a759944df1bc92dd55a2c125c916ee8a5bc0cc58',
+        'apps/web/components/publication-reader.tsx':
+            '3bfae7b708d9b80d5bf928b29b38040fac407d7981f457bbf2c445edc918d470',
+        'apps/web/components/saved-lives.tsx':
+            '71881dd4ea8f11a715a0e8a2a2669d4d96100a5c469dd082c1f175fad452bcfd',
+        'apps/web/components/site-header.tsx':
+            '1cebfea63d42edd98d7a636470f59b92bd30505c6e23103cf00e72e7d04a2670',
+        'apps/web/public/icon.svg':
+            '73a3687da2b52b7a311394f14b430d8fd5dd105b07c9a09ba7ac994651ce61f4',
+    },
+    '211eddf124b12633f979a21f5cfad273c955b6b9': {
+        'apps/web/app/globals.css':
+            'ab87420966dce19c406d28eb3f62d9afee1557b636b0c217be1774c7051ea090',
+        'apps/web/components/life-experience.tsx':
+            'fec4c267c665f860f1a3d5ca42b7b62c1d0185895327d4cd241d80585146d8ba',
+        'apps/web/components/site-header.tsx':
+            'cfe926931208afa6440931c4e9db0db1c16350127c9695cbe4062339e86a2785',
+    },
+    'f88494f13afd1fb53e7be1e74e67b34692a714d7': {
+        'apps/web/app/globals.css':
+            '8dc72f1a80b8364b4b9aabfdbd44f79f5b5e7fdb3d538b2bda541294a00fb791',
+    },
+    '698403f2a35395c16f4c92023672bd49626e67b0': {
+        'apps/api/src/app.ts':
+            '022d787782e6d63b01c53d05d5617d54502629a10f32a5fedcd241030c0715e0',
+        'apps/api/src/service-access.ts':
+            '9d19602bb8733fcd765408e47056d6c572295b4a6aca684d23268b4c8ead33e7',
+        'apps/web/proxy.ts':
+            'fec1f47c2d83e44de56aa086df23116c04d1429efd85b65f1881d6fc3b2ab4eb',
+    },
+    '4c5c79e25365d200e9d263a90b141d37b874f118': {
+        'apps/web/components/experience.tsx':
+            '6b3de84851c452607416b5f171ade429d3fa3afd5009b060f0a57814265bb035',
+        'apps/web/components/site-header.tsx':
+            'db3888e1f1c9082e467e45a78a515ca426863a328a5250ca0a6942fc90835e26',
+    },
+}
+IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
+               'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
 JOURNAL_VERSION = 'alterward-service-env-journal-1'
 EVENTS = {'intent-persisted', 'files-replaced', 'env-applied', 'completed', 'rolled-back',
           'rollback-failed'}
@@ -275,6 +356,64 @@ def validate_request(raw):
     return raw
 
 
+
+def validate_image_request(raw, root):
+    required = {'version', 'build', 'backupManifestPath', 'restoreProofPath', 'rehearsalDirectory'}
+    if not isinstance(raw, dict) or set(raw) != required or raw['version'] != IMAGE_REQUEST_VERSION:
+        raise Refusal('Exact service image request required')
+    build = raw['build']
+    if (not isinstance(build, dict) or set(build) != {'commit', 'imageId', 'imageTag', 'sourceDirectory'}
+            or not all(isinstance(v, str) for v in build.values()) or not COMMIT.fullmatch(build['commit'])
+            or not IMAGE.fullmatch(build['imageId'])
+            or build['imageTag'] != 'alterward:contabo-' + build['commit'][:12]):
+        raise Refusal('Exact service image build identity required')
+    for directory in (build['sourceDirectory'], raw['rehearsalDirectory']):
+        if not isinstance(directory, str):
+            raise Refusal('Exact private release directory required')
+        path = Path(directory)
+        if (not path.is_relative_to(root) or path == root or path.resolve() != path
+                or path.as_posix() != directory or '..' in path.parts):
+            raise Refusal('Exact private release directory required')
+    if (not isinstance(raw['backupManifestPath'], str) or not BACKUP_MANIFEST_PATH.fullmatch(raw['backupManifestPath'])
+            or raw['restoreProofPath'] != RESTORE_PROOF_PATH):
+        raise Refusal('Exact backup and restore evidence paths required')
+    return raw
+
+
+def image_only_compose(config, previous_image, target_image):
+    """Keep every frozen Compose field except the three immutable image IDs."""
+    result = copy.deepcopy(config)
+    services = result.get('services')
+    if not isinstance(services, dict) or set(services) != set(SERVICES):
+        raise Refusal('Exactly three owner services required')
+    for service in services.values():
+        if service.get('image') != previous_image or service.get('pull_policy') != 'never':
+            raise Refusal('All services must already use the pinned image without pulls')
+        service['image'] = target_image
+    return result
+
+
+def require_image_rehearsal(directory, rehearsal, build, binding):
+    _private_directory(directory)
+    names = ('image-rehearsal-receipt.json', 'funded-upgrade-fixture-proof.json',
+             'beta-successor-fixture-proof.json', 'registry040-image-fixture.json',
+             'registry-successor-fixture-proof.json')
+    raw = {name: _private_read(directory / name) for name in names}
+    receipt, funded, successor, registry, registry_successor = (json.loads(raw[n]) for n in names)
+    if (receipt.get('version') != 'alterward-image-rehearsal-1'
+            or receipt.get('sourceCommit') != build['commit'] or receipt.get('imageId') != build['imageId']
+            or receipt.get('fixtureSha256') != sha(raw[names[1]])
+            or any(receipt.get(k) is not True for k in ('syntheticDataOnly', 'cleanupVerified',
+                                                       'foreignContainersUnchanged'))
+            or type(receipt.get('paidAiCalls')) is not int or receipt['paidAiCalls'] != 0):
+        raise Refusal('Exact clean image rehearsal required')
+    rehearsal.require_proof(funded, build['imageId'], binding)
+    rehearsal.require_successor_proof(successor, build['imageId'], binding)
+    rehearsal.require_registry_proof(registry, build['imageId'], binding)
+    rehearsal.require_successor_proof(registry_successor, build['imageId'], binding, registry=True)
+    return sha(canonical({name: sha(raw[name]) for name in names}))
+
+
 def validate_after(env):
     """Cross-key rules on the complete resulting environment (never prints values)."""
     def need(key, expected):
@@ -350,7 +489,8 @@ def _moment(value):
     return stamp
 
 
-def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now, *, owner_manifest_sha256, prepared_sha256):
+def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now, *, owner_manifest_sha256,
+                   prepared_sha256, operator_commit=None):
     """The backup manifest and the native 040 restore proof must be real, bound to each other
     and to the running release, and fresh. Same facts the Daily registry_restore_healthy
     verifies (without importing it); any missing field fails closed."""
@@ -366,7 +506,7 @@ def check_evidence(manifest_bytes, proof_bytes, owner_manifest, now, *, owner_ma
             or proof.get('backupManifestSha256') != sha(manifest_bytes)):
         raise Refusal('The restore proof is not bound to this backup manifest')
     if (backup.get('ownerCommit') != owner_manifest.get('commit') or backup.get('ownerImage') != owner_manifest.get('imageId')
-            or proof.get('sourceCommit') != owner_manifest.get('commit')):
+            or proof.get('sourceCommit') != (operator_commit or owner_manifest.get('commit'))):
         raise Refusal('The backup or restore proof is not of the running release')
     if (not isinstance(active, dict) or active.get('version') != 'alterward-funded-replay-2'
             or active.get('schema') != 40 or active.get('recoveryProfile') != 'registry040'
@@ -581,18 +721,94 @@ class Stepper:
                      'manifest': encoded(new_manifest), 'config': config}
         return plan, plan_sha, artifacts
 
+    def plan_image(self, raw):
+        request = validate_image_request(raw, ops_root(self.owner))
+        build = request['build']
+        files = self._owner_bytes()
+        manifest = json.loads(files['manifest.json'])
+        old_image, old_commit = manifest['imageId'], manifest['commit']
+        if (old_image == build['imageId'] or old_commit == build['commit']
+                or not IMAGE.fullmatch(old_image) or not COMMIT.fullmatch(old_commit)
+                or manifest.get('ownerEnvironmentSha256') != sha(files['server.env'])
+                or manifest.get('effectiveComposeSha256') != sha(files['effective-compose.json'])):
+            raise Refusal('New image and exact current owner files required')
+        current = self._spr_state()
+        successor = self.host.successor_state()
+        if (current is None or successor.get('pending') is not False or successor.get('upgradeHealthy') is not True
+                or successor.get('purpose') != 'billing-config-040' or successor.get('stage') != 'enforce'):
+            raise Refusal('Active service profile above native040 billing enforcement required')
+        profile = current['profile']
+        if profile['sourceCommit'] != old_commit or profile['schema'] != 40:
+            raise Refusal('Current owner commit does not match the native040 service profile')
+        self.operator.assert_running_matches(profile, self.host.observe())
+        if self.journal.open_operations() or self.operator.Journal(self.state_dir).unfinished_all():
+            raise Refusal('An unfinished service operation exists')
+        before = unfrozen(json.loads(files['effective-compose.json']))
+        validate_after(parse_env(files['server.env'].decode()))
+        self.host.verify_running(before, old_image)
+        if self.host.pending_jobs() != 0:
+            raise Refusal('Queued or running jobs exist')
+        self.host.require_image_hold()
+        pin = {'services': {s: {'image': old_image, 'pull_policy': 'never'} for s in SERVICES}}
+        if json.loads(files['pinned-image.json']) != pin:
+            raise Refusal('Current image pin differs from the serving image')
+        for service in pin['services'].values():
+            service['image'] = build['imageId']
+        next_pin = encoded(pin)
+        target = image_only_compose(before, old_image, build['imageId'])
+        if self.host.source_sha256(build['sourceDirectory']) != manifest.get('sourceComposeSha256'):
+            raise Refusal('Image release must preserve the original Compose source')
+        fresh_render = self.host.render(files['server.env'], next_pin, build['sourceDirectory'])
+        # The cached release directory may change only the verified build context;
+        # the serving configuration itself keeps its original context and pins.
+        adjusted = copy.deepcopy(fresh_render)
+        for name in SERVICES:
+            old_build = target['services'][name].get('build')
+            new_build = adjusted['services'][name].get('build')
+            if old_build is not None and new_build is not None:
+                if new_build.get('context') != build['sourceDirectory']:
+                    raise Refusal('Candidate Compose context differs from the verified source')
+                new_build['context'] = old_build['context']
+        if adjusted != target:
+            raise Refusal('Candidate configuration changes more than the service images')
+        binding, capability_sha, rehearsal_sha = self.host.verify_image_release(request, old_commit)
+        evidence_root = ops_root(self.owner)
+        backup_bytes = _private_read(evidence_root / request['backupManifestPath'])
+        proof_bytes = _private_read(evidence_root / request['restoreProofPath'])
+        check_evidence(backup_bytes, proof_bytes, manifest, self.clock(),
+                       owner_manifest_sha256=sha(files['manifest.json']),
+                       prepared_sha256=successor['preparedSha256'],
+                       operator_commit=self.host.verify_latest_restore(request))
+        next_compose = frozen(target)
+        next_manifest = encoded({**manifest, 'commit': build['commit'], 'imageId': build['imageId'],
+                                 'effectiveComposeSha256': sha(next_compose)})
+        after = {**files, 'pinned-image.json': next_pin, 'manifest.json': next_manifest,
+                 'effective-compose.json': next_compose}
+        keys = dict(zip(OWNER_FILES, ('serverEnvSha256', 'effectiveComposeSha256',
+                                      'manifestSha256', 'pinnedImageSha256')))
+        plan = {'version': IMAGE_PLAN_VERSION, 'generation': current['generation'] + 1,
+                'parentProfileSha256': current['profileSha256'], 'sourceCommit': build['commit'],
+                'imageId': build['imageId'], 'before': {keys[k]: sha(v) for k, v in files.items()},
+                'after': {keys[k]: sha(v) for k, v in after.items()}, 'changes': {},
+                'backupManifestSha256': sha(backup_bytes), 'restoreProofSha256': sha(proof_bytes),
+                'previousCommit': old_commit, 'previousImageId': old_image, 'build': build,
+                'bundleSha256': binding['bundleSha256'], 'capabilitySha256': capability_sha,
+                'rehearsalSha256': rehearsal_sha}
+        return plan, sha(canonical(plan)), {'files': after, 'config': target}
+
     @staticmethod
     def phrase(plan, plan_sha):
-        return f'activate-service-env {plan_sha[:16]} generation {plan["generation"]}'
+        verb = 'activate-service-image' if plan['version'] == IMAGE_PLAN_VERSION else 'activate-service-env'
+        return f'{verb} {plan_sha[:16]} generation {plan["generation"]}'
 
-    def plan_report(self, request):
-        plan, plan_sha, _ = self.plan(request)
+    def plan_report(self, request, *, image=False):
+        plan, plan_sha, _ = self.plan_image(request) if image else self.plan(request)
         return {'planSha256': plan_sha, 'plan': plan, 'confirm': self.phrase(plan, plan_sha),
                 'changedKeys': sorted(plan['changes']), 'paidAiCalls': 0}
 
     # ---- apply --------------------------------------------------------------
-    def apply(self, request, *, plan_sha256, confirm):
-        plan, plan_sha, artifacts = self.plan(request)
+    def apply(self, request, *, plan_sha256, confirm, image=False):
+        plan, plan_sha, artifacts = self.plan_image(request) if image else self.plan(request)
         if plan_sha != plan_sha256:
             raise Refusal('The plan changed since it was shown: run plan again')
         expected = self.phrase(plan, plan_sha)
@@ -604,6 +820,7 @@ class Stepper:
         previous = directory / 'previous'
         _private_directory(previous, create=True)
         files = self._owner_bytes()
+        self._check_files(plan['before'])
         for name, data in files.items():
             _create(previous / name, data)
         _create(directory / 'plan.json', canonical({**plan, 'approvalSha256': sha(confirm.encode()),
@@ -611,22 +828,28 @@ class Stepper:
         user, host_name = self.identity()
         self.journal.append('intent-persisted', operation_id, self.clock(), planSha256=plan_sha,
                             generation=plan['generation'], changes=plan['changes'],
+                            **({'planVersion': IMAGE_PLAN_VERSION} if image else {}),
                             before=plan['before'], after=plan['after'],
                             operatorSha256=sha(canonical({'user': user, 'host': host_name})))
         try:
-            _replace(self.owner / 'server.env', artifacts['serverEnv'])
-            _replace(self.owner / 'effective-compose.json', artifacts['compose'])
-            _replace(self.owner / 'manifest.json', artifacts['manifest'])
+            if image:
+                self.host.stop()
+                for name in ('effective-compose.json', 'manifest.json', 'pinned-image.json'):
+                    _replace(self.owner / name, artifacts['files'][name])
+            else:
+                _replace(self.owner / 'server.env', artifacts['serverEnv'])
+                _replace(self.owner / 'effective-compose.json', artifacts['compose'])
+                _replace(self.owner / 'manifest.json', artifacts['manifest'])
             self.journal.append('files-replaced', operation_id, self.clock())
             self.host.restart()
             self.host.verify_running(artifacts['config'], plan['imageId'])
             self._check_files(plan['after'])
         except BaseException as error:
-            self._rollback(operation_id, directory, plan['imageId'])
-            if isinstance(error, Refusal):
-                raise Refusal('The new environment was not accepted and the previous files were restored: '
-                              + str(error)) from None
-            raise Refusal('The new environment was not accepted and the previous files were restored') from None
+            if not self._rollback(operation_id, directory, plan):
+                raise Refusal('Runtime change failed and restoration did not verify; operation ' + operation_id) from None
+            label = 'image' if image else 'environment'
+            reason = ': ' + str(error) if isinstance(error, Refusal) else ''
+            raise Refusal('The new ' + label + ' was not accepted and the previous files were restored' + reason) from None
         self.journal.append('env-applied', operation_id, self.clock(), after=plan['after'])
         return self._finish(operation_id, directory, plan)
 
@@ -638,21 +861,26 @@ class Stepper:
                 or sha(files['pinned-image.json']) != expected['pinnedImageSha256']):
             raise Refusal('Owner files differ from the plan')
 
-    def _rollback(self, operation_id, directory, image_id):
+    def _rollback(self, operation_id, directory, plan):
         """Restore the previous files byte-exactly, restart and re-verify. Never raises."""
         try:
             previous = directory / 'previous'
             stored = {name: _private_read(previous / name) for name in OWNER_FILES}
-            plan = json.loads(_private_read(directory / 'plan.json'))
+            image = plan['version'] == IMAGE_PLAN_VERSION
             if any(sha(stored[n]) != plan['before'][k] for n, k in (
                     ('server.env', 'serverEnvSha256'), ('effective-compose.json', 'effectiveComposeSha256'),
                     ('manifest.json', 'manifestSha256'), ('pinned-image.json', 'pinnedImageSha256'))):
                 raise Refusal('Stored previous files differ from the plan')
-            for name in ('server.env', 'effective-compose.json', 'manifest.json'):
-                if (self.owner / name).read_bytes() != stored[name]:
+            names = OWNER_FILES if image else ('server.env', 'effective-compose.json', 'manifest.json')
+            if image:
+                self.host.stop()
+            for name in names:
+                if _private_read(self.owner / name) != stored[name]:
                     _replace(self.owner / name, stored[name])
             self.host.restart()
-            self.host.verify_running(unfrozen(json.loads(stored['effective-compose.json'])), image_id)
+            self.host.verify_running(unfrozen(json.loads(stored['effective-compose.json'])),
+                                     plan['previousImageId'] if image else plan['imageId'])
+            self._check_files(plan['before'])
             self.journal.append('rolled-back', operation_id, self.clock(), restored=plan['before'])
             return True
         except BaseException:
@@ -704,7 +932,8 @@ class Stepper:
         return {'operationId': operation_id, 'generation': record['generation'],
                 'profileSha256': record['profileSha256'], 'planSha256': sha(canonical(plan)),
                 'changedKeys': sorted(plan['changes']), 'before': plan['before'], 'after': plan['after'],
-                'paidAiCalls': 0, 'databaseConnections': 0}
+                'paidAiCalls': 0, **({'databaseWrites': False} if plan['version'] == IMAGE_PLAN_VERSION
+                                     else {'databaseConnections': 0})}
 
     def _spr_state_or_none(self):
         directory = self.profile_dir
@@ -718,8 +947,9 @@ class Stepper:
 
     # ---- resume ---------------------------------------------------------------
     @staticmethod
-    def rollback_phrase(operation_id):
-        return f'rollback-service-env {operation_id}'
+    def rollback_phrase(operation_id, *, image=False):
+        name = 'image' if image else 'env'
+        return f'rollback-service-{name} {operation_id}'
 
     def resume(self, operation_id, *, rollback=False, confirm=None):
         state = self.journal.state(operation_id)
@@ -731,25 +961,36 @@ class Stepper:
         _private_directory(directory)
         plan_file = json.loads(_private_read(directory / 'plan.json'))
         plan = {k: v for k, v in plan_file.items() if k not in ('approvalSha256', 'approvedAt')}
+        intent = [r for r in self.journal.rows() if r['operationId'] == operation_id
+                  and r['event'] == 'intent-persisted']
+        image = len(intent) == 1 and intent[0].get('planVersion') == IMAGE_PLAN_VERSION
+        if image or plan.get('version') == IMAGE_PLAN_VERSION:
+            plan_sha = sha(canonical(plan))
+            if (not image or plan.get('version') != IMAGE_PLAN_VERSION
+                    or intent[0].get('planSha256') != plan_sha
+                    or plan_file.get('approvalSha256') != sha(self.phrase(plan, plan_sha).encode())):
+                raise Refusal('Stored image plan does not match the journaled approval')
         if rollback:
             # Exit from a live-but-unprofiled environment: allowed only before this plan's SPR
             # generation exists, and only with the owner's operation-specific sentence.
             if state != 'env-applied':
                 raise Refusal('--rollback only applies to an applied environment; plain resume restores the rest')
-            if confirm != self.rollback_phrase(operation_id):
-                raise Refusal('Owner confirmation required: --confirm "' + self.rollback_phrase(operation_id) + '"')
+            if confirm != self.rollback_phrase(operation_id, image=image):
+                raise Refusal('Owner confirmation required: --confirm "' + self.rollback_phrase(operation_id, image=image) + '"')
             current = self._spr_state_or_none()
             if current is not None and current['generation'] >= plan['generation']:
                 raise Refusal('The service profile generation already exists: it cannot be rolled back here')
-            if not self._rollback(operation_id, directory, plan['imageId']):
+            if not self._rollback(operation_id, directory, plan):
                 raise Refusal('Rollback did not verify: service left as is; emergency stop is available')
             return {'operationId': operation_id, 'outcome': 'rolled-back', 'paidAiCalls': 0}
         if state == 'env-applied':
+            if image:
+                self.host.require_image_daily()
             self._check_files(plan['after'])
             config = unfrozen(json.loads(_private_read(self.owner / 'effective-compose.json')))
             self.host.verify_running(config, plan['imageId'])
             return self._finish(operation_id, directory, plan)
-        if not self._rollback(operation_id, directory, plan['imageId']):
+        if not self._rollback(operation_id, directory, plan):
             raise Refusal('Rollback did not verify: service left as is; emergency stop is available')
         return {'operationId': operation_id, 'outcome': 'rolled-back', 'paidAiCalls': 0}
 
@@ -757,6 +998,14 @@ class Stepper:
 def ops_root(owner_dir):
     """Evidence paths in a request are relative to the ops root (owner's parent directory)."""
     return Path(owner_dir).parent
+
+
+def require_reviewed_image_changes(previous_commit, delta, source_hashes):
+    expected = REVIEWED_IMAGE_CHANGES.get(previous_commit)
+    if expected is None or delta != b''.join(path.encode() + b'\0' for path in sorted(expected)):
+        raise Refusal('Product files differ from the reviewed image transition')
+    if any(source_hashes.get(path) != digest for path, digest in expected.items()):
+        raise Refusal('Product file bytes differ from the reviewed image transition')
 
 
 class HostRuntime:
@@ -772,11 +1021,21 @@ class HostRuntime:
                    "FROM ${table} WHERE status IN ('queued','running','validating')`);n+=rows[0].pending}"
                    "await client.query('COMMIT');console.log(JSON.stringify({pendingJobs:n}))}finally{await client.end()}")
 
-    ANONYMOUS_PROBE = ("let count=0;for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover',"
+    ANONYMOUS_PROBE = ("let count=0;if(process.env.SERVICE_ACCESS_ENFORCEMENT==='true'){"
+                       "for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover'])"
+                       "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
+                       "if(![200,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))"
+                       "throw Error('Origin access boundary failed');}"
+                       "for(const url of ['http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config',"
+                       "'http://127.0.0.1:4000/api/v1/profile','http://127.0.0.1:4000/api/v1/futures'])"
+                       "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
+                       "if(![401,403].includes(r.status)||!r.headers.get('cache-control')?.includes('no-store'))"
+                       "throw Error('Origin access boundary failed');count++;}}else{"
+                       "for(const url of ['http://alterward-web:3000/','http://alterward-web:3000/discover',"
                        "'http://127.0.0.1:4000/api/public/discovery','http://127.0.0.1:4000/api/public/config'])"
                        "{const r=await fetch(url,{signal:AbortSignal.timeout(5000),redirect:'manual'});"
                        "if(r.status!==403||!r.headers.get('cache-control')?.includes('no-store'))"
-                       "throw Error('Origin access boundary failed');count++}"
+                       "throw Error('Origin access boundary failed');count++;}}"
                        "console.log(JSON.stringify({anonymousDenied:count}));")
 
     def __init__(self, *, owner_dir=OWNER_DIR, runner=None, operator=None, daily=None, daily_loader=None):
@@ -821,6 +1080,63 @@ class HostRuntime:
             raise Refusal('Queue probe returned an unexpected result')
         return value['pendingJobs']
 
+    def require_image_hold(self):
+        operator = self.operator.Operator(profile_dir=ops_root(self.owner) / PROFILE_DIR.name,
+                                          state_dir=STATE_DIR, runtime=self.operator.HostRuntime(owner_dir=self.owner),
+                                          clock=lambda: dt.datetime.now(dt.timezone.utc), identity=lambda: ())
+        status = operator.status()
+        database = status.get('database') or {}
+        policy = database.get('policy') or {}
+        if (status.get('runningMatchesProfile') is not True or status.get('unfinishedOperations') != []
+                or policy.get('generationEnabled') is not False or policy.get('checkoutEnabled') is not False
+                or policy.get('mode') != 'invitation' or policy.get('reconcileRequired') is not False):
+            raise Refusal('Admission, generation and checkout must be paused before changing the image')
+
+    def require_image_daily(self):
+        daily = self.daily
+        value = daily.config()
+        reviewed = Path(__file__).resolve().with_name('contabo-daily.py')
+        if (getattr(daily, 'SERVICE_IMAGE_PLAN_VERSION', None) != IMAGE_PLAN_VERSION
+                or not reviewed.is_file()
+                or value['scriptHashes'].get('contabo-daily.py') != sha(reviewed.read_bytes())):
+            raise Refusal('Install the reviewed Daily that understands service image releases first')
+        return value
+
+    def verify_latest_restore(self, request):
+        daily = self.daily
+        value = self.require_image_daily()
+        if not daily.registry_restore_healthy(value, latest=True):
+            raise Refusal('Fresh native040 restore of the latest backup required')
+        proof = json.loads(_private_read(ops_root(self.owner) / request['restoreProofPath']))
+        if request['backupManifestPath'] != f'daily/backups/{proof["backupRunId"]}/manifest.json':
+            raise Refusal('Requested backup is not the latest restored archive')
+        return value['sourceCommit']
+
+    def verify_image_release(self, request, previous_commit):
+        build = request['build']
+        source = Path(build['sourceDirectory'])
+        _private_directory(source)
+        rehearsal = _load('service_image_rehearsal', 'contabo-funded-image-rehearsal.py')
+        rehearsal.REPO = source
+        git = ['git', '-c', 'safe.directory=' + str(source)]
+        if (rehearsal.run(git + ['rev-parse', 'HEAD']).decode().strip() != build['commit']
+                or rehearsal.run(git + ['status', '--porcelain', '--ignored', '--untracked-files=all']).strip()):
+            raise Refusal('Exact clean release checkout required')
+        rehearsal.run(git + ['merge-base', '--is-ancestor', previous_commit, build['commit']])
+        delta = rehearsal.run(git + ['diff', '--no-renames', '--name-only', '-z', previous_commit,
+                                    build['commit'], '--', *IMAGE_SCOPE])
+        binding = rehearsal.source_binding()
+        if binding['sourceCommit'] != build['commit']:
+            raise Refusal('Release source binding does not match the build commit')
+        require_reviewed_image_changes(previous_commit, delta, binding['sourceHashes'])
+        identity = json.loads(self.runner(['docker', 'image', 'inspect', build['imageTag']]))
+        if len(identity) != 1:
+            raise Refusal('Exact cached release image required')
+        rehearsal.validate_image_configuration(identity[0], build['imageId'])
+        evidence_sha = require_image_rehearsal(Path(request['rehearsalDirectory']), rehearsal, build, binding)
+        capability = rehearsal.verify_image_sources(build['imageId'], binding, registry=True)
+        return binding, sha(encoded(capability)), evidence_sha
+
     def source_sha256(self, source):
         path = Path(source)
         if path.is_symlink() or not path.is_dir():
@@ -838,6 +1154,9 @@ class HostRuntime:
                                   '-f', str(Path(source) / 'deploy/compose.contabo.yaml'), '-f', str(override),
                                   'config', '--format', 'json'])
         return json.loads(output)
+
+    def stop(self):
+        self.runner(self._compose() + ['stop', '--timeout', '30', *SERVICES], timeout=120)
 
     def restart(self):
         self.runner(self._compose() + ['up', '-d', '--no-build', '--pull', 'never', '--wait',
@@ -901,10 +1220,16 @@ def parser():
     sub = top.add_subparsers(dest='command', required=True)
     plan = sub.add_parser('plan')
     plan.add_argument('--request', required=True)
+    image_plan = sub.add_parser('image-plan')
+    image_plan.add_argument('--request', required=True)
     apply = sub.add_parser('apply')
     apply.add_argument('--request', required=True)
     apply.add_argument('--plan-sha256', required=True)
     apply.add_argument('--confirm', required=True)
+    image_apply = sub.add_parser('image-apply')
+    image_apply.add_argument('--request', required=True)
+    image_apply.add_argument('--plan-sha256', required=True)
+    image_apply.add_argument('--confirm', required=True)
     resume = sub.add_parser('resume')
     resume.add_argument('--operation-id', required=True)
     resume.add_argument('--rollback', action='store_true')
@@ -919,11 +1244,12 @@ def run(arguments, stepper):
         return stepper.resume(str(uuid.UUID(arguments.operation_id)), rollback=arguments.rollback,
                               confirm=arguments.confirm)
     request = json.loads(_private_read(Path(arguments.request)))
-    if arguments.command == 'plan':
-        return stepper.plan_report(request)
+    if arguments.command in ('plan', 'image-plan'):
+        return stepper.plan_report(request, image=arguments.command == 'image-plan')
     if not HEX64.fullmatch(arguments.plan_sha256):
         raise Refusal('Exact plan hash required')
-    return stepper.apply(request, plan_sha256=arguments.plan_sha256, confirm=arguments.confirm)
+    return stepper.apply(request, plan_sha256=arguments.plan_sha256, confirm=arguments.confirm,
+                         image=arguments.command == 'image-apply')
 
 
 def build_stepper():
@@ -947,7 +1273,19 @@ def main(argv=None):
         operator, stepper = build_stepper()
         # The operator's lock keeps a service operation and this step from running together.
         with operator.operation_lock(STATE_DIR):
-            print(json.dumps(run(arguments, stepper), sort_keys=True))
+            image_operation = arguments.command in ('image-plan', 'image-apply')
+            if arguments.command == 'resume':
+                operation = str(uuid.UUID(arguments.operation_id))
+                rows = [r for r in stepper.journal.rows() if r['operationId'] == operation
+                        and r['event'] == 'intent-persisted']
+                image_operation = any(r.get('planVersion') == IMAGE_PLAN_VERSION for r in rows)
+            if image_operation:
+                daily = stepper.host.daily
+                with daily.exclusive(daily.ROOT / 'job.lock'), daily.exclusive(OWNER_DIR / 'activation.lock'):
+                    result = run(arguments, stepper)
+            else:
+                result = run(arguments, stepper)
+            print(json.dumps(result, sort_keys=True))
         return 0
     except (Refusal, ValueError, OSError, RuntimeError, ImportError, subprocess.SubprocessError) as error:
         print('Service env step refused: ' + (str(error) if type(error).__name__ == 'Refusal' else 'invalid input'),

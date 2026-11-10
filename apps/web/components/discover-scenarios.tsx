@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { SiteHeader } from './site-header';
 import {
   type ScenarioDiscoveryQuery,
   type ScenarioDiscoveryPage,
@@ -82,19 +83,7 @@ export function DiscoverScenarios({
   }, [search, query]);
   return (
     <>
-      <header>
-        <a className="brand" href="/">
-          alterward
-        </a>
-        <nav className="nav" aria-label="Main navigation">
-          <a href="/discover">Discover lives</a>
-          <a href="/scenarios" aria-current="page">
-            Explore Scenarios
-          </a>
-          <a href="/lives">Your lives</a>
-          <a href="/login">Sign in</a>
-        </nav>
-      </header>
+      <SiteHeader current="scenarios" />
       <main className="publication-page discovery-page">
         <div>
           <span className="eyebrow">A starting point. Your direction.</span>

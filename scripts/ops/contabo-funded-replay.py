@@ -25,6 +25,11 @@ def sha(value):
 
 
 def active_funded_runtime(daily, original):
+    return active_funded_authority(daily, original)[0]
+
+
+def active_funded_authority(daily, original):
+    """Return the proof and its optional SPR image evidence from the same verified chain."""
     if daily.funded_upgrade_healthy('personal-beta') is not True:
         raise ValueError('Healthy completed funded state without pending probe required')
     root = (daily.active_funded_directory() if hasattr(daily, 'active_funded_directory')
@@ -75,7 +80,16 @@ def active_funded_runtime(daily, original):
         raise ValueError('Exact committed funded image required')
     actual = {name: sha(original(daily.OWNER / name)) for name in FILES}
     retained = {name: sha(original(root / role / name)) for name in FILES}
-    if actual != retained or retained != candidate['files'][role]:
+    # The retained candidate stays byte-bound to its own preparation; the live owner files
+    # may differ from it only by owner-approved service-profile generations.
+    release = None
+    if hasattr(daily, 'service_active_runtime'):
+        anchor = daily.service_release_anchor(root, candidate, role)
+        expected, release = daily.service_active_runtime(candidate['files'][role], native_anchor=anchor)
+    else:
+        expected = (daily.service_active_files(candidate['files'][role]) if hasattr(daily, 'service_active_files')
+                    else candidate['files'][role])
+    if actual != expected or retained != candidate['files'][role]:
         raise ValueError('Active and prepared runtime bytes differ')
     authority = {path: sha(original(Path(path)))
                  for path in candidate['baseline']['authority']}
@@ -94,6 +108,10 @@ def active_funded_runtime(daily, original):
             readback.get('paidAiCalls') != 0 or readback.get('operationPaidAiCalls') != 0 or
             readback.get('databaseRestored') is not False):
         raise ValueError('Completed source/image-bound funded readback required')
+    if release is not None:
+        if not registry_profile:
+            raise ValueError('Service image authority requires native040 recovery')
+        build = release['build']
     manifest, services = daily.owner_runtime()
     if (set(services) != {'web', 'api', 'worker'} or manifest.get('commit') != build['commit'] or
             manifest.get('imageId') != build['imageId'] or
@@ -105,11 +123,14 @@ def active_funded_runtime(daily, original):
         raise ValueError('Exactly three active funded services, no extra one-off required')
     return {'version': REGISTRY_VERSION if registry_profile else VERSION,
             **({'schema': 40, 'recoveryProfile': 'registry040'} if registry_profile else {}),
-            'sourceCommit': candidate['sourceCommit'],
-            'bundleSha256': candidate['bundleSha256'], 'preparedSha256': prepared_sha,
+            'sourceCommit': build['commit'],
+            'bundleSha256': release['bundleSha256'] if release else candidate['bundleSha256'],
+            'preparedSha256': prepared_sha,
             'imageId': build['imageId'], 'role': role,
             'ownerManifestDigest': sha(original(daily.OWNER / 'manifest.json')),
-            'runtimeFilesSha256': sha(encoded(actual)), 'authoritySha256': sha(encoded(authority))}
+            'runtimeFilesSha256': sha(encoded(actual)),
+            'authoritySha256': sha(encoded({'historical': authority, 'imageRelease': release}
+                                           if release else authority))}, release
 
 
 def require_funded_runtime(daily, original, expected):

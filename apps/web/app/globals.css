@@ -12,6 +12,11 @@
 * {
   box-sizing: border-box;
 }
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -39,6 +44,7 @@ a {
 button {
   cursor: pointer;
   border: 0;
+  color: inherit;
 }
 button:disabled {
   opacity: 0.5;
@@ -76,6 +82,7 @@ header {
   font-size: 21px;
   letter-spacing: -0.7px;
   color: var(--ink);
+  text-decoration: none;
 }
 .brand-icon {
   width: 35px;
@@ -397,6 +404,29 @@ header {
   margin-bottom: 32px;
   gap: 20px;
 }
+.page-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.page-head-actions a.secondary {
+  text-decoration: none;
+}
+.page-head-actions .life-deletion-control {
+  display: inline-flex;
+}
+.page-head-actions .life-deletion-control.open {
+  display: block;
+  flex-basis: 100%;
+  width: 100%;
+}
+.page-head-actions .life-deletion-control.open .notice {
+  text-align: left;
+  margin-top: 12px;
+  width: 100%;
+}
 .page-head h1 {
   font-size: 34px;
   letter-spacing: -1.4px;
@@ -596,18 +626,35 @@ header {
   padding: 6px 9px;
   border-radius: 7px;
 }
-.tabs {
+.story-nav-row {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 24px;
   flex-wrap: wrap;
 }
+.story-nav-row .tabs {
+  margin-bottom: 0;
+}
+.story-nav-row .chips {
+  margin-bottom: 0;
+}
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  padding: 4px;
+  background: #ecefe7;
+  border-radius: 24px;
+}
 .tabs button {
-  padding: 10px 18px;
+  padding: 9px 20px;
   background: none;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 20px;
   font-size: 13px;
+  min-height: 40px;
 }
 .tabs button.active {
   background: var(--green);
@@ -705,11 +752,31 @@ header {
   border-radius: 12px;
   color: var(--ink);
 }
+.option strong,
+.option span {
+  display: block;
+}
+.option span {
+  margin-top: 6px;
+  line-height: 1.55;
+  color: #4b5a51;
+}
 .option small {
   display: block;
-  margin-top: 6px;
-  color: var(--muted);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--green);
+  font-weight: 600;
+  font-size: 13px;
   line-height: 1.6;
+}
+.option small::after {
+  content: ' →';
+}
+.option:active {
+  background: #f3f7ee;
+  border-color: var(--green);
 }
 .generation {
   text-align: center;
@@ -908,6 +975,10 @@ footer {
   .page-head {
     align-items: start;
     flex-direction: column;
+  }
+  .page-head-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
 @media (max-width: 550px) {
@@ -1275,7 +1346,40 @@ progress {
   font: inherit;
 }
 .discovery-clear {
-  padding: 12px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 20px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+nav[aria-label='Life collections'] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+nav[aria-label='Life collections'] a {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 15px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+nav[aria-label='Life collections'] a[aria-current='page'] {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
 }
 .discovery-grid {
   display: grid;
@@ -1298,6 +1402,7 @@ progress {
 }
 .discovery-card h2 a {
   color: var(--ink);
+  text-decoration: none;
 }
 .discovery-card-meta,
 .discovery-pagination {
@@ -1313,6 +1418,9 @@ progress {
 .discovery-read {
   margin-top: auto;
   padding-top: 8px;
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
 }
 .discovery-pagination {
   align-items: center;
@@ -1349,4 +1457,112 @@ footer a {
 .captcha {
   margin: 14px 0 8px;
   min-height: 65px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 6px 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+.life-deletion-control:not(.open) > .secondary {
+  border-color: transparent;
+  background: transparent;
+  color: #a33a2f;
+  padding: 13px 12px;
+  font-size: 13px;
+}
+.life-card h2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.nav-links {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+.menu-toggle,
+.login-label {
+  display: none;
+}
+@media (max-width: 760px) {
+  header .header-actions {
+    width: auto;
+    flex-wrap: nowrap;
+    margin-left: auto;
+  }
+  header {
+    position: relative;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  header .nav {
+    width: auto;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--line);
+  }
+  .nav .login .login-label {
+    display: inline;
+    margin-left: 6px;
+    font-size: 13px;
+  }
+  .nav .login {
+    display: inline-flex;
+    align-items: center;
+    padding: 11px 16px;
+  }
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 5% 12px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 12px 24px rgba(36, 55, 45, 0.08);
+  }
+  .nav-links.open {
+    display: flex;
+  }
+  .nav-links a {
+    padding: 14px 4px;
+    font-size: 15px;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-links a:last-child {
+    border-bottom: 0;
+  }
+  .page-head-actions {
+    justify-content: flex-start;
+  }
+  .discovery-filters label,
+  .discovery-filters label:first-child {
+    flex: 1 1 100%;
+  }
+  .discovery-filters .primary,
+  .discovery-filters .discovery-clear {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
 }

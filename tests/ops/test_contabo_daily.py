@@ -275,6 +275,16 @@ class MonitorTests(unittest.TestCase):
                 self.assertEqual(daily.edge_closed(team), accepted)
             request = opener.open.call_args.args[0]
             self.assertEqual(request.get_header('User-agent'), 'Alterward-Release-Verification/1')
+        class DirectResponse:
+            status = 200
+            headers = {'Cache-Control': 'private, no-store', 'CF-Cache-Status': 'DYNAMIC'}
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+        opener.open.side_effect = None
+        opener.open.return_value = DirectResponse()
+        with patch.object(daily.urllib.request, 'build_opener', return_value=opener):
+            self.assertFalse(daily.edge_closed(team))
+            self.assertTrue(daily.edge_closed(team, service=True))
 
     def test_database_tls_comes_from_actual_frozen_api_environment(self):
         source = b"DATABASE_URL='postgresql://fixture_user:fixture_pass@fixture.invalid:5432/postgres'\n"

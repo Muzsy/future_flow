@@ -11,6 +11,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The registry migration test verifies its retained source commit.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -28,6 +31,8 @@ jobs:
           node --test tests/ops/external-monitor.test.mjs
           node --test tests/ops/private-health.test.mjs
           node --test tests/ops/fence-operator.test.mjs
+          node --test tests/ops/service-env-operator.test.mjs
+          node --test tests/ops/service-operator-client.test.mjs
           node --test tests/ops/personal-beta-monitor.test.mjs
           node --test tests/ops/personal-beta-admission-observation.test.mjs
           node --test tests/ops/personal-beta-operator.test.mjs
