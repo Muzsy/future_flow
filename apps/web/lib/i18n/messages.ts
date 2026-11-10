@@ -301,7 +301,8 @@ export const en = {
   'referral.copied': 'Link copied',
   'referral.redeemed':
     'Your invitation was redeemed, you received +1 gift chapter.',
-  'referral.revoked': 'The gift chapter ended because of a refund.',
+  'referral.revoked':
+    'The gift chapter ended because of a refund, a payment dispute or a billing review.',
   'referral.chapters': 'Gift chapters: {n}',
   'referral.signupNotice':
     'You came with an invitation. Create your account and confirm your email address.',
@@ -715,7 +716,8 @@ export const hu: Record<MessageKey, string> = {
   'referral.copy': 'Link másolása',
   'referral.copied': 'A link másolva',
   'referral.redeemed': 'A meghívódat beváltották, +1 ajándék fejezetet kaptál.',
-  'referral.revoked': 'Az ajándék fejezet a visszatérítés miatt megszűnt.',
+  'referral.revoked':
+    'Az ajándék fejezet visszatérítés, fizetési vita vagy számlázási egyeztetés miatt megszűnt.',
   'referral.chapters': 'Ajándék fejezet: {n}',
   'referral.signupNotice':
     'Meghívóval érkeztél. Hozd létre a fiókodat, és erősítsd meg az email-címedet.',

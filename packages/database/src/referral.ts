@@ -56,7 +56,9 @@ export async function referralInviteState(
 
 // Inside an open transaction: take the inviter's billing lock (the first lock of
 // every billing write, so a concurrent refund webhook and this redemption
-// serialise instead of deadlocking), re-check eligibility and insert the gift.
+// serialise instead of deadlocking; the redemption already holds it from its
+// start and the advisory lock is re-entrant in one transaction), re-check
+// eligibility and insert the gift.
 // False when the inviter is not eligible or the gift was already redeemed.
 export async function creditReferralGift(
   tx: Database,
@@ -97,5 +99,6 @@ export function admitReferredAccount(
     termsVersion,
     inviterUserId,
     (tx) => creditReferralGift(tx, inviterUserId, options),
+    (tx, inviterId) => billingTx(tx).lockUser(inviterId),
   );
 }

@@ -138,6 +138,39 @@ describe.skipIf(!disposable)(
       expect(Number(policy!.used)).toBe(0);
     });
 
+    it('does not hold the global policy row while it waits for the inviter lock', async () => {
+      const inviter = await subscriber();
+      const friend = randomUUID();
+      let release!: () => void;
+      let held!: () => void;
+      const hold = new Promise<void>((resolve) => (release = resolve));
+      const holding = new Promise<void>((resolve) => (held = resolve));
+      // Checkout and the portal keep this lock across the Stripe call.
+      const portal = pool(1).transaction(async (tx) => {
+        await billingTx(tx).lockUser(inviter);
+        held();
+        await hold;
+      });
+      await holding;
+      const redeem = admitReferredAccount(
+        pool(2),
+        friend,
+        TERMS_ACCEPTANCE_VERSION,
+        inviter,
+        { now: NOW },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Every other admission still gets the policy row immediately.
+      await pool(3).transaction(async (tx) => {
+        await tx.query(
+          'SELECT 1 FROM aw_service_policy WHERE id=1 FOR UPDATE NOWAIT',
+        );
+      });
+      release();
+      await portal;
+      expect((await redeem).status).toBe('admitted');
+    });
+
     it('never deadlocks a redemption against a refund of the same inviter', async () => {
       for (let round = 0; round < 12; round++) {
         const inviter = await subscriber();

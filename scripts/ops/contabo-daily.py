@@ -1150,7 +1150,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/lib/admission.ts': 'a7913c4e5cfc02662c85c0df9c55f450c5fd759689d879170b655f732e85b5b2',
     'apps/web/lib/auth-requests.ts': '9a1b783886da01760c9730cbbbd8dccb8e536a2e3692375737149093c872c9b9',
     'apps/web/lib/billing.ts': '24ac882b0413b77f0856b99f95aa5e29e56685ca644afc48c832972df284591c',
-    'apps/web/lib/i18n/messages.ts': 'a22130082dbc95948937e241b5a5d3421cebbfc285d362264e46d30ce73728b1',
+    'apps/web/lib/i18n/messages.ts': '745cf3956c0b9a82c5d542abe20ed6310953b54576debd6699d07073e2bb26b8',
     'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
     'apps/web/lib/signup.ts': 'a09fadd95482463188a266c46c3827ed2dcae0110e54f518f1d18f052d730c7d',
     'apps/web/lib/turnstile.ts': '521386260240765d1d185e6acbe597ea905265673c99d12d78f54f59fefc9558',
@@ -1179,7 +1179,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
     'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
     'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
-    'packages/database/src/service-access.ts': '519841d4a53d479793609a524911335ff9a62eeec386a0cad1239b67eb31f06a'
+    'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
 }
 
 SUCCESSOR_READER_PURPOSE = 'reader-admission'

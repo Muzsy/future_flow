@@ -396,13 +396,18 @@ export class ServiceAccessRepository {
   // transaction, before anything is written for the invitee, and must return
   // true only after it durably credited the inviter; any later failure rolls
   // that credit back, so the gift exists exactly when the admission does.
-  // Lock order: policy row, then the inviter's billing lock (taken inside
-  // `creditInviter`, as in every billing write), then the invitee's root.
+  // Lock order: the inviter's billing lock (`lockInviter`, the first lock of
+  // every billing write, and held by checkout/portal across the Stripe call), then
+  // the global policy row, then the invitee's root. The policy row is the
+  // shared lock of every admission, so it is taken only after the inviter's own
+  // lock is already held: a slow billing call of one account can delay only that
+  // account's invite, never everyone else's admission.
   async admitReferredAccount(
     verifiedUserId: unknown,
     termsVersion: unknown,
     inviterUserId: unknown,
     creditInviter: (tx: Database) => Promise<boolean>,
+    lockInviter: (tx: Database, inviterId: string) => Promise<void>,
   ): Promise<ReferredAdmissionOutcome> {
     const terms = assertTermsVersion(termsVersion);
     const userId = accountId(verifiedUserId),
@@ -410,6 +415,7 @@ export class ServiceAccessRepository {
     if (!userId) return { status: 'unavailable' };
     if (!inviterId || inviterId === userId) return { status: 'invite-invalid' };
     return this.db.transaction(async (tx) => {
+      await lockInviter(tx, inviterId);
       const [policy] = await tx.query<PolicyRow>(
         'SELECT mode,reconcile_required FROM aw_service_policy WHERE id=1 FOR UPDATE',
       );
