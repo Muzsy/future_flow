@@ -59,6 +59,8 @@ export function TermsOfUse() {
           'terms.payment5',
           'terms.payment6',
           'terms.payment7',
+          'terms.payment8',
+          'terms.payment9',
         ]}
       />
       <LegalSection
