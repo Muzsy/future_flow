@@ -1099,14 +1099,21 @@ class ReviewedImageChangesTests(unittest.TestCase):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
     def test_unauthenticated_nav_hide_release_accepts_only_the_pinned_product_files(self):
+        import subprocess
         previous = '4c5c79e25365d200e9d263a90b141d37b874f118'
+        # The release that served these bytes; reading the working tree would
+        # break whenever a later change touches the same file.
+        release = '0bbdb063619e9d3a4a655f869ed5c604a3509386'
         checkout = directory.parents[1]
         paths = sorted([
             'apps/web/components/experience.tsx',
             'apps/web/components/site-header.tsx',
         ])
         delta = b''.join(path.encode() + b'\0' for path in paths)
-        hashes = {path: sha((checkout / path).read_bytes()) for path in paths}
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
         env.require_reviewed_image_changes(previous, delta, hashes)
         with self.assertRaisesRegex(env.Refusal, 'Product files'):
             env.require_reviewed_image_changes(previous, delta + b'packages/core/src/extra.ts\0', hashes)

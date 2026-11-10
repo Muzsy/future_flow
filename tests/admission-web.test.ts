@@ -185,12 +185,25 @@ describe('web side of bounded open admission: texts and screens', () => {
     );
     expect(html.match(/type="checkbox"/g)).toHaveLength(2);
   });
-  it('renders the full page without any form, input or waiting-list control', async () => {
+  it('renders the full page without any form or waiting-list control, only the invitation field', async () => {
     const html = await render({ kind: 'full' });
     expect(html).toContain('data-admission="full"');
     expect(html).toContain(messages.en['admission.fullTitle']);
-    expect(html).not.toContain('<input');
     expect(html).not.toContain('<form');
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain('type="email"');
+    // The one field is the invitation link; its button starts disabled.
+    expect(html.match(/<input/g)).toHaveLength(1);
+    expect(html).toContain(messages.en['admission.inviteLabel']);
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*>[^<]*Validate invitation/,
+    );
+    expect(html).not.toContain('role="alert"');
+  });
+  it('shows why a presented invitation was refused on the full page', async () => {
+    const html = await render({ kind: 'full', notice: 'Invitation refused' });
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('Invitation refused');
   });
   it('renders the loading and error screens, never the consent form', async () => {
     const loading = await render({ kind: 'checking' });

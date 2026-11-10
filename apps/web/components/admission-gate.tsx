@@ -4,13 +4,20 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Lock } from 'lucide-react';
 import { ClientError, api, clientErrorMessage } from '../lib/client';
 import {
-  CONSENT_BODY,
   admissionFromError,
   admissionFromStatus,
   canSubmitConsent,
+  consentBody,
   consentFailure,
   type AdmissionState,
 } from '../lib/admission';
+import {
+  consentStatusPath,
+  forgetInvite,
+  inviteTokenFrom,
+  rememberInvite,
+  rememberedInvite,
+} from '../lib/referral-invite';
 import { useLanguage } from './language-provider';
 
 const errorCode = (error: unknown) =>
@@ -27,15 +34,22 @@ export function useAdmission(user: string | null, active: boolean) {
     if (!user || !active) return;
     let cancelled = false;
     setState({ kind: 'checking' });
-    api<unknown>('/me/consent')
+    // An invitation the person arrived with (remembered across the sign-up and
+    // the e-mail confirmation) is presented with the status read.
+    api<unknown>(consentStatusPath(rememberedInvite()))
       .then((body) => {
-        if (!cancelled) setState(admissionFromStatus(body, t('error.network')));
+        if (cancelled) return;
+        const next = admissionFromStatus(body, t('error.network'));
+        if (next.kind === 'admitted') forgetInvite();
+        setState(next);
       })
       .catch((error: unknown) => {
-        if (!cancelled)
-          setState(
-            admissionFromError(errorCode(error), clientErrorMessage(error)),
-          );
+        if (cancelled) return;
+        // A refused invitation is dropped so it is not presented again.
+        if (errorCode(error) === 'SERVICE_INVITE_INVALID') forgetInvite();
+        setState(
+          admissionFromError(errorCode(error), clientErrorMessage(error)),
+        );
       });
     return () => {
       cancelled = true;
@@ -46,7 +60,8 @@ export function useAdmission(user: string | null, active: boolean) {
   return {
     state,
     admitted: () => setState({ kind: 'admitted' }),
-    full: () => setState({ kind: 'full' }),
+    full: (notice?: string) =>
+      setState(notice ? { kind: 'full', notice } : { kind: 'full' }),
     recheck: () => setAttempt((value) => value + 1),
   };
 }
@@ -63,7 +78,22 @@ export function AdmissionPanel({
   const [adult, setAdult] = useState(false),
     [accepted, setAccepted] = useState(false),
     [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState(''),
+    [inviteText, setInviteText] = useState(''),
+    [inviteNotice, setInviteNotice] = useState('');
+  function presentInvite() {
+    const token = inviteTokenFrom(inviteText);
+    if (!token) {
+      setInviteNotice(
+        clientErrorMessage(new ClientError('SERVICE_INVITE_INVALID')),
+      );
+      return;
+    }
+    setInviteNotice('');
+    setInviteText('');
+    rememberInvite(token);
+    admission.recheck();
+  }
   async function submit() {
     if (!canSubmitConsent(adult, accepted, busy)) return;
     setBusy(true);
@@ -71,16 +101,19 @@ export function AdmissionPanel({
     try {
       await api('/me/consent', {
         method: 'POST',
-        body: JSON.stringify(CONSENT_BODY),
+        body: JSON.stringify(consentBody(rememberedInvite())),
       });
+      forgetInvite();
       admission.admitted();
     } catch (error) {
       const failure = consentFailure(
         errorCode(error),
         clientErrorMessage(error),
       );
-      if (failure.kind === 'full') admission.full();
-      else setNotice(failure.message);
+      if (failure.kind === 'full') {
+        if (failure.notice) forgetInvite();
+        admission.full(failure.notice);
+      } else setNotice(failure.message);
     } finally {
       setBusy(false);
     }
@@ -94,6 +127,32 @@ export function AdmissionPanel({
         <h1>{t('admission.fullTitle')}</h1>
         <p>{t('admission.fullBody')}</p>
         <p className="subtle">{t('admission.fullNothing')}</p>
+        {(state.notice || inviteNotice) && (
+          <div role="alert" className="notice error">
+            {inviteNotice || state.notice}
+          </div>
+        )}
+        <label className="field">
+          <span>{t('admission.inviteLabel')}</span>
+          <input
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={2048}
+            value={inviteText}
+            onChange={(event) => setInviteText(event.target.value)}
+          />
+        </label>
+        <p>
+          <button
+            className="primary"
+            disabled={inviteText.trim() === ''}
+            onClick={presentInvite}
+          >
+            {t('admission.inviteSubmit')}
+            <ArrowRight size={16} />
+          </button>
+        </p>
         <button className="secondary" onClick={admission.recheck}>
           {t('admission.recheck')}
         </button>{' '}

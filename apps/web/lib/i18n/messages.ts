@@ -291,6 +291,22 @@ export const en = {
   'billing.manageTerms':
     'Manage your subscription securely on Stripe. Cancellation stops the next renewal; your paid access continues until the end of the current billing period.',
   'billing.support': 'If you need help, contact',
+  'referral.cardTitle': 'Invite a friend',
+  'referral.cardBody':
+    'As a subscriber you can invite one friend to Alterward, even when registration is currently closed. Once they sign up and sign in, you get +1 gift chapter. The gift chapter is used after your monthly chapters and does not expire at the end of the month.',
+  'referral.create': 'Create invite link',
+  'referral.created':
+    'Send this link. It is valid for 30 days and can be used once.',
+  'referral.copy': 'Copy link',
+  'referral.copied': 'Link copied',
+  'referral.redeemed':
+    'Your invitation was redeemed, you received +1 gift chapter.',
+  'referral.revoked': 'The gift chapter ended because of a refund.',
+  'referral.chapters': 'Gift chapters: {n}',
+  'referral.signupNotice':
+    'You came with an invitation. Create your account and confirm your email address.',
+  'admission.inviteLabel': 'Have an invitation? Paste the link',
+  'admission.inviteSubmit': 'Validate invitation',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
     'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or if we end the service.',
@@ -690,6 +706,21 @@ export const hu: Record<MessageKey, string> = {
   'billing.manageTerms':
     'Az előfizetésedet biztonságosan a Stripe felületén kezelheted. A lemondás a következő megújulást állítja le; a kifizetett hozzáférés az aktuális ciklus végéig megmarad.',
   'billing.support': 'Ha segítség kell, írj ide:',
+  'referral.cardTitle': 'Hívj meg egy barátot',
+  'referral.cardBody':
+    'Előfizetőként meghívhatsz egy barátot az Alterwardba, akkor is, ha a regisztráció épp zárt. Amint regisztrál és belép, +1 ajándék fejezetet kapsz. Az ajándék fejezet a havi fejezeteid után fogy, és nem jár le a hónap végén.',
+  'referral.create': 'Meghívólink létrehozása',
+  'referral.created':
+    'Küldd el ezt a linket. 30 napig érvényes, és egyszer használható.',
+  'referral.copy': 'Link másolása',
+  'referral.copied': 'A link másolva',
+  'referral.redeemed': 'A meghívódat beváltották, +1 ajándék fejezetet kaptál.',
+  'referral.revoked': 'Az ajándék fejezet a visszatérítés miatt megszűnt.',
+  'referral.chapters': 'Ajándék fejezet: {n}',
+  'referral.signupNotice':
+    'Meghívóval érkeztél. Hozd létre a fiókodat, és erősítsd meg az email-címedet.',
+  'admission.inviteLabel': 'Van meghívód? Illeszd be a linket',
+  'admission.inviteSubmit': 'Meghívó érvényesítése',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
     'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy ha megszüntetjük a szolgáltatást.',
