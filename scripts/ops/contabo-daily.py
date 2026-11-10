@@ -1123,14 +1123,14 @@ HISTORICAL_040_CHANGE_HASHES = {
     'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6',
 }
 REGISTRY_040_CHANGE_HASHES = {
-    'apps/api/src/app.ts': '022d787782e6d63b01c53d05d5617d54502629a10f32a5fedcd241030c0715e0',
+    'apps/api/src/app.ts': '8d37af8e9874fed9a4ad8fd1484eccd84570b880dd17de4215e96a45b22bb4dd',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
     'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
-    'apps/api/src/billing.ts': '382ba90fb5219470d393cef8415209953278ee1e41c463340d6f337cb575c3f0',
+    'apps/api/src/billing.ts': '3659867a5d1bf868e9a161def0b4714982cf7c1e994e8859fcc69fd80c72f132',
     'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
     'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
-    'apps/api/src/service-access.ts': '9d19602bb8733fcd765408e47056d6c572295b4a6aca684d23268b4c8ead33e7',
-    'apps/api/src/service-admission.ts': 'c47fc49078afb4662880ce9020d456c1a838c01586fcf4ee62aa4c369107f991',
+    'apps/api/src/service-access.ts': '78492651b75f935c5fbbff38492d6b43eea1f6c3a6f4ec0333381655d3bef305',
+    'apps/api/src/service-admission.ts': 'b1371c74e770407c2f6ede14c7684e56120890d96de2204924410b5a42a3ea91',
     'apps/web/app/[...route]/page.tsx': '48dfc179bfe775fc277c7dae641b1148d0185ad55bb650e86a4250ebb138fa60',
     'apps/web/app/account-access/page.tsx': '61b75ec62f6f0c5fb70736df947003a53620f7cfb956ba651e51466b7ee4628f',
     'apps/web/app/globals.css': '8dc72f1a80b8364b4b9aabfdbd44f79f5b5e7fdb3d538b2bda541294a00fb791',
@@ -1164,22 +1164,22 @@ REGISTRY_040_CHANGE_HASHES = {
     'deploy/server.env.example': '3c29e4ca8f6141e35376fda1fbf9c1dd75c6eecc1a5a29361e8c37a56c9f8bd9',
     'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
-    'packages/contracts/src/error-messages.ts': '02623644230f94b672314031566df300e5c3c9a74cfbf72f4ab31613e683559b',
-    'packages/contracts/src/privacy-consent.ts': '9f03be8e713c2f60aaf86fa5251accd3a86d011395cc284c6dd7a2f22e11a624',
+    'packages/contracts/src/error-messages.ts': 'c28a6025edb83fcc18015382e2f252fea628d4ab953a5335cf55ab15cc9563ab',
+    'packages/contracts/src/privacy-consent.ts': '2dcdaca5192a2e1633c253160ccfeaa64aacef439249cc2014a683f6ef48b7b0',
     'packages/core/src/billing-service.ts': '3826bf6fe5f55ab6ecdb2837d5a68c54454990319213f01e465378fd1ecc7703',
     'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
-    'packages/core/src/billing.ts': 'af3cfe5a84b21765d049bc5b13c8f71e4ed8eafa649b7e088b0ec0af169f1b5b',
-    'packages/core/src/index.ts': '04fd18bc5aa2bac28a6514eb9b6b7ddfa227ade8180435680c19f362092bb3fd',
+    'packages/core/src/billing.ts': 'f832a25a6f0786bd344ee18495a8276ee4166f1bbb6c9ad3e3e4a3edfe591390',
+    'packages/core/src/index.ts': '952ce99a6e2340a2c07a3ad1fe0e3a32cd4e5b9999419771c6679d8ecee28297',
     'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
     'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
-    'packages/database/src/billing.ts': 'ee4424f5496ac027f6967f07702dbe54daaab26dceba7a207171870493b7883b',
+    'packages/database/src/billing.ts': 'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
-    'packages/database/src/index.ts': '34e5298993b6ab93fe4345aa477d67c097f010f2faab1b83074be878d40f992f',
+    'packages/database/src/index.ts': '871d985dd05b114abcd64370de8175c8e79a32a531304889b565853b8f4a2d0c',
     'packages/database/src/life-jobs.ts': '1ff551d723dd41bf935e3e6aa3938e469cf2bd501607d82dfa1a46ddb8bc5105',
     'packages/database/src/lives.ts': '548069e66f2ef9208a44cbafed1a102bba71ebe596e09ba809035154283b298a',
     'packages/database/src/narrative-memory.ts': '3941f9f8c2d1b0947e3e00e09b53b4103a005b34687b23d49f76b457e54f6355',
     'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
-    'packages/database/src/service-access.ts': '29538c53ec4b66863185916be098ebe49774c022eda5656965d67b2ec57226a6'
+    'packages/database/src/service-access.ts': '519841d4a53d479793609a524911335ff9a62eeec386a0cad1239b67eb31f06a'
 }
 
 SUCCESSOR_READER_PURPOSE = 'reader-admission'

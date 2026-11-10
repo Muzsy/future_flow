@@ -285,6 +285,18 @@ const errors: Record<string, readonly [string, string]> = {
     'Registration is full for now. We open new places later. Nothing was saved about you.',
     'Egyelőre megtelt, később nyitunk új helyeket. Rólad nem mentettünk semmit.',
   ],
+  SERVICE_INVITE_INVALID: [
+    'This invitation is no longer valid. Ask your friend to send a new one.',
+    'Ez a meghívó már nem érvényes. Kérd meg a barátodat, hogy küldjön újat.',
+  ],
+  BILLING_REFERRAL_INELIGIBLE: [
+    'Only active subscribers can invite a friend.',
+    'Barátot csak aktív előfizető hívhat meg.',
+  ],
+  BILLING_REFERRAL_USED: [
+    'Your invitation has already been used.',
+    'A meghívódat már beváltották.',
+  ],
   SERVICE_GENERATION_PAUSED: [
     'New chapters are temporarily paused. Your saved stories remain available.',
     'Az új fejezetek készítése átmenetileg szünetel. A mentett történeteid elérhetők.',
