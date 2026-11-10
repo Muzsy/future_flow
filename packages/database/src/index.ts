@@ -78,11 +78,53 @@ function logConnectionError(scope: 'idle' | 'transaction', error: unknown) {
     }; connection discarded.`,
   );
 }
+const DEFAULT_POOL_MAX = 5;
+const DEFAULT_CONNECTION_TIMEOUT_MS = 10000;
+// Operator overrides are strict integers: a typo must stop the process at
+// startup instead of silently running with another connection budget.
+function boundedIntegerFromEnv(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  minimum: number,
+  maximum: number,
+): number | undefined {
+  const raw = env[name];
+  if (raw === undefined || raw === '') return undefined;
+  const value = /^[1-9][0-9]{0,5}$/.test(raw) ? Number(raw) : NaN;
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum)
+    throw new Error(`${name} must be an integer from ${minimum} to ${maximum}`);
+  return value;
+}
+// `DATABASE_POOL_MAX` (1..30) and `DATABASE_CONNECTION_TIMEOUT_MS`
+// (1000..60000) override the caller's default; without either the pool stays at
+// five connections and a ten second checkout timeout, as before.
+export function databasePoolConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  defaults: { max?: number } = {},
+) {
+  return {
+    max:
+      boundedIntegerFromEnv(env, 'DATABASE_POOL_MAX', 1, 30) ??
+      defaults.max ??
+      DEFAULT_POOL_MAX,
+    connectionTimeoutMillis:
+      boundedIntegerFromEnv(
+        env,
+        'DATABASE_CONNECTION_TIMEOUT_MS',
+        1000,
+        60000,
+      ) ?? DEFAULT_CONNECTION_TIMEOUT_MS,
+  };
+}
 export function connectDatabase(
   connectionString: string,
   ssl: boolean,
+  options: { defaultPoolMax?: number } = {},
 ): Database & { close(): Promise<void> } {
   if (!connectionString) throw new Error('DATABASE_URL is required');
+  const poolConfig = databasePoolConfigFromEnv(process.env, {
+    max: options.defaultPoolMax,
+  });
   const certificatePath = process.env.DATABASE_SSL_CA_FILE;
   const pool = new Pool({
     connectionString,
@@ -94,8 +136,8 @@ export function connectDatabase(
             : {}),
         }
       : false,
-    max: 5,
-    connectionTimeoutMillis: 10000,
+    max: poolConfig.max,
+    connectionTimeoutMillis: poolConfig.connectionTimeoutMillis,
     idleTimeoutMillis: 30000,
   });
   pool.on('error', (error) => logConnectionError('idle', error));

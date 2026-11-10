@@ -84,11 +84,19 @@ describe('captcha wording', () => {
       'auth.captchaNote',
       'privacy.processor3',
       'privacy.collect6',
+      'terms.limits1',
+      'terms.payment1',
+      'terms.payment8',
+      'terms.payment9',
+      'billing.chapters',
     ] as const) {
       expect(en[key]).toBeTruthy();
       expect(hu[key]).toBeTruthy();
+      // Message placeholders such as {taster} are identifiers, not wording.
       for (const text of [en[key], hu[key]])
-        expect(text).not.toMatch(/tesztfázis|ízelítő|test phase/i);
+        expect(text.replace(/\{\w+\}/g, '')).not.toMatch(
+          /tesztfázis|ízelítő|kóstoló|taster|tasting|test phase/i,
+        );
     }
   });
 
