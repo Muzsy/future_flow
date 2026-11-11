@@ -109,3 +109,7 @@ kiadási utódjaként, a 14 fájl teljes listájának és SHA-256 lenyomatának 
 fogadja el. A korábbi Discover- és Stripe-váltások engedélye a saját korábbi
 forrásához kötött. A 039 → 040 migráció történeti próbája az eredeti migrációt
 és az első natív 040 image-et a megőrzött commitokból ellenőrzi.
+
+## Az éles image-build időkorlátja
+
+A célgépes image-build (`contabo-target.py`, `build`) `docker buildx build` lépésének időkorlátja 3600 s (korábban 1200 s). A builder 1 CPU-ra és 2 GiB memóriára korlátozott marad, és a szerver többi folyamatával osztozik a gépen; terhelés alatt a build 20 percnél tovább tartott és háromszor időtúllépéssel állt le (2026-11-11). Az emelés csak a várakozási plafont érinti: az erőforráskorlátok, a build-argumentumok, a forrásellenőrzés és a takarítás változatlanok. A kiadási kapuk és a `REVIEWED_IMAGE_CHANGES` nem változnak. A build ne érje el a 04:15-ös (magyar idő) napi mentést.
