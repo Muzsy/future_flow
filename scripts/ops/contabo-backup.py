@@ -81,12 +81,29 @@ def safe_extract(data, destination):
             private_file(path, archive.extractfile(member).read())
 
 
+def running_containers():
+    """Inspect every running container one by one.
+
+    A short-lived (--rm) helper of another operation can disappear between `docker ps` and
+    `docker inspect`; a single multi-id inspect then exits 1 for ALL of them and the public
+    proxy is not found. A container that is gone by the second look is skipped; one that is
+    still listed and cannot be inspected is a real failure and is recorded as before.
+    """
+    containers = []
+    for identifier in run(['docker', 'ps', '-q']).stdout.decode().split():
+        result = run(['docker', 'inspect', identifier], check=False)
+        if result.returncode:
+            if identifier not in run(['docker', 'ps', '-q']).stdout.decode().split():
+                continue
+            result = run(['docker', 'inspect', identifier])
+        containers += json.loads(result.stdout)
+    return containers
+
+
 def proxy_container():
-    ids = run(['docker', 'ps', '-q']).stdout.decode().split()
-    containers = json.loads(run(['docker', 'inspect', *ids]).stdout)
     matches = []
-    for container in containers:
-        ports = container['NetworkSettings']['Ports'].get('443/tcp') or []
+    for container in running_containers():
+        ports = (container['NetworkSettings'].get('Ports') or {}).get('443/tcp') or []
         if 'caddy' in container['Config']['Image'] and any(
             p['HostPort'] == '443' for p in ports
         ):
