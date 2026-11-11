@@ -1,0 +1,181 @@
+name: alterward
+x-runtime: &runtime
+  image: alterward:${ALTERWARD_TAG:-beta}
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: '3'
+x-database: &database
+  DATABASE_URL: ${DATABASE_URL:?Set the server database URL}
+  DATABASE_SSL: 'true'
+  DATABASE_SSL_CA_FILE: /run/secrets/supabase-ca.crt
+x-access: &access
+  CLOSED_SITE_ENABLED: ${CLOSED_SITE_ENABLED:-false}
+  CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
+  CLOUDFLARE_ACCESS_AUD: ${CLOUDFLARE_ACCESS_AUD:-}
+  CLOSED_SITE_ALLOWED_EMAILS: ${CLOSED_SITE_ALLOWED_EMAILS:-}
+x-shared: &shared
+  SHARED_CONTEXTS_ENABLED: ${SHARED_CONTEXTS_ENABLED:-false}
+  SHARED_FRIEND_ENABLED: ${SHARED_FRIEND_ENABLED:-false}
+  SHARED_CONNECTED_ENABLED: ${SHARED_CONNECTED_ENABLED:-false}
+  SHARED_WORLD_ENABLED: ${SHARED_WORLD_ENABLED:-false}
+x-review: &review
+  CLOSED_BETA_ENABLED: ${CLOSED_BETA_ENABLED:-false}
+  CLOSED_BETA_USER_IDS: ${CLOSED_BETA_USER_IDS:-}
+  PUBLIC_CURATION_ENABLED: ${PUBLIC_CURATION_ENABLED:-false}
+  SCENARIO_VERSIONS_ENABLED: ${SCENARIO_VERSIONS_ENABLED:-false}
+  PUBLIC_SCENARIOS_ENABLED: ${PUBLIC_SCENARIOS_ENABLED:-false}
+  SCENARIO_PERSONALIZATION_ENABLED: ${SCENARIO_PERSONALIZATION_ENABLED:-false}
+  PUBLIC_FORK_CHECKPOINTS_ENABLED: ${PUBLIC_FORK_CHECKPOINTS_ENABLED:-false}
+  PUBLIC_CONTENT_BUNDLES_ENABLED: ${PUBLIC_CONTENT_BUNDLES_ENABLED:-false}
+  PUBLIC_REVIEW_JOBS_ENABLED: ${PUBLIC_REVIEW_JOBS_ENABLED:-false}
+  PUBLIC_CONTENT_REVIEW_JOBS_ENABLED: ${PUBLIC_CONTENT_REVIEW_JOBS_ENABLED:-false}
+  PUBLIC_CONTENT_CURATION_ENABLED: ${PUBLIC_CONTENT_CURATION_ENABLED:-false}
+  PUBLICATIONS_ENABLED: ${PUBLICATIONS_ENABLED:-false}
+  OFFICIAL_PUBLICATIONS_ENABLED: ${OFFICIAL_PUBLICATIONS_ENABLED:-false}
+  DISCOVERY_ENABLED: ${DISCOVERY_ENABLED:-false}
+  SAVED_LIVES_ENABLED: ${SAVED_LIVES_ENABLED:-false}
+  PUBLIC_REPORTS_ENABLED: ${PUBLIC_REPORTS_ENABLED:-false}
+  PUBLIC_METRICS_ENABLED: ${PUBLIC_METRICS_ENABLED:-false}
+  PUBLIC_COLLECTIONS_ENABLED: ${PUBLIC_COLLECTIONS_ENABLED:-false}
+  PUBLIC_EXTERNAL_EXPOSURE_ENABLED: ${PUBLIC_EXTERNAL_EXPOSURE_ENABLED:-false}
+  PUBLICATION_REFRESH_ENABLED: ${PUBLICATION_REFRESH_ENABLED:-false}
+  PUBLIC_FORK_PERMISSION_ENABLED: ${PUBLIC_FORK_PERMISSION_ENABLED:-false}
+  PUBLIC_FORK_STARTS_ENABLED: ${PUBLIC_FORK_STARTS_ENABLED:-false}
+  PUBLIC_REVIEW_DAILY_LIMIT: ${PUBLIC_REVIEW_DAILY_LIMIT:-5}
+  AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
+  AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
+x-billing: &billing
+  # Stripe billing (ADR-010), default-off: nothing is reachable unless
+  # BILLING_ENABLED=true and every value below is valid. Only api and worker get
+  # these (the secrets stay out of web). BILLING_ENFORCEMENT is the chapter gate.
+  BILLING_ENABLED: ${BILLING_ENABLED:-false}
+  BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+  STRIPE_FOUNDER_COUPON_ID: ${STRIPE_FOUNDER_COUPON_ID:-}
+  STRIPE_API_VERSION: ${STRIPE_API_VERSION:-}
+  BILLING_SUCCESS_URL: ${BILLING_SUCCESS_URL:-}
+  BILLING_CANCEL_URL: ${BILLING_CANCEL_URL:-}
+  BILLING_FOUNDER_USER_IDS: ${BILLING_FOUNDER_USER_IDS:-}
+  BILLING_RESERVATION_TTL_SECONDS: ${BILLING_RESERVATION_TTL_SECONDS:-7200}
+x-narrative:
+  &narrative # Default-off: only an explicit server cohort may use the narrative pipeline.
+  NARRATIVE_PIPELINE_MODE: ${NARRATIVE_PIPELINE_MODE:-legacy}
+  NARRATIVE_COHORT_USER_IDS: ${NARRATIVE_COHORT_USER_IDS:-}
+  NARRATIVE_FICTION_GENERATION: ${NARRATIVE_FICTION_GENERATION:-v8}
+services:
+  web:
+    <<: *runtime
+    environment:
+      <<: *access
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      PUBLIC_EXTERNAL_EXPOSURE_ENABLED: ${PUBLIC_EXTERNAL_EXPOSURE_ENABLED:-false}
+      PUBLIC_SITE_URL: https://${PUBLIC_HOST:?Set the public hostname}
+      API_INTERNAL_URL: http://api:4000/api/public
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set the public Supabase URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Use only a publishable key}
+        NEXT_PUBLIC_API_URL: /api/v1
+    command:
+      [
+        pnpm,
+        --filter,
+        '@future-flow/web',
+        start,
+        --hostname,
+        0.0.0.0,
+        --port,
+        '3000',
+      ]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          'fetch("http://127.0.0.1:3000/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+  api:
+    <<: *runtime
+    command: [pnpm, --filter, '@future-flow/api', start]
+    environment:
+      <<: [*database, *shared, *review, *access, *narrative, *billing]
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
+      SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only administrative key}
+      WEB_ORIGIN: https://${PUBLIC_HOST:?Set the public hostname}
+      API_HOST: 0.0.0.0
+      API_PORT: '4000'
+      API_TRUST_PROXY: '1'
+      PUBLICATION_LINK_SECRET: ${PUBLICATION_LINK_SECRET:-}
+      GENERATION_DAILY_LIMIT: ${GENERATION_DAILY_LIMIT:-3}
+      GENERATION_CONCURRENT_LIMIT: '1'
+      SHARED_INVITE_SIGNING_KEY: ${SHARED_INVITE_SIGNING_KEY:-}
+      SHARED_DECISION_DEADLINE_SECONDS: ${SHARED_DECISION_DEADLINE_SECONDS:-}
+      SHARED_GENERATION_DAILY_LIMIT: ${SHARED_GENERATION_DAILY_LIMIT:-3}
+      SHARED_GENERATION_CONCURRENT_LIMIT: ${SHARED_GENERATION_CONCURRENT_LIMIT:-1}
+    volumes:
+      - ${DATABASE_SSL_CA_HOST_FILE:?Set the verified CA file path}:/run/secrets/supabase-ca.crt:ro
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          'fetch("http://127.0.0.1:4000/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+  worker:
+    <<: *runtime
+    # Deliver SIGTERM directly to the worker so it can finish and close the DB.
+    command: [node, apps/worker/dist/main.js]
+    environment:
+      <<: [*database, *shared, *review, *narrative, *billing]
+      SERVICE_ACCESS_ENFORCEMENT: ${SERVICE_ACCESS_ENFORCEMENT:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set the server-only OpenAI key}
+      AI_EVENT_MODEL: ${AI_EVENT_MODEL:-gpt-6.1-sol}
+      AI_STORY_MODEL: ${AI_STORY_MODEL:-gpt-6.1-sol}
+      AI_CHECK_MODEL: ${AI_CHECK_MODEL:-gpt-6.1-sol}
+      AI_PROJECT_BUDGET_USD: ${AI_PROJECT_BUDGET_USD:-0}
+      AI_USER_BUDGET_USD: ${AI_USER_BUDGET_USD:-0}
+      AI_BUDGET_WINDOW_REQUIRED: ${AI_BUDGET_WINDOW_REQUIRED:-true}
+      AI_BUDGET_WINDOW_START: ${AI_BUDGET_WINDOW_START:-}
+      AI_BUDGET_WINDOW_END: ${AI_BUDGET_WINDOW_END:-}
+      AI_FICTION_TIMEOUT_MS: ${AI_FICTION_TIMEOUT_MS:-180000}
+      AI_FICTION_MAX_REQUEST_BYTES: ${AI_FICTION_MAX_REQUEST_BYTES:-100000}
+      AI_EXPERIMENT_LEDGER_PATH: ''
+      JOB_LEASE_SECONDS: '180'
+    volumes:
+      - ${DATABASE_SSL_CA_HOST_FILE}:/run/secrets/supabase-ca.crt:ro
+    stop_grace_period: 120s
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+volumes:
+  caddy_data:
+  caddy_config:

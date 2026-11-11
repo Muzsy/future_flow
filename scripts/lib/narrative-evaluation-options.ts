@@ -1,0 +1,413 @@
+import { resolve } from 'node:path';
+import {
+  EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES,
+  EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES,
+} from '@future-flow/ai';
+import { DomainError } from '@future-flow/core';
+import {
+  evaluationC5FlexApproval,
+  evaluationC5FlexCumulativeBudgetUsd,
+  measurementApproval,
+} from './narrative-evaluation-approval';
+import { narrativeProfiles } from '../../tests/narrative-fixtures';
+
+// Owner authorization on 2026-10-18: USD 23 total v6 development spend
+// (initial USD 8, then USD 12/17; extended to USD 23 after quality2.5 checks).
+// from the unchanged canonical ledger baseline USD 10.732030 (305 calls;
+// prior unused v5 headroom USD 4.472505 is not added again). This is a
+// cumulative accounting ceiling, not a provider balance or a ledger reset.
+// Owner authorization on 2026-10-19: USD 7.39 v7/quality2.6 development
+// spend on top of the closed v6 ledger total USD 33.4716975 (652 calls); the
+// unused v6 remainder USD 0.2603325 is not added again.
+// Owner authorization on 2026-10-19 15:29: USD 8 v8/quality2.7 measurement
+// spend on top of the closed v7 ledger total USD 40.0866575 (765 calls; v7
+// spent 6.61496); the unused v7 remainder USD 0.775 is not added again.
+// Owner authorization on 2026-10-19 19:00: the current budget is USD 6.24 on
+// top of the closed v8 Stage B ledger total USD 46.69296 (875 calls), to make
+// up the two missing Stage B samples; the unused 1.39 is folded into it.
+export const evaluationApprovedCumulativeBudgetUsd = 52.93296;
+export const evaluationDefaultMaxRequestBytes =
+  EXPERIMENT_DEFAULT_MAX_REQUEST_BYTES;
+export const evaluationCreativeMaxRequestBytes =
+  EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES;
+
+export function evaluationMaxRequestBytes(
+  options: Pick<EvaluationOptions, 'creative'>,
+) {
+  return options.creative
+    ? evaluationCreativeMaxRequestBytes
+    : evaluationDefaultMaxRequestBytes;
+}
+
+// Development-only creative calibration after seven 180s transport timeouts.
+// Fixed, source-bound ceiling; runtime defaults and retry/request budgets stay put.
+export function evaluationTimeouts(
+  options: Pick<EvaluationOptions, 'creative' | 'serviceTier'>,
+) {
+  return {
+    timeoutMs: 120000,
+    ...(options.creative ? { fictionTimeoutMs: 300000 } : {}),
+  };
+}
+
+export const evaluationPrices = {
+  'gpt-6.1-sol': { input: 2, cachedInput: 0.1, inputCeiling: 2.5, output: 10 },
+  'gpt-6-luna': {
+    input: 0.1,
+    cachedInput: 0.01,
+    inputCeiling: 0.125,
+    output: 0.5,
+  },
+};
+export const evaluationPriceEvidence = {
+  checkedOn: '2026-11-03',
+  tier: 'default',
+  context: 'short',
+  source: 'https://developers.openai.com/api/docs/pricing',
+};
+export const evaluationFlexPriceEvidence = {
+  ...evaluationPriceEvidence,
+  checkedOn: '2026-11-03',
+  tier: 'flex',
+  accountingTier: 'default',
+  usageDiscount: 0.5,
+  source: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol',
+};
+export type EvaluationOptions = {
+  kind: 'offline' | 'paid' | 'assess';
+  serviceTier?: 'flex';
+  creative?: true;
+  creativeOnly?: true;
+  noForks?: true;
+  // Living-world generation; absent means the frozen v8 generation.
+  fictionGeneration?: 'v9';
+  // Creative-only choice rule: absent = the first option on the main branch (the
+  // second on the fork), 'rotate' = deterministic rotation (diagnostic only).
+  choiceMix?: 'rotate';
+  out: string;
+  fixtureIds: string[];
+  periods: number;
+  seed: string;
+  budgetUsd: number | null;
+  approvalId: string | null;
+  allowPaid: boolean;
+  ratingsFile: string | null;
+  sequenceRatingsFile?: string | null;
+  choicesFile: string | null;
+  models: { event: string; story: string; check: string };
+  maxMeanCostUsd: number | null;
+  maxP95Ms: number | null;
+};
+function invalid(message: string): never {
+  throw new DomainError('EVAL_CONFIG_INVALID', message);
+}
+export function parseEvaluationOptions(
+  argv: string[],
+  env: Record<string, string | undefined> = {},
+): EvaluationOptions {
+  const values = new Map<string, string>(),
+    boolean = new Set<string>();
+  const flags = new Set([
+    '--service-tier',
+    '--mode',
+    '--out',
+    '--fixtures',
+    '--periods',
+    '--seed',
+    '--budget-usd',
+    '--approval-id',
+    '--ratings-file',
+    '--sequence-ratings',
+    '--sequence-ratings-file',
+    '--choices-file',
+    '--event-model',
+    '--story-model',
+    '--check-model',
+    '--fiction-generation',
+    '--choice-mix',
+    '--max-mean-cost-usd',
+    '--max-p95-ms',
+  ]);
+  for (let i = 0; i < argv.length; i++) {
+    const key = argv[i]!;
+    if (
+      key === '--allow-paid' ||
+      key === '--creative' ||
+      key === '--creative-only' ||
+      key === '--no-forks' ||
+      key === '--no-fork'
+    ) {
+      if (boolean.has(key)) invalid('Duplicate flag.');
+      boolean.add(key);
+      continue;
+    }
+    if (
+      !flags.has(key) ||
+      values.has(key) ||
+      !argv[i + 1] ||
+      argv[i + 1]!.startsWith('--')
+    )
+      invalid('Unknown, duplicate or incomplete evaluation option.');
+    values.set(key, argv[++i]!);
+  }
+  if (boolean.has('--no-forks') && boolean.has('--no-fork'))
+    invalid('Duplicate flag.');
+  if (values.has('--sequence-ratings') && values.has('--sequence-ratings-file'))
+    invalid('Duplicate sequence ratings option.');
+  const kind = values.get('--mode') ?? 'offline';
+  if (!['offline', 'paid', 'assess'].includes(kind))
+    invalid('Unsupported evaluation mode.');
+  const fixtureIds =
+    (values.get('--fixtures') ?? 'all') === 'all'
+      ? narrativeProfiles.map((p) => p.id)
+      : (values.get('--fixtures') ?? '').split(',');
+  if (
+    !fixtureIds.length ||
+    new Set(fixtureIds).size !== fixtureIds.length ||
+    fixtureIds.some((id) => !narrativeProfiles.some((p) => p.id === id))
+  )
+    invalid('Only the checked synthetic fixtures are allowed.');
+  const periods = Number(values.get('--periods') ?? 3);
+  const maxPeriods = boolean.has('--creative-only') ? 8 : 3;
+  if (!Number.isInteger(periods) || periods < 1 || periods > maxPeriods)
+    invalid(
+      boolean.has('--creative-only')
+        ? 'Creative-only evaluation requires one to eight periods.'
+        : 'Evaluation requires one to three periods.',
+    );
+  const noForks = boolean.has('--no-forks') || boolean.has('--no-fork');
+  if (
+    noForks &&
+    (!boolean.has('--creative-only') ||
+      periods !== 3 ||
+      fixtureIds.length !== 1 ||
+      fixtureIds[0] !== 'career-transition')
+  )
+    invalid(
+      'The --no-forks option is reserved for the three-period career-transition creative-only smoke run.',
+    );
+  const models = {
+    event: values.get('--event-model') ?? 'gpt-6.1-sol',
+    story: values.get('--story-model') ?? 'gpt-6.1-sol',
+    check: values.get('--check-model') ?? 'gpt-6.1-sol',
+  };
+  if (
+    Object.values(models).some(
+      (model) => !Object.hasOwn(evaluationPrices, model),
+    )
+  )
+    invalid(
+      'The experiment must use a currently reviewed short-context model price.',
+    );
+  if (
+    (boolean.has('--creative') || boolean.has('--creative-only')) &&
+    Object.values(models).some((m) => m !== 'gpt-6.1-sol')
+  )
+    invalid(
+      'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
+    );
+  const generation = values.get('--fiction-generation') ?? 'v8';
+  if (generation !== 'v8' && generation !== 'v9')
+    invalid('Unsupported fiction generation.');
+  if (
+    generation === 'v9' &&
+    !boolean.has('--creative') &&
+    !boolean.has('--creative-only')
+  )
+    invalid('Fiction generation v9 needs a creative run.');
+  // The v9 measurement is a later phase with its own owner-approved budget:
+  // only the source-bound approval of narrative-evaluation-approval.ts, for
+  // exactly its fixture, at most its periods and the rotating choices.
+  const tier = values.get('--service-tier') ?? 'default';
+  if (!['default', 'flex'].includes(tier))
+    invalid('Only default or flex evaluation tier is supported.');
+  if (
+    tier === 'flex' &&
+    (generation !== 'v9' || !boolean.has('--creative-only'))
+  )
+    invalid('Flex is restricted to the isolated v9 creative-only evaluation.');
+  const v9Approval = measurementApproval({
+    approvalId: values.get('--approval-id') ?? null,
+  });
+  const c5Flex = v9Approval === evaluationC5FlexApproval;
+  if (kind === 'paid' && c5Flex && !evaluationC5FlexApproval.authorized)
+    invalid(
+      'C5 Flex is prepared but needs a new explicit numeric owner approval before paid execution.',
+    );
+  if (kind === 'paid' && (tier === 'flex') !== c5Flex)
+    invalid(
+      'Flex needs its own C5 measurement approval; no default-tier fallback.',
+    );
+  if (
+    generation === 'v9' &&
+    kind === 'paid' &&
+    !(
+      values.get('--approval-id') === v9Approval.approvalId &&
+      boolean.has('--creative-only') &&
+      fixtureIds.length === 1 &&
+      fixtureIds[0] === v9Approval.fixtureId &&
+      Number(values.get('--periods') ?? 3) <= v9Approval.maxPeriods &&
+      values.get('--choice-mix') === 'rotate' &&
+      (!c5Flex ||
+        (tier === 'flex' &&
+          ((periods === 3 && noForks) || (periods === 8 && !noForks))))
+    )
+  )
+    invalid('A paid v9 measurement needs its own owner-approved budget.');
+  const choiceMix = values.get('--choice-mix') ?? 'first';
+  if (choiceMix !== 'first' && choiceMix !== 'rotate')
+    invalid('Unsupported choice mix.');
+  if (choiceMix === 'rotate' && !boolean.has('--creative-only'))
+    invalid('The rotating choice mix is a creative-only diagnostic.');
+  const allowPaid = boolean.has('--allow-paid'),
+    budgetUsd = values.has('--budget-usd')
+      ? Number(values.get('--budget-usd'))
+      : null,
+    approvalId = values.get('--approval-id') ?? null;
+  if (
+    kind !== 'paid' &&
+    (allowPaid || budgetUsd !== null || approvalId !== null)
+  )
+    invalid('Paid options require the explicit paid mode.');
+  if (kind === 'paid') {
+    if (
+      !allowPaid ||
+      budgetUsd === null ||
+      !Number.isFinite(budgetUsd) ||
+      budgetUsd <= 0 ||
+      budgetUsd >
+        (c5Flex
+          ? evaluationC5FlexCumulativeBudgetUsd
+          : evaluationApprovedCumulativeBudgetUsd) ||
+      !approvalId ||
+      approvalId.length > 160 ||
+      !values.has('--out')
+    )
+      invalid(
+        'Paid runs require explicit approval, output directory and a positive budget within the owner-approved cumulative ceiling.',
+      );
+    if (
+      !/^sk-(proj-|svcacct-)[A-Za-z0-9_-]{20,}$/.test(
+        env.NARRATIVE_EVAL_API_KEY ?? '',
+      ) ||
+      !/^proj_[A-Za-z0-9_-]+$/.test(env.NARRATIVE_EVAL_PROJECT_ID ?? '') ||
+      env.NARRATIVE_EVAL_PROJECT_CONFIRMATION !== 'dedicated-development'
+    )
+      invalid(
+        'A separately approved development project and its evaluation key are required. The application key is never reused.',
+      );
+    const age =
+      Date.now() -
+      Date.parse(
+        (tier === 'flex'
+          ? evaluationFlexPriceEvidence
+          : evaluationPriceEvidence
+        ).checkedOn + 'T00:00:00Z',
+      );
+    if (age > 7 * 86400000 || age < -86400000)
+      invalid(
+        'Recheck the official experiment model prices before paid execution.',
+      );
+  }
+  const number = (flag: string) => {
+    if (!values.has(flag)) return null;
+    const value = Number(values.get(flag));
+    if (!Number.isFinite(value) || value <= 0)
+      invalid('Operational limits must be positive.');
+    return value;
+  };
+  const sequenceRatingsFile =
+    values.get('--sequence-ratings') ??
+    values.get('--sequence-ratings-file') ??
+    null;
+  if (
+    kind === 'assess' &&
+    !values.has('--ratings-file') &&
+    !sequenceRatingsFile
+  )
+    invalid('Assessment requires human ratings.');
+  return {
+    kind: kind as EvaluationOptions['kind'],
+    ...(tier === 'flex' ? { serviceTier: 'flex' as const } : {}),
+    ...(boolean.has('--creative') || boolean.has('--creative-only')
+      ? { creative: true as const }
+      : {}),
+    ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
+    ...(noForks ? { noForks: true as const } : {}),
+    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
+    ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
+    out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
+    fixtureIds,
+    periods,
+    seed: values.get('--seed') ?? 'alterward-narrative-evaluation-v1',
+    models,
+    budgetUsd,
+    approvalId,
+    allowPaid,
+    ratingsFile: values.get('--ratings-file') ?? null,
+    ...(sequenceRatingsFile ? { sequenceRatingsFile } : {}),
+    choicesFile: values.get('--choices-file') ?? null,
+    maxMeanCostUsd: number('--max-mean-cost-usd'),
+    maxP95Ms: number('--max-p95-ms'),
+  };
+}
+
+// The exported runner repeats CLI authorization checks; callers cannot bypass
+// payment gates by constructing an options object directly.
+export function verifyEvaluationAuthorization(
+  options: EvaluationOptions,
+  env: Record<string, string | undefined>,
+) {
+  const args = [
+    '--mode',
+    options.kind,
+    '--out',
+    options.out,
+    '--fixtures',
+    options.fixtureIds.join(','),
+    '--periods',
+    String(options.periods),
+    '--seed',
+    options.seed,
+    '--event-model',
+    options.models.event,
+    '--story-model',
+    options.models.story,
+    '--check-model',
+    options.models.check,
+  ];
+  if (options.allowPaid) args.push('--allow-paid');
+  if (options.serviceTier !== undefined)
+    args.push('--service-tier', options.serviceTier);
+  if (options.creativeOnly && !options.creative)
+    invalid('Creative-only diagnostics require the creative policy.');
+  if (options.creative) args.push('--creative');
+  if (options.creativeOnly) args.push('--creative-only');
+  if (options.noForks) args.push('--no-forks');
+  // Always passed, so that a v9 options object meets the v9 gate again here.
+  args.push('--fiction-generation', options.fictionGeneration ?? 'v8');
+  if (options.choiceMix) args.push('--choice-mix', options.choiceMix);
+  if (options.budgetUsd !== null)
+    args.push('--budget-usd', String(options.budgetUsd));
+  if (options.approvalId !== null)
+    args.push('--approval-id', options.approvalId);
+  if (options.ratingsFile) args.push('--ratings-file', options.ratingsFile);
+  if (options.sequenceRatingsFile)
+    args.push('--sequence-ratings', options.sequenceRatingsFile);
+  if (options.choicesFile) args.push('--choices-file', options.choicesFile);
+  if (options.maxMeanCostUsd !== null)
+    args.push('--max-mean-cost-usd', String(options.maxMeanCostUsd));
+  if (options.maxP95Ms !== null)
+    args.push('--max-p95-ms', String(options.maxP95Ms));
+  parseEvaluationOptions(args, env);
+}
+
+// Ledger accounting stays at Standard rates for conservative reservations;
+// Flex usage estimates are reported separately and never rewrite past calls.
+export function evaluationCumulativeCeiling(
+  options: Pick<EvaluationOptions, 'approvalId'>,
+) {
+  return options.approvalId === evaluationC5FlexApproval.approvalId
+    ? evaluationC5FlexCumulativeBudgetUsd
+    : evaluationApprovedCumulativeBudgetUsd;
+}

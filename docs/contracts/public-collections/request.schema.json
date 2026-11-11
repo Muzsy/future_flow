@@ -1,0 +1,73 @@
+{
+  "$id": "urn:alterward:public-collections:request:public-collections-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "collectionId": {
+      "type": "string",
+      "enum": [
+        "featured",
+        "community-picks",
+        "turning-points"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "entries": {
+      "maxItems": 24,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^life-[a-f0-9]{32}$"
+              },
+              {
+                "type": "string",
+                "pattern": "^official-[a-f0-9]{32}$"
+              }
+            ]
+          },
+          "publicationRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snapshotHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "slug",
+          "publicationRevision",
+          "snapshotHash"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "collectionId",
+    "revision",
+    "entries",
+    "actorLabel",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

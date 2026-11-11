@@ -1,0 +1,112 @@
+{
+  "project": "Alter Jövő",
+  "version": "0.1",
+  "date": "2026-10-02",
+  "files": [
+    {
+      "name": "00_README.md",
+      "bytes": 3874,
+      "sha256": "58eacaf814b1633f5bdb18038e549b6d351767643b0bb1f5281a19d30b254fb7"
+    },
+    {
+      "name": "01_VISION_AND_PRODUCT.md",
+      "bytes": 5089,
+      "sha256": "9ec036e9b0e14d4db67c7ae46bf2f70e9e6c992f26e8d01f02bf062b57903485"
+    },
+    {
+      "name": "02_USER_EXPERIENCE_AND_FLOWS.md",
+      "bytes": 3962,
+      "sha256": "fe337071082a424a211273841d149e824958c04f7bcd5f76b57116b69dee6ff0"
+    },
+    {
+      "name": "03_PROFILE_MODEL_AND_QUESTIONNAIRE.md",
+      "bytes": 6454,
+      "sha256": "c2267fc747bce7dfbf35d0c5cb22e22eb40d4e6d579434abc01cf207e40a9e35"
+    },
+    {
+      "name": "04_SIMULATION_ENGINE.md",
+      "bytes": 5144,
+      "sha256": "f3980bf516ac272ed5e5a3b94b6861fa409986bd466b44e469cd909e7872f467"
+    },
+    {
+      "name": "05_AI_AND_PROMPT_ARCHITECTURE.md",
+      "bytes": 5355,
+      "sha256": "c481cd225550d2e08222d7750fb7b5a6bd87891531b9e75c569513b988ad5f35"
+    },
+    {
+      "name": "06_STORY_ENGINE_AND_CONTENT.md",
+      "bytes": 3633,
+      "sha256": "fdc6727a9cbe622496a1f38a256739f624daf26b0239e804f3ad13c408166793"
+    },
+    {
+      "name": "07_COMMUNITY_AND_SOCIAL.md",
+      "bytes": 2868,
+      "sha256": "198d7fe511ed0e2b7d8c73730c650b1bde6d314101ebe68b1182654ef0c7749c"
+    },
+    {
+      "name": "08_SYSTEM_ARCHITECTURE.md",
+      "bytes": 5743,
+      "sha256": "242bdb1e1159a82b8ad090355204915bc20513aedc8279a94ee0753ad82f8d82"
+    },
+    {
+      "name": "09_DATA_MODEL.md",
+      "bytes": 4594,
+      "sha256": "3a69182058da05f1c39b85d23a1c7accf1f6b6cbeefbb542e591f302b25b1168"
+    },
+    {
+      "name": "10_API_SPEC.md",
+      "bytes": 3840,
+      "sha256": "3092e6b97d6f19db6a88f6682c845615be420d26d169ad599e613d937746a231"
+    },
+    {
+      "name": "11_SECURITY_PRIVACY_COMPLIANCE.md",
+      "bytes": 6023,
+      "sha256": "3fd2837b783fa1cce36359e47598d87b562299091406b4141b52a835e3b32559"
+    },
+    {
+      "name": "12_MVP_SCOPE_AND_ROADMAP.md",
+      "bytes": 3643,
+      "sha256": "f90bb416c83dad72073dc6dd506760f5b93b571b6e89e48e0197e5b1843b2405"
+    },
+    {
+      "name": "13_ENGINEERING_SETUP.md",
+      "bytes": 3505,
+      "sha256": "0d774b18630b0f87bb3e1356a839a738216e0cc73c254c0b38069f1e19bfe0ca"
+    },
+    {
+      "name": "14_TESTING_AND_QUALITY.md",
+      "bytes": 3319,
+      "sha256": "a2d55101f2ba81535feda55bf7c2158e8d5d74ec0c75bb9378d15776cd048cd3"
+    },
+    {
+      "name": "15_ANALYTICS_MONETIZATION_OPERATIONS.md",
+      "bytes": 2362,
+      "sha256": "7f535ccb4882f6f1386e99f4f7cff7d7fbee05d75ad1f908fb16b98dad26dc84"
+    },
+    {
+      "name": "16_DECISIONS_AND_OPEN_QUESTIONS.md",
+      "bytes": 3819,
+      "sha256": "c7856f6a5324f189a6c5f63a84eea54afa11766afda81ab167d7140d3e9304c9"
+    },
+    {
+      "name": "17_INITIAL_BACKLOG.md",
+      "bytes": 4047,
+      "sha256": "ec2e6e2ccdf4fc52b4009700403e9083be66a0e0130c001eff933be4dd59874e"
+    },
+    {
+      "name": "18_AGENT_HANDOFF.md",
+      "bytes": 4015,
+      "sha256": "8eb5b2888ab58d4eb06afe501d89a2befad7a7dae1799079da82ab03ad359fa4"
+    },
+    {
+      "name": "19_SAMPLE_CONTRACTS.md",
+      "bytes": 5011,
+      "sha256": "e6df1a0f05858696c26dfa782a0031a3f59f30407235662d22a7b84a03e94efc"
+    },
+    {
+      "name": "20_REFERENCES.md",
+      "bytes": 2168,
+      "sha256": "09e908dc034c47f0a5055a0e9499059e54635f92156ce611912d599a74b26fb5"
+    }
+  ]
+}

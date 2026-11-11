@@ -1,0 +1,899 @@
+import { createHash } from 'node:crypto';
+import { DomainError } from './errors';
+import {
+  applyBillingEvent,
+  consumeChapter,
+  defaultBillingOfferConfig,
+  defaultEntitlementConfig,
+  deriveEntitlement,
+  mayAttachFounderDiscount,
+  releaseChapter,
+  reserveChapter,
+  validateBillingOfferConfig,
+  validateDiscountedUserIds,
+  type BillingEvent,
+  type BillingOfferConfig,
+  type BillingOfferVersion,
+  type BillingSubscription,
+  type ChapterGrant,
+  type ChapterLedger,
+  type ChapterReservation,
+  type Entitlement,
+  type EntitlementConfig,
+  type ReserveResult,
+} from './billing';
+import {
+  BillingEventFormatError,
+  normalizeStripeEvent,
+  verifyStripeSignature,
+} from './billing-stripe';
+
+// Orchestration over an abstract transactional store (ADR-010). The pure rules
+// live in ./billing; this layer only loads state, applies a rule and persists the
+// result, so a SQL store and the in-memory test store share the same logic.
+
+export type BillingTx = {
+  // Serialises all billing writes of one user. Lock order is always
+  // user -> subscription row, in every operation, to rule out deadlocks.
+  lockUser(userId: string): Promise<void>;
+  assertServiceCheckout?(userId: string): Promise<void>;
+  // Non-locking owner lookup, used to take the user lock before the row lock.
+  ownerOf(by: {
+    subscriptionId: string | null;
+    customerId: string | null;
+  }): Promise<string | null>;
+  hasEvent(eventId: string): Promise<boolean>;
+  recordEvent(
+    eventId: string,
+    eventType: string,
+    subscriptionId: string | null,
+    outcome: 'applied' | 'duplicate' | 'stale' | 'ignored' | 'noted',
+  ): Promise<void>;
+  // Row-locked lookup; by customer id only when the subscription id is unknown.
+  findSubscription(by: {
+    subscriptionId: string | null;
+    customerId: string | null;
+  }): Promise<BillingSubscription | null>;
+  listSubscriptions(userId: string): Promise<BillingSubscription[]>;
+  customerOwnedOnlyBy?(customerId: string, userId: string): Promise<boolean>;
+  listCancelPending(limit: number): Promise<string[]>;
+  saveSubscription(
+    sub: BillingSubscription & { userId: string },
+  ): Promise<void>;
+  insertGrant(
+    grant: ChapterGrant,
+    owner: { subscriptionId: string; userId: string },
+  ): Promise<void>;
+  revokeGrants(keys: readonly string[]): Promise<void>;
+  loadLedger(userId: string): Promise<ChapterLedger>;
+  saveReservation(
+    userId: string,
+    reservation: ChapterReservation,
+  ): Promise<void>;
+  hasRedeemedFounderDiscount(userId: string): Promise<boolean>;
+  // The persisted launch-discount eligibility of the admitted account (service
+  // access registry). Unknown accounts are not eligible.
+  launchDiscountEligible(userId: string): Promise<boolean>;
+  userExists(userId: string): Promise<boolean>;
+};
+export type BillingStore = {
+  transaction<T>(run: (tx: BillingTx) => Promise<T>): Promise<T>;
+};
+
+export type BillingAlert = Readonly<{
+  kind:
+    | 'unresolved_event'
+    | 'unknown_subscription'
+    | 'partial_refund'
+    | 'invalid_signature'
+    | 'malformed_event'
+    | 'mode_mismatch'
+    | 'api_version_mismatch'
+    | 'cancel_failed'
+    | 'processing_failed'
+    | 'duplicate_discount'
+    | 'ineligible_discount'
+    | 'second_subscription'
+    | 'foreign_object';
+  eventId?: string;
+  eventType?: string;
+}>;
+
+export type BillingProvider = {
+  createCheckoutSession(input: {
+    userId: string;
+    offerVersion: BillingOfferVersion;
+    discounted: boolean;
+    now: Date;
+  }): Promise<{ url: string }>;
+  createPortalSession?(input: { customerId: string }): Promise<{ url: string }>;
+  // Idempotent: an already cancelled or missing subscription is success.
+  cancelSubscription(subscriptionId: string): Promise<void>;
+  // Reads the subscription from the provider, as a subscription_synced event
+  // stamped with the triggering event's id and time. Used when a paid invoice
+  // arrives before its subscription was ever seen (Stripe does not order events):
+  // activating from the invoice at once instead of waiting for a redelivery.
+  // null = not usable (stays unresolved and is retried). Optional: a provider
+  // without it keeps the redelivery behaviour.
+  fetchSubscription?(
+    subscriptionId: string,
+    stamp: { eventId: string; created: number },
+  ): Promise<Extract<BillingEvent, { type: 'subscription_synced' }> | null>;
+  // Resolves charge/payment-intent identifiers to an invoice and subscription.
+  // 'not_ours' = positively established to belong to no Alterward subscription
+  // (acknowledged and ignored). null = could not be traced (stays unresolved,
+  // alerted, retried).
+  resolveRevocation(
+    event: Extract<BillingEvent, { type: 'revocation' | 'partial_refund' }>,
+  ): Promise<BillingEvent | null | 'not_ours'>;
+};
+
+export type ProcessedEvent = Readonly<{
+  outcome:
+    | 'applied'
+    | 'duplicate'
+    | 'stale'
+    | 'ignored'
+    | 'noted'
+    | 'unknown_subscription'
+    | 'unresolved';
+  // true only when the event is durably recorded as processed.
+  processed: boolean;
+  // The revocation is committed, but cancelling the provider subscription
+  // failed; it stays pending and is retried (redelivery or the retry job).
+  cancelFailed?: boolean;
+  anomalies: readonly (
+    'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+  )[];
+}>;
+
+export type ProcessOptions = Readonly<{
+  offer?: BillingOfferConfig;
+  entitlement?: EntitlementConfig;
+}>;
+
+// Survives the account's deletion (an event row with no subscription link holds
+// only the provider's subscription id, no personal data).
+export const deletedSubscriptionMarker = (subscriptionId: string) =>
+  `deleted-subscription:${subscriptionId}`;
+
+const eventTypeLabel: Record<BillingEvent['type'], string> = {
+  subscription_synced: 'subscription_synced',
+  subscription_deleted: 'subscription_deleted',
+  invoice_paid: 'invoice_paid',
+  revocation: 'revocation',
+  partial_refund: 'partial_refund',
+};
+
+// Idempotent by event id in the same transaction as the state change. An event
+// that cannot be applied yet is never recorded (the caller answers 5xx so the
+// provider redelivers). The revocation itself always commits: cancelling the
+// provider subscription is a retried side effect after the commit (flag
+// `cancelPending`), so a provider outage can only delay the cancellation, never
+// leave a refunded customer with access.
+export async function processBillingEvent(
+  store: BillingStore,
+  event: BillingEvent,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  options: ProcessOptions = {},
+): Promise<ProcessedEvent> {
+  const entitlementConfig = options.entitlement ?? defaultEntitlementConfig;
+  const phase1 = await store.transaction(async (tx) => {
+    const subscriptionId =
+      'subscriptionId' in event ? event.subscriptionId : null;
+    const customerId = 'customerId' in event ? event.customerId : null;
+    const by = { subscriptionId, customerId };
+    const owner =
+      event.type === 'partial_refund'
+        ? null
+        : ((await tx.ownerOf(by)) ??
+          (event.type === 'subscription_synced' ? event.userId : null));
+    if (owner) await tx.lockUser(owner);
+    const anomalies: (
+      'duplicate_discount' | 'ineligible_discount' | 'second_subscription'
+    )[] = [];
+    const result = (
+      outcome: ProcessedEvent['outcome'],
+      processed: boolean,
+      cancelTarget: string | null = null,
+    ) => ({ outcome, processed, anomalies, cancelTarget });
+    const prev =
+      event.type === 'partial_refund' ? null : await tx.findSubscription(by);
+    if (await tx.hasEvent(event.eventId))
+      return result(
+        'duplicate',
+        true,
+        prev?.cancelPending ? prev.subscriptionId : null,
+      );
+    // A subscription cancelled by an account deletion is gone locally; the
+    // provider's follow-up events for it (deleted, updated, invoice, refund) are
+    // acknowledged, not retried for days. Checked before any owner lookup, as
+    // the deleted account no longer exists.
+    if (
+      !prev &&
+      subscriptionId &&
+      (await tx.hasEvent(deletedSubscriptionMarker(subscriptionId)))
+    ) {
+      await tx.recordEvent(
+        event.eventId,
+        eventTypeLabel[event.type],
+        null,
+        'ignored',
+      );
+      return result('ignored', true);
+    }
+    let applied: BillingEvent = event;
+    // A new subscription needs an owner we can verify; otherwise it cannot be
+    // stored yet.
+    if (event.type === 'subscription_synced' && !prev) {
+      if (!event.userId || !(await tx.userExists(event.userId)))
+        return result('unresolved', false);
+      if (event.discounted) {
+        // The provider's coupon is only a claim. It is honoured when the
+        // account's persisted admission fact says so and it was not redeemed
+        // before; any other state (no admission row, later wave, operator
+        // admission) is "not eligible" and the subscription is stored at the
+        // standard offer.
+        const eligible = await tx.launchDiscountEligible(event.userId);
+        const redeemed = await tx.hasRedeemedFounderDiscount(event.userId);
+        if (!mayAttachFounderDiscount(eligible, redeemed)) {
+          applied = { ...event, discounted: false };
+          // Not eligible (the claim is unfounded) is told apart from an
+          // eligible account that already redeemed (a repeat).
+          anomalies.push(
+            eligible === true ? 'duplicate_discount' : 'ineligible_discount',
+          );
+        }
+      }
+      const others = await tx.listSubscriptions(event.userId);
+      if (
+        others.some(
+          (o) =>
+            o.subscriptionId !== event.subscriptionId &&
+            deriveEntitlement(
+              o,
+              new Date(event.created * 1000),
+              entitlementConfig,
+            ).canGenerate,
+        )
+      )
+        anomalies.push('second_subscription');
+    }
+    const transition = applyBillingEvent(prev, applied, options.offer);
+    if (
+      transition.outcome === 'unknown_subscription' ||
+      transition.outcome === 'unresolved'
+    )
+      return result(transition.outcome, false);
+    if (transition.next && transition.next !== prev) {
+      const userId = prev?.userId ?? transition.next.userId;
+      if (!userId) return result('unresolved', false);
+      await tx.saveSubscription({ ...transition.next, userId });
+      if (transition.grant)
+        await tx.insertGrant(transition.grant, {
+          subscriptionId: transition.next.subscriptionId,
+          userId,
+        });
+    }
+    if (transition.revokeGrantKeys.length)
+      await tx.revokeGrants(transition.revokeGrantKeys);
+    await tx.recordEvent(
+      event.eventId,
+      eventTypeLabel[event.type],
+      transition.next?.subscriptionId ?? null,
+      transition.outcome,
+    );
+    return result(
+      transition.outcome,
+      true,
+      transition.cancelSubscription && transition.next
+        ? transition.next.subscriptionId
+        : null,
+    );
+  });
+  const { cancelTarget, ...rest } = phase1;
+  if (!cancelTarget) return rest;
+  return {
+    ...rest,
+    ...(await settleCancellation(store, provider, cancelTarget)),
+  };
+}
+
+// Cancels the provider subscription and clears the pending flag. A failure is
+// not an error of the event (the revocation is committed): it stays pending.
+async function settleCancellation(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  subscriptionId: string,
+): Promise<{ cancelFailed?: true }> {
+  try {
+    await provider.cancelSubscription(subscriptionId);
+  } catch {
+    // Move this subscription behind the others in the retry order, so a few
+    // permanently failing cancellations cannot starve the rest.
+    await store
+      .transaction(async (tx) => {
+        const owner = await tx.ownerOf({ subscriptionId, customerId: null });
+        if (!owner) return;
+        await tx.lockUser(owner);
+        const sub = await tx.findSubscription({
+          subscriptionId,
+          customerId: null,
+        });
+        if (sub?.userId && sub.cancelPending)
+          await tx.saveSubscription({ ...sub, userId: sub.userId });
+      })
+      .catch(() => undefined);
+    return { cancelFailed: true };
+  }
+  await store.transaction(async (tx) => {
+    // Lock order user, then subscription row (same as every other path).
+    const owner = await tx.ownerOf({ subscriptionId, customerId: null });
+    if (!owner) return;
+    await tx.lockUser(owner);
+    const sub = await tx.findSubscription({ subscriptionId, customerId: null });
+    if (sub?.userId && sub.cancelPending)
+      await tx.saveSubscription({
+        ...sub,
+        userId: sub.userId,
+        cancelPending: false,
+      });
+  });
+  return {};
+}
+
+// For a periodic job: retries every cancellation that is still pending.
+export async function retryPendingCancellations(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  limit = 50,
+): Promise<{ attempted: number; failed: number }> {
+  const ids = await store.transaction((tx) => tx.listCancelPending(limit));
+  let failed = 0;
+  for (const id of ids)
+    if ((await settleCancellation(store, provider, id)).cancelFailed) failed++;
+  return { attempted: ids.length, failed };
+}
+
+const handledStripeTypes =
+  /^(customer\.subscription\.|invoice\.paid$|charge\.refunded$|charge\.dispute\.)/;
+
+export type StripeWebhookInput = Readonly<{
+  rawBody: string | Uint8Array;
+  signatureHeader: string | undefined;
+  nowSeconds: number;
+  webhookSecret: string;
+  priceId: string;
+  // Strict test/live separation (ADR-010): a mismatch is rejected. Optional
+  // here; the route layer must always pass both (step 3 acceptance).
+  expectedLivemode?: boolean;
+  expectedApiVersion?: string;
+}>;
+export type WebhookResult = Readonly<{
+  status: 200 | 400 | 500;
+  code:
+    | 'ok'
+    | 'ignored'
+    | 'invalid_signature'
+    | 'invalid_json'
+    | 'malformed_event'
+    | 'mode_mismatch'
+    | 'api_version_mismatch'
+    | 'unresolved'
+    | 'retry';
+  outcome?: ProcessedEvent['outcome'];
+}>;
+
+// Verification precedes every parse. Any failure to apply answers non-2xx so
+// the provider retries; nothing is ever half-recorded.
+export async function handleStripeWebhook(
+  input: StripeWebhookInput,
+  deps: {
+    store: BillingStore;
+    provider: BillingProvider;
+    offer?: BillingOfferConfig;
+    entitlement?: EntitlementConfig;
+    alert?: (alert: BillingAlert) => void;
+  },
+): Promise<WebhookResult> {
+  const alert = deps.alert ?? (() => undefined);
+  if (
+    !verifyStripeSignature({
+      payload: input.rawBody,
+      header: input.signatureHeader,
+      secret: input.webhookSecret,
+      nowSeconds: input.nowSeconds,
+    })
+  ) {
+    alert({ kind: 'invalid_signature' });
+    return { status: 400, code: 'invalid_signature' };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      typeof input.rawBody === 'string'
+        ? input.rawBody
+        : Buffer.from(input.rawBody).toString('utf8'),
+    );
+  } catch {
+    return { status: 400, code: 'invalid_json' };
+  }
+  const envelope =
+    parsed && typeof parsed === 'object'
+      ? (parsed as { id?: unknown; livemode?: unknown; api_version?: unknown })
+      : {};
+  const eventId = typeof envelope.id === 'string' ? envelope.id : undefined;
+  const eventType =
+    parsed && typeof parsed === 'object'
+      ? (parsed as { type?: unknown }).type
+      : undefined;
+  if (
+    input.expectedLivemode !== undefined &&
+    envelope.livemode !== input.expectedLivemode
+  ) {
+    alert({ kind: 'mode_mismatch', eventId });
+    return { status: 400, code: 'mode_mismatch' };
+  }
+  if (
+    input.expectedApiVersion !== undefined &&
+    envelope.api_version !== input.expectedApiVersion
+  ) {
+    alert({ kind: 'api_version_mismatch', eventId });
+    return { status: 400, code: 'api_version_mismatch' };
+  }
+  let event: BillingEvent | null;
+  try {
+    event = normalizeStripeEvent(parsed, { priceId: input.priceId });
+  } catch (error) {
+    if (error instanceof BillingEventFormatError) {
+      alert({ kind: 'malformed_event', eventId });
+      return { status: 400, code: 'malformed_event' };
+    }
+    throw error;
+  }
+  if (!event) {
+    // Filtered by price or type: a wrong STRIPE_PRICE_ID would swallow every
+    // real event silently, so objects of handled types are alerted (the
+    // consumer rate-limits alerts).
+    if (typeof eventType === 'string' && handledStripeTypes.test(eventType))
+      alert({ kind: 'foreign_object', eventId, eventType });
+    return { status: 200, code: 'ignored' };
+  }
+  try {
+    if (event.type === 'revocation' || event.type === 'partial_refund') {
+      const resolved = await deps.provider.resolveRevocation(event);
+      if (resolved === 'not_ours') {
+        alert({ kind: 'foreign_object', eventId: event.eventId });
+        return { status: 200, code: 'ignored' };
+      }
+      if (!resolved) {
+        if (event.type === 'partial_refund') {
+          // Only logged and alerted; nothing to apply.
+          alert({ kind: 'partial_refund', eventId: event.eventId });
+          return { status: 200, code: 'ok', outcome: 'noted' };
+        }
+        alert({ kind: 'unresolved_event', eventId: event.eventId });
+        return { status: 500, code: 'unresolved', outcome: 'unresolved' };
+      }
+      event = resolved;
+    }
+    const options = {
+      offer: deps.offer,
+      entitlement: deps.entitlement,
+    };
+    let result = await processBillingEvent(
+      deps.store,
+      event,
+      deps.provider,
+      options,
+    );
+    if (
+      !result.processed &&
+      result.outcome === 'unknown_subscription' &&
+      event.type === 'invoice_paid' &&
+      deps.provider.fetchSubscription
+    ) {
+      // The invoice outran its subscription: read the subscription now, store
+      // it, and apply the invoice once more. A failure is a retry (500).
+      const synced = await deps.provider.fetchSubscription(
+        event.subscriptionId,
+        { eventId: `fetch_${event.eventId}`, created: event.created },
+      );
+      if (synced) {
+        await processBillingEvent(deps.store, synced, deps.provider, options);
+        result = await processBillingEvent(
+          deps.store,
+          event,
+          deps.provider,
+          options,
+        );
+      }
+    }
+    for (const anomaly of result.anomalies)
+      alert({ kind: anomaly, eventId: event.eventId, eventType: event.type });
+    if (result.outcome === 'noted')
+      alert({ kind: 'partial_refund', eventId: event.eventId });
+    if (!result.processed) {
+      alert({
+        kind:
+          result.outcome === 'unknown_subscription'
+            ? 'unknown_subscription'
+            : 'unresolved_event',
+        eventId: event.eventId,
+        eventType: event.type,
+      });
+      return { status: 500, code: 'unresolved', outcome: result.outcome };
+    }
+    if (result.cancelFailed) {
+      // Committed revocation, pending cancellation: ask for a redelivery, which
+      // retries the cancellation.
+      alert({ kind: 'cancel_failed', eventId: event.eventId });
+      return { status: 500, code: 'retry', outcome: result.outcome };
+    }
+    return { status: 200, code: 'ok', outcome: result.outcome };
+  } catch {
+    alert({ kind: 'processing_failed', eventId });
+    return { status: 500, code: 'retry' };
+  }
+}
+
+// ---- checkout ----
+
+export type BillingConfig = Readonly<{
+  enabled: boolean;
+  enforcement: boolean;
+  offer: BillingOfferConfig;
+  entitlement: EntitlementConfig;
+}>;
+
+// Highest entitlement among the user's subscriptions.
+export function entitlementOfSubscriptions(
+  subs: readonly BillingSubscription[],
+  now: Date,
+  config: EntitlementConfig = defaultEntitlementConfig,
+): Entitlement {
+  let best: Entitlement = { state: 'none', canGenerate: false };
+  for (const sub of subs) {
+    const e = deriveEntitlement(sub, now, config);
+    if (e.canGenerate) return e;
+    if (best.state === 'none') best = e;
+  }
+  return best;
+}
+
+export async function createCheckoutSession(
+  userId: string,
+  now: Date,
+  deps: {
+    store: BillingStore;
+    provider: BillingProvider;
+    config: Pick<BillingConfig, 'entitlement'>;
+    serviceAccessEnforced?: boolean;
+  },
+): Promise<{ url: string }> {
+  // The user lock is held across the provider call so two checkouts of the same
+  // user cannot be created concurrently.
+  return deps.store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    const entitlement = entitlementOfSubscriptions(
+      await tx.listSubscriptions(userId),
+      now,
+      deps.config.entitlement,
+    );
+    // One live subscription per user.
+    if (entitlement.canGenerate)
+      throw new DomainError(
+        'BILLING_ALREADY_SUBSCRIBED',
+        'An active subscription already exists.',
+        409,
+      );
+    // Read under the user lock, in the same transaction as the provider call.
+    // A lookup failure aborts the checkout (nothing is created, nothing is
+    // charged) rather than guessing a price; a missing row is "not eligible".
+    const discounted = mayAttachFounderDiscount(
+      await tx.launchDiscountEligible(userId),
+      await tx.hasRedeemedFounderDiscount(userId),
+    );
+    if (deps.serviceAccessEnforced) {
+      if (!tx.assertServiceCheckout)
+        throw new DomainError(
+          'SERVICE_ACCESS_UNAVAILABLE',
+          'Current service access could not be verified.',
+          503,
+        );
+      // The per-user lock may have waited. Read the current policy/admission
+      // in this same transaction immediately before the provider call.
+      await tx.assertServiceCheckout(userId);
+    }
+    return deps.provider.createCheckoutSession({
+      userId,
+      offerVersion: discounted ? 'launch_v1' : 'standard_v1',
+      discounted,
+      now,
+    });
+  });
+}
+
+// Management creates only a temporary provider session. Entitlement and chapter
+// accounting still change exclusively through the existing signed webhook path.
+export async function createBillingPortalSession(
+  userId: string,
+  deps: {
+    store: BillingStore;
+    provider: Pick<BillingProvider, 'createPortalSession'>;
+  },
+): Promise<{ url: string }> {
+  return deps.store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    if (!(await tx.userExists(userId)))
+      throw new DomainError('ACCOUNT_INACTIVE', 'Account is not active.', 409);
+    const subs = await tx.listSubscriptions(userId);
+    const live = subs.filter(
+      (s) => !['canceled', 'incomplete_expired'].includes(s.status),
+    );
+    const customers = [...new Set(live.map((s) => s.customerId))];
+    if (
+      !live.length ||
+      live.some((s) => s.userId !== userId || s.reconcileRequired) ||
+      customers.length !== 1 ||
+      !deps.provider.createPortalSession ||
+      !tx.customerOwnedOnlyBy ||
+      !(await tx.customerOwnedOnlyBy(customers[0]!, userId))
+    )
+      throw new DomainError(
+        'BILLING_MANAGEMENT_UNAVAILABLE',
+        'Subscription management is not available.',
+        409,
+      );
+    const session = await deps.provider.createPortalSession({
+      customerId: customers[0]!,
+    });
+    if (!(await tx.userExists(userId)))
+      throw new DomainError('ACCOUNT_INACTIVE', 'Account is not active.', 409);
+    if (!(await tx.customerOwnedOnlyBy(customers[0]!, userId)))
+      throw new DomainError(
+        'BILLING_MANAGEMENT_UNAVAILABLE',
+        'Subscription management is not available.',
+        409,
+      );
+    return session;
+  });
+}
+
+// ---- chapter gate ----
+
+export type GateResult =
+  | Readonly<{
+      ok: true;
+      created: boolean;
+      bucket: 'paid' | 'taster';
+      // 'consumed' tells an identical retry that the chapter was already saved.
+      state: 'reserved' | 'consumed';
+    }>
+  | Readonly<{
+      ok: false;
+      reason: 'no_entitlement' | 'allowance_exhausted' | 'invalid_key';
+    }>;
+
+// Reserve before generation. Fails closed; idempotent per request key.
+export async function reserveChapterForUser(
+  store: BillingStore,
+  userId: string,
+  key: string,
+  now: Date,
+  config: Pick<BillingConfig, 'entitlement'> = {
+    entitlement: defaultEntitlementConfig,
+  },
+): Promise<GateResult> {
+  return store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    const entitlement = entitlementOfSubscriptions(
+      await tx.listSubscriptions(userId),
+      now,
+      config.entitlement,
+    );
+    const result: ReserveResult = reserveChapter(
+      await tx.loadLedger(userId),
+      key,
+      entitlement,
+      now,
+    );
+    if (!result.ok) return result;
+    if (result.created) await tx.saveReservation(userId, result.reservation);
+    return {
+      ok: true,
+      created: result.created,
+      bucket: result.reservation.bucket,
+      state: result.reservation.state as 'reserved' | 'consumed',
+    };
+  });
+}
+
+async function settleReservation(
+  store: BillingStore,
+  userId: string,
+  key: string,
+  settle: (ledger: ChapterLedger, key: string) => ChapterLedger,
+) {
+  await store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    const before = await tx.loadLedger(userId);
+    const after = settle(before, key);
+    const found = after.reservations.find((r) => r.key === key);
+    const prior = before.reservations.find((r) => r.key === key);
+    if (found && found !== prior && found.state !== prior?.state)
+      await tx.saveReservation(userId, found);
+  });
+}
+
+// Only a new chapter that was durably saved consumes keret.
+export const consumeChapterForUser = (
+  store: BillingStore,
+  userId: string,
+  key: string,
+) => settleReservation(store, userId, key, consumeChapter);
+// A failure or cancellation hands the reservation back.
+export const releaseChapterForUser = (
+  store: BillingStore,
+  userId: string,
+  key: string,
+) => settleReservation(store, userId, key, releaseChapter);
+
+// ---- configuration ----
+
+export type BillingEnvConfig =
+  | (BillingConfig & {
+      enabled: true;
+      secretKey: string;
+      webhookSecret: string;
+      priceId: string;
+      couponId: string;
+      apiVersion: string;
+      successUrl: string;
+      cancelUrl: string;
+    })
+  | (BillingConfig & { enabled: false; reason: string });
+
+const off = (reason: string, enforcement = false): BillingEnvConfig => ({
+  enabled: false,
+  enforcement,
+  offer: defaultBillingOfferConfig,
+  entitlement: defaultEntitlementConfig,
+  reason,
+});
+const httpsUrl = (value: string | undefined) => {
+  try {
+    const url = new URL(value ?? '');
+    return url.protocol === 'https:' ||
+      (url.protocol === 'http:' && url.hostname === 'localhost')
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+// Disabled unless explicitly and completely configured. A broken
+// configuration disables billing (routes closed, no entitlement); it never
+// takes the rest of the application down and never enables a partial setup.
+export function billingConfigFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): BillingEnvConfig {
+  const flag = (name: string) => {
+    const value = env[name] ?? 'false';
+    if (!['true', 'false'].includes(value)) throw Error('flag');
+    return value === 'true';
+  };
+  // The intent to enforce is read first and survives every configuration error:
+  // a broken setup must close the gate, never open it. An unreadable flag counts
+  // as "enforce".
+  let enforcement = true;
+  try {
+    enforcement = flag('BILLING_ENFORCEMENT');
+  } catch {
+    return off('invalid configuration', true);
+  }
+  try {
+    if (!flag('BILLING_ENABLED')) return off('disabled', enforcement);
+    const secretKey = env.STRIPE_SECRET_KEY?.trim() ?? '';
+    const webhookSecret = env.STRIPE_WEBHOOK_SECRET?.trim() ?? '';
+    const priceId = env.STRIPE_PRICE_ID?.trim() ?? '';
+    const couponId = env.STRIPE_FOUNDER_COUPON_ID?.trim() ?? '';
+    const apiVersion = env.STRIPE_API_VERSION?.trim() ?? '';
+    const successUrl = httpsUrl(env.BILLING_SUCCESS_URL);
+    const cancelUrl = httpsUrl(env.BILLING_CANCEL_URL);
+    if (
+      !/^(sk|rk)_(test|live)_[A-Za-z0-9]{8,}$/.test(secretKey) ||
+      !/^whsec_[A-Za-z0-9]{8,}$/.test(webhookSecret) ||
+      !/^price_[A-Za-z0-9]+$/.test(priceId) ||
+      !/^[A-Za-z0-9_-]{1,100}$/.test(couponId) ||
+      !/^\d{4}-\d{2}-\d{2}(\.[a-z]+)?$/.test(apiVersion) ||
+      !successUrl ||
+      !cancelUrl
+    )
+      return off('invalid configuration', enforcement);
+    // Deprecated: launch-discount eligibility is the persisted admission fact,
+    // not this list. The value is still validated (a malformed one keeps the
+    // billing closed, as before) but it never decides anything.
+    const ids = env.BILLING_FOUNDER_USER_IDS?.trim() ?? '';
+    validateDiscountedUserIds(ids ? ids.split(',').map((id) => id.trim()) : []);
+    const config = {
+      enabled: true as const,
+      enforcement,
+      offer: validateBillingOfferConfig(defaultBillingOfferConfig),
+      entitlement: defaultEntitlementConfig,
+      priceId,
+      couponId,
+      apiVersion,
+      successUrl,
+      cancelUrl,
+    };
+    // Secrets are not enumerable: a stray JSON.stringify or log of the config
+    // object cannot print them.
+    Object.defineProperty(config, 'secretKey', {
+      value: secretKey,
+      enumerable: false,
+    });
+    Object.defineProperty(config, 'webhookSecret', {
+      value: webhookSecret,
+      enumerable: false,
+    });
+    return config as unknown as BillingEnvConfig;
+  } catch {
+    return off('invalid configuration', enforcement);
+  }
+}
+
+// Never serialise secrets (logs, error reports).
+export function redactBillingConfig(config: BillingEnvConfig) {
+  return {
+    enabled: config.enabled,
+    enforcement: config.enforcement,
+    ...(config.enabled
+      ? { mode: /_live_/.test(config.secretKey) ? 'live' : 'test' }
+      : { reason: config.reason }),
+  };
+}
+
+export const checkoutIdempotencyKey = (userId: string, now: Date) =>
+  'alterward-checkout-' +
+  createHash('sha256')
+    .update(`${userId}:${Math.floor(now.getTime() / 60_000)}`)
+    .digest('hex')
+    .slice(0, 32);
+
+// Account deletion: every provider subscription of the user must be cancelled
+// before the account data goes, otherwise the customer would keep being charged
+// for an account that no longer exists. Cancelling is idempotent at the
+// provider; a failure is thrown so the deletion stays pending (fail closed) and
+// can be retried. Subscriptions already cancelled are skipped.
+export async function cancelProviderSubscriptionsForUser(
+  store: BillingStore,
+  provider: Pick<BillingProvider, 'cancelSubscription'>,
+  userId: string,
+): Promise<{ cancelled: number }> {
+  // Under the user lock: a webhook that saved a subscription before the account
+  // was marked deleting has committed by now and is listed; a later one sees the
+  // deleting account and cannot attach state.
+  const subs = await store.transaction(async (tx) => {
+    await tx.lockUser(userId);
+    return tx.listSubscriptions(userId);
+  });
+  let cancelled = 0;
+  for (const sub of subs) {
+    // Terminal states have nothing left to cancel at the provider.
+    if (
+      (sub.status === 'canceled' || sub.status === 'incomplete_expired') &&
+      !sub.cancelPending
+    )
+      continue;
+    await provider.cancelSubscription(sub.subscriptionId);
+    await store.transaction(async (tx) => {
+      const marker = deletedSubscriptionMarker(sub.subscriptionId);
+      if (!(await tx.hasEvent(marker)))
+        await tx.recordEvent(marker, 'account_deleted', null, 'noted');
+    });
+    cancelled++;
+  }
+  return { cancelled };
+}

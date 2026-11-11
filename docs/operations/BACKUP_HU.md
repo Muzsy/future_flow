@@ -1,0 +1,116 @@
+---
+status: canonical
+owner: operations
+last_reviewed: 2026-11-06
+related:
+  - ../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md
+  - RECOVERY_HU.md
+---
+
+# Backup operations
+
+## 1. Cél
+
+Az Alterward backup rétege az alkalmazási adatok és szükséges konfigurációk titkosított, ellenőrizhető mentését biztosítja úgy, hogy a restore külön izolált környezetben bizonyítható legyen.
+
+## 2. Jelenlegi alapelvek
+
+- konzisztens alkalmazási DB snapshot;
+- titkosított archívum;
+- szerveres és külön helyi/offsite példány;
+- visszafejtő identity külön védett helyen;
+- SHA/hash és manifest ellenőrzés;
+- hét napos jóváhagyott napi retention;
+- plaintext scratch és ideiglenes credential takarítás;
+- backup önmagában nem aktivál feature-t vagy paid AI-t;
+- az olvasói előkészítés (aktív és archivált, lejárt-alkalmazatlan) kötött fájllistával, root-tulajdonú 0600/0700 elemekkel kerül a titkosított config archívumba; ismeretlen név, alias, hardlink, nyilvános jogosultság vagy a 8 archívumnál több fail-closed hibát ad. Az archívum-szabály verziója külön (`READER_PREPARATION_ARCHIVE_POLICY_VERSION`), a funded operátor verziói változatlanok. Részletek: `../PERSONAL_BETA_READER_OPERATOR_HU.md`.
+
+## 3. Authority runbook
+
+Részletes backup/restore rehearsal:
+
+- `../CONTABO_BACKUP_RESTORE_RUNBOOK_HU.md`
+
+Kapcsolódó napi/retention/managed eszközök és bizonyítékok továbbra is aktív supporting dokumentumok, amennyiben a `DOCS_INDEX_HU.md` vagy ez a router hivatkozik rájuk.
+
+## 4. Mentési scope
+
+A napi/application mentés nem tekintendő automatikusan teljes Supabase-projekt mentésnek.
+
+Külön scope lehet:
+
+- `public` alkalmazási séma;
+- proxy/config;
+- managed Auth/Storage capture;
+- operátori candidate/state fájlok;
+- retention és történeti proof.
+
+A scope-ot minden restore előtt a manifestből kell megállapítani; ne feltételezz hiányzó Auth/role/Storage adatot.
+
+## 5. Titokhatár
+
+- backup ciphertext commitolható? Alapértelmezésben nem: repositoryn kívüli védett operational adat;
+- recovery identity soha nem kerül Gitbe/image-be;
+- DB jelszó rövid életű, védett mechanizmussal használható;
+- archive és identity külön helyen tartandó;
+- config backup más VPS alkalmazások secretjeit is tartalmazhatja, ezért nem publikálható.
+
+## 6. Backup késznek csak akkor tekinthető, ha
+
+- capture sikeres;
+- manifest/hash létezik;
+- titkosítás igazolt;
+- külön példány elkészült;
+- a policy által elvárt restore/verifier gate teljesül;
+- cleanup sikeres;
+- monitor/retention állapot elfogadható.
+
+Pusztán egy fájl megléte nem restore-bizonyíték.
+
+## 7. Candidate/activation backup
+
+Personal beta vagy más érzékeny activation előtt a konkrét candidate utáni mentés szükséges, nem egy korábbi általános owner-only backup.
+
+Az apply csak az aktuális candidate hash-eket tartalmazó, izoláltan ellenőrzött restore proof után engedhető.
+
+## 8. Tiltott műveletek
+
+- plaintext archive tartós tárolása;
+- éles DB-re restore próba rehearsal célból;
+- globális VPS/proxy restart csak backup check miatt;
+- ismeretlen/symlink/hardlink/device archive entry elfogadása;
+- régi proof új state-re való ráfogása;
+- retention törlés verification nélkül.
+
+## Linux operátori host
+
+A személyes béta reader/funded és napi backup/sync/restore/monitor Linux-host támogatása, az eredeti receipt/SSH/recovery identity egyszeri titkosított migrációja és a változatlan release kapuk: [Linux operator runbook](LINUX_OPERATOR_HU.md). Az átadás nem éles aktiválás és nem helyettesíti a konkrét candidate utáni restore proofot.
+
+## Aktív funded runtime új verziója
+
+A dedikált Linux upgrade/recovery implementáció és finite archive-határ: [funded runtime runbook](FUNDED_RUNTIME_UPGRADE_HU.md). Ez az eredeti ablakot és ledger-t megőrzi; nem owner-zero aktiválás és nem production engedély. A schema-038 kompatibilis recovery az aktuális DB-t használja; a quarantine restore szabályai változatlanok.
+
+A funded upgrade külön `FUNDED_UPGRADE_ARCHIVE_POLICY_VERSION = 4` szabálya az aktív evidence mellett legfeljebb nyolc hash-nevű, lejárt és soha nem alkalmazott preparation-archívumot foglal a titkosított config backupba. Kilenc eredeti immutable fájl, opcionális probe-compose, lezárt probe- és capability-receipt, valamint hash-hez kötött archive receipt megőrzendő; ismeretlen fájl, alias, hardlink, hibás private jogosultság vagy hash-eltérés elutasított. Automatikus archívumtörlés nincs. Az új Daily installálása változatlan kiadási kapu, az archívum nem apply-authority.
+
+A v3 policy az aktív `probe.json` intent/cleanup evidence-t is menti; pending állapot archivált preparationben nem megengedett. A változó probe-receipt az általános titkosított backup része, nem az immutable candidate restore-kapu vagy új apply-authority. A hozzá kötött config hashét a Daily health és az archiválási ellenőrzés is validálja.
+
+
+## 8. Funded runtime utáni legacy bizonyíték
+
+Lezárt, egészséges funded transition után az eredeti legacy upgrade könyvtárát a preparationben byte-hash-sel kötött eredeti personal-beta manifest commitja jelöli ki; az aktív runtime commitja ehhez nem használható. A jelenlegi runtime négy fájlja és a funded target/recovery bizonyítékok ugyanabba a titkosított config archívumba kerülnek. Ismeretlen/módosult/hiányzó authority és részleges transition elutasított; történeti upgrade könyvtár nem gyártható utólag.
+
+A #96 javítás9088275 Daily-forrásának jóváhagyott éles mentése és izolált restore-ja2026-10-26-án PASS:97tábla/1711sor/107config; a runtime külön6d17fda/schema038 maradt. A backup manifest külön rögzíti a Daily sourceCommit és a runtime ownerCommit/ownerImage értékeit. A régi funded CLI active-proof újrakiadási korlátja ettől nem lazul. [Tényleges bizonyíték és megőrzött korlát](NARRATIVE_RELEASE_HU.md#95-lezárva-éles-daily-mentés-és-restore--2026-10-26).
+
+
+## Registry040 candidate és natív restore — #142 jelölt
+
+A #149 source-jelölt a039 candidate mentés generikus offsite restore-ja mellé tényleges, held-writer adatvédelmi replay → izolált040 migráció → független verify bizonyítékot kér. A101/103 publikus tábla a migration-receipt táblát is tartalmazza; a100/102 alkalmazástáblás privacy-katalógus ettől külön fogalom. Archive SQL/ACL/schema nem kerül a tiszta adat-only privacy quarantine-ba, Auth/Storage mentése nem feltételezhető.
+
+A migráció SQL-intentje előtt készült archive nem tartalmazhatja visszamenőleg a későbbi intent/evidence fájlt. Az eredeti backup/restore kötést a root journal őrzi, a következő normál backup már az új véges sidecarokat is menti. A natív040 restore külön v2 source/image/authority bizonyítékot ad; régi039 receipt nem címkézhető át. A proof és a megőrzött eredeti archive összetartozását a Daily ellenőrzi, az automatikus új backup önmagában nem új privacy-replay. [Recovery és fejlesztői/éles határ](RECOVERY_HU.md#142-host-jelölt-külön-történeti-és-natív040-proof).
+
+
+## Változatlan profilgenerációk mentése — #181
+
+Az SPR `service-profile/profiles/<pozitív generáció>.json` fájlja szándékosan root tulajdonú, egy linkű regular fájl, `0400` (a profilolvasó a korábbi privát `0600` alakot is elfogadja). A teljes `extended_config_archive` gyűjtő kizárólag a `service_config_paths()` által már validált véges profilgenerációs katalógushoz használja ezt az olvasót. Minden más owner-, legacy-, service- és unit-fájl továbbra pontos `0600`; a generic `regular()` változatlan. Nincs chmod vagy fájlkihagyás, az élő profil bájtjai és módja nem változnak. Az archívum meglévő privát `0600` entry-formátuma és a ciphertext/hash/restore ellenőrzés megmarad; a service-profile mentése nem automatikus élő SPR-aktiválás restore után.
+
+A hiba az engedélyezett `9c07092` Daily-frissítés utáni első valódi backupban jelentkezett (`proxy-config-capture`: generic reader, 484→92). A #178 SPR-láncjavítása külön marad: ezen a kapun a backup már túljutott. A #181 regresszió a valós profilíróval létrehozott `0400` generációt a teljes archívumgyűjtőn viszi át, és ellenőrzi a bájtokat/hash-eket, a változatlan élő módot, valamint a generic/nemprofile0400, public/group mód, idegen UID, symlink, hardlink és ismeretlen név elutasítását. A javítás nélküli kódon az archívumteszt ugyanazon a két soron bukik. Helyi/CI siker nem production-PASS; új forrás éles telepítése és új próbálkozás külön konkrét engedély.

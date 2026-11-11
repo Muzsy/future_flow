@@ -1,0 +1,99 @@
+{
+  "$id": "urn:alterward:official-life:grantRequest:official-life-source-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceVersion": {
+      "type": "string",
+      "const": "official-life-source-1"
+    },
+    "binding": {
+      "type": "object",
+      "properties": {
+        "bundleId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "reviewId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "reviewHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "policyVersion": {
+          "type": "string",
+          "const": "public-content-review-1"
+        },
+        "curationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "curationVersion": {
+          "type": "string",
+          "const": "public-content-curation-1"
+        }
+      },
+      "required": [
+        "bundleId",
+        "contentHash",
+        "sourceRevision",
+        "reviewId",
+        "reviewHash",
+        "policyVersion",
+        "curationId",
+        "curationVersion"
+      ],
+      "additionalProperties": false
+    },
+    "evidenceHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "fictionalSourceChecked": {
+      "type": "boolean",
+      "const": true
+    },
+    "rightsChecked": {
+      "type": "boolean",
+      "const": true
+    },
+    "qualityChecked": {
+      "type": "boolean",
+      "const": true
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    }
+  },
+  "required": [
+    "sourceVersion",
+    "binding",
+    "evidenceHash",
+    "fictionalSourceChecked",
+    "rightsChecked",
+    "qualityChecked",
+    "acknowledged",
+    "actorLabel"
+  ],
+  "additionalProperties": false
+}

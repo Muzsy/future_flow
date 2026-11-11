@@ -1,0 +1,426 @@
+{
+  "$id": "urn:alterward:public:previewRecord:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "draftId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "sourceRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "scanVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "status": {
+      "type": "string",
+      "const": "awaiting_review"
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "snapshotKey": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "en",
+            "hu"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 800
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "career",
+            "business",
+            "money",
+            "relationships",
+            "family",
+            "education",
+            "lifestyle",
+            "moving_abroad",
+            "starting_over",
+            "personal_growth",
+            "adventure",
+            "historical",
+            "fictional"
+          ]
+        },
+        "origin": {
+          "type": "object",
+          "properties": {
+            "aiGenerated": {
+              "type": "boolean",
+              "const": true
+            },
+            "userEdited": {
+              "type": "boolean"
+            },
+            "classification": {
+              "type": "string",
+              "const": "unreviewed"
+            }
+          },
+          "required": [
+            "aiGenerated",
+            "userEdited",
+            "classification"
+          ],
+          "additionalProperties": false
+        },
+        "profile": {
+          "type": "object",
+          "properties": {
+            "ageBand": {
+              "type": "string",
+              "enum": [
+                "18_24",
+                "25_34",
+                "35_44",
+                "45_54",
+                "55_64",
+                "65_plus"
+              ]
+            },
+            "country": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "employmentStatus": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "employed",
+                    "self_employed",
+                    "student",
+                    "seeking_work",
+                    "retired",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ageBand",
+            "country",
+            "employmentStatus"
+          ],
+          "additionalProperties": false
+        },
+        "goal": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "career",
+                "business",
+                "finance",
+                "relationships",
+                "family",
+                "education",
+                "lifestyle",
+                "personal_growth",
+                "other"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "category",
+            "description"
+          ],
+          "additionalProperties": false
+        },
+        "periods": {
+          "minItems": 1,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^(period|event|decision|option)-[1-9][0-9]*$"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "chapter": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 160
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 500,
+                    "maxLength": 10000
+                  }
+                },
+                "required": [
+                  "title",
+                  "body"
+                ],
+                "additionalProperties": false
+              },
+              "events": {
+                "minItems": 2,
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^(period|event|decision|option)-[1-9][0-9]*$"
+                    },
+                    "effectiveAt": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 160
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 10,
+                      "maxLength": 800
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "effectiveAt",
+                    "title",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "decision": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^(period|event|decision|option)-[1-9][0-9]*$"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 400
+                  },
+                  "options": {
+                    "minItems": 2,
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^(period|event|decision|option)-[1-9][0-9]*$"
+                        },
+                        "label": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 160
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label",
+                        "description"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "selectedOptionKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(period|event|decision|option)-[1-9][0-9]*$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "prompt",
+                  "options",
+                  "selectedOptionKey"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "key",
+              "startDate",
+              "endDate",
+              "chapter",
+              "events",
+              "decision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "startingPoint": {
+          "type": "object",
+          "properties": {
+            "effectiveAt": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "country": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "employmentStatus": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "employed",
+                    "self_employed",
+                    "student",
+                    "seeking_work",
+                    "retired",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "goalCategory": {
+              "type": "string",
+              "enum": [
+                "career",
+                "business",
+                "finance",
+                "relationships",
+                "family",
+                "education",
+                "lifestyle",
+                "personal_growth",
+                "other"
+              ]
+            },
+            "readyForFork": {
+              "type": "boolean",
+              "const": false
+            }
+          },
+          "required": [
+            "effectiveAt",
+            "country",
+            "employmentStatus",
+            "goalCategory",
+            "readyForFork"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "snapshotKey",
+        "locale",
+        "title",
+        "summary",
+        "category",
+        "origin",
+        "profile",
+        "goal",
+        "periods",
+        "startingPoint"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "draftId",
+    "sourceRevision",
+    "snapshotHash",
+    "scanVersion",
+    "expiresAt",
+    "status",
+    "snapshot"
+  ],
+  "additionalProperties": false
+}

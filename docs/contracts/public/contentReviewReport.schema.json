@@ -1,0 +1,102 @@
+{
+  "$id": "urn:alterward:public:contentReviewReport:public-content-review-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "no_findings",
+        "review_required",
+        "unable_to_assess"
+      ]
+    },
+    "findings": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fieldKey": {
+            "type": "string",
+            "pattern": "^field-[1-9][0-9]*$"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "person_name",
+                  "precise_location",
+                  "organization",
+                  "contact_details",
+                  "identifying_combination",
+                  "private_financial",
+                  "sensitive_personal",
+                  "third_party_sensitive",
+                  "harassment",
+                  "hate",
+                  "sexual",
+                  "violence",
+                  "self_harm",
+                  "illegal",
+                  "scam",
+                  "impersonation",
+                  "spam",
+                  "embedded_instructions",
+                  "language"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "meaning_mismatch",
+                  "unverifiable_structure"
+                ]
+              }
+            ]
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "remove",
+              "generalize",
+              "manual_review"
+            ]
+          }
+        },
+        "required": [
+          "fieldKey",
+          "category",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "public-content-review-1"
+    },
+    "scope": {
+      "type": "string",
+      "const": "story_and_selected_checkpoints"
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "publicationApproved": {
+      "type": "boolean",
+      "const": false
+    }
+  },
+  "required": [
+    "verdict",
+    "findings",
+    "policyVersion",
+    "scope",
+    "contentHash",
+    "publicationApproved"
+  ],
+  "additionalProperties": false
+}

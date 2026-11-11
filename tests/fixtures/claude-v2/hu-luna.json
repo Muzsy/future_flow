@@ -1,0 +1,1331 @@
+{
+  "branch": {
+    "input": {
+      "goals": [
+        {
+          "id": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+          "category": "career",
+          "priority": "primary",
+          "motivation": "Érdekesebb alkotói munka, megőrzött biztonsággal",
+          "description": "Átállni önálló digitális tervezői munkára a lakóhelyem közelében",
+          "horizonMonths": 36,
+          "acceptableTradeoffs": ["esti tanulás"],
+          "unacceptableTradeoffs": ["külföldre költözés"]
+        }
+      ],
+      "lifeId": "e254d6bb-6ece-440d-911b-29dc04320135",
+      "locale": "hu",
+      "branchId": "9d35b88e-001c-4755-8f83-6622aacf92bc",
+      "identity": {
+        "mode": "alternate",
+        "label": null,
+        "ageBand": "35_44",
+        "baseProfileVersionId": null
+      },
+      "visibility": "private",
+      "constraints": [
+        {
+          "id": "ddbaa760-7e1a-4012-ad07-fc2a9943bcfc",
+          "lifeId": "e254d6bb-6ece-440d-911b-29dc04320135",
+          "branchId": null,
+          "strength": "hard",
+          "predicate": {
+            "type": "country_is",
+            "value": "HU"
+          },
+          "validFrom": "2026-10-03",
+          "validUntil": null,
+          "description": "Stay in the starting country.",
+          "endsOnDecisionId": null
+        }
+      ],
+      "environment": {
+        "version": "hu-neutral-v2",
+        "description": "Fictional neutral context; no economic forecast. Location is the supplied state. Optional user context:"
+      },
+      "initialState": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "schemaVersion": "2.0.0"
+    }
+  },
+  "periods": [
+    {
+      "period_no": 1,
+      "base_revision": 0,
+      "id": "a51ca06e-a575-4602-8bd6-b06bfbf7917a",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [],
+      "events": [
+        {
+          "id": "8a86a4bb-1d7a-4a8e-b640-b8bd8cd63429",
+          "title": "Kis léptékű gyakorlás",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "digitális tervezési alapok"
+            }
+          ],
+          "summary": "A munka melletti esti időből néhány alkalommal digitális tervezési feladatokra jut. A gyakorlat még kísérleti, de segít jobban megérteni, melyik alkotói feladat vonzó.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-11-14",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2026-11-14",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "5b9e6b14-4a8d-4c4f-bb10-83cbbd8e6bf0",
+          "title": "A biztonság és a kíváncsiság mérlegelése",
+          "changes": [],
+          "summary": "A következő hónapokban visszatérő kérdés, hogyan lehetne a tervezést a jelenlegi munka feladása nélkül kipróbálni. Az önállóság vonzó, de egyelőre nincs elég tapasztalat ahhoz, hogy biztosnak tűnjön a következő lépés.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-02-06",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-02-06",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-11-14",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "96e2030d-f67f-44af-8cc6-830d38d82e76",
+          "title": "Melyik próbálkozás fér bele?",
+          "changes": [],
+          "summary": "A hat hónap végén továbbra is nyitott kérdés, hogyan épülhetne az önálló digitális tervezői munka a lakóhely közelében. A választás a következő időszak fókuszát jelöli ki; egyik út sem garantál ügyfeleket vagy gyors váltást.",
+          "actorIds": [],
+          "decision": {
+            "id": "5d17458d-0df9-4087-9b52-2cdf680bdad8",
+            "prompt": "Mire fordítsd a következő időszak szabadidejének nagyobb részét, miközben megőrzöd a jelenlegi munkád nyújtotta biztonságot?",
+            "options": [
+              {
+                "id": "222f00d6-61e8-4b0c-baf1-8b709af5916d",
+                "label": "Portfólió építése saját tempóban",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 6
+                    }
+                  }
+                ],
+                "description": "Heti több idő jutna önálló munkákra és azok bemutatására; rugalmas, de a visszajelzés és az előrehaladás bizonytalan lehet.",
+                "preconditions": []
+              },
+              {
+                "id": "f3ea2924-4e17-4ca2-aef9-2d86f4e64d43",
+                "label": "Esti tanulás strukturáltabban",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 4
+                    }
+                  }
+                ],
+                "description": "A tanulás adhat kapaszkodót és rendszeres gyakorlási keretet, cserébe kevesebb szabad idő marad más próbálkozásokra.",
+                "preconditions": []
+              },
+              {
+                "id": "a2e6c09e-b617-4a1a-ab65-3e12841cfd5d",
+                "label": "Óvatos helyi kapcsolatépítés",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 7
+                    }
+                  }
+                ],
+                "description": "Helyi vállalkozások igényeinek feltérképezése alacsonyabb elköteleződésű próba lehet; lassabban fejlesztheti a portfóliót, és nem biztos, hogy munkalehetőséget hoz.",
+                "preconditions": []
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-02-06",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "November közepén néhány estére más jelentést kap a munka utáni idő. Az adminisztráció után digitális tervezési feladatokkal próbálkozol: nem azért, mert már tudnád, hogyan lesz ebből önálló munka, hanem mert szeretnéd közelebbről látni, mi vonz benne. A képernyő világos felülete előtt egy elrendezés apró változtatása is elég ahhoz, hogy megállj és figyelj. Nem pusztán elkészülni akarsz valamivel. Azt keresed, melyik feladatnál érzed úgy, hogy érdemes tovább maradnod.\n\nA próbálkozások még kísérletiek. A tervezés és az írás mellé digitális tervezési alapokat szerzel, de ez nem teszi kész pályává azt, ami egyelőre csak irány. Néhány esti alkalom fér bele; a jelenlegi irodai munkád ugyanúgy megmarad. A kettő között nincs látványos fordulat, inkább egy keskeny átjáró, amelynek most kezded kitapogatni a széleit.\n\nFebruárra visszatérő kérdéssé válik, hogyan próbálhatnád ki komolyabban a tervezést anélkül, hogy feladnád a biztonságodat. A havi 400 000 HUF jövedelem és az 1 200 000 HUF rendelkezésre álló pénz nem válasz erre, de része annak, amit nem szeretnél könnyelműen kockára tenni. Érdekesebb alkotói munkára vágysz, nem arra, hogy minden biztos pontot egyszerre mozdíts el.\n\nAz önállóság gondolata vonzó, a következő lépés mégsem látszik biztosnak. A digitális alapok már megvannak, a tapasztalat azonban még kevés ahhoz, hogy egy váltás magától értetődőnek tűnjön. Az esti tanulást vállalnád; külföldre költözéssel nem akarod megoldani ezt a kérdést. A cél továbbra is az, hogy a lakóhelyed közelében, Veszprém térségében építhess önálló digitális tervezői munkát.\n\nÁprilis elején, a hat hónap végén a heti nyolc szabad óra súlya kerül előtérbe. Nem az a kérdés, melyik út hangzik a legszebben, hanem hogy minek adnád ezeknek az óráknak a nagyobb részét. Saját tempóban építhetnél portfóliót, több teret hagyva az önálló munkáknak és bemutatásuknak, de bizonytalan visszajelzéssel. Strukturáltabb esti tanulást is választhatnál: rendszeresebb keretet, kevesebb idővel más próbákra. Vagy óvatosan feltérképezhetnéd a helyi vállalkozások igényeit, kisebb elköteleződéssel, miközben a portfóliód lassabban fejlődhetne.\n\nEgyik lehetőség sem ígér ügyfeleket vagy gyors váltást. A jelenlegi munkád biztonságát mindegyik mellett meg szeretnéd őrizni. Most még nyitva marad a kérdés: a következő időszakban a saját munkáidra, a rendezettebb tanulásra vagy a helyi kapcsolatépítésre fordítod a szabadidőd nagyobb részét?",
+        "title": "Nyolc óra határán",
+        "eventIds": [
+          "8a86a4bb-1d7a-4a8e-b640-b8bd8cd63429",
+          "5b9e6b14-4a8d-4c4f-bb10-83cbbd8e6bf0",
+          "96e2030d-f67f-44af-8cc6-830d38d82e76"
+        ],
+        "decisionId": "5d17458d-0df9-4087-9b52-2cdf680bdad8"
+      },
+      "candidate": {
+        "startDate": "2026-10-03",
+        "endDate": "2027-04-03"
+      }
+    },
+    {
+      "period_no": 2,
+      "base_revision": 2,
+      "id": "1003ba6a-7b3e-4b3e-b36e-568f5eab3725",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": ["5d17458d-0df9-4087-9b52-2cdf680bdad8"],
+      "events": [
+        {
+          "id": "18435149-3e34-40fb-913b-3009855fc533",
+          "title": "Mire jusson a heti időkeret?",
+          "changes": [],
+          "summary": "A jelenlegi munka mellett heti hat óra áll rendelkezésre a következő szakmai lépés átgondolására. A portfólió építése, a visszajelzés keresése és a további tanulás más-más módon viheti közelebb az önálló tervezői munkához; egyelőre egyik út eredménye sem biztos.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-07-12",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-07-12",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "db2e8449-083b-4b8c-81a0-92667864d6b7",
+          "title": "A következő fél év fókusza",
+          "changes": [],
+          "summary": "A lakóhely közelében tervezett önálló digitális munka továbbra is hosszabb távú cél. A választás arról szól, mire fordítson figyelmet a jelenlegi munka megtartása mellett: egyik lehetőség sem garantál ügyfeleket vagy gyors átállást.",
+          "actorIds": [],
+          "decision": {
+            "id": "b0402d97-9a67-44e1-835d-456c38d05aad",
+            "prompt": "Melyik irány kapjon elsőbbséget a következő időszakban?",
+            "options": [
+              {
+                "id": "e3ec02d8-0638-4823-9192-adb30dbe916f",
+                "label": "Portfólióépítés a jelenlegi munka mellett",
+                "changes": [
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: portfólió építése a jelenlegi munka megtartása mellett.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "A heti hat órából a bemutatható munkák kialakítása kapna hangsúlyt. Megőrzi a jelenlegi biztonságot, de a piaci visszajelzés lassabban érkezhet.",
+                "preconditions": []
+              },
+              {
+                "id": "768b7598-7648-42b8-989d-37270f6e21de",
+                "label": "Visszajelzés és kapcsolatépítés",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 4
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "A tervezői munka iránt érdeklődők és lehetséges ügyfelek megismerése kaphatna elsőbbséget. Korábban érkezhet hasznos visszajelzés, de kevesebb idő jutna a portfólió kidolgozására.",
+                "preconditions": []
+              },
+              {
+                "id": "8408653d-efcb-4279-b3a3-b7965b41871c",
+                "label": "További tanulás, fokozatos tempóban",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 4
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: további tanulás és a digitális tervezési irány tisztázása.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "A digitális tervezési ismeretek bővítése és a tanulási irány tisztázása kerülne előtérbe. Ez strukturáltabb felkészülést adhat, de kevésbé mutatja meg rövid távon, mire van igény a környéken.",
+                "preconditions": []
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-10-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 6
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-07-12",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "Július tizenkettedikén a következő szakmai lépésednek még nincs kész formája. Heti hat órája van. A jelenlegi irodai, adminisztrációs munkád mellett ennyi idő áll rendelkezésedre arra, hogy közelebb kerülj az önálló digitális tervezéshez. Hat óra elég hosszúnak tűnik, amikor egyetlen tömbként gondolsz rá, és szűknek, amint helyet próbálsz találni benne mindannak, ami fontos.\n\nBemutatható munkákat alakíthatnál ki. Visszajelzést kereshetnél arról, mire lenne szükség a környéken. Tovább is tanulhatnál, hiszen a tervezés, az írás és a digitális tervezési alapok már részei annak, amire építhetsz. Csakhogy ugyanazt az órát nem fordíthatod mindhárom irányra. Ha valamelyiknek több figyelmet adsz, a többi várakozni kényszerül.\n\nNem egyszerűen más munkát szeretnél. Érdekesebb alkotói munkát keresel úgy, hogy közben ne kelljen feladnod a biztonságot. A havi 400 000 forintos jövedelmed és az 1 200 000 forintnyi rendelkezésre álló pénzed a jelenlegi helyzeted része; nem válasz arra, hogyan lesz a tervekből önálló munka. Veszprém térségében, a lakóhelyed közelében képzeled el ezt az átállást. Az esti tanulás beleférhet az elképzelésedbe, a külföldre költözés nem. Nem bárhová szeretnél eljutni, hanem egy számodra vállalható élethez közelebb.\n\nOktóber harmadikán ugyanez a kérdés már a következő fél év fókuszáról szól. A jelenlegi munkád megmarad, és továbbra is heti hat órából indulhatsz ki. Nincs biztos ügyfél, nincs garantált gyors átállás. Ettől a választás nem válik jelentéktelenné: éppen azt szabja meg, minek adsz elsőbbséget a bizonytalanságban.\n\nHa a portfólió kerülne előre, a hat órában a bemutatható munkák kapnának hangsúlyt. Több figyelmed jutna arra, amit megmutathatsz, miközben a piaci visszajelzés lassabban érkezhetne. Ha inkább visszajelzést és szakmai kapcsolatokat keresnél, hamarabb találkozhatnál hasznos szempontokkal, de a portfólió kidolgozása lassabban haladhatna; ennél az iránynál a heti rendelkezésre álló időkereted négy órára változna. A fokozatos tanulás szintén négyórás kerettel járna: rendezettebb felkészülést adhatna, de rövid távon kevésbé mutatná meg a környék igényeit.\n\nEgyik irány sem oldja fel egyszerre az összes feszültséget. Mindegyik mást enged közelebb, és mást hagy egyelőre távolabb. A következő fél év még nyitva áll előtted: a bemutatható munkák, a visszajelzések keresése vagy a további tanulás kapjon elsőbbséget?",
+        "title": "Hat óra a következő lépéshez",
+        "eventIds": [
+          "18435149-3e34-40fb-913b-3009855fc533",
+          "db2e8449-083b-4b8c-81a0-92667864d6b7"
+        ],
+        "decisionId": "b0402d97-9a67-44e1-835d-456c38d05aad"
+      },
+      "candidate": {
+        "startDate": "2027-04-03",
+        "endDate": "2027-10-03"
+      }
+    },
+    {
+      "period_no": 3,
+      "base_revision": 4,
+      "id": "68e301ed-cce2-4468-8f43-ecf63ba39781",
+      "start_state": {
+        "goals": [
+          {
+            "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "digitális tervezési alapok",
+          "prototípus-készítés alapjai"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2028-04-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [
+        "5d17458d-0df9-4087-9b52-2cdf680bdad8",
+        "b0402d97-9a67-44e1-835d-456c38d05aad"
+      ],
+      "events": [
+        {
+          "id": "0a9114e9-3c69-4d24-963e-51a4cb8dc345",
+          "title": "A heti keret újragondolása",
+          "changes": [],
+          "summary": "A heti négy szabad órát a jelenlegi munka mellett kell beosztani. A tervezői irány iránti érdeklődés megmarad, de az önálló munkához vezető út még nem körvonalazódik biztosan.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-11-21",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-11-21",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "d529b177-df8e-4c20-8f31-79a44222327c",
+          "title": "Tanulás apró próbákon keresztül",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "prototípus-készítés alapjai"
+            }
+          ],
+          "summary": "A digitális tervezési alapok gyakorlása közben hasznos lehet figyelni arra, hogyan lehet egy elképzelést egyszerű prototípussá formálni. Ez még nem teszi bizonyossá, milyen munkák illenének legjobban a későbbi önálló tervezéshez.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "digitális tervezési alapok",
+              "prototípus-készítés alapjai"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-02-12",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-02-12",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-11-21",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "887271ee-eafb-41c2-895b-d73cb4f09ea6",
+          "title": "Mi kapjon elsőbbséget a következő fél évben?",
+          "changes": [],
+          "summary": "A lakóhely közelében tervezett önálló digitális munka továbbra is hosszabb távú cél, miközben a jelenlegi állás megmarad. A következő időszak fókusza alakíthatja, milyen tapasztalat gyűlik össze; egyik választás sem garantál ügyfeleket vagy gyors átállást.",
+          "actorIds": [],
+          "decision": {
+            "id": "a8819b4b-dbaa-4c61-a694-6c01923597fc",
+            "prompt": "Mire fordítsd a heti szabad időd nagyobb részét a következő fél évben?",
+            "options": [
+              {
+                "id": "9a8b74e6-6c25-43e4-b06c-186f1e3c82aa",
+                "label": "Portfólióanyagok összeállítása",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 4
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: bemutatható portfólióanyagok készítése a jelenlegi munka mellett; a külső visszajelzés későbbre maradhat.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "A heti négy órát bemutatható tervezési munkákra fordíthatod. Kézzelfoghatóbbá válhat, mit tudsz kínálni, de kevesebb idő maradhat közvetlen visszajelzés keresésére.",
+                "preconditions": []
+              },
+              {
+                "id": "ebcebf62-e0f3-4a46-9596-445a64b719e3",
+                "label": "Visszajelzés és szakmai kapcsolatok keresése",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 4
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése a lakóhely közelében; a portfólió lassabban haladhat.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "A heti négy órát más tervezőkkel vagy lehetséges ügyfelekkel való kapcsolatfelvételre és visszajelzés kérésére fordíthatod. Hamarabb tisztulhat, mire van igény, de lassabban készülhetnek el a portfóliómunkák.",
+                "preconditions": []
+              },
+              {
+                "id": "802a90ab-321c-41d7-a241-699071d61c11",
+                "label": "Kisebb, fenntartható tanulási ritmus",
+                "changes": [
+                  {
+                    "type": "resources_set",
+                    "value": {
+                      "energy": null,
+                      "availableHoursPerWeek": 3
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elsődleges fókusz: a digitális tervezési alapok nyugodt, fenntartható gyakorlása a jelenlegi munka mellett.",
+                      "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Heti három órára szűkítheted a tervezésre szánt időt, hogy a munka melletti vállalás könnyebben tartható legyen. Ez visszafogottabb előrehaladást jelenthet, cserébe kisebb időterhelést.",
+                "preconditions": []
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "digitális tervezési alapok",
+              "prototípus-készítés alapjai"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-04-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+                "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "digitális tervezési alapok",
+              "prototípus-készítés alapjai"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-02-12",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "November végén újra számba veszed a hetedet. A jelenlegi irodai, adminisztrációs munka mellett négy szabad órád van arra, hogy közelebb kerülj az önálló digitális tervezéshez. Kimondva kevésnek hangzik; amikor el kellene osztanod, mégis többféle jövő kér helyet benne. Gyakorlás, bemutatható munkák, visszajelzés keresése — ugyanabból a szűk keretből kellene mindegyikre jutnia.\n\nVeszprém közelében szeretnél maradni. Az érdekesebb alkotói munka vonz, de nem úgy, hogy közben minden biztos kapaszkodót elengedj. A havi 400 000 HUF jövedelmed és az 1 200 000 HUF rendelkezésre álló pénzed mellett sem válik világossá az átállás útja. Az esti tanulást vállalnád; a külföldre költözés nem része annak az életnek, amely felé tartani szeretnél. Most elsősorban visszajelzést és szakmai kapcsolódást keresnél, még ha emiatt lassabban is haladna a portfóliód. Ettől azonban a következő lépés még nem rajzolódik ki élesen.\n\nFebruárra a gyakorlásban valami kisebb léptékű, de valódi változás történik. Egy elképzelést már nemcsak kész tervként próbálsz magad elé képzelni: azt figyeled, hogyan lehetne egyszerű prototípussá alakítani. Mi az, amit először érdemes megmutatni? Mi az, amihez még nem kell végleges megoldás? A csendes gyakorlásban a részletek helyett néha maga a működés kerül előtérbe. A prototípus-készítés alapjai így csatlakoznak ahhoz, amit már tudsz a tervezésről, az írásról és a digitális tervezésről.\n\nEz nem ugyanaz, mint megtalálni a későbbi munkáidat. Az új készség nem mondja meg, milyen feladatok illenének hozzád legjobban, és nem tölti fel magától a bemutatható anyagok helyét. Mégis másként nézel a bizonytalanságra: nem minden kérdésre kell egyszerre végleges választ adnod.\n\nÁprilis elején ismét a heti négy óra kerül eléd. Az állásod megmarad, a célod sem változik, de a következő fél év hangsúlyát már érdemes volna tudatosan kijelölni. Ha portfólióanyagokra fordítanád az időt, kézzelfoghatóbban mutathatnád meg, mit kínálsz — közben kevesebb alkalom jutna külső visszajelzés keresésére. Ha inkább tervezőket vagy lehetséges ügyfeleket keresnél meg, tisztábban láthatnád az igényeket, de a saját anyagaid lassabban állhatnának össze. Heti három órára is szűkíthetnéd a vállalást: kisebb terhelés, visszafogottabb haladás.\n\nEgyik út sem ígér biztos ügyfeleket vagy gyors átállást. Most még mindhárom nyitva áll előtted. Mire fordítod a szabad időd nagyobb részét a következő fél évben: bemutatható munkákra, visszajelzésre és szakmai kapcsolatokra, vagy egy kisebb, fenntartható tanulási ritmusra?",
+        "title": "Négy óra határán",
+        "eventIds": [
+          "0a9114e9-3c69-4d24-963e-51a4cb8dc345",
+          "d529b177-df8e-4c20-8f31-79a44222327c",
+          "887271ee-eafb-41c2-895b-d73cb4f09ea6"
+        ],
+        "decisionId": "a8819b4b-dbaa-4c61-a694-6c01923597fc"
+      },
+      "candidate": {
+        "startDate": "2027-10-03",
+        "endDate": "2028-04-03"
+      }
+    }
+  ],
+  "choices": [
+    {
+      "decision_id": "5d17458d-0df9-4087-9b52-2cdf680bdad8",
+      "option_id": "222f00d6-61e8-4b0c-baf1-8b709af5916d",
+      "payload": {
+        "id": "222f00d6-61e8-4b0c-baf1-8b709af5916d",
+        "label": "Portfólió építése saját tempóban",
+        "changes": [
+          {
+            "type": "resources_set",
+            "value": {
+              "energy": null,
+              "availableHoursPerWeek": 6
+            }
+          }
+        ],
+        "description": "Heti több idő jutna önálló munkákra és azok bemutatására; rugalmas, de a visszajelzés és az előrehaladás bizonytalan lehet.",
+        "preconditions": []
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 6
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      }
+    },
+    {
+      "decision_id": "b0402d97-9a67-44e1-835d-456c38d05aad",
+      "option_id": "768b7598-7648-42b8-989d-37270f6e21de",
+      "payload": {
+        "id": "768b7598-7648-42b8-989d-37270f6e21de",
+        "label": "Visszajelzés és kapcsolatépítés",
+        "changes": [
+          {
+            "type": "resources_set",
+            "value": {
+              "energy": null,
+              "availableHoursPerWeek": 4
+            }
+          },
+          {
+            "type": "goal_progress_set",
+            "value": {
+              "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+              "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+              "status": "active"
+            }
+          }
+        ],
+        "description": "A tervezői munka iránt érdeklődők és lehetséges ügyfelek megismerése kaphatna elsőbbséget. Korábban érkezhet hasznos visszajelzés, de kevesebb idő jutna a portfólió kidolgozására.",
+        "preconditions": []
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": "Elsődleges fókusz: visszajelzés és szakmai kapcsolatok keresése; a portfólió lassabban haladhat.",
+            "goalId": "f07904f0-f132-4cbd-987b-6afbbd5dd4ee",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás", "digitális tervezési alapok"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": null,
+          "availableHoursPerWeek": 4
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+name: alterward
+services:
+  web:
+    extends:
+      file: compose.yaml
+      service: web
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+    networks:
+      proxy:
+        aliases: [alterward-web]
+  api:
+    extends:
+      file: compose.yaml
+      service: api
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 256
+    environment:
+      NODE_OPTIONS: --max-old-space-size=384
+    networks:
+      proxy:
+        aliases: [alterward-api]
+  worker:
+    extends:
+      file: compose.yaml
+      service: worker
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+    networks: [worker]
+networks:
+  proxy:
+    external: true
+    name: ${ALTERWARD_PROXY_NETWORK:-alterward_proxy}
+  worker:
+    driver: bridge

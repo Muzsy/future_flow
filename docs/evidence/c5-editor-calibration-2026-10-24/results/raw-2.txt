@@ -1,0 +1,56 @@
+{
+  "version": "1.3.0",
+  "scores": {
+    "causality": 4,
+    "momentum": 4,
+    "sceneCraft": 4,
+    "character": 4,
+    "personalization": 4,
+    "choiceStakes": 4,
+    "novelty": 3,
+    "prose": 4
+  },
+  "issues": [
+    {
+      "dimension": "novelty",
+      "severity": "major",
+      "repairScope": "canon",
+      "paragraphIndex": 21,
+      "eventIds": [
+        "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+        "3010b71d-75d3-4354-b310-306513b99b87"
+      ],
+      "explanation": "The previous chapter and paragraphs 8–28 both move from completed audio work through public recognition to Úna offering another commitment and the protagonist facing a decision.",
+      "suggestedFix": "Make the coordination-versus-editing conflict change the ongoing collaboration through a consequential attempt or refusal before the final decision, rather than resolving another production cycle into Úna's next offer."
+    }
+  ],
+  "verdict": "revise",
+  "sequenceReview": {
+    "comparedPeriodIds": [
+      "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+    ],
+    "distinctDramaticStructure": false,
+    "distinctEnding": true,
+    "independentProgression": true,
+    "characterAgency": true,
+    "evidence": "Both chapters use making, public playback and Úna's next offer as their structural progression. Nevertheless, the protagonist's unsolicited coordination earns a specifically different working relationship, rather than merely a larger assignment. The final identification of a scheduling error exposes that mismatch through dialogue, unlike the earlier ending beneath the speaker buzz. Neither chapter uses a tidy self-correction arc, repeated rhetorical formula or narrated decision menu.",
+    "distinctRhetoricalShape": true,
+    "systemMechanicsInvisible": true,
+    "behavioralVariety": true
+  },
+  "sequenceSignature": {
+    "version": "1.1.0",
+    "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+    "dramaticEngine": "external_opportunity",
+    "turningPointDriver": "npc",
+    "resolutionMode": "unresolved",
+    "endingMode": "dialogue",
+    "protagonistResponse": "no_correction_arc",
+    "rhetoricalFlags": [
+      "none"
+    ],
+    "systemLeakageFlags": [
+      "none"
+    ]
+  }
+}

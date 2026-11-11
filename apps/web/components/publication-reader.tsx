@@ -1,0 +1,131 @@
+'use client';
+import { readPublishedLife } from '../lib/client';
+import { SiteHeader } from './site-header';
+import { useEffect, useState, useRef } from 'react';
+import {
+  publicationReaderSchema,
+  type PublicationReader as Reader,
+} from '@future-flow/contracts';
+import { PublicationContent } from './publication-content';
+import { SaveLifeButton } from './save-life-button';
+import { ShareLifeButton } from './share-life-button';
+import { PublicReportForm } from './public-report-form';
+import { usePublicReading } from '../lib/public-reading';
+import { PublicReadingProgress } from './public-reading-progress';
+import { PublicForkLauncher } from './public-fork-launcher';
+export function PublicationReader({ slug }: { slug?: string }) {
+  const [view, setView] = useState<Reader | null>(null),
+    [notice, setNotice] = useState('Loading this life…');
+  const article = useRef<HTMLDivElement | null>(null),
+    emit = usePublicReading(slug, Boolean(view));
+  useEffect(() => {
+    let controller: AbortController | null = null,
+      stopped = false;
+    async function read(clear = false) {
+      controller?.abort();
+      const abort = new AbortController();
+      controller = abort;
+      if (clear) setView(null);
+      const token = slug ? null : window.location.hash.slice(1);
+      if (!slug && !/^[A-Za-z0-9_-]{43}$/.test(token ?? '')) {
+        setView(null);
+        setNotice('This life is unavailable. Check the full secret link.');
+        return;
+      }
+      try {
+        const response = await readPublishedLife(
+          slug ? `/lives/${encodeURIComponent(slug)}` : '/unlisted',
+          abort.signal,
+          token ?? undefined,
+        );
+        if (!response.ok) throw Error('Unavailable');
+        const next = publicationReaderSchema.parse(await response.json());
+        if (
+          (slug && next.slug !== slug) ||
+          next.visibility !== (slug ? 'public' : 'unlisted')
+        )
+          throw Error('Wrong copy');
+        if (!stopped && !abort.signal.aborted) {
+          setView(next);
+          setNotice('');
+        }
+      } catch {
+        if (!stopped && !abort.signal.aborted) {
+          setView(null);
+          setNotice(
+            'This life is unavailable. It may have been withdrawn or its link renewed.',
+          );
+        }
+      }
+    }
+    const visible = () => {
+      if (document.visibilityState === 'visible') void read(true);
+      else {
+        controller?.abort();
+        setView(null);
+      }
+    };
+    const focus = () => void read(true);
+    void read(true);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void read();
+    }, 30000);
+    document.addEventListener('visibilitychange', visible);
+    window.addEventListener('focus', focus);
+    window.addEventListener('hashchange', focus);
+    window.addEventListener('pageshow', focus);
+    return () => {
+      stopped = true;
+      controller?.abort();
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', visible);
+      window.removeEventListener('focus', focus);
+      window.removeEventListener('hashchange', focus);
+      window.removeEventListener('pageshow', focus);
+    };
+  }, [slug]);
+  return (
+    <>
+      <SiteHeader />
+      <main className="publication-page">
+        {slug && (
+          <PublicReadingProgress
+            slug={slug}
+            available={Boolean(view)}
+            container={article}
+            emit={emit}
+          />
+        )}
+        <h1>{slug ? 'A community life' : 'A shared life'}</h1>
+        {slug && (
+          <p className="hint">
+            Reading and sharing may be measured in aggregate without tracking
+            cookies or a reader profile.
+          </p>
+        )}
+        {notice && (
+          <p className="notice" role="status">
+            {notice}
+          </p>
+        )}
+        {view && (
+          <>
+            <p>
+              Published {new Date(view.publishedAt).toLocaleDateString('en')} ·{' '}
+              {view.visibility === 'unlisted'
+                ? 'Shared by secret link'
+                : 'Public copy'}
+            </p>
+            <div ref={article}>
+              <PublicationContent snapshot={view.snapshot} />
+            </div>
+            {slug && <SaveLifeButton slug={slug} />}
+            {slug && <PublicForkLauncher slug={slug} />}
+            {slug && <ShareLifeButton slug={slug} onSignal={emit} />}
+            {slug && <PublicReportForm slug={slug} />}
+          </>
+        )}
+      </main>
+    </>
+  );
+}

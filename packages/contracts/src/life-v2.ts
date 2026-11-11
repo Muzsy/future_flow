@@ -1,0 +1,360 @@
+import { z } from 'zod';
+import { localeSchema, enabledLocaleSchema } from './locales';
+
+// Kept separate from the v1 schemas: existing stored canon must remain readable.
+export const LIFE_CONTRACT_VERSION = '2.0.0';
+const id = z.uuid();
+const date = z.iso.date();
+const label = z.string().trim().min(1).max(160);
+const score = z.number().int().min(0).max(100);
+const country = z
+  .string()
+  .regex(/^[A-Z]{2}$/)
+  .nullable();
+export const employmentV2Schema = z
+  .object({
+    status: z
+      .enum([
+        'employed',
+        'self_employed',
+        'student',
+        'seeking_work',
+        'retired',
+        'other',
+      ])
+      .nullable(),
+    employerLabel: label.nullable(),
+    workDomain: label.nullable(),
+  })
+  .strict();
+export const locationV2Schema = z
+  .object({ country, region: label.nullable(), housing: label.nullable() })
+  .strict();
+export const financeV2Schema = z
+  .object({
+    currency: z.enum(['HUF', 'EUR', 'USD']).nullable(),
+    monthlyIncome: z.number().nonnegative().nullable(),
+    liquidFunds: z.number().nullable(),
+  })
+  .strict();
+const assetSchema = z
+  .object({
+    id,
+    kind: z.enum(['business', 'home', 'other']),
+    label,
+    sharePercent: z.number().positive().max(100),
+  })
+  .strict();
+const actorSchema = z
+  .object({
+    id,
+    label,
+    relationship: z.enum(['partner', 'family', 'friend', 'colleague', 'other']),
+  })
+  .strict();
+const goalProgressSchema = z
+  .object({
+    goalId: id,
+    status: z.enum(['active', 'achieved', 'abandoned']),
+    note: z.string().trim().min(1).max(400).nullable(),
+  })
+  .strict();
+const opportunitySchema = z
+  .object({
+    id,
+    title: label,
+    status: z.enum(['open', 'accepted', 'declined', 'expired']),
+    expiresAt: date.nullable(),
+  })
+  .strict();
+const resourcesSchema = z
+  .object({
+    energy: score.nullable(),
+    availableHoursPerWeek: z.number().min(0).max(168).nullable(),
+  })
+  .strict();
+
+export const lifeStateV2Schema = z
+  .object({
+    schemaVersion: z.literal(LIFE_CONTRACT_VERSION),
+    effectiveAt: date,
+    employment: employmentV2Schema,
+    location: locationV2Schema,
+    finance: financeV2Schema,
+    ownedAssets: z.array(assetSchema).max(30),
+    actors: z.array(actorSchema).max(30),
+    skills: z.array(label).max(50),
+    goals: z.array(goalProgressSchema).min(1).max(5),
+    opportunities: z.array(opportunitySchema).max(30),
+    resources: resourcesSchema,
+  })
+  .strict();
+export type LifeStateV2 = z.infer<typeof lifeStateV2Schema>;
+
+// Closed, typed predicates instead of arbitrary JSON paths or prose-only rules.
+export const factPredicateV2Schema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('available_hours_at_most'),
+      hours: z.number().min(0).max(168),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('employment_status_is'),
+      value: employmentV2Schema.shape.status,
+    })
+    .strict(),
+  z.object({ type: z.literal('country_is'), value: country }).strict(),
+  z
+    .object({
+      type: z.literal('asset_is_owned'),
+      assetId: id,
+      owned: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('liquid_funds_at_least'),
+      currency: z.enum(['HUF', 'EUR', 'USD']),
+      amount: z.number().nonnegative(),
+    })
+    .strict(),
+]);
+export type FactPredicateV2 = z.infer<typeof factPredicateV2Schema>;
+export const constraintV2Schema = z
+  .object({
+    id,
+    description: z.string().trim().min(1).max(400),
+    strength: z.enum(['hard', 'soft']),
+    lifeId: id,
+    branchId: id.nullable(),
+    validFrom: date,
+    // Exclusive end, so a restriction expiring on a decision date no longer applies.
+    validUntil: date.nullable(),
+    endsOnDecisionId: id.nullable(),
+    predicate: factPredicateV2Schema,
+  })
+  .strict();
+export type ConstraintV2 = z.infer<typeof constraintV2Schema>;
+
+export const factChangeV2Schema = z.discriminatedUnion('type', [
+  z
+    .object({ type: z.literal('employment_set'), value: employmentV2Schema })
+    .strict(),
+  z
+    .object({ type: z.literal('location_set'), value: locationV2Schema })
+    .strict(),
+  z.object({ type: z.literal('finance_set'), value: financeV2Schema }).strict(),
+  z.object({ type: z.literal('asset_add'), value: assetSchema }).strict(),
+  z.object({ type: z.literal('asset_remove'), assetId: id }).strict(),
+  z.object({ type: z.literal('actor_add'), value: actorSchema }).strict(),
+  // A person leaves the story (moves away, drifts apart, a role ends). The
+  // actor leaves current state; earlier events keep their own snapshots.
+  z.object({ type: z.literal('actor_remove'), actorId: id }).strict(),
+  z.object({ type: z.literal('skill_add'), value: label }).strict(),
+  z
+    .object({ type: z.literal('goal_progress_set'), value: goalProgressSchema })
+    .strict(),
+  z
+    .object({ type: z.literal('opportunity_set'), value: opportunitySchema })
+    .strict(),
+  z
+    .object({ type: z.literal('resources_set'), value: resourcesSchema })
+    .strict(),
+]);
+export type FactChangeV2 = z.infer<typeof factChangeV2Schema>;
+const optionSchema = z
+  .object({
+    id,
+    label,
+    description: z.string().trim().min(3).max(500),
+    preconditions: z.array(factPredicateV2Schema).max(10),
+    changes: z.array(factChangeV2Schema).max(10),
+  })
+  .strict();
+export const periodCandidateV2Schema = z
+  .object({
+    schemaVersion: z.literal(LIFE_CONTRACT_VERSION),
+    periodId: id,
+    branchId: id,
+    baseRevision: z.number().int().nonnegative(),
+    startDate: date,
+    endDate: date,
+    durationMonths: z.union([z.literal(6), z.literal(12)]),
+    title: label,
+    events: z
+      .array(
+        z
+          .object({
+            id,
+            title: label,
+            summary: z.string().trim().min(10).max(800),
+            effectiveAt: date,
+            actorIds: z.array(id).max(8),
+            preconditions: z.array(factPredicateV2Schema).max(10),
+            changes: z.array(factChangeV2Schema).max(10),
+            decision: z
+              .object({
+                id,
+                prompt: z.string().trim().min(5).max(400),
+                options: z.array(optionSchema).min(2).max(4),
+              })
+              .strict()
+              .nullable(),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(5),
+  })
+  .strict();
+export type PeriodCandidateV2 = z.infer<typeof periodCandidateV2Schema>;
+
+const goalV2Schema = z
+  .object({
+    id,
+    category: z.enum([
+      'career',
+      'business',
+      'finance',
+      'relationships',
+      'family',
+      'education',
+      'lifestyle',
+      'personal_growth',
+      'other',
+    ]),
+    description: z.string().trim().min(3).max(500),
+    priority: z.enum(['primary', 'secondary']),
+    horizonMonths: z.number().int().min(6).max(600),
+    motivation: z.string().trim().min(1).max(500).nullable(),
+    acceptableTradeoffs: z.array(label).max(10),
+    unacceptableTradeoffs: z.array(label).max(10),
+  })
+  .strict();
+export const lifeInputV2Schema = z
+  .object({
+    schemaVersion: z.literal(LIFE_CONTRACT_VERSION),
+    locale: localeSchema,
+    lifeId: id,
+    branchId: id,
+    identity: z
+      .object({
+        mode: z.enum(['self', 'alternate']),
+        label: label.nullable(),
+        ageBand: z.enum([
+          '18_24',
+          '25_34',
+          '35_44',
+          '45_54',
+          '55_64',
+          '65_plus',
+        ]),
+        // Reference only: the original personal profile is never overwritten.
+        baseProfileVersionId: id.nullable(),
+      })
+      .strict(),
+    environment: z
+      .object({
+        version: z.literal('hu-neutral-v2'),
+        description: z.string().trim().min(1).max(1000),
+      })
+      .strict(),
+    goals: z.array(goalV2Schema).min(1).max(5),
+    initialState: lifeStateV2Schema,
+    constraints: z.array(constraintV2Schema).max(20),
+    // Publication is a separate consent workflow, never a simulation input flag.
+    visibility: z.literal('private'),
+  })
+  .strict();
+export type LifeInputV2 = z.infer<typeof lifeInputV2Schema>;
+
+// Short onboarding contains no client supplied internal IDs or publication flags.
+export const lifeSetupV2Schema = z
+  .object({
+    locale: localeSchema,
+    identity: lifeInputV2Schema.shape.identity.omit({
+      baseProfileVersionId: true,
+    }),
+    location: locationV2Schema,
+    employment: employmentV2Schema,
+    finance: financeV2Schema,
+    skills: z.array(label).max(10),
+    relationships: z.array(actorSchema.omit({ id: true })).max(10),
+    resources: resourcesSchema,
+    goal: goalV2Schema.omit({ id: true, priority: true }),
+    stayInCountry: z.boolean(),
+    context: z.string().trim().max(1000).nullable(),
+  })
+  .strict();
+export type LifeSetupV2 = z.infer<typeof lifeSetupV2Schema>;
+export const lifeInteractionV2Schema = z
+  .object({
+    eventId: id,
+    sessionId: id,
+    branchId: id.nullable(),
+    periodId: id.nullable().optional(),
+    kind: z.enum([
+      'onboarding_started',
+      'life_opened',
+      'chapter_end_reached',
+      'continuation_clicked',
+      'fork_clicked',
+    ]),
+  })
+  .strict();
+export const lifeDraftV2Schema = lifeSetupV2Schema.extend({
+  location: locationV2Schema.extend({
+    country: z
+      .string()
+      .regex(/^[A-Z]{0,2}$/)
+      .nullable(),
+  }),
+  goal: lifeSetupV2Schema.shape.goal.extend({
+    description: z.string().trim().max(500),
+  }),
+});
+// Request contracts follow the release policy; persisted contracts above remain readable.
+export const lifeCreateRequestV2Schema = lifeSetupV2Schema.extend({
+  locale: enabledLocaleSchema,
+});
+export const lifeDraftRequestV2Schema = lifeDraftV2Schema.extend({
+  locale: enabledLocaleSchema,
+});
+export const periodChapterV2Schema = z
+  .object({
+    title: label,
+    body: z.string().trim().min(500).max(10000),
+    eventIds: z.array(id).min(2).max(5),
+    decisionId: id,
+  })
+  .strict();
+export type PeriodChapterV2 = z.infer<typeof periodChapterV2Schema>;
+export type LifePeriodInput = {
+  input: LifeInputV2;
+  state: LifeStateV2;
+  revision: number;
+  periodId: string;
+  startDate: string;
+  endDate: string;
+  durationMonths: 6;
+  acceptedDecisionIds: string[];
+  memory: {
+    recentEvents: unknown[];
+    choices: unknown[];
+    sharedEvents?: import('./shared-personal').PersonalSharedMemory[];
+  };
+};
+export const lifeChoiceRequestV2Schema = z
+  .object({
+    revision: z.number().int().nonnegative(),
+    decisionId: id,
+    optionId: id,
+  })
+  .strict();
+export const lifeRevisionRequestV2Schema = z
+  .object({
+    revision: z.number().int().nonnegative(),
+  })
+  .strict();

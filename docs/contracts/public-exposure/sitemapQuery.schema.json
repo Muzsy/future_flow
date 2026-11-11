@@ -1,0 +1,21 @@
+{
+  "$id": "urn:alterward:public-exposure:sitemapQuery:public-exposure-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "cursor": {
+      "type": "string",
+      "pattern": "^(life|official)-[a-f0-9]{32}$"
+    },
+    "limit": {
+      "default": 100,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "required": [
+    "limit"
+  ],
+  "additionalProperties": false
+}

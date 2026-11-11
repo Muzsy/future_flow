@@ -1,0 +1,157 @@
+{
+  "$id": "urn:alterward:saved-lives:page:saved-lives-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "saved-lives-1"
+    },
+    "page": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "pageSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 24
+    },
+    "hasMore": {
+      "type": "boolean"
+    },
+    "items": {
+      "maxItems": 24,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^life-[a-f0-9]{32}$"
+              },
+              {
+                "type": "string",
+                "pattern": "^official-[a-f0-9]{32}$"
+              }
+            ]
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "card": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^life-[a-f0-9]{32}$"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^official-[a-f0-9]{32}$"
+                      }
+                    ]
+                  },
+                  "classification": {
+                    "type": "string",
+                    "enum": [
+                      "official",
+                      "community"
+                    ]
+                  },
+                  "contentLocale": {
+                    "type": "string",
+                    "const": "en"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 160
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 800
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "career",
+                      "business",
+                      "money",
+                      "relationships",
+                      "family",
+                      "education",
+                      "lifestyle",
+                      "moving_abroad",
+                      "starting_over",
+                      "personal_growth",
+                      "adventure",
+                      "historical",
+                      "fictional"
+                    ]
+                  },
+                  "periodCount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "publishedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "aiGenerated": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "userEdited": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "slug",
+                  "classification",
+                  "contentLocale",
+                  "title",
+                  "summary",
+                  "category",
+                  "periodCount",
+                  "publishedAt",
+                  "aiGenerated",
+                  "userEdited"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "savedAt",
+          "card"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "page",
+    "pageSize",
+    "hasMore",
+    "items"
+  ],
+  "additionalProperties": false
+}

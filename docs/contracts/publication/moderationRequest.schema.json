@@ -1,0 +1,55 @@
+{
+  "$id": "urn:alterward:publication:moderationRequest:publication-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "revision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    },
+    "publicationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "hide",
+        "remove"
+      ]
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "privacy",
+        "content",
+        "other"
+      ]
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    }
+  },
+  "required": [
+    "revision",
+    "snapshotHash",
+    "acknowledged",
+    "publicationId",
+    "action",
+    "reasonCode",
+    "actorLabel"
+  ],
+  "additionalProperties": false
+}

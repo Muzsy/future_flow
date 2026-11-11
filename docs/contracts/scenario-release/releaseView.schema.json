@@ -1,0 +1,290 @@
+{
+  "$id": "urn:alterward:scenario-release:releaseView:scenario-review-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "scenarioVersionId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "templateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "scenario-review-1"
+    },
+    "current": {
+      "type": "boolean"
+    },
+    "publicationApproved": {
+      "type": "boolean",
+      "const": false
+    },
+    "officialLifeApproved": {
+      "type": "boolean",
+      "const": false
+    },
+    "review": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "report": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verdict": {
+                      "type": "string",
+                      "enum": [
+                        "no_findings",
+                        "review_required",
+                        "unable_to_assess"
+                      ]
+                    },
+                    "findings": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "fieldKey": {
+                            "type": "string",
+                            "pattern": "^field-[1-9][0-9]*$"
+                          },
+                          "category": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "person_name",
+                                  "precise_location",
+                                  "organization",
+                                  "contact_details",
+                                  "identifying_combination",
+                                  "private_financial",
+                                  "sensitive_personal",
+                                  "third_party_sensitive",
+                                  "harassment",
+                                  "hate",
+                                  "sexual",
+                                  "violence",
+                                  "self_harm",
+                                  "illegal",
+                                  "scam",
+                                  "impersonation",
+                                  "spam",
+                                  "embedded_instructions",
+                                  "language"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "meaning_mismatch",
+                                  "unverifiable_structure"
+                                ]
+                              }
+                            ]
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "remove",
+                              "generalize",
+                              "manual_review"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "fieldKey",
+                          "category",
+                          "action"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "publicationApproved": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "policyVersion": {
+                      "type": "string",
+                      "const": "scenario-review-1"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "const": "complete_scenario_template"
+                    },
+                    "templateHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "verdict",
+                    "findings",
+                    "publicationApproved",
+                    "policyVersion",
+                    "scope",
+                    "templateHash"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reportHash": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "providerEvidence": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "status",
+            "report",
+            "reportHash",
+            "providerEvidence"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "curation": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scenario_reviewed",
+                "changes_requested",
+                "rejected"
+              ]
+            },
+            "curationVersion": {
+              "type": "string",
+              "const": "scenario-curation-1"
+            },
+            "reasonCode": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "privacy",
+                    "content",
+                    "quality",
+                    "meaning",
+                    "origin",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "status",
+            "curationVersion",
+            "reasonCode"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceGrant": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "sourceVersion": {
+              "type": "string",
+              "const": "official-scenario-source-1"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "revoked"
+              ]
+            },
+            "usable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "sourceVersion",
+            "status",
+            "usable"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "scenarioVersionId",
+    "templateHash",
+    "policyVersion",
+    "current",
+    "publicationApproved",
+    "officialLifeApproved",
+    "review",
+    "curation",
+    "sourceGrant"
+  ],
+  "additionalProperties": false
+}

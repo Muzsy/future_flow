@@ -1,0 +1,31 @@
+{
+  "$id": "urn:alterward:public:curationRequest:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sourceRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "curationVersion": {
+      "type": "string",
+      "const": "text-curation-1"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "snapshotHash",
+    "sourceRevision",
+    "curationVersion",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

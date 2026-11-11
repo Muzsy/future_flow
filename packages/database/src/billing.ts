@@ -1,0 +1,619 @@
+import {
+  ServiceAccessRepository,
+  assertStoredServiceAccess,
+} from './service-access';
+import {
+  DomainError,
+  FREE_TASTER_CHAPTERS,
+  defaultEntitlementConfig,
+  entitlementOfSubscriptions,
+  reserveChapter,
+  type EntitlementConfig,
+  type BillingStore,
+  type BillingSubscription,
+  type BillingTx,
+  type ChapterBucket,
+  type ChapterLedger,
+  type ChapterReservation,
+} from '@future-flow/core';
+import type { Database } from './index';
+
+// SQL store for the billing service (ADR-010). Lock order in every operation is
+// user advisory lock -> subscription row, matching the service contract, so two
+// webhooks or a webhook and a reservation of one account serialise instead of
+// deadlocking. Nothing here is reachable until billing is explicitly enabled.
+
+type SubscriptionRow = {
+  subscription_id: string;
+  customer_id: string;
+  user_id: string;
+  status: BillingSubscription['status'];
+  period_start: Date | string | null;
+  period_end: Date | string | null;
+  cancel_at_period_end: boolean;
+  discounted: boolean;
+  revoked: BillingSubscription['revoked'];
+  last_state_event_created: string | number;
+  paid_invoice_ids: string[];
+  refunded_invoice_ids: string[];
+  reconcile_required: boolean;
+  cancel_pending: boolean;
+};
+
+const iso = (value: Date | string | null) =>
+  value === null ? null : new Date(value).toISOString();
+const subscriptionColumns =
+  'subscription_id,customer_id,user_id,status,period_start,period_end,cancel_at_period_end,discounted,revoked,last_state_event_created,paid_invoice_ids,refunded_invoice_ids,reconcile_required,cancel_pending';
+
+function subscription(row: SubscriptionRow): BillingSubscription {
+  return {
+    subscriptionId: row.subscription_id,
+    customerId: row.customer_id,
+    userId: row.user_id,
+    status: row.status,
+    periodStart: iso(row.period_start),
+    periodEnd: iso(row.period_end),
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    discounted: row.discounted,
+    paidInvoiceIds: row.paid_invoice_ids,
+    refundedInvoiceIds: row.refunded_invoice_ids,
+    revoked: row.revoked,
+    lastStateEventCreated: Number(row.last_state_event_created),
+    reconcileRequired: row.reconcile_required,
+    cancelPending: row.cancel_pending,
+  };
+}
+
+export function billingTx(db: Database): BillingTx {
+  return {
+    assertServiceCheckout: async (userId) =>
+      assertStoredServiceAccess(db, userId, 'checkout', true),
+    lockUser: async (userId) => {
+      await db.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended('alterward-billing:'||$1::text,0))",
+        [userId],
+      );
+    },
+    ownerOf: async ({ subscriptionId, customerId }) => {
+      if (subscriptionId) {
+        const [row] = await db.query<{ user_id: string }>(
+          'SELECT user_id FROM aw_billing_subscriptions WHERE subscription_id=$1',
+          [subscriptionId],
+        );
+        return row?.user_id ?? null;
+      }
+      if (!customerId) return null;
+      const [row] = await db.query<{ user_id: string }>(
+        'SELECT user_id FROM aw_billing_subscriptions WHERE customer_id=$1 ORDER BY last_state_event_created DESC,subscription_id LIMIT 1',
+        [customerId],
+      );
+      return row?.user_id ?? null;
+    },
+    hasEvent: async (eventId) =>
+      (
+        await db.query(
+          'SELECT 1 FROM aw_billing_events WHERE event_id=$1 LIMIT 1',
+          [eventId],
+        )
+      ).length > 0,
+    // A plain INSERT: a second concurrent recording of one event id fails on
+    // the primary key, rolls its transaction back and is redelivered as a
+    // duplicate. The event is recorded in the same transaction as its effect.
+    recordEvent: async (eventId, eventType, subscriptionId, outcome) => {
+      await db.query(
+        'INSERT INTO aw_billing_events(event_id,subscription_id,event_type,outcome) VALUES($1,$2,$3,$4)',
+        [eventId, subscriptionId, eventType, outcome],
+      );
+    },
+    findSubscription: async ({ subscriptionId, customerId }) => {
+      if (subscriptionId) {
+        const [row] = await db.query<SubscriptionRow>(
+          `SELECT ${subscriptionColumns} FROM aw_billing_subscriptions WHERE subscription_id=$1 FOR UPDATE`,
+          [subscriptionId],
+        );
+        return row ? subscription(row) : null;
+      }
+      if (!customerId) return null;
+      const [row] = await db.query<SubscriptionRow>(
+        `SELECT ${subscriptionColumns} FROM aw_billing_subscriptions WHERE customer_id=$1 ORDER BY last_state_event_created DESC,subscription_id LIMIT 1 FOR UPDATE`,
+        [customerId],
+      );
+      return row ? subscription(row) : null;
+    },
+    customerOwnedOnlyBy: async (customerId, userId) => {
+      // Read-only ownership check; do not introduce advisory→root row locks
+      // opposite to chapter completion's existing root→billing lock order.
+      const owners = await db.query<{ user_id: string }>(
+        'SELECT DISTINCT user_id FROM aw_billing_subscriptions WHERE customer_id=$1',
+        [customerId],
+      );
+      return owners.length === 1 && owners[0]!.user_id === userId;
+    },
+    listSubscriptions: async (userId) =>
+      (
+        await db.query<SubscriptionRow>(
+          `SELECT ${subscriptionColumns} FROM aw_billing_subscriptions WHERE user_id=$1 ORDER BY subscription_id`,
+          [userId],
+        )
+      ).map(subscription),
+    listCancelPending: async (limit) =>
+      (
+        await db.query<{ subscription_id: string }>(
+          'SELECT subscription_id FROM aw_billing_subscriptions WHERE cancel_pending ORDER BY updated_at,subscription_id LIMIT $1',
+          [Math.max(1, Math.min(500, Math.trunc(limit)))],
+        )
+      ).map((row) => row.subscription_id),
+    saveSubscription: async (sub) => {
+      // The owner never changes: a conflicting row of another account matches
+      // nothing and the save fails closed.
+      const saved = await db.query(
+        `INSERT INTO aw_billing_subscriptions(${subscriptionColumns})
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         ON CONFLICT(subscription_id) DO UPDATE SET customer_id=EXCLUDED.customer_id,status=EXCLUDED.status,
+           period_start=EXCLUDED.period_start,period_end=EXCLUDED.period_end,cancel_at_period_end=EXCLUDED.cancel_at_period_end,
+           discounted=EXCLUDED.discounted,revoked=EXCLUDED.revoked,last_state_event_created=EXCLUDED.last_state_event_created,
+           paid_invoice_ids=EXCLUDED.paid_invoice_ids,refunded_invoice_ids=EXCLUDED.refunded_invoice_ids,
+           reconcile_required=EXCLUDED.reconcile_required,cancel_pending=EXCLUDED.cancel_pending,updated_at=now()
+         WHERE aw_billing_subscriptions.user_id=EXCLUDED.user_id RETURNING subscription_id`,
+        [
+          sub.subscriptionId,
+          sub.customerId,
+          sub.userId,
+          sub.status,
+          sub.periodStart,
+          sub.periodEnd,
+          sub.cancelAtPeriodEnd,
+          sub.discounted,
+          sub.revoked,
+          sub.lastStateEventCreated,
+          [...sub.paidInvoiceIds],
+          [...sub.refundedInvoiceIds],
+          sub.reconcileRequired,
+          sub.cancelPending,
+        ],
+      );
+      if (saved.length !== 1)
+        throw Error('Billing subscription belongs to another account');
+    },
+    insertGrant: async (grant, owner) => {
+      await db.query(
+        'INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES($1,$2,$3,$4,$5,$6)',
+        [
+          grant.key,
+          owner.subscriptionId,
+          owner.userId,
+          grant.cycleIndex,
+          grant.amount,
+          grant.expiresAt,
+        ],
+      );
+    },
+    revokeGrants: async (keys) => {
+      if (keys.length)
+        await db.query(
+          'UPDATE aw_billing_grants SET revoked=true WHERE key=ANY($1::text[])',
+          [[...keys]],
+        );
+    },
+    loadLedger: async (userId): Promise<ChapterLedger> => {
+      const grants = await db.query<{
+        key: string;
+        cycle_index: number;
+        amount: number;
+        expires_at: Date | string;
+        revoked: boolean;
+      }>(
+        // A referral gift is closed as soon as the subscription it is attached
+        // to is revoked (refund/dispute) or quarantined by recovery, so it is
+        // never reserved just to be refused at dispatch.
+        `SELECT g.key,g.cycle_index,g.amount,g.expires_at,
+           (g.revoked OR (left(g.key,9)='referral:' AND (s.subscription_id IS NULL OR s.revoked IS NOT NULL OR s.reconcile_required))) AS revoked
+         FROM aw_billing_grants g
+         LEFT JOIN aw_billing_subscriptions s ON s.subscription_id=g.subscription_id AND s.user_id=g.user_id
+         WHERE g.user_id=$1 ORDER BY g.created_at,g.key`,
+        [userId],
+      );
+      const reservations = await db.query<{
+        key: string;
+        bucket: ChapterBucket;
+        grant_key: string | null;
+        state: ChapterReservation['state'];
+      }>(
+        'SELECT key,bucket,grant_key,state FROM aw_billing_reservations WHERE user_id=$1 ORDER BY created_at,key',
+        [userId],
+      );
+      return {
+        grants: grants.map((g) => ({
+          key: g.key,
+          cycleIndex: g.cycle_index,
+          amount: g.amount,
+          expiresAt: new Date(g.expires_at).toISOString(),
+          revoked: g.revoked,
+        })),
+        reservations: reservations.map((r) => ({
+          key: r.key,
+          bucket: r.bucket,
+          grantKey: r.grant_key,
+          state: r.state,
+        })),
+        tasterAmount: FREE_TASTER_CHAPTERS,
+      };
+    },
+    // A released key that is reserved again (a retry after a failure) is a new
+    // reservation: its age restarts, so the reaper never frees a live one.
+    saveReservation: async (userId, reservation) => {
+      await db.query(
+        `INSERT INTO aw_billing_reservations(user_id,key,bucket,grant_key,state) VALUES($1,$2,$3,$4,$5)
+         ON CONFLICT(user_id,key) DO UPDATE SET bucket=EXCLUDED.bucket,grant_key=EXCLUDED.grant_key,state=EXCLUDED.state,
+           created_at=CASE WHEN EXCLUDED.state='reserved' AND aw_billing_reservations.state<>'reserved' THEN now() ELSE aw_billing_reservations.created_at END,
+           updated_at=now()`,
+        [
+          userId,
+          reservation.key,
+          reservation.bucket,
+          reservation.grantKey,
+          reservation.state,
+        ],
+      );
+    },
+    // The fact persisted at admission, read through the same transaction.
+    // A schema older than the registry (040) has no admission table: say so in
+    // a readable 503 instead of a raw SQL error. The checkout stops as a whole
+    // either way; the registry schema must be installed first.
+    launchDiscountEligible: async (userId) => {
+      try {
+        return await new ServiceAccessRepository(db).launchDiscountEligible(
+          userId,
+        );
+      } catch (error) {
+        if ((error as { code?: string }).code === '42P01')
+          throw new DomainError(
+            'SERVICE_ACCESS_UNAVAILABLE',
+            'Current service access could not be verified.',
+            503,
+          );
+        throw error;
+      }
+    },
+    hasRedeemedFounderDiscount: async (userId) =>
+      (
+        await db.query(
+          'SELECT 1 FROM aw_billing_subscriptions WHERE user_id=$1 AND discounted LIMIT 1',
+          [userId],
+        )
+      ).length > 0,
+    // Only an active account may gain billing state; a deleting one may not.
+    userExists: async (userId) =>
+      (
+        await db.query(
+          "SELECT 1 FROM ff_users WHERE id=$1 AND status='active' LIMIT 1",
+          [userId],
+        )
+      ).length > 0,
+  };
+}
+
+export function createBillingStore(db: Database): BillingStore {
+  return {
+    transaction: (run) => db.transaction((tx) => run(billingTx(tx))),
+  };
+}
+
+// Hands back chapter reservations whose generation never settled (a crash
+// between reserve and consume/release, or a restore). A consume racing the
+// sweep is safe: both take the user lock, and the sweep only touches rows that
+// are still reserved. `olderThanMs` must exceed the longest generation.
+export async function releaseStaleBillingReservations(
+  db: Database,
+  options: { olderThanMs: number; now?: Date },
+) {
+  if (!Number.isFinite(options.olderThanMs) || options.olderThanMs < 60_000)
+    throw Error('A reservation timeout of at least one minute is required');
+  const cutoff = new Date(
+    (options.now ?? new Date()).getTime() - options.olderThanMs,
+  );
+  const users = await db.query<{ user_id: string }>(
+    "SELECT DISTINCT user_id FROM aw_billing_reservations WHERE state='reserved' AND created_at<$1 ORDER BY user_id LIMIT 200",
+    [cutoff],
+  );
+  let released = 0;
+  for (const { user_id } of users)
+    released += await db.transaction(async (tx) => {
+      await billingTx(tx).lockUser(user_id);
+      return (
+        await tx.query(
+          "UPDATE aw_billing_reservations SET state='released',updated_at=now() WHERE user_id=$1 AND state='reserved' AND created_at<$2 RETURNING key",
+          [user_id, cutoff],
+        )
+      ).length;
+    });
+  return { released };
+}
+
+// For the account-deletion guard when billing is switched off or misconfigured:
+// does the account still have a subscription that may be charging? Safe on a
+// database that has no billing tables yet (before migration 039).
+export async function hasLiveBillingSubscription(db: Database, userId: string) {
+  const [present] = await db.query<{ present: boolean }>(
+    "SELECT to_regclass('public.aw_billing_subscriptions') IS NOT NULL AS present",
+  );
+  if (present?.present !== true) return false;
+  return (
+    (
+      await db.query(
+        "SELECT 1 FROM aw_billing_subscriptions WHERE user_id=$1 AND (cancel_pending OR status NOT IN ('canceled','incomplete_expired')) LIMIT 1",
+        [userId],
+      )
+    ).length > 0
+  );
+}
+
+// ---- generation gate (BILLING_ENFORCEMENT) ----
+//
+// Reserving is off unless configured: with no gate registered it issues no
+// query and the beta behaves exactly as before. Settling (consume/release) does
+// NOT depend on the gate: the API and the worker are separate processes, and a
+// worker without the gate must still settle what the API reserved, otherwise
+// the reaper hands the quota back after the timeout and the paywall leaks. The
+// settle statements touch no row when no reservation exists (beta accounts,
+// enforcement off), and are skipped on a database without migration 039.
+// One chapter = one life job. The reservation key is the job id: reserved when
+// the job is queued (or retried), consumed in the transaction that durably saves
+// the chapter, released when the job fails. The reaper is the safety net.
+//
+// No advisory lock is taken here on purpose: every caller already holds the
+// account row lock (FOR UPDATE on ff_users), which serialises one account's
+// queueing and completion, and taking the billing advisory lock after it would
+// invert the webhook's order (advisory lock, then a row share on ff_users).
+
+export type GenerationGate = Readonly<{
+  // false: enforcement is on but billing is not usable (invalid or disabled
+  // configuration). The gate then refuses everyone but the exempt accounts.
+  ready: boolean;
+  entitlement: EntitlementConfig;
+  // Closed-beta accounts: never reserved, never consumed, but only before
+  // exemptEndsAtMs (epoch ms, exclusive). At and after it they are ordinary
+  // users; an unbounded exemption cannot be constructed.
+  exemptUserIds: ReadonlySet<string>;
+  exemptEndsAtMs: number;
+}>;
+
+let activeGate: GenerationGate | null = null;
+
+// Process-wide on purpose: chapter jobs are queued from many repositories that
+// are constructed per request. createApp and the worker set it once at startup.
+export function configureGenerationGate(gate: GenerationGate | null) {
+  activeGate = gate;
+}
+
+export function createGenerationGate(options: {
+  ready: boolean;
+  exemptUserIds: readonly string[];
+  // Required (ISO string or Date) whenever exemptUserIds is not empty.
+  exemptEndsAt?: string | Date;
+  entitlement?: EntitlementConfig;
+}): GenerationGate {
+  const exemptUserIds = new Set(
+    options.exemptUserIds.map((id) => id.toLowerCase()),
+  );
+  let exemptEndsAtMs = 0;
+  if (exemptUserIds.size > 0) {
+    exemptEndsAtMs =
+      options.exemptEndsAt === undefined
+        ? NaN
+        : new Date(options.exemptEndsAt).getTime();
+    if (!Number.isFinite(exemptEndsAtMs))
+      throw Error('A chapter exemption needs a valid end');
+  }
+  return {
+    ready: options.ready,
+    entitlement: options.entitlement ?? defaultEntitlementConfig,
+    exemptUserIds,
+    exemptEndsAtMs,
+  };
+}
+
+// Exempt only strictly before the end; an invalid clock is never exempt.
+function chapterExempt(gate: GenerationGate, userId: string, nowMs: number) {
+  return (
+    gate.exemptUserIds.has(userId.toLowerCase()) &&
+    Number.isFinite(nowMs) &&
+    nowMs < gate.exemptEndsAtMs
+  );
+}
+
+export async function reserveGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+  now: Date = new Date(),
+) {
+  const gate = activeGate;
+  if (!gate || chapterExempt(gate, userId, now.getTime())) return;
+  if (!gate.ready)
+    throw new DomainError(
+      'BILLING_UNAVAILABLE',
+      'Billing is not available.',
+      503,
+    );
+  const bt = billingTx(tx);
+  const entitlement = entitlementOfSubscriptions(
+    await bt.listSubscriptions(userId),
+    now,
+    gate.entitlement,
+  );
+  const result = reserveChapter(
+    await bt.loadLedger(userId),
+    key,
+    entitlement,
+    now,
+  );
+  if (!result.ok)
+    throw new DomainError(
+      result.reason === 'allowance_exhausted'
+        ? 'BILLING_ALLOWANCE_EXHAUSTED'
+        : result.reason === 'no_entitlement'
+          ? 'BILLING_NO_ENTITLEMENT'
+          : 'BILLING_INVALID_KEY',
+      result.reason === 'allowance_exhausted'
+        ? 'The chapter allowance is used up.'
+        : 'A subscription is required to generate a chapter.',
+      result.reason === 'invalid_key' ? 500 : 402,
+    );
+  if (result.created) await bt.saveReservation(userId, result.reservation);
+}
+
+let reservationsTableKnown = false;
+
+// Recheck immediately before a physical provider request, not during durable
+// save/settlement. A queued old job is not itself a chapter reservation. Read
+// reservation, grant and subscription projection in one database snapshot;
+// never create a reservation or fall back to a free taster here.
+export async function assertGenerationChapterDispatch(
+  tx: Database,
+  userId: string,
+  key: string,
+  leaseToken: string,
+) {
+  const gate = activeGate;
+  if (!gate) return;
+  // The exemption is re-evaluated before every physical dispatch against the
+  // database wall clock (the same authority as the USD period), so a job queued
+  // or running inside the window cannot outlive it. After the end the account
+  // needs a real reservation like everyone else.
+  if (gate.exemptUserIds.has(userId.toLowerCase())) {
+    const [clock] = await tx.query<{ billing_now: Date | string }>(
+      'SELECT clock_timestamp() AS billing_now',
+    );
+    if (
+      chapterExempt(gate, userId, new Date(clock?.billing_now ?? NaN).getTime())
+    )
+      return;
+  }
+  if (!gate.ready)
+    throw new DomainError(
+      'BILLING_UNAVAILABLE',
+      'Billing is not available.',
+      503,
+    );
+  const [row] = await tx.query<{
+    bucket: string | null;
+    state: string | null;
+    grant_key: string | null;
+    paid_key: string | null;
+    paid_owner: string | null;
+    paid_revoked: boolean | null;
+    subscription_id: string | null;
+    subscription_owner: string | null;
+    subscription_revoked: string | null;
+    reconcile_required: boolean | null;
+  }>(
+    `SELECT r.bucket,r.state,r.grant_key,g.key AS paid_key,g.user_id AS paid_owner,g.revoked AS paid_revoked,
+       s.subscription_id,s.user_id AS subscription_owner,s.revoked AS subscription_revoked,s.reconcile_required
+     FROM aw_jobs j
+     JOIN ff_users u ON u.id=j.user_id AND u.status='active'
+     LEFT JOIN aw_billing_reservations r ON r.user_id=j.user_id AND r.key=j.id::text
+     LEFT JOIN aw_billing_grants g ON g.key=r.grant_key AND g.user_id=r.user_id
+     LEFT JOIN aw_billing_subscriptions s ON s.subscription_id=g.subscription_id AND s.user_id=r.user_id
+     WHERE j.user_id=$1 AND j.id=$2::uuid AND j.lease_token=$3 AND j.status='running' AND j.lease_until>clock_timestamp()`,
+    [userId, key, leaseToken],
+  );
+  const denied = () => {
+    throw new DomainError(
+      'BILLING_RESERVATION_REQUIRED',
+      'A valid chapter reservation is required before generation.',
+      503,
+    );
+  };
+  if (!row)
+    throw new DomainError(
+      'JOB_LEASE_LOST',
+      'The job lease is no longer valid.',
+      409,
+    );
+  if (row.state !== 'reserved') return denied();
+  if (row.bucket === 'taster' && row.grant_key === null) return;
+  // reserveChapter honours an already-held reservation before checking current
+  // eligibility. Natural cycle expiry/cancellation does not unreserve earned
+  // work. Explicit revocation and unverified restored projections still close
+  // new provider requests. No new quota is allocated in this check.
+  if (
+    row.bucket !== 'paid' ||
+    row.grant_key === null ||
+    row.paid_key !== row.grant_key ||
+    row.paid_owner?.toLowerCase() !== userId.toLowerCase() ||
+    row.paid_revoked !== false ||
+    !row.subscription_id ||
+    row.subscription_owner?.toLowerCase() !== userId.toLowerCase() ||
+    row.subscription_revoked !== null ||
+    row.reconcile_required !== false
+  )
+    return denied();
+}
+
+// Positive answers are cached for the process; a database that still lacks the
+// table (before migration 039) is asked again, so the upgrade needs no restart.
+async function reservationsTablePresent(tx: Database) {
+  if (reservationsTableKnown) return true;
+  const [row] = await tx.query<{ present: boolean }>(
+    "SELECT to_regclass('public.aw_billing_reservations') IS NOT NULL AS present",
+  );
+  reservationsTableKnown = row?.present === true;
+  return reservationsTableKnown;
+}
+
+// A saved chapter always consumes: also a reservation the reaper handed back in
+// the meantime (a generation longer than the timeout), never a free chapter.
+export async function consumeGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+) {
+  if (!(await reservationsTablePresent(tx))) return;
+  await tx.query(
+    "UPDATE aw_billing_reservations SET state='consumed',updated_at=now() WHERE user_id=$1 AND key=$2 AND state IN ('reserved','released')",
+    [userId, key],
+  );
+}
+
+export async function releaseGenerationChapter(
+  tx: Database,
+  userId: string,
+  key: string,
+) {
+  if (!(await reservationsTablePresent(tx))) return;
+  await tx.query(
+    "UPDATE aw_billing_reservations SET state='released',updated_at=now() WHERE user_id=$1 AND key=$2 AND state='reserved'",
+    [userId, key],
+  );
+}
+
+// Reservations whose job can no longer consume: it was cancelled (shared privacy
+// change, account or life invalidation), failed without going through fail(), or
+// vanished with its life. Released without waiting for the stale timeout, so a
+// first-chapter failure does not lock the taster out for hours. A failed job may
+// still be retried: retry() reserves the same key again. Worker maintenance only.
+export async function releaseSettledBillingReservations(db: Database) {
+  if (!(await reservationsTablePresent(db))) return { released: 0 };
+  const users = await db.query<{ user_id: string }>(
+    `SELECT DISTINCT r.user_id FROM aw_billing_reservations r
+     WHERE r.state='reserved' AND r.created_at<now()-interval '1 minute'
+       AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+     ORDER BY r.user_id LIMIT 200`,
+  );
+  let released = 0;
+  for (const { user_id } of users)
+    released += await db.transaction(async (tx) => {
+      await billingTx(tx).lockUser(user_id);
+      return (
+        await tx.query(
+          `UPDATE aw_billing_reservations r SET state='released',updated_at=now()
+           WHERE r.user_id=$1 AND r.state='reserved' AND r.created_at<now()-interval '1 minute'
+             AND NOT EXISTS(SELECT 1 FROM aw_jobs j WHERE j.id::text=r.key AND j.user_id=r.user_id AND j.status IN ('queued','running','completed'))
+           RETURNING key`,
+          [user_id],
+        )
+      ).length;
+    });
+  return { released };
+}

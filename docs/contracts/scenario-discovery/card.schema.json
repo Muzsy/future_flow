@@ -1,0 +1,58 @@
+{
+  "$id": "urn:alterward:scenario-discovery:card:scenario-discovery-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^scenario-[a-f0-9]{32}$"
+    },
+    "contentLocale": {
+      "type": "string",
+      "const": "en"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 800
+    },
+    "goalDescription": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 500
+    },
+    "officialScenario": {
+      "type": "boolean",
+      "const": true
+    },
+    "officialLifeApproved": {
+      "type": "boolean",
+      "const": false
+    },
+    "allowPersonalization": {
+      "type": "boolean"
+    },
+    "publishedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    }
+  },
+  "required": [
+    "slug",
+    "contentLocale",
+    "title",
+    "summary",
+    "goalDescription",
+    "officialScenario",
+    "officialLifeApproved",
+    "allowPersonalization",
+    "publishedAt"
+  ],
+  "additionalProperties": false
+}

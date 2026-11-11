@@ -1,0 +1,36 @@
+{
+  "$id": "urn:alterward:public-scenario:moderation:public-scenario-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "hidden",
+        "removed"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "privacy",
+        "content",
+        "quality",
+        "meaning",
+        "origin",
+        "other"
+      ]
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    }
+  },
+  "required": [
+    "status",
+    "reason",
+    "actorLabel"
+  ],
+  "additionalProperties": false
+}

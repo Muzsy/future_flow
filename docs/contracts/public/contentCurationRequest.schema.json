@@ -1,0 +1,41 @@
+{
+  "$id": "urn:alterward:public:contentCurationRequest:public-content-curation-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reviewId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "reviewHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "policyVersion": {
+      "type": "string",
+      "const": "public-content-review-1"
+    },
+    "curationVersion": {
+      "type": "string",
+      "const": "public-content-curation-1"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "contentHash",
+    "reviewId",
+    "reviewHash",
+    "policyVersion",
+    "curationVersion",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

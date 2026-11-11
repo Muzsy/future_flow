@@ -1,0 +1,30 @@
+{
+  "$id": "urn:alterward:official-life:generationBinding:official-life-source-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "periodInputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "chapterInputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "fidelityInputHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "sourceHash",
+    "periodInputHash",
+    "chapterInputHash",
+    "fidelityInputHash"
+  ],
+  "additionalProperties": false
+}

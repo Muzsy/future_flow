@@ -1,0 +1,20 @@
+{
+  "$id": "urn:alterward:public:scenarioStartRequest:scenario-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "templateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "templateHash",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,41 @@
+# alterward — a személyes zárt béta előkészítésének lezárása
+
+2026-10-11 21:01 UTC · [Aktiválási terv](PERSONAL_BETA_ACTIVATION_PLAN_HU.md) · [Részletes audit](PERSONAL_BETA_FINAL_AUDIT_HU.md)
+
+**Az általános műszaki előkészítési szakasz lezárva.** Az oldal a Contabón fut, Cloudflare-kapu mögött, tulajdonosi hozzáféréssel. A tesztelői béta még nincs megnyitva: nincs aktivált személyes AI-névsor, providerkulcs vagy harmincnapos használati ablak. Ebben a lezáró körben alkalmazási AI-költés és élő adatbázisírás nulla.
+
+Nem folytatjuk határozatlan ideig a béta előtti fejlesztést. Új funkció vagy általános auditkör nem indul. A következő munka a konkrét tesztelők meghívásához és a használati ablak egyszeri aktiválásához kapcsolódik. A korábbi teljes termékterv, a 10 USD induló keret és a későbbi öt páros Shared-teszt megmarad.
+
+## Ami ellenőrzött és kész
+
+| Terület                       | Lezárt bizonyíték                                                                                                                                                                                                                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Éles angol alkalmazás         | App 827d72a; saját HTTPS-belépés, angol felület és háromfejezetes Official történet böngészőben ellenőrizve.                                                                                                                                                                                                   |
+| Induló kínálat                | 15 élet, 45 döntési pont, 5 Scenario; aktuális publikációs revision, forrás-/személyesítési beleegyezés és kanonikus tartalomhash csak olvasott DB-ellenőrzése sikeres. Ez nem fizetett indulási próba.                                                                                                        |
+| Személyes AI-operátor         | Friss held Auth–email–UUID/budget ellenőrzés, pontos környezet/manifest-kötés, egyszeri tartós exposure-napló, vészleállítás és eredeti nulla-visszaállás implementált. A konkrét candidate mentésének és offsite restore-jának kapuja kötelező az apply előtt.                                                |
+| Külső forrásaudit             | Claude Message133: 0 Critical / 0 High / 0 Medium / 0 új Low; a korábbi hat Low javított vagy dokumentált működési határ. A függetlenül ellenőrzött forrás b9685e9; b1d45f0 csak egy tesztmockot javított, a production és fixture bytejai változatlanok.                                                      |
+| Tesztek                       | 299 helyi Python-próba: 239 sikeres, 60 platformkihagyás; 82 Linux/root próba kihagyás nélkül, négy Node operátorpróba. A tényleges inert célpróba két funded és három unpaid reader esetet ellenőrzött, változatlan éles/idegen konténerekkel és teljes takarítással.                                         |
+| Pontos kiadási CI             | [b1d45f0 verify/container ellenőrzés](https://github.com/Muzsy/future_flow/actions/runs/38173564617) sikeres; az előző futás tesztjének hiányzó symlink-mockja javított, nem production-hiba.                                                                                                                  |
+| Mentés és visszaállítás       | Daily b1d45f0 telepítve; friss titkosított mentés 20261011T205256Z-f5db9d89, izolált offsite restore: 97 tábla, 1633 sor, 55 konfigurációfájl egyezett. Sérült ciphertext elutasítva, ideiglenes adatok eltávolítva, élő DB-írás nélkül.                                                                       |
+| Hibajelzés                    | Szerveres monitor és félbeszakadt személyes váltás riasztása aktív; napi 03:15 UTC mentés, 15 perces monitor, 7 napos megőrzés. Kilenc korlátozott health-ellenőrzés és idegen SSH-parancs elutasítása sikeres; [GitHub külső monitor](https://github.com/Muzsy/future_flow/actions/runs/38174540474) sikeres. |
+| Belépési levelek és támogatás | Saját meghívó, recovery, ismét felhasznált link és az info-címre adott válasz útja ellenőrzött. Gmailben a levelek spambe kerültek, SPF/DKIM/DMARC PASS; ezt a meghívási útmutató jelezze.                                                                                                                     |
+| Kulcs és katasztrófahelyzet   | A mentési kulcs külön, leválasztott adathordozón van, a tulajdonos megerősítette. Teljes Supabase-projektvesztéskor zárt kézi újraépítés az elfogadott személyesbéta-korlát.                                                                                                                                   |
+
+A friss archívum első szabályos restore-parancsa generikus hibával megszakadt; az eredeti ok nem lett azonosítva. A csak hibatípus/stack-keret megfigyelésével bővített diagnosztikai beküldés és az utána ismételt szabályos CLI-próba ugyanazon archívumból sikeres. Ez nem állítás a megszakadás okának javításáról. Ismétlődéskor az indulást elhalasztjuk; az operátor friss, konkrét candidate-restore nélkül nem aktivál. A korábbi owner-only restore-körben is volt első generikus megszakadás. E működési bizonytalanság ismert és jelentett, új forrásjavítást ebben a lezárt körben nem kezdünk.
+
+A fizikai fixture-ben a DB/Auth/TLS, forrásrender és candidate-backup kapu tesztillesztés; nem állítunk valódi résztvevői vagy fizetett worker-próbát. A Claude-audit forrásellenőrzés, nem saját hozzáférésből végzett Contabo/Supabase-audit. A b9685e9 Linux/fixture bizonyítékát a változatlan production/fixture bytek ellenőrzése köti a kiadási b1d45f0 forráshoz. A későbbi dokumentációs commit szintén nem szolgáltatásfrissítés; tényleges aktiválásnál a loader az akkori pontos main CI-jét újra megköveteli.
+
+## A megnyitáskor még elvégzendő konkrét lépések
+
+1. A tulajdonos megadja az első, legfeljebb tíz tesztelő emailcímét. A Cloudflare és az origin pontosan ugyanazt a névsort kapja. Shared és nyilvános regisztráció kikapcsolva marad.
+2. A névre szóló meghívók kiküldése és az első sikeres HTTPS-belépések után friss email–Auth UUID párokat ellenőrzünk. Először keret nélküli olvasói jogosultságot alkalmazunk; a konkrét olvasói előkészítésről is mentés/restore készül.
+3. Közvetlenül az egyszeri személyes indulás előtt újra ellenőrizzük az akkori exact main CI-t, audit-/fixture bytekötést, Access-listát, időt és korábbi kereteket. A valódi candidate elkészülte után friss mentés, helyi titkosított másolat és izolált restore szükséges. A mért teljes előkészítésnek bele kell férnie a szigorú tizenöt perces határba.
+4. A jóváhagyott használati keretből, friss held fiók-/budget-leltár után egyszer aktiváljuk a 30 napot (legfeljebb 2 USD közös OpenAI-használat, 0,50 USD/fő plafon; 1 USD külön Claude-audit-tartalék). Egy tényleges, bejelentkezett AI-indítás végigpróbálása és költségének rögzítése után jelentjük késznek a tesztelői használatot. A providerhívás e későbbi aktiválás része, nem előzetesen igazolt tény.
+
+Ez tesztelőkhöz és indulási időponthoz kötött operátori lista, nem új fejlesztési backlog. A meghívók kiküldéséhez konkrét névsor és küldési engedély szükséges; a mostani kör nem küldött levelet vagy adott új hozzáférést.
+
+## A béta elfogadott határai
+
+Csak személyes, angol béta, legfeljebb tíz résztvevővel. A közös projektplafon előbb elfogyhat, mint az egyéni limitek összege; nincs garantált fejezetszám, automatikus keretemelés vagy megújítás. Sikertelen vagy lezárt funded ablak után a külön providerkulcs visszavonása/forgatása kötelező, a történeti költés és exposure-napló nem törlődik. A félbeszakadt váltás riasztása kézi vészleállítást és felülvizsgálatot igényel. Valódi host-reboot vagy aktív paid worker kill, illetve teljes hosztolt Auth-helyreállítás nem lett most bizonyítva; a teljes projektvesztésnél az oldal zárva marad.
+
+A Shared adatvédelmi kapui és az öt páros második tesztkör külön későbbi szakasz. A nagyobb nyilvános kínálat és magyar nyelv nem feltétele ennek a zárt, angol személyes bétának.

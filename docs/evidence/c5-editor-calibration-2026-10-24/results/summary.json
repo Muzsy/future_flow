@@ -1,0 +1,537 @@
+{
+  "version": 1,
+  "diagnosticOnly": true,
+  "derivedFrom": "results.json",
+  "runnerCommit": "f3eaf3c6f089246a0839ce8f7625215774f79ce3",
+  "calls": 12,
+  "validReports": 12,
+  "gatePassed": 4,
+  "halted": null,
+  "rawJsonMatchesReports": true,
+  "perCaseUserSchemaAndArmRequestHashesMatch": true,
+  "startedAt": "2026-10-24T08:55:50.072Z",
+  "finishedAt": "2026-10-24T09:03:30.984Z",
+  "transportLatencyMsSum": 453502,
+  "quotaStart": [
+    {
+      "name": "five-hour",
+      "remainingPercent": 66,
+      "resetsAt": "2026-10-24T13:23:53.000Z"
+    },
+    {
+      "name": "weekly",
+      "remainingPercent": 80,
+      "resetsAt": "2026-10-30T19:24:07.000Z"
+    }
+  ],
+  "quotaEnd": [
+    {
+      "name": "five-hour",
+      "remainingPercent": 47,
+      "resetsAt": "2026-10-24T13:23:53.000Z"
+    },
+    {
+      "name": "weekly",
+      "remainingPercent": 77,
+      "resetsAt": "2026-10-30T19:24:07.000Z"
+    }
+  ],
+  "callsSummary": [
+    {
+      "call": 1,
+      "round": 1,
+      "case": "disputed-original",
+      "arm": "pre-c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 350,
+          "suggestedFix": 349
+        }
+      ],
+      "evidenceLength": 700,
+      "latencyMs": 34889
+    },
+    {
+      "call": 2,
+      "round": 1,
+      "case": "disputed-original",
+      "arm": "c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 177,
+          "suggestedFix": 218
+        }
+      ],
+      "evidenceLength": 488,
+      "latencyMs": 28968
+    },
+    {
+      "call": 3,
+      "round": 1,
+      "case": "structural-repeat",
+      "arm": "pre-c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 3,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty",
+        "momentum"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 350,
+          "suggestedFix": 276
+        },
+        {
+          "explanation": 252,
+          "suggestedFix": 122
+        }
+      ],
+      "evidenceLength": 546,
+      "latencyMs": 52986
+    },
+    {
+      "call": 4,
+      "round": 1,
+      "case": "structural-repeat",
+      "arm": "c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 202,
+          "suggestedFix": 184
+        }
+      ],
+      "evidenceLength": 535,
+      "latencyMs": 46050
+    },
+    {
+      "call": 5,
+      "round": 1,
+      "case": "earned-recurrence",
+      "arm": "pre-c5",
+      "verdict": "pass",
+      "gatePassed": true,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 4,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": true,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [],
+      "issueFieldLengths": [],
+      "evidenceLength": 700,
+      "latencyMs": 30160
+    },
+    {
+      "call": 6,
+      "round": 1,
+      "case": "earned-recurrence",
+      "arm": "c5",
+      "verdict": "pass",
+      "gatePassed": true,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 4,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": true,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [],
+      "issueFieldLengths": [],
+      "evidenceLength": 584,
+      "latencyMs": 25886
+    },
+    {
+      "call": 7,
+      "round": 2,
+      "case": "disputed-original",
+      "arm": "c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 159,
+          "suggestedFix": 165
+        }
+      ],
+      "evidenceLength": 581,
+      "latencyMs": 28193
+    },
+    {
+      "call": 8,
+      "round": 2,
+      "case": "disputed-original",
+      "arm": "pre-c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 350,
+          "suggestedFix": 350
+        }
+      ],
+      "evidenceLength": 593,
+      "latencyMs": 54512
+    },
+    {
+      "call": 9,
+      "round": 2,
+      "case": "structural-repeat",
+      "arm": "c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": false,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty",
+        "prose"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 122,
+          "suggestedFix": 134
+        },
+        {
+          "explanation": 140,
+          "suggestedFix": 105
+        }
+      ],
+      "evidenceLength": 548,
+      "latencyMs": 30149
+    },
+    {
+      "call": 10,
+      "round": 2,
+      "case": "structural-repeat",
+      "arm": "pre-c5",
+      "verdict": "revise",
+      "gatePassed": false,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 3,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": false,
+        "distinctEnding": true,
+        "independentProgression": false,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [
+        "novelty"
+      ],
+      "issueFieldLengths": [
+        {
+          "explanation": 350,
+          "suggestedFix": 350
+        }
+      ],
+      "evidenceLength": 700,
+      "latencyMs": 53100
+    },
+    {
+      "call": 11,
+      "round": 2,
+      "case": "earned-recurrence",
+      "arm": "c5",
+      "verdict": "pass",
+      "gatePassed": true,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 4,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": true,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [],
+      "issueFieldLengths": [],
+      "evidenceLength": 700,
+      "latencyMs": 36250
+    },
+    {
+      "call": 12,
+      "round": 2,
+      "case": "earned-recurrence",
+      "arm": "pre-c5",
+      "verdict": "pass",
+      "gatePassed": true,
+      "scores": {
+        "causality": 4,
+        "momentum": 4,
+        "sceneCraft": 4,
+        "character": 4,
+        "personalization": 4,
+        "choiceStakes": 4,
+        "novelty": 4,
+        "prose": 4
+      },
+      "sequenceReview": {
+        "distinctDramaticStructure": true,
+        "distinctEnding": true,
+        "independentProgression": true,
+        "characterAgency": true,
+        "distinctRhetoricalShape": true,
+        "systemMechanicsInvisible": true,
+        "behavioralVariety": true
+      },
+      "issueDimensions": [],
+      "issueFieldLengths": [],
+      "evidenceLength": 700,
+      "latencyMs": 32359
+    }
+  ],
+  "manualReading": {
+    "kind": "independent-agent-reading-not-human-ground-truth",
+    "clearlyInterruptedFields": [
+      {
+        "call": 1,
+        "fields": [
+          "issues[0].explanation",
+          "issues[0].suggestedFix",
+          "sequenceReview.evidence"
+        ]
+      },
+      {
+        "call": 5,
+        "fields": [
+          "sequenceReview.evidence"
+        ]
+      },
+      {
+        "call": 8,
+        "fields": [
+          "issues[0].explanation",
+          "issues[0].suggestedFix"
+        ]
+      },
+      {
+        "call": 10,
+        "fields": [
+          "issues[0].explanation",
+          "sequenceReview.evidence"
+        ]
+      },
+      {
+        "call": 11,
+        "fields": [
+          "sequenceReview.evidence"
+        ]
+      },
+      {
+        "call": 12,
+        "fields": [
+          "sequenceReview.evidence"
+        ]
+      }
+    ],
+    "conservativelyExcluded": [
+      "call3 issues[0].explanation: adds a meaningful insight",
+      "call10 issues[0].suggestedFix: rather than another yes"
+    ],
+    "clearlyInterruptedFieldCounts": {
+      "pre-c5": 9,
+      "c5": 1
+    },
+    "reportsWithClearlyInterruptedFields": {
+      "pre-c5": 5,
+      "c5": 1
+    },
+    "interpretation": "Stable novelty/structure and verdict within both arms on these cases; variable auxiliary diagnoses. Fewer clearly interrupted fields with C5 in this small sample does not establish general effect, complete detection, false-positive ground truth or causal C5 regression."
+  }
+}

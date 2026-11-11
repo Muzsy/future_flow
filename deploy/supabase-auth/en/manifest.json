@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "alterward-auth-email-1",
+  "locale": "en",
+  "senderEmail": "info@alterward.com",
+  "senderName": "Alterward",
+  "separateReplyTo": null,
+  "intendedUrlConfig": {
+    "site_url": "https://alterward.com/account-access",
+    "uri_allow_list": [
+      "https://alterward.com/account-access",
+      "http://localhost:3000/account-access"
+    ]
+  },
+  "liveInstallationStatus": "saved-and-reopened-in-hosted-supabase",
+  "templates": [
+    {
+      "id": "invite",
+      "subject": "Your invitation to Alterward",
+      "contentFile": "invite.html"
+    },
+    {
+      "id": "recovery",
+      "subject": "Reset your Alterward password",
+      "contentFile": "recovery.html"
+    },
+    {
+      "id": "confirmation",
+      "subject": "Confirm your email address for Alterward",
+      "contentFile": "confirmation.html"
+    },
+    {
+      "id": "magic_link",
+      "subject": "Your Alterward sign-in link",
+      "contentFile": "magic_link.html"
+    },
+    {
+      "id": "email_change",
+      "subject": "Confirm your email address change for Alterward",
+      "contentFile": "email_change.html"
+    },
+    {
+      "id": "reauthentication",
+      "subject": "Your Alterward verification code",
+      "contentFile": "reauthentication.html"
+    },
+    {
+      "id": "password_changed_notification",
+      "subject": "Your Alterward password has changed",
+      "contentFile": "password_changed_notification.html"
+    },
+    {
+      "id": "email_changed_notification",
+      "subject": "Your Alterward email address has changed",
+      "contentFile": "email_changed_notification.html"
+    }
+  ],
+  "verification": {
+    "fullHtmlTemplateMatches": 8,
+    "previewCssRemovedForComparison": true,
+    "readableSubjectMatches": 4,
+    "maskedSubjectFields": 4,
+    "passwordNotificationEnabled": false,
+    "emailNotificationEnabled": false,
+    "newEmailDeliveryTested": false,
+    "productionCallbackTested": false,
+    "incomingReplyTested": false
+  }
+}

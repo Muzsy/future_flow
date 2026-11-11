@@ -1,0 +1,10 @@
+# Supplement the existing proxy's Compose file; its service name is caddy.
+# Preserve every current network and route. Do not use this as a standalone file.
+services:
+  caddy:
+    networks:
+      alterward_proxy: {}
+networks:
+  alterward_proxy:
+    external: true
+    name: alterward_proxy

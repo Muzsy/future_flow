@@ -1,0 +1,335 @@
+{
+  "$id": "urn:future-flow:profile:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "facts": {
+      "type": "object",
+      "properties": {
+        "ageBand": {
+          "type": "string",
+          "enum": [
+            "18_24",
+            "25_34",
+            "35_44",
+            "45_54",
+            "55_64",
+            "65_plus"
+          ]
+        },
+        "country": {
+          "type": "string",
+          "const": "HU"
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "regionType": {
+          "type": "string",
+          "enum": [
+            "capital",
+            "city",
+            "small_town",
+            "village"
+          ]
+        },
+        "relationshipStatus": {
+          "type": "string",
+          "enum": [
+            "single",
+            "partnered",
+            "married",
+            "separated",
+            "widowed"
+          ]
+        },
+        "children": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "employmentStatus": {
+          "type": "string",
+          "enum": [
+            "employed",
+            "self_employed",
+            "student",
+            "seeking_work",
+            "retired",
+            "other"
+          ]
+        },
+        "workDomain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "workSatisfaction": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "financialStability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "housingStability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "ageBand",
+        "country",
+        "region",
+        "regionType",
+        "relationshipStatus",
+        "children",
+        "employmentStatus",
+        "workDomain",
+        "workSatisfaction",
+        "financialStability",
+        "housingStability"
+      ],
+      "additionalProperties": false
+    },
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "relocationWillingness": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "careerChangeWillingness": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "relocationWillingness",
+        "careerChangeWillingness"
+      ],
+      "additionalProperties": false
+    },
+    "traits": {
+      "type": "object",
+      "properties": {
+        "riskTolerance": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "changeSeeking": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "persistence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "sociability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "planningOrientation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "conflictAvoidance": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "autonomyNeed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "securityNeed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "familyOrientation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "careerAmbition": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "learningOrientation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "adaptability": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "riskTolerance",
+        "changeSeeking",
+        "persistence",
+        "sociability",
+        "planningOrientation",
+        "conflictAvoidance",
+        "autonomyNeed",
+        "securityNeed",
+        "familyOrientation",
+        "careerAmbition",
+        "learningOrientation",
+        "adaptability"
+      ],
+      "additionalProperties": false
+    },
+    "values": {
+      "minItems": 3,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "family",
+          "security",
+          "autonomy",
+          "learning",
+          "free_time",
+          "career",
+          "community",
+          "creativity",
+          "adventure",
+          "calm"
+        ]
+      }
+    },
+    "goals": {
+      "minItems": 1,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "career",
+              "family",
+              "learning",
+              "finance",
+              "social",
+              "lifestyle"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          },
+          "importance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "title",
+          "importance"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "relationships": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "partner",
+              "family",
+              "friend",
+              "colleague",
+              "other"
+            ]
+          },
+          "closeness": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "support": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "conflict": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "type",
+          "closeness",
+          "support",
+          "conflict"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "noCloseRelationships": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "facts",
+    "preferences",
+    "traits",
+    "values",
+    "goals",
+    "relationships",
+    "noCloseRelationships"
+  ],
+  "additionalProperties": false
+}

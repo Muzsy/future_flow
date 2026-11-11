@@ -1,0 +1,32 @@
+{
+  "$id": "urn:alterward:life-deletion:receipt:life-deletion-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "life-deletion-1"
+    },
+    "lifeId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "deleted": {
+      "type": "boolean",
+      "const": true
+    },
+    "deletedBranchCount": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "lifeId",
+    "deleted",
+    "deletedBranchCount"
+  ],
+  "additionalProperties": false
+}

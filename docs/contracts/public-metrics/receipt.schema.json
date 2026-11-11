@@ -1,0 +1,19 @@
+{
+  "$id": "urn:alterward:public-metrics:receipt:public-metrics-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "received": {
+      "type": "boolean",
+      "const": true
+    },
+    "duplicate": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "received",
+    "duplicate"
+  ],
+  "additionalProperties": false
+}

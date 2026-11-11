@@ -1,0 +1,209 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Req,
+  Res,
+  Inject,
+  UseGuards,
+  type Type,
+  type CanActivate,
+} from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import {
+  DomainError,
+  createCheckoutSession,
+  createBillingPortalSession,
+  entitlementOfSubscriptions,
+  handleStripeWebhook,
+  paidChaptersAvailable,
+  referralChaptersAvailable,
+  referralEligibleSubscription,
+  referralGrantKey,
+  referralInviteKey,
+  signReferralInvite,
+  tasterChaptersAvailable,
+} from '@future-flow/core';
+import type { BillingRuntime } from './billing-runtime';
+
+// Stripe billing routes (ADR-010). The runtime (configuration, store, provider,
+// account-deletion guard) is in ./billing-runtime and re-exported here.
+export * from './billing-runtime';
+
+const unavailable = () =>
+  new DomainError('BILLING_UNAVAILABLE', 'Billing is not available.', 404);
+
+export const BILLING_WEBHOOK_PATH = '/api/v1/billing/webhook';
+export const BILLING_WEBHOOK_LIMIT = '256kb';
+
+function inviteKeyOf(runtime: BillingRuntime) {
+  const config = runtime.config;
+  return config.enabled ? referralInviteKey(config.webhookSecret) : null;
+}
+
+function referralInviteView(
+  subs: Parameters<typeof referralEligibleSubscription>[0],
+  ledger: Parameters<typeof referralChaptersAvailable>[0],
+  now: Date,
+  runtime: BillingRuntime,
+  userId: string,
+): { eligible: boolean; state: 'none' | 'redeemed' | 'revoked' } {
+  const gift = ledger.grants.find((g) => g.key === referralGrantKey(userId));
+  if (gift)
+    return { eligible: false, state: gift.revoked ? 'revoked' : 'redeemed' };
+  return {
+    eligible:
+      inviteKeyOf(runtime) !== null &&
+      referralEligibleSubscription(subs, now, runtime.config.entitlement) !==
+        null,
+    state: 'none',
+  };
+}
+
+export function createBillingController(
+  guard: Type<CanActivate>,
+  runtime: BillingRuntime,
+  serviceAccessEnforced = false,
+): Type {
+  @Controller('api/v1/billing')
+  class BillingController {
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Post('checkout')
+    async checkout(@Req() req: { userId: string }, @Body() body: unknown) {
+      z.object({})
+        .strict()
+        .parse(body ?? {});
+      if (!runtime.config.enabled || !runtime.provider) throw unavailable();
+      return createCheckoutSession(req.userId, runtime.now(), {
+        store: runtime.store,
+        provider: runtime.provider,
+        config: runtime.config,
+        serviceAccessEnforced,
+      });
+    }
+
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Post('portal')
+    async portal(@Req() req: { userId: string }, @Body() body: unknown) {
+      z.object({})
+        .strict()
+        .parse(body ?? {});
+      if (!runtime.config.enabled || !runtime.provider) throw unavailable();
+      return createBillingPortalSession(req.userId, {
+        store: runtime.store,
+        provider: runtime.provider,
+      });
+    }
+
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Get('status')
+    async status(@Req() req: { userId: string }) {
+      if (!runtime.config.enabled) throw unavailable();
+      const now = runtime.now();
+      const { subs, ledger } = await runtime.store.transaction(async (tx) => ({
+        subs: await tx.listSubscriptions(req.userId),
+        ledger: await tx.loadLedger(req.userId),
+      }));
+      const entitlement = entitlementOfSubscriptions(
+        subs,
+        now,
+        runtime.config.entitlement,
+      );
+      return {
+        state: entitlement.state,
+        canGenerate: entitlement.canGenerate,
+        paidChaptersAvailable: paidChaptersAvailable(ledger, now),
+        referralChaptersAvailable: referralChaptersAvailable(ledger, now),
+        tasterChaptersAvailable: tasterChaptersAvailable(ledger),
+        // Only the fact of redemption is ever reported, never who redeemed it.
+        referralInvite: referralInviteView(
+          subs,
+          ledger,
+          now,
+          runtime,
+          req.userId,
+        ),
+      };
+    }
+
+    // Creates (signs) an invite link token for an eligible subscriber. Nothing
+    // is stored: the redemption alone writes (the gift grant), and its key makes
+    // one redemption per inviter a database fact. Each call signs a fresh token.
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Post('referral-invite')
+    async referralInvite(
+      @Req() req: { userId: string },
+      @Body() body: unknown,
+    ) {
+      z.object({})
+        .strict()
+        .parse(body ?? {});
+      if (!runtime.config.enabled) throw unavailable();
+      const now = runtime.now();
+      const key = inviteKeyOf(runtime);
+      if (!key) throw unavailable();
+      const { subs, ledger } = await runtime.store.transaction(async (tx) => ({
+        subs: await tx.listSubscriptions(req.userId),
+        ledger: await tx.loadLedger(req.userId),
+      }));
+      if (ledger.grants.some((g) => g.key === referralGrantKey(req.userId)))
+        throw new DomainError(
+          'BILLING_REFERRAL_USED',
+          'The invitation was already used.',
+          409,
+        );
+      if (!referralEligibleSubscription(subs, now, runtime.config.entitlement))
+        throw new DomainError(
+          'BILLING_REFERRAL_INELIGIBLE',
+          'Only active subscribers can invite.',
+          403,
+        );
+      return { inviteToken: signReferralInvite(key, req.userId, now) };
+    }
+
+    // Not authenticated by bearer: the Stripe signature over the raw body is the
+    // only credential and is verified before the body is parsed. The raw body
+    // middleware is mounted in createApp ahead of the JSON parser.
+    @Post('webhook')
+    async webhook(
+      @Req() request: Request,
+      @Res() response: Response,
+    ): Promise<void> {
+      const config = runtime.config;
+      if (!config.enabled || !runtime.provider) throw unavailable();
+      const header = request.headers['stripe-signature'];
+      const body: unknown = request.body;
+      if (!Buffer.isBuffer(body) || body.length === 0) {
+        response.status(400).json({ code: 'invalid_request' });
+        return;
+      }
+      const result = await handleStripeWebhook(
+        {
+          rawBody: body,
+          signatureHeader: typeof header === 'string' ? header : undefined,
+          nowSeconds: Math.floor(runtime.now().getTime() / 1000),
+          webhookSecret: config.webhookSecret,
+          priceId: config.priceId,
+          expectedLivemode: /^(sk|rk)_live_/.test(config.secretKey),
+          expectedApiVersion: config.apiVersion,
+        },
+        {
+          store: runtime.store,
+          provider: runtime.provider,
+          offer: config.offer,
+          entitlement: config.entitlement,
+          alert: runtime.alert,
+        },
+      );
+      response.status(result.status).json({ code: result.code });
+    }
+  }
+  return BillingController;
+}

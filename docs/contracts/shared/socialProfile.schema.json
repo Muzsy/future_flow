@@ -1,0 +1,30 @@
+{
+  "$id": "urn:alterward:shared:socialProfile:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "handle": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_]{2,29}$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "discoverability": {
+      "type": "string",
+      "enum": [
+        "private",
+        "link_only",
+        "searchable"
+      ]
+    }
+  },
+  "required": [
+    "handle",
+    "displayName",
+    "discoverability"
+  ],
+  "additionalProperties": false
+}

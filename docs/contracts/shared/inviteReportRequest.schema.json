@@ -1,0 +1,32 @@
+{
+  "$id": "urn:alterward:shared:inviteReportRequest:1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "harassment",
+        "privacy",
+        "unsafe_content",
+        "spam",
+        "other"
+      ]
+    },
+    "details": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    }
+  },
+  "required": [
+    "token",
+    "reason",
+    "details"
+  ],
+  "additionalProperties": false
+}

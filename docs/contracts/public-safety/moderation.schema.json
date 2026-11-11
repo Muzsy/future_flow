@@ -1,0 +1,74 @@
+{
+  "$id": "urn:alterward:public-safety:moderation:public-safety-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reportId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "reportRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "publicationRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "dismiss",
+        "warn",
+        "hide",
+        "remove"
+      ]
+    },
+    "reasonCode": {
+      "type": "string",
+      "enum": [
+        "personal_data",
+        "harassment",
+        "hate",
+        "explicit_sexual_content",
+        "violence",
+        "illegal_content",
+        "scam",
+        "impersonation",
+        "spam"
+      ]
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    },
+    "restrictPublishing": {
+      "default": false,
+      "type": "boolean"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "reportId",
+    "reportRevision",
+    "publicationRevision",
+    "snapshotHash",
+    "action",
+    "reasonCode",
+    "actorLabel",
+    "restrictPublishing",
+    "acknowledged"
+  ],
+  "additionalProperties": false
+}

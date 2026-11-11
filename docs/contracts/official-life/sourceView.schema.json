@@ -1,0 +1,70 @@
+{
+  "$id": "urn:alterward:official-life:sourceView:official-life-source-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceVersion": {
+      "type": "string",
+      "const": "official-life-source-1"
+    },
+    "bundleId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "publicationApproved": {
+      "type": "boolean",
+      "const": false
+    },
+    "grant": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "revoked"
+              ]
+            },
+            "evidenceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "usable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "status",
+            "evidenceHash",
+            "usable"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "sourceVersion",
+    "bundleId",
+    "contentHash",
+    "publicationApproved",
+    "grant"
+  ],
+  "additionalProperties": false
+}

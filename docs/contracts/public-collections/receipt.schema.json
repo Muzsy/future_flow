@@ -1,0 +1,30 @@
+{
+  "$id": "urn:alterward:public-collections:receipt:public-collections-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "collectionId": {
+      "type": "string",
+      "enum": [
+        "featured",
+        "community-picks",
+        "turning-points"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 9007199254740991
+    },
+    "applied": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "required": [
+    "collectionId",
+    "revision",
+    "applied"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,52 @@
+{
+  "$id": "urn:alterward:public-exposure:officialRequest:public-exposure-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "publicationRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshotHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "permissionRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "preview",
+        "index"
+      ]
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "const": true
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^official-[a-f0-9]{32}$"
+    },
+    "actorLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    }
+  },
+  "required": [
+    "publicationRevision",
+    "snapshotHash",
+    "permissionRevision",
+    "mode",
+    "acknowledged",
+    "slug",
+    "actorLabel"
+  ],
+  "additionalProperties": false
+}

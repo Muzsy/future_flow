@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "sourceCommits": {
+    "pre-c5": "75fdda094bff6e09eec3293e4646867145c6709b",
+    "c5": "7bd4d42c97dee7488a0c41081f9456b6595e558c"
+  },
+  "rounds": 2,
+  "maxCalls": 12,
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "medium",
+  "order": "round1 pre-c5,c5; round2 c5,pre-c5; cases fixed per round",
+  "cases": [
+    {
+      "id": "disputed-original",
+      "file": "disputed-original.json",
+      "sha256": "a69b9b55198c456296ab5914be0a676638be703befb783bc6d71dbdf3eadc305",
+      "userHash": "6f85ead2818e5ce643d7e3fc1a9a86e4a4b5fdcc24fc49e6634819ca0a572925",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "hypothesis": "disputed recurrence, no authoritative expected pass"
+    },
+    {
+      "id": "structural-repeat",
+      "file": "structural-repeat.json",
+      "sha256": "0c888ef33fd0ce76693353ca4785396d66208c51371bedf42489cb01e935c29c",
+      "userHash": "06aeee07a1abf0fe9ab645f9ba391c2f22333c9fca48271219149e0f5a26b4a4",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "hypothesis": "structural negative hypothesis: live cue success followed by another offer for the same operation; handover nuance is counterevidence, not human-certified ground truth"
+    },
+    {
+      "id": "earned-recurrence",
+      "file": "earned-recurrence.json",
+      "sha256": "165e2786647eba0fc35ab0322f2c649d9d48532a582c0f79bf5ca1309630f9c4",
+      "userHash": "e4358a548cd1beee06408fd3b0a20ef8fd08333191a3fabd2673c4f24a252ad7",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "hypothesis": "positive control: same sound changes causal role"
+    }
+  ],
+  "promptsHash": "a1329b05c740b27510b7628da0afe7e591eb082a8b99ad446b2d7d41126f63a4"
+}

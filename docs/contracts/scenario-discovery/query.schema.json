@@ -1,0 +1,36 @@
+{
+  "$id": "urn:alterward:scenario-discovery:query:scenario-discovery-1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "q": {
+      "default": "",
+      "type": "string",
+      "maxLength": 80
+    },
+    "locale": {
+      "default": "en",
+      "type": "string",
+      "const": "en"
+    },
+    "page": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "pageSize": {
+      "default": 12,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 24
+    }
+  },
+  "required": [
+    "q",
+    "locale",
+    "page",
+    "pageSize"
+  ],
+  "additionalProperties": false
+}

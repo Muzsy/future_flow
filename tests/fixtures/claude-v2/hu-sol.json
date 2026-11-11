@@ -1,0 +1,2104 @@
+{
+  "branch": {
+    "input": {
+      "goals": [
+        {
+          "id": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+          "category": "career",
+          "priority": "primary",
+          "motivation": "Érdekesebb alkotói munka, megőrzött biztonsággal",
+          "description": "Átállni önálló digitális tervezői munkára a lakóhelyem közelében",
+          "horizonMonths": 36,
+          "acceptableTradeoffs": ["esti tanulás"],
+          "unacceptableTradeoffs": ["külföldre költözés"]
+        }
+      ],
+      "lifeId": "59934925-317d-486a-9879-e8d4cb9247e6",
+      "locale": "hu",
+      "branchId": "17a55192-4b97-4c6c-b820-e4763969cc82",
+      "identity": {
+        "mode": "alternate",
+        "label": null,
+        "ageBand": "35_44",
+        "baseProfileVersionId": null
+      },
+      "visibility": "private",
+      "constraints": [
+        {
+          "id": "6882aceb-79aa-4773-bf81-eeaab383430b",
+          "lifeId": "59934925-317d-486a-9879-e8d4cb9247e6",
+          "branchId": null,
+          "strength": "hard",
+          "predicate": {
+            "type": "country_is",
+            "value": "HU"
+          },
+          "validFrom": "2026-10-03",
+          "validUntil": null,
+          "description": "Stay in the starting country.",
+          "endsOnDecisionId": null
+        }
+      ],
+      "environment": {
+        "version": "hu-neutral-v2",
+        "description": "Fictional neutral context; no economic forecast. Location is the supplied state. Optional user context:"
+      },
+      "initialState": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "schemaVersion": "2.0.0"
+    }
+  },
+  "periods": [
+    {
+      "period_no": 1,
+      "base_revision": 0,
+      "id": "9aa91b49-58ac-4f97-98f1-f0d074b67cf9",
+      "start_state": {
+        "goals": [
+          {
+            "note": null,
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": ["tervezés", "írás"],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2026-10-03",
+        "ownedAssets": [],
+        "opportunities": [],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "A prototípuskészítés és a munkák bemutatása már gyakorolt készség; az önálló munkára való átállás még előkészítés alatt áll.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "open",
+            "expiresAt": "2027-04-17"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [],
+      "events": [
+        {
+          "id": "7a30be59-4e69-4609-9818-f8e9d7ddcb40",
+          "title": "A tervezési ötletek kipróbálhatóvá válnak",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Digitális felületvázlatok és kattintható prototípusok készítése"
+            }
+          ],
+          "summary": "Az esti gyakorlás során megtanulsz egyszerű digitális felületvázlatokat és kattintható prototípusokat készíteni. A rendelkezésedre álló heti nyolc óra keretében maradsz; egyelőre nem változtatsz az irodai munkádon. A feladatok alkotói része közelebb visz ahhoz, amit az önálló munkában keresel.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-11-28",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2026-11-28",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": ["tervezés", "írás"],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-10-03",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "13dd48a1-e1be-46b1-9b97-e4a39bbec8a6",
+          "title": "Nemcsak tervezni, hanem bemutatni is tanulsz",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Rövid digitális tervezői esettanulmányok összeállítása"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "A prototípuskészítés és a munkák bemutatása már gyakorolt készség; az önálló munkára való átállás még előkészítés alatt áll.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "A gyakorlásban most arra figyelsz, hogyan lehet érthetően bemutatni egy tervezési problémát és a választott megoldást. Az írásban szerzett tapasztalatodra támaszkodva elsajátítod rövid tervezői esettanulmányok összeállítását. Ez még nem jelent ügyfélkört vagy új bevételt, de használhatóbbá teszi a tudásodat az önálló munka felé vezető úton.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "A prototípuskészítés és a munkák bemutatása már gyakorolt készség; az önálló munkára való átállás még előkészítés alatt áll.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-02-13",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-02-13",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": null,
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2026-11-28",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "fcdafdb4-691c-4a7d-8c79-ff7db5804457",
+          "title": "Kis ügyfélmunka vagy további felkészülés?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "open",
+                "expiresAt": "2027-04-17"
+              }
+            }
+          ],
+          "summary": "Megnyílik egy Veszprém környékén, költözés nélkül végezhető, fizetett digitális tervezési próbafeladat lehetősége. A hathetes feladat heti legfeljebb négy órát igényelne, így az irodai állásod mellett is vállalható keretet kínál. A díjazás pontos összege még nincs rögzítve, ezért a jelenlegi bevételedhez és tartalékodhoz nem számítasz hozzá semmit. Most arról dönthetsz, hogy valódi megrendelői helyzetben próbálod ki magad, vagy előbb tovább erősíted a felkészültségedet.",
+          "actorIds": [],
+          "decision": {
+            "id": "34b55e08-3fe8-4672-87ed-16fe60e08721",
+            "prompt": "Melyik következő lépés illik jobban ahhoz, hogy érdekesebb alkotói munkát találj a biztonságod megőrzésével?",
+            "options": [
+              {
+                "id": "9cb3a40a-c6d8-48ad-aa78-9cb744746f04",
+                "label": "Elvállalom a kis próbafeladatot",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                      "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Elfogadott, kis terjedelmű helyi próbafeladat az alkalmazotti állás mellett; a díjazás tisztázása és a teljesítés még hátravan.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Elfogadod a hathetes lehetőséget, az irodai állásod megtartása mellett. Valódi megrendelői tapasztalatot szerezhetsz, de a heti nyolcórás keretedből legfeljebb négy órát határidős feladat kötne le. A pontos díjazás tisztázása a következő lépés; a választás nem jelent garantált bevételt vagy további megbízást.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              },
+              {
+                "id": "44706de7-5e43-4e0e-a4db-f571737948cd",
+                "label": "Most a saját bemutatkozó munkáimra koncentrálok",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                      "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "A következő szakasz fókusza az esti gyakorlás és a bemutatkozó munkák kidolgozása; a helyi próbafeladat visszautasítva, az alkalmazotti állás változatlan.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Visszautasítod ezt a próbafeladatot, és az esti időkeretedet további gyakorlásra, valamint bemutatkozó munkák kidolgozására tartod fenn. Jobban te szabhatod meg a tempót, és nem vállalsz ügyfélhatáridőt, viszont későbbre tolódik annak kipróbálása, hogyan működsz valódi megrendelővel.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "A prototípuskészítés és a munkák bemutatása már gyakorolt készség; az önálló munkára való átállás még előkészítés alatt áll.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "open",
+                "expiresAt": "2027-04-17"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "A prototípuskészítés és a munkák bemutatása már gyakorolt készség; az önálló munkára való átállás még előkészítés alatt áll.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-02-13",
+            "ownedAssets": [],
+            "opportunities": [],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            },
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "November végén egy kattintással továbblépsz a saját felületvázlatodon. A következő nézet megjelenik, és az ötlet, amelyet eddig leginkább elképzelni tudtál, most kipróbálhatóvá válik. A képernyő fénye mellett apró részletekkel foglalkozol: mi hová kerüljön, hogyan kapcsolódjanak egymáshoz a nézetek, mitől legyen érthető a következő lépés. Egyszerű vázlatokat és kattintható prototípusokat már el tudsz készíteni. Ez még nem önálló munka, de az alkotói része közelebb áll ahhoz, amit keresel.\n\nNappal továbbra is az irodai adminisztráció adja a munkád keretét. Nem mondasz fel, és az esti gyakorlást sem engeded túlnőni a rendelkezésedre álló heti nyolc órán. A határ néha szűknek érződik: egy megoldást még szívesen átgondolnál, egy felületet még tovább alakítanál. Mégis ugyanazt a kettős célt tartod szem előtt. Érdekesebb munkát szeretnél, de nem a biztonságod helyére, hanem annak megőrzésével.\n\nFebruárra már nemcsak a kattintható változatot figyeled. A mellé írt magyarázat is fontossá válik. Hogyan lehet röviden elmondani, milyen problémából indultál ki? Mitől látszik a választott megoldás értelme anélkül, hogy minden részletet felsorolnál? Az írásban szerzett tapasztalatodra támaszkodsz, és megtanulsz rövid digitális tervezői esettanulmányokat összeállítani. A vázlat és a szöveg így már együtt mutathatja meg a gondolkodásodat.\n\nEttől még nincs ügyfélköröd, és nem érkezik új bevétel. Az önálló digitális tervezői munkára való átállás továbbra is előkészítés alatt áll. A havi jövedelmed 400 000 forint, a rendelkezésedre álló tartalékod 1 200 000 forint marad. A fejlődés most nem ezekben a számokban látszik, hanem abban, hogy amit készítesz, azt bemutatni is tudod.\n\nÁprilis elején aztán megnyílik egy helyi, fizetett próbafeladat lehetősége. Veszprém környékén végezhetnéd, költözés nélkül: hat hétig tartana, hetente legfeljebb négy órát kérne. Az irodai állásod mellett is beleférhetne a keretbe, de annak akár a felét határidős munka kötné le. A díjazás pontos összege még nincs rögzítve; nem számolsz hozzá semmit sem a jövedelmedhez, sem a tartalékodhoz. A lehetőség április 17-éig nyitott.\n\nMost már nem pusztán azt mérlegeled, milyen felületet tervezz. Ha elvállalnád, valódi megrendelői helyzetben próbálhatnád ki magad, miközben a díjazás tisztázása és a teljesítés még előtted állna. Ha most a saját bemutatkozó munkáidra összpontosítanál, szabadabban szabhatnád meg a tempót, de későbbre maradna ez a próba. Melyik következő lépést választod: a kis próbafeladatot az állásod mellett, vagy további felkészülést a saját időbeosztásod szerint?",
+        "title": "Nyolc órából egy új irány",
+        "eventIds": [
+          "7a30be59-4e69-4609-9818-f8e9d7ddcb40",
+          "13dd48a1-e1be-46b1-9b97-e4a39bbec8a6",
+          "fcdafdb4-691c-4a7d-8c79-ff7db5804457"
+        ],
+        "decisionId": "34b55e08-3fe8-4672-87ed-16fe60e08721"
+      },
+      "candidate": {
+        "startDate": "2026-10-03",
+        "endDate": "2027-04-03"
+      }
+    },
+    {
+      "period_no": 2,
+      "base_revision": 2,
+      "id": "02b3c0f2-53e4-4579-809a-6b381e281c01",
+      "start_state": {
+        "goals": [
+          {
+            "note": "Elfogadott, kis terjedelmű helyi próbafeladat az alkalmazotti állás mellett; a díjazás tisztázása és a teljesítés még hátravan.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása",
+          "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+          "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1260000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+            "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+            "status": "open",
+            "expiresAt": "2027-10-17"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": ["34b55e08-3fe8-4672-87ed-16fe60e08721"],
+      "events": [
+        {
+          "id": "b7846a2e-38df-4fab-96ae-1e28944ad3bc",
+          "title": "A próbafeladat világos keretet kap",
+          "changes": [
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Az elfogadott helyi próbafeladat díja 60 000 HUF, teljesítés utáni fizetéssel. A hathetes munka heti legfeljebb négy órát és egy javítási kört tartalmaz; az alkalmazotti állás megmarad. A díj még nem érkezett meg.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "Az elvállalt helyi próbafeladat díját 60 000 HUF-ban rögzítitek, a teljesítés utáni fizetéssel. A hathetes munka heti legfeljebb négy órát és egy javítási kört foglal magában. Így az esti idődnek nem kell teljes egészében a megrendelés köré szerveződnie. Az irodai állásod megmarad; a még ki nem fizetett díj nem növeli a tartalékodat.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Az elfogadott helyi próbafeladat díja 60 000 HUF, teljesítés utáni fizetéssel. A hathetes munka heti legfeljebb négy órát és egy javítási kört tartalmaz; az alkalmazotti állás megmarad. A díj még nem érkezett meg.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-10",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-04-10",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Elfogadott, kis terjedelmű helyi próbafeladat az alkalmazotti állás mellett; a díjazás tisztázása és a teljesítés még hátravan.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            },
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "c5f22398-d924-4b47-a5de-39940cedb913",
+          "title": "Lezárul az első fizetett próbafeladat",
+          "changes": [
+            {
+              "type": "finance_set",
+              "value": {
+                "currency": "HUF",
+                "liquidFunds": 1260000,
+                "monthlyIncome": 400000
+              }
+            },
+            {
+              "type": "skill_add",
+              "value": "Megrendelői igények pontosítása és tervezési javítási kör kezelése"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "Átadod a tervezési anyagot, elvégzed a megállapodás szerinti javítási kört, és megérkezik a 60 000 HUF díj. A folyamat során gyakorlatot szerzel abban, hogyan fordíts egy megrendelői kérést körülhatárolt tervezési feladattá. Ez egy lezárt munka, nem rendszeres tervezői jövedelem: az irodai havi bevételed továbbra is 400 000 HUF.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-05-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-05-22",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Az elfogadott helyi próbafeladat díja 60 000 HUF, teljesítés utáni fizetéssel. A hathetes munka heti legfeljebb négy órát és egy javítási kört tartalmaz; az alkalmazotti állás megmarad. A díj még nem érkezett meg.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1200000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-04-10",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "703e608b-bde1-4d74-a4c6-07ba3955e1fa",
+          "title": "Az alkotás mellett a munka határait is tanulod",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            }
+          ],
+          "summary": "Az esti gyakorlásban a lezárt feladat tanulságaiból dolgozol: hogyan becsüld meg egy kisebb tervezési munka időigényét, és hogyan jelezd, mi nem fér bele a vállalt keretbe. A heti nyolcórás lehetőségeden belül maradsz. Nemcsak érdekesebb feladatokat szeretnél, hanem olyan önállóságot is, amely nem veszi el minden szabad estédet.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-08-14",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-08-14",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-05-22",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "0168aed8-443c-49e5-848a-7e66829fc873",
+          "title": "Újabb megrendelés vagy saját irány keresése?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "open",
+                "expiresAt": "2027-10-17"
+              }
+            }
+          ],
+          "summary": "Megnyílik egy új, Veszprém környéki digitális tervezési feladat lehetősége: nyolc hét, heti legfeljebb négy óra, költözés nélkül. A pontos díj még egyeztetésre vár. Az első teljesítés már ad némi kapaszkodót, de nem dönti el, milyen munkából szeretnél később megélni. Most a további megrendelői tapasztalat és a saját tervezői irányod kidolgozása között mérlegelhetsz.",
+          "actorIds": [],
+          "decision": {
+            "id": "a0326d77-633f-4d13-bc9e-c04d8ffec704",
+            "prompt": "Melyik lépés vinne most közelebb az önálló tervezői munkához úgy, hogy megőrizd a biztonságodat?",
+            "options": [
+              {
+                "id": "613c32aa-e6c0-4358-9d63-78dc1aacdb43",
+                "label": "Elvállalom a következő kis helyi feladatot",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                      "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "A lezárt első próbafeladat után újabb, nyolchetes helyi tervezési lehetőség elfogadva az alkalmazotti állás mellett, heti legfeljebb négy órában. A díjazás egyeztetése és a teljesítés még hátravan.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Az irodai állásod mellett elfogadod a nyolchetes lehetőséget; a díjazás tisztázása marad az első teendő. Több megrendelői tapasztalatot szerezhetsz, viszont heti legfeljebb négy órád ismét határidős munkához kötődik. Ez még nem jelent rendszeres bevételt vagy biztos átállást.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              },
+              {
+                "id": "084d1388-3247-42b9-8738-72a1f98cb8e8",
+                "label": "Most a saját tervezői irányomra szánom az estéket",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                      "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "Az első fizetett próbafeladat lezárult. Az újabb helyi lehetőség visszautasítva; a következő felkészülési szakaszban saját tervezői mintamunkák kidolgozása a választott irány, az alkalmazotti állás megtartásával.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Visszautasítod ezt a megbízást, és az irodai állás mellett saját mintamunkák kidolgozását helyezed előtérbe. Több szabadságod marad megmutatni, milyen alkotói feladatokat keresel, de ebből a lehetőségből nem szerzel újabb megrendelői tapasztalatot vagy díjat. A mintamunkák későbbi fogadtatása bizonytalan.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "open",
+                "expiresAt": "2027-10-17"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-10-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Az elfogadott hathetes helyi próbafeladat teljesítve, a 60 000 HUF díj megérkezett. Az alkalmazotti állás és a havi 400 000 HUF bevétel megmaradt; rendszeres önálló tervezői munka még nincs.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-08-14",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            },
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "Április tizedikén már nemcsak az áll előtted, hogy elvállaltál egy helyi tervezési próbafeladatot. A kerete is világos: hat hét, hetente legfeljebb négy óra, egy javítási kör, a teljesítés után 60 000 HUF. Újra végigveszed a feltételeket. A számok mögött most az estéidet látod: mennyi férhet beléjük úgy, hogy az alkotás ne foglaljon el mindent.\n\nAz irodai adminisztrációs állásod megmarad. A havi 400 000 HUF továbbra is a biztos bevételed, az 1 200 000 HUF tartalékhoz pedig még nem számolhatod hozzá a próbafeladat díját. Mégis más érzés úgy nekifogni a tervezésnek, hogy tudod, hol ér véget a vállalás. Nem kell egyetlen kis munkával megoldanod az egész pályaváltást. Most ezt a körülhatárolt feladatot kell végigvinned.\n\nA hat hét alatt a tervezési anyag mellett a megrendelői kérés pontosításával is foglalkozol. Amikor elérkezik a javítási kör, már nem elvont kérdés, hogyan lesz egy igényből elvégezhető munka. A változtatásokat a megállapodás keretében kezeled, majd május huszonkettedikén lezárul a feladat. Átadod az anyagot, és megérkezik a 60 000 HUF.\n\nA tartalékod így 1 260 000 HUF. Egy lezárt munka díja került hozzá, nem egy új, rendszeres jövedelem. Ezt a különbséget nem szeretnéd elmosni, még akkor sem, amikor jólesik arra gondolnod, hogy a tervezés most már fizetett feladatként is helyet kapott az életedben.\n\nAugusztusra az esti gyakorlásban újra előveszed a munka tanulságait. A felületvázlatok mellett az időigénnyel is foglalkozol: hogyan becsüld meg egy kisebb feladat hosszát, és hogyan jelezd, mi nem fér bele. A heti nyolcórás lehetőségeden belül maradsz. Az önállóság számodra nemcsak érdekesebb alkotói munkát jelent, hanem azt is, hogy maradjanak szabad estéid. A lakóhelyed közelében szeretnél haladni; külföldre költözéssel nem akarod megváltani ezt az irányt.\n\nOktóber harmadikán új lehetőség kerül eléd Veszprém környékén. Nyolc hétre szól, hetente legfeljebb négy órával, költözés nélkül. A pontos díj azonban még nincs egyeztetve, és október tizenhetedikéig nyitott a lehetőség.\n\nMost az első munka tapasztalatával nézed ugyanazt a négy órát. Ha elvállalod, újabb megrendelői gyakorlatot szerezhetsz az irodai állás mellett, de az idő ismét határidőhöz kötődik. Ha visszautasítod, saját mintamunkákra fordíthatod az estéket, szabadabban keresve az alkotói irányodat, újabb megbízási díj nélkül és bizonytalan fogadtatással.\n\nA lehetőség még nyitva áll. Melyik lépés visz most közelebb az önálló tervezői munkához úgy, hogy közben megőrzöd a biztonságodat?",
+        "title": "A munka széle",
+        "eventIds": [
+          "b7846a2e-38df-4fab-96ae-1e28944ad3bc",
+          "c5f22398-d924-4b47-a5de-39940cedb913",
+          "703e608b-bde1-4d74-a4c6-07ba3955e1fa",
+          "0168aed8-443c-49e5-848a-7e66829fc873"
+        ],
+        "decisionId": "a0326d77-633f-4d13-bc9e-c04d8ffec704"
+      },
+      "candidate": {
+        "startDate": "2027-04-03",
+        "endDate": "2027-10-03"
+      }
+    },
+    {
+      "period_no": 3,
+      "base_revision": 4,
+      "id": "2482961e-d763-49c5-a99f-54758794469f",
+      "start_state": {
+        "goals": [
+          {
+            "note": "Az első fizetett próbafeladat lezárult. Az újabb helyi lehetőség visszautasítva; a következő felkészülési szakaszban saját tervezői mintamunkák kidolgozása a választott irány, az alkalmazotti állás megtartásával.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása",
+          "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+          "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1260000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+            "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+            "status": "declined",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "end_state": {
+        "goals": [
+          {
+            "note": "Két saját, egyértelműen mintamunkaként jelölt tervezési példa készült: időpontfoglaló felület és bemutatkozó oldal. Valódi használói visszajelzésük még nincs; az alkalmazotti állás mellett készültek, új tervezői bevétel nélkül.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása",
+          "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+          "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása",
+          "Mobilos felületelrendezés és alapvető digitális hozzáférhetőségi szempontok alkalmazása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1260000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2028-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+            "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+            "status": "declined",
+            "expiresAt": null
+          },
+          {
+            "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+            "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+            "status": "open",
+            "expiresAt": "2028-04-17"
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      },
+      "accepted_before": [
+        "34b55e08-3fe8-4672-87ed-16fe60e08721",
+        "a0326d77-633f-4d13-bc9e-c04d8ffec704"
+      ],
+      "events": [
+        {
+          "id": "48fdb340-7bcd-47cc-a40b-731c19313e94",
+          "title": "Egy mintamunka, amelyben te választod a problémát",
+          "changes": [
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Elkészült egy saját, kitalált helyi szolgáltatás időpontfoglaló felületét bemutató mintamunka és esettanulmány. Az alkalmazotti állás megmaradt; az újabb, korábban visszautasított megbízás továbbra is visszautasított.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "Az újabb megbízás helyett a választott saját munkára fordítod az esti gyakorlást. Elkészítesz egy kitalált helyi szolgáltatás egyszerű időpontfoglaló felületét és a hozzá tartozó rövid esettanulmányt. Egyértelműen mintamunkaként jelölöd: nem valódi ügyfél eredményeit mutatja. Az irodai állásod és a heti nyolcórás kereted változatlan marad.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Elkészült egy saját, kitalált helyi szolgáltatás időpontfoglaló felületét bemutató mintamunka és esettanulmány. Az alkalmazotti állás megmaradt; az újabb, korábban visszautasított megbízás továbbra is visszautasított.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-12-04",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2027-12-04",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Az első fizetett próbafeladat lezárult. Az újabb helyi lehetőség visszautasítva; a következő felkészülési szakaszban saját tervezői mintamunkák kidolgozása a választott irány, az alkalmazotti állás megtartásával.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-10-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            },
+            {
+              "type": "country_is",
+              "value": "HU"
+            }
+          ],
+          "softConstraintIds": []
+        },
+        {
+          "id": "5992dd53-ff29-42b3-8e14-955498e991ae",
+          "title": "A látvány mellé használhatósági szempontok kerülnek",
+          "changes": [
+            {
+              "type": "skill_add",
+              "value": "Mobilos felületelrendezés és alapvető digitális hozzáférhetőségi szempontok alkalmazása"
+            },
+            {
+              "type": "goal_progress_set",
+              "value": {
+                "note": "Két saját, egyértelműen mintamunkaként jelölt tervezési példa készült: időpontfoglaló felület és bemutatkozó oldal. Valódi használói visszajelzésük még nincs; az alkalmazotti állás mellett készültek, új tervezői bevétel nélkül.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            }
+          ],
+          "summary": "Második saját mintamunkád egy kitalált helyi alkotó bemutatkozó oldala. Az esti tanulásban a mobilos elrendezést, az olvashatóságot és az alapvető hozzáférhetőségi szempontokat gyakorlod. A két példán már meg tudod mutatni, milyen tervezési döntéseket hozol, de valódi használói visszajelzés még nem támasztja alá őket. A mintamunkákból ebben az időszakban nem keletkezik bevétel.",
+          "actorIds": [],
+          "decision": null,
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Két saját, egyértelműen mintamunkaként jelölt tervezési példa készült: időpontfoglaló felület és bemutatkozó oldal. Valódi használói visszajelzésük még nincs; az alkalmazotti állás mellett készültek, új tervezői bevétel nélkül.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása",
+              "Mobilos felületelrendezés és alapvető digitális hozzáférhetőségi szempontok alkalmazása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-02-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-02-12",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Elkészült egy saját, kitalált helyi szolgáltatás időpontfoglaló felületét bemutató mintamunka és esettanulmány. Az alkalmazotti állás megmaradt; az újabb, korábban visszautasított megbízás továbbra is visszautasított.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2027-12-04",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [],
+          "softConstraintIds": []
+        },
+        {
+          "id": "9e56bb43-d471-49a8-b5ac-9fa3b027d273",
+          "title": "Megmutatni, ajánlani vagy tovább csiszolni?",
+          "changes": [
+            {
+              "type": "opportunity_set",
+              "value": {
+                "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+                "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+                "status": "open",
+                "expiresAt": "2028-04-17"
+              }
+            }
+          ],
+          "summary": "Megnyílik egy díjmentes, egyszeri, kétórás portfólió-visszajelző alkalom lehetősége Veszprémben. A saját példáidat bemutathatnád, de az alkalom nem jelent megrendelést vagy állásajánlatot. A következő lépésnél már nemcsak az számít, mit tudsz elkészíteni, hanem az is, mennyi bizonytalanságot vállalsz azért, hogy kiderüljön: mások számára is érthető-e a tervezői irányod.",
+          "actorIds": [],
+          "decision": {
+            "id": "d14579d7-6fab-46a4-9831-760a551e5844",
+            "prompt": "Milyen következő lépést választasz az önálló tervezői munka felé, az irodai biztonság megtartásával?",
+            "options": [
+              {
+                "id": "b71401d8-52b6-4b95-bfe7-f330f3fb8ad0",
+                "label": "Előbb külső visszajelzést kérek",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+                      "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+                      "status": "accepted",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "A helyi portfólió-visszajelző alkalom elfogadva. A következő szakasz választott iránya a két mintamunka bemutatása és külső visszajelzés kérése, az alkalmazotti állás megtartásával; az alkalom még nem történt meg.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Elfogadod a helyi portfólióalkalmat, és a következő felkészülési szakaszban a két mintamunka bemutatását helyezed előtérbe. Külső szempontokat kaphatsz, de az észrevételek átdolgozást is szükségessé tehetnek. Ez nem fizetett munka; az alkalmazotti állásod megmarad.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              },
+              {
+                "id": "0b0c6af9-18a0-4d1e-8bf1-3e10ad635d80",
+                "label": "Kis helyi feladatokra kezdek jelentkezni",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+                      "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "A portfólióalkalom visszautasítva. A következő szakasz választott iránya kis terjedelmű, helyi tervezési feladatok keresése a saját mintamunkák bemutatásával. Új megbízás még nincs; az alkalmazotti állás megmarad.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Visszautasítod az alkalmat, és a következő szakaszban körülhatárolt, helyben végezhető tervezési feladatok keresését választod. A mintamunkákkal már megmutathatod az irányodat, de a megkeresések időt igényelnek, és nem biztos, hogy megbízáshoz vezetnek. Egyelőre nem vállalsz új munkát és nem adod fel az irodai állást.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              },
+              {
+                "id": "707e8b27-b83f-48c2-92af-7f4e7cab2be5",
+                "label": "Még a saját munkáimat mélyítem",
+                "changes": [
+                  {
+                    "type": "opportunity_set",
+                    "value": {
+                      "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+                      "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+                      "status": "declined",
+                      "expiresAt": null
+                    }
+                  },
+                  {
+                    "type": "goal_progress_set",
+                    "value": {
+                      "note": "A portfólióalkalom visszautasítva. A következő szakasz választott iránya a két meglévő saját mintamunka elmélyítése esti tanulással, az alkalmazotti állás megtartásával. Külső visszajelzés és új megbízás még nincs.",
+                      "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                      "status": "active"
+                    }
+                  }
+                ],
+                "description": "Visszautasítod az alkalmat, és a következő szakaszban a meglévő két példa részletesebb kidolgozását választod. Több alkotói kontrollod marad, és nem vállalsz ügyfélhatáridőt, de később derülhet ki, hogyan fogadják mások a munkáidat. A tanulás az irodai állás mellett folytatódhat, új bevétel ígérete nélkül.",
+                "preconditions": [
+                  {
+                    "type": "country_is",
+                    "value": "HU"
+                  },
+                  {
+                    "type": "employment_status_is",
+                    "value": "employed"
+                  }
+                ]
+              }
+            ]
+          },
+          "stateAfter": {
+            "goals": [
+              {
+                "note": "Két saját, egyértelműen mintamunkaként jelölt tervezési példa készült: időpontfoglaló felület és bemutatkozó oldal. Valódi használói visszajelzésük még nincs; az alkalmazotti állás mellett készültek, új tervezői bevétel nélkül.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása",
+              "Mobilos felületelrendezés és alapvető digitális hozzáférhetőségi szempontok alkalmazása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-04-03",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              },
+              {
+                "id": "96f798ef-210a-4938-b153-1a9501a0bd02",
+                "title": "Díjmentes, kétórás portfólió-visszajelző alkalom Veszprémben",
+                "status": "open",
+                "expiresAt": "2028-04-17"
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "effectiveAt": "2028-04-03",
+          "stateBefore": {
+            "goals": [
+              {
+                "note": "Két saját, egyértelműen mintamunkaként jelölt tervezési példa készült: időpontfoglaló felület és bemutatkozó oldal. Valódi használói visszajelzésük még nincs; az alkalmazotti állás mellett készültek, új tervezői bevétel nélkül.",
+                "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+                "status": "active"
+              }
+            ],
+            "actors": [],
+            "skills": [
+              "tervezés",
+              "írás",
+              "Digitális felületvázlatok és kattintható prototípusok készítése",
+              "Rövid digitális tervezői esettanulmányok összeállítása",
+              "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+              "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása",
+              "Mobilos felületelrendezés és alapvető digitális hozzáférhetőségi szempontok alkalmazása"
+            ],
+            "finance": {
+              "currency": "HUF",
+              "liquidFunds": 1260000,
+              "monthlyIncome": 400000
+            },
+            "location": {
+              "region": "Veszprém",
+              "country": "HU",
+              "housing": null
+            },
+            "resources": {
+              "energy": 55,
+              "availableHoursPerWeek": 8
+            },
+            "employment": {
+              "status": "employed",
+              "workDomain": "adminisztráció",
+              "employerLabel": "Jelenlegi iroda"
+            },
+            "effectiveAt": "2028-02-12",
+            "ownedAssets": [],
+            "opportunities": [
+              {
+                "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+                "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+                "status": "accepted",
+                "expiresAt": null
+              },
+              {
+                "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+                "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+                "status": "declined",
+                "expiresAt": null
+              }
+            ],
+            "schemaVersion": "2.0.0"
+          },
+          "preconditions": [
+            {
+              "type": "country_is",
+              "value": "HU"
+            },
+            {
+              "type": "employment_status_is",
+              "value": "employed"
+            }
+          ],
+          "softConstraintIds": []
+        }
+      ],
+      "chapter": {
+        "body": "December elején az esti gyakorlásban végre nem egy megrendelő kérdése áll előtted. Te választod ki, milyen problémára keresel választ: egy kitalált helyi szolgáltatás egyszerű időpontfoglaló felületét készíted el. A képernyő világos mezői között azt próbálod megmutatni, hogyan lehet egy hétköznapi teendőt érthetőbbé tenni. Most te szabod meg a munka terjedelmét, de ettől még nem lesz könnyebb eldönteni, mikor mondhatod rá, hogy kész.\n\nA rövid esettanulmányban a tervezési döntéseidet fogalmazod meg. Egyértelműen jelölöd, hogy mintamunkáról van szó: nincs mögötte valódi ügyfél, és nem tulajdonítasz neki olyan eredményt, amelyet senki nem igazolt. Így a példa azt mutatja, hogyan gondolkodsz, nem azt, hogy mit értél el mások számára.\n\nA korábban visszautasított újabb megbízás továbbra is kívül marad ezen az időszakon. Az irodai adminisztrációs állásod megmarad, ahogy a heti nyolcórás kereted is. Az önálló tervezői munka felé most nem újabb ügyfélhatáridővel lépsz, hanem olyan esti munkával, amelyben több alkotói szabadságod van. A biztonságot nem adod fel, de az estéid egy részét továbbra is a változásnak adod.\n\nFebruárra elkészül a második példád: egy kitalált helyi alkotó bemutatkozó oldala. A keskenyebb, mobilos elrendezésben másként hatnak a sorok és a köztük hagyott terek. Az olvashatóságot és az alapvető hozzáférhetőségi szempontokat gyakorlod; a látvány mellett egyre hangsúlyosabb kérdés lesz, mennyire könnyű eligazodni a felületen. Ezt a tudást már alkalmazni tudod a munkáidban.\n\nKét mintád van, mégsem két bizonyítékod arra, hogy a megoldások valódi használóknál is beválnak. Ilyen visszajelzés továbbra sincs. Új tervezői bevétel sem keletkezik belőlük. Amit meg tudsz mutatni, az a választott irányod és a döntéseid indoklása — ez több, mint a puszta szándék, de még nem önálló megélhetés.\n\nÁprilis harmadikán megnyílik egy díjmentes, egyszeri, kétórás portfólió-visszajelző alkalom lehetősége Veszprémben. Április tizenhetedikéig dönthetsz róla. Nem megrendelés és nem állásajánlat: lehetőség arra, hogy a két saját példád ne csak számodra legyen érthető.\n\nA következő lépés mindhárom irányban kér valamit tőled. Külső visszajelzést kérhetnél, vállalva, hogy újra kell gondolnod egyes megoldásokat. Kis helyi feladatok keresésébe kezdhetnél, bizonytalan eredményű megkeresésekre fordítva az idődet. Vagy tovább mélyíthetnéd a két mintamunkát, megtartva az alkotói kontrollt, de későbbre hagyva mások véleményét.\n\nAz irodai biztonság mindhárom lehetőség mellett megmaradhat. Most melyik következő lépést választod az önálló tervezői munka felé?",
+        "title": "A saját példák határán",
+        "eventIds": [
+          "48fdb340-7bcd-47cc-a40b-731c19313e94",
+          "5992dd53-ff29-42b3-8e14-955498e991ae",
+          "9e56bb43-d471-49a8-b5ac-9fa3b027d273"
+        ],
+        "decisionId": "d14579d7-6fab-46a4-9831-760a551e5844"
+      },
+      "candidate": {
+        "startDate": "2027-10-03",
+        "endDate": "2028-04-03"
+      }
+    }
+  ],
+  "choices": [
+    {
+      "decision_id": "34b55e08-3fe8-4672-87ed-16fe60e08721",
+      "option_id": "9cb3a40a-c6d8-48ad-aa78-9cb744746f04",
+      "payload": {
+        "id": "9cb3a40a-c6d8-48ad-aa78-9cb744746f04",
+        "label": "Elvállalom a kis próbafeladatot",
+        "changes": [
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+              "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+              "status": "accepted",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "goal_progress_set",
+            "value": {
+              "note": "Elfogadott, kis terjedelmű helyi próbafeladat az alkalmazotti állás mellett; a díjazás tisztázása és a teljesítés még hátravan.",
+              "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+              "status": "active"
+            }
+          }
+        ],
+        "description": "Elfogadod a hathetes lehetőséget, az irodai állásod megtartása mellett. Valódi megrendelői tapasztalatot szerezhetsz, de a heti nyolcórás keretedből legfeljebb négy órát határidős feladat kötne le. A pontos díjazás tisztázása a következő lépés; a választás nem jelent garantált bevételt vagy további megbízást.",
+        "preconditions": [
+          {
+            "type": "country_is",
+            "value": "HU"
+          },
+          {
+            "type": "employment_status_is",
+            "value": "employed"
+          }
+        ]
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": "Elfogadott, kis terjedelmű helyi próbafeladat az alkalmazotti állás mellett; a díjazás tisztázása és a teljesítés még hátravan.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1200000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-04-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    },
+    {
+      "decision_id": "a0326d77-633f-4d13-bc9e-c04d8ffec704",
+      "option_id": "084d1388-3247-42b9-8738-72a1f98cb8e8",
+      "payload": {
+        "id": "084d1388-3247-42b9-8738-72a1f98cb8e8",
+        "label": "Most a saját tervezői irányomra szánom az estéket",
+        "changes": [
+          {
+            "type": "opportunity_set",
+            "value": {
+              "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+              "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+              "status": "declined",
+              "expiresAt": null
+            }
+          },
+          {
+            "type": "goal_progress_set",
+            "value": {
+              "note": "Az első fizetett próbafeladat lezárult. Az újabb helyi lehetőség visszautasítva; a következő felkészülési szakaszban saját tervezői mintamunkák kidolgozása a választott irány, az alkalmazotti állás megtartásával.",
+              "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+              "status": "active"
+            }
+          }
+        ],
+        "description": "Visszautasítod ezt a megbízást, és az irodai állás mellett saját mintamunkák kidolgozását helyezed előtérbe. Több szabadságod marad megmutatni, milyen alkotói feladatokat keresel, de ebből a lehetőségből nem szerzel újabb megrendelői tapasztalatot vagy díjat. A mintamunkák későbbi fogadtatása bizonytalan.",
+        "preconditions": [
+          {
+            "type": "country_is",
+            "value": "HU"
+          },
+          {
+            "type": "employment_status_is",
+            "value": "employed"
+          }
+        ]
+      },
+      "state_after": {
+        "goals": [
+          {
+            "note": "Az első fizetett próbafeladat lezárult. Az újabb helyi lehetőség visszautasítva; a következő felkészülési szakaszban saját tervezői mintamunkák kidolgozása a választott irány, az alkalmazotti állás megtartásával.",
+            "goalId": "e2fcae28-fc19-4822-a3db-b51e8e9dc2f2",
+            "status": "active"
+          }
+        ],
+        "actors": [],
+        "skills": [
+          "tervezés",
+          "írás",
+          "Digitális felületvázlatok és kattintható prototípusok készítése",
+          "Rövid digitális tervezői esettanulmányok összeállítása",
+          "Megrendelői igények pontosítása és tervezési javítási kör kezelése",
+          "Kisebb digitális tervezési feladatok időbecslése és terjedelmük körülhatárolása"
+        ],
+        "finance": {
+          "currency": "HUF",
+          "liquidFunds": 1260000,
+          "monthlyIncome": 400000
+        },
+        "location": {
+          "region": "Veszprém",
+          "country": "HU",
+          "housing": null
+        },
+        "resources": {
+          "energy": 55,
+          "availableHoursPerWeek": 8
+        },
+        "employment": {
+          "status": "employed",
+          "workDomain": "adminisztráció",
+          "employerLabel": "Jelenlegi iroda"
+        },
+        "effectiveAt": "2027-10-03",
+        "ownedAssets": [],
+        "opportunities": [
+          {
+            "id": "9de5ee97-c6ed-442f-a99f-9d7173c986be",
+            "title": "Helyi, fizetett digitális tervezési próbafeladat: hat hét, heti legfeljebb négy óra",
+            "status": "accepted",
+            "expiresAt": null
+          },
+          {
+            "id": "a68f9142-d779-4aef-a05e-655c45df63ed",
+            "title": "Új helyi digitális tervezési feladat: nyolc hét, heti legfeljebb négy óra, egyeztetendő díjazással",
+            "status": "declined",
+            "expiresAt": null
+          }
+        ],
+        "schemaVersion": "2.0.0"
+      }
+    }
+  ]
+}

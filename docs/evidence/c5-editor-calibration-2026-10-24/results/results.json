@@ -1,0 +1,1161 @@
+{
+  "version": 1,
+  "diagnosticOnly": true,
+  "manifestHash": "541d969e8a932f1bc4e11a2acabd1717d61d66b5de21d304c28dc71f870a94d2",
+  "runnerCommit": "f3eaf3c6f089246a0839ce8f7625215774f79ce3",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "medium",
+  "schedule": [
+    {
+      "round": 1,
+      "id": "disputed-original",
+      "arm": "pre-c5"
+    },
+    {
+      "round": 1,
+      "id": "disputed-original",
+      "arm": "c5"
+    },
+    {
+      "round": 1,
+      "id": "structural-repeat",
+      "arm": "pre-c5"
+    },
+    {
+      "round": 1,
+      "id": "structural-repeat",
+      "arm": "c5"
+    },
+    {
+      "round": 1,
+      "id": "earned-recurrence",
+      "arm": "pre-c5"
+    },
+    {
+      "round": 1,
+      "id": "earned-recurrence",
+      "arm": "c5"
+    },
+    {
+      "round": 2,
+      "id": "disputed-original",
+      "arm": "c5"
+    },
+    {
+      "round": 2,
+      "id": "disputed-original",
+      "arm": "pre-c5"
+    },
+    {
+      "round": 2,
+      "id": "structural-repeat",
+      "arm": "c5"
+    },
+    {
+      "round": 2,
+      "id": "structural-repeat",
+      "arm": "pre-c5"
+    },
+    {
+      "round": 2,
+      "id": "earned-recurrence",
+      "arm": "c5"
+    },
+    {
+      "round": 2,
+      "id": "earned-recurrence",
+      "arm": "pre-c5"
+    }
+  ],
+  "calls": [
+    {
+      "round": 1,
+      "id": "disputed-original",
+      "arm": "pre-c5",
+      "requestHash": "3bdc7f2d0650f72c0b5b8a1f849d280f6813c2b1b0169eb7db1cea58b7e98552",
+      "userHash": "6f85ead2818e5ce643d7e3fc1a9a86e4a4b5fdcc24fc49e6634819ca0a572925",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:55:50.072Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 21,
+            "eventIds": [
+              "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+              "3010b71d-75d3-4354-b310-306513b99b87"
+            ],
+            "explanation": "The chapter repeats the preceding period's work → public validation → Úna's new opportunity → unresolved participation decision. Paragraphs 8–11 complete and publicly credit the contribution; paragraphs 21–28 turn that success into another offer from Úna. The mismatch between creative desire and administrative usefulness gives this iteration depth,",
+            "suggestedFix": "Make that mismatch change the course of the contribution itself: let the protagonist take an action over coordination duties that changes delivery or the working relationship. Build the final offer around the consequences of that action, so the decisive turn comes from an exercised preference rather than another successful programme generating an/"
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "The preceding period moves from making and revising an edit to public playback and Úna's volunteer offer. This chapter again moves from completed work through public playback to Úna's next offer, now paid. However, progression is causally earned: the protagonist independently creates the running order in paragraph 3, loses listening time through coordination in paragraphs 5 and 10, and becomes wanted for that demonstrated competence. The ending changes function: the previous audience leans forward to hear a recording; here Úna identifies an unsolicited scheduling correction as the precise work she wants to buy. Neither ending is an explicit decision handoff. There is no repeated tidy self-c​",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+          "dramaticEngine": "relationship_shift",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-1.txt",
+      "latencyMs": 34889
+    },
+    {
+      "round": 1,
+      "id": "disputed-original",
+      "arm": "c5",
+      "requestHash": "8a180c90786578fe97410979edb1de11c55175ad8201e0b6eb452a2153fcfa96",
+      "userHash": "6f85ead2818e5ce643d7e3fc1a9a86e4a4b5fdcc24fc49e6634819ca0a572925",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:56:25.538Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 21,
+            "eventIds": [
+              "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+              "3010b71d-75d3-4354-b310-306513b99b87"
+            ],
+            "explanation": "The previous chapter and paragraphs 8–28 both move from completed audio work through public recognition to Úna offering another commitment and the protagonist facing a decision.",
+            "suggestedFix": "Make the coordination-versus-editing conflict change the ongoing collaboration through a consequential attempt or refusal before the final decision, rather than resolving another production cycle into Úna's next offer."
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Both chapters use making, public playback and Úna's next offer as their structural progression. Nevertheless, the protagonist's unsolicited coordination earns a specifically different working relationship, rather than merely a larger assignment. The final identification of a scheduling error exposes that mismatch through dialogue, unlike the earlier ending beneath the speaker buzz. Neither chapter uses a tidy self-correction arc, repeated rhetorical formula or narrated decision menu.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+          "dramaticEngine": "external_opportunity",
+          "turningPointDriver": "npc",
+          "resolutionMode": "unresolved",
+          "endingMode": "dialogue",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-2.txt",
+      "latencyMs": 28968
+    },
+    {
+      "round": 1,
+      "id": "structural-repeat",
+      "arm": "pre-c5",
+      "requestHash": "7c30bcc45016bc34219b03860d1cd28ff732c20e51d40f384954e6ec2babc09c",
+      "userHash": "06aeee07a1abf0fe9ab645f9ba391c2f22333c9fca48271219149e0f5a26b4a4",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:56:54.998Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 3,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 19,
+            "eventIds": [
+              "6801d05a-7c2f-4afc-85b1-c599b25780ed",
+              "985082a5-8df6-4b1f-bca7-c94fdbbf53ca",
+              "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+            ],
+            "explanation": "The chapter repeats the preceding period's governing progression: practical sound work demonstrates competence, Úna validates it through a further invitation, and the protagonist reaches another unresolved continuation decision. Payment changes the terms, but the offer still supplies the main forward movement. The handover adds a meaningful insight",
+            "suggestedFix": "Preserve completion of the accepted sessions, but change what generates the next decision. Make the protagonist's attempt to transfer the work produce a consequential change in responsibility or collaboration, rather than making another invitation from Úna the central engine."
+          },
+          {
+            "dimension": "momentum",
+            "severity": "minor",
+            "repairScope": "prose",
+            "paragraphIndex": 29,
+            "eventIds": [
+              "985082a5-8df6-4b1f-bca7-c94fdbbf53ca",
+              "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+            ],
+            "explanation": "“The offer stays unanswered” carries the November invitation into January without showing what sustains the hesitation. The walk gives one immediate interruption, but the subsequent delay feels like narrative storage rather than developing uncertainty.",
+            "suggestedFix": "Give the delay a specific human cause through a brief action or encounter, and let the January handover test that concern."
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "47ea4905-8d1c-4388-a4ec-99218f0effa9"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "The prior period's practical experiment culminated in Úna's four-session invitation; paragraphs 10–20 repeat work, demonstrated competence and another invitation. Nevertheless, creating transferable instructions and watching another operator use them constitute earned changes in responsibility. The protagonist retains an artistic preference, while Clodagh pursues her walk and Úna returns to the cast. The closing exchange establishes an unsettled professional relationship rather than repeating the earlier discovery about an actor's response.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "98437de4-1508-4cdb-9c28-6367dfba5abe",
+          "dramaticEngine": "mixed",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "act_without_resolution",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-3.txt",
+      "latencyMs": 52986
+    },
+    {
+      "round": 1,
+      "id": "structural-repeat",
+      "arm": "c5",
+      "requestHash": "ba2082907b68c14a0f943cbc6a233edad51bf3e4a917fb2ffff79c55ac25b163",
+      "userHash": "06aeee07a1abf0fe9ab645f9ba391c2f22333c9fca48271219149e0f5a26b4a4",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:57:48.563Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 19,
+            "eventIds": [
+              "6801d05a-7c2f-4afc-85b1-c599b25780ed",
+              "985082a5-8df6-4b1f-bca7-c94fdbbf53ca",
+              "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+            ],
+            "explanation": "The clean run, paid invitation and unresolved continuation repeat period 47ea4905-8d1c-4388-a4ec-99218f0effa9's work-to-validation-to-offer-to-decision structure, despite the distinctive handover scene.",
+            "suggestedFix": "Make the handover produce a concrete consequence that drives the final decision, so the chapter's central progression depends on something beyond competence earning another invitation."
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "47ea4905-8d1c-4388-a4ec-99218f0effa9"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "The earlier period ends practical sound work with Úna's further-learning offer; paragraphs 11–19 again turn demonstrated competence into an invitation, left unanswered in paragraphs 42–43. However, transferable notes and Úna's successful alternative timing create an earned change in the protagonist's role. Clodagh pursues her walk, Úna needs usable instructions, and the protagonist retains an artistic preference. The earlier ending discovers an actor's response; this ending establishes that professional commitment remains unmade.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "98437de4-1508-4cdb-9c28-6367dfba5abe",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "act_without_resolution",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-4.txt",
+      "latencyMs": 46050
+    },
+    {
+      "round": 1,
+      "id": "earned-recurrence",
+      "arm": "pre-c5",
+      "requestHash": "c9500353674d5353567222eb211035fd1f9387d424d6ef200fd7cb212eddd9f2",
+      "userHash": "e4358a548cd1beee06408fd3b0a20ef8fd08333191a3fabd2673c4f24a252ad7",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:58:35.336Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 4,
+          "prose": 4
+        },
+        "issues": [],
+        "verdict": "pass",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "51482d3a-0170-4d05-a849-007e47498d16",
+            "ef0d9895-9a3b-4249-9ff2-b486b0db0825"
+          ],
+          "distinctDramaticStructure": true,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Earlier chapters connected sound-making to theatrical use, live responsibility and a vacancy. This chapter develops a private artistic problem: completing an unsatisfactory ending leads to discovering the fragments' comic independence and questioning control over reuse. In paragraphs 12–19, Tunde pursues his meal rather than supplying artistic validation or correction. The protagonist deliberately isolates and rearranges material. Completion changes the situation without guaranteeing employment or public interest. The final recognition of protectiveness differs from the earlier dialogue and application-heading endings. Paragraphs 23–25 make permission emotionally consequential without rec వి",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "cdc91d78-f460-45b4-bf60-b4d580e06ad4",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "protagonist",
+          "resolutionMode": "reframe",
+          "endingMode": "quiet_observation",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "balanced_antithesis"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": true,
+      "rawTextFile": "raw-5.txt",
+      "latencyMs": 30160
+    },
+    {
+      "round": 1,
+      "id": "earned-recurrence",
+      "arm": "c5",
+      "requestHash": "077ea13f2a65801bd406eb4499d898d0ad54784e076c96a1ebae70ca2bd51830",
+      "userHash": "e4358a548cd1beee06408fd3b0a20ef8fd08333191a3fabd2673c4f24a252ad7",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:59:06.012Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 4,
+          "prose": 4
+        },
+        "issues": [],
+        "verdict": "pass",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "51482d3a-0170-4d05-a849-007e47498d16",
+            "ef0d9895-9a3b-4249-9ff2-b486b0db0825"
+          ],
+          "distinctDramaticStructure": true,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Unlike the earlier rehearsal invitation and vacancy discovery, this chapter develops its decision through the protagonist's own experiments with a completed composition. Tunde pursues an ordinary need for the table rather than validating or correcting the work. Keeping the uncomfortable ending and discovering comic fragments earn the shift toward release permissions; the closing protectiveness differs from the earlier dialogue and application-heading endings. The uneven montage follows completion and reconsideration without reciting period boundaries or structured alternatives.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "cdc91d78-f460-45b4-bf60-b4d580e06ad4",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "protagonist",
+          "resolutionMode": "reframe",
+          "endingMode": "quiet_observation",
+          "protagonistResponse": "persist",
+          "rhetoricalFlags": [
+            "balanced_antithesis"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": true,
+      "rawTextFile": "raw-6.txt",
+      "latencyMs": 25886
+    },
+    {
+      "round": 2,
+      "id": "disputed-original",
+      "arm": "c5",
+      "requestHash": "8a180c90786578fe97410979edb1de11c55175ad8201e0b6eb452a2153fcfa96",
+      "userHash": "6f85ead2818e5ce643d7e3fc1a9a86e4a4b5fdcc24fc49e6634819ca0a572925",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T08:59:32.362Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 21,
+            "eventIds": [
+              "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+              "3010b71d-75d3-4354-b310-306513b99b87"
+            ],
+            "explanation": "The previous chapter and this one both move from making audio through successful public playback to Úna offering another commitment and an unresolved decision.",
+            "suggestedFix": "Preserve the earned coordination-versus-editing tension, but make a consequence of the collaboration drive the final decision instead of another post-playback offer."
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Both chapters follow production, public playback, Úna's new offer and a pending commitment. However, paragraphs 3–11 establish a new causal development: coordination displaces editing and earns a separate credit, making the later offer reflect demonstrated competence rather than increased prestige alone. Úna wants her evenings back; Tunde wants his table cleared. The final spoken identification of an unwanted strength differs from the earlier communal playback ending. Neither chapter uses a tidy self-correction arc, and this closing does not recite the decision alternatives.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+          "dramaticEngine": "negotiation",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-7.txt",
+      "latencyMs": 28193
+    },
+    {
+      "round": 2,
+      "id": "disputed-original",
+      "arm": "pre-c5",
+      "requestHash": "3bdc7f2d0650f72c0b5b8a1f849d280f6813c2b1b0169eb7db1cea58b7e98552",
+      "userHash": "6f85ead2818e5ce643d7e3fc1a9a86e4a4b5fdcc24fc49e6634819ca0a572925",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T09:00:01.082Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 21,
+            "eventIds": [
+              "6b9c4e72-2bca-4e07-8f34-629fbe2ec633",
+              "3010b71d-75d3-4354-b310-306513b99b87"
+            ],
+            "explanation": "The unwanted recognition of administrative competence is specific and earned, but the chapter repeats the previous period's overall progression: make audio, deliver a successful public programme, receive another offer from Úna, decide whether to participate. Payment and a contested remit deepen the stakes without sufficiently changing how the next,",
+            "suggestedFix": "Make the protagonist's pursuit of editorial responsibility drive the final encounter. For example, an actual proposal for a short edit could meet Úna's funded support requirement and produce a concrete counterproposal. Preserve the completed contribution and unresolved acceptance, while changing the causal sequence from another unsolicited offer to"
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "8eb7ee57-1664-4f5c-8c86-cc3e3637fbe6"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "The earlier period moves from editing experiments through public playback to Úna's volunteer offer and a course opening. Paragraphs 8–11 and 21 repeat production, public success and a new Úna offer. Nevertheless, coordination now consumes creative time and becomes the competence someone will fund: this is an earned change in professional role, not merely increased prestige. The protagonist creates that consequence by organizing files and answering production queries. The final dialogue names the resulting mismatch, unlike the earlier ending's collective listening beneath a speaker buzz.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "40482fcd-d265-4d65-b468-68b20b989617",
+          "dramaticEngine": "role_reversal",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-8.txt",
+      "latencyMs": 54512
+    },
+    {
+      "round": 2,
+      "id": "structural-repeat",
+      "arm": "c5",
+      "requestHash": "ba2082907b68c14a0f943cbc6a233edad51bf3e4a917fb2ffff79c55ac25b163",
+      "userHash": "06aeee07a1abf0fe9ab645f9ba391c2f22333c9fca48271219149e0f5a26b4a4",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T09:00:56.174Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 19,
+            "eventIds": [
+              "6801d05a-7c2f-4afc-85b1-c599b25780ed",
+              "985082a5-8df6-4b1f-bca7-c94fdbbf53ca"
+            ],
+            "explanation": "Both chapters turn completed sound work into Úna's validation, another invitation and an unresolved continuation decision.",
+            "suggestedFix": "Make the handover's consequences drive the central conflict and decision, rather than another offer following demonstrated competence."
+          },
+          {
+            "dimension": "prose",
+            "severity": "minor",
+            "repairScope": "prose",
+            "paragraphIndex": 43,
+            "eventIds": [
+              "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+            ],
+            "explanation": "The closing reassurance, “I haven't booked you,” foregrounds the decision's acceptance guardrail instead of the changed rehearsal situation.",
+            "suggestedFix": "End with the practical consequence of Úna using the sheet while preserving the unanswered offer in canon."
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "47ea4905-8d1c-4388-a4ec-99218f0effa9"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "The earlier chapter moves from sound-making through Úna's assessment to further sessions; this chapter repeats that scaffold with completed sessions and paid performances. However, transferable notes and successful operation without the protagonist create an earned change in responsibility. The protagonist retains an earlier-timing preference rather than undergoing a tidy correction. The prior ending reveals an actor's response; this ending confirms an unanswered booking. Paragraph 43's “I haven't booked you” exposes the acceptance guardrail.",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": false,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "98437de4-1508-4cdb-9c28-6367dfba5abe",
+          "dramaticEngine": "mixed",
+          "turningPointDriver": "shared",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "act_without_resolution",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "contractual_guardrail"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-9.txt",
+      "latencyMs": 30149
+    },
+    {
+      "round": 2,
+      "id": "structural-repeat",
+      "arm": "pre-c5",
+      "requestHash": "7c30bcc45016bc34219b03860d1cd28ff732c20e51d40f384954e6ec2babc09c",
+      "userHash": "06aeee07a1abf0fe9ab645f9ba391c2f22333c9fca48271219149e0f5a26b4a4",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T09:01:26.836Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 3,
+          "prose": 4
+        },
+        "issues": [
+          {
+            "dimension": "novelty",
+            "severity": "major",
+            "repairScope": "canon",
+            "paragraphIndex": 19,
+            "eventIds": [
+              "6801d05a-7c2f-4afc-85b1-c599b25780ed",
+              "985082a5-8df6-4b1f-bca7-c94fdbbf53ca",
+              "a70121bc-a66e-4f22-b4bd-36ce5248e64c"
+            ],
+            "explanation": "The chapter substantially repeats period 47ea4905-8d1c-4388-a4ec-99218f0effa9: practical sound work demonstrates competence, Úna supplies external validation through a further invitation, and the protagonist must decide whether to continue. Paragraph 19 upgrades that invitation to paid operation. The handover provides a strong scene, but its timing",
+            "suggestedFix": "Preserve completion of the accepted sessions, but make the handover produce a consequential change that drives the final decision independently of receiving a better offer. For example, a transfer that genuinely changes the protagonist's role or relationship could make the choice concern the kind of responsibility they want, rather than another yes"
+          }
+        ],
+        "verdict": "revise",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "47ea4905-8d1c-4388-a4ec-99218f0effa9"
+          ],
+          "distinctDramaticStructure": false,
+          "distinctEnding": true,
+          "independentProgression": false,
+          "characterAgency": true,
+          "evidence": "Both history layers identify the earlier practical experiment, Úna-driven turning point and unresolved continuation invitation. Here the clean run again leads to Úna's offer: '€240 for three Saturday performances' in paragraph 19. Payment changes the stakes, but the principal causal progression remains work, validation, invitation, decision. The January handover adds a fresh encounter without materially changing that progression. The ending does differ: 'I haven't booked you' clarifies an unsettled professional relationship, whereas the earlier closing disclosed an actor's creative response. The protagonist retains a timing preference instead of performing a tidy correction, and Clodagh purs",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "98437de4-1508-4cdb-9c28-6367dfba5abe",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "npc",
+          "resolutionMode": "reframe",
+          "endingMode": "dialogue",
+          "protagonistResponse": "act_without_resolution",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": false,
+      "rawTextFile": "raw-10.txt",
+      "latencyMs": 53100
+    },
+    {
+      "round": 2,
+      "id": "earned-recurrence",
+      "arm": "c5",
+      "requestHash": "077ea13f2a65801bd406eb4499d898d0ad54784e076c96a1ebae70ca2bd51830",
+      "userHash": "e4358a548cd1beee06408fd3b0a20ef8fd08333191a3fabd2673c4f24a252ad7",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T09:02:20.433Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 4,
+          "prose": 4
+        },
+        "issues": [],
+        "verdict": "pass",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "51482d3a-0170-4d05-a849-007e47498d16",
+            "ef0d9895-9a3b-4249-9ff2-b486b0db0825"
+          ],
+          "distinctDramaticStructure": true,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Earlier chapters turned experimental sound into theatrical service and then documentary evidence. Here, dissatisfaction produces a finished independent composition, and deliberate fragmentation changes the question to permission for reuse. Tunde pursues his own immediate need for the table rather than validating the work or offering another engagement. The protagonist retains an imperfect ending and later enjoys contradictory uses without resolving that tension through tidy self-correction. Paragraphs 23–25 dramatize this attachment without briefing both decision options. The closing protectiveness toward a ridiculous scrape differs from the earlier spoken production need and application-re­",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "cdc91d78-f460-45b4-bf60-b4d580e06ad4",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "protagonist",
+          "resolutionMode": "reframe",
+          "endingMode": "quiet_observation",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "balanced_antithesis"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": true,
+      "rawTextFile": "raw-11.txt",
+      "latencyMs": 36250
+    },
+    {
+      "round": 2,
+      "id": "earned-recurrence",
+      "arm": "pre-c5",
+      "requestHash": "c9500353674d5353567222eb211035fd1f9387d424d6ef200fd7cb212eddd9f2",
+      "userHash": "e4358a548cd1beee06408fd3b0a20ef8fd08333191a3fabd2673c4f24a252ad7",
+      "schemaHash": "18115098b5e076a2df09dba940af4402b93a33e2215b67a370afd43a0436146a",
+      "startedAt": "2026-10-24T09:02:57.246Z",
+      "status": "ok",
+      "raw": {
+        "version": "1.3.0",
+        "scores": {
+          "causality": 4,
+          "momentum": 4,
+          "sceneCraft": 4,
+          "character": 4,
+          "personalization": 4,
+          "choiceStakes": 4,
+          "novelty": 4,
+          "prose": 4
+        },
+        "issues": [],
+        "verdict": "pass",
+        "sequenceReview": {
+          "comparedPeriodIds": [
+            "51482d3a-0170-4d05-a849-007e47498d16",
+            "ef0d9895-9a3b-4249-9ff2-b486b0db0825"
+          ],
+          "distinctDramaticStructure": true,
+          "distinctEnding": true,
+          "independentProgression": true,
+          "characterAgency": true,
+          "evidence": "Earlier chapters turn reinterpretation into theatrical use and live responsibility into documentary evidence. Here, deliberately retaining an imperfect ending establishes independent authorship; isolating and rearranging the sounds then complicates ownership of their meaning. No outside validation generates the release decision. Tunde pursues his own immediate need for the table rather than correcting or endorsing the work. Paragraphs 23–25 make permission emotionally tangible without briefing both release options. The closing protectiveness differs from the earlier dialogue and application-heading discovery. The accepted experiment is completed, employment remains unchanged, and publication",
+          "distinctRhetoricalShape": true,
+          "systemMechanicsInvisible": true,
+          "behavioralVariety": true
+        },
+        "sequenceSignature": {
+          "version": "1.1.0",
+          "periodId": "cdc91d78-f460-45b4-bf60-b4d580e06ad4",
+          "dramaticEngine": "material_experiment",
+          "turningPointDriver": "protagonist",
+          "resolutionMode": "reframe",
+          "endingMode": "quiet_observation",
+          "protagonistResponse": "no_correction_arc",
+          "rhetoricalFlags": [
+            "none"
+          ],
+          "systemLeakageFlags": [
+            "none"
+          ]
+        }
+      },
+      "gatePassed": true,
+      "rawTextFile": "raw-12.txt",
+      "latencyMs": 32359
+    }
+  ],
+  "quota": [
+    {
+      "at": "2026-10-24T08:55:50.070Z",
+      "engine": "codex",
+      "phase": "start",
+      "caseId": null,
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 66,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 80,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:55:50.570Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:disputed-original:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 66,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 80,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:56:26.019Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:disputed-original:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 64,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 80,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:56:55.558Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:structural-repeat:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 63,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 80,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:57:49.274Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:structural-repeat:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 61,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 79,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:58:35.838Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:earned-recurrence:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 60,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 79,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:59:06.453Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:1:earned-recurrence:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 58,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 79,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T08:59:32.880Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:disputed-original:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 57,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 79,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:00:01.652Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:disputed-original:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 56,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 79,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:00:56.675Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:structural-repeat:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 54,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 78,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:01:27.321Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:structural-repeat:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 53,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 78,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:02:20.982Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:earned-recurrence:c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 50,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 78,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:02:57.779Z",
+      "engine": "codex",
+      "phase": "boundary",
+      "caseId": "editor-calibration:2:earned-recurrence:pre-c5",
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 49,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 77,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    },
+    {
+      "at": "2026-10-24T09:03:30.984Z",
+      "engine": "codex",
+      "phase": "after-run",
+      "caseId": null,
+      "windows": [
+        {
+          "name": "five-hour",
+          "remainingPercent": 47,
+          "resetsAt": "2026-10-24T13:23:53.000Z"
+        },
+        {
+          "name": "weekly",
+          "remainingPercent": 77,
+          "resetsAt": "2026-10-30T19:24:07.000Z"
+        }
+      ],
+      "ok": true,
+      "reason": null
+    }
+  ],
+  "halted": null
+}
