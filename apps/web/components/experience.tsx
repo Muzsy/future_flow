@@ -38,6 +38,7 @@ import {
 import { LanguageSelect, useLanguage } from './language-provider';
 import { TurnstileWidget } from './turnstile-widget';
 import { captchaSatisfied } from '../lib/turnstile';
+import { resendSecondsLeft } from '../lib/signup-mail';
 import { signInWithPassword, signUpWithPassword } from '../lib/auth-requests';
 import { LifeExperience } from './life-experience';
 import { AdmissionPanel, useAdmission } from './admission-gate';
@@ -176,7 +177,28 @@ export function Experience({
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [signup, setSignup] = useState(false),
-    [invited, setInvited] = useState(false);
+    [invited, setInvited] = useState(false),
+    // Set once Supabase accepted a sign-up and sent the confirmation email.
+    [mailSent, setMailSent] = useState<{ email: string; at: number } | null>(
+      null,
+    ),
+    [clock, setClock] = useState(() => Date.now());
+  const mailSentRef = useRef<HTMLDivElement>(null);
+  const resendLeft = mailSent ? resendSecondsLeft(mailSent.at, clock) : 0;
+  // Ticks only while the "send again" lock is counting down.
+  useEffect(() => {
+    if (!mailSent || resendLeft <= 0) return;
+    const timer = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [mailSent, resendLeft]);
+  // The confirmation must be seen, also on a phone where the form is long.
+  useEffect(() => {
+    if (mailSent)
+      mailSentRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+  }, [mailSent]);
   // An invite link (`/login?invite=`) is remembered, taken out of the address,
   // and opens the sign-up view. The API verifies the token later; this only
   // carries it.
@@ -358,6 +380,7 @@ export function Experience({
     // A Turnstile token is single-use: it goes to exactly one request.
     const captcha = { siteKey: turnstileSiteKey, token: captchaToken };
     setCaptchaToken('');
+    setMailSent(null);
     await action(async () => {
       if (signup && allowSignup) {
         const { data, error } = await signUpWithPassword(
@@ -373,7 +396,9 @@ export function Experience({
         );
         if (error) throw error;
         if (!data.session) {
-          setNotice(t('auth.confirmationSent'));
+          const sentAt = Date.now();
+          setClock(sentAt);
+          setMailSent({ email, at: sentAt });
           return;
         }
       } else {
@@ -956,23 +981,65 @@ export function Experience({
                       className="primary"
                       disabled={
                         busy ||
+                        (signup && mailSent !== null && resendLeft > 0) ||
                         !captchaSatisfied(turnstileSiteKey, captchaToken)
                       }
                     >
-                      {busy
-                        ? t('common.pleaseWait')
-                        : signup
-                          ? t('auth.createAccount')
-                          : t('auth.signIn')}{' '}
-                      <ArrowRight size={16} />
+                      {busy ? (
+                        t('common.pleaseWait')
+                      ) : signup && mailSent ? (
+                        resendLeft > 0 ? (
+                          <>
+                            <Check size={16} /> {t('auth.mailSentButton')}
+                          </>
+                        ) : (
+                          t('auth.mailResendButton')
+                        )
+                      ) : signup ? (
+                        t('auth.createAccount')
+                      ) : (
+                        t('auth.signIn')
+                      )}{' '}
+                      {!(signup && mailSent && resendLeft > 0) && (
+                        <ArrowRight size={16} />
+                      )}
                     </button>
+                    {signup && mailSent && (
+                      <div
+                        ref={mailSentRef}
+                        className="notice success"
+                        role="status"
+                        aria-live="polite"
+                        data-mail-sent="true"
+                        style={{ marginTop: 16 }}
+                      >
+                        <strong>
+                          {t('auth.mailSentTitle', { email: mailSent.email })}
+                        </strong>
+                        <br />
+                        {t('auth.mailSentBody')}
+                        {resendLeft > 0 && (
+                          <>
+                            <br />
+                            <span className="subtle">
+                              {t('auth.mailResendWait', {
+                                seconds: resendLeft,
+                              })}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </form>
                 )}
                 {allowSignup && (
                   <button
                     className="text-button"
                     style={{ marginTop: 20 }}
-                    onClick={() => setSignup((value) => !value)}
+                    onClick={() => {
+                      setMailSent(null);
+                      setSignup((value) => !value);
+                    }}
                   >
                     {signup ? t('auth.haveAccount') : t('auth.needAccount')}
                   </button>

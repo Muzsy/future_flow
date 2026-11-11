@@ -562,6 +562,18 @@ const errors: Record<string, readonly [string, string]> = {
     'Too many attempts. Please try again later.',
     'Túl sok próbálkozás. Próbáld meg később.',
   ],
+  over_email_send_rate_limit: [
+    'No new email can be sent right now. If you asked for one a moment ago, it is on its way: wait a few minutes and check your spam folder. You can ask for another in a minute.',
+    'Most nem tudunk új levelet küldeni. Ha az előbb kértél egyet, az úton van: várj pár percet, és nézd meg a spam mappát. Újat egy perc múlva kérhetsz.',
+  ],
+  email_address_invalid: [
+    'This email address cannot be used. Check it for typos or use another address.',
+    'Ez az e-mail-cím nem használható. Ellenőrizd, hogy nincs-e benne elírás, vagy adj meg másikat.',
+  ],
+  unexpected_failure: [
+    'The email could not be sent. Please try again in a few minutes.',
+    'A levelet most nem sikerült elküldeni. Próbáld újra pár perc múlva.',
+  ],
 };
 const domainFailures: Record<string, readonly [string, string]> = {
   BILLING: [
