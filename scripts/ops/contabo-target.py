@@ -28,6 +28,8 @@ from alterward_backup import (
 ROOT = OPERATOR_ROOT / 'target'
 CLI = ROOT / 'docker-cli'
 BUILDX_URL = 'https://github.com/docker/buildx/releases/download/v0.38.0/buildx-v0.38.0.linux-amd64'
+# The 1 CPU / 2 GiB builder shares the host with other workloads; 1200 s timed out three times under load (2026-11-11).
+BUILD_TIMEOUT_SECONDS = 3600
 BUILDX_SHA = '4fe4cc38adf48169132749b6ca22a990928db0118e3407584ee553723115d287'
 PHASE = 'validation'
 
@@ -296,7 +298,7 @@ def build(request):
                 '--metadata-file', str(work / 'build-metadata.json'), '-t', tag]
         for key, value in public.items():
             args += ['--build-arg', key + '=' + value]
-        run([*args, str(source)], timeout=1200)
+        run([*args, str(source)], timeout=BUILD_TIMEOUT_SECONDS)
         image = json.loads(docker('image', 'inspect', tag).stdout)[0]
         if image['Config']['User'] != 'node':
             raise ValueError('Image runtime must not be root')
