@@ -6,8 +6,12 @@ export const en = {
   'profile.directionRelationships': 'Direction and relationships',
   'profile.summary': 'Summary',
   'error.action': 'The action could not be completed.',
-  'auth.confirmationSent':
-    'We sent you a confirmation email. Confirm your address, then sign in.',
+  'auth.mailSentButton': 'Email sent',
+  'auth.mailResendButton': 'Send the email again',
+  'auth.mailSentTitle': 'The confirmation email is on its way to {email}.',
+  'auth.mailSentBody':
+    'It usually arrives within a minute or two. If you do not see it yet, wait a few minutes and check your spam folder; there is no need to register again. After you open the link in it, sign in with your password. A short consent step follows.',
+  'auth.mailResendWait': 'You can ask for another email in {seconds} s.',
   'common.choose': 'Choose…',
   'profile.goalExample': 'For example: learn a new profession',
   'common.low': 'Low',
@@ -429,8 +433,12 @@ export const hu: Record<MessageKey, string> = {
   'profile.directionRelationships': 'Irányok és kapcsolatok',
   'profile.summary': 'Összegzés',
   'error.action': 'A művelet nem sikerült.',
-  'auth.confirmationSent':
-    'Elküldtük a megerősítő e-mailt. A megerősítés után jelentkezz be.',
+  'auth.mailSentButton': 'Levél elküldve',
+  'auth.mailResendButton': 'Levél újraküldése',
+  'auth.mailSentTitle': 'A megerősítő levél elment erre a címre: {email}.',
+  'auth.mailSentBody':
+    'Általában egy-két percen belül megérkezik. Ha még nem látod, várj pár percet, és nézd meg a spam mappát is; nem kell újra regisztrálnod. A benne lévő link megnyitása után jelentkezz be a jelszavaddal. Ezután egy rövid elfogadási lépés következik.',
+  'auth.mailResendWait': 'Új levelet {seconds} mp múlva kérhetsz.',
   'common.choose': 'Válassz…',
   'profile.goalExample': 'Például: új szakmát tanulni',
   'common.low': 'Alacsony',
