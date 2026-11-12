@@ -572,5 +572,16 @@ class HeldRestoreRefreshTests(unittest.TestCase):
         self.assertEqual(self.status.read_bytes(), self.original)
 
 
+class HistoricalRegistryTableTests(unittest.TestCase):
+    def test_historical_040_table_stays_frozen(self):
+        # The archived schema-040 successor plan stores exactly these hashes. A later release
+        # updates only REGISTRY_040_CHANGE_HASHES; editing this table makes the archive
+        # validation, and with it the Daily backup, refuse the existing successor chain.
+        canonical = json.dumps(daily.HISTORICAL_040_CHANGE_HASHES, sort_keys=True, separators=(',', ':'))
+        self.assertEqual(len(daily.HISTORICAL_040_CHANGE_HASHES), 57)
+        self.assertEqual(hashlib.sha256(canonical.encode()).hexdigest(),
+                         'ce4a43c928f6beaf85528d24ac57854e4c67fc470fd90d1c2f5f67bb5294fcaf')
+
+
 if __name__ == '__main__':
     unittest.main()

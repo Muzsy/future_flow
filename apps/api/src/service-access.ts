@@ -1,4 +1,8 @@
-import { DomainError, type ServiceAction } from '@future-flow/core';
+import {
+  DomainError,
+  referralInviteKey,
+  type ServiceAction,
+} from '@future-flow/core';
 import {
   assertStoredServiceAccess,
   type Database,
@@ -32,7 +36,8 @@ export type ServiceAccessRuntime = Readonly<{
   preAdmission: (
     user: ServiceVerifiedUser,
     identity: VerifiedAccessIdentity | undefined,
-    request: Pick<Request, 'method' | 'path' | 'body'>,
+    request: Pick<Request, 'method' | 'path' | 'body'> &
+      Partial<Pick<Request, 'query'>>,
     response: Pick<Response, 'status' | 'json'>,
   ) => Promise<boolean>;
 }>;
@@ -72,6 +77,11 @@ export function createServiceAccessRuntime(
   const site = createServiceSiteGate(env, transport);
   if (site.enabled && !billingEnforced)
     throw Error('Service admission requires chapter billing enforcement');
+  // Invite links are signed with a key derived from the billing webhook secret
+  // the API already holds; without it the feature is simply off.
+  const referral = {
+    key: referralInviteKey(env.STRIPE_WEBHOOK_SECRET?.trim()),
+  };
 
   return {
     enabled: site.enabled,
@@ -87,7 +97,7 @@ export function createServiceAccessRuntime(
       // request off this path before touching the database.
       if (!preAdmissionRoute(request.method, request.path)) return false;
       assertVerifiedIdentity(user, identity);
-      return handlePreAdmission(db, user.id, request, response);
+      return handlePreAdmission(db, user.id, request, response, referral);
     },
   };
 }

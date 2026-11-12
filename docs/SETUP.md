@@ -18,7 +18,7 @@
 4. A projekt URL és publishable key az `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` változókba kerül. Ezek nyilvános kliensbeállítások. A `SUPABASE_URL` ugyanaz a projekt URL a szervernek.
 5. A **Settings → API Keys** részből a szerveroldali secret vagy legacy `service_role` kulcsot add meg `SUPABASE_SERVICE_ROLE_KEY` néven. Ez szükséges a fióktörléshez. Ne kerüljön `NEXT_PUBLIC_*` változóba.
 6. **Authentication → URL Configuration**: Site URL `http://localhost:3000`; redirect engedélyezés `http://localhost:3000/login`.
-7. Email/password belépés és e-mail megerősítés. A felület külön jelzi, amikor a megerősítő levélre kell várni.
+7. Email/password belépés és e-mail megerősítés. A regisztráció után a gomb „Levél elküldve” feliratra vált és 60 másodpercig zárt (utána „Levél újraküldése”), alatta zöld állapotüzenet mondja ki, hogy a levél elment a megadott címre, hogy várni kell pár percet, nézni a spam mappát, és hogy a megerősítés után egy rövid elfogadási lépés következik. A Supabase e-mail-küldési korlát (`over_email_send_rate_limit`), az érvénytelen cím és a küldési hiba saját, érthető üzenetet kap.
 8. `pnpm build:packages`, majd `pnpm db:migrate`. Az új migrációk egy tranzakcióban futnak; a már alkalmazott migráció utólagos módosítása hibát ad.
 
 Az adatbázis-URL szerveroldali, privilegizált kapcsolat. A böngésző nem használja. A közvetlen anon/authenticated táblahozzáférés tiltott.

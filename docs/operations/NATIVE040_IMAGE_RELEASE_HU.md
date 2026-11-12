@@ -35,8 +35,9 @@ lépés és a szolgáltatásprofil története megmarad.
   szolgáltatásprofilra és a Compose konfigurációra vonatkozó ellenőrzés
   minden futtatáskor megismétlődik. A váltás előtti restore még a régi
   `1d312d2` image-et használja, de már az új operátorforrással. A replay
-  guard csak ennél a konkrét régi digestnél és csak a jóváhagyott Stripe-fájl
-  pontos eltérését fogadja el; a többi restore szabálya változatlan.
+  guard csak a lent felsorolt, jóváhagyott (image, forrás-commit, fájlkészlet)
+  hármasokat fogadja el, fájlonként SHA-256-tal rögzítve; a többi restore
+  szabálya változatlan.
 - Az `image-apply` a tulajdonos által jóváhagyott teljes tervhash-t és
   a terv által kiírt `activate-service-image … generation …` mondatot
   kéri. A service-operator és a két Daily zár alatt dolgozik. Csak a három
@@ -96,6 +97,10 @@ történhet, ha a váltás előtt nyitva volt és a visszaolvasáskor van szabad
 hely. Az éles próba egy meglévő fiókkal ellenőrzi a Discover listát és egy
 hivatalos történet megnyitását.
 
+## A párhuzamos fejezetgenerálás kiadása
+
+A worker egy folyamatban több, különböző felhasználóhoz tartozó jobot futtat (lásd [ARCHITECTURE_HU](../architecture/ARCHITECTURE_HU.md#appsworker)). A változás három termékfájlt érint: `apps/worker/src/main.ts`, az új `apps/worker/src/job-pool.ts` és `packages/database/src/index.ts`. Az image-váltó ezeket kizárólag a futó `0bbdb06` forrás közvetlen kiadási utódjaként, a három fájl teljes listájának és SHA-256 lenyomatának egyezésekor fogadja el (`REVIEWED_IMAGE_CHANGES`); a `REGISTRY_040_CHANGE_HASHES` két érintett, már pinelt fájlja (`main.ts`, `database/src/index.ts`) ebben a kiadásban frissített lenyomatot kap (nem a main lenyomatát); az új `job-pool.ts` csak a `REVIEWED_IMAGE_CHANGES` bejegyzésben szerepel. Több összevont PR esetén a végleges bejegyzés az utolsóként mergelt PR-ban készül, az összes érintett fájlra. Ez megtörtént: a `0bbdb06` bejegyzése egyetlen közös kiadást köt, amely a worker poolt, az ÁSZF/első ingyenes fejezet szövegváltozását és az előfizetői meghívót együtt tartalmazza (23 termékfájl, a teljes lista és lenyomat a `REVIEWED_IMAGE_CHANGES`-ben; a teszt a bájtokat a reviewed merge commitból olvassa, nem a munkafából). Az előző, három fájlos bejegyzés ezzel felváltva. Compose- és env-változás nincs: a szolgáltatási profil alapértéke hat slot, a worker pool tíz kapcsolat, a konténerlimitek változatlanok, így a váltás a szokásos image-only út. **Kiadási ellenőrzőlista (Ákos):** (1) a Supabase Session pooler mérete legalább annyi legyen, mint a 15 kapcsolat (worker 10 + API 5) plusz a mentés és az operátori hozzáférések tartaléka; ha kisebb vagy bizonytalan, a kiadás előtt `WORKER_CONCURRENCY`/`DATABASE_POOL_MAX` csökkentése vagy a pooler emelése kell, mert a kapcsolatkorlát elérésekor a jobok nem a költségvédelem, hanem az adatbázis-kapcsolat miatt állnak; (2) az OpenAI-szervezet rate-limitje hat egyidejű hívást bírjon; (3) a worker leállítása előtt 0 `running` job legyen (a leállás megvárja a futó jobokat, 120 s után SIGKILL, ilyenkor a lejárt lease-ű job újra claimelhető). A váltás után a worker naplóban a `{"workerConcurrency":6}` sort és az első napokban a `AI_RATE_LIMIT` hibakódú jobokat, valamint az `unknown` USD-foglalások számát kell figyelni. Visszaállítás: az előző image (`rollback-service-image …`).
+
 ## A Web UI javítások kiadása
 
 A [#188](https://github.com/Muzsy/future_flow/pull/188) a webes felület 14 fájlját
@@ -105,3 +110,40 @@ kiadási utódjaként, a 14 fájl teljes listájának és SHA-256 lenyomatának 
 fogadja el. A korábbi Discover- és Stripe-váltások engedélye a saját korábbi
 forrásához kötött. A 039 → 040 migráció történeti próbája az eredeti migrációt
 és az első natív 040 image-et a megőrzött commitokból ellenőrzi.
+
+## A regisztráció-visszajelzés pinjei
+
+A regisztráció utáni „Levél elküldve” visszajelzés (#198) három már pinelt fájlt módosít: `apps/web/components/experience.tsx`, `apps/web/lib/i18n/messages.ts` és `packages/contracts/src/error-messages.ts` (új fájl: `apps/web/lib/signup-mail.ts`, nem pinelt). A `REGISTRY_040_CHANGE_HASHES` három lenyomata a #198 ágán a módosított bájtokra frissült, hogy a regisztrációs pin-teszt zöld maradjon. Ez nem kiadási engedély: a `REVIEWED_IMAGE_CHANGES` és a `REVIEWED_REGISTRY_REPLAY_EXCEPTIONS` bejegyzés ezekre a fájlokra (a `packages/contracts/src/error-messages.ts` replay-kivételével együtt) a következő image-kiadás végleges PR-jában készül, a futó Generation 9 (`0b82cd5`) forrás közvetlen utódjaként, az összes érintett termékfájlra.
+
+## Az éles image-build időkorlátja
+
+A célgépes image-build (`contabo-target.py`, `build`) `docker buildx build` lépésének időkorlátja 3600 s (korábban 1200 s). A builder 1 CPU-ra és 2 GiB memóriára korlátozott marad, és a szerver többi folyamatával osztozik a gépen; terhelés alatt a build 20 percnél tovább tartott és háromszor időtúllépéssel állt le (2026-11-11). Az emelés csak a várakozási plafont érinti: az erőforráskorlátok, a build-argumentumok, a forrásellenőrzés és a takarítás változatlanok. A kiadási kapuk és a `REVIEWED_IMAGE_CHANGES` nem változnak. A build ne érje el a 04:15-ös (magyar idő) napi mentést.
+
+## A Daily historikus táblája
+
+A `contabo-daily.py` `HISTORICAL_040_CHANGE_HASHES` táblája az archivált, első schema-040 successor-terv (`beta-successor-5`) pontos lenyomatait őrzi, ezért befagyasztott: új kiadás csak a `REGISTRY_040_CHANGE_HASHES` táblát frissítheti. A #176 tévedésből három bejegyzését is módosította, ezért az új Daily a `proxy-config-capture` fázisban az archívum-ellenőrzésnél elbukott („Exact bounded source-bound039 to040 plan required"), és mentés nem készülhetett. A javítás visszaállítja az eredeti három lenyomatot, és egy teszt rögzíti a tábla tartalmát.
+
+## A natív 040 restore replay-kivételei
+
+A `scripts/lib/funded-replay.mjs` replay-védelme alapból elutasítja, ha az
+éppen futó image forrása és az operátorforrás között a `database`, a
+`packages` vagy a függőségi/build bemenetek eltérnek. A kiadás előtti, friss
+natív 040 restore a _régi_ image-en fut az új operátorforrással, ezért a
+kiadott csomaghoz előre átnézett, szűk kivétel kell. Egy kivétel csak akkor
+érvényes, ha egyszerre teljesül: a bizonylat `alterward-funded-replay-2`,
+schema 40, `registry040`; a futó image digestje és forrás-commitja pontosan az
+adott bejegyzésé; az eltérő útvonalak listája _pontosan_ a bejegyzés
+fájlkészlete (se több, se kevesebb); és minden fájl SHA-256-ja az operátor
+forrás-commitban egyezik a bejegyzés lenyomatával. Minden más fájl, lenyomat
+vagy image elutasítva marad (fail closed). A főág továbbhaladása is
+érvényteleníti a kivételt, ha a pinelt fájlok bájtjai változnak.
+
+| Futó image (forrás)                  | Fájlkészlet                                                                                                                                                                                | Kiadás                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `sha256:2bc94ef6…202050` (`1d312d2`) | `packages/core/src/billing-stripe.ts`                                                                                                                                                      | #185 Stripe-lemondás                                                           |
+| `sha256:a93bb2ba…a3c8a` (`0bbdb06`)  | kilenc `packages/` fájl: `contracts` (`error-messages`, `privacy-consent`), `core` (`billing-referral`, `billing`, `index`), `database` (`billing`, `index`, `referral`, `service-access`) | #194 worker pool, #176 ÁSZF, #193 előfizetői meghívó; operátorforrás `4b0d7b7` |
+
+A teljes lenyomatok a `REVIEWED_REGISTRY_REPLAY_EXCEPTIONS` táblában vannak,
+és a `tests/ops/funded-replay.test.mjs` bizonyítja, hogy bármely más image,
+fájl, bájt vagy többlet-/hiányzó útvonal elutasított. Új kiadáshoz új, külön
+átnézett bejegyzés kell; meglévő bejegyzés nem bővíthető csendben.

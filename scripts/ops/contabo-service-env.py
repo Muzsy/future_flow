@@ -125,6 +125,56 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/components/site-header.tsx':
             'db3888e1f1c9082e467e45a78a515ca426863a328a5250ca0a6942fc90835e26',
     },
+    # One combined image release over 0bbdb06: parallel worker pool, the ÁSZF/first-chapter
+    # text revision and the subscriber invite. The delta must be exactly these files.
+    '0bbdb063619e9d3a4a655f869ed5c604a3509386': {
+        'apps/api/src/app.ts':
+            '8d37af8e9874fed9a4ad8fd1484eccd84570b880dd17de4215e96a45b22bb4dd',
+        'apps/api/src/billing.ts':
+            '3659867a5d1bf868e9a161def0b4714982cf7c1e994e8859fcc69fd80c72f132',
+        'apps/api/src/service-access.ts':
+            '78492651b75f935c5fbbff38492d6b43eea1f6c3a6f4ec0333381655d3bef305',
+        'apps/api/src/service-admission.ts':
+            'b1371c74e770407c2f6ede14c7684e56120890d96de2204924410b5a42a3ea91',
+        'apps/web/components/admission-gate.tsx':
+            '706a924108dcbcfa95f1b9613fac97da57f3dd320c63842619024c907b729155',
+        'apps/web/components/billing-panel.tsx':
+            '575f39e1afcf344fd0ef857f8021d3aa8185a2c16d49755b9be2b5781468a5cd',
+        'apps/web/components/experience.tsx':
+            'c8f157adc7d6e11b83fa8c08f7727fe82a3311caa9cf0000fbe23e1cfbc81396',
+        'apps/web/components/terms-of-use.tsx':
+            'a0f13e2c8d1b20c74a4f592de388f5fb5747d32e4ca5524131ad0deb9a901088',
+        'apps/web/lib/admission.ts':
+            'a7913c4e5cfc02662c85c0df9c55f450c5fd759689d879170b655f732e85b5b2',
+        'apps/web/lib/billing.ts':
+            '24ac882b0413b77f0856b99f95aa5e29e56685ca644afc48c832972df284591c',
+        'apps/web/lib/i18n/messages.ts':
+            '3f237e584be35e05ff165cf1858f50c546bd55f58105ba0ca34a91d5c5a2cdd3',
+        'apps/web/lib/referral-invite.ts':
+            'd22a75c68049f0e66f3d74b87b96a9cc7966d47fc81c999fbeeeaf0068fe147e',
+        'apps/worker/src/job-pool.ts':
+            'e8d838f848d9d00b557507f06f6732ec67904ffd231530317f16504b1ccc261e',
+        'apps/worker/src/main.ts':
+            '1507e0c753309f1166c2da90fe350ee3008cfc02e53f78935a271a3ce72aa557',
+        'packages/contracts/src/error-messages.ts':
+            'c28a6025edb83fcc18015382e2f252fea628d4ab953a5335cf55ab15cc9563ab',
+        'packages/contracts/src/privacy-consent.ts':
+            'a74d7cefaf752896d3f01ae1c1b3b9b4828ae8876f5073b52da7bbb0be80c44c',
+        'packages/core/src/billing-referral.ts':
+            '53fb901a33b194f62fece70925dbc94791d1a7897c50e6f0712fb1b032d39383',
+        'packages/core/src/billing.ts':
+            'f832a25a6f0786bd344ee18495a8276ee4166f1bbb6c9ad3e3e4a3edfe591390',
+        'packages/core/src/index.ts':
+            '952ce99a6e2340a2c07a3ad1fe0e3a32cd4e5b9999419771c6679d8ecee28297',
+        'packages/database/src/billing.ts':
+            'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
+        'packages/database/src/index.ts':
+            '5983a43d68892e255ead824d03c60057de1668b58993dada1dc5b00df12ce8bb',
+        'packages/database/src/referral.ts':
+            'd313a4b09f092f2d33d5f8ad3015494dcf29e3e689f939c67f9c24d19e5fe469',
+        'packages/database/src/service-access.ts':
+            '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

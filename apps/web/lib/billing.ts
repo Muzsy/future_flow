@@ -9,7 +9,25 @@ export type BillingStatus = {
   canGenerate: boolean;
   paidChaptersAvailable: number;
   tasterChaptersAvailable: number;
+  // Subscriber invite (ADR-011): the gift chapter and the state of the one invite.
+  referralChaptersAvailable?: number;
+  referralInvite?: {
+    eligible: boolean;
+    state: 'none' | 'redeemed' | 'revoked';
+  };
 };
+
+// What the invite card shows: the create button, the outcome of the one invite,
+// or nothing. The API decides eligibility; this only reads it (fail closed).
+export function referralCard(
+  status: BillingStatus,
+): 'create' | 'redeemed' | 'revoked' | null {
+  const invite = status.referralInvite;
+  if (!invite) return null;
+  if (invite.state === 'redeemed' || invite.state === 'revoked')
+    return invite.state;
+  return invite.eligible ? 'create' : null;
+}
 
 export type CheckoutResult = 'success' | 'cancel' | null;
 
@@ -148,7 +166,19 @@ export function isBillingStatus(value: unknown): value is BillingStatus {
     ) &&
     typeof v.canGenerate === 'boolean' &&
     Number.isInteger(v.paidChaptersAvailable) &&
-    Number.isInteger(v.tasterChaptersAvailable)
+    Number.isInteger(v.tasterChaptersAvailable) &&
+    (v.referralChaptersAvailable === undefined ||
+      Number.isInteger(v.referralChaptersAvailable)) &&
+    (v.referralInvite === undefined || isReferralInvite(v.referralInvite))
+  );
+}
+
+function isReferralInvite(value: unknown) {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.eligible === 'boolean' &&
+    ['none', 'redeemed', 'revoked'].includes(String(v.state))
   );
 }
 

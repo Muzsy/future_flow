@@ -323,6 +323,7 @@ class ApiController {
         adult: { type: 'boolean', enum: [true] },
         acknowledged: { type: 'boolean', enum: [true] },
         termsVersion: { type: 'string', enum: [TERMS_ACCEPTANCE_VERSION] },
+        inviteToken: { type: 'string', maxLength: 64 },
       },
       required: ['adult', 'acknowledged', 'termsVersion'],
       additionalProperties: false,
@@ -1247,7 +1248,11 @@ export async function createApp(
   app.use(json({ limit: '64kb' }));
   // Checkout holds the user lock and a pool connection across the provider call.
   app.use(
-    ['/api/v1/billing/checkout', '/api/v1/billing/portal'],
+    [
+      '/api/v1/billing/checkout',
+      '/api/v1/billing/portal',
+      '/api/v1/billing/referral-invite',
+    ],
     rateLimit({
       windowMs: 60000,
       limit: 10,

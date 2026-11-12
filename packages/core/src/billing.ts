@@ -459,6 +459,12 @@ export type ChapterLedger = Readonly<{
   tasterAmount: number;
 }>;
 export const FREE_TASTER_CHAPTERS = 1;
+// The subscriber-referral gift chapter is an ordinary grant with this key
+// prefix (see billing-referral.ts). It is reported separately from the monthly
+// allowance and, in reserveChapter, stays usable after the subscription ended.
+export const REFERRAL_GRANT_KEY_PREFIX = 'referral:';
+export const isReferralGrantKey = (key: string) =>
+  key.startsWith(REFERRAL_GRANT_KEY_PREFIX);
 export const emptyChapterLedger: ChapterLedger = Object.freeze({
   grants: [],
   reservations: [],
@@ -503,7 +509,20 @@ function remainingOfGrant(ledger: ChapterLedger, key: string, now: Date) {
 
 export function paidChaptersAvailable(ledger: ChapterLedger, now: Date) {
   return ledger.grants.reduce(
-    (sum, g) => sum + Math.max(0, remainingOfGrant(ledger, g.key, now)),
+    (sum, g) =>
+      isReferralGrantKey(g.key)
+        ? sum
+        : sum + Math.max(0, remainingOfGrant(ledger, g.key, now)),
+    0,
+  );
+}
+
+export function referralChaptersAvailable(ledger: ChapterLedger, now: Date) {
+  return ledger.grants.reduce(
+    (sum, g) =>
+      isReferralGrantKey(g.key)
+        ? sum + Math.max(0, remainingOfGrant(ledger, g.key, now))
+        : sum,
     0,
   );
 }
@@ -555,9 +574,30 @@ export function reserveChapter(
       grantKey: grant.key,
       state: 'reserved',
     };
-  } else if (tasterChaptersAvailable(ledger) > 0) {
-    reservation = { key, bucket: 'taster', grantKey: null, state: 'reserved' };
-  } else return { ok: false, reason: 'no_entitlement' };
+  } else {
+    // No active subscription. The earned, non-expiring referral gift comes
+    // before the one-time free taster; it is the same 'paid' bucket, so the
+    // worker's dispatch check (grant and subscription not revoked) applies.
+    const gift = ledger.grants.find(
+      (g) =>
+        isReferralGrantKey(g.key) && remainingOfGrant(ledger, g.key, now) > 0,
+    );
+    if (gift)
+      reservation = {
+        key,
+        bucket: 'paid',
+        grantKey: gift.key,
+        state: 'reserved',
+      };
+    else if (tasterChaptersAvailable(ledger) > 0)
+      reservation = {
+        key,
+        bucket: 'taster',
+        grantKey: null,
+        state: 'reserved',
+      };
+    else return { ok: false, reason: 'no_entitlement' };
+  }
   return {
     ok: true,
     ledger: {

@@ -6,8 +6,12 @@ export const en = {
   'profile.directionRelationships': 'Direction and relationships',
   'profile.summary': 'Summary',
   'error.action': 'The action could not be completed.',
-  'auth.confirmationSent':
-    'We sent you a confirmation email. Confirm your address, then sign in.',
+  'auth.mailSentButton': 'Email sent',
+  'auth.mailResendButton': 'Send the email again',
+  'auth.mailSentTitle': 'The confirmation email is on its way to {email}.',
+  'auth.mailSentBody':
+    'It usually arrives within a minute or two. If you do not see it yet, wait a few minutes and check your spam folder; there is no need to register again. After you open the link in it, sign in with your password. A short consent step follows.',
+  'auth.mailResendWait': 'You can ask for another email in {seconds} s.',
   'common.choose': 'Choose…',
   'profile.goalExample': 'For example: learn a new profession',
   'common.low': 'Low',
@@ -234,12 +238,12 @@ export const en = {
     'The Operator may refuse requests, remove content and suspend or close accounts that breach these terms.',
   'terms.limitsTitle': '7. Limits and availability',
   'terms.limits1':
-    'Generation is limited by the chapters in your plan, the free taster chapter and technical limits such as queueing and rate limits. A chapter can take several minutes. We may pause generation or new registrations at any time, for example to protect the service, its budget or security. Reading, downloading and deleting your data stays available.',
+    'Generation is limited by the chapters in your plan, the first free chapter and technical limits such as queueing and rate limits. A chapter can take several minutes. We may pause generation or new registrations at any time, for example to protect the service, its budget or security. Reading, downloading and deleting your data stays available.',
   'terms.limits2':
     'The service is provided "as is", without a guarantee of uninterrupted or error-free operation.',
   'terms.paymentTitle': '8. Payment, renewal and withdrawal',
   'terms.payment1':
-    'One free taster chapter is included per account. After that, creating chapters requires a paid monthly subscription: 8 chapters per billing cycle for 14.99 USD per month, VAT included. The ten first accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid billing cycles, then the standard plan. The discount belongs to the account, is applied automatically at checkout and is given once per account. Later waves do not receive it automatically.',
+    'Each account gets one first free chapter. After that, creating chapters requires a paid monthly subscription: 8 chapters per billing cycle for 14.99 USD per month, VAT included. The ten first accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid billing cycles, then the standard plan. The discount belongs to the account, is applied automatically at checkout and is given once per account. Later waves do not receive it automatically.',
   'terms.payment2':
     'The subscription renews automatically each month on the day it started until you cancel. You can cancel at any time in the subscription page (Manage subscription). Cancellation stops the next renewal; your paid access and chapters continue until the end of the current billing period. Unused chapters do not roll over to the next period.',
   'terms.payment3':
@@ -252,6 +256,10 @@ export const en = {
     'If a payment fails, we keep access for a short grace period, then generation is paused until the payment is fixed. Your stories stay readable and exportable. If a payment is refunded in full for the current period or a payment is disputed, access to creating new chapters ends immediately and the subscription is cancelled; chapters already created stay yours.',
   'terms.payment7':
     'Complaints: write to info@alterward.com. We answer within 14 days. We handle complaints individually; there is no unlimited free rewriting of chapters.',
+  'terms.payment8':
+    'Invitation: a subscriber with an active, paid subscription can invite one person during the lifetime of their account. The invitation is a personal link that is valid for 30 days and can be used once, and it contains no data about the invited person. With a valid invitation the invited person can join even when public registration is full. Anyone who arrives with an invitation link always joins as an invited person, even when public registration is open: this does not take a public place and does not include the launch discount. The invited person registers under the usual conditions: confirmed email, 18+ declaration, acceptance of these terms and the privacy notice. Once the invited person has actually been admitted, the inviting subscriber receives one gift chapter. The inviting subscriber receives no money or other benefit.',
+  'terms.payment9':
+    "The gift chapter is used after the chapters of your monthly plan and, unlike other unused chapters, does not expire at the end of the billing period. It stays available after you cancel the subscription. If the subscription is refunded in full or disputed, the gift chapter can no longer be used. It cannot be exchanged for money or transferred. Deleting your account deletes the gift chapter. Deleting the invited person's account does not give a new invitation.",
   'billing.title': 'Subscription',
   'billing.view': 'View subscription and chapter balance',
   'billing.returnToStories': 'Return to your stories',
@@ -279,7 +287,7 @@ export const en = {
   'billing.state.ended': 'Your subscription has ended.',
   'billing.state.revoked': 'Your subscription was cancelled and refunded.',
   'billing.chapters':
-    'Chapters available: {paid} from your subscription, {taster} free taster.',
+    'Chapters available: {paid} from your subscription, {taster} first free chapter.',
   'billing.offerTitle': 'Monthly subscription',
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
@@ -291,6 +299,23 @@ export const en = {
   'billing.manageTerms':
     'Manage your subscription securely on Stripe. Cancellation stops the next renewal; your paid access continues until the end of the current billing period.',
   'billing.support': 'If you need help, contact',
+  'referral.cardTitle': 'Invite a friend',
+  'referral.cardBody':
+    'As a subscriber you can invite one friend to Alterward, even when registration is currently closed. Once they sign up and sign in, you get +1 gift chapter. The gift chapter is used after your monthly chapters and does not expire at the end of the month.',
+  'referral.create': 'Create invite link',
+  'referral.created':
+    'Send this link. It is valid for 30 days and can be used once.',
+  'referral.copy': 'Copy link',
+  'referral.copied': 'Link copied',
+  'referral.redeemed':
+    'Your invitation was redeemed, you received +1 gift chapter.',
+  'referral.revoked':
+    'The gift chapter ended because of a refund, a payment dispute or a billing review.',
+  'referral.chapters': 'Gift chapters: {n}',
+  'referral.signupNotice':
+    'You came with an invitation. Create your account and confirm your email address.',
+  'admission.inviteLabel': 'Have an invitation? Paste the link',
+  'admission.inviteSubmit': 'Validate invitation',
   'terms.endTitle': '9. Suspension and ending',
   'terms.end1':
     'You can stop using the service and delete your account at any time. The Operator may suspend or close access, for example if these terms are breached, to protect the service or its budget, or if we end the service.',
@@ -408,8 +433,12 @@ export const hu: Record<MessageKey, string> = {
   'profile.directionRelationships': 'Irányok és kapcsolatok',
   'profile.summary': 'Összegzés',
   'error.action': 'A művelet nem sikerült.',
-  'auth.confirmationSent':
-    'Elküldtük a megerősítő e-mailt. A megerősítés után jelentkezz be.',
+  'auth.mailSentButton': 'Levél elküldve',
+  'auth.mailResendButton': 'Levél újraküldése',
+  'auth.mailSentTitle': 'A megerősítő levél elment erre a címre: {email}.',
+  'auth.mailSentBody':
+    'Általában egy-két percen belül megérkezik. Ha még nem látod, várj pár percet, és nézd meg a spam mappát is; nem kell újra regisztrálnod. A benne lévő link megnyitása után jelentkezz be a jelszavaddal. Ezután egy rövid elfogadási lépés következik.',
+  'auth.mailResendWait': 'Új levelet {seconds} mp múlva kérhetsz.',
   'common.choose': 'Válassz…',
   'profile.goalExample': 'Például: új szakmát tanulni',
   'common.low': 'Alacsony',
@@ -632,12 +661,12 @@ export const hu: Record<MessageKey, string> = {
     'Az Üzemeltető elutasíthat kéréseket, eltávolíthat tartalmat, és felfüggesztheti vagy megszüntetheti azokat a fiókokat, amelyek megsértik ezeket a feltételeket.',
   'terms.limitsTitle': '7. Korlátok és elérhetőség',
   'terms.limits1':
-    'A generálást az előfizetésed fejezetkerete, az ingyenes ízelítő fejezet és technikai korlátok (várakozási sor, kérésszám-korlát) szabják meg. Egy fejezet több percig is tarthat. A generálást vagy az új regisztrációkat bármikor szüneteltethetjük, például a szolgáltatás, a költségkeret vagy a biztonság védelmében. Az adataid olvasása, letöltése és törlése ilyenkor is elérhető marad.',
+    'A generálást az előfizetésed fejezetkerete, az első ingyenes fejezet és technikai korlátok (várakozási sor, kérésszám-korlát) szabják meg. Egy fejezet több percig is tarthat. A generálást vagy az új regisztrációkat bármikor szüneteltethetjük, például a szolgáltatás, a költségkeret vagy a biztonság védelmében. Az adataid olvasása, letöltése és törlése ilyenkor is elérhető marad.',
   'terms.limits2':
     'A szolgáltatás „ahogy van” módon áll rendelkezésre, megszakítás- és hibamentes működés garanciája nélkül.',
   'terms.paymentTitle': '8. Fizetés, megújítás és elállás',
   'terms.payment1':
-    'Fiókonként egy ingyenes ízelítő fejezet jár. Utána új fejezetek készítéséhez fizetett havi előfizetés kell: számlázási ciklusonként 8 fejezet, havi 14,99 USD, az áfát tartalmazza. A kezdéskor beengedett első tíz fiók az első három fizetett ciklusában 5 fejezetet kap havi 9,99 USD áron, az áfát tartalmazza, utána a normál csomag érvényes. A kedvezmény a fiókhoz tartozik, fizetéskor automatikusan érvényesül és fiókonként egyszer jár. A későbbi hullámok nem kapják automatikusan.',
+    'Minden fiók egy első ingyenes fejezetet kap. Utána új fejezetek készítéséhez fizetett havi előfizetés kell: számlázási ciklusonként 8 fejezet, havi 14,99 USD, az áfát tartalmazza. A kezdéskor beengedett első tíz fiók az első három fizetett ciklusában 5 fejezetet kap havi 9,99 USD áron, az áfát tartalmazza, utána a normál csomag érvényes. A kedvezmény a fiókhoz tartozik, fizetéskor automatikusan érvényesül és fiókonként egyszer jár. A későbbi hullámok nem kapják automatikusan.',
   'terms.payment2':
     'Az előfizetés a kezdés napján havonta automatikusan megújul, amíg le nem mondod. A lemondás bármikor lehetséges az előfizetési oldalon (Előfizetés kezelése). A lemondás a következő megújítást állítja le; a fizetett hozzáférésed és fejezeteid az aktuális számlázási időszak végéig megmaradnak. Fel nem használt fejezet nem vihető át a következő időszakra.',
   'terms.payment3':
@@ -650,6 +679,10 @@ export const hu: Record<MessageKey, string> = {
     'Sikertelen fizetésnél rövid türelmi ideig megtartjuk a hozzáférést, utána a generálás a fizetés rendezéséig szünetel. A történeteid olvashatók és exportálhatók maradnak. Ha az aktuális időszak díját teljes egészében visszatérítik, vagy a fizetést vitatják, az új fejezetek készítése azonnal megszűnik és az előfizetés megszűnik; a már elkészült fejezetek a tieid maradnak.',
   'terms.payment7':
     'Panasz: info@alterward.com. 14 napon belül válaszolunk. A panaszokat egyedileg kezeljük; korlátlan ingyenes újraírás nincs.',
+  'terms.payment8':
+    'Meghívó: aki aktív, fizetett előfizetéssel rendelkezik, fiókja élete során egy embert hívhat meg. A meghívó egy személyes link, amely 30 napig érvényes és egyszer használható, és nem tartalmaz adatot a meghívottról. Érvényes meghívóval a meghívott akkor is beléphet, ha a nyilvános regisztráció éppen megtelt. Aki meghívó linkkel érkezik, mindig meghívottként lép be, akkor is, ha a nyilvános regisztráció éppen nyitva van: ez nem foglal nyilvános helyet, és nem jár vele a kezdéskori kedvezmény. A meghívott a szokásos feltételekkel regisztrál: megerősített e-mail, 18+ nyilatkozat, ÁSZF és adatkezelési tájékoztató elfogadása. Ha a meghívottat ténylegesen beengedtük, a meghívó egy ajándék fejezetet kap. Pénzt vagy más juttatást nem kap.',
+  'terms.payment9':
+    'Az ajándék fejezet az előfizetésed havi fejezetei után fogy el, és a többi fel nem használt fejezettől eltérően nem jár le a számlázási időszak végén. Az előfizetés lemondása után is megmarad. Ha az előfizetést teljes egészében visszatérítik vagy vitatják, az ajándék fejezet nem használható tovább. Nem váltható pénzre és nem átruházható. A fiókod törlésekor az ajándék fejezet is törlődik. A meghívott fiókjának törlése nem ad új meghívást.',
   'billing.title': 'Előfizetés',
   'billing.view': 'Előfizetés és fejezetegyenleg megtekintése',
   'billing.returnToStories': 'Vissza a történeteidhez',
@@ -679,7 +712,7 @@ export const hu: Record<MessageKey, string> = {
   'billing.state.revoked':
     'Az előfizetésed le lett mondva és visszatérítettük.',
   'billing.chapters':
-    'Elérhető fejezetek: {paid} az előfizetésedből, {taster} ingyenes ízelítő.',
+    'Elérhető fejezetek: {paid} az előfizetésedből, {taster} első ingyenes fejezet.',
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
@@ -690,6 +723,22 @@ export const hu: Record<MessageKey, string> = {
   'billing.manageTerms':
     'Az előfizetésedet biztonságosan a Stripe felületén kezelheted. A lemondás a következő megújulást állítja le; a kifizetett hozzáférés az aktuális ciklus végéig megmarad.',
   'billing.support': 'Ha segítség kell, írj ide:',
+  'referral.cardTitle': 'Hívj meg egy barátot',
+  'referral.cardBody':
+    'Előfizetőként meghívhatsz egy barátot az Alterwardba, akkor is, ha a regisztráció épp zárt. Amint regisztrál és belép, +1 ajándék fejezetet kapsz. Az ajándék fejezet a havi fejezeteid után fogy, és nem jár le a hónap végén.',
+  'referral.create': 'Meghívólink létrehozása',
+  'referral.created':
+    'Küldd el ezt a linket. 30 napig érvényes, és egyszer használható.',
+  'referral.copy': 'Link másolása',
+  'referral.copied': 'A link másolva',
+  'referral.redeemed': 'A meghívódat beváltották, +1 ajándék fejezetet kaptál.',
+  'referral.revoked':
+    'Az ajándék fejezet visszatérítés, fizetési vita vagy számlázási egyeztetés miatt megszűnt.',
+  'referral.chapters': 'Ajándék fejezet: {n}',
+  'referral.signupNotice':
+    'Meghívóval érkeztél. Hozd létre a fiókodat, és erősítsd meg az email-címedet.',
+  'admission.inviteLabel': 'Van meghívód? Illeszd be a linket',
+  'admission.inviteSubmit': 'Meghívó érvényesítése',
   'terms.endTitle': '9. Felfüggesztés és megszűnés',
   'terms.end1':
     'Bármikor abbahagyhatod a használatot és törölheted a fiókodat. Az Üzemeltető felfüggesztheti vagy megszüntetheti a hozzáférést, például e feltételek megszegése esetén, a szolgáltatás vagy költségkeretének védelmében, vagy ha megszüntetjük a szolgáltatást.',

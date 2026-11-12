@@ -40,6 +40,14 @@ export type ServiceAdmissionCapacity = Readonly<{
   used: number;
   remaining: number;
 }>;
+export type ReferredAdmissionOutcome =
+  | Readonly<{ status: 'admitted' }>
+  | Readonly<{ status: 'already-admitted' }>
+  | Readonly<{ status: 'revoked' }>
+  // Not eligible, already redeemed, or the inviter cannot be credited. One
+  // answer for all of them, so a token holder learns nothing about the inviter.
+  | Readonly<{ status: 'invite-invalid' }>
+  | Readonly<{ status: 'unavailable' }>;
 export type OpenAdmissionOutcome =
   | Readonly<{ status: 'admitted'; position: number; closedAfter: boolean }>
   | Readonly<{ status: 'already-admitted' }>
@@ -379,6 +387,79 @@ export class ServiceAccessRepository {
         position: Number(after!.admission_used),
         closedAfter: after!.mode !== 'open',
       } as const;
+    });
+  }
+
+  // Admission through a subscriber's referral. Works while the public wave is
+  // open or closed, takes no public slot (the counter is untouched) and is never
+  // eligible for the launch discount. `creditInviter` runs inside the same
+  // transaction, before anything is written for the invitee, and must return
+  // true only after it durably credited the inviter; any later failure rolls
+  // that credit back, so the gift exists exactly when the admission does.
+  // Lock order: the inviter's billing lock (`lockInviter`, the first lock of
+  // every billing write, and held by checkout/portal across the Stripe call), then
+  // the global policy row, then the invitee's root. The policy row is the
+  // shared lock of every admission, so it is taken only after the inviter's own
+  // lock is already held: a slow billing call of one account can delay only that
+  // account's invite, never everyone else's admission.
+  async admitReferredAccount(
+    verifiedUserId: unknown,
+    termsVersion: unknown,
+    inviterUserId: unknown,
+    creditInviter: (tx: Database) => Promise<boolean>,
+    lockInviter: (tx: Database, inviterId: string) => Promise<void>,
+  ): Promise<ReferredAdmissionOutcome> {
+    const terms = assertTermsVersion(termsVersion);
+    const userId = accountId(verifiedUserId),
+      inviterId = accountId(inviterUserId);
+    if (!userId) return { status: 'unavailable' };
+    if (!inviterId || inviterId === userId) return { status: 'invite-invalid' };
+    return this.db.transaction(async (tx) => {
+      await lockInviter(tx, inviterId);
+      const [policy] = await tx.query<PolicyRow>(
+        'SELECT mode,reconcile_required FROM aw_service_policy WHERE id=1 FOR UPDATE',
+      );
+      if (!policy || policy.reconcile_required !== false)
+        return { status: 'unavailable' } as const;
+      const [existing] = await tx.query<{ state: string }>(
+        'SELECT state FROM aw_service_admissions WHERE user_id=$1',
+        [userId],
+      );
+      if (existing)
+        return existing.state === 'active'
+          ? ({ status: 'already-admitted' } as const)
+          : existing.state === 'revoked'
+            ? ({ status: 'revoked' } as const)
+            : ({ status: 'unavailable' } as const);
+      if (!(await creditInviter(tx)))
+        return { status: 'invite-invalid' } as const;
+      await tx.query(
+        'INSERT INTO ff_users(id) VALUES($1) ON CONFLICT DO NOTHING',
+        [userId],
+      );
+      const [owner] = await tx.query<{ status: string }>(
+        'SELECT status FROM ff_users WHERE id=$1 FOR UPDATE',
+        [userId],
+      );
+      if (owner?.status !== 'active')
+        throw new DomainError(
+          'SERVICE_ACCESS_ACCOUNT_INACTIVE',
+          'Service admission requires an active account.',
+          409,
+        );
+      await tx.query(
+        "INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,'alpha-privacy-v1','adult_and_ai_acknowledgement') ON CONFLICT DO NOTHING",
+        [randomUUID(), userId],
+      );
+      await tx.query(
+        'INSERT INTO ff_consents(id,user_id,policy_version,consent_type) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [randomUUID(), userId, terms, TERMS_ACCEPTANCE_CONSENT_TYPE],
+      );
+      await tx.query(
+        "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',false)",
+        [userId],
+      );
+      return { status: 'admitted' } as const;
     });
   }
 

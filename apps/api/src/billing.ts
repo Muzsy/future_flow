@@ -20,6 +20,11 @@ import {
   entitlementOfSubscriptions,
   handleStripeWebhook,
   paidChaptersAvailable,
+  referralChaptersAvailable,
+  referralEligibleSubscription,
+  referralGrantKey,
+  referralInviteKey,
+  signReferralInvite,
   tasterChaptersAvailable,
 } from '@future-flow/core';
 import type { BillingRuntime } from './billing-runtime';
@@ -33,6 +38,30 @@ const unavailable = () =>
 
 export const BILLING_WEBHOOK_PATH = '/api/v1/billing/webhook';
 export const BILLING_WEBHOOK_LIMIT = '256kb';
+
+function inviteKeyOf(runtime: BillingRuntime) {
+  const config = runtime.config;
+  return config.enabled ? referralInviteKey(config.webhookSecret) : null;
+}
+
+function referralInviteView(
+  subs: Parameters<typeof referralEligibleSubscription>[0],
+  ledger: Parameters<typeof referralChaptersAvailable>[0],
+  now: Date,
+  runtime: BillingRuntime,
+  userId: string,
+): { eligible: boolean; state: 'none' | 'redeemed' | 'revoked' } {
+  const gift = ledger.grants.find((g) => g.key === referralGrantKey(userId));
+  if (gift)
+    return { eligible: false, state: gift.revoked ? 'revoked' : 'redeemed' };
+  return {
+    eligible:
+      inviteKeyOf(runtime) !== null &&
+      referralEligibleSubscription(subs, now, runtime.config.entitlement) !==
+        null,
+    state: 'none',
+  };
+}
 
 export function createBillingController(
   guard: Type<CanActivate>,
@@ -90,8 +119,53 @@ export function createBillingController(
         state: entitlement.state,
         canGenerate: entitlement.canGenerate,
         paidChaptersAvailable: paidChaptersAvailable(ledger, now),
+        referralChaptersAvailable: referralChaptersAvailable(ledger, now),
         tasterChaptersAvailable: tasterChaptersAvailable(ledger),
+        // Only the fact of redemption is ever reported, never who redeemed it.
+        referralInvite: referralInviteView(
+          subs,
+          ledger,
+          now,
+          runtime,
+          req.userId,
+        ),
       };
+    }
+
+    // Creates (signs) an invite link token for an eligible subscriber. Nothing
+    // is stored: the redemption alone writes (the gift grant), and its key makes
+    // one redemption per inviter a database fact. Each call signs a fresh token.
+    @UseGuards(guard)
+    @ApiBearerAuth()
+    @Post('referral-invite')
+    async referralInvite(
+      @Req() req: { userId: string },
+      @Body() body: unknown,
+    ) {
+      z.object({})
+        .strict()
+        .parse(body ?? {});
+      if (!runtime.config.enabled) throw unavailable();
+      const now = runtime.now();
+      const key = inviteKeyOf(runtime);
+      if (!key) throw unavailable();
+      const { subs, ledger } = await runtime.store.transaction(async (tx) => ({
+        subs: await tx.listSubscriptions(req.userId),
+        ledger: await tx.loadLedger(req.userId),
+      }));
+      if (ledger.grants.some((g) => g.key === referralGrantKey(req.userId)))
+        throw new DomainError(
+          'BILLING_REFERRAL_USED',
+          'The invitation was already used.',
+          409,
+        );
+      if (!referralEligibleSubscription(subs, now, runtime.config.entitlement))
+        throw new DomainError(
+          'BILLING_REFERRAL_INELIGIBLE',
+          'Only active subscribers can invite.',
+          403,
+        );
+      return { inviteToken: signReferralInvite(key, req.userId, now) };
     }
 
     // Not authenticated by bearer: the Stripe signature over the raw body is the

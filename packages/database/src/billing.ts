@@ -203,7 +203,14 @@ export function billingTx(db: Database): BillingTx {
         expires_at: Date | string;
         revoked: boolean;
       }>(
-        'SELECT key,cycle_index,amount,expires_at,revoked FROM aw_billing_grants WHERE user_id=$1 ORDER BY created_at,key',
+        // A referral gift is closed as soon as the subscription it is attached
+        // to is revoked (refund/dispute) or quarantined by recovery, so it is
+        // never reserved just to be refused at dispatch.
+        `SELECT g.key,g.cycle_index,g.amount,g.expires_at,
+           (g.revoked OR (left(g.key,9)='referral:' AND (s.subscription_id IS NULL OR s.revoked IS NOT NULL OR s.reconcile_required))) AS revoked
+         FROM aw_billing_grants g
+         LEFT JOIN aw_billing_subscriptions s ON s.subscription_id=g.subscription_id AND s.user_id=g.user_id
+         WHERE g.user_id=$1 ORDER BY g.created_at,g.key`,
         [userId],
       );
       const reservations = await db.query<{
