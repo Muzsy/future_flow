@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { expireLocal, localArchives } from '../../scripts/contabo-daily.mjs';
+import {
+  expireLocal,
+  localArchives,
+  remoteMaxBuffer,
+} from '../../scripts/contabo-daily.mjs';
 
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 function fixture(root, ageDays) {
@@ -205,3 +209,14 @@ test('pending incomplete archive cannot be listed as a usable local backup', () 
     assert.throws(() => localArchives(root));
     assert.equal(expireLocal(root), 1);
   }));
+
+test('the remote reply buffer fits the live backup inventory and is really used', () => {
+  // The server inventory was 2.4 MB while the buffer was 2 MiB, so --sync stopped.
+  assert.ok(remoteMaxBuffer >= 16 * 1024 ** 2);
+  const source = fs.readFileSync(
+    new URL('../../scripts/contabo-daily.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.ok(source.includes('maxBuffer: remoteMaxBuffer,'));
+  assert.ok(!source.includes('maxBuffer: 2 * 1024 * 1024'));
+});

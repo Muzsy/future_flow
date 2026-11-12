@@ -21,6 +21,10 @@ const actions = [
 const runPattern = /^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$/;
 const names = ['config.tar.age', 'application.dump.age', 'manifest.json'];
 const retention = 7 * 86400000;
+// The server's managed-backup inventory is returned over one ssh call (about 2.4 MB on the
+// live server and growing with retained archives); the buffer only bounds that reply and
+// each manifest/ciphertext hash is still verified afterwards.
+const remoteMaxBuffer = 64 * 1024 * 1024;
 const expiryJournal = '.expiry-journal';
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 const execute = promisify(execFile);
@@ -485,7 +489,7 @@ async function runOperator() {
     const pending = execute('ssh', [...options, loader], {
       encoding: 'utf8',
       timeout: 480000,
-      maxBuffer: 2 * 1024 * 1024,
+      maxBuffer: remoteMaxBuffer,
     });
     pending.child.stdin.end(JSON.stringify(request));
     const { stdout } = await pending;
@@ -713,7 +717,7 @@ async function main() {
   }
 }
 
-export { expireLocal, localArchives, cleanPending };
+export { expireLocal, localArchives, cleanPending, remoteMaxBuffer };
 
 if (
   process.argv[1] &&
