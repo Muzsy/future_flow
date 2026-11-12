@@ -1,5 +1,7 @@
 'use client';
 
+import { useId, type ReactNode } from 'react';
+
 import {
   storyCatalogs,
   storyLabels,
@@ -17,6 +19,10 @@ export type StoryAvailability = {
 
 type Draft = StoryDraft['story'];
 const unspecified = { mode: 'unspecified' } as const;
+const fictionalAnswerNotice = {
+  en: 'These optional answers describe the character in this story. They are never treated as facts about you or anyone else.',
+  hu: 'Ezek a válaszok nem kötelezőek, és a történet szereplőjére vonatkoznak. Nem kezeljük őket rólad vagy másról szóló tényként.',
+};
 
 export function blankStory(
   catalogVersion: StoryAvailability['catalogVersion'],
@@ -60,8 +66,10 @@ export function directionStep(
         typeof answer === 'object' &&
         !Array.isArray(answer) &&
         answer.mode === 'specified' &&
-        (typeof answer.value !== 'string' ||
-          answer.value.trim().length < (key === 'venture' ? 3 : 1)),
+        (Array.isArray(answer.value)
+          ? answer.value.length === 0
+          : typeof answer.value !== 'string' ||
+            answer.value.trim().length < (key === 'venture' ? 3 : 1)),
     )
   )
     return -2;
@@ -74,6 +82,39 @@ export function directionStep(
     (match.subtypes as readonly string[]).includes(story.subtype)
     ? 0
     : -1;
+}
+
+export function StoryRadioCards<T extends string>({
+  label,
+  showLabel = true,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  showLabel?: boolean;
+  options: readonly (readonly [T, ReactNode])[];
+  value: string | null | undefined;
+  onChange: (value: T) => void;
+}) {
+  const name = useId();
+  return (
+    <div className="story-card-group" role="radiogroup" aria-label={label}>
+      {showLabel && <strong className="story-card-label">{label}</strong>}
+      {options.map(([id, text]) => (
+        <label className="story-start-option" key={id}>
+          <input
+            type="radio"
+            name={name}
+            value={id}
+            checked={value === id}
+            onChange={() => onChange(id)}
+          />
+          <span>{text}</span>
+        </label>
+      ))}
+    </div>
+  );
 }
 
 const addressOptions = ['she_her', 'he_him', 'they_them'] as const;
@@ -93,42 +134,41 @@ export function AddressField({
   onChange: (value: Address) => void;
   locale: Locale;
 }) {
+  const hu = locale === 'hu';
+  const label = hu
+    ? 'Megszólítás a történetben'
+    : 'Form of address in the story';
   return (
-    <label>
-      {locale === 'hu'
-        ? 'Megszólítás a történetben'
-        : 'Form of address in the story'}
-      <select
+    <fieldset>
+      <legend>{label}</legend>
+      <small>{fictionalAnswerNotice[locale]}</small>
+      <StoryRadioCards
+        label={label}
+        showLabel={false}
         value={
           value?.mode === 'specified'
             ? value.value
             : (value?.mode ?? 'unspecified')
         }
-        onChange={(event) => {
-          const selected = event.target.value;
-          const address = addressOptions.find((option) => option === selected);
+        options={[
+          ['unspecified', hu ? 'Nem adom meg' : 'Not given'],
+          [
+            'engine_decides',
+            hu ? 'A történetre bízom' : 'Let the story decide',
+          ],
+          ...addressOptions.map((id) => [id, addressLabels[id]] as const),
+        ]}
+        onChange={(selected) =>
           onChange(
-            address
-              ? { mode: 'specified', value: address }
+            selected === 'unspecified'
+              ? unspecified
               : selected === 'engine_decides'
                 ? { mode: 'engine_decides' }
-                : unspecified,
-          );
-        }}
-      >
-        <option value="unspecified">
-          {locale === 'hu' ? 'Nem adom meg' : 'Not given'}
-        </option>
-        <option value="engine_decides">
-          {locale === 'hu' ? 'A történetre bízom' : 'Let the story decide'}
-        </option>
-        {addressOptions.map((value) => (
-          <option value={value} key={value}>
-            {addressLabels[value]}
-          </option>
-        ))}
-      </select>
-    </label>
+                : { mode: 'specified', value: selected },
+          )
+        }
+      />
+    </fieldset>
   );
 }
 
@@ -138,6 +178,7 @@ type Field = {
   choices?: readonly string[];
   preference?: boolean;
   multiple?: boolean;
+  textList?: boolean;
   only?: readonly string[];
 };
 const fields: Record<StoryDirectionId, Field[]> = {
@@ -145,8 +186,8 @@ const fields: Record<StoryDirectionId, Field[]> = {
     {
       key: 'attraction',
       label: [
-        'Who may the main character be drawn to?',
-        'Kihez vonzódhat a főszereplő?',
+        'In this story, who may the main character be drawn to?',
+        'Kihez vonzódhat a főszereplő ebben a történetben?',
       ],
       choices: ['women', 'men', 'nonbinary_people'],
       preference: true,
@@ -156,8 +197,8 @@ const fields: Record<StoryDirectionId, Field[]> = {
     {
       key: 'relationshipStatus',
       label: [
-        'Relationship status at the start',
-        'Kapcsolati helyzet az elején',
+        'Where does the main character’s love life stand at the start?',
+        'Hol tart a főszereplő szerelmi élete a történet elején?',
       ],
       choices: ['single', 'partnered', 'unsettled'],
       preference: true,
@@ -286,8 +327,82 @@ const fields: Record<StoryDirectionId, Field[]> = {
       label: ['How does the character act?', 'Hogyan cselekszik a szereplő?'],
       choices: ['open', 'dealmaking', 'behind_scenes'],
     },
+    {
+      key: 'inventedNames',
+      textList: true,
+      label: [
+        'Invented names (optional, up to three)',
+        'Kitalált nevek (opcionális, legfeljebb három)',
+      ],
+    },
   ],
 };
+
+const optionLabels: Record<string, readonly [string, string]> = {
+  women: ['Women', 'Nők'],
+  men: ['Men', 'Férfiak'],
+  nonbinary_people: ['Non-binary people', 'Nem bináris emberek'],
+  single: ['Single', 'Egyedül'],
+  partnered: ['In a relationship', 'Kapcsolatban'],
+  unsettled: ['Unsettled', 'Rendezetlen'],
+  trust: ['Trust', 'Bizalom'],
+  closeness_distance: ['Closeness and distance', 'Közelség és távolság'],
+  new_people: ['New people', 'Új ismeretségek'],
+  old_wounds: ['Old wounds', 'Régi sérelmek'],
+  commitment: ['Commitment', 'Elköteleződés'],
+  independence: ['Independence', 'Önállóság'],
+  advancement: ['Advancement', 'Előrelépés'],
+  mastery: ['Mastery', 'Szakmai elmélyülés'],
+  field_change: ['A change of field', 'Területváltás'],
+  balance: ['Balance', 'Egyensúly'],
+  alone: ['Alone', 'Egyedül'],
+  cofounder: ['With a co-founder', 'Társsal'],
+  family: ['With family', 'Családdal'],
+  savings: ['Savings', 'Megtakarítás'],
+  revenue: ['Revenue', 'Bevétel'],
+  loan_or_investor: ['A loan or an investor', 'Hitel vagy befektető'],
+  income: ['Steady income', 'Biztos jövedelem'],
+  colleagues: ['Colleagues', 'Kollégák'],
+  growth: ['Professional growth', 'Szakmai fejlődés'],
+  obligations: ['Obligations', 'Kötelezettségek'],
+  music: ['Music', 'Zene'],
+  visual_art: ['Visual art', 'Képzőművészet'],
+  writing: ['Writing', 'Írás'],
+  architecture_design: ['Architecture and design', 'Építészet és tervezés'],
+  performing_arts: ['Performing arts', 'Előadó-művészet'],
+  film_photo: ['Film and photography', 'Film és fotó'],
+  craft: ['Craft', 'Kézművesség'],
+  other: ['Something else', 'Más'],
+  beginning: ['Just beginning', 'Most kezdi'],
+  some_years: ['Some years', 'Néhány éve'],
+  long_time: ['A long time', 'Régóta'],
+  with_others: ['With others', 'Társakkal'],
+  with_mentor: ['With a mentor', 'Mester mellett'],
+  varies: ['It varies', 'Változó'],
+  partner: ['With a partner', 'Párommal'],
+  friends: ['With friends', 'Barátokkal'],
+  kept: ['A home and a job are kept', 'Megvan a lakás és a munka'],
+  given_up: ['I gave everything up', 'Mindent felszámoltam'],
+  local: ['Local matters', 'Helyi ügyek'],
+  internal: ['Offices inside an organisation', 'Szervezeten belüli tisztségek'],
+  national_fictional: [
+    'An invented matter of national weight',
+    'Kitalált, országos jelentőségű ügy',
+  ],
+  dealmaking: ['Through deals and alliances', 'Alkukkal és szövetségekkel'],
+  behind_scenes: ['From the background', 'A háttérből'],
+};
+function directionAnswerLabel(key: string, value: string, locale: Locale) {
+  if (value === 'open')
+    return key === 'homeBase'
+      ? locale === 'hu'
+        ? 'Nyitva hagytam'
+        : 'I left it open'
+      : locale === 'hu'
+        ? 'Nyílt lapokkal'
+        : 'In the open';
+  return optionLabels[value]?.[locale === 'hu' ? 1 : 0] ?? value;
+}
 
 export function StoryDirectionFields({
   step,
@@ -312,7 +427,7 @@ export function StoryDirectionFields({
   const change = (patch: Partial<Draft>) => onChange({ ...story, ...patch });
   if (step === -3)
     return (
-      <div className="story-start-options">
+      <div className="story-start-options story-catalog-grid">
         {availability.directions
           .filter(({ enabled }) => enabled)
           .map(({ id }) => (
@@ -357,7 +472,7 @@ export function StoryDirectionFields({
   );
   if (step === -1)
     return (
-      <div className="story-start-options">
+      <div className="story-start-options story-catalog-grid">
         {[...choices.map(([id]) => id), 'custom'].map((id) => (
           <label className="story-start-option" key={id}>
             <input
@@ -380,6 +495,15 @@ export function StoryDirectionFields({
                       ([key]) => key === id,
                     )?.[1].label[locale]}
               </strong>
+              {id !== 'custom' && (
+                <span className="story-option-description">
+                  {
+                    Object.entries(storyLabels.situations).find(
+                      ([key]) => key === id,
+                    )?.[1].description[locale]
+                  }
+                </span>
+              )}
             </span>
           </label>
         ))}
@@ -413,49 +537,44 @@ export function StoryDirectionFields({
             : 'This private story is about fictional people and institutions.'}
         </p>
       )}
-      <label>
-        {hu ? 'Altípus' : 'Story focus'}
-        <select
-          value={story.subtype ?? ''}
-          onChange={(event) => {
-            const subtype = event.target.value || null;
-            const active = fields[enabled.id].filter(
-              ({ only }) => !only || only.includes(subtype ?? ''),
-            );
-            const answers = Object.fromEntries(
-              Object.entries(story.answers).filter(([key]) =>
-                active.some((field) => field.key === key),
-              ),
-            );
-            const current = Object.entries(direction.situations).find(
-              ([id]) => id === story.startingSituation.id,
-            )?.[1];
-            change({
-              subtype,
-              answers,
-              startingSituation:
-                story.startingSituation.id === 'custom' ||
-                (subtype &&
-                  (
-                    current?.subtypes as readonly string[] | undefined
-                  )?.includes(subtype))
-                  ? story.startingSituation
-                  : { id: null, note: null },
-            });
-          }}
-        >
-          <option value="">{hu ? 'Válassz altípust' : 'Choose a focus'}</option>
-          {Object.keys(direction.subtypes).map((key) => (
-            <option key={key} value={key}>
-              {
-                Object.entries(storyLabels.subtypes).find(
-                  ([id]) => id === enabled.id + '/' + key,
-                )?.[1][locale]
-              }
-            </option>
-          ))}
-        </select>
-      </label>
+      <StoryRadioCards
+        label={hu ? 'Altípus' : 'Story focus'}
+        value={story.subtype}
+        options={Object.keys(direction.subtypes).map(
+          (key) =>
+            [
+              key,
+              Object.entries(storyLabels.subtypes).find(
+                ([id]) => id === enabled.id + '/' + key,
+              )?.[1][locale],
+            ] as const,
+        )}
+        onChange={(subtype) => {
+          const active = fields[enabled.id].filter(
+            ({ only }) => !only || only.includes(subtype ?? ''),
+          );
+          const answers = Object.fromEntries(
+            Object.entries(story.answers).filter(([key]) =>
+              active.some((field) => field.key === key),
+            ),
+          );
+          const current = Object.entries(direction.situations).find(
+            ([id]) => id === story.startingSituation.id,
+          )?.[1];
+          change({
+            subtype,
+            answers,
+            startingSituation:
+              story.startingSituation.id === 'custom' ||
+              (subtype &&
+                (current?.subtypes as readonly string[] | undefined)?.includes(
+                  subtype,
+                ))
+                ? story.startingSituation
+                : { id: null, note: null },
+          });
+        }}
+      />
       {story.subtype &&
         visible.map((field) => (
           <DirectionAnswer
@@ -500,34 +619,52 @@ function DirectionAnswer({
   return (
     <fieldset>
       <legend>{label}</legend>
+      {field.key === 'attraction' && (
+        <small>{fictionalAnswerNotice[locale]}</small>
+      )}
       {field.preference && (
-        <label>
-          {hu ? 'Válasz módja' : 'Answer preference'}
-          <select
-            value={preference?.mode ?? 'unspecified'}
-            onChange={(event) => {
-              const mode = event.target.value as
-                'unspecified' | 'engine_decides' | 'specified';
-              onChange({ mode });
-            }}
-          >
-            <option value="unspecified">
-              {hu ? 'Nem adom meg' : 'Not given'}
-            </option>
-            <option value="engine_decides">
-              {hu ? 'A történetre bízom' : 'Let the story decide'}
-            </option>
-            <option value="specified">{hu ? 'Megadom' : 'Specify'}</option>
-          </select>
-        </label>
+        <StoryRadioCards
+          label={hu ? 'Válasz módja' : 'Answer preference'}
+          value={preference?.mode ?? 'unspecified'}
+          options={
+            [
+              ['unspecified', hu ? 'Nem adom meg' : 'Not given'],
+              [
+                'engine_decides',
+                hu ? 'A történetre bízom' : 'Let the story decide',
+              ],
+              ['specified', hu ? 'Megadom' : 'Specify'],
+            ] as const
+          }
+          onChange={(mode) => onChange({ mode })}
+        />
       )}
       {(!field.preference || preference?.mode === 'specified') &&
-        (field.choices && field.multiple ? (
+        (field.textList ? (
+          [0, 1, 2]
+            .slice(
+              0,
+              Math.min(3, (Array.isArray(value) ? value.length : 0) + 1),
+            )
+            .map((index) => (
+              <input
+                key={index}
+                aria-label={label + ' ' + (index + 1)}
+                maxLength={160}
+                value={Array.isArray(value) ? (value[index] ?? '') : ''}
+                onChange={(event) => {
+                  const items = Array.isArray(value) ? [...value] : [];
+                  items[index] = event.target.value;
+                  write(items.filter((item) => item.trim()));
+                }}
+              />
+            ))
+        ) : field.choices && field.multiple ? (
           field.choices.map((option) => {
             const selected = Array.isArray(value) ? value : [];
             const checked = selected.includes(option);
             return (
-              <label className="checkbox" key={option}>
+              <label className="story-start-option" key={option}>
                 <input
                   type="checkbox"
                   checked={checked}
@@ -542,23 +679,28 @@ function DirectionAnswer({
                     )
                   }
                 />
-                {option.replaceAll('_', ' ')}
+                <span>{directionAnswerLabel(field.key, option, locale)}</span>
               </label>
             );
           })
         ) : field.choices ? (
-          <select
-            aria-label={inputLabel}
+          <StoryRadioCards
+            label={inputLabel}
             value={typeof value === 'string' ? value : ''}
-            onChange={(event) => write(event.target.value || null)}
-          >
-            <option value="">{hu ? 'Válassz' : 'Choose'}</option>
-            {field.choices.map((option) => (
-              <option key={option} value={option}>
-                {option.replaceAll('_', ' ')}
-              </option>
-            ))}
-          </select>
+            options={[
+              ...(!field.preference && field.key !== 'field'
+                ? [['', hu ? 'Nem adom meg' : 'Not given'] as const]
+                : []),
+              ...field.choices.map(
+                (option) =>
+                  [
+                    option,
+                    directionAnswerLabel(field.key, option, locale),
+                  ] as const,
+              ),
+            ]}
+            onChange={(option) => write(option || null)}
+          />
         ) : (
           <input
             aria-label={inputLabel}

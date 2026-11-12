@@ -9,14 +9,14 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 ## Állapot
 
-| Csomag    | Állapot           | Következő lépés                                                                         |
-| --------- | ----------------- | --------------------------------------------------------------------------------------- |
-| TI00      | Folyamatban       | A terv rögzítése és a piszkozatkezelés, valamint a visszaállítás egységesítése.         |
-| TI01–TI04 | Elkészült helyben | Szerződések, opcionális cél, v10 és szerveroldali mentés.                               |
-| TI05      | Folyamatban       | Az új indítás bekötve; a végleges lépéssorrend, szövegezés és böngészős próba hátravan. |
-| TI06–TI08 | Hátravan          | Adatkezelés, publikálási felület és kiadás előkészítése.                                |
-| TI09      | Hátravan          | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                         |
-| TI10      | Hátravan          | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                                 |
+| Csomag    | Állapot           | Következő lépés                                                                          |
+| --------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| TI00      | Folyamatban       | A terv rögzítése és a piszkozatkezelés, valamint a visszaállítás egységesítése.          |
+| TI01–TI04 | Elkészült helyben | Szerződések, opcionális cél, v10 és szerveroldali mentés.                                |
+| TI05      | Folyamatban       | A tízlépéses indítás és a vizuális javítás elkészült helyben; teljes elfogadás hátravan. |
+| TI06–TI08 | Hátravan          | Adatkezelés, publikálási felület és kiadás előkészítése.                                 |
+| TI09      | Hátravan          | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                          |
+| TI10      | Hátravan          | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                                  |
 
 ## Napló
 
@@ -31,7 +31,10 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI04: az API és az adatbázis összekötve. Az indítás egyező revízió és tartalom mellett üríti a felhasznált piszkozatot. A régi kliens vagy a kikapcsolt funkció mellett szerkesztett közös mezők mentése megőrzi az irányt. Az adatbázis- és workerpróba cél nélküli életből is mentett első fejezetet, majd kikapcsolt új indítás mellett döntést és következő fejezetet. A csomagbuild, az API típusellenőrzése és a 90 esetből álló regressziós futás sikeres volt. A kibővített v10 teszteset külön is sikeres.
 
-- TI05: az engedélyezett fiókoknál az új indítás irányt, altípust és kezdőhelyzetet kér, majd a meglévő űrlapra épít. A cél kihagyható. A szereplők kapcsolata megadható, az új piszkozat alapból fiktív szereplővel indul. A felület az indításkor elküldi a mentett piszkozat revízióját; a böngészős másolatot csak visszaigazolt szerveroldali kiürítésnél távolítja el. Kikapcsolt funkciónál a régi indítás látszik. A régi és új indító mezők egy oszlopban jelennek meg. A webes build és a 33 szerződéses és API-regressziós eset sikeres. Helyi Playwright-próba szimulált API-val: az engedélyezett vállalkozói irány kiválasztható, a letiltott politikai irány nem látszik, az egyéni kezdőhelyzet oldalfrissítés után megmarad, cél nélkül `goal: null` és a mentett revízió megy a szervernek, az igazolt kiürítés után eltűnik a böngészős másolat, kikapcsolt kapcsolóval a régi indítás látszik. A teljes W/V elfogadási sor, a terv szerinti tízlépéses csoportosítás és a végleges kétnyelvű kérdések hátravannak.
+- TI05: az engedélyezett fiókoknál az új indítás irányt, altípust és kezdőhelyzetet kér, majd a meglévő űrlapra épít. A cél kihagyható. A szereplők kapcsolata megadható, az új piszkozat alapból fiktív szereplővel indul. A felület az indításkor elküldi a mentett piszkozat revízióját; a böngészős másolatot csak visszaigazolt szerveroldali kiürítésnél távolítja el. Kikapcsolt funkciónál a régi indítás látszik. A régi és új indító mezők egy oszlopban jelennek meg. A webes build és a 33 szerződéses és API-regressziós eset sikeres. Helyi Playwright-próba szimulált API-val: az engedélyezett vállalkozói irány kiválasztható, a letiltott politikai irány nem látszik, az egyéni kezdőhelyzet oldalfrissítés után megmarad, cél nélkül `goal: null` és a mentett revízió megy a szervernek, az igazolt kiürítés után eltűnik a böngészős másolat, kikapcsolt kapcsolóval a régi indítás látszik. Az első változat után az alábbi kör vitte tovább a lépéssorrendet és a felületet.
+
+- TI05, vizuális felülvizsgálat: az eredeti feladatlista a régi 12 lépéses űrlap levágott opcióit rögzítette. A régi út teljes szélességű mezőket kapott, a kérdései és lépéssorrendje megmaradtak. Az új út tíz lépésre állt át. Rövid listáknál natív, billentyűzettel kezelhető rádiógombok és jelölőnégyzetek kerültek tördelhető kártyákra; a hosszú országlista helyi országneveket mutat és ugyanúgy országkódot ment. A körülmények átugorhatók, a meglátogatott lépések és az összegzés mezőcsoportjai visszanyithatók. A mentés megőrzi a korábbi elrendezésben készült piszkozat tartalmát.
+- Helyi Playwright, szimulált API, angol felület: 360×740, 390×844, 768×1024 és 1280×800. Mind a négy méreten végigment a tíz új lépés és az összes régi lépés. Nem volt vízszintes túlcsordulás az új űrlapon vagy a vizsgált kártyákon; a vizsgált kártyák legalább 44 px magasak, és a régi legördülők opciószövege elfért. A próba ellenőrizte a nyílbillentyűs irányváltást, a piszkozat visszaolvasását, az összegzésből szerkesztést, a cél validációját és a cél nélküli kérés indítását. Külön kapcsolati próba igazolta a több választ engedő opcionális preferenciát, az üres becenév jelzését (a továbblépés tiltásával) és a partner szerep elküldését. A build és 33 célzott regressziós teszt zöld. Ez nem a teljes W/V elfogadási sor: a magyar szöveg van a forrásban, de az alkalmazás jelenlegi nyelvi kapcsolója csak az angolt engedi; külön próba kell a fennmaradó irányokhoz, magyar nézethez és a teljes elszigetelt alkalmazásfolyamathoz.
 
 ## Nyitott kérdések és problémák
 
