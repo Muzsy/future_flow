@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { localeSchema, enabledLocaleSchema } from './locales';
+import {
+  storyAddressSchema,
+  storyDraftV1Schema,
+  storySetupV1Schema,
+} from './story';
 
 // Kept separate from the v1 schemas: existing stored canon must remain readable.
 export const LIFE_CONTRACT_VERSION = '2.0.0';
@@ -322,6 +327,24 @@ export const lifeCreateRequestV2Schema = lifeSetupV2Schema.extend({
 export const lifeDraftRequestV2Schema = lifeDraftV2Schema.extend({
   locale: enabledLocaleSchema,
 });
+// The direction contracts are kept separate until the server can persist and
+// route them. The existing endpoints continue to validate legacy requests.
+const storySetupRelationshipSchema = actorSchema.omit({ id: true }).extend({
+  address: storyAddressSchema.optional(),
+});
+
+export const lifeStoryCreateRequestV2Schema = lifeCreateRequestV2Schema.extend({
+  relationships: z.array(storySetupRelationshipSchema).max(10),
+  goal: lifeSetupV2Schema.shape.goal.nullable(),
+  story: storySetupV1Schema,
+  draftRevision: z.number().int().positive().optional(),
+});
+
+export const lifeStoryDraftRequestV2Schema = lifeDraftRequestV2Schema.extend({
+  relationships: z.array(storySetupRelationshipSchema).max(10),
+  story: storyDraftV1Schema,
+});
+
 export const periodChapterV2Schema = z
   .object({
     title: label,

@@ -22,6 +22,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 - A hét tervdokumentum közös könyvtárba került. A repó dokumentumindexe és a fejlesztési főterv ide mutat.
 - A meglévő konténeres CI és az izolált image-próba adja az újrahasználható ellenőrzés alapját. Az alkalmazáspróba a kiadásra szánt image-et futtatja eldobható adatbázissal, tesztfiókkal és szimulált AI-válaszokkal. A 049-es első esetek a régi történet folytatása, az új indítás, a piszkozat visszatöltése és a fejezet elszámolása. A próba helyi és CI-futtatását az első megvalósítási csomagokkal együtt kell kialakítani.
 
+- TI01: az öt történetirány és az ötven kezdőhelyzet bekerült a katalógusba. Külön fájlban vannak az angol és magyar megjelenítési szövegek. A cél nélküli indítás sémája elkészült; az API még a meglévő sémát használja. A contracts típusellenőrzése és a két célzott tesztfájl 25 esete sikeres.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali megvalósítás és teszt a TI04 csomag feladata.

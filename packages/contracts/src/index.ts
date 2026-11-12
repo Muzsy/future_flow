@@ -378,3 +378,6 @@ export * from './narrative';
 
 export * from './fiction';
 export * from './fiction-character';
+export * from './story';
+export * from './story-catalog';
+export * from './story-labels';
