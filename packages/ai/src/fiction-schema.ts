@@ -26,7 +26,8 @@ const MINTED_UUID_PROPERTIES = new Set(['id', 'sceneId']);
 export const isMintedUuidProperty = (property: string | undefined) =>
   MINTED_UUID_PROPERTIES.has(property ?? '');
 
-const FICTION_COMPACT_UUID_PROMPTS = /^life_fiction_(?:plan|author)\.v9\./;
+const FICTION_COMPACT_UUID_PROMPTS =
+  /^life_fiction_(?:plan|author)\.v(?:9|10)\./;
 
 export const fictionCompactUuidFor = (promptVersion?: string) =>
   promptVersion !== undefined &&

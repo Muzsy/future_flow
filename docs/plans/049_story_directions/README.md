@@ -26,6 +26,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - A tárolt életben az üres céllista irányhoz kötött. A szereplőhivatkozásoknak létezniük kell a kezdeti állapotban. A v10 külön policyval szerepel a szerződésben. A cél nélküli és a politikai irányú élet nyilvános előnézete és nyilvános elágazási vetülete típusos hibával zárul. A csomagbuild, a sémaexport és 66 célzott teszt sikeres, köztük a befagyasztott v8/v9 kérések. Az irányellenőrző külön próbája is zöld.
 
+- A cél nélküli élet címét a felületi címkékből állítjuk össze. A v10 motor a választott irányt szerver által előállított keretként kapja, a szabad szöveg a felhasználói bemenetben marad. Az öt v10 prompt elkészült első jelöltként. A csomagbuild és 39 célzott teszt sikeres, köztük a v8/v9 rögzített kérései és a cél nélküli élet projekciója. A v10 szerveroldali kiválasztása és végigpróbája még hátravan.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali megvalósítás és teszt a TI04 csomag feladata.

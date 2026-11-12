@@ -23,6 +23,7 @@ import {
   type Locale,
 } from '@future-flow/contracts';
 import {
+  lifeTitle,
   DomainError,
   serviceAccessEnforcementFromEnv,
   addMonths,
@@ -488,7 +489,7 @@ export class LifeRepository {
       [
         input.lifeId,
         userId,
-        input.goals.find((goal) => goal.priority === 'primary')!.description,
+        lifeTitle(input),
         input.locale,
         JSON.stringify(input),
         input.branchId,

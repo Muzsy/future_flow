@@ -15,6 +15,8 @@ import {
   hash,
   simulatePeriodV2,
   validateLifeInputV2,
+  lifeTitle,
+  storyDirectionProjection,
   preparePublicEditorSource,
   preparePublicSnapshotDraft,
   validateLifeStateV2,
@@ -192,6 +194,34 @@ describe('v2 period and persistent facts', () => {
       title: null,
     };
     expect(validateLifeInputV2(life).goals).toEqual([]);
+    life.locale = 'en';
+    life.story.startingSituation.note =
+      'Private free text must remain outside the projection.';
+    expect(lifeTitle(life)).toBe(
+      'Relationships & love · A new city, new people',
+    );
+    const period = {
+      input: life,
+      state: life.initialState,
+      revision: 0,
+      periodId: randomUUID(),
+      startDate: life.initialState.effectiveAt,
+      endDate: '2027-04-03',
+      durationMonths: 6 as const,
+      acceptedDecisionIds: [],
+      memory: { recentEvents: [], choices: [] },
+    };
+    const projection = storyDirectionProjection(period);
+    expect(projection.goalMode).toBe('none');
+    expect(projection.startingSituation?.id).toBe('rel.new_city');
+    expect(projection.emphases[0]?.hardLimits).toEqual([]);
+    expect(JSON.stringify(projection)).not.toContain(
+      life.story.startingSituation.note,
+    );
+    expect(
+      storyDirectionProjection({ ...period, startDate: period.endDate })
+        .startingSituation,
+    ).toBeUndefined();
     expect(() => preparePublicEditorSource(life, [], 0)).toThrow(
       'This story cannot be prepared for publication yet.',
     );

@@ -39,6 +39,7 @@ import {
 } from '@future-flow/contracts';
 import { hash } from './index';
 import { DomainError } from './errors';
+import { storyDirectionProjection } from './story-direction';
 import { simulatePeriodV2, validateNarrativeChapterV1 } from './life-v2';
 import {
   narrativeReferencesFromSnapshot,
@@ -257,9 +258,12 @@ export function fictionPlannerRequest(
         : {}),
     },
     narrativeContext: context,
+    ...(context.policy.qualityPolicyVersion === '2.9.0'
+      ? { storyDirection: storyDirectionProjection(input) }
+      : {}),
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0'].includes(
+    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0'].includes(
       context.policy.qualityPolicyVersion,
     )
       ? { referenceProjection: fictionReferenceProjection(input) }

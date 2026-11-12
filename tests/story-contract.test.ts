@@ -12,6 +12,7 @@ import {
   storyV1Schema,
 } from '../packages/contracts/src';
 import { validateStorySetup } from '../packages/core/src/story-direction';
+import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 
 const catalog = storyCatalogs[STORY_CATALOG_VERSION];
 const emphasis = {
@@ -37,6 +38,16 @@ describe('story direction contracts', () => {
         },
       }).success,
     ).toBe(false);
+  });
+
+  it('keeps emerging aims available in goal-free v10 stories', () => {
+    const prompts = fictionPrompts('en', fictionV10Policy().promptVersions);
+    for (const prompt of Object.values(prompts)) {
+      expect(prompt).toContain('its hardLimits are binding when present');
+      expect(prompt).not.toContain('Every institution, party, movement');
+    }
+    expect(prompts.author).toContain('Characters can develop wants and plans');
+    expect(prompts.author).toContain('Never emit goal_progress_set');
   });
 
   it('covers each catalogue entry with labels and matching schema identifiers', () => {

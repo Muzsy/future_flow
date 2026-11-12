@@ -754,7 +754,9 @@ export class OpenAiProvider
                 'life_fiction_editor.v7' ||
               context.policy.promptVersions.editor ===
                 'life_fiction_editor.v8' ||
-              context.policy.promptVersions.editor === 'life_fiction_editor.v9'
+              ['life_fiction_editor.v9', 'life_fiction_editor.v10'].includes(
+                context.policy.promptVersions.editor,
+              )
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',
