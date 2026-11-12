@@ -61,7 +61,12 @@ export const REQUIRED_PARAMETERS = [
   'CLOUDFLARE_ACCESS_AUD',
   'TURNSTILE_SITE_KEY',
 ];
-export const OPTIONAL_PARAMETERS = ['CLOUDFLARE_ACCESS_TEAM_DOMAIN'];
+export const OPTIONAL_PARAMETERS = [
+  'CLOUDFLARE_ACCESS_TEAM_DOMAIN',
+  'STORY_DIRECTIONS_ENABLED',
+  'STORY_DIRECTIONS_COHORT_USER_IDS',
+  'STORY_DIRECTION_POLITICS_ENABLED',
+];
 
 const IMAGE = /^sha256:[a-f0-9]{64}$/;
 const HEX64 = /^[a-f0-9]{64}$/;
@@ -114,8 +119,24 @@ export function canonicalJson(value) {
   return encode(value) + '\n';
 }
 
+const STORY_COHORT_UUID =
+  /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+function validStoryCohort(value) {
+  if (value === '') return true;
+  const ids = value.toLowerCase().split(',');
+  return (
+    ids.length <= 100 &&
+    new Set(ids).size === ids.length &&
+    ids.every((id) => STORY_COHORT_UUID.test(id))
+  );
+}
+
 // Per-key value rules, mirrored from ALLOWED in contabo-service-env.py.
 const VALUE_RULES = {
+  STORY_DIRECTIONS_ENABLED: (v) => v === 'true' || v === 'false',
+  STORY_DIRECTIONS_COHORT_USER_IDS: validStoryCohort,
+  STORY_DIRECTION_POLITICS_ENABLED: (v) => v === 'true' || v === 'false',
   AI_PROJECT_BUDGET_USD: (v) =>
     USD.test(v) && Number(v) > 0 && Number(v) <= MAX_PROJECT_USD,
   AI_USER_BUDGET_USD: (v) =>

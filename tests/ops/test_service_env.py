@@ -380,6 +380,35 @@ class ServiceEnvTests(unittest.TestCase):
             with self.subTest(key):
                 self.assert_refused(self.request(**{key: value}), 'rejected|not in the allowed set')
 
+    def test_story_direction_cohort_requires_v9_and_both_runtime_services(self):
+        request = self.request(STORY_DIRECTIONS_COHORT_USER_IDS=OLD_USER,
+                               STORY_DIRECTION_POLITICS_ENABLED='false')
+        self.assert_refused(request, 'v9 fiction configuration')
+
+        for role in ('api', 'worker'):
+            KEYS[role].extend(env.STORY_DIRECTION_DEFAULTS)
+            for key in env.STORY_DIRECTION_DEFAULTS:
+                self.addCleanup(KEYS[role].remove, key)
+        story_env = SERVER_ENV + ("NARRATIVE_PIPELINE_MODE='narrative-fiction-v2'\n"
+                                  "NARRATIVE_FICTION_GENERATION='v9'\n")
+        with mock.patch.dict(DEFAULTS, env.STORY_DIRECTION_DEFAULTS), \
+                mock.patch(__name__ + '.SERVER_ENV', story_env):
+            self.setUp()
+            report = self.stepper.plan_report(request)
+            self.assertIn('STORY_DIRECTIONS_COHORT_USER_IDS', report['changedKeys'])
+            self.assertNotIn('STORY_DIRECTION_POLITICS_ENABLED', report['changedKeys'])
+            self.assertNotIn(OLD_USER, json.dumps(report))
+            old_config = self.host.running
+            new_config = json.loads(json.dumps(old_config))
+            for service in env.SERVICES:
+                new_config['services'][service]['environment']['SERVICE_ACCESS_ENFORCEMENT'] = 'true'
+            new_config['services']['web']['environment']['TURNSTILE_SITE_KEY'] = request['values']['TURNSTILE_SITE_KEY']
+            new_config['services']['api']['environment']['STORY_DIRECTIONS_COHORT_USER_IDS'] = OLD_USER
+            with self.assertRaisesRegex(env.Refusal, 'both API and worker'):
+                env.check_compose_delta(old_config, new_config, {
+                    'SERVICE_ACCESS_ENFORCEMENT', 'TURNSTILE_SITE_KEY', 'STORY_DIRECTIONS_COHORT_USER_IDS'
+                })
+
     def test_the_public_turnstile_site_key_is_set_and_reaches_only_the_web_service(self):
         key = '0x4AAAAAAAtestSiteKey0001'
         report = self.stepper.plan_report(self.request())
