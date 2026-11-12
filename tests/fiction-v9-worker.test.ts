@@ -307,6 +307,17 @@ describe('living-world generation through the real guarded provider and database
       key,
     );
     expect(created).toHaveProperty('draftCleared', true);
+    expect(await lives.list(owner)).toEqual([
+      expect.objectContaining({
+        id: created.lifeId,
+        story_direction: 'relationships',
+      }),
+    ]);
+    expect((await lives.list(owner))[0]).not.toHaveProperty('input');
+    expect(await lives.detail(owner, created.branchId)).toMatchObject({
+      storyDirection: 'relationships',
+      publicationBlocker: null,
+    });
     expect(await lives.draft(owner)).toMatchObject({
       revision: revision + 1,
       payload: null,

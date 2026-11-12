@@ -36,6 +36,9 @@ import {
   AddressField,
   blankStory,
   directionStep,
+  hasUnavailableStoryChoice,
+  storyAddressSummary,
+  storyFocusSummary,
   StoryDirectionFields,
   StoryRadioCards,
   type StoryAvailability,
@@ -53,9 +56,12 @@ type Summary = {
   title: string;
   content_locale: 'en' | 'hu';
   root_branch_id: string;
+  story_direction?: string | null;
   status: string;
 };
 type Detail = {
+  storyDirection?: string | null;
+  publicationBlocker?: 'politics' | 'goal_missing' | null;
   initialChoice: PublicForkInitialChoice | null;
   branch: {
     id: string;
@@ -109,6 +115,21 @@ const storyStepTitles = {
     'Határok és kiegészítés',
     'Áttekintés és indítás',
   ],
+};
+function storyDirectionLabel(
+  direction: string | null | undefined,
+  locale: 'en' | 'hu',
+) {
+  return Object.entries(storyLabels.directions).find(
+    ([key]) => key === direction,
+  )?.[1].label[locale];
+}
+const actorRelationships = {
+  partner: { en: 'Partner', hu: 'Partner' },
+  family: { en: 'Family', hu: 'Családtag' },
+  friend: { en: 'Friend', hu: 'Barát' },
+  colleague: { en: 'Colleague', hu: 'Munkatárs' },
+  other: { en: 'Other', hu: 'Egyéb' },
 };
 const defaultSetup: LifeSetupV2 = {
   locale: 'en',
@@ -230,6 +251,7 @@ export function LifeExperience({
     null,
   );
   const [keptDraft, setKeptDraft] = useState(false);
+  const [retainedDirection, setRetainedDirection] = useState(false);
   const cacheKey = storyAccess?.enabled
     ? `alterward.lifeDraft.v2:${user}`
     : `alterward.lifeDraft:${user}`;
@@ -349,6 +371,9 @@ export function LifeExperience({
             setStoryAccess(availability);
             setKeptDraft(
               !!draft.payload && !draft.payload.story && availability.enabled,
+            );
+            setRetainedDirection(
+              !availability.enabled && !!draft.payload?.story,
             );
             let payload: Setup = draft.payload ?? structuredClone(defaultSetup);
             const localCacheKey = availability.enabled
@@ -620,7 +645,13 @@ export function LifeExperience({
             >
               <small>{languages[life.content_locale].nativeName}</small>
               <h2 lang={life.content_locale}>{life.title}</h2>
-              <p>{m.private}</p>
+              <p>
+                {m.private}
+                {life.story_direction &&
+                storyDirectionLabel(life.story_direction, locale)
+                  ? ' · ' + storyDirectionLabel(life.story_direction, locale)
+                  : ''}
+              </p>
             </button>
           ))}
         </div>
@@ -797,6 +828,22 @@ export function LifeExperience({
               ))}
           </nav>
         )}
+        {retainedDirection && (
+          <p className="subtle">
+            {hu
+              ? 'A korábbi történetirány válaszait megőrizzük a piszkozatban. Most a közös mezőket szerkesztheted.'
+              : 'Your earlier story direction answers are kept in the draft. You can edit the shared details here.'}
+          </p>
+        )}
+        {story &&
+          storyAccess &&
+          hasUnavailableStoryChoice(story, storyAccess) && (
+            <p role="status">
+              {hu
+                ? 'Az egyik korábbi válaszod már nem érhető el. Kérjük, válassz újra.'
+                : 'One of your earlier answers is no longer available. Please choose again.'}
+            </p>
+          )}
         {keptDraft && step === -3 && (
           <p>
             {hu
@@ -1137,15 +1184,14 @@ export function LifeExperience({
                     <StoryRadioCards
                       label={hu ? 'Kapcsolat' : 'Relationship'}
                       value={actor.relationship}
-                      options={
-                        [
-                          ['partner', 'Partner'],
-                          ['family', hu ? 'Családtag' : 'Family'],
-                          ['friend', hu ? 'Barát' : 'Friend'],
-                          ['colleague', hu ? 'Munkatárs' : 'Colleague'],
-                          ['other', hu ? 'Egyéb' : 'Other'],
-                        ] as const
-                      }
+                      options={(
+                        Object.keys(
+                          actorRelationships,
+                        ) as (keyof typeof actorRelationships)[]
+                      ).map(
+                        (key) =>
+                          [key, actorRelationships[key][locale]] as const,
+                      )}
                       onChange={(relationship) => edit({ relationship })}
                     />
                     <AddressField
@@ -1350,12 +1396,7 @@ export function LifeExperience({
                         ([id]) => id === story.direction,
                       )?.[1].label[locale],
                     ],
-                    [
-                      1,
-                      Object.entries(storyLabels.subtypes).find(
-                        ([id]) => id === story.direction + '/' + story.subtype,
-                      )?.[1][locale],
-                    ],
+                    [1, storyFocusSummary(story, locale)],
                     [
                       2,
                       [
@@ -1371,6 +1412,7 @@ export function LifeExperience({
                       3,
                       [
                         setup.identity.label,
+                        storyAddressSummary(story.protagonistAddress, locale),
                         setup.identity.ageBand
                           .replace('_', '–')
                           .replace('plus', '+'),
@@ -1392,7 +1434,19 @@ export function LifeExperience({
                     ],
                     [
                       5,
-                      setup.relationships.map(({ label }) => label).join(', '),
+                      setup.relationships
+                        .map(({ label, relationship, address }) =>
+                          [
+                            label,
+                            actorRelationships[relationship][locale],
+                            address && address.mode !== 'unspecified'
+                              ? storyAddressSummary(address, locale)
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        )
+                        .join('; '),
                     ],
                     [
                       6,
@@ -1446,6 +1500,18 @@ export function LifeExperience({
                   </div>
                 ))}
               </dl>
+              {story.direction === 'relationships' &&
+                story.subtype === 'romantic' &&
+                (!story.answers.attraction ||
+                  (typeof story.answers.attraction === 'object' &&
+                    !Array.isArray(story.answers.attraction) &&
+                    story.answers.attraction.mode === 'unspecified')) && (
+                  <p className="subtle">
+                    {hu
+                      ? 'Nem adtad meg, kihez vonzódhat a főszereplő. A történet magától nem vezet be új szerelmi szereplőt; a szerelmi szál a megadott szereplőkkel és a saját döntéseid nyomán alakulhat.'
+                      : 'You did not say who the main character may be drawn to. The story will not introduce a new romantic interest by itself; romance can grow with the people you listed and from your own choices.'}
+                  </p>
+                )}
               <p className="subtle">
                 {hu
                   ? 'Az irány az indítás után nem módosítható. A cselekmény a döntéseid nyomán szabadon alakul.'
@@ -1612,6 +1678,8 @@ export function LifeExperience({
       </div>
     );
   const b = detail.branch;
+  const direction = storyDirectionLabel(detail.storyDirection, locale);
+  const hu = locale === 'hu';
   const choose = async (decisionId: string, optionId: string) => {
     await mutate(`/branches/${b.id}/choice`, {
       revision: b.revision,
@@ -1634,17 +1702,29 @@ export function LifeExperience({
           </button>
           <div className="eyebrow">
             {m.private} · {languages[b.content_locale].nativeName}
+            {direction ? ' · ' + direction : ''}
           </div>
           <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
         </div>
         <div className="page-head-actions">
           {detail.periods.length > 0 &&
             b.status !== 'generating' &&
-            b.status !== 'failed' && (
+            b.status !== 'failed' &&
+            (detail.publicationBlocker ? (
+              <p className="subtle">
+                {detail.publicationBlocker === 'politics'
+                  ? hu
+                    ? 'A közéleti történetek egyelőre csak privátban érhetők el.'
+                    : 'Stories about public life remain private for now.'
+                  : hu
+                    ? 'Az előre kitűzött cél nélküli történetek egyelőre csak privátban érhetők el.'
+                    : 'Stories without a set goal remain private for now.'}
+              </p>
+            ) : (
               <Link className="secondary" href={`/preview/${b.id}`}>
-                Prepare a story copy
+                {hu ? 'Történetmásolat előkészítése' : 'Prepare a story copy'}
               </Link>
-            )}
+            ))}
           <LifeDeletionControl
             lifeId={b.life_id}
             branchId={b.id}

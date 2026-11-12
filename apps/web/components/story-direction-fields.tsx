@@ -55,8 +55,12 @@ export function directionStep(
     return -2;
   if (
     enabled.id === 'creative' &&
-    (!story.answers.field ||
-      (story.answers.field === 'other' && !story.answers.fieldLabel))
+    (!fields.creative
+      .find(({ key }) => key === 'field')
+      ?.choices?.includes(String(story.answers.field ?? '')) ||
+      (story.answers.field === 'other' &&
+        (typeof story.answers.fieldLabel !== 'string' ||
+          !story.answers.fieldLabel.trim())))
   )
     return -2;
   if (
@@ -404,6 +408,73 @@ function directionAnswerLabel(key: string, value: string, locale: Locale) {
   return optionLabels[value]?.[locale === 'hu' ? 1 : 0] ?? value;
 }
 
+export function storyPreferenceLabel(
+  mode: 'specified' | 'unspecified' | 'engine_decides' | undefined,
+  locale: Locale,
+) {
+  const hu = locale === 'hu';
+  if (mode === 'engine_decides')
+    return hu ? 'A történetre bízom' : 'Let the story decide';
+  return hu ? 'Nem adom meg' : 'Not given';
+}
+
+export function storyAddressSummary(
+  value: Address | undefined,
+  locale: Locale,
+) {
+  return value?.mode === 'specified'
+    ? addressLabels[value.value]
+    : storyPreferenceLabel(value?.mode, locale);
+}
+
+export function storyFocusSummary(story: Draft, locale: Locale) {
+  const answers = Object.entries(story.answers).flatMap(([key, answer]) => {
+    if (!answer) return [];
+    const answerLabel = (value: string) =>
+      directionAnswerLabel(key, value, locale);
+    if (typeof answer === 'string') return [answerLabel(answer)];
+    if (Array.isArray(answer)) return answer.map(answerLabel);
+    if (answer.mode === 'specified') {
+      if (Array.isArray(answer.value)) return answer.value.map(answerLabel);
+      if (answer.value) return [answerLabel(answer.value)];
+    }
+    return [storyPreferenceLabel(answer.mode, locale)];
+  });
+  return [
+    Object.entries(storyLabels.subtypes).find(
+      ([key]) => key === story.direction + '/' + story.subtype,
+    )?.[1][locale],
+    ...answers,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export function hasUnavailableStoryChoice(
+  story: Draft,
+  availability: StoryAvailability,
+) {
+  if (!story.direction) return false;
+  if (story.catalogVersion !== availability.catalogVersion) return true;
+  const selected = availability.directions.find(
+    ({ id, enabled }) => enabled && id === story.direction,
+  );
+  if (!selected) return true;
+  const direction =
+    storyCatalogs[availability.catalogVersion].directions[selected.id];
+  if (story.subtype && !Object.hasOwn(direction.subtypes, story.subtype))
+    return true;
+  const id = story.startingSituation.id;
+  if (!id || id === 'custom') return false;
+  const situation = Object.entries(direction.situations).find(
+    ([key]) => key === id,
+  )?.[1];
+  return (
+    !situation?.selectable ||
+    !(situation.subtypes as readonly string[]).includes(story.subtype ?? '')
+  );
+}
+
 export function StoryDirectionFields({
   step,
   story,
@@ -435,7 +506,10 @@ export function StoryDirectionFields({
               <input
                 type="radio"
                 name="story-direction"
-                checked={story.direction === id}
+                checked={
+                  story.direction === id &&
+                  story.catalogVersion === availability.catalogVersion
+                }
                 onChange={() => {
                   if (
                     (story.subtype || story.startingSituation.id) &&

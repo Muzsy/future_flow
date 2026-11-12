@@ -30,6 +30,7 @@ import {
 } from '@future-flow/contracts';
 import {
   lifeTitle,
+  storyPublicationBlocker,
   validateStorySetup,
   DomainError,
   serviceAccessEnforcementFromEnv,
@@ -332,7 +333,7 @@ export class LifeRepository {
   }
   async list(userId: string, locales: readonly Locale[] = supportedLocales) {
     return this.db.query(
-      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 AND l.content_locale=ANY($2::text[]) ORDER BY l.created_at DESC LIMIT 100`,
+      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status,l.input #>> '{story,emphases,0,direction}' AS story_direction FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 AND l.content_locale=ANY($2::text[]) ORDER BY l.created_at DESC LIMIT 100`,
       [userId, [...locales]],
     );
   }
@@ -356,6 +357,8 @@ export class LifeRepository {
     );
     return {
       branch,
+      storyDirection: branch.input.story?.emphases[0]?.direction ?? null,
+      publicationBlocker: storyPublicationBlocker(branch.input),
       initialChoice: await this.initialChoice(userId, branch.life_id),
       periods,
       branches: await this.db.query(

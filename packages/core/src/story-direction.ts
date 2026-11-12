@@ -80,11 +80,16 @@ export function validateStorySetup(
     );
 }
 
+export function storyPublicationBlocker(
+  input: LifeInputV2,
+): 'politics' | 'goal_missing' | null {
+  if (input.story?.emphases.some(({ direction }) => direction === 'politics'))
+    return 'politics';
+  return input.goals.length === 0 ? 'goal_missing' : null;
+}
+
 export function assertPublishableStory(input: LifeInputV2): void {
-  if (
-    input.goals.length === 0 ||
-    input.story?.emphases.some(({ direction }) => direction === 'politics')
-  )
+  if (storyPublicationBlocker(input))
     throw new DomainError(
       'PUBLIC_PREVIEW_STORY_UNSUPPORTED',
       'This story cannot be prepared for publication yet.',

@@ -54,6 +54,31 @@ function privateCopyLabels(
     ...input.initialState.actors.map((a) => a.label),
     ...input.initialState.ownedAssets.map((a) => a.label),
   ];
+  if (input.story) {
+    labels.push(
+      input.story.title,
+      input.story.startingSituation.note,
+      ...input.story.boundaries,
+    );
+    for (const emphasis of input.story.emphases) {
+      switch (emphasis.direction) {
+        case 'career':
+          labels.push(emphasis.field);
+          if (emphasis.venture.mode === 'specified')
+            labels.push(emphasis.venture.value);
+          break;
+        case 'creative':
+          labels.push(emphasis.fieldLabel);
+          break;
+        case 'travel':
+          labels.push(emphasis.workKind, emphasis.destination);
+          break;
+        case 'politics':
+          labels.push(emphasis.role, ...emphasis.inventedNames);
+          break;
+      }
+    }
+  }
   for (const p of periods)
     for (const e of p.candidate.events)
       for (const c of [
