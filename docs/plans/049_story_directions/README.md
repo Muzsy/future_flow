@@ -46,8 +46,10 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI08 – A kivételes elkülönítő eszköz `plan`, `park` és `restore` parancsa elkészült. A függő v10 feladat blokkolja az elkülönítést. A titkosított archívum az adatbázis-commit előtt lemezre kerül, a visszaillesztéshez pedig a commit után írt bizonylat kell. A helyi PostgreSQL-kompatibilis próba igazolta a sikertelen archiválás utáni változatlanságot, a közben módosított közös mezők megőrzését és az ismételt visszaillesztés hatástalanságát. A valódi `age` és TLS próba izolált helyi PostgreSQL 16-on sikeres. A Contabo-célgépes próba külön lépés. Az archívum törlésére vonatkozó döntés és parancs nyitott.
 
-- TI05 – Playwrighttal ellenőrizve a régi helyi piszkozat átvétele üres és azonos revíziójú szerverpiszkozatnál. A frissebb szerverpiszkozat megmaradt, és az elutasított mentés után a régi helyi másolat is megmaradt. A magyar böngészős ellenőrzéshez továbbra is elkülönített nyelvi konfiguráció kell, mert az éles kiadási nyelv jelenleg az angol.
+- TI05 – Playwrighttal ellenőrizve a régi helyi piszkozat átvétele üres és azonos revíziójú szerverpiszkozatnál. A frissebb szerverpiszkozat megmaradt, és az elutasított mentés után a régi helyi másolat is megmaradt. A magyar böngészős ellenőrzés külön helyi munkapéldányban futott, ahol a próba idejére elérhető volt a magyar nyelv.
 - TI08 – Külön helyi PostgreSQL 16 példányon, saját tanúsítvánnyal és ideiglenes `age` kulccsal végigment a számlálás, titkosított elkülönítés, visszaillesztés és az ismételt visszaillesztés. Az adatbázisban a várt harmadik revízió és az eredeti irány szerepelt.
+
+- TI05 – A magyar vállalkozói indítás mind a tíz lépése végigment Playwrighttal, szimulált API-val, 360×740, 390×844, 768×1024 és 1280×800 méreten. Az űrlap és a vizsgált kártyák vízszintesen elfértek. Az összegzés magyarul mutatta a cél nélküli állapotot, az indítási kérésben pedig `locale: hu`, `goal: null` és a vállalkozói altípus szerepelt. Ez egy teljes magyar indítási út böngészős ellenőrzése. A többi irány magyar változata és a valódi API-val futó teljes alkalmazáspróba külön ellenőrzés.
 
 ## Nyitott kérdések és problémák
 
