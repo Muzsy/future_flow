@@ -16,7 +16,7 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 | TI05      | Folyamatban       | A tízlépéses indítás és a vizuális javítás elkészült helyben; teljes elfogadás hátravan. |
 | TI06      | Hátravan          | Adatkezelési döntés és megvalósítás.                                                     |
 | TI07      | Elkészült helyben | Privát történetoldal, előnézeti ellenőrzés és publikálási korlátok.                      |
-| TI08      | Folyamatban       | Üzemeltetői kapcsolók bekötve. Elkülönítés, kiadási pinek és célgépes próba hátravan.    |
+| TI08      | Folyamatban       | Kapcsolók és megőrző elkülönítés helyben. Kiadási pinek és célgépes próba hátravan.      |
 | TI09      | Hátravan          | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                          |
 | TI10      | Hátravan          | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                                  |
 
@@ -42,7 +42,9 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 - TI05, helyi Playwright szimulált API-val: a fennmaradó három irányból is átment egy teljes indítási út (alkotó, utazó, fiktív közéleti). Az alkotói út üres vagy csak szóközös egyedi területtel nem engedett tovább; az utazó út altípusváltás után elhagyta a már nem alkalmazható munkaadatot, és egy elavult kezdőhelyzetnél új választást kért; a közéleti út a kitalált neveket a várt mezőben küldte el. Nincs fizetős generálás vagy éles változtatás.
 - TI07: a privát listán és történetoldalon látszik az irány címkéje. A cél nélküli és a közéleti történetnél a másolatkészítés helyén magyarázat látszik; ugyanaz a szerveroldali szabály tiltja a nyilvános előkészítést. A privát másolat ellenőrzése az új szabad szöveges irányadatokra is figyel, és a hibajelzés csak a nyilvános mező útvonalát és a hibakódot adja vissza. A csomagbuild és 81 célzott teszt sikeres; a Playwright-próba igazolta a két korlátozó állapotot és a gomb megmaradását az engedélyezett történetnél.
 
-- TI08 – A meglévő Contabo operátori kliens és a szerveroldali eszköz elfogadja a három történetirány-beállítást. A kohorsz legfeljebb 100 különböző UUID. Az aktiválás v9 konfigurációt igényel, és a változó beállításnak egyeznie kell az API és a worker renderelt konfigurációjában. A hiányzó, alapértékű kapcsoló megadása önmagában nem okoz újraindítást. A terv és a napló a megváltozott értékek lenyomatait rögzíti. A kivételes piszkozat-elkülönítő eszköz és a teljes célgépes próba még nyitott.
+- TI08 – A meglévő Contabo operátori kliens és a szerveroldali eszköz elfogadja a három történetirány-beállítást. A kohorsz legfeljebb 100 különböző UUID. Az aktiválás v9 konfigurációt igényel, és a változó beállításnak egyeznie kell az API és a worker renderelt konfigurációjában. A hiányzó, alapértékű kapcsoló megadása önmagában nem okoz újraindítást. A terv és a napló a megváltozott értékek lenyomatait rögzíti. A teljes célgépes próba még nyitott.
+
+- TI08 – A kivételes elkülönítő eszköz `plan`, `park` és `restore` parancsa elkészült. A függő v10 feladat blokkolja az elkülönítést. A titkosított archívum az adatbázis-commit előtt lemezre kerül, a visszaillesztéshez pedig a commit után írt bizonylat kell. A helyi PostgreSQL-kompatibilis próba igazolta a sikertelen archiválás utáni változatlanságot, a közben módosított közös mezők megőrzését és az ismételt visszaillesztés hatástalanságát. Az `age` és a célgépes TLS futtatás külön próba. Az archívum törlésére vonatkozó döntés és parancs nyitott.
 
 ## Nyitott kérdések és problémák
 

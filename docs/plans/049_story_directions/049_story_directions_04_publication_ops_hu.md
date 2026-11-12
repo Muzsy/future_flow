@@ -272,6 +272,17 @@ Ellenőrzés a `park` után: az archívumrekordok száma egyenlő a módosított
 
 A `restore` megismételhető: a már visszaillesztett rekord a harmadik sorba esik.
 
+A fejlesztői ágon a parancs `pnpm exec tsx scripts/ops/story-draft-quarantine.ts`.
+A `plan` csak számlál. A `park ARCHIVE RECIPIENT` zárt alkalmazás mellett,
+a v10 sor kifutása után használható. Az `ARCHIVE` privát könyvtárban lévő,
+új `.age` fájl. A `restore ARCHIVE IDENTITY` a hozzá tartozó `.committed`
+bizonylatot és a mentési identitás privát fájlját várja. A bizonylat az
+archívum lenyomatát és a DB-végpont kötését tartalmazza. Ha a folyamat a
+commit és a bizonylat létrehozása között megszakad, az archívumot meg kell
+őrizni, és a mentésből, valamint a piszkozatok revízióiból meg kell
+állapítani a tényleges állapotot az újabb művelet előtt. Az archívum
+törlésének szabálya külön tulajdonosi döntés.
+
 **Megoldás jobokra: kifuttatás a váltás előtt.** A váltás előfeltétele, hogy ne legyen sorban álló vagy futó v10 job:
 
 ```sql
