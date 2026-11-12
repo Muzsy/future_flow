@@ -55,6 +55,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v7',
           'life_fiction_plan.v8',
           'life_fiction_plan.v9',
+          'life_fiction_plan.v10',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -66,6 +67,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v7',
           'life_fiction_author.v8',
           'life_fiction_author.v9',
+          'life_fiction_author.v10',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -77,8 +79,12 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v7',
           'life_fiction_plan_review.v8',
           'life_fiction_plan_review.v9',
+          'life_fiction_plan_review.v10',
         ]),
-        fidelity: z.literal('life_fiction_fidelity.v1'),
+        fidelity: z.enum([
+          'life_fiction_fidelity.v1',
+          'life_fiction_fidelity.v2',
+        ]),
         editor: z.enum([
           'life_fiction_editor.v1',
           'life_fiction_editor.v2',
@@ -89,6 +95,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v7',
           'life_fiction_editor.v8',
           'life_fiction_editor.v9',
+          'life_fiction_editor.v10',
         ]),
       })
       .strict(),
@@ -103,6 +110,7 @@ export const fictionPolicySchema = z
       '2.6.0',
       '2.7.0',
       '2.8.0',
+      '2.9.0',
     ]),
     maxPhysicalRequests: z.literal(9),
     maxContentRepairs: z.literal(1),
@@ -113,7 +121,23 @@ export const fictionPolicySchema = z
   .strict()
   .superRefine((policy, ctx) => {
     const v = policy.promptVersions.writer.split('.').at(-1);
+    if (v === 'v10') {
+      const expected = fictionV10Policy().promptVersions;
+      if (
+        policy.qualityPolicyVersion !== '2.9.0' ||
+        Object.entries(expected).some(
+          ([stage, version]) =>
+            policy.promptVersions[stage as keyof typeof expected] !== version,
+        )
+      )
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Invalid v10 fiction policy.',
+        });
+      return;
+    }
     if (
+      policy.promptVersions.fidelity !== 'life_fiction_fidelity.v1' ||
       policy.promptVersions.planner !== `life_fiction_plan.${v}` ||
       policy.promptVersions.planReviewer !== `life_fiction_plan_review.${v}` ||
       !(v === 'v9'
@@ -306,6 +330,20 @@ export function fictionV9Policy(): FictionPolicy {
     },
   };
 }
+export function fictionV10Policy(): FictionPolicy {
+  return {
+    ...fictionV9Policy(),
+    qualityPolicyVersion: '2.9.0',
+    promptVersions: {
+      planner: 'life_fiction_plan.v10',
+      writer: 'life_fiction_author.v10',
+      planReviewer: 'life_fiction_plan_review.v10',
+      fidelity: 'life_fiction_fidelity.v2',
+      editor: 'life_fiction_editor.v10',
+    },
+  };
+}
+
 // Newly queued jobs select v8 unless a generation is chosen explicitly (the
 // living-world generation is opt-in); every older snapshot stays byte-frozen.
 export function fictionPolicy(): FictionPolicy {
@@ -315,9 +353,13 @@ export function fictionPolicy(): FictionPolicy {
 export const fictionSeriesQualityVersions: readonly string[] = [
   '2.7.0',
   '2.8.0',
+  '2.9.0',
 ];
 // Quality policies that carry the recurring-character state (ADR-009).
-export const fictionCharacterQualityVersions: readonly string[] = ['2.8.0'];
+export const fictionCharacterQualityVersions: readonly string[] = [
+  '2.8.0',
+  '2.9.0',
+];
 // Quality policies whose fidelity failure goes straight to the repair, without
 // the editor call that the coordinated policies make first (the editor passed
 // on every measured package that failed fidelity, so that call only cost a
@@ -325,18 +367,21 @@ export const fictionCharacterQualityVersions: readonly string[] = ['2.8.0'];
 // the v9-6b to 6g measurements are documented as the earlier behaviour.
 export const fictionFidelityFirstRepairQualityVersions: readonly string[] = [
   '2.8.0',
+  '2.9.0',
 ];
 // Quality policies that may introduce up to three recurring actors a period.
 export const fictionThreeActorQualityVersions: readonly string[] = [
   '2.6.0',
   '2.7.0',
   '2.8.0',
+  '2.9.0',
 ];
 // Quality policies with editor report 1.3.0 and signature 1.1.0.
 export const fictionReport13QualityVersions: readonly string[] = [
   '2.6.0',
   '2.7.0',
   '2.8.0',
+  '2.9.0',
 ];
 // Quality policies that coordinate fidelity and editor feedback before repair.
 export const fictionCoordinatedQualityVersions: readonly string[] = [
@@ -344,6 +389,7 @@ export const fictionCoordinatedQualityVersions: readonly string[] = [
   '2.6.0',
   '2.7.0',
   '2.8.0',
+  '2.9.0',
 ];
 // Quality policies whose editor emits a human-likeness report (1.2.0+).
 export const fictionHumanQualityVersions: readonly string[] = [
@@ -354,6 +400,7 @@ export const fictionHumanQualityVersions: readonly string[] = [
   '2.6.0',
   '2.7.0',
   '2.8.0',
+  '2.9.0',
 ];
 export function fictionEditorialVersionFor(qualityPolicyVersion: string) {
   return fictionReport13QualityVersions.includes(qualityPolicyVersion)

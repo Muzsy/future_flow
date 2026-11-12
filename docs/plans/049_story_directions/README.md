@@ -24,6 +24,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI01: az öt történetirány és az ötven kezdőhelyzet bekerült a katalógusba. Külön fájlban vannak az angol és magyar megjelenítési szövegek. A cél nélküli indítás sémája elkészült; az API még a meglévő sémát használja. A két új kérési JSON Schema elkészült, a meglévő exportok változatlanok. A contracts típusellenőrzése és a két célzott tesztfájl 25 esete sikeres.
 
+- A tárolt életben az üres céllista irányhoz kötött. A szereplőhivatkozásoknak létezniük kell a kezdeti állapotban. A v10 külön policyval szerepel a szerződésben. A cél nélküli és a politikai irányú élet nyilvános előnézete és nyilvános elágazási vetülete típusos hibával zárul. A csomagbuild, a sémaexport és 66 célzott teszt sikeres, köztük a befagyasztott v8/v9 kérések. Az irányellenőrző külön próbája is zöld.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali megvalósítás és teszt a TI04 csomag feladata.

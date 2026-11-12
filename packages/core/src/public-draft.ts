@@ -10,6 +10,7 @@ import {
   type PeriodChapterV2,
 } from '@future-flow/contracts';
 import { DomainError } from './errors';
+import { assertPublishableStory } from './story-direction';
 
 export type SnapshotSourcePeriod = {
   candidate: PeriodCandidateV2;
@@ -73,6 +74,7 @@ export function inspectPublicPreviewCopy(
   sourceRevision: number,
   raw: unknown,
 ) {
+  assertPublishableStory(input);
   const copy = publicPreviewCopySchema.parse(raw);
   if (copy.periods.length !== periods.length)
     throw new DomainError(
@@ -108,6 +110,7 @@ export function preparePublicSnapshotDraft(
   choices: { decision_id: string; option_id: string }[],
   rawCopy: unknown,
 ): PublicSnapshotDraft {
+  assertPublishableStory(input);
   const copy = publicPreviewCopySchema.parse(rawCopy);
   if (periods.length !== copy.periods.length || periods.length < 1)
     throw new DomainError(

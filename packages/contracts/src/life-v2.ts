@@ -4,6 +4,7 @@ import {
   storyAddressSchema,
   storyDraftV1Schema,
   storySetupV1Schema,
+  storyV1Schema,
 } from './story';
 
 // Kept separate from the v1 schemas: existing stored canon must remain readable.
@@ -89,7 +90,7 @@ export const lifeStateV2Schema = z
     ownedAssets: z.array(assetSchema).max(30),
     actors: z.array(actorSchema).max(30),
     skills: z.array(label).max(50),
-    goals: z.array(goalProgressSchema).min(1).max(5),
+    goals: z.array(goalProgressSchema).max(5),
     opportunities: z.array(opportunitySchema).max(30),
     resources: resourcesSchema,
   })
@@ -266,7 +267,8 @@ export const lifeInputV2Schema = z
         description: z.string().trim().min(1).max(1000),
       })
       .strict(),
-    goals: z.array(goalV2Schema).min(1).max(5),
+    goals: z.array(goalV2Schema).max(5),
+    story: storyV1Schema.optional(),
     initialState: lifeStateV2Schema,
     constraints: z.array(constraintV2Schema).max(20),
     // Publication is a separate consent workflow, never a simulation input flag.

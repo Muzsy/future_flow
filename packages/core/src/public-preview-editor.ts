@@ -4,6 +4,7 @@ import {
   type PublicPreviewCopy,
 } from '@future-flow/contracts';
 import { DomainError } from './errors';
+import { assertPublishableStory } from './story-direction';
 import type { SnapshotSourcePeriod } from './public-draft';
 
 export function preparePublicEditorSource(
@@ -11,6 +12,7 @@ export function preparePublicEditorSource(
   periods: SnapshotSourcePeriod[],
   sourceRevision: number,
 ) {
+  assertPublishableStory(input);
   if (input.locale !== 'en')
     throw new DomainError(
       'CONTENT_LANGUAGE_UNAVAILABLE',

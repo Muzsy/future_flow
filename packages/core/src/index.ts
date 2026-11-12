@@ -285,3 +285,5 @@ export * from './official-publication';
 
 export * from './fiction';
 export * from './fiction-character';
+
+export * from './story-direction';

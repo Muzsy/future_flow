@@ -129,7 +129,9 @@ export function validateLifeInputV2(raw: unknown): LifeInputV2 {
     'Célmeghatározás',
   );
   if (
-    input.goals.filter((goal) => goal.priority === 'primary').length !== 1 ||
+    (!input.story && input.goals.length === 0) ||
+    input.goals.filter((goal) => goal.priority === 'primary').length !==
+      (input.goals.length === 0 ? 0 : 1) ||
     input.goals.length !== state.goals.length ||
     state.goals.some(
       (goal) =>
@@ -140,6 +142,16 @@ export function validateLifeInputV2(raw: unknown): LifeInputV2 {
       'LIFE_GOAL_REFERENCE',
       'Egy fő cél és hozzá illeszkedő célállapot szükséges.',
     );
+  if (input.story) {
+    const actorIds = new Set(state.actors.map((actor) => actor.id));
+    const castIds = input.story.cast.map((member) => member.actorId);
+    unique(castIds, 'Kezdeti szereplő');
+    if (castIds.some((actorId) => !actorIds.has(actorId)))
+      throw new DomainError(
+        'STORY_DIRECTION_INVALID',
+        'A szereplő nincs a kezdeti állapotban.',
+      );
+  }
   if (
     input.constraints.some((constraint) => constraint.lifeId !== input.lifeId)
   )

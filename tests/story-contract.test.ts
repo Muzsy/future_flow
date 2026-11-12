@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   STORY_CATALOG_VERSION,
+  fictionPolicySchema,
+  fictionV9Policy,
+  fictionV10Policy,
   lifeCreateRequestV2Schema,
   lifeStoryCreateRequestV2Schema,
   storyCatalogs,
@@ -8,6 +11,7 @@ import {
   storyLabels,
   storyV1Schema,
 } from '../packages/contracts/src';
+import { validateStorySetup } from '../packages/core/src/story-direction';
 
 const catalog = storyCatalogs[STORY_CATALOG_VERSION];
 const emphasis = {
@@ -19,6 +23,22 @@ const emphasis = {
 };
 
 describe('story direction contracts', () => {
+  it('keeps v9 policy readable and rejects mixed v9 and v10 prompt versions', () => {
+    const oldPolicy = fictionV9Policy();
+    const policy = fictionV10Policy();
+    expect(fictionPolicySchema.parse(oldPolicy)).toEqual(oldPolicy);
+    expect(fictionPolicySchema.parse(policy)).toEqual(policy);
+    expect(
+      fictionPolicySchema.safeParse({
+        ...policy,
+        promptVersions: {
+          ...policy.promptVersions,
+          fidelity: oldPolicy.promptVersions.fidelity,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it('covers each catalogue entry with labels and matching schema identifiers', () => {
     const situationIds = new Set<string>();
     for (const [direction, entry] of Object.entries(catalog.directions)) {
@@ -91,7 +111,17 @@ describe('story direction contracts', () => {
         title: null,
       },
     };
-    expect(lifeStoryCreateRequestV2Schema.parse(request)).toEqual(request);
+    const setup = lifeStoryCreateRequestV2Schema.parse(request);
+    const access = { enabled: true, politicsEnabled: false };
+    expect(setup).toEqual(request);
+    expect(() => validateStorySetup(setup, access)).not.toThrow();
+    expect(() =>
+      validateStorySetup(setup, { ...access, enabled: false }),
+    ).toThrow('This story direction is unavailable.');
+    setup.story.startingSituation.id = 'trv.invalid';
+    expect(() => validateStorySetup(setup, access)).toThrow(
+      'Select a starting situation for this subtype.',
+    );
     const { story: _story, ...withoutDirection } = request;
     expect(
       lifeStoryCreateRequestV2Schema.safeParse(withoutDirection).success,

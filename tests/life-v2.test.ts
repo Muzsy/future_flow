@@ -15,6 +15,8 @@ import {
   hash,
   simulatePeriodV2,
   validateLifeInputV2,
+  preparePublicEditorSource,
+  preparePublicSnapshotDraft,
   validateLifeStateV2,
 } from '@future-flow/core';
 
@@ -165,6 +167,44 @@ function period(): PeriodCandidateV2 {
 }
 
 describe('v2 period and persistent facts', () => {
+  it('permits an empty goal list only for a life with a story direction', () => {
+    const life = input();
+    life.goals = [];
+    life.initialState.goals = [];
+    expect(() => validateLifeInputV2(life)).toThrow('célállapot');
+
+    life.story = {
+      contractVersion: '1.0.0',
+      catalogVersion: '1.0.0',
+      emphases: [
+        {
+          direction: 'relationships',
+          subtype: 'friendship',
+          attraction: { mode: 'unspecified' },
+          relationshipStatus: { mode: 'unspecified' },
+          themes: [],
+        },
+      ],
+      startingSituation: { id: 'rel.new_city', note: null },
+      protagonistAddress: { mode: 'unspecified' },
+      cast: [],
+      boundaries: [],
+      title: null,
+    };
+    expect(validateLifeInputV2(life).goals).toEqual([]);
+    expect(() => preparePublicEditorSource(life, [], 0)).toThrow(
+      'This story cannot be prepared for publication yet.',
+    );
+    expect(() => preparePublicSnapshotDraft(life, [], [], null)).toThrow(
+      'This story cannot be prepared for publication yet.',
+    );
+    life.story.cast.push({
+      actorId: randomUUID(),
+      address: { mode: 'unspecified' },
+    });
+    expect(() => validateLifeInputV2(life)).toThrow('kezdeti állapotban');
+  });
+
   it('allows a private alternate identity with no relationships and unknown optional facts', () => {
     expect(
       validateLifeInputV2(input()).initialState.resources.energy,
