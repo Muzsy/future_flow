@@ -6,6 +6,9 @@ import Link from 'next/link';
 import {
   lifeSetupV2Schema,
   lifeDraftV2Schema,
+  lifeStoryDraftRequestV2Schema,
+  storySetupFromDraft,
+  storyLabels,
   errorMessage,
   languages,
   type LifeSetupV2,
@@ -28,6 +31,20 @@ import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
 import { PublicForkOrigin } from './public-fork-origin';
 import { PersonalScenarioOrigin } from './personal-scenario-origin';
+import {
+  AddressField,
+  blankStory,
+  directionStep,
+  StoryDirectionFields,
+  type StoryAvailability,
+  type StoryDraft,
+} from './story-direction-fields';
+
+type Setup = Omit<StoryDraft, 'story' | 'locale'> & {
+  locale: 'en' | 'hu';
+  story?: StoryDraft['story'];
+};
+const draftSchema = lifeStoryDraftRequestV2Schema.or(lifeDraftV2Schema);
 
 type Summary = {
   id: string;
@@ -169,14 +186,20 @@ export function LifeExperience({
       document.removeEventListener('visibilitychange', refresh);
     };
   }, [sharedEnabled, detail?.branch.id, detail?.branch.revision]);
-  const [setup, setSetup] = useState<LifeSetupV2>(
-      structuredClone(defaultSetup),
-    ),
+  const [setup, setSetup] = useState<Setup>(structuredClone(defaultSetup)),
     [step, setStep] = useState(0);
+  const [storyAccess, setStoryAccess] = useState<StoryAvailability | null>(
+    null,
+  );
+  const [keptDraft, setKeptDraft] = useState(false);
+  const cacheKey = storyAccess?.enabled
+    ? `alterward.lifeDraft.v2:${user}`
+    : `alterward.lifeDraft:${user}`;
   const [consent, setConsent] = useState(false),
     [adult, setAdult] = useState(false),
     [ack, setAck] = useState(false),
     [saveStatus, setSaveStatus] = useState('');
+  const lastSavedStory = useRef<string | null>(null);
   const revision = useRef(0),
     hydrated = useRef(false),
     saveBlocked = useRef(false),
@@ -276,29 +299,74 @@ export function LifeExperience({
           if (active) setDetail(data);
         }
         if (page === 'start') {
-          const [profile, draft] = await Promise.all([
+          const [profile, draft, availability] = await Promise.all([
             api<{ acknowledged: boolean }>('/profile'),
-            lifeApi<{ revision: number; payload: LifeSetupV2 | null }>(
-              '/draft',
-            ),
+            lifeApi<{ revision: number; payload: Setup | null }>('/draft'),
+            lifeApi<StoryAvailability>('/story-directions'),
           ]);
           if (active) {
             setConsent(profile.acknowledged);
             revision.current = draft.revision;
             saveBlocked.current = false;
-            let payload = draft.payload ?? structuredClone(defaultSetup);
+            setStoryAccess(availability);
+            setKeptDraft(
+              !!draft.payload && !draft.payload.story && availability.enabled,
+            );
+            let payload: Setup = draft.payload ?? structuredClone(defaultSetup);
+            const localCacheKey = availability.enabled
+              ? `alterward.lifeDraft.v2:${user}`
+              : `alterward.lifeDraft:${user}`;
+            if (availability.enabled) {
+              payload = {
+                ...payload,
+                identity: draft.payload
+                  ? payload.identity
+                  : { ...payload.identity, mode: 'alternate' },
+                story: payload.story ?? {
+                  ...blankStory(availability.catalogVersion),
+                  goalChoice: payload.goal.description.trim() ? 'set' : 'none',
+                },
+              };
+              setStep(directionStep(payload.story!, availability));
+            } else {
+              const { story: _story, ...common } = payload;
+              payload = {
+                ...common,
+                relationships: common.relationships.map(
+                  ({ label, relationship }) => ({ label, relationship }),
+                ),
+              };
+              setStep(0);
+            }
+            lastSavedStory.current = draft.payload?.story
+              ? JSON.stringify(draft.payload)
+              : null;
             try {
-              const raw = sessionStorage.getItem(`alterward.lifeDraft:${user}`);
+              const raw = sessionStorage.getItem(localCacheKey);
               if (raw) {
                 const cached = JSON.parse(raw) as {
                   revision: number;
                   payload: unknown;
                   step: number;
                 };
-                const parsed = lifeDraftV2Schema.safeParse(cached.payload);
+                const parsed = (
+                  availability.enabled
+                    ? lifeStoryDraftRequestV2Schema
+                    : lifeDraftV2Schema
+                ).safeParse(cached.payload);
                 if (parsed.success && cached.revision === draft.revision) {
                   payload = parsed.data;
-                  setStep(Math.max(0, Math.min(11, Number(cached.step) || 0)));
+                  const earliest =
+                    availability.enabled && payload.story
+                      ? directionStep(payload.story, availability)
+                      : 0;
+                  const cachedStep = Math.max(
+                    availability.enabled ? -3 : 0,
+                    Math.min(11, Number(cached.step) || 0),
+                  );
+                  setStep(
+                    earliest < 0 ? Math.min(earliest, cachedStep) : cachedStep,
+                  );
                 } else if (
                   parsed.success &&
                   JSON.stringify(parsed.data) !== JSON.stringify(draft.payload)
@@ -346,9 +414,14 @@ export function LifeExperience({
       clearInterval(timer);
     };
   }, [page, id, detail?.branch.status]);
-  function save(payload: LifeSetupV2): Promise<void> {
+  function save(payload: Setup): Promise<void> {
     const pending = saveChain.current.then(async () => {
       if (saveBlocked.current) throw new ClientError('LIFE_REVISION_CONFLICT');
+      const serialized = JSON.stringify(payload);
+      if (payload.story && serialized === lastSavedStory.current) {
+        setSaveStatus('saved');
+        return;
+      }
       setSaveStatus('saving');
       try {
         const saved = await lifeApi<{ revision: number }>('/draft', {
@@ -356,15 +429,13 @@ export function LifeExperience({
           body: JSON.stringify({ revision: revision.current, payload }),
         });
         revision.current = saved.revision;
+        if (payload.story) lastSavedStory.current = serialized;
         try {
-          const raw = sessionStorage.getItem(`alterward.lifeDraft:${user}`);
+          const raw = sessionStorage.getItem(cacheKey);
           if (raw) {
             const cached = JSON.parse(raw);
             cached.revision = saved.revision;
-            sessionStorage.setItem(
-              `alterward.lifeDraft:${user}`,
-              JSON.stringify(cached),
-            );
+            sessionStorage.setItem(cacheKey, JSON.stringify(cached));
           }
         } catch {
           /* Cloud save succeeded. */
@@ -383,22 +454,21 @@ export function LifeExperience({
   }
   useEffect(() => {
     if (page !== 'start' || !hydrated.current || !consent || loading) return;
-    if (saveBlocked.current) return;
+    if (saveBlocked.current || busy) return;
     try {
       sessionStorage.setItem(
-        `alterward.lifeDraft:${user}`,
+        cacheKey,
         JSON.stringify({ revision: revision.current, payload: setup, step }),
       );
     } catch {
       /* Cloud auto-save still runs. */
     }
-    setSaveStatus('saving');
-    if (!lifeDraftV2Schema.safeParse(setup).success) return;
+    if (!draftSchema.safeParse(setup).success) return;
     const timer = setTimeout(() => {
       void save(setup).catch((error) => setNotice(clientErrorMessage(error)));
     }, 800);
     return () => clearTimeout(timer);
-  }, [page, setup, consent, loading, step, user]);
+  }, [page, setup, consent, loading, step, user, cacheKey, busy]);
   async function act(run: () => Promise<void>) {
     setBusy(true);
     setNotice('');
@@ -413,7 +483,7 @@ export function LifeExperience({
   async function mutate(
     path: string,
     body: unknown,
-  ): Promise<{ branchId: string; jobId?: string }> {
+  ): Promise<{ branchId: string; jobId?: string; draftCleared?: boolean }> {
     if (path.endsWith('/continue'))
       body = { ...(body as object), sessionId: await lifeSessionId() };
     const signature = JSON.stringify({ path, body });
@@ -423,7 +493,11 @@ export function LifeExperience({
       await trackLife('fork_clicked', id ?? null).catch(() => {});
     if (request.current?.signature !== signature)
       request.current = { signature, key: crypto.randomUUID() };
-    const result = await lifeApi<{ branchId: string; jobId?: string }>(path, {
+    const result = await lifeApi<{
+      branchId: string;
+      jobId?: string;
+      draftCleared?: boolean;
+    }>(path, {
       method: 'POST',
       headers: { 'Idempotency-Key': request.current.key },
       body: JSON.stringify(body),
@@ -521,6 +595,28 @@ export function LifeExperience({
           </button>
         </div>
       );
+    const story = storyAccess?.enabled ? setup.story : undefined;
+    const hu = locale === 'hu';
+    const updateStory = (patch: Partial<StoryDraft['story']>) =>
+      setSetup((current) =>
+        current.story
+          ? { ...current, story: { ...current.story, ...patch } }
+          : current,
+      );
+    const firstStep = story ? -3 : 0;
+    const stepNumber = step - firstStep + 1;
+    const stepCount = 12 - firstStep;
+    const prefixTitles = hu
+      ? [
+          'Milyen történetet szeretnél követni?',
+          'Mesélj róla egy kicsit',
+          'Honnan induljon a történet?',
+        ]
+      : [
+          'What kind of story do you want to follow?',
+          'Tell us a little more',
+          'Where does the story begin?',
+        ];
     const titles = [
       m.identity,
       m.age,
@@ -543,11 +639,38 @@ export function LifeExperience({
       <div className="panel narrow">
         {error}
         <div className="eyebrow">
-          {step + 1} / 12 · {m.private}
+          {stepNumber} / {stepCount} · {m.private}
         </div>
-        <progress value={step + 1} max={12} aria-label={`${step + 1} / 12`} />
-        <h1>{titles[step]}</h1>
-        <div className="form-grid">
+        <progress
+          value={stepNumber}
+          max={stepCount}
+          aria-label={`${stepNumber} / ${stepCount}`}
+        />
+        <h1>{step < 0 ? prefixTitles[step + 3] : titles[step]}</h1>
+        {keptDraft && step === -3 && (
+          <p>
+            {hu
+              ? 'Megőriztük a korábbi piszkozatod adatait. Először válassz történetirányt.'
+              : 'We kept your earlier draft details. First choose a story direction.'}
+          </p>
+        )}
+        {step < 0 && story && storyAccess && (
+          <StoryDirectionFields
+            step={step}
+            story={story}
+            availability={storyAccess}
+            locale={locale}
+            onChange={(next) =>
+              setSetup((current) => ({
+                ...current,
+                story: next,
+                stayInCountry:
+                  next.direction === 'travel' ? false : current.stayInCountry,
+              }))
+            }
+          />
+        )}
+        <div className="form-grid story-start-form">
           {step === 0 && (
             <>
               {field(
@@ -744,6 +867,7 @@ export function LifeExperience({
               m.skillsHelp,
             )}
           {step === 7 &&
+            !story &&
             field(
               m.relationships,
               <CommaInput
@@ -760,6 +884,105 @@ export function LifeExperience({
               />,
               m.relationshipsHelp,
             )}
+          {step === 7 && story && (
+            <div className="wide story-start-options">
+              <p>
+                {hu
+                  ? 'Beceneveket használj. A válaszok a történet szereplőire vonatkoznak.'
+                  : 'Use nicknames. These optional answers describe characters in this story.'}
+              </p>
+              {setup.relationships.map((actor, index) => {
+                const edit = (patch: Partial<Setup['relationships'][number]>) =>
+                  setSetup((current) => ({
+                    ...current,
+                    relationships: current.relationships.map((entry, at) =>
+                      at === index ? { ...entry, ...patch } : entry,
+                    ),
+                  }));
+                return (
+                  <fieldset key={index}>
+                    <legend>
+                      {hu ? 'Szereplő' : 'Character'} {index + 1}
+                    </legend>
+                    <label>
+                      {hu ? 'Becenév' : 'Nickname'}
+                      <input
+                        maxLength={160}
+                        value={actor.label}
+                        onChange={(event) =>
+                          edit({ label: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      {hu ? 'Kapcsolat' : 'Relationship'}
+                      <select
+                        value={actor.relationship}
+                        onChange={(event) =>
+                          edit({
+                            relationship: event.target
+                              .value as Setup['relationships'][number]['relationship'],
+                          })
+                        }
+                      >
+                        {(
+                          Object.entries({
+                            partner: ['Partner', 'Partner'],
+                            family: ['Family', 'Családtag'],
+                            friend: ['Friend', 'Barát'],
+                            colleague: ['Colleague', 'Munkatárs'],
+                            other: ['Other', 'Egyéb'],
+                          }) as [
+                            Setup['relationships'][number]['relationship'],
+                            string[],
+                          ][]
+                        ).map(([id, names]) => (
+                          <option key={id} value={id}>
+                            {names[hu ? 1 : 0]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <AddressField
+                      locale={locale}
+                      value={actor.address}
+                      onChange={(address) => edit({ address })}
+                    />
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() =>
+                        setSetup((current) => ({
+                          ...current,
+                          relationships: current.relationships.filter(
+                            (_, at) => at !== index,
+                          ),
+                        }))
+                      }
+                    >
+                      {hu ? 'Eltávolítás' : 'Remove'}
+                    </button>
+                  </fieldset>
+                );
+              })}
+              <button
+                type="button"
+                className="secondary"
+                disabled={setup.relationships.length >= 10}
+                onClick={() =>
+                  setSetup((current) => ({
+                    ...current,
+                    relationships: [
+                      ...current.relationships,
+                      { label: '', relationship: 'friend' },
+                    ],
+                  }))
+                }
+              >
+                {hu ? 'Szereplő hozzáadása' : 'Add a character'}
+              </button>
+            </div>
+          )}
           {step === 8 && (
             <>
               {field(
@@ -790,7 +1013,29 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 9 && (
+          {step === 9 && story && (
+            <label>
+              {hu ? 'Szeretnél célt kitűzni?' : 'Do you want to set a goal?'}
+              <select
+                value={story.goalChoice ?? 'none'}
+                onChange={(event) =>
+                  updateStory({
+                    goalChoice: event.target.value === 'set' ? 'set' : 'none',
+                  })
+                }
+              >
+                <option value="none">
+                  {hu
+                    ? 'Alakuljon a döntéseim nyomán'
+                    : 'Let it unfold from my choices'}
+                </option>
+                <option value="set">
+                  {hu ? 'Van egy célom' : 'I have a goal'}
+                </option>
+              </select>
+            </label>
+          )}
+          {step === 9 && (!story || story.goalChoice === 'set') && (
             <>
               {field(
                 m.category,
@@ -880,9 +1125,73 @@ export function LifeExperience({
               )}
             </>
           )}
+          {story && step === 0 && (
+            <AddressField
+              locale={locale}
+              value={story.protagonistAddress}
+              onChange={(protagonistAddress) =>
+                updateStory({ protagonistAddress })
+              }
+            />
+          )}
+          {story && step === 11 && (
+            <>
+              <label>
+                {hu ? 'A történet címe (opcionális)' : 'Story title (optional)'}
+                <input
+                  maxLength={160}
+                  value={story.title ?? ''}
+                  onChange={(event) =>
+                    updateStory({ title: event.target.value || null })
+                  }
+                />
+              </label>
+              <div>
+                <p>
+                  {hu ? 'Történetirány' : 'Story direction'} ·{' '}
+                  {
+                    Object.entries(storyLabels.directions).find(
+                      ([id]) => id === story.direction,
+                    )?.[1].label[locale]
+                  }
+                </p>
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(async () => {
+                      await save(setup);
+                      setStep(-3);
+                    })
+                  }
+                >
+                  {hu ? 'Irány módosítása' : 'Edit direction'}
+                </button>
+              </div>
+              {field(
+                hu
+                  ? 'Mit hagyjon ki a történet?'
+                  : 'What should the story leave out?',
+                <CommaInput
+                  value={story.boundaries}
+                  onChange={(values) =>
+                    updateStory({
+                      boundaries: values
+                        .slice(0, 10)
+                        .map((value) => value.slice(0, 160)),
+                    })
+                  }
+                />,
+              )}
+            </>
+          )}
           {step === 11 && (
             <>
-              <label className="checkbox">
+              <label
+                className="checkbox"
+                hidden={story?.direction === 'travel'}
+              >
                 <input
                   type="checkbox"
                   checked={setup.stayInCountry}
@@ -903,20 +1212,27 @@ export function LifeExperience({
                 />,
               )}
               <p>
-                {m.review}: {setup.goal.description || m.description} ·{' '}
-                {languages[locale].nativeName}
+                {m.review}:{' '}
+                {story?.goalChoice === 'none'
+                  ? hu
+                    ? 'Nincs kitűzött cél'
+                    : 'No fixed goal'
+                  : setup.goal.description || m.description}{' '}
+                · {languages[locale].nativeName}
               </p>
             </>
           )}
         </div>
         <div className="hero-actions">
           <button
-            disabled={step === 0 || busy}
+            disabled={step === firstStep || busy}
             className="secondary"
             onClick={() =>
               void act(async () => {
                 await save(setup);
-                setStep((s) => s - 1);
+                setStep((s) =>
+                  s === 11 && story?.goalChoice === 'none' ? 9 : s - 1,
+                );
               })
             }
           >
@@ -925,11 +1241,31 @@ export function LifeExperience({
           {step < 11 ? (
             <button
               className="primary"
-              disabled={busy}
+              disabled={
+                busy ||
+                !!(
+                  story &&
+                  storyAccess &&
+                  step < 0 &&
+                  directionStep(story, storyAccess) <= step
+                ) ||
+                !!(
+                  story?.goalChoice === 'set' &&
+                  step === 9 &&
+                  setup.goal.description.trim().length < 3
+                ) ||
+                !!(
+                  story &&
+                  step === 7 &&
+                  setup.relationships.some((actor) => !actor.label.trim())
+                )
+              }
               onClick={() =>
                 void act(async () => {
                   await save(setup);
-                  setStep((s) => s + 1);
+                  setStep((s) =>
+                    s === 9 && story?.goalChoice === 'none' ? 11 : s + 1,
+                  );
                 })
               }
             >
@@ -941,6 +1277,31 @@ export function LifeExperience({
               disabled={busy || saveBlocked.current}
               onClick={() =>
                 void act(async () => {
+                  if (story) {
+                    const draft = lifeStoryDraftRequestV2Schema.safeParse({
+                      ...setup,
+                      locale,
+                    });
+                    const candidate = draft.success
+                      ? storySetupFromDraft(draft.data)
+                      : null;
+                    if (!candidate) throw new ClientError('VALIDATION_FAILED');
+                    await save(setup);
+                    const created = await mutate('/lives', {
+                      ...candidate,
+                      draftRevision: revision.current,
+                    });
+                    hydrated.current = false;
+                    if (created.draftCleared) {
+                      try {
+                        sessionStorage.removeItem(cacheKey);
+                      } catch {
+                        /* Server draft was cleared. */
+                      }
+                    }
+                    router.push(`/life/${created.branchId}`);
+                    return;
+                  }
                   const parsed = lifeSetupV2Schema.safeParse({
                     ...setup,
                     locale,
@@ -968,7 +1329,7 @@ export function LifeExperience({
           <button
             className="text-button"
             onClick={() => {
-              sessionStorage.removeItem(`alterward.lifeDraft:${user}`);
+              sessionStorage.removeItem(cacheKey);
               window.location.reload();
             }}
           >

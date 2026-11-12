@@ -9,13 +9,14 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 ## Állapot
 
-| Csomag    | Állapot     | Következő lépés                                                                 |
-| --------- | ----------- | ------------------------------------------------------------------------------- |
-| TI00      | Folyamatban | A terv rögzítése és a piszkozatkezelés, valamint a visszaállítás egységesítése. |
-| TI01–TI04 | Hátravan    | Szerződések, opcionális cél, v10 és szerveroldali mentés.                       |
-| TI05–TI08 | Hátravan    | Indító felület, adatkezelés, publikálási szabályok és kiadás előkészítése.      |
-| TI09      | Hátravan    | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                 |
-| TI10      | Hátravan    | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                         |
+| Csomag    | Állapot           | Következő lépés                                                                         |
+| --------- | ----------------- | --------------------------------------------------------------------------------------- |
+| TI00      | Folyamatban       | A terv rögzítése és a piszkozatkezelés, valamint a visszaállítás egységesítése.         |
+| TI01–TI04 | Elkészült helyben | Szerződések, opcionális cél, v10 és szerveroldali mentés.                               |
+| TI05      | Folyamatban       | Az új indítás bekötve; a végleges lépéssorrend, szövegezés és böngészős próba hátravan. |
+| TI06–TI08 | Hátravan          | Adatkezelés, publikálási felület és kiadás előkészítése.                                |
+| TI09      | Hátravan          | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                         |
+| TI10      | Hátravan          | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                                 |
 
 ## Napló
 
@@ -29,6 +30,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 - A cél nélküli élet címét a felületi címkékből állítjuk össze. A v10 motor a választott irányt szerver által előállított keretként kapja, a szabad szöveg a felhasználói bemenetben marad. Az öt v10 prompt elkészült első jelöltként. A csomagbuild és 39 célzott teszt sikeres, köztük a v8/v9 rögzített kérései és a cél nélküli élet projekciója. A v10 szerveroldali kiválasztása és végigpróbája még hátravan.
 
 - TI04: az API és az adatbázis összekötve. Az indítás egyező revízió és tartalom mellett üríti a felhasznált piszkozatot. A régi kliens vagy a kikapcsolt funkció mellett szerkesztett közös mezők mentése megőrzi az irányt. Az adatbázis- és workerpróba cél nélküli életből is mentett első fejezetet, majd kikapcsolt új indítás mellett döntést és következő fejezetet. A csomagbuild, az API típusellenőrzése és a 90 esetből álló regressziós futás sikeres volt. A kibővített v10 teszteset külön is sikeres.
+
+- TI05: az engedélyezett fiókoknál az új indítás irányt, altípust és kezdőhelyzetet kér, majd a meglévő űrlapra épít. A cél kihagyható. A szereplők kapcsolata megadható, az új piszkozat alapból fiktív szereplővel indul. A felület az indításkor elküldi a mentett piszkozat revízióját; a böngészős másolatot csak visszaigazolt szerveroldali kiürítésnél távolítja el. Kikapcsolt funkciónál a régi indítás látszik. A régi és új indító mezők egy oszlopban jelennek meg. A webes build és a 33 szerződéses és API-regressziós eset sikeres. Helyi Playwright-próba szimulált API-val: az engedélyezett vállalkozói irány kiválasztható, a letiltott politikai irány nem látszik, az egyéni kezdőhelyzet oldalfrissítés után megmarad, cél nélkül `goal: null` és a mentett revízió megy a szervernek, az igazolt kiürítés után eltűnik a böngészős másolat, kikapcsolt kapcsolóval a régi indítás látszik. A teljes W/V elfogadási sor, a terv szerinti tízlépéses csoportosítás és a végleges kétnyelvű kérdések hátravannak.
 
 ## Nyitott kérdések és problémák
 

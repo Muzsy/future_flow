@@ -1566,3 +1566,34 @@ footer a {
     justify-content: center;
   }
 }
+
+.story-start-options {
+  display: grid;
+  gap: 0.85rem;
+  margin-block: 1rem;
+}
+
+.story-start-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+.story-start-option input[type='radio'] {
+  width: auto;
+  margin-block-start: 0.2rem;
+}
+
+.story-start-options fieldset,
+.story-start-form fieldset {
+  min-inline-size: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.story-start-form {
+  grid-template-columns: minmax(0, 1fr);
+}
