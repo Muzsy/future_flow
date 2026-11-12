@@ -60,14 +60,14 @@ export const evaluationPrices = {
   },
 };
 export const evaluationPriceEvidence = {
-  checkedOn: '2026-11-03',
+  checkedOn: '2026-11-10',
   tier: 'default',
   context: 'short',
   source: 'https://developers.openai.com/api/docs/pricing',
 };
 export const evaluationFlexPriceEvidence = {
   ...evaluationPriceEvidence,
-  checkedOn: '2026-11-03',
+  checkedOn: '2026-11-10',
   tier: 'flex',
   accountingTier: 'default',
   usageDiscount: 0.5,
