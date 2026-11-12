@@ -44,7 +44,10 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI08 – A meglévő Contabo operátori kliens és a szerveroldali eszköz elfogadja a három történetirány-beállítást. A kohorsz legfeljebb 100 különböző UUID. Az aktiválás v9 konfigurációt igényel, és a változó beállításnak egyeznie kell az API és a worker renderelt konfigurációjában. A hiányzó, alapértékű kapcsoló megadása önmagában nem okoz újraindítást. A terv és a napló a megváltozott értékek lenyomatait rögzíti. A teljes célgépes próba még nyitott.
 
-- TI08 – A kivételes elkülönítő eszköz `plan`, `park` és `restore` parancsa elkészült. A függő v10 feladat blokkolja az elkülönítést. A titkosított archívum az adatbázis-commit előtt lemezre kerül, a visszaillesztéshez pedig a commit után írt bizonylat kell. A helyi PostgreSQL-kompatibilis próba igazolta a sikertelen archiválás utáni változatlanságot, a közben módosított közös mezők megőrzését és az ismételt visszaillesztés hatástalanságát. Az `age` és a célgépes TLS futtatás külön próba. Az archívum törlésére vonatkozó döntés és parancs nyitott.
+- TI08 – A kivételes elkülönítő eszköz `plan`, `park` és `restore` parancsa elkészült. A függő v10 feladat blokkolja az elkülönítést. A titkosított archívum az adatbázis-commit előtt lemezre kerül, a visszaillesztéshez pedig a commit után írt bizonylat kell. A helyi PostgreSQL-kompatibilis próba igazolta a sikertelen archiválás utáni változatlanságot, a közben módosított közös mezők megőrzését és az ismételt visszaillesztés hatástalanságát. A valódi `age` és TLS próba izolált helyi PostgreSQL 16-on sikeres. A Contabo-célgépes próba külön lépés. Az archívum törlésére vonatkozó döntés és parancs nyitott.
+
+- TI05 – Playwrighttal ellenőrizve a régi helyi piszkozat átvétele üres és azonos revíziójú szerverpiszkozatnál. A frissebb szerverpiszkozat megmaradt, és az elutasított mentés után a régi helyi másolat is megmaradt. A magyar böngészős ellenőrzéshez továbbra is elkülönített nyelvi konfiguráció kell, mert az éles kiadási nyelv jelenleg az angol.
+- TI08 – Külön helyi PostgreSQL 16 példányon, saját tanúsítvánnyal és ideiglenes `age` kulccsal végigment a számlálás, titkosított elkülönítés, visszaillesztés és az ismételt visszaillesztés. Az adatbázisban a várt harmadik revízió és az eredeti irány szerepelt.
 
 ## Nyitott kérdések és problémák
 

@@ -260,6 +260,7 @@ export function LifeExperience({
     [ack, setAck] = useState(false),
     [saveStatus, setSaveStatus] = useState('');
   const lastSavedStory = useRef<string | null>(null);
+  const importedLegacyCache = useRef<string | null>(null);
   const revision = useRef(0),
     hydrated = useRef(false),
     saveBlocked = useRef(false),
@@ -369,22 +370,42 @@ export function LifeExperience({
             revision.current = draft.revision;
             saveBlocked.current = false;
             setStoryAccess(availability);
-            setKeptDraft(
-              !!draft.payload && !draft.payload.story && availability.enabled,
-            );
             setRetainedDirection(
               !availability.enabled && !!draft.payload?.story,
             );
             let payload: Setup = draft.payload ?? structuredClone(defaultSetup);
+            const legacyCacheKey = `alterward.lifeDraft:${user}`;
             const localCacheKey = availability.enabled
               ? `alterward.lifeDraft.v2:${user}`
-              : `alterward.lifeDraft:${user}`;
+              : legacyCacheKey;
+            importedLegacyCache.current = null;
+            if (availability.enabled && !draft.payload?.story) {
+              try {
+                const raw = sessionStorage.getItem(legacyCacheKey);
+                if (raw && !sessionStorage.getItem(localCacheKey)) {
+                  const cached = JSON.parse(raw);
+                  const parsed = lifeDraftV2Schema.safeParse(cached?.payload);
+                  if (parsed.success && cached.revision === draft.revision) {
+                    payload = parsed.data;
+                    importedLegacyCache.current = raw;
+                  }
+                }
+              } catch {
+                // The server draft remains available if the browser cache is unreadable.
+              }
+            }
+            setKeptDraft(
+              availability.enabled &&
+                (!!importedLegacyCache.current ||
+                  (!!draft.payload && !draft.payload.story)),
+            );
             if (availability.enabled) {
               payload = {
                 ...payload,
-                identity: draft.payload
-                  ? payload.identity
-                  : { ...payload.identity, mode: 'alternate' },
+                identity:
+                  draft.payload || importedLegacyCache.current
+                    ? payload.identity
+                    : { ...payload.identity, mode: 'alternate' },
                 story: payload.story ?? {
                   ...blankStory(availability.catalogVersion),
                   goalChoice: payload.goal.description.trim() ? 'set' : 'none',
@@ -518,6 +539,15 @@ export function LifeExperience({
         revision.current = saved.revision;
         if (payload.story) lastSavedStory.current = serialized;
         try {
+          const legacyKey = `alterward.lifeDraft:${user}`;
+          if (
+            payload.story &&
+            importedLegacyCache.current !== null &&
+            sessionStorage.getItem(legacyKey) === importedLegacyCache.current
+          ) {
+            sessionStorage.removeItem(legacyKey);
+            importedLegacyCache.current = null;
+          }
           const raw = sessionStorage.getItem(cacheKey);
           if (raw) {
             const cached = JSON.parse(raw);
