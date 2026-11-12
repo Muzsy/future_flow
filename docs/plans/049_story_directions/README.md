@@ -28,8 +28,10 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - A cél nélküli élet címét a felületi címkékből állítjuk össze. A v10 motor a választott irányt szerver által előállított keretként kapja, a szabad szöveg a felhasználói bemenetben marad. Az öt v10 prompt elkészült első jelöltként. A csomagbuild és 39 célzott teszt sikeres, köztük a v8/v9 rögzített kérései és a cél nélküli élet projekciója. A v10 szerveroldali kiválasztása és végigpróbája még hátravan.
 
+- TI04: az API és az adatbázis összekötve. Az indítás egyező revízió és tartalom mellett üríti a felhasznált piszkozatot. A régi kliens vagy a kikapcsolt funkció mellett szerkesztett közös mezők mentése megőrzi az irányt. Az adatbázis- és workerpróba cél nélküli életből is mentett első fejezetet, majd kikapcsolt új indítás mellett döntést és következő fejezetet. A csomagbuild, az API típusellenőrzése és a 90 esetből álló regressziós futás sikeres volt. A kibővített v10 teszteset külön is sikeres.
+
 ## Nyitott kérdések és problémák
 
-- A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali megvalósítás és teszt a TI04 csomag feladata.
+- A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
 - A kivételes visszaállítás tervében tisztázni kell az üres cél visszafordítható kezelését, a piszkozat azonosságának ellenőrzését és az archívum felülvizsgálati határidejét.
 - A végleges kérdésszövegek, az érzékeny kapcsolati válaszok kezelése és a későbbi fizetős próbák kerete az áttekintés nyitott döntései között szerepel.

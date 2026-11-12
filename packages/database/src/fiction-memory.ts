@@ -5,6 +5,7 @@ import {
   fictionEditorialVersionFor,
   fictionPolicy,
   fictionV9Policy,
+  fictionV10Policy,
   fictionSeriesLedgerSchema,
   fictionSeriesLedgerV11Schema,
   fictionSeriesQualityVersions,
@@ -45,7 +46,7 @@ import { ownedNarrativeReferences } from './narrative-artifact';
 
 // Which policy generation a new period is generated with. v8 is the default
 // and stays frozen; v9 is the explicit living-world selection.
-export type FictionGeneration = 'v8' | 'v9';
+export type FictionGeneration = 'v8' | 'v9' | 'v10';
 import { personalPrivacyEventIds } from './shared-privacy';
 
 export async function ownedFictionReferences(
@@ -81,6 +82,7 @@ export function boundFictionContext(
   // Living-world generation only: the bounded character projection (its own
   // byte bound, outside the memory bound) selects the v9 policy.
   characterProjection?: FictionCharacterProjection,
+  generation?: FictionGeneration,
 ) {
   // The ledger quotes owned prose, so withholding drops it like other history.
   seriesLedger = rawMemory.withheld ? undefined : seriesLedger;
@@ -221,7 +223,12 @@ export function boundFictionContext(
       'Required fiction continuity cannot fit its context bound.',
     );
   return fictionContextSchema.parse({
-    policy: characterProjection ? fictionV9Policy() : fictionPolicy(),
+    policy:
+      generation === 'v10'
+        ? fictionV10Policy()
+        : characterProjection
+          ? fictionV9Policy()
+          : fictionPolicy(),
     memory,
     storyFacts: facts,
     ...(sequenceHistory ? { sequenceHistory } : {}),
@@ -254,8 +261,13 @@ export async function personalFictionPeriod(
   context: ReturnType<typeof boundFictionContext>;
   fictionCharacters?: FictionCharacterEnvelope;
 }> {
-  const living = options.generation === 'v9';
-  const policy = living ? fictionV9Policy() : fictionPolicy();
+  const living = options.generation === 'v9' || options.generation === 'v10';
+  const policy =
+    options.generation === 'v10'
+      ? fictionV10Policy()
+      : living
+        ? fictionV9Policy()
+        : fictionPolicy();
   // The fold depends on the owned prefix only, so it is derived before the
   // ledger: the ledger names the recurring cast, the cast comes from the fold.
   const fold = living
@@ -294,6 +306,7 @@ export async function personalFictionPeriod(
         undefined,
         undefined,
         projection,
+        options.generation,
       ),
     );
   const rows = await tx.query<{
@@ -394,6 +407,7 @@ export async function personalFictionPeriod(
         signatures.slice(-8),
         seriesLedger,
         projection,
+        options.generation,
       ),
     seriesLedger,
   );

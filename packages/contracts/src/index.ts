@@ -381,3 +381,4 @@ export * from './fiction-character';
 export * from './story';
 export * from './story-catalog';
 export * from './story-labels';
+export * from './story-draft';

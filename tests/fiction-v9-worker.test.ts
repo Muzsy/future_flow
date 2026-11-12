@@ -27,6 +27,9 @@ import {
   fictionArtifactSchema,
   fictionContextSchema,
   fictionV9Policy,
+  fictionV10Policy,
+  storySetupFromDraft,
+  lifeStoryDraftRequestV2Schema,
   type FictionAuthorResult,
   type FictionCharacterDelta,
   type FictionCharacterEnvelope,
@@ -261,6 +264,144 @@ describe('living-world generation through the real guarded provider and database
       actors: [],
       omittedActors: 0,
     });
+  });
+
+  it('creates a v10 life from a revisioned draft and saves a chapter through the worker', async () => {
+    const owner = randomUUID();
+    await repo.ensureUser(owner);
+    await repo.acceptPrivacy(owner);
+    const config = {
+      ...configFor(owner, 'v9'),
+      storyDirections: {
+        enabled: false,
+        politicsEnabled: false,
+        cohortUserIds: [owner],
+      },
+    };
+    const limits = { daily: 100, concurrent: 10 };
+    const lives = new LifeRepository(db, limits, config);
+    const disabled = new LifeRepository(db, limits, configFor(owner, 'v9'));
+    const draft = lifeStoryDraftRequestV2Schema.parse({
+      ...setupFixture(),
+      story: {
+        contractVersion: '1.0.0',
+        catalogVersion: '1.0.0',
+        direction: 'relationships',
+        subtype: 'friendship',
+        answers: {},
+        startingSituation: { id: 'rel.new_city', note: null },
+        boundaries: [],
+        title: null,
+        goalChoice: 'set',
+      },
+    });
+    await expect(disabled.saveDraft(owner, 0, draft)).rejects.toMatchObject({
+      code: 'STORY_DIRECTION_UNAVAILABLE',
+    });
+    const { revision } = await lives.saveDraft(owner, 0, draft);
+    const setup = storySetupFromDraft(draft)!;
+    const key = randomUUID();
+    const created = await lives.create(
+      owner,
+      { ...setup, draftRevision: revision },
+      key,
+    );
+    expect(created).toHaveProperty('draftCleared', true);
+    expect(await lives.draft(owner)).toMatchObject({
+      revision: revision + 1,
+      payload: null,
+    });
+    await lives.saveDraft(owner, revision + 1, draft);
+    expect(
+      await lives.create(owner, { ...setup, draftRevision: revision }, key),
+    ).toEqual(created);
+    expect(await lives.draft(owner)).toMatchObject({
+      revision: revision + 2,
+      payload: draft,
+    });
+
+    const job = (await jobs.claim())!;
+    expect(job.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    const p = provider({
+      owner,
+      lives,
+      created,
+      job,
+      f: fictionFixture(job.payload),
+    });
+    await processLifeJob(job, jobs, p.ai);
+    expect((await saved(job)).status).toBe('completed');
+    expect(JSON.stringify(p.parse.mock.calls[0]?.[0])).toContain(
+      'storyDirection',
+    );
+    expect((await lives.detail(owner, created.branchId)).periods).toHaveLength(
+      1,
+    );
+
+    const { revision: editedRevision } = await disabled.saveDraft(
+      owner,
+      revision + 2,
+      { ...setupFixture(), context: 'A new common answer.' },
+    );
+    expect(await lives.draft(owner)).toMatchObject({
+      revision: editedRevision,
+      payload: { context: 'A new common answer.', story: draft.story },
+    });
+    const goalFree = storySetupFromDraft({
+      ...draft,
+      story: { ...draft.story, goalChoice: 'none' },
+    })!;
+    const newLife = await lives.create(owner, goalFree, randomUUID());
+    const nextJob = (await jobs.claim())!;
+    expect(nextJob.payload.input.goals).toEqual([]);
+    expect(nextJob.payload.state.goals).toEqual([]);
+    expect(nextJob.payload.narrativeContext?.policy).toEqual(
+      fictionV10Policy(),
+    );
+    expect(await lives.branch(owner, newLife.branchId)).toMatchObject({
+      input: { story: { startingSituation: setup.story.startingSituation } },
+    });
+    await processLifeJob(
+      nextJob,
+      jobs,
+      provider({
+        owner,
+        lives,
+        created: newLife,
+        job: nextJob,
+        f: fictionFixture(nextJob.payload),
+      }).ai,
+    );
+    expect((await saved(nextJob)).status).toBe('completed');
+    expect((await lives.detail(owner, newLife.branchId)).periods).toHaveLength(
+      1,
+    );
+    const chapter = await disabled.branch(owner, newLife.branchId);
+    const decision = chapter.pending_decision!;
+    await disabled.choose(
+      owner,
+      chapter.id,
+      chapter.revision,
+      decision.id,
+      decision.options[0]!.id,
+      randomUUID(),
+    );
+    const chosen = await disabled.branch(owner, chapter.id);
+    await disabled.continue(owner, chosen.id, chosen.revision, randomUUID());
+    const continuation = (await jobs.claim())!;
+    expect(continuation.payload.narrativeContext?.policy).toEqual(
+      fictionV10Policy(),
+    );
+    const continued = provider({
+      owner,
+      lives: disabled,
+      created: newLife,
+      job: continuation,
+      f: fictionFixture(continuation.payload),
+    });
+    await processLifeJob(continuation, jobs, continued.ai);
+    expect((await saved(continuation)).status).toBe('completed');
+    expect((await disabled.detail(owner, chosen.id)).periods).toHaveLength(2);
   });
 
   it('keeps the five-call stage graph, binds the delta and never sends the envelope to the model', async () => {

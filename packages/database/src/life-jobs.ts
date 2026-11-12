@@ -4,6 +4,7 @@ import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
   fictionV9Policy,
+  fictionV10Policy,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -60,11 +61,11 @@ function assertServiceJobPolicy(job: LifeJob) {
   if (
     serviceAccessEnforcementFromEnv() &&
     hash(job.payload.narrativeContext?.policy ?? null) !==
-      hash(fictionV9Policy())
+      hash(job.payload.input.story ? fictionV10Policy() : fictionV9Policy())
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
-      'Service generation requires the frozen v9 job policy.',
+      'Service generation requires a compatible fiction job policy.',
       409,
     );
 }

@@ -87,6 +87,8 @@ import {
   idSchema,
   lifeCreateRequestV2Schema,
   lifeDraftRequestV2Schema,
+  lifeStoryCreateRequestV2Schema,
+  lifeStoryDraftRequestV2Schema,
   lifeChoiceRequestV2Schema,
   lifeRevisionRequestV2Schema,
   lifeInteractionV2Schema,
@@ -751,6 +753,9 @@ class LifeController {
       key ?? '',
     );
   }
+  @Get('story-directions') storyDirections(@Req() req: AuthRequest) {
+    return this.lives.storyDirections(req.userId);
+  }
   @Get('draft') draft(@Req() req: AuthRequest) {
     return this.lives.draft(req.userId);
   }
@@ -758,7 +763,10 @@ class LifeController {
     const input = z
       .object({
         revision: z.number().int().nonnegative(),
-        payload: lifeDraftRequestV2Schema,
+        payload: z.union([
+          lifeDraftRequestV2Schema,
+          lifeStoryDraftRequestV2Schema,
+        ]),
       })
       .strict()
       .parse(body);
@@ -774,7 +782,9 @@ class LifeController {
   ) {
     return this.lives.create(
       req.userId,
-      lifeCreateRequestV2Schema.parse(body),
+      z
+        .union([lifeCreateRequestV2Schema, lifeStoryCreateRequestV2Schema])
+        .parse(body),
       key ?? '',
     );
   }
