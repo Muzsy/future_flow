@@ -35,8 +35,9 @@ lépés és a szolgáltatásprofil története megmarad.
   szolgáltatásprofilra és a Compose konfigurációra vonatkozó ellenőrzés
   minden futtatáskor megismétlődik. A váltás előtti restore még a régi
   `1d312d2` image-et használja, de már az új operátorforrással. A replay
-  guard csak ennél a konkrét régi digestnél és csak a jóváhagyott Stripe-fájl
-  pontos eltérését fogadja el; a többi restore szabálya változatlan.
+  guard csak a lent felsorolt, jóváhagyott (image, forrás-commit, fájlkészlet)
+  hármasokat fogadja el, fájlonként SHA-256-tal rögzítve; a többi restore
+  szabálya változatlan.
 - Az `image-apply` a tulajdonos által jóváhagyott teljes tervhash-t és
   a terv által kiírt `activate-service-image … generation …` mondatot
   kéri. A service-operator és a két Daily zár alatt dolgozik. Csak a három
@@ -117,3 +118,28 @@ A célgépes image-build (`contabo-target.py`, `build`) `docker buildx build` l�
 ## A Daily historikus táblája
 
 A `contabo-daily.py` `HISTORICAL_040_CHANGE_HASHES` táblája az archivált, első schema-040 successor-terv (`beta-successor-5`) pontos lenyomatait őrzi, ezért befagyasztott: új kiadás csak a `REGISTRY_040_CHANGE_HASHES` táblát frissítheti. A #176 tévedésből három bejegyzését is módosította, ezért az új Daily a `proxy-config-capture` fázisban az archívum-ellenőrzésnél elbukott („Exact bounded source-bound039 to040 plan required"), és mentés nem készülhetett. A javítás visszaállítja az eredeti három lenyomatot, és egy teszt rögzíti a tábla tartalmát.
+
+## A natív 040 restore replay-kivételei
+
+A `scripts/lib/funded-replay.mjs` replay-védelme alapból elutasítja, ha az
+éppen futó image forrása és az operátorforrás között a `database`, a
+`packages` vagy a függőségi/build bemenetek eltérnek. A kiadás előtti, friss
+natív 040 restore a _régi_ image-en fut az új operátorforrással, ezért a
+kiadott csomaghoz előre átnézett, szűk kivétel kell. Egy kivétel csak akkor
+érvényes, ha egyszerre teljesül: a bizonylat `alterward-funded-replay-2`,
+schema 40, `registry040`; a futó image digestje és forrás-commitja pontosan az
+adott bejegyzésé; az eltérő útvonalak listája _pontosan_ a bejegyzés
+fájlkészlete (se több, se kevesebb); és minden fájl SHA-256-ja az operátor
+forrás-commitban egyezik a bejegyzés lenyomatával. Minden más fájl, lenyomat
+vagy image elutasítva marad (fail closed). A főág továbbhaladása is
+érvényteleníti a kivételt, ha a pinelt fájlok bájtjai változnak.
+
+| Futó image (forrás)                  | Fájlkészlet                                                                                                                                                                                | Kiadás                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `sha256:2bc94ef6…202050` (`1d312d2`) | `packages/core/src/billing-stripe.ts`                                                                                                                                                      | #185 Stripe-lemondás                                                           |
+| `sha256:a93bb2ba…a3c8a` (`0bbdb06`)  | kilenc `packages/` fájl: `contracts` (`error-messages`, `privacy-consent`), `core` (`billing-referral`, `billing`, `index`), `database` (`billing`, `index`, `referral`, `service-access`) | #194 worker pool, #176 ÁSZF, #193 előfizetői meghívó; operátorforrás `4b0d7b7` |
+
+A teljes lenyomatok a `REVIEWED_REGISTRY_REPLAY_EXCEPTIONS` táblában vannak,
+és a `tests/ops/funded-replay.test.mjs` bizonyítja, hogy bármely más image,
+fájl, bájt vagy többlet-/hiányzó útvonal elutasított. Új kiadáshoz új, külön
+átnézett bejegyzés kell; meglévő bejegyzés nem bővíthető csendben.
