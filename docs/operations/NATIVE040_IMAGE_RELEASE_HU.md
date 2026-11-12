@@ -111,6 +111,10 @@ fogadja el. A korábbi Discover- és Stripe-váltások engedélye a saját korá
 forrásához kötött. A 039 → 040 migráció történeti próbája az eredeti migrációt
 és az első natív 040 image-et a megőrzött commitokból ellenőrzi.
 
+## A regisztráció-visszajelzés pinjei
+
+A regisztráció utáni „Levél elküldve” visszajelzés (#198) három már pinelt fájlt módosít: `apps/web/components/experience.tsx`, `apps/web/lib/i18n/messages.ts` és `packages/contracts/src/error-messages.ts` (új fájl: `apps/web/lib/signup-mail.ts`, nem pinelt). A `REGISTRY_040_CHANGE_HASHES` három lenyomata a #198 ágán a módosított bájtokra frissült, hogy a regisztrációs pin-teszt zöld maradjon. Ez nem kiadási engedély: a `REVIEWED_IMAGE_CHANGES` és a `REVIEWED_REGISTRY_REPLAY_EXCEPTIONS` bejegyzés ezekre a fájlokra (a `packages/contracts/src/error-messages.ts` replay-kivételével együtt) a következő image-kiadás végleges PR-jában készül, a futó Generation 9 (`0b82cd5`) forrás közvetlen utódjaként, az összes érintett termékfájlra.
+
 ## Az éles image-build időkorlátja
 
 A célgépes image-build (`contabo-target.py`, `build`) `docker buildx build` lépésének időkorlátja 3600 s (korábban 1200 s). A builder 1 CPU-ra és 2 GiB memóriára korlátozott marad, és a szerver többi folyamatával osztozik a gépen; terhelés alatt a build 20 percnél tovább tartott és háromszor időtúllépéssel állt le (2026-11-11). Az emelés csak a várakozási plafont érinti: az erőforráskorlátok, a build-argumentumok, a forrásellenőrzés és a takarítás változatlanok. A kiadási kapuk és a `REVIEWED_IMAGE_CHANGES` nem változnak. A build ne érje el a 04:15-ös (magyar idő) napi mentést.
