@@ -61,6 +61,12 @@ export const evaluationV10TimingApproval = {
   maxSpendUsd: 1.2,
 } as const;
 
+// Repeat the two timing samples after removing the inherited six-month prompt.
+export const evaluationV10TimingFixedApproval = {
+  approvalId: 'v10-timing-fixed-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;

@@ -87,6 +87,7 @@ import {
   evaluationV10StageAApproval,
   evaluationV10ComparisonApproval,
   evaluationV10TimingApproval,
+  evaluationV10TimingFixedApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1543,12 +1544,14 @@ async function runEvaluationUnlocked(
     const path = ledgerFile(seams);
     const calls = readLedgerCalls(path);
     verifyApprovalLedger(calls, path);
-    const approval =
-      options.v10Stage === 'comparison'
-        ? options.approvalId === evaluationV10TimingApproval.approvalId
-          ? evaluationV10TimingApproval
-          : evaluationV10ComparisonApproval
-        : evaluationV10StageAApproval;
+    const approval = [
+      evaluationV10StageAApproval,
+      evaluationV10ComparisonApproval,
+      evaluationV10TimingApproval,
+      evaluationV10TimingFixedApproval,
+    ].find((item) => item.approvalId === options.approvalId);
+    if (!approval)
+      throw new DomainError('EVAL_APPROVAL_REQUIRED', 'Unknown v10 approval.');
     verifyApprovalBudget(calls, options.budgetUsd!, approval);
     v10Ceiling = approvalCumulativeBudgetUsd(
       calls,
