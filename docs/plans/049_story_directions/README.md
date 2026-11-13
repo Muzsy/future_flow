@@ -14,7 +14,7 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 | TI00      | Folyamatban       | A terv rögzítése és a piszkozatkezelés, valamint a visszaállítás egységesítése.          |
 | TI01–TI04 | Elkészült helyben | Szerződések, opcionális cél, v10 és szerveroldali mentés.                                |
 | TI05      | Folyamatban       | A tízlépéses indítás és a vizuális javítás elkészült helyben; teljes elfogadás hátravan. |
-| TI06      | Folyamatban          | Adatkezelési döntés és megvalósítás.                                                     |
+| TI06      | Elkészült helyben | A jóváhagyott tájékoztatás elkészült helyben.                                            |
 | TI07      | Elkészült helyben | Privát történetoldal, előnézeti ellenőrzés és publikálási korlátok.                      |
 | TI08      | Folyamatban       | Kapcsolók és megőrző elkülönítés helyben. Kiadási pinek és célgépes próba hátravan.      |
 | TI09      | Folyamatban       | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                          |
@@ -61,10 +61,10 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI08 – Célgépes előellenőrzés. A GitHub `main` ellenőrzött állapota `27adddc`, amely a helyi `c858743` fejlesztői állapot őse. A helyi Docker-próba `7b1b1b1` forrása és a `c858743` között az alkalmazás, a csomagok, a tesztek, a telepítési fájlok és a Dockerfile tartalma egyezik. Az iránykapcsolók alapból ki vannak kapcsolva, és a változás nem ad hozzá adatbázis-migrációt. A célgépes próbához a kiadási rend átnézett, sikeres CI-vel ellenőrzött főági jelöltből épített image-et és külön jóváhagyott futtatást kér. A helyi image és bizonyíték megmarad a saját forrásához kötve. Az adatkezelési döntés és a teljes kiadási jelölt lezárása előzi meg ezt a szerverlépést.
 
-- TI06 – A helyi v10 API–worker próba egyedi szintetikus kezdőhelyzettel igazolta az élet exportját, a felhasznált piszkozat kiürítését és a fióktörlés utáni eltávolítást az aktív adatbázisból. A teszt ellenőrizte a nyers szöveg hiányát a metrikákban, interakciókban, idempotencia-rekordokban és a sikeres futás konzolkimenetében. A fiókexport az indítás előtt az azonos revíziójú teljes piszkozatot adta vissza. Az elmentett történet exportjában megmaradt a megadott megszólítás, a történetre bízott vonzódás és a meg nem adott kapcsolati helyzet. A hibás generálás naplópróbája is sikerült. A szimulált szolgáltatói kivétel tartalmazta a kezdőhelyzet tesztszövegét. A worker hibásként zárta a feladatot, a privát API az `AI_REQUEST_FAILED` hibakódot adta, és a napló csak a feladatazonosítót és a státuszt tartalmazta. Az opcionális válaszok tájékoztatási döntése nyitott.
+- TI06 – A helyi v10 API–worker próba egyedi szintetikus kezdőhelyzettel igazolta az élet exportját, a felhasznált piszkozat kiürítését és a fióktörlés utáni eltávolítást az aktív adatbázisból. A teszt ellenőrizte a nyers szöveg hiányát a metrikákban, interakciókban, idempotencia-rekordokban és a sikeres futás konzolkimenetében. A fiókexport az indítás előtt az azonos revíziójú teljes piszkozatot adta vissza. Az elmentett történet exportjában megmaradt a megadott megszólítás, a történetre bízott vonzódás és a meg nem adott kapcsolati helyzet. A hibás generálás naplópróbája is sikerült. A szimulált szolgáltatói kivétel tartalmazta a kezdőhelyzet tesztszövegét. A worker hibásként zárta a feladatot, a privát API az `AI_REQUEST_FAILED` hibakódot adta, és a napló csak a feladatazonosítót és a státuszt tartalmazta. A tulajdonos a kérdések melletti tájékoztatást és a Privacy Notice frissítését választotta. A két nyelvű szöveg és a kérdéseknél megjelenő hivatkozás elkészült.
 
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
 - A kivételes visszaállítás tervében tisztázni kell az üres cél visszafordítható kezelését, a piszkozat azonosságának ellenőrzését és az archívum felülvizsgálati határidejét.
-- A végleges kérdésszövegek, az érzékeny kapcsolati válaszok kezelése és a későbbi fizetős próbák kerete az áttekintés nyitott döntései között szerepel.
+- A végleges kérdésszövegek és a későbbi fizetős próbák kerete az áttekintés nyitott döntései között szerepel.

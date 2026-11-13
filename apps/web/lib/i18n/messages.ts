@@ -178,7 +178,7 @@ export const en = {
     "Your profile and life branches are private. The system uses your life situation, self-reported temperament, goals and pseudonymous relationship labels. We do not ask for exact addresses, employers, diagnoses or other people's real names.",
   'privacy.aiTitle': 'How is the AI story created?',
   'privacy.aiDescription':
-    "Generation uses the OpenAI API. We send the profile data, relationship labels, earlier chapters and scenario state needed to create the events and narrative. Requests are sent with the provider's response-storage option turned off. According to the provider's documentation it can still keep API data for up to 30 days for abuse monitoring, and by default does not use API data to train its models. Our application does not log the full prompt.",
+    "Generation uses the OpenAI API. We send the profile data, relationship labels, earlier chapters and scenario state needed to create the events and narrative. For stories with a chosen direction, we also send the direction and relevant optional answers, including character pronouns and attraction preferences when needed. Requests are sent with the provider's response-storage option turned off. According to the provider's documentation it can still keep API data for up to 30 days for abuse monitoring, and by default does not use API data to train its models. Our application does not log the full prompt.",
   'privacy.scenarioTitle': 'What do life branches mean?',
   'privacy.scenarioDescription':
     'They are fictional, possible scenarios. Scores help shape the scenario; they are not psychological diagnoses or probabilities of future events.',
@@ -336,7 +336,7 @@ export const en = {
   'privacy.collect2':
     'Profile: the life situation, temperament, goals and pseudonymous relationship labels you enter.',
   'privacy.collect3':
-    'Stories: the AI-generated life branches and chapters, your choices and the related scenario state.',
+    'Stories: the AI-generated life branches and chapters, your choices and the related scenario state. Story setup and saved drafts may also contain your chosen direction and optional answers about characters, including pronouns and attraction preferences.',
   'privacy.collect4':
     'Feedback (optional): the category, continuation answer and comment (up to 1,200 characters) you choose to send.',
   'privacy.collect5':
@@ -601,7 +601,7 @@ export const hu: Record<MessageKey, string> = {
     'A profil és az életágak privátak. A rendszer élethelyzetet, önbevallott habitust, célokat és álneves kapcsolati címkéket használ. Pontos címet, munkáltatót, diagnózist vagy mások valódi nevét nem kérjük.',
   'privacy.aiTitle': 'Hogyan készül az AI-történet?',
   'privacy.aiDescription':
-    'A generálás az OpenAI API-n keresztül történik. Az események és a narratíva elkészítéséhez a szükséges profiladatokat, kapcsolati címkéket, korábbi fejezeteket és szcenárióállapotot továbbítjuk. A kéréseket a szolgáltató választárolási lehetőségének kikapcsolásával küldjük. A szolgáltató dokumentációja szerint az API-adatokat visszaélés-figyelés céljából így is megőrizheti legfeljebb 30 napig, és alapértelmezés szerint nem használja azokat a modelljei tanítására. A saját rendszerünkben a teljes prompt nem kerül az alkalmazás naplójába.',
+    'A generálás az OpenAI API-n keresztül történik. Az események és a narratíva elkészítéséhez a szükséges profiladatokat, kapcsolati címkéket, korábbi fejezeteket és szcenárióállapotot továbbítjuk. Választott történetirány esetén az irányt és a generáláshoz szükséges opcionális válaszokat is továbbítjuk, ideértve adott esetben a szereplők megszólítását és vonzódására vonatkozó preferenciáit. A kéréseket a szolgáltató választárolási lehetőségének kikapcsolásával küldjük. A szolgáltató dokumentációja szerint az API-adatokat visszaélés-figyelés céljából így is megőrizheti legfeljebb 30 napig, és alapértelmezés szerint nem használja azokat a modelljei tanítására. A saját rendszerünkben a teljes prompt nem kerül az alkalmazás naplójába.',
   'privacy.scenarioTitle': 'Mit jelentenek az életágak?',
   'privacy.scenarioDescription':
     'Fiktív, lehetséges forgatókönyvek. A pontszámok a szcenárió szerkesztését segítik; nem pszichológiai diagnózisok és nem valós jövőbeli valószínűségek.',
@@ -759,7 +759,7 @@ export const hu: Record<MessageKey, string> = {
   'privacy.collect2':
     'Profil: az általad megadott élethelyzet, habitus, célok és álneves kapcsolati címkék.',
   'privacy.collect3':
-    'Történetek: az AI által generált életágak és fejezetek, a döntéseid és a hozzájuk tartozó szcenárióállapot.',
+    'Történetek: az AI által generált életágak és fejezetek, a döntéseid és a hozzájuk tartozó szcenárióállapot. Az indítási adatok és a mentett piszkozatok a választott történetirányt és a szereplőkre vonatkozó opcionális válaszokat is tartalmazhatják, köztük a megszólítást és a vonzódásra vonatkozó preferenciákat.',
   'privacy.collect4':
     'Visszajelzés (opcionális): a kategória, a folytatásra adott válasz és a megjegyzés (legfeljebb 1200 karakter), amelyet te küldesz el.',
   'privacy.collect5':

@@ -19,10 +19,20 @@ export type StoryAvailability = {
 
 type Draft = StoryDraft['story'];
 const unspecified = { mode: 'unspecified' } as const;
-const fictionalAnswerNotice = {
-  en: 'These optional answers describe the character in this story. They are never treated as facts about you or anyone else.',
-  hu: 'Ezek a válaszok nem kötelezőek, és a történet szereplőjére vonatkoznak. Nem kezeljük őket rólad vagy másról szóló tényként.',
-};
+function StoryPreferenceNotice({ locale }: { locale: Locale }) {
+  return (
+    <small>
+      {locale === 'hu'
+        ? 'Ez a válasz opcionális, és a történet szereplőjére vonatkozik. A történet megírásához használjuk, és a generáláshoz szükséges részét továbbítjuk az AI-szolgáltatónak. '
+        : 'This optional answer describes a character in the story. We use it to write the story and send the information needed for generation to our AI provider. '}
+      <a href="/privacy-notice" target="_blank" rel="noopener noreferrer">
+        {locale === 'hu'
+          ? 'Adatkezelési tájékoztató (új lapon)'
+          : 'Privacy Notice (opens in a new tab)'}
+      </a>
+    </small>
+  );
+}
 
 export function blankStory(
   catalogVersion: StoryAvailability['catalogVersion'],
@@ -145,7 +155,7 @@ export function AddressField({
   return (
     <fieldset>
       <legend>{label}</legend>
-      <small>{fictionalAnswerNotice[locale]}</small>
+      <StoryPreferenceNotice locale={locale} />
       <StoryRadioCards
         label={label}
         showLabel={false}
@@ -693,9 +703,7 @@ function DirectionAnswer({
   return (
     <fieldset>
       <legend>{label}</legend>
-      {field.key === 'attraction' && (
-        <small>{fictionalAnswerNotice[locale]}</small>
-      )}
+      {field.key === 'attraction' && <StoryPreferenceNotice locale={locale} />}
       {field.preference && (
         <StoryRadioCards
           label={hu ? 'Válasz módja' : 'Answer preference'}

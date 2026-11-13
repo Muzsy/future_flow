@@ -684,10 +684,7 @@ A mai tájékoztató állításai (`privacy.introduction`, `terms.input1`) igaza
 - `privacy.introduction` / „Mit gyűjtünk” felsorolás: a történet iránya és az ahhoz adott, opcionális válaszok, köztük a szereplő megszólítására és vonzódására vonatkozó, opcionális történetbeli preferenciák.
 - `privacy.aiDescription`: a generáláshoz ezek is a szolgáltatóhoz kerülnek.
 
-Nyitott döntés ([00, N1](049_story_directions_00_overview_hu.md#7-nyitott-tulajdonosi-döntések)): kell-e külön kifejezett hozzájárulás és új elfogadási verzió. A szerkezet mindkét választ kiszolgálja:
-
-- **Ajánlott (hozzájárulási sor nélkül):** a kérdésnél megjelenő tájékoztatás és a tájékoztató frissítése.
-- **Ha külön hozzájárulás kell:** új `consent_type` érték (`story_sensitive_preferences`) az `ff_consents` táblában (a tábla szabad szöveges típust tárol, migráció nem kell: `001_foundation.sql:120-124`); a szerver `specified` vagy `engine_decides` értéket csak ilyen sor megléte esetén fogad el, különben `PRIVACY_ACKNOWLEDGEMENT_REQUIRED`. Ez a változat a TI06 csomag opcionális része.
+Az első kiadáshoz a tulajdonos a kérdések melletti tájékoztatást és a Privacy Notice frissítését választotta. A megszólítás és a vonzódás opcionális. A kérdés melletti hivatkozás új lapon nyitja meg a tájékoztatót, így az űrlap megmarad. A meglévő elfogadási verzió használatos.
 
 ### 8.5. Export és törlés
 
