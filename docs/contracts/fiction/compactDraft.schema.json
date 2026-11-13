@@ -43,7 +43,15 @@
           "anyOf": [
             {
               "type": "number",
-              "const": 6
+              "enum": [
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+              ]
             },
             {
               "type": "number",

@@ -187,7 +187,7 @@ export const periodCandidateV2Schema = z
     baseRevision: z.number().int().nonnegative(),
     startDate: date,
     endDate: date,
-    durationMonths: z.union([z.literal(6), z.literal(12)]),
+    durationMonths: z.union([z.literal([3, 4, 5, 6, 7, 8, 9]), z.literal(12)]),
     title: label,
     events: z
       .array(

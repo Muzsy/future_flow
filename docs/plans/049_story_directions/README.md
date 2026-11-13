@@ -81,6 +81,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A két javítás valódi összehasonlító próbája a `d5f6a79` forráson elkészült. P4 és P1 fejezete tíz modellkéréssel, javítás és feldolgozási hiba nélkül mentődött. A külön 1,20 USD plafonból 0,5310325 USD könyvelt összeg, 0,4710439 USD használati becslés. A P4 új opcióiban a jelzálogra és hitelre utaló záradék eltűnt. A döntés oka a társtulajdonos vállalásának megváltozása. A P1 új fejezetében egy korábbi félreértés magyarázza a távolodást, a döntést a tisztázó beszélgetés és a randevúajánlat indítja el. Mindkét fejezet májusban zár, az időkeret mintája megmaradt. A futás két új minta alapján ad olvasói összevetést, a B szakasz külön mérés.
 
+- TI09 – A privát v10 új feladataiban a tervező csak a kezdődátumot és a 3–9 hónapos tartományt kapja. A tervezett eseményekhez választ időtartamot. A szerver a naptári összeadással ellenőrzi a záródátumot, az események sorrendjét és a záró döntést. Az író az elfogadott dátumokat kapja, és eltérés esetén a validáció megáll. A folytatás a mentett záródátumról indul. A korábban sorba tett feladatok és a v8/v9 futások időellenőrzése a meglévő időkeretet követi. A Shared közös időpontszabálya külön fejlesztési pont.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

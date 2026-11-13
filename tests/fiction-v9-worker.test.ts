@@ -21,7 +21,15 @@ import {
   type Database,
   type LifeJob,
 } from '@future-flow/database';
-import { billingConfigFromEnv, DomainError, hash } from '@future-flow/core';
+import {
+  addMonths,
+  fictionCanon,
+  fictionPlannerRequest,
+  assertFictionStoryTiming,
+  billingConfigFromEnv,
+  DomainError,
+  hash,
+} from '@future-flow/core';
 import {
   FICTION_CHARACTER_VERSION,
   FICTION_MODE,
@@ -532,25 +540,54 @@ describe('living-world generation through the real guarded provider and database
       );
       const path = '/branches/' + created.branchId;
       const lives = new LifeRepository(db, { daily: 10, concurrent: 2 });
-      async function finishChapter() {
+      async function finishChapter(months: 3 | 9, expectedStart?: string) {
         const job = (await jobs.claim())!;
         expect(job.branch_id).toBe(created.branchId);
         expect(job.payload.narrativeContext?.policy).toEqual(
           fictionV10Policy(),
         );
+        expect(job.payload.storyTiming).toBe('planner-v1');
+        if (expectedStart) expect(job.payload.startDate).toBe(expectedStart);
+        const endDate = addMonths(job.payload.startDate, months);
+        const f = fictionFixture(job.payload);
+        for (const candidate of [f.draft.candidate, f.authored.candidate]) {
+          candidate.durationMonths = months;
+          candidate.endDate = endDate;
+          candidate.events.at(-1)!.effectiveAt = endDate;
+        }
+        const plannerRequest = fictionPlannerRequest(job.payload);
+        expect(plannerRequest).not.toHaveProperty('durationMonths');
+        expect(plannerRequest).not.toHaveProperty('endDate');
+        expect(plannerRequest.storyTiming).toEqual({
+          minimumMonths: 3,
+          maximumMonths: 9,
+        });
+        for (const invalid of [2, 10, 12]) {
+          const wrong = structuredClone(f.draft);
+          Object.assign(wrong.candidate, { durationMonths: invalid });
+          expect(() => fictionCanon(job.payload, wrong)).toThrow();
+        }
+        const wrongDate = structuredClone(f.draft);
+        wrongDate.candidate.endDate = addMonths(endDate, 1);
+        expect(() => fictionCanon(job.payload, wrongDate)).toThrow();
+        const changed = structuredClone(f.authored);
+        changed.candidate.durationMonths = months === 3 ? 9 : 3;
+        expect(() =>
+          assertFictionStoryTiming(job.payload, f.draft, changed),
+        ).toThrow();
         const transport = provider({
           owner,
           lives,
           created,
           job,
-          f: fictionFixture(job.payload),
+          f,
         });
         await processLifeJob(job, jobs, transport.ai);
         expect((await saved(job)).status).toBe('completed');
         expect(transport.parse).toHaveBeenCalledTimes(5);
         return job.id;
       }
-      const first = await finishChapter();
+      const first = await finishChapter(3);
       const detail = await request(path);
       expect(detail.periods).toHaveLength(1);
       const decision = detail.branch.pending_decision;
@@ -572,10 +609,19 @@ describe('living-world generation through the real guarded provider and database
         { revision: chosen.branch.revision },
         201,
       );
-      const second = await finishChapter();
+      const second = await finishChapter(
+        9,
+        detail.periods[0].candidate.endDate,
+      );
       expect(continued.jobId).toBe(second);
       const final = await request(path);
       expect(final.periods).toHaveLength(2);
+      expect(
+        final.periods.map(
+          (p: { candidate: { durationMonths: number } }) =>
+            p.candidate.durationMonths,
+        ),
+      ).toEqual([3, 9]);
       expect(final.choices[0]).toMatchObject({
         decision_id: decision.id,
         option_id: option.id,

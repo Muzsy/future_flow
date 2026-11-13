@@ -235,6 +235,14 @@ function fictionReferenceProjection(input: NarrativePeriodInput) {
     );
   return projection;
 }
+export function hasPlannerStoryTiming(input: NarrativePeriodInput) {
+  return (
+    input.storyTiming === 'planner-v1' &&
+    input.narrativeContext?.policy.qualityPolicyVersion === '2.9.0' &&
+    !!input.input.story
+  );
+}
+
 export function fictionPlannerRequest(
   input: NarrativePeriodInput,
   repair?: string,
@@ -247,8 +255,9 @@ export function fictionPlannerRequest(
     revision: input.revision,
     periodId: input.periodId,
     startDate: input.startDate,
-    endDate: input.endDate,
-    durationMonths: input.durationMonths,
+    ...(hasPlannerStoryTiming(input)
+      ? { storyTiming: { minimumMonths: 3, maximumMonths: 9 } }
+      : { endDate: input.endDate, durationMonths: input.durationMonths }),
     acceptedDecisionIds: input.acceptedDecisionIds,
     memory: {
       recentEvents: context.memory.withheld ? [] : input.memory.recentEvents,
@@ -378,6 +387,12 @@ export function fictionAuthorRequest(
   );
   return {
     ...fictionPlannerRequest(input),
+    ...(hasPlannerStoryTiming(input)
+      ? {
+          endDate: parsed.candidate.endDate,
+          durationMonths: parsed.candidate.durationMonths,
+        }
+      : {}),
     draft: parsed,
     // Living world only: the exact numbers of the state and of this draft's
     // typed changes, computed per request, for the prose not to recount.
@@ -424,6 +439,12 @@ export function fictionReviewRequest(
     ? (({ referenceProjection: _ref, castingProjection: _cast, ...rest }) =>
         rest)(plannerBase as typeof plannerBase & Record<string, unknown>)
     : plannerBase;
+  const approvedInterval = hasPlannerStoryTiming(input)
+    ? {
+        endDate: authored.candidate.endDate,
+        durationMonths: authored.candidate.durationMonths,
+      }
+    : {};
   const { chapter: _chapter, ...proposed } = requestAuthorSchema(
     fictionScope(input).context.policy,
   ).parse(authored);
@@ -449,6 +470,7 @@ export function fictionReviewRequest(
     : {};
   return {
     ...base,
+    ...approvedInterval,
     narrativeContext: checkStageContext(fictionScope(input).context),
     proposed,
     ...continuity,
@@ -620,8 +642,10 @@ export function fictionCanon(
     c.branchId !== input.input.branchId ||
     c.baseRevision !== input.revision ||
     c.startDate !== input.startDate ||
-    c.endDate !== input.endDate ||
-    c.durationMonths !== input.durationMonths
+    (hasPlannerStoryTiming(input)
+      ? c.durationMonths < 3 || c.durationMonths > 9
+      : c.endDate !== input.endDate ||
+        c.durationMonths !== input.durationMonths)
   )
     fail('Fiction candidate changed its server-owned scope.');
   const canon = simulatePeriodV2(c, input.state, input.input.constraints, {
@@ -643,6 +667,7 @@ export function fictionCanon(
     canon,
     scope.context.memory,
     scope.references,
+    hasPlannerStoryTiming(input),
   );
   if (scope.characters && !options.base) {
     // An intent describes a person's own aim: wholly fictional people only,
@@ -673,6 +698,19 @@ export function fictionCanon(
   }
   return { ...scope, result, canon };
 }
+export function assertFictionStoryTiming(
+  input: NarrativePeriodInput,
+  draft: NarrativePlanningResult,
+  authored: FictionAuthorResult,
+) {
+  if (
+    hasPlannerStoryTiming(input) &&
+    (authored.candidate.endDate !== draft.candidate.endDate ||
+      authored.candidate.durationMonths !== draft.candidate.durationMonths)
+  )
+    fail('The author changed the approved story interval.');
+}
+
 export function validateFictionAuthor(
   input: NarrativePeriodInput,
   raw: unknown,
@@ -867,6 +905,7 @@ export function buildFictionArtifact(
   repair?: FictionRepair,
 ): FictionArtifact {
   fictionCanon(input, draft);
+  assertFictionStoryTiming(input, draft, authored);
   const run = validateFictionAuthor(input, authored);
   const r = narrativePlanReviewV2Schema.parse(review);
   validateNarrativePlanReview(r, run.result, 'life_narrative_plan_review.v2');

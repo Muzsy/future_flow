@@ -20,6 +20,7 @@ import {
   validatePeriodChapterV2,
   validatedNarrativeCheckpoint,
   validatedFictionCheckpoint,
+  hasPlannerStoryTiming,
 } from '@future-flow/core';
 import type { Database } from './index';
 import {
@@ -324,7 +325,11 @@ export class LifeJobRepository {
         );
       if (
         candidate.periodId !== job.payload.periodId ||
-        candidate.durationMonths !== 6
+        candidate.startDate !== job.payload.startDate ||
+        (hasPlannerStoryTiming(job.payload)
+          ? candidate.durationMonths < 3 || candidate.durationMonths > 9
+          : candidate.durationMonths !== 6 ||
+            candidate.endDate !== job.payload.endDate)
       )
         throw new DomainError(
           'LIFE_PERIOD_INTERVAL',

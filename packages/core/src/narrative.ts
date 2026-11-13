@@ -298,6 +298,7 @@ export function validateNarrativePlan(
   canon: Canon,
   rawMemory: NarrativeMemory,
   references?: NarrativeReferences,
+  allowStoryTiming = false,
 ) {
   const result = narrativePlanningResultSchema.parse(raw);
   const memory = narrativeMemorySchema.parse(rawMemory);
@@ -327,7 +328,7 @@ export function validateNarrativePlan(
     )
   )
     invalid('Canonical event or decision ID reused.');
-  if (canon.period.durationMonths !== 6)
+  if (!allowStoryTiming && canon.period.durationMonths !== 6)
     invalid('Narrative plans require a six-month personal period.');
   if (hash(result.candidate) !== hash(canon.period))
     invalid('Plan candidate differs from validated canon.');

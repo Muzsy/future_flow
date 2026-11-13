@@ -860,6 +860,7 @@ export class LifeRepository {
           },
         );
         payload.narrativeContext = period.context;
+        if (branch.input.story) payload.storyTiming = 'planner-v1';
         if (period.fictionCharacters)
           payload.fictionCharacters = period.fictionCharacters;
       } else
