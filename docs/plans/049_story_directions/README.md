@@ -71,6 +71,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A szakasz első fizetős kísérlete a tiszta `2430b20` checkoutból futott. A korábbi fejlesztői kulcsot az első modellkérésnél a szolgáltató elutasította (`AI_AUTH_FAILED`). Nem készült fejezet. A szolgáltató nem adott használati adatot. A napló 0,2055175 USD konzervatív foglalást őriz, így a jóváhagyott plafonból legfeljebb 1,7944825 USD maradt a futtató elszámolása szerint. Az eredeti költségnapló és a kötésfájl frissített példánya megmaradt. Folytatáshoz működő kulcs kell a külön fejlesztői projekthez.
 
+- TI09 – A működő fejlesztői kulccsal az A próba négy fejezetet mentett (P1, P3, P4, P7). A P9 írói kérés szolgáltatói hibával zárult (`AI_PROVIDER_FAILED`), így a technikai küszöb 4/5. Az A keretben az előző hitelesítési kísérlettel együtt 26 hívás és 1,7159475 USD konzervatív elszámolás szerepel. Az ismert használat becslése 0,986475 USD, a plafonból 0,2840525 USD maradt. A négy elfogadott fejezet összesen 24 modellkérést igényelt. A három cél nélküli mintában nem volt `goal_progress_set`. A privát kimenetben elkészült a vak olvasói csomag. A teljes tartalmi elfogadás az olvasói értékelésre vár.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
