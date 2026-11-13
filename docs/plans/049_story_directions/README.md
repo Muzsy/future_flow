@@ -107,6 +107,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A napra pontos P4 fizetős próba (`8735ea7`) első fejezete öt hívással, javítás nélkül mentődött a 2027. május 13-i dátummal. A folytatás tervezője erről a napról indult és november 9-et választott, négy nappal a hathavi forduló előtt. A második fejezet írói hívásának előzetes foglalását a közös 1,20 USD-s plafon elutasította. Az új futás hat fizetős hívásának könyvelt költsége 0,3350075 USD, a korábbi fejezetpárral együtt 0,9568075 USD. A modell szabad dátumválasztása igazolt; a nem hónapfordulós dátum írói és mentési átvitele fizetős körben nyitott, helyi integrációs teszten sikeres. A fejezet és a folytatás terve a privát `v10-continuation-decision-date-paid` könyvtárban található.
 
+- TI09 – Egyetlen P4 nyitófejezet futott végig a napra pontos v10 szerződéssel (`d8c2ec5`). A *The Work at the Door* öt fizetős hívással, javítás nélkül mentődött. A tervező és író dátuma 2026. november 13. → 2027. május 13.; ebben a mintában a modell a hathavi fordulónapot választotta. Könyvelt költség 0,264635 USD, használati becslés 0,2026403 USD. A próba egy nyitófejezetre szólt. A fejezet és a választások a privát `v10-opening-decision-date-paid` könyvtárban vannak.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
