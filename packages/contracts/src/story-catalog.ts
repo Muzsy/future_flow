@@ -377,7 +377,7 @@ export const storyCatalogs = {
           decisions:
             'The closing decision is usually about going or staying, with whom, and what is kept at home.',
           avoid:
-            'A period lasts six months: no day-by-day itinerary and no guidebook. Use real countries and cities only as general settings; invent small places, businesses and people. State nothing about visas, laws, prices or safety as fact and give no travel advice.',
+            'Avoid day-by-day itineraries and guidebook prose. Use real countries and cities only as general settings; invent small places, businesses and people. State nothing about visas, laws, prices or safety as fact and give no travel advice.',
           continuity:
             'Record each lasting move with location_set and people met on the road who may return with actor_add.',
           hardLimits: [],

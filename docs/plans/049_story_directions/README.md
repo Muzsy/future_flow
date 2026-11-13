@@ -87,6 +87,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A hathavi promptmaradványok eltávolítása utáni fizetős összehasonlítás a `46b9b07` forráson elkészült. Mindkét tervezői és mentett írói időszak 2026. november 13. → 2027. február 13. (3 hónap). A P4 döntése az addigi munkák kifutásakor, az új foglalások előtt válik aktuálissá. A P1-ben a mozi átmeneti bezárása megszünteti a közös rutint, és a búcsúvetítésen elhangzik a randevúajánlat. Két mentett fejezet, tíz modellhívás, nulla javítási kör vagy feldolgozási hiba. A külön 1,20 USD plafonból 0,5158825 USD könyvelt összeg, 0,4472827 USD használati becslés. A futás igazolja, hogy a modell választhat és az író menthet hat hónaptól eltérő időtávot. A minta két azonos hosszú fejezetből áll, így a választott időtávok szórásáról nem ad eredményt.
 
+- TI09 – Az utazási irány kiadás előtti katalógusából kikerült a fix hathavi időszakot előíró mondat. Az utazó fejezet időtávját is a tervező választja az események alapján, a közös 3–9 hónapos tartományban. Az útinapló és útikönyv jellegű próza kerülése továbbra is katalógusszabály.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
