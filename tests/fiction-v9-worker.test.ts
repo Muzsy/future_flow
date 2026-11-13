@@ -461,6 +461,10 @@ describe('living-world generation through the real guarded provider and database
         BILLING_CANCEL_URL: 'https://alterward.example/billing/cancel',
       }),
     );
+    const privateNote = 'A fictional workshop named ' + randomUUID();
+    const logs = ['log', 'info', 'warn', 'error', 'debug'].map((method) =>
+      vi.spyOn(console, method as 'log'),
+    );
     let app: Awaited<ReturnType<typeof createApp>> | undefined;
     try {
       app = await createApp(...args);
@@ -497,7 +501,7 @@ describe('living-world generation through the real guarded provider and database
           direction: 'relationships',
           subtype: 'friendship',
           answers: {},
-          startingSituation: { id: 'rel.new_city', note: null },
+          startingSituation: { id: 'custom', note: privateNote },
           boundaries: [],
           title: null,
           goalChoice: 'none',
@@ -578,7 +582,46 @@ describe('living-world generation through the real guarded provider and database
           .sort()
           .map((key) => ({ key, bucket: 'paid', state: 'consumed' })),
       );
+      const exported = await repo.exportAccount(owner);
+      expect(JSON.stringify(exported.aw_lives)).toContain(privateNote);
+      expect(exported.aw_drafts).toEqual([
+        expect.objectContaining({ payload: null }),
+      ]);
+
+      await request(
+        '/interactions',
+        'POST',
+        {
+          eventId: randomUUID(),
+          sessionId: randomUUID(),
+          branchId: created.branchId,
+          kind: 'life_opened',
+        },
+        201,
+      );
+      for (const table of ['aw_metrics', 'aw_interactions', 'ff_idempotency']) {
+        const rows = await db.query(`SELECT * FROM ${table} WHERE user_id=$1`, [
+          owner,
+        ]);
+        expect(rows.length, table).toBeGreaterThan(0);
+        expect(JSON.stringify(rows), table).not.toContain(privateNote);
+        expect(JSON.stringify(rows), table).not.toContain('"story"');
+      }
+      expect(
+        logs
+          .flatMap((log) => log.mock.calls)
+          .flat()
+          .map(String)
+          .join(' '),
+      ).not.toContain(privateNote);
+      await repo.deleteAccountData(owner);
+      for (const table of ['aw_lives', 'aw_drafts', 'aw_jobs', 'aw_periods']) {
+        expect(
+          await db.query(`SELECT 1 FROM ${table} WHERE user_id=$1`, [owner]),
+        ).toEqual([]);
+      }
     } finally {
+      for (const log of logs) log.mockRestore();
       await app?.close();
       configureGenerationGate(null);
       vi.unstubAllEnvs();

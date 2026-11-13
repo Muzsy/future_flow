@@ -29,3 +29,20 @@ Határok: ez a public alkalmazási katalógus ellenőrzése, nem a PostgreSQL bi
 2026-11-01 #137 fejlesztési040 alap: constraints748 (`2d419bfa…`), indexes267 (`29092549…`), defaults906 (`ac421cf6…`); a többi immutable katalóguskategória változatlan. RLS aktív, PUBLIC/anon/authenticated tiltott mindkét registry-táblán. A `assertHistorical039PrivacySecurityCatalog` és `hardenHistorical039PrivacyQuarantine` pontos039-et kezel; a normál belépési pont040. A statikus reviewed digestekből képzett immutable elvárás nem élő katalógustanulás. A039 authority nem címkézhető át natív040-re. A külön bridge eredeti039 authorityhoz és intenthez kötve csak100-régi-táblás/receipt-megőrzés és üres2új-tábla mellett enged040 ellenőrzést. Ez fejlesztési forrásalap, éles040 orchestration és audit még #142.
 
 A pinned Supabase CLI2.122.0 `db advisors --type all --fail-on error` ellenőrzése külön, csak szintetikus helyi PG17-en039 és040 állapotban egyaránt sikeres kilépésű: ugyanaz a27 `function_search_path_mutable` WARN, új registry-jelzés nélkül. Ez nem hibamentes általános security-audit: a27 korábbi public triggerfüggvény search_path keményítése külön reviewed katalógus-/recovery-változás, nem kerül hallgatólagosan a040 tárolószeletbe. A hosted Supabase nem lett vizsgálva vagy módosítva ebben a körben.
+
+
+## A 049-es történetirányok adatai
+
+A privát történet kezdeti válaszai az `aw_lives.input.story` mezőben vannak.
+A még el nem indított történet válaszait az `aw_drafts.payload.story` és a
+piszkozat szereplőinek opcionális megszólításmezője tárolja. Ezek a fiókexport
+`aw_lives` és `aw_drafts` részeiben jelennek meg. Az egyező revíziójú és
+tartalmú, felhasznált piszkozat az indításkor kiürül. A fióktörlés az aktív
+alkalmazás-adatbázisból az életet, piszkozatot, feladatokat és fejezeteket
+együtt távolítja el.
+
+Az izolált API és worker próba szintetikus kezdőhelyzettel ellenőrizte az
+exportot, a törlést és a nyers szöveg hiányát a vizsgált metrikákban,
+interakciókban, idempotencia-rekordokban és konzolkimenetben. A kivételes
+elkülönítő archívum külön üzemeltetési állomány, a megőrzéséről a 049-es
+visszaállítási terv rendelkezik.
