@@ -75,6 +75,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A szakasz műszaki értékelése szerint az elfogadott fejezetek átlagosan 6 modellkérést igényeltek, az öt kísérlet átlaga 5,2 az első hitelesítési hibával együtt. A négy döntés opciószáma 2, 2, 2 és 3. Az ismert használat az összes A kísérletet a négy elfogadott fejezetre vetítve 0,247 USD/fejezet, a konzervatív elszámolás 0,429 USD/fejezet. A 0,375 USD-os viszonyítási küszöb mellett ezt az eltérést az olvasói értékeléssel együtt kell elbírálni. Az olvasói csomagban a fejezetek és az opciók mellett külön kérdés szerepel a kialakuló szándékokról, a megszólításról és a vonzódásról. A P9 kísérletet nem ismételtük.
 
+- TI09 – Az A szakasz vak olvasói értékelése beérkezett. A kulccsal összevetve mind a négy domináns irányt eltalálta az olvasó (M2: 4/4, átlag 5/5). Mind a négy döntés opcióit érdemben különbözőnek találta, kitöltő opció nélkül (M4: 4/4). A három cél nélküli mintában a szereplő szándéka a helyzetből alakult ki. A P1-ben a fikcióra bízott vonzódás megjelent és folytonossági tényként rögzült. A P3 megadott megszólítása a második személyű prózában nem került próbára. A következetesség, a döntések későbbi hatása és az elágazás a B szakaszban mérhető. A P4 finanszírozási korlátjának ismétlése az olvasónak feltűnt. Ezt felületi és prózai észrevételként rögzítettük, a négy olvasott fejezetben nem jelzett tartalmi határsértést. A P9 mintája hiányzik. A konzervatív fejezetköltség eltérése és a B szakasz kerete továbbra is tulajdonosi döntés.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
