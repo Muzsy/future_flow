@@ -111,6 +111,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Egyetlen P4 nyitófejezet futott végig a napra pontos v10 szerződéssel (`d8c2ec5`). A *The Work at the Door* öt fizetős hívással, javítás nélkül mentődött. A tervező és író dátuma 2026. november 13. → 2027. május 13.; ebben a mintában a modell a hathavi fordulónapot választotta. Könyvelt költség 0,264635 USD, használati becslés 0,2026403 USD. A próba egy nyitófejezetre szólt. A fejezet és a választások a privát `v10-opening-decision-date-paid` könyvtárban vannak.
 
+- TI09 – A [#202 kiadási jelölt](https://github.com/Muzsy/future_flow/pull/202) első helyi image-e a `f0c4617` forrásból sikeresen épült (`sha256:fd82a30e56b79411c89b0db6676f3684ecca55f5e3eeab9b56546c1e126ecb9d`). A 14 izolált worker/API-próba és a Playwright-út sikerült. A böngésző visszatöltötte a piszkozatot, a két fejezetet és az elfogadott választást. A második fejezet a hónapfordulótól eltérő első zárónapról indult, két tesztelszámolással. A próba szintetikus volt. A [794-es CI](https://github.com/Muzsy/future_flow/actions/runs/43521281409) 12 eltérő forráslenyomat miatt bukott meg, ebből a teljes csomagellenőrzés is hibát jelzett. A `28bc2b7` frissíti a meglévő 040-es próbafájlok lenyomatait. A 13 helyi registry-teszt sikeres; az új CI saját image-et épít. Az éles image-váltás és a hozzá tartozó replay-kivételek külön kiadási lépésben következnek.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
