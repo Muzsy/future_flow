@@ -59,6 +59,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az egybefüggő Playwright-próba sikeres a `sha256:51e6aa8e1d2a6f61c6694003bdf65615e36daa4ffa1b35d03809be664b9cf937` image-en. A böngésző a csomagolt Next alkalmazást használta, az API-kéréseket a másik helyi konténerben futó valódi Nest API kapta. A teszt migrált PGlite adatbázist, szintetikus bejelentkezést és szimulált modellválaszokat használt. A böngészőben a kezdőhelyzet frissítés után megmaradt, az első fejezet megjelent, a választás után elkészült a második fejezet, és frissítés után is olvasható volt. A worker két v10 feladatot zárt le, a piszkozat kiürült, a döntés megmaradt, és a tesztfőkönyvben pontosan két elszámolt fejezetfoglalás szerepelt. Ez a helyi alkalmazáspróba. A Contabo kiadási próba a terv külön lépése.
 
+- TI08 – Célgépes előellenőrzés. A GitHub `main` ellenőrzött állapota `27adddc`, amely a helyi `c858743` fejlesztői állapot őse. A helyi Docker-próba `7b1b1b1` forrása és a `c858743` között az alkalmazás, a csomagok, a tesztek, a telepítési fájlok és a Dockerfile tartalma egyezik. Az iránykapcsolók alapból ki vannak kapcsolva, és a változás nem ad hozzá adatbázis-migrációt. A célgépes próbához a kiadási rend átnézett, sikeres CI-vel ellenőrzött főági jelöltből épített image-et és külön jóváhagyott futtatást kér. A helyi image és bizonyíték megmarad a saját forrásához kötve. Az adatkezelési döntés és a teljes kiadási jelölt lezárása előzi meg ezt a szerverlépést.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
