@@ -103,6 +103,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A fizetős P4 nyitófejezet és folytatás a 8000 tokenes tervezői plafonnal, egész hónapos időzítéssel futott (`ee34aed`). Mindkét fejezet mentődött öt-öt hívással, javítás nélkül. A tervezők 5513 és 5771 kimeneti tokent használtak. A választott hibafeltáró szolgáltatásnak visszatérő kereslete lett, majd egy másik műhely kapacitásajánlata és a szakmai láthatóság kérdése alakította a következő döntést. A becsült használati költség 0,255 és 0,286 USD, a könyvelt összeg együtt 0,6218 USD. Az egy hívásra eső legnagyobb foglalás 0,375135 USD. Ebből a két sikeres fejezetből a javítási költség és a plafonemelés hatása még nem becsülhető. A P12 újbóli próbája és a konkrét döntési napos szerződés fizetős ellenőrzése nyitott.
 
+- TI09 – A korábban 6500 tokenen megszakadt P12 a 8000 tokenes plafonnal és a konkrét döntési napos szerződéssel (`5ca8dc7`) elsőre érvényes tervet adott. A hívás 5833 kimeneti tokent használt, könyvelt költsége 0,081985 USD. A választott 2027. május 13. ebben a mintában pont hat naptári hónapra esett, a modell a napra pontos formátumot (`durationMonths: null`) adta vissza. A nem hónapfordulóra eső dátum mentését és folytatását a helyi integrációs teszt ellenőrzi. A fizetős P12-ben az író és a szerkesztő nem futott. Az új válasz a régi plafon alá is befért volna, így az emelés önálló hatása ebből nem állapítható meg.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
