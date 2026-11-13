@@ -55,6 +55,12 @@ export const evaluationV10ComparisonApproval = {
   maxSpendUsd: 1.2,
 } as const;
 
+// Separate owner approval for P4 and P1 with planner-selected timing.
+export const evaluationV10TimingApproval = {
+  approvalId: 'v10-timing-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;

@@ -9,6 +9,7 @@ import {
   evaluationC5FlexApproval,
   evaluationV10StageAApproval,
   evaluationV10ComparisonApproval,
+  evaluationV10TimingApproval,
   evaluationC5FlexCumulativeBudgetUsd,
   measurementApproval,
 } from './narrative-evaluation-approval';
@@ -203,8 +204,10 @@ export function parseEvaluationOptions(
         values.get('--approval-id') ===
           evaluationV10StageAApproval.approvalId) ||
       (stage === 'comparison' &&
-        values.get('--approval-id') ===
-          evaluationV10ComparisonApproval.approvalId)
+        [
+          evaluationV10ComparisonApproval.approvalId,
+          evaluationV10TimingApproval.approvalId,
+        ].some((id) => id === values.get('--approval-id')))
     )
   )
     invalid(

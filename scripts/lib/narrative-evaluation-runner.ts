@@ -86,6 +86,7 @@ import {
   approvalCumulativeBudgetUsd,
   evaluationV10StageAApproval,
   evaluationV10ComparisonApproval,
+  evaluationV10TimingApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1544,7 +1545,9 @@ async function runEvaluationUnlocked(
     verifyApprovalLedger(calls, path);
     const approval =
       options.v10Stage === 'comparison'
-        ? evaluationV10ComparisonApproval
+        ? options.approvalId === evaluationV10TimingApproval.approvalId
+          ? evaluationV10TimingApproval
+          : evaluationV10ComparisonApproval
         : evaluationV10StageAApproval;
     verifyApprovalBudget(calls, options.budgetUsd!, approval);
     v10Ceiling = approvalCumulativeBudgetUsd(
