@@ -48,6 +48,7 @@ import { createApp } from '../apps/api/src/app';
 import { createBillingRuntime } from '../apps/api/src/billing';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
+import { storyProfiles } from './story-fixtures';
 import {
   fictionFixture,
   fictionFixtureCharacterDelta,
@@ -583,6 +584,57 @@ describe('living-world generation through the real guarded provider and database
       vi.unstubAllEnvs();
     }
   }, 20000);
+
+  it.each(Object.entries(storyProfiles))(
+    'runs offline story profile %s through v10 chapter persistence',
+    async (_name, draft) => {
+      const owner = randomUUID();
+      await repo.ensureUser(owner);
+      await repo.acceptPrivacy(owner);
+      const lives = new LifeRepository(
+        db,
+        { daily: 10, concurrent: 2 },
+        {
+          ...configFor(owner, 'v9'),
+          storyDirections: {
+            enabled: false,
+            politicsEnabled: true,
+            cohortUserIds: [owner],
+          },
+        },
+      );
+      const { revision } = await lives.saveDraft(owner, 0, draft);
+      const setup = storySetupFromDraft(draft);
+      expect(setup).not.toBeNull();
+      const created = await lives.create(
+        owner,
+        { ...setup!, draftRevision: revision },
+        randomUUID(),
+      );
+      const job = (await jobs.claim())!;
+      expect(job.id).toBe(created.jobId);
+      expect(job.payload.input.story?.emphases).toEqual(setup!.story.emphases);
+      expect(job.payload.input.goals).toHaveLength(
+        draft.story.goalChoice === 'set' ? 1 : 0,
+      );
+      const transport = provider({
+        owner,
+        lives,
+        created,
+        job,
+        f: fictionFixture(job.payload),
+      });
+      await processLifeJob(job, jobs, transport.ai);
+      expect((await saved(job)).status).toBe('completed');
+      expect(transport.parse).toHaveBeenCalledTimes(5);
+      expect(await artifactOf(job.payload.periodId)).toMatchObject({
+        policy: fictionV10Policy(),
+      });
+      expect(
+        (await lives.detail(owner, created.branchId)).periods,
+      ).toHaveLength(1);
+    },
+  );
 
   it('keeps the five-call stage graph, binds the delta and never sends the envelope to the model', async () => {
     const f = await fixture(),

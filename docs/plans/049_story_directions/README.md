@@ -51,7 +51,9 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI05 – A magyar vállalkozói indítás mind a tíz lépése végigment Playwrighttal, szimulált API-val, 360×740, 390×844, 768×1024 és 1280×800 méreten. Az űrlap és a vizsgált kártyák vízszintesen elfértek. Az összegzés magyarul mutatta a cél nélküli állapotot, az indítási kérésben pedig `locale: hu`, `goal: null` és a vállalkozói altípus szerepelt. Ez egy teljes magyar indítási út böngészős ellenőrzése. A többi irány magyar változata és a valódi API-val futó teljes alkalmazáspróba külön ellenőrzés.
 
-- TI09 – Helyi integrációs próba a valódi Nest API-val, migrált PGlite adatbázissal és a valódi workerrel. A hitelesítés és a modellválaszok tesztadatokból jöttek. A cél nélküli v10 történet mentett piszkozatból indult, a megismételt indítás ugyanazt az azonosítót adta, a döntés megmaradt, a folytatás második fejezete elmentődött. A két fejezethez pontosan két fizetett fejezetfoglalás tartozott a tesztfőkönyvben, mindkettő elszámolva. Fejezetenként öt szimulált modellválasz érkezett. A konténeres és böngészős teljes út, valamint a 12 profilos tartalmi sor külön lépés.
+- TI09 – Helyi integrációs próba a valódi Nest API-val, migrált PGlite adatbázissal és a valódi workerrel. A hitelesítés és a modellválaszok tesztadatokból jöttek. A cél nélküli v10 történet mentett piszkozatból indult, a megismételt indítás ugyanazt az azonosítót adta, a döntés megmaradt, a folytatás második fejezete elmentődött. A két fejezethez pontosan két fizetett fejezetfoglalás tartozott a tesztfőkönyvben, mindkettő elszámolva. Fejezetenként öt szimulált modellválasz érkezett. A konténeres és böngészős teljes út külön lépés.
+
+- TI09 – A terv mind a 12 profilját felvettük a worker integrációs tesztjébe. Mindegyik mentett piszkozatból indul, a saját irányválaszait viszi tovább, és öt szimulált modellválasz után v10 artefaktummal elment egy fejezetet. A közéleti ellenpróba rögzített modellválasszal futott. A valódi modell reakcióját a bemeneti névre, az irodalmi minőséget és a hosszú távú következményeket a fizetős tartalmi szakasz vizsgálja.
 
 ## Nyitott kérdések és problémák
 
