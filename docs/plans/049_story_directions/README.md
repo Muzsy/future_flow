@@ -63,6 +63,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI06 – A helyi v10 API–worker próba egyedi szintetikus kezdőhelyzettel igazolta az élet exportját, a felhasznált piszkozat kiürítését és a fióktörlés utáni eltávolítást az aktív adatbázisból. A teszt ellenőrizte a nyers szöveg hiányát a metrikákban, interakciókban, idempotencia-rekordokban és a sikeres futás konzolkimenetében. A fiókexport az indítás előtt az azonos revíziójú teljes piszkozatot adta vissza. Az elmentett történet exportjában megmaradt a megadott megszólítás, a történetre bízott vonzódás és a meg nem adott kapcsolati helyzet. A hibás generálás naplópróbája is sikerült. A szimulált szolgáltatói kivétel tartalmazta a kezdőhelyzet tesztszövegét. A worker hibásként zárta a feladatot, a privát API az `AI_REQUEST_FAILED` hibakódot adta, és a napló csak a feladatazonosítót és a státuszt tartalmazta. A tulajdonos a kérdések melletti tájékoztatást és a Privacy Notice frissítését választotta. A két nyelvű szöveg és a kérdéseknél megjelenő hivatkozás elkészült.
 
+- TI09 – A meglévő mérőfuttató elfogadja a v10 egyfejezetes offline próbáját a tizenkét rögzített profillal. A valódi történetindítást használja, az előre megadott cél nélküli profiloknál is. A CLI-próba 12 fejezetet és 60 szimulált modellhívást rögzített, feldolgozási hiba nélkül. A fizetős mód és a többfejezetes mérés bekötése még hátravan. [Futtatási leírás](../../operations/NARRATIVE_EVALUATION_HU.md#a-049-es-történetirányok-offline-próbája)
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

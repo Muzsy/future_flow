@@ -93,6 +93,25 @@ const operations = {
   allChoiceMappingsReviewed: true,
 };
 describe('bounded and independently assessed narrative experiment', () => {
+  it('keeps the v10 profile rehearsal offline and separate from legacy fixtures', () => {
+    const args = [
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--periods',
+      '1',
+    ];
+    const options = parseEvaluationOptions(args);
+    expect(options.fixtureIds).toHaveLength(12);
+    expect(options.fixtureIds).toContain('PL2');
+    expect(() => parseEvaluationOptions([...args, '--mode', 'paid'])).toThrow(
+      /one-chapter offline/,
+    );
+    expect(() =>
+      parseEvaluationOptions([...args, '--fixtures', 'career-transition']),
+    ).toThrow(/checked synthetic fixtures/);
+  });
+
   it('bounds only creative evaluation fiction calls at five minutes and leaves ordinary defaults intact', () => {
     expect(evaluationTimeouts({ creative: true })).toEqual({
       timeoutMs: 120000,

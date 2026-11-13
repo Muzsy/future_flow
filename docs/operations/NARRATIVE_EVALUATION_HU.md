@@ -728,3 +728,18 @@ Az alternatív harmadik fejezet pontosan az első két elfogadott fejezetet ör�
 - Egy szintetikus profil, angol próza, nincs párhuzamos kontroll, független emberi olvasói vagy teljes N08 PASS. Általános C5-javulás és éles használhatóság nem következik a 12 elfogadásból. Nincs automatikus további finomítás vagy új fizetős sorozat; az eredmény a bétafókuszú technikai kiadási kapukat sem helyettesíti.
 
 **Bizonyíték:** [verziózott összesítés](../evidence/c5-flex-2026-10-24/summary.json) tartalmazza a fejezetenkénti időt, hívás-/repair-/opciószámot, kiváltó ítéleteket, exact-source CI-t és az eredeti manifest/report/transport/attempt fájlok SHA-256 hash-eit. A teljes történetek és trace-ek a korábban kijelölt eredeti mérőcheckout `.local/narrative-evaluation/` könyvtárában maradnak: `c5-flex-smoke-api-20261024-v1`, `c5-flex-long-api-20261024-v1`; mindkettő saját `human-review/sequence-index.html` olvasónézettel. A privát `c5-flex-20261024-plan.json` és `c5-flex-20261024-stage-b-decision.json` az előzetes keretet és a szakaszváltás indokát őrzi. Credential vagy új főkönyv nem került a repóba. A `creative-only` report `complete=false`, `sequenceAssessment=null` értéke szándékos: ez diagnosztikai checkpoint, nem teljes/humán értékelés.
+
+## A 049-es történetirányok offline próbája
+
+A v10 mérőfuttató az ellenőrzött tizenkét profilt a normál történetindítással
+hozza létre külön helyi tesztadatbázisokban. A cél nélküli profilok előre
+megadott cél nélkül indulnak. Futtatás új kimeneti könyvtárba:
+
+```sh
+pnpm evaluate:narrative --mode offline --creative-only --fiction-generation v10 --fixtures all --periods 1 --out .local/narrative-evaluation/v10-offline
+```
+
+A `--fixtures P1,P4` megadásával részhalmaz is futtatható. A szimulált
+modellválaszok a feldolgozási út ellenőrzésére szolgálnak. A v10 kapcsoló
+jelenleg egyfejezetes offline futást fogad el. Az A és B fizetős szakasz
+engedélyezési és mérési bekötése külön következik.

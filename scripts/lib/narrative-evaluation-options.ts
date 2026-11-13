@@ -1,3 +1,4 @@
+import { storyProfiles } from '../../tests/story-fixtures';
 import { resolve } from 'node:path';
 import {
   EXPERIMENT_CREATIVE_MAX_REQUEST_BYTES,
@@ -80,7 +81,7 @@ export type EvaluationOptions = {
   creativeOnly?: true;
   noForks?: true;
   // Living-world generation; absent means the frozen v8 generation.
-  fictionGeneration?: 'v9';
+  fictionGeneration?: 'v9' | 'v10';
   // Creative-only choice rule: absent = the first option on the main branch (the
   // second on the fork), 'rotate' = deterministic rotation (diagnostic only).
   choiceMix?: 'rotate';
@@ -157,14 +158,19 @@ export function parseEvaluationOptions(
   const kind = values.get('--mode') ?? 'offline';
   if (!['offline', 'paid', 'assess'].includes(kind))
     invalid('Unsupported evaluation mode.');
+  const generation = values.get('--fiction-generation') ?? 'v8';
+  const availableFixtures =
+    generation === 'v10'
+      ? Object.keys(storyProfiles)
+      : narrativeProfiles.map((profile) => profile.id);
   const fixtureIds =
     (values.get('--fixtures') ?? 'all') === 'all'
-      ? narrativeProfiles.map((p) => p.id)
+      ? availableFixtures
       : (values.get('--fixtures') ?? '').split(',');
   if (
     !fixtureIds.length ||
     new Set(fixtureIds).size !== fixtureIds.length ||
-    fixtureIds.some((id) => !narrativeProfiles.some((p) => p.id === id))
+    fixtureIds.some((id) => !availableFixtures.includes(id))
   )
     invalid('Only the checked synthetic fixtures are allowed.');
   const periods = Number(values.get('--periods') ?? 3);
@@ -206,9 +212,18 @@ export function parseEvaluationOptions(
     invalid(
       'Creative fiction keeps the existing gpt-6.1-sol model in every stage.',
     );
-  const generation = values.get('--fiction-generation') ?? 'v8';
-  if (generation !== 'v8' && generation !== 'v9')
+  if (generation !== 'v8' && generation !== 'v9' && generation !== 'v10')
     invalid('Unsupported fiction generation.');
+  if (
+    generation === 'v10' &&
+    (kind !== 'offline' ||
+      !boolean.has('--creative-only') ||
+      periods !== 1 ||
+      boolean.has('--allow-paid'))
+  )
+    invalid(
+      'v10 currently supports only the one-chapter offline creative-only rehearsal.',
+    );
   if (
     generation === 'v9' &&
     !boolean.has('--creative') &&
@@ -334,7 +349,7 @@ export function parseEvaluationOptions(
       : {}),
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
-    ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
+    ...(generation !== 'v8' ? { fictionGeneration: generation } : {}),
     ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,

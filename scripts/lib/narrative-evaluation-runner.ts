@@ -1,3 +1,5 @@
+import { storyProfiles } from '../../tests/story-fixtures';
+import { storySetupFromDraft } from '@future-flow/contracts';
 import { fictionFixture } from '../../tests/fiction-fixtures';
 import {
   failureDiagnostic,
@@ -538,7 +540,7 @@ export type EvaluationRun = {
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
   noForks?: true;
-  fictionGeneration?: 'v9';
+  fictionGeneration?: 'v9' | 'v10';
   choiceMix?: 'rotate';
   serviceTier?: 'flex';
   flexAccounting?: {
@@ -1761,29 +1763,58 @@ async function runEvaluationUnlocked(
                       : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
                 ...(options.fictionGeneration && options.creative
-                  ? { fictionGeneration: options.fictionGeneration }
+                  ? { fictionGeneration: 'v9' as const }
+                  : {}),
+                ...(options.fictionGeneration === 'v10'
+                  ? {
+                      storyDirections: {
+                        enabled: false,
+                        politicsEnabled: true,
+                        cohortUserIds: [owner],
+                      },
+                    }
                   : {}),
               },
             );
           await repository.ensureUser(owner);
           await repository.acceptPrivacy(owner);
-          const input = narrativeInput(profile),
-            existing = await db.query<{ id: string }>(
+          let branchId: string;
+          if (options.fictionGeneration === 'v10') {
+            const draft =
+              storyProfiles[fixtureId as keyof typeof storyProfiles];
+            const setup = storySetupFromDraft(draft);
+            if (!setup)
+              throw new DomainError(
+                'EVAL_CONFIG_INVALID',
+                'Invalid story profile.',
+              );
+            // Use the real idempotent start path so the v10 policy is selected from the story.
+            const created = await lives.create(
+              owner,
+              setup,
+              narrativeFixtureId(`${caseId}:start`),
+            );
+            branchId = created.branchId;
+          } else {
+            const input = narrativeInput(profile);
+            const existing = await db.query<{ id: string }>(
               'SELECT id FROM aw_lives WHERE id=$1 AND user_id=$2',
               [input.input.lifeId, owner],
             );
-          if (!existing.length)
-            await lives.createPrepared(
-              owner,
-              input.input,
-              narrativeFixtureId(`${caseId}:start`),
-            );
+            if (!existing.length)
+              await lives.createPrepared(
+                owner,
+                input.input,
+                narrativeFixtureId(`${caseId}:start`),
+              );
+            branchId = input.input.branchId;
+          }
           for (
             let periodIndex = 0;
             periodIndex < options.periods;
             periodIndex++
           ) {
-            const before = await lives.detail(owner, input.input.branchId);
+            const before = await lives.detail(owner, branchId);
             if (before.periods.length <= periodIndex) {
               if (before.branch.status === 'decision') {
                 const decision = before.branch.pending_decision!,
@@ -2002,7 +2033,7 @@ async function runEvaluationUnlocked(
                 clearInterval(heartbeat);
               }
             }
-            const after = await lives.detail(owner, input.input.branchId),
+            const after = await lives.detail(owner, branchId),
               period = after.periods[periodIndex] as
                 Record<string, unknown> | undefined;
             if (!period) break;
@@ -2113,7 +2144,7 @@ async function runEvaluationUnlocked(
                 fixtureId,
                 mode,
                 owner,
-                input.input.branchId,
+                branchId,
                 db,
                 lives,
                 jobs,
