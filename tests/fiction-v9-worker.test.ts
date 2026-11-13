@@ -500,8 +500,12 @@ describe('living-world generation through the real guarded provider and database
           contractVersion: '1.0.0',
           catalogVersion: '1.0.0',
           direction: 'relationships',
-          subtype: 'friendship',
-          answers: {},
+          subtype: 'romantic',
+          answers: {
+            attraction: { mode: 'engine_decides' },
+            relationshipStatus: { mode: 'unspecified' },
+          },
+          protagonistAddress: { mode: 'specified', value: 'they_them' },
           startingSituation: { id: 'custom', note: privateNote },
           boundaries: [],
           title: null,
@@ -516,6 +520,9 @@ describe('living-world generation through the real guarded provider and database
         revision,
         payload: draft,
       });
+      expect((await repo.exportAccount(owner)).aw_drafts).toEqual([
+        expect.objectContaining({ revision, payload: draft }),
+      ]);
       const body = { ...storySetupFromDraft(draft)!, draftRevision: revision };
       const createKey = randomUUID();
       const created = await request('/lives', 'POST', body, 201, createKey);
@@ -584,6 +591,16 @@ describe('living-world generation through the real guarded provider and database
           .map((key) => ({ key, bucket: 'paid', state: 'consumed' })),
       );
       const exported = await repo.exportAccount(owner);
+      expect(exported.aw_lives).toEqual([
+        expect.objectContaining({
+          input: expect.objectContaining({
+            story: expect.objectContaining({
+              protagonistAddress: draft.story.protagonistAddress,
+              emphases: [expect.objectContaining(draft.story.answers)],
+            }),
+          }),
+        }),
+      ]);
       expect(JSON.stringify(exported.aw_lives)).toContain(privateNote);
       expect(exported.aw_drafts).toEqual([
         expect.objectContaining({ payload: null }),
