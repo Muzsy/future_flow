@@ -85,6 +85,7 @@ import {
   approvalChapterHalt,
   approvalCumulativeBudgetUsd,
   evaluationV10StageAApproval,
+  evaluationV10ComparisonApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1541,15 +1542,15 @@ async function runEvaluationUnlocked(
     const path = ledgerFile(seams);
     const calls = readLedgerCalls(path);
     verifyApprovalLedger(calls, path);
-    verifyApprovalBudget(
-      calls,
-      options.budgetUsd!,
-      evaluationV10StageAApproval,
-    );
+    const approval =
+      options.v10Stage === 'comparison'
+        ? evaluationV10ComparisonApproval
+        : evaluationV10StageAApproval;
+    verifyApprovalBudget(calls, options.budgetUsd!, approval);
     v10Ceiling = approvalCumulativeBudgetUsd(
       calls,
-      evaluationV10StageAApproval.approvalId,
-      evaluationV10StageAApproval.maxSpendUsd,
+      approval.approvalId,
+      approval.maxSpendUsd,
     );
   }
   const haltApproval = chapterHaltApproval(options, seams?.approval);

@@ -8,6 +8,7 @@ import { DomainError } from '@future-flow/core';
 import {
   evaluationC5FlexApproval,
   evaluationV10StageAApproval,
+  evaluationV10ComparisonApproval,
   evaluationC5FlexCumulativeBudgetUsd,
   measurementApproval,
 } from './narrative-evaluation-approval';
@@ -76,6 +77,12 @@ export const evaluationFlexPriceEvidence = {
   source: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol',
 };
 export const v10Stages = {
+  comparison: {
+    fixtureIds: ['P4', 'P1'],
+    periods: 1,
+    forks: 0,
+    proposedBudgetUsd: 1.2,
+  },
   A: {
     fixtureIds: ['P1', 'P3', 'P4', 'P7', 'P9'],
     periods: 1,
@@ -180,16 +187,25 @@ export function parseEvaluationOptions(
   const stage = values.get('--v10-stage');
   if (
     stage !== undefined &&
-    (generation !== 'v10' || (stage !== 'A' && stage !== 'B'))
+    (generation !== 'v10' ||
+      (stage !== 'A' && stage !== 'B' && stage !== 'comparison'))
   )
-    invalid('Choose v10 stage A or B with fiction generation v10.');
+    invalid('Choose v10 stage A, B or comparison with fiction generation v10.');
   const stageSpec =
-    stage === 'A' || stage === 'B' ? v10Stages[stage] : undefined;
+    stage === 'A' || stage === 'B' || stage === 'comparison'
+      ? v10Stages[stage]
+      : undefined;
   if (
     generation === 'v10' &&
     kind === 'paid' &&
-    (stage !== 'A' ||
-      values.get('--approval-id') !== evaluationV10StageAApproval.approvalId)
+    !(
+      (stage === 'A' &&
+        values.get('--approval-id') ===
+          evaluationV10StageAApproval.approvalId) ||
+      (stage === 'comparison' &&
+        values.get('--approval-id') ===
+          evaluationV10ComparisonApproval.approvalId)
+    )
   )
     invalid(
       'A v10 stage requires its own recorded numeric owner approval before paid execution.',
@@ -397,7 +413,9 @@ export function parseEvaluationOptions(
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
     ...(generation !== 'v8' ? { fictionGeneration: generation } : {}),
-    ...(stage === 'A' || stage === 'B' ? { v10Stage: stage } : {}),
+    ...(stage === 'A' || stage === 'B' || stage === 'comparison'
+      ? { v10Stage: stage }
+      : {}),
     ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,

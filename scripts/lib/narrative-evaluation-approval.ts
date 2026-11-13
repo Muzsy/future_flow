@@ -49,6 +49,12 @@ export const evaluationV10StageAApproval = {
   maxSpendUsd: 2,
 } as const;
 
+// Owner-approved comparison of the two original profiles after the prompt fixes.
+export const evaluationV10ComparisonApproval = {
+  approvalId: 'v10-a-comparison-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
