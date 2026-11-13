@@ -22,6 +22,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 ## Napló
 
+- A tulajdonos elfogadta a v10 motort a kiadásra. A további munka a 049-es kiadási jelölt ellenőrzése, az izolált alkalmazáspróba és a fokozatos bevezetés előkészítése. A helyi ág alapja az ellenőrzött `27adddc` GitHub-főág.
+
 - A hét tervdokumentum közös könyvtárba került. A repó dokumentumindexe és a fejlesztési főterv ide mutat.
 - A meglévő konténeres CI és az izolált image-próba adja az újrahasználható ellenőrzés alapját. Az alkalmazáspróba a kiadásra szánt image-et futtatja eldobható adatbázissal, tesztfiókkal és szimulált AI-válaszokkal. A 049-es első esetek a régi történet folytatása, az új indítás, a piszkozat visszatöltése és a fejezet elszámolása. A próba helyi és CI-futtatását az első megvalósítási csomagokkal együtt kell kialakítani.
 
