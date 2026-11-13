@@ -46,6 +46,7 @@ import { join } from 'node:path';
 import { failureDiagnostic } from '../scripts/lib/narrative-failure-diagnostic';
 import { createApp } from '../apps/api/src/app';
 import { createBillingRuntime } from '../apps/api/src/billing';
+import { logJobFailure } from '../apps/worker/src/job-pool';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
 import { storyProfiles } from './story-fixtures';
@@ -430,7 +431,7 @@ describe('living-world generation through the real guarded provider and database
       [subscription, owner, 'cus_' + owner, invoice],
     );
     await db.query(
-      "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES($1,$2,$3,1,2,now()+interval '29 days')",
+      "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES($1,$2,$3,1,3,now()+interval '29 days')",
       [invoice, subscription, owner],
     );
     vi.stubEnv('NARRATIVE_PIPELINE_MODE', FICTION_MODE);
@@ -614,6 +615,52 @@ describe('living-world generation through the real guarded provider and database
           .map(String)
           .join(' '),
       ).not.toContain(privateNote);
+      const failed = await request(
+        '/lives',
+        'POST',
+        {
+          ...storySetupFromDraft(draft)!,
+        },
+        201,
+      );
+      const failedJob = (await jobs.claim())!;
+      expect(failedJob.id).toBe(failed.jobId);
+      const failing = provider(
+        {
+          owner,
+          lives,
+          created: failed,
+          job: failedJob,
+          f: fictionFixture(failedJob.payload),
+        },
+        () => {
+          throw new Error(privateNote);
+        },
+      );
+      try {
+        await processLifeJob(failedJob, jobs, failing.ai);
+        throw new Error('Expected provider failure');
+      } catch (error) {
+        expect(error).toMatchObject({ code: 'AI_REQUEST_FAILED' });
+        await jobs.fail(failedJob, error);
+        logJobFailure(failedJob.id);
+      }
+      const failedDetail = await request('/branches/' + failed.branchId);
+      expect(failedDetail.job).toMatchObject({
+        status: 'failed',
+        error_code: 'AI_REQUEST_FAILED',
+      });
+      expect(failedDetail.periods).toEqual([]);
+      expect(
+        logs
+          .flatMap((log) => log.mock.calls)
+          .flat()
+          .map(String)
+          .join(' '),
+      ).not.toContain(privateNote);
+      expect(console.error).toHaveBeenCalledWith(
+        JSON.stringify({ jobId: failedJob.id, status: 'failed' }),
+      );
       await repo.deleteAccountData(owner);
       for (const table of ['aw_lives', 'aw_drafts', 'aw_jobs', 'aw_periods']) {
         expect(
