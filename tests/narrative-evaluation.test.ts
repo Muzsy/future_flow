@@ -1,3 +1,7 @@
+import {
+  evaluationV10StageAApproval,
+  verifyApprovalBudget,
+} from '../scripts/lib/narrative-evaluation-approval';
 import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { LifeRepository, type Database } from '@future-flow/database';
@@ -106,7 +110,7 @@ describe('bounded and independently assessed narrative experiment', () => {
     expect(options.fixtureIds).toHaveLength(12);
     expect(options.fixtureIds).toContain('PL2');
     expect(() => parseEvaluationOptions([...args, '--mode', 'paid'])).toThrow(
-      /one- or four-chapter offline/,
+      /numeric owner approval/,
     );
     expect(() =>
       parseEvaluationOptions([...args, '--fixtures', 'career-transition']),
@@ -145,6 +149,22 @@ describe('bounded and independently assessed narrative experiment', () => {
         '2',
       ]),
     ).toThrow(/numeric owner approval/);
+  });
+
+  it('counts prior v10 A spending against the same two-dollar cap', () => {
+    const ledger = [
+      { caseName: 'earlier-measurement', accountedUsd: 50 },
+      {
+        caseName: `narrative-evaluation:${evaluationV10StageAApproval.approvalId}`,
+        accountedUsd: 0.75,
+      },
+    ] as Parameters<typeof verifyApprovalBudget>[0];
+    expect(() =>
+      verifyApprovalBudget(ledger, 52, evaluationV10StageAApproval),
+    ).not.toThrow();
+    expect(() =>
+      verifyApprovalBudget(ledger, 52.01, evaluationV10StageAApproval),
+    ).toThrow(/at most/);
   });
 
   it('bounds only creative evaluation fiction calls at five minutes and leaves ordinary defaults intact', () => {

@@ -67,6 +67,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A és B szakasz pontos profillistája és fejezetszáma a futtatóban rögzítve. A teljes offline A próba 5 fejezettel és 25 szimulált hívással, a B próba 36 fejezettel és 180 szimulált hívással sikerült. A futtató visszautasítja a módosított profillistát és fejezetszámot. A fizetős v10 futtatás az adott szakasz számszerű tulajdonosi engedélyére vár.
 
+- TI09 – Az A szakasz 2 USD összesített kerete jóváhagyva és a futtatóba bekötve. A már elszámolt A-szakaszos tételek beleszámítanak ugyanabba a plafonba. A korábbi közös költségnapló és a hozzá tartozó kötésfájl megvan a korábbi mérőcheckoutban. Az aktuális munkamenetben a külön fejlesztési projekt hitelesítése nincs beállítva. Fizetős futás még nem indult. A B és C szakasz kerete külön döntés.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

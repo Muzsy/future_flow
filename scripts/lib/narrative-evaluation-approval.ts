@@ -43,6 +43,12 @@ export const evaluationC5FlexApproval = {
   maxPeriods: 8,
 } as const;
 export const evaluationC5FlexCumulativeBudgetUsd = 58.6490625;
+// The owner approved only the planned five-chapter A stage at USD 2.
+export const evaluationV10StageAApproval = {
+  approvalId: 'v10-a-20261113',
+  maxSpendUsd: 2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
@@ -185,7 +191,7 @@ export function chapterHaltApproval(
   seamApproval?: typeof evaluationV9MeasurementApproval,
 ) {
   if (options.kind === 'paid')
-    return options.fictionGeneration
+    return options.fictionGeneration === 'v9'
       ? measurementApproval({ approvalId: options.approvalId ?? null })
       : undefined;
   return seamApproval;

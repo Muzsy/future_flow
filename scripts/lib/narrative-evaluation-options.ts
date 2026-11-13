@@ -7,6 +7,7 @@ import {
 import { DomainError } from '@future-flow/core';
 import {
   evaluationC5FlexApproval,
+  evaluationV10StageAApproval,
   evaluationC5FlexCumulativeBudgetUsd,
   measurementApproval,
 } from './narrative-evaluation-approval';
@@ -184,7 +185,12 @@ export function parseEvaluationOptions(
     invalid('Choose v10 stage A or B with fiction generation v10.');
   const stageSpec =
     stage === 'A' || stage === 'B' ? v10Stages[stage] : undefined;
-  if (stageSpec && kind === 'paid')
+  if (
+    generation === 'v10' &&
+    kind === 'paid' &&
+    (stage !== 'A' ||
+      values.get('--approval-id') !== evaluationV10StageAApproval.approvalId)
+  )
     invalid(
       'A v10 stage requires its own recorded numeric owner approval before paid execution.',
     );
@@ -258,14 +264,12 @@ export function parseEvaluationOptions(
     invalid('Unsupported fiction generation.');
   if (
     generation === 'v10' &&
-    (kind !== 'offline' ||
+    (kind === 'assess' ||
       !boolean.has('--creative-only') ||
       ![1, 4].includes(periods) ||
-      boolean.has('--allow-paid'))
+      (kind === 'offline' && boolean.has('--allow-paid')))
   )
-    invalid(
-      'v10 currently supports only the one- or four-chapter offline creative-only rehearsal.',
-    );
+    invalid('v10 requires a one- or four-chapter creative-only run.');
   if (
     generation === 'v9' &&
     !boolean.has('--creative') &&
@@ -332,10 +336,11 @@ export function parseEvaluationOptions(
       budgetUsd === null ||
       !Number.isFinite(budgetUsd) ||
       budgetUsd <= 0 ||
-      budgetUsd >
-        (c5Flex
-          ? evaluationC5FlexCumulativeBudgetUsd
-          : evaluationApprovedCumulativeBudgetUsd) ||
+      (generation !== 'v10' &&
+        budgetUsd >
+          (c5Flex
+            ? evaluationC5FlexCumulativeBudgetUsd
+            : evaluationApprovedCumulativeBudgetUsd)) ||
       !approvalId ||
       approvalId.length > 160 ||
       !values.has('--out')

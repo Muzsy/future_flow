@@ -83,6 +83,8 @@ import {
 } from './narrative-evaluation-costs';
 import {
   approvalChapterHalt,
+  approvalCumulativeBudgetUsd,
+  evaluationV10StageAApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1514,7 +1516,7 @@ async function runEvaluationUnlocked(
   // budget above what it leaves the approval is refused, before any work.
   if (
     options.kind === 'paid' &&
-    options.fictionGeneration &&
+    options.fictionGeneration === 'v9' &&
     options.approvalId !== measurementApproval(options).approvalId
   )
     throw new DomainError(
@@ -1522,7 +1524,7 @@ async function runEvaluationUnlocked(
       'A paid v9 measurement needs its own owner-approved budget.',
     );
   const v9Approval =
-    options.kind === 'paid' && options.fictionGeneration
+    options.kind === 'paid' && options.fictionGeneration === 'v9'
       ? measurementApproval(options)
       : undefined;
   if (v9Approval) {
@@ -1533,6 +1535,22 @@ async function runEvaluationUnlocked(
       v9Approval === evaluationC5FlexApproval ? 51.6490625 : undefined,
     );
     verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
+  }
+  let v10Ceiling: number | undefined;
+  if (options.kind === 'paid' && options.fictionGeneration === 'v10') {
+    const path = ledgerFile(seams);
+    const calls = readLedgerCalls(path);
+    verifyApprovalLedger(calls, path);
+    verifyApprovalBudget(
+      calls,
+      options.budgetUsd!,
+      evaluationV10StageAApproval,
+    );
+    v10Ceiling = approvalCumulativeBudgetUsd(
+      calls,
+      evaluationV10StageAApproval.approvalId,
+      evaluationV10StageAApproval.maxSpendUsd,
+    );
   }
   const haltApproval = chapterHaltApproval(options, seams?.approval);
   if (options.kind === 'assess')
@@ -1691,7 +1709,7 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
-          evaluationCumulativeCeiling(options),
+          v10Ceiling ?? evaluationCumulativeCeiling(options),
           evaluationMaxRequestBytes(options),
         )
       : undefined;
