@@ -25,6 +25,7 @@ import {
   NARRATIVE_MEMORY_BYTES,
   NARRATIVE_ARTIFACT_BYTES,
   type NarrativePeriodInput,
+  type PeriodCandidateV2,
   type FictionContext,
   type FictionAuthorResult,
   type FictionPolicy,
@@ -40,7 +41,11 @@ import {
 import { hash } from './index';
 import { DomainError } from './errors';
 import { storyDirectionProjection } from './story-direction';
-import { simulatePeriodV2, validateNarrativeChapterV1 } from './life-v2';
+import {
+  decisionDateBounds,
+  simulatePeriodV2,
+  validateNarrativeChapterV1,
+} from './life-v2';
 import {
   narrativeReferencesFromSnapshot,
   validateNarrativePlan,
@@ -237,9 +242,28 @@ function fictionReferenceProjection(input: NarrativePeriodInput) {
 }
 export function hasPlannerStoryTiming(input: NarrativePeriodInput) {
   return (
-    input.storyTiming === 'planner-v1' &&
+    (input.storyTiming === 'planner-v1' ||
+      input.storyTiming === 'decision-date-v1') &&
     input.narrativeContext?.policy.qualityPolicyVersion === '2.9.0' &&
     !!input.input.story
+  );
+}
+
+export function matchesFictionPeriodTiming(
+  input: NarrativePeriodInput,
+  candidate: Pick<PeriodCandidateV2, 'endDate' | 'durationMonths'>,
+) {
+  if (!hasPlannerStoryTiming(input))
+    return (
+      candidate.endDate === input.endDate &&
+      candidate.durationMonths === input.durationMonths
+    );
+  if (input.storyTiming === 'decision-date-v1')
+    return candidate.durationMonths === null;
+  return (
+    candidate.durationMonths !== null &&
+    candidate.durationMonths >= 3 &&
+    candidate.durationMonths <= 9
   );
 }
 
@@ -256,7 +280,15 @@ export function fictionPlannerRequest(
     periodId: input.periodId,
     startDate: input.startDate,
     ...(hasPlannerStoryTiming(input)
-      ? { storyTiming: { minimumMonths: 3, maximumMonths: 9 } }
+      ? {
+          storyTiming:
+            input.storyTiming === 'decision-date-v1'
+              ? {
+                  mode: 'decision-date-v1',
+                  ...decisionDateBounds(input.startDate),
+                }
+              : { minimumMonths: 3, maximumMonths: 9 },
+        }
       : { endDate: input.endDate, durationMonths: input.durationMonths }),
     acceptedDecisionIds: input.acceptedDecisionIds,
     memory: {
@@ -642,10 +674,7 @@ export function fictionCanon(
     c.branchId !== input.input.branchId ||
     c.baseRevision !== input.revision ||
     c.startDate !== input.startDate ||
-    (hasPlannerStoryTiming(input)
-      ? c.durationMonths < 3 || c.durationMonths > 9
-      : c.endDate !== input.endDate ||
-        c.durationMonths !== input.durationMonths)
+    !matchesFictionPeriodTiming(input, c)
   )
     fail('Fiction candidate changed its server-owned scope.');
   const canon = simulatePeriodV2(c, input.state, input.input.constraints, {

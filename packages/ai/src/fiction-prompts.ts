@@ -351,7 +351,7 @@ export function fictionPrompts(
       withOptionalGoal
         .replace(
           'copy periodId, branchId, baseRevision=revision, startDate, endDate and SIX-month duration exactly',
-          'copy periodId, branchId, baseRevision=revision and startDate exactly. When storyTiming is present and no endDate is supplied, first plan the causal progression through the closing decision, then choose the whole-month duration within the supplied bounds that those events require. Set candidate.endDate to that many calendar months after startDate. When endDate and durationMonths are supplied, copy both exactly',
+          'copy periodId, branchId, baseRevision=revision and startDate exactly. When storyTiming is present and no endDate is supplied, first plan the causal progression through the closing decision. For storyTiming.mode=decision-date-v1, set candidate.endDate to the actual calendar date of that decision within the supplied earliestEndDate and latestEndDate (inclusive), and set candidate.durationMonths to null. For older requests with minimumMonths and maximumMonths, choose the whole-month duration and its matching calendar end date. When endDate and durationMonths are supplied, copy both exactly, including null',
         )
         .replace(
           'Six months should change the possible next step.',

@@ -315,6 +315,12 @@ export type CanonEventV2 = PeriodCandidateV2['events'][number] & {
   stateAfter: LifeStateV2;
   softConstraintIds: string[];
 };
+export function decisionDateBounds(startDate: string) {
+  return {
+    earliestEndDate: addMonths(startDate, 3),
+    latestEndDate: addMonths(startDate, 9),
+  };
+}
 export function simulatePeriodV2(
   raw: unknown,
   startState: LifeStateV2,
@@ -336,10 +342,14 @@ export function simulatePeriodV2(
       409,
     );
   checkConstraintsV2(current, constraints, scope);
-  if (
-    period.startDate !== current.effectiveAt ||
-    period.endDate !== addMonths(period.startDate, period.durationMonths)
-  )
+  const { earliestEndDate, latestEndDate } = decisionDateBounds(
+    period.startDate,
+  );
+  const validEndDate =
+    period.durationMonths === null
+      ? period.endDate >= earliestEndDate && period.endDate <= latestEndDate
+      : period.endDate === addMonths(period.startDate, period.durationMonths);
+  if (period.startDate !== current.effectiveAt || !validEndDate)
     throw new DomainError(
       'LIFE_PERIOD_INTERVAL',
       'Az időszak nem illeszkedik az induló állapothoz.',

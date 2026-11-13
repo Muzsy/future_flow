@@ -99,6 +99,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A cselekmény időbeli kibontását kérő v10 prompt három fizetős tervezői próbája (`677059f`) két érvényes első választ adott. P3 három hónap alatt az elakadt szervezéstől a rokon önálló ebédmeghívásáig jutott. P4 hat hónap alatt a javítási konfliktustól az egyik tulajdonos önálló tanári szerepvállalásáig jutott, amely átrendezi a műhely kapacitását és a záró döntést. P12-nél a szolgáltató nem adott teljes, elfogadható választ; a használat elérte a 6500 kimeneti tokenes plafont. Három hívás, 0,249595 USD könyvelt költség. A próbában az író és a szerkesztő nem futott. A tervek helyben a `v10-planner-period-action-paid` könyvtárban vannak.
 
+- TI09 – A v10 tervező kimeneti plafonja 8000 token. Az alkalmazás globális tokenbeállítása továbbra is korlátozhatja ezt. A teljes fejezetpár mérésénél a plafon és a záródátum hatását külön vizsgáljuk. Az új privát feladatokban a tervező a záró döntés konkrét napját választja a kezdődátumtól számolt 3–9 naptári hónap határnapjai között. A hat hónap továbbra is tervezési támpont. A napra pontos időszakot a jelöltben `durationMonths: null` jelzi; a szerver a pontos dátumot ellenőrzi és menti, az író ezt viszi tovább. A folytatás a mentett napon indul. A korábbi egész hónapos jelölteket és a már sorba tett feladatok időzítési módját a rendszer továbbra is olvassa. Ezt helyi API–worker integrációs teszt ellenőrzi, egy hónapfordulón túli nappal záró első fejezettel és annak folytatásával.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

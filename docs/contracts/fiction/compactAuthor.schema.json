@@ -56,6 +56,9 @@
             {
               "type": "number",
               "const": 12
+            },
+            {
+              "type": "null"
             }
           ]
         },

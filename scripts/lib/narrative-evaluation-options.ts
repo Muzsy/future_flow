@@ -305,10 +305,13 @@ export function parseEvaluationOptions(
     generation === 'v10' &&
     (kind === 'assess' ||
       !boolean.has('--creative-only') ||
-      ![1, 4].includes(periods) ||
+      (![1, 4].includes(periods) &&
+        !(stage === 'continuation' && periods === 2)) ||
       (kind === 'offline' && boolean.has('--allow-paid')))
   )
-    invalid('v10 requires a one- or four-chapter creative-only run.');
+    invalid(
+      'v10 requires a one- or four-chapter creative-only run, or the two-chapter continuation stage.',
+    );
   if (
     generation === 'v9' &&
     !boolean.has('--creative') &&
