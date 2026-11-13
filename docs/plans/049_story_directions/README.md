@@ -73,6 +73,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A működő fejlesztői kulccsal az A próba négy fejezetet mentett (P1, P3, P4, P7). A P9 írói kérés szolgáltatói hibával zárult (`AI_PROVIDER_FAILED`), így a technikai küszöb 4/5. Az A keretben az előző hitelesítési kísérlettel együtt 26 hívás és 1,7159475 USD konzervatív elszámolás szerepel. Az ismert használat becslése 0,986475 USD, a plafonból 0,2840525 USD maradt. A négy elfogadott fejezet összesen 24 modellkérést igényelt. A három cél nélküli mintában nem volt `goal_progress_set`. A privát kimenetben elkészült a vak olvasói csomag. A teljes tartalmi elfogadás az olvasói értékelésre vár.
 
+- TI09 – Az A szakasz műszaki értékelése szerint az elfogadott fejezetek átlagosan 6 modellkérést igényeltek, az öt kísérlet átlaga 5,2 az első hitelesítési hibával együtt. A négy döntés opciószáma 2, 2, 2 és 3. Az ismert használat az összes A kísérletet a négy elfogadott fejezetre vetítve 0,247 USD/fejezet, a konzervatív elszámolás 0,429 USD/fejezet. A 0,375 USD-os viszonyítási küszöb mellett ezt az eltérést az olvasói értékeléssel együtt kell elbírálni. Az olvasói csomagban a fejezetek és az opciók mellett külön kérdés szerepel a kialakuló szándékokról, a megszólításról és a vonzódásról. A P9 kísérletet nem ismételtük.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
