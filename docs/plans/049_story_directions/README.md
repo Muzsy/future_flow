@@ -79,6 +79,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A próba két olvasatát követően két célzott v10 promptjavítás készült. A tervező és az író az eseményekben és a lehetséges lépésekben érvényesíti a határokat, a szerkesztő jelzi a szövegbe ismételt záradékokat. A fejezet végi döntéshez konkrét fordulat vagy változás ad okot. A korábban is lehetséges cselekvés késésének látszania kell a történetből. P4 és P1 offline futása két mentett fejezetet és tíz szimulált hívást adott, feldolgozási hiba nélkül. A prózai hatás összehasonlításához új modellminták kellenek.
 
+- TI09 – A két javítás valódi összehasonlító próbája a `d5f6a79` forráson elkészült. P4 és P1 fejezete tíz modellkéréssel, javítás és feldolgozási hiba nélkül mentődött. A külön 1,20 USD plafonból 0,5310325 USD könyvelt összeg, 0,4710439 USD használati becslés. A P4 új opcióiban a jelzálogra és hitelre utaló záradék eltűnt. A döntés oka a társtulajdonos vállalásának megváltozása. A P1 új fejezetében egy korábbi félreértés magyarázza a távolodást, a döntést a tisztázó beszélgetés és a randevúajánlat indítja el. Mindkét fejezet májusban zár, az időkeret mintája megmaradt. A futás két új minta alapján ad olvasói összevetést, a B szakasz külön mérés.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
