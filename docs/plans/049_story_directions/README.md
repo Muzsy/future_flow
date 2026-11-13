@@ -69,6 +69,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A szakasz 2 USD összesített kerete jóváhagyva és a futtatóba bekötve. A már elszámolt A-szakaszos tételek beleszámítanak ugyanabba a plafonba. A korábbi közös költségnapló és a hozzá tartozó kötésfájl megvan a korábbi mérőcheckoutban. Az aktuális munkamenetben a külön fejlesztési projekt hitelesítése nincs beállítva. Fizetős futás még nem indult. A B és C szakasz kerete külön döntés.
 
+- TI09 – Az A szakasz első fizetős kísérlete a tiszta `2430b20` checkoutból futott. A korábbi fejlesztői kulcsot az első modellkérésnél a szolgáltató elutasította (`AI_AUTH_FAILED`). Nem készült fejezet. A szolgáltató nem adott használati adatot. A napló 0,2055175 USD konzervatív foglalást őriz, így a jóváhagyott plafonból legfeljebb 1,7944825 USD maradt a futtató elszámolása szerint. Az eredeti költségnapló és a kötésfájl frissített példánya megmaradt. Folytatáshoz működő kulcs kell a külön fejlesztői projekthez.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
