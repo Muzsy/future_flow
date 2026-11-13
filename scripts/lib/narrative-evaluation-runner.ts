@@ -2133,11 +2133,13 @@ async function runEvaluationUnlocked(
             !stop &&
             !options.noForks &&
             options.periods >= 3 &&
-            (['bounded-career', 'career-transition'].includes(fixtureId) ||
-              (options.creativeOnly &&
-                (options.fixtureIds[0] === fixtureId ||
-                  (options.fixtureIds.length <= 2 &&
-                    fixtureId === 'creative-portfolio'))))
+            (options.fictionGeneration === 'v10'
+              ? ['P1', 'P4', 'P7', 'P9', 'PL1', 'PL2'].includes(fixtureId)
+              : ['bounded-career', 'career-transition'].includes(fixtureId) ||
+                (options.creativeOnly &&
+                  (options.fixtureIds[0] === fixtureId ||
+                    (options.fixtureIds.length <= 2 &&
+                      fixtureId === 'creative-portfolio'))))
           ) {
             try {
               await forkComparison(

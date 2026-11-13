@@ -218,11 +218,11 @@ export function parseEvaluationOptions(
     generation === 'v10' &&
     (kind !== 'offline' ||
       !boolean.has('--creative-only') ||
-      periods !== 1 ||
+      ![1, 4].includes(periods) ||
       boolean.has('--allow-paid'))
   )
     invalid(
-      'v10 currently supports only the one-chapter offline creative-only rehearsal.',
+      'v10 currently supports only the one- or four-chapter offline creative-only rehearsal.',
     );
   if (
     generation === 'v9' &&

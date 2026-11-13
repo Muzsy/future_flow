@@ -102,10 +102,11 @@ describe('bounded and independently assessed narrative experiment', () => {
       '1',
     ];
     const options = parseEvaluationOptions(args);
+    expect(parseEvaluationOptions([...args.slice(0, -1), '4']).periods).toBe(4);
     expect(options.fixtureIds).toHaveLength(12);
     expect(options.fixtureIds).toContain('PL2');
     expect(() => parseEvaluationOptions([...args, '--mode', 'paid'])).toThrow(
-      /one-chapter offline/,
+      /one- or four-chapter offline/,
     );
     expect(() =>
       parseEvaluationOptions([...args, '--fixtures', 'career-transition']),

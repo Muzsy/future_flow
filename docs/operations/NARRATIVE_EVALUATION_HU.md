@@ -741,5 +741,9 @@ pnpm evaluate:narrative --mode offline --creative-only --fiction-generation v10 
 
 A `--fixtures P1,P4` megadásával részhalmaz is futtatható. A szimulált
 modellválaszok a feldolgozási út ellenőrzésére szolgálnak. A v10 kapcsoló
-jelenleg egyfejezetes offline futást fogad el. Az A és B fizetős szakasz
+egy- vagy négyfejezetes offline futást fogad el. A négyfejezetes futás
+a P1, P4, P7, P9, PL1 és PL2 profilnál a második döntésből egy alternatív
+fejezetet is készít. Példa: `--fixtures P1 --periods 4 --choice-mix rotate`.
+A P1 helyi próbája négy főági fejezetet és egy alternatív fejezetet mentett,
+és elkészítette a két olvasói értékelőcsomagot. Az A és B fizetős szakasz
 engedélyezési és mérési bekötése külön következik.
