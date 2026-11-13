@@ -415,15 +415,17 @@ export class OpenAiProvider
           store: false,
           max_output_tokens: promptVersion?.startsWith('life_fiction_author.')
             ? Math.min(this.config.maxOutputTokens, 12000)
-            : task === 'public_review' ||
-                task === 'public_content_review' ||
-                task === 'scenario_review'
-              ? Math.min(this.config.maxOutputTokens, 2200)
-              : task === 'shared_event'
-                ? Math.min(this.config.maxOutputTokens, 4500)
-                : task.startsWith('life_')
-                  ? Math.min(this.config.maxOutputTokens, 6500)
-                  : this.config.maxOutputTokens,
+            : promptVersion?.startsWith('life_fiction_plan.v10.')
+              ? Math.min(this.config.maxOutputTokens, 8000)
+              : task === 'public_review' ||
+                  task === 'public_content_review' ||
+                  task === 'scenario_review'
+                ? Math.min(this.config.maxOutputTokens, 2200)
+                : task === 'shared_event'
+                  ? Math.min(this.config.maxOutputTokens, 4500)
+                  : task.startsWith('life_')
+                    ? Math.min(this.config.maxOutputTokens, 6500)
+                    : this.config.maxOutputTokens,
           input: [
             { role: 'system', content: instructions },
             { role: 'user', content: JSON.stringify(input) },
