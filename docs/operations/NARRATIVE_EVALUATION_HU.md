@@ -744,6 +744,8 @@ modellválaszok a feldolgozási út ellenőrzésére szolgálnak. A v10 kapcsol�
 egy- vagy négyfejezetes offline futást fogad el. A négyfejezetes futás
 a P1, P4, P7, P9, PL1 és PL2 profilnál a második döntésből egy alternatív
 fejezetet is készít. Példa: `--fixtures P1 --periods 4 --choice-mix rotate`.
+Az A és B szakasz a `--v10-stage A`, illetve `--v10-stage B` opcióval választható. A futtató a terv szerinti profillistát és fejezetszámot használja. A szimulált A próba 5 fejezettel és 25 hívással, a B próba 32 főági és 4 alternatív fejezettel, 180 hívással futott le hiba nélkül.
+
 A P1 helyi próbája négy főági fejezetet és egy alternatív fejezetet mentett,
 és elkészítette a két olvasói értékelőcsomagot. Az A és B fizetős szakasz
 engedélyezési és mérési bekötése külön következik.

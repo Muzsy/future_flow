@@ -113,6 +113,40 @@ describe('bounded and independently assessed narrative experiment', () => {
     ).toThrow(/checked synthetic fixtures/);
   });
 
+  it('binds v10 stages to their planned profiles and chapter counts', () => {
+    const base = [
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--v10-stage',
+    ];
+    expect(parseEvaluationOptions([...base, 'A'])).toMatchObject({
+      fixtureIds: ['P1', 'P3', 'P4', 'P7', 'P9'],
+      periods: 1,
+    });
+    expect(parseEvaluationOptions([...base, 'B'])).toMatchObject({
+      fixtureIds: ['P1', 'P2', 'P3', 'P4', 'P5', 'P7', 'P8', 'P9'],
+      periods: 4,
+    });
+    expect(() =>
+      parseEvaluationOptions([...base, 'B', '--fixtures', 'P1']),
+    ).toThrow(/exact profile/);
+    expect(() =>
+      parseEvaluationOptions([...base, 'A', '--periods', '4']),
+    ).toThrow(/exact chapter/);
+    expect(() =>
+      parseEvaluationOptions([
+        ...base,
+        'A',
+        '--mode',
+        'paid',
+        '--allow-paid',
+        '--budget-usd',
+        '2',
+      ]),
+    ).toThrow(/numeric owner approval/);
+  });
+
   it('bounds only creative evaluation fiction calls at five minutes and leaves ordinary defaults intact', () => {
     expect(evaluationTimeouts({ creative: true })).toEqual({
       timeoutMs: 120000,

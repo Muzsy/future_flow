@@ -1561,6 +1561,7 @@ async function runEvaluationUnlocked(
   const projectHash =
     options.kind === 'paid' ? hash(env.NARRATIVE_EVAL_PROJECT_ID) : null;
   const binding = hash({
+    ...(options.v10Stage ? { v10Stage: options.v10Stage } : {}),
     sourceHash: identity.sourceHash,
     ...(options.serviceTier ? { serviceTier: options.serviceTier } : {}),
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),

@@ -74,6 +74,21 @@ export const evaluationFlexPriceEvidence = {
   usageDiscount: 0.5,
   source: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol',
 };
+export const v10Stages = {
+  A: {
+    fixtureIds: ['P1', 'P3', 'P4', 'P7', 'P9'],
+    periods: 1,
+    forks: 0,
+    proposedBudgetUsd: 2,
+  },
+  B: {
+    fixtureIds: ['P1', 'P2', 'P3', 'P4', 'P5', 'P7', 'P8', 'P9'],
+    periods: 4,
+    forks: 4,
+    proposedBudgetUsd: 20,
+  },
+} as const;
+
 export type EvaluationOptions = {
   kind: 'offline' | 'paid' | 'assess';
   serviceTier?: 'flex';
@@ -82,6 +97,7 @@ export type EvaluationOptions = {
   noForks?: true;
   // Living-world generation; absent means the frozen v8 generation.
   fictionGeneration?: 'v9' | 'v10';
+  v10Stage?: keyof typeof v10Stages;
   // Creative-only choice rule: absent = the first option on the main branch (the
   // second on the fork), 'rotate' = deterministic rotation (diagnostic only).
   choiceMix?: 'rotate';
@@ -125,6 +141,7 @@ export function parseEvaluationOptions(
     '--story-model',
     '--check-model',
     '--fiction-generation',
+    '--v10-stage',
     '--choice-mix',
     '--max-mean-cost-usd',
     '--max-p95-ms',
@@ -159,12 +176,37 @@ export function parseEvaluationOptions(
   if (!['offline', 'paid', 'assess'].includes(kind))
     invalid('Unsupported evaluation mode.');
   const generation = values.get('--fiction-generation') ?? 'v8';
+  const stage = values.get('--v10-stage');
+  if (
+    stage !== undefined &&
+    (generation !== 'v10' || (stage !== 'A' && stage !== 'B'))
+  )
+    invalid('Choose v10 stage A or B with fiction generation v10.');
+  const stageSpec =
+    stage === 'A' || stage === 'B' ? v10Stages[stage] : undefined;
+  if (stageSpec && kind === 'paid')
+    invalid(
+      'A v10 stage requires its own recorded numeric owner approval before paid execution.',
+    );
+  if (
+    stageSpec &&
+    values.has('--fixtures') &&
+    values.get('--fixtures') !== stageSpec.fixtureIds.join(',')
+  )
+    invalid('The selected v10 stage requires its exact profile list.');
+  if (
+    stageSpec &&
+    values.has('--periods') &&
+    Number(values.get('--periods')) !== stageSpec.periods
+  )
+    invalid('The selected v10 stage requires its exact chapter count.');
   const availableFixtures =
     generation === 'v10'
       ? Object.keys(storyProfiles)
       : narrativeProfiles.map((profile) => profile.id);
-  const fixtureIds =
-    (values.get('--fixtures') ?? 'all') === 'all'
+  const fixtureIds = stageSpec
+    ? [...stageSpec.fixtureIds]
+    : (values.get('--fixtures') ?? 'all') === 'all'
       ? availableFixtures
       : (values.get('--fixtures') ?? '').split(',');
   if (
@@ -173,7 +215,7 @@ export function parseEvaluationOptions(
     fixtureIds.some((id) => !availableFixtures.includes(id))
   )
     invalid('Only the checked synthetic fixtures are allowed.');
-  const periods = Number(values.get('--periods') ?? 3);
+  const periods = Number(values.get('--periods') ?? stageSpec?.periods ?? 3);
   const maxPeriods = boolean.has('--creative-only') ? 8 : 3;
   if (!Number.isInteger(periods) || periods < 1 || periods > maxPeriods)
     invalid(
@@ -350,6 +392,7 @@ export function parseEvaluationOptions(
     ...(boolean.has('--creative-only') ? { creativeOnly: true as const } : {}),
     ...(noForks ? { noForks: true as const } : {}),
     ...(generation !== 'v8' ? { fictionGeneration: generation } : {}),
+    ...(stage === 'A' || stage === 'B' ? { v10Stage: stage } : {}),
     ...(choiceMix === 'rotate' ? { choiceMix: 'rotate' as const } : {}),
     out: resolve(values.get('--out') ?? '.local/narrative-evaluation/offline'),
     fixtureIds,
@@ -401,6 +444,7 @@ export function verifyEvaluationAuthorization(
   if (options.noForks) args.push('--no-forks');
   // Always passed, so that a v9 options object meets the v9 gate again here.
   args.push('--fiction-generation', options.fictionGeneration ?? 'v8');
+  if (options.v10Stage) args.push('--v10-stage', options.v10Stage);
   if (options.choiceMix) args.push('--choice-mix', options.choiceMix);
   if (options.budgetUsd !== null)
     args.push('--budget-usd', String(options.budgetUsd));

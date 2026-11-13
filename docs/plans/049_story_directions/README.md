@@ -65,6 +65,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A meglévő mérőfuttató elfogadja a v10 egyfejezetes offline próbáját a tizenkét rögzített profillal. A valódi történetindítást használja, az előre megadott cél nélküli profiloknál is. A CLI-próba 12 fejezetet és 60 szimulált modellhívást rögzített, feldolgozási hiba nélkül. A többfejezetes offline P1 próba négy főági és egy alternatív fejezettel, 25 szimulált hívással és nulla feldolgozási hibával sikerült. A fizetős mód bekötése még hátravan. [Futtatási leírás](../../operations/NARRATIVE_EVALUATION_HU.md#a-049-es-történetirányok-offline-próbája)
 
+- TI09 – Az A és B szakasz pontos profillistája és fejezetszáma a futtatóban rögzítve. A teljes offline A próba 5 fejezettel és 25 szimulált hívással, a B próba 36 fejezettel és 180 szimulált hívással sikerült. A futtató visszautasítja a módosított profillistát és fejezetszámot. A fizetős v10 futtatás az adott szakasz számszerű tulajdonosi engedélyére vár.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
