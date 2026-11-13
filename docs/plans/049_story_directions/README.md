@@ -105,6 +105,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A korábban 6500 tokenen megszakadt P12 a 8000 tokenes plafonnal és a konkrét döntési napos szerződéssel (`5ca8dc7`) elsőre érvényes tervet adott. A hívás 5833 kimeneti tokent használt, könyvelt költsége 0,081985 USD. A választott 2027. május 13. ebben a mintában pont hat naptári hónapra esett, a modell a napra pontos formátumot (`durationMonths: null`) adta vissza. A nem hónapfordulóra eső dátum mentését és folytatását a helyi integrációs teszt ellenőrzi. A fizetős P12-ben az író és a szerkesztő nem futott. Az új válasz a régi plafon alá is befért volna, így az emelés önálló hatása ebből nem állapítható meg.
 
+- TI09 – A napra pontos P4 fizetős próba (`8735ea7`) első fejezete öt hívással, javítás nélkül mentődött a 2027. május 13-i dátummal. A folytatás tervezője erről a napról indult és november 9-et választott, négy nappal a hathavi forduló előtt. A második fejezet írói hívásának előzetes foglalását a közös 1,20 USD-s plafon elutasította. Az új futás hat fizetős hívásának könyvelt költsége 0,3350075 USD, a korábbi fejezetpárral együtt 0,9568075 USD. A modell szabad dátumválasztása igazolt; a nem hónapfordulós dátum írói és mentési átvitele fizetős körben nyitott, helyi integrációs teszten sikeres. A fejezet és a folytatás terve a privát `v10-continuation-decision-date-paid` könyvtárban található.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
