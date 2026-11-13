@@ -77,6 +77,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az A szakasz vak olvasói értékelése beérkezett. A kulccsal összevetve mind a négy domináns irányt eltalálta az olvasó (M2: 4/4, átlag 5/5). Mind a négy döntés opcióit érdemben különbözőnek találta, kitöltő opció nélkül (M4: 4/4). A három cél nélküli mintában a szereplő szándéka a helyzetből alakult ki. A P1-ben a fikcióra bízott vonzódás megjelent és folytonossági tényként rögzült. A P3 megadott megszólítása a második személyű prózában nem került próbára. A következetesség, a döntések későbbi hatása és az elágazás a B szakaszban mérhető. A P4 finanszírozási korlátjának ismétlése az olvasónak feltűnt. Ezt felületi és prózai észrevételként rögzítettük, a négy olvasott fejezetben nem jelzett tartalmi határsértést. A P9 mintája hiányzik. A konzervatív fejezetköltség eltérése és a B szakasz kerete továbbra is tulajdonosi döntés.
 
+- TI09 – Az A próba két olvasatát követően két célzott v10 promptjavítás készült. A tervező és az író az eseményekben és a lehetséges lépésekben érvényesíti a határokat, a szerkesztő jelzi a szövegbe ismételt záradékokat. A fejezet végi döntéshez konkrét fordulat vagy változás ad okot. A korábban is lehetséges cselekvés késésének látszania kell a történetből. P4 és P1 offline futása két mentett fejezetet és tíz szimulált hívást adott, feldolgozási hiba nélkül. A prózai hatás összehasonlításához új modellminták kellenek.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

@@ -329,6 +329,10 @@ export function fictionPrompts(
     '\nWhen storyDirection.goalMode is none, the reader did not set a goal. Never emit goal_progress_set or measure the period against an invented long-term goal. Characters can develop wants and plans through the events and carry them as open threads or continuity facts. Leave major commitments to the reader.';
   const v10Casting =
     '\nFollow storyDirection.rules. Keep undisclosed details unstated. A detail explicitly delegated to fiction may be chosen for a fictional character and carried in continuity. Never infer a private fact about the reader or a supplied real person.';
+  const naturalBoundaries =
+    '\nHonor boundaries in what happens and in the actions each option offers. State a boundary in dialogue only when it is a real concern the characters have reason to discuss in that scene. Keep option text focused on the action and its consequences. Do not repeat background constraints as boilerplate or disclaimers.';
+  const decisionTiming =
+    '\nMake it clear why the closing decision arises now: an event, action or new information changes what the protagonist can do or what waiting costs. If earlier action was possible, show what credibly delayed it. Let characters take smaller steps before the decision. Summarize stretches when nothing relevant changes.';
   function withV10Boundaries(prompt: string) {
     const withOptionalGoal = once(
       prompt,
@@ -347,12 +351,16 @@ export function fictionPrompts(
       withV10Boundaries(v9Prompts.planner) +
       direction +
       goalOptional +
-      v10Casting,
+      v10Casting +
+      naturalBoundaries +
+      decisionTiming,
     author:
       withV10Boundaries(v9Prompts.author) +
       direction +
       goalOptional +
-      v10Casting,
+      v10Casting +
+      naturalBoundaries +
+      decisionTiming,
     review:
       withV10Boundaries(v9Prompts.review) +
       goalOptional +
@@ -362,7 +370,7 @@ export function fictionPrompts(
       '\nReject broken story boundaries, violations of direction rules or hardLimits, and assertions about explicitly undisclosed details.',
     editor:
       withV10Boundaries(v9Prompts.editor) +
-      '\nJudge personalization against the chosen direction and whether any departure is earned. Score choiceStakes at most 3 if options differ only in degree. Do not penalize a goal-free life for lack of goal progress or for leaving undisclosed details unstated.',
+      '\nJudge personalization against the chosen direction and whether any departure is earned. Score choiceStakes at most 3 if options differ only in degree. Do not penalize a goal-free life for lack of goal progress or for leaving undisclosed details unstated. Flag repeated background constraints in option text or dialogue that sounds like a disclaimer. Flag a closing decision delayed without a credible reason, or a turning point the chapter does not establish. Preserve the underlying boundary when suggesting a rewrite.',
   };
 }
 
