@@ -91,6 +91,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A `gpt-6.1-sol` tervező a változatlan v10 prompttal 12 különböző fiktív bemeneten, öt irányban futott (`e77bcf0`). Bemenetenként egy első válasz, írói és szerkesztői hívás nélkül. Mind a 12 terv átment a szerveroldali validáción. Időtávok: 3 hónap 10/12, 4 hónap 1/12, 6 hónap 1/12. P5 a szövetkezet tagsági megújításáig jutott, P12 a próbák során felmerült hangszerigénytől a nyári fellépésekre szóló kérésig. P3 az éves összejövetel előtti rokonlátogatásra hozta a döntést. A mintában erős az alsó határhoz húzás, az okát és a megismételhetőségét ez a kör nem mérte. A konzervatívan könyvelt költség 0,864995 USD, a használati becslés 0,6454346 USD az 1,20 USD plafonból. A teljes tervek helyben, a `v10-planner-timing-paid` privát futási könyvtárban vannak.
 
+- TI09 – Három korábbi fiktív profilt ismételtünk meg 1–9 hónapos tartománnyal, külön munkafában, a v10 prompt és a modell megtartásával. P3: 3 → 1, P4: 3 → 1, P12: 6 → 2 hónap. Mindhárom első válasz érvényes. Mindhárom tervben korábbi döntési helyzet alakult ki, P12-ben a próbafelvétel után, az év végi fellépések és megújítás előtt. A párok azonos fiktív profilból és kezdődátummal indultak, de a technikai azonosítók és a névpaletták eltértek. A három próba 0,211205 USD könyvelt költséget adott. A fejlesztői ág 3–9 hónapos tartományt használ. A tervek, bemenetek és a kísérleti diff a helyi `v10-planner-minimum-one-paid` könyvtárban vannak.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
