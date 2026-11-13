@@ -53,9 +53,12 @@ describe('story direction contracts', () => {
   it('uses the supplied timing scope throughout the v10 prompts', () => {
     for (const locale of ['en', 'hu'] as const) {
       const prompts = fictionPrompts(locale, fictionV10Policy().promptVersions);
-      for (const prompt of Object.values(prompts)) {
-        expect(prompt).not.toMatch(/six[ -]months?/i);
+      for (const [stage, prompt] of Object.entries(prompts)) {
+        if (stage !== 'planner') expect(prompt).not.toMatch(/six[ -]months?/i);
       }
+      expect(prompts.planner).toContain('six months as the planning default');
+      expect(prompts.planner).toContain('Choose a shorter period');
+      expect(prompts.planner).toContain('Choose a longer period');
       expect(prompts.planner).toContain(
         'first plan the causal progression through the closing decision',
       );

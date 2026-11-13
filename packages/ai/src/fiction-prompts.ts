@@ -333,6 +333,8 @@ export function fictionPrompts(
     '\nHonor boundaries in what happens and in the actions each option offers. State a boundary in dialogue only when it is a real concern the characters have reason to discuss in that scene. Keep option text focused on the action and its consequences. Do not repeat background constraints as boilerplate or disclaimers.';
   const decisionTiming =
     '\nMake it clear why the closing decision arises now: an event, action or new information changes what the protagonist can do or what waiting costs. If earlier action was possible, show what credibly delayed it. Let characters take smaller steps before the decision. Summarize stretches when nothing relevant changes.';
+  const plannerTiming =
+    '\nWhen storyTiming is present and no endDate is supplied, use six months as the planning default within the supplied bounds. Plan an event chain in which an attempt or an earlier accepted choice has time to produce a visible consequence that changes the closing decision. Choose a shorter period when a consequential choice needs the reader sooner. Choose a longer period when an already established consequence needs more time to mature and materially changes the choice. Compress quiet intervals. Never invent delays or filler to reach the default, and never make a consequential choice for the reader to reach it. In the final event summary, briefly state what changed and why the decision is due then.';
   function withV10Boundaries(prompt: string) {
     const withOptionalGoal = once(
       prompt,
@@ -366,7 +368,8 @@ export function fictionPrompts(
       goalOptional +
       v10Casting +
       naturalBoundaries +
-      decisionTiming,
+      decisionTiming +
+      plannerTiming,
     author:
       withV10Boundaries(v9Prompts.author) +
       direction +
