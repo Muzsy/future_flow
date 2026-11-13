@@ -13,6 +13,7 @@ import type OpenAI from 'openai';
 import { OpenAiProvider } from '@future-flow/ai';
 import {
   DatabaseAiBudget,
+  configureGenerationGate,
   LifeJobRepository,
   LifeRepository,
   Repository,
@@ -20,7 +21,7 @@ import {
   type Database,
   type LifeJob,
 } from '@future-flow/database';
-import { DomainError, hash } from '@future-flow/core';
+import { billingConfigFromEnv, DomainError, hash } from '@future-flow/core';
 import {
   FICTION_CHARACTER_VERSION,
   FICTION_MODE,
@@ -43,6 +44,8 @@ import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { failureDiagnostic } from '../scripts/lib/narrative-failure-diagnostic';
+import { createApp } from '../apps/api/src/app';
+import { createBillingRuntime } from '../apps/api/src/billing';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { setupFixture } from './life-fixtures';
 import {
@@ -414,6 +417,172 @@ describe('living-world generation through the real guarded provider and database
     expect((await saved(continuation)).status).toBe('completed');
     expect((await disabled.detail(owner, chosen.id)).periods).toHaveLength(2);
   });
+
+  it('settles a v10 first chapter and continuation through the real API and worker', async () => {
+    const owner = randomUUID();
+    await repo.ensureUser(owner);
+    await repo.acceptPrivacy(owner);
+    const subscription = 'sub_' + owner;
+    const invoice = 'in_' + owner;
+    await db.query(
+      "INSERT INTO aw_billing_subscriptions(subscription_id,user_id,customer_id,status,period_start,period_end,last_state_event_created,paid_invoice_ids) VALUES($1,$2,$3,'active',now()-interval '1 day',now()+interval '29 days',1,ARRAY[$4]::text[])",
+      [subscription, owner, 'cus_' + owner, invoice],
+    );
+    await db.query(
+      "INSERT INTO aw_billing_grants(key,subscription_id,user_id,cycle_index,amount,expires_at) VALUES($1,$2,$3,1,2,now()+interval '29 days')",
+      [invoice, subscription, owner],
+    );
+    vi.stubEnv('NARRATIVE_PIPELINE_MODE', FICTION_MODE);
+    vi.stubEnv('NARRATIVE_FICTION_GENERATION', 'v9');
+    vi.stubEnv('STORY_DIRECTIONS_COHORT_USER_IDS', owner);
+    const args: Parameters<typeof createApp> = [
+      repo,
+      {
+        verify: async (token) => {
+          if (token !== 'synthetic-v10-local-token')
+            throw new DomainError('AUTH_INVALID_TOKEN', 'Invalid.', 401);
+          return { id: owner };
+        },
+        deleteUser: async () => {},
+      },
+    ];
+    args[26] = createBillingRuntime(
+      db,
+      billingConfigFromEnv({
+        BILLING_ENABLED: 'true',
+        BILLING_ENFORCEMENT: 'true',
+        STRIPE_SECRET_KEY: 'sk_test_storylocal12345',
+        STRIPE_WEBHOOK_SECRET: 'whsec_storylocal12345',
+        STRIPE_PRICE_ID: 'price_storylocal12345',
+        STRIPE_FOUNDER_COUPON_ID: 'founder_launch',
+        STRIPE_API_VERSION: '2025-03-31.basil',
+        BILLING_SUCCESS_URL: 'https://alterward.example/billing/success',
+        BILLING_CANCEL_URL: 'https://alterward.example/billing/cancel',
+      }),
+    );
+    let app: Awaited<ReturnType<typeof createApp>> | undefined;
+    try {
+      app = await createApp(...args);
+      await app.listen(0, '127.0.0.1');
+      const base = await app.getUrl();
+      async function request(
+        path: string,
+        method = 'GET',
+        body?: unknown,
+        status = 200,
+        key = randomUUID(),
+      ) {
+        const response = await fetch(base + '/api/v2' + path, {
+          method,
+          headers: {
+            Authorization: 'Bearer synthetic-v10-local-token',
+            'Content-Type': 'application/json',
+            'Idempotency-Key': key,
+          },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        });
+        const data = await response.json();
+        expect(response.status, JSON.stringify(data)).toBe(status);
+        return data;
+      }
+      expect(await request('/story-directions')).toMatchObject({
+        enabled: true,
+      });
+      const draft = lifeStoryDraftRequestV2Schema.parse({
+        ...setupFixture(),
+        story: {
+          contractVersion: '1.0.0',
+          catalogVersion: '1.0.0',
+          direction: 'relationships',
+          subtype: 'friendship',
+          answers: {},
+          startingSituation: { id: 'rel.new_city', note: null },
+          boundaries: [],
+          title: null,
+          goalChoice: 'none',
+        },
+      });
+      const { revision } = await request('/draft', 'PATCH', {
+        revision: 0,
+        payload: draft,
+      });
+      expect(await request('/draft')).toMatchObject({
+        revision,
+        payload: draft,
+      });
+      const body = { ...storySetupFromDraft(draft)!, draftRevision: revision };
+      const createKey = randomUUID();
+      const created = await request('/lives', 'POST', body, 201, createKey);
+      expect(created.draftCleared).toBe(true);
+      expect(await request('/lives', 'POST', body, 201, createKey)).toEqual(
+        created,
+      );
+      const path = '/branches/' + created.branchId;
+      const lives = new LifeRepository(db, { daily: 10, concurrent: 2 });
+      async function finishChapter() {
+        const job = (await jobs.claim())!;
+        expect(job.branch_id).toBe(created.branchId);
+        expect(job.payload.narrativeContext?.policy).toEqual(
+          fictionV10Policy(),
+        );
+        const transport = provider({
+          owner,
+          lives,
+          created,
+          job,
+          f: fictionFixture(job.payload),
+        });
+        await processLifeJob(job, jobs, transport.ai);
+        expect((await saved(job)).status).toBe('completed');
+        expect(transport.parse).toHaveBeenCalledTimes(5);
+        return job.id;
+      }
+      const first = await finishChapter();
+      const detail = await request(path);
+      expect(detail.periods).toHaveLength(1);
+      const decision = detail.branch.pending_decision;
+      const option = decision.options[0];
+      await request(
+        path + '/choice',
+        'POST',
+        {
+          revision: detail.branch.revision,
+          decisionId: decision.id,
+          optionId: option.id,
+        },
+        201,
+      );
+      const chosen = await request(path);
+      const continued = await request(
+        path + '/continue',
+        'POST',
+        { revision: chosen.branch.revision },
+        201,
+      );
+      const second = await finishChapter();
+      expect(continued.jobId).toBe(second);
+      const final = await request(path);
+      expect(final.periods).toHaveLength(2);
+      expect(final.choices[0]).toMatchObject({
+        decision_id: decision.id,
+        option_id: option.id,
+      });
+      expect(
+        await db.query(
+          'SELECT key,bucket,state FROM aw_billing_reservations WHERE user_id=$1 ORDER BY key',
+          [owner],
+        ),
+      ).toEqual(
+        [first, second]
+          .sort()
+          .map((key) => ({ key, bucket: 'paid', state: 'consumed' })),
+      );
+    } finally {
+      await app?.close();
+      configureGenerationGate(null);
+      vi.unstubAllEnvs();
+    }
+  }, 20000);
 
   it('keeps the five-call stage graph, binds the delta and never sends the envelope to the model', async () => {
     const f = await fixture(),

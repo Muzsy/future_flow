@@ -17,7 +17,7 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 | TI06      | Hátravan          | Adatkezelési döntés és megvalósítás.                                                     |
 | TI07      | Elkészült helyben | Privát történetoldal, előnézeti ellenőrzés és publikálási korlátok.                      |
 | TI08      | Folyamatban       | Kapcsolók és megőrző elkülönítés helyben. Kiadási pinek és célgépes próba hátravan.      |
-| TI09      | Hátravan          | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                          |
+| TI09      | Folyamatban       | Izolált alkalmazáspróba és tartalmi ellenőrzés.                                          |
 | TI10      | Hátravan          | Kiadás, saját fiókos végigpróba és fokozatos bevezetés.                                  |
 
 ## Napló
@@ -50,6 +50,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 - TI08 – Külön helyi PostgreSQL 16 példányon, saját tanúsítvánnyal és ideiglenes `age` kulccsal végigment a számlálás, titkosított elkülönítés, visszaillesztés és az ismételt visszaillesztés. Az adatbázisban a várt harmadik revízió és az eredeti irány szerepelt.
 
 - TI05 – A magyar vállalkozói indítás mind a tíz lépése végigment Playwrighttal, szimulált API-val, 360×740, 390×844, 768×1024 és 1280×800 méreten. Az űrlap és a vizsgált kártyák vízszintesen elfértek. Az összegzés magyarul mutatta a cél nélküli állapotot, az indítási kérésben pedig `locale: hu`, `goal: null` és a vállalkozói altípus szerepelt. Ez egy teljes magyar indítási út böngészős ellenőrzése. A többi irány magyar változata és a valódi API-val futó teljes alkalmazáspróba külön ellenőrzés.
+
+- TI09 – Helyi integrációs próba a valódi Nest API-val, migrált PGlite adatbázissal és a valódi workerrel. A hitelesítés és a modellválaszok tesztadatokból jöttek. A cél nélküli v10 történet mentett piszkozatból indult, a megismételt indítás ugyanazt az azonosítót adta, a döntés megmaradt, a folytatás második fejezete elmentődött. A két fejezethez pontosan két fizetett fejezetfoglalás tartozott a tesztfőkönyvben, mindkettő elszámolva. Fejezetenként öt szimulált modellválasz érkezett. A konténeres és böngészős teljes út, valamint a 12 profilos tartalmi sor külön lépés.
 
 ## Nyitott kérdések és problémák
 
