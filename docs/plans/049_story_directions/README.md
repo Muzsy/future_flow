@@ -89,6 +89,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Az utazási irány kiadás előtti katalógusából kikerült a fix hathavi időszakot előíró mondat. Az utazó fejezet időtávját is a tervező választja az események alapján, a közös 3–9 hónapos tartományban. Az útinapló és útikönyv jellegű próza kerülése továbbra is katalógusszabály.
 
+- TI09 – A `gpt-6.1-sol` tervező a változatlan v10 prompttal 12 különböző fiktív bemeneten, öt irányban futott (`e77bcf0`). Bemenetenként egy első válasz, írói és szerkesztői hívás nélkül. Mind a 12 terv átment a szerveroldali validáción. Időtávok: 3 hónap 10/12, 4 hónap 1/12, 6 hónap 1/12. P5 a szövetkezet tagsági megújításáig jutott, P12 a próbák során felmerült hangszerigénytől a nyári fellépésekre szóló kérésig. P3 az éves összejövetel előtti rokonlátogatásra hozta a döntést. A mintában erős az alsó határhoz húzás, az okát és a megismételhetőségét ez a kör nem mérte. A konzervatívan könyvelt költség 0,864995 USD, a használati becslés 0,6454346 USD az 1,20 USD plafonból. A teljes tervek helyben, a `v10-planner-timing-paid` privát futási könyvtárban vannak.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
