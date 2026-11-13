@@ -55,6 +55,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A terv mind a 12 profilját felvettük a worker integrációs tesztjébe. Mindegyik mentett piszkozatból indul, a saját irányválaszait viszi tovább, és öt szimulált modellválasz után v10 artefaktummal elment egy fejezetet. A közéleti ellenpróba rögzített modellválasszal futott. A valódi modell reakcióját a bemeneti névre, az irodalmi minőséget és a hosszú távú következményeket a fizetős tartalmi szakasz vizsgálja.
 
+- TI09 – Helyi Docker-build a `7b1b1b1` forrásból, a kiadási Dockerfile-lal. Image: `sha256:51e6aa8e1d2a6f61c6694003bdf65615e36daa4ffa1b35d03809be664b9cf937`. Hálózat nélküli konténerben sikerült mind a 12 offline profil és a két fejezetes API–worker–elszámolás próba (13/13). Ugyanebből az image-ből a production Next szerver health végpontja és négy Playwright piszkozatátvételi eset is sikeres volt szimulált API-val. A két ellenőrzés külön futott. A böngésző, az API, az adatbázis és a worker közös, egybefüggő próbája még nyitott.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
