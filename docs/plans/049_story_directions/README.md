@@ -93,6 +93,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – Három korábbi fiktív profilt ismételtünk meg 1–9 hónapos tartománnyal, külön munkafában, a v10 prompt és a modell megtartásával. P3: 3 → 1, P4: 3 → 1, P12: 6 → 2 hónap. Mindhárom első válasz érvényes. Mindhárom tervben korábbi döntési helyzet alakult ki, P12-ben a próbafelvétel után, az év végi fellépések és megújítás előtt. A párok azonos fiktív profilból és kezdődátummal indultak, de a technikai azonosítók és a névpaletták eltértek. A három próba 0,211205 USD könyvelt költséget adott. A fejlesztői ág 3–9 hónapos tartományt használ. A tervek, bemenetek és a kísérleti diff a helyi `v10-planner-minimum-one-paid` könyvtárban vannak.
 
+- TI09 – A v10 tervező a 3–9 hónapos keretben hat hónappal tervez alapértelmezésként. Korábbi, a felhasználót igénylő döntésnél rövidíthet, később beérő érdemi következménynél hosszabbíthat. A záró esemény összefoglalója rögzíti a fordulatot és a döntés időzítését. A három fizetős tervezői mintában (`ca919ca`) P3 hat hónapot választott, de érvénytelen opcióazonosítót adott meg a döntés tétjénél. P4 három hónappal, a meglévő javítási sor kifutásánál zárt és átment. P12 hat hónappal, a kölcsönhangszer visszavételénél és a fellépési terv ismeretében zárt és átment. A korábbi 3–9 hónapos próba eredménye ugyanezen fiktív profilokra 3, 3 és 6 hónap volt. A mintánkénti azonosítók és névpaletták eltérhettek. Három hívás, 0,2280725 USD könyvelt költség. A tervek helyben a `v10-planner-six-default-paid` könyvtárban vannak.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
