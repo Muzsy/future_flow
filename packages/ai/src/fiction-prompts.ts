@@ -335,6 +335,12 @@ export function fictionPrompts(
     '\nMake it clear why the closing decision arises now: an event, action or new information changes what the protagonist can do or what waiting costs. If earlier action was possible, show what credibly delayed it. Let characters take smaller steps before the decision. Summarize stretches when nothing relevant changes.';
   const plannerTiming =
     '\nWhen storyTiming is present and no endDate is supplied, use six months as the planning default within the supplied bounds. Plan an event chain in which an attempt or an earlier accepted choice has time to produce a visible consequence that changes the closing decision. Choose a shorter period when a consequential choice needs the reader sooner. Choose a longer period when an already established consequence needs more time to mature and materially changes the choice. Compress quiet intervals. Never invent delays or filler to reach the default, and never make a consequential choice for the reader to reach it. In the final event summary, briefly state what changed and why the decision is due then.';
+  const periodAction =
+    '\nDevelop the selected span through consequential actions, responses and outcomes in more than one part of the period. Each major beat should change what happens next. Use scenes for decisive moments and summarize interim attempts, reactions or accumulated effects when appropriate. A date announcement followed by waiting for that date is insufficient: show what people do in the meantime and how it changes what they face at the end. Quiet stretches can be compressed. Avoid filler, monthly quotas and forced escalation. For each closing option, cite the current events that make it possible, urgent or materially different in cost, gain or uncertainty. If the reader could have faced the same options at the same stakes before those events, strengthen the causal chain.';
+  const reviewPeriodAction =
+    '\nSet readiness.periodDevelopmentSufficient=false if the selected span is mostly waiting or restates the same situation and concentrates all meaningful development at the end. Test whether removing the intervening developments would leave the same closing choice at the same stakes. For each option, verify that its cited events actually make it possible, urgent or materially change its tradeoff. If any option lacks that support, score choiceStakes at most 3. Cite the relevant events and name the missing causal step.';
+  const editPeriodAction =
+    '\nIn the prose, verify that actions and consequences across the selected span materially change the closing choice. If a substantial elapsed stretch carries no developed action or consequence and the chapter would reach the same choice without it, score momentum at most 3. If an option has the same stakes without its cited events, score choiceStakes at most 3. Cite the relevant events or paragraphs. Use canon repair when the event chain or options must change, and prose repair when the existing developments need to be made visible.';
   function withV10Boundaries(prompt: string) {
     const withOptionalGoal = once(
       prompt,
@@ -369,23 +375,27 @@ export function fictionPrompts(
       v10Casting +
       naturalBoundaries +
       decisionTiming +
-      plannerTiming,
+      plannerTiming +
+      periodAction,
     author:
       withV10Boundaries(v9Prompts.author) +
       direction +
       goalOptional +
       v10Casting +
       naturalBoundaries +
-      decisionTiming,
+      decisionTiming +
+      periodAction,
     review:
       withV10Boundaries(v9Prompts.review) +
       goalOptional +
+      reviewPeriodAction +
       '\nFlag ignored story direction, forced emphasis, breached rules, and choices that differ only in degree.',
     fidelity:
       withV10Boundaries(v9Prompts.fidelity) +
       '\nReject broken story boundaries, violations of direction rules or hardLimits, and assertions about explicitly undisclosed details.',
     editor:
       withV10Boundaries(v9Prompts.editor) +
+      editPeriodAction +
       '\nJudge personalization against the chosen direction and whether any departure is earned. Score choiceStakes at most 3 if options differ only in degree. Do not penalize a goal-free life for lack of goal progress or for leaving undisclosed details unstated. Flag repeated background constraints in option text or dialogue that sounds like a disclaimer. Flag a closing decision delayed without a credible reason, or a turning point the chapter does not establish. Preserve the underlying boundary when suggesting a rewrite.',
   };
 }

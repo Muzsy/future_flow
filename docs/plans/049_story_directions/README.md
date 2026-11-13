@@ -95,6 +95,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A v10 tervező a 3–9 hónapos keretben hat hónappal tervez alapértelmezésként. Korábbi, a felhasználót igénylő döntésnél rövidíthet, később beérő érdemi következménynél hosszabbíthat. A záró esemény összefoglalója rögzíti a fordulatot és a döntés időzítését. A három fizetős tervezői mintában (`ca919ca`) P3 hat hónapot választott, de érvénytelen opcióazonosítót adott meg a döntés tétjénél. P4 három hónappal, a meglévő javítási sor kifutásánál zárt és átment. P12 hat hónappal, a kölcsönhangszer visszavételénél és a fellépési terv ismeretében zárt és átment. A korábbi 3–9 hónapos próba eredménye ugyanezen fiktív profilokra 3, 3 és 6 hónap volt. A mintánkénti azonosítók és névpaletták eltérhettek. Három hívás, 0,2280725 USD könyvelt költség. A tervek helyben a `v10-planner-six-default-paid` könyvtárban vannak.
 
+- TI09 – A v10 tervező és író a kiválasztott időszak több részén mutat érdemi lépéseket és következményeket. Minden záró opcióhoz meg kell jelölni azokat az eseményeket, amelyek lehetővé teszik, sürgetővé teszik vagy megváltoztatják a tétjét. A tervellenőr a meglévő fejlődési jelzővel és tétpontszámmal kérhet javítást, a szerkesztő pedig a prózában is ellenőrzi ugyanezt. Cselekménybeli hiány esetén a teljes csomag javítandó, meglévő következmény láthatóvá tételéhez elegendő lehet a prózajavítás. A módosított promptokat helyi tesztek ellenőrzik; új fizetős minőségi próba még nincs.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

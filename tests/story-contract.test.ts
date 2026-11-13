@@ -68,6 +68,24 @@ describe('story direction contracts', () => {
     }
   });
 
+  it('asks v10 stages to develop the period and ground the closing options', () => {
+    const prompts = fictionPrompts('en', fictionV10Policy().promptVersions);
+    for (const stage of [prompts.planner, prompts.author]) {
+      expect(stage).toContain('consequential actions, responses and outcomes');
+      expect(stage).toContain(
+        'For each closing option, cite the current events',
+      );
+    }
+    expect(prompts.review).toContain(
+      'readiness.periodDevelopmentSufficient=false',
+    );
+    expect(prompts.review).toContain('score choiceStakes at most 3');
+    expect(prompts.editor).toContain('score momentum at most 3');
+    expect(prompts.editor).toContain(
+      'Use canon repair when the event chain or options must change',
+    );
+  });
+
   it('covers each catalogue entry with labels and matching schema identifiers', () => {
     const situationIds = new Set<string>();
     for (const [direction, entry] of Object.entries(catalog.directions)) {
