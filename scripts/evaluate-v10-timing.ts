@@ -22,6 +22,7 @@ import { narrativeFixtureId } from '../tests/narrative-fixtures';
 import { adapter } from './lib/narrative-evaluation-runner';
 import { evaluationPrices } from './lib/narrative-evaluation-options';
 import { verifyApprovalLedger } from './lib/narrative-evaluation-approval';
+import type { LedgerCall } from './lib/paid-ledger-summary';
 import { applyMigrations } from './lib/migrations';
 
 const approval = 'narrative-evaluation:v10-planner-timing-20261113';
@@ -41,8 +42,8 @@ const situations: Record<string, string> = {
 };
 type Sample = {
   id: string;
-  direction: string;
-  subtype: string;
+  direction: string | null;
+  subtype: string | null;
   note: string | null;
   durationMonths?: number;
   startDate?: string;
@@ -67,7 +68,7 @@ async function main() {
     ? undefined
     : await (async () => {
         const { calls } = JSON.parse(await readFile(ledgerPath, 'utf8')) as {
-          calls: { caseName?: string; accountedUsd: number }[];
+          calls: LedgerCall[];
         };
         verifyApprovalLedger(calls, ledgerPath);
         if (calls.some((call) => call.caseName === approval))
@@ -133,7 +134,7 @@ async function main() {
         throw new Error('Unexpected fixture job');
       const request = fictionPlannerRequest(job.payload);
       if (
-        !request.storyTiming ||
+        !('storyTiming' in request) ||
         'endDate' in request ||
         'durationMonths' in request
       )
@@ -168,6 +169,7 @@ async function main() {
           checkModel: model,
           maxOutputTokens: 12000,
           fictionTimeoutMs: 180000,
+          timeoutMs: 180000,
           guard,
           beforePhysicalRequest: async () => {
             if (admitted)
