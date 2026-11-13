@@ -83,6 +83,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A privát v10 új feladataiban a tervező csak a kezdődátumot és a 3–9 hónapos tartományt kapja. A tervezett eseményekhez választ időtartamot. A szerver a naptári összeadással ellenőrzi a záródátumot, az események sorrendjét és a záró döntést. Az író az elfogadott dátumokat kapja, és eltérés esetén a validáció megáll. A folytatás a mentett záródátumról indul. A korábban sorba tett feladatok és a v8/v9 futások időellenőrzése a meglévő időkeretet követi. A Shared közös időpontszabálya külön fejlesztési pont.
 
+- TI09 – A 3–9 hónapos időkeret első fizetős próbája a `87bce2b` forráson két mentett fejezetet adott. Tíz modellhívás, javítás és feldolgozási hiba nélkül. A jóváhagyott 1,20 USD plafonból 0,5130225 USD könyvelt összeg, 0,4525035 USD használati becslés. A tervező és az író mindkét mintában 2026. november 13. → 2027. május 13. időszakot adott. A P4 döntését a társtulajdonosnak címzett ügyfélajánlás, a P1 döntését a közös csütörtöki rutin megszakadása és az elhangzó randevúajánlat indokolja. A kiküldött v10 promptokban az új időzítési szabály mellett örökölt hathavi utasítások maradtak. A javítás ezeket az elfogadott időkeretre hivatkozó szövegre cseréli. A 72 helyi ellenőrzés sikeres, a javított prompt változatos időválasztásáról még nincs fizetős eredmény.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

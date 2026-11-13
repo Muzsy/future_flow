@@ -50,6 +50,21 @@ describe('story direction contracts', () => {
     expect(prompts.author).toContain('Never emit goal_progress_set');
   });
 
+  it('uses the supplied timing scope throughout the v10 prompts', () => {
+    for (const locale of ['en', 'hu'] as const) {
+      const prompts = fictionPrompts(locale, fictionV10Policy().promptVersions);
+      for (const prompt of Object.values(prompts)) {
+        expect(prompt).not.toMatch(/six[ -]months?/i);
+      }
+      expect(prompts.planner).toContain(
+        'first plan the causal progression through the closing decision',
+      );
+      expect(prompts.author).toContain(
+        'When endDate and durationMonths are supplied, copy both exactly',
+      );
+    }
+  });
+
   it('covers each catalogue entry with labels and matching schema identifiers', () => {
     const situationIds = new Set<string>();
     for (const [direction, entry] of Object.entries(catalog.directions)) {
