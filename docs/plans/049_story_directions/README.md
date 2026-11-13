@@ -97,6 +97,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A v10 tervező és író a kiválasztott időszak több részén mutat érdemi lépéseket és következményeket. Minden záró opcióhoz meg kell jelölni azokat az eseményeket, amelyek lehetővé teszik, sürgetővé teszik vagy megváltoztatják a tétjét. A tervellenőr a meglévő fejlődési jelzővel és tétpontszámmal kérhet javítást, a szerkesztő pedig a prózában is ellenőrzi ugyanezt. Cselekménybeli hiány esetén a teljes csomag javítandó, meglévő következmény láthatóvá tételéhez elegendő lehet a prózajavítás. A módosított promptokat helyi tesztek ellenőrzik; új fizetős minőségi próba még nincs.
 
+- TI09 – A cselekmény időbeli kibontását kérő v10 prompt három fizetős tervezői próbája (`677059f`) két érvényes első választ adott. P3 három hónap alatt az elakadt szervezéstől a rokon önálló ebédmeghívásáig jutott. P4 hat hónap alatt a javítási konfliktustól az egyik tulajdonos önálló tanári szerepvállalásáig jutott, amely átrendezi a műhely kapacitását és a záró döntést. P12-nél a szolgáltató nem adott teljes, elfogadható választ; a használat elérte a 6500 kimeneti tokenes plafont. Három hívás, 0,249595 USD könyvelt költség. A próbában az író és a szerkesztő nem futott. A tervek helyben a `v10-planner-period-action-paid` könyvtárban vannak.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
