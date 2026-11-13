@@ -88,6 +88,7 @@ import {
   evaluationV10ComparisonApproval,
   evaluationV10TimingApproval,
   evaluationV10TimingFixedApproval,
+  evaluationV10ContinuationApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1549,6 +1550,7 @@ async function runEvaluationUnlocked(
       evaluationV10ComparisonApproval,
       evaluationV10TimingApproval,
       evaluationV10TimingFixedApproval,
+      evaluationV10ContinuationApproval,
     ].find((item) => item.approvalId === options.approvalId);
     if (!approval)
       throw new DomainError('EVAL_APPROVAL_REQUIRED', 'Unknown v10 approval.');

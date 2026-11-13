@@ -67,6 +67,11 @@ export const evaluationV10TimingFixedApproval = {
   maxSpendUsd: 1.2,
 } as const;
 
+export const evaluationV10ContinuationApproval = {
+  approvalId: 'v10-continuation-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
