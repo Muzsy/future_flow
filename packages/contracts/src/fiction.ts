@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { periodCandidateV2Schema, periodChapterV2Schema } from './life-v2';
+import {
+  fixedPeriodCandidateV2Schema,
+  periodCandidateV2Schema,
+  periodChapterV2Schema,
+} from './life-v2';
 import {
   narrativeMemorySchema,
   narrativePlanSchema,
@@ -955,21 +959,38 @@ export function fictionRepairSchemaFor(
       ? fictionProseOnlyRepairSchema
       : undefined;
 }
-// Output schemas are chosen by the frozen policy, never by the payload shape,
-// so a v1-v8 output can never be read with the v9 meaning (plan section 23).
+// Keep the earlier generations' wire schema on whole fixed periods.
+// Stored artifacts use the broader parser to read v10 candidates too.
+const fixedDraft = { candidate: fixedPeriodCandidateV2Schema };
+const fixedPlanningSchema =
+  narrativePlanningResultSchema.safeExtend(fixedDraft);
+const fixedCompactDraftSchema =
+  fictionCompactDraftSchema.safeExtend(fixedDraft);
+const fixedLivingDraftSchema =
+  fictionCompactDraftV9Schema.safeExtend(fixedDraft);
+const fixedAuthorSchema = fictionAuthorResultSchema.safeExtend(fixedDraft);
+const fixedCompactAuthorSchema =
+  fictionCompactAuthorSchema.safeExtend(fixedDraft);
+const fixedLivingAuthorSchema =
+  fictionCompactAuthorV9Schema.safeExtend(fixedDraft);
+
 export function fictionDraftSchemaFor(policy: FictionPolicy) {
-  return fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-    ? fictionCompactDraftV9Schema
-    : policy.promptVersions.planner !== 'life_fiction_plan.v1'
-      ? fictionCompactDraftSchema
-      : narrativePlanningResultSchema;
+  if (policy.qualityPolicyVersion === '2.9.0')
+    return fictionCompactDraftV9Schema;
+  if (fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion))
+    return fixedLivingDraftSchema;
+  return policy.promptVersions.planner === 'life_fiction_plan.v1'
+    ? fixedPlanningSchema
+    : fixedCompactDraftSchema;
 }
 export function fictionAuthorSchemaFor(policy: FictionPolicy) {
-  return fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-    ? fictionCompactAuthorV9Schema
-    : policy.promptVersions.writer !== 'life_fiction_author.v1'
-      ? fictionCompactAuthorSchema
-      : fictionAuthorResultSchema;
+  if (policy.qualityPolicyVersion === '2.9.0')
+    return fictionCompactAuthorV9Schema;
+  if (fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion))
+    return fixedLivingAuthorSchema;
+  return policy.promptVersions.writer === 'life_fiction_author.v1'
+    ? fixedAuthorSchema
+    : fixedCompactAuthorSchema;
 }
 // Metadata-only, server-owned full-prefix inventory. Never model input.
 export const fictionReferencesSchema = z

@@ -219,6 +219,9 @@ export const periodCandidateV2Schema = z
       .max(5),
   })
   .strict();
+export const fixedPeriodCandidateV2Schema = periodCandidateV2Schema.extend({
+  durationMonths: z.union([z.literal(6), z.literal(12)]),
+});
 export type PeriodCandidateV2 = z.infer<typeof periodCandidateV2Schema>;
 
 const goalV2Schema = z
