@@ -13,13 +13,15 @@ import time
 from unittest.mock import patch
 
 # Time between choosing a disposable window and its start. The lead must cover
-# prepare, the physical candidate backup, the 60 s close delay and the
+# prepare, the physical candidate backup, the close delay and the
 # stop/restore/stage steps that run before the future-start check. The chained
 # cases then really wait for the owner window, so the lead is wall-clock CI time.
 # Measured: ~100 s of work on a hosted CI runner, but the single-CPU target
 # machine needed more than 240 s (a 4 minute lead failed there with "Owner trial
-# start already reached"), so the lead stays at the long-proven 10 minutes.
-START_LEAD = dt.timedelta(minutes=10)
+# start already reached"). The 12 minute lead leaves nine minutes after close.
+START_LEAD = dt.timedelta(minutes=12)
+# Account capture must finish while the previous window is still open.
+CLOSE_LEAD = dt.timedelta(minutes=3)
 
 
 def exercise(engine, ctx, *, label, system, database, owner, project, terms, release,
@@ -31,7 +33,7 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
         now = dt.datetime.now(dt.timezone.utc)
         iso = lambda t:t.isoformat(timespec='milliseconds').replace('+00:00','Z')
         selection = {'purpose':'owner-e2e','previousTermsSha256':successor.canonical_sha(terms),
-            'closePreviousAt':iso(now+dt.timedelta(seconds=60)), 'next':{
+            'closePreviousAt':iso(now+CLOSE_LEAD), 'next':{
                 'participants':[{'email':'owner@example.invalid','userId':'22222222-2222-4222-8222-222222222222'}],
                 'projectUsd':'3','userUsd':'3','startsAt':iso(now+START_LEAD),
                 'endsAt':iso(now+dt.timedelta(days=30)+START_LEAD)}}
@@ -121,7 +123,7 @@ def exercise(engine, ctx, *, label, system, database, owner, project, terms, rel
                 # The DB capture must still be within the selection's future
                 # close time. Reset only this disposable case's never-used dates.
                 now=trial.now()
-                selection['closePreviousAt']=iso(now+dt.timedelta(seconds=60))
+                selection['closePreviousAt']=iso(now+CLOSE_LEAD)
                 selection['next']['startsAt']=iso(now+START_LEAD)
                 selection['next']['endsAt']=iso(now+dt.timedelta(days=30)+START_LEAD)
                 checks['expiredArchive']=True
@@ -536,7 +538,7 @@ def chain(engine, successor, ctx, *, request, release, owner, project, database,
     db('successor-tester-setup',database,{'previous':window,'selection':{'purpose':'tester-beta','next':{'participants':TESTERS}}})
     now=utc()
     tester_selection={'purpose':'tester-beta','previousTermsSha256':successor.canonical_sha(window),
-        'closePreviousAt':iso(now+dt.timedelta(seconds=60)),'next':{'participants':TESTERS,
+        'closePreviousAt':iso(now+CLOSE_LEAD),'next':{'participants':TESTERS,
         'projectUsd':'10','userUsd':'3.33','startsAt':iso(now+START_LEAD),
         'endsAt':iso(now+dt.timedelta(days=30)+START_LEAD)}}
     tester,tester_candidate=advance(tester_selection,window,emails=sorted(READERS))

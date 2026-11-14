@@ -330,9 +330,10 @@ def isolated_owned(image, output, binding):
              '-e', 'DATABASE_SSL_CA_FILE=/run/secrets/supabase-ca.crt', '-e', 'DATABASE_SSL_REJECT_UNAUTHORIZED=true',
              '--entrypoint', 'node', image, 'node_modules/tsx/dist/cli.mjs', '--tsconfig', 'tsconfig.scripts.json', 'scripts/smoke-privacy-restore.ts'])
         context = {**binding, 'image': image, 'databaseNetwork': network, 'postgres': pg_id, 'ca': str(ca), 'privacy': json.loads(privacy_raw)}
-        # Synthetic-only diagnostics stay private and bounded by the existing engine.
-        with contextlib.redirect_stderr(io.StringIO()):
-            proof = engine.exercise(context, scope='image-rehearsal')
+        # Keep the allowlisted case/timing events and suppress raw fixture output.
+        fd = os.open(output/'fixture-progress.jsonl', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, 'w') as progress, contextlib.redirect_stderr(io.StringIO()):
+            proof = engine.exercise(context, scope='image-rehearsal', progress_stream=progress)
         require_proof(proof, image, binding)
         registry = json.loads(run(['node', 'scripts/schema040-image-fixture.mjs'],
             json.dumps({'context': context, 'scope': 'image-rehearsal'}).encode(), timeout=900))

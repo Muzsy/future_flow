@@ -15,7 +15,6 @@ spec = importlib.util.spec_from_file_location('successor_fixture_timing', path)
 fixture = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixture)
 
-CLOSE_DELAY = dt.timedelta(seconds=60)  # closePreviousAt = now + 60 s in every window case
 HOSTED_CI_WORK = dt.timedelta(seconds=170)  # measured upper bound on a hosted runner (PR #119)
 SLOW_MACHINE_WORK = dt.timedelta(seconds=240)  # the single-CPU target machine exceeded this
 
@@ -27,8 +26,16 @@ class FixtureWindowLead(unittest.TestCase):
     def test_lead_covers_the_work_before_the_future_start_check_with_wide_margin(self):
         # The close delay is part of the budget; the slow machine must still have
         # more than twice the failing measurement left over.
-        self.assertGreater(fixture.START_LEAD - CLOSE_DELAY, 2 * SLOW_MACHINE_WORK)
-        self.assertGreater(fixture.START_LEAD - CLOSE_DELAY, 3 * HOSTED_CI_WORK)
+        self.assertGreater(fixture.START_LEAD - fixture.CLOSE_LEAD, 2 * SLOW_MACHINE_WORK)
+        self.assertGreater(fixture.START_LEAD - fixture.CLOSE_LEAD, 3 * HOSTED_CI_WORK)
+
+    def test_close_lead_leaves_time_for_capture_and_keeps_next_start_within_policy(self):
+        self.assertGreaterEqual(fixture.CLOSE_LEAD, dt.timedelta(minutes=3))
+        self.assertLess(fixture.START_LEAD, dt.timedelta(minutes=15))
+        close = [line for line in path.read_text().splitlines()
+                 if "'closePreviousAt'" in line and 'iso(' in line]
+        self.assertEqual(len(close), 3)
+        self.assertTrue(all('CLOSE_LEAD' in line for line in close), close)
 
     def test_every_window_case_uses_the_shared_lead(self):
         source = path.read_text()
