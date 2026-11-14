@@ -556,6 +556,19 @@ def image_only_compose(config, previous_image, target_image):
     return result
 
 
+def preserve_compose_build_context(stored, rendered, source):
+    """Keep the verified serving build metadata when rendering from a new checkout."""
+    result = copy.deepcopy(rendered)
+    for name in SERVICES:
+        old_build = stored['services'][name].get('build')
+        new_build = result['services'][name].get('build')
+        if old_build is not None and new_build is not None:
+            if new_build.get('context') != source:
+                raise Refusal('Candidate Compose context differs from the verified source')
+            new_build['context'] = old_build['context']
+    return result
+
+
 def require_image_rehearsal(directory, rehearsal, build, binding):
     _private_directory(directory)
     names = ('image-rehearsal-receipt.json', 'funded-upgrade-fixture-proof.json',
@@ -855,6 +868,7 @@ class Stepper:
             raise
         except Exception:
             raise Refusal('Rendering the new configuration failed') from None
+        config = preserve_compose_build_context(unfrozen(old_config), config, request['sourceDirectory'])
         new_frozen = frozen(config)
         check_compose_delta(old_config, json.loads(new_frozen), set(changes))
         # SPR parent and generation.
@@ -948,16 +962,7 @@ class Stepper:
                     raise Refusal('Story direction environment is already present')
                 environment.update(STORY_DIRECTION_DEFAULTS)
         fresh_render = self.host.render(files['server.env'], next_pin, build['sourceDirectory'])
-        # The cached release directory may change only the verified build context;
-        # the serving configuration itself keeps its original context and pins.
-        adjusted = copy.deepcopy(fresh_render)
-        for name in SERVICES:
-            old_build = target['services'][name].get('build')
-            new_build = adjusted['services'][name].get('build')
-            if old_build is not None and new_build is not None:
-                if new_build.get('context') != build['sourceDirectory']:
-                    raise Refusal('Candidate Compose context differs from the verified source')
-                new_build['context'] = old_build['context']
+        adjusted = preserve_compose_build_context(target, fresh_render, build['sourceDirectory'])
         if adjusted != target:
             raise Refusal('Candidate configuration changes more than the service images and approved story defaults')
         binding, capability_sha, rehearsal_sha = self.host.verify_image_release(request, old_commit)

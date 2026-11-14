@@ -947,6 +947,58 @@ class ServiceEnvTests(unittest.TestCase):
         self.host.render_hook = render_defaults
         return request
 
+    def test_story_image_then_owner_cohort_renders_from_new_checkout(self):
+        request = self.story_image_request()
+        before = self.stepper._owner_bytes()
+        old_config = json.loads(before['effective-compose.json'])
+        old_context = self.request()['sourceDirectory']
+        old_config['services']['web']['build'] = {'context': old_context}
+        compose = env.frozen(old_config)
+        manifest = json.loads(before['manifest.json'])
+        manifest['effectiveComposeSha256'] = sha(compose)
+        settings = before['server.env'] + (b"NARRATIVE_PIPELINE_MODE='narrative-fiction-v2'\n"
+                                           b"NARRATIVE_FICTION_GENERATION='v9'\n")
+        manifest['ownerEnvironmentSha256'] = sha(settings)
+        for name, data in (('effective-compose.json', compose), ('manifest.json', env.encoded(manifest)),
+                           ('server.env', settings)):
+            env._replace(self.owner / name, data)
+        self.host.restart()
+
+        # The existing profile is bound to the previous synthetic fixture files.
+        # Begin with the updated serving readback to isolate this Compose sequence.
+        current = self.stepper._spr_state()
+        profile = current['profile']
+        profile['effectiveComposeSha256'] = sha(compose)
+        profile['serverEnvSha256'] = sha(settings)
+        observe = self.stepper._spr_state
+        self.stepper._spr_state = lambda: current
+
+        render = self.host.render
+        def render_from_checkout(env_bytes, pins, source):
+            config = render(env_bytes, pins, source)
+            config['services']['web']['build'] = {'context': source}
+            values = env.parse_env(env_bytes.decode())
+            for name in ('api', 'worker'):
+                config['services'][name]['environment'].update(
+                    {key: values.get(key, default) for key, default in env.STORY_DIRECTION_DEFAULTS.items()})
+            return config
+        self.host.render = render_from_checkout
+        self.write_evidence(proof={'sourceCommit': 'd' * 40})
+        report = self.stepper.plan_report(request, image=True)
+        self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        self.stepper._spr_state = observe
+
+        self.write_evidence(backup={'ownerCommit': request['build']['commit'], 'ownerImage': request['build']['imageId']},
+                            proof={'sourceCommit': request['build']['commit']},
+                            funded={'sourceCommit': request['build']['commit'], 'imageId': request['build']['imageId']})
+        cohort = '00000000-0000-4000-8000-000000000049'
+        activation = {**self.request(), 'imageId': request['build']['imageId'],
+                      'sourceDirectory': '/root/alterward-ops/new-build',
+                      'values': {**self.request()['values'], 'STORY_DIRECTIONS_COHORT_USER_IDS': cohort}}
+        plan, _, artifacts = self.stepper.plan(activation)
+        self.assertEqual(list(plan['changes']), ['STORY_DIRECTIONS_COHORT_USER_IDS'])
+        self.assertEqual(artifacts['config']['services']['web']['build']['context'], old_context)
+
     def test_story_compose_source_reconstructs_serving_release(self):
         import subprocess
         checkout = directory.parents[1]

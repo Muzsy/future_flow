@@ -115,6 +115,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI10 – Tulajdonosi döntés alapján a telepítés és a saját fiókos próba között célzott éles ellenőrzés van. Sikeres szolgáltatás- és mentési ellenőrzés után a próba ugyanabban a műveleti ablakban indulhat. Az átállás és a visszaállítás izolált próbája továbbra is a telepítés előfeltétele.
 
+- TI10 – A #203 review-ja feltárta, hogy az új checkoutból renderelt webes build-útvonal blokkolhatta volna a tulajdonosi kohorsz bekapcsolását. Az operátor ellenőrzi az új build-útvonalat, majd megőrzi a futó konfigurációhoz kötött build-metaadatot. A sorrendi teszt külön checkouttal ellenőrzi az image-váltást és a kohorsztervet. A lezárt image-váltás utáni hiba külön helyreállítási tervet igényel.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
